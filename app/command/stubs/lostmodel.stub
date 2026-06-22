@@ -1,0 +1,45 @@
+<?php
+declare (strict_types = 1);
+
+namespace {%namespace%};
+
+use app\model\Base;
+
+/**
+ * {%className%} 模型
+ * @mixin \think\Model
+ */
+class {%className%} extends Base
+{
+{%if tableName%}
+    /**
+     * 绑定数据表
+     * @var string
+     */
+    protected $name = '{%tableName%}';
+{%endif%}
+
+    /**
+     * 字段类型转换
+     * @var array
+     */
+    protected $type = [
+        'id'          => 'integer',
+        'create_time' => 'integer',
+        'update_time' => 'integer',
+        'delete_time' => 'integer',
+
+    ];
+
+    /** JSON 字段 */
+    protected $json = [];
+
+    /** 输出隐藏 */
+    protected $hidden = ['delete_time'];
+
+    /** 计算属性 */
+    protected $append = [];
+
+    /** 只读字段 */
+    protected $readonly = [];
+}

@@ -1,0 +1,185 @@
+<?php
+declare(strict_types=1);
+
+namespace app\service;
+
+use app\model\TeamMemberProfile;
+use app\model\TeamMemberPost;
+use app\model\TeamMemberPostType;
+use app\validate\Member as MemberValidator;
+use think\exception\HttpException;
+use think\facade\Db;
+
+class TeamMember
+{
+    /**
+     * 获取所有成员
+     */
+    public function list(int $teamId): array
+    {
+        return \app\model\TeamMember::where('team_id', $teamId)
+            ->with(['profile', 'posts.type'])
+            ->visible(['id', 'team_id', 'user_id', 'is_displayed', 'is_blocked', 'create_time'])
+            ->select()
+            ->toArray();
+    }
+
+    /**
+     * 获取单个成员
+     */
+    public function get(int $teamId, int $memberId): array
+    {
+        $member = \app\model\TeamMember::where('team_id', $teamId)
+            ->with(['profile', 'posts.type'])
+            ->find($memberId);
+
+        if (!$member) {
+            throw new HttpException(404, '成员不存在');
+        }
+
+        return $member->toArray();
+    }
+
+    /**
+     * 添加成员
+     */
+    public function add(int $teamId, int $userId, array $data): void
+    {
+        $validator = new MemberValidator;
+        if (!$validator->scene('add')->check($data)) {
+            throw new HttpException(422, $validator->getError());
+        }
+
+        if (\app\model\TeamMember::where('team_id', $teamId)->where('user_id', $userId)->find()) {
+            throw new HttpException(409, '该用户已是本团队成员');
+        }
+
+        Db::transaction(function () use ($teamId, $userId, $data) {
+            $member = new \app\model\TeamMember;
+            $member->team_id = $teamId;
+            $member->user_id = $userId;
+            $member->save();
+
+            $profile = new TeamMemberProfile;
+            $profile->member_id = $member->id;
+            $profile->nickname   = $data['nickname'] ?? '';
+            $profile->avatar     = $data['avatar'] ?? '';
+            $profile->save();
+
+            if (!empty($data['post_type_ids'])) {
+                $this->syncPosts($member->id, $teamId, $data['post_type_ids']);
+            }
+        });
+    }
+
+    /**
+     * 编辑成员
+     */
+    public function edit(int $teamId, int $memberId, array $data): void
+    {
+        $validator = new MemberValidator;
+        if (!$validator->scene('edit')->check($data)) {
+            throw new HttpException(422, $validator->getError());
+        }
+
+        Db::transaction(function () use ($teamId, $memberId, $data) {
+            $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
+            if (!$member) {
+                throw new HttpException(404, '成员不存在');
+            }
+
+            if (isset($data['is_displayed'])) {
+                $member->is_displayed = (int) $data['is_displayed'];
+                $member->save();
+            }
+
+            $profileData = [];
+            if (isset($data['nickname'])) {
+                $profileData['nickname'] = $data['nickname'];
+            }
+            if (isset($data['avatar'])) {
+                $profileData['avatar'] = $data['avatar'];
+            }
+            if ($profileData) {
+                $profile = TeamMemberProfile::where('member_id', $memberId)->find();
+                if ($profile) {
+                    $profile->save($profileData);
+                }
+            }
+
+            if (isset($data['post_type_ids'])) {
+                $this->syncPosts($memberId, $teamId, $data['post_type_ids']);
+            }
+        });
+    }
+
+    /**
+     * 封禁成员
+     */
+    public function block(int $teamId, int $memberId): void
+    {
+        $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
+        if (!$member) {
+            throw new HttpException(404, '成员不存在');
+        }
+
+        $member->is_blocked = 1;
+        $member->save();
+    }
+
+    /**
+     * 解封成员
+     */
+    public function unblock(int $teamId, int $memberId): void
+    {
+        $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
+        if (!$member) {
+            throw new HttpException(404, '成员不存在');
+        }
+
+        $member->is_blocked = 0;
+        $member->save();
+    }
+
+    /**
+     * 移出成员
+     */
+    public function remove(int $teamId, int $memberId): void
+    {
+        $validator = new MemberValidator;
+        if (!$validator->scene('remove')->check(['member_id' => $memberId])) {
+            throw new HttpException(422, $validator->getError());
+        }
+
+        Db::transaction(function () use ($teamId, $memberId) {
+            $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
+            if (!$member) {
+                throw new HttpException(404, '成员不存在');
+            }
+
+            TeamMemberProfile::destroy(['member_id' => $memberId]);
+            TeamMemberPost::destroy(['member_id' => $memberId]);
+            $member->delete();
+        });
+    }
+
+    /**
+     * 同步成员的岗位分配
+     */
+    private function syncPosts(int $memberId, int $teamId, array $typeIds): void
+    {
+        TeamMemberPost::destroy(['member_id' => $memberId]);
+
+        foreach ($typeIds as $typeId) {
+            $type = TeamMemberPostType::where('team_id', $teamId)->find((int) $typeId);
+            if (!$type) {
+                continue;
+            }
+            $post = new TeamMemberPost;
+            $post->member_id = $memberId;
+            $post->type_id   = $type->id;
+            $post->post_id   = $type->post_id;
+            $post->save();
+        }
+    }
+}

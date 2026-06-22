@@ -1,0 +1,1 @@
+1. 'is_banned'字段为官方封禁，'is_blocked'字段为管理员封禁

@@ -1,0 +1,13 @@
+*.log
+.env
+composer.phar
+composer.lock
+.DS_Store
+Thumbs.db
+/.idea
+/.vscode
+/.claude/settings.local.json
+/vendor
+/.settings
+/.buildpath
+/.project
