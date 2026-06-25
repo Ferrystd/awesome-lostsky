@@ -29,6 +29,9 @@ class Device
      */
     public function quitAll(int $userId): void
     {
-        UserDevice::destroy(['user_id' => $userId]);
+        $devices = UserDevice::where('user_id', $userId)->select();
+        foreach ($devices as $device) {
+            $device->delete();
+        }
     }
 }

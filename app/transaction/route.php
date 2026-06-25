@@ -1,0 +1,20 @@
+<?php
+use think\facade\Route;
+
+// transaction
+Route::get('transaction', 'Transaction/index');
+Route::get('transaction/stats', 'Transaction/stats');
+Route::get('transaction/<id>', 'Transaction/get')->pattern(['id' => '\d+']);
+Route::post('transaction', 'Transaction/create');
+Route::post('transaction/<id>', 'Transaction/edit');
+Route::post('transaction/<id>/delete', 'Transaction/delete');
+
+// sender
+Route::get('transaction/sender', 'Sender/index');
+Route::get('transaction/sender/all', 'Sender/all');
+Route::post('transaction/sender/bind', 'Sender/bind');
+Route::post('transaction/sender/unbind', 'Sender/unbind');
+
+// balance
+Route::get('transaction/balance/logs', 'Balance/logs');
+Route::post('transaction/balance/recharge', 'Balance/recharge');

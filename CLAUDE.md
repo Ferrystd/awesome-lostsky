@@ -5,7 +5,7 @@
 基于 **ThinkPHP 8** 框架构建的 **纯后端 API 服务**。运行环境要求 PHP 8.0+。
 
 - **前端**：部署在 CDN，不在此仓库。后端只返回 JSON，不做 SSR 和页面渲染。
-- **多应用**：使用 ThinkPHP 8 多应用模式。一个 App = 一组功能入口（如 `console` 控制台、`account` 认证）。该项目只提供API服务。
+- **多应用**：使用 ThinkPHP 8 多应用模式。一个 App = 一组功能入口（如 `console` 控制台、`account` 认证）。该项目只提供API服务。一个产品一个应用
 
 ## 控制台命令
 
@@ -28,7 +28,7 @@ php think make:controller #新建控制器
 所有模型统一继承 `app\model\Base`（而非直接继承 `think\Model`）。`Base` 提供能力：
 
 - **自动时间戳**
-- **软删除**：自动处理，不需写判断`delete_time`逻辑(用`crash`而非`delete`方法)
+- **软删除**：自动处理，不需写判断`delete_time`逻辑(用`crash`而非`delete`方法)。自动充当业务删除，不额外写删除逻辑。
 
 开发约定：
 
@@ -37,7 +37,11 @@ php think make:controller #新建控制器
 - **关联**：使用`hasOne()`,`bind()`,`belongTo`等关联，而非手动写逻辑
 - **命名空间**：`app\model`。
 - **跨表默认数据**：保留空数据+获取器兜底，而非频繁用复制解决字段默认值。
-- **文件模板** 使用`make:model`可建构`$type`,`$hidden`等数组
+- **文件模板**：使用`make:model`可建构`$type`,`$hidden`等数组
+- **字段命名**：最简，如`customer_id`代替`team_customer_id`
+- **不随意写独立方法**：优先用获取器、修改器、搜索器，再不济也用scope语法糖等
+- **能null则null**：`null`是合法的所有type。不用0,''替代null语义
+- **数据计算**：交给数据库，禁止在php侧计算
 
 ### 中间件体系
 
@@ -50,7 +54,13 @@ php think make:controller #新建控制器
 #### 鉴权流程：
 1. **JwtAuth** :JWT 认证中间件，确定用户
 2. **Context** :进一步提取 user_id、team_id、member_id
-3. **MemberAccess**,**TeamAccess**:验证team管理权限，验证成员本人操作权限
+3. 团队能力鉴权
++ **TransactionAbility**:记账能力校验
+4. 成员访问鉴权
+**MemberAccess**:成员自我操作权限
+**TeamAccess**:team管理权限
+**TransactionAccess**:记账应用team管理权限
+**TransactionVerify**:记账应用成员操作权限
 
 ### 服务与控制器规范
 
@@ -73,3 +83,6 @@ php think make:controller #新建控制器
   - `team`：用户主动创建，可有多成员，可解散
 - **Team.slug**：全局唯一标识，用于域名和 URL 路由
 - UserProfile 不承载任何工作属性，保持纯粹
+
+### 开发要求
+1. 当发现部分代码冗余设计时，清除冗余设计，而非统一采用冗余风格

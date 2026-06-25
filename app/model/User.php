@@ -48,4 +48,9 @@ class User extends Base
     {
         return $this->hasMany(TeamMember::class, 'user_id');
     }
+
+    public function customers()
+    {
+        return $this->hasMany(TeamCustomer::class, 'user_id');
+    }
 }

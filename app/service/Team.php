@@ -97,9 +97,20 @@ class Team
         }
 
         Db::transaction(function () use ($teamId) {
-            TeamProfile::destroy(['team_id' => $teamId]);
-            TeamMember::destroy(['team_id' => $teamId]);
-            TeamModel::destroy($teamId);
+            $profile = TeamProfile::where('team_id', $teamId)->find();
+            if ($profile) {
+                $profile->delete();
+            }
+
+            $members = TeamMember::where('team_id', $teamId)->select();
+            foreach ($members as $member) {
+                $member->delete();
+            }
+
+            $team = TeamModel::find($teamId);
+            if ($team) {
+                $team->delete();
+            }
         });
     }
 }

@@ -11,28 +11,18 @@ use app\model\Base;
  */
 class TeamMember extends Base
 {
-    /**
-     * 字段类型转换
-     * @var array
-     */
     protected $type = [
         'id' => 'integer',
         'create_time' => 'integer',
         'update_time' => 'integer',
         'delete_time' => 'integer',
-        //固定字段
 
-        //拓展字段 
         'team_id' => 'integer',
         'user_id' => 'integer',
         'is_displayed' => 'integer',
-        'is_blocked' => 'integer',//是否被管理员封禁，0正常，1封禁
+        'is_blocked' => 'integer',
     ];
 
-    /**
-     * JSON 字段
-     * @var array
-     */
     protected $json = [];
 
     public function team()
@@ -54,5 +44,31 @@ class TeamMember extends Base
     public function posts()
     {
         return $this->hasMany(TeamMemberPost::class, 'member_id');
+    }
+
+    public function handledTransactions()
+    {
+        return $this->hasMany(TeamTransaction::class, 'handler_id');
+    }
+
+    public function sentTransactions()
+    {
+        return $this->hasMany(TeamTransaction::class, 'sender_id');
+    }
+
+    public function csTransactions()
+    {
+        return $this->hasMany(TeamTransaction::class, 'cs_id');
+    }
+
+    public function bindings()
+    {
+        return $this->hasMany(TeamCustomerSender::class, 'member_id');
+    }
+
+    // 占位：CS 角色尚未实现，始终返回空
+    public function scopeCs($query)
+    {
+        return $query->whereRaw('1=0');
     }
 }

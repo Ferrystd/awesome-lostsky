@@ -3,6 +3,7 @@ declare (strict_types = 1);
 
 namespace app\model;
 
+use app\enum\Gender;
 use app\model\Base;
 
 /**
@@ -26,7 +27,7 @@ class UserProfile extends Base
         'user_id' => 'integer',
         'nickname' => 'string',
         'avatar' => 'string',
-        'gender' => 'integer',
+        'gender' => Gender::class,
         'birthday' => 'integer',
 
     ];

@@ -81,4 +81,14 @@ class Team extends Base
     {
         return $this->hasMany(TeamNotice::class, 'team_id');
     }
+
+    public function customers()
+    {
+        return $this->hasMany(TeamCustomer::class, 'team_id');
+    }
+
+    public function transactions()
+    {
+        return $this->hasMany(TeamTransaction::class, 'team_id');
+    }
 }

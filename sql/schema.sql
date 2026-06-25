@@ -249,3 +249,204 @@ CREATE TABLE `team_notice` (
     PRIMARY KEY (`id`),
     KEY `idx_team_id` (`team_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队公告表';
+
+-- ----------------------------
+-- Table: team_customer
+-- Model: app\model\TeamCustomer
+-- ----------------------------
+CREATE TABLE `team_customer` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `user_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '客户用户ID',
+    `is_blocked`  TINYINT      NOT NULL DEFAULT 0 COMMENT '是否被封禁 0-否 1-是',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_team_user` (`team_id`, `user_id`),
+    KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队客户表';
+
+-- ----------------------------
+-- Table: team_transaction
+-- Model: app\model\TeamTransaction
+-- ----------------------------
+CREATE TABLE `team_transaction` (
+    `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `handler_id`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '接单人(0=团队主体,其他=成员ID)',
+    `sender_id`     INT UNSIGNED NULL     DEFAULT NULL COMMENT '发单人(NULL=未知,0=团队主体,其他=成员ID)',
+    `cs_id`         INT UNSIGNED NULL     DEFAULT NULL COMMENT '客服(NULL=未知,0=团队主体,其他=成员ID)',
+    `customer_id`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '客户ID(NULL=匿名)',
+    `type`          TINYINT      NOT NULL DEFAULT 1 COMMENT '交易类型: 1-商城下单 2-记账登记',
+    `total_price`   DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '总价',
+    `cost`          DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '成本损耗',
+    `cash`          DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '现款支付',
+    `prepaid`       DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '预存款支付',
+    `handler_cut`   DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '接单人抽成',
+    `sender_cut`    DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '发单人抽成',
+    `cs_cut`        DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '客服抽成',
+    `team_cut`      DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '团队抽成',
+    `trans_at`      INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '实际交易时间戳',
+    `memo`          TEXT         NULL     COMMENT '备注',
+    `create_time`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_team_id` (`team_id`),
+    KEY `idx_handler_id` (`handler_id`),
+    KEY `idx_customer_id` (`customer_id`),
+    KEY `idx_create_time` (`create_time`),
+    KEY `idx_team_create` (`team_id`, `create_time`),
+    KEY `idx_team_trans` (`team_id`, `trans_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队流水记录表';
+
+-- ----------------------------
+-- Table: team_customer_balance
+-- Model: app\model\TeamCustomerBalance
+-- ----------------------------
+CREATE TABLE `team_customer_balance` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `customer_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '客户ID',
+    `balance`     DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '当前余额',
+    `recharged`   DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '累计充值',
+    `spent`       DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '累计消费',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_customer_id` (`customer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='客户预存款余额表';
+
+-- ----------------------------
+-- Table: team_customer_balance_log
+-- Model: app\model\TeamCustomerBalanceLog
+-- ----------------------------
+CREATE TABLE `team_customer_balance_log` (
+    `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `customer_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '客户ID',
+    `type`          TINYINT      NOT NULL DEFAULT 0 COMMENT '变动类型: 1-充值 2-消费 3-退款 4-手动调整',
+    `amount`        DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '变动金额(正=增加,负=减少)',
+    `balance_after` DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '变动后余额',
+    `trans_id`      INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '关联流水ID',
+    `memo`          VARCHAR(255) NOT NULL DEFAULT '' COMMENT '备注',
+    `create_time`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_customer_id` (`customer_id`),
+    KEY `idx_type` (`type`),
+    KEY `idx_trans_id` (`trans_id`),
+    KEY `idx_create_time` (`create_time`),
+    KEY `idx_customer_type` (`customer_id`, `type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='预存款变动日志表';
+
+-- ----------------------------
+-- Table: team_customer_sender
+-- Model: app\model\TeamCustomerSender
+-- ----------------------------
+CREATE TABLE `team_customer_sender` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID(冗余,加速查询)',
+    `customer_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '客户ID',
+    `member_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '发单人ID(团队成员)',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间(解绑)',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_customer_member` (`customer_id`, `member_id`),
+    KEY `idx_member_id` (`member_id`),
+    KEY `idx_team_id` (`team_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='客户-发单人绑定表';
+
+-- ----------------------------
+-- Table: team_customer_profile
+-- Model: app\model\TeamCustomerProfile
+-- ----------------------------
+CREATE TABLE `team_customer_profile` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `customer_id` INT UNSIGNED NOT NULL COMMENT '客户ID',
+    `name`        VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '客户名称',
+    `memo`        VARCHAR(255) NOT NULL DEFAULT '' COMMENT '备注',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_customer_id` (`customer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='客户资料表';
+
+-- ----------------------------
+-- Table: team_product
+-- Model: app\model\TeamProduct
+-- ----------------------------
+CREATE TABLE `team_product` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `member_id`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '专属成员ID(NULL=团队公用)',
+    `name`        VARCHAR(100) NOT NULL DEFAULT '' COMMENT '商品名称',
+    `description` TEXT         NULL     COMMENT '商品描述',
+    `price`       DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '单价',
+    `cost`        DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '成本',
+    `handler_cut` DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '接单人默认抽成',
+    `sender_cut`  DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '发单人默认抽成',
+    `cs_cut`      DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '客服默认抽成',
+    `team_cut`    DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '团队默认抽成',
+    `is_active`   TINYINT      NOT NULL DEFAULT 1 COMMENT '是否上架 0-下架 1-上架',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_team_id` (`team_id`),
+    KEY `idx_member_id` (`member_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品表';
+
+-- ----------------------------
+-- Table: team_product_handler
+-- Model: app\model\TeamProductHandler
+-- ----------------------------
+CREATE TABLE `team_product_handler` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `product_id`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '商品ID',
+    `member_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '接单人(团队成员ID)',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_product_member` (`product_id`, `member_id`),
+    KEY `idx_member_id` (`member_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品接单人白名单';
+
+-- ----------------------------
+-- Table: team_order
+-- Model: app\model\TeamOrder
+-- ----------------------------
+CREATE TABLE `team_order` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `customer_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '客户ID',
+    `handler_id`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '接单人(0=团队主体)',
+    `sender_id`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '发单人(NULL=未知,0=团队主体)',
+    `product_id`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '商品ID',
+    `quantity`    INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '数量',
+    `unit_price`  DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '下单时单价',
+    `total_price` DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '总价',
+    `cost`        DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '成本',
+    `handler_cut` DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '接单人抽成',
+    `sender_cut`  DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '发单人抽成',
+    `cs_cut`      DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '客服抽成',
+    `team_cut`    DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '团队抽成',
+    `cash`        DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '现款支付(预留)',
+    `prepaid`     DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '预存款支付',
+    `trans_id`    INT UNSIGNED NULL     DEFAULT NULL COMMENT '关联流水ID',
+    `status`      TINYINT      NOT NULL DEFAULT 1 COMMENT '订单状态 1-处理中 2-已完成',
+    `memo`        TEXT         NULL     COMMENT '备注',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_team_id` (`team_id`),
+    KEY `idx_customer_id` (`customer_id`),
+    KEY `idx_handler_id` (`handler_id`),
+    KEY `idx_trans_id` (`trans_id`),
+    KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单表';

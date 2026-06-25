@@ -4,6 +4,7 @@ description: >
   Add a new model (and database table) to the LostSky ThinkPHP 8 project.
   Use when the user wants to create a new model, add a database table, design a schema,
   or mentions a model/table name they want to introduce.
+  Ordinarily, speak in Chinese.
 ---
 
 # LostSky Model Creation

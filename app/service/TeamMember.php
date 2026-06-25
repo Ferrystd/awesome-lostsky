@@ -157,8 +157,14 @@ class TeamMember
                 throw new HttpException(404, '成员不存在');
             }
 
-            TeamMemberProfile::destroy(['member_id' => $memberId]);
-            TeamMemberPost::destroy(['member_id' => $memberId]);
+            $profile = TeamMemberProfile::where('member_id', $memberId)->find();
+            if ($profile) {
+                $profile->delete();
+            }
+            $posts = TeamMemberPost::where('member_id', $memberId)->select();
+            foreach ($posts as $post) {
+                $post->delete();
+            }
             $member->delete();
         });
     }
@@ -168,7 +174,10 @@ class TeamMember
      */
     private function syncPosts(int $memberId, int $teamId, array $typeIds): void
     {
-        TeamMemberPost::destroy(['member_id' => $memberId]);
+        $existing = TeamMemberPost::where('member_id', $memberId)->select();
+        foreach ($existing as $post) {
+            $post->delete();
+        }
 
         foreach ($typeIds as $typeId) {
             $type = TeamMemberPostType::where('team_id', $teamId)->find((int) $typeId);
