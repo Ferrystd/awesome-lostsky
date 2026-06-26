@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.5 (2026-06-26)
+
+### 新增
+
+- 初始化 Codex 相关配置文件，补充 `.agents/skills` 与 `.claude/settings.json`。
+
 ## v0.0.3 (2026-06-26)
 
 ### 新增
