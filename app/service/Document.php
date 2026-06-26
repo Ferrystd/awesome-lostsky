@@ -66,14 +66,15 @@ class Document
         $this->ensureTargetExists($targetType, $targetId);
 
         $doc = app(DocumentModel::class);
-        $doc->title             = $data['title'];
-        $doc->content           = $data['content'] ?? null;
-        $doc->documentable_type = $targetType;
-        $doc->documentable_id   = $targetId;
-        $doc->scope             = $scope;
-        $doc->is_displayed      = $data['is_displayed'] ?? 0;
-        $doc->sort              = $data['sort'] ?? 0;
-        $doc->save();
+        $doc->save([
+            'title' => $data['title'],
+            'content' => $data['content'] ?? null,
+            'documentable_type' => $targetType,
+            'documentable_id' => $targetId,
+            'scope' => $scope,
+            'is_displayed' => $data['is_displayed'] ?? 0,
+            'sort' => $data['sort'] ?? 0,
+        ]);
 
         return (int) $doc->id;
     }

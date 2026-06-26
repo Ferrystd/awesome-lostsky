@@ -8,6 +8,8 @@ use think\Request;
 
 class Me
 {
+    private const PROFILE_FIELDS = ['nickname', 'avatar', 'intro_image', 'intro_video', 'introduction_markdown'];
+
     protected $middleware = ['JwtAuth', 'Context', 'MemberAccess'];
 
     /**
@@ -26,13 +28,7 @@ class Me
      */
     public function edit(Request $request)
     {
-        $data = [];
-        if ($request->has('nickname')) {
-            $data['nickname'] = $request->post('nickname', '');
-        }
-        if ($request->has('avatar')) {
-            $data['avatar'] = $request->post('avatar', '');
-        }
+        $data = $request->only(self::PROFILE_FIELDS, 'post');
 
         $service = app(TeamMemberService::class);
         $service->edit($request->team_id, $request->member_id, $data);

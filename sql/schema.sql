@@ -152,13 +152,16 @@ CREATE TABLE `team_member` (
 -- Model: app\model\TeamMemberProfile
 -- ----------------------------
 CREATE TABLE `team_member_profile` (
-    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `member_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队成员ID',
-    `nickname`    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '昵称',
-    `avatar`      VARCHAR(255) NOT NULL DEFAULT '' COMMENT '头像',
-    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
-    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
-    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    `id`                    INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `member_id`             INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队成员ID',
+    `nickname`              VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '昵称',
+    `avatar`                VARCHAR(255) NOT NULL DEFAULT '' COMMENT '头像',
+    `intro_image`           VARCHAR(255) NULL     DEFAULT NULL COMMENT '自介图',
+    `intro_video`           VARCHAR(255) NULL     DEFAULT NULL COMMENT '音介视频',
+    `introduction_markdown` TEXT         NULL COMMENT 'Markdown介绍',
+    `create_time`           INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`           INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`           INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_member_id` (`member_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队成员资料表';

@@ -8,6 +8,8 @@ use think\Request;
 
 class Member
 {
+    private const PROFILE_FIELDS = ['nickname', 'avatar', 'intro_image', 'intro_video', 'introduction_markdown'];
+
     protected $middleware = [
         'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove']],
         'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove']],
@@ -45,13 +47,11 @@ class Member
     public function add(Request $request)
     {
         $userId = (int) $request->post('user_id', 0);
+        $data   = $request->only(self::PROFILE_FIELDS, 'post');
+        $data['post_type_ids'] = $request->post('post_type_ids', []);
 
         $service = app(TeamMemberService::class);
-        $service->add($request->team_id, $userId, [
-            'nickname'      => $request->post('nickname', ''),
-            'avatar'        => $request->post('avatar', ''),
-            'post_type_ids' => $request->post('post_type_ids', []),
-        ]);
+        $service->add($request->team_id, $userId, $data);
 
         return message('成员已添加');
     }
@@ -63,13 +63,7 @@ class Member
     {
         $memberId = (int) $request->post('member_id', 0);
 
-        $data = [];
-        if ($request->has('nickname')) {
-            $data['nickname'] = $request->post('nickname', '');
-        }
-        if ($request->has('avatar')) {
-            $data['avatar'] = $request->post('avatar', '');
-        }
+        $data = $request->only(self::PROFILE_FIELDS, 'post');
         if ($request->has('is_displayed')) {
             $data['is_displayed'] = (int) $request->post('is_displayed');
         }

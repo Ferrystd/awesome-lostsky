@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.0.9 (2026-06-27)
+
+### 新增
+
+- **成员资料扩展**：`TeamMemberProfile` 新增 `intro_image`（自介图）、`intro_video`（音介视频）、`introduction_markdown`（Markdown 介绍）三个字段，丰富成员展示能力。
+- **Display 服务扩展**：对外公开成员资料增加自介图、音介视频、Markdown 介绍字段。
+
+### 变更
+
+- **代码风格统一**：模型 `save()` 方法统一使用数组传参（`$model->save([...])`），替换逐字段赋值的风格。涉及 `Team`、`TeamMember`、`Product`、`PostType`、`Document`、`Display` 等服务。
+- **控制器精简**：`Me`、`Member` 控制器提取 `PROFILE_FIELDS` 常量，使用 `$request->only()` 统一收集参数，消除重复的 `$request->has()`/`$request->post()` 模式。
+- **验证器扩展**：`Member` 验证器新增 `intro_image`、`intro_video`、`introduction_markdown` 字段规则。
+- **模型关联更新**：`TeamMember.profile` 关联的 `bind()` 新增三个字段映射。
+- **数据库 Schema**：`team_member_profile` 表新增 `intro_image`、`intro_video`、`introduction_markdown` 列。
+
 ## v0.0.8 (2026-06-27)
 
 ### 新增

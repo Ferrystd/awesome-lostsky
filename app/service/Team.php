@@ -55,20 +55,23 @@ class Team
 
         $team = Db::transaction(function () use ($userId, $slug, $displayName) {
             $team = new TeamModel;
-            $team->slug         = $slug;
-            $team->display_name = $displayName;
-            $team->user_id      = $userId;
-            $team->save();
+            $team->save([
+                'slug' => $slug,
+                'display_name' => $displayName,
+                'user_id' => $userId,
+            ]);
 
             $member = new TeamMember;
-            $member->team_id      = $team->id;
-            $member->user_id      = $userId;
-            $member->is_displayed = 1;
-            $member->save();
+            $member->save([
+                'team_id' => $team->id,
+                'user_id' => $userId,
+                'is_displayed' => 1,
+            ]);
 
             $profile = new TeamProfile;
-            $profile->team_id = $team->id;
-            $profile->save();
+            $profile->save([
+                'team_id' => $team->id,
+            ]);
 
             return $team;
         });

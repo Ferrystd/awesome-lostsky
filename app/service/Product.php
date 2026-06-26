@@ -63,23 +63,25 @@ class Product
 
         return Db::transaction(function () use ($teamId, $data, $memberId) {
             $product = new TeamProduct;
-            $product->team_id     = $teamId;
-            $product->member_id   = $memberId ?: null;
-            $product->name        = $data['name'];
-            $product->description = $data['description'] ?? null;
-            $product->price       = (float) $data['price'];
-            $product->cost        = (float) ($data['cost'] ?? 0);
-            $product->handler_cut = isset($data['handler_cut']) ? (float) $data['handler_cut'] : null;
-            $product->sender_cut  = isset($data['sender_cut']) ? (float) $data['sender_cut'] : null;
-            $product->cs_cut      = isset($data['cs_cut']) ? (float) $data['cs_cut'] : null;
-            $product->team_cut    = isset($data['team_cut']) ? (float) $data['team_cut'] : null;
-            $product->save();
+            $product->save([
+                'team_id' => $teamId,
+                'member_id' => $memberId ?: null,
+                'name' => $data['name'],
+                'description' => $data['description'] ?? null,
+                'price' => (float) $data['price'],
+                'cost' => (float) ($data['cost'] ?? 0),
+                'handler_cut' => isset($data['handler_cut']) ? (float) $data['handler_cut'] : null,
+                'sender_cut' => isset($data['sender_cut']) ? (float) $data['sender_cut'] : null,
+                'cs_cut' => isset($data['cs_cut']) ? (float) $data['cs_cut'] : null,
+                'team_cut' => isset($data['team_cut']) ? (float) $data['team_cut'] : null,
+            ]);
 
             if ($memberId) {
                 $handler = new TeamProductHandler;
-                $handler->product_id = $product->id;
-                $handler->member_id  = $memberId;
-                $handler->save();
+                $handler->save([
+                    'product_id' => $product->id,
+                    'member_id' => $memberId,
+                ]);
             }
 
             return (int) $product->id;

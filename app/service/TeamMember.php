@@ -12,6 +12,8 @@ use think\facade\Db;
 
 class TeamMember
 {
+    private const PROFILE_FIELDS = ['nickname', 'avatar', 'intro_image', 'intro_video', 'introduction_markdown'];
+
     /**
      * 获取所有成员
      */
@@ -19,7 +21,21 @@ class TeamMember
     {
         return \app\model\TeamMember::where('team_id', $teamId)
             ->with(['profile', 'posts.type', 'fieldValues.field'])
-            ->visible(['id', 'team_id', 'user_id', 'is_displayed', 'is_blocked', 'create_time'])
+            ->visible([
+                'id',
+                'team_id',
+                'user_id',
+                'is_displayed',
+                'is_blocked',
+                'nickname',
+                'avatar',
+                'intro_image',
+                'intro_video',
+                'introduction_markdown',
+                'create_time',
+                'posts',
+                'fieldValues',
+            ])
             ->select()
             ->toArray();
     }
@@ -56,15 +72,20 @@ class TeamMember
 
         Db::transaction(function () use ($teamId, $userId, $data) {
             $member = new \app\model\TeamMember;
-            $member->team_id = $teamId;
-            $member->user_id = $userId;
-            $member->save();
+            $member->save([
+                'team_id' => $teamId,
+                'user_id' => $userId,
+            ]);
 
             $profile = new TeamMemberProfile;
-            $profile->member_id = $member->id;
-            $profile->nickname   = $data['nickname'] ?? '';
-            $profile->avatar     = $data['avatar'] ?? '';
-            $profile->save();
+            $profile->save(array_merge([
+                'member_id' => $member->id,
+                'nickname' => '',
+                'avatar' => '',
+                'intro_image' => null,
+                'intro_video' => null,
+                'introduction_markdown' => null,
+            ], $this->pick($data, self::PROFILE_FIELDS)));
 
             if (!empty($data['post_type_ids'])) {
                 $this->syncPosts($member->id, $teamId, $data['post_type_ids']);
@@ -93,18 +114,10 @@ class TeamMember
                 $member->save();
             }
 
-            $profileData = [];
-            if (isset($data['nickname'])) {
-                $profileData['nickname'] = $data['nickname'];
-            }
-            if (isset($data['avatar'])) {
-                $profileData['avatar'] = $data['avatar'];
-            }
+            $profileData = $this->pick($data, self::PROFILE_FIELDS);
             if ($profileData) {
-                $profile = TeamMemberProfile::where('member_id', $memberId)->find();
-                if ($profile) {
-                    $profile->save($profileData);
-                }
+                $profile = TeamMemberProfile::where('member_id', $memberId)->findOrEmpty();
+                $profile->save(array_merge(['member_id' => $memberId], $profileData));
             }
 
             if (isset($data['post_type_ids'])) {
@@ -190,5 +203,10 @@ class TeamMember
             $post->post_id   = $type->post_id;
             $post->save();
         }
+    }
+
+    private function pick(array $data, array $fields): array
+    {
+        return array_intersect_key($data, array_flip($fields));
     }
 }

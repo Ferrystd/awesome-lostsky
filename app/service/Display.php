@@ -8,6 +8,17 @@ use think\exception\HttpException;
 
 class Display
 {
+    private const MEMBER_VISIBLE = [
+        'id',
+        'nickname',
+        'avatar',
+        'intro_image',
+        'intro_video',
+        'introduction_markdown',
+        'create_time',
+        'posts',
+    ];
+
     /**
      * 获取团队公开资料
      */
@@ -31,7 +42,7 @@ class Display
             ->where('is_displayed', 1)
             ->where('is_blocked', 0)
             ->with(['profile', 'posts.type'])
-            ->visible(['id', 'nickname', 'avatar', 'create_time'])
+            ->visible(self::MEMBER_VISIBLE)
             ->select()
             ->toArray();
     }
@@ -51,6 +62,6 @@ class Display
             throw new HttpException(404, '成员不存在');
         }
 
-        return $member->toArray();
+        return $member->visible(self::MEMBER_VISIBLE)->toArray();
     }
 }

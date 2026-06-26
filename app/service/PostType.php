@@ -52,12 +52,13 @@ class PostType
         }
 
         $postType = new TeamMemberPostType;
-        $postType->team_id     = $teamId;
-        $postType->name        = $data['name'];
-        $postType->description = $data['description'] ?? '';
-        $postType->post_id     = (int) $data['post_id'];
-        $postType->sort        = isset($data['sort']) ? (int) $data['sort'] : 0;
-        $postType->save();
+        $postType->save([
+            'team_id' => $teamId,
+            'name' => $data['name'],
+            'description' => $data['description'] ?? '',
+            'post_id' => (int) $data['post_id'],
+            'sort' => isset($data['sort']) ? (int) $data['sort'] : 0,
+        ]);
     }
 
     /**
@@ -84,11 +85,16 @@ class PostType
             }
         }
 
-        $postType->name        = $data['name'] ?? $postType->name;
-        $postType->description = $data['description'] ?? $postType->description;
-        $postType->post_id     = isset($data['post_id']) ? (int) $data['post_id'] : $postType->post_id;
-        $postType->sort        = isset($data['sort']) ? (int) $data['sort'] : $postType->sort;
-        $postType->save();
+        $update = [];
+        foreach (['name', 'description', 'post_id', 'sort'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $update[$field] = in_array($field, ['post_id', 'sort'], true) ? (int) $data[$field] : $data[$field];
+            }
+        }
+
+        if ($update) {
+            $postType->save($update);
+        }
     }
 
     /**
