@@ -12,9 +12,9 @@ use think\exception\HttpException;
 class Document
 {
     private const MORPH_MAP = [
-        DocTarget::Team->value   => \app\model\Team::class,
-        DocTarget::Member->value => \app\model\TeamMember::class,
-        DocTarget::User->value   => \app\model\User::class,
+        DocTarget::Team->value       => \app\model\Team::class,
+        DocTarget::Member->value     => \app\model\TeamMember::class,
+        DocTarget::User->value       => \app\model\User::class,
     ];
 
     public function list(string $targetType, int $targetId, array $filters, int $page = 1, int $limit = 20, int $teamId = 0): array
@@ -117,10 +117,10 @@ class Document
     {
         if ($teamId === 0) return;
         match ($type) {
-            'team'   => ($id === $teamId) ?: throw new HttpException(403, '无权访问该团队的文档'),
-            'member' => $this->memberInTeam($id, $teamId),
-            'user'   => $this->userInTeam($id, $teamId),
-            default  => throw new HttpException(400, '无效的目标类型'),
+            'team'       => ($id === $teamId) ?: throw new HttpException(403, '无权访问该团队的文档'),
+            'teamMember' => $this->memberInTeam($id, $teamId),
+            'user'       => $this->userInTeam($id, $teamId),
+            default      => throw new HttpException(400, '无效的目标类型'),
         };
     }
 

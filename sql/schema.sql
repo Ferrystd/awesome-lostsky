@@ -459,7 +459,7 @@ CREATE TABLE `document` (
     `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `title`             VARCHAR(255) NOT NULL DEFAULT '' COMMENT '文档标题',
     `content`           LONGTEXT     NULL COMMENT '文档内容',
-    `documentable_type` VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '多态目标类型',
+    `documentable_type` VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '多态目标类型 team|teamMember|user',
     `documentable_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '多态目标ID',
     `scope`             TINYINT      NOT NULL DEFAULT 1 COMMENT '文档作用域 1-内部 2-对外',
     `is_displayed`      TINYINT      NOT NULL DEFAULT 0 COMMENT '是否主动展示 0-否 1-是',
@@ -484,12 +484,14 @@ CREATE TABLE `file` (
     `path`        VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'OSS存储路径',
     `size`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '文件大小(字节)',
     `mime_type`   VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'MIME类型',
+    `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
     `member_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '上传者成员ID',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_hash` (`hash`),
+    UNIQUE KEY `uk_team_hash` (`team_id`, `hash`),
+    KEY `idx_team_id` (`team_id`),
     KEY `idx_member_id` (`member_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文件表';
 
@@ -509,3 +511,58 @@ CREATE TABLE `team_setting` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_team_app_key` (`team_id`, `app_name`, `key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队设置表';
+
+-- ----------------------------
+-- Table: team_member_field
+-- Model: app\model\TeamMemberField
+-- ----------------------------
+CREATE TABLE `team_member_field` (
+    `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `field_key`     VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '字段标识',
+    `name`          VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '字段名称',
+    `source`        VARCHAR(20)  NOT NULL DEFAULT 'custom' COMMENT '字段来源 system|custom',
+    `value_type`    VARCHAR(20)  NOT NULL DEFAULT 'string' COMMENT '值类型 string|text|int|decimal|bool|date|datetime|select|multi_select|json',
+    `input_type`    VARCHAR(20)  NOT NULL DEFAULT 'text' COMMENT '输入类型 text|textarea|radio|checkbox|select|date|datetime|upload',
+    `options`       JSON         NULL COMMENT '字段选项',
+    `default_value` VARCHAR(500) NULL     DEFAULT NULL COMMENT '默认值',
+    `is_required`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否必填 0-否 1-是',
+    `is_visible`    TINYINT      NOT NULL DEFAULT 1 COMMENT '是否展示 0-否 1-是',
+    `is_editable`   TINYINT      NOT NULL DEFAULT 1 COMMENT '是否可编辑 0-否 1-是',
+    `is_searchable` TINYINT      NOT NULL DEFAULT 0 COMMENT '是否可搜索 0-否 1-是',
+    `is_system`     TINYINT      NOT NULL DEFAULT 0 COMMENT '是否系统字段 0-否 1-是',
+    `sort`          INT          NOT NULL DEFAULT 0 COMMENT '排序',
+    `create_time`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_team_field` (`team_id`, `field_key`),
+    KEY `idx_team_id` (`team_id`),
+    KEY `idx_team_sort` (`team_id`, `sort`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队成员字段定义表';
+
+-- ----------------------------
+-- Table: team_member_field_value
+-- Model: app\model\TeamMemberFieldValue
+-- ----------------------------
+CREATE TABLE `team_member_field_value` (
+    `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `member_id`      INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队成员ID',
+    `field_id`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '字段ID',
+    `value_string`   VARCHAR(500) NULL     DEFAULT NULL COMMENT '字符串值',
+    `value_text`     TEXT         NULL COMMENT '文本值',
+    `value_int`      INT          NULL     DEFAULT NULL COMMENT '整数值',
+    `value_decimal`  DECIMAL(12,2) NULL   DEFAULT NULL COMMENT '小数值',
+    `value_datetime` INT UNSIGNED NULL     DEFAULT NULL COMMENT '时间值',
+    `value_json`     JSON         NULL COMMENT 'JSON值',
+    `create_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`    INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_member_field` (`member_id`, `field_id`),
+    KEY `idx_field_id` (`field_id`),
+    KEY `idx_field_string` (`field_id`, `value_string`),
+    KEY `idx_field_int` (`field_id`, `value_int`),
+    KEY `idx_field_decimal` (`field_id`, `value_decimal`),
+    KEY `idx_field_datetime` (`field_id`, `value_datetime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队成员字段值表';

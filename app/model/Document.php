@@ -30,9 +30,9 @@ class Document extends Base
     public function documentable()
     {
         return $this->morphTo('documentable', [
-            'team'   => Team::class,
-            'member' => TeamMember::class,
-            'user'   => User::class,
+            'team'       => Team::class,
+            'teamMember' => TeamMember::class,
+            'user'       => User::class,
         ]);
     }
 

@@ -13,6 +13,7 @@ class File extends Base
         'update_time' => 'integer',
         'delete_time' => 'integer',
         'size'        => 'integer',
+        'team_id'     => 'integer',
         'member_id'   => 'integer',
     ];
 
@@ -20,7 +21,12 @@ class File extends Base
 
     protected $hidden = ['delete_time'];
 
-    protected $readonly = ['hash', 'member_id'];
+    protected $readonly = ['hash', 'team_id', 'member_id'];
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class, 'team_id');
+    }
 
     public function member()
     {

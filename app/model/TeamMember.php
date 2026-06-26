@@ -46,6 +46,11 @@ class TeamMember extends Base
         return $this->hasMany(TeamMemberPost::class, 'member_id');
     }
 
+    public function fieldValues()
+    {
+        return $this->hasMany(TeamMemberFieldValue::class, 'member_id');
+    }
+
     public function handledTransactions()
     {
         return $this->hasMany(TeamTransaction::class, 'handler_id');

@@ -3,9 +3,7 @@ declare(strict_types=1);
 
 namespace app\service;
 
-use app\model\File as FileModel;
 use app\model\TeamAbility;
-use app\model\TeamMember as TeamMemberModel;
 use OSS\OssClient;
 use think\exception\HttpException;
 use think\facade\Config;
@@ -16,7 +14,7 @@ class File
 {
     public function upload(UploadedFile $file, int $memberId): array
     {
-        $member = TeamMemberModel::find($memberId);
+        $member = \app\model\TeamMember::find($memberId);
         if (!$member) {
             throw new HttpException(404, '成员不存在');
         }
@@ -28,9 +26,20 @@ class File
         $ext  = $file->getOriginalExtension() ?: '';
         $path = sprintf('%d/%s/%s.%s', $teamId, date('Ym'), $hash, $ext);
 
-        return Db::transaction(function () use ($file, $hash, $path, $memberId) {
-            $exist = FileModel::where('hash', $hash)->lock(true)->find();
+        return Db::transaction(function () use ($file, $hash, $path, $teamId, $memberId) {
+            $exist = \app\model\File::withTrashed()
+                ->where('team_id', $teamId)
+                ->where('hash', $hash)
+                ->lock(true)
+                ->find();
             if ($exist) {
+                if ($exist->trashed()) {
+                    $exist->restore();
+                    $exist = \app\model\File::where('team_id', $teamId)
+                        ->where('hash', $hash)
+                        ->find();
+                }
+
                 return [
                     'id'   => (int) $exist->id,
                     'url'  => $this->url($exist->path),
@@ -39,12 +48,13 @@ class File
                 ];
             }
 
-            $record = new FileModel;
+            $record = new \app\model\File;
             $record->hash      = $hash;
             $record->name      = $file->getOriginalName();
             $record->path      = $path;
             $record->size      = $file->getSize();
             $record->mime_type = $file->getOriginalMime();
+            $record->team_id   = $teamId;
             $record->member_id = $memberId;
             $record->save();
 
@@ -59,15 +69,78 @@ class File
         });
     }
 
+    public function list(int $teamId, array $filters, int $page = 1, int $limit = 20): array
+    {
+        $query = \app\model\File::where('team_id', $teamId);
+
+        if (!empty($filters['member_id'])) {
+            $query->where('member_id', (int) $filters['member_id']);
+        }
+        if (!empty($filters['mime_type'])) {
+            $query->where('mime_type', (string) $filters['mime_type']);
+        }
+        if (!empty($filters['keyword'])) {
+            $keyword = '%' . addcslashes((string) $filters['keyword'], '%_') . '%';
+            $query->where(function ($query) use ($keyword) {
+                $query->where('hash', 'like', $keyword)
+                    ->whereOr('path', 'like', $keyword)
+                    ->whereOr('name', 'like', $keyword);
+            });
+        }
+        if (!empty($filters['start_time'])) {
+            $query->where('create_time', '>=', (int) $filters['start_time']);
+        }
+        if (!empty($filters['end_time'])) {
+            $query->where('create_time', '<=', (int) $filters['end_time']);
+        }
+
+        $total = $query->count();
+        $list  = $query->with(['member.profile'])
+            ->order('id', 'desc')
+            ->page($page, $limit)
+            ->select()
+            ->toArray();
+
+        foreach ($list as &$item) {
+            $item = $this->format($item);
+        }
+        unset($item);
+
+        return compact('total', 'list', 'page', 'limit');
+    }
+
+    public function get(int $teamId, int $id): array
+    {
+        $file = \app\model\File::where('team_id', $teamId)
+            ->with(['member.profile'])
+            ->find($id);
+
+        if (!$file) {
+            throw new HttpException(404, '文件不存在');
+        }
+
+        return $this->format($file->toArray());
+    }
+
     public function delete(int $id, int $memberId): void
     {
-        $file = FileModel::find($id);
+        $file = \app\model\File::find($id);
         if (!$file) {
             throw new HttpException(404, '文件不存在');
         }
         if ($file->member_id !== $memberId) {
             throw new HttpException(403, '无权删除此文件');
         }
+        $file->delete();
+    }
+
+    public function deleteByTeam(int $teamId, int $id): void
+    {
+        $file = \app\model\File::where('team_id', $teamId)->find($id);
+        if (!$file) {
+            throw new HttpException(404, '文件不存在');
+        }
+
         $file->delete();
     }
 
@@ -102,19 +175,21 @@ class File
 
     public function usage(int $teamId): array
     {
-        $memberTable = (new TeamMemberModel)->getTable();
-
-        $result = FileModel::alias('f')
-            ->join("{$memberTable} m", 'f.member_id = m.id')
-            ->where('m.team_id', $teamId)
-            ->whereNull('f.delete_time')
-            ->fieldRaw('COUNT(f.id) as count, COALESCE(SUM(f.size), 0) as total_size')
+        $result = \app\model\File::where('team_id', $teamId)
+            ->fieldRaw('COUNT(id) as count, COALESCE(SUM(size), 0) as total_size')
             ->find();
 
         return [
             'count'     => (int) $result->count,
             'totalSize' => (int) $result->total_size,
         ];
+    }
+
+    private function format(array $file): array
+    {
+        $file['url'] = $this->url((string) $file['path']);
+
+        return $file;
     }
 
     private function url(string $path): string

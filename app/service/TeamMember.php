@@ -18,7 +18,7 @@ class TeamMember
     public function list(int $teamId): array
     {
         return \app\model\TeamMember::where('team_id', $teamId)
-            ->with(['profile', 'posts.type'])
+            ->with(['profile', 'posts.type', 'fieldValues.field'])
             ->visible(['id', 'team_id', 'user_id', 'is_displayed', 'is_blocked', 'create_time'])
             ->select()
             ->toArray();
@@ -30,7 +30,7 @@ class TeamMember
     public function get(int $teamId, int $memberId): array
     {
         $member = \app\model\TeamMember::where('team_id', $teamId)
-            ->with(['profile', 'posts.type'])
+            ->with(['profile', 'posts.type', 'fieldValues.field'])
             ->find($memberId);
 
         if (!$member) {

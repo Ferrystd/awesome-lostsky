@@ -51,6 +51,23 @@
 + remove
 移出成员
 
+### [controller] memberField
+<!-- 成员字段定义和值管理；字段定义属 Team 级配置，字段值属 TeamMember -->
++ index
+获取全部成员字段定义，支持 keyword、source 筛选
++ get
+获取单个成员字段定义
++ add
+新增成员字段定义
++ edit
+编辑成员字段定义
++ delete
+删除成员字段定义
++ values
+获取某个成员的字段值，需传 member_id
++ saveValues
+保存某个成员的字段值，需传 member_id，values 使用 field_id => value
+
 ### [controller] postType
 <!-- 岗位类型定义，属 Team 级配置 -->
 + index
@@ -63,4 +80,13 @@
 编辑岗位类型
 + delete
 删除岗位类型
+
+## Controller 写法约定
+
++ 控制器放在 `app/team/controller`，类名不加 `Controller` 后缀，如 `Member`、`PostType`、`MemberField`
++ 路由沿用动作式命名：`index/get/add/edit/delete`；特殊业务动作使用清晰动词，如 `block`、`unblock`、`saveValues`
++ 控制器只负责取参、调用 service、返回响应，不写业务逻辑
++ service 通过容器获取：`app(\app\service\Xxx::class)`，不直接 `new`
++ 返回统一使用 `success()` 或 `message()`，不直接 `json()`
++ 入参不在 controller 做重复类型转换，模型已有 `$type` 时交给模型处理；controller 只保留必要的 ID 提取
 

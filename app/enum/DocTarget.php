@@ -8,7 +8,7 @@ use think\model\contract\EnumTransform;
 enum DocTarget: string implements EnumTransform
 {
     case Team   = 'team';
-    case Member = 'member';
+    case Member = 'teamMember';
     case User   = 'user';
 
     public function value(): string
