@@ -14,7 +14,7 @@ class TeamProduct extends Base
     protected $type = [
         'id'          => 'integer',
         'team_id'     => 'integer',
-        'member_id'   => 'integer',
+        'member_id'   => null,  // integer|null
         'name'        => 'string',
         'description' => 'string',
         'price'       => 'float',

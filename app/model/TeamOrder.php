@@ -17,7 +17,7 @@ class TeamOrder extends Base
         'team_id'     => 'integer',
         'customer_id' => 'integer',
         'handler_id'  => 'integer',
-        'sender_id'   => 'integer',
+        'sender_id'   => null,  // integer|null
         'product_id'  => 'integer',
         'quantity'    => 'integer',
         'unit_price'  => 'float',
@@ -29,7 +29,7 @@ class TeamOrder extends Base
         'team_cut'    => 'float',
         'cash'        => 'float',
         'prepaid'     => 'float',
-        'trans_id'    => 'integer',
+        'trans_id'    => null,  // integer|null
         'status'      => OrderStatus::class,
         'memo'        => 'string',
         'create_time' => 'integer',

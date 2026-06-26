@@ -66,6 +66,16 @@ class TeamMember extends Base
         return $this->hasMany(TeamCustomerSender::class, 'member_id');
     }
 
+    public function documents()
+    {
+        return $this->morphMany(Document::class, 'documentable');
+    }
+
+    public function files()
+    {
+        return $this->hasMany(File::class, 'member_id');
+    }
+
     // 占位：CS 角色尚未实现，始终返回空
     public function scopeCs($query)
     {

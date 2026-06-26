@@ -91,4 +91,19 @@ class Team extends Base
     {
         return $this->hasMany(TeamTransaction::class, 'team_id');
     }
+
+    public function documents()
+    {
+        return $this->morphMany(Document::class, 'documentable');
+    }
+
+    public function settings()
+    {
+        return $this->hasMany(TeamSetting::class, 'team_id');
+    }
+
+    public function files()
+    {
+        return $this->hasManyThrough(File::class, TeamMember::class, 'team_id', 'member_id');
+    }
 }

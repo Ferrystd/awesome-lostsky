@@ -14,6 +14,10 @@ Route::post('member/block', 'member/block');
 Route::post('member/unblock', 'member/unblock');
 Route::post('member/remove', 'member/remove');
 
+// setting
+Route::get('setting', 'Setting/index');
+Route::post('setting', 'Setting/save');
+
 // postType (JwtAuth in controller)
 Route::get('postType/index', 'postType/index');
 Route::get('postType/get', 'postType/get');

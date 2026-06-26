@@ -450,3 +450,60 @@ CREATE TABLE `team_order` (
     KEY `idx_trans_id` (`trans_id`),
     KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单表';
+
+-- ----------------------------
+-- Table: document
+-- Model: app\model\Document
+-- ----------------------------
+CREATE TABLE `document` (
+    `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `title`             VARCHAR(255) NOT NULL DEFAULT '' COMMENT '文档标题',
+    `content`           LONGTEXT     NULL COMMENT '文档内容',
+    `documentable_type` VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '多态目标类型',
+    `documentable_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '多态目标ID',
+    `scope`             TINYINT      NOT NULL DEFAULT 1 COMMENT '文档作用域 1-内部 2-对外',
+    `sort`              INT          NOT NULL DEFAULT 0 COMMENT '排序',
+    `create_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`       INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_documentable` (`documentable_type`, `documentable_id`),
+    KEY `idx_scope` (`scope`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档表';
+
+-- ----------------------------
+-- Table: file
+-- Model: app\model\File
+-- ----------------------------
+CREATE TABLE `file` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `hash`        VARCHAR(64)  NOT NULL DEFAULT '' COMMENT 'SHA256文件哈希，去重',
+    `name`        VARCHAR(255) NOT NULL DEFAULT '' COMMENT '原始文件名',
+    `path`        VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'OSS存储路径',
+    `size`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '文件大小(字节)',
+    `mime_type`   VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'MIME类型',
+    `member_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '上传者成员ID',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_hash` (`hash`),
+    KEY `idx_member_id` (`member_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文件表';
+
+-- ----------------------------
+-- Table: team_setting
+-- Model: app\model\TeamSetting
+-- ----------------------------
+CREATE TABLE `team_setting` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `app_name`    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '应用名称',
+    `key`         VARCHAR(100) NOT NULL DEFAULT '' COMMENT '配置键',
+    `value`       VARCHAR(500) NOT NULL DEFAULT '' COMMENT '配置值',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_team_app_key` (`team_id`, `app_name`, `key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队设置表';
