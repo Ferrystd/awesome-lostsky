@@ -34,6 +34,16 @@ class TeamCustomer extends Base
         return $this->belongsTo(Team::class, 'team_id');
     }
 
+    public function scopeInTeam($query, int $teamId)
+    {
+        return $query->where('team_id', $teamId);
+    }
+
+    public function scopeOfUser($query, int $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -52,6 +62,11 @@ class TeamCustomer extends Base
     public function transactions()
     {
         return $this->hasMany(TeamTransaction::class, 'customer_id');
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(TeamOrder::class, 'customer_id');
     }
 
     public function senders()

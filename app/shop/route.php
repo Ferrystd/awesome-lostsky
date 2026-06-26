@@ -15,3 +15,10 @@ Route::get('order/<id>', 'Order/get');
 Route::post('order', 'Order/create');
 Route::post('order/<id>/cancel', 'Order/cancel');
 Route::post('order/<id>/complete', 'Order/complete');
+
+// customer
+Route::get('customer/me', 'Customer/me');
+Route::get('customer/orders', 'Customer/orders');
+Route::get('customer/transactions', 'Customer/transactions');
+Route::get('customer/balance', 'Customer/balance');
+Route::get('customer/balance/logs', 'Customer/balanceLogs');

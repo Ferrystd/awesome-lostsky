@@ -27,6 +27,9 @@ class Document
         if (isset($filters['scope'])) {
             $query->where('scope', (int) $filters['scope']);
         }
+        if (isset($filters['is_displayed'])) {
+            $query->where('is_displayed', (int) $filters['is_displayed']);
+        }
         if (!empty($filters['keyword'])) {
             $query->where('title', 'like', "%{$filters['keyword']}%");
         }
@@ -68,6 +71,7 @@ class Document
         $doc->documentable_type = $targetType;
         $doc->documentable_id   = $targetId;
         $doc->scope             = $scope;
+        $doc->is_displayed      = $data['is_displayed'] ?? 0;
         $doc->sort              = $data['sort'] ?? 0;
         $doc->save();
 
@@ -82,7 +86,7 @@ class Document
         }
         $this->guardAccess($doc, $teamId);
 
-        $allow  = ['title', 'content', 'scope', 'sort'];
+        $allow  = ['title', 'content', 'scope', 'is_displayed', 'sort'];
         $update = [];
         foreach ($allow as $k) {
             if (array_key_exists($k, $data)) {

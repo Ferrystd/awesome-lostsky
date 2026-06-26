@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace app\doc\controller;
+namespace app\common\controller;
 
 use app\service\Document as DocumentService;
 use think\Request;
@@ -21,8 +21,9 @@ class Document
         $targetType = $request->get('target_type', 'team');
         $targetId   = (int) $request->get('target_id', $request->team_id);
         $result     = $service->list($targetType, $targetId, [
-            'scope'   => $request->get('scope'),
-            'keyword' => $request->get('keyword'),
+            'scope'        => $request->get('scope'),
+            'is_displayed' => $request->get('is_displayed'),
+            'keyword'      => $request->get('keyword'),
         ], (int) $request->get('page', 1), (int) $request->get('limit', 20), (int) $request->team_id);
 
         return success($result);
@@ -43,9 +44,10 @@ class Document
         $targetType = $request->post('target_type', 'team');
         $targetId   = (int) $request->post('target_id', $request->team_id);
         $id         = $service->create($targetType, $targetId, (int) $request->post('scope', 1), [
-            'title'   => $request->post('title', ''),
-            'content' => $request->post('content', null),
-            'sort'    => (int) $request->post('sort', 0),
+            'title'        => $request->post('title', ''),
+            'content'      => $request->post('content', null),
+            'is_displayed' => (int) $request->post('is_displayed', 0),
+            'sort'         => (int) $request->post('sort', 0),
         ], (int) $request->team_id);
 
         return success(['id' => $id], '文档已创建');
@@ -57,7 +59,7 @@ class Document
         $service = app(DocumentService::class);
 
         $data = [];
-        foreach (['title', 'content', 'scope', 'sort'] as $field) {
+        foreach (['title', 'content', 'scope', 'is_displayed', 'sort'] as $field) {
             if ($request->has($field, 'post')) {
                 $data[$field] = $request->post($field);
             }

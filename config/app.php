@@ -14,7 +14,9 @@ return [
     'default_timezone' => 'Asia/Shanghai',
 
     // 应用映射（自动多应用模式有效）
-    'app_map'          => [],
+    'app_map'          => [
+        'common' => 'common',
+    ],
     // 是否启用应用快速分发（未识别的路径回落到默认应用）
     'app_express'      => true,
     // 域名绑定（自动多应用模式有效）

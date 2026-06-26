@@ -13,7 +13,8 @@ class Document extends Base
         'update_time'      => 'integer',
         'delete_time'      => 'integer',
         'documentable_id'  => 'integer',
-        'scope'            => 'integer',
+        'scope'            => 'integer', // 普通展示：通过文档作用域区分内部/对外场景
+        'is_displayed'     => 'integer', // 主动展示：是否在对应场景中主动展示
         'sort'             => 'integer',
         'title'            => 'string',
         'content'          => 'string',

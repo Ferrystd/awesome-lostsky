@@ -8,9 +8,10 @@ use think\Validate;
 class Document extends Validate
 {
     protected $rule = [
-        'title'   => 'require|max:255',
-        'content' => 'max:65535', // 限制接口层输入为 64KB，DB 列为 LONGTEXT 可存更大
-        'scope'   => 'in:1,2',
+        'title'        => 'require|max:255',
+        'content'      => 'max:65535', // 限制接口层输入为 64KB，DB 列为 LONGTEXT 可存更大
+        'scope'        => 'in:1,2',
+        'is_displayed' => 'in:0,1',
     ];
 
     protected $message = [
@@ -18,5 +19,6 @@ class Document extends Validate
         'title.max'       => '文档标题长度不能超过255位',
         'content.max'     => '文档内容过长',
         'scope.in'        => '文档作用域格式不正确',
+        'is_displayed.in' => '展示状态格式不正确',
     ];
 }

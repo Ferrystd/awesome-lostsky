@@ -462,12 +462,14 @@ CREATE TABLE `document` (
     `documentable_type` VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '多态目标类型',
     `documentable_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '多态目标ID',
     `scope`             TINYINT      NOT NULL DEFAULT 1 COMMENT '文档作用域 1-内部 2-对外',
+    `is_displayed`      TINYINT      NOT NULL DEFAULT 0 COMMENT '是否主动展示 0-否 1-是',
     `sort`              INT          NOT NULL DEFAULT 0 COMMENT '排序',
     `create_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time`       INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
     KEY `idx_documentable` (`documentable_type`, `documentable_id`),
+    KEY `idx_document_display` (`documentable_type`, `documentable_id`, `scope`, `is_displayed`, `sort`),
     KEY `idx_scope` (`scope`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档表';
 
