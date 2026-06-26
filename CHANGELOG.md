@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.0.8 (2026-06-27)
+
+### 新增
+
+- **团队文件管理**：新增 `team/controller/File` 控制器，支持团队级文件上传与管理。
+- **成员字段管理**：新增 `TeamMemberField` 模型（成员自定义字段定义）、`TeamMemberFieldValue` 模型（字段值存储）。支持团队自定义成员扩展字段，含完整 CRUD。
+- **服务层**：新增 `TeamMemberField` 服务，封装字段定义与字段值的业务逻辑。
+- **验证器**：新增 `TeamMemberField`、`TeamMemberFieldValue` 验证器。
+- **模型扩展**：`Team`、`TeamMember` 新增与成员字段的关联关系。
+
+### 变更
+
+- `DocTarget` 枚举微调。
+- `Document`、`File` 模型及 `Document`、`File` 服务调整优化。
+- `TeamMember` 服务小幅调整。
+- 数据库 Schema 新增 `team_member_field`、`team_member_field_value` 两张表。
+- 团队文档 (`docs/team.md`) 更新。
+
+## v0.0.7 (2026-06-27)
+
+### 新增
+
+- **客户管理**：新增 `TeamCustomer` 服务（含 CRUD、分页查询）、`shop/controller/Customer` 控制器。
+- **CustomerAccess 中间件**：商城客户访问鉴权。
+- **公共文档路由**：Document 控制器从 `doc` 应用迁移至 `common` 应用，路由随之调整。
+
+### 变更
+
+- `Context` 中间件增强，提取更多上下文信息。
+- `Document` 验证器优化。
+- `config/app.php`、`config/middleware.php` 配置更新。
+- 文档 (`docs/shop.md`) 新增商城客户接口说明。
+
+## v0.0.6 (2026-06-26)
+
+### 新增
+
+- 项目级 Agent 开发说明 (`AGENTS.md`)。
+
 ## v0.0.5 (2026-06-26)
 
 ### 新增
