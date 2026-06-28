@@ -8,17 +8,19 @@ use think\Validate;
 class Document extends Validate
 {
     protected $rule = [
-        'title'        => 'require|max:255',
-        'content'      => 'max:65535', // 限制接口层输入为 64KB，DB 列为 LONGTEXT 可存更大
-        'scope'        => 'in:1,2',
-        'is_displayed' => 'in:0,1',
+        'title'         => 'max:255',
+        'content'       => 'max:65535', // 限制接口层输入为 64KB，DB 列为 LONGTEXT 可存更大
+        'manager_scope' => 'in:1,2',
+        'visibility'    => 'in:1,2,3,4,5,6',
+        'sort'          => 'integer',
     ];
 
     protected $message = [
-        'title.require'   => '文档标题不能为空',
-        'title.max'       => '文档标题长度不能超过255位',
-        'content.max'     => '文档内容过长',
-        'scope.in'        => '文档作用域格式不正确',
-        'is_displayed.in' => '展示状态格式不正确',
+        'title.require'     => '文档标题不能为空',
+        'title.max'         => '文档标题长度不能超过255位',
+        'content.max'       => '文档内容过长',
+        'manager_scope.in'  => '管理范围格式不正确',
+        'visibility.in'     => '可见范围格式不正确',
+        'sort.integer'      => '排序格式不正确',
     ];
 }

@@ -25,6 +25,7 @@ class TeamProfile extends Base
         //拓展字段
         'team_id' => 'integer',
         'title' => 'string',
+        'description' => 'string',
         'introduction' => 'string',
     ];
 

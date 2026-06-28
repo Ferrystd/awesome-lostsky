@@ -9,14 +9,12 @@ enum DocTarget: string implements EnumTransform
 {
     case Team   = 'team';
     case Member = 'teamMember';
-    case User   = 'user';
 
     public function value(): string
     {
         return match ($this) {
             self::Team   => '团队',
             self::Member => '成员',
-            self::User   => '用户',
         };
     }
 }

@@ -12,7 +12,7 @@ use think\facade\Db;
 
 class TeamMember
 {
-    private const PROFILE_FIELDS = ['nickname', 'avatar', 'intro_image', 'intro_video', 'introduction_markdown'];
+    private const PROFILE_FIELDS = ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown'];
 
     /**
      * 获取所有成员
@@ -29,6 +29,7 @@ class TeamMember
                 'is_blocked',
                 'nickname',
                 'avatar',
+                'description',
                 'intro_image',
                 'intro_video',
                 'introduction_markdown',
@@ -82,6 +83,7 @@ class TeamMember
                 'member_id' => $member->id,
                 'nickname' => '',
                 'avatar' => '',
+                'description' => null,
                 'intro_image' => null,
                 'intro_video' => null,
                 'introduction_markdown' => null,

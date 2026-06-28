@@ -104,6 +104,7 @@ CREATE TABLE `team_profile` (
     `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `team_id`      INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
     `title`        VARCHAR(100) NOT NULL DEFAULT '' COMMENT '标题',
+    `description`  VARCHAR(255) NULL     DEFAULT NULL COMMENT '简介',
     `introduction` TEXT         NULL     COMMENT '介绍',
     `create_time`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
@@ -156,6 +157,7 @@ CREATE TABLE `team_member_profile` (
     `member_id`             INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队成员ID',
     `nickname`              VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '昵称',
     `avatar`                VARCHAR(255) NOT NULL DEFAULT '' COMMENT '头像',
+    `description`           VARCHAR(255) NULL     DEFAULT NULL COMMENT '简介',
     `intro_image`           VARCHAR(255) NULL     DEFAULT NULL COMMENT '自介图',
     `intro_video`           VARCHAR(255) NULL     DEFAULT NULL COMMENT '音介视频',
     `introduction_markdown` TEXT         NULL COMMENT 'Markdown介绍',
@@ -462,18 +464,18 @@ CREATE TABLE `document` (
     `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `title`             VARCHAR(255) NOT NULL DEFAULT '' COMMENT '文档标题',
     `content`           LONGTEXT     NULL COMMENT '文档内容',
-    `documentable_type` VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '多态目标类型 team|teamMember|user',
+    `documentable_type` VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '多态目标类型 team|teamMember',
     `documentable_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '多态目标ID',
-    `scope`             TINYINT      NOT NULL DEFAULT 1 COMMENT '文档作用域 1-内部 2-对外',
-    `is_displayed`      TINYINT      NOT NULL DEFAULT 0 COMMENT '是否主动展示 0-否 1-是',
+    `manager_scope`     TINYINT      NOT NULL DEFAULT 1 COMMENT '管理范围 1-team 2-subject_team',
+    `visibility`        TINYINT      NOT NULL DEFAULT 1 COMMENT '可见范围 1-team 2-team_except_subject 3-subject_team 4-member 5-public 6-custom',
     `sort`              INT          NOT NULL DEFAULT 0 COMMENT '排序',
     `create_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time`       INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
     KEY `idx_documentable` (`documentable_type`, `documentable_id`),
-    KEY `idx_document_display` (`documentable_type`, `documentable_id`, `scope`, `is_displayed`, `sort`),
-    KEY `idx_scope` (`scope`)
+    KEY `idx_document_visibility` (`documentable_type`, `documentable_id`, `visibility`, `sort`),
+    KEY `idx_manager_scope` (`manager_scope`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档表';
 
 -- ----------------------------
@@ -508,6 +510,7 @@ CREATE TABLE `team_setting` (
     `app_name`    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '应用名称',
     `key`         VARCHAR(100) NOT NULL DEFAULT '' COMMENT '配置键',
     `value`       VARCHAR(500) NOT NULL DEFAULT '' COMMENT '配置值',
+    `visibility`  TINYINT      NOT NULL DEFAULT 1 COMMENT '可见范围 1-team 4-member 5-public 6-custom',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
@@ -530,7 +533,8 @@ CREATE TABLE `team_member_field` (
     `options`       JSON         NULL COMMENT '字段选项',
     `default_value` VARCHAR(500) NULL     DEFAULT NULL COMMENT '默认值',
     `is_required`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否必填 0-否 1-是',
-    `is_visible`    TINYINT      NOT NULL DEFAULT 1 COMMENT '是否展示 0-否 1-是',
+    `manager_scope` TINYINT      NOT NULL DEFAULT 1 COMMENT '管理范围 1-team 2-subject_team',
+    `visibility`    TINYINT      NOT NULL DEFAULT 1 COMMENT '可见范围 1-team 3-subject_team 4-member 5-public',
     `is_editable`   TINYINT      NOT NULL DEFAULT 1 COMMENT '是否可编辑 0-否 1-是',
     `is_searchable` TINYINT      NOT NULL DEFAULT 0 COMMENT '是否可搜索 0-否 1-是',
     `is_system`     TINYINT      NOT NULL DEFAULT 0 COMMENT '是否系统字段 0-否 1-是',
@@ -543,6 +547,25 @@ CREATE TABLE `team_member_field` (
     KEY `idx_team_id` (`team_id`),
     KEY `idx_team_sort` (`team_id`, `sort`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队成员字段定义表';
+
+-- ----------------------------
+-- Table: visibility_target
+-- Model: app\model\VisibilityTarget
+-- ----------------------------
+CREATE TABLE `visibility_target` (
+    `id`               INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `visibleable_type` VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '可见性主体类型 document|teamSetting|teamMemberField',
+    `visibleable_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '可见性主体ID',
+    `target_type`      VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '指定对象类型 team|teamMember',
+    `target_id`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '指定对象ID',
+    `create_time`      INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`      INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`      INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_visible_target` (`visibleable_type`, `visibleable_id`, `target_type`, `target_id`),
+    KEY `idx_target` (`target_type`, `target_id`),
+    KEY `idx_visibleable` (`visibleable_type`, `visibleable_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='指定可见对象表';
 
 -- ----------------------------
 -- Table: team_member_field_value

@@ -8,7 +8,7 @@ use think\Request;
 
 class Me
 {
-    private const PROFILE_FIELDS = ['nickname', 'avatar', 'intro_image', 'intro_video', 'introduction_markdown'];
+    private const PROFILE_FIELDS = ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown'];
 
     protected $middleware = ['JwtAuth', 'Context', 'MemberAccess'];
 

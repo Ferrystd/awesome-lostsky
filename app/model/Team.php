@@ -69,7 +69,7 @@ class Team extends Base
     public function profile()
     {
         return $this->hasOne(TeamProfile::class, 'team_id')
-            ->bind(['title', 'introduction']);
+            ->bind(['title', 'description', 'introduction']);
     }
 
     public function domains()

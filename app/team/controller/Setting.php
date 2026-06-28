@@ -18,7 +18,7 @@ class Setting
     public function index(Request $request)
     {
         $service = app(TeamSetting::class);
-        $result  = $service->get($request->team_id, $request->get('app', 'index'));
+        $result  = $service->get($request->team_id, $request->get('app', 'index'), (int) $request->user_id, (int) $request->member_id);
         $key     = $request->get('key');
 
         if ($key !== null) {

@@ -16,7 +16,8 @@ class TeamMemberField extends Validate
         'input_type'    => 'in:text,textarea,radio,checkbox,select,date,datetime,upload',
         'default_value' => 'max:500',
         'is_required'   => 'in:0,1',
-        'is_visible'    => 'in:0,1',
+        'manager_scope' => 'in:1,2',
+        'visibility'    => 'in:1,2,3,4,5,6',
         'is_editable'   => 'in:0,1',
         'is_searchable' => 'in:0,1',
         'is_system'     => 'in:0,1',
@@ -36,7 +37,8 @@ class TeamMemberField extends Validate
         'input_type.in'         => '字段输入类型不支持',
         'default_value.max'     => '默认值长度不能超过500位',
         'is_required.in'        => '必填状态格式不正确',
-        'is_visible.in'         => '显示状态格式不正确',
+        'manager_scope.in'      => '管理范围格式不正确',
+        'visibility.in'         => '可见范围格式不正确',
         'is_editable.in'        => '编辑状态格式不正确',
         'is_searchable.in'      => '搜索状态格式不正确',
         'is_system.in'          => '系统字段状态格式不正确',
@@ -44,8 +46,8 @@ class TeamMemberField extends Validate
     ];
 
     protected $scene = [
-        'create' => ['field_key', 'name', 'source', 'value_type', 'input_type', 'options', 'default_value', 'is_required', 'is_visible', 'is_editable', 'is_searchable', 'is_system', 'sort'],
-        'update' => ['name', 'value_type', 'input_type', 'options', 'default_value', 'is_required', 'is_visible', 'is_editable', 'is_searchable', 'sort'],
+        'create' => ['field_key', 'name', 'source', 'value_type', 'input_type', 'options', 'default_value', 'is_required', 'manager_scope', 'visibility', 'is_editable', 'is_searchable', 'is_system', 'sort'],
+        'update' => ['name', 'value_type', 'input_type', 'options', 'default_value', 'is_required', 'manager_scope', 'visibility', 'is_editable', 'is_searchable', 'sort'],
         'delete' => ['id'],
     ];
 }

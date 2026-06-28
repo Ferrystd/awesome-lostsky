@@ -3,6 +3,7 @@ declare (strict_types = 1);
 
 namespace app\model;
 
+use app\enum\Visibility;
 use app\model\Base;
 
 class TeamSetting extends Base
@@ -13,6 +14,7 @@ class TeamSetting extends Base
         'app_name'    => 'string',
         'key'         => 'string',
         'value'       => 'string',
+        'visibility'  => Visibility::class,
         'create_time' => 'integer',
         'update_time' => 'integer',
         'delete_time' => 'integer',
@@ -25,5 +27,10 @@ class TeamSetting extends Base
     public function team()
     {
         return $this->belongsTo(Team::class, 'team_id');
+    }
+
+    public function visibilityTargets()
+    {
+        return $this->morphMany(VisibilityTarget::class, 'visibleable');
     }
 }

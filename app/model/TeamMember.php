@@ -38,7 +38,7 @@ class TeamMember extends Base
     public function profile()
     {
         return $this->hasOne(TeamMemberProfile::class, 'member_id')
-            ->bind(['nickname', 'avatar', 'intro_image', 'intro_video', 'introduction_markdown']);
+            ->bind(['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown']);
     }
 
     public function posts()

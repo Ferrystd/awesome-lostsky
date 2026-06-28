@@ -11,7 +11,7 @@ class MemberField
         'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'delete', 'values', 'saveValues']],
         'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'delete', 'values', 'saveValues']],
         'MemberAccess' => ['only' => ['index', 'get', 'add', 'edit', 'delete', 'values', 'saveValues']],
-        'TeamAccess'   => ['only' => ['add', 'edit', 'delete', 'saveValues']],
+        'TeamAccess'   => ['only' => ['add', 'edit', 'delete']],
     ];
 
     /**
@@ -23,7 +23,7 @@ class MemberField
         $result = $service->list($request->team_id, [
             'keyword' => $request->param('keyword', ''),
             'source'  => $request->param('source', ''),
-        ]);
+        ], (int) $request->user_id, (int) $request->member_id);
 
         return success($result);
     }
@@ -36,7 +36,7 @@ class MemberField
         $id = (int) $request->param('id', 0);
 
         $service = app(\app\service\TeamMemberField::class);
-        $result = $service->get($request->team_id, $id);
+        $result = $service->get($request->team_id, $id, (int) $request->user_id, (int) $request->member_id);
 
         return success($result);
     }
@@ -86,7 +86,7 @@ class MemberField
         $memberId = (int) $request->param('member_id', 0);
 
         $service = app(\app\service\TeamMemberField::class);
-        $result = $service->values($request->team_id, $memberId);
+        $result = $service->values($request->team_id, $memberId, (int) $request->user_id, (int) $request->member_id);
 
         return success($result);
     }
@@ -100,7 +100,7 @@ class MemberField
         $values = $request->post('values', []);
 
         $service = app(\app\service\TeamMemberField::class);
-        $service->saveValues($request->team_id, $memberId, $values);
+        $service->saveValues($request->team_id, $memberId, $values, (int) $request->user_id, (int) $request->member_id);
 
         return message('成员字段值已保存');
     }

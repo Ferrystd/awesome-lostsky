@@ -12,6 +12,7 @@ class Display
         'id',
         'nickname',
         'avatar',
+        'description',
         'intro_image',
         'intro_video',
         'introduction_markdown',
@@ -30,7 +31,7 @@ class Display
             throw new HttpException(404, '团队不存在');
         }
 
-        return $team->visible(['id', 'slug', 'display_name', 'title', 'introduction', 'create_time'])->toArray();
+        return $team->visible(['id', 'slug', 'display_name', 'title', 'description', 'introduction', 'create_time'])->toArray();
     }
 
     /**

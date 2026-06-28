@@ -3,6 +3,8 @@ declare (strict_types = 1);
 
 namespace app\model;
 
+use app\enum\ManageScope;
+use app\enum\Visibility;
 use app\model\Base;
 
 /**
@@ -30,7 +32,8 @@ class TeamMemberField extends Base
         'options'       => 'string',
         'default_value' => 'string',
         'is_required'   => 'integer',
-        'is_visible'    => 'integer',
+        'manager_scope' => ManageScope::class,
+        'visibility'    => Visibility::class,
         'is_editable'   => 'integer',
         'is_searchable' => 'integer',
         'is_system'     => 'integer',
@@ -57,6 +60,11 @@ class TeamMemberField extends Base
     public function fieldValues()
     {
         return $this->hasMany(TeamMemberFieldValue::class, 'field_id');
+    }
+
+    public function visibilityTargets()
+    {
+        return $this->morphMany(VisibilityTarget::class, 'visibleable');
     }
 
     public function setFieldKeyAttr($value)

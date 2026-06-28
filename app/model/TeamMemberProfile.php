@@ -25,10 +25,11 @@ class TeamMemberProfile extends Base
         //拓展字段
         'member_id'             => 'integer',
         'nickname'              => 'string',
-        'avatar'                => 'string',
-        'intro_image'           => 'string',
-        'intro_video'           => 'string',
-        'introduction_markdown' => 'string',
+        'avatar'                => 'string',//头像
+        'description'           => 'string',
+        'intro_image'           => 'string',//自介图
+        'intro_video'           => 'string',//音介视频
+        'introduction_markdown' => 'string',//个人简介（Markdown格式）
     ];
 
     /**

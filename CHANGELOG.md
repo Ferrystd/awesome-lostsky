@@ -1,6 +1,30 @@
 # Changelog
 
-## v0.0.9 (2026-06-27)
+## v0.0.10 (2026-06-29)
+
+### 新增
+
+- **可见性系统**：新增 `Visibility` 枚举（`public`/`member`/`admin`/`private`），替代旧的 `DocScope` 枚举。统一的可见性层级适用于文档、成员资料、团队设置等多个场景。
+- **管理范围枚举**：新增 `ManageScope` 枚举（`team`/`member`），用于标识某个设置由团队管理员还是成员个人管理。
+- **Visibility 服务**：新增 `app/service/Visibility.php`，封装可见性校验逻辑，支持基于 Visibility 层级过滤数据。
+- **VisibilityTarget 模型**：新增 `app/model/VisibilityTarget.php`，存储团队各项资源的可见性配置。
+- **OpenAPI 文档**：新增 `docs/openapi/` 目录，包含项目的 OpenAPI/Swagger 规范文档。
+
+### 变更
+
+- **DocTarget 枚举重构**：`DocTarget` 从成员导向的枚举调整为更通用的目标枚举（`team`/`member`），配合 Visibility 系统。
+- **Document 服务大幅重构**：文档服务从 `DocScope` 迁移至 `Visibility`，支持更灵活的可见性控制；新增文档统计、批量操作等能力。
+- **TeamSetting 服务增强**：新增可见性获取/设置接口，支持团队管理员配置各模块的可见性和管理范围。
+- **TeamMemberField 服务增强**：支持字段值按 Visibility 层级筛选展示。
+- **模型层更新**：`Document`、`Team`、`TeamMember`、`TeamMemberField`、`TeamMemberProfile`、`TeamProfile`、`TeamSetting` 模型新增可见性相关关联和获取器。
+- **移除冗余**：`User` 模型清理无用关联。`DocScope` 枚举删除，功能由 `Visibility` + `ManageScope` 替代。
+- **数据库 Schema 更新**：`sql/schema.sql` 新增 `visibility_target` 表，`team_setting` 表新增可见性/管理范围相关字段。
+- **验证器**：`Document`、`Member`、`TeamMemberField` 验证器适配可见性字段。
+- **AGENTS.md / CLAUDE.md**：开发规范文档同步更新。
+
+### 移除
+
+- **DocScope 枚举**：`app/enum/DocScope.php` 已删除，由 `Visibility` + `ManageScope` 替代。
 
 ### 新增
 

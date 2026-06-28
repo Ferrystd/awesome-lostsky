@@ -3,6 +3,8 @@ declare (strict_types = 1);
 
 namespace app\model;
 
+use app\enum\ManageScope;
+use app\enum\Visibility;
 use app\model\Base;
 
 class Document extends Base
@@ -12,12 +14,12 @@ class Document extends Base
         'create_time'      => 'integer',
         'update_time'      => 'integer',
         'delete_time'      => 'integer',
-        'documentable_id'  => 'integer',
-        'scope'            => 'integer', // 普通展示：通过文档作用域区分内部/对外场景
-        'is_displayed'     => 'integer', // 主动展示：是否在对应场景中主动展示
-        'sort'             => 'integer',
-        'title'            => 'string',
-        'content'          => 'string',
+        'documentable_id'   => 'integer',
+        'manager_scope'     => ManageScope::class,
+        'visibility'        => Visibility::class,
+        'sort'              => 'integer',
+        'title'             => 'string',
+        'content'           => 'string',
         'documentable_type' => 'string',
     ];
 
@@ -32,8 +34,12 @@ class Document extends Base
         return $this->morphTo('documentable', [
             'team'       => Team::class,
             'teamMember' => TeamMember::class,
-            'user'       => User::class,
         ]);
+    }
+
+    public function visibilityTargets()
+    {
+        return $this->morphMany(VisibilityTarget::class, 'visibleable');
     }
 
     public function searchTitleAttr($query, $value)

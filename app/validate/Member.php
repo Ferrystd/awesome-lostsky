@@ -12,6 +12,7 @@ class Member extends Validate
         'member_id'             => 'require|integer',
         'nickname'              => 'max:50',
         'avatar'                => 'max:255',
+        'description'           => 'max:255',
         'intro_image'           => 'max:255',
         'intro_video'           => 'max:255',
         'introduction_markdown' => 'max:65535',
@@ -26,6 +27,7 @@ class Member extends Validate
         'member_id.integer'             => '成员ID格式不正确',
         'nickname.max'                  => '昵称长度不能超过50位',
         'avatar.max'                    => '头像地址长度不能超过255位',
+        'description.max'               => '简介长度不能超过255位',
         'intro_image.max'               => '自介图地址长度不能超过255位',
         'intro_video.max'               => '音介视频地址长度不能超过255位',
         'introduction_markdown.max'     => 'Markdown介绍内容过长',
@@ -34,8 +36,8 @@ class Member extends Validate
     ];
 
     protected $scene = [
-        'add'    => ['nickname', 'avatar', 'intro_image', 'intro_video', 'introduction_markdown', 'post_type_ids'],
-        'edit'   => ['nickname', 'avatar', 'intro_image', 'intro_video', 'introduction_markdown', 'is_displayed', 'post_type_ids'],
+        'add'    => ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown', 'post_type_ids'],
+        'edit'   => ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown', 'is_displayed', 'post_type_ids'],
         'block'  => ['member_id'],
         'remove' => ['member_id'],
     ];

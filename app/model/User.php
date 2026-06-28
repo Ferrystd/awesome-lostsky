@@ -54,13 +54,4 @@ class User extends Base
         return $this->hasMany(TeamCustomer::class, 'user_id');
     }
 
-    public function documents()
-    {
-        return $this->morphMany(Document::class, 'documentable');
-    }
-
-    public function files()
-    {
-        return $this->hasManyThrough(File::class, TeamMember::class, 'user_id', 'member_id');
-    }
 }
