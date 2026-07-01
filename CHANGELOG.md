@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.0.12 (2026-07-02)
+
+### 修复
+
+- **登录/注册响应标准化**：`Login` 控制器 `phone`/`password` 方法改用 `success()` 包装，返回标准信封 `{code, message, data}` 而非裸 JSON。前端 `api.js` 可正常解包。
+- **AppResolver 扩展**：新增无 slug 单级子域名 `{app}.lostsky.work` 的 Origin 解析支持，修复 `account.lostsky.work` 被错误解析为 `admin` 应用的问题。
+- **account 加入 teamless_apps**：`config/app.php` 中 `teamless_apps` 新增 `account`，account 应用无需团队上下文即可运行。
+
 ## v0.0.11 (2026-07-02)
 
 ### 新增

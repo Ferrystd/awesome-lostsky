@@ -28,7 +28,7 @@ return [
         'api'  => env('app.domain_api', env('APP_DEBUG', false) ? 'api.localhost' : 'api.lostsky.work'),
     ],
     // 无 team 状态的应用列表（不需要团队上下文即可运行）
-    'teamless_apps'    => ['admin'],
+    'teamless_apps'    => ['admin', 'account'],
     // 禁止URL访问的应用列表（自动多应用模式有效）
     'deny_app_list'    => [],
 

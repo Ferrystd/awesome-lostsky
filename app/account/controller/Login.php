@@ -19,7 +19,7 @@ class Login
             'ua'          => $request->header('User-Agent', ''),
         ]);
 
-        return json($result);
+        return success($result);
     }
 
     public function password(Request $request)
@@ -33,6 +33,6 @@ class Login
             'ua'          => $request->header('User-Agent', ''),
         ]);
 
-        return json($result);
+        return success($result);
     }
 }
