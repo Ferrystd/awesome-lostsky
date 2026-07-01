@@ -3,10 +3,14 @@
  */
 document.addEventListener('DOMContentLoaded', () => {
     // 处理导航激活状态
-    const currentPath = window.location.pathname.split('/').pop() || 'index.html';
+    const normalizeNavPath = path => {
+        const cleanPath = path.replace(/\/index(?:\.html)?$/, '/').replace(/\.html$/, '');
+        return cleanPath || '/';
+    };
+    const currentPath = normalizeNavPath(window.location.pathname);
     const links = document.querySelectorAll('.sidebar-link');
     links.forEach(link => {
-        if (link.getAttribute('href') === currentPath) {
+        if (normalizeNavPath(link.getAttribute('href')) === currentPath) {
             link.classList.add('active');
         }
     });

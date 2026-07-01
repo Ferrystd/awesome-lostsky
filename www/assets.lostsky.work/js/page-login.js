@@ -119,16 +119,11 @@ async function handleLogin(e) {
     
     try {
         const data = await apiPost(apiPath, payload);
-        // data 结构: { token, user: {...} }
-        
-        // 存储 token
-        localStorage.setItem('lostsky_token', data.token);
-        // 可选：存储一些用户信息
-        localStorage.setItem('lostsky_user', JSON.stringify(data.user));
+        saveAuth(data);
         
         // 登录成功，跳转回控制台或源站
         const urlParams = new URLSearchParams(window.location.search);
-        const redirect = urlParams.get('redirect') || '//console.lostsky.work';
+        const redirect = urlParams.get('redirect') || '/teams';
         window.location.href = redirect;
         
     } catch (err) {

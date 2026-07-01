@@ -93,14 +93,11 @@ async function handleRegister(e) {
     try {
         // 调用注册接口，成功后后端已自动登录发 Token
         const data = await apiPost('/register/phone', payload);
-        
-        // 存储 token 和用户信息
-        localStorage.setItem('lostsky_token', data.token);
-        localStorage.setItem('lostsky_user', JSON.stringify(data.user));
+        saveAuth(data);
         
         // 注册并自动登录成功，跳转到控制台
         const urlParams = new URLSearchParams(window.location.search);
-        const redirect = urlParams.get('redirect') || '//console.lostsky.work';
+        const redirect = urlParams.get('redirect') || '/teams';
         window.location.href = redirect;
         
     } catch (err) {

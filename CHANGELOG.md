@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.0.13 (2026-07-02)
+
+### 新增
+
+- **团队选择页**：新增 `www/account.lostsky.work/teams.html`（含配套 CSS/JS），用户登录后可选择要进入的团队空间。
+- **前端认证体系重构**：`www/assets.lostsky.work/js/api.js` 大幅增强：
+  - Cookie + localStorage 双层 Token 持久化，支持跨子域名（`.lostsky.work`）共享
+  - 页面级自动认证检测（`ensureAuthenticatedPage`），未登录自动跳转登录页
+  - 公开页面/API 白名单机制，`account` 登录/注册页、`www` 首页免鉴权
+  - 401 响应智能识别（状态码 + 业务码 + 消息关键字），过期自动重定向
+  - `saveAuth`/`clearAuth`/`getAuthUser` 统一认证工具方法
+
+### 变更
+
+- **注册响应标准化**：`Register` 控制器改用 `success()` 包装，与 v0.0.12 登录标准化对齐。
+- **AppResolver 精简**：移除 `admin` 路由绑定逻辑，仅保留 `{app}.lostsky.work` 无 slug 子域名解析。
+- **默认应用调整**：`config/app.php` 中 `default_app` 从 `admin` 改为 `account`，`teamless_apps` 移除 `admin`。
+- **管理后台认证守卫**：全部 7 个管理页面集成 `api.js` 的自动认证检测，无需各页面单独处理。
+- **登录/注册页**：样式及脚本微调，适配新认证体系。
+
 ## v0.0.12 (2026-07-02)
 
 ### 修复

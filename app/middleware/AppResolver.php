@@ -35,6 +35,12 @@ class AppResolver
                 app('http')->setBind();
                 $this->bindTeam($request, $slug);
             }
+            // 匹配 https://{app}.lostsky.work（teamless 应用，如 account）
+            elseif ($origin && preg_match("#^https?://([^.]+)\\.{$rootRx}$#", $origin, $m)) {
+                $app = $m[1];
+                app('http')->name($app);
+                app('http')->setBind();
+            }
         } else {
             // 方式 2：Host 为 {slug}.{app}.api.lostsky.work，从 Host 提取 app 和 slug
             if (!$this->bound()) {

@@ -9,7 +9,7 @@ return [
     // 是否启用路由
     'with_route'       => true,
     // 默认应用
-    'default_app'      => 'admin',
+    'default_app'      => 'account',
     // 默认时区
     'default_timezone' => 'Asia/Shanghai',
 
@@ -28,7 +28,7 @@ return [
         'api'  => env('app.domain_api', env('APP_DEBUG', false) ? 'api.localhost' : 'api.lostsky.work'),
     ],
     // 无 team 状态的应用列表（不需要团队上下文即可运行）
-    'teamless_apps'    => ['admin', 'account'],
+    'teamless_apps'    => ['account'],
     // 禁止URL访问的应用列表（自动多应用模式有效）
     'deny_app_list'    => [],
 

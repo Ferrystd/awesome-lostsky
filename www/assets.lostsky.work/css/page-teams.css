@@ -1,0 +1,59 @@
+/* ==========================================================================
+   失落青空 (LostSky Studio) - 页面样式：团队工作台
+   ========================================================================== */
+
+/* 顶部导航栏底边框微光 */
+.page-teams-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 输入框通用样式（复用登录页风格） */
+.page-teams-input {
+    outline: none;
+}
+.page-teams-input:focus {
+    box-shadow: 0 0 10px rgba(14, 165, 233, 0.2);
+}
+
+/* 危险操作按钮 Hover 效果 */
+.page-teams-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+}
+
+/* 弹窗显隐动画 */
+.page-teams-modal {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.page-teams-modal.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 弹窗内容缩放进入 */
+.page-teams-modal-content {
+    transform: scale(0.95) translateY(10px);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-teams-modal.active .page-teams-modal-content {
+    transform: scale(1) translateY(0);
+}
+
+/* 列表容器动画协调（用于 JS 控制逐个卡片显示） */
+.page-teams-grid-enter .glass-card {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fade-in-card 0.5s forwards cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fade-in-card {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

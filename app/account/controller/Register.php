@@ -22,6 +22,6 @@ class Register
             'ua'          => $request->header('User-Agent', ''),
         ]);
 
-        return json($result);
+        return success($result);
     }
 }

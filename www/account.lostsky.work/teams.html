@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的团队 - 失落青空工作台</title>
+    <meta name="description" content="管理您的失落青空团队与组织">
+    <meta property="og:title" content="我的团队 - 失落青空工作台">
+    <meta property="og:description" content="管理您的失落青空团队与组织">
+    <meta property="og:image" content="//assets.lostsky.work/images/site-bg.png">
+    <link rel="canonical" href="https://account.lostsky.work/teams">
+    <script>window.tailwind = window.tailwind || {};</script>
+    <script src="//assets.lostsky.work/js/tailwind.config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="//assets.lostsky.work/css/base.css">
+    <link rel="stylesheet" href="//assets.lostsky.work/css/components.css">
+    <link rel="stylesheet" href="//assets.lostsky.work/css/animations.css">
+    <link rel="stylesheet" href="//assets.lostsky.work/css/page-teams.css">
+</head>
+<body class="antialiased selection:bg-primary selection:text-white min-h-screen flex flex-col">
+
+    <!-- 背景 -->
+    <div class="fixed inset-0 z-[-1] bg-fixed-image opacity-30 mix-blend-screen"></div>
+    <div class="fixed inset-0 z-[-1] bg-gradient-to-b from-[#020617]/90 via-[#020617]/95 to-[#020617]"></div>
+
+    <!-- 顶部导航栏 -->
+    <header class="page-teams-header glass-panel sticky top-0 z-40 rounded-none border-x-0 border-t-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- 左侧 Logo & 标题 -->
+                <div class="flex items-center gap-3">
+                    <a href="//www.lostsky.work" class="text-xl font-bold tracking-wider text-white hover:scale-105 transition-transform">
+                        失落<span class="text-primary">青空</span>
+                    </a>
+                    <span class="text-gray-500 text-sm hidden sm:inline-block">|</span>
+                    <span class="text-gray-300 font-medium hidden sm:inline-block">组织管理</span>
+                </div>
+
+                <!-- 右侧 用户信息区 -->
+                <div class="flex items-center gap-4">
+                    <div class="text-sm text-gray-400 hidden sm:block" id="user-info-text">
+                        加载中...
+                    </div>
+                    <button onclick="handleLogout()" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">
+                        退出登录
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容区 -->
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 fade-in-element visible">
+        
+        <!-- 头部标题区 -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4">
+            <div>
+                <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">我的<span class="text-gradient">团队</span></h1>
+                <p class="text-gray-400">管理您创建或加入的组织结构</p>
+            </div>
+            <div>
+                <button onclick="openCreateModal()" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-gradient-to-r from-primary to-secondary hover:shadow-[0_0_20px_rgba(14,165,233,0.4)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#020617] focus:ring-primary transition-all duration-300">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    创建新团队
+                </button>
+            </div>
+        </div>
+
+        <!-- 骨架屏占位 (初始显示) -->
+        <div id="skeleton-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="glass-card rounded-2xl p-6 shimmer-sweep min-h-[160px]"></div>
+            <div class="glass-card rounded-2xl p-6 shimmer-sweep min-h-[160px] hidden md:block"></div>
+            <div class="glass-card rounded-2xl p-6 shimmer-sweep min-h-[160px] hidden lg:block"></div>
+        </div>
+
+        <!-- 团队列表网格 -->
+        <div id="teams-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 page-teams-grid-enter hidden">
+            <!-- 团队卡片内容由 JS 动态生成 -->
+        </div>
+
+        <!-- 空状态提示 -->
+        <div id="empty-state" class="hidden text-center py-20 glass-panel rounded-3xl mt-6">
+            <svg class="mx-auto h-16 w-16 text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <h3 class="text-xl font-medium text-white mb-2">暂无团队</h3>
+            <p class="text-gray-400 mb-6 max-w-sm mx-auto">您还没有加入任何团队。创建一个属于自己的工作空间，开启高效协作之旅。</p>
+            <button onclick="openCreateModal()" class="inline-flex items-center justify-center px-6 py-2.5 border border-primary/50 rounded-full text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 hover:border-primary transition-colors">
+                立即创建
+            </button>
+        </div>
+
+    </main>
+
+    <!-- ================= 弹窗区 ================= -->
+
+    <!-- 创建团队弹窗 -->
+    <div id="modal-create" class="fixed inset-0 z-50 flex items-center justify-center p-4 page-teams-modal">
+        <!-- 背景遮罩 -->
+        <div class="absolute inset-0 glass-overlay" onclick="closeCreateModal()"></div>
+        
+        <!-- 弹窗内容 -->
+        <div class="page-teams-modal-content glass-panel relative w-full max-w-md rounded-2xl shadow-2xl p-6 sm:p-8 overflow-hidden">
+            <!-- 扫光装饰 -->
+            <div class="absolute inset-0 pointer-events-none shimmer-sweep opacity-30"></div>
+            
+            <div class="relative z-10">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-white">创建新团队</h3>
+                    <button onclick="closeCreateModal()" class="text-gray-500 hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <!-- 错误提示 -->
+                <div id="create-error" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm"></div>
+
+                <form id="form-create" onsubmit="submitCreateTeam(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1.5">团队名称</label>
+                        <input type="text" id="input-display-name" required
+                            class="page-teams-input block w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-primary transition-colors text-sm"
+                            placeholder="例如：开发小组">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1.5">团队标识 (Slug)</label>
+                        <input type="text" id="input-slug" required pattern="[a-z0-9-]+"
+                            class="page-teams-input block w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:border-primary transition-colors text-sm"
+                            placeholder="例如：dev-team (仅限小写字母、数字、短横线)">
+                        <p class="mt-1.5 text-xs text-gray-500">此标识全局唯一，用于团队专属访问链接。</p>
+                    </div>
+
+                    <div class="pt-4 flex gap-3">
+                        <button type="button" onclick="closeCreateModal()" class="flex-1 py-2.5 px-4 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 transition-colors text-sm font-medium">取消</button>
+                        <button type="submit" id="btn-submit-create" class="flex-1 py-2.5 px-4 rounded-xl bg-primary text-white hover:bg-primary/90 focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#020617] focus:ring-primary transition-all shadow-[0_0_15px_rgba(14,165,233,0.3)] text-sm font-medium flex justify-center items-center">
+                            <span id="text-submit-create">创建</span>
+                            <svg id="spinner-submit-create" class="hidden animate-spin ml-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认弹窗 -->
+    <div id="modal-delete" class="fixed inset-0 z-50 flex items-center justify-center p-4 page-teams-modal">
+        <div class="absolute inset-0 glass-overlay" onclick="closeDeleteModal()"></div>
+        <div class="page-teams-modal-content glass-panel relative w-full max-w-sm rounded-2xl shadow-2xl p-6 sm:p-8 border-red-500/20">
+            <div class="relative z-10 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-500/10 mb-4 border border-red-500/20">
+                    <svg class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">删除团队</h3>
+                <p class="text-sm text-gray-400 mb-6">您确定要删除 <span id="delete-team-name" class="text-gray-200 font-bold"></span> 吗？此操作不可恢复，且所有数据将一并移除。</p>
+                
+                <div class="flex gap-3">
+                    <button onclick="closeDeleteModal()" class="flex-1 py-2.5 px-4 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 transition-colors text-sm font-medium">取消</button>
+                    <button id="btn-submit-delete" onclick="submitDeleteTeam()" class="flex-1 py-2.5 px-4 rounded-xl bg-red-500/80 text-white hover:bg-red-500 focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#020617] focus:ring-red-500 transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] text-sm font-medium flex justify-center items-center">
+                        <span id="text-submit-delete">确认删除</span>
+                        <svg id="spinner-submit-delete" class="hidden animate-spin ml-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API 模块及页面逻辑 -->
+    <script src="//assets.lostsky.work/js/api.js"></script>
+    <script src="//assets.lostsky.work/js/page-teams.js"></script>
+</body>
+</html>
