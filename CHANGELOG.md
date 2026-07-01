@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.0.11 (2026-07-02)
+
+### 新增
+
+- **管理后台前端**：新增 `www/team.lostsky.work/` 7 个管理页面，基于 Tailwind CSS 构建：
+  - 仪表盘（`index.html`）：团队概览，成员/岗位/字段/空间统计
+  - 成员管理（`members.html`）：成员列表、添加/编辑/封禁/移出操作
+  - 我的资料（`me.html`）：个人资料查看与编辑
+  - 岗位类型（`posts.html`）：岗位类型 CRUD 管理
+  - 自定义字段（`fields.html`）：成员扩展字段定义与管理
+  - 文件库（`files.html`）：团队文件浏览、搜索、分页
+  - 团队设置（`settings.html`）：团队基础配置表单
+- **官网落地页**：新增 `www/www.lostsky.work/` 主站页面。
+- **账号认证页面**：新增 `www/account.lostsky.work/` 登录/注册页面。
+- **共享前端资源**：新增 `www/assets.lostsky.work/js/api.js`（API 请求封装，JWT 鉴权、响应解包、错误处理）和 Tailwind 配置。
+- **前端 Skill**：新增 `lostsky-frontend` Agent Skill，规范前端页面搭建流程。
+- **E2E 测试框架**：新增 Playwright 配置（`playwright.config.ts`、`tests/`），覆盖管理后台端到端测试。
+- **GitHub Actions**：新增 `.github/` CI 工作流。
+
+### 变更
+
+- **AppResolver 中间件**：修复多应用域名解析逻辑，正确提取 `slug` 和 `app`。
+- **清理旧资源**：移除废弃的 `www/assets/` 静态文件（CSS/JS/图片/字体），统一迁移至 `www/assets.lostsky.work/`。
+- **.gitignore**：新增 Playwright 相关忽略规则。
+
 ## v0.0.10 (2026-06-29)
 
 ### 新增

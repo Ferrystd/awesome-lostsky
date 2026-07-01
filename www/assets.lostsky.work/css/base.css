@@ -1,0 +1,74 @@
+/* ==========================================================================
+   失落青空 (LostSky Studio) - 基础样式
+   暗黑科技风 · CSS 变量 · 排版重置
+   🔒 此文件锁定，页面修改时不得改动
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. CSS 变量（设计令牌）
+   -------------------------------------------------------------------------- */
+:root {
+    /* 主色调 */
+    --color-primary: #0ea5e9;
+    --color-secondary: #8b5cf6;
+    --color-bg: #020617;
+    --color-bg-alt: #0f172a;
+    --color-text: #f8fafc;
+    --color-text-muted: #9ca3af;
+
+    /* 磨砂玻璃 */
+    --glass-bg: rgba(15, 23, 42, 0.6);
+    --glass-blur: 16px;
+    --glass-border: rgba(255, 255, 255, 0.08);
+
+    /* 圆角 */
+    --radius-sm: 0.5rem;
+    --radius-md: 1rem;
+    --radius-lg: 1.5rem;
+    --radius-xl: 2rem;
+
+    /* 间距 */
+    --section-py: 6rem;
+
+    /* 字体 */
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* --------------------------------------------------------------------------
+   2. 全局重置
+   -------------------------------------------------------------------------- */
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* --------------------------------------------------------------------------
+   3. 固定背景图
+   -------------------------------------------------------------------------- */
+.bg-fixed-image {
+    background-image: url('//assets.lostsky.work/images/site-bg.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+/* --------------------------------------------------------------------------
+   4. 自定义滚动条
+   -------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}

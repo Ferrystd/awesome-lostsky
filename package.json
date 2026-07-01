@@ -1,0 +1,17 @@
+{
+  "name": "lostsky-website",
+  "version": "1.0.0",
+  "description": "基于 ThinkPHP 8 的纯后端 API 服务，采用多应用模式。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^26.0.1"
+  }
+}

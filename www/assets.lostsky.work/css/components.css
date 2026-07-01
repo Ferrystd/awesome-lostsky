@@ -1,0 +1,94 @@
+/* ==========================================================================
+   失落青空 (LostSky Studio) - 组件样式
+   磨砂玻璃面板 · 卡片 · 渐变文字 · 科技徽章
+   🔒 此文件锁定，页面修改时不得改动
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 磨砂玻璃面板（大区域容器）
+   -------------------------------------------------------------------------- */
+.glass-panel {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* --------------------------------------------------------------------------
+   2. 磨砂玻璃卡片（可交互小块）
+   -------------------------------------------------------------------------- */
+.glass-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(14, 165, 233, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   3. 渐变文字（标题高亮）
+   -------------------------------------------------------------------------- */
+.text-gradient {
+    background: linear-gradient(to right, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* --------------------------------------------------------------------------
+   4. 科技边框炫光
+   -------------------------------------------------------------------------- */
+.tech-border-glow {
+    position: relative;
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.tech-border-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.4), rgba(139, 92, 246, 0.4));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+/* --------------------------------------------------------------------------
+   5. 霓虹发光文字
+   -------------------------------------------------------------------------- */
+.neon-text-blue {
+    text-shadow: 0 0 10px rgba(14, 165, 233, 0.5), 0 0 20px rgba(14, 165, 233, 0.3);
+}
+
+.neon-text-violet {
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5), 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   6. 深色磨砂遮罩（弹窗 / 二级页面）
+   -------------------------------------------------------------------------- */
+.glass-overlay {
+    background: rgba(2, 6, 23, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* --------------------------------------------------------------------------
+   7. 发光徽章
+   -------------------------------------------------------------------------- */
+.glow-badge {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    box-shadow: 0 0 15px rgba(14, 165, 233, 0.1);
+}

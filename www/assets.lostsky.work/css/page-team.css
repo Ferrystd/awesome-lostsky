@@ -1,0 +1,87 @@
+/* ==========================================================================
+   失落青空 - 团队管理后台页面样式
+   ========================================================================== */
+
+/* 侧边栏菜单激活状态 */
+.sidebar-link {
+    transition: all 0.3s ease;
+}
+.sidebar-link.active {
+    background: rgba(14, 165, 233, 0.15); /* primary/15 */
+    color: #0ea5e9; /* primary */
+    border-right: 3px solid #0ea5e9;
+}
+.sidebar-link:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* 后台数据表格定制 */
+.admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.admin-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: #94a3b8; /* slate-400 */
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.admin-table td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    color: #e2e8f0; /* slate-200 */
+    transition: background-color 0.2s;
+}
+.admin-table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+.admin-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* 弹窗样式调整 */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+.modal-content {
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-overlay.active .modal-content {
+    transform: scale(1);
+}
+
+/* 自定义滚动条 (仅限后台主内容区) */
+.admin-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.admin-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.admin-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+.admin-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}

@@ -1,0 +1,22 @@
+/* ==========================================================================
+   登录页专属样式 (account.lostsky.work/login.html)
+   ========================================================================== */
+
+/* 重置自动填充时的黄底色，保持暗色主题 */
+.page-login-input:-webkit-autofill,
+.page-login-input:-webkit-autofill:hover, 
+.page-login-input:-webkit-autofill:focus, 
+.page-login-input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px rgba(15, 23, 42, 1) inset !important;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Tab 激活状态：玻璃浮雕感 */
+.page-login-tab-active {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}

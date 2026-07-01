@@ -1,0 +1,38 @@
+/* ==========================================================================
+   注册页专属样式 (account.lostsky.work/register.html)
+   ========================================================================== */
+
+/* 重置自动填充时的黄底色，保持暗色主题 */
+.page-register-input:-webkit-autofill,
+.page-register-input:-webkit-autofill:hover, 
+.page-register-input:-webkit-autofill:focus, 
+.page-register-input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px rgba(15, 23, 42, 1) inset !important;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 复选框样式重写，配合暗黑玻璃风格 */
+.page-register-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    transition: all 0.2s ease-in-out;
+    position: relative;
+}
+.page-register-checkbox:checked {
+    background-color: #0ea5e9;
+    border-color: #0ea5e9;
+}
+.page-register-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
