@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.0.14 (2026-07-03)
+
+### 新增
+
+- **成员详情页**：新增 `www/team.lostsky.work/member-detail.html`（含配套 `page-member-detail.css` / `page-member-detail.js`），支持查看和编辑成员完整资料与自定义字段值。
+- **Nginx 静态通配模板**：新增 `deploy/nginx/lostsky-static-wildcard.conf`，统一管理 `{app}.lostsky.work` 与 `{slug}.{app}.lostsky.work` 的静态资源路由。
+
+### 变更
+
+- **成员管理页增强**（`members.html`）：
+  - 新增成员「介绍图 / 介绍视频 / Markdown 详细介绍」表单字段
+  - 新增岗位分配复选框，支持在编辑成员时分配岗位
+  - 表格操作列新增「详情」链接，跳转至成员详情页
+  - 页面加载时并行请求成员列表与岗位列表
+- **团队样式**（`page-team.css`）：新增开关组件等样式，适配成员详情页
+- **岗位类型页**（`fields.html`）、**设置页**（`settings.html`）：微调
+
 ## v0.0.13 (2026-07-02)
 
 ### 新增

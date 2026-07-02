@@ -1,0 +1,52 @@
+/* ==========================================================================
+   失落青空 (LostSky Studio) - 成员详情页样式
+   ========================================================================== */
+
+/* 保证 Markdown 内容显示区域的样式协调（如果有） */
+.markdown-preview {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 成员详情页开关控件 */
+.page-member-detail-switch {
+    --page-member-detail-switch-width: 2.75rem;
+    --page-member-detail-switch-height: 1.5rem;
+    --page-member-detail-switch-padding: 2px;
+
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    width: var(--page-member-detail-switch-width);
+    min-width: var(--page-member-detail-switch-width);
+    height: var(--page-member-detail-switch-height);
+    overflow: hidden;
+    border-radius: 9999px;
+    background: #334155;
+    box-sizing: border-box;
+    line-height: 0;
+    transition: background-color 0.2s ease;
+    vertical-align: middle;
+}
+.page-member-detail-switch::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: var(--page-member-detail-switch-padding);
+    width: calc(var(--page-member-detail-switch-height) - var(--page-member-detail-switch-padding) * 2);
+    height: calc(var(--page-member-detail-switch-height) - var(--page-member-detail-switch-padding) * 2);
+    box-sizing: border-box;
+    border: 1px solid #d1d5db;
+    border-radius: 9999px;
+    background: #fff;
+    transition: transform 0.2s ease;
+    transform: translateY(-50%);
+}
+.peer:checked + .page-member-detail-switch {
+    background: #0ea5e9;
+}
+.peer:checked + .page-member-detail-switch::after {
+    transform: translate(calc(var(--page-member-detail-switch-width) - var(--page-member-detail-switch-height)), -50%);
+}

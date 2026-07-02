@@ -134,10 +134,33 @@
                         <input type="text" id="form-description" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors placeholder-gray-600">
                     </div>
 
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">介绍图 (Intro Image)</label>
+                            <input type="text" id="form-intro_image" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors placeholder-gray-600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">介绍视频 (Intro Video)</label>
+                            <input type="text" id="form-intro_video" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors placeholder-gray-600">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">详细介绍 (Markdown)</label>
+                        <textarea id="form-intro_md" rows="4" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors placeholder-gray-600 admin-scroll"></textarea>
+                    </div>
+
+                    <div class="pt-2 border-t border-white/5">
+                        <label class="block text-sm font-medium text-gray-300 mb-3">分配岗位</label>
+                        <div id="form-posts-container" class="flex flex-wrap gap-4">
+                            <span class="text-xs text-gray-500">正在加载岗位...</span>
+                        </div>
+                    </div>
+
                     <div class="flex items-center gap-4 pt-2 border-t border-white/5">
                         <label class="flex items-center cursor-pointer">
                             <input type="checkbox" id="form-is-displayed" class="sr-only peer" checked>
-                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                            <div class="page-team-switch"></div>
                             <span class="ml-3 text-sm font-medium text-gray-300">在前台展示 (is_displayed)</span>
                         </label>
                     </div>
@@ -160,17 +183,39 @@
     <script src="//assets.lostsky.work/js/page-team.js"></script>
     <script>
         let allMembers = [];
+        let allPostTypes = [];
 
         async function loadMembers() {
             const tbody = document.getElementById('member-table-body');
             try {
-                const res = await window.apiGet('/member/index');
-                // apiGet 返回的是 json.data，即成员数组
-                allMembers = res || [];
+                // 并行加载成员和岗位列表
+                const [membersRes, postsRes] = await Promise.all([
+                    window.apiGet('/member/index'),
+                    window.apiGet('/postType/index')
+                ]);
+                
+                allMembers = membersRes || [];
+                allPostTypes = postsRes || [];
+                
                 renderTable(allMembers);
+                renderPostCheckboxes(allPostTypes);
             } catch (err) {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">网络请求失败</td></tr>`;
             }
+        }
+
+        function renderPostCheckboxes(posts) {
+            const container = document.getElementById('form-posts-container');
+            if (!posts.length) {
+                container.innerHTML = '<span class="text-xs text-gray-500">暂无可用岗位，请先去「岗位类型」添加</span>';
+                return;
+            }
+            container.innerHTML = posts.map(p => `
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" name="post_ids" value="${p.id}" class="w-4 h-4 rounded bg-black/30 border-white/10 text-primary focus:ring-primary focus:ring-offset-slate-900">
+                    <span class="ml-2 text-sm text-gray-300">${p.name}</span>
+                </label>
+            `).join('');
         }
 
         function renderTable(data) {
@@ -209,12 +254,15 @@
                             ? `<span class="text-red-400 text-xs font-medium">已封禁</span>` 
                             : `<span class="text-blue-400 text-xs font-medium">正常</span>`}
                     </td>
-                    <td class="text-right">
-                        <button onclick="editMember(${m.id})" class="text-primary hover:text-primary/80 text-sm font-medium mr-3 transition-colors">编辑</button>
-                        ${m.is_blocked 
-                            ? `<button onclick="toggleBlock(${m.id}, false)" class="text-green-400 hover:text-green-300 text-sm font-medium transition-colors">解封</button>`
-                            : `<button onclick="toggleBlock(${m.id}, true)" class="text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors">封禁</button>`}
-                        <button onclick="removeMember(${m.id})" class="text-red-400 hover:text-red-300 text-sm font-medium ml-3 transition-colors">移出</button>
+                    <td>
+                        <div class="flex items-center justify-start gap-3">
+                            <a href="/member-detail?id=${m.id}" class="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">详情</a>
+                            <button onclick="editMember(${m.id})" class="text-primary hover:text-primary/80 text-sm font-medium transition-colors">编辑</button>
+                            ${m.is_blocked 
+                                ? `<button onclick="toggleBlock(${m.id}, false)" class="text-green-400 hover:text-green-300 text-sm font-medium transition-colors">解封</button>`
+                                : `<button onclick="toggleBlock(${m.id}, true)" class="text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors">封禁</button>`}
+                            <button onclick="removeMember(${m.id})" class="text-red-400 hover:text-red-300 text-sm font-medium transition-colors">移出</button>
+                        </div>
                     </td>
                 </tr>
                 `;
@@ -233,7 +281,16 @@
             document.getElementById('form-nickname').value = p.nickname || '';
             document.getElementById('form-avatar').value = p.avatar || '';
             document.getElementById('form-description').value = p.description || '';
+            document.getElementById('form-intro_image').value = p.intro_image || '';
+            document.getElementById('form-intro_video').value = p.intro_video || '';
+            document.getElementById('form-intro_md').value = p.introduction_markdown || '';
             document.getElementById('form-is-displayed').checked = isEdit ? member.is_displayed : true;
+
+            // 回显岗位复选框
+            const postIds = member ? (member.posts || []).map(p => p.post_id) : [];
+            document.querySelectorAll('input[name="post_ids"]').forEach(cb => {
+                cb.checked = postIds.includes(parseInt(cb.value));
+            });
             
             document.getElementById('form-error').classList.add('hidden');
             window.openModal('member-modal');
@@ -249,10 +306,17 @@
             const isEdit = !!id;
             const errorEl = document.getElementById('form-error');
             
+            // 收集选中的岗位 IDs
+            const selectedPostIds = Array.from(document.querySelectorAll('input[name="post_ids"]:checked')).map(cb => parseInt(cb.value));
+
             const payload = {
                 nickname: document.getElementById('form-nickname').value,
                 avatar: document.getElementById('form-avatar').value,
                 description: document.getElementById('form-description').value,
+                intro_image: document.getElementById('form-intro_image').value,
+                intro_video: document.getElementById('form-intro_video').value,
+                introduction_markdown: document.getElementById('form-intro_md').value,
+                post_type_ids: selectedPostIds
             };
 
             let endpoint = '';
