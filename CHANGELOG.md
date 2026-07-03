@@ -6,6 +6,7 @@
 
 - 新增全局 CORS 中间件和配置文件，支持 `OPTIONS` 预检请求。
 - 补全运行时依赖：`topthink/think-multi-app` 和 `firebase/php-jwt`。
+- 新增前端静态站点 Nginx 伪静态示例。
 
 ### 变更
 
