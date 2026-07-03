@@ -46,7 +46,7 @@ async function fetchTeams() {
     grid.innerHTML = '';
 
     try {
-        const res = await apiGet('/account/team/index');
+        const res = await apiGet('/team/index');
         
         if (res) {
             currentTeams = res || [];
@@ -154,7 +154,7 @@ async function submitCreateTeam(e) {
     errorAlert.classList.add('hidden');
 
     try {
-        const res = await apiPost('/account/team/add', { display_name: displayName, slug: slug });
+        const res = await apiPost('/team/add', { display_name: displayName, slug: slug });
         
         closeCreateModal();
         // 刷新列表
@@ -198,7 +198,7 @@ async function submitDeleteTeam() {
     spinner.classList.remove('hidden');
 
     try {
-        await apiPost('/account/team/delete', { team_id: targetDeleteId });
+        await apiPost('/team/delete', { team_id: targetDeleteId });
         
         closeDeleteModal();
         // 刷新列表
