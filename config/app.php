@@ -24,8 +24,8 @@ return [
 
     // 域名配置（供 route/app.php 等使用）
     'domain'           => [
-        'root' => env('app.domain_root', env('APP_DEBUG', false) ? 'localhost' : 'lostsky.work'),
-        'api'  => env('app.domain_api', env('APP_DEBUG', false) ? 'api.localhost' : 'api.lostsky.work'),
+        'root' => env('APP_DOMAIN_ROOT', env('APP_DEBUG', false) ? 'localhost' : 'lostsky.work'),
+        'api'  => env('APP_DOMAIN_API', env('APP_DEBUG', false) ? 'api.localhost' : 'api.lostsky.work'),
     ],
     // 无 team 状态的应用列表（不需要团队上下文即可运行）
     'teamless_apps'    => ['account'],

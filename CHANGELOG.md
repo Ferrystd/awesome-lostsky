@@ -18,6 +18,7 @@
 
 - 修复未安装多应用扩展导致应用路由不加载、接口 404 的问题。
 - 修复缺少 JWT 依赖导致 `Class "Firebase\JWT\JWT" not found` 的问题。
+- 修复域名 env 键名未被 ThinkPHP 读取、AppResolver 未能早于 MultiApp 生效导致 `/team/index` 404/CORS 表象的问题。
 
 ## v0.0.14 (2026-07-03)
 
