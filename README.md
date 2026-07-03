@@ -1,65 +1,91 @@
 # LostSky API
 
-基于 ThinkPHP 8 的纯后端 API 服务，采用多应用模式。
+ThinkPHP 8 多应用后端 API 服务。
 
 ## 环境要求
 
-- PHP >= 8.0
+- PHP >= 8.1
 - MySQL 5.7+ / MariaDB 10.3+
 - Composer 2.x
 
-## 安装
+## 配置 PATH
+
+部署前先把 PHP 目录加入 PATH，并确保可以直接执行 `php` 和 `composer`。
+
+Windows PowerShell 示例：
+
+```powershell
+$phpDir = "你的 PHP 安装目录"
+$composerPhar = Join-Path $phpDir "composer.phar"
+$composerBat = Join-Path $phpDir "composer.bat"
+Set-Content -Path $composerBat -Value "@echo off`r`n`"$phpDir\php.exe`" `"$composerPhar`" %*" -Encoding ASCII
+
+$machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+if (($machinePath -split ";") -notcontains $phpDir) {
+    [Environment]::SetEnvironmentVariable("Path", "$machinePath;$phpDir", "Machine")
+}
+```
+
+配置后重新打开终端，确认：
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/Ferrystd/awesome-lostsky.git
-cd awesome-lostsky
+php -v
+composer --version
+```
 
-# 2. 安装依赖
-composer install
+## 部署步骤
 
-# 3. 配置环境
+1. 安装依赖
+
+```bash
+composer install --no-dev --prefer-dist --no-interaction
+```
+
+2. 配置环境
+
+```bash
 cp .env.example .env
-# 编辑 .env 填写数据库连接、JWT 密钥等信息
-
-# 4. 导入数据库
-# 将 sql/schema.sql 导入你的 MySQL 数据库
-
-# 5. 确保 runtime 目录可写
-chmod -R 755 runtime
-chmod -R 755 public
 ```
 
-## 目录结构
+按实际环境修改 `.env` 中的数据库、域名、JWT、OSS 等配置。
 
-```
-app/
-├── account/      # 认证应用 (注册、登录、设备管理)
-├── console/      # 控制台应用
-├── display/      # 展示应用
-├── team/         # 团队应用 (成员管理、职务管理)
-├── model/        # 模型层 (统一继承 Base)
-├── service/      # 服务层 (业务逻辑封装)
-├── validate/     # 验证器
-└── middleware/    # 中间件 (JWT、Context、TeamAccess 等)
-config/           # 配置文件
-route/            # 路由
-sql/              # 数据库 Schema
-docs/             # 开发文档
-```
+3. 导入数据库
 
-## 核心特性
+将 `sql/` 下的数据库结构导入目标数据库。
 
-- **多应用模式**：account / console / display / team 独立应用
-- **JWT 认证**：无状态鉴权，支持设备管理
-- **个人即团队**：个人和团队统一在 Team 模型，代码无分支
-- **软删除**：所有模型统一支持，Base 层自动处理
-- **关联绑定**：Profile 类 1:1 模型通过 `bind()` 平铺字段
-
-## 启动开发服务器
+4. 清理缓存
 
 ```bash
-php think run
+php think clear
 ```
 
-默认监听 `localhost:8000`。
+5. 配置站点运行目录
+
+站点运行目录必须指向项目的 `public` 目录，而不是项目根目录。
+
+## Nginx 伪静态
+
+```nginx
+location / {
+    if (!-e $request_filename) {
+        rewrite ^(.*)$ /index.php?s=$1 last;
+        break;
+    }
+}
+```
+
+## 注意事项
+
+- 本项目使用 ThinkPHP 多应用模式，部署后接口 404 时先检查依赖是否完整，再执行 `php think clear`。
+- 生产环境使用 `composer install --no-dev`，不要安装开发依赖。
+- `.env` 注释建议使用 `;`，避免复杂中文注释或括号触发 env 解析警告。
+- 如果服务器访问 Packagist 较慢，可以配置 Composer 镜像源。
+- CORS 由全局中间件处理；若仍报跨域错误，先确认请求是否进入 ThinkPHP，而不是被 Nginx 直接返回。
+
+## 检查命令
+
+```bash
+composer check-platform-reqs --no-dev
+composer show --no-dev --direct
+php think version
+```

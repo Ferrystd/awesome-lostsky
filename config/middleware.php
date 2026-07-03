@@ -3,6 +3,7 @@
 return [
     // 别名或分组
     'alias'    => [
+        'Cors'               => \app\middleware\Cors::class,
         'Dedup'              => \app\middleware\Dedup::class,
         'JwtAuth'            => \app\middleware\JwtAuth::class,
         'Context'            => \app\middleware\Context::class,

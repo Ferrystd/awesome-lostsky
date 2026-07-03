@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.0.15 (2026-07-03)
+
+### 新增
+
+- 新增全局 CORS 中间件和配置文件，支持 `OPTIONS` 预检请求。
+- 补全运行时依赖：`topthink/think-multi-app` 和 `firebase/php-jwt`。
+
+### 变更
+
+- CORS 默认开放为 `Access-Control-Allow-Origin: *`，并关闭 credentials。
+- README 精简为部署步骤、PATH 配置、伪静态、注意事项和检查命令。
+- `.env.example` 注释改为更稳妥的 env 解析格式。
+
+### 修复
+
+- 修复未安装多应用扩展导致应用路由不加载、接口 404 的问题。
+- 修复缺少 JWT 依赖导致 `Class "Firebase\JWT\JWT" not found` 的问题。
+
 ## v0.0.14 (2026-07-03)
 
 ### 新增
