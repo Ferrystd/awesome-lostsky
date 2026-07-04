@@ -303,6 +303,7 @@
                     <td>
                         <div class="flex items-center justify-start gap-3">
                             <a href="/member-detail?id=${m.id}" class="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">详情</a>
+                            <a href="/docs?target_type=teamMember&target_id=${m.id}" class="text-sky-400 hover:text-sky-300 text-sm font-medium transition-colors">文档</a>
                             <button onclick="editMember(${m.id})" class="text-primary hover:text-primary/80 text-sm font-medium transition-colors">编辑</button>
                             ${m.is_blocked 
                                 ? `<button onclick="toggleBlock(${m.id}, false)" class="text-green-400 hover:text-green-300 text-sm font-medium transition-colors">解封</button>`
