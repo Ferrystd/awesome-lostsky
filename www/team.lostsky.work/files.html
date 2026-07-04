@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文件管理 - 失落青空管理后台</title>
+    <meta name="description" content="上传、检索和管理团队文件资源。">
+    <meta property="og:title" content="文件管理 - 失落青空管理后台">
+    <meta property="og:description" content="管理失落青空团队文件资源。">
+    <meta property="og:image" content="//assets.lostsky.work/images/site-bg.png">
+    <link rel="canonical" href="https://team.lostsky.work/files">
     <!-- CSS & Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="//assets.lostsky.work/js/tailwind.config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="//assets.lostsky.work/css/base.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/components.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/animations.css">
@@ -63,6 +68,12 @@
                     <div>
                         <h2 class="text-2xl font-bold mb-1">团队文件库</h2>
                         <p class="text-sm text-gray-400" id="file-usage-info">总空间用量统计中...</p>
+                    </div>
+                    <div>
+                        <input type="file" id="file-upload-input" class="hidden" multiple onchange="uploadFiles()">
+                        <button onclick="document.getElementById('file-upload-input').click()" class="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors tech-border-glow shadow-[0_0_15px_rgba(14,165,233,0.3)]">
+                            上传文件
+                        </button>
                     </div>
                 </div>
 
@@ -148,22 +159,25 @@
             grid.innerHTML = list.map(f => {
                 const isImg = f.mime_type?.startsWith('image/');
                 const uploader = f.member?.profile?.nickname || `Uploader ${f.member_id}`;
+                const safeUrl = escapeHtml(f.url || '');
+                const safeName = escapeHtml(f.name || f.original_name || '未命名文件');
+                const safeUploader = escapeHtml(uploader);
                 return `
                 <div class="glass-card rounded-xl p-3 flex flex-col group relative">
                     <div class="aspect-square bg-black/40 rounded-lg mb-3 overflow-hidden flex items-center justify-center border border-white/5 relative">
                         ${isImg 
-                            ? `<img src="${f.url}" class="w-full h-full object-cover transition-transform group-hover:scale-105">`
+                            ? `<img src="${safeUrl}" class="w-full h-full object-cover transition-transform group-hover:scale-105">`
                             : `<svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>`}
                         
                         <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <a href="${f.url}" target="_blank" class="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md" title="查看"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></a>
+                            <a href="${safeUrl}" target="_blank" class="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md" title="查看"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></a>
                             <button onclick="deleteFile(${f.id})" class="p-2 bg-red-500/20 hover:bg-red-500/40 rounded-full text-red-400 backdrop-blur-md" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                         </div>
                     </div>
-                    <div class="text-sm font-medium truncate text-gray-200" title="${f.original_name}">${f.original_name}</div>
+                    <div class="text-sm font-medium truncate text-gray-200" title="${safeName}">${safeName}</div>
                     <div class="text-xs text-gray-500 mt-1 flex justify-between">
                         <span>${formatBytes(f.size)}</span>
-                        <span class="truncate max-w-[60px]" title="${uploader}">${uploader}</span>
+                        <span class="truncate max-w-[60px]" title="${safeUploader}">${safeUploader}</span>
                     </div>
                 </div>
                 `;
@@ -193,6 +207,32 @@
                 loadUsage();
                 loadFiles(currentPage);
             } catch (e) { alert(e.message || '操作失败'); }
+        }
+
+        async function uploadFiles() {
+            const input = document.getElementById('file-upload-input');
+            const files = Array.from(input.files || []);
+            if (!files.length) return;
+            try {
+                for (const file of files) {
+                    await window.apiUpload(file);
+                }
+                loadUsage();
+                loadFiles(currentPage);
+            } catch (err) {
+                alert(err.message || '上传失败');
+            } finally {
+                input.value = '';
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         document.addEventListener('DOMContentLoaded', () => {

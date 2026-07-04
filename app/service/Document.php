@@ -115,7 +115,7 @@ class Document
         $subjectMemberId = $this->guardAccess($doc, $teamId);
 
         $guard = app(\app\service\Visibility::class);
-        $guard->assertManage($doc->manager_scope, $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
+        $guard->assertManage($this->managerScope($doc->manager_scope), $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
 
         $allow  = ['title', 'content', 'manager_scope', 'visibility', 'sort'];
         $update = [];
@@ -132,8 +132,8 @@ class Document
             $update['visibility'] = $this->visibility($update['visibility'])->value;
         }
 
-        $managerScope = $this->managerScope($update['manager_scope'] ?? $doc->manager_scope->value);
-        $visibility   = $this->visibility($update['visibility'] ?? $doc->visibility->value);
+        $managerScope = $this->managerScope($update['manager_scope'] ?? $doc->manager_scope);
+        $visibility   = $this->visibility($update['visibility'] ?? $doc->visibility);
         $this->assertPolicy($doc->documentable_type, $managerScope, $visibility);
 
         if ($update) {
@@ -163,7 +163,7 @@ class Document
         $subjectMemberId = $this->guardAccess($doc, $teamId);
 
         $guard = app(\app\service\Visibility::class);
-        $guard->assertManage($doc->manager_scope, $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
+        $guard->assertManage($this->managerScope($doc->manager_scope), $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
 
         Db::transaction(function () use ($doc) {
             \app\model\VisibilityTarget::where('visibleable_type', 'document')

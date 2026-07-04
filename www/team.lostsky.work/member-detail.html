@@ -5,9 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>成员详情 - 失落青空管理后台</title>
     <meta name="description" content="管理团队成员详细资料与自定义字段">
+    <meta property="og:title" content="成员详情 - 失落青空管理后台">
+    <meta property="og:description" content="管理团队成员详细资料与自定义字段。">
+    <meta property="og:image" content="//assets.lostsky.work/images/site-bg.png">
+    <link rel="canonical" href="https://team.lostsky.work/member-detail">
     <!-- CSS & Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="//assets.lostsky.work/js/tailwind.config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="//assets.lostsky.work/css/base.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/components.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/animations.css">
@@ -87,7 +91,10 @@
                             </div>
                         </div>
                         
-                        <div class="text-center md:text-right">
+                        <div class="text-center md:text-right flex flex-col sm:flex-row md:flex-col gap-2">
+                            <a id="member-docs-link" href="/docs" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-primary/40">
+                                成员文档
+                            </a>
                             <button onclick="editBasicInfo()" class="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-white/10">
                                 编辑基础资料
                             </button>

@@ -51,6 +51,21 @@ class TeamMemberField
      */
     public function create(int $teamId, array $data): void
     {
+        $data = array_merge([
+            'source'        => 'custom',
+            'value_type'    => 'string',
+            'input_type'    => 'text',
+            'default_value' => null,
+            'is_required'   => 0,
+            'manager_scope' => ManageScope::Team->value,
+            'visibility'    => VisibilityEnum::Team->value,
+            'is_editable'   => 1,
+            'is_searchable' => 0,
+            'is_system'     => 0,
+            'sort'          => 0,
+        ], $data);
+        $data['options'] = $this->options($data['options'] ?? null);
+
         $validator = new \app\validate\TeamMemberField;
         if (!$validator->scene('create')->check($data)) {
             throw new HttpException(422, $validator->getError());
@@ -79,6 +94,10 @@ class TeamMemberField
      */
     public function update(int $teamId, int $id, array $data): void
     {
+        if (array_key_exists('options', $data)) {
+            $data['options'] = $this->options($data['options']);
+        }
+
         $validator = new \app\validate\TeamMemberField;
         if (!$validator->scene('update')->check($data)) {
             throw new HttpException(422, $validator->getError());
@@ -216,6 +235,26 @@ class TeamMemberField
         $data[$column] = $value;
 
         return [$column, $scene, $data];
+    }
+
+    private function options($options): ?array
+    {
+        if ($options === null || $options === '') {
+            return null;
+        }
+        if (is_array($options)) {
+            return array_values($options);
+        }
+        if (!is_string($options)) {
+            throw new HttpException(422, '字段选项格式不正确');
+        }
+
+        $decoded = json_decode($options, true);
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+            throw new HttpException(422, '字段选项格式不正确');
+        }
+
+        return array_values($decoded);
     }
 
     private function assertPolicy(ManageScope $managerScope, VisibilityEnum $visibility): void

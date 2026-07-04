@@ -4,30 +4,50 @@ declare(strict_types=1);
 namespace app\middleware;
 
 use Closure;
+use think\exception\Handle;
 use think\Request;
 use think\Response;
+use Throwable;
 
 class Cors
 {
     public function handle(Request $request, Closure $next)
     {
-        $origin = $request->header('Origin');
-
-        if ($request->method(true) === 'OPTIONS') {
-            $response = Response::create('', 'html', 204);
-        } else {
-            $response = $next($request);
+        try {
+            if ($request->method(true) === 'OPTIONS') {
+                $response = Response::create('', 'html', 204);
+            } else {
+                $response = $next($request);
+            }
+        } catch (Throwable $e) {
+            $response = app(Handle::class)->render($request, $e);
         }
 
+        return $this->withHeaders($request, $response);
+    }
+
+    public function withHeaders(Request $request, Response $response): Response
+    {
+        $headers = $this->headers($request);
+        if (!$headers) {
+            return $response;
+        }
+
+        return $response->header($headers);
+    }
+
+    public function headers(Request $request): array
+    {
+        $origin = $request->header('Origin');
         $allowOrigin = $this->allowOrigin($origin);
         if (!$allowOrigin) {
-            return $response;
+            return [];
         }
 
         $headers = [
             'Access-Control-Allow-Origin' => $allowOrigin,
             'Access-Control-Allow-Methods' => config('cors.allowed_methods'),
-            'Access-Control-Allow-Headers' => config('cors.allowed_headers'),
+            'Access-Control-Allow-Headers' => $this->allowHeaders($request),
             'Access-Control-Max-Age' => (string) config('cors.max_age'),
         ];
 
@@ -44,7 +64,7 @@ class Cors
             $headers['Access-Control-Expose-Headers'] = $exposedHeaders;
         }
 
-        return $response->header($headers);
+        return $headers;
     }
 
     private function allowOrigin(?string $origin): ?string
@@ -70,5 +90,16 @@ class Cors
         }
 
         return null;
+    }
+
+    private function allowHeaders(Request $request): string
+    {
+        $allowedHeaders = (string) config('cors.allowed_headers');
+
+        if ($allowedHeaders !== '*') {
+            return $allowedHeaders;
+        }
+
+        return $request->header('Access-Control-Request-Headers') ?: '*';
     }
 }

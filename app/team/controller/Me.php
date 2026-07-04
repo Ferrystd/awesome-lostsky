@@ -19,6 +19,19 @@ class Me
     {
         $service = app(TeamMemberService::class);
         $result  = $service->get($request->team_id, $request->member_id);
+        $fieldService = app(\app\service\TeamMemberField::class);
+        $result['custom_fields'] = $fieldService->list(
+            (int) $request->team_id,
+            ['source' => 'custom'],
+            (int) $request->user_id,
+            (int) $request->member_id
+        );
+        $result['custom_field_values'] = $fieldService->values(
+            (int) $request->team_id,
+            (int) $request->member_id,
+            (int) $request->user_id,
+            (int) $request->member_id
+        );
 
         return success($result);
     }

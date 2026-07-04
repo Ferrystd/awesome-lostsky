@@ -2,6 +2,27 @@
  * 失落青空 - 后台交互与组件加载
  */
 document.addEventListener('DOMContentLoaded', () => {
+    const ensureDocsNav = () => {
+        const configGroups = Array.from(document.querySelectorAll('nav .px-3'))
+            .filter(group => group.textContent.includes('团队配置'));
+        const configGroup = configGroups[0];
+        if (!configGroup || configGroup.querySelector('a[href="/docs"]')) return;
+
+        const settingsLink = configGroup.querySelector('a[href="/settings"]');
+        const docLink = document.createElement('a');
+        docLink.href = '/docs';
+        docLink.className = 'sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-300 mb-1';
+        docLink.innerHTML = '<svg class="w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h8l6 6v10a2 2 0 01-2 2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 3v6h6M7 13h10M7 17h7"></path></svg>文档库';
+
+        if (settingsLink) {
+            configGroup.insertBefore(docLink, settingsLink);
+        } else {
+            configGroup.appendChild(docLink);
+        }
+    };
+
+    ensureDocsNav();
+
     // 处理导航激活状态
     const normalizeNavPath = path => {
         const cleanPath = path.replace(/\/index(?:\.html)?$/, '/').replace(/\.html$/, '');

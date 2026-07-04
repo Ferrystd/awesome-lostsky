@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>成员管理 - 失落青空管理后台</title>
     <!-- CSS & Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="//assets.lostsky.work/js/tailwind.config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="//assets.lostsky.work/css/base.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/components.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/animations.css">
@@ -125,8 +125,18 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">头像 URL (Avatar)</label>
-                        <input type="text" id="form-avatar" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors placeholder-gray-600">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">头像 (Avatar)</label>
+                        <input type="hidden" id="form-avatar">
+                        <input type="file" id="upload-avatar" class="hidden" accept="image/*" onchange="uploadMemberFile('upload-avatar', 'form-avatar')">
+                        <div class="page-team-upload-capsule" onclick="document.getElementById('upload-avatar').click()" onkeydown="triggerUploadOnKey(event, 'upload-avatar')" role="button" tabindex="0" aria-label="上传头像">
+                            <div class="page-team-upload-icon">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4"></path></svg>
+                            </div>
+                            <div class="page-team-upload-info">
+                                <div class="page-team-upload-title">点击上传头像</div>
+                                <span id="form-avatar-status" class="page-team-upload-status">未上传</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div>
@@ -137,11 +147,31 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-1">介绍图 (Intro Image)</label>
-                            <input type="text" id="form-intro_image" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors placeholder-gray-600">
+                            <input type="hidden" id="form-intro_image">
+                            <input type="file" id="upload-intro_image" class="hidden" accept="image/*" onchange="uploadMemberFile('upload-intro_image', 'form-intro_image')">
+                            <div class="page-team-upload-capsule" onclick="document.getElementById('upload-intro_image').click()" onkeydown="triggerUploadOnKey(event, 'upload-intro_image')" role="button" tabindex="0" aria-label="上传介绍图">
+                                <div class="page-team-upload-icon">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4"></path></svg>
+                                </div>
+                                <div class="page-team-upload-info">
+                                    <div class="page-team-upload-title">上传图片文件</div>
+                                    <span id="form-intro_image-status" class="page-team-upload-status">未上传</span>
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-1">介绍视频 (Intro Video)</label>
-                            <input type="text" id="form-intro_video" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors placeholder-gray-600">
+                            <input type="hidden" id="form-intro_video">
+                            <input type="file" id="upload-intro_video" class="hidden" accept="video/*" onchange="uploadMemberFile('upload-intro_video', 'form-intro_video')">
+                            <div class="page-team-upload-capsule" onclick="document.getElementById('upload-intro_video').click()" onkeydown="triggerUploadOnKey(event, 'upload-intro_video')" role="button" tabindex="0" aria-label="上传介绍视频">
+                                <div class="page-team-upload-icon">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4"></path></svg>
+                                </div>
+                                <div class="page-team-upload-info">
+                                    <div class="page-team-upload-title">上传视频文件</div>
+                                    <span id="form-intro_video-status" class="page-team-upload-status">未上传</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -285,6 +315,9 @@
             document.getElementById('form-intro_video').value = p.intro_video || '';
             document.getElementById('form-intro_md').value = p.introduction_markdown || '';
             document.getElementById('form-is-displayed').checked = isEdit ? member.is_displayed : true;
+            updateUploadStatus('form-avatar', p.avatar || '');
+            updateUploadStatus('form-intro_image', p.intro_image || '');
+            updateUploadStatus('form-intro_video', p.intro_video || '');
 
             // 回显岗位复选框
             const postIds = member ? (member.posts || []).map(p => p.post_id) : [];
@@ -299,6 +332,35 @@
         function editMember(id) {
             const member = allMembers.find(m => m.id === id);
             if (member) openMemberModal(member);
+        }
+
+        async function uploadMemberFile(fileInputId, targetInputId) {
+            const fileInput = document.getElementById(fileInputId);
+            const targetInput = document.getElementById(targetInputId);
+            const file = fileInput?.files?.[0];
+            if (!file) return;
+            try {
+                const result = await window.apiUpload(file);
+                targetInput.value = result.url || '';
+                updateUploadStatus(targetInputId, result.url || '', file.name);
+            } catch (err) {
+                alert(err.message || '上传失败');
+            } finally {
+                if (fileInput) fileInput.value = '';
+            }
+        }
+
+        function updateUploadStatus(targetInputId, url, fileName = '') {
+            const statusEl = document.getElementById(`${targetInputId}-status`);
+            if (!statusEl) return;
+            statusEl.textContent = url ? (fileName || '已上传') : '未上传';
+            statusEl.classList.toggle('is-ready', !!url);
+        }
+
+        function triggerUploadOnKey(event, inputId) {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            document.getElementById(inputId)?.click();
         }
 
         async function submitMemberForm() {

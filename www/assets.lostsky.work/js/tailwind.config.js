@@ -3,7 +3,8 @@
  * 🔒 此文件锁定，页面修改时不得改动
  * 所有页面统一引用此文件，确保配色和字体全局一致
  */
-tailwind.config = {
+window.tailwind = window.tailwind || {};
+window.tailwind.config = {
     theme: {
         extend: {
             colors: {

@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的资料 - 失落青空管理后台</title>
+    <meta name="description" content="编辑个人成员资料和自定义字段。">
+    <meta property="og:title" content="我的资料 - 失落青空管理后台">
+    <meta property="og:description" content="编辑失落青空团队内的个人资料。">
+    <meta property="og:image" content="//assets.lostsky.work/images/site-bg.png">
+    <link rel="canonical" href="https://team.lostsky.work/me">
     <!-- CSS & Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="//assets.lostsky.work/js/tailwind.config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="//assets.lostsky.work/css/base.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/components.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/animations.css">
@@ -77,6 +82,15 @@
                         </div>
                     </div>
 
+                    <div class="relative z-10 mb-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <a id="my-docs-link" href="/docs" class="bg-primary hover:bg-primary/90 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors border border-primary/40 text-center">
+                            我的文档
+                        </a>
+                        <a id="my-doc-create-link" href="/docs" class="bg-white/5 hover:bg-white/10 text-white px-4 py-3 rounded-lg text-sm font-medium transition-colors border border-white/10 text-center">
+                            新建文档
+                        </a>
+                    </div>
+
                     <form id="me-form" class="space-y-6 relative z-10">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
@@ -84,8 +98,18 @@
                                 <input type="text" id="form-nickname" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-300 mb-2">头像链接 (Avatar URL)</label>
-                                <input type="text" id="form-avatar" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">头像 (Avatar)</label>
+                                <input type="hidden" id="form-avatar">
+                                <input type="file" id="upload-avatar" class="hidden" accept="image/*" onchange="uploadProfileFile('upload-avatar', 'form-avatar')">
+                                  <div class="page-team-upload-capsule" onclick="document.getElementById('upload-avatar').click()" onkeydown="triggerUploadOnKey(event, 'upload-avatar')" role="button" tabindex="0" aria-label="上传头像">
+                                      <div class="page-team-upload-icon">
+                                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4"></path></svg>
+                                      </div>
+                                      <div class="page-team-upload-info">
+                                          <div class="page-team-upload-title">点击上传头像</div>
+                                          <span id="form-avatar-status" class="page-team-upload-status">未上传</span>
+                                      </div>
+                                  </div>
                             </div>
                         </div>
 
@@ -97,11 +121,31 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">介绍图 (Intro Image)</label>
-                                <input type="text" id="form-intro_image" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors">
+                                <input type="hidden" id="form-intro_image">
+                                <input type="file" id="upload-intro_image" class="hidden" accept="image/*" onchange="uploadProfileFile('upload-intro_image', 'form-intro_image')">
+                                  <div class="page-team-upload-capsule" onclick="document.getElementById('upload-intro_image').click()" onkeydown="triggerUploadOnKey(event, 'upload-intro_image')" role="button" tabindex="0" aria-label="上传介绍图">
+                                      <div class="page-team-upload-icon">
+                                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4"></path></svg>
+                                      </div>
+                                      <div class="page-team-upload-info">
+                                          <div class="page-team-upload-title">上传图片文件</div>
+                                          <span id="form-intro_image-status" class="page-team-upload-status">未上传</span>
+                                      </div>
+                                  </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-300 mb-2">介绍视频 (Intro Video)</label>
-                                <input type="text" id="form-intro_video" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors">
+                                <input type="hidden" id="form-intro_video">
+                                <input type="file" id="upload-intro_video" class="hidden" accept="video/*" onchange="uploadProfileFile('upload-intro_video', 'form-intro_video')">
+                                  <div class="page-team-upload-capsule" onclick="document.getElementById('upload-intro_video').click()" onkeydown="triggerUploadOnKey(event, 'upload-intro_video')" role="button" tabindex="0" aria-label="上传介绍视频">
+                                      <div class="page-team-upload-icon">
+                                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4"></path></svg>
+                                      </div>
+                                      <div class="page-team-upload-info">
+                                          <div class="page-team-upload-title">上传视频文件</div>
+                                          <span id="form-intro_video-status" class="page-team-upload-status">未上传</span>
+                                      </div>
+                                  </div>
                             </div>
                         </div>
 
@@ -118,6 +162,22 @@
                             </button>
                         </div>
                     </form>
+
+                    <form id="me-fields-form" class="space-y-6 relative z-10 mt-8 pt-8 border-t border-white/5">
+                        <div>
+                            <h3 class="text-xl font-bold text-white mb-1">自定义字段</h3>
+                            <p class="text-sm text-gray-400">维护团队为成员扩展的个人资料。</p>
+                        </div>
+                        <div id="me-fields-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="col-span-full text-center py-8 text-gray-500">正在加载字段定义...</div>
+                        </div>
+                        <div id="me-fields-message" class="hidden p-3 rounded-lg text-sm"></div>
+                        <div class="pt-6 border-t border-white/5 flex justify-end">
+                            <button type="submit" class="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-primary/20 tech-border-glow">
+                                保存自定义字段
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -126,29 +186,38 @@
     <script src="//assets.lostsky.work/js/api.js"></script>
     <script src="//assets.lostsky.work/js/page-team.js"></script>
     <script>
+        let currentMember = null;
+        let meFields = [];
+
         async function loadMe() {
             try {
-                // apiGet 返回的是 json.data，即 member 对象
                 const member = await window.apiGet('/me/get');
                 if (member) {
+                    currentMember = member;
+                    const docsUrl = `/docs?target_type=teamMember&target_id=${encodeURIComponent(member.id)}`;
+                    document.getElementById('my-docs-link').href = docsUrl;
+                    document.getElementById('my-doc-create-link').href = `${docsUrl}&create=1`;
                     const p = member.profile || {};
                     
-                    // Display
                     document.getElementById('display-name').textContent = p.nickname || '未设置昵称';
                     document.getElementById('display-desc').textContent = p.description || '这家伙很懒，什么都没写...';
                     if (p.avatar) document.getElementById('display-avatar').src = p.avatar;
                     
                     const posts = member.posts || [];
-                    const postsHtml = posts.map(post => `<span class="px-3 py-1 bg-white/10 border border-white/10 rounded-full text-xs text-gray-300">${post.type?.name || '未知岗位'}</span>`).join('');
+                    const postsHtml = posts.map(post => `<span class="px-3 py-1 bg-white/10 border border-white/10 rounded-full text-xs text-gray-300">${escapeHtml(post.type?.name || '未知岗位')}</span>`).join('');
                     document.getElementById('display-posts').innerHTML = postsHtml || '<span class="text-gray-500 text-sm">暂无分配岗位</span>';
 
-                    // Form
                     document.getElementById('form-nickname').value = p.nickname || '';
                     document.getElementById('form-avatar').value = p.avatar || '';
                     document.getElementById('form-description').value = p.description || '';
                     document.getElementById('form-intro_image').value = p.intro_image || '';
                     document.getElementById('form-intro_video').value = p.intro_video || '';
                     document.getElementById('form-intro_md').value = p.introduction_markdown || '';
+                    updateUploadStatus('form-avatar', p.avatar || '');
+                    updateUploadStatus('form-intro_image', p.intro_image || '');
+                    updateUploadStatus('form-intro_video', p.intro_video || '');
+
+                    await loadMeFields(member);
                 }
             } catch (err) {
                 console.error(err);
@@ -170,7 +239,6 @@
             };
 
             try {
-                // apiPost 成功时返回 json.data，失败时抛 Error
                 await window.apiPost('/me/edit', payload);
                 msgEl.textContent = '资料更新成功';
                 msgEl.classList.add('bg-green-500/10', 'border', 'border-green-500/20', 'text-green-400');
@@ -183,6 +251,240 @@
                 msgEl.classList.remove('hidden');
             }
         });
+
+        async function uploadProfileFile(fileInputId, targetInputId) {
+            const fileInput = document.getElementById(fileInputId);
+            const targetInput = document.getElementById(targetInputId);
+            const file = fileInput?.files?.[0];
+            if (!file) return;
+            try {
+                const result = await window.apiUpload(file);
+                targetInput.value = result.url || '';
+                updateUploadStatus(targetInputId, result.url || '', file.name);
+                if (targetInputId === 'form-avatar' && result.url) {
+                    document.getElementById('display-avatar').src = result.url;
+                }
+            } catch (err) {
+                alert(err.message || '上传失败');
+            } finally {
+                if (fileInput) fileInput.value = '';
+            }
+        }
+
+        async function loadMeFields(member) {
+            let fields = member.custom_fields || [];
+            let values = member.custom_field_values || [];
+            if (!fields.length && member.id) {
+                const [fieldsRes, valuesRes] = await Promise.all([
+                    window.apiGet('/memberField/index', { source: 'custom' }),
+                    window.apiGet('/memberField/values', { member_id: member.id })
+                ]);
+                fields = fieldsRes || [];
+                values = valuesRes || [];
+            }
+            meFields = fields;
+            renderMeFields(fields, buildValuesMap(values));
+        }
+
+        function buildValuesMap(values) {
+            const map = {};
+            (values || []).forEach(item => {
+                if (!item.field_id) return;
+                map[item.field_id] = readFieldValue(item.field || {}, item);
+            });
+            return map;
+        }
+
+        function readFieldValue(field, item) {
+            switch (field.value_type) {
+                case 'text': return item.value_text || '';
+                case 'int':
+                case 'bool': return item.value_int ?? '';
+                case 'decimal': return item.value_decimal ?? '';
+                case 'date':
+                case 'datetime': return item.value_datetime || '';
+                case 'multi_select':
+                case 'json': return item.value_json || [];
+                default: return item.value_string || '';
+            }
+        }
+
+        function renderMeFields(fields, valuesMap) {
+            const container = document.getElementById('me-fields-container');
+            if (!fields.length) {
+                container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">当前团队尚未定义自定义字段</div>';
+                return;
+            }
+            container.innerHTML = fields.map(field => {
+                const value = valuesMap[field.id] ?? '';
+                const requiredMark = field.is_required ? '<span class="text-red-400">*</span>' : '';
+                const readonly = Number(field.is_editable) === 0 ? '<span class="ml-2 text-xs text-gray-500">只读</span>' : '';
+                const wide = ['textarea', 'upload'].includes(field.input_type) || ['text', 'json', 'multi_select'].includes(field.value_type) ? 'col-span-full' : '';
+                return `<div class="${wide}">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">${escapeHtml(field.name)} ${requiredMark}${readonly}</label>
+                    ${renderCustomControl(field, value)}
+                    <p class="text-xs text-gray-500 mt-1">${escapeHtml(field.field_key)}</p>
+                </div>`;
+            }).join('');
+        }
+
+        function renderCustomControl(field, value) {
+            const disabled = Number(field.is_editable) === 0 ? 'disabled' : '';
+            const required = field.is_required ? 'required' : '';
+            const options = normalizeOptions(field.options);
+            const common = `data-field-id="${field.id}" ${disabled} ${required}`;
+
+            if (field.input_type === 'textarea' || field.value_type === 'text' || field.value_type === 'json') {
+                const text = field.value_type === 'json' && value ? JSON.stringify(value) : String(value || '');
+                return `<textarea id="me_field_${field.id}" rows="3" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors admin-scroll disabled:opacity-60" ${common}>${escapeHtml(text)}</textarea>`;
+            }
+            if (field.input_type === 'select') {
+                return `<select id="me_field_${field.id}" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary disabled:opacity-60" ${common}>
+                    <option value="">请选择</option>
+                    ${options.map(opt => `<option value="${escapeHtml(opt.value)}" ${String(value) === opt.value ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`).join('')}
+                </select>`;
+            }
+            if (field.input_type === 'radio') {
+                return `<div id="me_field_${field.id}" class="flex flex-wrap gap-3" ${common}>
+                    ${options.map(opt => `<label class="flex items-center gap-2 text-sm text-gray-300"><input type="radio" name="me_field_${field.id}" value="${escapeHtml(opt.value)}" ${String(value) === opt.value ? 'checked' : ''} ${disabled} ${required}>${escapeHtml(opt.label)}</label>`).join('')}
+                </div>`;
+            }
+            if (field.input_type === 'checkbox') {
+                if (field.value_type === 'bool') {
+                    const checked = value === 1 || value === true || String(value) === '1' || String(value).toLowerCase() === 'true';
+                    return `<label class="flex items-center cursor-pointer mt-2">
+                        <input type="checkbox" id="me_field_${field.id}" class="sr-only peer" ${checked ? 'checked' : ''} ${common}>
+                        <div class="page-team-switch"></div>
+                    </label>`;
+                }
+                const values = Array.isArray(value) ? value.map(String) : String(value || '').split(',').filter(Boolean);
+                return `<div id="me_field_${field.id}" class="flex flex-wrap gap-3" ${common}>
+                    ${options.map(opt => `<label class="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" name="me_field_${field.id}" value="${escapeHtml(opt.value)}" ${values.includes(opt.value) ? 'checked' : ''} ${disabled}>${escapeHtml(opt.label)}</label>`).join('')}
+                </div>`;
+            }
+            if (field.input_type === 'upload') {
+                return `<div class="page-team-upload-control">
+                    <input type="hidden" id="me_field_${field.id}" value="${escapeHtml(String(value || ''))}" ${common}>
+                    <input type="file" id="me_file_${field.id}" class="hidden" onchange="uploadMeFieldFile(${field.id})" ${disabled}>
+                    <div class="page-team-upload-capsule ${disabled ? 'is-disabled' : ''}" onclick="${disabled ? '' : `document.getElementById('me_file_${field.id}').click()`}" onkeydown="${disabled ? '' : `triggerUploadOnKey(event, 'me_file_${field.id}')`}" role="button" tabindex="${disabled ? '-1' : '0'}" aria-label="上传${escapeHtml(field.name)}">
+                        <div class="page-team-upload-icon">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4"></path></svg>
+                        </div>
+                        <div class="page-team-upload-info">
+                            <div class="page-team-upload-title">上传文件</div>
+                            <span id="me_field_${field.id}-status" class="page-team-upload-status ${value ? 'is-ready' : ''}">${value ? '已上传' : '未上传'}</span>
+                        </div>
+                    </div>
+                </div>`;
+            }
+            const type = field.input_type === 'date' ? 'date' : (field.input_type === 'datetime' ? 'datetime-local' : (['int', 'decimal'].includes(field.value_type) ? 'number' : 'text'));
+            const inputValue = ['date', 'datetime'].includes(field.value_type) ? formatDateInput(value, field.input_type) : String(value || '');
+            return `<input type="${type}" id="me_field_${field.id}" value="${escapeHtml(inputValue)}" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors disabled:opacity-60" ${common}>`;
+        }
+
+        async function uploadMeFieldFile(fieldId) {
+            const fileInput = document.getElementById(`me_file_${fieldId}`);
+            const targetInput = document.getElementById(`me_field_${fieldId}`);
+            const file = fileInput?.files?.[0];
+            if (!file) return;
+            try {
+                const result = await window.apiUpload(file);
+                targetInput.value = result.url || '';
+                updateUploadStatus(`me_field_${fieldId}`, result.url || '', file.name);
+            } catch (err) {
+                alert(err.message || '上传失败');
+            } finally {
+                if (fileInput) fileInput.value = '';
+            }
+        }
+
+        function updateUploadStatus(targetInputId, url, fileName = '') {
+            const statusEl = document.getElementById(`${targetInputId}-status`);
+            if (!statusEl) return;
+            statusEl.textContent = url ? (fileName || '已上传') : '未上传';
+            statusEl.classList.toggle('is-ready', !!url);
+        }
+
+        function triggerUploadOnKey(event, inputId) {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            document.getElementById(inputId)?.click();
+        }
+
+        document.getElementById('me-fields-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msgEl = document.getElementById('me-fields-message');
+            msgEl.className = 'hidden p-3 rounded-lg text-sm';
+            const values = {};
+            meFields.forEach(field => {
+                if (Number(field.is_editable) === 0) return;
+                const el = document.getElementById(`me_field_${field.id}`);
+                if (!el) return;
+                values[field.id] = collectFieldValue(field, el);
+            });
+            try {
+                await window.apiPost('/memberField/saveValues', {
+                    member_id: currentMember.id,
+                    values
+                });
+                msgEl.textContent = '自定义字段保存成功';
+                msgEl.classList.add('bg-green-500/10', 'border', 'border-green-500/20', 'text-green-400');
+                msgEl.classList.remove('hidden');
+                setTimeout(() => msgEl.classList.add('hidden'), 3000);
+            } catch (err) {
+                msgEl.textContent = err.message || '保存失败';
+                msgEl.classList.add('bg-red-500/10', 'border', 'border-red-500/20', 'text-red-400');
+                msgEl.classList.remove('hidden');
+            }
+        });
+
+        function collectFieldValue(field, el) {
+            if (field.input_type === 'radio') {
+                return document.querySelector(`input[name="me_field_${field.id}"]:checked`)?.value || '';
+            }
+            if (field.input_type === 'checkbox') {
+                if (field.value_type === 'bool') return el.checked ? 1 : 0;
+                return Array.from(document.querySelectorAll(`input[name="me_field_${field.id}"]:checked`)).map(input => input.value);
+            }
+            let value = el.value;
+            if ((field.value_type === 'int' || field.value_type === 'decimal') && value === '') return null;
+            if (field.value_type === 'json' && value) {
+                try {
+                    value = JSON.parse(value);
+                } catch (e) {}
+            }
+            return value;
+        }
+
+        function normalizeOptions(options) {
+            if (!Array.isArray(options)) return [];
+            return options.map(item => {
+                if (typeof item === 'string') return { label: item, value: item };
+                return {
+                    label: String(item.label ?? item.name ?? item.value ?? ''),
+                    value: String(item.value ?? item.label ?? item.name ?? ''),
+                };
+            });
+        }
+
+        function formatDateInput(value, inputType) {
+            if (!value) return '';
+            const date = /^\d+$/.test(String(value)) ? new Date(Number(value) * 1000) : new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            const pad = number => String(number).padStart(2, '0');
+            const ymd = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+            if (inputType !== 'datetime') return ymd;
+            return `${ymd}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
 
         document.addEventListener('DOMContentLoaded', loadMe);
     </script>

@@ -30,7 +30,7 @@
 ### [controller] me
 <!-- 自己操作自己，无需传 member_id -->
 + get
-获取自己在团队内的完整资料（含 profile + 岗位）
+获取自己在团队内的完整资料（含 profile + 岗位 + custom_fields + custom_field_values）
 + edit
 编辑自己的资料（仅 nickname、avatar）
 
@@ -80,6 +80,19 @@
 编辑岗位类型
 + delete
 删除岗位类型
+
+### [controller] doc
+<!-- 团队文档能力。控制器在 team 应用内，文档能力校验下沉到 app\service\Document -->
++ index (`GET /doc`)
+获取团队或成员文档列表，支持 page、limit、target_type、target_id、manager_scope、visibility、keyword
++ get (`GET /doc/get?id={id}`)
+获取单篇文档，兼容旧路径 `GET /doc/{id}`
++ create (`POST /doc/create`)
+新增文档
++ edit (`POST /doc/edit`)
+编辑文档
++ delete (`POST /doc/delete`)
+删除文档
 
 ## Controller 写法约定
 

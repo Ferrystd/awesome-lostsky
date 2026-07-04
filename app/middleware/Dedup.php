@@ -5,31 +5,36 @@ namespace app\middleware;
 
 use app\model\ApiRequestCache;
 use think\exception\HttpException;
+use think\facade\Db;
 use think\Request;
+use think\Response;
 
 /**
  * 防重复提交 / 防重放攻击 中间件
  *
- * 依赖前端在页面加载时生成 UUID，通过 X-Page-Id 请求头携带。
- * 同一页面内完全相同的请求（url + method + data + pageId）在有效期内只允许通过一次。
+ * 优先使用 X-Request-Id 防重放；旧客户端仍可通过 X-Page-Id + 请求内容防重复提交。
  *
- * 非网页请求（缺少 X-Page-Id）直接放行，不做拦截。
+ * 非网页请求（缺少 X-Request-Id 和 X-Page-Id）直接放行，不做拦截。
  */
 class Dedup
 {
     public function handle(Request $request, \Closure $next)
     {
-        $pageId = $request->header('X-Page-Id');
+        $pageId    = trim((string) $request->header('X-Page-Id'));
+        $requestId = trim((string) $request->header('X-Request-Id'));
 
-        // 非网页请求（无 pageId），直接放行
-        if (empty($pageId)) {
+        if ($this->shouldPass($request, $pageId, $requestId)) {
             return $next($request);
         }
 
-        $hash = $this->buildHash($request, $pageId);
+        $hash = $this->buildHash($request, $pageId, $requestId);
+
+        // 概率性清理过期记录，避免额外定时任务
+        $this->randomCleanup();
+        $this->forgetExpiredHash($hash);
 
         // 检查是否已存在（重复提交/重放）
-        if (ApiRequestCache::where('hash', $hash)->find()) {
+        if ($this->hasHash($hash)) {
             throw new HttpException(429, '请勿重复提交');
         }
 
@@ -38,23 +43,33 @@ class Dedup
         $cache->hash = $hash;
         $cache->save();
 
-        // 概率性清理过期记录，避免额外定时任务
-        $this->randomCleanup();
+        try {
+            $response = $next($request);
+        } catch (\Throwable $e) {
+            $this->forgetHash($hash);
+            throw $e;
+        }
 
-        return $next($request);
+        if (!$this->isSuccessfulResponse($response)) {
+            $this->forgetHash($hash);
+        }
+
+        return $response;
     }
 
     /**
      * 构建请求哈希
      */
-    private function buildHash(Request $request, string $pageId): string
+    private function buildHash(Request $request, string $pageId, string $requestId): string
     {
-        $raw = implode('|', [
-            $request->url(),
-            $request->method(),
-            json_encode($request->param(), JSON_UNESCAPED_UNICODE),
-            $pageId,
-        ]);
+        $raw = $requestId !== ''
+            ? implode('|', [$request->url(), $request->method(), $requestId])
+            : implode('|', [
+                $request->url(),
+                $request->method(),
+                json_encode($request->param(), JSON_UNESCAPED_UNICODE),
+                $pageId,
+            ]);
 
         return md5($raw);
     }
@@ -73,6 +88,54 @@ class Dedup
 
         $expire = config('dedup.expire_seconds', 300);
 
-        ApiRequestCache::where('create_time', '<', time() - $expire)->delete();
+        Db::name('api_request_cache')->where('create_time', '<', time() - $expire)->delete();
+    }
+
+    private function shouldPass(Request $request, string $pageId, string $requestId): bool
+    {
+        if ($pageId === '' && $requestId === '') {
+            return true;
+        }
+
+        return in_array($request->method(true), ['OPTIONS', 'GET', 'HEAD'], true);
+    }
+
+    private function isSuccessfulResponse(Response $response): bool
+    {
+        if ($response->getCode() >= 400) {
+            return false;
+        }
+
+        $data = $response->getData();
+        if (is_array($data) && array_key_exists('code', $data)) {
+            return (int) $data['code'] === 0;
+        }
+
+        return true;
+    }
+
+    private function hasHash(string $hash): bool
+    {
+        $expire = config('dedup.expire_seconds', 300);
+
+        return (bool) Db::name('api_request_cache')
+            ->where('hash', $hash)
+            ->where('create_time', '>=', time() - $expire)
+            ->find();
+    }
+
+    private function forgetHash(string $hash): void
+    {
+        Db::name('api_request_cache')->where('hash', $hash)->delete();
+    }
+
+    private function forgetExpiredHash(string $hash): void
+    {
+        $expire = config('dedup.expire_seconds', 300);
+
+        Db::name('api_request_cache')
+            ->where('hash', $hash)
+            ->where('create_time', '<', time() - $expire)
+            ->delete();
     }
 }

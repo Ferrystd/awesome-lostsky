@@ -1,5 +1,19 @@
 # AGENTS.md
 
+## Gemini 使用
+
+Gemini 只作为备用模型使用，不是默认 provider。需要使用 Gemini 时，先确保 LiteLLM 正在运行：`Get-NetTCPConnection -LocalPort 4000`；未运行则启动：`powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\admin\.codex\litellm\start-litellm.ps1"`。
+
+使用 Gemini 终端调用：`codex -c model_provider='"litellm"' -m gemini-3.1-pro-preview`；快速模式：`codex -c model_provider='"litellm"' -m gemini-2.5-flash`。
+
+如果正在写前端页面、官网落地页、管理后台界面或 HTML/CSS/JS，并且当前模型不是 `gemini-3.1-pro-preview`，必须改用 `codex -c model_provider='"litellm"' -m gemini-3.1-pro-preview` 执行前端相关工作。
+
+## 前端静态资源约定
+
+前端页面保持静态 HTML/CSS/JS 交付，不引入 Vite、Webpack、npm build 等需要安装依赖或打包的流程。现有 Tailwind CSS CDN 引入方式可以继续使用；新增能力优先使用原生 JS、自写代码、CDN 单文件库，或把必要的单文件代码复制进仓库并保留来源与许可证说明。
+
+Markdown/文档能力禁止通过 npm 包接入。若确需引入第三方 Markdown 项目，只能使用 CDN 或复制源码到仓库，并在本文件和 `CLAUDE.md` 同步记录来源、版本、许可证、升级方式和安全过滤策略。
+
 ## 项目概况
 
 基于 **ThinkPHP 8** 框架构建的 **纯后端 API 服务**。运行环境要求 PHP 8.0+。

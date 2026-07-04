@@ -39,3 +39,16 @@ Route::get('file/index', 'file/index');
 Route::get('file/get', 'file/get');
 Route::post('file/delete', 'file/delete');
 Route::get('file/usage', 'file/usage');
+
+// doc
+Route::get('doc', 'Doc/index');
+Route::get('doc/get', 'Doc/get');
+Route::post('doc/create', 'Doc/create');
+Route::post('doc/edit', 'Doc/edit');
+Route::post('doc/delete', 'Doc/delete');
+Route::post('doc/<id>/delete', 'Doc/deleteLegacy')->pattern(['id' => '\d+']);
+Route::post('doc/<id>', 'Doc/edit')->pattern(['id' => '\d+']);
+Route::post('doc/:id/delete', 'Doc/deleteLegacy')->pattern(['id' => '\d+']);
+Route::post('doc/:id', 'Doc/edit')->pattern(['id' => '\d+']);
+Route::get('doc/<id>', 'Doc/get')->pattern(['id' => '\d+']);
+Route::get('doc/:id', 'Doc/get')->pattern(['id' => '\d+']);

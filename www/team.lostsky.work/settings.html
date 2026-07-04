@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>团队设置 - 失落青空管理后台</title>
+    <meta name="description" content="维护团队名称、简介、品牌和展示设置。">
+    <meta property="og:title" content="团队设置 - 失落青空管理后台">
+    <meta property="og:description" content="维护失落青空团队设置。">
+    <meta property="og:image" content="//assets.lostsky.work/images/site-bg.png">
+    <link rel="canonical" href="https://team.lostsky.work/settings">
     <!-- CSS & Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="//assets.lostsky.work/js/tailwind.config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="//assets.lostsky.work/css/base.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/components.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/animations.css">
@@ -97,14 +102,6 @@
         const appName = 'index'; // 当前加载的配置域
         let currentSettings = {};
 
-        // 默认预设我们需要配置的几个常见key，因为后端接口可能返回空或者很多不知道的key
-        const PRESET_KEYS = [
-            { key: 'team_name', label: '团队展示名称', type: 'text', placeholder: '如: 失落青空陪玩团' },
-            { key: 'team_logo', label: '团队Logo URL', type: 'text', placeholder: 'https://...' },
-            { key: 'allow_join', label: '允许外部申请加入', type: 'switch', default: 'true' },
-            { key: 'contact_email', label: '联系邮箱', type: 'text', placeholder: 'admin@example.com' }
-        ];
-
         async function loadSettings() {
             const container = document.getElementById('settings-container');
             try {
@@ -119,31 +116,33 @@
 
         function renderSettingsForm() {
             const container = document.getElementById('settings-container');
-            let html = '';
-            
-            PRESET_KEYS.forEach(item => {
-                // 读取后端已存值，如果没有则取默认或者空
-                const val = currentSettings[item.key] !== undefined ? currentSettings[item.key] : (item.default || '');
-                
-                if (item.type === 'text') {
-                    html += `
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2">${item.label}</label>
-                        <input type="text" id="setting-${item.key}" name="${item.key}" value="${val}" placeholder="${item.placeholder || ''}" 
-                               class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors placeholder-gray-600">
-                    </div>`;
-                } else if (item.type === 'switch') {
-                    const isChecked = (val === 'true' || val === true || val === '1');
-                    html += `
+            const entries = Object.entries(currentSettings);
+            if (!entries.length) {
+                container.innerHTML = '<div class="text-gray-500 py-8 text-center">暂无可配置项</div>';
+                return;
+            }
+
+            const html = entries.map(([key, val]) => {
+                const stringValue = String(val ?? '');
+                const isSwitch = ['0', '1', 'true', 'false'].includes(stringValue.toLowerCase());
+                if (isSwitch) {
+                    const isChecked = stringValue === '1' || stringValue.toLowerCase() === 'true';
+                    return `
                     <div class="flex items-center justify-between py-2">
-                        <label class="text-sm font-medium text-gray-300">${item.label}</label>
+                        <label class="text-sm font-medium text-gray-300">${escapeHtml(settingLabel(key))}</label>
                         <label class="flex items-center cursor-pointer">
-                            <input type="checkbox" id="setting-${item.key}" name="${item.key}" class="sr-only peer" ${isChecked ? 'checked' : ''}>
+                            <input type="checkbox" id="setting-${escapeHtml(settingId(key))}" name="${escapeHtml(key)}" data-setting-key="${escapeHtml(key)}" data-setting-type="switch" class="sr-only peer" ${isChecked ? 'checked' : ''}>
                             <div class="page-team-switch"></div>
                         </label>
                     </div>`;
                 }
-            });
+                return `
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">${escapeHtml(settingLabel(key))}</label>
+                    <input type="text" id="setting-${escapeHtml(settingId(key))}" name="${escapeHtml(key)}" value="${escapeHtml(stringValue)}" data-setting-key="${escapeHtml(key)}" data-setting-type="text"
+                           class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors placeholder-gray-600">
+                </div>`;
+            }).join('');
 
             container.innerHTML = html;
         }
@@ -155,12 +154,12 @@
             
             // 收集数据
             const payloadSettings = {};
-            PRESET_KEYS.forEach(item => {
-                const el = document.getElementById(`setting-${item.key}`);
-                if (item.type === 'switch') {
-                    payloadSettings[item.key] = el.checked ? '1' : '0'; // 后端可能存字符串
+            document.querySelectorAll('[data-setting-key]').forEach(el => {
+                const key = el.dataset.settingKey;
+                if (el.dataset.settingType === 'switch') {
+                    payloadSettings[key] = el.checked ? '1' : '0';
                 } else {
-                    payloadSettings[item.key] = el.value;
+                    payloadSettings[key] = el.value;
                 }
             });
 
@@ -181,6 +180,23 @@
                 msgEl.classList.remove('hidden');
             }
         });
+
+        function settingLabel(key) {
+            return String(key).replace(/_/g, ' ');
+        }
+
+        function settingId(key) {
+            return String(key).replace(/[^a-zA-Z0-9_-]/g, '_');
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
 
         document.addEventListener('DOMContentLoaded', loadSettings);
     </script>

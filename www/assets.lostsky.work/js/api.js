@@ -12,7 +12,143 @@ const AUTH_MAX_AGE = 60 * 60 * 24 * 30;
 const PUBLIC_ACCOUNT_PATHS = ['/login', '/register'];
 const PUBLIC_SITE_PATHS = ['/'];
 const PUBLIC_API_PATHS = ['/login/phone', '/login/password', '/register/phone'];
+const PAGE_ID_KEY = 'lostsky_page_id';
+const inflightMutations = new Map();
 let isRedirectingToLogin = false;
+
+class ApiError extends Error {
+    constructor(message, detail = {}) {
+        super(message);
+        this.name = 'ApiError';
+        this.status = detail.status || 0;
+        this.code = detail.code ?? null;
+        this.method = detail.method || '';
+        this.path = detail.path || '';
+        this.data = detail.data ?? null;
+        this.response = detail.response ?? null;
+        this.cause = detail.cause;
+        this.isNetworkError = !!detail.isNetworkError;
+        this.notified = false;
+    }
+}
+
+function makeId() {
+    try {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            return window.crypto.randomUUID();
+        }
+    } catch (e) {}
+
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getPageId() {
+    try {
+        let pageId = sessionStorage.getItem(PAGE_ID_KEY);
+        if (!pageId) {
+            pageId = makeId();
+            sessionStorage.setItem(PAGE_ID_KEY, pageId);
+        }
+        return pageId;
+    } catch (e) {
+        return makeId();
+    }
+}
+
+function requestKey(method, path, body) {
+    return `${method}:${path}:${JSON.stringify(body ?? null)}`;
+}
+
+function apiErrorMessage(error) {
+    if (error.status === 429) return '操作太频繁，请稍后再试';
+    if (error.status >= 500) return '服务暂时不可用，请稍后再试';
+    if (error.status === 403) return error.message || '没有权限执行此操作';
+    if (error.status === 404) return error.message || '请求的资源不存在';
+    if (error.status === 422) return error.message || '提交内容不完整或格式不正确';
+    if (error.isNetworkError) return '网络请求失败，请检查网络连接或跨域配置';
+    return error.message || '请求失败';
+}
+
+function ensureApiToast() {
+    let el = document.getElementById('lostsky-api-toast');
+    if (el) return el;
+
+    el = document.createElement('div');
+    el.id = 'lostsky-api-toast';
+    el.setAttribute('role', 'alert');
+    el.style.cssText = [
+        'position:fixed',
+        'right:24px',
+        'top:24px',
+        'z-index:99999',
+        'max-width:min(360px,calc(100vw - 32px))',
+        'padding:12px 14px',
+        'border:1px solid rgba(248,113,113,.35)',
+        'border-radius:12px',
+        'background:rgba(15,23,42,.96)',
+        'box-shadow:0 18px 40px rgba(0,0,0,.35)',
+        'color:#fecaca',
+        'font-size:14px',
+        'line-height:1.5',
+        'opacity:0',
+        'transform:translateY(-8px)',
+        'pointer-events:none',
+        'transition:opacity .18s ease,transform .18s ease',
+    ].join(';');
+    document.body.appendChild(el);
+    return el;
+}
+
+function notifyApiError(error) {
+    if (!error || error.notified || error.status === 401) return;
+
+    const detail = error instanceof ApiError
+        ? error
+        : new ApiError(error.message || '请求失败', { cause: error });
+
+    detail.notified = true;
+    window.dispatchEvent(new CustomEvent('lostsky:api-error', { detail }));
+
+    if (!document.body) return;
+    const toast = ensureApiToast();
+    toast.textContent = apiErrorMessage(detail);
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-8px)';
+    }, 3600);
+}
+
+async function parseResponseJson(res) {
+    try {
+        return await res.json();
+    } catch (e) {
+        return {};
+    }
+}
+
+function buildHttpError(res, json, method, path, fallbackMessage) {
+    const message = json.message || fallbackMessage || res.statusText || '请求失败';
+    return new ApiError(message, {
+        status: res.status,
+        code: json.code ?? null,
+        method,
+        path,
+        data: json.data ?? null,
+        response: json,
+    });
+}
+
+function buildNetworkError(error, method, path) {
+    return new ApiError('网络请求失败', {
+        method,
+        path,
+        cause: error,
+        isNetworkError: true,
+    });
+}
 
 function getAuthCookieDomain() {
     const hostname = window.location.hostname;
@@ -158,7 +294,31 @@ function ensureAuthenticatedPage() {
 }
 
 async function request(method, path, body = null) {
-    const headers = { 'Content-Type': 'application/json' };
+    const key = method === 'GET' ? '' : requestKey(method, path, body);
+    if (key && inflightMutations.has(key)) {
+        return inflightMutations.get(key);
+    }
+
+    const promise = doRequest(method, path, body);
+    if (key) {
+        inflightMutations.set(key, promise);
+        promise.then(
+            () => inflightMutations.delete(key),
+            () => inflightMutations.delete(key)
+        );
+    }
+    return promise;
+}
+
+async function doRequest(method, path, body = null) {
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-Page-Id': getPageId(),
+    };
+    if (method !== 'GET') {
+        headers['X-Request-Id'] = makeId();
+    }
+
     const token = getToken();
     if (token) {
         headers['Authorization'] = 'Bearer ' + token;
@@ -167,17 +327,80 @@ async function request(method, path, body = null) {
     if (body && method !== 'GET') {
         options.body = JSON.stringify(body);
     }
-    const res = await fetch(API_BASE + path, options);
-    let json = {};
+
+    let res;
     try {
-        json = await res.json();
-    } catch (e) {}
+        res = await fetch(API_BASE + path, options);
+    } catch (e) {
+        const error = buildNetworkError(e, method, path);
+        notifyApiError(error);
+        throw error;
+    }
+
+    const json = await parseResponseJson(res);
     if (isAuthFailure(res, json, path)) {
         redirectToLogin();
-        throw new Error(json.message || '登录已过期，请重新登录');
+        throw new ApiError(json.message || '登录已过期，请重新登录', {
+            status: res.status,
+            code: json.code ?? null,
+            method,
+            path,
+            response: json,
+        });
     }
     if (!res.ok || json.code !== 0) {
-        throw new Error(json.message || '请求失败');
+        const error = buildHttpError(res, json, method, path, '请求失败');
+        notifyApiError(error);
+        throw error;
+    }
+    return json.data;
+}
+
+async function apiUpload(file) {
+    if (!file) {
+        throw new Error('请选择文件');
+    }
+
+    const headers = {
+        'X-Page-Id': getPageId(),
+        'X-Request-Id': makeId(),
+    };
+    const token = getToken();
+    if (token) {
+        headers['Authorization'] = 'Bearer ' + token;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    let res;
+    try {
+        res = await fetch(API_BASE + '/upload', {
+            method: 'POST',
+            headers,
+            body: formData,
+        });
+    } catch (e) {
+        const error = buildNetworkError(e, 'POST', '/upload');
+        notifyApiError(error);
+        throw error;
+    }
+
+    const json = await parseResponseJson(res);
+    if (isAuthFailure(res, json, '/upload')) {
+        redirectToLogin();
+        throw new ApiError(json.message || '登录已过期，请重新登录', {
+            status: res.status,
+            code: json.code ?? null,
+            method: 'POST',
+            path: '/upload',
+            response: json,
+        });
+    }
+    if (!res.ok || json.code !== 0) {
+        const error = buildHttpError(res, json, 'POST', '/upload', '上传失败');
+        notifyApiError(error);
+        throw error;
     }
     return json.data;
 }
@@ -195,6 +418,16 @@ function apiGet(path, params) {
 function apiPost(path, body)   { return request('POST', path, body); }
 function apiPut(path, body)    { return request('PUT', path, body); }
 function apiDelete(path)       { return request('DELETE', path); }
+
+window.ApiError = ApiError;
+window.notifyApiError = notifyApiError;
+
+window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    if (reason instanceof ApiError || reason?.name === 'ApiError') {
+        notifyApiError(reason);
+    }
+});
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', ensureAuthenticatedPage);

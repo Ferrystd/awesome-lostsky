@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>自定义字段 - 失落青空管理后台</title>
+    <meta name="description" content="配置团队成员自定义字段、输入控件和编辑权限。">
+    <meta property="og:title" content="自定义字段 - 失落青空管理后台">
+    <meta property="og:description" content="配置团队成员自定义字段。">
+    <meta property="og:image" content="//assets.lostsky.work/images/site-bg.png">
+    <link rel="canonical" href="https://team.lostsky.work/fields">
     <!-- CSS & Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="//assets.lostsky.work/js/tailwind.config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="//assets.lostsky.work/css/base.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/components.css">
     <link rel="stylesheet" href="//assets.lostsky.work/css/animations.css">
@@ -123,10 +128,14 @@
                             <label class="block text-sm font-medium text-gray-300 mb-1">数据存储类型</label>
                             <select id="form-value-type" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary">
                                 <option value="string">文本(String)</option>
+                                <option value="text">长文本(Text)</option>
                                 <option value="int">整数(Int)</option>
                                 <option value="decimal">浮点数(Decimal)</option>
+                                <option value="bool">布尔值(Bool)</option>
+                                <option value="date">日期(Date)</option>
                                 <option value="datetime">时间(DateTime)</option>
-                                <option value="text">长文本(Text)</option>
+                                <option value="select">单选值(Select)</option>
+                                <option value="multi_select">多选值(Multi Select)</option>
                                 <option value="json">JSON</option>
                             </select>
                         </div>
@@ -135,11 +144,12 @@
                             <select id="form-input-type" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary">
                                 <option value="text">单行输入框 (text)</option>
                                 <option value="textarea">多行输入框 (textarea)</option>
+                                <option value="radio">单选按钮 (radio)</option>
+                                <option value="checkbox">复选框 (checkbox)</option>
                                 <option value="select">下拉选择 (select)</option>
-                                <option value="number">数字输入 (number)</option>
-                                <option value="image">图片上传 (image)</option>
-                                <option value="file">文件上传 (file)</option>
-                                <option value="switch">开关 (switch)</option>
+                                <option value="date">日期选择 (date)</option>
+                                <option value="datetime">日期时间选择 (datetime)</option>
+                                <option value="upload">文件上传 (upload)</option>
                             </select>
                         </div>
                     </div>
@@ -247,6 +257,26 @@
             window.openModal('field-modal');
         }
 
+        document.getElementById('form-value-type').addEventListener('change', (event) => {
+            const valueType = event.target.value;
+            const inputTypeEl = document.getElementById('form-input-type');
+            if (valueType === 'bool') {
+                inputTypeEl.value = 'checkbox';
+            } else if (valueType === 'date') {
+                inputTypeEl.value = 'date';
+            } else if (valueType === 'datetime') {
+                inputTypeEl.value = 'datetime';
+            } else if (valueType === 'multi_select') {
+                inputTypeEl.value = 'checkbox';
+            }
+        });
+
+        document.getElementById('form-input-type').addEventListener('change', (event) => {
+            if (event.target.value === 'upload') {
+                document.getElementById('form-value-type').value = 'string';
+            }
+        });
+
         function editField(id) {
             const field = allFields.find(f => f.id === id);
             if (field) openFieldModal(field);
@@ -261,12 +291,12 @@
                 field_key: document.getElementById('form-key').value,
                 value_type: document.getElementById('form-value-type').value,
                 input_type: document.getElementById('form-input-type').value,
-                is_required: document.getElementById('form-is-required').checked,
-                is_editable: document.getElementById('form-is-editable').checked,
-                is_searchable: document.getElementById('form-is-searchable').checked,
-                source: 'team',
-                visibility: 1, // public
-                manager_scope: 0,
+                is_required: document.getElementById('form-is-required').checked ? 1 : 0,
+                is_editable: document.getElementById('form-is-editable').checked ? 1 : 0,
+                is_searchable: document.getElementById('form-is-searchable').checked ? 1 : 0,
+                source: 'custom',
+                visibility: 1,
+                manager_scope: 1,
                 sort: 0
             };
 
