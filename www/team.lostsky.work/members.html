@@ -101,7 +101,7 @@
 
     <!-- 成员表单弹窗 -->
     <div id="member-modal" class="modal-overlay glass-overlay">
-        <div class="modal-content w-full max-w-lg glass-panel rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh]">
+        <div class="modal-content w-full max-w-3xl glass-panel rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center p-6 border-b border-white/5">
                 <h3 class="text-xl font-bold" id="modal-title">添加成员</h3>
                 <button onclick="closeModal('member-modal')" class="text-gray-400 hover:text-white transition-colors">
@@ -194,6 +194,16 @@
                             <span class="ml-3 text-sm font-medium text-gray-300">在前台展示 (is_displayed)</span>
                         </label>
                     </div>
+
+                    <div id="member-custom-fields-section" class="hidden pt-5 border-t border-white/5">
+                        <div class="mb-4">
+                            <h4 class="text-sm font-semibold text-white">自定义字段</h4>
+                            <p class="text-xs text-gray-500 mt-1">编辑该成员的团队扩展资料。</p>
+                        </div>
+                        <div id="member-custom-fields-container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div class="col-span-full text-sm text-gray-500">正在加载自定义字段...</div>
+                        </div>
+                    </div>
                     
                     <div id="form-error" class="hidden p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"></div>
                 </form>
@@ -214,21 +224,27 @@
     <script>
         let allMembers = [];
         let allPostTypes = [];
+        let allMemberFields = [];
+        let pendingEditId = null;
+        let memberCustomFieldsReady = false;
 
         async function loadMembers() {
             const tbody = document.getElementById('member-table-body');
             try {
-                // 并行加载成员和岗位列表
-                const [membersRes, postsRes] = await Promise.all([
+                // 并行加载成员、岗位和自定义字段定义
+                const [membersRes, postsRes, fieldsRes] = await Promise.all([
                     window.apiGet('/member/index'),
-                    window.apiGet('/postType/index')
+                    window.apiGet('/postType/index'),
+                    window.apiGet('/memberField/index', { source: 'custom' })
                 ]);
                 
                 allMembers = membersRes || [];
                 allPostTypes = postsRes || [];
+                allMemberFields = fieldsRes || [];
                 
                 renderTable(allMembers);
                 renderPostCheckboxes(allPostTypes);
+                openPendingEditModal();
             } catch (err) {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">网络请求失败</td></tr>`;
             }
@@ -324,14 +340,33 @@
             document.querySelectorAll('input[name="post_ids"]').forEach(cb => {
                 cb.checked = postIds.includes(parseInt(cb.value));
             });
+
+            renderMemberCustomFields(isEdit, [], true);
             
             document.getElementById('form-error').classList.add('hidden');
             window.openModal('member-modal');
         }
 
-        function editMember(id) {
+        async function editMember(id) {
             const member = allMembers.find(m => m.id === id);
-            if (member) openMemberModal(member);
+            if (!member) return;
+
+            openMemberModal(member);
+            try {
+                const valuesRes = await window.apiGet('/memberField/values', { member_id: id });
+                renderMemberCustomFields(true, valuesRes || [], false);
+            } catch (err) {
+                const container = document.getElementById('member-custom-fields-container');
+                container.innerHTML = `<div class="col-span-full text-sm text-red-400">自定义字段加载失败：${escapeHtml(err.message || '请求失败')}</div>`;
+            }
+        }
+
+        function openPendingEditModal() {
+            const params = new URLSearchParams(window.location.search);
+            const editId = parseInt(params.get('edit') || '', 10);
+            if (!editId || pendingEditId === editId) return;
+            pendingEditId = editId;
+            editMember(editId);
         }
 
         async function uploadMemberFile(fileInputId, targetInputId) {
@@ -361,6 +396,201 @@
             if (event.key !== 'Enter' && event.key !== ' ') return;
             event.preventDefault();
             document.getElementById(inputId)?.click();
+        }
+
+        function renderMemberCustomFields(isEdit, values, isLoading = false) {
+            const section = document.getElementById('member-custom-fields-section');
+            const container = document.getElementById('member-custom-fields-container');
+            if (!section || !container) return;
+
+            section.classList.toggle('hidden', !isEdit);
+            memberCustomFieldsReady = false;
+            if (!isEdit) {
+                container.innerHTML = '';
+                return;
+            }
+
+            if (isLoading) {
+                container.innerHTML = '<div class="col-span-full text-sm text-gray-500">正在加载自定义字段...</div>';
+                return;
+            }
+
+            if (!allMemberFields.length) {
+                container.innerHTML = '<div class="col-span-full text-sm text-gray-500">当前团队尚未定义可编辑的自定义字段</div>';
+                return;
+            }
+
+            const valuesMap = buildMemberFieldValuesMap(values);
+            memberCustomFieldsReady = true;
+            container.innerHTML = allMemberFields.map(field => {
+                const value = valuesMap[field.id] ?? '';
+                const requiredMark = Number(field.is_required) === 1 ? '<span class="text-red-400">*</span>' : '';
+                const disabledText = Number(field.is_editable) === 0 ? '<span class="ml-2 text-xs text-gray-500">只读</span>' : '';
+                const colSpanClass = ['textarea', 'upload'].includes(field.input_type) || ['json', 'text', 'multi_select'].includes(field.value_type) ? 'md:col-span-2' : '';
+
+                return `
+                    <div class="${colSpanClass}">
+                        <label for="member_field_${field.id}" class="block text-sm font-medium text-gray-300 mb-2">${escapeHtml(field.name)} ${requiredMark}${disabledText}</label>
+                        ${renderMemberFieldControl(field, value)}
+                        <p class="text-xs text-gray-500 mt-1">${escapeHtml(field.field_key)}</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function buildMemberFieldValuesMap(values) {
+            const map = {};
+            values.forEach(item => {
+                if (!item.field_id) return;
+                map[item.field_id] = memberFieldValue(item.field || {}, item);
+            });
+            return map;
+        }
+
+        function memberFieldValue(field, item) {
+            switch (field.value_type) {
+                case 'text':
+                    return item.value_text || '';
+                case 'int':
+                case 'bool':
+                    return item.value_int ?? '';
+                case 'decimal':
+                    return item.value_decimal ?? '';
+                case 'date':
+                case 'datetime':
+                    return item.value_datetime || '';
+                case 'multi_select':
+                case 'json':
+                    return item.value_json || [];
+                default:
+                    return item.value_string || '';
+            }
+        }
+
+        function renderMemberFieldControl(field, value) {
+            const disabled = Number(field.is_editable) === 0 ? 'disabled' : '';
+            const required = Number(field.is_required) === 1 ? 'required' : '';
+            const common = `data-field-id="${field.id}" data-value-type="${escapeHtml(field.value_type)}" data-input-type="${escapeHtml(field.input_type)}" ${disabled} ${required}`;
+            const options = normalizeMemberFieldOptions(field.options);
+
+            if (field.input_type === 'textarea' || field.value_type === 'text' || field.value_type === 'json') {
+                const textValue = field.value_type === 'json' && value ? JSON.stringify(value) : String(value || '');
+                return `<textarea id="member_field_${field.id}" rows="3" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors admin-scroll disabled:opacity-60" ${common}>${escapeHtml(textValue)}</textarea>`;
+            }
+
+            if (field.input_type === 'select') {
+                return `<select id="member_field_${field.id}" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary disabled:opacity-60" ${common}>
+                    <option value="">请选择</option>
+                    ${options.map(opt => `<option value="${escapeHtml(opt.value)}" ${String(value) === opt.value ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`).join('')}
+                </select>`;
+            }
+
+            if (field.input_type === 'radio') {
+                return `<div id="member_field_${field.id}" class="flex flex-wrap gap-3" ${common}>
+                    ${options.map(opt => `<label class="flex items-center gap-2 text-sm text-gray-300"><input type="radio" name="member_field_${field.id}" value="${escapeHtml(opt.value)}" ${String(value) === opt.value ? 'checked' : ''} ${disabled} ${required} class="text-primary bg-black/30 border-white/10">${escapeHtml(opt.label)}</label>`).join('')}
+                </div>`;
+            }
+
+            if (field.input_type === 'checkbox') {
+                if (field.value_type === 'bool') {
+                    const checked = value === 1 || value === true || String(value) === '1' || String(value).toLowerCase() === 'true';
+                    return `<label class="flex items-center cursor-pointer mt-2">
+                        <input type="checkbox" id="member_field_${field.id}" class="sr-only peer" ${checked ? 'checked' : ''} ${common}>
+                        <div class="page-team-switch"></div>
+                    </label>`;
+                }
+                const values = Array.isArray(value) ? value.map(String) : String(value || '').split(',').filter(Boolean);
+                return `<div id="member_field_${field.id}" class="flex flex-wrap gap-3" ${common}>
+                    ${options.map(opt => `<label class="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" name="member_field_${field.id}" value="${escapeHtml(opt.value)}" ${values.includes(opt.value) ? 'checked' : ''} ${disabled} class="text-primary bg-black/30 border-white/10">${escapeHtml(opt.label)}</label>`).join('')}
+                </div>`;
+            }
+
+            if (field.input_type === 'upload') {
+                return `<div class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="member_field_${field.id}" value="${escapeHtml(String(value || ''))}" class="flex-1 bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors disabled:opacity-60" ${common}>
+                    <input type="file" id="member_field_file_${field.id}" class="hidden" onchange="uploadMemberCustomFieldFile(${field.id})" ${disabled}>
+                    <button type="button" onclick="document.getElementById('member_field_file_${field.id}').click()" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white disabled:opacity-60" ${disabled}>上传</button>
+                </div>`;
+            }
+
+            const type = field.input_type === 'date' ? 'date' : (field.input_type === 'datetime' ? 'datetime-local' : (['int', 'decimal'].includes(field.value_type) ? 'number' : 'text'));
+            const inputValue = ['date', 'datetime'].includes(field.value_type) ? formatMemberDateInput(value, field.input_type) : String(value || '');
+            return `<input type="${type}" id="member_field_${field.id}" value="${escapeHtml(inputValue)}" class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary transition-colors disabled:opacity-60" ${common}>`;
+        }
+
+        function normalizeMemberFieldOptions(options) {
+            if (!Array.isArray(options)) return [];
+            return options.map(item => {
+                if (typeof item === 'string') return { label: item, value: item };
+                return {
+                    label: String(item.label ?? item.name ?? item.value ?? ''),
+                    value: String(item.value ?? item.label ?? item.name ?? ''),
+                };
+            });
+        }
+
+        function formatMemberDateInput(value, inputType) {
+            if (!value) return '';
+            const date = /^\d+$/.test(String(value)) ? new Date(Number(value) * 1000) : new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            const pad = number => String(number).padStart(2, '0');
+            const ymd = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+            if (inputType !== 'datetime') return ymd;
+            return `${ymd}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        }
+
+        async function uploadMemberCustomFieldFile(id) {
+            const fileInput = document.getElementById(`member_field_file_${id}`);
+            const textInput = document.getElementById(`member_field_${id}`);
+            const file = fileInput?.files?.[0];
+            if (!file) return;
+            try {
+                const result = await window.apiUpload(file);
+                textInput.value = result.url || '';
+            } catch (err) {
+                alert(err.message || '上传失败');
+            } finally {
+                if (fileInput) fileInput.value = '';
+            }
+        }
+
+        function collectMemberCustomFieldValues() {
+            const values = {};
+            allMemberFields.forEach(field => {
+                if (Number(field.is_editable) === 0) return;
+                const el = document.getElementById(`member_field_${field.id}`);
+                if (!el) return;
+                values[field.id] = collectMemberFieldValue(field, el);
+            });
+            return values;
+        }
+
+        function collectMemberFieldValue(field, el) {
+            if (field.input_type === 'radio') {
+                return document.querySelector(`input[name="member_field_${field.id}"]:checked`)?.value || '';
+            }
+            if (field.input_type === 'checkbox') {
+                if (field.value_type === 'bool') return el.checked ? 1 : 0;
+                return Array.from(document.querySelectorAll(`input[name="member_field_${field.id}"]:checked`)).map(input => input.value);
+            }
+
+            let value = el.value;
+            if ((field.value_type === 'int' || field.value_type === 'decimal') && value === '') return null;
+            if (field.value_type === 'json' && value) {
+                try {
+                    value = JSON.parse(value);
+                } catch (e) {}
+            }
+            return value;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         async function submitMemberForm() {
@@ -399,6 +629,13 @@
             try {
                 // apiPost 成功时返回 json.data，失败时抛 Error
                 await window.apiPost(endpoint, payload);
+                const customValues = isEdit && memberCustomFieldsReady ? collectMemberCustomFieldValues() : {};
+                if (Object.keys(customValues).length) {
+                    await window.apiPost('/memberField/saveValues', {
+                        member_id: parseInt(id),
+                        values: customValues
+                    });
+                }
                 window.closeModal('member-modal');
                 loadMembers();
             } catch (err) {
