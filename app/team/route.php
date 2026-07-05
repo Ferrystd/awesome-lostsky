@@ -14,6 +14,14 @@ Route::post('member/block', 'member/block');
 Route::post('member/unblock', 'member/unblock');
 Route::post('member/remove', 'member/remove');
 
+// notice
+Route::get('notice/index', 'notice/index');
+Route::get('notice/get', 'notice/get');
+Route::post('notice/confirm', 'notice/confirm');
+Route::post('notice/confirmAll', 'notice/confirmAll');
+Route::post('notice/receive', 'notice/receive');
+Route::post('notice/receiveAll', 'notice/receiveAll');
+
 // memberField
 Route::get('memberField/index', 'memberField/index');
 Route::get('memberField/get', 'memberField/get');

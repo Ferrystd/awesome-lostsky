@@ -115,10 +115,10 @@ function syncManagerScopeControl(value) {
 async function loadDocuments(page = 1) {
     state.page = page;
     const listEl = document.getElementById('doc-list');
-    listEl.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500">正在加载文档...</div>';
+    listEl.innerHTML = '<div class="col-span-full rounded-2xl border border-slate-200 bg-white py-12 text-center text-slate-500 shadow-sm">正在加载文档...</div>';
 
     if (state.targetType === 'teamMember' && !state.targetId) {
-        listEl.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500">请先选择一个成员。</div>';
+        listEl.innerHTML = '<div class="col-span-full rounded-2xl border border-slate-200 bg-white py-12 text-center text-slate-500 shadow-sm">请先选择一个成员。</div>';
         renderPagination(0, 12, 1);
         updateSummary();
         return;
@@ -142,7 +142,7 @@ async function loadDocuments(page = 1) {
         renderPagination(res?.total || state.docs.length, res?.limit || 12, page);
         updateSummary(res?.total || state.docs.length);
     } catch (err) {
-        listEl.innerHTML = `<div class="col-span-full text-center py-12 text-red-400">${escapeHtml(err.message || '加载失败')}</div>`;
+        listEl.innerHTML = `<div class="col-span-full rounded-2xl border border-red-100 bg-red-50 py-12 text-center text-red-600 shadow-sm">${escapeHtml(err.message || '加载失败')}</div>`;
         document.getElementById('doc-summary').textContent = '文档索引加载失败';
     }
 }
@@ -150,30 +150,30 @@ async function loadDocuments(page = 1) {
 function renderDocumentList(list) {
     const listEl = document.getElementById('doc-list');
     if (!list.length) {
-        listEl.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500 glass-panel rounded-2xl">暂无文档</div>';
+        listEl.innerHTML = '<div class="col-span-full rounded-2xl border border-slate-200 bg-white py-12 text-center text-slate-500 shadow-sm">暂无文档</div>';
         return;
     }
 
     listEl.innerHTML = list.map(doc => {
         const viewUrl = documentUrl(doc.id);
         return `
-        <article class="glass-card rounded-2xl border border-white/10 p-5 flex flex-col min-h-[220px]">
+        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-shadow hover:shadow-[0_14px_32px_rgba(15,23,42,0.10)] flex flex-col min-h-[220px]">
             <div class="flex items-start justify-between gap-4">
                 <div class="min-w-0">
-                    <a href="${viewUrl}" class="block text-lg font-semibold text-white hover:text-primary transition-colors truncate">${escapeHtml(doc.title || '未命名文档')}</a>
-                    <p class="mt-2 text-sm text-gray-500 line-clamp-3">${escapeHtml(stripMarkdown(doc.content || '') || '暂无内容')}</p>
+                    <a href="${viewUrl}" class="block text-lg font-semibold text-slate-950 hover:text-sky-700 transition-colors truncate">${escapeHtml(doc.title || '未命名文档')}</a>
+                    <p class="mt-2 text-sm text-slate-500 line-clamp-3">${escapeHtml(stripMarkdown(doc.content || '') || '暂无内容')}</p>
                 </div>
-                <span class="shrink-0 text-xs text-gray-500 font-mono">#${doc.id}</span>
+                <span class="shrink-0 rounded-md bg-slate-50 px-2 py-1 text-xs text-slate-500 font-mono border border-slate-200">#${doc.id}</span>
             </div>
             <div class="mt-auto pt-5 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap gap-2 text-xs">
-                    <span class="px-2 py-1 rounded bg-primary/10 text-primary border border-primary/20">${escapeHtml(visibilityLabels[Number(doc.visibility)] || '未知范围')}</span>
-                    <span class="px-2 py-1 rounded bg-white/5 text-gray-400 border border-white/10">更新 ${formatDate(doc.update_time || doc.create_time)}</span>
+                    <span class="px-2 py-1 rounded bg-sky-50 text-sky-700 border border-sky-100">${escapeHtml(visibilityLabels[Number(doc.visibility)] || '未知范围')}</span>
+                    <span class="px-2 py-1 rounded bg-slate-50 text-slate-500 border border-slate-200">更新 ${formatDate(doc.update_time || doc.create_time)}</span>
                 </div>
                 <div class="flex gap-2">
-                    <a href="${viewUrl}" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white transition-colors">查看</a>
-                    <button type="button" onclick="openDocumentModalById(${doc.id})" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white transition-colors">编辑</button>
-                    <button type="button" onclick="deleteDocument(${doc.id})" class="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-sm text-red-300 transition-colors">删除</button>
+                    <a href="${viewUrl}" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-sm text-slate-700 transition-colors">查看</a>
+                    <button type="button" onclick="openDocumentModalById(${doc.id})" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-sm text-slate-700 transition-colors">编辑</button>
+                    <button type="button" onclick="deleteDocument(${doc.id})" class="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-100 text-sm text-red-600 transition-colors">删除</button>
                 </div>
             </div>
         </article>`;
@@ -189,9 +189,9 @@ function renderPagination(total, limit, current) {
     }
 
     let html = '';
-    if (current > 1) html += `<button onclick="loadDocuments(${current - 1})" class="px-3 py-1 bg-white/5 border border-white/10 rounded hover:bg-white/10 text-sm">上一页</button>`;
-    html += `<span class="px-3 py-1 text-sm text-gray-400">第 ${current} / ${totalPages} 页</span>`;
-    if (current < totalPages) html += `<button onclick="loadDocuments(${current + 1})" class="px-3 py-1 bg-white/5 border border-white/10 rounded hover:bg-white/10 text-sm">下一页</button>`;
+    if (current > 1) html += `<button onclick="loadDocuments(${current - 1})" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 text-sm text-slate-700">上一页</button>`;
+    html += `<span class="px-3 py-1 text-sm text-slate-500">第 ${current} / ${totalPages} 页</span>`;
+    if (current < totalPages) html += `<button onclick="loadDocuments(${current + 1})" class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50 text-sm text-slate-700">下一页</button>`;
     wrap.innerHTML = html;
 }
 
