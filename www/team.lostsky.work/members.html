@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>鎴愬憳绠＄悊 - 澶辫惤闈掔┖绠＄悊鍚庡彴</title>
+    <title>成员管理 - 失落青空管理后台</title>
     <!-- CSS & Tailwind -->
     <script src="//assets.lostsky.work/js/tailwind.config.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,117 +14,128 @@
 </head>
 <body class="antialiased selection:bg-sky-100 selection:text-sky-900 bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
 
-    <!-- 鍏ㄥ眬鑳屾櫙 -->
+    <!-- 全局背景 -->
 
     <div id="sidebar-overlay" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300 md:hidden"></div>
 
-    <!-- 渚ц竟鏍?(澶嶇敤缁撴瀯, 鍦ㄥ疄闄呴」鐩腑鍙互閫氳繃妯℃澘寮曟搸寮曞叆, 闈欐€侀〉闈㈠厛纭紪鐮? -->
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-white border-r border-slate-200 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col md:relative">
         <div class="h-16 flex items-center px-6 border-b border-slate-200 flex-shrink-0">
-            <a href="/" class="flex items-center gap-3" aria-label="鍥㈤槦鎺у埗鍙?>
+            <a href="/" class="flex items-center gap-3" aria-label="团队控制台">
                 <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-50 text-sky-600 border border-sky-100">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 13h6V4H4v9zm0 7h6v-4H4v4zm10 0h6v-9h-6v9zm0-13h6V4h-6v3z"></path></svg>
                 </span>
                 <span>
                     <span class="block text-base font-semibold text-slate-950">LostSky Team</span>
-                    <span class="block text-xs text-slate-500">鍥㈤槦鍚庡彴</span>
+                    <span class="block text-xs text-slate-500">团队后台</span>
                 </span>
             </a>
         </div>
 
-        <nav class="flex-1 overflow-y-auto py-4 admin-scroll" aria-label="鍥㈤槦鍚庡彴瀵艰埅">
+        <nav class="flex-1 overflow-y-auto py-4 admin-scroll" aria-label="团队后台导航">
             <div class="px-3 mb-6">
-                <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">鏍稿績绠＄悊</p>
+                <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">核心管理</p>
                 <a href="/" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-700 mb-1">
                     <svg class="w-5 h-5 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 13h6V4H4v9zm0 7h6v-4H4v4zm10 0h6v-9h-6v9zm0-13h6V4h-6v3z"></path></svg>
-                    浠〃鐩?                </a>
+                    仪表盘
+                </a>
                 <a href="/members" class="sidebar-link active flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-700 mb-1">
                     <svg class="w-5 h-5 mr-3 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11a4 4 0 10-8 0m8 0a4 4 0 01-8 0M4 20a8 8 0 0116 0"></path></svg>
-                    鎴愬憳绠＄悊
+                    成员管理
+                </a>
+                <a href="/join-review" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-700 mb-1">
+                    <svg class="w-5 h-5 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11a4 4 0 10-8 0m8 0a4 4 0 01-8 0M5 20a7 7 0 0114 0"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M18 8l2 2 3-4"></path></svg>
+                    加入审核
                 </a>
                 <a href="/notice" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-700 mb-1">
                     <svg class="w-5 h-5 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 8.5v7A2.5 2.5 0 0118.5 18h-13A2.5 2.5 0 013 15.5v-7A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 8l8 5 8-5"></path></svg>
-                    绔欏唴淇?                </a>
+                    站内信
+                </a>
             </div>
 
             <div class="px-3 mb-6">
-                <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">鍥㈤槦閰嶇疆</p>
+                <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">团队配置</p>
                 <a href="/posts" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-700 mb-1">
                     <svg class="w-5 h-5 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7.5v9A2.5 2.5 0 0117.5 19h-11A2.5 2.5 0 014 16.5v-9A2.5 2.5 0 016.5 5H9l1.4 2h7.1A2.5 2.5 0 0120 7.5z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 13h8"></path></svg>
-                    宀椾綅绫诲瀷
+                    岗位类型
                 </a>
                 <a href="/fields" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-700 mb-1">
                     <svg class="w-5 h-5 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 5h8M8 12h8M8 19h8"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4.5 5h.01M4.5 12h.01M4.5 19h.01"></path></svg>
-                    鑷畾涔夊瓧娈?                </a>
+                    自定义字段
+                </a>
                 <a href="/files" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-700 mb-1">
                     <svg class="w-5 h-5 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3.5 7.5A2.5 2.5 0 016 5h4l2 2h6A2.5 2.5 0 0120.5 9.5v7A2.5 2.5 0 0118 19H6a2.5 2.5 0 01-2.5-2.5v-9z"></path></svg>
-                    鏂囦欢搴?                </a>
+                    文件库
+                </a>
                 <a href="/docs" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-700 mb-1">
                     <svg class="w-5 h-5 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 4h7l4 4v12H7a2 2 0 01-2-2V6a2 2 0 012-2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14 4v5h5M9 13h6M9 17h6"></path></svg>
-                    鏂囨。搴?                </a>
+                    文档库
+                </a>
                 <a href="/settings" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-700 mb-1">
                     <svg class="w-5 h-5 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19.4 15a1.8 1.8 0 00.36 1.98l.05.05a2.1 2.1 0 01-2.97 2.97l-.05-.05a1.8 1.8 0 00-1.98-.36 1.8 1.8 0 00-1.1 1.66V21a2.1 2.1 0 01-4.2 0v-.08A1.8 1.8 0 008.4 19.3a1.8 1.8 0 00-1.98.36l-.05.05A2.1 2.1 0 013.4 16.74l.05-.05a1.8 1.8 0 00.36-1.98 1.8 1.8 0 00-1.66-1.1H2a2.1 2.1 0 010-4.2h.08A1.8 1.8 0 003.7 8.3a1.8 1.8 0 00-.36-1.98l-.05-.05A2.1 2.1 0 016.26 3.3l.05.05a1.8 1.8 0 001.98.36h.01A1.8 1.8 0 009.4 2.08V2a2.1 2.1 0 014.2 0v.08a1.8 1.8 0 001.1 1.66 1.8 1.8 0 001.98-.36l.05-.05A2.1 2.1 0 0119.7 6.3l-.05.05a1.8 1.8 0 00-.36 1.98 1.8 1.8 0 001.66 1.1H21a2.1 2.1 0 010 4.2h-.08A1.8 1.8 0 0019.4 15z"></path></svg>
-                    鍥㈤槦璁剧疆
+                    团队设置
                 </a>
             </div>
 
             <div class="px-3">
-                <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">涓汉涓績</p>
+                <p class="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">个人中心</p>
                 <a href="/me" class="sidebar-link flex items-center px-3 py-2.5 rounded-lg text-sm text-slate-700 mb-1">
                     <svg class="w-5 h-5 mr-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 12a4 4 0 100-8 4 4 0 000 8z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 20a8 8 0 0116 0"></path></svg>
-                    鎴戠殑璧勬枡
+                    我的资料
                 </a>
             </div>
         </nav>
     </aside>
 
-    <!-- 涓诲唴瀹瑰尯 -->
+    <!-- 主内容区 -->
     <main class="flex-1 flex flex-col min-w-0 bg-slate-50">
-        <!-- 椤堕儴瀵艰埅 -->
+        <!-- 顶部导航 -->
         <header class="h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 border-b border-slate-200 bg-white z-10 flex-shrink-0">
             <div class="flex items-center">
                 <button id="mobile-menu-btn" class="md:hidden inline-flex h-11 w-11 items-center justify-center -ml-2 mr-2 text-slate-500 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
                 <div class="flex items-center text-sm">
-                    <a href="/" class="text-slate-500 hover:text-slate-700 transition-colors">浠〃鐩?/a>
+                    <a href="/" class="text-slate-500 hover:text-slate-700 transition-colors">仪表盘</a>
                     <span class="mx-2 text-slate-300">/</span>
-                    <span class="text-slate-950 font-medium">鎴愬憳绠＄悊</span>
+                    <span class="text-slate-950 font-medium">成员管理</span>
                 </div>
             </div>
         </header>
 
-        <!-- 鍐呭娓叉煋鍖?-->
+        <!-- 内容渲染区 -->
         <div class="flex-1 overflow-y-auto admin-scroll p-4 sm:px-6 lg:px-8 py-8">
             <div class="fade-in-element flex flex-col h-full">
 
-                <!-- 澶撮儴鎿嶄綔鍖?-->
+                <!-- 头部操作区 -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div>
-                        <h2 class="text-2xl font-semibold mb-1">鍥㈤槦鎴愬憳</h2>
-                        <p class="text-sm text-slate-500">绠＄悊鍥㈤槦鍐呮墍鏈夋垚鍛樼殑鐘舵€併€佽祫鏂欎笌宀椾綅銆?/p>
+                        <h2 class="text-2xl font-semibold mb-1">团队成员</h2>
+                        <p class="text-sm text-slate-500">管理团队内所有成员的状态、资料与岗位。</p>
                     </div>
-                    <button onclick="openMemberModal()" class="bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors">
-                        + 娣诲姞鎴愬憳
-                    </button>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="/join-review" class="inline-flex min-h-10 items-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-colors">加入审核</a>
+                        <button onclick="openMemberModal()" class="bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                            + 添加成员
+                        </button>
+                    </div>
                 </div>
 
-                <!-- 琛ㄦ牸鍖哄煙 -->
+                <!-- 表格区域 -->
                 <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex-1 flex flex-col">
                     <div class="overflow-x-auto">
                         <table class="admin-table min-w-[800px]">
                             <thead>
                                 <tr>
                                     <th class="w-16">ID</th>
-                                    <th>鎴愬憳淇℃伅</th>
-                                    <th>宀椾綅</th>
-                                    <th>灞曠ず鐘舵€?/th>
-                                    <th>璐﹀彿鐘舵€?/th>
-                                    <th class="text-right">鎿嶄綔</th>
+                                    <th>成员信息</th>
+                                    <th>岗位</th>
+                                    <th>展示状态</th>
+                                    <th>账号状态</th>
+                                    <th class="text-right">操作</th>
                                 </tr>
                             </thead>
                             <tbody id="member-table-body">
-                                <tr><td colspan="6" class="text-center py-8 text-slate-500">姝ｅ湪鍔犺浇鏁版嵁...</td></tr>
+                                <tr><td colspan="6" class="text-center py-8 text-slate-500">正在加载数据...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -134,11 +145,11 @@
         </div>
     </main>
 
-    <!-- 鎴愬憳琛ㄥ崟寮圭獥 -->
+    <!-- 成员表单弹窗 -->
     <div id="member-modal" class="modal-overlay bg-slate-950/50 backdrop-blur-sm">
         <div class="modal-content w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-center p-6 border-b border-slate-200">
-                <h3 class="text-xl font-semibold" id="modal-title">娣诲姞鎴愬憳</h3>
+                <h3 class="text-xl font-semibold" id="modal-title">添加成员</h3>
                 <button onclick="closeModal('member-modal')" class="text-slate-500 hover:text-slate-950 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
@@ -149,76 +160,76 @@
                     <input type="hidden" id="form-member-id">
 
                     <div id="user-id-group">
-                        <label class="block text-sm font-medium text-slate-700 mb-1">绯荤粺 User ID <span class="text-red-400">*</span></label>
-                        <input type="number" id="form-user-id" required class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-950 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-colors placeholder-slate-400" placeholder="濉啓瑕侀個璇风殑鐢ㄦ埛ID">
-                        <p class="text-xs text-slate-500 mt-1">浠呮坊鍔犳柊鎴愬憳鏃堕渶瑕併€?/p>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">系统 User ID <span class="text-red-400">*</span></label>
+                        <input type="number" id="form-user-id" required class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-950 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-colors placeholder-slate-400" placeholder="填写要邀请的用户 ID">
+                        <p class="text-xs text-slate-500 mt-1">仅添加新成员时需要。</p>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">鏄电О (Nickname)</label>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">昵称 (Nickname)</label>
                         <input type="text" id="form-nickname" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-950 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-colors placeholder-slate-400">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">澶村儚 (Avatar)</label>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">头像 (Avatar)</label>
                         <input type="hidden" id="form-avatar">
                         <input type="file" id="upload-avatar" class="hidden" accept="image/*" onchange="uploadMemberFile('upload-avatar', 'form-avatar')">
-                        <div class="page-team-upload-capsule" onclick="document.getElementById('upload-avatar').click()" onkeydown="triggerUploadOnKey(event, 'upload-avatar')" role="button" tabindex="0" aria-label="涓婁紶澶村儚">
+                        <div class="page-team-upload-capsule" onclick="document.getElementById('upload-avatar').click()" onkeydown="triggerUploadOnKey(event, 'upload-avatar')" role="button" tabindex="0" aria-label="上传头像">
                             <div class="page-team-upload-icon">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4"></path></svg>
                             </div>
                             <div class="page-team-upload-info">
-                                <div class="page-team-upload-title">鐐瑰嚮涓婁紶澶村儚</div>
-                                <span id="form-avatar-status" class="page-team-upload-status">鏈笂浼?/span>
+                                <div class="page-team-upload-title">点击上传头像</div>
+                                <span id="form-avatar-status" class="page-team-upload-status">未上传</span>
                             </div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">涓€鍙ヨ瘽鎻忚堪 (Description)</label>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">一句话描述 (Description)</label>
                         <input type="text" id="form-description" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-950 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-colors placeholder-slate-400">
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">浠嬬粛鍥?(Intro Image)</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">介绍图 (Intro Image)</label>
                             <input type="hidden" id="form-intro_image">
                             <input type="file" id="upload-intro_image" class="hidden" accept="image/*" onchange="uploadMemberFile('upload-intro_image', 'form-intro_image')">
-                            <div class="page-team-upload-capsule" onclick="document.getElementById('upload-intro_image').click()" onkeydown="triggerUploadOnKey(event, 'upload-intro_image')" role="button" tabindex="0" aria-label="涓婁紶浠嬬粛鍥?>
+                            <div class="page-team-upload-capsule" onclick="document.getElementById('upload-intro_image').click()" onkeydown="triggerUploadOnKey(event, 'upload-intro_image')" role="button" tabindex="0" aria-label="上传介绍图">
                                 <div class="page-team-upload-icon">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4"></path></svg>
                                 </div>
                                 <div class="page-team-upload-info">
-                                    <div class="page-team-upload-title">涓婁紶鍥剧墖鏂囦欢</div>
-                                    <span id="form-intro_image-status" class="page-team-upload-status">鏈笂浼?/span>
+                                    <div class="page-team-upload-title">上传图片文件</div>
+                                    <span id="form-intro_image-status" class="page-team-upload-status">未上传</span>
                                 </div>
                             </div>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">浠嬬粛瑙嗛 (Intro Video)</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">介绍视频 (Intro Video)</label>
                             <input type="hidden" id="form-intro_video">
                             <input type="file" id="upload-intro_video" class="hidden" accept="video/*" onchange="uploadMemberFile('upload-intro_video', 'form-intro_video')">
-                            <div class="page-team-upload-capsule" onclick="document.getElementById('upload-intro_video').click()" onkeydown="triggerUploadOnKey(event, 'upload-intro_video')" role="button" tabindex="0" aria-label="涓婁紶浠嬬粛瑙嗛">
+                            <div class="page-team-upload-capsule" onclick="document.getElementById('upload-intro_video').click()" onkeydown="triggerUploadOnKey(event, 'upload-intro_video')" role="button" tabindex="0" aria-label="上传介绍视频">
                                 <div class="page-team-upload-icon">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4"></path></svg>
                                 </div>
                                 <div class="page-team-upload-info">
-                                    <div class="page-team-upload-title">涓婁紶瑙嗛鏂囦欢</div>
-                                    <span id="form-intro_video-status" class="page-team-upload-status">鏈笂浼?/span>
+                                    <div class="page-team-upload-title">上传视频文件</div>
+                                    <span id="form-intro_video-status" class="page-team-upload-status">未上传</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">璇︾粏浠嬬粛 (Markdown)</label>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">详细介绍 (Markdown)</label>
                         <textarea id="form-intro_md" rows="4" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-950 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-colors placeholder-slate-400 admin-scroll"></textarea>
                     </div>
 
                     <div class="pt-2 border-t border-slate-200">
-                        <label class="block text-sm font-medium text-slate-700 mb-3">鍒嗛厤宀椾綅</label>
+                        <label class="block text-sm font-medium text-slate-700 mb-3">分配岗位</label>
                         <div id="form-posts-container" class="flex flex-wrap gap-4">
-                            <span class="text-xs text-slate-500">姝ｅ湪鍔犺浇宀椾綅...</span>
+                            <span class="text-xs text-slate-500">正在加载岗位...</span>
                         </div>
                     </div>
 
@@ -226,17 +237,17 @@
                         <label class="flex items-center cursor-pointer">
                             <input type="checkbox" id="form-is-displayed" class="sr-only peer" checked>
                             <div class="page-team-switch"></div>
-                            <span class="ml-3 text-sm font-medium text-slate-700">鍦ㄥ墠鍙板睍绀?(is_displayed)</span>
+                            <span class="ml-3 text-sm font-medium text-slate-700">在前台展示 (is_displayed)</span>
                         </label>
                     </div>
 
                     <div id="member-custom-fields-section" class="hidden pt-5 border-t border-slate-200">
                         <div class="mb-4">
-                            <h4 class="text-sm font-semibold text-slate-950">鑷畾涔夊瓧娈?/h4>
-                            <p class="text-xs text-slate-500 mt-1">缂栬緫璇ユ垚鍛樼殑鍥㈤槦鎵╁睍璧勬枡銆?/p>
+                            <h4 class="text-sm font-semibold text-slate-950">自定义字段</h4>
+                            <p class="text-xs text-slate-500 mt-1">编辑该成员的团队扩展资料。</p>
                         </div>
                         <div id="member-custom-fields-container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div class="col-span-full text-sm text-slate-500">姝ｅ湪鍔犺浇鑷畾涔夊瓧娈?..</div>
+                            <div class="col-span-full text-sm text-slate-500">正在加载自定义字段...</div>
                         </div>
                     </div>
 
@@ -245,9 +256,9 @@
             </div>
 
             <div class="p-6 border-t border-slate-200 flex justify-end gap-3 bg-slate-50">
-                <button type="button" onclick="closeModal('member-modal')" class="px-5 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-950 hover:bg-slate-50 transition-colors">鍙栨秷</button>
+                <button type="button" onclick="closeModal('member-modal')" class="px-5 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-950 hover:bg-slate-50 transition-colors">取消</button>
                 <button type="button" onclick="submitMemberForm()" class="bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors ">
-                    淇濆瓨鎴愬憳
+                    保存成员
                 </button>
             </div>
         </div>
@@ -266,7 +277,7 @@
         async function loadMembers() {
             const tbody = document.getElementById('member-table-body');
             try {
-                // 骞惰鍔犺浇鎴愬憳銆佸矖浣嶅拰鑷畾涔夊瓧娈靛畾涔?
+                // 并行加载成员、岗位和自定义字段定义
                 const [membersRes, postsRes, fieldsRes] = await Promise.all([
                     window.apiGet('/member/index'),
                     window.apiGet('/postType/index'),
@@ -281,14 +292,14 @@
                 renderPostCheckboxes(allPostTypes);
                 openPendingEditModal();
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">缃戠粶璇锋眰澶辫触</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">网络请求失败</td></tr>`;
             }
         }
 
         function renderPostCheckboxes(posts) {
             const container = document.getElementById('form-posts-container');
             if (!posts.length) {
-                container.innerHTML = '<span class="text-xs text-slate-500">鏆傛棤鍙敤宀椾綅锛岃鍏堝幓銆屽矖浣嶇被鍨嬨€嶆坊鍔?/span>';
+                container.innerHTML = '<span class="text-xs text-slate-500">暂无可用岗位，请先去「岗位类型」添加</span>';
                 return;
             }
             container.innerHTML = posts.map(p => `
@@ -302,15 +313,15 @@
         function renderTable(data) {
             const tbody = document.getElementById('member-table-body');
             if (!data.length) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-500">鏆傛棤鎴愬憳鏁版嵁</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-500">暂无成员数据</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = data.map(m => {
                 const profile = m.profile || {};
-                const nickname = profile.nickname || `鐢ㄦ埛 ${m.user_id}`;
+                const nickname = profile.nickname || `用户 ${m.user_id}`;
                 const avatar = profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user_id}&backgroundColor=0f172a`;
-                const posts = (m.posts || []).map(p => p.type?.name || '鏈煡宀椾綅').join(', ');
+                const posts = (m.posts || []).map(p => p.type?.name || '未知岗位').join(', ');
 
                 return `
                 <tr>
@@ -324,26 +335,26 @@
                             </div>
                         </div>
                     </td>
-                    <td><span class="inline-block px-2 py-1 rounded bg-slate-50 text-xs text-slate-700 border border-slate-200">${posts || '鏆傛棤宀椾綅'}</span></td>
+                    <td><span class="inline-block px-2 py-1 rounded bg-slate-50 text-xs text-slate-700 border border-slate-200">${posts || '暂无岗位'}</span></td>
                     <td>
                         ${m.is_displayed
-                            ? `<span class="text-green-400 text-xs flex items-center"><span class="w-2 h-2 rounded-full bg-green-400 mr-2"></span>灞曠ず涓?/span>`
-                            : `<span class="text-slate-500 text-xs flex items-center"><span class="w-2 h-2 rounded-full bg-gray-500 mr-2"></span>宸查殣钘?/span>`}
+                            ? `<span class="text-green-400 text-xs flex items-center"><span class="w-2 h-2 rounded-full bg-green-400 mr-2"></span>展示中</span>`
+                            : `<span class="text-slate-500 text-xs flex items-center"><span class="w-2 h-2 rounded-full bg-gray-500 mr-2"></span>已隐藏</span>`}
                     </td>
                     <td>
                         ${m.is_blocked
-                            ? `<span class="text-red-400 text-xs font-medium">宸插皝绂?/span>`
-                            : `<span class="text-blue-400 text-xs font-medium">姝ｅ父</span>`}
+                            ? `<span class="text-red-400 text-xs font-medium">已封禁</span>`
+                            : `<span class="text-blue-400 text-xs font-medium">正常</span>`}
                     </td>
                     <td>
                         <div class="flex items-center justify-start gap-3">
-                            <a href="/member-detail?id=${m.id}" class="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">璇︽儏</a>
-                            <a href="/docs?target_type=teamMember&target_id=${m.id}" class="text-sky-400 hover:text-sky-300 text-sm font-medium transition-colors">鏂囨。</a>
-                            <button onclick="editMember(${m.id})" class="text-sky-700 hover:text-sky-800 text-sm font-medium transition-colors">缂栬緫</button>
+                            <a href="/member-detail?id=${m.id}" class="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">详情</a>
+                            <a href="/docs?target_type=teamMember&target_id=${m.id}" class="text-sky-400 hover:text-sky-300 text-sm font-medium transition-colors">文档</a>
+                            <button onclick="editMember(${m.id})" class="text-sky-700 hover:text-sky-800 text-sm font-medium transition-colors">编辑</button>
                             ${m.is_blocked
-                                ? `<button onclick="toggleBlock(${m.id}, false)" class="text-green-400 hover:text-green-300 text-sm font-medium transition-colors">瑙ｅ皝</button>`
-                                : `<button onclick="toggleBlock(${m.id}, true)" class="text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors">灏佺</button>`}
-                            <button onclick="removeMember(${m.id})" class="text-red-400 hover:text-red-300 text-sm font-medium transition-colors">绉诲嚭</button>
+                                ? `<button onclick="toggleBlock(${m.id}, false)" class="text-green-400 hover:text-green-300 text-sm font-medium transition-colors">解封</button>`
+                                : `<button onclick="toggleBlock(${m.id}, true)" class="text-orange-400 hover:text-orange-300 text-sm font-medium transition-colors">封禁</button>`}
+                            <button onclick="removeMember(${m.id})" class="text-red-400 hover:text-red-300 text-sm font-medium transition-colors">移出</button>
                         </div>
                     </td>
                 </tr>
@@ -353,7 +364,7 @@
 
         function openMemberModal(member = null) {
             const isEdit = !!member;
-            document.getElementById('modal-title').textContent = isEdit ? '缂栬緫鎴愬憳' : '娣诲姞鎴愬憳';
+            document.getElementById('modal-title').textContent = isEdit ? '编辑成员' : '添加成员';
             document.getElementById('user-id-group').style.display = isEdit ? 'none' : 'block';
 
             document.getElementById('form-member-id').value = isEdit ? member.id : '';
@@ -371,7 +382,7 @@
             updateUploadStatus('form-intro_image', p.intro_image || '');
             updateUploadStatus('form-intro_video', p.intro_video || '');
 
-            // 鍥炴樉宀椾綅澶嶉€夋
+            // 回显岗位复选框
             const postIds = member ? (member.posts || []).map(p => p.post_id) : [];
             document.querySelectorAll('input[name="post_ids"]').forEach(cb => {
                 cb.checked = postIds.includes(parseInt(cb.value));
@@ -393,7 +404,7 @@
                 renderMemberCustomFields(true, valuesRes || [], false);
             } catch (err) {
                 const container = document.getElementById('member-custom-fields-container');
-                container.innerHTML = `<div class="col-span-full text-sm text-red-400">鑷畾涔夊瓧娈靛姞杞藉け璐ワ細${escapeHtml(err.message || '璇锋眰澶辫触')}</div>`;
+                container.innerHTML = `<div class="col-span-full text-sm text-red-400">自定义字段加载失败：${escapeHtml(err.message || '请求失败')}</div>`;
             }
         }
 
@@ -415,7 +426,7 @@
                 targetInput.value = result.url || '';
                 updateUploadStatus(targetInputId, result.url || '', file.name);
             } catch (err) {
-                alert(err.message || '涓婁紶澶辫触');
+                alert(err.message || '上传失败');
             } finally {
                 if (fileInput) fileInput.value = '';
             }
@@ -424,7 +435,7 @@
         function updateUploadStatus(targetInputId, url, fileName = '') {
             const statusEl = document.getElementById(`${targetInputId}-status`);
             if (!statusEl) return;
-            statusEl.textContent = url ? (fileName || '宸蹭笂浼?) : '鏈笂浼?;
+            statusEl.textContent = url ? (fileName || '已上传') : '未上传';
             statusEl.classList.toggle('is-ready', !!url);
         }
 
@@ -447,12 +458,12 @@
             }
 
             if (isLoading) {
-                container.innerHTML = '<div class="col-span-full text-sm text-slate-500">姝ｅ湪鍔犺浇鑷畾涔夊瓧娈?..</div>';
+                container.innerHTML = '<div class="col-span-full text-sm text-slate-500">正在加载自定义字段...</div>';
                 return;
             }
 
             if (!allMemberFields.length) {
-                container.innerHTML = '<div class="col-span-full text-sm text-slate-500">褰撳墠鍥㈤槦灏氭湭瀹氫箟鍙紪杈戠殑鑷畾涔夊瓧娈?/div>';
+                container.innerHTML = '<div class="col-span-full text-sm text-slate-500">当前团队尚未定义可编辑的自定义字段</div>';
                 return;
             }
 
@@ -461,7 +472,7 @@
             container.innerHTML = allMemberFields.map(field => {
                 const value = valuesMap[field.id] ?? '';
                 const requiredMark = Number(field.is_required) === 1 ? '<span class="text-red-400">*</span>' : '';
-                const disabledText = Number(field.is_editable) === 0 ? '<span class="ml-2 text-xs text-slate-500">鍙</span>' : '';
+                const disabledText = Number(field.is_editable) === 0 ? '<span class="ml-2 text-xs text-slate-500">只读</span>' : '';
                 const colSpanClass = ['textarea', 'upload'].includes(field.input_type) || ['json', 'text', 'multi_select'].includes(field.value_type) ? 'md:col-span-2' : '';
 
                 return `
@@ -516,7 +527,7 @@
 
             if (field.input_type === 'select') {
                 return `<select id="member_field_${field.id}" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-950 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:opacity-60" ${common}>
-                    <option value="">璇烽€夋嫨</option>
+                    <option value="">请选择</option>
                     ${options.map(opt => `<option value="${escapeHtml(opt.value)}" ${String(value) === opt.value ? 'selected' : ''}>${escapeHtml(opt.label)}</option>`).join('')}
                 </select>`;
             }
@@ -545,7 +556,7 @@
                 return `<div class="flex flex-col sm:flex-row gap-2">
                     <input type="text" id="member_field_${field.id}" value="${escapeHtml(String(value || ''))}" class="flex-1 bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-950 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-colors disabled:opacity-60" ${common}>
                     <input type="file" id="member_field_file_${field.id}" class="hidden" onchange="uploadMemberCustomFieldFile(${field.id})" ${disabled}>
-                    <button type="button" onclick="document.getElementById('member_field_file_${field.id}').click()" class="px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm text-slate-950 disabled:opacity-60" ${disabled}>涓婁紶</button>
+                    <button type="button" onclick="document.getElementById('member_field_file_${field.id}').click()" class="px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm text-slate-950 disabled:opacity-60" ${disabled}>上传</button>
                 </div>`;
             }
 
@@ -584,7 +595,7 @@
                 const result = await window.apiUpload(file);
                 textInput.value = result.url || '';
             } catch (err) {
-                alert(err.message || '涓婁紶澶辫触');
+                alert(err.message || '上传失败');
             } finally {
                 if (fileInput) fileInput.value = '';
             }
@@ -634,7 +645,7 @@
             const isEdit = !!id;
             const errorEl = document.getElementById('form-error');
 
-            // 鏀堕泦閫変腑鐨勫矖浣?IDs
+            // 收集选中的岗位 IDs
             const selectedPostIds = Array.from(document.querySelectorAll('input[name="post_ids"]:checked')).map(cb => parseInt(cb.value));
 
             const payload = {
@@ -656,14 +667,14 @@
                 endpoint = '/member/add';
                 payload.user_id = parseInt(document.getElementById('form-user-id').value);
                 if (!payload.user_id) {
-                    errorEl.textContent = '绯荤粺 User ID 涓嶈兘涓虹┖';
+                    errorEl.textContent = '系统 User ID 不能为空';
                     errorEl.classList.remove('hidden');
                     return;
                 }
             }
 
             try {
-                // apiPost 鎴愬姛鏃惰繑鍥?json.data锛屽け璐ユ椂鎶?Error
+                // apiPost 成功时返回 json.data，失败时抛 Error
                 await window.apiPost(endpoint, payload);
                 const customValues = isEdit && memberCustomFieldsReady ? collectMemberCustomFieldValues() : {};
                 if (Object.keys(customValues).length) {
@@ -675,30 +686,30 @@
                 window.closeModal('member-modal');
                 loadMembers();
             } catch (err) {
-                errorEl.textContent = err.message || '鎿嶄綔澶辫触';
+                errorEl.textContent = err.message || '操作失败';
                 errorEl.classList.remove('hidden');
             }
         }
 
         async function toggleBlock(id, toBlock) {
-            if (!confirm(`纭畾瑕?{toBlock ? '灏佺' : '瑙ｅ皝'}璇ユ垚鍛樺悧锛焋)) return;
+            if (!confirm(`确定要${toBlock ? '封禁' : '解封'}该成员吗？`)) return;
             const endpoint = toBlock ? '/member/block' : '/member/unblock';
             try {
-                // apiPost 鎴愬姛鏃惰繑鍥炴暟鎹紝澶辫触鏃舵姏 Error
+                // apiPost 成功时返回数据，失败时抛 Error
                 await window.apiPost(endpoint, { member_id: id });
                 loadMembers();
             } catch (err) {
-                alert(err.message || '鎿嶄綔澶辫触');
+                alert(err.message || '操作失败');
             }
         }
 
         async function removeMember(id) {
-            if (!confirm('涓ラ噸璀﹀憡锛氱‘瀹氳灏嗚鎴愬憳绉诲嚭鍥㈤槦鍚楋紵姝ゆ搷浣滀笉鍙€嗭紒')) return;
+            if (!confirm('严重警告：确定要将该成员移出团队吗？此操作不可逆！')) return;
             try {
                 await window.apiPost('/member/remove', { member_id: id });
                 loadMembers();
             } catch (err) {
-                alert(err.message || '鎿嶄綔澶辫触');
+                alert(err.message || '操作失败');
             }
         }
 

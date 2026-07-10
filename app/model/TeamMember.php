@@ -51,6 +51,11 @@ class TeamMember extends Base
         return $this->hasMany(TeamMemberFieldValue::class, 'member_id');
     }
 
+    public function joinApplication()
+    {
+        return $this->hasOne(TeamJoinApplication::class, 'member_id');
+    }
+
     public function handledTransactions()
     {
         return $this->hasMany(TeamTransaction::class, 'handler_id');

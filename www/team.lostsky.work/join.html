@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>申请加入团队 - LostSky</title>
+    <script src="//assets.lostsky.work/js/tailwind.config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="//assets.lostsky.work/css/base.css">
+    <link rel="stylesheet" href="//assets.lostsky.work/css/page-join.css">
+</head>
+<body class="join-shell">
+    <main class="join-page">
+        <section class="join-hero" aria-labelledby="join-title">
+            <div>
+                <p class="join-kicker">Team Onboarding</p>
+                <h1 id="join-title">申请加入团队</h1>
+                <p class="join-lead">提交你的申请资料，审核任务进度会在这里同步更新。</p>
+            </div>
+            <a class="join-ghost-link" href="/">返回团队首页</a>
+        </section>
+
+        <section class="join-layout">
+            <form id="join-form" class="join-panel join-form-panel">
+                <div class="join-panel-head">
+                    <div>
+                        <h2>申请信息</h2>
+                        <p>带星号的字段为必填。</p>
+                    </div>
+                    <span id="field-count" class="join-badge">加载中</span>
+                </div>
+                <div id="join-fields" class="join-fields">
+                    <div class="join-skeleton"></div>
+                    <div class="join-skeleton short"></div>
+                </div>
+                <div class="join-field full">
+                    <label for="join-memo">补充说明</label>
+                    <textarea id="join-memo" rows="4" placeholder="可以写下你的背景、期望岗位或其他说明"></textarea>
+                </div>
+                <div id="join-error" class="join-error hidden" role="alert"></div>
+                <button id="join-submit" type="submit" class="join-primary">
+                    <span>提交申请</span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+                </button>
+            </form>
+
+            <aside class="join-panel join-status-panel">
+                <div class="join-panel-head">
+                    <div>
+                        <h2>我的申请</h2>
+                        <p>查看审核状态和任务进度。</p>
+                    </div>
+                    <button id="reload-mine" type="button" class="join-icon-button" aria-label="刷新申请记录">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg>
+                    </button>
+                </div>
+                <div id="mine-list" class="join-list">
+                    <div class="join-empty">正在读取申请记录...</div>
+                </div>
+            </aside>
+        </section>
+    </main>
+
+    <script src="//assets.lostsky.work/js/api.js"></script>
+    <script src="//assets.lostsky.work/js/page-join.js"></script>
+</body>
+</html>

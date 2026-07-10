@@ -49,6 +49,11 @@ class User extends Base
         return $this->hasMany(TeamMember::class, 'user_id');
     }
 
+    public function joinApplications()
+    {
+        return $this->hasMany(TeamJoinApplication::class, 'user_id');
+    }
+
     public function customers()
     {
         return $this->hasMany(TeamCustomer::class, 'user_id');

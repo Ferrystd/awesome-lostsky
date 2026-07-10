@@ -31,6 +31,29 @@ Route::post('memberField/delete', 'memberField/delete');
 Route::get('memberField/values', 'memberField/values');
 Route::post('memberField/saveValues', 'memberField/saveValues');
 
+// join
+Route::get('join/form', 'join/form');
+Route::post('join/apply', 'join/apply');
+Route::get('join/mine', 'join/mine');
+Route::get('join/get', 'join/get');
+Route::post('join/cancel', 'join/cancel');
+Route::post('join/upload', 'join/upload');
+
+// joinReview
+Route::get('joinReview/index', 'joinReview/index');
+Route::get('joinReview/get', 'joinReview/get');
+Route::post('joinReview/review', 'joinReview/review');
+Route::post('joinReview/reject', 'joinReview/reject');
+Route::post('joinReview/approve', 'joinReview/approve');
+Route::post('joinReview/saveTasks', 'joinReview/saveTasks');
+Route::post('joinReview/setTaskPassed', 'joinReview/setTaskPassed');
+
+// joinField
+Route::get('joinField/index', 'joinField/index');
+Route::post('joinField/add', 'joinField/add');
+Route::post('joinField/edit', 'joinField/edit');
+Route::post('joinField/delete', 'joinField/delete');
+
 // setting
 Route::get('setting', 'Setting/index');
 Route::post('setting', 'Setting/save');

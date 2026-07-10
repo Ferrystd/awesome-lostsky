@@ -17,7 +17,8 @@ class TeamOrder extends Base
         'team_id'     => 'integer',
         'customer_id' => 'integer',
         'handler_id'  => 'integer',
-        'sender_id'   => null,  // integer|null
+        // sender_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
+        // 'sender_id'   => 'integer|null',
         'product_id'  => 'integer',
         'quantity'    => 'integer',
         'unit_price'  => 'float',
@@ -29,7 +30,8 @@ class TeamOrder extends Base
         'team_cut'    => 'float',
         'cash'        => 'float',
         'prepaid'     => 'float',
-        'trans_id'    => null,  // integer|null
+        // trans_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
+        // 'trans_id'    => 'integer|null',
         'status'      => OrderStatus::class,
         'memo'        => 'string',
         'create_time' => 'integer',

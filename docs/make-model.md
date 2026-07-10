@@ -118,7 +118,7 @@ class User extends Base
 | 追加访问器 | `$append` | `['full_name']` |
 | 关联查询 | 添加关联方法 | `hasOne`, `hasMany`, `belongsTo` |
 | 修改器 | `setXxxAttr` | `setPasswordAttr` 自动哈希 |
-| 获取器 | `getXxxAttr` | `getStatusTextAttr` 枚举转中文 |
+| 获取器 | `getXxxAttr` | `getStatusAttr` 枚举字段转中文 |
 
 ---
 

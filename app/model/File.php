@@ -14,7 +14,8 @@ class File extends Base
         'delete_time' => 'integer',
         'size'        => 'integer',
         'team_id'     => 'integer',
-        'member_id'   => 'integer',
+        // member_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
+        // 'member_id'   => 'integer|null',
     ];
 
     protected $json = [];

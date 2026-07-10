@@ -103,3 +103,34 @@
 + 返回统一使用 `success()` 或 `message()`，不直接 `json()`
 + 入参不在 controller 做重复类型转换，模型已有 `$type` 时交给模型处理；controller 只保留必要的 ID 提取
 
+# 加入申请与审核
+
+用户申请加入团队时先提交 `join/form` 返回的申请表单字段。申请字段独立于 `TeamMemberField`，但可以通过 `is_transfer_member_field=1` 和 `member_field_id` 指定同意加入后自动转存到 `TeamMemberFieldValue`。
+
+状态枚举：
+
+- `1` 已申请
+- `2` 审核中
+- `3` 已取消
+- `4` 已加入
+- `5` 已拒绝
+
+申请人接口：
+
+- `GET /join/form`：获取可填写的加入申请表单字段。需要 JWT，且当前用户不是该团队成员。
+- `POST /join/apply`：提交加入申请，`values` 支持用 `field_id` 或 `field_key` 作为键。
+- `GET /join/mine`：查看自己的申请记录。
+- `GET /join/get?id=`：查看自己的单个申请详情。
+- `POST /join/cancel`：取消自己的待处理申请。
+- `POST /join/upload`：申请阶段上传文件，文件记录的 `member_id` 为 `NULL`。
+
+管理员接口：
+
+- `GET /joinReview/index`：申请列表，可按 `status`、`user_id` 筛选。
+- `GET /joinReview/get?id=`：申请详情。
+- `POST /joinReview/review`：进入审核中。
+- `POST /joinReview/saveTasks`：设置一组审核任务，任务只有管理员可编辑。
+- `POST /joinReview/setTaskPassed`：更新某个审核任务是否通过。
+- `POST /joinReview/approve`：同意申请，创建成员并转存字段值。
+- `POST /joinReview/reject`：拒绝申请。
+- `GET /joinField/index`、`POST /joinField/add|edit|delete`：配置申请加入表单字段。

@@ -1,25 +1,32 @@
 # AGENTS.md
 
-## Gemini 使用
+## 文本编码与中文防乱码
 
-Gemini 只作为备用模型使用，不是默认 provider。需要使用 Gemini 时，先确保 LiteLLM 正在运行：`Get-NetTCPConnection -LocalPort 4000`；未运行则启动：`powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\admin\.codex\litellm\start-litellm.ps1"`。
+所有 HTML、CSS、JS、Markdown、JSON、SQL、PHP 等文本文件统一使用 **UTF-8 无 BOM** 保存，禁止使用 ANSI、GBK、GB2312、Big5 等本地编码重新保存。Windows/PowerShell 下查看中文时，如果终端显示乱码，不得据此把文件转码；应先用 `rg`、编辑器 UTF-8 模式或脚本按 UTF-8 读取确认文件真实内容。
 
-使用 Gemini 终端调用：`codex -c model_provider='"litellm"' -m gemini-3.1-pro-preview`；快速模式：`codex -c model_provider='"litellm"' -m gemini-2.5-flash`。
+新增或修改前端页面时，HTML 必须保留 `<meta charset="UTF-8">`，并在提交前扫描中文乱码特征（如 `鏂`、`涓`、`锛`、`銆`、`鈥`、`�`）。一旦发现这些片段，先判断是否为终端显示问题，再修复源文件内容，避免把“已经乱码的文本”继续复制到新页面。
 
-如果正在写前端页面、官网落地页、管理后台界面或 HTML/CSS/JS，并且当前模型不是 `gemini-3.1-pro-preview`，必须改用 `codex -c model_provider='"litellm"' -m gemini-3.1-pro-preview` 执行前端相关工作。
-
-## 前端静态资源约定
-
-前端页面保持静态 HTML/CSS/JS 交付，不引入 Vite、Webpack、npm build 等需要安装依赖或打包的流程。现有 Tailwind CSS CDN 引入方式可以继续使用；新增能力优先使用原生 JS、自写代码、CDN 单文件库，或把必要的单文件代码复制进仓库并保留来源与许可证说明。
-
-Markdown/文档能力禁止通过 npm 包接入。若确需引入第三方 Markdown 项目，只能使用 CDN 或复制源码到仓库，并在本文件和 `CLAUDE.md` 同步记录来源、版本、许可证、升级方式和安全过滤策略。
+不使用终端，而是使用编辑器原生能力查看与编辑文件。
 
 ## 项目概况
 
 基于 **ThinkPHP 8** 框架构建的 **纯后端 API 服务**。运行环境要求 PHP 8.0+。
 
 - **前端**：部署在 CDN，不在此仓库。后端只返回 JSON，不做 SSR 和页面渲染。
+
 - **多应用**：使用 ThinkPHP 8 多应用模式。一个 App = 一组功能入口（如 `console` 控制台、`account` 认证）。该项目只提供API服务。一个产品一个应用
+
+## 前端
+
+### 约定
+
+保持静态 HTML/CSS/JS 交付，不引入 Vite、Webpack、npm build 等需要安装依赖或打包的流程。支持和推荐使用 CDN；新增能力使用自写代码、CDN 库，复制代码进仓库并保留来源与许可证说明。（尽量不新造轮子）
+
+### 新增
+读取`docs/openapi/`中所需要的json，使用 `/ui-ux-pro-max`,`/lostsky-frontend` 构建页面
+
+### 修改
+使用`/ui-ux-pro-max`修改页面，不使用`/lostsky-frontend`
 
 ## 控制台命令
 
@@ -61,16 +68,21 @@ php think make:controller #新建控制器
 
 - 在 `config/middleware.php` 注册别名。
 - 使用别名，禁用完整类名，简化代码。
+- 命名:
++ `{$app}Ability`:团队能力
++ `{$app}Access`:管理员身份确认
++ `{$app}Verify`:成员身份确认
 
 #### 防重放攻击、多次点击：
 1. **Dedup** :前端页面生成UUID，对每个页面滤除多次请求
 
 #### 鉴权流程：
-1. **JwtAuth** :JWT 认证中间件，确定用户
-2. **Context** :进一步提取 user_id、team_id、member_id
-3. 团队能力鉴权
+1. **Cors**
+2. **JwtAuth** :JWT 认证中间件，确定用户
+3. **Context** :进一步提取 user_id、team_id、member_id
+4. 团队能力鉴权（例）
 + **TransactionAbility**:记账能力校验
-4. 成员访问鉴权
+5. 成员访问鉴权（例）
 **MemberAccess**:成员自我操作权限
 **TeamAccess**:team管理权限
 **TransactionAccess**:记账应用team管理权限

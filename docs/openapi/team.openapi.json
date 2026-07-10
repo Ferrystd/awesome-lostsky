@@ -55,6 +55,17 @@
     },
     {
       "name": "File"
+    },
+    {
+      "name": "JoinField"
+    },
+    {
+      "name": "Join",
+      "description": "加入团队申请"
+    },
+    {
+      "name": "JoinReview",
+      "description": "管理员审核加入申请"
     }
   ],
   "components": {
@@ -280,7 +291,8 @@
             "type": "string"
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -1421,6 +1433,221 @@
             }
           }
         ]
+      },
+      "JoinField": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "field_key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value_type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "text",
+              "int",
+              "decimal",
+              "bool",
+              "date",
+              "datetime",
+              "select",
+              "multi_select",
+              "json"
+            ]
+          },
+          "input_type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "textarea",
+              "radio",
+              "checkbox",
+              "select",
+              "date",
+              "datetime",
+              "upload"
+            ]
+          },
+          "options": {
+            "nullable": true
+          },
+          "default_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_apply_fillable": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "?????????"
+          },
+          "is_apply_required": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "????????"
+          },
+          "is_transfer_member_field": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "??????? TeamMemberFieldValue"
+          },
+          "member_field_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "sort": {
+            "type": "integer"
+          }
+        }
+      },
+      "JoinFieldValue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "application_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "field_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "value_string": {
+            "type": "string",
+            "nullable": true
+          },
+          "value_text": {
+            "type": "string",
+            "nullable": true
+          },
+          "value_int": {
+            "type": "integer",
+            "nullable": true
+          },
+          "value_decimal": {
+            "type": "number",
+            "nullable": true
+          },
+          "value_datetime": {
+            "type": "integer",
+            "nullable": true
+          },
+          "value_json": {
+            "nullable": true
+          },
+          "field": {
+            "$ref": "#/components/schemas/JoinField"
+          }
+        }
+      },
+      "JoinTask": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "application_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_passed": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "sort": {
+            "type": "integer"
+          }
+        }
+      },
+      "JoinApplication": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "user_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "member_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "已申请",
+              "审核中",
+              "已取消",
+              "已加入",
+              "已拒绝"
+            ],
+            "description": "加入申请状态"
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JoinFieldValue"
+            }
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JoinTask"
+            }
+          }
+        }
       }
     }
   },
@@ -6478,6 +6705,924 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/join/form": {
+      "get": {
+        "tags": [
+          "Join"
+        ],
+        "summary": "获取申请表单",
+        "operationId": "teamJoinForm",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/JoinField"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/join/apply": {
+      "post": {
+        "tags": [
+          "Join"
+        ],
+        "summary": "提交加入申请",
+        "operationId": "teamJoinApply",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "values"
+                ],
+                "properties": {
+                  "values": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "memo": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/IdResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/join/mine": {
+      "get": {
+        "tags": [
+          "Join"
+        ],
+        "summary": "我的加入申请",
+        "operationId": "teamJoinMine",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/JoinApplication"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/join/get": {
+      "get": {
+        "tags": [
+          "Join"
+        ],
+        "summary": "申请详情",
+        "operationId": "teamJoinGet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/JoinApplication"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/join/cancel": {
+      "post": {
+        "tags": [
+          "Join"
+        ],
+        "summary": "取消申请",
+        "operationId": "teamJoinCancel",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/join/upload": {
+      "post": {
+        "tags": [
+          "Join"
+        ],
+        "summary": "申请阶段上传文件",
+        "operationId": "teamJoinUpload",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {}
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joinField/index": {
+      "get": {
+        "tags": [
+          "JoinField"
+        ],
+        "summary": "申请表单字段列表",
+        "operationId": "teamJoinFieldIndex",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/JoinField"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joinField/add": {
+      "post": {
+        "tags": [
+          "JoinField"
+        ],
+        "summary": "新增申请字段",
+        "operationId": "teamJoinFieldAdd",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "field_key",
+                  "name"
+                ],
+                "properties": {
+                  "field_key": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "value_type": {
+                    "type": "string"
+                  },
+                  "input_type": {
+                    "type": "string"
+                  },
+                  "options": {
+                    "nullable": true
+                  },
+                  "default_value": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "is_apply_fillable": {
+                    "type": "integer"
+                  },
+                  "is_apply_required": {
+                    "type": "integer"
+                  },
+                  "is_transfer_member_field": {
+                    "type": "integer"
+                  },
+                  "member_field_id": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "is_active": {
+                    "type": "integer"
+                  },
+                  "sort": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/IdResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joinField/edit": {
+      "post": {
+        "tags": [
+          "JoinField"
+        ],
+        "summary": "编辑申请字段",
+        "operationId": "teamJoinFieldEdit",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joinField/delete": {
+      "post": {
+        "tags": [
+          "JoinField"
+        ],
+        "summary": "删除申请字段",
+        "operationId": "teamJoinFieldDelete",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joinReview/index": {
+      "get": {
+        "tags": [
+          "JoinReview"
+        ],
+        "summary": "管理员申请列表",
+        "operationId": "teamJoinReviewIndex",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {}
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joinReview/get": {
+      "get": {
+        "tags": [
+          "JoinReview"
+        ],
+        "summary": "管理员申请详情",
+        "operationId": "teamJoinReviewGet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/JoinApplication"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joinReview/review": {
+      "post": {
+        "tags": [
+          "JoinReview"
+        ],
+        "summary": "申请进入审核中",
+        "operationId": "teamJoinReviewReview",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joinReview/reject": {
+      "post": {
+        "tags": [
+          "JoinReview"
+        ],
+        "summary": "拒绝加入申请",
+        "operationId": "teamJoinReviewReject",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "memo"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "memo": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joinReview/approve": {
+      "post": {
+        "tags": [
+          "JoinReview"
+        ],
+        "summary": "同意加入申请",
+        "operationId": "teamJoinReviewApprove",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {}
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joinReview/saveTasks": {
+      "post": {
+        "tags": [
+          "JoinReview"
+        ],
+        "summary": "保存审核任务",
+        "operationId": "teamJoinReviewSaveTasks",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "tasks"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "tasks": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/JoinTask"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joinReview/setTaskPassed": {
+      "post": {
+        "tags": [
+          "JoinReview"
+        ],
+        "summary": "更新审核任务状态",
+        "operationId": "teamJoinReviewSetTaskPassed",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "task_id",
+                  "is_passed"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "task_id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "is_passed": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
                 }
               }
             }

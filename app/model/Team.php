@@ -61,6 +61,16 @@ class Team extends Base
         return $this->hasMany(TeamMemberField::class, 'team_id');
     }
 
+    public function joinFields()
+    {
+        return $this->hasMany(TeamJoinField::class, 'team_id');
+    }
+
+    public function joinApplications()
+    {
+        return $this->hasMany(TeamJoinApplication::class, 'team_id');
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');

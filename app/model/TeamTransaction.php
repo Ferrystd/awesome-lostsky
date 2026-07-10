@@ -16,9 +16,12 @@ class TeamTransaction extends Base
         'id'          => 'integer',
         'team_id'     => 'integer',
         'handler_id'  => 'integer',
-        'sender_id'   => null,  // integer|null
-        'cs_id'       => null,  // integer|null
-        'customer_id' => null,  // integer|null
+        // sender_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
+        // 'sender_id'   => 'integer|null',
+        // cs_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
+        // 'cs_id'       => 'integer|null',
+        // customer_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
+        // 'customer_id' => 'integer|null',
         'type'        => TransactionType::class,
         'total_price' => 'float',
         'cost'        => 'float',

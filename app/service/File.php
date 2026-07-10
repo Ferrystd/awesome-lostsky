@@ -69,6 +69,57 @@ class File
         });
     }
 
+    public function uploadForJoin(UploadedFile $file, int $teamId): array
+    {
+        $this->checkAbility($teamId, (int) $file->getSize());
+
+        $hash = hash_file('sha256', $file->getPathname());
+        $ext  = $file->getOriginalExtension() ?: '';
+        $path = sprintf('%d/%s/%s.%s', $teamId, date('Ym'), $hash, $ext);
+
+        return Db::transaction(function () use ($file, $hash, $path, $teamId) {
+            $exist = \app\model\File::withTrashed()
+                ->where('team_id', $teamId)
+                ->where('hash', $hash)
+                ->lock(true)
+                ->find();
+            if ($exist) {
+                if ($exist->trashed()) {
+                    $exist->restore();
+                    $exist = \app\model\File::where('team_id', $teamId)
+                        ->where('hash', $hash)
+                        ->find();
+                }
+
+                return [
+                    'id'   => (int) $exist->id,
+                    'url'  => $this->url($exist->path),
+                    'name' => $exist->name,
+                    'size' => (int) $exist->size,
+                ];
+            }
+
+            $record = new \app\model\File;
+            $record->hash      = $hash;
+            $record->name      = $file->getOriginalName();
+            $record->path      = $path;
+            $record->size      = $file->getSize();
+            $record->mime_type = $file->getOriginalMime();
+            $record->team_id   = $teamId;
+            $record->member_id = null;
+            $record->save();
+
+            $this->putOss($path, $file->getPathname());
+
+            return [
+                'id'   => (int) $record->id,
+                'url'  => $this->url($path),
+                'name' => $record->name,
+                'size' => (int) $record->size,
+            ];
+        });
+    }
+
     public function list(int $teamId, array $filters, int $page = 1, int $limit = 20): array
     {
         $query = \app\model\File::where('team_id', $teamId);

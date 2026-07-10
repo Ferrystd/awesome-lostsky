@@ -14,7 +14,8 @@ class TeamProduct extends Base
     protected $type = [
         'id'          => 'integer',
         'team_id'     => 'integer',
-        'member_id'   => null,  // integer|null
+        // member_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
+        // 'member_id'   => 'integer|null',
         'name'        => 'string',
         'description' => 'string',
         'price'       => 'float',
