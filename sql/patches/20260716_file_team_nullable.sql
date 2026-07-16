@@ -1,0 +1,2 @@
+ALTER TABLE `file`
+    MODIFY COLUMN `team_id` INT UNSIGNED NULL DEFAULT NULL COMMENT 'team id (NULL=system file)';

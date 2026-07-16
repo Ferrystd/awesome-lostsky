@@ -11,7 +11,6 @@ use app\model\TeamTransaction;
 use app\enum\LogType;
 use app\enum\TransactionType;
 use think\exception\HttpException;
-use think\facade\Db;
 
 class Transaction
 {
@@ -85,11 +84,11 @@ class Transaction
             throw new HttpException(422, '客户不存在');
         }
 
-        return Db::transaction(function () use ($teamId, $data, $customerId) {
+        return \app\model\Base::transaction(function () use ($teamId, $data, $customerId) {
             $prepaid = (float) ($data['prepaid'] ?? 0);
 
             if ($prepaid > 0 && $customerId) {
-                // FOR UPDATE 行锁，依赖外层 Db::transaction() 才能生效
+                // FOR UPDATE 行锁，依赖外层 \app\model\Base::transaction() 才能生效
                 $balance = TeamCustomerBalance::where('customer_id', $customerId)->lock(true)->find();
                 if (!$balance || $balance->balance < $prepaid) {
                     throw new HttpException(422, '客户预存款余额不足');
@@ -183,7 +182,7 @@ class Transaction
             $delta = $newPrepaid - $oldPrepaid;
 
             if ($delta != 0 && $transaction->customer_id) {
-                Db::transaction(function () use ($transaction, $delta, $update) {
+                \app\model\Base::transaction(function () use ($transaction, $delta, $update) {
                     $balance = TeamCustomerBalance::where('customer_id', $transaction->customer_id)
                         ->lock(true)->find();
 
@@ -240,7 +239,7 @@ class Transaction
             throw new HttpException(422, '商城订单流水不可单独删除，请取消对应订单');
         }
 
-        Db::transaction(function () use ($transaction) {
+        \app\model\Base::transaction(function () use ($transaction) {
             // 退还预存款
             if ($transaction->prepaid > 0 && $transaction->customer_id) {
                 $balance = TeamCustomerBalance::where('customer_id', $transaction->customer_id)
@@ -279,12 +278,11 @@ class Transaction
         $csCut   = $data['cs_cut'] ?? 0;
         $tCut    = $data['team_cut'] ?? 0;
 
-        $row = Db::query(
-            'SELECT 1 as ok WHERE CAST(? AS DECIMAL(12,2)) = CAST(? AS DECIMAL(12,2)) + CAST(? AS DECIMAL(12,2)) AND CAST(? AS DECIMAL(12,2)) = CAST(? AS DECIMAL(12,2)) + CAST(? AS DECIMAL(12,2)) + CAST(? AS DECIMAL(12,2)) + CAST(? AS DECIMAL(12,2)) + CAST(? AS DECIMAL(12,2))',
-            [$total, $cash, $prepaid, $total, $cost, $hCut, $sCut, $csCut, $tCut]
-        );
+        $totalRounded   = round((float) $total, 2);
+        $cashPrepaidSum = round((float) $cash + (float) $prepaid, 2);
+        $cutSum         = round((float) $cost + (float) $hCut + (float) $sCut + (float) $csCut + (float) $tCut, 2);
 
-        if (!$row) {
+        if ($totalRounded !== $cashPrepaidSum || $totalRounded !== $cutSum) {
             throw new HttpException(422, '总价应等于现款加预存款，且抽成之和应等于总价减成本');
         }
     }

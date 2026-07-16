@@ -8,7 +8,6 @@ use app\model\TeamCustomerBalanceLog;
 use app\model\TeamCustomer;
 use app\enum\LogType;
 use think\exception\HttpException;
-use think\facade\Db;
 
 class Balance
 {
@@ -38,7 +37,7 @@ class Balance
             throw new HttpException(404, '客户不存在');
         }
 
-        Db::transaction(function () use ($customerId, $amount, $memo) {
+        \app\model\Base::transaction(function () use ($customerId, $amount, $memo) {
             $balance = TeamCustomerBalance::where('customer_id', $customerId)->lock(true)->find();
             if (!$balance) {
                 $balance = new TeamCustomerBalance;

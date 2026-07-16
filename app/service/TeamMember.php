@@ -8,7 +8,6 @@ use app\model\TeamMemberPost;
 use app\model\TeamMemberPostType;
 use app\validate\Member as MemberValidator;
 use think\exception\HttpException;
-use think\facade\Db;
 
 class TeamMember
 {
@@ -71,7 +70,7 @@ class TeamMember
             throw new HttpException(409, '该用户已是本团队成员');
         }
 
-        Db::transaction(function () use ($teamId, $userId, $data) {
+        \app\model\Base::transaction(function () use ($teamId, $userId, $data) {
             $member = new \app\model\TeamMember;
             $member->save([
                 'team_id' => $teamId,
@@ -105,7 +104,7 @@ class TeamMember
             throw new HttpException(422, $validator->getError());
         }
 
-        Db::transaction(function () use ($teamId, $memberId, $data) {
+        \app\model\Base::transaction(function () use ($teamId, $memberId, $data) {
             $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
             if (!$member) {
                 throw new HttpException(404, '成员不存在');
@@ -166,7 +165,7 @@ class TeamMember
             throw new HttpException(422, $validator->getError());
         }
 
-        Db::transaction(function () use ($teamId, $memberId) {
+        \app\model\Base::transaction(function () use ($teamId, $memberId) {
             $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
             if (!$member) {
                 throw new HttpException(404, '成员不存在');

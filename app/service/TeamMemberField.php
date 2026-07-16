@@ -6,7 +6,6 @@ namespace app\service;
 use app\enum\ManageScope;
 use app\enum\Visibility as VisibilityEnum;
 use think\exception\HttpException;
-use think\facade\Db;
 
 class TeamMemberField
 {
@@ -125,7 +124,7 @@ class TeamMemberField
             throw new HttpException(422, '系统字段不能删除');
         }
 
-        Db::transaction(function () use ($field) {
+        \app\model\Base::transaction(function () use ($field) {
             \app\model\TeamMemberFieldValue::where('field_id', $field->id)->delete();
             \app\model\VisibilityTarget::where('visibleable_type', 'teamMemberField')
                 ->where('visibleable_id', (int) $field->id)
@@ -166,7 +165,7 @@ class TeamMemberField
         $isManager = $guard->isTeamManager($teamId, $userId);
         $isSubject = $memberId === $viewerMemberId;
 
-        Db::transaction(function () use ($teamId, $memberId, $values, $validator, $guard, $isManager, $isSubject) {
+        \app\model\Base::transaction(function () use ($teamId, $memberId, $values, $validator, $guard, $isManager, $isSubject) {
             foreach ($values as $fieldId => $rawValue) {
                 $field = $this->field($teamId, (int) $fieldId);
                 if (!$field->is_editable) {

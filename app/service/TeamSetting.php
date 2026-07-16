@@ -6,7 +6,6 @@ namespace app\service;
 use app\enum\Visibility as VisibilityEnum;
 use app\model\TeamSetting as TeamSettingModel;
 use think\exception\HttpException;
-use think\facade\Db;
 
 class TeamSetting
 {
@@ -43,7 +42,7 @@ class TeamSetting
         $visibility = $this->visibility($visibility);
         $this->assertVisibility($visibility);
 
-        Db::transaction(function () use ($teamId, $appName, $key, $value, $visibility, $targets) {
+        \app\model\Base::transaction(function () use ($teamId, $appName, $key, $value, $visibility, $targets) {
             $setting = TeamSettingModel::withTrashed()->updateOrCreate([
                 'team_id'  => $teamId,
                 'app_name' => $appName,

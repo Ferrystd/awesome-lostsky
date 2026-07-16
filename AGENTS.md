@@ -12,7 +12,7 @@
 
 基于 **ThinkPHP 8** 框架构建的 **纯后端 API 服务**。运行环境要求 PHP 8.0+。
 
-- **前端**：部署在 CDN，不在此仓库。后端只返回 JSON，不做 SSR 和页面渲染。
+- **[前端](/www/)**：部署在 CDN，。后端只返回 JSON，不做 SSR 和页面渲染。
 
 - **多应用**：使用 ThinkPHP 8 多应用模式。一个 App = 一组功能入口（如 `console` 控制台、`account` 认证）。该项目只提供API服务。一个产品一个应用
 
@@ -27,6 +27,10 @@
 
 ### 修改
 使用`/ui-ux-pro-max`修改页面，不使用`/lostsky-frontend`
+
+### 架构
+一切多域名复用文件存储在[](/www/assets.lostsky.work/)。
+单域名复用文件存储在各自`/assets/`文件夹
 
 ## 控制台命令
 
@@ -46,7 +50,9 @@ php think make:controller #新建控制器
 
 ### 模型层规范
 
-所有模型统一继承 `app\model\Base`（而非直接继承 `think\Model`）。`Base` 提供能力：
+统一继承 `app\model\Base`（而非 `think\Model`或`think\Db`）。
+项目禁用`think\facade\Db`
+`Base` 提供能力：
 
 - **自动时间戳**
 - **软删除**：自动处理，不需写判断`delete_time`逻辑(用`crash`而非`delete`方法)。自动充当业务删除，不额外写删除逻辑。
@@ -114,3 +120,4 @@ php think make:controller #新建控制器
 1. 当发现部分代码冗余设计时，清除冗余设计，而非统一采用冗余风格
 2. 项目仍处于开发中，无需考虑旧数据和接口的兼容性。
 3. 修改代码时，同步更改 SQL、Swagger/OpenAPI 文档等相关配套文件。
+4. 尽量最小改动，不全文件重写

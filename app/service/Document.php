@@ -10,7 +10,6 @@ use app\model\Document as DocumentModel;
 use app\model\TeamMember as TeamMemberModel;
 use app\validate\Document as DocumentValidate;
 use think\exception\HttpException;
-use think\facade\Db;
 
 class Document
 {
@@ -84,7 +83,7 @@ class Document
         $guard = app(\app\service\Visibility::class);
         $guard->assertManage($managerScope, $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
 
-        $doc = Db::transaction(function () use ($targetType, $targetId, $data, $teamId, $managerScope, $visibility, $guard) {
+        $doc = \app\model\Base::transaction(function () use ($targetType, $targetId, $data, $teamId, $managerScope, $visibility, $guard) {
             $doc = app(DocumentModel::class);
             $doc->save([
                 'title'             => $data['title'],
@@ -143,7 +142,7 @@ class Document
             }
         }
 
-        Db::transaction(function () use ($doc, $update, $data, $teamId, $visibility, $guard) {
+        \app\model\Base::transaction(function () use ($doc, $update, $data, $teamId, $visibility, $guard) {
             if ($update) {
                 $doc->save($update);
             }
@@ -165,7 +164,7 @@ class Document
         $guard = app(\app\service\Visibility::class);
         $guard->assertManage($this->managerScope($doc->manager_scope), $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
 
-        Db::transaction(function () use ($doc) {
+        \app\model\Base::transaction(function () use ($doc) {
             \app\model\VisibilityTarget::where('visibleable_type', 'document')
                 ->where('visibleable_id', (int) $doc->id)
                 ->delete();

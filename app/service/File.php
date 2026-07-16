@@ -5,6 +5,7 @@ namespace app\service;
 
 use app\model\TeamAbility;
 use OSS\OssClient;
+use think\exception\FileException;
 use think\exception\HttpException;
 use think\facade\Config;
 use think\facade\Db;
@@ -18,106 +19,53 @@ class File
         if (!$member) {
             throw new HttpException(404, '成员不存在');
         }
-        $teamId = (int) $member->team_id;
 
-        $this->checkAbility($teamId, (int) $file->getSize());
+        $result = $this->store(
+            $file,
+            (int) $member->team_id,
+            $memberId,
+            true,
+            true
+        );
 
-        $hash = hash_file('sha256', $file->getPathname());
-        $ext  = $file->getOriginalExtension() ?: '';
-        $path = sprintf('%d/%s/%s.%s', $teamId, date('Ym'), $hash, $ext);
-
-        return Db::transaction(function () use ($file, $hash, $path, $teamId, $memberId) {
-            $exist = \app\model\File::withTrashed()
-                ->where('team_id', $teamId)
-                ->where('hash', $hash)
-                ->lock(true)
-                ->find();
-            if ($exist) {
-                if ($exist->trashed()) {
-                    $exist->restore();
-                    $exist = \app\model\File::where('team_id', $teamId)
-                        ->where('hash', $hash)
-                        ->find();
-                }
-
-                return [
-                    'id'   => (int) $exist->id,
-                    'url'  => $this->url($exist->path),
-                    'name' => $exist->name,
-                    'size' => (int) $exist->size,
-                ];
-            }
-
-            $record = new \app\model\File;
-            $record->hash      = $hash;
-            $record->name      = $file->getOriginalName();
-            $record->path      = $path;
-            $record->size      = $file->getSize();
-            $record->mime_type = $file->getOriginalMime();
-            $record->team_id   = $teamId;
-            $record->member_id = $memberId;
-            $record->save();
-
-            $this->putOss($path, $file->getPathname());
-
-            return [
-                'id'   => (int) $record->id,
-                'url'  => $this->url($path),
-                'name' => $record->name,
-                'size' => (int) $record->size,
-            ];
-        });
+        return $this->apiResult($result);
     }
 
     public function uploadForJoin(UploadedFile $file, int $teamId): array
     {
-        $this->checkAbility($teamId, (int) $file->getSize());
+        $result = $this->store($file, $teamId, null, true, true);
 
-        $hash = hash_file('sha256', $file->getPathname());
-        $ext  = $file->getOriginalExtension() ?: '';
-        $path = sprintf('%d/%s/%s.%s', $teamId, date('Ym'), $hash, $ext);
+        return $this->apiResult($result);
+    }
 
-        return Db::transaction(function () use ($file, $hash, $path, $teamId) {
-            $exist = \app\model\File::withTrashed()
-                ->where('team_id', $teamId)
-                ->where('hash', $hash)
-                ->lock(true)
-                ->find();
-            if ($exist) {
-                if ($exist->trashed()) {
-                    $exist->restore();
-                    $exist = \app\model\File::where('team_id', $teamId)
-                        ->where('hash', $hash)
-                        ->find();
-                }
+    public function uploadSystem(UploadedFile $file): array
+    {
+        return $this->store($file, null, null, false, false);
+    }
 
-                return [
-                    'id'   => (int) $exist->id,
-                    'url'  => $this->url($exist->path),
-                    'name' => $exist->name,
-                    'size' => (int) $exist->size,
-                ];
+    public function uploadByCommand(string $localPath, ?int $memberId = null, ?int $teamId = null, ?string $originalName = null): array
+    {
+        $file = $this->createUploadedFile($localPath, $originalName);
+
+        if ($memberId !== null) {
+            $member = \app\model\TeamMember::find($memberId);
+            if (!$member) {
+                throw new HttpException(404, '成员不存在');
             }
 
-            $record = new \app\model\File;
-            $record->hash      = $hash;
-            $record->name      = $file->getOriginalName();
-            $record->path      = $path;
-            $record->size      = $file->getSize();
-            $record->mime_type = $file->getOriginalMime();
-            $record->team_id   = $teamId;
-            $record->member_id = null;
-            $record->save();
+            $memberTeamId = (int) $member->team_id;
+            if ($teamId !== null && $teamId !== $memberTeamId) {
+                throw new HttpException(422, 'team_id 与 member_id 不匹配');
+            }
 
-            $this->putOss($path, $file->getPathname());
+            return $this->store($file, $memberTeamId, $memberId, true, true);
+        }
 
-            return [
-                'id'   => (int) $record->id,
-                'url'  => $this->url($path),
-                'name' => $record->name,
-                'size' => (int) $record->size,
-            ];
-        });
+        if ($teamId !== null) {
+            return $this->store($file, $teamId, null, true, true);
+        }
+
+        return $this->uploadSystem($file);
     }
 
     public function list(int $teamId, array $filters, int $page = 1, int $limit = 20): array
@@ -236,11 +184,108 @@ class File
         ];
     }
 
+    private function store(UploadedFile $file, ?int $teamId, ?int $memberId, bool $checkAbility, bool $dedupe): array
+    {
+        if ($checkAbility && $teamId !== null) {
+            $this->checkAbility($teamId, (int) $file->getSize());
+        }
+
+        $hash = hash_file('sha256', $file->getPathname());
+        $path = $this->buildPath($teamId, $hash, $file->getOriginalExtension());
+
+        return Db::transaction(function () use ($file, $hash, $path, $teamId, $memberId, $dedupe) {
+            if ($dedupe && $teamId !== null) {
+                $exist = \app\model\File::withTrashed()
+                    ->where('team_id', $teamId)
+                    ->where('hash', $hash)
+                    ->lock(true)
+                    ->find();
+                if ($exist) {
+                    if ($exist->trashed()) {
+                        $exist->restore();
+                        $exist = \app\model\File::where('team_id', $teamId)
+                            ->where('hash', $hash)
+                            ->find();
+                    }
+
+                    return [
+                        'id'        => (int) $exist->id,
+                        'url'       => $this->url($exist->path),
+                        'path'      => $exist->path,
+                        'name'      => $exist->name,
+                        'size'      => (int) $exist->size,
+                        'team_id'   => $exist->team_id === null ? null : (int) $exist->team_id,
+                        'member_id' => $exist->member_id === null ? null : (int) $exist->member_id,
+                    ];
+                }
+            }
+
+            $record = new \app\model\File;
+            $record->hash      = $hash;
+            $record->name      = $file->getOriginalName();
+            $record->path      = $path;
+            $record->size      = $file->getSize();
+            $record->mime_type = $file->getOriginalMime();
+            $record->team_id   = $teamId;
+            $record->member_id = $memberId;
+            $record->save();
+
+            $this->putOss($path, $file->getPathname());
+
+            return [
+                'id'        => (int) $record->id,
+                'url'       => $this->url($path),
+                'path'      => $path,
+                'name'      => $record->name,
+                'size'      => (int) $record->size,
+                'team_id'   => $record->team_id === null ? null : (int) $record->team_id,
+                'member_id' => $record->member_id === null ? null : (int) $record->member_id,
+            ];
+        });
+    }
+
+    private function apiResult(array $result): array
+    {
+        return [
+            'id'   => (int) $result['id'],
+            'url'  => (string) $result['url'],
+            'name' => (string) $result['name'],
+            'size' => (int) $result['size'],
+        ];
+    }
+
     private function format(array $file): array
     {
         $file['url'] = $this->url((string) $file['path']);
 
         return $file;
+    }
+
+    private function createUploadedFile(string $localPath, ?string $originalName = null): UploadedFile
+    {
+        if (!is_file($localPath)) {
+            throw new HttpException(404, '本地文件不存在');
+        }
+        if (!is_readable($localPath)) {
+            throw new HttpException(422, '本地文件不可读');
+        }
+
+        $name     = $originalName ?: basename($localPath);
+        $mimeType = mime_content_type($localPath) ?: 'application/octet-stream';
+
+        try {
+            return new UploadedFile($localPath, $name, $mimeType, null, true);
+        } catch (FileException $e) {
+            throw new HttpException(422, '无法读取上传文件：' . $e->getMessage());
+        }
+    }
+
+    private function buildPath(?int $teamId, string $hash, string $ext): string
+    {
+        $prefix = $teamId === null ? 'system' : (string) $teamId;
+        $suffix = $ext === '' ? '' : '.' . $ext;
+
+        return sprintf('%s/%s/%s%s', $prefix, date('Ym'), $hash, $suffix);
     }
 
     private function url(string $path): string
@@ -249,8 +294,9 @@ class File
         if ($domain) {
             return $domain . '/' . ltrim($path, '/');
         }
-        $bucket  = Config::get('aliyun.bucket');
-        $region  = Config::get('aliyun.region');
+        $bucket = Config::get('aliyun.bucket');
+        $region = Config::get('aliyun.region');
+
         return "https://{$bucket}.oss-{$region}.aliyuncs.com/" . ltrim($path, '/');
     }
 
@@ -258,7 +304,7 @@ class File
     {
         try {
             $endpoint = 'oss-' . Config::get('aliyun.region') . '.aliyuncs.com';
-            $client = new OssClient(
+            $client   = new OssClient(
                 Config::get('aliyun.access_key_id'),
                 Config::get('aliyun.access_key_secret'),
                 $endpoint

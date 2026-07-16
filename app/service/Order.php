@@ -13,7 +13,6 @@ use app\enum\OrderStatus;
 use app\enum\TransactionType;
 use app\enum\LogType;
 use think\exception\HttpException;
-use think\facade\Db;
 
 class Order
 {
@@ -79,12 +78,8 @@ class Order
         $quantity  = (int) ($data['quantity'] ?? 1);
         $unitPrice = (float) $product->price;
 
-        $row = Db::query(
-            'SELECT price * ? as total, COALESCE(cost, 0) * ? as total_cost FROM team_product WHERE id = ?',
-            [$quantity, $quantity, $product->id]
-        );
-        $totalPrice = (float) $row[0]['total'];
-        $cost       = (float) $row[0]['total_cost'];
+        $totalPrice = round((float) $product->price * $quantity, 2);
+        $cost       = round((float) ($product->cost ?? 0) * $quantity, 2);
 
         $handlerCut = $this->resolveCut($data['handler_cut'] ?? null, $product->handler_cut);
         $senderCut  = empty($data['sender_id']) ? null
@@ -93,7 +88,7 @@ class Order
             : $this->resolveCut($data['cs_cut'] ?? null, $product->cs_cut);
         $teamCut    = $this->resolveCut($data['team_cut'] ?? null, $product->team_cut);
 
-        return Db::transaction(function () use ($teamId, $data, $handlerId, $quantity,
+        return \app\model\Base::transaction(function () use ($teamId, $data, $handlerId, $quantity,
             $unitPrice, $totalPrice, $cost, $handlerCut, $senderCut, $csCut, $teamCut
         ) {
             $transData = [
@@ -150,7 +145,7 @@ class Order
             throw new HttpException(422, '仅处理中的订单可取消');
         }
 
-        Db::transaction(function () use ($order) {
+        \app\model\Base::transaction(function () use ($order) {
             // 退还预存款
             if ($order->prepaid > 0 && $order->customer_id) {
                 $balance = TeamCustomerBalance::where('customer_id', $order->customer_id)

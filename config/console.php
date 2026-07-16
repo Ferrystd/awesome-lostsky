@@ -5,6 +5,7 @@
 return [
     // 指令定义
     'commands' => [
-        'make:model' => \app\command\MakeModel::class,
+        'file:upload' => \app\command\UploadFile::class,
+        'make:model'  => \app\command\MakeModel::class,
     ],
 ];

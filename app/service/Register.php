@@ -7,7 +7,6 @@ use app\model\User;
 use app\model\UserProfile;
 use app\validate\Register as RegisterValidator;
 use think\exception\HttpException;
-use think\facade\Db;
 
 class Register
 {
@@ -25,7 +24,7 @@ class Register
             throw new HttpException(409, '手机号已注册');
         }
 
-        $user = Db::transaction(function () use ($phone, $password) {
+        $user = \app\model\Base::transaction(function () use ($phone, $password) {
             $user = new User;
             $user->phone    = $phone;
             $user->password = $password;

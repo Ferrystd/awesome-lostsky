@@ -8,7 +8,6 @@ use app\model\TeamMember;
 use app\model\TeamProfile;
 use app\validate\Team as TeamValidator;
 use think\exception\HttpException;
-use think\facade\Db;
 
 class Team
 {
@@ -53,7 +52,7 @@ class Team
             throw new HttpException(409, '团队标识已被占用');
         }
 
-        $team = Db::transaction(function () use ($userId, $slug, $displayName) {
+        $team = \app\model\Base::transaction(function () use ($userId, $slug, $displayName) {
             $team = new TeamModel;
             $team->save([
                 'slug' => $slug,
@@ -99,7 +98,7 @@ class Team
             throw new HttpException(403, '仅团队创建者可执行此操作');
         }
 
-        Db::transaction(function () use ($teamId) {
+        \app\model\Base::transaction(function () use ($teamId) {
             $profile = TeamProfile::where('team_id', $teamId)->find();
             if ($profile) {
                 $profile->delete();

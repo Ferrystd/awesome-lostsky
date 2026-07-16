@@ -10,7 +10,6 @@ use app\model\TeamJoinFieldValue;
 use app\model\TeamJoinTask;
 use app\model\TeamMemberProfile;
 use think\exception\HttpException;
-use think\facade\Db;
 use think\file\UploadedFile;
 
 class TeamJoin
@@ -97,7 +96,7 @@ class TeamJoin
         $values = $data['values'] ?? [];
         $this->assertRequiredValues($teamId, $values);
 
-        return Db::transaction(function () use ($teamId, $userId, $data, $values) {
+        return \app\model\Base::transaction(function () use ($teamId, $userId, $data, $values) {
             $application = new TeamJoinApplication;
             $application->save([
                 'team_id' => $teamId,
@@ -193,7 +192,7 @@ class TeamJoin
 
     public function approve(int $teamId, int $id): int
     {
-        return Db::transaction(function () use ($teamId, $id) {
+        return \app\model\Base::transaction(function () use ($teamId, $id) {
             $application = TeamJoinApplication::where('team_id', $teamId)->lock(true)->find($id);
             if (!$application) {
                 throw new HttpException(404, '申请不存在');
@@ -240,7 +239,7 @@ class TeamJoin
             throw new HttpException(422, $validator->getError());
         }
 
-        Db::transaction(function () use ($teamId, $id, $tasks) {
+        \app\model\Base::transaction(function () use ($teamId, $id, $tasks) {
             $application = $this->application($teamId, $id);
             $this->assertPending($application);
 

@@ -5,7 +5,6 @@ namespace app\middleware;
 
 use app\model\ApiRequestCache;
 use think\exception\HttpException;
-use think\facade\Db;
 use think\Request;
 use think\Response;
 
@@ -88,7 +87,7 @@ class Dedup
 
         $expire = config('dedup.expire_seconds', 300);
 
-        Db::name('api_request_cache')->where('create_time', '<', time() - $expire)->delete();
+        ApiRequestCache::where('create_time', '<', time() - $expire)->delete();
     }
 
     private function shouldPass(Request $request, string $pageId, string $requestId): bool
@@ -118,23 +117,21 @@ class Dedup
     {
         $expire = config('dedup.expire_seconds', 300);
 
-        return (bool) Db::name('api_request_cache')
-            ->where('hash', $hash)
+        return (bool) ApiRequestCache::where('hash', $hash)
             ->where('create_time', '>=', time() - $expire)
             ->find();
     }
 
     private function forgetHash(string $hash): void
     {
-        Db::name('api_request_cache')->where('hash', $hash)->delete();
+        ApiRequestCache::where('hash', $hash)->delete();
     }
 
     private function forgetExpiredHash(string $hash): void
     {
         $expire = config('dedup.expire_seconds', 300);
 
-        Db::name('api_request_cache')
-            ->where('hash', $hash)
+        ApiRequestCache::where('hash', $hash)
             ->where('create_time', '<', time() - $expire)
             ->delete();
     }
