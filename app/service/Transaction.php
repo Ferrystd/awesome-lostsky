@@ -84,11 +84,11 @@ class Transaction
             throw new HttpException(422, '客户不存在');
         }
 
-        return \app\model\Base::transaction(function () use ($teamId, $data, $customerId) {
+        return \think\facade\Db::transaction(function () use ($teamId, $data, $customerId) {
             $prepaid = (float) ($data['prepaid'] ?? 0);
 
             if ($prepaid > 0 && $customerId) {
-                // FOR UPDATE 行锁，依赖外层 \app\model\Base::transaction() 才能生效
+                // FOR UPDATE 行锁，依赖外层 Db::transaction() 才能生效
                 $balance = TeamCustomerBalance::where('customer_id', $customerId)->lock(true)->find();
                 if (!$balance || $balance->balance < $prepaid) {
                     throw new HttpException(422, '客户预存款余额不足');
@@ -182,7 +182,7 @@ class Transaction
             $delta = $newPrepaid - $oldPrepaid;
 
             if ($delta != 0 && $transaction->customer_id) {
-                \app\model\Base::transaction(function () use ($transaction, $delta, $update) {
+                \think\facade\Db::transaction(function () use ($transaction, $delta, $update) {
                     $balance = TeamCustomerBalance::where('customer_id', $transaction->customer_id)
                         ->lock(true)->find();
 
@@ -239,7 +239,7 @@ class Transaction
             throw new HttpException(422, '商城订单流水不可单独删除，请取消对应订单');
         }
 
-        \app\model\Base::transaction(function () use ($transaction) {
+        \think\facade\Db::transaction(function () use ($transaction) {
             // 退还预存款
             if ($transaction->prepaid > 0 && $transaction->customer_id) {
                 $balance = TeamCustomerBalance::where('customer_id', $transaction->customer_id)

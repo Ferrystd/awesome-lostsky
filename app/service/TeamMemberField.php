@@ -124,7 +124,7 @@ class TeamMemberField
             throw new HttpException(422, '系统字段不能删除');
         }
 
-        \app\model\Base::transaction(function () use ($field) {
+        \think\facade\Db::transaction(function () use ($field) {
             \app\model\TeamMemberFieldValue::where('field_id', $field->id)->delete();
             \app\model\VisibilityTarget::where('visibleable_type', 'teamMemberField')
                 ->where('visibleable_id', (int) $field->id)
@@ -165,7 +165,7 @@ class TeamMemberField
         $isManager = $guard->isTeamManager($teamId, $userId);
         $isSubject = $memberId === $viewerMemberId;
 
-        \app\model\Base::transaction(function () use ($teamId, $memberId, $values, $validator, $guard, $isManager, $isSubject) {
+        \think\facade\Db::transaction(function () use ($teamId, $memberId, $values, $validator, $guard, $isManager, $isSubject) {
             foreach ($values as $fieldId => $rawValue) {
                 $field = $this->field($teamId, (int) $fieldId);
                 if (!$field->is_editable) {

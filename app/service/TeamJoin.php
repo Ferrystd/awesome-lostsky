@@ -96,7 +96,7 @@ class TeamJoin
         $values = $data['values'] ?? [];
         $this->assertRequiredValues($teamId, $values);
 
-        return \app\model\Base::transaction(function () use ($teamId, $userId, $data, $values) {
+        return \think\facade\Db::transaction(function () use ($teamId, $userId, $data, $values) {
             $application = new TeamJoinApplication;
             $application->save([
                 'team_id' => $teamId,
@@ -133,11 +133,36 @@ class TeamJoin
         }
 
         $total = $query->count();
-        $list = $query->with(['user.profile', 'member.profile', 'values.field', 'tasks'])
+        $applications = $query->with(['user.profile', 'values.field', 'tasks'])
             ->order('id', 'desc')
             ->page($page, $limit)
-            ->select()
-            ->toArray();
+            ->select();
+
+        $memberIds = [];
+        foreach ($applications as $application) {
+            $memberId = $application->getData('member_id');
+            if ($memberId !== null) {
+                $memberIds[] = (int) $memberId;
+            }
+        }
+
+        $members = [];
+        if ($memberIds) {
+            $memberList = \app\model\TeamMember::where('team_id', $teamId)
+                ->whereIn('id', array_values(array_unique($memberIds)))
+                ->with(['profile'])
+                ->select();
+            foreach ($memberList as $member) {
+                $members[(int) $member->id] = $member;
+            }
+        }
+
+        foreach ($applications as $application) {
+            $memberId = $application->getData('member_id');
+            $application->setRelation('member', $memberId === null ? null : ($members[(int) $memberId] ?? null));
+        }
+
+        $list = $applications->toArray();
 
         return compact('total', 'list', 'page', 'limit');
     }
@@ -145,13 +170,23 @@ class TeamJoin
     public function get(int $teamId, int $id, ?int $userId = null): array
     {
         $application = TeamJoinApplication::where('team_id', $teamId)
-            ->with(['user.profile', 'member.profile', 'values.field', 'tasks'])
+            ->with(['user.profile', 'values.field', 'tasks'])
             ->find($id);
         if (!$application) {
             throw new HttpException(404, '申请不存在');
         }
         if ($userId !== null && (int) $application->user_id !== $userId) {
             throw new HttpException(403, '无权查看此申请');
+        }
+
+        $memberId = $application->getData('member_id');
+        if ($memberId === null) {
+            $application->setRelation('member', null);
+        } else {
+            $member = \app\model\TeamMember::where('team_id', $teamId)
+                ->with(['profile'])
+                ->find((int) $memberId);
+            $application->setRelation('member', $member);
         }
 
         return $application->toArray();
@@ -192,7 +227,7 @@ class TeamJoin
 
     public function approve(int $teamId, int $id): int
     {
-        return \app\model\Base::transaction(function () use ($teamId, $id) {
+        return \think\facade\Db::transaction(function () use ($teamId, $id) {
             $application = TeamJoinApplication::where('team_id', $teamId)->lock(true)->find($id);
             if (!$application) {
                 throw new HttpException(404, '申请不存在');
@@ -239,7 +274,7 @@ class TeamJoin
             throw new HttpException(422, $validator->getError());
         }
 
-        \app\model\Base::transaction(function () use ($teamId, $id, $tasks) {
+        \think\facade\Db::transaction(function () use ($teamId, $id, $tasks) {
             $application = $this->application($teamId, $id);
             $this->assertPending($application);
 

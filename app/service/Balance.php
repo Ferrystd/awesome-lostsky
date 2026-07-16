@@ -37,7 +37,7 @@ class Balance
             throw new HttpException(404, '客户不存在');
         }
 
-        \app\model\Base::transaction(function () use ($customerId, $amount, $memo) {
+        \think\facade\Db::transaction(function () use ($customerId, $amount, $memo) {
             $balance = TeamCustomerBalance::where('customer_id', $customerId)->lock(true)->find();
             if (!$balance) {
                 $balance = new TeamCustomerBalance;

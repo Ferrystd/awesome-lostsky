@@ -88,7 +88,7 @@ class Order
             : $this->resolveCut($data['cs_cut'] ?? null, $product->cs_cut);
         $teamCut    = $this->resolveCut($data['team_cut'] ?? null, $product->team_cut);
 
-        return \app\model\Base::transaction(function () use ($teamId, $data, $handlerId, $quantity,
+        return \think\facade\Db::transaction(function () use ($teamId, $data, $handlerId, $quantity,
             $unitPrice, $totalPrice, $cost, $handlerCut, $senderCut, $csCut, $teamCut
         ) {
             $transData = [
@@ -145,7 +145,7 @@ class Order
             throw new HttpException(422, '仅处理中的订单可取消');
         }
 
-        \app\model\Base::transaction(function () use ($order) {
+        \think\facade\Db::transaction(function () use ($order) {
             // 退还预存款
             if ($order->prepaid > 0 && $order->customer_id) {
                 $balance = TeamCustomerBalance::where('customer_id', $order->customer_id)

@@ -52,7 +52,7 @@ class Team
             throw new HttpException(409, '团队标识已被占用');
         }
 
-        $team = \app\model\Base::transaction(function () use ($userId, $slug, $displayName) {
+        $team = \think\facade\Db::transaction(function () use ($userId, $slug, $displayName) {
             $team = new TeamModel;
             $team->save([
                 'slug' => $slug,
@@ -98,7 +98,7 @@ class Team
             throw new HttpException(403, '仅团队创建者可执行此操作');
         }
 
-        \app\model\Base::transaction(function () use ($teamId) {
+        \think\facade\Db::transaction(function () use ($teamId) {
             $profile = TeamProfile::where('team_id', $teamId)->find();
             if ($profile) {
                 $profile->delete();

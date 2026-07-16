@@ -24,7 +24,7 @@ class Register
             throw new HttpException(409, '手机号已注册');
         }
 
-        $user = \app\model\Base::transaction(function () use ($phone, $password) {
+        $user = \think\facade\Db::transaction(function () use ($phone, $password) {
             $user = new User;
             $user->phone    = $phone;
             $user->password = $password;

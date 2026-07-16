@@ -42,7 +42,7 @@ class TeamSetting
         $visibility = $this->visibility($visibility);
         $this->assertVisibility($visibility);
 
-        \app\model\Base::transaction(function () use ($teamId, $appName, $key, $value, $visibility, $targets) {
+        \think\facade\Db::transaction(function () use ($teamId, $appName, $key, $value, $visibility, $targets) {
             $setting = TeamSettingModel::withTrashed()->updateOrCreate([
                 'team_id'  => $teamId,
                 'app_name' => $appName,

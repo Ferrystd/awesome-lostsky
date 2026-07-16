@@ -83,7 +83,7 @@ class Document
         $guard = app(\app\service\Visibility::class);
         $guard->assertManage($managerScope, $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
 
-        $doc = \app\model\Base::transaction(function () use ($targetType, $targetId, $data, $teamId, $managerScope, $visibility, $guard) {
+        $doc = \think\facade\Db::transaction(function () use ($targetType, $targetId, $data, $teamId, $managerScope, $visibility, $guard) {
             $doc = app(DocumentModel::class);
             $doc->save([
                 'title'             => $data['title'],
@@ -142,7 +142,7 @@ class Document
             }
         }
 
-        \app\model\Base::transaction(function () use ($doc, $update, $data, $teamId, $visibility, $guard) {
+        \think\facade\Db::transaction(function () use ($doc, $update, $data, $teamId, $visibility, $guard) {
             if ($update) {
                 $doc->save($update);
             }
@@ -164,7 +164,7 @@ class Document
         $guard = app(\app\service\Visibility::class);
         $guard->assertManage($this->managerScope($doc->manager_scope), $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
 
-        \app\model\Base::transaction(function () use ($doc) {
+        \think\facade\Db::transaction(function () use ($doc) {
             \app\model\VisibilityTarget::where('visibleable_type', 'document')
                 ->where('visibleable_id', (int) $doc->id)
                 ->delete();

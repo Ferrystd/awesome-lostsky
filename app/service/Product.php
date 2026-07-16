@@ -60,7 +60,7 @@ class Product
             throw new HttpException(422, '专属成员不存在');
         }
 
-        return \app\model\Base::transaction(function () use ($teamId, $data, $memberId) {
+        return \think\facade\Db::transaction(function () use ($teamId, $data, $memberId) {
             $product = new TeamProduct;
             $product->save([
                 'team_id' => $teamId,
@@ -142,7 +142,7 @@ class Product
             }
         }
 
-        \app\model\Base::transaction(function () use ($productId, $memberIds) {
+        \think\facade\Db::transaction(function () use ($productId, $memberIds) {
             TeamProductHandler::where('product_id', $productId)->delete();
 
             foreach ($memberIds as $mid) {

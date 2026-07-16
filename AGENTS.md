@@ -51,7 +51,7 @@ php think make:controller #新建控制器
 ### 模型层规范
 
 统一继承 `app\model\Base`（而非 `think\Model`或`think\Db`）。
-项目禁用`think\facade\Db`
+项目禁止使用 `think\facade\Db` 查询或写入业务数据；仅允许使用 `Db::transaction()` 管理跨模型事务，事务内的数据操作仍须通过模型完成。
 `Base` 提供能力：
 
 - **自动时间戳**

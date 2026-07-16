@@ -70,7 +70,7 @@ class TeamMember
             throw new HttpException(409, '该用户已是本团队成员');
         }
 
-        \app\model\Base::transaction(function () use ($teamId, $userId, $data) {
+        \think\facade\Db::transaction(function () use ($teamId, $userId, $data) {
             $member = new \app\model\TeamMember;
             $member->save([
                 'team_id' => $teamId,
@@ -104,7 +104,7 @@ class TeamMember
             throw new HttpException(422, $validator->getError());
         }
 
-        \app\model\Base::transaction(function () use ($teamId, $memberId, $data) {
+        \think\facade\Db::transaction(function () use ($teamId, $memberId, $data) {
             $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
             if (!$member) {
                 throw new HttpException(404, '成员不存在');
@@ -165,7 +165,7 @@ class TeamMember
             throw new HttpException(422, $validator->getError());
         }
 
-        \app\model\Base::transaction(function () use ($teamId, $memberId) {
+        \think\facade\Db::transaction(function () use ($teamId, $memberId) {
             $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
             if (!$member) {
                 throw new HttpException(404, '成员不存在');
