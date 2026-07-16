@@ -1,0 +1,51 @@
+.page-roles-workspace {
+    display: grid;
+    grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
+    min-height: min(44rem, calc(100dvh - 13rem));
+}
+
+.page-roles-list {
+    max-height: calc(100dvh - 18rem);
+    overflow-y: auto;
+}
+
+.page-roles-permission-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.page-roles-list-button[aria-current="true"] {
+    background: rgb(240 249 255);
+    box-shadow: inset 3px 0 0 rgb(14 165 233);
+}
+
+.page-roles-choice:has(input:checked) {
+    border-color: rgb(125 211 252);
+    background: rgb(240 249 255);
+}
+
+@media (max-width: 1023px) {
+    .page-roles-workspace {
+        grid-template-columns: minmax(0, 1fr);
+        min-height: auto;
+    }
+
+    .page-roles-list {
+        max-height: 17rem;
+    }
+}
+
+@media (max-width: 639px) {
+    .page-roles-permission-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-roles-tab,
+    .page-roles-list-button,
+    .page-roles-choice {
+        transition: none;
+    }
+}

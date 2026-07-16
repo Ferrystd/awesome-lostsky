@@ -1,0 +1,62 @@
+<?php
+declare(strict_types=1);
+
+namespace app\team\controller;
+
+use think\Request;
+
+class Role
+{
+    protected $middleware = ['JwtAuth', 'Context', 'TeamAccess'];
+
+    public function index(Request $request)
+    {
+        return success(app(\app\service\Role::class)->list($request->team_id));
+    }
+
+    public function get(Request $request)
+    {
+        $id = (int) $request->param('id', 0);
+
+        return success(app(\app\service\Role::class)->get($request->team_id, $id));
+    }
+
+    public function add(Request $request)
+    {
+        $id = app(\app\service\Role::class)->create($request->team_id, [
+            'role_key'    => $request->post('role_key', ''),
+            'name'        => $request->post('name', ''),
+            'description' => $request->post('description'),
+            'sort'        => (int) $request->post('sort', 0),
+        ]);
+
+        return success(['id' => $id], '角色已创建');
+    }
+
+    public function edit(Request $request)
+    {
+        $id   = (int) $request->post('id', 0);
+        $data = [];
+        foreach (['name', 'description', 'sort'] as $field) {
+            if ($request->has($field)) {
+                $data[$field] = $field === 'sort'
+                    ? (int) $request->post($field)
+                    : $request->post($field);
+            }
+        }
+
+        app(\app\service\Role::class)->update($request->team_id, $id, $data);
+
+        return message('角色已更新');
+    }
+
+    public function delete(Request $request)
+    {
+        app(\app\service\Role::class)->delete(
+            $request->team_id,
+            (int) $request->post('id', 0)
+        );
+
+        return message('角色已删除');
+    }
+}

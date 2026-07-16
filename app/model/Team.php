@@ -56,6 +56,11 @@ class Team extends Base
         return $this->hasMany(TeamMemberPostType::class, 'team_id');
     }
 
+    public function roles()
+    {
+        return $this->hasMany(TeamRole::class, 'team_id');
+    }
+
     public function memberFields()
     {
         return $this->hasMany(TeamMemberField::class, 'team_id');

@@ -1,4 +1,31 @@
 # team
+
+## RBAC 角色管理
+<!-- 仅团队创建者可管理；统一使用 JwtAuth + Context + TeamAccess，不使用普通 RBAC 权限 key。 -->
+
+### [controller] role - 团队角色
++ index (`GET /role/index`)
+获取当前团队的角色列表，按 `sort`、`id` 升序排列。
++ get (`GET /role/get?id={id}`)
+获取当前团队的单个角色。
++ add (`POST /role/add`)
+创建角色，提交 `role_key`、`name`、`description`、`sort`；已软删除的同标识角色会被恢复。
++ edit (`POST /role/edit`)
+编辑角色的 `name`、`description`、`sort`，不允许修改 `role_key`。
++ delete (`POST /role/delete`)
+软删除角色，并在同一事务内软删除角色权限和成员角色绑定。
+
+### [controller] rolePermission - 角色权限
++ index (`GET /rolePermission/index?role_id={role_id}`)
+获取指定角色的全部权限。
++ save (`POST /rolePermission/save`)
+通过 `role_id`、`permission_keys` 全量同步角色权限；空数组表示清空权限。
+
+### [controller] memberRole - 成员角色
++ index (`GET /memberRole/index?member_id={member_id}`)
+获取指定成员的全部角色绑定，结果包含角色信息。
++ save (`POST /memberRole/save`)
+通过 `member_id`、`role_ids` 全量同步成员角色；空数组表示清空角色。
 <!-- 团队信息 -->
 ## [controller] profile -个人资料
 + get

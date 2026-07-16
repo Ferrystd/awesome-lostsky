@@ -14,6 +14,21 @@ Route::post('member/block', 'member/block');
 Route::post('member/unblock', 'member/unblock');
 Route::post('member/remove', 'member/remove');
 
+// role
+Route::get('role/index', 'role/index');
+Route::get('role/get', 'role/get');
+Route::post('role/add', 'role/add');
+Route::post('role/edit', 'role/edit');
+Route::post('role/delete', 'role/delete');
+
+// rolePermission
+Route::get('rolePermission/index', 'rolePermission/index');
+Route::post('rolePermission/save', 'rolePermission/save');
+
+// memberRole
+Route::get('memberRole/index', 'memberRole/index');
+Route::post('memberRole/save', 'memberRole/save');
+
 // notice
 Route::get('notice/index', 'notice/index');
 Route::get('notice/get', 'notice/get');

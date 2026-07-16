@@ -11,6 +11,7 @@ return [
         'TeamGuest'          => \app\middleware\TeamGuest::class,
         'TeamMember'         => \app\middleware\TeamMember::class,
         'MemberAccess'       => \app\middleware\MemberAccess::class,
+        'Permission'         => \app\middleware\Permission::class,
         'TransactionAbility' => \app\middleware\TransactionAbility::class,
         'TransactionVerify'  => \app\middleware\TransactionVerify::class,
         'TransactionAccess'  => \app\middleware\TransactionAccess::class,

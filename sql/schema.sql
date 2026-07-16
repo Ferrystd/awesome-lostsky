@@ -680,3 +680,57 @@ CREATE TABLE `team_join_task` (
     PRIMARY KEY (`id`),
     KEY `idx_application_sort` (`application_id`, `sort`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队加入审核任务表';
+
+-- ----------------------------
+-- Table: team_role
+-- Model: app\model\TeamRole
+-- ----------------------------
+CREATE TABLE `team_role` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `role_key`    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '角色标识',
+    `name`        VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '角色名称',
+    `description` VARCHAR(255) NULL     DEFAULT NULL COMMENT '角色说明',
+    `sort`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '排序',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_team_role_key` (`team_id`, `role_key`),
+    KEY `idx_team_id` (`team_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队角色表';
+
+-- ----------------------------
+-- Table: team_role_permission
+-- Model: app\model\TeamRolePermission
+-- ----------------------------
+CREATE TABLE `team_role_permission` (
+    `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `role_id`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '角色ID',
+    `permission_key` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '权限标识',
+    `create_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`    INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_role_permission` (`role_id`, `permission_key`),
+    KEY `idx_team_permission` (`team_id`, `permission_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队角色权限表';
+
+-- ----------------------------
+-- Table: team_member_role
+-- Model: app\model\TeamMemberRole
+-- ----------------------------
+CREATE TABLE `team_member_role` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `member_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队成员ID',
+    `role_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '角色ID',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_member_role` (`member_id`, `role_id`),
+    KEY `idx_team_id` (`team_id`),
+    KEY `idx_role_id` (`role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队成员角色表';

@@ -12,7 +12,9 @@ class Product
         'JwtAuth'      => ['except' => []],
         'Context'      => ['except' => []],
         'MemberAccess' => ['except' => []],
-        'ShopAccess'   => ['only' => ['create', 'edit', 'delete', 'setHandlers']],
+        'Permission:shop.product.read' => ['only' => ['index', 'get']],
+        'Permission:shop.product.write' => ['only' => ['create', 'edit', 'setHandlers']],
+        'Permission:shop.product.delete' => ['only' => ['delete']],
     ];
 
     public function index(Request $request)

@@ -54,6 +54,18 @@
       "name": "PostType"
     },
     {
+      "name": "Role",
+      "description": "团队角色管理，仅团队创建者可访问"
+    },
+    {
+      "name": "RolePermission",
+      "description": "角色权限管理，仅团队创建者可访问"
+    },
+    {
+      "name": "MemberRole",
+      "description": "成员角色管理，仅团队创建者可访问"
+    },
+    {
       "name": "File"
     },
     {
@@ -1600,6 +1612,42 @@
           }
         }
       },
+      "TeamRole": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "team_id": { "type": "integer", "format": "int64" },
+          "role_key": { "type": "string", "maxLength": 50 },
+          "name": { "type": "string", "maxLength": 50 },
+          "description": { "type": "string", "nullable": true, "maxLength": 255 },
+          "sort": { "type": "integer", "minimum": 0 },
+          "create_time": { "type": "integer", "format": "int64" },
+          "update_time": { "type": "integer", "format": "int64" }
+        }
+      },
+      "TeamRolePermission": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "team_id": { "type": "integer", "format": "int64" },
+          "role_id": { "type": "integer", "format": "int64" },
+          "permission_key": { "type": "string", "maxLength": 100 },
+          "create_time": { "type": "integer", "format": "int64" },
+          "update_time": { "type": "integer", "format": "int64" }
+        }
+      },
+      "TeamMemberRole": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "team_id": { "type": "integer", "format": "int64" },
+          "member_id": { "type": "integer", "format": "int64" },
+          "role_id": { "type": "integer", "format": "int64" },
+          "role": { "$ref": "#/components/schemas/TeamRole" },
+          "create_time": { "type": "integer", "format": "int64" },
+          "update_time": { "type": "integer", "format": "int64" }
+        }
+      },
       "JoinApplication": {
         "type": "object",
         "properties": {
@@ -1652,6 +1700,360 @@
     }
   },
   "paths": {
+    "/role/index": {
+      "get": {
+        "tags": ["Role"],
+        "summary": "团队角色列表",
+        "description": "仅团队创建者可访问。",
+        "operationId": "teamRoleIndex",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/TeamRole" }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/role/get": {
+      "get": {
+        "tags": ["Role"],
+        "summary": "团队角色详情",
+        "description": "仅团队创建者可访问。",
+        "operationId": "teamRoleGet",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64", "minimum": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/TeamRole" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/role/add": {
+      "post": {
+        "tags": ["Role"],
+        "summary": "新增团队角色",
+        "description": "仅团队创建者可访问。相同 role_key 的软删除角色会被恢复。",
+        "operationId": "teamRoleAdd",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role_key", "name"],
+                "properties": {
+                  "role_key": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "pattern": "^[a-z][a-z0-9._-]*$"
+                  },
+                  "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+                  "description": { "type": "string", "nullable": true, "maxLength": 255 },
+                  "sort": { "type": "integer", "minimum": 0, "default": 0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/IdResult" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/role/edit": {
+      "post": {
+        "tags": ["Role"],
+        "summary": "编辑团队角色",
+        "description": "仅团队创建者可访问；role_key 不可修改。",
+        "operationId": "teamRoleEdit",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                  "id": { "type": "integer", "format": "int64", "minimum": 1 },
+                  "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+                  "description": { "type": "string", "nullable": true, "maxLength": 255 },
+                  "sort": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MessageEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/role/delete": {
+      "post": {
+        "tags": ["Role"],
+        "summary": "删除团队角色",
+        "description": "仅团队创建者可访问；同时软删除角色权限与成员角色绑定。",
+        "operationId": "teamRoleDelete",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                  "id": { "type": "integer", "format": "int64", "minimum": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MessageEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rolePermission/index": {
+      "get": {
+        "tags": ["RolePermission"],
+        "summary": "角色权限列表",
+        "description": "仅团队创建者可访问。",
+        "operationId": "teamRolePermissionIndex",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "role_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64", "minimum": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/TeamRolePermission" }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rolePermission/save": {
+      "post": {
+        "tags": ["RolePermission"],
+        "summary": "全量同步角色权限",
+        "description": "仅团队创建者可访问；空 permission_keys 清空角色权限。",
+        "operationId": "teamRolePermissionSave",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role_id", "permission_keys"],
+                "properties": {
+                  "role_id": { "type": "integer", "format": "int64", "minimum": 1 },
+                  "permission_keys": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "^[a-z][a-z0-9._-]*$"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "同步成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MessageEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/memberRole/index": {
+      "get": {
+        "tags": ["MemberRole"],
+        "summary": "成员角色列表",
+        "description": "仅团队创建者可访问。",
+        "operationId": "teamMemberRoleIndex",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64", "minimum": 1 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/TeamMemberRole" }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/memberRole/save": {
+      "post": {
+        "tags": ["MemberRole"],
+        "summary": "全量同步成员角色",
+        "description": "仅团队创建者可访问；空 role_ids 清空成员角色。",
+        "operationId": "teamMemberRoleSave",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["member_id", "role_ids"],
+                "properties": {
+                  "member_id": { "type": "integer", "format": "int64", "minimum": 1 },
+                  "role_ids": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": { "type": "integer", "format": "int64", "minimum": 1 }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "同步成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MessageEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/me/get": {
       "get": {
         "tags": [
