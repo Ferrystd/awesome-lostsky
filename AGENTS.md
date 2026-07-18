@@ -8,11 +8,15 @@
 必须使用且 Windows/PowerShell 下查看中文时，如果终端显示乱码，不得转码；应先用 `rg` 或其他**UTF-8**编辑器和脚本读取确认。
 HTML 必须保留 `<meta charset="UTF-8">`
 
+## 日志
+除非特殊要求，默认正在制作的版本是相对git的一个新的小版本。
+每次进行代码编辑，自动在[日志](/CHANGELOG.md)写入组件。
+
 ## 项目概况
 
 基于 **ThinkPHP 8** 框架构建的 **纯后端 API 服务**。运行环境要求 PHP 8.0+。
 
-- **[前端](/www/)**：部署在 CDN，。后端只返回 JSON，不做 SSR 和页面渲染。
+- **[前端](/www/)**：部署在 CDN。后端只返回 JSON，不做 SSR 和页面渲染。
 
 - **多应用**：使用 ThinkPHP 8 多应用模式。一个 App = 一组功能入口（如 `console` 控制台、`account` 认证）。该项目只提供API服务。一个产品一个应用
 
@@ -20,7 +24,13 @@ HTML 必须保留 `<meta charset="UTF-8">`
 
 ### 约定
 
-保持静态 HTML/CSS/JS 交付，不引入 Vite、Webpack、npm build 等需要安装依赖或打包的流程。支持和推荐使用 CDN；新增能力使用自写代码、CDN 库，复制代码进仓库并保留来源与许可证说明。（尽量不新造轮子）
+前端源码位于 `/frontend/`，使用 Vue 3、Vite 与 npm workspace；`npm run build` 后的纯静态产物继续交付到 `/www/`。禁止直接修改构建生成的 HTML/JS/CSS 来代替源码修改。
+
+交互控件优先使用项目已安装的 Naive UI，并通过 `/frontend/packages/ui/src/naive-theme.ts` 统一 LostSky 主题；不要用零散原生 `input/select/textarea` 加临时 CSS 重造已有组件。业务路由按需导入组件，避免让未使用组件库的页面承担初始包体积。
+
+业务表单默认使用单列字段流并限制可读宽度，桌面端也不得把多个文本输入框横向拼成工具栏。创建、编辑等需要填写多个字段的任务应使用独立路由；弹层只承载简短、低风险的单步输入。
+
+团队后台页面必须使用 `/frontend/apps/team/src/components/AdminPage.vue` 作为内容容器，并使用 `AdminPageHeader.vue` 生成页面标题、说明、返回入口和操作区。列表页只负责搜索、筛选、概览与进入任务；查看、创建、编辑、审核等任务使用可深链接的独立路由，禁止在列表旁常驻主从编辑器。公开加入页等非后台品牌页面不适用此约束。
 
 ### 新增
 读取`docs/openapi/`中所需要的json，使用 `/ui-ux-pro-max`,`/lostsky-frontend` 构建页面
@@ -31,6 +41,19 @@ HTML 必须保留 `<meta charset="UTF-8">`
 ### 架构
 一切多域名复用文件存储在[](/www/assets.lostsky.work/)。
 单域名复用文件存储在各自`/assets/`文件夹
+
+### CORS 边界
+
+- `api.lostsky.work` 的 CORS 由后端全局 `Cors` 中间件统一处理，禁止在前端静态站点的 Nginx 配置中重复添加 API CORS 规则。
+- 只有 `assets.lostsky.work` 的跨域静态资源响应头由前端 Nginx/CDN 配置负责，包括 ES Module、字体、图片、音视频和 Range 请求。
+- 前端代码必须为跨域模块或需要匿名跨域读取的资源使用正确的 `crossorigin` 属性；静态资源服务器应返回 `Access-Control-Allow-Origin` 和 `Cross-Origin-Resource-Policy: cross-origin`。
+
+### 前端发布流程
+
+- 发布前在仓库根目录执行 `npm run typecheck`、`npm run test:e2e`，再执行 `npm run build`。
+- `npm run build` 会把官网、账户、团队后台的生产产物发布到 `/www/`；提交 Git 时源码和构建产物一并提交。
+- Git 远端推送只负责版本同步，不代替服务器部署；宝塔/Nginx 的实际站点配置由维护者手动应用，尤其是 `assets.lostsky.work` 的跨域响应头和缓存策略。
+- 发布后若浏览器仍加载旧的 hashed asset，先刷新 CDN 缓存，再使用强制刷新验证，不要直接修改 `www/` 中的构建文件。
 
 ## 控制台命令
 

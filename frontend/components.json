@@ -1,0 +1,19 @@
+{
+  "$schema": "https://shadcn-vue.com/schema.json",
+  "style": "new-york",
+  "typescript": true,
+  "tailwind": {
+    "config": "frontend/tailwind.config.ts",
+    "css": "frontend/packages/ui/src/styles.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@lostsky/ui/components",
+    "utils": "@lostsky/ui/lib/utils",
+    "ui": "@lostsky/ui/components",
+    "lib": "@lostsky/ui/lib",
+    "composables": "@lostsky/shared/composables"
+  },
+  "iconLibrary": "lucide"
+}

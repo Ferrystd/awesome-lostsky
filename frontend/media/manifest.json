@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "path": "www/assets.lostsky.work/images/hero-3d.png",
+      "purpose": "Temporary homepage hero poster until the new generated hero is approved",
+      "source": "project-owned",
+      "rights": "Existing LostSky repository asset",
+      "alt": "失落青空工作室的立体青色品牌场景"
+    },
+    {
+      "path": "www/assets.lostsky.work/images/data-dashboard.png",
+      "purpose": "Homepage product proof",
+      "source": "project-owned",
+      "rights": "Existing LostSky repository asset",
+      "alt": "LostSky 团队数据工作台界面预览"
+    }
+  ]
+}

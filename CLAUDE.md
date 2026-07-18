@@ -8,11 +8,15 @@
 必须使用且 Windows/PowerShell 下查看中文时，如果终端显示乱码，不得转码；应先用 `rg` 或其他**UTF-8**编辑器和脚本读取确认。
 HTML 必须保留 `<meta charset="UTF-8">`
 
+## 日志
+除非特殊要求，默认正在制作的版本是相对git的一个新的小版本。
+每次进行代码编辑，自动在[日志](/CHANGELOG.md)写入组件。
+
 ## 项目概况
 
 基于 **ThinkPHP 8** 框架构建的 **纯后端 API 服务**。运行环境要求 PHP 8.0+。
 
-- **[前端](/www/)**：部署在 CDN，。后端只返回 JSON，不做 SSR 和页面渲染。
+- **[前端](/www/)**：部署在 CDN。后端只返回 JSON，不做 SSR 和页面渲染。
 
 - **多应用**：使用 ThinkPHP 8 多应用模式。一个 App = 一组功能入口（如 `console` 控制台、`account` 认证）。该项目只提供API服务。一个产品一个应用
 
@@ -51,7 +55,7 @@ php think make:controller #新建控制器
 ### 模型层规范
 
 统一继承 `app\model\Base`（而非 `think\Model`或`think\Db`）。
-项目禁用`think\facade\Db`
+项目禁止使用 `think\facade\Db` 查询或写入业务数据；仅允许使用 `Db::transaction()` 管理跨模型事务，事务内的数据操作仍须通过模型完成。
 `Base` 提供能力：
 
 - **自动时间戳**

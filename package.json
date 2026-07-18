@@ -1,17 +1,56 @@
 {
-  "name": "lostsky-website",
-  "version": "1.0.0",
-  "description": "基于 ThinkPHP 8 的纯后端 API 服务，采用多应用模式。",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
+  "name": "lostsky",
+  "version": "2.0.0",
+  "private": true,
+  "description": "LostSky API 与 Vue 多应用前端",
+  "type": "module",
+  "workspaces": [
+    "frontend/apps/*",
+    "frontend/packages/*"
+  ],
+  "scripts": {
+    "dev:site": "vite --config frontend/vite.site.ts",
+    "dev:account": "vite --config frontend/vite.account.ts",
+    "dev:team": "vite --config frontend/vite.team.ts",
+    "generate:api": "openapi-typescript docs/openapi/account.openapi.json -o frontend/packages/api/src/generated/account.ts && openapi-typescript docs/openapi/common.openapi.json -o frontend/packages/api/src/generated/common.ts && openapi-typescript docs/openapi/display.openapi.json -o frontend/packages/api/src/generated/display.ts && openapi-typescript docs/openapi/shop.openapi.json -o frontend/packages/api/src/generated/shop.ts && openapi-typescript docs/openapi/team.openapi.json -o frontend/packages/api/src/generated/team.ts && openapi-typescript docs/openapi/transaction.openapi.json -o frontend/packages/api/src/generated/transaction.ts",
+    "typecheck": "npm run generate:api && vue-tsc --noEmit -p frontend/tsconfig.json",
+    "test": "vitest run --dir frontend",
+    "test:e2e": "playwright test",
+    "build": "node frontend/scripts/build.mjs",
+    "check:media": "node frontend/scripts/check-media.mjs",
+    "check:cors": "node frontend/scripts/check-cors.mjs"
   },
-  "scripts": {},
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "@types/node": "^26.0.1"
+    "@types/node": "^22.10.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "@vue/test-utils": "^2.4.6",
+    "autoprefixer": "^10.4.20",
+    "openapi-typescript": "^7.13.0",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^6.4.3",
+    "vitest": "^3.2.6",
+    "vue-tsc": "^2.2.0"
+  },
+  "dependencies": {
+    "@fontsource/barlow-condensed": "^5.1.1",
+    "@lucide/vue": "^1.24.0",
+    "@tanstack/vue-query": "^5.62.7",
+    "@tanstack/vue-table": "^8.20.6",
+    "@vueuse/core": "^12.5.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dompurify": "^3.2.6",
+    "katex": "0.16.22",
+    "marked": "^15.0.12",
+    "naive-ui": "2.44.1",
+    "pinia": "^2.3.0",
+    "reka-ui": "^2.0.0",
+    "tailwind-merge": "^2.6.0",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0",
+    "zod": "^3.24.1"
   }
 }

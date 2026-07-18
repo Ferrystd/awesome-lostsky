@@ -1,0 +1,77 @@
+@import '@fontsource/barlow-condensed/latin-600.css';
+@import '@fontsource/barlow-condensed/latin-700.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --sky-void: oklch(0.105 0.018 225);
+  --sky-night: oklch(0.155 0.026 218);
+  --sky-lost: oklch(0.5 0.105 185);
+  --sky-lost-strong: oklch(0.405 0.092 183);
+  --afterglow: oklch(0.705 0.155 55);
+  --daylight: oklch(1 0 0);
+  --cloud: oklch(0.965 0.006 210);
+  --ink: oklch(0.175 0.018 218);
+  --muted-ink: oklch(0.455 0.022 215);
+  --line: oklch(0.885 0.012 210);
+  --danger: oklch(0.555 0.205 25);
+  --success: oklch(0.515 0.125 155);
+  --warning: oklch(0.69 0.15 75);
+  --focus: oklch(0.62 0.12 185);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --z-dropdown: 30;
+  --z-sticky: 40;
+  --z-backdrop: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; background: var(--cloud); scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
+  color: var(--ink);
+  background: var(--cloud);
+  font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, textarea, select { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; text-decoration: none; }
+img, video { display: block; max-width: 100%; }
+:focus-visible { outline: 3px solid color-mix(in oklch, var(--focus), white 15%); outline-offset: 3px; }
+::selection { background: var(--sky-lost); color: white; }
+
+.ls-display {
+  font-family: 'Barlow Condensed', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-variation-settings: 'wght' 650;
+  letter-spacing: -0.025em;
+  line-height: 0.94;
+  text-wrap: balance;
+}
+.ls-prose { max-width: 68ch; text-wrap: pretty; }
+.ls-tabular { font-variant-numeric: tabular-nums; }
+.ls-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.ls-panel { background: white; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.ls-divider { border-color: var(--line); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
