@@ -48,10 +48,6 @@ class Team
             throw new HttpException(422, $validator->getError());
         }
 
-        if (TeamModel::where('slug', $slug)->find()) {
-            throw new HttpException(409, '团队标识已被占用');
-        }
-
         $team = \think\facade\Db::transaction(function () use ($userId, $slug, $displayName) {
             $team = new TeamModel;
             $team->save([
@@ -59,6 +55,8 @@ class Team
                 'display_name' => $displayName,
                 'user_id' => $userId,
             ]);
+
+            app(\app\service\EntityIdentity::class)->claimTeam($team);
 
             $member = new TeamMember;
             $member->save([

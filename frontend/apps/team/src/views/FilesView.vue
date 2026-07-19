@@ -1,3 +1,8 @@
+<style scoped>
+.empty { display: grid; justify-items: center; gap: .5rem; }
+.empty h3, .empty p { margin: 0; }
+</style>
+
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'

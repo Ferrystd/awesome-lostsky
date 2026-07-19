@@ -48,4 +48,14 @@ class Me
 
         return message('资料已更新');
     }
+
+    public function slug(Request $request)
+    {
+        $identity = app(\app\service\EntityIdentity::class)->claimMember(
+            (int) $request->member_id,
+            (string) $request->post('slug', '')
+        );
+
+        return success(['slug' => $identity->slug], '成员标识已确定');
+    }
 }

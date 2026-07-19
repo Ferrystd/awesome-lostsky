@@ -126,7 +126,7 @@ class Order
             $order->team_cut    = $teamCut;
             $order->prepaid     = $totalPrice;
             $order->trans_id    = $transId;
-            $order->status      = OrderStatus::Processing->value;
+            $order->status      = OrderStatus::Processing;
             $order->memo        = $data['memo'] ?? null;
             $order->save();
 
@@ -141,7 +141,7 @@ class Order
             throw new HttpException(404, '订单不存在');
         }
 
-        if ($order->status !== OrderStatus::Processing) {
+        if ($order->enumCase('status') !== OrderStatus::Processing) {
             throw new HttpException(422, '仅处理中的订单可取消');
         }
 
@@ -160,7 +160,7 @@ class Order
 
                     $log = new TeamCustomerBalanceLog;
                     $log->customer_id   = $order->customer_id;
-                    $log->type          = LogType::Refund->value;
+                    $log->type          = LogType::Refund;
                     $log->amount        = (float) $order->prepaid;
                     $log->balance_after = (float) $balance->balance;
                     $log->trans_id      = $order->trans_id;
@@ -188,11 +188,11 @@ class Order
             throw new HttpException(404, '订单不存在');
         }
 
-        if ($order->status !== OrderStatus::Processing) {
+        if ($order->enumCase('status') !== OrderStatus::Processing) {
             throw new HttpException(422, '仅处理中的订单可标记完成');
         }
 
-        $order->status = OrderStatus::Completed->value;
+        $order->status = OrderStatus::Completed;
         $order->save();
     }
 

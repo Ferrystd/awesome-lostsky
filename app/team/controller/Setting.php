@@ -12,7 +12,7 @@ class Setting
         'JwtAuth'    => ['except' => []],
         'Context'    => ['except' => []],
         'TeamMember' => ['except' => []],
-        'TeamAccess' => ['only' => ['save']],
+        'TeamAccess' => ['only' => ['schema', 'save']],
     ];
 
     public function index(Request $request)
@@ -41,5 +41,10 @@ class Setting
         $service->batch($request->team_id, $appName, $settings);
 
         return message('设置已保存');
+    }
+
+    public function schema(Request $request)
+    {
+        return success(app(TeamSetting::class)->schema((int) $request->team_id));
     }
 }

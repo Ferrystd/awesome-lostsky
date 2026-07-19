@@ -8,7 +8,7 @@ const root = resolve(frontend, '..')
 const aliases = {
   site: ['index'],
   account: ['index', 'login', 'register', 'teams'],
-  team: ['index', 'settings', 'roles', 'posts', 'notice', 'members', 'member-detail', 'me', 'join', 'join-review', 'files', 'fields', 'docs', 'doc'],
+  team: ['index', 'settings', 'roles', 'posts', 'notice', 'notice-detail', 'members', 'member-add', 'member-edit', 'member-detail', 'me', 'join', 'join-review', 'files', 'fields', 'docs', 'doc', 'doc-create', 'doc-edit'],
 }
 const domains = { site: 'www.lostsky.work', account: 'account.lostsky.work', team: 'team.lostsky.work' }
 const heroVideo = existsSync(join(frontend, 'media/source/site/lostsky-loop.webm'))

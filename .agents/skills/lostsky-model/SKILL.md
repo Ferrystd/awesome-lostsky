@@ -29,9 +29,23 @@ Draft the custom fields and a CREATE TABLE statement. Follow the style in `sql/s
 
 The user adjusts the fields. Do not proceed until they confirm.
 
-## Step 4: Complete $type and $json
+## Step 4: Complete $type, $json, and enum design
 
 Edit the model file: fill in actual field type mappings. Fields storing JSON go in both `$type` (as `'string'`) and `$json`.
+
+For every fixed-option field, decide whether it is an enum before writing code. Present this design to the user together with the field proposal:
+
+| Field | Storage type / values | Enum class | Output strategy | Reason |
+|---|---|---|---|---|
+| `status` | `TINYINT`, `1/2` | `OrderStatus` | case name / Chinese text | Explain the API-facing meaning |
+
+Apply these rules after approval:
+
+1. Use PHP native `BackedEnum`; the backing value is the database value.
+2. Declare the enum class directly in model `$type`, for example `'status' => OrderStatus::class`.
+3. If the output does **not** require Chinese text, do not implement `EnumTransform`: `app\\model\\Base::$enumReadName = true` automatically returns the enum case name.
+4. Only when the output requires Chinese text, implement `EnumTransform` and write `value(): string` with a `match` expression. `EnumTransform` takes precedence over `$enumReadName`.
+5. Do not add `status_text` append fields or per-field enum getters/setters. Services write enum instances; query conditions use the backing `->value`; business logic needing a case uses `enumCase('status')`.
 
 ## Step 5: Append SQL to sql/schema.sql
 
@@ -45,13 +59,13 @@ Read the end of `sql/schema.sql`, then insert the new CREATE TABLE after the las
 始终包含 `delete_time`。检查是否有密码类、内部标记类字段需要隐藏。
 
 ### 6b. $append — 计算属性
-检查是否有需要输出别名文本的枚举字段（如 `status` → `status_text`），或需要组合展示的字段。每个 append 条目对应一个获取器。
+枚举字段已经由模型 `$type` 自动输出 case name 或中文文案，不为枚举增加 `status_text` 之类的重复 append。仅检查真正派生的组合展示字段。
 
 ### 6c. $readonly — 只读字段
 检查创建后不可修改的字段：`slug`、`user_id`、任何唯一标识。
 
 ### 6d. 获取器 getXxxAttr
-对每个枚举/状态字段，建议 `getXxxTextAttr` 返回中文。对需要格式化的字段（时间、金额等）给出具体转换逻辑。
+不为枚举/状态字段增加 `getXxxTextAttr`；中文枚举在 `EnumTransform::value()` 的 `match` 中定义，非中文枚举由 `Base::$enumReadName` 自动输出 case name。仅对时间、金额等非枚举字段给出必要的格式化逻辑。
 
 ### 6e. 修改器 setXxxAttr
 检查需要写入前自动处理的字段：`password` → 哈希、`name` → trim、URL → 补全协议。

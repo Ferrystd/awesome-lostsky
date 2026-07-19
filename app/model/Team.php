@@ -28,10 +28,13 @@ class Team extends Base
     protected $readonly = ['slug'];
 
     /** 追加计算属性 */
-    protected $append = ['is_owner'];
+    protected $append = ['is_owner', 'is_valid', 'is_searchable'];
 
     /** 临时属性，由调用方设置，供 getIsOwnerAttr 使用 */
     public $currentUserId;
+
+    /** 由实体搜索服务批量注入，避免逐条读取设置。 */
+    public $entitySearchSettings;
 
     public function getIsOwnerAttr($value, $data): bool
     {
@@ -54,6 +57,24 @@ class Team extends Base
     public function postTypes()
     {
         return $this->hasMany(TeamMemberPostType::class, 'team_id');
+    }
+
+    public function getIsValidAttr($value, $data): bool
+    {
+        return (int) ($data['is_banned'] ?? 0) === 0 && (int) ($data['is_cancelled'] ?? 0) === 0;
+    }
+
+    public function getIsSearchableAttr(): bool
+    {
+        if (!$this->is_valid) {
+            return false;
+        }
+
+        $settings = is_array($this->entitySearchSettings)
+            ? $this->entitySearchSettings
+            : app(\app\service\TeamSetting::class)->internal((int) $this->id, 'entity');
+
+        return (int) ($settings['team_searchable'] ?? 0) === 1;
     }
 
     public function roles()
@@ -115,6 +136,11 @@ class Team extends Base
     public function documents()
     {
         return $this->morphMany(Document::class, 'documentable');
+    }
+
+    public function identity()
+    {
+        return $this->morphOne(EntityIdentity::class, 'entityable', 'team');
     }
 
     public function settings()

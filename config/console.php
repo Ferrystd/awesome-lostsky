@@ -7,5 +7,6 @@ return [
     'commands' => [
         'file:upload' => \app\command\UploadFile::class,
         'make:model'  => \app\command\MakeModel::class,
+        'notice:send' => \app\command\SendNotice::class,
     ],
 ];

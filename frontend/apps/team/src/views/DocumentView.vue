@@ -1,12 +1,52 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
+import { Pencil } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
-import { ArrowLeft } from '@lucide/vue'
-import DOMPurify from 'dompurify'
-import { marked } from 'marked'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-const route=useRoute();const id=computed(()=>Number(route.query.id));const query=useQuery({queryKey:computed(()=>['doc',id.value]),queryFn:()=>api.get<Record<string,unknown>>('/doc/get',{id:id.value}),enabled:computed(()=>id.value>0)});const html=computed(()=>DOMPurify.sanitize(marked.parse(String(query.data.value?.content??''),{async:false}) as string,{USE_PROFILES:{html:true}}));const back=computed(()=>{const data=query.data.value;const params=new URLSearchParams();if(data?.target_type)params.set('target_type',String(data.target_type));if(data?.target_id)params.set('target_id',String(data.target_id));return `/docs${params.size?`?${params}`:''}`})
+import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { resolveEntities } from '../lib/markdown'
+
+const route = useRoute()
+const id = computed(() => Number(route.query.id || 0))
+const query = useQuery({ queryKey: computed(() => ['doc', id.value]), queryFn: () => api.get<Record<string, unknown>>('/doc/get', { id: id.value }), enabled: computed(() => id.value > 0) })
+const back = computed(() => {
+  const data = query.data.value
+  const params = new URLSearchParams()
+  if (data?.target_type) params.set('target_type', String(data.target_type))
+  if (data?.target_id) params.set('target_id', String(data.target_id))
+  return `/docs${params.size ? `?${params}` : ''}`
+})
 </script>
-<template><article class="document"><RouterLink :to="back" class="back"><ArrowLeft :size="18"/>返回文档库</RouterLink><p v-if="query.isError.value" class="error" role="alert">{{friendlyError(query.error.value)}}</p><div v-else-if="query.isPending.value" class="loading"></div><template v-else-if="query.data.value"><header><small>文档 #{{query.data.value.id}} · 可见范围 {{query.data.value.visibility}}</small><h2>{{query.data.value.title||'未命名文档'}}</h2></header><div class="markdown" v-html="html"></div></template></article></template>
-<style scoped>.document{display:grid;gap:1rem;max-width:62rem;margin:auto}.back{min-height:44px;width:fit-content;display:flex;align-items:center;gap:.4rem;color:var(--sky-lost-strong)}.document>header{padding:1.5rem;color:white;background:var(--sky-night);border-radius:10px}.document>header small{color:var(--sky-lost)}.document>header h2{margin:.5rem 0 0;font-size:clamp(1.8rem,5vw,3rem)}.markdown{padding:1.25rem;background:white;border:1px solid var(--line);border-radius:10px;line-height:1.75;overflow-wrap:anywhere}.markdown :deep(img){max-width:100%;height:auto}.markdown :deep(pre){overflow:auto;padding:1rem;color:white;background:var(--sky-void);border-radius:8px}.markdown :deep(blockquote){margin-inline:0;padding:1rem;background:var(--cloud);border:1px solid var(--line);border-radius:8px}.markdown :deep(a){color:var(--sky-lost-strong);text-decoration:underline}.markdown :deep(table){display:block;overflow:auto;border-collapse:collapse}.markdown :deep(th),.markdown :deep(td){padding:.55rem;border:1px solid var(--line)}.error{padding:1rem;color:var(--danger);background:white;border:1px solid var(--line);border-radius:8px}.loading{height:320px;background:var(--line);border-radius:10px}</style>
+
+<template>
+  <article class="document-view">
+    <AdminPageHeader title="阅读文档" description="对象引用会根据当前有效状态解析，不可用对象只显示保存时的名称。" :back-to="back" back-label="返回文档列表">
+      <template #actions><RouterLink v-if="id" class="edit-link" :to="`/doc-edit?id=${id}`"><Pencil :size="17" />编辑文档</RouterLink></template>
+    </AdminPageHeader>
+    <p v-if="!id" class="error" role="alert">缺少文档编号。</p>
+    <p v-else-if="query.isError.value" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
+    <div v-else-if="query.isPending.value" class="loading" aria-label="正在加载文档" />
+    <template v-else-if="query.data.value">
+      <header class="document-header">
+        <p>DOCUMENT · #{{ id }}</p>
+        <h1>{{ query.data.value.title || '未命名文档' }}</h1>
+        <span>最近更新 {{ query.data.value.update_time || query.data.value.create_time || '—' }}</span>
+      </header>
+      <LsMarkdownRenderer :content="String(query.data.value.content ?? '')" :resolve-entities="resolveEntities" />
+    </template>
+  </article>
+</template>
+
+<style scoped>
+.document-view { max-width: 900px; display: grid; gap: 28px; }
+.edit-link { min-height: 40px; display: inline-flex; align-items: center; gap: 7px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-secondary); font-size: .86rem; font-weight: 650; text-decoration: none; }
+.edit-link:hover { border-color: var(--primary); color: var(--primary); }
+.document-header { padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+.document-header p { margin: 0 0 10px; color: var(--primary); font-size: .72rem; font-weight: 800; letter-spacing: .13em; }
+.document-header h1 { margin: 0 0 9px; font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.16; letter-spacing: -.035em; }
+.document-header span { color: var(--text-tertiary); font-size: .82rem; }
+.loading { height: 420px; border-radius: var(--radius-lg); background: var(--surface-subtle); }
+.error { color: var(--danger); }
+</style>

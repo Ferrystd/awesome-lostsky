@@ -1,13 +1,122 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { BookOpen, Pencil, Plus, Search, Trash2 } from '@lucide/vue'
-import { computed, nextTick, reactive, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-const route=useRoute();const client=useQueryClient();const page=ref(1);const keyword=ref('');const dialog=ref<HTMLDialogElement|null>(null);const editing=ref<Record<string,unknown>|null>(null);const form=reactive({title:'',content:'',target_type:'team',target_id:'',manager_scope:1,visibility:1,sort:0});const targetType=computed(()=>route.query.target_type==='teamMember'?'teamMember':'team');const targetId=computed(()=>String(route.query.target_id??''));const query=useQuery({queryKey:computed(()=>['docs',page.value,keyword.value,targetType.value,targetId.value]),queryFn:()=>api.get<Record<string,unknown>>('/doc',{page:page.value,limit:12,keyword:keyword.value,target_type:targetType.value,target_id:targetId.value})});const docs=computed<Record<string,unknown>[]>(()=>Array.isArray(query.data.value?.list)?query.data.value!.list as Record<string,unknown>[]:[]);const pages=computed(()=>Math.max(1,Math.ceil(Number(query.data.value?.total??docs.value.length)/12)))
-const save=useMutation({mutationFn:()=>api.post(editing.value?'/doc/edit':'/doc/create',{...(editing.value?{id:editing.value.id}:{}),title:form.title,content:form.content,manager_scope:Number(form.manager_scope),visibility:Number(form.visibility),sort:Number(form.sort),target_type:form.target_type,...(form.target_type==='teamMember'?{target_id:Number(form.target_id)}:{})}),onSuccess:async()=>{await client.invalidateQueries({queryKey:['docs']});dialog.value?.close()}});const remove=useMutation({mutationFn:(id:number)=>api.post('/doc/delete',{id}),onSuccess:()=>client.invalidateQueries({queryKey:['docs']})})
-async function open(row?:Record<string,unknown>){editing.value=row??null;let source=row;if(row?.id&&!row.content){try{source=await api.get<Record<string,unknown>>('/doc/get',{id:row.id})}catch{/* list data remains editable */}}Object.assign(form,{title:String(source?.title??''),content:String(source?.content??''),target_type:String(source?.target_type??targetType.value),target_id:String(source?.target_id??targetId.value),manager_scope:Number(source?.manager_scope??1),visibility:Number(source?.visibility??1),sort:Number(source?.sort??0)});save.reset();await nextTick();dialog.value?.showModal()}function removeDoc(item:Record<string,unknown>){if(window.confirm(`确认删除“${item.title??'该文档'}”？`))remove.mutate(Number(item.id))}function date(value:unknown){const n=Number(value);if(!n)return '时间未知';return new Intl.DateTimeFormat('zh-CN',{dateStyle:'medium'}).format(new Date(n<1e12?n*1000:n))}function summary(item:Record<string,unknown>){return String(item.summary??item.content??'').replace(/[#>*_`\[\]()\-]/g,' ').trim()||'暂无摘要'}
+import AdminPageHeader from '../components/AdminPageHeader.vue'
+
+const route = useRoute()
+const client = useQueryClient()
+const page = ref(1)
+const keyword = ref('')
+const targetType = computed(() => route.query.target_type === 'teamMember' ? 'teamMember' : 'team')
+const targetId = computed(() => Number(route.query.target_id || 0))
+const query = useQuery({
+  queryKey: computed(() => ['docs', page.value, keyword.value, targetType.value, targetId.value]),
+  queryFn: () => api.get<Record<string, unknown>>('/doc', {
+    page: page.value,
+    limit: 12,
+    keyword: keyword.value,
+    target_type: targetType.value,
+    ...(targetType.value === 'teamMember' ? { target_id: targetId.value } : {}),
+  }),
+})
+const docs = computed<Record<string, unknown>[]>(() => Array.isArray(query.data.value?.list) ? query.data.value.list as Record<string, unknown>[] : [])
+const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? docs.value.length) / 12)))
+const createTo = computed(() => {
+  const query = new URLSearchParams({ target_type: targetType.value })
+  if (targetType.value === 'teamMember') query.set('target_id', String(targetId.value))
+  return `/doc-create?${query}`
+})
+const remove = useMutation({ mutationFn: (id: number) => api.post('/doc/delete', { id }), onSuccess: () => client.invalidateQueries({ queryKey: ['docs'] }) })
+
+function summary(item: Record<string, unknown>) {
+  return String(item.content ?? '').replace(/[#>*_`\[\]()~-]/g, ' ').replace(/\s+/g, ' ').trim()
+}
+function date(value: unknown) {
+  const stamp = Number(value)
+  if (!stamp) return '刚刚更新'
+  return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium' }).format(new Date(stamp * 1000))
+}
+function removeDoc(item: Record<string, unknown>) {
+  if (confirm(`确认删除“${String(item.title ?? '未命名文档')}”？`)) remove.mutate(Number(item.id))
+}
 </script>
-<template><div class="docs"><header><div><p>{{targetType==='teamMember'?`成员 #${targetId} 的文档`:'团队知识库'}}</p><h2>文档</h2></div><LsButton @click="open()"><Plus :size="17"/>新建文档</LsButton></header><label class="search"><Search :size="18"/><span class="ls-sr-only">搜索文档</span><input v-model="keyword" type="search" placeholder="搜索标题和内容" @input="page=1"></label><p v-if="query.isError.value" class="error" role="alert">{{friendlyError(query.error.value)}}</p><div v-else-if="query.isPending.value" class="loading"></div><div v-else-if="!docs.length" class="empty"><BookOpen :size="32"/><h3>文档库还是空的</h3><p>记录第一份流程、规范或长期知识。</p></div><div v-else class="doc-list"><article v-for="item in docs" :key="String(item.id)"><RouterLink :to="`/doc?id=${item.id}`"><small>{{date(item.update_time??item.create_time)}}</small><h3>{{item.title||'未命名文档'}}</h3><p>{{summary(item).slice(0,140)}}</p></RouterLink><footer><span>可见范围 {{item.visibility??1}}</span><button type="button" aria-label="编辑文档" @click="open(item)"><Pencil :size="17"/></button><button type="button" class="danger" aria-label="删除文档" @click="removeDoc(item)"><Trash2 :size="17"/></button></footer></article></div><footer v-if="pages>1" class="pager"><LsButton variant="secondary" size="sm" :disabled="page<=1" @click="page--">上一页</LsButton><span>第 {{page}} / {{pages}} 页</span><LsButton variant="secondary" size="sm" :disabled="page>=pages" @click="page++">下一页</LsButton></footer><dialog ref="dialog" @click.self="dialog?.close()"><form @submit.prevent="save.mutate()"><header><h3>{{editing?'编辑文档':'新建文档'}}</h3><button type="button" aria-label="关闭" @click="dialog?.close()">×</button></header><div class="form-fields"><label>标题<input v-model="form.title" required></label><label>Markdown 内容<textarea v-model="form.content" rows="14"></textarea></label><div class="row"><label>归属<select v-model="form.target_type"><option value="team">团队</option><option value="teamMember">成员</option></select></label><label v-if="form.target_type==='teamMember'">成员 ID<input v-model="form.target_id" type="number" required></label><label>可见范围<input v-model.number="form.visibility" type="number" min="1" max="6"></label><label>管理范围<input v-model.number="form.manager_scope" type="number" min="1" max="2"></label></div><p v-if="save.isError.value" class="error" role="alert">{{friendlyError(save.error.value)}}</p><div class="actions"><LsButton type="button" variant="secondary" @click="dialog?.close()">取消</LsButton><LsButton type="submit" :loading="save.isPending.value">保存文档</LsButton></div></div></form></dialog></div></template>
-<style scoped>.docs{display:grid;gap:1rem}.docs>header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}.docs>header p,.docs>header h2{margin:0}.docs>header p{color:var(--muted-ink);font-size:.8rem}.search{height:44px;display:flex;align-items:center;gap:.5rem;padding:0 .75rem;background:white;border:1px solid var(--line);border-radius:8px}.search input{min-width:0;width:100%;border:0;outline:0}.doc-list{display:grid;align-items:stretch;gap:1rem;margin-top:.5rem}.doc-list article{min-width:0;display:flex;flex-direction:column;background:white;border:1px solid var(--line);border-radius:10px;overflow:hidden}.doc-list article>a{min-width:0;display:flex;flex:1;flex-direction:column;padding:1rem}.doc-list small,.doc-list p{color:var(--muted-ink)}.doc-list h3{margin:.25rem 0 .5rem}.doc-list p{display:-webkit-box;min-height:2.75rem;margin:0;overflow:hidden;font-size:.86rem;line-height:1.6;-webkit-box-orient:vertical;-webkit-line-clamp:2}.doc-list footer{min-height:60px;display:flex;align-items:center;justify-content:flex-end;gap:.25rem;padding:.5rem 1rem;border-top:1px solid var(--line)}.doc-list footer span{margin-right:auto;color:var(--muted-ink);font-size:.75rem}.doc-list button{width:44px;height:44px;display:grid;place-items:center;color:var(--muted-ink);background:transparent;border:0;border-radius:8px}.doc-list button:hover,.doc-list button:focus-visible{background:var(--cloud)}.doc-list .danger{color:var(--danger)}.pager{display:flex;align-items:center;justify-content:center;gap:1rem;color:var(--muted-ink);font-size:.8rem}.error,.empty{padding:1rem;background:white;border:1px solid var(--line);border-radius:8px}.error{color:var(--danger)}.empty{padding:3rem 1rem;text-align:center}.empty svg{color:var(--sky-lost-strong)}.empty p{color:var(--muted-ink)}.loading{height:250px;background:var(--line);border-radius:10px}dialog{width:min(94vw,42rem);max-height:88dvh;padding:0;border:0;border-radius:12px}dialog::backdrop{background:oklch(.06 0 0/.64)}dialog form>header{position:sticky;top:0;z-index:var(--z-sticky);display:flex;align-items:center;justify-content:space-between;padding:1rem;background:white;border-bottom:1px solid var(--line)}dialog h3{margin:0}dialog header button{width:44px;height:44px;background:transparent;border:0;font-size:1.5rem}.form-fields{display:grid;gap:1rem;padding:1rem}.form-fields>label,.row label{display:grid;gap:.5rem;font-size:.84rem;font-weight:650}.form-fields input,.form-fields textarea,.form-fields select{width:100%;min-height:44px;padding:.5rem .75rem;border:1px solid var(--line);border-radius:8px}.row{display:grid;gap:1rem}.actions{display:flex;justify-content:flex-end;gap:.5rem}@media(min-width:720px){.doc-list{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}}</style>
+
+<template>
+  <div class="documents-view">
+    <AdminPageHeader
+      title="文档"
+      :description="targetType === 'teamMember' ? `成员 #${targetId} 的长期资料与记录。` : '整理团队流程、规范和长期知识。'"
+    >
+      <template #actions><RouterLink class="primary-link" :to="createTo"><Plus :size="17" />新建文档</RouterLink></template>
+    </AdminPageHeader>
+
+    <label class="search-field">
+      <Search :size="18" aria-hidden="true" />
+      <span class="ls-sr-only">搜索文档</span>
+      <input v-model="keyword" type="search" placeholder="搜索标题和内容" @input="page = 1">
+    </label>
+
+    <p v-if="query.isError.value" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
+    <div v-else-if="query.isPending.value" class="loading" aria-label="正在加载文档"><span v-for="i in 4" :key="i" /></div>
+    <section v-else-if="!docs.length" class="empty">
+      <BookOpen :size="34" />
+      <h2>文档库还是空的</h2>
+      <p>创建第一份文档，编辑时无需手写 Markdown 语法。</p>
+      <RouterLink class="primary-link" :to="createTo">新建文档</RouterLink>
+    </section>
+    <section v-else class="document-list">
+      <article v-for="item in docs" :key="String(item.id)">
+        <RouterLink class="document-main" :to="`/doc?id=${item.id}`">
+          <small>{{ date(item.update_time ?? item.create_time) }}</small>
+          <h2>{{ item.title || '未命名文档' }}</h2>
+          <p>{{ summary(item).slice(0, 150) || '这份文档还没有正文。' }}</p>
+        </RouterLink>
+        <footer>
+          <span>可见范围 {{ item.visibility ?? 1 }}</span>
+          <RouterLink class="icon-link" :to="`/doc-edit?id=${item.id}`" aria-label="编辑文档"><Pencil :size="17" /></RouterLink>
+          <button type="button" class="icon-button danger" aria-label="删除文档" @click="removeDoc(item)"><Trash2 :size="17" /></button>
+        </footer>
+      </article>
+    </section>
+    <footer v-if="pages > 1" class="pager">
+      <LsButton variant="secondary" size="sm" :disabled="page <= 1" @click="page--">上一页</LsButton>
+      <span>第 {{ page }} / {{ pages }} 页</span>
+      <LsButton variant="secondary" size="sm" :disabled="page >= pages" @click="page++">下一页</LsButton>
+    </footer>
+  </div>
+</template>
+
+<style scoped>
+.documents-view { display: grid; gap: 22px; }
+.primary-link { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 16px; border-radius: var(--radius-md); color: white; background: var(--primary); font-size: .88rem; font-weight: 700; text-decoration: none; }
+.primary-link:hover { background: var(--primary-hover); }
+.search-field { max-width: 520px; min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.search-field:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 13%, transparent); }
+.search-field input { width: 100%; border: 0; outline: 0; color: var(--text); background: transparent; font: inherit; }
+.document-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.document-list article { display: grid; min-height: 210px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); transition: transform .16s ease, border-color .16s ease; }
+.document-list article:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--primary) 32%, var(--border)); }
+.document-main { padding: 21px; color: inherit; text-decoration: none; }
+.document-main small, .document-list footer span { color: var(--text-tertiary); font-size: .78rem; }
+.document-main h2 { margin: 9px 0 8px; font-size: 1.05rem; }
+.document-main p { margin: 0; color: var(--text-secondary); line-height: 1.65; }
+.document-list footer { align-self: end; display: flex; align-items: center; gap: 7px; padding: 10px 13px 10px 20px; border-top: 1px solid var(--border); }
+.document-list footer span { margin-right: auto; }
+.icon-link, .icon-button { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--radius-md); color: var(--text-secondary); background: transparent; cursor: pointer; }
+.icon-link:hover, .icon-button:hover { background: var(--surface-subtle); color: var(--primary); }
+.icon-button.danger:hover { color: var(--danger); }
+.empty { display: grid; justify-items: center; gap: 8px; padding: 54px 20px; border: 1px dashed var(--border); border-radius: var(--radius-lg); color: var(--text-secondary); text-align: center; }
+.empty h2, .empty p { margin: 0; }
+.empty .primary-link { margin-top: 8px; }
+.loading { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.loading span { height: 210px; border-radius: var(--radius-lg); background: var(--surface-subtle); animation: pulse 1.3s infinite alternate; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 14px; color: var(--text-secondary); }
+.error { color: var(--danger); }
+@keyframes pulse { to { opacity: .55; } }
+@media (max-width: 720px) { .document-list, .loading { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .document-list article { transition: none; } .loading span { animation: none; } }
+</style>

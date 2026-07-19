@@ -1,10 +1,144 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
-import { Upload } from '@lucide/vue'
+import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { NInput } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
-const client=useQueryClient();const query=useQuery({queryKey:['me'],queryFn:()=>api.get<Record<string,unknown>>('/me/get')});const form=reactive({nickname:'',avatar:'',description:'',intro_image:'',intro_video:'',introduction_markdown:''});const uploading=ref('');watch(()=>query.data.value,(data)=>Object.assign(form,{nickname:String(data?.nickname??(data?.profile as Record<string,unknown>|undefined)?.nickname??''),avatar:String(data?.avatar??(data?.profile as Record<string,unknown>|undefined)?.avatar??''),description:String(data?.description??(data?.profile as Record<string,unknown>|undefined)?.description??''),intro_image:String(data?.intro_image??''),intro_video:String(data?.intro_video??''),introduction_markdown:String(data?.introduction_markdown??'')}),{immediate:true});const mutation=useMutation({mutationFn:()=>api.post('/me/edit',{...form,avatar:form.avatar||null,description:form.description||null,intro_image:form.intro_image||null,intro_video:form.intro_video||null,introduction_markdown:form.introduction_markdown||null}),onSuccess:()=>client.invalidateQueries({queryKey:['me']})});const initials=computed(()=>(form.nickname||'L').slice(0,1));async function upload(key:'avatar'|'intro_image'|'intro_video',event:Event){const file=(event.target as HTMLInputElement).files?.[0];if(!file)return;uploading.value=key;try{const result=await api.upload<Record<string,unknown>>(file);form[key]=String(result.url??result.path??result.id??'')}finally{uploading.value=''}}
+import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
+
+const client = useQueryClient()
+const editor = ref<InstanceType<typeof LsMarkdownEditor> | null>(null)
+const query = useQuery({ queryKey: ['me'], queryFn: () => api.get<Record<string, unknown>>('/me/get') })
+const form = reactive({ nickname: '', avatar: '', description: '', intro_image: '', intro_video: '', introduction_markdown: '' })
+const slug = ref('')
+const uploading = ref('')
+
+watch(() => query.data.value, (data) => {
+  form.nickname = String(data?.nickname ?? '')
+  form.avatar = String(data?.avatar ?? '')
+  form.description = String(data?.description ?? '')
+  form.intro_image = String(data?.intro_image ?? '')
+  form.intro_video = String(data?.intro_video ?? '')
+  form.introduction_markdown = String(data?.introduction_markdown ?? '')
+  if (data?.slug) slug.value = String(data.slug)
+}, { immediate: true })
+
+const save = useMutation({
+  mutationFn: () => api.post('/me/edit', {
+    ...form,
+    avatar: form.avatar || null,
+    description: form.description || null,
+    intro_image: form.intro_image || null,
+    intro_video: form.intro_video || null,
+    introduction_markdown: form.introduction_markdown || null,
+  }),
+  onSuccess: async () => {
+    editor.value?.clearDraft()
+    await client.invalidateQueries({ queryKey: ['me'] })
+  },
+})
+const claim = useMutation({
+  mutationFn: () => api.post<{ slug: string }>('/me/slug', { slug: slug.value.trim() }),
+  onSuccess: async () => { await query.refetch() },
+})
+const initials = computed(() => (form.nickname || 'L').slice(0, 1))
+
+async function upload(key: 'avatar' | 'intro_image' | 'intro_video', event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  uploading.value = key
+  try {
+    const result = await api.upload<Record<string, unknown>>(file)
+    form[key] = String(result.url ?? result.path ?? result.id ?? '')
+  } finally {
+    uploading.value = ''
+    ;(event.target as HTMLInputElement).value = ''
+  }
+}
 </script>
-<template><div class="profile"><section class="identity"><div class="avatar"><img v-if="form.avatar" :src="form.avatar" alt="当前成员头像"><span v-else>{{initials}}</span></div><div><p>当前成员</p><h2>{{form.nickname||'未设置昵称'}}</h2><span>User #{{query.data.value?.user_id??'—'}}</span></div></section><form class="profile-form" @submit.prevent="mutation.mutate()"><header><div><h3>公开资料</h3><p>这些信息用于团队成员页和对外展示。</p></div><RouterLink v-if="query.data.value?.id" :to="`/member-detail?id=${query.data.value.id}`">管理自定义字段</RouterLink></header><label>团队昵称<input v-model="form.nickname" autocomplete="name" required></label><label>头像<div class="upload-field"><input v-model="form.avatar"><label><Upload :size="16"/>{{uploading==='avatar'?'上传中':'上传'}}<input type="file" accept="image/*" @change="upload('avatar',$event)"></label></div></label><label>简介<textarea v-model="form.description" rows="3"></textarea></label><label>介绍图片<div class="upload-field"><input v-model="form.intro_image"><label><Upload :size="16"/>{{uploading==='intro_image'?'上传中':'上传'}}<input type="file" accept="image/*" @change="upload('intro_image',$event)"></label></div></label><label>介绍视频<div class="upload-field"><input v-model="form.intro_video"><label><Upload :size="16"/>{{uploading==='intro_video'?'上传中':'上传'}}<input type="file" accept="video/*" @change="upload('intro_video',$event)"></label></div></label><label>详细介绍<textarea v-model="form.introduction_markdown" rows="7" placeholder="支持 Markdown"></textarea></label><p v-if="mutation.isError.value" class="error" role="alert">{{friendlyError(mutation.error.value)}}</p><p v-if="mutation.isSuccess.value" class="success" role="status">资料已保存。</p><LsButton type="submit" :loading="mutation.isPending.value" :disabled="Boolean(uploading)">保存资料</LsButton></form></div></template>
-<style scoped>.profile{display:grid;gap:1rem}.identity{display:flex;align-items:center;gap:1rem;padding:1.25rem;color:white;background:var(--sky-night);border-radius:10px}.avatar{width:64px;height:64px;display:grid;place-items:center;overflow:hidden;background:var(--sky-lost-strong);border-radius:10px;font-size:1.5rem;font-weight:750}.avatar img{width:100%;height:100%;object-fit:cover}.identity p,.identity h2{margin:0}.identity p{color:var(--sky-lost);font-size:.72rem;font-weight:720}.identity h2{margin-top:.2rem;font-size:1.2rem}.identity span{color:oklch(.7 .014 210);font-size:.82rem}.profile-form{display:grid;gap:1.15rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:10px}.profile-form header{display:flex;align-items:start;justify-content:space-between;gap:1rem}.profile-form h3,.profile-form header p{margin:0}.profile-form header p{color:var(--muted-ink);font-size:.86rem}.profile-form header a{color:var(--sky-lost-strong);font-size:.82rem;font-weight:700}.profile-form>label{display:grid;gap:.4rem;font-size:.85rem;font-weight:650}.profile-form input,.profile-form textarea{width:100%;min-height:44px;padding:.65rem .75rem;border:1px solid var(--line);border-radius:8px}.upload-field{display:grid;grid-template-columns:1fr auto}.upload-field>input{border-radius:8px 0 0 8px}.upload-field>label{min-width:90px;display:flex;align-items:center;justify-content:center;gap:.35rem;color:white;background:var(--sky-lost-strong);border-radius:0 8px 8px 0}.upload-field input[type=file]{display:none}.profile-form :deep(.ls-button){justify-self:start}.error,.success{padding:.75rem;margin:0;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 93%)}.success{color:var(--success);background:color-mix(in oklch,var(--success),white 92%)}@media(min-width:760px){.profile{grid-template-columns:minmax(240px,.55fr) minmax(420px,1.45fr);align-items:start}.identity{display:grid}.profile-form{padding:1.5rem}}</style>
+
+<template>
+  <div class="profile-view">
+    <AdminPageHeader title="我的资料" description="维护你在当前团队中的公开资料，并通过本人入口认领唯一对象标识。" />
+    <section class="identity-card">
+      <div class="avatar"><img v-if="form.avatar" :src="form.avatar" alt="当前成员头像"><span v-else>{{ initials }}</span></div>
+      <div><p>当前成员</p><h1>{{ form.nickname || '未设置昵称' }}</h1><span>User #{{ query.data.value?.user_id ?? '—' }}</span></div>
+    </section>
+
+    <section class="panel self-identity" aria-labelledby="self-identity-title">
+      <div class="section-heading"><div><p>MY IDENTITY</p><h2 id="self-identity-title">我的对象标识</h2></div><span>本人入口</span></div>
+      <p class="muted">设置后，其他成员可以在 Markdown 中通过 @slug 引用你。标识首次确认后永久不变。</p>
+      <div v-if="query.data.value?.slug" class="claimed"><span>已认领</span><strong>@{{ query.data.value.slug }}</strong><small>不可修改或释放</small></div>
+      <form v-else class="claim-form" @submit.prevent="claim.mutate()">
+        <label class="field"><span>我的 slug</span><NInput v-model:value="slug" placeholder="例如 zhang-san" autocapitalize="none" /></label>
+        <LsButton type="submit" :loading="claim.isPending.value" :disabled="!slug.trim()">确认认领</LsButton>
+      </form>
+      <p v-if="claim.isError.value" class="feedback error" role="alert">{{ friendlyError(claim.error.value) }}</p>
+    </section>
+
+    <form class="panel profile-form" @submit.prevent="save.mutate()">
+      <div class="section-heading">
+        <div><p>PUBLIC PROFILE</p><h2>公开资料</h2></div>
+        <RouterLink v-if="query.data.value?.id" :to="`/member-detail?id=${query.data.value.id}`">管理自定义字段</RouterLink>
+      </div>
+      <label class="field"><span>团队昵称</span><NInput v-model:value="form.nickname" autocomplete="name" maxlength="80" show-count /></label>
+      <label class="field">
+        <span>头像</span>
+        <div class="upload-field"><NInput v-model:value="form.avatar" placeholder="图片 URL" /><label class="upload-action">{{ uploading === 'avatar' ? '上传中…' : '上传图片' }}<input type="file" accept="image/*" @change="upload('avatar', $event)"></label></div>
+      </label>
+      <label class="field"><span>简短介绍</span><NInput v-model:value="form.description" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" maxlength="500" show-count /></label>
+      <div class="media-row">
+        <label class="field"><span>介绍图片</span><div class="upload-field"><NInput v-model:value="form.intro_image" placeholder="图片 URL" /><label class="upload-action">{{ uploading === 'intro_image' ? '上传中…' : '上传' }}<input type="file" accept="image/*" @change="upload('intro_image', $event)"></label></div></label>
+        <label class="field"><span>介绍视频</span><div class="upload-field"><NInput v-model:value="form.intro_video" placeholder="视频 URL" /><label class="upload-action">{{ uploading === 'intro_video' ? '上传中…' : '上传' }}<input type="file" accept="video/*" @change="upload('intro_video', $event)"></label></div></label>
+      </div>
+      <label class="field">
+        <span>详细介绍</span>
+        <LsMarkdownEditor
+          v-if="query.isSuccess.value"
+          ref="editor"
+          v-model="form.introduction_markdown"
+          draft-key="my-profile"
+          :search-entities="searchEntities"
+          :upload-image="uploadMarkdownImage"
+          placeholder="写下你的详细介绍，输入 @ 可引用对象…"
+        />
+      </label>
+      <p v-if="save.isError.value" class="feedback error" role="alert">{{ friendlyError(save.error.value) }}</p>
+      <p v-if="save.isSuccess.value" class="feedback success" role="status">资料已保存。</p>
+      <div class="actions"><LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="!form.nickname.trim() || Boolean(uploading)">保存资料</LsButton></div>
+    </form>
+  </div>
+</template>
+
+<style scoped>
+.profile-view { max-width: 800px; display: grid; gap: 22px; }
+.identity-card { display: flex; align-items: center; gap: 16px; padding: 5px 0 12px; }
+.avatar { width: 64px; height: 64px; display: grid; place-items: center; overflow: hidden; border-radius: 20px; color: white; background: linear-gradient(145deg, var(--primary), var(--primary-hover)); font-size: 1.35rem; font-weight: 800; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.identity-card p { margin: 0 0 4px; color: var(--text-tertiary); font-size: .75rem; }
+.identity-card h1 { margin: 0 0 4px; font-size: 1.45rem; }
+.identity-card span { color: var(--text-secondary); font-size: .82rem; }
+.panel { display: grid; gap: 18px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+.self-identity { border-color: color-mix(in srgb, var(--primary) 24%, var(--border)); }
+.section-heading { display: flex; justify-content: space-between; gap: 16px; }
+.section-heading p { margin: 0 0 4px; color: var(--primary); font-size: .7rem; font-weight: 800; letter-spacing: .13em; }
+.section-heading h2 { margin: 0; font-size: 1.05rem; }
+.section-heading > span, .section-heading a { color: var(--text-tertiary); font-size: .8rem; }
+.field { display: grid; gap: 8px; min-width: 0; }
+.field > span { color: var(--text-secondary); font-size: .875rem; font-weight: 650; }
+.claim-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; }
+.claimed { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--radius-md); background: var(--surface-subtle); }
+.claimed strong { color: var(--primary); }
+.claimed span, .claimed small, .muted { color: var(--text-secondary); font-size: .85rem; }
+.media-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.upload-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.upload-action { min-height: 36px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-secondary); background: var(--surface-subtle); font-size: .85rem; font-weight: 650; cursor: pointer; }
+.upload-action input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.actions { display: flex; justify-content: flex-end; }
+.feedback { margin: 0; padding: 11px 13px; border-radius: var(--radius-md); }
+.error { color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); }
+.success { color: var(--success); background: color-mix(in srgb, var(--success) 9%, transparent); }
+@media (max-width: 680px) { .panel { padding: 17px; } .media-row, .upload-field, .claim-form { grid-template-columns: 1fr; } .claimed { align-items: flex-start; flex-direction: column; } }
+</style>

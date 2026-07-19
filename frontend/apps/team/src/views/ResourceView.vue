@@ -2,6 +2,7 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import { Eye, Pencil, Plus, RefreshCw, Search, Trash2 } from '@lucide/vue'
 import { computed, nextTick, ref } from 'vue'
 import type { ResourceMeta } from '../router'
@@ -40,7 +41,19 @@ function display(value: unknown) { if (value == null || value === '') return '�
 function label(key: string) { return ({ name: '名称', nickname: '昵称', phone: '手机', status: '状态', created_at: '创建时间', create_time: '创建时间', updated_at: '更新时间', update_time: '更新时间', description: '说明', member_count: '成员数', title: '标题', content: '内容', ext: '格式', size: '大小', type: '类型', value_type: '值类型', input_type: '输入类型', source: '来源', required: '必填', is_required: '必填', sort: '顺序', summary: '摘要', visibility: '可见范围', field_key: '字段标识', role_key: '角色标识' } as Record<string, string>)[key] ?? key }
 function initialForm(row?: Record<string, unknown>) {
   const next: Record<string, string | number | boolean> = {}
-  props.resource.formFields?.forEach((field) => { const value = row?.[field.key] ?? field.defaultValue ?? (field.type === 'checkbox' ? false : ''); next[field.key] = field.type === 'checkbox' ? value === true || Number(value) === 1 : typeof value === 'number' ? value : String(value ?? '') })
+  props.resource.formFields?.forEach((field) => {
+    const value = row?.[field.key] ?? field.defaultValue ?? (field.type === 'checkbox' ? false : '')
+    if (field.type === 'checkbox') {
+      next[field.key] = value === true || Number(value) === 1
+    } else if (field.type === 'select' && field.options?.length) {
+      const fallback = typeof field.defaultValue === 'string' || typeof field.defaultValue === 'number'
+        ? field.defaultValue
+        : field.options[0].value
+      next[field.key] = enumOptionValue(value, field.options, fallback)
+    } else {
+      next[field.key] = typeof value === 'number' ? value : String(value ?? '')
+    }
+  })
   return next
 }
 async function openDialog(nextMode: typeof mode.value, row?: Record<string, unknown>) { mode.value = nextMode; selected.value = row ?? null; form.value = initialForm(row); save.reset(); await nextTick(); dialog.value?.showModal() }

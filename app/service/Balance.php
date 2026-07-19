@@ -57,7 +57,7 @@ class Balance
 
             $log = new TeamCustomerBalanceLog;
             $log->customer_id   = $customerId;
-            $log->type          = LogType::Recharge->value;
+            $log->type          = LogType::Recharge;
             $log->amount        = $amount;
             $log->balance_after = (float) $balance->balance;
             $log->memo          = $memo;

@@ -1342,13 +1342,12 @@
             "type": "integer",
             "enum": [
               1,
-              2,
               3,
               4,
               5,
               6
             ],
-            "description": "1=team管理可见, 2=team管理可见不含主体本人, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见"
+            "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见"
           },
           "visibility_targets": {
             "type": "array",
@@ -1694,6 +1693,96 @@
             "items": {
               "$ref": "#/components/schemas/JoinTask"
             }
+          }
+        }
+      },
+      "EntityTeamSummary": {
+        "type": "object",
+        "required": ["slug", "display_name"],
+        "properties": {
+          "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$" },
+          "display_name": { "type": "string" }
+        }
+      },
+      "EntitySummary": {
+        "type": "object",
+        "required": ["slug", "type", "display_name", "available"],
+        "properties": {
+          "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$" },
+          "type": { "type": "string", "enum": ["team", "teamMember", "unknown"] },
+          "display_name": { "type": "string" },
+          "avatar": { "type": "string", "nullable": true },
+          "team": { "$ref": "#/components/schemas/EntityTeamSummary" },
+          "available": { "type": "boolean" },
+          "href": { "type": "string", "nullable": true }
+        }
+      },
+      "TeamSettingValue": {
+        "description": "按设置定义返回的真实类型值",
+        "oneOf": [
+          { "type": "boolean" },
+          { "type": "integer" },
+          { "type": "string" }
+        ]
+      },
+      "TeamSettingOption": {
+        "type": "object",
+        "required": ["value", "label"],
+        "properties": {
+          "value": {
+            "oneOf": [
+              { "type": "integer" },
+              { "type": "string" }
+            ]
+          },
+          "label": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "TeamSettingDefinition": {
+        "type": "object",
+        "required": ["key", "label", "description", "type", "control", "order", "default", "value"],
+        "properties": {
+          "key": { "type": "string" },
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "type": { "type": "string", "enum": ["boolean", "integer", "enum", "string"] },
+          "control": { "type": "string", "enum": ["switch", "radio", "select", "number", "input"] },
+          "order": { "type": "integer" },
+          "default": { "$ref": "#/components/schemas/TeamSettingValue" },
+          "value": { "$ref": "#/components/schemas/TeamSettingValue" },
+          "options": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TeamSettingOption" }
+          },
+          "min": { "type": "integer" },
+          "max": { "type": "integer" },
+          "step": { "type": "integer" },
+          "min_length": { "type": "integer" },
+          "max_length": { "type": "integer" }
+        }
+      },
+      "TeamSettingApp": {
+        "type": "object",
+        "required": ["app_name", "label", "description", "order", "settings"],
+        "properties": {
+          "app_name": { "type": "string" },
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "order": { "type": "integer" },
+          "settings": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TeamSettingDefinition" }
+          }
+        }
+      },
+      "TeamSettingSchema": {
+        "type": "object",
+        "required": ["apps"],
+        "properties": {
+          "apps": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TeamSettingApp" }
           }
         }
       }
@@ -4784,6 +4873,44 @@
         }
       }
     },
+    "/setting/schema": {
+      "get": {
+        "tags": ["Setting"],
+        "summary": "获取团队设置定义与当前值",
+        "description": "仅团队管理员可访问。页面根据 control、type 和 options 动态生成设置表单。",
+        "operationId": "teamSettingSchema",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/TeamSettingSchema" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+          },
+          "403": {
+            "description": "不是团队管理员",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+          }
+        }
+      }
+    },
     "/setting": {
       "get": {
         "tags": [
@@ -4833,7 +4960,7 @@
                       "properties": {
                         "data": {
                           "type": "object",
-                          "additionalProperties": true
+                          "additionalProperties": { "$ref": "#/components/schemas/TeamSettingValue" }
                         }
                       }
                     }
@@ -4949,7 +5076,7 @@
                     "additionalProperties": {
                       "oneOf": [
                         {
-                          "$ref": "#/components/schemas/AnyValue"
+                          "$ref": "#/components/schemas/TeamSettingValue"
                         },
                         {
                           "type": "object",
@@ -4958,7 +5085,7 @@
                           ],
                           "properties": {
                             "value": {
-                              "$ref": "#/components/schemas/AnyValue"
+                              "$ref": "#/components/schemas/TeamSettingValue"
                             },
                             "visibility": {
                               "type": "integer",
@@ -6284,13 +6411,12 @@
               "type": "integer",
               "enum": [
                 1,
-                2,
                 3,
                 4,
                 5,
                 6
               ],
-              "description": "1=team管理可见, 2=team管理可见不含主体本人, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见"
+              "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见"
             }
           },
           {
@@ -6591,13 +6717,12 @@
                     "type": "integer",
                     "enum": [
                       1,
-                      2,
                       3,
                       4,
                       5,
                       6
                     ],
-                    "description": "1=team管理可见, 2=team管理可见不含主体本人, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见；team主体默认1，teamMember主体默认3"
+                    "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见；team主体默认1，teamMember主体默认3"
                   },
                   "visibility_targets": {
                     "type": "array",
@@ -6758,13 +6883,12 @@
                     "type": "integer",
                     "enum": [
                       1,
-                      2,
                       3,
                       4,
                       5,
                       6
                     ],
-                    "description": "1=team管理可见, 2=team管理可见不含主体本人, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见"
+                    "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见"
                   },
                   "visibility_targets": {
                     "type": "array",
@@ -8029,6 +8153,102 @@
               }
             }
           }
+        }
+      }
+    },
+    "/entity/search": {
+      "get": {
+        "tags": ["Entity"],
+        "summary": "按 slug 搜索可用团队和成员",
+        "operationId": "teamEntitySearch",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/PageId" },
+          { "name": "keyword", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1, "maxLength": 50 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 20, "default": 10 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "对象摘要列表",
+            "content": { "application/json": { "schema": { "allOf": [
+              { "$ref": "#/components/schemas/SuccessEnvelope" },
+              { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/EntitySummary" } } } }
+            ] } } }
+          }
+        }
+      }
+    },
+    "/entity/resolve": {
+      "get": {
+        "tags": ["Entity"],
+        "summary": "批量解析 Markdown 对象",
+        "operationId": "teamEntityResolve",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/PageId" },
+          { "name": "slugs[]", "in": "query", "required": true, "style": "form", "explode": true, "schema": { "type": "array", "maxItems": 50, "items": { "type": "string" } } }
+        ],
+        "responses": {
+          "200": {
+            "description": "按输入顺序返回解析结果；不可用对象不暴露具体原因",
+            "content": { "application/json": { "schema": { "allOf": [
+              { "$ref": "#/components/schemas/SuccessEnvelope" },
+              { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/EntitySummary" } } } }
+            ] } } }
+          }
+        }
+      }
+    },
+    "/me/slug": {
+      "post": {
+        "tags": ["Me"],
+        "summary": "本人首次认领成员 slug",
+        "operationId": "teamMeClaimSlug",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["slug"], "properties": { "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$" } }
+        } } } },
+        "responses": {
+          "200": { "description": "认领成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessEnvelope" } } } },
+          "409": { "description": "slug 已确定或已被占用", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } }
+        }
+      }
+    },
+    "/member/slug": {
+      "post": {
+        "tags": ["Member"],
+        "summary": "管理员为指定成员首次认领 slug",
+        "operationId": "teamMemberClaimSlug",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["member_id", "slug"], "properties": {
+            "member_id": { "type": "integer", "format": "int64" },
+            "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$" }
+          }
+        } } } },
+        "responses": {
+          "200": { "description": "认领成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessEnvelope" } } } },
+          "409": { "description": "slug 已确定或已被占用", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } }
+        }
+      }
+    },
+    "/member/search": {
+      "post": {
+        "tags": ["Member"],
+        "summary": "管理员设置成员搜索三态值",
+        "operationId": "teamMemberSetSearch",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": {
+          "type": "object", "required": ["member_id", "search_override"], "properties": {
+            "member_id": { "type": "integer", "format": "int64" },
+            "search_override": { "type": "integer", "enum": [0, 1], "nullable": true }
+          }
+        } } } },
+        "responses": {
+          "200": { "description": "设置成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } }
         }
       }
     }

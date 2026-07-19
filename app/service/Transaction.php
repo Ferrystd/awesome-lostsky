@@ -105,7 +105,7 @@ class Transaction
 
                 $log = new TeamCustomerBalanceLog;
                 $log->customer_id   = $customerId;
-                $log->type          = LogType::Consume->value;
+                $log->type          = LogType::Consume;
                 $log->amount        = -$prepaid;
                 $log->balance_after = (float) $balance->balance;
                 $log->trans_id      = $transId;
@@ -126,7 +126,7 @@ class Transaction
             throw new HttpException(404, '流水不存在');
         }
 
-        if ($transaction->type === TransactionType::ShopOrder) {
+        if ($transaction->enumCase('type') === TransactionType::ShopOrder) {
             throw new HttpException(422, '商城订单流水不可单独编辑，请通过订单操作');
         }
 
@@ -213,7 +213,7 @@ class Transaction
 
                     $log = new TeamCustomerBalanceLog;
                     $log->customer_id   = $transaction->customer_id;
-                    $log->type          = $logType->value;
+                    $log->type          = $logType;
                     $log->amount        = -$delta;
                     $log->balance_after = (float) $balance->balance;
                     $log->trans_id      = $transaction->id;
@@ -235,7 +235,7 @@ class Transaction
             throw new HttpException(404, '流水不存在');
         }
 
-        if ($transaction->type === TransactionType::ShopOrder) {
+        if ($transaction->enumCase('type') === TransactionType::ShopOrder) {
             throw new HttpException(422, '商城订单流水不可单独删除，请取消对应订单');
         }
 
@@ -254,7 +254,7 @@ class Transaction
 
                     $log = new TeamCustomerBalanceLog;
                     $log->customer_id   = $transaction->customer_id;
-                    $log->type          = LogType::Refund->value;
+                    $log->type          = LogType::Refund;
                     $log->amount        = (float) $transaction->prepaid;
                     $log->balance_after = (float) $balance->balance;
                     $log->trans_id      = $transaction->id;
@@ -295,7 +295,9 @@ class Transaction
         $trans->sender_id   = $data['sender_id'] ?? null;
         $trans->cs_id       = $data['cs_id'] ?? null;
         $trans->customer_id = $data['customer_id'] ?? null;
-        $trans->type        = $data['type'] ?? 1;
+        $trans->type        = $data['type'] instanceof TransactionType
+            ? $data['type']
+            : TransactionType::from((int) ($data['type'] ?? TransactionType::LedgerEntry->value));
         $trans->total_price = $data['total_price'] ?? 0;
         $trans->cost        = $data['cost'] ?? 0;
         $trans->cash        = $data['cash'] ?? 0;

@@ -42,4 +42,9 @@ class TeamMemberProfile extends Base
     {
         return $this->belongsTo(TeamMember::class, 'member_id');
     }
+
+    public function markdownReferences()
+    {
+        return $this->morphMany(MarkdownReference::class, 'referenceable', 'teamMemberProfile');
+    }
 }

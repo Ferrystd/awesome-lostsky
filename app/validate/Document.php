@@ -11,7 +11,7 @@ class Document extends Validate
         'title'         => 'max:255',
         'content'       => 'max:65535', // 限制接口层输入为 64KB，DB 列为 LONGTEXT 可存更大
         'manager_scope' => 'in:1,2',
-        'visibility'    => 'in:1,2,3,4,5,6',
+        'visibility'    => 'in:1,3,4,5,6',
         'sort'          => 'integer',
     ];
 

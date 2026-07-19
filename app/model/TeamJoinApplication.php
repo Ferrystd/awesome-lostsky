@@ -25,7 +25,7 @@ class TeamJoinApplication extends Base
         'team_id'   => 'integer',
         'user_id'   => 'integer',
         'member_id' => 'integer',
-        'status'    => 'integer',
+        'status'    => TeamJoinStatus::class,
         'memo'      => 'string',
     ];
 
@@ -64,21 +64,6 @@ class TeamJoinApplication extends Base
     public function tasks()
     {
         return $this->hasMany(TeamJoinTask::class, 'application_id');
-    }
-
-    public function getStatusAttr($value, $data): string
-    {
-        $status = $data['status'] ?? null;
-        if ($status instanceof TeamJoinStatus) {
-            return $status->value();
-        }
-
-        return TeamJoinStatus::tryFrom((int) $status)?->value() ?? '';
-    }
-
-    public function setStatusAttr($value): int
-    {
-        return $value instanceof TeamJoinStatus ? $value->value : (int) $value;
     }
 
     public function searchTeamIdAttr($query, $value)

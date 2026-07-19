@@ -81,11 +81,11 @@ class TeamMemberField
         unset($data['visibility_targets']);
 
         $field = app(\app\model\TeamMemberField::class);
-        $field->save(array_merge([
+        $field->save(array_merge($data, [
             'team_id'       => $teamId,
-            'manager_scope' => $managerScope->value,
-            'visibility'    => $visibility->value,
-        ], $data));
+            'manager_scope' => $managerScope,
+            'visibility'    => $visibility,
+        ]));
     }
 
     /**
@@ -102,15 +102,16 @@ class TeamMemberField
             throw new HttpException(422, $validator->getError());
         }
 
-        $managerScope = $this->managerScope($data['manager_scope'] ?? $this->field($teamId, $id)->manager_scope->value);
-        $visibility   = $this->visibility($data['visibility'] ?? $this->field($teamId, $id)->visibility->value);
+        $field        = $this->field($teamId, $id);
+        $managerScope = array_key_exists('manager_scope', $data) ? $this->managerScope($data['manager_scope']) : $field->enumCase('manager_scope');
+        $visibility   = array_key_exists('visibility', $data) ? $this->visibility($data['visibility']) : $field->enumCase('visibility');
         $this->assertPolicy($managerScope, $visibility);
 
         unset($data['visibility_targets']);
 
-        $this->field($teamId, $id)->save(array_merge($data, [
-            'manager_scope' => $managerScope->value,
-            'visibility'    => $visibility->value,
+        $field->save(array_merge($data, [
+            'manager_scope' => $managerScope,
+            'visibility'    => $visibility,
         ]));
     }
 
@@ -171,7 +172,7 @@ class TeamMemberField
                 if (!$field->is_editable) {
                     throw new HttpException(422, "字段 {$field->name} 不允许编辑");
                 }
-                $guard->assertManage($field->manager_scope, $isManager, $isSubject);
+                $guard->assertManage($field->enumCase('manager_scope'), $isManager, $isSubject);
 
                 [$column, $scene, $data] = $this->valueData($field->value_type, $rawValue);
                 if (!$validator->scene($scene)->check([$scene => $rawValue])) {

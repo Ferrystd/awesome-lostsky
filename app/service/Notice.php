@@ -3,11 +3,44 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\model\Team;
 use app\model\TeamNotice;
 use think\exception\HttpException;
 
 class Notice
 {
+    public function send(int $teamId, string $title, ?string $content = null, bool $isPinned = false): array
+    {
+        $title = trim($title);
+        $length = function_exists('mb_strlen') ? mb_strlen($title) : strlen($title);
+        if ($title === '' || $length > 200) {
+            throw new HttpException(422, '通知标题不能为空且不得超过 200 个字符');
+        }
+
+        if ($teamId <= 0) {
+            throw new HttpException(422, '目标团队 ID 必须为正整数');
+        }
+
+        if (!Team::active()->find($teamId)) {
+            throw new HttpException(404, '目标团队不存在或不可用');
+        }
+
+        $notice = app(TeamNotice::class);
+        $notice->save([
+            'team_id'   => $teamId,
+            'title'     => $title,
+            'content'   => $content,
+            'is_pinned' => $isPinned ? 1 : 0,
+            'is_read'   => 0,
+        ]);
+
+        return [
+            'id'        => (int) $notice->id,
+            'team_id'   => $teamId,
+            'is_pinned' => (int) $notice->is_pinned,
+        ];
+    }
+
     public function list(int $teamId, array $filters = [], int $page = 1, int $limit = 20): array
     {
         $page  = max(1, $page);

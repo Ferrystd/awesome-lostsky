@@ -25,6 +25,48 @@ class TeamMember extends Base
 
     protected $json = [];
 
+    protected $append = ['is_valid', 'is_searchable'];
+
+    public function getIsValidAttr($value, $data): bool
+    {
+        if ((int) ($data['is_blocked'] ?? 0) !== 0) {
+            return false;
+        }
+
+        $team = $this->team;
+        return $team ? (bool) $team->is_valid : false;
+    }
+
+    public function getIsSearchableAttr(): bool
+    {
+        if (!$this->is_valid || (int) $this->is_displayed !== 1) {
+            return false;
+        }
+
+        $identity = $this->identity;
+        if (!$identity) {
+            return false;
+        }
+
+        $team = $this->team;
+        if (!$team) {
+            return false;
+        }
+
+        $settings = is_array($team->entitySearchSettings)
+            ? $team->entitySearchSettings
+            : app(\app\service\TeamSetting::class)->internal((int) $team->id, 'entity');
+        $teamValue = (int) ($settings['member_searchable'] ?? 0) === 1;
+        $priority  = ($settings['member_search_priority'] ?? 'team') === 'member' ? 'member' : 'team';
+        $override  = $identity->search_override === null ? null : (int) $identity->search_override;
+
+        if ($priority === 'member') {
+            return $override === null ? $teamValue : $override === 1;
+        }
+
+        return $teamValue && $override !== 0;
+    }
+
     public function team()
     {
         return $this->belongsTo(Team::class, 'team_id');
@@ -84,6 +126,12 @@ class TeamMember extends Base
     public function documents()
     {
         return $this->morphMany(Document::class, 'documentable');
+    }
+
+    public function identity()
+    {
+        return $this->morphOne(EntityIdentity::class, 'entityable', 'teamMember')
+            ->bind(['slug', 'search_override']);
     }
 
     public function files()

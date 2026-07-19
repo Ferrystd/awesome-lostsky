@@ -558,6 +558,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/setting/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 获取团队设置定义与当前值
+         * @description 仅团队管理员可访问。页面根据 control、type 和 options 动态生成设置表单。
+         */
+        get: operations["teamSettingSchema"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/setting": {
         parameters: {
             query?: never;
@@ -1120,6 +1140,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/entity/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 按 slug 搜索可用团队和成员 */
+        get: operations["teamEntitySearch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entity/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 批量解析 Markdown 对象 */
+        get: operations["teamEntityResolve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/slug": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 本人首次认领成员 slug */
+        post: operations["teamMeClaimSlug"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/member/slug": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 管理员为指定成员首次认领 slug */
+        post: operations["teamMemberClaimSlug"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/member/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 管理员设置成员搜索三态值 */
+        post: operations["teamMemberSetSearch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1666,10 +1771,10 @@ export interface components {
              */
             manager_scope?: 1 | 2;
             /**
-             * @description 1=team管理可见, 2=team管理可见不含主体本人, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见
+             * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见
              * @enum {integer}
              */
-            visibility?: 1 | 2 | 3 | 4 | 5 | 6;
+            visibility?: 1 | 3 | 4 | 5 | 6;
             /** @description visibility=6(custom) 时生效 */
             visibility_targets?: components["schemas"]["VisibilityTarget"][];
         };
@@ -1825,6 +1930,55 @@ export interface components {
             memo?: string | null;
             values?: components["schemas"]["JoinFieldValue"][];
             tasks?: components["schemas"]["JoinTask"][];
+        };
+        EntityTeamSummary: {
+            slug: string;
+            display_name: string;
+        };
+        EntitySummary: {
+            slug: string;
+            /** @enum {string} */
+            type: "team" | "teamMember" | "unknown";
+            display_name: string;
+            avatar?: string | null;
+            team?: components["schemas"]["EntityTeamSummary"];
+            available: boolean;
+            href?: string | null;
+        };
+        /** @description 按设置定义返回的真实类型值 */
+        TeamSettingValue: boolean | number | string;
+        TeamSettingOption: {
+            value: number | string;
+            label: string;
+            description?: string;
+        };
+        TeamSettingDefinition: {
+            key: string;
+            label: string;
+            description: string;
+            /** @enum {string} */
+            type: "boolean" | "integer" | "enum" | "string";
+            /** @enum {string} */
+            control: "switch" | "radio" | "select" | "number" | "input";
+            order: number;
+            default: components["schemas"]["TeamSettingValue"];
+            value: components["schemas"]["TeamSettingValue"];
+            options?: components["schemas"]["TeamSettingOption"][];
+            min?: number;
+            max?: number;
+            step?: number;
+            min_length?: number;
+            max_length?: number;
+        };
+        TeamSettingApp: {
+            app_name: string;
+            label: string;
+            description: string;
+            order: number;
+            settings: components["schemas"]["TeamSettingDefinition"][];
+        };
+        TeamSettingSchema: {
+            apps: components["schemas"]["TeamSettingApp"][];
         };
     };
     responses: never;
@@ -4072,6 +4226,49 @@ export interface operations {
             };
         };
     };
+    teamSettingSchema: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["TeamSettingSchema"];
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 不是团队管理员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     teamSettingIndex: {
         parameters: {
             query?: {
@@ -4095,7 +4292,7 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
                         data?: {
-                            [key: string]: unknown;
+                            [key: string]: components["schemas"]["TeamSettingValue"];
                         };
                     };
                 };
@@ -4182,8 +4379,8 @@ export interface operations {
                     app_name?: string;
                     /** @description key => value，或 key => { value, visibility, visibility_targets } */
                     settings: {
-                        [key: string]: components["schemas"]["AnyValue"] | {
-                            value: components["schemas"]["AnyValue"];
+                        [key: string]: components["schemas"]["TeamSettingValue"] | {
+                            value: components["schemas"]["TeamSettingValue"];
                             /**
                              * @description 1=team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见
                              * @enum {integer}
@@ -5113,7 +5310,7 @@ export interface operations {
                 target_type?: "team" | "teamMember";
                 target_id?: number;
                 manager_scope?: 1 | 2;
-                visibility?: 1 | 2 | 3 | 4 | 5 | 6;
+                visibility?: 1 | 3 | 4 | 5 | 6;
                 keyword?: string;
             };
             header?: {
@@ -5322,10 +5519,10 @@ export interface operations {
                      */
                     manager_scope?: 1 | 2;
                     /**
-                     * @description 1=team管理可见, 2=team管理可见不含主体本人, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见；team主体默认1，teamMember主体默认3
+                     * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见；team主体默认1，teamMember主体默认3
                      * @enum {integer}
                      */
-                    visibility?: 1 | 2 | 3 | 4 | 5 | 6;
+                    visibility?: 1 | 3 | 4 | 5 | 6;
                     /** @description visibility=6(custom) 时生效 */
                     visibility_targets?: components["schemas"]["VisibilityTarget"][];
                 };
@@ -5432,10 +5629,10 @@ export interface operations {
                      */
                     manager_scope?: 1 | 2;
                     /**
-                     * @description 1=team管理可见, 2=team管理可见不含主体本人, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见
+                     * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见
                      * @enum {integer}
                      */
-                    visibility?: 1 | 2 | 3 | 4 | 5 | 6;
+                    visibility?: 1 | 3 | 4 | 5 | 6;
                     /** @description visibility=6(custom) 时生效 */
                     visibility_targets?: components["schemas"]["VisibilityTarget"][];
                     /** @description ??ID */
@@ -6188,6 +6385,171 @@ export interface operations {
         };
         responses: {
             /** @description ?? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+        };
+    };
+    teamEntitySearch: {
+        parameters: {
+            query: {
+                keyword: string;
+                limit?: number;
+            };
+            header?: {
+                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 对象摘要列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["EntitySummary"][];
+                    };
+                };
+            };
+        };
+    };
+    teamEntityResolve: {
+        parameters: {
+            query: {
+                "slugs[]": string[];
+            };
+            header?: {
+                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 按输入顺序返回解析结果；不可用对象不暴露具体原因 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["EntitySummary"][];
+                    };
+                };
+            };
+        };
+    };
+    teamMeClaimSlug: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    slug: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 认领成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"];
+                };
+            };
+            /** @description slug 已确定或已被占用 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamMemberClaimSlug: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    member_id: number;
+                    slug: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 认领成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"];
+                };
+            };
+            /** @description slug 已确定或已被占用 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamMemberSetSearch: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    member_id: number;
+                    /** @enum {integer|null} */
+                    search_override: 0 | 1 | null;
+                };
+            };
+        };
+        responses: {
+            /** @description 设置成功 */
             200: {
                 headers: {
                     [name: string]: unknown;

@@ -467,7 +467,7 @@ CREATE TABLE `document` (
     `documentable_type` VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '多态目标类型 team|teamMember',
     `documentable_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '多态目标ID',
     `manager_scope`     TINYINT      NOT NULL DEFAULT 1 COMMENT '管理范围 1-team 2-subject_team',
-    `visibility`        TINYINT      NOT NULL DEFAULT 1 COMMENT '可见范围 1-team 2-team_except_subject 3-subject_team 4-member 5-public 6-custom',
+    `visibility`        TINYINT      NOT NULL DEFAULT 1 COMMENT '可见范围 1-team 3-subject_team 4-member 5-public 6-custom',
     `sort`              INT          NOT NULL DEFAULT 0 COMMENT '排序',
     `create_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
@@ -734,3 +734,39 @@ CREATE TABLE `team_member_role` (
     KEY `idx_team_id` (`team_id`),
     KEY `idx_role_id` (`role_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队成员角色表';
+
+-- ----------------------------
+-- Table: entity_identity
+-- Model: app\model\EntityIdentity
+-- ----------------------------
+CREATE TABLE `entity_identity` (
+    `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `slug`              VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '全站唯一且永久保留的对象标识',
+    `entityable_type`   VARCHAR(30)  NOT NULL DEFAULT '' COMMENT '对象类型 team/teamMember',
+    `entityable_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '对象ID',
+    `search_override`   TINYINT      NULL     DEFAULT NULL COMMENT '成员搜索覆盖 NULL-继承 0-禁止 1-允许',
+    `create_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`       INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间（身份永久保留）',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_slug` (`slug`),
+    UNIQUE KEY `uk_entityable` (`entityable_type`, `entityable_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队与成员统一身份表';
+
+-- ----------------------------
+-- Table: markdown_reference
+-- Model: app\model\MarkdownReference
+-- ----------------------------
+CREATE TABLE `markdown_reference` (
+    `id`                 INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `referenceable_type` VARCHAR(30)  NOT NULL DEFAULT '' COMMENT 'Markdown来源类型',
+    `referenceable_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Markdown来源ID',
+    `referenceable_field` VARCHAR(50) NOT NULL DEFAULT '' COMMENT 'Markdown字段名',
+    `entity_identity_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '引用身份ID',
+    `create_time`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`        INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_source_entity` (`referenceable_type`, `referenceable_id`, `referenceable_field`, `entity_identity_id`),
+    KEY `idx_entity_identity_id` (`entity_identity_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Markdown多态对象引用表';

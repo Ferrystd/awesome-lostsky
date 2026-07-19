@@ -1,15 +1,101 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
-import { Ban, Eye, Pencil, Plus, Search, Trash2, Upload, UserCheck } from '@lucide/vue'
-import { computed, nextTick, reactive, ref } from 'vue'
-const client=useQueryClient();const search=ref('');const dialog=ref<HTMLDialogElement|null>(null);const editing=ref<Record<string,unknown>|null>(null);const postIds=ref<number[]>([]);const uploading=ref('');const form=reactive({user_id:'',nickname:'',avatar:'',description:'',intro_image:'',intro_video:'',introduction_markdown:''})
-const membersQuery=useQuery({queryKey:['members'],queryFn:()=>api.get<Record<string,unknown>[]>('/member/index')});const postsQuery=useQuery({queryKey:['post-types'],queryFn:()=>api.get<Record<string,unknown>[]>('/postType/index')});const members=computed(()=>membersQuery.data.value??[]);const filtered=computed(()=>{const term=search.value.trim().toLowerCase();return term?members.value.filter(item=>JSON.stringify(item).toLowerCase().includes(term)):members.value});const posts=computed(()=>postsQuery.data.value??[])
-const save=useMutation({mutationFn:()=>api.post(editing.value?'/member/edit':'/member/add',{...(editing.value?{member_id:editing.value.id}:{user_id:Number(form.user_id)}),nickname:form.nickname,avatar:form.avatar||null,description:form.description||null,intro_image:form.intro_image||null,intro_video:form.intro_video||null,introduction_markdown:form.introduction_markdown||null,post_type_ids:postIds.value}),onSuccess:async()=>{await client.invalidateQueries({queryKey:['members']});dialog.value?.close()}});const action=useMutation({mutationFn:({path,id}:{path:string;id:number})=>api.post(path,{member_id:id}),onSuccess:()=>client.invalidateQueries({queryKey:['members']})})
-async function open(row?:Record<string,unknown>){editing.value=row??null;Object.assign(form,{user_id:String(row?.user_id??''),nickname:String(row?.nickname??''),avatar:String(row?.avatar??(row?.profile as Record<string,unknown>|undefined)?.avatar??''),description:String(row?.description??''),intro_image:String(row?.intro_image??''),intro_video:String(row?.intro_video??''),introduction_markdown:String(row?.introduction_markdown??'')});const assigned=Array.isArray(row?.post_types)?row!.post_types as Record<string,unknown>[]:Array.isArray(row?.posts)?row!.posts as Record<string,unknown>[]:[];postIds.value=assigned.map(item=>Number(item.id??(item.type as Record<string,unknown>|undefined)?.id)).filter(Boolean);save.reset();await nextTick();dialog.value?.showModal()}
-function togglePost(id:unknown,on:boolean){const value=Number(id);postIds.value=on?[...new Set([...postIds.value,value])]:postIds.value.filter(item=>item!==value)}async function uploadField(key:'avatar'|'intro_image'|'intro_video',event:Event){const file=(event.target as HTMLInputElement).files?.[0];if(!file)return;uploading.value=key;try{const result=await api.upload<Record<string,unknown>>(file);form[key]=String(result.url??result.path??result.id??'')}finally{uploading.value=''}}function removeMember(id:number){if(window.confirm('确定将该成员移出团队？'))action.mutate({path:'/member/remove',id})}
-function memberAvatar(item:Record<string,unknown>){return String(item.avatar??(item.profile as Record<string,unknown>|undefined)?.avatar??'')}
+import { FileText, Pencil, Plus, Search, ShieldBan, ShieldCheck, UserRound, UserX } from '@lucide/vue'
+import { computed, ref } from 'vue'
+import AdminPageHeader from '../components/AdminPageHeader.vue'
+
+const client = useQueryClient()
+const search = ref('')
+const query = useQuery({ queryKey: ['members'], queryFn: () => api.get<Record<string, unknown>[]>('/member/index') })
+const members = computed(() => query.data.value ?? [])
+const filtered = computed(() => {
+  const term = search.value.trim().toLowerCase()
+  if (!term) return members.value
+  return members.value.filter(item => [item.nickname, item.slug, item.user_id, item.description].some(value => String(value ?? '').toLowerCase().includes(term)))
+})
+const action = useMutation({
+  mutationFn: ({ endpoint, member_id }: { endpoint: string; member_id: number }) => api.post(endpoint, { member_id }),
+  onSuccess: () => client.invalidateQueries({ queryKey: ['members'] }),
+})
+
+function mutate(endpoint: string, item: Record<string, unknown>, message: string) {
+  if (confirm(message)) action.mutate({ endpoint, member_id: Number(item.id) })
+}
 </script>
-<template><div class="members"><header><div><p>成员、岗位与公开资料</p><h2>团队成员</h2></div><LsButton @click="open()"><Plus :size="17"/>添加成员</LsButton></header><label class="search"><Search :size="18"/><span class="ls-sr-only">搜索成员</span><input v-model="search" type="search" placeholder="搜索昵称、用户或手机号"></label><p v-if="membersQuery.isError.value" class="error" role="alert">{{friendlyError(membersQuery.error.value)}}</p><div v-else-if="membersQuery.isPending.value" class="loading"></div><div v-else-if="!filtered.length" class="empty"><h3>还没有匹配的成员</h3><p>添加成员，或调整搜索条件。</p></div><div v-else class="member-list"><article v-for="item in filtered" :key="String(item.id)"><div class="avatar"><img v-if="memberAvatar(item)" :src="memberAvatar(item)" alt=""><span v-else>{{String(item.nickname||item.name||'成').slice(0,1)}}</span></div><div class="identity"><strong>{{item.nickname||item.name||`成员 #${item.id}`}}</strong><small>User #{{item.user_id}} · {{Number(item.is_blocked)?'已封禁':'正常'}}</small><p>{{item.description||'暂无成员简介'}}</p></div><div class="actions"><RouterLink :to="`/member-detail?id=${item.id}`" aria-label="查看成员"><Eye :size="18"/></RouterLink><button type="button" aria-label="编辑成员" @click="open(item)"><Pencil :size="18"/></button><button v-if="Number(item.is_blocked)" type="button" aria-label="解除封禁" @click="action.mutate({path:'/member/unblock',id:Number(item.id)})"><UserCheck :size="18"/></button><button v-else type="button" aria-label="封禁成员" @click="action.mutate({path:'/member/block',id:Number(item.id)})"><Ban :size="18"/></button><button type="button" class="danger" aria-label="移除成员" @click="removeMember(Number(item.id))"><Trash2 :size="18"/></button></div></article></div><p v-if="action.isError.value" class="error" role="alert">{{friendlyError(action.error.value)}}</p><dialog ref="dialog" @click.self="dialog?.close()"><form @submit.prevent="save.mutate()"><header><h3>{{editing?'编辑成员':'添加成员'}}</h3><button type="button" aria-label="关闭" @click="dialog?.close()">×</button></header><div class="form-fields"><label v-if="!editing">用户 ID<input v-model="form.user_id" type="number" required></label><label>团队昵称<input v-model="form.nickname" required></label><label>头像地址<div class="upload-field"><input v-model="form.avatar"><label><Upload :size="16"/>{{uploading==='avatar'?'上传中':'上传'}}<input type="file" accept="image/*" @change="uploadField('avatar',$event)"></label></div></label><label>成员简介<textarea v-model="form.description" rows="3"></textarea></label><label>介绍图片<div class="upload-field"><input v-model="form.intro_image"><label><Upload :size="16"/>{{uploading==='intro_image'?'上传中':'上传'}}<input type="file" accept="image/*" @change="uploadField('intro_image',$event)"></label></div></label><label>介绍视频<div class="upload-field"><input v-model="form.intro_video"><label><Upload :size="16"/>{{uploading==='intro_video'?'上传中':'上传'}}<input type="file" accept="video/*" @change="uploadField('intro_video',$event)"></label></div></label><label>详细介绍<textarea v-model="form.introduction_markdown" rows="5"></textarea></label><fieldset><legend>岗位类型</legend><label v-for="post in posts" :key="String(post.id)"><input type="checkbox" :checked="postIds.includes(Number(post.id))" @change="togglePost(post.id,($event.target as HTMLInputElement).checked)">{{post.name}}</label></fieldset><p v-if="save.isError.value" class="error" role="alert">{{friendlyError(save.error.value)}}</p><div class="dialog-actions"><LsButton type="button" variant="secondary" @click="dialog?.close()">取消</LsButton><LsButton type="submit" :loading="save.isPending.value" :disabled="Boolean(uploading)">保存成员</LsButton></div></div></form></dialog></div></template>
-<style scoped>.members{display:grid;gap:1rem}.members>header{display:flex;align-items:end;justify-content:space-between;gap:1rem}.members>header p,.members>header h2{margin:0}.members>header p{color:var(--muted-ink);font-size:.8rem}.search{height:44px;display:flex;align-items:center;gap:.5rem;padding:0 .75rem;background:white;border:1px solid var(--line);border-radius:8px}.search input{width:100%;border:0;outline:0}.member-list{display:grid;gap:.65rem}.member-list article{display:grid;grid-template-columns:52px minmax(0,1fr);gap:.8rem;padding:1rem;background:white;border:1px solid var(--line);border-radius:10px}.avatar{width:52px;height:52px;display:grid;place-items:center;overflow:hidden;color:white;background:var(--sky-lost-strong);border-radius:9px;font-weight:700}.avatar img{width:100%;height:100%;object-fit:cover}.identity strong,.identity small{display:block}.identity small,.identity p{color:var(--muted-ink);font-size:.78rem}.identity p{margin:.4rem 0 0}.actions{grid-column:1/3;display:flex;justify-content:flex-end;padding-top:.6rem;border-top:1px solid var(--line)}.actions a,.actions button{width:44px;height:44px;display:grid;place-items:center;color:var(--muted-ink);background:transparent;border:0;border-radius:7px}.actions .danger{color:var(--danger)}.error,.empty{padding:1rem;background:white;border:1px solid var(--line);border-radius:8px}.error{color:var(--danger)}.empty{padding:3rem 1rem;text-align:center}.empty p{color:var(--muted-ink)}.loading{height:240px;background:var(--line);border-radius:10px}dialog{width:min(94vw,42rem);max-height:86dvh;padding:0;border:0;border-radius:12px}dialog::backdrop{background:oklch(.06 0 0/.64)}dialog>form>header{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;padding:1rem;background:white;border-bottom:1px solid var(--line)}dialog h3{margin:0}dialog header button{width:44px;height:44px;background:transparent;border:0;font-size:1.5rem}.form-fields{display:grid;gap:1rem;padding:1rem}.form-fields>label{display:grid;gap:.4rem;font-size:.84rem;font-weight:650}.form-fields input:not([type=file]):not([type=checkbox]),.form-fields textarea{width:100%;min-height:44px;padding:.65rem .75rem;border:1px solid var(--line);border-radius:8px}.upload-field{display:grid;grid-template-columns:1fr auto}.upload-field>input{border-radius:8px 0 0 8px!important}.upload-field>label{min-width:90px;display:flex;align-items:center;justify-content:center;gap:.35rem;color:white;background:var(--sky-lost-strong);border-radius:0 8px 8px 0}.upload-field input[type=file]{display:none}fieldset{display:flex;flex-wrap:wrap;gap:.5rem;padding:1rem;border:1px solid var(--line);border-radius:8px}fieldset label{min-height:40px;display:flex;align-items:center;gap:.4rem;padding:0 .6rem;background:var(--cloud);border-radius:7px}.dialog-actions{display:flex;justify-content:flex-end;gap:.5rem}@media(min-width:720px){.member-list article{grid-template-columns:52px minmax(0,1fr) auto;align-items:center}.actions{grid-column:auto;border:0;padding:0}}</style>
+
+<template>
+  <div class="members-view">
+    <AdminPageHeader title="成员" description="查看成员状态，进入独立页面维护公开资料、岗位和管理员身份设置。">
+      <template #actions><RouterLink class="primary-link" to="/member-add"><Plus :size="17" />添加成员</RouterLink></template>
+    </AdminPageHeader>
+
+    <label class="search-field">
+      <Search :size="18" aria-hidden="true" />
+      <span class="ls-sr-only">搜索成员</span>
+      <input v-model="search" type="search" placeholder="按昵称、slug 或用户 ID 搜索">
+    </label>
+
+    <p v-if="query.isError.value || action.isError.value" class="error" role="alert">{{ friendlyError(query.error.value || action.error.value) }}</p>
+    <div v-else-if="query.isPending.value" class="loading"><span v-for="i in 5" :key="i" /></div>
+    <section v-else-if="!filtered.length" class="empty">
+      <UserRound :size="34" />
+      <h2>{{ search ? '没有匹配的成员' : '团队里还没有成员' }}</h2>
+      <p>{{ search ? '尝试更短的关键词或直接输入用户 ID。' : '添加一位已有 LostSky 用户开始协作。' }}</p>
+    </section>
+    <section v-else class="member-list">
+      <article v-for="item in filtered" :key="String(item.id)">
+        <div class="avatar">
+          <img v-if="item.avatar" :src="String(item.avatar)" alt="">
+          <span v-else>{{ String(item.nickname || '成').slice(0, 1) }}</span>
+        </div>
+        <div class="identity">
+          <div><h2>{{ item.nickname || `成员 #${item.id}` }}</h2><span :class="{ blocked: Number(item.is_blocked) === 1 }">{{ Number(item.is_blocked) === 1 ? '已封禁' : '正常' }}</span></div>
+          <p>{{ item.slug ? `@${item.slug}` : '尚未认领 slug' }} · User #{{ item.user_id }}</p>
+          <small>{{ item.description || '暂无成员简介' }}</small>
+        </div>
+        <nav aria-label="成员操作">
+          <RouterLink :to="`/member-detail?id=${item.id}`" title="自定义资料"><FileText :size="18" /><span>资料</span></RouterLink>
+          <RouterLink :to="`/member-edit?id=${item.id}`" title="编辑成员"><Pencil :size="18" /><span>编辑</span></RouterLink>
+          <button v-if="Number(item.is_blocked) === 1" type="button" @click="mutate('/member/unblock', item, '确认解除该成员的封禁？')"><ShieldCheck :size="18" /><span>解封</span></button>
+          <button v-else type="button" @click="mutate('/member/block', item, '确认封禁该成员？其身份与旧引用会保留，但暂时不可用。')"><ShieldBan :size="18" /><span>封禁</span></button>
+          <button type="button" class="danger" @click="mutate('/member/remove', item, '确认将该成员移出团队？其 slug 将永久保留。')"><UserX :size="18" /><span>移出</span></button>
+        </nav>
+      </article>
+    </section>
+  </div>
+</template>
+
+<style scoped>
+.members-view { display: grid; gap: 22px; }
+.primary-link { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 16px; border-radius: var(--radius-md); color: white; background: var(--primary); font-size: .88rem; font-weight: 700; text-decoration: none; }
+.primary-link:hover { background: var(--primary-hover); }
+.search-field { max-width: 520px; min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.search-field:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 13%, transparent); }
+.search-field input { width: 100%; border: 0; outline: 0; color: var(--text); background: transparent; font: inherit; }
+.member-list { display: grid; gap: 10px; }
+.member-list article { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 15px; padding: 17px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+.avatar { width: 48px; height: 48px; display: grid; place-items: center; overflow: hidden; border-radius: 15px; color: white; background: linear-gradient(145deg, var(--primary), var(--primary-hover)); font-weight: 800; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.identity { min-width: 0; }
+.identity > div { display: flex; align-items: center; gap: 9px; }
+.identity h2 { margin: 0; overflow: hidden; font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
+.identity span { padding: 2px 7px; border-radius: 999px; color: var(--success); background: color-mix(in srgb, var(--success) 9%, transparent); font-size: .7rem; }
+.identity span.blocked { color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); }
+.identity p, .identity small { display: block; margin: 4px 0 0; overflow: hidden; color: var(--text-secondary); font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
+.identity small { color: var(--text-tertiary); }
+nav { display: flex; align-items: center; gap: 3px; }
+nav a, nav button { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; border: 0; border-radius: var(--radius-md); color: var(--text-secondary); background: transparent; font: inherit; font-size: .78rem; text-decoration: none; cursor: pointer; }
+nav a:hover, nav button:hover { color: var(--primary); background: var(--surface-subtle); }
+nav .danger:hover { color: var(--danger); }
+.empty { display: grid; justify-items: center; gap: 8px; padding: 54px 20px; border: 1px dashed var(--border); border-radius: var(--radius-lg); color: var(--text-secondary); text-align: center; }
+.empty h2, .empty p { margin: 0; }
+.loading { display: grid; gap: 10px; }
+.loading span { height: 82px; border-radius: var(--radius-lg); background: var(--surface-subtle); }
+.error { color: var(--danger); }
+@media (max-width: 820px) {
+  .member-list article { grid-template-columns: auto minmax(0, 1fr); }
+  nav { grid-column: 1 / -1; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 9px; }
+}
+@media (max-width: 520px) { nav span { display: none; } .member-list article { padding: 14px; } }
+</style>

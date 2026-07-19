@@ -102,7 +102,7 @@ class TeamJoin
                 'team_id' => $teamId,
                 'user_id' => $userId,
                 'member_id' => null,
-                'status' => TeamJoinStatus::Applied->value,
+                'status' => TeamJoinStatus::Applied,
                 'memo' => $data['memo'] ?? null,
             ]);
 
@@ -199,7 +199,7 @@ class TeamJoin
             throw new HttpException(403, '无权取消此申请');
         }
         $this->assertPending($application);
-        $application->status = TeamJoinStatus::Cancelled->value;
+        $application->status = TeamJoinStatus::Cancelled;
         $application->save();
     }
 
@@ -207,7 +207,7 @@ class TeamJoin
     {
         $application = $this->application($teamId, $id);
         $this->assertPending($application);
-        $application->status = TeamJoinStatus::Reviewing->value;
+        $application->status = TeamJoinStatus::Reviewing;
         $application->save();
     }
 
@@ -220,7 +220,7 @@ class TeamJoin
 
         $application = $this->application($teamId, $id);
         $this->assertPending($application);
-        $application->status = TeamJoinStatus::Rejected->value;
+        $application->status = TeamJoinStatus::Rejected;
         $application->memo = $memo;
         $application->save();
     }
@@ -260,7 +260,7 @@ class TeamJoin
             $this->transferValues($teamId, (int) $application->id, (int) $member->id);
 
             $application->member_id = (int) $member->id;
-            $application->status = TeamJoinStatus::Joined->value;
+            $application->status = TeamJoinStatus::Joined;
             $application->save();
 
             return (int) $member->id;
@@ -295,8 +295,8 @@ class TeamJoin
                 ]);
             }
 
-            if ($this->statusId($application) === TeamJoinStatus::Applied->value) {
-                $application->status = TeamJoinStatus::Reviewing->value;
+            if ($application->enumCase('status') === TeamJoinStatus::Applied) {
+                $application->status = TeamJoinStatus::Reviewing;
                 $application->save();
             }
         });
@@ -342,16 +342,9 @@ class TeamJoin
 
     private function assertPending(TeamJoinApplication $application): void
     {
-        if (!in_array($this->statusId($application), self::ACTIVE_STATUSES, true)) {
+        if (!in_array($application->enumCase('status')->value, self::ACTIVE_STATUSES, true)) {
             throw new HttpException(409, '当前申请状态不允许执行此操作');
         }
-    }
-
-    private function statusId(TeamJoinApplication $application): int
-    {
-        $status = $application->getData('status');
-
-        return $status instanceof TeamJoinStatus ? $status->value : (int) $status;
     }
 
     private function fieldData(array $data): array

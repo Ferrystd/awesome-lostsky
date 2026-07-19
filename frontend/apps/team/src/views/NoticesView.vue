@@ -1,19 +1,91 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
-import { CheckCheck, Mail, MailOpen, RefreshCw } from '@lucide/vue'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { CheckCheck, Mail, MailOpen, Pin, RefreshCw } from '@lucide/vue'
 import { computed, ref } from 'vue'
+import AdminPageHeader from '../components/AdminPageHeader.vue'
 
-const client = useQueryClient(); const activeId = ref<number | null>(null); const filter = ref<'all' | 'unread'>('all')
-const query = useQuery({ queryKey: ['notices'], queryFn: () => api.get<unknown>('/notice/index') })
-const notices = computed<Record<string, unknown>[]>(() => { const data = query.data.value; if (Array.isArray(data)) return data; if (data && typeof data === 'object') { const list = (data as Record<string, unknown>).list; if (Array.isArray(list)) return list } return [] })
-const visible = computed(() => filter.value === 'unread' ? notices.value.filter((item) => Number(item.is_read) !== 1) : notices.value)
-const active = computed(() => notices.value.find((item) => Number(item.id) === activeId.value) ?? null)
-const confirmOne = useMutation({ mutationFn: (id: number) => api.post('/notice/confirm', { id }), onSuccess: () => client.invalidateQueries({ queryKey: ['notices'] }) })
-const confirmAll = useMutation({ mutationFn: () => api.post('/notice/confirmAll', {}), onSuccess: () => client.invalidateQueries({ queryKey: ['notices'] }) })
-async function select(item: Record<string, unknown>) { activeId.value = Number(item.id); if (Number(item.is_read) !== 1) await confirmOne.mutateAsync(Number(item.id)) }
-function time(value: unknown) { if (!value) return '时间未知'; const number = Number(value); return Number.isFinite(number) ? new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(number < 1e12 ? number * 1000 : number)) : String(value) }
+interface NoticeItem {
+  id: number
+  title?: string | null
+  content?: string | null
+  is_pinned?: number
+  is_read?: number
+  create_time?: number | string | null
+  created_at?: number | string | null
+}
+
+interface NoticeList {
+  list?: NoticeItem[]
+  total?: number
+}
+
+const client = useQueryClient()
+const filter = ref<'all' | 'unread'>('all')
+const query = useQuery({ queryKey: ['notices'], queryFn: () => api.get<NoticeList>('/notice/index') })
+const notices = computed(() => Array.isArray(query.data.value?.list) ? query.data.value.list : [])
+const visible = computed(() => filter.value === 'unread' ? notices.value.filter((item) => item.is_read !== 1) : notices.value)
+const unreadCount = computed(() => notices.value.filter((item) => item.is_read !== 1).length)
+const confirmAll = useMutation({
+  mutationFn: () => api.post('/notice/confirmAll', {}),
+  onSuccess: () => client.invalidateQueries({ queryKey: ['notices'] }),
+})
+
+function time(value: unknown) {
+  if (!value) return '时间未知'
+  const number = Number(value)
+  return Number.isFinite(number)
+    ? new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(number < 1e12 ? number * 1000 : number))
+    : String(value)
+}
 </script>
-<template><div class="notices"><header><div><p>未读 {{ notices.filter(item=>Number(item.is_read)!==1).length }} 封</p><h2>站内信</h2></div><div><LsButton variant="secondary" size="sm" @click="query.refetch()"><RefreshCw :size="16" />刷新</LsButton><LsButton size="sm" :loading="confirmAll.isPending.value" @click="confirmAll.mutate()"><CheckCheck :size="16" />全部确认</LsButton></div></header><div class="filter"><button type="button" :aria-pressed="filter==='all'" @click="filter='all'">全部</button><button type="button" :aria-pressed="filter==='unread'" @click="filter='unread'">未读</button></div><p v-if="query.isError.value" class="error" role="alert">{{friendlyError(query.error.value)}}</p><div v-else class="layout"><section class="list"><button v-for="item in visible" :key="String(item.id)" type="button" :class="{active:Number(item.id)===activeId,unread:Number(item.is_read)!==1}" @click="select(item)"><Mail v-if="Number(item.is_read)!==1" :size="19"/><MailOpen v-else :size="19"/><span><strong>{{item.title||'无标题消息'}}</strong><small>{{time(item.create_time??item.created_at)}}</small><p>{{String(item.content??'').slice(0,90)||'暂无内容'}}</p></span></button><div v-if="!visible.length" class="empty">没有符合条件的站内信。</div></section><article class="detail"><template v-if="active"><small>{{time(active.create_time??active.created_at)}}</small><h3>{{active.title||'无标题消息'}}</h3><p>{{active.content||'暂无内容'}}</p></template><div v-else class="empty">选择一封站内信查看完整内容。</div></article></div></div></template>
-<style scoped>.notices{display:grid;gap:1rem}header{display:flex;flex-direction:column;gap:1rem}header p,header h2{margin:0}header p{color:var(--sky-lost-strong);font-size:.78rem;font-weight:700}header h2{font-size:1.3rem}header>div:last-child{display:flex;gap:.5rem}.filter{display:flex;gap:.25rem;padding:3px;background:white;border:1px solid var(--line);border-radius:9px;width:fit-content}.filter button{min-height:38px;padding:0 .85rem;color:var(--muted-ink);background:transparent;border:0;border-radius:7px}.filter button[aria-pressed=true]{color:white;background:var(--sky-lost-strong)}.layout{display:grid;gap:1rem}.list{display:grid;gap:.5rem}.list>button{display:grid;grid-template-columns:22px 1fr;gap:.75rem;padding:1rem;text-align:left;color:var(--muted-ink);background:white;border:1px solid var(--line);border-radius:10px}.list>button.unread{color:var(--sky-lost-strong);border-color:color-mix(in oklch,var(--sky-lost),var(--line) 55%)}.list>button.active{outline:3px solid color-mix(in oklch,var(--sky-lost),transparent 78%)}.list span{min-width:0}.list strong,.list small{display:block}.list strong{color:var(--ink)}.list small{margin-top:.15rem;color:var(--muted-ink);font-size:.75rem}.list p{margin:.5rem 0 0;color:var(--muted-ink);font-size:.84rem}.detail{min-height:240px;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:10px}.detail small{color:var(--muted-ink)}.detail h3{margin:.5rem 0 1.25rem}.detail p{white-space:pre-wrap;line-height:1.75}.empty{padding:3rem 1rem;text-align:center;color:var(--muted-ink)}.error{padding:1rem;color:var(--danger);background:white;border:1px solid var(--line);border-radius:8px}@media(min-width:800px){header{flex-direction:row;align-items:end;justify-content:space-between}.layout{grid-template-columns:minmax(300px,.8fr) minmax(0,1.2fr);align-items:start}.detail{position:sticky;top:90px}}</style>
+
+<template>
+  <div class="notices-view">
+    <AdminPageHeader title="站内信" :description="`集中处理系统提醒和团队消息，目前有 ${unreadCount} 封未读。`">
+      <template #actions>
+        <LsButton variant="secondary" size="sm" @click="query.refetch()"><RefreshCw :size="16" />刷新</LsButton>
+        <LsButton size="sm" :loading="confirmAll.isPending.value" :disabled="unreadCount === 0" @click="confirmAll.mutate()"><CheckCheck :size="16" />全部确认</LsButton>
+      </template>
+    </AdminPageHeader>
+
+    <div class="filter" aria-label="站内信筛选">
+      <button type="button" :aria-pressed="filter === 'all'" @click="filter = 'all'">全部</button>
+      <button type="button" :aria-pressed="filter === 'unread'" @click="filter = 'unread'">未读</button>
+    </div>
+
+    <p v-if="query.isError.value" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
+    <div v-else-if="query.isPending.value" class="loading" aria-label="正在加载站内信"><span v-for="i in 4" :key="i" /></div>
+    <section v-else-if="visible.length" class="notice-list" aria-label="站内信列表">
+      <RouterLink
+        v-for="item in visible"
+        :key="item.id"
+        :to="`/notice-detail?id=${item.id}`"
+        :class="{ unread: item.is_read !== 1 }"
+      >
+        <span class="notice-icon" aria-hidden="true"><Mail v-if="item.is_read !== 1" :size="20" /><MailOpen v-else :size="20" /></span>
+        <span class="notice-copy">
+          <span class="notice-meta">
+            <span v-if="item.is_pinned === 1" class="pinned"><Pin :size="14" />置顶</span>
+            <time>{{ time(item.create_time ?? item.created_at) }}</time>
+          </span>
+          <strong>{{ item.title || '无标题消息' }}</strong>
+          <span class="summary">{{ String(item.content ?? '').slice(0, 120) || '这封站内信没有正文。' }}</span>
+        </span>
+        <span v-if="item.is_read !== 1" class="unread-label">未读</span>
+      </RouterLink>
+    </section>
+    <section v-else class="empty">
+      <MailOpen :size="34" aria-hidden="true" />
+      <h3>{{ filter === 'unread' ? '没有未读站内信' : '目前没有站内信' }}</h3>
+      <p>{{ filter === 'unread' ? '新的提醒会继续显示在这里。' : '系统提醒和团队消息会显示在这里。' }}</p>
+    </section>
+
+    <p v-if="confirmAll.isError.value" class="error" role="alert">{{ friendlyError(confirmAll.error.value) }}</p>
+  </div>
+</template>
+
+<style scoped>
+.notices-view{display:grid;gap:1.5rem}.filter{width:fit-content;display:flex;gap:.25rem;padding:3px;background:white;border:1px solid var(--line);border-radius:9px}.filter button{min-height:44px;padding:0 1rem;color:var(--muted-ink);background:transparent;border:0;border-radius:7px;cursor:pointer}.filter button[aria-pressed=true]{color:white;background:var(--sky-lost-strong)}.notice-list{display:grid;gap:.75rem}.notice-list>a{min-height:104px;display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:1rem;padding:1rem 1.125rem;color:var(--ink);background:white;border:1px solid var(--line);border-radius:12px;text-decoration:none;transition:border-color .16s ease,box-shadow .16s ease}.notice-list>a:hover{border-color:color-mix(in oklch,var(--sky-lost),var(--line) 50%);box-shadow:0 6px 18px color-mix(in oklch,var(--ink),transparent 94%)}.notice-list>a:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost),transparent 72%);outline-offset:2px}.notice-list>a.unread{border-color:color-mix(in oklch,var(--sky-lost),var(--line) 55%)}.notice-icon{width:44px;height:44px;display:grid;place-items:center;color:var(--ink);background:var(--cloud);border-radius:10px}.unread .notice-icon{color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 90%)}.notice-copy{min-width:0;display:grid;gap:.35rem}.notice-meta{display:flex;align-items:center;gap:.625rem;color:var(--muted-ink);font-size:.75rem}.pinned{display:inline-flex;align-items:center;gap:.25rem;color:var(--sky-lost-strong);font-weight:700}.notice-copy strong{font-size:1rem}.summary{overflow:hidden;color:var(--muted-ink);font-size:.86rem;line-height:1.55;text-overflow:ellipsis;white-space:nowrap}.unread-label{padding:.25rem .55rem;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 90%);border-radius:999px;font-size:.72rem;font-weight:750}.empty{display:grid;justify-items:center;gap:.5rem;padding:3.5rem 1rem;color:var(--muted-ink);background:white;border:1px dashed var(--line);border-radius:12px;text-align:center}.empty h3,.empty p{margin:0}.loading{display:grid;gap:.75rem}.loading span{height:104px;background:var(--surface-subtle);border-radius:12px;animation:pulse 1.3s infinite alternate}.error{padding:1rem;margin:0;color:var(--danger);background:white;border:1px solid color-mix(in oklch,var(--danger),white 70%);border-radius:10px}@keyframes pulse{to{opacity:.55}}@media(max-width:639px){.notices-view{gap:1rem}.notice-list>a{grid-template-columns:44px minmax(0,1fr);padding:1rem}.unread-label{grid-column:2;width:fit-content}.summary{display:-webkit-box;overflow:hidden;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2}}@media(prefers-reduced-motion:reduce){.notice-list>a{transition:none}.loading span{animation:none}}
+</style>

@@ -35,6 +35,8 @@ HTML 必须保留 `<meta charset="UTF-8">`
 
 业务表单默认使用单列字段流并限制可读宽度，桌面端也不得把多个文本输入框横向拼成工具栏。创建、编辑等需要填写多个字段的任务应使用独立路由；弹层只承载简短、低风险的单步输入。
 
+可交互图标不得使用易被误认为禁用的颜色；正常态必须使用清晰、可辨识且满足对比度要求的前景色，与 hover、active、disabled 状态形成差异。偏灰白图标仅用于不可操作的禁用状态。
+
 团队后台页面必须使用 `/frontend/apps/team/src/components/AdminPage.vue` 作为内容容器，并使用 `AdminPageHeader.vue` 生成页面标题、说明、返回入口和操作区。列表页只负责搜索、筛选、概览与进入任务；查看、创建、编辑、审核等任务使用可深链接的独立路由，禁止在列表旁常驻主从编辑器。公开加入页等非后台品牌页面不适用此约束。
 
 ### 新增
@@ -55,6 +57,7 @@ HTML 必须保留 `<meta charset="UTF-8">`
 
 ### 前端发布流程
 
+- 每次修改前端源码后，必须重新执行 `npm run build`，同步更新 `/www/` 中的构建产物。
 - 发布前在仓库根目录执行 `npm run typecheck`、`npm run test:e2e`，再执行 `npm run build`。
 - `npm run build` 会把官网、账户、团队后台的生产产物发布到 `/www/`；提交 Git 时源码和构建产物一并提交。
 - Git 远端推送只负责版本同步，不代替服务器部署；宝塔/Nginx 的实际站点配置由维护者手动应用，尤其是 `assets.lostsky.work` 的跨域响应头和缓存策略。
@@ -88,6 +91,8 @@ php think make:controller #新建控制器
 开发约定：
 
 - **字段类型转换**：在 `$type` 数组中声明字段类型映射（`'id' => 'integer'` 等），可能使用`$json`
+- **枚举字段**：固定选项使用原生 `BackedEnum`，模型 `$type` 直接声明枚举类。无中文展示需求时由 `Base::$enumReadName = true` 自动输出 case name；需要中文展示时才实现 `EnumTransform`，在 `value()` 中用 `match` 返回文案。模型保存时传枚举实例，查询条件使用枚举底层 `->value`，业务判断需要枚举实例时使用模型 `enumCase()`；禁止为单个字段重复编写枚举获取器、修改器或手动文案映射。
+- **前端枚举表单**：全局生效，固定枚举必须使用选择控件和同一组选项，展示接口返回的 case name 或文案时，通过 `@lostsky/ui/lib/enum` 的 `enumOptionValue()` 自动还原为提交底层值；禁止将枚举展示值交给数字输入框或直接 `Number()` 强转。新增枚举表单时同步覆盖“底层值、case name、展示文案”三种回填输入。
 - **数据库字符集**：`utf8mb4`，排序规则 `utf8mb4_unicode_ci`，引擎 `InnoDB`
 - **关联**：使用`hasOne()`,`bind()`,`belongTo`等关联，而非手动写逻辑
 - **命名空间**：`app\model`。
@@ -95,7 +100,7 @@ php think make:controller #新建控制器
 - **文件模板**：使用`make:model`可建构`$type`,`$hidden`等数组
 - **字段命名**：最简，如`customer_id`代替`team_customer_id`
 - **不随意写独立方法**：优先用获取器、修改器、搜索器，再不济也用scope语法糖等
-- **能null则null**：`null`是合法的所有type。不用0,''替代null语义
+- **能null则null**：不用0,''替代null语义。若需要null，为避免报错，使用`//'field' => 'null|integer'`注释占位
 - **数据计算**：交给数据库，禁止在php侧计算
 
 ### 中间件体系
@@ -121,6 +126,7 @@ php think make:controller #新建控制器
 **TeamAccess**:team管理权限
 **TransactionAccess**:记账应用team管理权限
 **TransactionVerify**:记账应用成员操作权限
+**Permission**:特殊权限校验
 
 ### 服务与控制器规范
 
@@ -149,3 +155,4 @@ php think make:controller #新建控制器
 2. 项目仍处于开发中，无需考虑旧数据和接口的兼容性。
 3. 修改代码时，同步更改 SQL、Swagger/OpenAPI 文档等相关配套文件。
 4. 尽量最小改动，不全文件重写
+5. 新增或修改 SQL 补丁后，默认直接读取项目根目录 `.env` 的数据库配置并执行，避免手动执行；执行前确认数据库与项目匹配，执行后校验结果。

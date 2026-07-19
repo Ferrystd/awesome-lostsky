@@ -45,17 +45,14 @@ class Visibility
 
     public function canView(Model $model, int $teamId, int $memberId, bool $isTeamManager, bool $isSubject): bool
     {
-        $visibility = $model->visibility instanceof VisibilityEnum
-            ? $model->visibility
-            : VisibilityEnum::from((int) $model->visibility);
+        $visibility = $model->enumCase('visibility');
 
         return match ($visibility) {
-            VisibilityEnum::Public            => true,
-            VisibilityEnum::Member            => $memberId > 0,
-            VisibilityEnum::Team              => $isTeamManager,
-            VisibilityEnum::TeamExceptSubject => $isTeamManager && !$isSubject,
-            VisibilityEnum::SubjectTeam       => $isTeamManager || $isSubject,
-            VisibilityEnum::Custom            => $this->hasTarget($model, $teamId, $memberId, $isTeamManager),
+            VisibilityEnum::Public      => true,
+            VisibilityEnum::Member      => $memberId > 0,
+            VisibilityEnum::Team        => $isTeamManager,
+            VisibilityEnum::SubjectTeam => $isTeamManager || $isSubject,
+            VisibilityEnum::Custom      => $this->hasTarget($model, $teamId, $memberId, $isTeamManager),
         };
     }
 

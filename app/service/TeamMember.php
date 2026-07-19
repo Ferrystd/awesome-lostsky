@@ -19,13 +19,17 @@ class TeamMember
     public function list(int $teamId): array
     {
         return \app\model\TeamMember::where('team_id', $teamId)
-            ->with(['profile', 'posts.type', 'fieldValues.field'])
+            ->with(['profile', 'posts.type', 'fieldValues.field', 'identity', 'team'])
             ->visible([
                 'id',
                 'team_id',
                 'user_id',
                 'is_displayed',
                 'is_blocked',
+                'slug',
+                'search_override',
+                'is_valid',
+                'is_searchable',
                 'nickname',
                 'avatar',
                 'description',
@@ -46,7 +50,7 @@ class TeamMember
     public function get(int $teamId, int $memberId): array
     {
         $member = \app\model\TeamMember::where('team_id', $teamId)
-            ->with(['profile', 'posts.type', 'fieldValues.field'])
+            ->with(['profile', 'posts.type', 'fieldValues.field', 'identity', 'team'])
             ->find($memberId);
 
         if (!$member) {
@@ -88,6 +92,12 @@ class TeamMember
                 'introduction_markdown' => null,
             ], $this->pick($data, self::PROFILE_FIELDS)));
 
+            app(\app\service\Markdown::class)->sync(
+                $profile,
+                'introduction_markdown',
+                $profile->introduction_markdown
+            );
+
             if (!empty($data['post_type_ids'])) {
                 $this->syncPosts($member->id, $teamId, $data['post_type_ids']);
             }
@@ -119,6 +129,13 @@ class TeamMember
             if ($profileData) {
                 $profile = TeamMemberProfile::where('member_id', $memberId)->findOrEmpty();
                 $profile->save(array_merge(['member_id' => $memberId], $profileData));
+                if (array_key_exists('introduction_markdown', $profileData)) {
+                    app(\app\service\Markdown::class)->sync(
+                        $profile,
+                        'introduction_markdown',
+                        $profileData['introduction_markdown']
+                    );
+                }
             }
 
             if (isset($data['post_type_ids'])) {

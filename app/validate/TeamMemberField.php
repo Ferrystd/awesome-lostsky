@@ -17,7 +17,7 @@ class TeamMemberField extends Validate
         'default_value' => 'max:500',
         'is_required'   => 'in:0,1',
         'manager_scope' => 'in:1,2',
-        'visibility'    => 'in:1,2,3,4,5,6',
+        'visibility'    => 'in:1,3,4,5,6',
         'is_editable'   => 'in:0,1',
         'is_searchable' => 'in:0,1',
         'is_system'     => 'in:0,1',

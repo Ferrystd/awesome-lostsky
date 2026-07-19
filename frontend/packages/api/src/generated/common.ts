@@ -563,10 +563,10 @@ export interface components {
              */
             manager_scope?: 1 | 2;
             /**
-             * @description 1=team管理可见, 2=team管理可见不含主体本人, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见
+             * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见
              * @enum {integer}
              */
-            visibility?: 1 | 2 | 3 | 4 | 5 | 6;
+            visibility?: 1 | 3 | 4 | 5 | 6;
             /** @description visibility=6(custom) 时生效 */
             visibility_targets?: components["schemas"]["VisibilityTarget"][];
         };

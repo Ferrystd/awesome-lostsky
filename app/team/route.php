@@ -4,6 +4,7 @@ use think\facade\Route;
 // me
 Route::get('me/get', 'me/get');
 Route::post('me/edit', 'me/edit');
+Route::post('me/slug', 'me/slug');
 
 // member
 Route::get('member/index', 'member/index');
@@ -13,6 +14,12 @@ Route::post('member/edit', 'member/edit');
 Route::post('member/block', 'member/block');
 Route::post('member/unblock', 'member/unblock');
 Route::post('member/remove', 'member/remove');
+Route::post('member/slug', 'member/slug');
+Route::post('member/search', 'member/search');
+
+// entity
+Route::get('entity/search', 'entity/search');
+Route::get('entity/resolve', 'entity/resolve');
 
 // role
 Route::get('role/index', 'role/index');
@@ -70,6 +77,7 @@ Route::post('joinField/edit', 'joinField/edit');
 Route::post('joinField/delete', 'joinField/delete');
 
 // setting
+Route::get('setting/schema', 'Setting/schema');
 Route::get('setting', 'Setting/index');
 Route::post('setting', 'Setting/save');
 

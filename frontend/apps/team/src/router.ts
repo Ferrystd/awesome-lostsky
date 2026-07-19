@@ -1,14 +1,18 @@
 import { auth } from '@lostsky/api/client'
 import { createRouter, createWebHistory } from 'vue-router'
+import { managerScopeOptions, visibilityOptions } from './lib/access'
 const DashboardView = () => import('./views/DashboardView.vue')
 const DocumentView = () => import('./views/DocumentView.vue')
 const DocumentsView = () => import('./views/DocumentsView.vue')
+const DocumentFormView = () => import('./views/DocumentFormView.vue')
 const JoinView = () => import('./views/JoinView.vue')
 const JoinReviewView = () => import('./views/JoinReviewView.vue')
 const JoinReviewDetailView = () => import('./views/JoinReviewDetailView.vue')
 const MembersView = () => import('./views/MembersView.vue')
+const MemberFormView = () => import('./views/MemberFormView.vue')
 const MemberDetailView = () => import('./views/MemberDetailView.vue')
 const FilesView = () => import('./views/FilesView.vue')
+const NoticeDetailView = () => import('./views/NoticeDetailView.vue')
 const NoticesView = () => import('./views/NoticesView.vue')
 const ProfileView = () => import('./views/ProfileView.vue')
 const ResourceView = () => import('./views/ResourceView.vue')
@@ -70,7 +74,7 @@ const resources: Record<string, ResourceMeta> = {
       { key: 'value_type', label: '值类型', type: 'select', required: true, defaultValue: 'string', options: ['string', 'text', 'int', 'decimal', 'bool', 'date', 'datetime', 'select', 'multi_select', 'json'].map((value) => ({ label: value, value })) },
       { key: 'input_type', label: '输入控件', type: 'select', required: true, defaultValue: 'text', options: ['text', 'textarea', 'radio', 'checkbox', 'select', 'date', 'datetime', 'upload'].map((value) => ({ label: value, value })) },
       { key: 'is_required', label: '必填', type: 'checkbox' }, { key: 'is_editable', label: '允许编辑', type: 'checkbox', defaultValue: true }, { key: 'is_searchable', label: '允许搜索', type: 'checkbox' },
-      { key: 'source', label: '来源', defaultValue: 'custom' }, { key: 'visibility', label: '可见范围', type: 'number', defaultValue: 1 }, { key: 'manager_scope', label: '管理范围', type: 'number', defaultValue: 1 }, { key: 'sort', label: '顺序', type: 'number', defaultValue: 0 },
+      { key: 'source', label: '来源', defaultValue: 'custom' }, { key: 'visibility', label: '可见范围', type: 'select', defaultValue: 1, options: visibilityOptions }, { key: 'manager_scope', label: '管理范围', type: 'select', defaultValue: 1, options: managerScopeOptions }, { key: 'sort', label: '顺序', type: 'number', defaultValue: 0 },
     ],
   },
   docs: {
@@ -78,7 +82,7 @@ const resources: Record<string, ResourceMeta> = {
     createEndpoint: '/doc/create', editEndpoint: '/doc/edit', deleteEndpoint: '/doc/delete',
     formFields: [
       { key: 'title', label: '标题', required: true }, { key: 'content', label: 'Markdown 内容', type: 'textarea' }, { key: 'target_type', label: '归属类型', type: 'select', required: true, defaultValue: 'team', options: [{ label: '团队', value: 'team' }, { label: '成员', value: 'teamMember' }] },
-      { key: 'target_id', label: '成员 ID', type: 'number' }, { key: 'manager_scope', label: '管理范围', type: 'number', defaultValue: 1 }, { key: 'visibility', label: '可见范围', type: 'number', defaultValue: 1 }, { key: 'sort', label: '顺序', type: 'number', defaultValue: 0 },
+      { key: 'target_id', label: '成员 ID', type: 'number' }, { key: 'manager_scope', label: '管理范围', type: 'select', defaultValue: 1, options: managerScopeOptions }, { key: 'visibility', label: '可见范围', type: 'select', defaultValue: 1, options: visibilityOptions }, { key: 'sort', label: '顺序', type: 'number', defaultValue: 0 },
     ],
   },
 }
@@ -86,14 +90,19 @@ const resources: Record<string, ResourceMeta> = {
 const routes = [
   { path: '/', component: DashboardView, meta: { title: '概览' } },
   { path: '/notice', component: NoticesView, meta: { title: '站内信' } },
+  { path: '/notice-detail', component: NoticeDetailView, meta: { title: '阅读站内信', pageWidth: 'content' } },
   { path: '/files', component: FilesView, meta: { title: '文件' } },
-  { path: '/settings', component: SettingsView, meta: { title: '团队设置' } },
+  { path: '/settings', component: SettingsView, meta: { title: '团队设置', pageWidth: 'content' } },
   { path: '/roles/new', component: RoleFormView, meta: { title: '新建角色', pageWidth: 'form' } },
   { path: '/roles', component: RolesView, meta: { title: '角色权限' } },
   { path: '/join-review/review', component: JoinReviewDetailView, meta: { title: '审核加入申请', pageWidth: 'content' } },
   { path: '/join-review', component: JoinReviewView, meta: { title: '加入审核' } },
   { path: '/members', component: MembersView, meta: { title: '成员' } },
+  { path: '/member-add', component: MemberFormView, meta: { title: '添加成员', pageWidth: 'form' } },
+  { path: '/member-edit', component: MemberFormView, meta: { title: '编辑成员', pageWidth: 'form' } },
   { path: '/docs', component: DocumentsView, meta: { title: '文档' } },
+  { path: '/doc-create', component: DocumentFormView, meta: { title: '新建文档', pageWidth: 'content' } },
+  { path: '/doc-edit', component: DocumentFormView, meta: { title: '编辑文档', pageWidth: 'content' } },
   ...Object.entries(resources).filter(([path]) => !['notice', 'files', 'roles', 'join-review', 'members', 'docs'].includes(path)).map(([path, resource]) => ({ path: `/${path}`, component: ResourceView, props: { resource }, meta: { title: resource.title } })),
   { path: '/member-detail', component: MemberDetailView, meta: { title: '成员详情' } },
   { path: '/doc', component: DocumentView, meta: { title: '文档' } },

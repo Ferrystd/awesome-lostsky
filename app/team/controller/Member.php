@@ -11,10 +11,10 @@ class Member
     private const PROFILE_FIELDS = ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown'];
 
     protected $middleware = [
-        'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove']],
-        'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove']],
-        'MemberAccess' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove']],
-        'TeamAccess'   => ['only' => ['add', 'edit', 'block', 'unblock', 'remove']],
+        'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
+        'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
+        'MemberAccess' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
+        'TeamAccess'   => ['only' => ['add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
     ];
 
     /**
@@ -114,5 +114,36 @@ class Member
         $service->remove($request->team_id, $memberId);
 
         return message('成员已移出');
+    }
+
+    public function slug(Request $request)
+    {
+        $memberId = (int) $request->post('member_id', 0);
+        if (!\app\model\TeamMember::where('team_id', (int) $request->team_id)->find($memberId)) {
+            return error('成员不存在', 1, 404);
+        }
+
+        $identity = app(\app\service\EntityIdentity::class)->claimMember(
+            $memberId,
+            (string) $request->post('slug', '')
+        );
+
+        return success(['slug' => $identity->slug], '成员标识已确定');
+    }
+
+    public function search(Request $request)
+    {
+        $input = $request->post();
+        if (!array_key_exists('search_override', $input)) {
+            return error('请提供成员搜索设置', 1, 422);
+        }
+
+        app(\app\service\EntityIdentity::class)->setMemberSearch(
+            (int) $request->team_id,
+            (int) $request->post('member_id', 0),
+            $input['search_override']
+        );
+
+        return message('成员搜索设置已更新');
     }
 }

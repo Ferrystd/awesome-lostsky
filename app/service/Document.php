@@ -90,10 +90,12 @@ class Document
                 'content'           => $data['content'] ?? null,
                 'documentable_type' => $targetType,
                 'documentable_id'   => $targetId,
-                'manager_scope'     => $managerScope->value,
-                'visibility'        => $visibility->value,
+                'manager_scope'     => $managerScope,
+                'visibility'        => $visibility,
                 'sort'              => $data['sort'] ?? 0,
             ]);
+
+            app(\app\service\Markdown::class)->sync($doc, 'content', $data['content'] ?? null);
 
             if ($visibility === VisibilityEnum::Custom) {
                 $guard->syncTargets($doc, $data['visibility_targets'] ?? [], $teamId);
@@ -114,7 +116,7 @@ class Document
         $subjectMemberId = $this->guardAccess($doc, $teamId);
 
         $guard = app(\app\service\Visibility::class);
-        $guard->assertManage($this->managerScope($doc->manager_scope), $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
+        $guard->assertManage($doc->enumCase('manager_scope'), $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
 
         $allow  = ['title', 'content', 'manager_scope', 'visibility', 'sort'];
         $update = [];
@@ -124,17 +126,6 @@ class Document
             }
         }
 
-        if (array_key_exists('manager_scope', $update)) {
-            $update['manager_scope'] = $this->managerScope($update['manager_scope'])->value;
-        }
-        if (array_key_exists('visibility', $update)) {
-            $update['visibility'] = $this->visibility($update['visibility'])->value;
-        }
-
-        $managerScope = $this->managerScope($update['manager_scope'] ?? $doc->manager_scope);
-        $visibility   = $this->visibility($update['visibility'] ?? $doc->visibility);
-        $this->assertPolicy($doc->documentable_type, $managerScope, $visibility);
-
         if ($update) {
             $validate = new DocumentValidate;
             if (!$validate->check($update)) {
@@ -142,9 +133,24 @@ class Document
             }
         }
 
+        if (array_key_exists('manager_scope', $update)) {
+            $update['manager_scope'] = $this->managerScope($update['manager_scope']);
+        }
+        if (array_key_exists('visibility', $update)) {
+            $update['visibility'] = $this->visibility($update['visibility']);
+        }
+
+        $managerScope = $update['manager_scope'] ?? $doc->enumCase('manager_scope');
+        $visibility   = $update['visibility'] ?? $doc->enumCase('visibility');
+        $this->assertPolicy($doc->documentable_type, $managerScope, $visibility);
+
         \think\facade\Db::transaction(function () use ($doc, $update, $data, $teamId, $visibility, $guard) {
             if ($update) {
                 $doc->save($update);
+            }
+
+            if (array_key_exists('content', $update)) {
+                app(\app\service\Markdown::class)->sync($doc, 'content', $update['content']);
             }
 
             if (array_key_exists('visibility', $data) || array_key_exists('visibility_targets', $data)) {
@@ -162,9 +168,10 @@ class Document
         $subjectMemberId = $this->guardAccess($doc, $teamId);
 
         $guard = app(\app\service\Visibility::class);
-        $guard->assertManage($this->managerScope($doc->manager_scope), $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
+        $guard->assertManage($doc->enumCase('manager_scope'), $guard->isTeamManager($teamId, $userId), $subjectMemberId > 0 && $subjectMemberId === $memberId);
 
         \think\facade\Db::transaction(function () use ($doc) {
+            app(\app\service\Markdown::class)->deleteSource($doc, 'content');
             \app\model\VisibilityTarget::where('visibleable_type', 'document')
                 ->where('visibleable_id', (int) $doc->id)
                 ->delete();
@@ -219,7 +226,7 @@ class Document
             DocTarget::Team->value => $managerScope === ManageScope::Team
                 && in_array($visibility, [VisibilityEnum::Team, VisibilityEnum::Member, VisibilityEnum::Public, VisibilityEnum::Custom], true),
             DocTarget::Member->value => match ($managerScope) {
-                ManageScope::Team => in_array($visibility, [VisibilityEnum::TeamExceptSubject, VisibilityEnum::SubjectTeam, VisibilityEnum::Public, VisibilityEnum::Custom], true),
+                ManageScope::Team => in_array($visibility, [VisibilityEnum::Team, VisibilityEnum::SubjectTeam, VisibilityEnum::Public, VisibilityEnum::Custom], true),
                 ManageScope::SubjectTeam => in_array($visibility, [VisibilityEnum::Member, VisibilityEnum::SubjectTeam, VisibilityEnum::Public, VisibilityEnum::Custom], true),
             },
             default => false,
