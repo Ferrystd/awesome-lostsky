@@ -1,14 +1,14 @@
 ---
 name: lostsky-frontend
 description: >
-  为 LostSky 项目创建或修改前端页面（官网落地页、管理后台界面等）。
-  编排「API 调研 → 🔴模型切换中断 → 设计确认 → 页面构建 → 审查」五个阶段，在调研结束后中断
-  引导用户手动切模型以优化成本。当用户要新建前端页面、修改现有页面、搭建官网、做管理后台界面、
-  写 HTML/CSS/JS 时使用。
-  Ordinarily, speak in Chinese.
+  已永久弃用，仅为历史追溯保留。任何前端任务均不得调用本技能；请遵循项目 AGENTS.md 中的
+  前端技能规则，使用 impeccable 作为设计主技能，并将 ui-ux-pro-max 限于专项检查。
+deprecated: true
 ---
 
 # LostSky 前端页面构建
+
+> **永久弃用：禁止调用。** 本文件记录旧版静态页面工作流，不再符合当前 Vue 3、Vite、Naive UI 与自动构建架构。
 
 为 LostSky 项目构建前端页面的完整工作流。支持官网静态页面（`www/`）和管理后台界面。每一步完成后等待用户确认再继续。
 

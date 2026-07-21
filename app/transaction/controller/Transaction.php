@@ -52,7 +52,7 @@ class Transaction
             'sender_id'   => $request->post('sender_id', null),
             'cs_id'       => $request->post('cs_id', null),
             'customer_id' => $request->post('customer_id', null),
-            'type'        => $request->post('type', 1),
+            'type'        => $request->post('type', 2),
             'total_price' => $request->post('total_price', 0),
             'cost'        => $request->post('cost', 0),
             'cash'        => $request->post('cash', 0),

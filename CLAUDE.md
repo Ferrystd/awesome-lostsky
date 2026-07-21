@@ -24,13 +24,15 @@ HTML 必须保留 `<meta charset="UTF-8">`
 
 ### 约定
 
-保持静态 HTML/CSS/JS 交付，不引入 Vite、Webpack、npm build 等需要安装依赖或打包的流程。支持和推荐使用 CDN；新增能力使用自写代码、CDN 库，复制代码进仓库并保留来源与许可证说明。（尽量不新造轮子）
+前端源码位于 `/frontend/`，使用 Vue 3、Vite 与 npm workspace；构建产物发布到 `/www/`，禁止直接修改构建生成的 HTML/JS/CSS。
 
-### 新增
-读取`docs/openapi/`中所需要的json，使用 `/ui-ux-pro-max`,`/lostsky-frontend` 构建页面
+### 前端技能
 
-### 修改
-使用`/ui-ux-pro-max`修改页面，不使用`/lostsky-frontend`
+- 新增或修改页面前读取 `docs/openapi/` 中对应应用的接口定义。
+- 使用 `/impeccable` 负责视觉方向、信息层级、交互设计与最终审查，并服从现有 `PRODUCT.md`、`DESIGN.md` 与 Naive UI 主题。
+- `/ui-ux-pro-max` 只用于无障碍、响应式、表单可用性和动效性能检查，不采用其自动色板、模板或技术栈建议。
+- `lostsky-frontend` 已永久弃用，目录仅作历史保留，任何新任务均不得调用。
+- 不引入 React 运行时；工程实施保持简单、局部修改，并以项目事实和浏览器验证为准。
 
 ### 架构
 一切多域名复用文件存储在[](/www/assets.lostsky.work/)。

@@ -14,8 +14,9 @@ class TeamCustomerProfile extends Base
     protected $type = [
         'id'          => 'integer',
         'customer_id' => 'integer',
-        'name'        => 'string',
-        'memo'        => 'string',
+        'nickname'    => 'string',
+        // 'avatar'      => 'null|string',
+        // 'description' => 'null|string',
         'create_time' => 'integer',
         'update_time' => 'integer',
         'delete_time' => 'integer',
@@ -32,5 +33,10 @@ class TeamCustomerProfile extends Base
     public function customer()
     {
         return $this->belongsTo(TeamCustomer::class, 'customer_id');
+    }
+
+    public function setNicknameAttr($value): string
+    {
+        return trim((string) $value);
     }
 }

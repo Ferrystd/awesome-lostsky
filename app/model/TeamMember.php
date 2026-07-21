@@ -95,7 +95,12 @@ class TeamMember extends Base
 
     public function fieldValues()
     {
-        return $this->hasMany(TeamMemberFieldValue::class, 'member_id');
+        return $this->morphMany(TeamEntityFieldValue::class, 'entity', 'member');
+    }
+
+    public function entityFieldValues()
+    {
+        return $this->morphMany(TeamEntityFieldValue::class, 'entity', 'member');
     }
 
     public function joinApplication()

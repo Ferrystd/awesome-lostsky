@@ -41,8 +41,10 @@ class EntityIdentity extends Base
     public function entityable()
     {
         return $this->morphTo('entityable', [
-            'team'       => Team::class,
-            'teamMember' => TeamMember::class,
+            'team'         => Team::class,
+            'teamMember'   => TeamMember::class,
+            'teamCustomer' => TeamCustomer::class,
+            'teamVirtual'  => TeamVirtual::class,
         ]);
     }
 
@@ -59,6 +61,16 @@ class EntityIdentity extends Base
     public function scopeMember($query)
     {
         return $query->where('entityable_type', 'teamMember');
+    }
+
+    public function scopeCustomer($query)
+    {
+        return $query->where('entityable_type', 'teamCustomer');
+    }
+
+    public function scopeVirtual($query)
+    {
+        return $query->where('entityable_type', 'teamVirtual');
     }
 
     public function getIsValidAttr(): bool

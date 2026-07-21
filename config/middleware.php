@@ -17,6 +17,7 @@ return [
         'TransactionAccess'  => \app\middleware\TransactionAccess::class,
         'ShopAccess'         => \app\middleware\ShopAccess::class,
         'CustomerAccess'     => \app\middleware\CustomerAccess::class,
+        'ChatAccess'         => \app\middleware\ChatAccess::class,
         'DocAbility'         => \app\middleware\DocAbility::class,
     ],
     // 优先级设置，此数组中的中间件会按照数组中的顺序优先执行

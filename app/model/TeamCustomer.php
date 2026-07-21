@@ -25,7 +25,7 @@ class TeamCustomer extends Base
 
     protected $hidden = ['delete_time'];
 
-    protected $append = [];
+    protected $append = ['is_valid', 'is_searchable'];
 
     protected $readonly = ['team_id', 'user_id'];
 
@@ -77,6 +77,27 @@ class TeamCustomer extends Base
     public function profile()
     {
         return $this->hasOne(TeamCustomerProfile::class, 'customer_id')
-            ->bind(['name', 'memo']);
+            ->bind(['nickname', 'avatar', 'description']);
+    }
+
+    public function identity()
+    {
+        return $this->morphOne(EntityIdentity::class, 'entityable', 'teamCustomer')
+            ->bind(['slug']);
+    }
+
+    public function fieldValues()
+    {
+        return $this->morphMany(TeamEntityFieldValue::class, 'entity', 'customer');
+    }
+
+    public function getIsValidAttr($value, $data): bool
+    {
+        return (int) ($data['is_blocked'] ?? 0) === 0 && (bool) ($this->team?->is_valid ?? false);
+    }
+
+    public function getIsSearchableAttr(): bool
+    {
+        return false;
     }
 }

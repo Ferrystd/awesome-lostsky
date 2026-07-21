@@ -21,9 +21,9 @@ class TransactionStats
                 'COALESCE(SUM(prepaid), 0) as prepaid_total',
                 'COALESCE(AVG(total_price), 0) as avg_price',
             ])
-            ->find() ?? [];
+            ->find();
 
-        return $row ?: [
+        return $row ? $row->toArray() : [
             'total_count'   => 0,
             'total_price'   => 0,
             'total_cost'    => 0,
@@ -36,7 +36,7 @@ class TransactionStats
 
     public function byRole(int $teamId, int $startTime, int $endTime): array
     {
-        $build = fn(string $column) => TeamTransaction::alias('t')
+        $build = fn(string $column, string $cutColumn) => TeamTransaction::alias('t')
             ->join('team_member m', "t.{$column} = m.id", 'LEFT')
             ->join('team_member_profile p', 'm.id = p.member_id', 'LEFT')
             ->where('t.team_id', $teamId)
@@ -47,24 +47,24 @@ class TransactionStats
                 "t.{$column} as member_id",
                 "CASE WHEN t.{$column} = 0 THEN '团队主体' ELSE COALESCE(p.nickname, '') END as nickname",
                 'COUNT(*) as count',
-                "COALESCE(SUM(t.{$column}_cut), 0) as amount",
+                "COALESCE(SUM(t.{$cutColumn}), 0) as amount",
             ])
             ->select()
             ->toArray();
 
         return [
-            'handler' => $build('handler_id'),
-            'sender'  => $build('sender_id'),
-            'cs'      => $build('cs_id'),
+            'handler' => $build('handler_id', 'handler_cut'),
+            'sender'  => $build('sender_id', 'sender_cut'),
+            'cs'      => $build('cs_id', 'cs_cut'),
         ];
     }
 
     public function byMember(int $teamId, int $startTime, int $endTime, string $role): array
     {
-        $column = match ($role) {
-            'sender'  => 'sender_id',
-            'cs'      => 'cs_id',
-            default   => 'handler_id',
+        [$column, $cutColumn] = match ($role) {
+            'sender'  => ['sender_id', 'sender_cut'],
+            'cs'      => ['cs_id', 'cs_cut'],
+            default   => ['handler_id', 'handler_cut'],
         };
 
         return TeamTransaction::alias('t')
@@ -79,7 +79,7 @@ class TransactionStats
                 "t.{$column} as member_id",
                 "CASE WHEN t.{$column} = 0 THEN '团队主体' ELSE COALESCE(p.nickname, '') END as nickname",
                 'COUNT(*) as count',
-                "COALESCE(SUM(t.{$column}_cut), 0) as amount",
+                "COALESCE(SUM(t.{$cutColumn}), 0) as amount",
             ])
             ->select()
             ->toArray();
@@ -119,7 +119,7 @@ class TransactionStats
             ->order('amount', 'desc')
             ->field([
                 't.customer_id',
-                'COALESCE(cp.name, \'\') as customer_name',
+                'COALESCE(cp.nickname, \'\') as customer_name',
                 'COUNT(*) as count',
                 'COALESCE(SUM(t.total_price), 0) as amount',
             ])

@@ -40,6 +40,41 @@ class EntityIdentity
         });
     }
 
+    public function claimCustomer(int $customerId, string $slug): \app\model\EntityIdentity
+    {
+        $customer = \app\model\TeamCustomer::find($customerId);
+        if (!$customer) {
+            throw new HttpException(404, '客户不存在');
+        }
+
+        return \think\facade\Db::transaction(function () use ($customerId, $slug) {
+            $existing = \app\model\EntityIdentity::withTrashed()
+                ->customer()
+                ->where('entityable_id', $customerId)
+                ->find();
+            if ($existing) {
+                throw new HttpException(409, "客户标识已经确定：{$existing->slug}");
+            }
+
+            return $this->create('teamCustomer', $customerId, $slug);
+        });
+    }
+
+    public function claimVirtual(\app\model\TeamVirtual $virtual, string $slug): \app\model\EntityIdentity
+    {
+        return \think\facade\Db::transaction(function () use ($virtual, $slug) {
+            $existing = \app\model\EntityIdentity::withTrashed()
+                ->virtual()
+                ->where('entityable_id', (int) $virtual->id)
+                ->find();
+            if ($existing) {
+                throw new HttpException(409, "虚拟实体标识已经确定：{$existing->slug}");
+            }
+
+            return $this->create('teamVirtual', (int) $virtual->id, $slug);
+        });
+    }
+
     public function setMemberSearch(int $teamId, int $memberId, $override): void
     {
         if (!in_array($override, [null, 0, 1, '0', '1'], true)) {
@@ -127,7 +162,7 @@ class EntityIdentity
         }
 
         try {
-            $identity = app(\app\model\EntityIdentity::class);
+            $identity = app(\app\model\EntityIdentity::class, [], true);
             $identity->save([
                 'slug'            => $slug,
                 'entityable_type' => $type,
@@ -152,13 +187,19 @@ class EntityIdentity
 
     private function hydrate(array $identities): void
     {
-        $teamIds   = [];
+        $teamIds = [];
         $memberIds = [];
+        $customerIds = [];
+        $virtualIds = [];
         foreach ($identities as $identity) {
             if ($identity->entityable_type === 'team') {
                 $teamIds[] = (int) $identity->entityable_id;
             } elseif ($identity->entityable_type === 'teamMember') {
                 $memberIds[] = (int) $identity->entityable_id;
+            } elseif ($identity->entityable_type === 'teamCustomer') {
+                $customerIds[] = (int) $identity->entityable_id;
+            } elseif ($identity->entityable_type === 'teamVirtual') {
+                $virtualIds[] = (int) $identity->entityable_id;
             }
         }
 
@@ -167,10 +208,24 @@ class EntityIdentity
             ->with(['profile', 'team'])
             ->select()
             ->column(null, 'id');
+        $customers = \app\model\TeamCustomer::whereIn('id', array_unique($customerIds))
+            ->with(['profile', 'team'])
+            ->select()
+            ->column(null, 'id');
+        $virtuals = \app\model\TeamVirtual::whereIn('id', array_unique($virtualIds))
+            ->with(['team'])
+            ->select()
+            ->column(null, 'id');
 
         $settingTeamIds = array_keys($teams);
         foreach ($members as $member) {
             $settingTeamIds[] = (int) $member->team_id;
+        }
+        foreach ($customers as $customer) {
+            $settingTeamIds[] = (int) $customer->team_id;
+        }
+        foreach ($virtuals as $virtual) {
+            $settingTeamIds[] = (int) $virtual->team_id;
         }
         $settings = app(\app\service\TeamSetting::class)->internalMany($settingTeamIds, 'entity');
 
@@ -184,10 +239,16 @@ class EntityIdentity
             }
         }
         foreach ($identities as $identity) {
-            $entity = $identity->entityable_type === 'team'
-                ? ($teams[(int) $identity->entityable_id] ?? null)
-                : ($members[(int) $identity->entityable_id] ?? null);
-            if ($entity instanceof \app\model\TeamMember) {
+            $entity = match ($identity->entityable_type) {
+                'team' => $teams[(int) $identity->entityable_id] ?? null,
+                'teamMember' => $members[(int) $identity->entityable_id] ?? null,
+                'teamCustomer' => $customers[(int) $identity->entityable_id] ?? null,
+                'teamVirtual' => $virtuals[(int) $identity->entityable_id] ?? null,
+                default => null,
+            };
+            if ($entity instanceof \app\model\TeamMember
+                || $entity instanceof \app\model\TeamCustomer
+                || $entity instanceof \app\model\TeamVirtual) {
                 $entity->setRelation('identity', $identity);
             }
             $identity->setRelation('entityable', $entity);
@@ -210,14 +271,24 @@ class EntityIdentity
         }
 
         $team = $entity->team;
+        $type = match (true) {
+            $entity instanceof \app\model\TeamCustomer => 'teamCustomer',
+            $entity instanceof \app\model\TeamVirtual => 'teamVirtual',
+            default => 'teamMember',
+        };
+        $displayName = match ($type) {
+            'teamCustomer' => $entity->nickname ?: "客户 #{$entity->id}",
+            'teamVirtual' => $entity->name ?: $identity->slug,
+            default => $entity->nickname ?: "成员 #{$entity->id}",
+        };
         return [
             'slug'         => $identity->slug,
-            'type'         => 'teamMember',
-            'display_name' => $entity->nickname ?: "成员 #{$entity->id}",
+            'type'         => $type,
+            'display_name' => $displayName,
             'avatar'       => $entity->avatar ?: null,
             'team'         => $team ? ['slug' => $team->slug, 'display_name' => $team->display_name] : null,
             'available'    => $available,
-            'href'         => $team && isset($userTeamIds[(int) $team->id])
+            'href'         => $type === 'teamMember' && $team && isset($userTeamIds[(int) $team->id])
                 ? "//{$team->slug}.team.lostsky.work/member-detail?id={$entity->id}"
                 : null,
         ];
@@ -227,7 +298,7 @@ class EntityIdentity
     {
         return [
             'slug'         => $slug,
-            'type'         => in_array($type, ['team', 'teamMember'], true) ? $type : 'unknown',
+            'type'         => in_array($type, ['team', 'teamMember', 'teamCustomer', 'teamVirtual'], true) ? $type : 'unknown',
             'display_name' => $slug,
             'avatar'       => null,
             'team'         => null,

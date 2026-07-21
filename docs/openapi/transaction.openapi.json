@@ -921,10 +921,14 @@
             ],
             "description": "0=false, 1=true"
           },
-          "name": {
+          "nickname": {
             "type": "string"
           },
-          "memo": {
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
             "type": "string",
             "nullable": true
           },
@@ -1165,6 +1169,185 @@
             "$ref": "#/components/schemas/Member"
           }
         }
+      },
+      "TransactionOptions": {
+        "type": "object",
+        "required": [
+          "members",
+          "customers"
+        ],
+        "properties": {
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Member"
+            }
+          },
+          "customers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Customer"
+            }
+          }
+        }
+      },
+      "TransactionStatsSummary": {
+        "type": "object",
+        "required": [
+          "total_count",
+          "total_price",
+          "total_cost",
+          "total_cut",
+          "cash_total",
+          "prepaid_total",
+          "avg_price"
+        ],
+        "properties": {
+          "total_count": {
+            "type": "integer"
+          },
+          "total_price": {
+            "type": "number"
+          },
+          "total_cost": {
+            "type": "number"
+          },
+          "total_cut": {
+            "type": "number"
+          },
+          "cash_total": {
+            "type": "number"
+          },
+          "prepaid_total": {
+            "type": "number"
+          },
+          "avg_price": {
+            "type": "number"
+          }
+        }
+      },
+      "TransactionMemberStat": {
+        "type": "object",
+        "required": [
+          "member_id",
+          "nickname",
+          "count",
+          "amount"
+        ],
+        "properties": {
+          "member_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "number"
+          }
+        }
+      },
+      "TransactionRoleStats": {
+        "type": "object",
+        "required": [
+          "handler",
+          "sender",
+          "cs"
+        ],
+        "properties": {
+          "handler": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionMemberStat"
+            }
+          },
+          "sender": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionMemberStat"
+            }
+          },
+          "cs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionMemberStat"
+            }
+          }
+        }
+      },
+      "TransactionTimelineStat": {
+        "type": "object",
+        "required": [
+          "date",
+          "count",
+          "amount"
+        ],
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "number"
+          }
+        }
+      },
+      "TransactionCustomerStat": {
+        "type": "object",
+        "required": [
+          "customer_id",
+          "customer_name",
+          "count",
+          "amount"
+        ],
+        "properties": {
+          "customer_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "customer_name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "number"
+          }
+        }
+      },
+      "TransactionStatsResult": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/TransactionStatsSummary"
+          },
+          {
+            "$ref": "#/components/schemas/TransactionRoleStats"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionMemberStat"
+            }
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionTimelineStat"
+            }
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionCustomerStat"
+            }
+          }
+        ]
       },
       "File": {
         "type": "object",
@@ -1594,7 +1777,7 @@
                       1,
                       2
                     ],
-                    "default": 1
+                    "default": 2
                   },
                   "total_price": {
                     "type": "number",
@@ -1738,6 +1921,70 @@
         }
       }
     },
+    "/transaction/options": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "流水表单选项",
+        "description": "返回当前团队可用于流水、发单人绑定和充值表单的成员与客户。",
+        "operationId": "transactionOptions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/TransactionOptions"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无团队访问权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/transaction/stats": {
       "get": {
         "tags": [
@@ -1833,7 +2080,7 @@
                       "type": "object",
                       "properties": {
                         "data": {
-                          "$ref": "#/components/schemas/AnyObject"
+                          "$ref": "#/components/schemas/TransactionStatsResult"
                         }
                       }
                     }

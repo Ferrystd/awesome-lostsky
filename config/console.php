@@ -8,5 +8,7 @@ return [
         'file:upload' => \app\command\UploadFile::class,
         'make:model'  => \app\command\MakeModel::class,
         'notice:send' => \app\command\SendNotice::class,
+        'chat:worker' => \app\command\ChatWorker::class,
+        'chat:cleanup' => \app\command\ChatCleanup::class,
     ],
 ];

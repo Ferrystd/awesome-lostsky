@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { auth } from '@lostsky/api/client'
-import { Bell, BookOpen, BriefcaseBusiness, ChevronRight, FileText, Files, House, LogOut, Menu, Settings, ShieldCheck, UserRound, Users, X } from '@lucide/vue'
+import { Bell, BookOpen, Bot, BriefcaseBusiness, ChevronRight, FileText, Files, House, LogOut, Menu, Settings, ShieldCheck, UserRound, Users, X } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 const route = useRoute(); const drawer = ref(false)
@@ -8,7 +8,7 @@ const primary = [
   ['/', '概览', House], ['/members', '成员', Users], ['/docs', '文档', BookOpen], ['/files', '文件', Files], ['/me', '我的', UserRound],
 ] as const
 const secondary = [
-  ['/posts', '岗位类型', BriefcaseBusiness], ['/fields', '成员字段', FileText], ['/roles', '角色权限', ShieldCheck], ['/join-review', '加入审核', Users], ['/notice', '站内信', Bell], ['/settings', '团队设置', Settings],
+  ['/posts', '岗位类型', BriefcaseBusiness], ['/fields', '对象字段', FileText], ['/chat-virtuals', '虚拟实体', Bot], ['/roles', '角色权限', ShieldCheck], ['/join-review', '加入审核', Users], ['/notice', '站内信', Bell], ['/settings', '团队设置', Settings],
 ] as const
 const title = computed(() => String(route.meta.title ?? '工作台'))
 function logout() { auth.clear(); location.href = '//account.lostsky.work/login' }

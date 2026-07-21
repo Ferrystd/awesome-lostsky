@@ -371,8 +371,9 @@ CREATE TABLE `team_customer_sender` (
 CREATE TABLE `team_customer_profile` (
     `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `customer_id` INT UNSIGNED NOT NULL COMMENT '客户ID',
-    `name`        VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '客户名称',
-    `memo`        VARCHAR(255) NOT NULL DEFAULT '' COMMENT '备注',
+    `nickname`    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '客户公开昵称',
+    `avatar`      VARCHAR(500) NULL     DEFAULT NULL COMMENT '客户公开头像',
+    `description` VARCHAR(500) NULL     DEFAULT NULL COMMENT '客户公开简介',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
@@ -742,7 +743,7 @@ CREATE TABLE `team_member_role` (
 CREATE TABLE `entity_identity` (
     `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `slug`              VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '全站唯一且永久保留的对象标识',
-    `entityable_type`   VARCHAR(30)  NOT NULL DEFAULT '' COMMENT '对象类型 team/teamMember',
+    `entityable_type`   VARCHAR(30)  NOT NULL DEFAULT '' COMMENT '对象类型 team/teamMember/teamCustomer/teamVirtual',
     `entityable_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '对象ID',
     `search_override`   TINYINT      NULL     DEFAULT NULL COMMENT '成员搜索覆盖 NULL-继承 0-禁止 1-允许',
     `create_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
@@ -751,7 +752,7 @@ CREATE TABLE `entity_identity` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_slug` (`slug`),
     UNIQUE KEY `uk_entityable` (`entityable_type`, `entityable_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队与成员统一身份表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队对象统一身份表';
 
 -- ----------------------------
 -- Table: markdown_reference
@@ -770,3 +771,212 @@ CREATE TABLE `markdown_reference` (
     UNIQUE KEY `uk_source_entity` (`referenceable_type`, `referenceable_id`, `referenceable_field`, `entity_identity_id`),
     KEY `idx_entity_identity_id` (`entity_identity_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Markdown多态对象引用表';
+
+-- ----------------------------
+-- Table: team_virtual
+-- Model: app\model\TeamVirtual
+-- ----------------------------
+CREATE TABLE `team_virtual` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `name`        VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '显示名称',
+    `avatar`      VARCHAR(500) NULL     DEFAULT NULL COMMENT '头像',
+    `description` VARCHAR(500) NULL     DEFAULT NULL COMMENT '简介',
+    `is_active`   TINYINT      NOT NULL DEFAULT 1 COMMENT '是否启用 0-否 1-是',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_team_active` (`team_id`, `is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队通用虚拟实体表';
+
+-- ----------------------------
+-- Table: team_virtual_integration
+-- Model: app\model\TeamVirtualIntegration
+-- ----------------------------
+CREATE TABLE `team_virtual_integration` (
+    `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `virtual_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '虚拟实体ID',
+    `name`           VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '集成名称',
+    `driver`         VARCHAR(20)  NOT NULL DEFAULT 'webhook' COMMENT '集成驱动',
+    `endpoint_url`   VARCHAR(1000) NULL    DEFAULT NULL COMMENT 'Webhook地址',
+    `events`         JSON         NULL COMMENT '订阅事件',
+    `token_hash`     CHAR(64)     NOT NULL DEFAULT '' COMMENT '入站令牌SHA-256',
+    `signing_secret` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '出站签名密钥',
+    `is_active`      TINYINT      NOT NULL DEFAULT 1 COMMENT '是否启用',
+    `last_error_at`  INT UNSIGNED NULL     DEFAULT NULL COMMENT '最近错误时间',
+    `create_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`    INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_virtual_active` (`virtual_id`, `is_active`),
+    KEY `idx_team_id` (`team_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='虚拟实体外部集成表';
+
+-- ----------------------------
+-- Table: team_entity_field
+-- Model: app\model\TeamEntityField
+-- ----------------------------
+CREATE TABLE `team_entity_field` (
+    `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `entity_type`   VARCHAR(20)  NOT NULL DEFAULT 'member' COMMENT '对象类型 member/customer/virtual',
+    `field_key`     VARCHAR(64)  NOT NULL DEFAULT '' COMMENT '字段标识',
+    `name`          VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '字段名称',
+    `value_type`    VARCHAR(20)  NOT NULL DEFAULT 'string' COMMENT '值类型',
+    `input_type`    VARCHAR(20)  NOT NULL DEFAULT 'text' COMMENT '输入控件',
+    `options`       JSON         NULL COMMENT '字段选项',
+    `is_required`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否必填',
+    `is_editable`   TINYINT      NOT NULL DEFAULT 1 COMMENT '是否可编辑',
+    `is_searchable` TINYINT      NOT NULL DEFAULT 0 COMMENT '是否可搜索',
+    `is_visible`    TINYINT      NOT NULL DEFAULT 0 COMMENT '对象本人是否可见，仅成员允许开启',
+    `is_system`     TINYINT      NOT NULL DEFAULT 0 COMMENT '是否系统字段',
+    `sort`          INT          NOT NULL DEFAULT 0 COMMENT '排序',
+    `create_time`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_team_type_field` (`team_id`, `entity_type`, `field_key`),
+    KEY `idx_team_type_sort` (`team_id`, `entity_type`, `sort`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队对象统一字段定义表';
+
+-- ----------------------------
+-- Table: team_entity_field_value
+-- Model: app\model\TeamEntityFieldValue
+-- ----------------------------
+CREATE TABLE `team_entity_field_value` (
+    `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `field_id`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '字段ID',
+    `entity_type`    VARCHAR(20)  NOT NULL DEFAULT '' COMMENT '对象类型',
+    `entity_id`      INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '对象ID',
+    `value_string`   VARCHAR(500) NULL     DEFAULT NULL COMMENT '字符串值',
+    `value_text`     TEXT         NULL COMMENT '文本值',
+    `value_int`      INT          NULL     DEFAULT NULL COMMENT '整数值',
+    `value_decimal`  DECIMAL(12,2) NULL   DEFAULT NULL COMMENT '小数值',
+    `value_datetime` INT UNSIGNED NULL     DEFAULT NULL COMMENT '时间值',
+    `value_json`     JSON         NULL COMMENT 'JSON值',
+    `create_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`    INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_field_entity` (`field_id`, `entity_type`, `entity_id`),
+    KEY `idx_team_entity` (`team_id`, `entity_type`, `entity_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队对象统一字段值表';
+
+-- ----------------------------
+-- Table: chat_conversation
+-- Model: app\model\ChatConversation
+-- ----------------------------
+CREATE TABLE `chat_conversation` (
+    `id`              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `uuid`            CHAR(36)     NOT NULL DEFAULT '' COMMENT '公开会话标识',
+    `kind`            VARCHAR(20)  NOT NULL DEFAULT 'direct' COMMENT 'direct/group',
+    `title`           VARCHAR(100) NULL     DEFAULT NULL COMMENT '群聊标题',
+    `direct_key`      CHAR(64)     NULL     DEFAULT NULL COMMENT '永久单聊参与者摘要',
+    `is_temporary`    TINYINT      NOT NULL DEFAULT 0 COMMENT '是否临时会话',
+    `created_by_type` VARCHAR(20)  NOT NULL DEFAULT '' COMMENT '创建者类型',
+    `created_by_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建者ID',
+    `last_message_id` BIGINT UNSIGNED NULL DEFAULT NULL COMMENT '最后消息ID',
+    `last_message_at` INT UNSIGNED NULL     DEFAULT NULL COMMENT '最后消息时间',
+    `expires_at`      INT UNSIGNED NULL     DEFAULT NULL COMMENT '到期时间',
+    `closed_at`       INT UNSIGNED NULL     DEFAULT NULL COMMENT '关闭时间',
+    `create_time`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`     INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_uuid` (`uuid`),
+    UNIQUE KEY `uk_direct_key` (`direct_key`),
+    KEY `idx_team_last` (`team_id`, `last_message_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天会话表';
+
+-- ----------------------------
+-- Table: chat_participant
+-- Model: app\model\ChatParticipant
+-- ----------------------------
+CREATE TABLE `chat_participant` (
+    `id`                   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`              INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `conversation_id`      BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '会话ID',
+    `actor_type`           VARCHAR(20)  NOT NULL DEFAULT '' COMMENT 'member/customer/virtual',
+    `actor_id`             INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '参与者ID',
+    `joined_at`            INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '加入时间',
+    `left_at`              INT UNSIGNED NULL     DEFAULT NULL COMMENT '退出时间',
+    `last_read_message_id` BIGINT UNSIGNED NULL DEFAULT NULL COMMENT '已读消息ID',
+    `create_time`          INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`          INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`          INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_conversation_actor` (`conversation_id`, `actor_type`, `actor_id`),
+    KEY `idx_team_actor` (`team_id`, `actor_type`, `actor_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天参与者表';
+
+-- ----------------------------
+-- Table: chat_message
+-- Model: app\model\ChatMessage
+-- ----------------------------
+CREATE TABLE `chat_message` (
+    `id`                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`               INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `conversation_id`       BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '会话ID',
+    `sender_type`           VARCHAR(20)  NOT NULL DEFAULT '' COMMENT '发送者类型',
+    `sender_id`             INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '发送者ID',
+    `reply_id`              BIGINT UNSIGNED NULL DEFAULT NULL COMMENT '回复消息ID',
+    `origin_integration_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '来源集成ID',
+    `content`               TEXT         NULL COMMENT '文本内容',
+    `edited_at`             INT UNSIGNED NULL DEFAULT NULL COMMENT '编辑时间',
+    `revoked_at`            INT UNSIGNED NULL DEFAULT NULL COMMENT '撤回时间',
+    `create_time`           INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`           INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`           INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_conversation_id` (`conversation_id`, `id`),
+    KEY `idx_team_sender` (`team_id`, `sender_type`, `sender_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天消息表';
+
+-- ----------------------------
+-- Table: chat_event_outbox
+-- Model: app\model\ChatEventOutbox
+-- ----------------------------
+CREATE TABLE `chat_event_outbox` (
+    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `event_type`     VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '事件类型',
+    `aggregate_type` VARCHAR(30)  NOT NULL DEFAULT '' COMMENT '聚合类型',
+    `aggregate_id`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '聚合ID',
+    `payload`        JSON         NOT NULL COMMENT '事件负载',
+    `attempts`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '发布尝试次数',
+    `available_at`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '下次可处理时间',
+    `published_at`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '实时发布完成时间',
+    `last_error`     VARCHAR(1000) NULL    DEFAULT NULL COMMENT '最后错误',
+    `create_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`    INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_pending` (`published_at`, `available_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天事务事件箱表';
+
+-- ----------------------------
+-- Table: chat_webhook_delivery
+-- Model: app\model\ChatWebhookDelivery
+-- ----------------------------
+CREATE TABLE `chat_webhook_delivery` (
+    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `outbox_id`      BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '事件箱ID',
+    `integration_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '集成ID',
+    `status`         VARCHAR(20)  NOT NULL DEFAULT 'pending' COMMENT 'pending/delivered/failed',
+    `attempts`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '尝试次数',
+    `available_at`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '下次可处理时间',
+    `delivered_at`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '送达时间',
+    `response_code`  SMALLINT UNSIGNED NULL DEFAULT NULL COMMENT '响应状态码',
+    `last_error`     VARCHAR(1000) NULL    DEFAULT NULL COMMENT '最后错误',
+    `create_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`    INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_outbox_integration` (`outbox_id`, `integration_id`),
+    KEY `idx_pending` (`status`, `available_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天Webhook投递表';

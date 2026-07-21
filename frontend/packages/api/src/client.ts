@@ -57,6 +57,10 @@ function cookieDomain() {
   return location.hostname === 'lostsky.work' || location.hostname.endsWith('.lostsky.work') ? '; domain=.lostsky.work' : ''
 }
 
+function usesSharedAuthCookie() {
+  return location.hostname === 'lostsky.work' || location.hostname.endsWith('.lostsky.work')
+}
+
 function readCookie(name: string) {
   const prefix = `${encodeURIComponent(name)}=`
   return document.cookie.split('; ').find((item) => item.startsWith(prefix))?.slice(prefix.length) ?? ''
@@ -69,21 +73,25 @@ function writeCookie(name: string, value: string, maxAge = AUTH_MAX_AGE) {
 export const auth = {
   token() {
     const fromCookie = decodeURIComponent(readCookie(TOKEN_KEY))
+    if (usesSharedAuthCookie()) return fromCookie
     const fromStorage = localStorage.getItem(TOKEN_KEY) ?? ''
     if (!fromCookie && fromStorage) writeCookie(TOKEN_KEY, fromStorage)
     return fromCookie || fromStorage
   },
   user<T = Record<string, unknown>>(): T | null {
-    const raw = decodeURIComponent(readCookie(USER_KEY)) || localStorage.getItem(USER_KEY)
+    const fromCookie = decodeURIComponent(readCookie(USER_KEY))
+    const raw = fromCookie || (usesSharedAuthCookie() ? null : localStorage.getItem(USER_KEY))
     try { return raw ? JSON.parse(raw) as T : null } catch { return null }
   },
   save(data: { token?: string; user?: unknown }) {
     if (!data.token) return
-    localStorage.setItem(TOKEN_KEY, data.token)
+    if (usesSharedAuthCookie()) localStorage.removeItem(TOKEN_KEY)
+    else localStorage.setItem(TOKEN_KEY, data.token)
     writeCookie(TOKEN_KEY, data.token)
     if (data.user) {
       const raw = JSON.stringify(data.user)
-      localStorage.setItem(USER_KEY, raw)
+      if (usesSharedAuthCookie()) localStorage.removeItem(USER_KEY)
+      else localStorage.setItem(USER_KEY, raw)
       writeCookie(USER_KEY, raw)
     }
   },

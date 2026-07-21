@@ -25,6 +25,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/transaction/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 流水表单选项
+         * @description 返回当前团队可用于流水、发单人绑定和充值表单的成员与客户。
+         */
+        get: operations["transactionOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/transaction/stats": {
         parameters: {
             query?: never;
@@ -522,8 +542,9 @@ export interface components {
              * @enum {integer}
              */
             is_blocked?: 0 | 1;
-            name?: string;
-            memo?: string | null;
+            nickname?: string;
+            avatar?: string | null;
+            description?: string | null;
             balance?: components["schemas"]["Balance"];
             /**
              * Format: int64
@@ -659,6 +680,42 @@ export interface components {
             customer?: components["schemas"]["Customer"];
             member?: components["schemas"]["Member"];
         };
+        TransactionOptions: {
+            members: components["schemas"]["Member"][];
+            customers: components["schemas"]["Customer"][];
+        };
+        TransactionStatsSummary: {
+            total_count: number;
+            total_price: number;
+            total_cost: number;
+            total_cut: number;
+            cash_total: number;
+            prepaid_total: number;
+            avg_price: number;
+        };
+        TransactionMemberStat: {
+            member_id: number | null;
+            nickname: string;
+            count: number;
+            amount: number;
+        };
+        TransactionRoleStats: {
+            handler: components["schemas"]["TransactionMemberStat"][];
+            sender: components["schemas"]["TransactionMemberStat"][];
+            cs: components["schemas"]["TransactionMemberStat"][];
+        };
+        TransactionTimelineStat: {
+            date: string;
+            count: number;
+            amount: number;
+        };
+        TransactionCustomerStat: {
+            customer_id: number | null;
+            customer_name: string;
+            count: number;
+            amount: number;
+        };
+        TransactionStatsResult: components["schemas"]["TransactionStatsSummary"] | components["schemas"]["TransactionRoleStats"] | components["schemas"]["TransactionMemberStat"][] | components["schemas"]["TransactionTimelineStat"][] | components["schemas"]["TransactionCustomerStat"][];
         File: {
             /** Format: int64 */
             id?: number;
@@ -875,7 +932,7 @@ export interface operations {
                     /** Format: int64 */
                     customer_id?: number | null;
                     /**
-                     * @default 1
+                     * @default 2
                      * @enum {integer}
                      */
                     type?: 1 | 2;
@@ -981,6 +1038,49 @@ export interface operations {
             };
         };
     };
+    transactionOptions: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["TransactionOptions"];
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 无团队访问权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     transactionStats: {
         parameters: {
             query?: {
@@ -1006,7 +1106,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["AnyObject"];
+                        data?: components["schemas"]["TransactionStatsResult"];
                     };
                 };
             };

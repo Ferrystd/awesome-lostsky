@@ -19,19 +19,21 @@ class Me
     {
         $service = app(TeamMemberService::class);
         $result  = $service->get($request->team_id, $request->member_id);
-        $fieldService = app(\app\service\TeamMemberField::class);
-        $result['custom_fields'] = $fieldService->list(
-            (int) $request->team_id,
-            ['source' => 'custom'],
-            (int) $request->user_id,
-            (int) $request->member_id
-        );
-        $result['custom_field_values'] = $fieldService->values(
-            (int) $request->team_id,
-            (int) $request->member_id,
-            (int) $request->user_id,
-            (int) $request->member_id
-        );
+        $fieldService = app(\app\service\TeamEntityField::class);
+        $result['custom_fields'] = array_values(array_filter(
+            $fieldService->list((int) $request->team_id, 'member'),
+            static fn (array $field): bool => (int) ($field['is_visible'] ?? 0) === 1
+        ));
+        $visibleFieldIds = array_fill_keys(array_map(
+            static fn (array $field): int => (int) $field['id'],
+            $result['custom_fields']
+        ), true);
+        $result['custom_field_values'] = empty($result['slug'])
+            ? []
+            : array_values(array_filter(
+                $fieldService->values((int) $request->team_id, (string) $result['slug']),
+                static fn (array $value): bool => isset($visibleFieldIds[(int) ($value['field_id'] ?? 0)])
+            ));
 
         return success($result);
     }

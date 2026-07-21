@@ -1,0 +1,53 @@
+<?php
+declare (strict_types = 1);
+
+namespace app\model;
+
+use app\enum\TeamEntityType;
+
+class TeamEntityField extends Base
+{
+    protected $type = [
+        'id'          => 'integer',
+        'create_time' => 'integer',
+        'update_time' => 'integer',
+        'delete_time' => 'integer',
+        'team_id'       => 'integer',
+        'entity_type'   => TeamEntityType::class,
+        'field_key'     => 'string',
+        'name'          => 'string',
+        'value_type'    => 'string',
+        'input_type'    => 'string',
+        'is_required'   => 'integer',
+        'is_editable'   => 'integer',
+        'is_searchable' => 'integer',
+        'is_visible'    => 'integer',
+        'is_system'     => 'integer',
+        'sort'          => 'integer',
+    ];
+
+    protected $json = ['options'];
+    protected $hidden = ['delete_time'];
+    protected $append = [];
+    protected $readonly = ['team_id', 'entity_type', 'field_key', 'is_system'];
+
+    public function setFieldKeyAttr($value): string
+    {
+        return strtolower(trim((string) $value));
+    }
+
+    public function setNameAttr($value): string
+    {
+        return trim((string) $value);
+    }
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class, 'team_id');
+    }
+
+    public function fieldValues()
+    {
+        return $this->hasMany(TeamEntityFieldValue::class, 'field_id');
+    }
+}

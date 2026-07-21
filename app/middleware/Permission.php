@@ -3,14 +3,12 @@ declare (strict_types = 1);
 
 namespace app\middleware;
 
-use app\model\TeamMemberRole;
-use app\model\TeamRolePermission;
 use think\exception\HttpException;
 use think\Request;
 
 class Permission
 {
-    public function handle(Request $request, \Closure $next, string $permissionKey)
+    public function handle(Request $request, \Closure $next, string ...$permissionTemplates)
     {
         $teamId   = (int) ($request->team_id ?? 0);
         $memberId = (int) ($request->member_id ?? 0);
@@ -27,26 +25,8 @@ class Permission
             throw new HttpException(403, '你已被该团队封禁');
         }
 
-        if ($permissionKey === '' || !preg_match('/^[a-z][a-z0-9._-]*$/', $permissionKey)) {
-            throw new HttpException(500, '权限配置无效');
-        }
-
-        $roleIds = TeamMemberRole::where('team_id', $teamId)
-            ->where('member_id', $memberId)
-            ->column('role_id');
-
-        if (!$roleIds) {
-            throw new HttpException(403, '你没有执行此操作的权限');
-        }
-
-        $permission = TeamRolePermission::where('team_id', $teamId)
-            ->where('permission_key', $permissionKey)
-            ->whereIn('role_id', $roleIds)
-            ->find();
-
-        if (!$permission) {
-            throw new HttpException(403, '你没有执行此操作的权限');
-        }
+        $gate = app(\app\service\PermissionGate::class);
+        $gate->assert($teamId, $memberId, $gate->candidates($request, ...$permissionTemplates));
 
         return $next($request);
     }

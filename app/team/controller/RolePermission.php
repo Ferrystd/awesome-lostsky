@@ -26,4 +26,9 @@ class RolePermission
 
         return message('角色权限已更新');
     }
+
+    public function catalog(Request $request)
+    {
+        return success(app(\app\service\RolePermission::class)->catalog((int) $request->team_id));
+    }
 }

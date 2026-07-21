@@ -55,7 +55,7 @@ class TeamJoinField extends Base
 
     public function memberField()
     {
-        return $this->belongsTo(TeamMemberField::class, 'member_field_id');
+        return $this->belongsTo(TeamEntityField::class, 'member_field_id');
     }
 
     public function values()

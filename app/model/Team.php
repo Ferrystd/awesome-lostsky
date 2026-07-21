@@ -84,7 +84,8 @@ class Team extends Base
 
     public function memberFields()
     {
-        return $this->hasMany(TeamMemberField::class, 'team_id');
+        return $this->hasMany(TeamEntityField::class, 'team_id')
+            ->where('entity_type', \app\enum\TeamEntityType::Member->value);
     }
 
     public function joinFields()
@@ -126,6 +127,21 @@ class Team extends Base
     public function customers()
     {
         return $this->hasMany(TeamCustomer::class, 'team_id');
+    }
+
+    public function virtuals()
+    {
+        return $this->hasMany(TeamVirtual::class, 'team_id');
+    }
+
+    public function entityFields()
+    {
+        return $this->hasMany(TeamEntityField::class, 'team_id');
+    }
+
+    public function chatConversations()
+    {
+        return $this->hasMany(ChatConversation::class, 'team_id');
     }
 
     public function transactions()

@@ -39,11 +39,16 @@ HTML 必须保留 `<meta charset="UTF-8">`
 
 团队后台页面必须使用 `/frontend/apps/team/src/components/AdminPage.vue` 作为内容容器，并使用 `AdminPageHeader.vue` 生成页面标题、说明、返回入口和操作区。列表页只负责搜索、筛选、概览与进入任务；查看、创建、编辑、审核等任务使用可深链接的独立路由，禁止在列表旁常驻主从编辑器。公开加入页等非后台品牌页面不适用此约束。
 
-### 新增
-读取`docs/openapi/`中所需要的json，使用 `/ui-ux-pro-max`,`/lostsky-frontend` 构建页面
+### 前端技能
 
-### 修改
-使用`/ui-ux-pro-max`修改页面，不使用`/lostsky-frontend`
+- 新增或修改页面前，读取 `docs/openapi/` 中对应应用的接口定义，并以 OpenAPI 和现有仓库代码作为功能与架构事实来源。
+- 使用 `/andrej-karpathy-skills` 约束需求拆解、工程实现和验证，优先选择目标明确、保持简单、局部修改且可按验收标准证明的方案。
+- 使用 `/ui-ux-pro-max` 检查无障碍、响应式、表单可用性和动效性能，不采用其自动生成的色板、模板、技术栈或组件选择。
+- 使用 `/impeccable` 负责视觉方向、信息层级、交互设计与最终审查；已有 `PRODUCT.md`、`DESIGN.md` 和 Naive UI 主题优先于技能的通用建议。
+- 使用 `/shadcn-vue` 检索和借鉴 Vue 组件模式；项目已经提供同类 Naive UI 组件时继续复用 Naive UI，不并行维护重复组件体系。
+- `lostsky-frontend` 已永久弃用：保留 `.agents/skills/lostsky-frontend/` 仅供历史追溯，任何新任务均不得调用。
+- 不引入 React 运行时。需要借鉴 React 生态的视觉或动效时，必须使用 Vue/CSS 实现，并检查 `prefers-reduced-motion`、移动端性能和键盘可用性。
+- 工程实施遵循目标明确、保持简单、局部修改和按验收标准验证；技能建议不得覆盖项目事实、现有组件约定和浏览器测试结果。
 
 ### 架构
 一切多域名复用文件存储在[](/www/assets.lostsky.work/)。
@@ -156,3 +161,11 @@ php think make:controller #新建控制器
 3. 修改代码时，同步更改 SQL、Swagger/OpenAPI 文档等相关配套文件。
 4. 尽量最小改动，不全文件重写
 5. 新增或修改 SQL 补丁后，默认直接读取项目根目录 `.env` 的数据库配置并执行，避免手动执行；执行前确认数据库与项目匹配，执行后校验结果。
+
+## Chat 动态资源权限
+
+- `TeamSetting` 只管理团队策略；权限 key 管理成员是否可以执行具体操作，团队创建者在 Chat 中不绕过权限。
+- 动态资源控制器只声明具体模板，例如 `Permission:chat.virtual.<slug>.manage`；`Permission` 从路由、查询或请求体解析参数，并由 `PermissionGate` 同时精确检查 `chat.virtual.{slug}.manage` 与 `chat.virtual.*.manage`。
+- `Permission` 可用逗号接收多个权限参数，例如 `Permission:key-a,key-b`；多个参数按 OR 处理，任一参数展开后的具体权限或 `*` 通用权限命中即可放行。
+- `*` 只能作为完整资源范围段，表示该类型的全部实例，不执行前缀或模糊匹配；业务 slug 不得提交为 `*`。
+- slug 用于 URL、公开标识和动态权限；数据库数字 ID 继续作为内部主键和外键，不进入动态权限 key。

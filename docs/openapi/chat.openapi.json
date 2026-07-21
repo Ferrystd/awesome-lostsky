@@ -1,0 +1,569 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LostSky Chat API",
+    "version": "0.1.1",
+    "description": "LostSky 团队聊天、通用虚拟实体、Webhook 集成、统一对象字段与 Centrifugo 订阅令牌。"
+  },
+  "servers": [
+    {
+      "url": "https://api.lostsky.work",
+      "description": "通过 Origin 解析 chat 应用及团队 slug"
+    },
+    {
+      "url": "https://{slug}.chat.api.lostsky.work",
+      "variables": { "slug": { "default": "demo" } }
+    }
+  ],
+  "security": [{ "bearerAuth": [] }],
+  "tags": [
+    { "name": "Team" },
+    { "name": "Actor" },
+    { "name": "Virtual" },
+    { "name": "Integration" },
+    { "name": "Conversation" },
+    { "name": "Message" },
+    { "name": "Realtime" },
+    { "name": "Customer" },
+    { "name": "EntityField" },
+    { "name": "TeamAdmin", "description": "从团队后台 Origin 调用的 Chat 管理接口" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+      "integrationToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "创建或轮换虚拟实体集成时一次性返回的明文 API Token"
+      }
+    },
+    "schemas": {
+      "Envelope": {
+        "type": "object",
+        "required": ["code", "message", "data"],
+        "properties": {
+          "code": { "type": "integer", "example": 0 },
+          "message": { "type": "string", "example": "ok" },
+          "data": {}
+        }
+      },
+      "MessageEnvelope": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Envelope" },
+          { "type": "object", "properties": { "data": { "nullable": true } } }
+        ]
+      },
+      "Actor": {
+        "type": "object",
+        "required": ["type", "slug", "name"],
+        "properties": {
+          "type": { "type": "string", "enum": ["member", "customer", "virtual"] },
+          "slug": { "type": "string" },
+          "name": { "type": "string" },
+          "avatar": { "type": "string", "nullable": true },
+          "can_act": { "type": "boolean" }
+        }
+      },
+      "Participant": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Actor" },
+          {
+            "type": "object",
+            "properties": {
+              "joined_at": { "type": "integer", "format": "int64" },
+              "left_at": { "type": "integer", "format": "int64", "nullable": true },
+              "last_read_message_id": { "type": "integer", "format": "int64", "nullable": true }
+            }
+          }
+        ]
+      },
+      "Conversation": {
+        "type": "object",
+        "required": ["uuid", "kind", "participants"],
+        "properties": {
+          "uuid": { "type": "string", "format": "uuid" },
+          "kind": { "type": "string", "enum": ["direct", "group"] },
+          "title": { "type": "string", "nullable": true },
+          "is_temporary": { "type": "boolean" },
+          "is_closed": { "type": "boolean" },
+          "expires_at": { "type": "integer", "format": "int64", "nullable": true },
+          "last_message_at": { "type": "integer", "format": "int64", "nullable": true },
+          "last_message": { "type": "string", "nullable": true },
+          "participants": { "type": "array", "items": { "$ref": "#/components/schemas/Participant" } }
+        }
+      },
+      "ChatMessage": {
+        "type": "object",
+        "required": ["id", "conversation", "sender", "create_time"],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "conversation": { "type": "string", "format": "uuid" },
+          "sender": { "$ref": "#/components/schemas/Actor" },
+          "content": { "type": "string", "nullable": true },
+          "reply_id": { "type": "integer", "format": "int64", "nullable": true },
+          "edited_at": { "type": "integer", "format": "int64", "nullable": true },
+          "revoked_at": { "type": "integer", "format": "int64", "nullable": true },
+          "create_time": { "type": "integer", "format": "int64" }
+        }
+      },
+      "VirtualEntity": {
+        "type": "object",
+        "properties": {
+          "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$" },
+          "name": { "type": "string", "maxLength": 50 },
+          "avatar": { "type": "string", "nullable": true },
+          "description": { "type": "string", "nullable": true },
+          "is_active": { "type": "integer", "enum": [0, 1] },
+          "integrations": { "type": "array", "items": { "$ref": "#/components/schemas/Integration" } }
+        }
+      },
+      "Integration": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "name": { "type": "string" },
+          "driver": { "type": "string", "enum": ["webhook"] },
+          "endpoint_url": { "type": "string", "format": "uri" },
+          "events": { "type": "array", "items": { "type": "string" } },
+          "is_active": { "type": "integer", "enum": [0, 1] }
+        }
+      },
+      "EntityField": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "entity_type": { "type": "string", "enum": ["member", "customer", "virtual"] },
+          "field_key": { "type": "string" },
+          "name": { "type": "string" },
+          "value_type": { "type": "string" },
+          "input_type": { "type": "string" },
+          "options": { "type": "array", "items": {}, "nullable": true },
+          "is_required": { "type": "integer", "enum": [0, 1] },
+          "is_editable": { "type": "integer", "enum": [0, 1] },
+          "is_searchable": { "type": "integer", "enum": [0, 1] },
+          "is_visible": { "type": "integer", "enum": [0, 1] },
+          "sort": { "type": "integer" }
+        }
+      }
+    },
+    "parameters": {
+      "SlugQuery": {
+        "name": "slug",
+        "in": "query",
+        "required": true,
+        "schema": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$" }
+      },
+      "UuidQuery": {
+        "name": "uuid",
+        "in": "query",
+        "required": true,
+        "schema": { "type": "string", "format": "uuid" }
+      }
+    }
+  },
+  "paths": {
+    "/team": {
+      "get": {
+        "tags": ["Team"],
+        "summary": "列出当前用户作为成员或客户加入的团队并集",
+        "operationId": "chatTeamList",
+        "responses": { "200": { "description": "团队列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/actor": {
+      "get": {
+        "tags": ["Actor"],
+        "summary": "列出当前团队可见聊天身份及本人可操作身份",
+        "operationId": "chatActorList",
+        "responses": { "200": { "description": "身份列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/virtual": {
+      "get": {
+        "tags": ["Virtual"],
+        "summary": "按当前成员权限列出虚拟实体",
+        "operationId": "chatVirtualList",
+        "parameters": [{ "name": "mode", "in": "query", "schema": { "type": "string", "enum": ["manage", "operate"], "default": "manage" } }],
+        "responses": { "200": { "description": "虚拟实体列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/virtual/get": {
+      "get": {
+        "tags": ["Virtual"],
+        "summary": "读取虚拟实体",
+        "operationId": "chatVirtualGet",
+        "parameters": [{ "$ref": "#/components/parameters/SlugQuery" }],
+        "responses": { "200": { "description": "虚拟实体详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/virtual/create": {
+      "post": {
+        "tags": ["Virtual"],
+        "summary": "创建虚拟实体",
+        "operationId": "chatVirtualCreate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug", "name"], "properties": { "slug": { "type": "string" }, "name": { "type": "string" }, "avatar": { "type": "string", "nullable": true }, "description": { "type": "string", "nullable": true } } } } } },
+        "responses": { "200": { "description": "创建成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/virtual/update": {
+      "post": {
+        "tags": ["Virtual"],
+        "summary": "更新虚拟实体；Permission 中间件从请求体 slug 解析 <slug> 并检查具体 key 与 * key 的并集",
+        "operationId": "chatVirtualUpdate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug"], "properties": { "slug": { "type": "string" }, "name": { "type": "string" }, "avatar": { "type": "string", "nullable": true }, "description": { "type": "string", "nullable": true }, "is_active": { "type": "integer", "enum": [0, 1] } } } } } },
+        "responses": { "200": { "description": "更新成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/virtual/delete": {
+      "post": {
+        "tags": ["Virtual"],
+        "summary": "删除虚拟实体并清理具体 slug 权限",
+        "operationId": "chatVirtualDelete",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug"], "properties": { "slug": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "删除成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/integration/create": {
+      "post": {
+        "tags": ["Integration"],
+        "summary": "创建虚拟实体 Webhook 集成",
+        "operationId": "chatIntegrationCreate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug", "name", "endpoint_url"], "properties": { "slug": { "type": "string" }, "name": { "type": "string" }, "endpoint_url": { "type": "string", "format": "uri" }, "events": { "type": "array", "items": { "type": "string" } } } } } } },
+        "responses": { "200": { "description": "仅此次返回 token 与 signing_secret", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/integration/update": {
+      "post": {
+        "tags": ["Integration"],
+        "summary": "更新 Webhook 集成",
+        "operationId": "chatIntegrationUpdate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug", "id"], "properties": { "slug": { "type": "string" }, "id": { "type": "integer" }, "name": { "type": "string" }, "endpoint_url": { "type": "string", "format": "uri" }, "events": { "type": "array", "items": { "type": "string" } }, "is_active": { "type": "integer", "enum": [0, 1] } } } } } },
+        "responses": { "200": { "description": "更新成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/integration/rotate": {
+      "post": {
+        "tags": ["Integration"],
+        "summary": "轮换集成 token 与签名密钥",
+        "operationId": "chatIntegrationRotate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug", "id"], "properties": { "slug": { "type": "string" }, "id": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "新凭据", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/integration/delete": {
+      "post": {
+        "tags": ["Integration"],
+        "summary": "删除集成",
+        "operationId": "chatIntegrationDelete",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug", "id"], "properties": { "slug": { "type": "string" }, "id": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "删除成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/integration/message": {
+      "post": {
+        "tags": ["Integration"],
+        "summary": "集成使用 Bearer token 代表所属虚拟实体发送消息",
+        "operationId": "chatIntegrationMessage",
+        "security": [{ "integrationToken": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["conversation", "content"], "properties": { "conversation": { "type": "string", "format": "uuid" }, "content": { "type": "string" }, "reply_id": { "type": "integer", "nullable": true } } } } } },
+        "responses": { "200": { "description": "消息", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/conversation": {
+      "get": {
+        "tags": ["Conversation"],
+        "summary": "列出当前用户任一可用身份参与的会话",
+        "operationId": "chatConversationList",
+        "responses": { "200": { "description": "会话列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/conversation/get": {
+      "get": {
+        "tags": ["Conversation"],
+        "summary": "读取会话",
+        "operationId": "chatConversationGet",
+        "parameters": [{ "$ref": "#/components/parameters/UuidQuery" }],
+        "responses": { "200": { "description": "会话详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/conversation/create": {
+      "post": {
+        "tags": ["Conversation"],
+        "summary": "创建普通或临时的单聊/群聊",
+        "operationId": "chatConversationCreate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["kind", "actor_slug", "participants"], "properties": { "kind": { "type": "string", "enum": ["direct", "group"] }, "title": { "type": "string", "nullable": true }, "actor_slug": { "type": "string" }, "participants": { "type": "array", "items": { "type": "string" } }, "is_temporary": { "type": "integer", "enum": [0, 1] }, "expires_at": { "type": "integer", "nullable": true } } } } } },
+        "responses": { "200": { "description": "uuid 及是否命中已有普通单聊", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/conversation/close": {
+      "post": {
+        "tags": ["Conversation"],
+        "summary": "手动关闭会话",
+        "operationId": "chatConversationClose",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["uuid"], "properties": { "uuid": { "type": "string", "format": "uuid" } } } } } },
+        "responses": { "200": { "description": "关闭成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/conversation/participant/add": {
+      "post": {
+        "tags": ["Conversation"],
+        "summary": "向群聊添加参与者",
+        "operationId": "chatConversationParticipantAdd",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["uuid", "participants"], "properties": { "uuid": { "type": "string", "format": "uuid" }, "participants": { "type": "array", "items": { "type": "string" } } } } } } },
+        "responses": { "200": { "description": "添加成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/conversation/participant/remove": {
+      "post": {
+        "tags": ["Conversation"],
+        "summary": "从群聊移除参与者",
+        "operationId": "chatConversationParticipantRemove",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["uuid", "slug"], "properties": { "uuid": { "type": "string", "format": "uuid" }, "slug": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "移除成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/message": {
+      "get": {
+        "tags": ["Message"],
+        "summary": "读取消息；群聊按团队历史策略限制到加入时间",
+        "operationId": "chatMessageList",
+        "parameters": [
+          { "name": "conversation", "in": "query", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "before_id", "in": "query", "schema": { "type": "integer" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } }
+        ],
+        "responses": { "200": { "description": "消息列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/message/send": {
+      "post": {
+        "tags": ["Message"],
+        "summary": "使用成员、客户或已授权虚拟实体身份发送文本",
+        "operationId": "chatMessageSend",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["conversation", "actor_slug", "content"], "properties": { "conversation": { "type": "string", "format": "uuid" }, "actor_slug": { "type": "string" }, "content": { "type": "string", "maxLength": 10000 }, "reply_id": { "type": "integer", "nullable": true } } } } } },
+        "responses": { "200": { "description": "消息", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/message/edit": {
+      "post": {
+        "tags": ["Message"],
+        "summary": "在团队策略窗口内编辑消息",
+        "operationId": "chatMessageEdit",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["message_id", "content"], "properties": { "message_id": { "type": "integer" }, "content": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "编辑成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/message/revoke": {
+      "post": {
+        "tags": ["Message"],
+        "summary": "撤回消息",
+        "operationId": "chatMessageRevoke",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["message_id"], "properties": { "message_id": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "撤回成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/message/read": {
+      "post": {
+        "tags": ["Message"],
+        "summary": "推进指定身份的已读游标",
+        "operationId": "chatMessageRead",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["conversation", "actor_slug", "message_id"], "properties": { "conversation": { "type": "string", "format": "uuid" }, "actor_slug": { "type": "string" }, "message_id": { "type": "integer" } } } } } },
+        "responses": { "200": { "description": "更新成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/realtime/connect": {
+      "post": {
+        "tags": ["Realtime"],
+        "summary": "签发短期 Centrifugo 连接令牌",
+        "operationId": "chatRealtimeConnect",
+        "responses": { "200": { "description": "token 与客户端 WebSocket URL", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/realtime/subscribe": {
+      "post": {
+        "tags": ["Realtime"],
+        "summary": "验证参与者或虚拟实体操作权限后签发频道令牌",
+        "operationId": "chatRealtimeSubscribe",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["conversation"], "properties": { "conversation": { "type": "string", "format": "uuid" } } } } } },
+        "responses": { "200": { "description": "channel 与 token", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/entityField": {
+      "get": {
+        "tags": ["EntityField"],
+        "summary": "按对象类型列出字段",
+        "operationId": "chatEntityFieldList",
+        "parameters": [{ "name": "entity_type", "in": "query", "schema": { "type": "string", "enum": ["member", "customer", "virtual"] } }],
+        "responses": { "200": { "description": "字段列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/entityField/create": {
+      "post": {
+        "tags": ["EntityField"],
+        "summary": "创建统一对象字段",
+        "operationId": "chatEntityFieldCreate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntityField" } } } },
+        "responses": { "200": { "description": "创建成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/entityField/values": {
+      "get": {
+        "tags": ["EntityField"],
+        "summary": "读取指定 slug 的团队内部字段值",
+        "operationId": "chatEntityFieldValues",
+        "parameters": [{ "$ref": "#/components/parameters/SlugQuery" }],
+        "responses": { "200": { "description": "字段值", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      },
+      "post": {
+        "tags": ["EntityField"],
+        "summary": "保存指定 slug 的团队内部字段值",
+        "operationId": "chatEntityFieldSaveValues",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug", "values"], "properties": { "slug": { "type": "string" }, "values": { "type": "object", "additionalProperties": true } } } } } },
+        "responses": { "200": { "description": "保存成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/customer/me": {
+      "get": {
+        "tags": ["Customer"],
+        "summary": "读取当前团队客户身份资料",
+        "operationId": "chatCustomerMe",
+        "responses": { "200": { "description": "客户资料", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      },
+      "post": {
+        "tags": ["Customer"],
+        "summary": "客户自行维护当前团队公开资料",
+        "operationId": "chatCustomerUpdate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["nickname"], "properties": { "nickname": { "type": "string" }, "avatar": { "type": "string", "nullable": true }, "description": { "type": "string", "nullable": true } } } } } },
+        "responses": { "200": { "description": "更新成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/customer/slug": {
+      "post": {
+        "tags": ["Customer"],
+        "summary": "为当前团队客户身份首次确定全局 slug",
+        "operationId": "chatCustomerSlug",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug"], "properties": { "slug": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "确定成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/chatVirtual/index": {
+      "get": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台列出可管理虚拟实体",
+        "operationId": "teamChatVirtualList",
+        "responses": { "200": { "description": "列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/chatVirtual/get": {
+      "get": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台读取虚拟实体",
+        "operationId": "teamChatVirtualGet",
+        "parameters": [{ "$ref": "#/components/parameters/SlugQuery" }],
+        "responses": { "200": { "description": "详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/chatVirtual/create": {
+      "post": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台创建虚拟实体",
+        "operationId": "teamChatVirtualCreate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VirtualEntity" } } } },
+        "responses": { "200": { "description": "创建成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/chatVirtual/update": {
+      "post": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台更新虚拟实体",
+        "operationId": "teamChatVirtualUpdate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VirtualEntity" } } } },
+        "responses": { "200": { "description": "更新成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/chatVirtual/delete": {
+      "post": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台删除虚拟实体",
+        "operationId": "teamChatVirtualDelete",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug"], "properties": { "slug": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "删除成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/chatIntegration/create": {
+      "post": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台创建 Webhook 集成",
+        "operationId": "teamChatIntegrationCreate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Integration" } } } },
+        "responses": { "200": { "description": "凭据", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/chatIntegration/update": {
+      "post": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台更新 Webhook 集成",
+        "operationId": "teamChatIntegrationUpdate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Integration" } } } },
+        "responses": { "200": { "description": "更新成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/chatIntegration/rotate": {
+      "post": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台轮换 Webhook 凭据",
+        "operationId": "teamChatIntegrationRotate",
+        "responses": { "200": { "description": "新凭据", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/chatIntegration/delete": {
+      "post": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台删除 Webhook 集成",
+        "operationId": "teamChatIntegrationDelete",
+        "responses": { "200": { "description": "删除成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/entityField/index": {
+      "get": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台列出统一对象字段",
+        "operationId": "teamEntityFieldList",
+        "responses": { "200": { "description": "字段列表", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/entityField/get": {
+      "get": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台读取统一对象字段",
+        "operationId": "teamEntityFieldGet",
+        "responses": { "200": { "description": "字段详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/entityField/update": {
+      "post": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台更新统一对象字段",
+        "operationId": "teamEntityFieldUpdate",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EntityField" } } } },
+        "responses": { "200": { "description": "更新成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/entityField/delete": {
+      "post": {
+        "tags": ["TeamAdmin"],
+        "summary": "团队后台删除统一对象字段及值",
+        "operationId": "teamEntityFieldDelete",
+        "responses": { "200": { "description": "删除成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
+      }
+    },
+    "/rolePermission/catalog": {
+      "get": {
+        "tags": ["TeamAdmin"],
+        "summary": "加载固定权限、* 通用权限及当前团队具体虚拟实体权限目录",
+        "operationId": "teamRolePermissionCatalog",
+        "responses": { "200": { "description": "权限目录", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    }
+  }
+}

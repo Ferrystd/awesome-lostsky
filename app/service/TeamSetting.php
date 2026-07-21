@@ -179,15 +179,25 @@ class TeamSetting
         VisibilityEnum $visibility,
         array $targets
     ): void {
-        $setting = TeamSettingModel::withTrashed()->updateOrCreate([
-            'team_id'  => $teamId,
-            'app_name' => $appName,
-            'key'      => $key,
-        ], [
-            'value'       => $value,
-            'visibility'  => $visibility->value,
+        $setting = TeamSettingModel::withTrashed()
+            ->where('team_id', $teamId)
+            ->where('app_name', $appName)
+            ->where('key', $key)
+            ->find();
+        $data = [
+            'value' => $value,
+            'visibility' => $visibility,
             'delete_time' => null,
-        ]);
+        ];
+        if (!$setting) {
+            $setting = app(TeamSettingModel::class, [], true);
+            $data = array_merge([
+                'team_id' => $teamId,
+                'app_name' => $appName,
+                'key' => $key,
+            ], $data);
+        }
+        $setting->save($data);
 
         app(\app\service\Visibility::class)->syncTargets(
             $setting,

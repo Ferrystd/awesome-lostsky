@@ -37,8 +37,14 @@ class Sender
             throw new HttpException(422, '客户不存在');
         }
 
-        if (TeamCustomerSender::sender($memberId, $customerId)->find()) {
-            throw new HttpException(409, '该绑定已存在');
+        $existing = TeamCustomerSender::withTrashed()->sender($memberId, $customerId)->find();
+        if ($existing) {
+            if (!$existing->trashed()) {
+                throw new HttpException(409, '该绑定已存在');
+            }
+
+            $existing->restore();
+            return;
         }
 
         $binding = new TeamCustomerSender;

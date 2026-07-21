@@ -26,8 +26,13 @@ const memberId = computed(() => Number(route.query.id))
 const values = reactive<Record<number, Value>>({})
 const uploading = ref<number | null>(null)
 const member = useQuery({ queryKey: computed(() => ['member', memberId.value]), queryFn: () => api.get<Record<string, unknown>>('/member/get', { member_id: memberId.value }), enabled: computed(() => memberId.value > 0) })
-const fields = useQuery({ queryKey: ['member-fields'], queryFn: () => api.get<Field[]>('/memberField/index') })
-const stored = useQuery({ queryKey: computed(() => ['member-field-values', memberId.value]), queryFn: () => api.get<Record<string, unknown>[]>('/memberField/values', { member_id: memberId.value }), enabled: computed(() => memberId.value > 0) })
+const memberSlug = computed(() => String(member.data.value?.slug ?? ''))
+const fields = useQuery({ queryKey: ['entity-fields', 'member'], queryFn: () => api.get<Field[]>('/entityField/index', { entity_type: 'member' }) })
+const stored = useQuery({
+  queryKey: computed(() => ['entity-field-values', memberSlug.value]),
+  queryFn: () => api.get<Record<string, unknown>[]>('/entityField/values', { slug: memberSlug.value }),
+  enabled: computed(() => Boolean(memberSlug.value)),
+})
 const profile = computed(() => member.data.value?.profile as Record<string, unknown> | undefined)
 const introduction = computed(() => String(profile.value?.introduction_markdown ?? member.data.value?.introduction_markdown ?? ''))
 
@@ -38,7 +43,7 @@ watch(() => stored.data.value, (list) => {
   }
 }, { immediate: true })
 
-const save = useMutation({ mutationFn: () => api.post('/memberField/saveValues', { member_id: memberId.value, values: { ...values } }) })
+const save = useMutation({ mutationFn: () => api.post('/entityField/values', { slug: memberSlug.value, values: { ...values } }) })
 
 function options(field: Field) {
   let source = field.options
@@ -85,7 +90,9 @@ async function upload(field: Field, event: Event) {
     </section>
 
     <form class="fields" @submit.prevent="save.mutate()">
-      <div class="section-title"><div><h2>自定义资料</h2><p>团队定义的业务字段会显示在这里。</p></div><LsButton type="submit" :loading="save.isPending.value">保存资料</LsButton></div>
+      <div class="section-title"><div><h2>自定义资料</h2><p>团队定义的业务字段会显示在这里。</p></div><LsButton type="submit" :loading="save.isPending.value" :disabled="!memberSlug">保存资料</LsButton></div>
+      <p v-if="!memberSlug && member.data.value" class="feedback">请先为成员确定 slug，再维护统一对象字段。</p>
+      <p v-if="fields.isError.value || stored.isError.value" class="feedback error" role="alert">{{ friendlyError(fields.error.value || stored.error.value) }}</p>
       <p v-if="fields.isPending.value">正在读取字段…</p>
       <div v-else-if="!fields.data.value?.length" class="empty">团队尚未配置成员字段。</div>
       <div v-else class="field-grid">

@@ -395,7 +395,9 @@ class TeamJoin
         if (!$memberFieldId) {
             throw new HttpException(422, '转存成员字段不能为空');
         }
-        if (!\app\model\TeamMemberField::where('team_id', $teamId)->find($memberFieldId)) {
+        if (!\app\model\TeamEntityField::where('team_id', $teamId)
+            ->where('entity_type', \app\enum\TeamEntityType::Member->value)
+            ->find($memberFieldId)) {
             throw new HttpException(404, '转存成员字段不存在');
         }
     }
@@ -451,17 +453,28 @@ class TeamJoin
             if (!$field || !$field->is_transfer_member_field || !$field->member_field_id) {
                 continue;
             }
-            $memberField = \app\model\TeamMemberField::where('team_id', $teamId)->find((int) $field->member_field_id);
+            $memberField = \app\model\TeamEntityField::where('team_id', $teamId)
+                ->where('entity_type', \app\enum\TeamEntityType::Member->value)
+                ->find((int) $field->member_field_id);
             if (!$memberField) {
                 continue;
             }
 
-            $target = \app\model\TeamMemberFieldValue::where('member_id', $memberId)
+            $target = \app\model\TeamEntityFieldValue::withTrashed()
+                ->where('team_id', $teamId)
+                ->where('entity_type', \app\enum\TeamEntityType::Member->value)
+                ->where('entity_id', $memberId)
                 ->where('field_id', (int) $memberField->id)
-                ->findOrEmpty();
+                ->find();
+            if (!$target) {
+                $target = app(\app\model\TeamEntityFieldValue::class, [], true);
+            }
             $target->save(array_merge([
-                'member_id' => $memberId,
+                'team_id' => $teamId,
                 'field_id' => (int) $memberField->id,
+                'entity_type' => \app\enum\TeamEntityType::Member,
+                'entity_id' => $memberId,
+                'delete_time' => null,
             ], $this->valuePayload($memberField->value_type, $this->rawValue($field->value_type, $value))));
         }
     }

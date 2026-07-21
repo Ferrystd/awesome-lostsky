@@ -1,12 +1,23 @@
 import { expect, test } from '@playwright/test'
 
-test('landing page exposes the main journey without horizontal overflow', async ({ page }) => {
+test('landing page keeps the legacy studio journey without horizontal overflow', async ({ page }) => {
   await page.goto('http://127.0.0.1:5173/')
-  await expect(page).toHaveTitle(/LostSky/)
-  await expect(page.getByRole('heading', { name: /当喧闹退去/ })).toBeVisible()
-  await expect(page.getByRole('link', { name: /创建工作空间/ }).first()).toBeVisible()
+  await expect(page).toHaveTitle(/失落青空 - 顶尖陪玩运营工作室/)
+  await expect(page.getByRole('heading', { name: /重塑陪玩生态/ })).toBeVisible()
+  await expect(page.locator('#team')).toBeVisible()
+  await expect(page.locator('#services')).toBeVisible()
+  await expect(page.locator('#advantages')).toBeVisible()
+  await expect(page.locator('#contact')).toBeVisible()
+  await expect(page.getByRole('link', { name: '探索解决方案' })).toHaveAttribute('href', '#services')
+  await expect(page.getByRole('link', { name: '联系我们' })).toHaveAttribute('href', '#contact')
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
   expect(overflow).toBe(false)
+
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.reload()
+  await expect(page.getByRole('link', { name: '联系我们' })).toBeVisible()
+  const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+  expect(mobileOverflow).toBe(false)
 })
 
 test('account login remains usable at mobile and desktop widths', async ({ page }) => {
@@ -21,6 +32,7 @@ test('account login remains usable at mobile and desktop widths', async ({ page 
 })
 
 test('team workspace routes remain responsive with the API boundary mocked', async ({ page }) => {
+  test.setTimeout(240_000)
   const pageErrors: string[] = []
   let emptyNotices = false
   let noticeConfirmRequests = 0
@@ -43,6 +55,20 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     else if (url.pathname.endsWith('/member/get')) data = { id: 1, user_id: 1, nickname: '测试成员', slug: 'alice', search_override: null, posts: [] }
     else if (url.pathname.endsWith('/member/index')) data = [{ id: 1, user_id: 1, nickname: '测试成员', slug: 'alice', is_blocked: 0 }]
     else if (url.pathname.endsWith('/postType/index')) data = []
+    else if (url.pathname.endsWith('/chatVirtual/get')) data = {
+      slug: 'sales-assistant',
+      name: '销售助手',
+      avatar: null,
+      description: '负责接收销售咨询',
+      is_active: 1,
+      integrations: [{
+        id: 1,
+        name: 'CRM 工作流',
+        endpoint_url: 'https://example.com/lostsky/events',
+        events: ['message.created'],
+        is_active: 1,
+      }],
+    }
     else if (url.pathname.endsWith('/entity/search')) data = [{ slug: 'alice', type: 'teamMember', display_name: '测试成员', available: true, team: { slug: 'demo', display_name: '测试团队' } }]
     else if (url.pathname.endsWith('/entity/resolve')) data = [{ slug: 'alice', type: 'teamMember', display_name: '测试成员', available: true, team: { slug: 'demo', display_name: '测试团队' }, href: '/member-detail?id=1' }]
     else if (url.pathname.endsWith('/notice/get')) data = { id: 21, title: '维护窗口提醒', content: '系统将在今晚进行维护。\n请提前保存正在处理的内容。', is_pinned: 1, is_read: 0, create_time: 1752883200 }
@@ -70,12 +96,15 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     else if (url.pathname.endsWith('/join/form')) data = []
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
-  for (const path of ['/', '/members', '/member-add', '/member-edit?id=1', '/roles', '/roles/new', '/posts', '/fields', '/notice', '/notice-detail?id=21', '/files', '/docs', '/doc-create', '/doc-edit?id=11', '/doc?id=11', '/settings', '/join-review', '/join-review/review?id=1', '/me']) {
+  for (const path of ['/', '/members', '/member-add', '/member-edit?id=1', '/roles', '/roles/new', '/posts', '/fields', '/field-new?type=member', '/chat-virtuals', '/chat-virtual-new', '/chat-virtual?slug=sales-assistant', '/chat-integration-new?slug=sales-assistant', '/chat-integration?slug=sales-assistant&id=1', '/notice', '/notice-detail?id=21', '/files', '/docs', '/doc-create', '/doc-edit?id=11', '/doc?id=11', '/settings', '/join-review', '/join-review/review?id=1', '/me']) {
     await page.goto(`http://127.0.0.1:5175${path}`)
     expect(page.url(), `unexpected navigation at ${path}; errors: ${pageErrors.join(' | ')}`).toContain('127.0.0.1:5175')
     if (!await page.locator('#workspace').count()) throw new Error(`workspace missing at ${path}; url=${page.url()}; token=${await page.evaluate(() => localStorage.getItem('lostsky_token'))}; errors=${pageErrors.join(' | ')}; body=${(await page.locator('body').innerText()).slice(0, 400)}`)
     await expect(page.locator('#workspace')).toBeVisible()
-    await expect(page.locator('.admin-page')).toBeVisible()
+    await expect(
+      page.locator('#workspace > .admin-page'),
+      `admin page hidden at ${path}; errors: ${pageErrors.join(' | ')}`,
+    ).toBeVisible({ timeout: 60_000 })
     if (path === '/join-review') {
       await expect(page.getByRole('link', { name: /青空成员/ })).toBeVisible()
       await expect(page.getByText('查看申请状态，选择一条申请进入独立审核页面。')).toBeVisible()
@@ -90,6 +119,11 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.getByRole('heading', { name: '新建角色', level: 2 })).toBeVisible()
       await expect(page.getByLabel('角色标识')).toBeVisible()
       await expect(page.getByLabel('角色名称')).toBeVisible()
+    }
+    if (path.startsWith('/chat-integration?')) {
+      await expect(page.getByRole('heading', { name: '编辑 Webhook 集成', level: 2 })).toBeVisible()
+      await expect(page.getByLabel('集成名称')).toHaveValue('CRM 工作流')
+      await expect(page.getByRole('switch', { name: '启用集成' })).toBeChecked()
     }
     if (path === '/notice') {
       await expect(page.getByRole('link', { name: /维护窗口提醒/ })).toHaveAttribute('href', '/notice-detail?id=21')
@@ -183,4 +217,55 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
   emptyNotices = true
   await page.goto('http://127.0.0.1:5175/notice')
   await expect(page.getByRole('heading', { name: '目前没有站内信' })).toBeVisible()
+})
+
+test('transaction workspace covers ledger tasks without horizontal overflow', async ({ page }) => {
+  const pageErrors: string[] = []
+  page.on('pageerror', (error) => pageErrors.push(error.message))
+  page.on('console', (message) => { if (message.type() === 'error') pageErrors.push(message.text()) })
+  await page.addInitScript(() => localStorage.setItem('lostsky_token', 'e2e-token'))
+  await page.route('http://127.0.0.1:5177/api/**', async (route) => {
+    const url = new URL(route.request().url())
+    const member = { id: 1, nickname: '青空接单人', avatar: null, is_blocked: 0 }
+    const customer = { id: 8, nickname: '晚风客户', avatar: null, description: '长期客户', is_blocked: 0, balance: { balance: 880, recharged: 1200, spent: 320 } }
+    const transaction = {
+      id: 21, handler_id: 1, sender_id: null, cs_id: null, customer_id: 8, type: 2,
+      total_price: 320, cost: 80, cash: 200, prepaid: 120, handler_cut: 140, sender_cut: 0,
+      cs_cut: 0, team_cut: 100, trans_at: 1784563200, memo: '七月陪玩服务',
+      handler: member, customer,
+    }
+    let data: unknown = null
+    if (url.pathname.endsWith('/transaction/options')) data = { members: [member], customers: [customer] }
+    else if (url.pathname.endsWith('/transaction/stats')) {
+      const type = url.searchParams.get('type')
+      if (type === 'timeline') data = [{ date: '2026-07-20', count: 1, amount: 320 }]
+      else if (type === 'byMember') data = [{ member_id: 1, nickname: '青空接单人', count: 1, amount: 140 }]
+      else if (type === 'byCustomer') data = [{ customer_id: 8, customer_name: '晚风客户', count: 1, amount: 320 }]
+      else data = { total_count: 1, total_price: 320, total_cost: 80, total_cut: 240, cash_total: 200, prepaid_total: 120, avg_price: 320 }
+    } else if (url.pathname.endsWith('/transaction/sender/all')) data = [{ id: 3, member_id: 1, customer_id: 8, create_time: 1784563200, member, customer }]
+    else if (url.pathname.endsWith('/transaction/balance/logs')) data = { list: [{ id: 5, customer_id: 8, type: 1, amount: 1200, balance_after: 1200, memo: '首次充值', create_time: 1784563200 }], total: 1, page: 1, limit: 20 }
+    else if (url.pathname.endsWith('/transaction/21')) data = transaction
+    else if (url.pathname.endsWith('/transaction')) data = { list: [transaction], total: 1, page: 1, limit: 20 }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
+  })
+
+  const routes = ['/', '/new', '/detail?id=21', '/edit?id=21', '/stats', '/bindings', '/binding-new', '/balances', '/balance?customer_id=8', '/recharge?customer_id=8']
+  for (const path of routes) {
+    await page.goto(`http://127.0.0.1:5177${path}`)
+    await expect(page.locator('#workspace'), `workspace missing at ${path}; ${pageErrors.join(' | ')}`).toBeVisible()
+    await expect(page.locator('.page-heading h2')).toBeVisible()
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+    expect(overflow, `horizontal overflow at ${path}`).toBe(false)
+  }
+
+  await page.goto('http://127.0.0.1:5177/')
+  await expect(page.getByText('晚风客户', { exact: true })).toBeVisible()
+  await expect(page.getByText('¥320.00', { exact: true })).toBeVisible()
+  await page.goto('http://127.0.0.1:5177/new')
+  await expect(page.getByText('金额平衡')).toBeVisible()
+  await expect(page.getByRole('button', { name: '保存流水' })).toBeDisabled()
+  await page.goto('http://127.0.0.1:5177/stats')
+  await expect(page.getByText('成交金额', { exact: true })).toBeVisible()
+  await expect(page.getByText('青空接单人')).toBeVisible()
+  expect(pageErrors).toEqual([])
 })

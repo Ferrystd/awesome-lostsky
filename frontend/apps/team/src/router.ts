@@ -19,6 +19,11 @@ const ResourceView = () => import('./views/ResourceView.vue')
 const RoleFormView = () => import('./views/RoleFormView.vue')
 const RolesView = () => import('./views/RolesView.vue')
 const SettingsView = () => import('./views/SettingsView.vue')
+const ChatVirtualsView = () => import('./views/ChatVirtualsView.vue')
+const ChatVirtualFormView = () => import('./views/ChatVirtualFormView.vue')
+const ChatIntegrationFormView = () => import('./views/ChatIntegrationFormView.vue')
+const EntityFieldsView = () => import('./views/EntityFieldsView.vue')
+const EntityFieldFormView = () => import('./views/EntityFieldFormView.vue')
 
 export interface ResourceFormField {
   key: string
@@ -93,6 +98,14 @@ const routes = [
   { path: '/notice-detail', component: NoticeDetailView, meta: { title: '阅读站内信', pageWidth: 'content' } },
   { path: '/files', component: FilesView, meta: { title: '文件' } },
   { path: '/settings', component: SettingsView, meta: { title: '团队设置', pageWidth: 'content' } },
+  { path: '/chat-virtuals', component: ChatVirtualsView, meta: { title: '虚拟实体' } },
+  { path: '/chat-virtual-new', component: ChatVirtualFormView, meta: { title: '创建虚拟实体', pageWidth: 'content' } },
+  { path: '/chat-virtual', component: ChatVirtualFormView, meta: { title: '编辑虚拟实体', pageWidth: 'content' } },
+  { path: '/chat-integration-new', component: ChatIntegrationFormView, meta: { title: '创建 Webhook 集成', pageWidth: 'form' } },
+  { path: '/chat-integration', component: ChatIntegrationFormView, meta: { title: '编辑 Webhook 集成', pageWidth: 'form' } },
+  { path: '/fields', component: EntityFieldsView, meta: { title: '对象字段' } },
+  { path: '/field-new', component: EntityFieldFormView, meta: { title: '创建对象字段', pageWidth: 'form' } },
+  { path: '/field-edit', component: EntityFieldFormView, meta: { title: '编辑对象字段', pageWidth: 'form' } },
   { path: '/roles/new', component: RoleFormView, meta: { title: '新建角色', pageWidth: 'form' } },
   { path: '/roles', component: RolesView, meta: { title: '角色权限' } },
   { path: '/join-review/review', component: JoinReviewDetailView, meta: { title: '审核加入申请', pageWidth: 'content' } },
@@ -103,7 +116,7 @@ const routes = [
   { path: '/docs', component: DocumentsView, meta: { title: '文档' } },
   { path: '/doc-create', component: DocumentFormView, meta: { title: '新建文档', pageWidth: 'content' } },
   { path: '/doc-edit', component: DocumentFormView, meta: { title: '编辑文档', pageWidth: 'content' } },
-  ...Object.entries(resources).filter(([path]) => !['notice', 'files', 'roles', 'join-review', 'members', 'docs'].includes(path)).map(([path, resource]) => ({ path: `/${path}`, component: ResourceView, props: { resource }, meta: { title: resource.title } })),
+  ...Object.entries(resources).filter(([path]) => !['notice', 'files', 'roles', 'join-review', 'members', 'fields', 'docs'].includes(path)).map(([path, resource]) => ({ path: `/${path}`, component: ResourceView, props: { resource }, meta: { title: resource.title } })),
   { path: '/member-detail', component: MemberDetailView, meta: { title: '成员详情' } },
   { path: '/doc', component: DocumentView, meta: { title: '文档' } },
   { path: '/me', component: ProfileView, meta: { title: '我的资料' } },
