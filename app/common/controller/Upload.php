@@ -11,6 +11,8 @@ class Upload
     protected $middleware = [
         'JwtAuth'      => ['except' => []],
         'Context'      => ['except' => []],
+        'EntityType:teamMember' => ['except' => []],
+        'TeamBelongs'  => ['except' => []],
         'MemberAccess' => ['except' => []],
     ];
 

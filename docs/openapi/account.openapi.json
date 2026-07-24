@@ -3,7 +3,11 @@
   "info": {
     "title": "LostSky Account API",
     "version": "0.0.9",
-    "description": "认证、设备和用户团队入口。登录和注册接口无 JWT，设备和团队接口需要 Bearer JWT。"
+    "description": "认证、设备和用户团队入口。登录和注册接口无 JWT，设备和团队接口只接受 teamless 基础用户 Bearer JWT。"
+  },
+  "x-entity-auth": {
+    "authenticated_default": ["teamless"],
+    "team_belongs": false
   },
   "servers": [
     {

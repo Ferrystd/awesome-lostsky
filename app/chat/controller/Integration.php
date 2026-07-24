@@ -8,6 +8,8 @@ class Integration
     protected $middleware = [
         'JwtAuth' => ['except' => ['send']],
         'Context' => ['except' => ['send']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => ['send']],
+        'TeamBelongs' => ['except' => ['send']],
         'MemberAccess' => ['except' => ['send']],
         [
             'middleware' => ['Permission', ['chat.virtual.<slug>.manage']],

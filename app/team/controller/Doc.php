@@ -9,7 +9,10 @@ use think\Request;
 
 class Doc
 {
-    protected $middleware = ['JwtAuth', 'Context', 'MemberAccess', 'DocAbility'];
+    protected $middleware = [
+        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
+        'TeamBelongs', 'MemberAccess', 'DocAbility',
+    ];
 
     public function __call($name, $arguments)
     {

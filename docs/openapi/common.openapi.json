@@ -5,6 +5,10 @@
     "version": "0.0.9",
     "description": "通用上传与文档接口。"
   },
+  "x-entity-auth": {
+    "authenticated_default": ["teamMember"],
+    "team_belongs": true
+  },
   "servers": [
     {
       "url": "https://api.lostsky.work",

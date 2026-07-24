@@ -11,6 +11,8 @@ class JoinField
     protected $middleware = [
         'JwtAuth'    => ['only' => ['index', 'add', 'edit', 'delete']],
         'Context'    => ['only' => ['index', 'add', 'edit', 'delete']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'add', 'edit', 'delete']],
+        'TeamBelongs' => ['only' => ['index', 'add', 'edit', 'delete']],
         'TeamAccess' => ['only' => ['index', 'add', 'edit', 'delete']],
     ];
 

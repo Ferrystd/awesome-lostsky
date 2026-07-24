@@ -21,12 +21,18 @@ Team 应用按操作组合以下中间件：
 
 - `JwtAuth`：确认登录用户。
 - `Context`：提取 `user_id`、`team_id`、`member_id` 和顾客上下文。
+- `EntityType`：按接口声明允许的基础用户或实体身份类型；同一声明中的多个类型按 OR 处理。
+- `TeamBelongs`：确认显式实体属于当前域名解析出的团队，不重复处理状态或角色权限。
 - `MemberAccess` 或 `TeamMember`：确认当前用户具备团队成员身份。
 - `TeamAccess`：限制团队管理操作。
 - `TeamGuest`：限制加入申请入口只能由非成员使用。
 - `DocAbility`：根据文档归属、管理范围和可见性控制文档操作。
 
 控制器仅提取参数、调用服务并返回统一响应；权限判断和跨模型事务由中间件与服务层完成。
+
+团队业务默认接受 `team`、`teamMember`、`teamCustomer`、`teamVirtual` 四种实体 JWT，并依次经过
+`TeamBelongs` 和具体 Access/Ability/Permission 中间件收紧。当前成员资料与成员上传只接受
+`teamMember`；加入申请人的动作只接受 `teamless` 基础用户 JWT，且不经过 `TeamBelongs`。
 
 ## 角色与权限
 

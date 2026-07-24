@@ -15,7 +15,8 @@ Transaction 负责团队记账流水、客户与发单人的绑定关系，以�
 
 ## 鉴权边界
 
-所有接口都经过 `JwtAuth`、`Context` 和 `MemberAccess`。
+所有接口都经过 `JwtAuth`、`Context`、允许四种团队实体的 `EntityType`、`TeamBelongs`
+和 `MemberAccess`；实体类型与归属先确定请求主体，成员及业务权限中间件再取交集。
 
 - 流水创建和编辑还要求 `TransactionAbility` 与 `TransactionVerify`。
 - 流水删除要求 `TransactionAbility` 与 `TransactionAccess`。

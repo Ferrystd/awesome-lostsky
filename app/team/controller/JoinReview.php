@@ -11,6 +11,8 @@ class JoinReview
     protected $middleware = [
         'JwtAuth'    => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
         'Context'    => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
+        'TeamBelongs' => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
         'TeamAccess' => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
     ];
 

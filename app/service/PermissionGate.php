@@ -3,25 +3,25 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\model\TeamEntityRole;
 use app\model\TeamMember;
-use app\model\TeamMemberRole;
 use app\model\TeamRolePermission;
 use think\exception\HttpException;
 use think\Request;
 
 class PermissionGate
 {
-    public function assert(int $teamId, int $memberId, array $permissionKeys): void
+    public function assert(int $teamId, int|array $subject, array $permissionKeys): void
     {
-        if (!$this->allows($teamId, $memberId, $permissionKeys)) {
+        if (!$this->allows($teamId, $subject, $permissionKeys)) {
             throw new HttpException(403, '你没有执行此操作的权限');
         }
     }
 
-    public function allows(int $teamId, int $memberId, array $permissionKeys): bool
+    public function allows(int $teamId, int|array $subject, array $permissionKeys): bool
     {
-        $member = TeamMember::where('team_id', $teamId)->find($memberId);
-        if (!$member || $member->is_blocked) {
+        $subject = $this->subject($subject);
+        if (!$this->validSubject($teamId, $subject)) {
             return false;
         }
 
@@ -33,8 +33,9 @@ class PermissionGate
             $this->assertKey($key);
         }
 
-        $roleIds = TeamMemberRole::where('team_id', $teamId)
-            ->where('member_id', $memberId)
+        $roleIds = TeamEntityRole::where('team_id', $teamId)
+            ->where('entity_type', $subject['type'])
+            ->where('entity_id', $subject['id'])
             ->column('role_id');
         if (!$roleIds) {
             return false;
@@ -44,6 +45,28 @@ class PermissionGate
             ->whereIn('role_id', $roleIds)
             ->whereIn('permission_key', $keys)
             ->find();
+    }
+
+    private function subject(int|array $subject): array
+    {
+        if (is_int($subject)) return ['type' => 'teamMember', 'id' => $subject];
+        $type = (string) ($subject['type'] ?? '');
+        $id = (int) ($subject['id'] ?? 0);
+        if (!in_array($type, ['teamMember', 'teamCustomer', 'team', 'teamVirtual'], true) || $id < 1) {
+            throw new HttpException(500, 'Permission subject is invalid');
+        }
+        return compact('type', 'id');
+    }
+
+    private function validSubject(int $teamId, array $subject): bool
+    {
+        return match ($subject['type']) {
+            'teamMember' => (bool) TeamMember::where('team_id', $teamId)->where('id', $subject['id'])->where('is_blocked', 0)->find(),
+            'teamCustomer' => (bool) \app\model\TeamCustomer::where('team_id', $teamId)->where('id', $subject['id'])->where('is_blocked', 0)->find(),
+            'team' => (bool) \app\model\Team::active()->where('id', $teamId)->where('id', $subject['id'])->find(),
+            'teamVirtual' => (bool) \app\model\TeamVirtual::where('team_id', $teamId)->where('id', $subject['id'])->where('is_active', 1)->find(),
+            default => false,
+        };
     }
 
     public function candidates(Request $request, string ...$templates): array

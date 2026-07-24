@@ -256,6 +256,11 @@ class ChatConversation
             if ($type === ChatActorType::Customer && (int) $participant->actor_id === $customerId) {
                 return true;
             }
+            if ($type === ChatActorType::Team && app(ChatActor::class)->canAct(
+                ['type' => $type, 'id' => (int) $participant->actor_id, 'slug' => ''], $teamId, $memberId, $customerId
+            )) {
+                return true;
+            }
             if ($type === ChatActorType::Virtual) {
                 $summary = app(ChatActor::class)->summary($type, (int) $participant->actor_id);
                 $slug = (string) ($summary['slug'] ?? '');
@@ -323,7 +328,7 @@ class ChatConversation
             $keys[] = 'chat.temporary.create';
         }
         foreach ($keys as $key) {
-            app(PermissionGate::class)->assert($teamId, $memberId, [$key]);
+            app(PermissionGate::class)->assert($teamId, request()->acting_entity ?: $memberId, [$key]);
         }
     }
 
@@ -379,7 +384,7 @@ class ChatConversation
             throw new HttpException(422, '单聊不支持参与者管理');
         }
         $this->assertAccess($conversation, $teamId, $memberId, $customerId);
-        app(PermissionGate::class)->assert($teamId, $memberId, ['chat.group.manage']);
+        app(PermissionGate::class)->assert($teamId, request()->acting_entity ?: $memberId, ['chat.group.manage']);
     }
 
     private function conversation(int $teamId, string $uuid, bool $withParticipants): ChatConversationModel

@@ -90,7 +90,7 @@ class TeamMember extends Base
 
     public function memberRoles()
     {
-        return $this->hasMany(TeamMemberRole::class, 'member_id');
+        return $this->hasMany(TeamEntityRole::class, 'entity_id')->where('entity_type', 'teamMember');
     }
 
     public function fieldValues()
@@ -137,6 +137,11 @@ class TeamMember extends Base
     {
         return $this->morphOne(EntityIdentity::class, 'entityable', 'teamMember')
             ->bind(['slug', 'search_override']);
+    }
+
+    public function entityRoles()
+    {
+        return $this->hasMany(TeamEntityRole::class, 'entity_id')->where('entity_type', 'teamMember');
     }
 
     public function files()

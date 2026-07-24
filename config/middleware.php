@@ -7,6 +7,8 @@ return [
         'Dedup'              => \app\middleware\Dedup::class,
         'JwtAuth'            => \app\middleware\JwtAuth::class,
         'Context'            => \app\middleware\Context::class,
+        'EntityType'         => \app\middleware\EntityType::class,
+        'TeamBelongs'        => \app\middleware\TeamBelongs::class,
         'TeamAccess'         => \app\middleware\TeamAccess::class,
         'TeamGuest'          => \app\middleware\TeamGuest::class,
         'TeamMember'         => \app\middleware\TeamMember::class,

@@ -11,6 +11,8 @@ class Order
     protected $middleware = [
         'JwtAuth'           => ['except' => []],
         'Context'           => ['except' => []],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'TeamBelongs'       => ['except' => []],
         'MemberAccess'      => ['except' => []],
         'TransactionVerify' => ['only' => ['create']],
         'ShopAccess'        => ['only' => ['cancel', 'complete']],

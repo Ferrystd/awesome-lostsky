@@ -3,17 +3,17 @@ import { api, auth, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
-import { safeRedirect } from '@lostsky/shared/navigation'
+import { goToSafeRedirect } from '@lostsky/shared/navigation'
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import AuthShell from '../components/AuthShell.vue'
-const route = useRoute(); const router = useRouter(); const phone = ref(''); const password = ref(''); const confirm = ref(''); const loading = ref(false); const error = ref('')
+const route = useRoute(); const phone = ref(''); const password = ref(''); const confirm = ref(''); const loading = ref(false); const error = ref('')
 async function submit() {
   error.value = ''
   if (!phone.value.trim() || password.value.length < 6) { error.value = '请输入手机号码，密码至少6位'; return }
   if (password.value !== confirm.value) { error.value = '两次输入的密码不一致'; return }
   loading.value = true
-  try { const data = await api.post<{ token: string; user?: unknown }>('/register/phone', { phone: phone.value.trim(), password: password.value }); auth.save(data); const redirect=safeRedirect(route.query.redirect); if(redirect.startsWith('https://'))location.href=redirect;else await router.replace(redirect) }
+  try { const data = await api.post<{ token: string; user?: unknown }>('/register/phone', { phone: phone.value.trim(), password: password.value }); auth.save(data); goToSafeRedirect(route.query.redirect) }
   catch (reason) { error.value = friendlyError(reason) } finally { loading.value = false }
 }
 </script>

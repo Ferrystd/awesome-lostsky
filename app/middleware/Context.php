@@ -24,7 +24,16 @@ class Context
 {
     public function handle(Request $request, \Closure $next)
     {
-        $request->user_id = (int) ($request->jwt->uid ?? 0);
+        $request->authenticated_user_id = (int) ($request->jwt->uid ?? 0);
+        $request->user_id = $request->authenticated_user_id;
+        if ($request->entity_session) {
+            $request->acting_entity = [
+                'type' => (string) $request->entity_session->entity_type,
+                'id' => (int) $request->entity_session->entity_id,
+            ];
+            $request->actor_type = $request->acting_entity['type'];
+            $request->actor_id = $request->acting_entity['id'];
+        }
 
         $team = $request->team ?? null;
 

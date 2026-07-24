@@ -50,6 +50,18 @@ class JwtAuth
         }
 
         // 将用户信息绑定到请求
+        if (isset($decoded->act) || isset($decoded->jti)) {
+            $act = isset($decoded->act) ? (array) $decoded->act : [];
+            if (($decoded->aud ?? '') !== 'lostsky' || !is_string($decoded->jti ?? null)
+                || !is_string($act['type'] ?? null) || !is_numeric($act['id'] ?? null)) {
+                throw new HttpException(401, 'Entity identity token is invalid');
+            }
+            $request->entity_session = app(\app\service\IdentitySession::class)->session(
+                (int) $decoded->uid, (string) ($decoded->dvt ?? ''), (string) $decoded->jti,
+                (string) $act['type'], (int) $act['id']
+            );
+        }
+
         $request->jwt = $decoded;
 
         return $next($request);

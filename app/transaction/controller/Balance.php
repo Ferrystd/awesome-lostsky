@@ -11,6 +11,8 @@ class Balance
     protected $middleware = [
         'JwtAuth'            => ['except' => []],
         'Context'            => ['except' => []],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'TeamBelongs'        => ['except' => []],
         'MemberAccess'       => ['except' => []],
         'TransactionAbility' => ['only' => ['recharge']],
         'TeamAccess'         => ['only' => ['recharge']],

@@ -719,22 +719,45 @@ CREATE TABLE `team_role_permission` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队角色权限表';
 
 -- ----------------------------
--- Table: team_member_role
--- Model: app\model\TeamMemberRole
+-- Table: team_entity_role
+-- Model: app\model\TeamEntityRole
 -- ----------------------------
-CREATE TABLE `team_member_role` (
+CREATE TABLE `team_entity_role` (
     `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
-    `member_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队成员ID',
+    `entity_type` VARCHAR(30)  NOT NULL DEFAULT '' COMMENT '实体类型',
+    `entity_id`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '实体ID',
     `role_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '角色ID',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_member_role` (`member_id`, `role_id`),
-    KEY `idx_team_id` (`team_id`),
+    UNIQUE KEY `uk_team_entity_role` (`team_id`, `entity_type`, `entity_id`, `role_id`),
+    KEY `idx_team_entity` (`team_id`, `entity_type`, `entity_id`),
     KEY `idx_role_id` (`role_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队成员角色表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队实体角色表';
+
+-- ----------------------------
+-- Table: entity_session
+-- Model: app\model\EntitySession
+-- ----------------------------
+CREATE TABLE `entity_session` (
+    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id`     INT UNSIGNED NOT NULL DEFAULT 0,
+    `device_token` VARCHAR(64) NOT NULL DEFAULT '',
+    `jti`         CHAR(48) NOT NULL DEFAULT '',
+    `entity_type` VARCHAR(30) NOT NULL DEFAULT '',
+    `entity_id`   INT UNSIGNED NOT NULL DEFAULT 0,
+    `expires_at`  INT UNSIGNED NOT NULL DEFAULT 0,
+    `revoked_at`  INT UNSIGNED NULL DEFAULT NULL,
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0,
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0,
+    `delete_time` INT UNSIGNED NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_jti` (`jti`),
+    KEY `idx_user_device_active` (`user_id`, `device_token`, `revoked_at`),
+    KEY `idx_expiry` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='可撤销实体身份会话';
 
 -- ----------------------------
 -- Table: entity_identity

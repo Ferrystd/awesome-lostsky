@@ -7,7 +7,7 @@ import { computed, ref, watch } from 'vue'
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 
 interface Actor {
-  type: 'member' | 'customer' | 'virtual'
+  type: 'member' | 'customer' | 'team' | 'virtual'
   slug: string
   name: string
   can_act: boolean

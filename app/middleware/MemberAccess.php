@@ -19,6 +19,13 @@ class MemberAccess
 {
     public function handle(Request $request, \Closure $next)
     {
+        if ($request->acting_entity) {
+            $acting = $request->acting_entity;
+            if (($acting['type'] ?? '') !== 'teamMember' || (int) ($acting['id'] ?? 0) !== (int) ($request->member_id ?? 0)) {
+                throw new HttpException(403, '当前实体不是该团队成员');
+            }
+        }
+
         if (!$request->member) {
             throw new HttpException(403, '你不是该团队的成员');
         }

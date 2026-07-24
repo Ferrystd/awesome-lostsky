@@ -10,6 +10,8 @@ class File
     protected $middleware = [
         'JwtAuth'      => ['only' => ['index', 'get', 'delete', 'usage']],
         'Context'      => ['only' => ['index', 'get', 'delete', 'usage']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'delete', 'usage']],
+        'TeamBelongs'  => ['only' => ['index', 'get', 'delete', 'usage']],
         'MemberAccess' => ['only' => ['index', 'get', 'delete', 'usage']],
         'TeamAccess'   => ['only' => ['index', 'get', 'delete', 'usage']],
     ];

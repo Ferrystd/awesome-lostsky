@@ -184,6 +184,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/entityRole/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 实体角色列表
+         * @description 按当前团队中的实体 slug 查询其独立角色。
+         */
+        get: operations["teamEntityRoleIndex"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entityRole/save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 全量同步实体角色 */
+        post: operations["teamEntityRoleSave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/get": {
         parameters: {
             query?: never;
@@ -1913,6 +1950,23 @@ export interface components {
             /** Format: int64 */
             update_time?: number;
         };
+        TeamEntityRole: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            team_id?: number;
+            /** @enum {string} */
+            entity_type?: "teamMember" | "teamCustomer" | "team" | "teamVirtual";
+            /** Format: int64 */
+            entity_id?: number;
+            /** Format: int64 */
+            role_id?: number;
+            role?: components["schemas"]["TeamRole"];
+            /** Format: int64 */
+            create_time?: number;
+            /** Format: int64 */
+            update_time?: number;
+        };
         JoinApplication: {
             /** Format: int64 */
             id?: number;
@@ -2236,6 +2290,60 @@ export interface operations {
                 "application/json": {
                     /** Format: int64 */
                     member_id: number;
+                    role_ids: number[];
+                };
+            };
+        };
+        responses: {
+            /** @description 同步成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+        };
+    };
+    teamEntityRoleIndex: {
+        parameters: {
+            query: {
+                slug: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["TeamEntityRole"][];
+                    };
+                };
+            };
+        };
+    };
+    teamEntityRoleSave: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    slug: string;
                     role_ids: number[];
                 };
             };

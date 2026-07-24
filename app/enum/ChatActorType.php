@@ -7,5 +7,6 @@ enum ChatActorType: string
 {
     case Member = 'member';
     case Customer = 'customer';
+    case Team = 'team';
     case Virtual = 'virtual';
 }

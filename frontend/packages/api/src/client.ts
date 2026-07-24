@@ -1,3 +1,5 @@
+import { redirectToLogin } from '@lostsky/shared/navigation'
+
 const API_BASE = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE || '//api.lostsky.work')
 const TOKEN_KEY = 'lostsky_token'
 const USER_KEY = 'lostsky_user'
@@ -137,9 +139,9 @@ async function request<T>(method: string, path: string, body?: unknown, options:
       const response = await fetch(`${API_BASE}${path}`, { method, headers, body: payload, signal: controller.signal })
       let envelope: Partial<ApiEnvelope<T>> = {}
       try { envelope = await response.json() as ApiEnvelope<T> } catch { /* handled below */ }
-      if (response.status === 401 || envelope.code === 401) {
+      if (token && (response.status === 401 || envelope.code === 401)) {
         auth.clear()
-        window.dispatchEvent(new CustomEvent('lostsky:auth-expired'))
+        redirectToLogin({ expired: true })
       }
       if (!response.ok || envelope.code !== 0) {
         throw new ApiError(envelope.message || response.statusText || '请求失败', {

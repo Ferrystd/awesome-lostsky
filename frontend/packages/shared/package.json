@@ -1,5 +1,8 @@
 {
   "name": "@lostsky/shared",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "exports": {
+    "./navigation": "./src/navigation.ts"
+  }
 }

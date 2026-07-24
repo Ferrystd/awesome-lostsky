@@ -11,6 +11,8 @@ class Transaction
     protected $middleware = [
         'JwtAuth'            => ['except' => []],
         'Context'            => ['except' => []],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'TeamBelongs'        => ['except' => []],
         'MemberAccess'       => ['except' => []],
         'TransactionAbility' => ['only' => ['create', 'edit', 'delete', 'stats']],
         'TransactionVerify'  => ['only' => ['create', 'edit']],

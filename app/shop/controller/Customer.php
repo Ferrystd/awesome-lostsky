@@ -11,6 +11,8 @@ class Customer
     protected $middleware = [
         'JwtAuth'        => ['except' => []],
         'Context'        => ['except' => []],
+        'EntityType:teamCustomer' => ['except' => []],
+        'TeamBelongs'    => ['except' => []],
         'CustomerAccess' => ['except' => []],
     ];
 

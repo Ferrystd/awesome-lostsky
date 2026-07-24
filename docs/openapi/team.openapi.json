@@ -5,6 +5,14 @@
     "version": "0.0.9",
     "description": "团队成员、岗位、成员字段、团队设置和团队文件管理。除特别说明外均需要 JWT + 团队上下文。"
   },
+  "x-entity-auth": {
+    "team_business_default": ["team", "teamMember", "teamCustomer", "teamVirtual"],
+    "team_belongs": true,
+    "exceptions": {
+      "join_applicant": { "types": ["teamless"], "team_belongs": false },
+      "member_self": { "types": ["teamMember"], "team_belongs": true }
+    }
+  },
   "servers": [
     {
       "url": "https://api.lostsky.work",
@@ -1647,6 +1655,19 @@
           "update_time": { "type": "integer", "format": "int64" }
         }
       },
+      "TeamEntityRole": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "team_id": { "type": "integer", "format": "int64" },
+          "entity_type": { "type": "string", "enum": ["teamMember", "teamCustomer", "team", "teamVirtual"] },
+          "entity_id": { "type": "integer", "format": "int64" },
+          "role_id": { "type": "integer", "format": "int64" },
+          "role": { "$ref": "#/components/schemas/TeamRole" },
+          "create_time": { "type": "integer", "format": "int64" },
+          "update_time": { "type": "integer", "format": "int64" }
+        }
+      },
       "JoinApplication": {
         "type": "object",
         "properties": {
@@ -2141,6 +2162,44 @@
             }
           }
         }
+      }
+    },
+    "/entityRole/index": {
+      "get": {
+        "tags": ["EntityRole"],
+        "summary": "实体角色列表",
+        "description": "按当前团队中的实体 slug 查询其独立角色。",
+        "operationId": "teamEntityRoleIndex",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "slug", "in": "query", "required": true, "schema": { "type": "string", "minLength": 2, "maxLength": 50 } }],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": { "allOf": [{ "$ref": "#/components/schemas/SuccessEnvelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/TeamEntityRole" } } } }] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entityRole/save": {
+      "post": {
+        "tags": ["EntityRole"],
+        "summary": "全量同步实体角色",
+        "operationId": "teamEntityRoleSave",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "required": ["slug", "role_ids"], "properties": { "slug": { "type": "string", "minLength": 2, "maxLength": 50 }, "role_ids": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "format": "int64", "minimum": 1 } } } }
+            }
+          }
+        },
+        "responses": { "200": { "description": "同步成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
       }
     },
     "/me/get": {

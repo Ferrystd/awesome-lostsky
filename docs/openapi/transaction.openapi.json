@@ -5,6 +5,10 @@
     "version": "0.0.9",
     "description": "记账流水、客户发单人绑定和预存款管理。"
   },
+  "x-entity-auth": {
+    "authenticated_default": ["team", "teamMember", "teamCustomer", "teamVirtual"],
+    "team_belongs": true
+  },
   "servers": [
     {
       "url": "https://api.lostsky.work",

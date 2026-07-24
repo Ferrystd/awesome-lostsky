@@ -5,7 +5,9 @@ namespace app\chat\controller;
 
 class Customer
 {
-    protected $middleware = ['JwtAuth', 'Context', 'CustomerAccess'];
+    protected $middleware = [
+        'JwtAuth', 'Context', 'EntityType:teamCustomer', 'TeamBelongs', 'CustomerAccess',
+    ];
 
     public function me(\think\Request $request)
     {

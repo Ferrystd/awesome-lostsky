@@ -7,7 +7,10 @@ use think\Request;
 
 class RolePermission
 {
-    protected $middleware = ['JwtAuth', 'Context', 'TeamAccess'];
+    protected $middleware = [
+        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
+        'TeamBelongs', 'TeamAccess',
+    ];
 
     public function index(Request $request)
     {

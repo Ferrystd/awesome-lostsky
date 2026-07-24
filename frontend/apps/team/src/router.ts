@@ -1,4 +1,5 @@
 import { auth } from '@lostsky/api/client'
+import { redirectToLogin } from '@lostsky/shared/navigation'
 import { createRouter, createWebHistory } from 'vue-router'
 import { managerScopeOptions, visibilityOptions } from './lib/access'
 const DashboardView = () => import('./views/DashboardView.vue')
@@ -127,7 +128,7 @@ export const router = createRouter({ history: createWebHistory(), routes, scroll
 router.beforeEach((to) => {
   document.title = `${String(to.meta.title ?? '工作台')} · LostSky`
   if (!to.meta.public && !auth.token()) {
-    location.replace(`//account.lostsky.work/login?redirect=${encodeURIComponent(location.href)}`)
+    redirectToLogin()
     return false
   }
 })

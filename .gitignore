@@ -15,6 +15,7 @@ Thumbs.db
 # Playwright
 node_modules/
 /frontend/.dist/
+/frontend/.vite/
 /test-results/
 /playwright-report/
 /blob-report/

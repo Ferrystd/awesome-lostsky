@@ -10,7 +10,9 @@ class Me
 {
     private const PROFILE_FIELDS = ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown'];
 
-    protected $middleware = ['JwtAuth', 'Context', 'MemberAccess'];
+    protected $middleware = [
+        'JwtAuth', 'Context', 'EntityType:teamMember', 'TeamBelongs', 'MemberAccess',
+    ];
 
     /**
      * 获取自己在团队内的完整资料

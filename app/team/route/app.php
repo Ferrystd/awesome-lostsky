@@ -37,6 +37,10 @@ Route::post('rolePermission/save', 'rolePermission/save');
 Route::get('memberRole/index', 'memberRole/index');
 Route::post('memberRole/save', 'memberRole/save');
 
+// entityRole
+Route::get('entityRole/index', 'EntityRole/index');
+Route::post('entityRole/save', 'EntityRole/save');
+
 // notice
 Route::get('notice/index', 'notice/index');
 Route::get('notice/get', 'notice/get');

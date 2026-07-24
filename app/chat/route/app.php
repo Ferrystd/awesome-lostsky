@@ -3,6 +3,9 @@ use think\facade\Route;
 
 Route::get('team', 'Team/index');
 Route::get('actor', 'Actor/index');
+Route::get('identity/candidates', 'Identity/candidates');
+Route::post('identity/receive', 'Identity/receive');
+Route::post('identity/drop', 'Identity/drop');
 
 Route::get('virtual', 'Virtual/index');
 Route::get('virtual/get', 'Virtual/get');

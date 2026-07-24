@@ -44,6 +44,6 @@ class TeamRole extends Base
 
     public function memberRoles()
     {
-        return $this->hasMany(TeamMemberRole::class, 'role_id');
+        return $this->hasMany(TeamEntityRole::class, 'role_id');
     }
 }

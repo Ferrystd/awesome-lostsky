@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace app\service;
 
-use app\model\TeamMemberRole;
+use app\model\TeamEntityRole;
 use app\model\TeamRole;
 use app\model\TeamRolePermission;
 use think\exception\HttpException;
@@ -85,7 +85,7 @@ class Role
             foreach (TeamRolePermission::where('team_id', $teamId)->where('role_id', $id)->select() as $permission) {
                 $permission->delete();
             }
-            foreach (TeamMemberRole::where('team_id', $teamId)->where('role_id', $id)->select() as $memberRole) {
+            foreach (TeamEntityRole::where('team_id', $teamId)->where('role_id', $id)->select() as $memberRole) {
                 $memberRole->delete();
             }
             $role->delete();

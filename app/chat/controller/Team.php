@@ -5,7 +5,9 @@ namespace app\chat\controller;
 
 class Team
 {
-    protected $middleware = ['JwtAuth', 'Context'];
+    protected $middleware = [
+        'JwtAuth', 'Context', 'EntityType:teamless,team,teamMember,teamCustomer,teamVirtual',
+    ];
 
     public function index(\think\Request $request)
     {

@@ -56,7 +56,11 @@ class Jwt
             throw new \RuntimeException('Token 已过期，无法刷新');
         }
 
-        return $this->createToken($decoded->uid, $decoded->dvt ?? '');
+        $extra = [];
+        if (isset($decoded->aud)) $extra['aud'] = $decoded->aud;
+        if (isset($decoded->jti)) $extra['jti'] = $decoded->jti;
+        if (isset($decoded->act)) $extra['act'] = (array) $decoded->act;
+        return $this->createToken($decoded->uid, $decoded->dvt ?? '', $extra);
     }
 
     /**

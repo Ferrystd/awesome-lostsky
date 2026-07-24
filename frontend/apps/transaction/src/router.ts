@@ -1,4 +1,5 @@
 import { auth } from '@lostsky/api/client'
+import { redirectToLogin } from '@lostsky/shared/navigation'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const TransactionsView = () => import('./views/TransactionsView.vue')
@@ -31,7 +32,7 @@ export const router = createRouter({
 router.beforeEach((to) => {
   document.title = `${String(to.meta.title ?? '记账')} · LostSky`
   if (!auth.token()) {
-    location.replace(`//account.lostsky.work/login?redirect=${encodeURIComponent(location.href)}`)
+    redirectToLogin()
     return false
   }
 })

@@ -11,6 +11,8 @@ class Product
     protected $middleware = [
         'JwtAuth'      => ['except' => []],
         'Context'      => ['except' => []],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'TeamBelongs'  => ['except' => []],
         'MemberAccess' => ['except' => []],
         'Permission:shop.product.read' => ['only' => ['index', 'get']],
         'Permission:shop.product.write' => ['only' => ['create', 'edit', 'setHandlers']],

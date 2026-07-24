@@ -135,7 +135,7 @@ class ChatMessage
         $summary = app(ChatActor::class)->summary($message->enumCase('sender_type'), (int) $message->sender_id);
         $actor = !empty($summary['slug']) ? app(ChatActor::class)->resolve($teamId, (string) $summary['slug']) : null;
         $own = $actor && app(ChatActor::class)->canAct($actor, $teamId, $memberId, $customerId);
-        if (!$own && !app(PermissionGate::class)->allows($teamId, $memberId, ['chat.message.moderate'])) {
+        if (!$own && !app(PermissionGate::class)->allows($teamId, request()->acting_entity ?: $memberId, ['chat.message.moderate'])) {
             throw new HttpException(403, '你不能操作该消息');
         }
         if ($own) {

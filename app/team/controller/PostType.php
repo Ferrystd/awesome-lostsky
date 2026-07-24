@@ -11,6 +11,8 @@ class PostType
     protected $middleware = [
         'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'delete']],
         'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'delete']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'add', 'edit', 'delete']],
+        'TeamBelongs'  => ['only' => ['index', 'get', 'add', 'edit', 'delete']],
         'MemberAccess' => ['only' => ['index', 'get', 'add', 'edit', 'delete']],
         'TeamAccess'   => ['only' => ['add', 'edit', 'delete']],
     ];

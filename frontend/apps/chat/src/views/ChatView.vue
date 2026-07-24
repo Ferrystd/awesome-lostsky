@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ArrowLeft, Bot, CheckCheck, CircleX, MessageCircleMore, Plus, Reply, Send, Settings2, UserRound, Users } from '@lucide/vue'
+import { ArrowLeft, Bot, Building2, CheckCheck, CircleX, MessageCircleMore, Plus, Reply, Send, Settings2, UserRound, Users } from '@lucide/vue'
 import { NConfigProvider, NInput, NSelect } from 'naive-ui'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { loadCentrifuge, type CentrifugeClient, type Subscription } from '../lib/centrifuge'
 
 interface Actor {
-  type: 'member' | 'customer' | 'virtual'
+  type: 'member' | 'customer' | 'team' | 'virtual'
   slug: string
   name: string
   avatar: string | null
@@ -142,7 +142,7 @@ function conversationName(conversation: Conversation) {
   return others.map(item => item.name).join('、') || '会话'
 }
 function actorIcon(type: Actor['type']) {
-  return type === 'virtual' ? Bot : type === 'customer' ? UserRound : Users
+  return type === 'virtual' ? Bot : type === 'customer' ? UserRound : type === 'team' ? Building2 : Users
 }
 function time(value: number | null) {
   if (!value) return ''

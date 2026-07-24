@@ -14,6 +14,10 @@ class ChatAccess
      */
     public function handle(\think\Request $request, \Closure $next)
     {
+        if ($request->acting_entity) {
+            return $next($request);
+        }
+
         $member = $request->member ?? null;
         $customer = $request->customer ?? null;
         $memberAllowed = $member && !(bool) $member->is_blocked;

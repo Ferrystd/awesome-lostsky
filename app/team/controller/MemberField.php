@@ -10,6 +10,8 @@ class MemberField
     protected $middleware = [
         'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'delete', 'values', 'saveValues']],
         'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'delete', 'values', 'saveValues']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'add', 'edit', 'delete', 'values', 'saveValues']],
+        'TeamBelongs'  => ['only' => ['index', 'get', 'add', 'edit', 'delete', 'values', 'saveValues']],
         'MemberAccess' => ['only' => ['index', 'get', 'add', 'edit', 'delete', 'values', 'saveValues']],
         'TeamAccess'   => ['only' => ['add', 'edit', 'delete']],
     ];

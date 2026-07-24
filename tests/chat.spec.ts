@@ -75,3 +75,25 @@ test('direct conversation submits a single selected participant as an array', as
 
   await expect.poll(() => createPayload?.participants).toEqual(['sales-assistant'])
 })
+
+test('identity picker receives an entity token without replacing the user session contract', async ({ page }) => {
+  let receivedSlug: string | null = null
+  await page.addInitScript(() => localStorage.setItem('lostsky_token', 'user-token'))
+  await page.route('http://127.0.0.1:5176/api/**', async route => {
+    const url = new URL(route.request().url())
+    let data: unknown = null
+    if (url.pathname.endsWith('/identity/candidates')) {
+      data = [{ type: 'teamVirtual', id: 9, slug: 'sales-assistant', name: '销售助手' }]
+    } else if (url.pathname.endsWith('/identity/receive')) {
+      receivedSlug = route.request().postDataJSON().slug
+      data = { token: 'entity-token', identity: { type: 'teamVirtual', id: 9, slug: 'sales-assistant', name: '销售助手' } }
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
+  })
+
+  await page.goto('http://127.0.0.1:5176/identity')
+  await expect(page.getByRole('heading', { name: '选择当前身份' })).toBeVisible()
+  await page.getByRole('button', { name: '领取' }).click()
+  await expect.poll(() => receivedSlug).toBe('sales-assistant')
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('lostsky_token'))).toBe('entity-token')
+})

@@ -13,6 +13,8 @@ class Member
     protected $middleware = [
         'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
         'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
+        'TeamBelongs'  => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
         'MemberAccess' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
         'TeamAccess'   => ['only' => ['add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
     ];

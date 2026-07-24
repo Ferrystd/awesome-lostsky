@@ -9,7 +9,7 @@ const aliases = {
   site: ['index'],
   account: ['index', 'login', 'register', 'teams'],
   team: ['index', 'settings', 'roles', 'posts', 'notice', 'notice-detail', 'members', 'member-add', 'member-edit', 'member-detail', 'me', 'join', 'join-review', 'files', 'fields', 'field-new', 'field-edit', 'chat-virtuals', 'chat-virtual-new', 'chat-virtual', 'chat-integration-new', 'chat-integration', 'docs', 'doc', 'doc-create', 'doc-edit'],
-  chat: ['index', 'new', 'profile'],
+  chat: ['index', 'new', 'profile', 'identity'],
   transaction: ['index', 'new', 'detail', 'edit', 'stats', 'bindings', 'binding-new', 'balances', 'balance', 'recharge'],
 }
 const domains = { site: 'www.lostsky.work', account: 'account.lostsky.work', team: 'team.lostsky.work', chat: 'chat.lostsky.work', transaction: 'transaction.lostsky.work' }

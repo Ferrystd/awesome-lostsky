@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\model\TeamMember;
-use app\model\TeamMemberRole;
+use app\model\TeamEntityRole;
 use app\model\TeamRole;
 use think\exception\HttpException;
 
@@ -14,8 +14,8 @@ class MemberRole
     {
         $this->assertMember($teamId, $memberId);
 
-        return TeamMemberRole::where('team_id', $teamId)
-            ->where('member_id', $memberId)
+        return TeamEntityRole::where('team_id', $teamId)
+            ->where('entity_type', 'teamMember')->where('entity_id', $memberId)
             ->with(['role'])
             ->order('id', 'asc')
             ->select()
@@ -39,7 +39,7 @@ class MemberRole
         }
         $ids = array_values(array_unique($ids));
 
-        TeamMemberRole::transaction(function () use ($teamId, $memberId, $ids) {
+        TeamEntityRole::transaction(function () use ($teamId, $memberId, $ids) {
             $this->assertMember($teamId, $memberId);
 
             if ($ids) {
@@ -49,9 +49,9 @@ class MemberRole
                 }
             }
 
-            $records = TeamMemberRole::withTrashed()
+            $records = TeamEntityRole::withTrashed()
                 ->where('team_id', $teamId)
-                ->where('member_id', $memberId)
+                ->where('entity_type', 'teamMember')->where('entity_id', $memberId)
                 ->lock(true)
                 ->select();
 
@@ -72,10 +72,10 @@ class MemberRole
                     continue;
                 }
 
-                $memberRole = new TeamMemberRole;
+                $memberRole = new TeamEntityRole;
                 $memberRole->save([
                     'team_id'   => $teamId,
-                    'member_id' => $memberId,
+                    'entity_type' => 'teamMember', 'entity_id' => $memberId,
                     'role_id'   => $roleId,
                 ]);
             }

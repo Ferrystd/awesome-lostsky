@@ -7,7 +7,10 @@ use think\Request;
 
 class Entity
 {
-    protected $middleware = ['JwtAuth', 'Context'];
+    protected $middleware = [
+        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
+        'TeamBelongs',
+    ];
 
     public function search(Request $request)
     {

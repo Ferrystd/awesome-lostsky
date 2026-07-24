@@ -8,7 +8,7 @@ use think\Request;
 
 class Team
 {
-    protected $middleware = ['JwtAuth', 'Context'];
+    protected $middleware = ['JwtAuth', 'Context', 'EntityType:teamless'];
 
     /**
      * 获取当前用户的所有团队

@@ -47,6 +47,8 @@ class RolePermission
                 'team.setting.read' => '查看设置', 'team.setting.update' => '编辑设置',
             ])],
             ['name' => '聊天', 'items' => $this->items([
+                'identity.team.assume' => '领取团队身份',
+                'identity.virtual.*.assume' => '领取全部虚拟实体身份',
                 'chat.conversation.create' => '创建会话',
                 'chat.group.manage' => '管理群聊',
                 'chat.temporary.create' => '创建临时会话',
@@ -78,6 +80,11 @@ class RolePermission
                     'resource_slug' => $slug,
                 ];
             }
+            $virtualItems[] = [
+                'key' => "identity.virtual.{$slug}.assume",
+                'label' => "领取 · {$label} 身份",
+                'resource_slug' => $slug,
+            ];
         }
         if ($virtualItems) {
             $groups[] = ['name' => '指定虚拟实体', 'items' => $virtualItems];
@@ -104,7 +111,7 @@ class RolePermission
                 || substr_count($key, '*') > 1) {
                 throw new HttpException(422, '权限标识格式不正确');
             }
-            $this->assertChatKey($teamId, $key);
+            $this->assertDynamicEntityKey($teamId, $key);
             $keys[] = $key;
         }
         $keys = array_values(array_unique($keys));
@@ -150,25 +157,29 @@ class RolePermission
         }
     }
 
-    private function assertChatKey(int $teamId, string $key): void
+    private function assertDynamicEntityKey(int $teamId, string $key): void
     {
-        if (!str_starts_with($key, 'chat.virtual.')) {
+        if ($key === 'identity.team.assume') {
+            return;
+        }
+        if (!str_starts_with($key, 'chat.virtual.') && !str_starts_with($key, 'identity.virtual.')) {
             return;
         }
         if ($key === 'chat.virtual.create') {
             return;
         }
-        if (!preg_match('/^chat\.virtual\.([a-z0-9][a-z0-9_-]{0,49}|\*)\.(manage|operate|field\.manage)$/', $key, $match)) {
-            throw new HttpException(422, '聊天虚拟实体权限格式不正确');
+        if (!preg_match('/^(?:chat\.virtual\.([a-z0-9][a-z0-9_-]{0,49}|\*)\.(?:manage|operate|field\.manage)|identity\.virtual\.([a-z0-9][a-z0-9_-]{0,49}|\*)\.assume)$/', $key, $match)) {
+            throw new HttpException(422, 'Invalid virtual entity permission');
         }
-        if ($match[1] === '*') {
+        $slug = $match[1] !== '' ? $match[1] : $match[2];
+        if ($slug === '*') {
             return;
         }
 
-        $identity = \app\model\EntityIdentity::virtual()->where('slug', $match[1])->find();
+        $identity = \app\model\EntityIdentity::virtual()->where('slug', $slug)->find();
         $virtual = $identity ? \app\model\TeamVirtual::where('team_id', $teamId)->find($identity->entityable_id) : null;
         if (!$virtual) {
-            throw new HttpException(422, '权限对应的虚拟实体不存在');
+            throw new HttpException(422, 'Virtual entity does not belong to this team');
         }
     }
 

@@ -5,7 +5,10 @@ namespace app\team\controller;
 
 class EntityField
 {
-    protected $middleware = ['JwtAuth', 'Context', 'MemberAccess'];
+    protected $middleware = [
+        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
+        'TeamBelongs', 'MemberAccess',
+    ];
 
     public function index(\think\Request $request)
     {

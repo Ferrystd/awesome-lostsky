@@ -3,13 +3,13 @@ import { api, auth, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
-import { safeRedirect } from '@lostsky/shared/navigation'
+import { goToSafeRedirect } from '@lostsky/shared/navigation'
 import { Eye, EyeOff } from '@lucide/vue'
 import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import AuthShell from '../components/AuthShell.vue'
 
-const route = useRoute(); const router = useRouter()
+const route = useRoute()
 const mode = ref<'phone' | 'account'>('phone'); const account = ref(''); const password = ref(''); const visible = ref(false); const loading = ref(false); const error = ref('')
 const expired = computed(() => route.query.expired === '1')
 async function submit() {
@@ -20,9 +20,7 @@ async function submit() {
     const path = mode.value === 'phone' ? '/login/phone' : '/login/password'
     const data = await api.post<{ token: string; user?: unknown }>(path, mode.value === 'phone' ? { phone: account.value.trim(), password: password.value } : { account: account.value.trim(), password: password.value })
     auth.save(data)
-    const redirect = safeRedirect(route.query.redirect)
-    if (redirect.startsWith('https://')) location.href = redirect
-    else await router.replace(redirect)
+    goToSafeRedirect(route.query.redirect)
   } catch (reason) { error.value = friendlyError(reason) } finally { loading.value = false }
 }
 </script>

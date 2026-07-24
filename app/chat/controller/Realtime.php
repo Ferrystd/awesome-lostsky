@@ -5,7 +5,10 @@ namespace app\chat\controller;
 
 class Realtime
 {
-    protected $middleware = ['JwtAuth', 'Context', 'ChatAccess'];
+    protected $middleware = [
+        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
+        'TeamBelongs', 'ChatAccess',
+    ];
 
     public function connect(\think\Request $request)
     {

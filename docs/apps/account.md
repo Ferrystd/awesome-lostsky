@@ -14,7 +14,7 @@ Account 是不依赖团队上下文的账户入口，负责统一账号、设备
 ## 鉴权边界
 
 - 注册和登录不要求 JWT。
-- 设备与团队入口经过 `JwtAuth` 和 `Context`。
+- 设备与团队入口经过 `JwtAuth`、`Context` 和 `EntityType:teamless`，只接受基础用户 JWT。
 - Account 不要求请求域名提供团队 slug；选择团队后，其他应用再从域名解析团队上下文。
 
 ## 接口契约

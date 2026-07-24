@@ -3,7 +3,14 @@
   "info": {
     "title": "LostSky Shop API",
     "version": "0.0.9",
-    "description": "商城商品、订单和顾客自助中心。商品/订单读写需要成员上下文，顾客自助接口需要 CustomerAccess。"
+    "description": "商城商品、订单和顾客自助中心。商品/订单先验证团队实体身份，顾客自助接口只接受当前团队客户实体。"
+  },
+  "x-entity-auth": {
+    "team_business_default": ["team", "teamMember", "teamCustomer", "teamVirtual"],
+    "team_belongs": true,
+    "exceptions": {
+      "customer_self": { "types": ["teamCustomer"], "team_belongs": true }
+    }
   },
   "servers": [
     {

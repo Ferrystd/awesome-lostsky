@@ -5,6 +5,17 @@
     "version": "0.1.1",
     "description": "LostSky 团队聊天、通用虚拟实体、Webhook 集成、统一对象字段与 Centrifugo 订阅令牌。"
   },
+  "x-entity-auth": {
+    "team_business_default": ["team", "teamMember", "teamCustomer", "teamVirtual"],
+    "team_belongs": true,
+    "exceptions": {
+      "identity_candidates_receive": { "types": ["teamless"], "team_belongs": false },
+      "identity_drop": { "types": ["team", "teamMember", "teamCustomer", "teamVirtual"], "team_belongs": false },
+      "team_list": { "types": ["teamless", "team", "teamMember", "teamCustomer", "teamVirtual"], "team_belongs": false },
+      "customer_self": { "types": ["teamCustomer"], "team_belongs": true },
+      "integration_send": { "types": ["integrationToken"], "team_belongs": false }
+    }
+  },
   "servers": [
     {
       "url": "https://api.lostsky.work",
@@ -18,6 +29,7 @@
   "security": [{ "bearerAuth": [] }],
   "tags": [
     { "name": "Team" },
+    { "name": "Identity" },
     { "name": "Actor" },
     { "name": "Virtual" },
     { "name": "Integration" },
@@ -57,7 +69,7 @@
         "type": "object",
         "required": ["type", "slug", "name"],
         "properties": {
-          "type": { "type": "string", "enum": ["member", "customer", "virtual"] },
+          "type": { "type": "string", "enum": ["member", "customer", "team", "virtual"] },
           "slug": { "type": "string" },
           "name": { "type": "string" },
           "avatar": { "type": "string", "nullable": true },
@@ -162,6 +174,28 @@
     }
   },
   "paths": {
+    "/identity/candidates": {
+      "get": {
+        "tags": ["Identity"], "summary": "List identities the authenticated user can receive",
+        "operationId": "chatIdentityCandidates",
+        "responses": { "200": { "description": "Identity candidates", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/identity/receive": {
+      "post": {
+        "tags": ["Identity"], "summary": "Receive an entity identity and issue an entity JWT",
+        "operationId": "chatIdentityReceive",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["slug"], "properties": { "slug": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Entity token and identity", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
+    "/identity/drop": {
+      "post": {
+        "tags": ["Identity"], "summary": "Drop the current entity identity and revoke its JWT",
+        "operationId": "chatIdentityDrop",
+        "responses": { "200": { "description": "Base user token", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } } }
+      }
+    },
     "/team": {
       "get": {
         "tags": ["Team"],

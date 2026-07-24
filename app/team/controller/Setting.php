@@ -11,6 +11,8 @@ class Setting
     protected $middleware = [
         'JwtAuth'    => ['except' => []],
         'Context'    => ['except' => []],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'TeamBelongs' => ['except' => []],
         'TeamMember' => ['except' => []],
         'TeamAccess' => ['only' => ['schema', 'save']],
     ];

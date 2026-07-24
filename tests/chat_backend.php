@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use app\middleware\TeamBelongs;
 use app\model\ChatMessage;
 use app\model\EntityIdentity;
 use app\model\Team;
@@ -10,7 +11,7 @@ use app\model\TeamCustomer;
 use app\model\TeamCustomerProfile;
 use app\model\TeamMember;
 use app\model\TeamMemberProfile;
-use app\model\TeamMemberRole;
+use app\model\TeamEntityRole;
 use app\model\TeamRole;
 use app\model\TeamRolePermission;
 use app\model\TeamVirtual;
@@ -19,10 +20,12 @@ use app\service\ChatConversation;
 use app\service\ChatMessage as ChatMessageService;
 use app\service\ChatVirtual;
 use app\service\EntityIdentity as EntityIdentityService;
+use app\service\IdentitySession;
 use app\service\PermissionGate;
 use app\service\RolePermission;
 use think\App;
 use think\exception\HttpException;
+use think\Request;
 
 (new App(dirname(__DIR__)))->initialize();
 
@@ -72,6 +75,7 @@ try {
         'is_banned' => 0,
         'is_cancelled' => 0,
     ]);
+    app(EntityIdentityService::class)->claimTeam($team);
     $foreignTeam = new Team;
     $foreignTeam->save([
         'slug' => "chat-foreign-{$suffix}",
@@ -125,6 +129,18 @@ try {
         throw new RuntimeException("member/customer identity count is {$identityFixtureCount}");
     }
 
+    $identitySessions = app(IdentitySession::class);
+    $memberToken = $identitySessions->receive((int) $member->user_id, 'chat-test-device', $memberSlug);
+    $decodedMemberToken = app(\app\service\Jwt::class)->parseToken($memberToken['token']);
+    $assertSame('teamMember', $decodedMemberToken->act->type ?? null, 'member identity JWT carries the entity type');
+    $identitySessions->session((int) $member->user_id, 'chat-test-device', (string) $decodedMemberToken->jti, 'teamMember', (int) $member->id);
+    $identitySessions->drop((int) $member->user_id, 'chat-test-device', (string) $decodedMemberToken->jti);
+    $assertThrows(
+        fn () => $identitySessions->session((int) $member->user_id, 'chat-test-device', (string) $decodedMemberToken->jti, 'teamMember', (int) $member->id),
+        401,
+        'dropping an identity immediately revokes its previous token session'
+    );
+
     $role = new TeamRole;
     $role->save([
         'team_id' => $team->id,
@@ -132,10 +148,11 @@ try {
         'name' => 'Chat Test Role',
         'sort' => 0,
     ]);
-    $memberRole = new TeamMemberRole;
+    $memberRole = new TeamEntityRole;
     $memberRole->save([
         'team_id' => $team->id,
-        'member_id' => $member->id,
+        'entity_type' => 'teamMember',
+        'entity_id' => $member->id,
         'role_id' => $role->id,
     ]);
 
@@ -144,13 +161,33 @@ try {
         !$gate->allows((int) $team->id, (int) $member->id, ['chat.conversation.create']),
         'team creator does not bypass role permissions'
     );
+    $assert(
+        !$gate->allows((int) $team->id, ['type' => 'team', 'id' => (int) $team->id], ['chat.conversation.create']),
+        'team entity has no inherited member role'
+    );
 
     $permissions = app(RolePermission::class);
     $permissions->save((int) $team->id, (int) $role->id, [
         'chat.conversation.create',
         'chat.temporary.create',
         'chat.group.manage',
+        'identity.team.assume',
     ]);
+
+    $teamToken = $identitySessions->receive((int) $member->user_id, 'chat-team-device', (string) $team->slug);
+    $decodedTeamToken = app(\app\service\Jwt::class)->parseToken($teamToken['token']);
+    $assertSame('team', $decodedTeamToken->act->type ?? null, 'team identity requires and receives an entity JWT');
+    $teamRole = new TeamEntityRole;
+    $teamRole->save([
+        'team_id' => $team->id,
+        'entity_type' => 'team',
+        'entity_id' => $team->id,
+        'role_id' => $role->id,
+    ]);
+    $assert(
+        $gate->allows((int) $team->id, ['type' => 'team', 'id' => (int) $team->id], ['chat.conversation.create']),
+        'team entity receives only its explicitly assigned role'
+    );
 
     $virtualSlug = "chat-virtual-{$suffix}";
     $virtualCreated = app(ChatVirtual::class)->create((int) $team->id, [
@@ -179,6 +216,61 @@ try {
                 . '; returned_slug=' . json_encode($virtualCreated['slug'] ?? null)
         );
     }
+
+    $belongs = new TeamBelongs;
+    $belongsRequest = static function (int $teamId, string $type, int $id): Request {
+        $request = new Request;
+        $request->authenticated_user_id = 910001;
+        $request->team_id = $teamId;
+        $request->acting_entity = ['type' => $type, 'id' => $id];
+        return $request;
+    };
+    $belongsNext = static fn (Request $request): bool => true;
+    foreach ([
+        'team' => (int) $team->id,
+        'teamMember' => (int) $member->id,
+        'teamCustomer' => (int) $customer->id,
+        'teamVirtual' => (int) $virtualModel->id,
+    ] as $type => $id) {
+        $assert(
+            $belongs->handle($belongsRequest((int) $team->id, $type, $id), $belongsNext),
+            "{$type} belongs to its current team"
+        );
+        $assertThrows(
+            fn () => $belongs->handle(
+                $belongsRequest((int) $foreignTeam->id, $type, $id),
+                $belongsNext
+            ),
+            403,
+            "{$type} cannot cross team boundaries"
+        );
+    }
+    $assertThrows(
+        fn () => $belongs->handle(
+            $belongsRequest((int) $team->id, 'teamMember', 999999999),
+            $belongsNext
+        ),
+        403,
+        'missing entity does not belong to the team'
+    );
+    $deletedMember = new TeamMember;
+    $deletedMember->save([
+        'team_id' => $team->id,
+        'user_id' => 910005,
+        'is_displayed' => 0,
+        'is_blocked' => 0,
+    ]);
+    $deletedMemberId = (int) $deletedMember->id;
+    $deletedMember->delete();
+    $assertThrows(
+        fn () => $belongs->handle(
+            $belongsRequest((int) $team->id, 'teamMember', $deletedMemberId),
+            $belongsNext
+        ),
+        403,
+        'soft-deleted entity does not belong to the team'
+    );
+
     $assert(
         !$gate->allows((int) $team->id, (int) $member->id, $virtualCandidates),
         'virtual access is denied when neither permission exists'
@@ -192,6 +284,23 @@ try {
     $assert(
         $gate->allows((int) $team->id, (int) $member->id, $virtualCandidates),
         'specific virtual permission grants access'
+    );
+    $permissions->save((int) $team->id, (int) $role->id, [
+        'chat.conversation.create',
+        'chat.temporary.create',
+        "identity.virtual.{$virtualSlug}.assume",
+    ]);
+    $virtualToken = $identitySessions->receive((int) $member->user_id, 'chat-virtual-device', $virtualSlug);
+    $decodedVirtualToken = app(\app\service\Jwt::class)->parseToken($virtualToken['token']);
+    $assertSame('teamVirtual', $decodedVirtualToken->act->type ?? null, 'specific virtual identity permission grants an entity JWT');
+    $permissions->save((int) $team->id, (int) $role->id, [
+        'chat.conversation.create',
+        'chat.temporary.create',
+    ]);
+    $assertThrows(
+        fn () => $identitySessions->session((int) $member->user_id, 'chat-virtual-device', (string) $decodedVirtualToken->jti, 'teamVirtual', (int) $virtualModel->id),
+        401,
+        'removing an identity permission immediately invalidates the entity token'
     );
 
     $permissions->save((int) $team->id, (int) $role->id, [

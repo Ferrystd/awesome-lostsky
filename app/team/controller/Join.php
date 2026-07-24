@@ -11,6 +11,7 @@ class Join
     protected $middleware = [
         'JwtAuth'   => ['only' => ['form', 'apply', 'mine', 'get', 'cancel', 'upload']],
         'Context'   => ['only' => ['form', 'apply', 'mine', 'get', 'cancel', 'upload']],
+        'EntityType:teamless' => ['only' => ['form', 'apply', 'mine', 'get', 'cancel', 'upload']],
         'TeamGuest' => ['only' => ['form', 'apply', 'upload']],
     ];
 
