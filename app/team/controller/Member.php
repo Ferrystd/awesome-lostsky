@@ -4,19 +4,23 @@ declare(strict_types=1);
 namespace app\team\controller;
 
 use app\service\TeamMember as TeamMemberService;
+use app\service\PermissionDictionary as Permissions;
 use think\Request;
 
 class Member
 {
-    private const PROFILE_FIELDS = ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown'];
+    private const PROFILE_FIELDS = [];
 
     protected $middleware = [
         'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
         'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
-        'TeamBelongs'  => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
+        'TeamAuth'     => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
         'MemberAccess' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
-        'TeamAccess'   => ['only' => ['add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
+        'Permission:' . Permissions::TEAM_MEMBER_READ => ['only' => ['index', 'get']],
+        'Permission:' . Permissions::TEAM_MEMBER_INVITE => ['only' => ['add']],
+        'Permission:' . Permissions::TEAM_MEMBER_UPDATE => ['only' => ['edit', 'block', 'unblock', 'slug', 'search']],
+        'Permission:' . Permissions::TEAM_MEMBER_REMOVE => ['only' => ['remove']],
     ];
 
     /**
@@ -39,7 +43,11 @@ class Member
 
         $service = app(TeamMemberService::class);
         $result  = $service->get($request->team_id, $memberId);
-
+        $result['capabilities'] = $service->capabilities(
+            (int) $request->team_id,
+            (array) $request->acting_entity,
+            $result
+        );
         return success($result);
     }
 
@@ -50,7 +58,6 @@ class Member
     {
         $userId = (int) $request->post('user_id', 0);
         $data   = $request->only(self::PROFILE_FIELDS, 'post');
-        $data['post_type_ids'] = $request->post('post_type_ids', []);
 
         $service = app(TeamMemberService::class);
         $service->add($request->team_id, $userId, $data);
@@ -66,12 +73,6 @@ class Member
         $memberId = (int) $request->post('member_id', 0);
 
         $data = $request->only(self::PROFILE_FIELDS, 'post');
-        if ($request->has('is_displayed')) {
-            $data['is_displayed'] = (int) $request->post('is_displayed');
-        }
-        if ($request->has('post_type_ids')) {
-            $data['post_type_ids'] = $request->post('post_type_ids', []);
-        }
 
         $service = app(TeamMemberService::class);
         $service->edit($request->team_id, $memberId, $data);
@@ -121,11 +122,9 @@ class Member
     public function slug(Request $request)
     {
         $memberId = (int) $request->post('member_id', 0);
-        if (!\app\model\TeamMember::where('team_id', (int) $request->team_id)->find($memberId)) {
-            return error('成员不存在', 1, 404);
-        }
 
-        $identity = app(\app\service\EntityIdentity::class)->claimMember(
+        $identity = app(\app\service\Entity::class)->claimMember(
+            (int) $request->team_id,
             $memberId,
             (string) $request->post('slug', '')
         );
@@ -140,7 +139,7 @@ class Member
             return error('请提供成员搜索设置', 1, 422);
         }
 
-        app(\app\service\EntityIdentity::class)->setMemberSearch(
+        app(\app\service\Entity::class)->setMemberSearch(
             (int) $request->team_id,
             (int) $request->post('member_id', 0),
             $input['search_override']

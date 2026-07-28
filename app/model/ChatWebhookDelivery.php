@@ -18,12 +18,13 @@ class ChatWebhookDelivery extends Base
         'status'         => ChatDeliveryStatus::class,
         'attempts'       => 'integer',
         'available_at'   => 'integer',
+        'processing_until' => 'integer',
         // 'delivered_at'  => 'null|integer',
         // 'response_code' => 'null|integer',
     ];
 
     protected $json = [];
-    protected $hidden = ['delete_time'];
+    protected $hidden = ['delete_time', 'processing_token', 'processing_until'];
     protected $append = [];
     protected $readonly = ['team_id', 'outbox_id', 'integration_id'];
 

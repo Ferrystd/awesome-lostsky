@@ -10,14 +10,16 @@ class Product extends Validate
     protected $rule = [
         'name'        => 'require|max:100',
         'description' => 'max:500',
+        'cover_image' => 'require|max:500',
+        'introduction_markdown' => 'max:65535',
         'price'       => 'require|float|>=:0',
         'cost'        => 'float|>=:0',
         'handler_cut' => 'float|>=:0',
         'sender_cut'  => 'float|>=:0',
         'cs_cut'      => 'float|>=:0',
         'team_cut'    => 'float|>=:0',
-        'member_id'   => 'integer',
-        'member_ids'  => 'require|array',
+        'entity_id'   => 'integer',
+        'entity_ids'  => 'require|array',
         'is_active'   => 'in:0,1',
     ];
 
@@ -25,6 +27,9 @@ class Product extends Validate
         'name.require'       => '商品名称不能为空',
         'name.max'           => '商品名称长度不能超过100位',
         'description.max'    => '商品描述长度不能超过500位',
+        'cover_image.require' => '新建商品必须提供封面',
+        'cover_image.max'    => '商品封面地址长度不能超过500位',
+        'introduction_markdown.max' => '商品详情内容过长',
         'price.require'      => '单价不能为空',
         'price.float'        => '单价格式不正确',
         'price.>='           => '单价不能为负数',
@@ -38,15 +43,24 @@ class Product extends Validate
         'cs_cut.>='          => '客服抽成不能为负数',
         'team_cut.float'     => '团队抽成格式不正确',
         'team_cut.>='        => '团队抽成不能为负数',
-        'member_id.integer'  => '专属成员ID格式不正确',
-        'member_ids.require' => '接单人列表不能为空',
-        'member_ids.array'   => '接单人列表格式不正确',
+        'entity_id.integer'  => '专属人员ID格式不正确',
+        'entity_ids.require' => '接单人列表不能为空',
+        'entity_ids.array'   => '接单人列表格式不正确',
         'is_active.in'       => '上架状态格式不正确',
     ];
 
     protected $scene = [
-        'create'      => ['name', 'price', 'description', 'cost', 'member_id', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut'],
-        'edit'        => ['name', 'price', 'description', 'cost', 'is_active', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut'],
-        'setHandlers' => ['member_ids'],
+        'create'      => ['name', 'price', 'description', 'cover_image', 'introduction_markdown', 'cost', 'entity_id', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut'],
+        'setHandlers' => ['entity_ids'],
     ];
+
+    public function sceneEdit(): self
+    {
+        return $this->only([
+            'name', 'price', 'description', 'cover_image', 'introduction_markdown',
+            'cost', 'is_active', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut',
+        ])->remove('name', 'require')
+            ->remove('price', 'require')
+            ->remove('cover_image', 'require');
+    }
 }

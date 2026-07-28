@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * 团队角色列表
-         * @description 仅团队创建者可访问。
+         * @description 要求 team.role.read 权限。
          */
         get: operations["teamRoleIndex"];
         put?: never;
@@ -33,7 +33,7 @@ export interface paths {
         };
         /**
          * 团队角色详情
-         * @description 仅团队创建者可访问。
+         * @description 要求 team.role.read 权限。
          */
         get: operations["teamRoleGet"];
         put?: never;
@@ -55,7 +55,7 @@ export interface paths {
         put?: never;
         /**
          * 新增团队角色
-         * @description 仅团队创建者可访问。相同 role_key 的软删除角色会被恢复。
+         * @description 要求 team.role.write 权限；相同 role_key 的软删除角色会被恢复。
          */
         post: operations["teamRoleAdd"];
         delete?: never;
@@ -75,7 +75,7 @@ export interface paths {
         put?: never;
         /**
          * 编辑团队角色
-         * @description 仅团队创建者可访问；role_key 不可修改。
+         * @description 要求 team.role.write 权限；role_key 不可修改。
          */
         post: operations["teamRoleEdit"];
         delete?: never;
@@ -95,7 +95,7 @@ export interface paths {
         put?: never;
         /**
          * 删除团队角色
-         * @description 仅团队创建者可访问；同时软删除角色权限与成员角色绑定。
+         * @description 要求 team.role.write 权限；同时软删除角色权限与成员角色绑定。
          */
         post: operations["teamRoleDelete"];
         delete?: never;
@@ -113,7 +113,7 @@ export interface paths {
         };
         /**
          * 角色权限列表
-         * @description 仅团队创建者可访问。
+         * @description 要求 team.role.read 权限。
          */
         get: operations["teamRolePermissionIndex"];
         put?: never;
@@ -135,49 +135,9 @@ export interface paths {
         put?: never;
         /**
          * 全量同步角色权限
-         * @description 仅团队创建者可访问；空 permission_keys 清空角色权限。
+         * @description 要求 team.role.write 权限；空 permission_keys 清空角色权限。
          */
         post: operations["teamRolePermissionSave"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memberRole/index": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 成员角色列表
-         * @description 仅团队创建者可访问。
-         */
-        get: operations["teamMemberRoleIndex"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memberRole/save": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 全量同步成员角色
-         * @description 仅团队创建者可访问；空 role_ids 清空成员角色。
-         */
-        post: operations["teamMemberRoleSave"];
         delete?: never;
         options?: never;
         head?: never;
@@ -193,9 +153,29 @@ export interface paths {
         };
         /**
          * 实体角色列表
-         * @description 按当前团队中的实体 slug 查询其独立角色。
+         * @description 要求 team.role.read 权限；按全局 slug 查询目标团队授予来源实体的角色。来源实体可以属于任意团队且无需公开可搜索。
          */
         get: operations["teamEntityRoleIndex"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entityRole/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 按全局 slug 解析角色授权来源实体
+         * @description 要求 team.role.read 权限。仅按准确 slug 解析有效实体，返回其类型、名称、所属团队及是否跨团队；不改变普通实体搜索隐私。
+         */
+        get: operations["teamEntityRoleResolve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -213,7 +193,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 全量同步实体角色 */
+        /**
+         * 全量同步实体角色
+         * @description 要求 team.role.write 权限。角色属于当前目标团队，但来源实体由全局 slug 指定，可以来自任意团队且无需公开可搜索。
+         */
         post: operations["teamEntityRoleSave"];
         delete?: never;
         options?: never;
@@ -249,6 +232,23 @@ export interface paths {
         put?: never;
         /** 编辑自己在团队内的资料 */
         post: operations["teamMeEdit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存自己可见且可编辑的对象字段 */
+        post: operations["teamMeFields"];
         delete?: never;
         options?: never;
         head?: never;
@@ -381,7 +381,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ??????? */
+        /** 列出当前收件箱；Team 身份读取 LostSky 通知，其他身份读取 Entity 通知 */
         get: operations["teamNoticeIndex"];
         put?: never;
         post?: never;
@@ -398,10 +398,27 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ??????? */
+        /** 读取当前 Team 或 Entity 收件箱中的通知详情 */
         get: operations["teamNoticeGet"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notice/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 由有权限的当前 Entity 代表 Team 向一个非 Team Entity 发送通知 */
+        post: operations["teamNoticeSend"];
         delete?: never;
         options?: never;
         head?: never;
@@ -417,7 +434,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** ??????? */
+        /** 将当前 Team 或 Entity 收件箱的一条通知标记为已读 */
         post: operations["teamNoticeConfirm"];
         delete?: never;
         options?: never;
@@ -434,7 +451,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** ??????? */
+        /** 将当前 Team 或 Entity 收件箱的全部通知标记为已读 */
         post: operations["teamNoticeConfirmAll"];
         delete?: never;
         options?: never;
@@ -451,7 +468,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** ??????????????????? */
+        /** Operation teamNoticeReceive. */
         post: operations["teamNoticeReceive"];
         delete?: never;
         options?: never;
@@ -468,127 +485,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** ??????????????????? */
+        /** Operation teamNoticeReceiveAll. */
         post: operations["teamNoticeReceiveAll"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memberField/index": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取成员字段定义列表 */
-        get: operations["teamMemberFieldIndex"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memberField/get": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取单个成员字段定义 */
-        get: operations["teamMemberFieldGet"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memberField/add": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 新增成员字段定义 */
-        post: operations["teamMemberFieldAdd"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memberField/edit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 编辑成员字段定义 */
-        post: operations["teamMemberFieldEdit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memberField/delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 删除成员字段定义 */
-        post: operations["teamMemberFieldDelete"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memberField/values": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取成员字段值 */
-        get: operations["teamMemberFieldValues"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/memberField/saveValues": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 保存成员字段值 */
-        post: operations["teamMemberFieldSaveValues"];
         delete?: never;
         options?: never;
         head?: never;
@@ -627,91 +525,6 @@ export interface paths {
         put?: never;
         /** 保存团队设置 */
         post: operations["teamSettingSave"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/postType/index": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取全部岗位类型 */
-        get: operations["teamPostTypeIndex"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/postType/get": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 获取单个岗位类型 */
-        get: operations["teamPostTypeGet"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/postType/add": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 新增岗位类型 */
-        post: operations["teamPostTypeAdd"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/postType/edit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 编辑岗位类型 */
-        post: operations["teamPostTypeEdit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/postType/delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 删除岗位类型 */
-        post: operations["teamPostTypeDelete"];
         delete?: never;
         options?: never;
         head?: never;
@@ -795,23 +608,6 @@ export interface paths {
         };
         /** 文档列表 */
         get: operations["teamDocIndex"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/doc/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 文档详情 */
-        get: operations["teamDocGet"];
         put?: never;
         post?: never;
         delete?: never;
@@ -997,7 +793,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 申请表单字段列表 */
+        /**
+         * 申请表单字段列表
+         * @description 要求 team.join_field.read 权限。
+         */
         get: operations["teamJoinFieldIndex"];
         put?: never;
         post?: never;
@@ -1016,7 +815,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 新增申请字段 */
+        /**
+         * 新增申请字段
+         * @description 要求 team.join_field.write 权限。
+         */
         post: operations["teamJoinFieldAdd"];
         delete?: never;
         options?: never;
@@ -1033,7 +835,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 编辑申请字段 */
+        /**
+         * 编辑申请字段
+         * @description 要求 team.join_field.write 权限。
+         */
         post: operations["teamJoinFieldEdit"];
         delete?: never;
         options?: never;
@@ -1050,7 +855,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 删除申请字段 */
+        /**
+         * 删除申请字段
+         * @description 要求 team.join_field.write 权限。
+         */
         post: operations["teamJoinFieldDelete"];
         delete?: never;
         options?: never;
@@ -1065,7 +873,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 管理员申请列表 */
+        /**
+         * 管理员申请列表
+         * @description 要求 team.join_review.read 权限。
+         */
         get: operations["teamJoinReviewIndex"];
         put?: never;
         post?: never;
@@ -1082,7 +893,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 管理员申请详情 */
+        /**
+         * 管理员申请详情
+         * @description 要求 team.join_review.read 权限。
+         */
         get: operations["teamJoinReviewGet"];
         put?: never;
         post?: never;
@@ -1101,7 +915,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 申请进入审核中 */
+        /**
+         * 申请进入审核中
+         * @description 要求 team.join_review.write 权限。
+         */
         post: operations["teamJoinReviewReview"];
         delete?: never;
         options?: never;
@@ -1118,7 +935,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 拒绝加入申请 */
+        /**
+         * 拒绝加入申请
+         * @description 要求 team.join_review.write 权限。
+         */
         post: operations["teamJoinReviewReject"];
         delete?: never;
         options?: never;
@@ -1135,7 +955,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 同意加入申请 */
+        /**
+         * 同意加入申请
+         * @description 要求 team.join_review.write 权限。
+         */
         post: operations["teamJoinReviewApprove"];
         delete?: never;
         options?: never;
@@ -1152,7 +975,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 保存审核任务 */
+        /**
+         * 保存审核任务
+         * @description 要求 team.join_review.write 权限。
+         */
         post: operations["teamJoinReviewSaveTasks"];
         delete?: never;
         options?: never;
@@ -1169,7 +995,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 更新审核任务状态 */
+        /**
+         * 更新审核任务状态
+         * @description 要求 team.join_review.write 权限。
+         */
         post: operations["teamJoinReviewSetTaskPassed"];
         delete?: never;
         options?: never;
@@ -1256,6 +1085,379 @@ export interface paths {
         put?: never;
         /** 管理员设置成员搜索三态值 */
         post: operations["teamMemberSetSearch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entityField/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建统一对象字段 */
+        post: operations["chatEntityFieldCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entityField/values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取指定 slug 的团队内部字段值 */
+        get: operations["chatEntityFieldValues"];
+        put?: never;
+        /** 保存指定 slug 的团队内部字段值 */
+        post: operations["chatEntityFieldSaveValues"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chatVirtual/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 团队后台列出可管理虚拟实体 */
+        get: operations["teamChatVirtualList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chatVirtual/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 团队后台读取虚拟实体 */
+        get: operations["teamChatVirtualGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chatVirtual/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 团队后台创建虚拟实体 */
+        post: operations["teamChatVirtualCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chatVirtual/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 团队后台更新虚拟实体 */
+        post: operations["teamChatVirtualUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chatVirtual/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 团队后台删除虚拟实体 */
+        post: operations["teamChatVirtualDelete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chatIntegration/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 团队后台创建 Webhook 集成 */
+        post: operations["teamChatIntegrationCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chatIntegration/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 团队后台更新 Webhook 集成 */
+        post: operations["teamChatIntegrationUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chatIntegration/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 团队后台轮换 Webhook 凭据 */
+        post: operations["teamChatIntegrationRotate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chatIntegration/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 团队后台删除 Webhook 集成 */
+        post: operations["teamChatIntegrationDelete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entityField/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 团队后台列出统一对象字段 */
+        get: operations["teamEntityFieldList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entityField/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 团队后台读取统一对象字段 */
+        get: operations["teamEntityFieldGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entityField/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 团队后台更新统一对象字段 */
+        post: operations["teamEntityFieldUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entityField/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 团队后台删除统一对象字段及值 */
+        post: operations["teamEntityFieldDelete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rolePermission/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 加载固定权限、当前团队通配委托权限及具体虚拟实体权限目录
+         * @description 要求 team.role.read 权限。委托权限包括 identity.team.assume 以及 member/customer/virtual 的当前团队通配权限；当前团队有效实体还可通过精确 slug 保存对应 assume 权限。
+         */
+        get: operations["teamRolePermissionCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entity/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ?????????? */
+        get: operations["teamEntityOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entity/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * ????????????
+         * @description ?? team.entity.read ????????????
+         */
+        get: operations["teamEntityIndex"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entity/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * ??????????
+         * @description ?? team.entity.read ????????????????
+         */
+        get: operations["teamEntityGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entity/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * ??????????
+         * @description ?? team.entity_profile.manage ?????????????????
+         */
+        post: operations["teamEntityProfileUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entity/display": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 更新实体公开展示状态
+         * @description 需要 team.entity.profile.manage 权限，仅支持成员与虚拟实体。
+         */
+        post: operations["teamEntityDisplayUpdate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1362,11 +1564,6 @@ export interface components {
              * @description 0=false, 1=true
              * @enum {integer}
              */
-            is_displayed?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
             is_blocked?: 0 | 1;
             /**
              * Format: int64
@@ -1374,141 +1571,53 @@ export interface components {
              */
             create_time?: number;
         } & components["schemas"]["MemberProfileFields"] & {
-            posts?: components["schemas"]["MemberPost"][];
-            fieldValues?: components["schemas"]["MemberFieldValue"][];
-            /** @description Only returned by /me/get. Visible custom field definitions for the current member. */
-            custom_fields?: components["schemas"]["MemberField"][];
-            /** @description Only returned by /me/get. Visible custom field values for the current member. */
-            custom_field_values?: components["schemas"]["MemberFieldValue"][];
+            fieldValues?: components["schemas"]["EntityFieldValue"][];
+            /** @description Only returned by /me/get. Visible custom field definitions for the current entity. */
+            custom_fields?: components["schemas"]["EntityField"][];
+            /** @description Only returned by /me/get. Visible custom field values for the current entity. */
+            custom_field_values?: components["schemas"]["EntityFieldValue"][];
+            /** @description Only returned by /me/get. Roles assigned to the current entity, including each role's permissions. */
+            role_assignments?: components["schemas"]["TeamEntityRole"][];
+            /** @description Only returned by /me/get. Deduplicated permission union from the current entity's roles. */
+            effective_permissions?: components["schemas"]["EffectivePermission"][];
+            /** @description Only returned by /member/get. Operations the current acting entity may perform on the member task page. */
+            capabilities?: components["schemas"]["MemberCapabilities"];
         };
-        MemberPost: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            member_id?: number;
-            /** Format: int64 */
-            type_id?: number;
-            /** Format: int64 */
-            post_id?: number;
-            type?: components["schemas"]["PostType"];
+        MemberCapabilities: {
+            member_edit: boolean;
+            field_manage: boolean;
+            role_read: boolean;
+            role_write: boolean;
+            member_block: boolean;
+            member_search: boolean;
+            member_slug: boolean;
+            member_remove: boolean;
+            identity_assume: boolean;
         };
-        PostType: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            name?: string;
-            description?: string;
-            /** Format: int64 */
-            post_id?: number;
-            sort?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-        };
-        MemberField: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            field_key?: string;
-            name?: string;
-            /** @enum {string} */
-            source?: "system" | "custom";
-            /** @enum {string} */
-            value_type?: "string" | "text" | "int" | "decimal" | "bool" | "date" | "datetime" | "select" | "multi_select" | "json";
-            /** @enum {string} */
-            input_type?: "text" | "textarea" | "radio" | "checkbox" | "select" | "date" | "datetime" | "upload";
-            options?: unknown;
-            default_value?: string | null;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_required?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_editable?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_searchable?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_system?: 0 | 1;
-            sort?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-            /**
-             * @description 1=team管理, 2=主体本人和team管理
-             * @enum {integer}
-             */
-            manager_scope?: 1 | 2;
-            /**
-             * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见
-             * @enum {integer}
-             */
-            visibility?: 1 | 3 | 4 | 5;
-        };
-        MemberFieldValue: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            member_id?: number;
-            /** Format: int64 */
-            field_id?: number;
-            value_string?: string | null;
-            value_text?: string | null;
-            /** Format: int64 */
-            value_int?: number | null;
-            /** Format: float */
-            value_decimal?: number | null;
-            /** Format: int64 */
-            value_datetime?: number | null;
-            value_json?: unknown;
-            field?: components["schemas"]["MemberField"];
+        EffectivePermission: {
+            key: string;
+            label: string;
+            group: string;
         };
         Product: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             team_id?: number;
-            /** Format: int64 */
-            member_id?: number | null;
             name?: string;
             description?: string | null;
-            /** Format: float */
-            price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            handler_cut?: number | null;
-            /** Format: float */
-            sender_cut?: number | null;
-            /** Format: float */
-            cs_cut?: number | null;
-            /** Format: float */
-            team_cut?: number | null;
+            /** @description Exact decimal string. */
+            price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string | null;
+            /** @description Exact decimal string. */
+            sender_cut?: string | null;
+            /** @description Exact decimal string. */
+            cs_cut?: string | null;
+            /** @description Exact decimal string. */
+            team_cut?: string | null;
             /**
              * @description 0=false, 1=true
              * @enum {integer}
@@ -1524,22 +1633,24 @@ export interface components {
              * @description Unix timestamp, seconds
              */
             update_time?: number;
-            member?: components["schemas"]["Member"];
             handlers?: components["schemas"]["ProductHandler"][];
+            /** Format: int64 */
+            entity_id?: number | null;
+            subject?: components["schemas"]["Entity"];
         };
         ProductHandler: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             product_id?: number;
-            /** Format: int64 */
-            member_id?: number;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
              */
             create_time?: number;
-            member?: components["schemas"]["Member"];
+            /** Format: int64 */
+            entity_id?: number;
+            subject?: components["schemas"]["Entity"];
         };
         Order: {
             /** Format: int64 */
@@ -1549,30 +1660,30 @@ export interface components {
             /** Format: int64 */
             customer_id?: number | null;
             /** Format: int64 */
-            handler_id?: number | null;
+            handler_entity_id?: number | null;
             /** Format: int64 */
-            sender_id?: number | null;
+            sender_entity_id?: number | null;
             /** Format: int64 */
             product_id?: number;
             quantity?: number;
-            /** Format: float */
-            unit_price?: number;
-            /** Format: float */
-            total_price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            handler_cut?: number | null;
-            /** Format: float */
-            sender_cut?: number | null;
-            /** Format: float */
-            cs_cut?: number | null;
-            /** Format: float */
-            team_cut?: number | null;
-            /** Format: float */
-            cash?: number;
-            /** Format: float */
-            prepaid?: number;
+            /** @description Exact decimal string. */
+            unit_price?: string;
+            /** @description Exact decimal string. */
+            total_price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string | null;
+            /** @description Exact decimal string. */
+            sender_cut?: string | null;
+            /** @description Exact decimal string. */
+            cs_cut?: string | null;
+            /** @description Exact decimal string. */
+            team_cut?: string | null;
+            /** @description Exact decimal string. */
+            cash?: string;
+            /** @description Exact decimal string. */
+            prepaid?: string;
             /** Format: int64 */
             trans_id?: number | null;
             /**
@@ -1628,12 +1739,12 @@ export interface components {
             id?: number;
             /** Format: int64 */
             customer_id?: number;
-            /** Format: float */
-            balance?: number;
-            /** Format: float */
-            recharged?: number;
-            /** Format: float */
-            spent?: number;
+            /** @description Exact decimal string. */
+            balance?: string;
+            /** @description Exact decimal string. */
+            recharged?: string;
+            /** @description Exact decimal string. */
+            spent?: string;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
@@ -1655,10 +1766,10 @@ export interface components {
              * @enum {integer}
              */
             type?: 1 | 2 | 3 | 4;
-            /** Format: float */
-            amount?: number;
-            /** Format: float */
-            balance_after?: number;
+            /** @description Exact decimal string. */
+            amount?: string;
+            /** @description Exact decimal string. */
+            balance_after?: string;
             /** Format: int64 */
             trans_id?: number | null;
             memo?: string | null;
@@ -1680,11 +1791,11 @@ export interface components {
             /** Format: int64 */
             team_id?: number;
             /** Format: int64 */
-            handler_id?: number;
+            handler_entity_id?: number;
             /** Format: int64 */
-            sender_id?: number | null;
+            sender_entity_id?: number | null;
             /** Format: int64 */
-            cs_id?: number | null;
+            cs_entity_id?: number | null;
             /** Format: int64 */
             customer_id?: number | null;
             /**
@@ -1692,22 +1803,22 @@ export interface components {
              * @enum {integer}
              */
             type?: 1 | 2;
-            /** Format: float */
-            total_price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            cash?: number;
-            /** Format: float */
-            prepaid?: number;
-            /** Format: float */
-            handler_cut?: number;
-            /** Format: float */
-            sender_cut?: number;
-            /** Format: float */
-            cs_cut?: number;
-            /** Format: float */
-            team_cut?: number;
+            /** @description Exact decimal string. */
+            total_price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            cash?: string;
+            /** @description Exact decimal string. */
+            prepaid?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string;
+            /** @description Exact decimal string. */
+            sender_cut?: string;
+            /** @description Exact decimal string. */
+            cs_cut?: string;
+            /** @description Exact decimal string. */
+            team_cut?: string;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
@@ -1736,23 +1847,21 @@ export interface components {
             team_id?: number;
             /** Format: int64 */
             customer_id?: number;
-            /** Format: int64 */
-            member_id?: number;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
              */
             create_time?: number;
             customer?: components["schemas"]["Customer"];
-            member?: components["schemas"]["Member"];
+            /** Format: int64 */
+            entity_id?: number;
+            subject?: components["schemas"]["Entity"];
         };
         File: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             team_id?: number;
-            /** Format: int64 */
-            member_id?: number;
             hash?: string;
             name?: string;
             path?: string;
@@ -1769,7 +1878,12 @@ export interface components {
              * @description Unix timestamp, seconds
              */
             update_time?: number;
-            member?: components["schemas"]["Member"];
+            /**
+             * Format: int64
+             * @description 全局实体身份 ID，引用 entity.id；无实体上传时为 null。
+             */
+            entity_id?: number | null;
+            entity?: components["schemas"]["Entity"] | null;
         };
         FileUploadResult: {
             /** Format: int64 */
@@ -1784,13 +1898,9 @@ export interface components {
         };
         Document: {
             /** Format: int64 */
-            id?: number;
+            id: number;
             title?: string;
             content?: string | null;
-            /** @enum {string} */
-            documentable_type?: "team" | "teamMember";
-            /** Format: int64 */
-            documentable_id?: number;
             sort?: number;
             /**
              * Format: int64
@@ -1808,30 +1918,45 @@ export interface components {
              */
             manager_scope?: 1 | 2;
             /**
-             * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见
+             * @description 1=???????3=????????????4=???????5=?????6=??????
              * @enum {integer}
              */
             visibility?: 1 | 3 | 4 | 5 | 6;
             /** @description visibility=6(custom) 时生效 */
             visibility_targets?: components["schemas"]["VisibilityTarget"][];
+            /** Format: int64 */
+            entity_id: number;
+            subject?: components["schemas"]["Entity"];
         };
         VisibilityTarget: {
-            /** @enum {string} */
-            target_type: "team" | "teamMember";
             /** Format: int64 */
-            target_id: number;
+            entity_id: number;
+            subject?: components["schemas"]["Entity"];
         };
         TeamNotice: {
             /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            title?: string;
+            id: number;
+            /**
+             * Format: int64
+             * @description LostSky 通知的收件 Team ID；Team -> Entity 通知为 null
+             */
+            team_id: number | null;
+            /**
+             * Format: int64
+             * @description Team -> Entity 通知的发送 Team ID；LostSky -> Team 通知为 null
+             */
+            sender_team_id: number | null;
+            /**
+             * Format: int64
+             * @description Team 通知的收件 Entity ID；LostSky -> Team 通知为 null
+             */
+            entity_id: number | null;
+            title: string;
             content?: string | null;
             /** @enum {integer} */
-            is_pinned?: 0 | 1;
+            is_pinned: 0 | 1;
             /** @enum {integer} */
-            is_read?: 0 | 1;
+            is_read: 0 | 1;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
@@ -1847,6 +1972,20 @@ export interface components {
         };
         NoticeList: components["schemas"]["PaginationBase"] & {
             list?: components["schemas"]["TeamNotice"][];
+            /** @description 当前 acting Entity 是否可代表 Team 发送通知 */
+            can_send?: boolean;
+        };
+        NoticeSendResult: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            team_id: number | null;
+            /** Format: int64 */
+            sender_team_id: number;
+            /** Format: int64 */
+            entity_id: number;
+            /** @enum {integer} */
+            is_pinned: 0 | 1;
         };
         JoinField: {
             /** Format: int64 */
@@ -1862,22 +2001,22 @@ export interface components {
             options?: unknown;
             default_value?: string | null;
             /**
-             * @description ?????????
+             * @description Field contract for is_apply_fillable.
              * @enum {integer}
              */
             is_apply_fillable?: 0 | 1;
             /**
-             * @description ????????
+             * @description Field contract for is_apply_required.
              * @enum {integer}
              */
             is_apply_required?: 0 | 1;
             /**
-             * @description ??????? TeamMemberFieldValue
+             * @description TeamEntityFieldValue
              * @enum {integer}
              */
-            is_transfer_member_field?: 0 | 1;
+            is_transfer_entity_field?: 0 | 1;
             /** Format: int64 */
-            member_field_id?: number | null;
+            entity_field_id?: number | null;
             /** @enum {integer} */
             is_active?: 0 | 1;
             sort?: number;
@@ -1917,10 +2056,17 @@ export interface components {
             name?: string;
             description?: string | null;
             sort?: number;
+            /**
+             * @description 是否在 Display 公开实体资料中展示此角色。
+             * @enum {integer}
+             */
+            is_displayed?: 0 | 1;
             /** Format: int64 */
             create_time?: number;
             /** Format: int64 */
             update_time?: number;
+            /** @description Included when the role is loaded through /entityRole/index or /me/get. */
+            permissions?: components["schemas"]["TeamRolePermission"][];
         };
         TeamRolePermission: {
             /** Format: int64 */
@@ -1935,20 +2081,17 @@ export interface components {
             /** Format: int64 */
             update_time?: number;
         };
-        TeamMemberRole: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            /** Format: int64 */
-            member_id?: number;
-            /** Format: int64 */
-            role_id?: number;
-            role?: components["schemas"]["TeamRole"];
-            /** Format: int64 */
-            create_time?: number;
-            /** Format: int64 */
-            update_time?: number;
+        PermissionCatalogItem: {
+            key: string;
+            label: string;
+            resource_slug?: string | null;
+        };
+        PermissionCatalogGroup: {
+            name: string;
+            items: components["schemas"]["PermissionCatalogItem"][];
+        };
+        PermissionCatalog: {
+            groups: components["schemas"]["PermissionCatalogGroup"][];
         };
         TeamEntityRole: {
             /** Format: int64 */
@@ -1967,6 +2110,22 @@ export interface components {
             /** Format: int64 */
             update_time?: number;
         };
+        EntityRoleSubject: {
+            /** @enum {string} */
+            type: "teamMember" | "teamCustomer" | "team" | "teamVirtual";
+            /** Format: int64 */
+            id: number;
+            slug: string;
+            name: string;
+            team: {
+                /** Format: int64 */
+                id?: number;
+                slug?: string;
+                name?: string;
+            } | null;
+            /** @description 实体是否属于当前授权团队之外的团队 */
+            is_external: boolean;
+        };
         JoinApplication: {
             /** Format: int64 */
             id?: number;
@@ -1974,8 +2133,6 @@ export interface components {
             team_id?: number;
             /** Format: int64 */
             user_id?: number;
-            /** Format: int64 */
-            member_id?: number | null;
             /**
              * @description 加入申请状态
              * @enum {string}
@@ -1984,6 +2141,8 @@ export interface components {
             memo?: string | null;
             values?: components["schemas"]["JoinFieldValue"][];
             tasks?: components["schemas"]["JoinTask"][];
+            /** Format: int64 */
+            entity_id?: number | null;
         };
         EntityTeamSummary: {
             slug: string;
@@ -1992,7 +2151,7 @@ export interface components {
         EntitySummary: {
             slug: string;
             /** @enum {string} */
-            type: "team" | "teamMember" | "unknown";
+            type: "team" | "teamMember" | "teamCustomer" | "teamVirtual" | "unknown";
             display_name: string;
             avatar?: string | null;
             team?: components["schemas"]["EntityTeamSummary"];
@@ -2034,10 +2193,138 @@ export interface components {
         TeamSettingSchema: {
             apps: components["schemas"]["TeamSettingApp"][];
         };
+        Envelope: {
+            /** @example 0 */
+            code: number;
+            /** @example ok */
+            message: string;
+            data: unknown;
+        };
+        EntityField: {
+            /** Format: int64 */
+            id?: number;
+            /** @enum {string} */
+            entity_type?: "entity" | "customer" | "virtual";
+            field_key?: string;
+            name?: string;
+            value_type?: string;
+            input_type?: string;
+            options?: unknown[] | null;
+            /** @enum {integer} */
+            is_required?: 0 | 1;
+            /** @enum {integer} */
+            is_editable?: 0 | 1;
+            /** @enum {integer} */
+            is_searchable?: 0 | 1;
+            /** @enum {integer} */
+            is_visible?: 0 | 1;
+            sort?: number;
+            /** @enum {string} */
+            source?: "system" | "custom";
+            default_value?: string | null;
+            /** @enum {integer} */
+            manager_scope?: 1 | 2;
+            /** @enum {integer} */
+            visibility?: 1 | 3 | 4 | 5 | 6;
+            /** @enum {integer} */
+            is_system?: 0 | 1;
+        };
+        VirtualEntity: {
+            slug?: string;
+            name?: string;
+            avatar?: string | null;
+            description?: string | null;
+            /** @enum {integer} */
+            is_active?: 0 | 1;
+            integrations?: components["schemas"]["Integration"][];
+        };
+        Integration: {
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            /** @enum {string} */
+            driver?: "webhook";
+            /** Format: uri */
+            endpoint_url?: string;
+            events?: string[];
+            /** @enum {integer} */
+            is_active?: 0 | 1;
+        };
+        Entity: {
+            /** Format: int64 */
+            id: number;
+            slug: string;
+            /** @enum {string} */
+            entityable_type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
+            /** Format: int64 */
+            entityable_id: number;
+            /**
+             * @description 是否在团队公开主页展示
+             * @enum {integer}
+             */
+            is_displayed?: 0 | 1;
+            is_valid?: boolean;
+            is_searchable?: boolean;
+            name?: string;
+            avatar?: string | null;
+            profile?: components["schemas"]["EntityProfile"] | null;
+        };
+        EntityOption: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            entity_id: number;
+            /** @enum {string} */
+            type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
+            slug?: string;
+            name: string;
+            avatar?: string | null;
+        };
+        EntityFieldValue: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            field_id?: number;
+            value_string?: string | null;
+            value_text?: string | null;
+            /** Format: int64 */
+            value_int?: number | null;
+            /** Format: float */
+            value_decimal?: number | null;
+            /** Format: int64 */
+            value_datetime?: number | null;
+            value_json?: unknown;
+            field?: components["schemas"]["EntityField"];
+            /** Format: int64 */
+            entity_id?: number;
+        };
+        EntityProfile: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            entity_id: number;
+            name: string;
+            avatar: string;
+            description?: string | null;
+            intro_image?: string | null;
+            intro_video?: string | null;
+            introduction_markdown?: string | null;
+            /** Format: int64 */
+            create_time?: number;
+            /** Format: int64 */
+            update_time?: number;
+        };
+        EntityList: {
+            /** Format: int64 */
+            total: number;
+            list: components["schemas"]["Entity"][];
+            page: number;
+            limit: number;
+        };
     };
     responses: never;
     parameters: {
-        /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+        /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
         PageId: string;
         Page: number;
         Limit: number;
@@ -2045,6 +2332,7 @@ export interface components {
         IdQuery: number;
         MemberIdQuery: number;
         CustomerIdQuery: number;
+        SlugQuery: string;
     };
     requestBodies: never;
     headers: never;
@@ -2102,7 +2390,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2116,6 +2404,11 @@ export interface operations {
                     description?: string | null;
                     /** @default 0 */
                     sort?: number;
+                    /**
+                     * @default 0
+                     * @enum {integer}
+                     */
+                    is_displayed?: 0 | 1;
                 };
             };
         };
@@ -2137,7 +2430,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2151,6 +2444,8 @@ export interface operations {
                     name?: string;
                     description?: string | null;
                     sort?: number;
+                    /** @enum {integer} */
+                    is_displayed?: 0 | 1;
                 };
             };
         };
@@ -2170,7 +2465,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2224,7 +2519,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2236,61 +2531,6 @@ export interface operations {
                     /** Format: int64 */
                     role_id: number;
                     permission_keys: string[];
-                };
-            };
-        };
-        responses: {
-            /** @description 同步成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    teamMemberRoleIndex: {
-        parameters: {
-            query: {
-                member_id: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["TeamMemberRole"][];
-                    };
-                };
-            };
-        };
-    };
-    teamMemberRoleSave: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: int64 */
-                    member_id: number;
-                    role_ids: number[];
                 };
             };
         };
@@ -2330,11 +2570,44 @@ export interface operations {
             };
         };
     };
+    teamEntityRoleResolve: {
+        parameters: {
+            query: {
+                slug: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 实体摘要 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["EntityRoleSubject"];
+                    };
+                };
+            };
+            /** @description 实体不存在或不可用 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     teamEntityRoleSave: {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2364,7 +2637,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2452,7 +2725,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2545,11 +2818,78 @@ export interface operations {
             };
         };
     };
+    teamMeFields: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    values: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description 操作成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+            /** @description 请求字段格式错误 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 字段不对本人可见或不可编辑 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 字段值未通过校验 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     teamMemberIndex: {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2639,7 +2979,7 @@ export interface operations {
                 member_id?: components["parameters"]["MemberIdQuery"];
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2727,7 +3067,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2827,7 +3167,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2844,11 +3184,6 @@ export interface operations {
                     intro_image?: string | null;
                     intro_video?: string | null;
                     introduction_markdown?: string | null;
-                    /**
-                     * @description 0=false, 1=true
-                     * @enum {integer}
-                     */
-                    is_displayed?: 0 | 1;
                     post_type_ids?: number[];
                 };
             };
@@ -2932,7 +3267,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -3025,7 +3360,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -3118,7 +3453,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -3216,7 +3551,7 @@ export interface operations {
                 keyword?: string;
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -3288,7 +3623,7 @@ export interface operations {
                 id?: components["parameters"]["IdQuery"];
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -3354,11 +3689,86 @@ export interface operations {
             };
         };
     };
+    teamNoticeSend: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: int64
+                     * @description 当前团队内的非 Team Entity
+                     */
+                    entity_id: number;
+                    title: string;
+                    content?: string | null;
+                    /** @default false */
+                    is_pinned?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description 通知已发送 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["NoticeSendResult"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     teamNoticeConfirm: {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -3433,7 +3843,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -3505,7 +3915,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -3571,7 +3981,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -3617,728 +4027,11 @@ export interface operations {
             };
         };
     };
-    teamMemberFieldIndex: {
-        parameters: {
-            query?: {
-                keyword?: string;
-                source?: "system" | "custom";
-            };
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["MemberField"][];
-                    };
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    teamMemberFieldGet: {
-        parameters: {
-            query?: {
-                id?: components["parameters"]["IdQuery"];
-            };
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["MemberField"];
-                    };
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    teamMemberFieldAdd: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    field_key: string;
-                    name: string;
-                    /** @enum {string} */
-                    source?: "system" | "custom";
-                    /** @enum {string} */
-                    value_type?: "string" | "text" | "int" | "decimal" | "bool" | "date" | "datetime" | "select" | "multi_select" | "json";
-                    /** @enum {string} */
-                    input_type?: "text" | "textarea" | "radio" | "checkbox" | "select" | "date" | "datetime" | "upload";
-                    options?: unknown;
-                    default_value?: string | null;
-                    /**
-                     * @description 0=false, 1=true
-                     * @enum {integer}
-                     */
-                    is_required?: 0 | 1;
-                    /**
-                     * @description 0=false, 1=true
-                     * @enum {integer}
-                     */
-                    is_editable?: 0 | 1;
-                    /**
-                     * @description 0=false, 1=true
-                     * @enum {integer}
-                     */
-                    is_searchable?: 0 | 1;
-                    /**
-                     * @description 0=false, 1=true
-                     * @enum {integer}
-                     */
-                    is_system?: 0 | 1;
-                    sort?: number;
-                    /**
-                     * @description 1=team管理, 2=主体本人和team管理
-                     * @enum {integer}
-                     */
-                    manager_scope?: 1 | 2;
-                    /**
-                     * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见
-                     * @enum {integer}
-                     */
-                    visibility?: 1 | 3 | 4 | 5;
-                };
-            };
-        };
-        responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    teamMemberFieldEdit: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: int64 */
-                    id: number;
-                    name?: string;
-                    value_type?: string;
-                    input_type?: string;
-                    options?: unknown;
-                    default_value?: string | null;
-                    /**
-                     * @description 0=false, 1=true
-                     * @enum {integer}
-                     */
-                    is_required?: 0 | 1;
-                    /**
-                     * @description 0=false, 1=true
-                     * @enum {integer}
-                     */
-                    is_editable?: 0 | 1;
-                    /**
-                     * @description 0=false, 1=true
-                     * @enum {integer}
-                     */
-                    is_searchable?: 0 | 1;
-                    sort?: number;
-                    /**
-                     * @description 1=team管理, 2=主体本人和team管理
-                     * @enum {integer}
-                     */
-                    manager_scope?: 1 | 2;
-                    /**
-                     * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见
-                     * @enum {integer}
-                     */
-                    visibility?: 1 | 3 | 4 | 5;
-                };
-            };
-        };
-        responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    teamMemberFieldDelete: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: int64 */
-                    id: number;
-                };
-            };
-        };
-        responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    teamMemberFieldValues: {
-        parameters: {
-            query?: {
-                member_id?: components["parameters"]["MemberIdQuery"];
-            };
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["MemberFieldValue"][];
-                    };
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    teamMemberFieldSaveValues: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: int64 */
-                    member_id: number;
-                    /** @description field_id => value */
-                    values: {
-                        [key: string]: components["schemas"]["AnyValue"];
-                    };
-                };
-            };
-        };
-        responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
     teamSettingSchema: {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -4384,7 +4077,7 @@ export interface operations {
                 key?: string;
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -4474,7 +4167,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -4576,484 +4269,20 @@ export interface operations {
             };
         };
     };
-    teamPostTypeIndex: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["PostType"][];
-                    };
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    teamPostTypeGet: {
-        parameters: {
-            query?: {
-                id?: components["parameters"]["IdQuery"];
-            };
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["PostType"];
-                    };
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    teamPostTypeAdd: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name: string;
-                    description?: string;
-                    /** Format: int64 */
-                    post_id: number;
-                    sort?: number;
-                };
-            };
-        };
-        responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    teamPostTypeEdit: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: int64 */
-                    id: number;
-                    name?: string;
-                    description?: string;
-                    /** Format: int64 */
-                    post_id?: number;
-                    sort?: number;
-                };
-            };
-        };
-        responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    teamPostTypeDelete: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: int64 */
-                    id: number;
-                };
-            };
-        };
-        responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
     teamFileIndex: {
         parameters: {
             query?: {
                 page?: components["parameters"]["Page"];
                 limit?: components["parameters"]["Limit"];
-                member_id?: number;
+                /** @description 按全局实体身份 ID 筛选。 */
+                entity_id?: number;
                 mime_type?: string;
                 keyword?: string;
                 start_time?: number;
                 end_time?: number;
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -5145,7 +4374,7 @@ export interface operations {
                 id?: components["parameters"]["IdQuery"];
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -5233,7 +4462,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -5326,7 +4555,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -5415,14 +4644,14 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 limit?: components["parameters"]["Limit"];
-                target_type?: "team" | "teamMember";
-                target_id?: number;
+                /** @description ??????????????? */
+                entity_id?: number;
                 manager_scope?: 1 | 2;
                 visibility?: 1 | 3 | 4 | 5 | 6;
                 keyword?: string;
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -5508,101 +4737,11 @@ export interface operations {
             };
         };
     };
-    teamDocGet: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path: {
-                id: components["parameters"]["IdPath"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["Document"];
-                    };
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
     teamDocCreate: {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -5611,28 +4750,26 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /**
-                     * @default team
-                     * @enum {string}
-                     */
-                    target_type?: "team" | "teamMember";
-                    /** Format: int64 */
-                    target_id?: number;
                     title: string;
                     content?: string | null;
                     sort?: number;
                     /**
-                     * @description 1=team管理, 2=主体本人和team管理；team主体默认1，teamMember主体默认2
+                     * @description 1=?????2=?????????
                      * @enum {integer}
                      */
                     manager_scope?: 1 | 2;
                     /**
-                     * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见；team主体默认1，teamMember主体默认3
+                     * @description 1=???????3=????????????4=???????5=?????6=??????
                      * @enum {integer}
                      */
                     visibility?: 1 | 3 | 4 | 5 | 6;
                     /** @description visibility=6(custom) 时生效 */
                     visibility_targets?: components["schemas"]["VisibilityTarget"][];
+                    /**
+                     * Format: int64
+                     * @description ???????????????
+                     */
+                    entity_id?: number;
                 };
             };
         };
@@ -5717,7 +4854,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path: {
@@ -5732,18 +4869,18 @@ export interface operations {
                     content?: string | null;
                     sort?: number;
                     /**
-                     * @description 1=team管理, 2=主体本人和team管理
+                     * @description 1=?????2=?????????
                      * @enum {integer}
                      */
                     manager_scope?: 1 | 2;
                     /**
-                     * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见
+                     * @description 1=???????3=????????????4=???????5=?????6=??????
                      * @enum {integer}
                      */
                     visibility?: 1 | 3 | 4 | 5 | 6;
                     /** @description visibility=6(custom) 时生效 */
                     visibility_targets?: components["schemas"]["VisibilityTarget"][];
-                    /** @description ??ID */
+                    /** @description ID */
                     id?: number;
                 };
             };
@@ -5827,7 +4964,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path: {
@@ -5838,7 +4975,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description ??ID */
+                    /** @description ID */
                     id: number;
                 };
             };
@@ -5921,11 +5058,11 @@ export interface operations {
     teamDocGetByQuery: {
         parameters: {
             query: {
-                /** @description ??ID */
+                /** @description ID */
                 id: number;
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path: {
@@ -6020,7 +5157,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6037,7 +5174,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6054,7 +5191,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6076,7 +5213,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6100,7 +5237,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6117,7 +5254,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6132,7 +5269,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6147,7 +5284,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6162,7 +5299,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6184,7 +5321,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6201,7 +5338,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6218,15 +5355,15 @@ export interface operations {
                     default_value?: string | null;
                     is_apply_fillable?: number;
                     is_apply_required?: number;
-                    is_transfer_member_field?: number;
-                    member_field_id?: number | null;
+                    is_transfer_entity_field?: number;
+                    entity_field_id?: number | null;
                     is_active?: number;
                     sort?: number;
                 };
             };
         };
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6243,7 +5380,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6258,7 +5395,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6273,7 +5410,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6288,7 +5425,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6308,7 +5445,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6332,7 +5469,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6349,7 +5486,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6364,7 +5501,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6379,7 +5516,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6395,7 +5532,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6410,7 +5547,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6425,7 +5562,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6442,7 +5579,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6458,7 +5595,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6473,7 +5610,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6492,7 +5629,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description ?? */
+            /** @description Field contract for 200. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6510,7 +5647,7 @@ export interface operations {
                 limit?: number;
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6537,7 +5674,7 @@ export interface operations {
                 "slugs[]": string[];
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6562,7 +5699,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6600,7 +5737,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6640,7 +5777,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -6664,6 +5801,624 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+        };
+    };
+    chatEntityFieldCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntityField"];
+            };
+        };
+        responses: {
+            /** @description 创建成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+        };
+    };
+    chatEntityFieldValues: {
+        parameters: {
+            query: {
+                slug: components["parameters"]["SlugQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 字段值 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+        };
+    };
+    chatEntityFieldSaveValues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    slug: string;
+                    values: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description 保存成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+        };
+    };
+    teamChatVirtualList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+        };
+    };
+    teamChatVirtualGet: {
+        parameters: {
+            query: {
+                slug: components["parameters"]["SlugQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+        };
+    };
+    teamChatVirtualCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VirtualEntity"];
+            };
+        };
+        responses: {
+            /** @description 创建成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+        };
+    };
+    teamChatVirtualUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VirtualEntity"];
+            };
+        };
+        responses: {
+            /** @description 更新成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+        };
+    };
+    teamChatVirtualDelete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    slug: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 删除成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+        };
+    };
+    teamChatIntegrationCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Integration"];
+            };
+        };
+        responses: {
+            /** @description 凭据 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+        };
+    };
+    teamChatIntegrationUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Integration"];
+            };
+        };
+        responses: {
+            /** @description 更新成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+        };
+    };
+    teamChatIntegrationRotate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 新凭据 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+        };
+    };
+    teamChatIntegrationDelete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 删除成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+        };
+    };
+    teamEntityFieldList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 字段列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+        };
+    };
+    teamEntityFieldGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 字段详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"];
+                };
+            };
+        };
+    };
+    teamEntityFieldUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntityField"];
+            };
+        };
+        responses: {
+            /** @description 更新成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+        };
+    };
+    teamEntityFieldDelete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 删除成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+        };
+    };
+    teamRolePermissionCatalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 权限目录 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"] & {
+                        data?: components["schemas"]["PermissionCatalog"];
+                    };
+                };
+            };
+        };
+    };
+    teamEntityOptions: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ?? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["EntityOption"][];
+                    };
+                };
+            };
+        };
+    };
+    teamEntityIndex: {
+        parameters: {
+            query?: {
+                type?: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
+                page?: components["parameters"]["Page"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ?????? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["EntityList"];
+                    };
+                };
+            };
+            /** @description ???????? */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description ??????????? */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamEntityGet: {
+        parameters: {
+            query: {
+                entity_id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ???? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["Entity"];
+                    };
+                };
+            };
+            /** @description ?????????????????? */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description ????? */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamEntityProfileUpdate: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    entity_id: number;
+                    name?: string;
+                    avatar?: string;
+                    description?: string | null;
+                    intro_image?: string | null;
+                    intro_video?: string | null;
+                    introduction_markdown?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description ??????? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+            /** @description ???????????????????? */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description ????? */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description ?????? */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamEntityDisplayUpdate: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    entity_id: number;
+                    /** @enum {integer} */
+                    is_displayed: 0 | 1;
+                };
+            };
+        };
+        responses: {
+            /** @description 公开展示设置已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+            /** @description 无权管理实体资料 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 实体不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 实体类型或公开状态不合法 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\transaction\controller;
 
 use app\service\Sender as SenderService;
+use app\service\PermissionDictionary as Permissions;
 use think\Request;
 
 class Sender
@@ -12,15 +13,15 @@ class Sender
         'JwtAuth'      => ['except' => []],
         'Context'      => ['except' => []],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
-        'TeamBelongs'  => ['except' => []],
-        'MemberAccess' => ['except' => []],
-        'TeamAccess'   => ['only' => ['all', 'bind', 'unbind']],
+        'TeamAuth'     => ['except' => []],
+        'Permission:' . Permissions::TRANSACTION_READ => ['only' => ['index', 'all']],
+        'Permission:' . Permissions::TRANSACTION_WRITE => ['only' => ['bind', 'unbind']],
     ];
 
     public function index(Request $request)
     {
         $service = app(SenderService::class);
-        $result  = $service->bindings($request->team_id, $request->member_id);
+        $result  = $service->bindings($request->team_id, $request->entity_id);
 
         return success($result);
     }
@@ -38,8 +39,16 @@ class Sender
         $service = app(SenderService::class);
         $service->bind(
             $request->team_id,
-            (int) $request->post('member_id', 0),
+            (int) $request->post('entity_id', 0),
             (int) $request->post('customer_id', 0)
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request,
+            'transaction',
+            'bind',
+            'customerSender',
+            null,
+            ['customer_id' => (int) $request->post('customer_id', 0)]
         );
 
         return message('绑定成功');
@@ -48,7 +57,9 @@ class Sender
     public function unbind(Request $request)
     {
         $service = app(SenderService::class);
-        $service->unbind($request->team_id, (int) $request->post('id', 0));
+        $id = (int) $request->post('id', 0);
+        $service->unbind($request->team_id, $id);
+        app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'unbind', 'customerSender', $id);
 
         return message('已解绑');
     }

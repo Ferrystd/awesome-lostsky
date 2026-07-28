@@ -5,7 +5,6 @@ namespace app\service;
 
 use app\model\Team as TeamModel;
 use app\model\TeamMember;
-use app\model\TeamProfile;
 use app\validate\Team as TeamValidator;
 use think\exception\HttpException;
 
@@ -28,6 +27,7 @@ class Team
 
         $teams = TeamModel::whereIn('id', $teamIds)
             ->active()
+            ->with(['identity', 'profile'])
             ->visible(['id', 'slug', 'display_name', 'is_owner'])
             ->select();
 
@@ -52,65 +52,33 @@ class Team
             $team = new TeamModel;
             $team->save([
                 'slug' => $slug,
-                'display_name' => $displayName,
                 'user_id' => $userId,
             ]);
 
-            app(\app\service\EntityIdentity::class)->claimTeam($team);
+            $teamEntity = app(\app\service\Entity::class)->claimTeam($team);
+            app(EntityProfile::class)->update((int) $team->id, (int) $teamEntity->id, ['name' => $displayName]);
 
             $member = new TeamMember;
             $member->save([
                 'team_id' => $team->id,
                 'user_id' => $userId,
-                'is_displayed' => 1,
             ]);
-
-            $profile = new TeamProfile;
-            $profile->save([
-                'team_id' => $team->id,
-            ]);
+            app(\app\service\Entity::class)->claimMember(
+                (int) $team->id,
+                (int) $member->id,
+                "member-{$member->id}"
+            );
+            app(\app\service\RolePermission::class)->bootstrapOwner(
+                (int) $team->id,
+                (int) $member->id
+            );
 
             return $team;
         });
 
+        $team = TeamModel::with(['identity', 'profile'])->findOrFail((int) $team->id);
         $team->currentUserId = $userId;
         return $team->visible(['id', 'slug', 'display_name', 'is_owner'])->toArray();
     }
 
-    /**
-     * 删除团队（仅创建者可操作）
-     */
-    public function delete(int $userId, int $teamId): void
-    {
-        $validator = new TeamValidator;
-        if (!$validator->scene('delete')->check(['team_id' => $teamId])) {
-            throw new HttpException(422, $validator->getError());
-        }
-
-        $team = TeamModel::find($teamId);
-        if (!$team) {
-            throw new HttpException(404, '团队不存在');
-        }
-
-        if ($team->user_id !== $userId) {
-            throw new HttpException(403, '仅团队创建者可执行此操作');
-        }
-
-        \think\facade\Db::transaction(function () use ($teamId) {
-            $profile = TeamProfile::where('team_id', $teamId)->find();
-            if ($profile) {
-                $profile->delete();
-            }
-
-            $members = TeamMember::where('team_id', $teamId)->select();
-            foreach ($members as $member) {
-                $member->delete();
-            }
-
-            $team = TeamModel::find($teamId);
-            if ($team) {
-                $team->delete();
-            }
-        });
-    }
 }

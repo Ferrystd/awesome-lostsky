@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS `business_audit_event` (
+    `id`                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`               INT UNSIGNED NULL DEFAULT NULL COMMENT '团队ID',
+    `entity_id`             INT UNSIGNED NOT NULL COMMENT '执行操作的实体ID',
+    `authenticated_user_id` INT UNSIGNED NOT NULL COMMENT '完成认证的用户ID',
+    `application`           VARCHAR(30) NOT NULL COMMENT '业务应用',
+    `action`                VARCHAR(50) NOT NULL COMMENT '业务动作',
+    `resource_type`         VARCHAR(50) NOT NULL COMMENT '资源类型',
+    `resource_id`           BIGINT UNSIGNED NULL DEFAULT NULL COMMENT '资源ID',
+    `request_id`            VARCHAR(100) NULL DEFAULT NULL COMMENT '请求ID',
+    `context`               JSON NULL COMMENT '非敏感补充上下文',
+    `create_time`           INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`           INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`           INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_audit_team_time` (`team_id`, `create_time`),
+    KEY `idx_audit_entity_time` (`entity_id`, `create_time`),
+    KEY `idx_audit_user_time` (`authenticated_user_id`, `create_time`),
+    KEY `idx_audit_resource` (`resource_type`, `resource_id`),
+    CONSTRAINT `fk_business_audit_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`),
+    CONSTRAINT `fk_business_audit_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`),
+    CONSTRAINT `fk_business_audit_user` FOREIGN KEY (`authenticated_user_id`) REFERENCES `user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='集中业务审计事件';

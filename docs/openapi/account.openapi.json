@@ -3,10 +3,16 @@
   "info": {
     "title": "LostSky Account API",
     "version": "0.0.9",
-    "description": "认证、设备和用户团队入口。登录和注册接口无 JWT，设备和团队接口只接受 teamless 基础用户 Bearer JWT。"
+    "description": "认证、设备和用户团队入口。登录和注册接口无 JWT；设备和团队接口使用 Bearer JWT 中的真实用户 ID，不限制当前实体类型。"
   },
   "x-entity-auth": {
-    "authenticated_default": ["teamless"],
+    "authenticated_default": [
+      "base",
+      "team",
+      "teamMember",
+      "teamCustomer",
+      "teamVirtual"
+    ],
     "team_belongs": false
   },
   "servers": [
@@ -49,6 +55,9 @@
       "name": "Devices"
     },
     {
+      "name": "Identity"
+    },
+    {
       "name": "Teams"
     }
   ],
@@ -70,7 +79,7 @@
           "type": "string",
           "format": "uuid"
         },
-        "description": "前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。"
+        "description": "前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。"
       },
       "Page": {
         "name": "page",
@@ -89,7 +98,8 @@
         "schema": {
           "type": "integer",
           "default": 20,
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 100
         }
       },
       "IdPath": {
@@ -103,15 +113,6 @@
       },
       "IdQuery": {
         "name": "id",
-        "in": "query",
-        "required": false,
-        "schema": {
-          "type": "integer",
-          "format": "int64"
-        }
-      },
-      "MemberIdQuery": {
-        "name": "member_id",
         "in": "query",
         "required": false,
         "schema": {
@@ -284,14 +285,44 @@
         "type": "object",
         "required": [
           "token",
+          "refresh_token",
+          "refresh_expires_at",
           "user"
         ],
         "properties": {
           "token": {
             "type": "string"
           },
+          "refresh_token": {
+            "type": "string",
+            "description": "仅登录或刷新成功时返回；服务端只保存 SHA-256"
+          },
+          "refresh_expires_at": {
+            "type": "integer",
+            "format": "int64"
+          },
           "user": {
             "$ref": "#/components/schemas/UserSummary"
+          }
+        }
+      },
+      "RefreshResult": {
+        "type": "object",
+        "required": [
+          "token",
+          "refresh_token",
+          "refresh_expires_at"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "refresh_expires_at": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -325,6 +356,81 @@
           },
           "is_owner": {
             "type": "boolean"
+          }
+        }
+      },
+      "IdentityTeamSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "IdentitySummary": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "slug",
+          "name",
+          "team"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "team",
+              "teamMember",
+              "teamCustomer",
+              "teamVirtual"
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{1,49}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "team": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IdentityTeamSummary"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "IdentityIssue": {
+        "type": "object",
+        "required": [
+          "token",
+          "identity"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/IdentitySummary"
           }
         }
       },
@@ -408,14 +514,6 @@
                 "type": "integer",
                 "format": "int64"
               },
-              "is_displayed": {
-                "type": "integer",
-                "enum": [
-                  0,
-                  1
-                ],
-                "description": "0=false, 1=true"
-              },
               "is_blocked": {
                 "type": "integer",
                 "enum": [
@@ -446,7 +544,7 @@
               "fieldValues": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/MemberFieldValue"
+                  "$ref": "#/components/schemas/EntityFieldValue"
                 }
               }
             }
@@ -460,10 +558,6 @@
             "type": "integer",
             "format": "int64"
           },
-          "member_id": {
-            "type": "integer",
-            "format": "int64"
-          },
           "type_id": {
             "type": "integer",
             "format": "int64"
@@ -474,6 +568,10 @@
           },
           "type": {
             "$ref": "#/components/schemas/PostType"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -513,176 +611,6 @@
           }
         }
       },
-      "MemberField": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "team_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "field_key": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "source": {
-            "type": "string",
-            "enum": [
-              "system",
-              "custom"
-            ]
-          },
-          "value_type": {
-            "type": "string",
-            "enum": [
-              "string",
-              "text",
-              "int",
-              "decimal",
-              "bool",
-              "date",
-              "datetime",
-              "select",
-              "multi_select",
-              "json"
-            ]
-          },
-          "input_type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "textarea",
-              "radio",
-              "checkbox",
-              "select",
-              "date",
-              "datetime",
-              "upload"
-            ]
-          },
-          "options": {
-            "nullable": true
-          },
-          "default_value": {
-            "type": "string",
-            "nullable": true
-          },
-          "is_required": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "is_editable": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "is_searchable": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "is_system": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "sort": {
-            "type": "integer"
-          },
-          "create_time": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Unix timestamp, seconds"
-          },
-          "update_time": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Unix timestamp, seconds"
-          },
-          "manager_scope": {
-            "type": "integer",
-            "enum": [
-              1,
-              2
-            ],
-            "description": "1=team管理, 2=主体本人和team管理"
-          },
-          "visibility": {
-            "type": "integer",
-            "enum": [
-              1,
-              3,
-              4,
-              5
-            ],
-            "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见"
-          }
-        }
-      },
-      "MemberFieldValue": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "member_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "field_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "value_string": {
-            "type": "string",
-            "nullable": true
-          },
-          "value_text": {
-            "type": "string",
-            "nullable": true
-          },
-          "value_int": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "value_decimal": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
-          },
-          "value_datetime": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "value_json": {
-            "nullable": true
-          },
-          "field": {
-            "$ref": "#/components/schemas/MemberField"
-          }
-        }
-      },
       "Product": {
         "type": "object",
         "properties": {
@@ -694,11 +622,6 @@
             "type": "integer",
             "format": "int64"
           },
-          "member_id": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
           "name": {
             "type": "string"
           },
@@ -707,32 +630,38 @@
             "nullable": true
           },
           "price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cost": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "handler_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "sender_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cs_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "team_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "is_active": {
             "type": "integer",
@@ -752,14 +681,19 @@
             "format": "int64",
             "description": "Unix timestamp, seconds"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
-          },
           "handlers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProductHandler"
             }
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
         }
       },
@@ -774,17 +708,17 @@
             "type": "integer",
             "format": "int64"
           },
-          "member_id": {
-            "type": "integer",
-            "format": "int64"
-          },
           "create_time": {
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp, seconds"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
         }
       },
@@ -804,12 +738,12 @@
             "format": "int64",
             "nullable": true
           },
-          "handler_id": {
+          "handler_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
           },
-          "sender_id": {
+          "sender_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
@@ -822,44 +756,53 @@
             "type": "integer"
           },
           "unit_price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "total_price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cost": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "handler_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "sender_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cs_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "team_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cash": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "prepaid": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "trans_id": {
             "type": "integer",
@@ -962,16 +905,19 @@
             "format": "int64"
           },
           "balance": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "recharged": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "spent": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "create_time": {
             "type": "integer",
@@ -1007,12 +953,14 @@
             "description": "1=充值, 2=消费, 3=退款, 4=手动调整"
           },
           "amount": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "balance_after": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "trans_id": {
             "type": "integer",
@@ -1049,16 +997,16 @@
             "type": "integer",
             "format": "int64"
           },
-          "handler_id": {
+          "handler_entity_id": {
             "type": "integer",
             "format": "int64"
           },
-          "sender_id": {
+          "sender_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
           },
-          "cs_id": {
+          "cs_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
@@ -1077,36 +1025,44 @@
             "description": "1=商城下单, 2=记账登记"
           },
           "total_price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cost": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cash": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "prepaid": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "handler_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "sender_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cs_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "team_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "trans_at": {
             "type": "integer",
@@ -1156,10 +1112,6 @@
             "type": "integer",
             "format": "int64"
           },
-          "member_id": {
-            "type": "integer",
-            "format": "int64"
-          },
           "create_time": {
             "type": "integer",
             "format": "int64",
@@ -1168,8 +1120,12 @@
           "customer": {
             "$ref": "#/components/schemas/Customer"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
         }
       },
@@ -1181,10 +1137,6 @@
             "format": "int64"
           },
           "team_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "member_id": {
             "type": "integer",
             "format": "int64"
           },
@@ -1216,8 +1168,19 @@
             "format": "int64",
             "description": "Unix timestamp, seconds"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
+          "entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "全局实体身份 ID，引用 entity.id；无实体上传时为 null。"
+          },
+          "entity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Entity"
+              }
+            ],
+            "nullable": true
           }
         }
       },
@@ -1264,17 +1227,6 @@
             "type": "string",
             "nullable": true
           },
-          "documentable_type": {
-            "type": "string",
-            "enum": [
-              "team",
-              "teamMember"
-            ]
-          },
-          "documentable_id": {
-            "type": "integer",
-            "format": "int64"
-          },
           "sort": {
             "type": "integer"
           },
@@ -1313,32 +1265,427 @@
               "$ref": "#/components/schemas/VisibilityTarget"
             },
             "description": "visibility=6(custom) 时生效"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
-        }
+        },
+        "required": [
+          "id",
+          "entity_id"
+        ]
       },
       "VisibilityTarget": {
         "type": "object",
         "required": [
-          "target_type",
-          "target_id"
+          "entity_id"
         ],
         "properties": {
-          "target_type": {
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
+          }
+        }
+      },
+      "Entity": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "entityable_type",
+          "entityable_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "entityable_type": {
             "type": "string",
             "enum": [
               "team",
-              "teamMember"
+              "teamMember",
+              "teamCustomer",
+              "teamVirtual"
             ]
           },
-          "target_id": {
+          "entityable_id": {
             "type": "integer",
             "format": "int64"
+          },
+          "is_valid": {
+            "type": "boolean"
+          },
+          "is_searchable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "EntityFieldValue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "field_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "value_string": {
+            "type": "string",
+            "nullable": true
+          },
+          "value_text": {
+            "type": "string",
+            "nullable": true
+          },
+          "value_int": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "value_decimal": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "value_datetime": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "value_json": {
+            "nullable": true
+          },
+          "field": {
+            "$ref": "#/components/schemas/EntityField"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "EntityField": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": [
+              "entity",
+              "customer",
+              "virtual"
+            ]
+          },
+          "field_key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value_type": {
+            "type": "string"
+          },
+          "input_type": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {},
+            "nullable": true
+          },
+          "is_required": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_editable": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_searchable": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_visible": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "system",
+              "custom"
+            ]
+          },
+          "default_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "manager_scope": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ]
+          },
+          "visibility": {
+            "type": "integer",
+            "enum": [
+              1,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "is_system": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
           }
         }
       }
     }
   },
   "paths": {
+    "/identity/candidates": {
+      "get": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "列出当前身份可领取的实体身份",
+        "description": "基础用户返回本人关联的有效成员与客户身份；实体 JWT 返回当前实体在各目标团队通过角色获得的全部委托候选。候选包含目标团队摘要。",
+        "operationId": "accountIdentityCandidates",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "可领取身份列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/IdentitySummary"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/receive": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "领取实体身份并签发实体 JWT",
+        "description": "基础用户只能直接领取本人关联的有效成员或客户身份。实体 JWT 按目标全局 slug 解析身份，并验证目标团队授予当前来源实体的精确或通配 identity.*.assume 权限。每次领取创建父子会话证明链且不延长根会话有效期。",
+        "operationId": "accountIdentityReceive",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "slug"
+                ],
+                "properties": {
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_-]{1,49}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "实体令牌与身份",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/IdentityIssue"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/drop": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "放弃当前实体身份并撤销实体 JWT",
+        "description": "撤销当前实体会话并回到基础 user JWT；历史父会话仅作为授权证明保留到整条链可清理。",
+        "operationId": "accountIdentityDrop",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "基础用户令牌",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/member": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "按团队 slug 领取当前用户的有效成员身份",
+        "description": "接受基础用户或已有实体 JWT，并按真实 user 根身份重置到本人有效成员。旧活动实体 JWT 立即失效。",
+        "operationId": "accountIdentityMember",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "team_slug"
+                ],
+                "properties": {
+                  "team_slug": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]{1,49}$",
+                    "example": "demo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成员实体令牌与身份",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/IdentityIssue"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "当前用户不是该团队的有效成员",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "团队不存在或不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/login/phone": {
       "post": {
         "tags": [
@@ -1577,6 +1924,84 @@
           },
           "429": {
             "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/login/refresh": {
+      "post": {
+        "tags": [
+          "Login"
+        ],
+        "summary": "轮换刷新令牌并签发新的基础登录 JWT",
+        "operationId": "accountRefreshLogin",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "refresh_token"
+                ],
+                "properties": {
+                  "refresh_token": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "轮换成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/RefreshResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "刷新令牌无效、过期、撤销或检测到重放",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "短时间并发轮换；客户端应读取最新共享令牌后重试",
             "content": {
               "application/json": {
                 "schema": {
@@ -2110,126 +2535,6 @@
                       }
                     }
                   ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/team/delete": {
-      "post": {
-        "tags": [
-          "Teams"
-        ],
-        "summary": "删除团队",
-        "operationId": "accountTeamDelete",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "team_id"
-                ],
-                "properties": {
-                  "team_id": {
-                    "type": "integer",
-                    "format": "int64"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
                 }
               }
             }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace app\middleware;
 
+use app\exception\EntityContextException;
 use app\model\TeamCustomer;
 use app\model\TeamMember;
 use app\model\TeamVirtual;
@@ -29,7 +30,7 @@ class TeamBelongs
 
         $acting = $request->acting_entity ?? null;
         if (!is_array($acting)) {
-            throw new HttpException(403, '当前身份不属于此团队');
+            throw EntityContextException::required((string) ($request->slug ?? ''));
         }
 
         $type = (string) ($acting['type'] ?? '');
@@ -43,7 +44,7 @@ class TeamBelongs
         };
 
         if (!$belongs) {
-            throw new HttpException(403, '当前身份不属于此团队');
+            throw EntityContextException::teamMismatch((string) ($request->slug ?? ''));
         }
 
         return $next($request);

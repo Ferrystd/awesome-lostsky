@@ -30,8 +30,8 @@ class TeamJoinField extends Base
         'default_value'            => 'string',
         'is_apply_fillable'        => 'integer',
         'is_apply_required'        => 'integer',
-        'is_transfer_member_field' => 'integer',
-        'member_field_id'          => 'integer',
+        'is_transfer_entity_field' => 'integer',
+        'entity_field_id'          => 'integer',
         'is_active'                => 'integer',
         'sort'                     => 'integer',
     ];
@@ -53,9 +53,9 @@ class TeamJoinField extends Base
         return $this->belongsTo(Team::class, 'team_id');
     }
 
-    public function memberField()
+    public function entityField()
     {
-        return $this->belongsTo(TeamEntityField::class, 'member_field_id');
+        return $this->belongsTo(TeamEntityField::class, 'entity_field_id');
     }
 
     public function values()

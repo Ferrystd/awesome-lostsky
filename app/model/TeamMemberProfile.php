@@ -23,7 +23,7 @@ class TeamMemberProfile extends Base
         //固定字段
 
         //拓展字段
-        'member_id'             => 'integer',
+        'entity_id'             => 'integer',
         'nickname'              => 'string',
         'avatar'                => 'string',//头像
         'description'           => 'string',
@@ -38,9 +38,9 @@ class TeamMemberProfile extends Base
      */
     protected $json = [];
 
-    public function member()
+    public function subject()
     {
-        return $this->belongsTo(TeamMember::class, 'member_id');
+        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
     public function markdownReferences()

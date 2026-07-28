@@ -22,6 +22,7 @@ class TeamRole extends Base
         'name'        => 'string',
         'description' => 'string',
         'sort'        => 'integer',
+        'is_displayed'=> 'integer',
     ];
 
     protected $json = [];
@@ -42,7 +43,7 @@ class TeamRole extends Base
         return $this->hasMany(TeamRolePermission::class, 'role_id');
     }
 
-    public function memberRoles()
+    public function entityRoles()
     {
         return $this->hasMany(TeamEntityRole::class, 'role_id');
     }

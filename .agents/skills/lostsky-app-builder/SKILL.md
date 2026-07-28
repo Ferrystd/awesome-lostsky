@@ -1,240 +1,146 @@
 ---
 name: lostsky-app-builder
 description: >
-  在 LostSky ThinkPHP 8 项目中搭建一个完整的新应用（模块）。编排「需求了解 → 模型 → 服务 → 控制器」
-  四个阶段，每个阶段都有计划→审批→执行→审查的循环。适用于任何新应用的搭建，如记账、通知、
-  文件管理、消息等。当用户要新建一个应用、添加一个模块、搭建某个功能模块时使用。
+  在 LostSky ThinkPHP 8 项目中创建一个完整的新后端应用或独立业务模块，并联动路由、数据模型、
+  服务、控制器、权限、OpenAPI、文档与测试。仅在用户明确要求新建应用、创建独立模块或从零搭建
+  一组完整业务能力时使用；不要用于现有应用中的单个接口、小型功能修改、修复、重构或纯前端任务。
   Ordinarily, speak in Chinese.
 ---
 
 # LostSky App Builder
 
-搭建 LostSky 新应用的完整工作流。每一步完成后等待用户确认再继续。
+自主完成 LostSky 新应用的端到端实现。以当前项目文档和代码为事实源，保持改动聚焦，并用实际检查结果交付。
 
-## 核心约束
+## 适用边界
 
-- 参考 [app/transaction/](app/transaction/) 作为架构范本
-- 遵循 [AGENTS.md](AGENTS.md) 中的全部约定
-- 模型创建委托给 `/lostsky-model` skill
-- 代码审查委托给 `/code-review` skill
-- 所有文件生成后运行 `php think` 确认无语法错误
+使用本 Skill：
 
----
+- 新建 `app/{app}/` 后端应用；
+- 从零搭建包含多个层次的独立业务模块；
+- 新能力需要同时设计数据、业务服务、HTTP 接口和鉴权边界。
 
-## 阶段一：需求了解
+不要使用本 Skill：
 
-向用户了解要搭建的应用，弄清楚：
+- 在现有应用中增加或修改少量接口；
+- 修复 Bug、代码审查、重构或性能优化；
+- 只新增一张表或一个模型，此时使用 `lostsky-model`；
+- 纯前端页面或组件工作。
 
-1. **应用名**：对应 ThinkPHP 多应用的目录名（如 `transaction`）
-2. **核心业务**：这个应用要解决什么问题
-3. **数据实体**：需要哪些模型/表，它们之间的关系
-4. **角色与权限**：是否需要新的中间件来鉴权
-5. **外部依赖**：依赖哪些已有的模型和服务
+如果请求范围介于两者之间，优先按普通开发任务处理，不要强行套用完整应用流程。
 
-### 产出：实施计划
+## 事实源与优先级
 
-将以上信息整理为结构化计划，包含：
+开始实现前，从仓库根目录读取：
 
-- **模型清单**：每张表的字段和关联
-- **枚举清单**：需要的 enum 类
-- **服务清单**：每个服务的职责和方法签名（含验证器、中间件需求）
-- **控制器清单**：每个控制器的路由和中间件配置
-- **依赖关系**：模型 → 服务 → 控制器的先后顺序
+1. `AGENTS.md` 及其直接引用的相关文档；
+2. `docs/development/development.md`；
+3. `docs/development/backend.md`；
+4. `docs/development/checklist.md`；
+5. `docs/development/testing.md`；
+6. 与本次能力有关的架构、应用和 OpenAPI 文档；
+7. 当前代码中最接近的应用、模型、服务、控制器和测试。
 
-**等待用户审阅计划、调整后确认，再进入下一阶段。**
+优先级为：
 
----
+1. 用户当前要求；
+2. 仓库内 `AGENTS.md`；
+3. 当前项目文档；
+4. 当前代码与测试；
+5. 本 Skill。
 
-## 阶段二：制作模型
+示例只能帮助定位模式，不能覆盖更高优先级的事实。不要默认以 `transaction` 为模板；应选择团队上下文、鉴权方式和数据形态最接近的现有应用。
 
-### 2a. 枚举 (Enum)
+## 工作方式
 
-如果计划中包含枚举，先完成枚举。参考 [app/enum/TransactionType.php](app/enum/TransactionType.php) 的风格：
+- 默认使用中文沟通。
+- 信息足够时直接完成计划、实现、审查和验证，不在模型、服务、控制器之间强制暂停。
+- 只在答案会实质改变应用边界、数据结构、权限模型，或需要不可逆外部操作时询问用户。
+- 不因普通命名或实现细节阻塞；根据项目惯例作出明确、保守的假设，并在交付时说明重要假设。
+- 先检查工作树，保留用户已有改动，只修改本任务需要的文件。
+- 不调用不存在的 Skill 或代理。需要新增模型或表时，可按触发规则使用 `lostsky-model`。
+- 不预留未被当前需求使用的接口、字段、权限或扩展点。
 
-```php
-namespace app\enum;
-use think\model\contract\EnumTransform;
+## 实施流程
 
-enum XxxType: int implements EnumTransform
-{
-    case A = 1;
-    case B = 2;
+### 1. 确定边界
 
-    public function value(): string
-    {
-        return match ($this) {
-            self::A => '中文描述',
-            self::B => '中文描述',
-        };
-    }
-}
-```
+从用户要求和现有项目中确认：
 
-### 2b. 模型
+- 应用名、业务职责以及它与现有应用的边界；
+- 是否依赖团队上下文，是否属于 `teamless_apps`；
+- 访问主体、鉴权链、权限与能力；
+- 数据实体、关联、生命周期和并发约束；
+- 外部系统、前端调用方和兼容性要求。
 
-按计划中的顺序，**每张表调用一次 `/lostsky-model`**，该 skill 会引导完成：
+只有存在重大歧义时才提问。否则形成一份简短实施清单，并在同一任务中继续执行。
 
-- `php think make:model ModelName` 生成骨架
-- 设计字段、编写 CREATE TABLE 语句
-- 填充 `$type` `$json` `$hidden` `$append` `$readonly`
-- 添加获取器/修改器/搜索器
-- 设计并写入关联
-- 追加 SQL 到 `sql/schema.sql`
+### 2. 设计最小闭环
 
-### 2c. 模型审查
+按实际需要规划：
 
-所有模型完成后，调用 `/code-review` 审查全部新增模型代码。
+- 数据表、模型、枚举、验证器；
+- 服务职责和事务边界；
+- 控制器、路由、请求与响应；
+- 中间件、能力和权限字典；
+- OpenAPI、应用文档、调用方与测试；
+- schema、日期补丁、清理策略与 Changelog。
 
-**等待用户确认模型阶段完成，再进入下一阶段。**
+先复用已有服务、模型和基础设施。避免为单次调用增加抽象层。
 
----
+### 3. 实现
 
-## 阶段三：制作服务
+遵守当前后端约定，尤其是：
 
-### 3a. 服务计划确认
+- 路由显式写入 `app/{app}/route/app.php`，并与控制器参数和 OpenAPI 保持一致；
+- 控制器只处理输入、调用服务并返回响应，业务规则进入服务或模型；
+- 服务通过容器解析；验证失败使用 HTTP 422；跨模型写入使用短事务；
+- 业务模型继承 `app\model\Base`，模型和公开服务方法遵循当前命名规范；
+- 团队数据始终限定 `team_id`，关联 ID 同时校验团队归属；
+- 部分更新不得覆盖未提交字段；
+- 金额使用精确数据库计算，并以十进制字符串跨 API 传递；
+- 外部网络调用放在事务外，并考虑幂等、重试或补偿；
+- 新增持久化能力时定义失效、清理、保留期和失败处理；
+- 新增权限时以 `app/service/PermissionDictionary.php` 为代码事实源，不创建空权限；
+- 数据结构变化同时维护 `sql/schema.sql` 和日期补丁；
+- 路由、请求或响应变化同步 OpenAPI、调用方和相关测试；
+- 每次应用实现都更新 `docs/changelog.md` 的当前版本，只记录实际完成的用户可见变化；
+- 不手工修改生成的 API 类型、Service 字典或 `www/` 构建产物，应运行项目生成命令。
 
-重新列出服务清单，逐服务说明：
+只在用户要求或完整闭环确实需要时实现前端。前端实现遵循 `docs/development/frontend.md` 和项目设计系统。
 
-- 类名和文件路径
-- 每个方法的签名、参数、返回值
-- 需要的验证规则
-- 需要的中间件（如果需要新建）
+### 4. 自审
 
-**等待用户审阅、调整后确认。**
+实现后检查：
 
-### 3b. 编写服务
+- 每个新增文件和改动是否都能追溯到需求；
+- 应用边界、团队归属、授权和越权路径是否完整；
+- 写操作的事务、并发、幂等和部分更新是否正确；
+- schema、补丁、OpenAPI、文档、调用方、测试和 Changelog 是否按清单联动；
+- 是否意外覆盖用户原有改动，或引入未使用代码。
 
-按计划逐个编写。每个服务遵循：
+使用 `git diff`、定向搜索和现有代码进行审查，不依赖虚构的 `/code-review` 流程。
 
-```php
-namespace app\service;
+### 5. 验证
 
-use app\model\...;
-use think\exception\HttpException;
-use think\facade\Db;
+按照 `docs/development/checklist.md` 和 `docs/development/testing.md`，从最小相关范围开始：
 
-class ServiceName
-{
-    public function list(int $teamId, array $filters, int $page, int $limit): array
-    {
-        // 查询 → 关联加载 → 分页 → 返回
-    }
+- 对所有新增或修改的 PHP 文件运行 `php -l`；
+- 运行直接相关的 PHP 测试；
+- 路由或 OpenAPI 变化运行 `php tests/openapi_routes.php`；
+- Service public 方法变化运行 `php think docs:services --check`；
+- 按影响范围运行其他后端、前端、类型或构建检查；
+- 运行 `git diff --check`。
 
-    public function create(int $teamId, array $data): int
-    {
-        // 验证 → 事务 → 新建 → 返回 id
-    }
+执行数据库补丁或写入测试前，必须遵守数据库保护要求；未经用户授权，不对不明确的数据库执行迁移或写操作。
 
-    public function edit(int $teamId, int $id, array $data): void
-    {
-        // 查找 → 验证 → 更新
-    }
+若检查因环境或既有问题无法运行，记录具体命令和原因，不把“未运行”描述为“通过”。
 
-    public function delete(int $teamId, int $id): void
-    {
-        // 查找 → 软删除
-    }
-}
-```
+## 完成标准
 
-**关键规范**：
-- 多模型操作必须用 `Db::transaction()` 包裹
-- 验证失败抛出 `throw new HttpException(422, '错误描述')`
-- 资源不存在抛出 `throw new HttpException(404, '资源不存在')`
-- 所有参数显式声明类型 `int $teamId`
-- 服务类不加任何后缀
+只有同时满足以下条件才算完成：
 
-### 3c. 验证器（按需）
-
-在 `app/validate/` 下创建验证器，参考现有风格。服务方法中调用验证器。
-
-### 3d. 中间件（按需）
-
-如果计划中包含新中间件，在 `app/middleware/` 下创建，遵循现有模式：
-- 从 Request 读取 `team_id`、`member_id` 等
-- 不符合条件时 `throw new HttpException(403, '无权操作')`
-
-### 3e. 服务审查
-
-全部服务编写完毕后，调用 `/code-review` 审查。
-
-**等待用户确认服务阶段完成，再进入下一阶段。**
-
----
-
-## 阶段四：制作控制器
-
-### 4a. 控制器计划确认
-
-列出控制器清单，逐控制器说明：
-
-- 类名、文件路径、命名空间
-- 每个方法 → HTTP 方法 + URI → 中间件保护
-- 请求参数和响应格式
-
-**等待用户审阅、调整后确认。**
-
-### 4b. 编写控制器
-
-参考 [app/transaction/controller/](app/transaction/controller/) 的风格：
-
-```php
-namespace app\{app_name}\controller;
-
-use think\Request;
-
-class ControllerName
-{
-    protected $middleware = [
-        'JwtAuth'      => ['except' => []],
-        'Context'      => ['except' => []],
-        'MemberAccess' => ['except' => []],
-        // 应用专属中间件
-    ];
-
-    public function index(Request $request)
-    {
-        $service = app(\app\service\Xxx::class);
-        $result  = $service->list($request->team_id, [...], ...);
-        return success($result);
-    }
-}
-```
-
-**关键规范**：
-- 使用 `app()` 容器获取服务，禁止 `new`
-- 统一用 `success($data, $msg)` / `message($msg)` / `error($msg, $code, $http)` 返回
-- `$middleware` 数组用字符串别名，中间件只声明 `except` 或 `only`
-- 控制器不加后缀，允许多级目录
-- 从 `$request` 提取参数时做显式类型转换
-
-### 4c. 注册路由
-
-在 `app/{app_name}/route.php` 注册所有路由：
-
-```php
-use think\facade\Route;
-
-// 资源名
-Route::get('{resource}', '{Controller}/index');
-Route::get('{resource}/<id>', '{Controller}/get');
-Route::post('{resource}', '{Controller}/create');
-Route::post('{resource}/<id>', '{Controller}/edit');
-Route::post('{resource}/<id>/delete', '{Controller}/delete');
-```
-
-### 4d. 注册中间件别名（按需）
-
-如果新建了中间件，在 `config/middleware.php` 的 `alias` 数组中追加条目。
-
-### 4e. 控制器审查
-
-全部完成后调用 `/code-review` 审查。最后运行：
-
-```bash
-php think
-```
-
-确认无语法错误。
-
-**等待用户最终确认，应用搭建完成。**
+- 用户要求的业务闭环可用；
+- 路由、数据、服务、控制器和鉴权保持一致；
+- 所有必要联动文件已更新；
+- 相关验证通过，或未通过项已明确说明原因和风险；
+- 最终回复概述结果、重要设计决定、验证结果和剩余风险。

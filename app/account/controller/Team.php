@@ -8,7 +8,7 @@ use think\Request;
 
 class Team
 {
-    protected $middleware = ['JwtAuth', 'Context', 'EntityType:teamless'];
+    protected $middleware = ['JwtAuth', 'Context'];
 
     /**
      * 获取当前用户的所有团队
@@ -35,16 +35,4 @@ class Team
         return success($result);
     }
 
-    /**
-     * 删除团队
-     */
-    public function delete(Request $request)
-    {
-        $teamId = (int) $request->post('team_id', 0);
-
-        $service = app(TeamService::class);
-        $service->delete($request->user_id, $teamId);
-
-        return message('团队已删除');
-    }
 }

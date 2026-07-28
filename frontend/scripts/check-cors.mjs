@@ -14,12 +14,24 @@ for (const directive of required) {
   if (!nginx.includes(directive)) throw new Error(`Missing assets CORS directive: ${directive}`)
 }
 
-const htmlRoots = ['www.lostsky.work', 'account.lostsky.work', 'team.lostsky.work']
+const htmlRoots = [
+  'www.lostsky.work',
+  'account.lostsky.work',
+  'team.lostsky.work',
+  'chat.lostsky.work',
+  'transaction.lostsky.work',
+  'display.lostsky.work',
+  'shop.lostsky.work',
+]
 let checked = 0
 for (const domain of htmlRoots) {
   const directory = join(root, 'www', domain)
-  for (const name of readdirSync(directory)) {
-    if (extname(name) !== '.html' || !statSync(join(directory, name)).isFile()) continue
+  const names = readdirSync(directory)
+  const htmlNames = names.filter((name) => extname(name) === '.html' && statSync(join(directory, name)).isFile())
+  if (htmlNames.length !== 1 || htmlNames[0] !== 'index.html') {
+    throw new Error(`${domain} must publish index.html as its only HTML entry`)
+  }
+  for (const name of htmlNames) {
     const html = readFileSync(join(directory, name), 'utf8')
     const module = html.match(/<script type="module"([^>]+)>/)
     if (!module || !module[1].includes('crossorigin') || !module[1].includes('//assets.lostsky.work/')) {

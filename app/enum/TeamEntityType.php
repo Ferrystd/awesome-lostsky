@@ -5,7 +5,7 @@ namespace app\enum;
 
 enum TeamEntityType: string
 {
-    case Member = 'member';
+    case Entity = 'entity';
     case Customer = 'customer';
     case Virtual = 'virtual';
 }

@@ -11,23 +11,21 @@ const route = useRoute()
 const client = useQueryClient()
 const page = ref(1)
 const keyword = ref('')
-const targetType = computed(() => route.query.target_type === 'teamMember' ? 'teamMember' : 'team')
-const targetId = computed(() => Number(route.query.target_id || 0))
+const entityId = computed(() => Number(route.query.entity_id || 0))
 const query = useQuery({
-  queryKey: computed(() => ['docs', page.value, keyword.value, targetType.value, targetId.value]),
+  queryKey: computed(() => ['docs', page.value, keyword.value, entityId.value]),
   queryFn: () => api.get<Record<string, unknown>>('/doc', {
     page: page.value,
     limit: 12,
     keyword: keyword.value,
-    target_type: targetType.value,
-    ...(targetType.value === 'teamMember' ? { target_id: targetId.value } : {}),
+    ...(entityId.value ? { entity_id: entityId.value } : {}),
   }),
 })
 const docs = computed<Record<string, unknown>[]>(() => Array.isArray(query.data.value?.list) ? query.data.value.list as Record<string, unknown>[] : [])
 const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? docs.value.length) / 12)))
 const createTo = computed(() => {
-  const query = new URLSearchParams({ target_type: targetType.value })
-  if (targetType.value === 'teamMember') query.set('target_id', String(targetId.value))
+  const query = new URLSearchParams()
+  if (entityId.value) query.set('entity_id', String(entityId.value))
   return `/doc-create?${query}`
 })
 const remove = useMutation({ mutationFn: (id: number) => api.post('/doc/delete', { id }), onSuccess: () => client.invalidateQueries({ queryKey: ['docs'] }) })
@@ -49,7 +47,7 @@ function removeDoc(item: Record<string, unknown>) {
   <div class="documents-view">
     <AdminPageHeader
       title="文档"
-      :description="targetType === 'teamMember' ? `成员 #${targetId} 的长期资料与记录。` : '整理团队流程、规范和长期知识。'"
+      :description="entityId ? `?? #${entityId} ?????????` : '???????????????'"
     >
       <template #actions><RouterLink class="primary-link" :to="createTo"><Plus :size="17" />新建文档</RouterLink></template>
     </AdminPageHeader>

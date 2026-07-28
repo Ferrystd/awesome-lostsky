@@ -121,11 +121,6 @@ export interface components {
              * @description 0=false, 1=true
              * @enum {integer}
              */
-            is_displayed?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
             is_blocked?: 0 | 1;
             /**
              * Format: int64
@@ -134,18 +129,18 @@ export interface components {
             create_time?: number;
         } & components["schemas"]["MemberProfileFields"] & {
             posts?: components["schemas"]["MemberPost"][];
-            fieldValues?: components["schemas"]["MemberFieldValue"][];
+            fieldValues?: components["schemas"]["EntityFieldValue"][];
         };
         MemberPost: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
-            member_id?: number;
-            /** Format: int64 */
             type_id?: number;
             /** Format: int64 */
             post_id?: number;
             type?: components["schemas"]["PostType"];
+            /** Format: int64 */
+            entity_id?: number;
         };
         PostType: {
             /** Format: int64 */
@@ -168,102 +163,25 @@ export interface components {
              */
             update_time?: number;
         };
-        MemberField: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            field_key?: string;
-            name?: string;
-            /** @enum {string} */
-            source?: "system" | "custom";
-            /** @enum {string} */
-            value_type?: "string" | "text" | "int" | "decimal" | "bool" | "date" | "datetime" | "select" | "multi_select" | "json";
-            /** @enum {string} */
-            input_type?: "text" | "textarea" | "radio" | "checkbox" | "select" | "date" | "datetime" | "upload";
-            options?: unknown;
-            default_value?: string | null;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_required?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_editable?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_searchable?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_system?: 0 | 1;
-            sort?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-            /**
-             * @description 1=team管理, 2=主体本人和team管理
-             * @enum {integer}
-             */
-            manager_scope?: 1 | 2;
-            /**
-             * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见
-             * @enum {integer}
-             */
-            visibility?: 1 | 3 | 4 | 5;
-        };
-        MemberFieldValue: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            member_id?: number;
-            /** Format: int64 */
-            field_id?: number;
-            value_string?: string | null;
-            value_text?: string | null;
-            /** Format: int64 */
-            value_int?: number | null;
-            /** Format: float */
-            value_decimal?: number | null;
-            /** Format: int64 */
-            value_datetime?: number | null;
-            value_json?: unknown;
-            field?: components["schemas"]["MemberField"];
-        };
         Product: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             team_id?: number;
-            /** Format: int64 */
-            member_id?: number | null;
             name?: string;
             description?: string | null;
-            /** Format: float */
-            price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            handler_cut?: number | null;
-            /** Format: float */
-            sender_cut?: number | null;
-            /** Format: float */
-            cs_cut?: number | null;
-            /** Format: float */
-            team_cut?: number | null;
+            /** @description Exact decimal string. */
+            price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string | null;
+            /** @description Exact decimal string. */
+            sender_cut?: string | null;
+            /** @description Exact decimal string. */
+            cs_cut?: string | null;
+            /** @description Exact decimal string. */
+            team_cut?: string | null;
             /**
              * @description 0=false, 1=true
              * @enum {integer}
@@ -279,22 +197,24 @@ export interface components {
              * @description Unix timestamp, seconds
              */
             update_time?: number;
-            member?: components["schemas"]["Member"];
             handlers?: components["schemas"]["ProductHandler"][];
+            /** Format: int64 */
+            entity_id?: number | null;
+            subject?: components["schemas"]["Entity"];
         };
         ProductHandler: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             product_id?: number;
-            /** Format: int64 */
-            member_id?: number;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
              */
             create_time?: number;
-            member?: components["schemas"]["Member"];
+            /** Format: int64 */
+            entity_id?: number;
+            subject?: components["schemas"]["Entity"];
         };
         Order: {
             /** Format: int64 */
@@ -304,30 +224,30 @@ export interface components {
             /** Format: int64 */
             customer_id?: number | null;
             /** Format: int64 */
-            handler_id?: number | null;
+            handler_entity_id?: number | null;
             /** Format: int64 */
-            sender_id?: number | null;
+            sender_entity_id?: number | null;
             /** Format: int64 */
             product_id?: number;
             quantity?: number;
-            /** Format: float */
-            unit_price?: number;
-            /** Format: float */
-            total_price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            handler_cut?: number | null;
-            /** Format: float */
-            sender_cut?: number | null;
-            /** Format: float */
-            cs_cut?: number | null;
-            /** Format: float */
-            team_cut?: number | null;
-            /** Format: float */
-            cash?: number;
-            /** Format: float */
-            prepaid?: number;
+            /** @description Exact decimal string. */
+            unit_price?: string;
+            /** @description Exact decimal string. */
+            total_price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string | null;
+            /** @description Exact decimal string. */
+            sender_cut?: string | null;
+            /** @description Exact decimal string. */
+            cs_cut?: string | null;
+            /** @description Exact decimal string. */
+            team_cut?: string | null;
+            /** @description Exact decimal string. */
+            cash?: string;
+            /** @description Exact decimal string. */
+            prepaid?: string;
             /** Format: int64 */
             trans_id?: number | null;
             /**
@@ -383,12 +303,12 @@ export interface components {
             id?: number;
             /** Format: int64 */
             customer_id?: number;
-            /** Format: float */
-            balance?: number;
-            /** Format: float */
-            recharged?: number;
-            /** Format: float */
-            spent?: number;
+            /** @description Exact decimal string. */
+            balance?: string;
+            /** @description Exact decimal string. */
+            recharged?: string;
+            /** @description Exact decimal string. */
+            spent?: string;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
@@ -410,10 +330,10 @@ export interface components {
              * @enum {integer}
              */
             type?: 1 | 2 | 3 | 4;
-            /** Format: float */
-            amount?: number;
-            /** Format: float */
-            balance_after?: number;
+            /** @description Exact decimal string. */
+            amount?: string;
+            /** @description Exact decimal string. */
+            balance_after?: string;
             /** Format: int64 */
             trans_id?: number | null;
             memo?: string | null;
@@ -435,11 +355,11 @@ export interface components {
             /** Format: int64 */
             team_id?: number;
             /** Format: int64 */
-            handler_id?: number;
+            handler_entity_id?: number;
             /** Format: int64 */
-            sender_id?: number | null;
+            sender_entity_id?: number | null;
             /** Format: int64 */
-            cs_id?: number | null;
+            cs_entity_id?: number | null;
             /** Format: int64 */
             customer_id?: number | null;
             /**
@@ -447,22 +367,22 @@ export interface components {
              * @enum {integer}
              */
             type?: 1 | 2;
-            /** Format: float */
-            total_price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            cash?: number;
-            /** Format: float */
-            prepaid?: number;
-            /** Format: float */
-            handler_cut?: number;
-            /** Format: float */
-            sender_cut?: number;
-            /** Format: float */
-            cs_cut?: number;
-            /** Format: float */
-            team_cut?: number;
+            /** @description Exact decimal string. */
+            total_price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            cash?: string;
+            /** @description Exact decimal string. */
+            prepaid?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string;
+            /** @description Exact decimal string. */
+            sender_cut?: string;
+            /** @description Exact decimal string. */
+            cs_cut?: string;
+            /** @description Exact decimal string. */
+            team_cut?: string;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
@@ -491,23 +411,21 @@ export interface components {
             team_id?: number;
             /** Format: int64 */
             customer_id?: number;
-            /** Format: int64 */
-            member_id?: number;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
              */
             create_time?: number;
             customer?: components["schemas"]["Customer"];
-            member?: components["schemas"]["Member"];
+            /** Format: int64 */
+            entity_id?: number;
+            subject?: components["schemas"]["Entity"];
         };
         File: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             team_id?: number;
-            /** Format: int64 */
-            member_id?: number;
             hash?: string;
             name?: string;
             path?: string;
@@ -524,7 +442,12 @@ export interface components {
              * @description Unix timestamp, seconds
              */
             update_time?: number;
-            member?: components["schemas"]["Member"];
+            /**
+             * Format: int64
+             * @description 全局实体身份 ID，引用 entity.id；无实体上传时为 null。
+             */
+            entity_id?: number | null;
+            entity?: components["schemas"]["Entity"] | null;
         };
         FileUploadResult: {
             /** Format: int64 */
@@ -539,13 +462,9 @@ export interface components {
         };
         Document: {
             /** Format: int64 */
-            id?: number;
+            id: number;
             title?: string;
             content?: string | null;
-            /** @enum {string} */
-            documentable_type?: "team" | "teamMember";
-            /** Format: int64 */
-            documentable_id?: number;
             sort?: number;
             /**
              * Format: int64
@@ -569,23 +488,84 @@ export interface components {
             visibility?: 1 | 3 | 4 | 5 | 6;
             /** @description visibility=6(custom) 时生效 */
             visibility_targets?: components["schemas"]["VisibilityTarget"][];
+            /** Format: int64 */
+            entity_id: number;
+            subject?: components["schemas"]["Entity"];
         };
         VisibilityTarget: {
-            /** @enum {string} */
-            target_type: "team" | "teamMember";
             /** Format: int64 */
-            target_id: number;
+            entity_id: number;
+            subject?: components["schemas"]["Entity"];
+        };
+        Entity: {
+            /** Format: int64 */
+            id: number;
+            slug: string;
+            /** @enum {string} */
+            entityable_type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
+            /** Format: int64 */
+            entityable_id: number;
+            is_valid?: boolean;
+            is_searchable?: boolean;
+        };
+        EntityFieldValue: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            field_id?: number;
+            value_string?: string | null;
+            value_text?: string | null;
+            /** Format: int64 */
+            value_int?: number | null;
+            /** Format: float */
+            value_decimal?: number | null;
+            /** Format: int64 */
+            value_datetime?: number | null;
+            value_json?: unknown;
+            field?: components["schemas"]["EntityField"];
+            /** Format: int64 */
+            entity_id?: number;
+        };
+        EntityField: {
+            /** Format: int64 */
+            id?: number;
+            /** @enum {string} */
+            entity_type?: "entity" | "customer" | "virtual";
+            field_key?: string;
+            name?: string;
+            value_type?: string;
+            input_type?: string;
+            options?: unknown[] | null;
+            /** @enum {integer} */
+            is_required?: 0 | 1;
+            /** @enum {integer} */
+            is_editable?: 0 | 1;
+            /** @enum {integer} */
+            is_searchable?: 0 | 1;
+            /** @enum {integer} */
+            is_visible?: 0 | 1;
+            sort?: number;
+            /** @enum {string} */
+            source?: "system" | "custom";
+            default_value?: string | null;
+            /** @enum {integer} */
+            manager_scope?: 1 | 2;
+            /** @enum {integer} */
+            visibility?: 1 | 3 | 4 | 5 | 6;
+            /** @enum {integer} */
+            is_system?: 0 | 1;
         };
     };
     responses: never;
     parameters: {
-        /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+        /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
         PageId: string;
+        /** @description 显式选择公共上传应用；其他应用名不允许通过该请求头指定。 */
+        AppName: "common";
         Page: number;
         Limit: number;
         IdPath: number;
         IdQuery: number;
-        MemberIdQuery: number;
         CustomerIdQuery: number;
     };
     requestBodies: never;
@@ -597,8 +577,10 @@ export interface operations {
     commonUpload: {
         parameters: {
             query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+            header: {
+                /** @description 显式选择公共上传应用；其他应用名不允许通过该请求头指定。 */
+                "X-LostSky-App": components["parameters"]["AppName"];
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -607,7 +589,10 @@ export interface operations {
         requestBody: {
             content: {
                 "multipart/form-data": {
-                    /** Format: binary */
+                    /**
+                     * Format: binary
+                     * @description 最大 50 MiB；扩展名必须属于服务端 file.allowed_extensions 白名单。
+                     */
                     file: string;
                 };
             };

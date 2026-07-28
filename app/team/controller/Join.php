@@ -66,11 +66,6 @@ class Join
             return error('请选择文件', 1, 422);
         }
 
-        $maxSize = config('file.upload_max_size', 50 * 1024 * 1024);
-        if (!$file->checkSize($maxSize)) {
-            return error('文件大小超出限制', 1, 422);
-        }
-
         $service = app(TeamJoin::class);
 
         return success($service->upload($file, $request->team_id), '上传成功');

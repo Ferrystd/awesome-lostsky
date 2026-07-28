@@ -12,7 +12,7 @@ use think\exception\HttpException;
 
 class ChatConversation
 {
-    public function list(int $teamId, int $memberId, int $customerId): array
+    public function list(int $teamId, array $actingEntity): array
     {
         $showReadReceipts = $this->showReadReceipts($teamId);
         $rows = ChatConversationModel::where('team_id', $teamId)
@@ -22,26 +22,26 @@ class ChatConversation
             ->select();
         $result = [];
         foreach ($rows as $conversation) {
-            if ($this->canAccess($conversation, $teamId, $memberId, $customerId)) {
+            if ($this->canAccess($conversation, $teamId, $actingEntity)) {
                 $result[] = $this->summary($conversation, $showReadReceipts);
             }
         }
         return $result;
     }
 
-    public function get(int $teamId, string $uuid, int $memberId, int $customerId): array
+    public function get(int $teamId, string $uuid, array $actingEntity): array
     {
         $conversation = $this->conversation($teamId, $uuid, true);
-        $this->assertAccess($conversation, $teamId, $memberId, $customerId);
+        $this->assertAccess($conversation, $teamId, $actingEntity);
         return $this->summary($conversation, $this->showReadReceipts($teamId));
     }
 
-    public function create(int $teamId, int $memberId, int $customerId, array $data): array
+    public function create(int $teamId, array $actingEntity, array $data): array
     {
         $this->validate($data);
         $actors = app(ChatActor::class);
         $creator = $actors->resolve($teamId, (string) $data['actor_slug']);
-        $actors->assertCanAct($creator, $teamId, $memberId, $customerId);
+        $actors->assertCanAct($creator, $teamId, $actingEntity);
 
         $participants = [$creator['slug'] => $creator];
         foreach ($data['participants'] as $participant) {
@@ -58,7 +58,7 @@ class ChatConversation
             throw new HttpException(422, '群聊至少需要两个参与者');
         }
         $temporary = (int) ($data['is_temporary'] ?? 0) === 1;
-        $this->assertCanCreate($creator, $teamId, $memberId, $kind, $temporary);
+        $this->assertCanCreate($creator, $teamId, $actingEntity, $kind, $temporary);
         $this->assertParticipantPolicy($teamId, $participants, $creator, $kind);
         if (!$temporary && !empty($data['expires_at'])) {
             throw new HttpException(422, '只有临时会话可以设置到期时间');
@@ -87,14 +87,14 @@ class ChatConversation
                         ? (trim((string) ($data['title'] ?? '')) ?: null)
                         : null,
                     'direct_key' => $directKey, 'is_temporary' => $temporary ? 1 : 0,
-                    'created_by_type' => $creator['type'], 'created_by_id' => $creator['id'],
+                    'entity_id' => $creator['entity_id'],
                     'expires_at' => !empty($data['expires_at']) ? (int) $data['expires_at'] : null,
                 ]);
                 foreach ($participants as $actor) {
                     $participant = app(ChatParticipant::class, [], true);
                     $participant->save([
                         'team_id' => $teamId, 'conversation_id' => $conversation->id,
-                        'actor_type' => $actor['type'], 'actor_id' => $actor['id'], 'joined_at' => time(),
+                        'entity_id' => $actor['entity_id'], 'joined_at' => time(),
                     ]);
                 }
                 $this->outbox($teamId, 'conversation.created', (int) $conversation->id, [
@@ -114,22 +114,23 @@ class ChatConversation
         return ['uuid' => $uuid, 'existing' => false];
     }
 
-    public function close(int $teamId, string $uuid, int $memberId, int $customerId): void
+    public function close(int $teamId, string $uuid, array $actingEntity): void
     {
         $conversation = $this->conversation($teamId, $uuid, true);
-        $this->assertAccess($conversation, $teamId, $memberId, $customerId);
+        $this->assertAccess($conversation, $teamId, $actingEntity);
         if ($conversation->is_closed) {
             return;
         }
-        $creatorSummary = app(ChatActor::class)->summary(
-            $conversation->enumCase('created_by_type'),
-            (int) $conversation->created_by_id
-        );
+        $creatorSummary = app(ChatActor::class)->summaryEntity((int) $conversation->entity_id);
         $creator = !empty($creatorSummary['slug'])
             ? app(ChatActor::class)->resolve($teamId, (string) $creatorSummary['slug'])
             : null;
-        $canCreatorAct = $creator && app(ChatActor::class)->canAct($creator, $teamId, $memberId, $customerId);
-        $canManage = app(PermissionGate::class)->allows($teamId, $memberId, ['chat.group.manage']);
+        $canCreatorAct = $creator && app(ChatActor::class)->canAct($creator, $teamId, $actingEntity);
+        $canManage = app(PermissionGate::class)->allows(
+            $teamId,
+            $actingEntity,
+            [PermissionDictionary::CHAT_GROUP_MANAGE]
+        );
         if (!$canCreatorAct && !$canManage) {
             throw new HttpException(403, '你不能关闭该会话');
         }
@@ -142,12 +143,11 @@ class ChatConversation
     public function addParticipants(
         int $teamId,
         string $uuid,
-        int $memberId,
-        int $customerId,
+        array $actingEntity,
         array $slugs
     ): void {
         $conversation = $this->conversation($teamId, $uuid, true);
-        $this->assertGroupManager($conversation, $teamId, $memberId, $customerId);
+        $this->assertGroupManager($conversation, $teamId, $actingEntity);
         if ($conversation->is_closed) {
             throw new HttpException(409, '会话已经关闭');
         }
@@ -166,8 +166,7 @@ class ChatConversation
             foreach ($actors as $actor) {
                 $participant = ChatParticipant::withTrashed()
                     ->where('conversation_id', $conversation->id)
-                    ->where('actor_type', $actor['type']->value)
-                    ->where('actor_id', $actor['id'])
+                    ->where('entity_id', $actor['entity_id'])
                     ->find();
                 if ($participant && !$participant->left_at && !$participant->trashed()) {
                     continue;
@@ -178,8 +177,7 @@ class ChatConversation
                 $participant->save([
                     'team_id' => $teamId,
                     'conversation_id' => $conversation->id,
-                    'actor_type' => $actor['type'],
-                    'actor_id' => $actor['id'],
+                    'entity_id' => $actor['entity_id'],
                     'joined_at' => time(),
                     'left_at' => null,
                     'last_read_message_id' => null,
@@ -199,16 +197,14 @@ class ChatConversation
     public function removeParticipant(
         int $teamId,
         string $uuid,
-        int $memberId,
-        int $customerId,
+        array $actingEntity,
         string $slug
     ): void {
         $conversation = $this->conversation($teamId, $uuid, true);
-        $this->assertGroupManager($conversation, $teamId, $memberId, $customerId);
+        $this->assertGroupManager($conversation, $teamId, $actingEntity);
         $actor = app(ChatActor::class)->resolve($teamId, $slug);
         $participant = ChatParticipant::where('conversation_id', $conversation->id)
-            ->where('actor_type', $actor['type']->value)
-            ->where('actor_id', $actor['id'])
+            ->where('entity_id', $actor['entity_id'])
             ->whereNull('left_at')
             ->find();
         if (!$participant) {
@@ -235,37 +231,31 @@ class ChatConversation
         return $this->conversation($teamId, $uuid, $withParticipants);
     }
 
-    public function assertAccess(ChatConversationModel $conversation, int $teamId, int $memberId, int $customerId): void
+    public function assertAccess(ChatConversationModel $conversation, int $teamId, array $actingEntity): void
     {
-        if (!$this->canAccess($conversation, $teamId, $memberId, $customerId)) {
+        if (!$this->canAccess($conversation, $teamId, $actingEntity)) {
             throw new HttpException(403, '你不是该会话的参与者');
         }
     }
 
-    public function canAccess(ChatConversationModel $conversation, int $teamId, int $memberId, int $customerId): bool
+    public function canAccess(ChatConversationModel $conversation, int $teamId, array $actingEntity): bool
     {
         $participants = $conversation->participants;
         foreach ($participants as $participant) {
-            $type = $participant->enumCase('actor_type');
             if ($participant->left_at) {
                 continue;
             }
-            if ($type === ChatActorType::Member && (int) $participant->actor_id === $memberId) {
+            if ((int) $participant->entity_id === (int) ($actingEntity['entity_id'] ?? 0)) {
                 return true;
             }
-            if ($type === ChatActorType::Customer && (int) $participant->actor_id === $customerId) {
-                return true;
-            }
-            if ($type === ChatActorType::Team && app(ChatActor::class)->canAct(
-                ['type' => $type, 'id' => (int) $participant->actor_id, 'slug' => ''], $teamId, $memberId, $customerId
-            )) {
-                return true;
-            }
+            $actor = app(ChatActor::class)->actorEntity((int) $participant->entity_id);
+            $type = $actor['type'];
             if ($type === ChatActorType::Virtual) {
-                $summary = app(ChatActor::class)->summary($type, (int) $participant->actor_id);
+                $summary = app(ChatActor::class)->summaryEntity((int) $participant->entity_id);
                 $slug = (string) ($summary['slug'] ?? '');
-                if ($slug !== '' && app(PermissionGate::class)->allows($teamId, $memberId, [
-                    'chat.virtual.*.operate', "chat.virtual.{$slug}.operate",
+                if ($slug !== '' && app(PermissionGate::class)->allows($teamId, $actingEntity, [
+                    PermissionDictionary::CHAT_VIRTUAL_ALL_OPERATE,
+                    PermissionDictionary::virtual($slug, 'operate'),
                 ])) {
                     return true;
                 }
@@ -287,7 +277,7 @@ class ChatConversation
             'last_message_at' => $conversation->last_message_at,
             'last_message' => $conversation->lastMessage?->content,
             'participants' => array_map(fn ($participant) => array_merge(
-                app(ChatActor::class)->summary($participant->enumCase('actor_type'), (int) $participant->actor_id),
+                app(ChatActor::class)->summaryEntity((int) $participant->entity_id),
                 [
                     'joined_at' => (int) $participant->joined_at,
                     'left_at' => $participant->left_at === null ? null : (int) $participant->left_at,
@@ -302,7 +292,7 @@ class ChatConversation
     private function assertCanCreate(
         array $creator,
         int $teamId,
-        int $memberId,
+        array $actingEntity,
         ChatConversationKind $kind,
         bool $temporary
     ): void
@@ -323,12 +313,12 @@ class ChatConversation
             }
             return;
         }
-        $keys = ['chat.conversation.create'];
+        $keys = [PermissionDictionary::CHAT_CONVERSATION_CREATE];
         if ($temporary) {
-            $keys[] = 'chat.temporary.create';
+            $keys[] = PermissionDictionary::CHAT_TEMPORARY_CREATE;
         }
         foreach ($keys as $key) {
-            app(PermissionGate::class)->assert($teamId, request()->acting_entity ?: $memberId, [$key]);
+            app(PermissionGate::class)->assert($teamId, $actingEntity, [$key]);
         }
     }
 
@@ -343,10 +333,6 @@ class ChatConversation
                 if ($participant['type'] === ChatActorType::Customer
                     && $participant['id'] !== $creator['id']) {
                     throw new HttpException(403, '客户不能主动邀请其他客户');
-                }
-                if ($participant['type'] === ChatActorType::Member
-                    && !(bool) $participant['model']->is_displayed) {
-                    throw new HttpException(403, '该团队成员未公开聊天身份');
                 }
             }
             if ($kind === ChatConversationKind::Direct) {
@@ -377,14 +363,17 @@ class ChatConversation
     private function assertGroupManager(
         ChatConversationModel $conversation,
         int $teamId,
-        int $memberId,
-        int $customerId
+        array $actingEntity
     ): void {
         if ($conversation->enumCase('kind') !== ChatConversationKind::Group) {
             throw new HttpException(422, '单聊不支持参与者管理');
         }
-        $this->assertAccess($conversation, $teamId, $memberId, $customerId);
-        app(PermissionGate::class)->assert($teamId, request()->acting_entity ?: $memberId, ['chat.group.manage']);
+        $this->assertAccess($conversation, $teamId, $actingEntity);
+        app(PermissionGate::class)->assert(
+            $teamId,
+            $actingEntity,
+            [PermissionDictionary::CHAT_GROUP_MANAGE]
+        );
     }
 
     private function conversation(int $teamId, string $uuid, bool $withParticipants): ChatConversationModel

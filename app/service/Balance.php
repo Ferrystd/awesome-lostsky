@@ -13,6 +13,7 @@ class Balance
 {
     public function logs(int $teamId, int $customerId, int $page = 1, int $limit = 20): array
     {
+        [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
         if (!TeamCustomer::where('team_id', $teamId)->find($customerId)) {
             throw new HttpException(404, '客户不存在');
         }
@@ -27,17 +28,19 @@ class Balance
         return compact('total', 'list', 'page', 'limit');
     }
 
-    public function recharge(int $teamId, int $customerId, float $amount, string $memo = ''): void
+    public function recharge(int $teamId, int $customerId, mixed $amount, string $memo = ''): void
     {
-        if ($amount <= 0) {
+        $balanceModel = new TeamCustomerBalance;
+        try {
+            $amount = $balanceModel->normalizePositiveAmount($amount);
+        } catch (\InvalidArgumentException) {
             throw new HttpException(422, '充值金额必须大于零');
         }
 
-        if (!TeamCustomer::where('team_id', $teamId)->find($customerId)) {
-            throw new HttpException(404, '客户不存在');
-        }
-
-        \think\facade\Db::transaction(function () use ($customerId, $amount, $memo) {
+        \think\facade\Db::transaction(function () use ($teamId, $customerId, $amount, $memo) {
+            if (!TeamCustomer::where('team_id', $teamId)->lock(true)->find($customerId)) {
+                throw new HttpException(404, '客户不存在');
+            }
             $balance = TeamCustomerBalance::where('customer_id', $customerId)->lock(true)->find();
             if (!$balance) {
                 $balance = new TeamCustomerBalance;
@@ -48,18 +51,16 @@ class Balance
                 $balance->save();
             }
 
-            TeamCustomerBalance::where('customer_id', $customerId)
-                ->inc('balance', $amount)
-                ->inc('recharged', $amount)
-                ->update();
-
-            $balance = TeamCustomerBalance::where('customer_id', $customerId)->find();
+            $balance = (new TeamCustomerBalance)->recharge($customerId, $amount);
+            if (!$balance) {
+                throw new HttpException(409, '客户余额更新失败');
+            }
 
             $log = new TeamCustomerBalanceLog;
             $log->customer_id   = $customerId;
             $log->type          = LogType::Recharge;
             $log->amount        = $amount;
-            $log->balance_after = (float) $balance->balance;
+            $log->balance_after = $balance->balance;
             $log->memo          = $memo;
             $log->save();
         });

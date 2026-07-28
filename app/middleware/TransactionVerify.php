@@ -7,27 +7,29 @@ use think\exception\HttpException;
 use think\Request;
 use app\model\TeamCustomer as TeamCustomerModel;
 use app\model\TeamCustomerSender;
-use app\model\TeamMember as TeamMemberModel;
 
 /**
  * 记账操作权限中间件
- * 校验当前成员是否有权创建/编辑流水
+ * 校验当前实体是否有权创建/编辑流水
  *
  * 规则（任一命中即通过）：
- *   A. 团队所有者
+ *   A. 团队实体
  *   B. 发单人已绑定该客户
  *   C. 匿名客户（walk-in）
- *   D. CS 角色（占位，始终 false）
  */
 class TransactionVerify
 {
     public function handle(Request $request, \Closure $next)
     {
-        $team   = $request->team ?? null;
-        $member = $request->member ?? null;
+        $team = $request->team ?? null;
+        $actingEntity = (array) ($request->acting_entity ?? []);
+        $entityId = (int) ($actingEntity['entity_id'] ?? 0);
+        if (!$team || $entityId < 1) {
+            throw new HttpException(403, '当前实体无效');
+        }
 
-        // 规则 A：团队所有者
-        if ($team->user_id === $request->user_id) {
+        // 规则 A：团队实体
+        if (($actingEntity['type'] ?? '') === 'team') {
             return $next($request);
         }
 
@@ -40,18 +42,13 @@ class TransactionVerify
                 ->where('team_id', $team->id)
                 ->find();
 
-            if ($customer && TeamCustomerSender::sender($member->id, $customerId)->find()) {
+            if ($customer && TeamCustomerSender::sender($entityId, $customerId)->find()) {
                 return $next($request);
             }
         }
 
         // 规则 C：匿名客户（仅创建时允许，编辑不允许匿名绕过）
         if (!$isEdit && $customerId === 0) {
-            return $next($request);
-        }
-
-        // 规则 D：CS 角色（占位）
-        if (TeamMemberModel::cs()->where('id', $member->id)->find()) {
             return $next($request);
         }
 

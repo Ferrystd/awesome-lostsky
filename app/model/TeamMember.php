@@ -19,13 +19,17 @@ class TeamMember extends Base
 
         'team_id' => 'integer',
         'user_id' => 'integer',
-        'is_displayed' => 'integer',
         'is_blocked' => 'integer',
     ];
 
     protected $json = [];
 
-    protected $append = ['is_valid', 'is_searchable'];
+    protected $append = ['entity_id', 'is_valid', 'is_searchable'];
+
+    public function getEntityIdAttr(): int
+    {
+        return (int) ($this->identity?->id ?? 0);
+    }
 
     public function getIsValidAttr($value, $data): bool
     {
@@ -39,7 +43,7 @@ class TeamMember extends Base
 
     public function getIsSearchableAttr(): bool
     {
-        if (!$this->is_valid || (int) $this->is_displayed !== 1) {
+        if (!$this->is_valid) {
             return false;
         }
 
@@ -79,74 +83,64 @@ class TeamMember extends Base
 
     public function profile()
     {
-        return $this->hasOne(TeamMemberProfile::class, 'member_id')
-            ->bind(['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown']);
-    }
-
-    public function posts()
-    {
-        return $this->hasMany(TeamMemberPost::class, 'member_id');
-    }
-
-    public function memberRoles()
-    {
-        return $this->hasMany(TeamEntityRole::class, 'entity_id')->where('entity_type', 'teamMember');
+        return $this->hasOne(TeamEntityProfile::class, 'entity_id', 'root_entity_id')
+            ->bind(['name' => 'nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown']);
     }
 
     public function fieldValues()
     {
-        return $this->morphMany(TeamEntityFieldValue::class, 'entity', 'member');
+        return $this->hasMany(TeamEntityFieldValue::class, 'entity_id', 'root_entity_id');
     }
 
     public function entityFieldValues()
     {
-        return $this->morphMany(TeamEntityFieldValue::class, 'entity', 'member');
+        return $this->fieldValues();
     }
 
     public function joinApplication()
     {
-        return $this->hasOne(TeamJoinApplication::class, 'member_id');
+        return $this->hasOne(TeamJoinApplication::class, 'entity_id', 'root_entity_id');
     }
 
     public function handledTransactions()
     {
-        return $this->hasMany(TeamTransaction::class, 'handler_id');
+        return $this->hasMany(TeamTransaction::class, 'handler_entity_id', 'root_entity_id');
     }
 
     public function sentTransactions()
     {
-        return $this->hasMany(TeamTransaction::class, 'sender_id');
+        return $this->hasMany(TeamTransaction::class, 'sender_entity_id', 'root_entity_id');
     }
 
     public function csTransactions()
     {
-        return $this->hasMany(TeamTransaction::class, 'cs_id');
+        return $this->hasMany(TeamTransaction::class, 'cs_entity_id', 'root_entity_id');
     }
 
     public function bindings()
     {
-        return $this->hasMany(TeamCustomerSender::class, 'member_id');
+        return $this->hasMany(TeamCustomerSender::class, 'entity_id', 'root_entity_id');
     }
 
     public function documents()
     {
-        return $this->morphMany(Document::class, 'documentable');
+        return $this->hasMany(Document::class, 'entity_id', 'root_entity_id');
     }
 
     public function identity()
     {
-        return $this->morphOne(EntityIdentity::class, 'entityable', 'teamMember')
+        return $this->morphOne(Entity::class, 'entityable', 'teamMember')
             ->bind(['slug', 'search_override']);
+    }
+
+    public function getRootEntityIdAttr(): int
+    {
+        return (int) ($this->identity?->id ?? 0);
     }
 
     public function entityRoles()
     {
-        return $this->hasMany(TeamEntityRole::class, 'entity_id')->where('entity_type', 'teamMember');
-    }
-
-    public function files()
-    {
-        return $this->hasMany(File::class, 'member_id');
+        return $this->hasMany(TeamEntityRole::class, 'entity_id', 'root_entity_id');
     }
 
     // 占位：CS 角色尚未实现，始终返回空

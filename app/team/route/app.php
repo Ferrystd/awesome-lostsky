@@ -5,6 +5,7 @@ use think\facade\Route;
 Route::get('me/get', 'me/get');
 Route::post('me/edit', 'me/edit');
 Route::post('me/slug', 'me/slug');
+Route::post('me/fields', 'me/fields');
 
 // member
 Route::get('member/index', 'member/index');
@@ -20,6 +21,11 @@ Route::post('member/search', 'member/search');
 // entity
 Route::get('entity/search', 'entity/search');
 Route::get('entity/resolve', 'entity/resolve');
+Route::get('entity/options', 'entity/options');
+Route::get('entity/index', 'entity/index');
+Route::get('entity/get', 'entity/get');
+Route::post('entity/profile', 'entity/profile');
+Route::post('entity/display', 'entity/display');
 
 // role
 Route::get('role/index', 'role/index');
@@ -33,30 +39,19 @@ Route::get('rolePermission/index', 'rolePermission/index');
 Route::get('rolePermission/catalog', 'rolePermission/catalog');
 Route::post('rolePermission/save', 'rolePermission/save');
 
-// memberRole
-Route::get('memberRole/index', 'memberRole/index');
-Route::post('memberRole/save', 'memberRole/save');
-
 // entityRole
 Route::get('entityRole/index', 'EntityRole/index');
+Route::get('entityRole/resolve', 'EntityRole/resolve');
 Route::post('entityRole/save', 'EntityRole/save');
 
 // notice
 Route::get('notice/index', 'notice/index');
 Route::get('notice/get', 'notice/get');
+Route::post('notice/send', 'notice/send');
 Route::post('notice/confirm', 'notice/confirm');
 Route::post('notice/confirmAll', 'notice/confirmAll');
 Route::post('notice/receive', 'notice/receive');
 Route::post('notice/receiveAll', 'notice/receiveAll');
-
-// memberField
-Route::get('memberField/index', 'memberField/index');
-Route::get('memberField/get', 'memberField/get');
-Route::post('memberField/add', 'memberField/add');
-Route::post('memberField/edit', 'memberField/edit');
-Route::post('memberField/delete', 'memberField/delete');
-Route::get('memberField/values', 'memberField/values');
-Route::post('memberField/saveValues', 'memberField/saveValues');
 
 // unified entity fields
 Route::get('entityField/index', 'EntityField/index');
@@ -106,12 +101,6 @@ Route::get('setting/schema', 'Setting/schema');
 Route::get('setting', 'Setting/index');
 Route::post('setting', 'Setting/save');
 
-// postType (JwtAuth in controller)
-Route::get('postType/index', 'postType/index');
-Route::get('postType/get', 'postType/get');
-Route::post('postType/add', 'postType/add');
-Route::post('postType/edit', 'postType/edit');
-Route::post('postType/delete', 'postType/delete');
 
 // file
 Route::get('file/index', 'file/index');
@@ -125,9 +114,3 @@ Route::get('doc/get', 'Doc/get');
 Route::post('doc/create', 'Doc/create');
 Route::post('doc/edit', 'Doc/edit');
 Route::post('doc/delete', 'Doc/delete');
-Route::post('doc/<id>/delete', 'Doc/deleteLegacy')->pattern(['id' => '\d+']);
-Route::post('doc/<id>', 'Doc/edit')->pattern(['id' => '\d+']);
-Route::post('doc/:id/delete', 'Doc/deleteLegacy')->pattern(['id' => '\d+']);
-Route::post('doc/:id', 'Doc/edit')->pattern(['id' => '\d+']);
-Route::get('doc/<id>', 'Doc/get')->pattern(['id' => '\d+']);
-Route::get('doc/:id', 'Doc/get')->pattern(['id' => '\d+']);

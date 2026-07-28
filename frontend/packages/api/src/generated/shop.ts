@@ -170,7 +170,8 @@ export interface paths {
         /** 当前顾客订单列表 */
         get: operations["shopCustomerOrders"];
         put?: never;
-        post?: never;
+        /** ?????????? */
+        post: operations["shopCustomerPurchase"];
         delete?: never;
         options?: never;
         head?: never;
@@ -222,6 +223,108 @@ export interface paths {
         get: operations["shopCustomerBalanceLogs"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storefront": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ?????? */
+        get: operations["shopStorefront"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storefront/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ???????? */
+        get: operations["shopStorefrontProducts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storefront/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ?????? */
+        get: operations["shopStorefrontProduct"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/bind": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** ?????????????? */
+        post: operations["shopCustomerBind"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ???????? */
+        get: operations["shopCustomerOrder"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** ????????????????? */
+        post: operations["shopCustomerCancelOrder"];
         delete?: never;
         options?: never;
         head?: never;
@@ -328,11 +431,6 @@ export interface components {
              * @description 0=false, 1=true
              * @enum {integer}
              */
-            is_displayed?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
             is_blocked?: 0 | 1;
             /**
              * Format: int64
@@ -341,13 +439,13 @@ export interface components {
             create_time?: number;
         } & components["schemas"]["MemberProfileFields"] & {
             posts?: components["schemas"]["MemberPost"][];
-            fieldValues?: components["schemas"]["MemberFieldValue"][];
+            fieldValues?: components["schemas"]["EntityFieldValue"][];
         };
         MemberPost: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
-            member_id?: number;
+            entity_id?: number;
             /** Format: int64 */
             type_id?: number;
             /** Format: int64 */
@@ -375,102 +473,27 @@ export interface components {
              */
             update_time?: number;
         };
-        MemberField: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            field_key?: string;
-            name?: string;
-            /** @enum {string} */
-            source?: "system" | "custom";
-            /** @enum {string} */
-            value_type?: "string" | "text" | "int" | "decimal" | "bool" | "date" | "datetime" | "select" | "multi_select" | "json";
-            /** @enum {string} */
-            input_type?: "text" | "textarea" | "radio" | "checkbox" | "select" | "date" | "datetime" | "upload";
-            options?: unknown;
-            default_value?: string | null;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_required?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_editable?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_searchable?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_system?: 0 | 1;
-            sort?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-            /**
-             * @description 1=team管理, 2=主体本人和team管理
-             * @enum {integer}
-             */
-            manager_scope?: 1 | 2;
-            /**
-             * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见
-             * @enum {integer}
-             */
-            visibility?: 1 | 3 | 4 | 5;
-        };
-        MemberFieldValue: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            member_id?: number;
-            /** Format: int64 */
-            field_id?: number;
-            value_string?: string | null;
-            value_text?: string | null;
-            /** Format: int64 */
-            value_int?: number | null;
-            /** Format: float */
-            value_decimal?: number | null;
-            /** Format: int64 */
-            value_datetime?: number | null;
-            value_json?: unknown;
-            field?: components["schemas"]["MemberField"];
-        };
         Product: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             team_id?: number;
             /** Format: int64 */
-            member_id?: number | null;
+            entity_id?: number | null;
             name?: string;
             description?: string | null;
-            /** Format: float */
-            price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            handler_cut?: number | null;
-            /** Format: float */
-            sender_cut?: number | null;
-            /** Format: float */
-            cs_cut?: number | null;
-            /** Format: float */
-            team_cut?: number | null;
+            /** @description Exact decimal string. */
+            price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string | null;
+            /** @description Exact decimal string. */
+            sender_cut?: string | null;
+            /** @description Exact decimal string. */
+            cs_cut?: string | null;
+            /** @description Exact decimal string. */
+            team_cut?: string | null;
             /**
              * @description 0=false, 1=true
              * @enum {integer}
@@ -486,8 +509,10 @@ export interface components {
              * @description Unix timestamp, seconds
              */
             update_time?: number;
-            member?: components["schemas"]["Member"];
+            subject?: components["schemas"]["Entity"];
             handlers?: components["schemas"]["ProductHandler"][];
+            cover_image?: string | null;
+            introduction_markdown?: string | null;
         };
         ProductHandler: {
             /** Format: int64 */
@@ -495,13 +520,13 @@ export interface components {
             /** Format: int64 */
             product_id?: number;
             /** Format: int64 */
-            member_id?: number;
+            entity_id?: number;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
              */
             create_time?: number;
-            member?: components["schemas"]["Member"];
+            subject?: components["schemas"]["Entity"];
         };
         Order: {
             /** Format: int64 */
@@ -511,37 +536,39 @@ export interface components {
             /** Format: int64 */
             customer_id?: number | null;
             /** Format: int64 */
-            handler_id?: number | null;
+            handler_entity_id?: number | null;
             /** Format: int64 */
-            sender_id?: number | null;
+            sender_entity_id?: number | null;
+            /** Format: int64 */
+            cs_entity_id?: number | null;
             /** Format: int64 */
             product_id?: number;
             quantity?: number;
-            /** Format: float */
-            unit_price?: number;
-            /** Format: float */
-            total_price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            handler_cut?: number | null;
-            /** Format: float */
-            sender_cut?: number | null;
-            /** Format: float */
-            cs_cut?: number | null;
-            /** Format: float */
-            team_cut?: number | null;
-            /** Format: float */
-            cash?: number;
-            /** Format: float */
-            prepaid?: number;
+            /** @description Exact decimal string. */
+            unit_price?: string;
+            /** @description Exact decimal string. */
+            total_price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string | null;
+            /** @description Exact decimal string. */
+            sender_cut?: string | null;
+            /** @description Exact decimal string. */
+            cs_cut?: string | null;
+            /** @description Exact decimal string. */
+            team_cut?: string | null;
+            /** @description Exact decimal string. */
+            cash?: string;
+            /** @description Exact decimal string. */
+            prepaid?: string;
             /** Format: int64 */
             trans_id?: number | null;
             /**
-             * @description 1=处理中, 2=已完成
+             * @description 1=???, 2=???, 3=???
              * @enum {integer}
              */
-            status?: 1 | 2;
+            status?: 1 | 2 | 3;
             memo?: string | null;
             /**
              * Format: int64
@@ -555,9 +582,12 @@ export interface components {
             update_time?: number;
             product?: components["schemas"]["Product"];
             customer?: components["schemas"]["Customer"];
-            handler?: components["schemas"]["Member"];
-            sender?: components["schemas"]["Member"];
+            handler?: components["schemas"]["Entity"];
+            sender?: components["schemas"]["Entity"];
+            cs?: components["schemas"]["Entity"];
             transaction?: components["schemas"]["Transaction"];
+            product_name?: string;
+            product_cover_image?: string | null;
         };
         Customer: {
             /** Format: int64 */
@@ -565,7 +595,7 @@ export interface components {
             /** Format: int64 */
             team_id?: number;
             /** Format: int64 */
-            user_id?: number;
+            user_id?: number | null;
             /**
              * @description 0=false, 1=true
              * @enum {integer}
@@ -584,18 +614,20 @@ export interface components {
              * @description Unix timestamp, seconds
              */
             update_time?: number;
+            /** Format: int64 */
+            owner_entity_id?: number | null;
         };
         Balance: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             customer_id?: number;
-            /** Format: float */
-            balance?: number;
-            /** Format: float */
-            recharged?: number;
-            /** Format: float */
-            spent?: number;
+            /** @description Exact decimal string. */
+            balance?: string;
+            /** @description Exact decimal string. */
+            recharged?: string;
+            /** @description Exact decimal string. */
+            spent?: string;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
@@ -617,10 +649,10 @@ export interface components {
              * @enum {integer}
              */
             type?: 1 | 2 | 3 | 4;
-            /** Format: float */
-            amount?: number;
-            /** Format: float */
-            balance_after?: number;
+            /** @description Exact decimal string. */
+            amount?: string;
+            /** @description Exact decimal string. */
+            balance_after?: string;
             /** Format: int64 */
             trans_id?: number | null;
             memo?: string | null;
@@ -642,11 +674,11 @@ export interface components {
             /** Format: int64 */
             team_id?: number;
             /** Format: int64 */
-            handler_id?: number;
+            handler_entity_id?: number;
             /** Format: int64 */
-            sender_id?: number | null;
+            sender_entity_id?: number | null;
             /** Format: int64 */
-            cs_id?: number | null;
+            cs_entity_id?: number | null;
             /** Format: int64 */
             customer_id?: number | null;
             /**
@@ -654,22 +686,22 @@ export interface components {
              * @enum {integer}
              */
             type?: 1 | 2;
-            /** Format: float */
-            total_price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            cash?: number;
-            /** Format: float */
-            prepaid?: number;
-            /** Format: float */
-            handler_cut?: number;
-            /** Format: float */
-            sender_cut?: number;
-            /** Format: float */
-            cs_cut?: number;
-            /** Format: float */
-            team_cut?: number;
+            /** @description Exact decimal string. */
+            total_price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            cash?: string;
+            /** @description Exact decimal string. */
+            prepaid?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string;
+            /** @description Exact decimal string. */
+            sender_cut?: string;
+            /** @description Exact decimal string. */
+            cs_cut?: string;
+            /** @description Exact decimal string. */
+            team_cut?: string;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
@@ -686,9 +718,9 @@ export interface components {
              * @description Unix timestamp, seconds
              */
             update_time?: number;
-            handler?: components["schemas"]["Member"];
-            sender?: components["schemas"]["Member"];
-            cs?: components["schemas"]["Member"];
+            handler?: components["schemas"]["Entity"];
+            sender?: components["schemas"]["Entity"];
+            cs?: components["schemas"]["Entity"];
             customer?: components["schemas"]["Customer"];
         };
         SenderBinding: {
@@ -699,22 +731,20 @@ export interface components {
             /** Format: int64 */
             customer_id?: number;
             /** Format: int64 */
-            member_id?: number;
+            entity_id?: number;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
              */
             create_time?: number;
             customer?: components["schemas"]["Customer"];
-            member?: components["schemas"]["Member"];
+            subject?: components["schemas"]["Entity"];
         };
         File: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             team_id?: number;
-            /** Format: int64 */
-            member_id?: number;
             hash?: string;
             name?: string;
             path?: string;
@@ -731,7 +761,12 @@ export interface components {
              * @description Unix timestamp, seconds
              */
             update_time?: number;
-            member?: components["schemas"]["Member"];
+            /**
+             * Format: int64
+             * @description 全局实体身份 ID，引用 entity.id；无实体上传时为 null。
+             */
+            entity_id?: number | null;
+            entity?: components["schemas"]["Entity"] | null;
         };
         FileUploadResult: {
             /** Format: int64 */
@@ -746,13 +781,9 @@ export interface components {
         };
         Document: {
             /** Format: int64 */
-            id?: number;
+            id: number;
             title?: string;
             content?: string | null;
-            /** @enum {string} */
-            documentable_type?: "team" | "teamMember";
-            /** Format: int64 */
-            documentable_id?: number;
             sort?: number;
             /**
              * Format: int64
@@ -776,23 +807,157 @@ export interface components {
             visibility?: 1 | 3 | 4 | 5 | 6;
             /** @description visibility=6(custom) 时生效 */
             visibility_targets?: components["schemas"]["VisibilityTarget"][];
+            /** Format: int64 */
+            entity_id: number;
+            subject?: components["schemas"]["Entity"];
         };
         VisibilityTarget: {
-            /** @enum {string} */
-            target_type: "team" | "teamMember";
             /** Format: int64 */
-            target_id: number;
+            entity_id: number;
+            subject?: components["schemas"]["Entity"];
+        };
+        Entity: {
+            /** Format: int64 */
+            id: number;
+            slug: string;
+            /** @enum {string} */
+            entityable_type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
+            /** Format: int64 */
+            entityable_id: number;
+            is_valid?: boolean;
+            is_searchable?: boolean;
+            name?: string;
+            avatar?: string | null;
+        };
+        EntityFieldValue: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            entity_id?: number;
+            /** Format: int64 */
+            field_id?: number;
+            value_string?: string | null;
+            value_text?: string | null;
+            /** Format: int64 */
+            value_int?: number | null;
+            /** Format: float */
+            value_decimal?: number | null;
+            /** Format: int64 */
+            value_datetime?: number | null;
+            value_json?: unknown;
+            field?: components["schemas"]["EntityField"];
+        };
+        EntityField: {
+            /** Format: int64 */
+            id?: number;
+            /** @enum {string} */
+            entity_type?: "entity" | "customer" | "virtual";
+            field_key?: string;
+            name?: string;
+            value_type?: string;
+            input_type?: string;
+            options?: unknown[] | null;
+            /** @enum {integer} */
+            is_required?: 0 | 1;
+            /** @enum {integer} */
+            is_editable?: 0 | 1;
+            /** @enum {integer} */
+            is_searchable?: 0 | 1;
+            /** @enum {integer} */
+            is_visible?: 0 | 1;
+            sort?: number;
+            /** @enum {string} */
+            source?: "system" | "custom";
+            default_value?: string | null;
+            /** @enum {integer} */
+            manager_scope?: 1 | 2;
+            /** @enum {integer} */
+            visibility?: 1 | 3 | 4 | 5 | 6;
+            /** @enum {integer} */
+            is_system?: 0 | 1;
+        };
+        StorefrontProfile: {
+            slug: string;
+            /** @enum {string} */
+            type: "team";
+            profile: {
+                name?: string;
+                avatar?: string | null;
+                description?: string | null;
+                intro_image?: string | null;
+                intro_video?: string | null;
+                introduction_markdown?: string | null;
+            };
+            fields?: components["schemas"]["AnyObject"][];
+            product_count: number;
+        };
+        StorefrontProduct: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            description?: string | null;
+            cover_image?: string | null;
+            /** @description Exact decimal string. */
+            price: string;
+        };
+        StorefrontHandler: {
+            /** Format: int64 */
+            entity_id: number;
+            slug: string;
+            name: string;
+            avatar?: string | null;
+        };
+        StorefrontProductDetail: components["schemas"]["StorefrontProduct"] & {
+            introduction_markdown?: string | null;
+            handlers?: components["schemas"]["StorefrontHandler"][];
+        };
+        CustomerBindResult: {
+            token?: string | null;
+            identity: components["schemas"]["AnyObject"];
+            customer: components["schemas"]["Customer"];
+            created: boolean;
+        };
+        CustomerOrder: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            product_id: number;
+            product_name: string;
+            product_cover_image?: string | null;
+            quantity: number;
+            /** @description Exact decimal string. */
+            unit_price: string;
+            /** @description Exact decimal string. */
+            total_price: string;
+            /** @description Exact decimal string. */
+            prepaid: string;
+            /**
+             * @description 1=???, 2=???, 3=???
+             * @enum {integer}
+             */
+            status: 1 | 2 | 3;
+            memo?: string | null;
+            /**
+             * Format: int64
+             * @description Unix timestamp, seconds
+             */
+            create_time: number;
+            /**
+             * Format: int64
+             * @description Unix timestamp, seconds
+             */
+            update_time: number;
+            handler?: components["schemas"]["StorefrontHandler"] | null;
         };
     };
     responses: never;
     parameters: {
-        /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+        /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
         PageId: string;
         Page: number;
         Limit: number;
         IdPath: number;
         IdQuery: number;
-        MemberIdQuery: number;
         CustomerIdQuery: number;
     };
     requestBodies: never;
@@ -806,12 +971,12 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 limit?: components["parameters"]["Limit"];
-                member_id?: number;
+                entity_id?: number;
                 is_active?: 0 | 1;
                 keyword?: string;
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -901,7 +1066,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -912,20 +1077,22 @@ export interface operations {
                 "application/json": {
                     name: string;
                     description?: string | null;
-                    /** Format: float */
-                    price: number;
-                    /** Format: float */
-                    cost?: number;
+                    /** @description Exact decimal string. */
+                    price: string;
+                    /** @description Exact decimal string. */
+                    cost?: string;
                     /** Format: int64 */
-                    member_id?: number | null;
-                    /** Format: float */
-                    handler_cut?: number | null;
-                    /** Format: float */
-                    sender_cut?: number | null;
-                    /** Format: float */
-                    cs_cut?: number | null;
-                    /** Format: float */
-                    team_cut?: number | null;
+                    entity_id?: number | null;
+                    /** @description Exact decimal string. */
+                    handler_cut?: string | null;
+                    /** @description Exact decimal string. */
+                    sender_cut?: string | null;
+                    /** @description Exact decimal string. */
+                    cs_cut?: string | null;
+                    /** @description Exact decimal string. */
+                    team_cut?: string | null;
+                    cover_image: string | null;
+                    introduction_markdown?: string | null;
                 };
             };
         };
@@ -1010,7 +1177,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path: {
@@ -1100,7 +1267,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path: {
@@ -1113,23 +1280,25 @@ export interface operations {
                 "application/json": {
                     name?: string;
                     description?: string | null;
-                    /** Format: float */
-                    price?: number;
-                    /** Format: float */
-                    cost?: number;
+                    /** @description Exact decimal string. */
+                    price?: string;
+                    /** @description Exact decimal string. */
+                    cost?: string;
                     /**
                      * @description 0=false, 1=true
                      * @enum {integer}
                      */
                     is_active?: 0 | 1;
-                    /** Format: float */
-                    handler_cut?: number | null;
-                    /** Format: float */
-                    sender_cut?: number | null;
-                    /** Format: float */
-                    cs_cut?: number | null;
-                    /** Format: float */
-                    team_cut?: number | null;
+                    /** @description Exact decimal string. */
+                    handler_cut?: string | null;
+                    /** @description Exact decimal string. */
+                    sender_cut?: string | null;
+                    /** @description Exact decimal string. */
+                    cs_cut?: string | null;
+                    /** @description Exact decimal string. */
+                    team_cut?: string | null;
+                    cover_image?: string | null;
+                    introduction_markdown?: string | null;
                 };
             };
         };
@@ -1212,7 +1381,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path: {
@@ -1300,7 +1469,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path: {
@@ -1311,7 +1480,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    member_ids: number[];
+                    entity_ids: number[];
                 };
             };
         };
@@ -1396,13 +1565,13 @@ export interface operations {
                 page?: components["parameters"]["Page"];
                 limit?: components["parameters"]["Limit"];
                 customer_id?: number;
-                handler_id?: number;
+                handler_entity_id?: number;
                 status?: 1 | 2;
                 start_time?: number;
                 end_time?: number;
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -1492,7 +1661,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -1503,24 +1672,27 @@ export interface operations {
                 "application/json": {
                     /** Format: int64 */
                     product_id: number;
-                    /** Format: int64 */
+                    /**
+                     * Format: int64
+                     * @description 传入时从该客户预存款支付；不传时创建现金订单。
+                     */
                     customer_id?: number | null;
                     /** Format: int64 */
-                    handler_id?: number | null;
+                    handler_entity_id?: number | null;
                     /** Format: int64 */
-                    sender_id?: number | null;
+                    sender_entity_id?: number | null;
                     /** Format: int64 */
-                    cs_id?: number | null;
+                    cs_entity_id?: number | null;
                     /** @default 1 */
                     quantity?: number;
-                    /** Format: float */
-                    handler_cut?: number | null;
-                    /** Format: float */
-                    sender_cut?: number | null;
-                    /** Format: float */
-                    cs_cut?: number | null;
-                    /** Format: float */
-                    team_cut?: number | null;
+                    /** @description 显式传入时表示整单分成；省略时使用商品单件默认值乘以 quantity。 Exact decimal string. */
+                    handler_cut?: string | null;
+                    /** @description 显式传入时表示整单分成；省略时使用商品单件默认值乘以 quantity。 Exact decimal string. */
+                    sender_cut?: string | null;
+                    /** @description 显式传入时表示整单分成；省略时使用商品单件默认值乘以 quantity。 Exact decimal string. */
+                    cs_cut?: string | null;
+                    /** @description 显式传入时表示整单分成；省略时取总价减成本及其他分成后的余额。 Exact decimal string. */
+                    team_cut?: string | null;
                     memo?: string | null;
                 };
             };
@@ -1606,7 +1778,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path: {
@@ -1696,7 +1868,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path: {
@@ -1784,7 +1956,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path: {
@@ -1872,7 +2044,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -1961,12 +2133,12 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 limit?: components["parameters"]["Limit"];
-                status?: 1 | 2;
+                status?: 1 | 2 | 3;
                 start_time?: number;
                 end_time?: number;
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -1982,8 +2154,108 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
                         data?: components["schemas"]["PaginationBase"] & {
-                            list?: components["schemas"]["Order"][];
+                            list?: components["schemas"]["CustomerOrder"][];
                         };
+                    };
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    shopCustomerPurchase: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    product_id: number;
+                    /** @default 1 */
+                    quantity?: number;
+                    /** Format: int64 */
+                    handler_entity_id?: number | null;
+                    memo?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description ?? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["IdResult"];
                     };
                 };
             };
@@ -2062,7 +2334,7 @@ export interface operations {
                 end_time?: number;
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2152,7 +2424,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2243,7 +2515,7 @@ export interface operations {
                 limit?: components["parameters"]["Limit"];
             };
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -2262,6 +2534,541 @@ export interface operations {
                             list?: components["schemas"]["BalanceLog"][];
                         };
                     };
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    shopStorefront: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ?? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["StorefrontProfile"];
+                    };
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    shopStorefrontProducts: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ?? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["PaginationBase"] & {
+                            list?: components["schemas"]["StorefrontProduct"][];
+                        };
+                    };
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    shopStorefrontProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ?? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["StorefrontProductDetail"];
+                    };
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    shopCustomerBind: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description ??????????? customer-{id} */
+                    slug?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description ?? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["CustomerBindResult"];
+                    };
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    shopCustomerOrder: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ?? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["CustomerOrder"];
+                    };
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    shopCustomerCancelOrder: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path: {
+                id: components["parameters"]["IdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description ??????????????? */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
                 };
             };
             /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */

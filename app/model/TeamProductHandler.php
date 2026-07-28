@@ -14,7 +14,7 @@ class TeamProductHandler extends Base
     protected $type = [
         'id'          => 'integer',
         'product_id'  => 'integer',
-        'member_id'   => 'integer',
+        'entity_id'   => 'integer',
         'create_time' => 'integer',
         'update_time' => 'integer',
         'delete_time' => 'integer',
@@ -26,15 +26,15 @@ class TeamProductHandler extends Base
 
     protected $append = [];
 
-    protected $readonly = ['product_id', 'member_id'];
+    protected $readonly = ['product_id', 'entity_id'];
 
     public function product()
     {
         return $this->belongsTo(TeamProduct::class, 'product_id');
     }
 
-    public function member()
+    public function subject()
     {
-        return $this->belongsTo(TeamMember::class, 'member_id');
+        return $this->belongsTo(Entity::class, 'entity_id');
     }
 }

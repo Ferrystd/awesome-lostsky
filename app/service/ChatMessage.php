@@ -12,10 +12,10 @@ use think\exception\HttpException;
 
 class ChatMessage
 {
-    public function list(int $teamId, string $uuid, int $memberId, int $customerId, int $beforeId = 0, int $limit = 50): array
+    public function list(int $teamId, string $uuid, array $actingEntity, int $beforeId = 0, int $limit = 50): array
     {
         $conversation = app(ChatConversation::class)->model($teamId, $uuid, true);
-        app(ChatConversation::class)->assertAccess($conversation, $teamId, $memberId, $customerId);
+        app(ChatConversation::class)->assertAccess($conversation, $teamId, $actingEntity);
         $query = ChatMessageModel::where('conversation_id', $conversation->id);
         if ($conversation->enumCase('kind') === ChatConversationKind::Group) {
             $settings = app(TeamSetting::class)->internal($teamId, 'chat');
@@ -24,8 +24,7 @@ class ChatMessage
                 $query->where('create_time', '>=', $this->eligibleJoinTime(
                     $conversation->participants,
                     $teamId,
-                    $memberId,
-                    $customerId
+                    $actingEntity
                 ));
             }
         }
@@ -38,7 +37,7 @@ class ChatMessage
         return array_map(fn ($message) => $this->summary($message), $rows);
     }
 
-    public function send(int $teamId, int $memberId, int $customerId, array $data, ?int $integrationId = null): array
+    public function send(int $teamId, array $actingEntity, array $data, ?int $integrationId = null): array
     {
         $data['content'] = trim((string) ($data['content'] ?? ''));
         $this->validate('send', $data);
@@ -49,10 +48,10 @@ class ChatMessage
 
         $actor = app(ChatActor::class)->resolve($teamId, (string) $data['actor_slug']);
         if ($integrationId === null) {
-            app(ChatActor::class)->assertCanAct($actor, $teamId, $memberId, $customerId);
+            app(ChatActor::class)->assertCanAct($actor, $teamId, $actingEntity);
         }
         $participant = ChatParticipant::where('conversation_id', $conversation->id)
-            ->where('actor_type', $actor['type']->value)->where('actor_id', $actor['id'])
+            ->where('entity_id', $actor['entity_id'])
             ->whereNull('left_at')->find();
         if (!$participant) {
             throw new HttpException(403, '该身份不是会话参与者');
@@ -68,7 +67,7 @@ class ChatMessage
             $message = app(ChatMessageModel::class, [], true);
             $message->save([
                 'team_id' => $teamId, 'conversation_id' => $conversation->id,
-                'sender_type' => $actor['type'], 'sender_id' => $actor['id'], 'reply_id' => $replyId,
+                'entity_id' => $actor['entity_id'], 'reply_id' => $replyId,
                 'origin_integration_id' => $integrationId, 'content' => $data['content'],
             ]);
             $conversation->save(['last_message_id' => $message->id, 'last_message_at' => time()]);
@@ -78,12 +77,12 @@ class ChatMessage
         return $this->summary($message);
     }
 
-    public function edit(int $teamId, int $memberId, int $customerId, int $messageId, string $content): void
+    public function edit(int $teamId, array $actingEntity, int $messageId, string $content): void
     {
         $content = trim($content);
         $this->validate('edit', ['message_id' => $messageId, 'content' => $content]);
         $message = $this->message($teamId, $messageId);
-        $this->assertMessageAction($message, $teamId, $memberId, $customerId, 'edit');
+        $this->assertMessageAction($message, $teamId, $actingEntity, 'edit');
         if ($message->revoked_at) {
             throw new HttpException(409, '已撤回消息不能编辑');
         }
@@ -93,10 +92,10 @@ class ChatMessage
         });
     }
 
-    public function revoke(int $teamId, int $memberId, int $customerId, int $messageId): void
+    public function revoke(int $teamId, array $actingEntity, int $messageId): void
     {
         $message = $this->message($teamId, $messageId);
-        $this->assertMessageAction($message, $teamId, $memberId, $customerId, 'revoke');
+        $this->assertMessageAction($message, $teamId, $actingEntity, 'revoke');
         if ($message->revoked_at) {
             return;
         }
@@ -106,14 +105,14 @@ class ChatMessage
         });
     }
 
-    public function read(int $teamId, string $uuid, string $actorSlug, int $memberId, int $customerId, int $messageId): void
+    public function read(int $teamId, string $uuid, string $actorSlug, array $actingEntity, int $messageId): void
     {
         $conversation = app(ChatConversation::class)->model($teamId, $uuid, true);
-        app(ChatConversation::class)->assertAccess($conversation, $teamId, $memberId, $customerId);
+        app(ChatConversation::class)->assertAccess($conversation, $teamId, $actingEntity);
         $actor = app(ChatActor::class)->resolve($teamId, $actorSlug);
-        app(ChatActor::class)->assertCanAct($actor, $teamId, $memberId, $customerId);
+        app(ChatActor::class)->assertCanAct($actor, $teamId, $actingEntity);
         $participant = ChatParticipant::where('conversation_id', $conversation->id)
-            ->where('actor_type', $actor['type']->value)->where('actor_id', $actor['id'])
+            ->where('entity_id', $actor['entity_id'])
             ->whereNull('left_at')->find();
         if (!$participant) {
             throw new HttpException(403, '该身份不是会话参与者');
@@ -130,12 +129,16 @@ class ChatMessage
         }
     }
 
-    private function assertMessageAction(ChatMessageModel $message, int $teamId, int $memberId, int $customerId, string $action): void
+    private function assertMessageAction(ChatMessageModel $message, int $teamId, array $actingEntity, string $action): void
     {
-        $summary = app(ChatActor::class)->summary($message->enumCase('sender_type'), (int) $message->sender_id);
+        $summary = app(ChatActor::class)->summaryEntity((int) $message->entity_id);
         $actor = !empty($summary['slug']) ? app(ChatActor::class)->resolve($teamId, (string) $summary['slug']) : null;
-        $own = $actor && app(ChatActor::class)->canAct($actor, $teamId, $memberId, $customerId);
-        if (!$own && !app(PermissionGate::class)->allows($teamId, request()->acting_entity ?: $memberId, ['chat.message.moderate'])) {
+        $own = $actor && app(ChatActor::class)->canAct($actor, $teamId, $actingEntity);
+        if (!$own && !app(PermissionGate::class)->allows(
+            $teamId,
+            $actingEntity,
+            [PermissionDictionary::CHAT_MESSAGE_MODERATE]
+        )) {
             throw new HttpException(403, '你不能操作该消息');
         }
         if ($own) {
@@ -162,7 +165,7 @@ class ChatMessage
         return [
             'id' => (int) $message->id,
             'conversation' => (string) ($message->conversation?->uuid ?? ''),
-            'sender' => app(ChatActor::class)->summary($message->enumCase('sender_type'), (int) $message->sender_id),
+            'sender' => app(ChatActor::class)->summaryEntity((int) $message->entity_id),
             'content' => $message->content, 'reply_id' => $message->reply_id,
             'edited_at' => $message->edited_at, 'revoked_at' => $message->revoked_at,
             'create_time' => (int) $message->getData('create_time'),
@@ -172,24 +175,17 @@ class ChatMessage
     private function eligibleJoinTime(
         iterable $participants,
         int $teamId,
-        int $memberId,
-        int $customerId
+        array $actingEntity
     ): int {
         $joinedAt = [];
         foreach ($participants as $participant) {
             if ($participant->left_at) {
                 continue;
             }
-            $type = $participant->enumCase('actor_type');
-            $eligible = match ($type) {
-                ChatActorType::Member => (int) $participant->actor_id === $memberId,
-                ChatActorType::Customer => (int) $participant->actor_id === $customerId,
-                ChatActorType::Virtual => $this->canOperateVirtual(
-                    $teamId,
-                    $memberId,
-                    (int) $participant->actor_id
-                ),
-            };
+            $actor = app(ChatActor::class)->actorEntity((int) $participant->entity_id);
+            $eligible = (int) $participant->entity_id === (int) ($actingEntity['entity_id'] ?? 0)
+                || ($actor['type'] === ChatActorType::Virtual
+                    && $this->canOperateVirtual($teamId, $actingEntity, (int) $actor['id']));
             if ($eligible) {
                 $joinedAt[] = (int) $participant->joined_at;
             }
@@ -197,13 +193,13 @@ class ChatMessage
         return $joinedAt ? min($joinedAt) : time();
     }
 
-    private function canOperateVirtual(int $teamId, int $memberId, int $virtualId): bool
+    private function canOperateVirtual(int $teamId, array $actingEntity, int $virtualId): bool
     {
         $summary = app(ChatActor::class)->summary(ChatActorType::Virtual, $virtualId);
         $slug = (string) ($summary['slug'] ?? '');
-        return $slug !== '' && app(PermissionGate::class)->allows($teamId, $memberId, [
-            'chat.virtual.*.operate',
-            "chat.virtual.{$slug}.operate",
+        return $slug !== '' && app(PermissionGate::class)->allows($teamId, $actingEntity, [
+            PermissionDictionary::CHAT_VIRTUAL_ALL_OPERATE,
+            PermissionDictionary::virtual($slug, 'operate'),
         ]);
     }
 

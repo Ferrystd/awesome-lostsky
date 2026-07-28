@@ -3,13 +3,121 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\model\Entity;
 use app\model\Team;
 use app\model\TeamNotice;
 use think\exception\HttpException;
 
 class Notice
 {
+    /**
+     * LostSky -> Team。保留原有公开方法与团队收件语义。
+     */
     public function send(int $teamId, string $title, ?string $content = null, bool $isPinned = false): array
+    {
+        $this->assertTeam($teamId);
+
+        return $this->create([
+            'team_id' => $teamId,
+            'sender_team_id' => null,
+            'entity_id' => null,
+        ], $title, $content, $isPinned);
+    }
+
+    /**
+     * Team -> Entity。执行者权限由 HTTP 中间件校验，通知以 Team 名义发送。
+     */
+    public function sendToEntity(
+        int $senderTeamId,
+        int $entityId,
+        string $title,
+        ?string $content = null,
+        bool $isPinned = false
+    ): array {
+        $this->assertTeam($senderTeamId);
+        $recipient = app(\app\service\Entity::class)->assertInTeam($entityId, $senderTeamId);
+        if ((string) $recipient->entityable_type === 'team') {
+            throw new HttpException(422, 'Team 发件不能以发送 Team 自身作为收件对象');
+        }
+
+        return $this->create([
+            'team_id' => null,
+            'sender_team_id' => $senderTeamId,
+            'entity_id' => $entityId,
+        ], $title, $content, $isPinned);
+    }
+
+    public function list(int $teamId, array $filters = [], int $page = 1, int $limit = 20): array
+    {
+        return $this->listing('team_id', $teamId, $filters, $page, $limit);
+    }
+
+    public function listForEntity(int $entityId, array $filters = [], int $page = 1, int $limit = 20): array
+    {
+        if (!$this->canReceive($entityId)) {
+            return ['list' => [], 'total' => 0, 'page' => max(1, $page), 'limit' => max(1, min(100, $limit))];
+        }
+
+        return $this->listing('entity_id', $entityId, $filters, $page, $limit);
+    }
+
+    public function get(int $teamId, int $id): array
+    {
+        return $this->notice('team_id', $teamId, $id)->toArray();
+    }
+
+    public function getForEntity(int $entityId, int $id): array
+    {
+        return $this->notice('entity_id', $entityId, $id)->toArray();
+    }
+
+    public function confirm(int $teamId, int $id): void
+    {
+        $this->markRead($this->notice('team_id', $teamId, $id));
+    }
+
+    public function confirmForEntity(int $entityId, int $id): void
+    {
+        $this->markRead($this->notice('entity_id', $entityId, $id));
+    }
+
+    public function confirmAll(int $teamId): int
+    {
+        return $this->confirmAllFor('team_id', $teamId);
+    }
+
+    public function confirmAllForEntity(int $entityId): int
+    {
+        if (!$this->canReceive($entityId)) {
+            return 0;
+        }
+
+        return $this->confirmAllFor('entity_id', $entityId);
+    }
+
+    public function receive(int $teamId, int $id): void
+    {
+        $this->notice('team_id', $teamId, $id);
+        throw new HttpException(501, '站内信资产收取暂未实现');
+    }
+
+    public function receiveForEntity(int $entityId, int $id): void
+    {
+        $this->notice('entity_id', $entityId, $id);
+        throw new HttpException(501, '站内信资产收取暂未实现');
+    }
+
+    public function receiveAll(int $teamId): void
+    {
+        throw new HttpException(501, '站内信资产批量收取暂未实现');
+    }
+
+    public function receiveAllForEntity(int $entityId): void
+    {
+        throw new HttpException(501, '站内信资产批量收取暂未实现');
+    }
+
+    private function create(array $recipient, string $title, ?string $content, bool $isPinned): array
     {
         $title = trim($title);
         $length = function_exists('mb_strlen') ? mb_strlen($title) : strlen($title);
@@ -17,41 +125,38 @@ class Notice
             throw new HttpException(422, '通知标题不能为空且不得超过 200 个字符');
         }
 
-        if ($teamId <= 0) {
-            throw new HttpException(422, '目标团队 ID 必须为正整数');
-        }
-
-        if (!Team::active()->find($teamId)) {
-            throw new HttpException(404, '目标团队不存在或不可用');
-        }
-
-        $notice = app(TeamNotice::class);
-        $notice->save([
-            'team_id'   => $teamId,
-            'title'     => $title,
-            'content'   => $content,
+        $notice = app(TeamNotice::class, [], true);
+        $notice->save(array_merge($recipient, [
+            'title' => $title,
+            'content' => $content,
             'is_pinned' => $isPinned ? 1 : 0,
-            'is_read'   => 0,
-        ]);
+            'is_read' => 0,
+        ]));
 
         return [
-            'id'        => (int) $notice->id,
-            'team_id'   => $teamId,
+            'id' => (int) $notice->id,
+            'team_id' => $notice->team_id === null ? null : (int) $notice->team_id,
+            'sender_team_id' => $notice->sender_team_id === null ? null : (int) $notice->sender_team_id,
+            'entity_id' => $notice->entity_id === null ? null : (int) $notice->entity_id,
             'is_pinned' => (int) $notice->is_pinned,
         ];
     }
 
-    public function list(int $teamId, array $filters = [], int $page = 1, int $limit = 20): array
-    {
-        $page  = max(1, $page);
+    private function listing(
+        string $recipientColumn,
+        int $recipientId,
+        array $filters,
+        int $page,
+        int $limit
+    ): array {
+        $page = max(1, $page);
         $limit = max(1, min(100, $limit));
-
-        $query = TeamNotice::where('team_id', $teamId);
+        $query = TeamNotice::where($recipientColumn, $recipientId)
+            ->whereNull($recipientColumn === 'team_id' ? 'entity_id' : 'team_id');
 
         if (($filters['is_read'] ?? '') !== '') {
             $query->where('is_read', (int) $filters['is_read']);
         }
-
         if (($filters['keyword'] ?? '') !== '') {
             $keyword = trim((string) $filters['keyword']);
             $query->where(function ($query) use ($keyword) {
@@ -61,61 +166,56 @@ class Notice
         }
 
         $total = (clone $query)->count();
-        $list  = $query
-            ->order('is_pinned', 'desc')
+        $list = $query->order('is_pinned', 'desc')
             ->order('id', 'desc')
             ->page($page, $limit)
             ->select()
             ->toArray();
 
-        return [
-            'list'  => $list,
-            'total' => $total,
-            'page'  => $page,
-            'limit' => $limit,
-        ];
+        return ['list' => $list, 'total' => $total, 'page' => $page, 'limit' => $limit];
     }
 
-    public function get(int $teamId, int $id): array
+    private function notice(string $recipientColumn, int $recipientId, int $id): TeamNotice
     {
-        return $this->notice($teamId, $id)->toArray();
-    }
-
-    public function confirm(int $teamId, int $id): void
-    {
-        $notice = $this->notice($teamId, $id);
-        if ((int) $notice->is_read === 1) {
-            return;
-        }
-
-        $notice->save(['is_read' => 1]);
-    }
-
-    public function confirmAll(int $teamId): int
-    {
-        return TeamNotice::where('team_id', $teamId)
-            ->where('is_read', 0)
-            ->update(['is_read' => 1]);
-    }
-
-    public function receive(int $teamId, int $id): void
-    {
-        $this->notice($teamId, $id);
-        throw new HttpException(501, '站内信资产收取暂未实现');
-    }
-
-    public function receiveAll(int $teamId): void
-    {
-        throw new HttpException(501, '站内信资产批量收取暂未实现');
-    }
-
-    private function notice(int $teamId, int $id): TeamNotice
-    {
-        $notice = TeamNotice::where('team_id', $teamId)->find($id);
+        $notice = TeamNotice::where($recipientColumn, $recipientId)
+            ->whereNull($recipientColumn === 'team_id' ? 'entity_id' : 'team_id')
+            ->find($id);
         if (!$notice) {
             throw new HttpException(404, '站内信不存在');
         }
 
         return $notice;
+    }
+
+    private function markRead(TeamNotice $notice): void
+    {
+        if ((int) $notice->is_read !== 1) {
+            $notice->save(['is_read' => 1]);
+        }
+    }
+
+    private function confirmAllFor(string $recipientColumn, int $recipientId): int
+    {
+        return TeamNotice::where($recipientColumn, $recipientId)
+            ->whereNull($recipientColumn === 'team_id' ? 'entity_id' : 'team_id')
+            ->where('is_read', 0)
+            ->update(['is_read' => 1]);
+    }
+
+    private function assertTeam(int $teamId): void
+    {
+        if ($teamId <= 0) {
+            throw new HttpException(422, '目标团队 ID 必须为正整数');
+        }
+        if (!Team::active()->find($teamId)) {
+            throw new HttpException(404, '目标团队不存在或不可用');
+        }
+    }
+
+    private function canReceive(int $entityId): bool
+    {
+        $entity = Entity::find($entityId);
+
+        return $entity && $entity->is_valid && (string) $entity->entityable_type !== 'team';
     }
 }

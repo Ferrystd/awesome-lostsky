@@ -3,16 +3,17 @@ declare (strict_types = 1);
 
 namespace app\team\controller;
 
+use app\service\PermissionDictionary as Permissions;
+
 class ChatIntegration
 {
     protected $middleware = [
         'JwtAuth',
         'Context',
         'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamBelongs',
-        'MemberAccess',
+        'TeamAuth',
         [
-            'middleware' => ['Permission', ['chat.virtual.<slug>.manage']],
+            'middleware' => ['Permission', [Permissions::CHAT_VIRTUAL_MANAGE_TEMPLATE]],
         ],
     ];
 

@@ -13,7 +13,7 @@ use think\Response;
  *
  * 优先使用 X-Request-Id 防重放；旧客户端仍可通过 X-Page-Id + 请求内容防重复提交。
  *
- * 非网页请求（缺少 X-Request-Id 和 X-Page-Id）直接放行，不做拦截。
+ * 缺少客户端标识时仍按请求主体、路径和内容生成服务端防重键。
  */
 class Dedup
 {
@@ -22,9 +22,10 @@ class Dedup
         $pageId    = trim((string) $request->header('X-Page-Id'));
         $requestId = trim((string) $request->header('X-Request-Id'));
 
-        if ($this->shouldPass($request, $pageId, $requestId)) {
+        if ($this->shouldPass($request)) {
             return $next($request);
         }
+        $this->validateIdentifiers($pageId, $requestId);
 
         $hash = $this->buildHash($request, $pageId, $requestId);
 
@@ -32,15 +33,7 @@ class Dedup
         $this->randomCleanup();
         $this->forgetExpiredHash($hash);
 
-        // 检查是否已存在（重复提交/重放）
-        if ($this->hasHash($hash)) {
-            throw new HttpException(429, '请勿重复提交');
-        }
-
-        // 存储哈希
-        $cache = new ApiRequestCache();
-        $cache->hash = $hash;
-        $cache->save();
+        $this->reserve($hash);
 
         try {
             $response = $next($request);
@@ -61,16 +54,23 @@ class Dedup
      */
     private function buildHash(Request $request, string $pageId, string $requestId): string
     {
+        $principal = hash('sha256', (string) $request->header('Authorization'));
         $raw = $requestId !== ''
-            ? implode('|', [$request->url(), $request->method(), $requestId])
-            : implode('|', [
+            ? implode('|', [$request->url(), $request->method(), $principal, $requestId])
+            : ($pageId !== '' ? implode('|', [
                 $request->url(),
                 $request->method(),
+                $principal,
                 json_encode($request->param(), JSON_UNESCAPED_UNICODE),
                 $pageId,
-            ]);
+            ]) : implode('|', [
+                $request->url(),
+                $request->method(),
+                $principal,
+                json_encode($request->param(), JSON_UNESCAPED_UNICODE),
+            ]));
 
-        return md5($raw);
+        return hash('sha256', $raw);
     }
 
     /**
@@ -90,13 +90,39 @@ class Dedup
         ApiRequestCache::where('create_time', '<', time() - $expire)->delete();
     }
 
-    private function shouldPass(Request $request, string $pageId, string $requestId): bool
+    private function shouldPass(Request $request): bool
     {
-        if ($pageId === '' && $requestId === '') {
-            return true;
-        }
-
         return in_array($request->method(true), ['OPTIONS', 'GET', 'HEAD'], true);
+    }
+
+    private function validateIdentifiers(string $pageId, string $requestId): void
+    {
+        foreach ([$pageId, $requestId] as $identifier) {
+            if ($identifier !== '' && (strlen($identifier) > 128
+                || !preg_match('/^[A-Za-z0-9._:-]+$/', $identifier))) {
+                throw new HttpException(422, '请求幂等标识格式不正确');
+            }
+        }
+    }
+
+    private function reserve(string $hash): void
+    {
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $this->forgetExpiredHash($hash);
+            try {
+                $cache = new ApiRequestCache();
+                $cache->hash = $hash;
+                $cache->save();
+                return;
+            } catch (\Throwable $exception) {
+                if ($this->hasHash($hash)) {
+                    throw new HttpException(429, '请勿重复提交');
+                }
+                if ($attempt === 1) {
+                    throw $exception;
+                }
+            }
+        }
     }
 
     private function isSuccessfulResponse(Response $response): bool

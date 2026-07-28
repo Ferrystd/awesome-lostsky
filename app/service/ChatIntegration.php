@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\model\TeamVirtualIntegration;
+use app\model\TeamVirtual;
 use think\exception\HttpException;
 
 class ChatIntegration
@@ -74,6 +75,19 @@ class ChatIntegration
             throw new HttpException(401, '集成令牌无效');
         }
         return $integration;
+    }
+
+    public function authenticateActor(string $token): array
+    {
+        $integration = $this->authenticate($token);
+        $virtual = TeamVirtual::with(['identity'])
+            ->where('team_id', $integration->team_id)
+            ->find($integration->virtual_id);
+        if (!$virtual || !$virtual->slug) {
+            throw new HttpException(401, '集成对应的虚拟实体不可用');
+        }
+
+        return ['integration' => $integration, 'virtual' => $virtual];
     }
 
     private function integration(int $teamId, string $slug, int $id): TeamVirtualIntegration

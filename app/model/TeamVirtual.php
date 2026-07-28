@@ -11,7 +11,6 @@ class TeamVirtual extends Base
         'update_time' => 'integer',
         'delete_time' => 'integer',
         'team_id'     => 'integer',
-        'name'        => 'string',
         'is_active'   => 'integer',
     ];
 
@@ -30,11 +29,6 @@ class TeamVirtual extends Base
         return false;
     }
 
-    public function setNameAttr($value): string
-    {
-        return trim((string) $value);
-    }
-
     public function team()
     {
         return $this->belongsTo(Team::class, 'team_id');
@@ -42,9 +36,17 @@ class TeamVirtual extends Base
 
     public function identity()
     {
-        return $this->morphOne(EntityIdentity::class, 'entityable', 'teamVirtual')
+        return $this->morphOne(Entity::class, 'entityable', 'teamVirtual')
             ->bind(['slug']);
     }
+
+    public function profile()
+    {
+        return $this->hasOne(TeamEntityProfile::class, 'entity_id', 'root_entity_id')
+            ->bind(['name', 'avatar', 'description']);
+    }
+
+    public function getRootEntityIdAttr(): int { return (int) ($this->identity?->id ?? 0); }
 
     public function integrations()
     {

@@ -15,23 +15,23 @@ class File extends Base
         'size'        => 'integer',
         // team_id 允许为 NULL(system file)，不能声明 integer，否则 NULL 会被转换为 0
         // 'team_id'     => 'integer|null',
-        // member_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
-        // 'member_id'   => 'integer|null',
+        // entity_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
+        // 'entity_id'   => 'integer|null',
     ];
 
     protected $json = [];
 
     protected $hidden = ['delete_time'];
 
-    protected $readonly = ['hash', 'team_id', 'member_id'];
+    protected $readonly = ['hash', 'team_id', 'entity_id'];
 
     public function team()
     {
         return $this->belongsTo(Team::class, 'team_id');
     }
 
-    public function member()
+    public function subject()
     {
-        return $this->belongsTo(TeamMember::class, 'member_id');
+        return $this->belongsTo(Entity::class, 'entity_id');
     }
 }

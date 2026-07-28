@@ -1,0 +1,79 @@
+[project]
+site_name = "LostSky 文档"
+site_url = "https://docs.lostsky.work"
+site_description = "LostSky 的公开术语、架构与开发文档。"
+site_author = "LostSky"
+copyright = "Copyright &copy; 2026 LostSky"
+docs_dir = "docs"
+site_dir = "www/docs.lostsky.work"
+nav = [
+  {"首页" = "index.md"},
+  {"项目" = [
+    "product.md",
+    "design.md",
+    "overview.md",
+    "getting-started.md",
+    "updates.md",
+    "changelog.md"
+  ]},
+  {"术语" = [
+    "glossary/index.md",
+    {"Entity" = "glossary/entity.md"},
+    {"Slug" = "glossary/slug.md"},
+    {"Permission" = "glossary/permission.md"},
+    {"Ability" = "glossary/ability.md"},
+    {"Context" = "glossary/context.md"},
+    {"Service" = "glossary/service.md"},
+    {"团队成员" = "glossary/team-member.md"},
+    {"团队客户" = "glossary/team-customer.md"},
+    {"团队域名" = "glossary/team-domain.md"}
+  ]},
+  {"应用" = [
+    "apps/account.md",
+    "apps/chat.md",
+    "apps/common.md",
+    "apps/display.md",
+    "apps/shop.md",
+    "apps/team.md",
+    "apps/transaction.md"
+  ]},
+  {"架构" = [
+    "architecture/routing.md",
+    "architecture/entity-authorization.md",
+    "architecture/permissions.md",
+    "architecture/cors.md"
+  ]},
+  {"开发" = [
+    "development/contributing.md",
+    "development/development.md",
+    "development/checklist.md",
+    "development/backend.md",
+    "development/frontend.md",
+    "development/testing.md",
+    "development/releasing.md",
+    "development/wiki.md"
+  ]},
+  {"运维" = [
+    "operations/deployment.md",
+    "operations/assets-cors.md",
+    "operations/console.md"
+  ]},
+  {"API" = ["openapi/README.md"]},
+  {"计划" = [
+    "TODO.md",
+    "plans/markdown-ai.md",
+    "plans/trade.md",
+    "plans/weibo-bot.md"
+  ]}
+]
+
+[project.theme]
+language = "zh"
+features = [
+  "navigation.tabs",
+  "navigation.sections",
+  "navigation.path",
+  "navigation.top",
+  "search.highlight",
+  "content.code.copy"
+]

@@ -6,7 +6,7 @@ import { NDatePicker } from 'naive-ui'
 import { computed, ref } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
 import { integer, money } from '../lib'
-import type { CustomerStat, MemberStat, StatsSummary, TimelineStat } from '../types'
+import type { CustomerStat, EntityStat, StatsSummary, TimelineStat } from '../types'
 
 const now = new Date()
 const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
@@ -20,13 +20,13 @@ const queries = useQueries({
   queries: computed(() => [
     { queryKey: ['transaction-stats', 'summary', params.value], queryFn: () => api.get<StatsSummary>('/transaction/stats', { ...params.value, type: 'summary' }) },
     { queryKey: ['transaction-stats', 'timeline', params.value], queryFn: () => api.get<TimelineStat[]>('/transaction/stats', { ...params.value, type: 'timeline', granularity: 'day' }) },
-    { queryKey: ['transaction-stats', 'members', params.value], queryFn: () => api.get<MemberStat[]>('/transaction/stats', { ...params.value, type: 'byMember', role: 'handler' }) },
+    { queryKey: ['transaction-stats', 'entities', params.value], queryFn: () => api.get<EntityStat[]>('/transaction/stats', { ...params.value, type: 'byEntity', role: 'handler' }) },
     { queryKey: ['transaction-stats', 'customers', params.value], queryFn: () => api.get<CustomerStat[]>('/transaction/stats', { ...params.value, type: 'byCustomer' }) },
   ]),
 })
 const summary = computed(() => queries.value[0]?.data as StatsSummary | undefined)
 const timeline = computed(() => (queries.value[1]?.data ?? []) as TimelineStat[])
-const members = computed(() => (queries.value[2]?.data ?? []) as MemberStat[])
+const entities = computed(() => (queries.value[2]?.data ?? []) as EntityStat[])
 const customers = computed(() => (queries.value[3]?.data ?? []) as CustomerStat[])
 const pending = computed(() => queries.value.some(item => item.isPending))
 const error = computed(() => queries.value.find(item => item.error)?.error)
@@ -62,13 +62,13 @@ const maxTimeline = computed(() => Math.max(1, ...timeline.value.map(item => Num
       <section class="rankings">
         <article class="panel">
           <div class="section-title"><div><h3>接单人分配</h3><p>按分配金额从高到低</p></div></div>
-          <ol><li v-for="item in members" :key="String(item.member_id)"><span>{{ item.nickname || '团队主体' }}<small>{{ item.count }} 笔</small></span><strong>{{ money(item.amount) }}</strong></li></ol>
-          <p v-if="!members.length" class="hint">暂无接单人统计。</p>
+          <ol v-if="entities.length"><li v-for="item in entities" :key="String(item.entity_id)"><span>{{ item.name || '团队主体' }}<small>{{ item.count }} 笔</small></span><strong>{{ money(item.amount) }}</strong></li></ol>
+          <p v-else class="hint">暂无接单人统计。</p>
         </article>
         <article class="panel">
           <div class="section-title"><div><h3>客户贡献</h3><p>按成交金额从高到低</p></div></div>
-          <ol><li v-for="item in customers" :key="String(item.customer_id)"><span>{{ item.customer_name || '未关联客户' }}<small>{{ item.count }} 笔</small></span><strong>{{ money(item.amount) }}</strong></li></ol>
-          <p v-if="!customers.length" class="hint">暂无客户统计。</p>
+          <ol v-if="customers.length"><li v-for="item in customers" :key="String(item.customer_id)"><span>{{ item.customer_name || '未关联客户' }}<small>{{ item.count }} 笔</small></span><strong>{{ money(item.amount) }}</strong></li></ol>
+          <p v-else class="hint">暂无客户统计。</p>
         </article>
       </section>
     </template>

@@ -17,7 +17,7 @@ class UploadFile extends Command
     {
         $this->setName('file:upload')
             ->addArgument('file', Argument::REQUIRED, '本地文件路径')
-            ->addOption('member_id', null, Option::VALUE_OPTIONAL, '成员ID')
+            ->addOption('entity_id', null, Option::VALUE_OPTIONAL, '实体身份ID(entity.id)')
             ->addOption('team_id', null, Option::VALUE_OPTIONAL, '团队ID')
             ->addOption('name', null, Option::VALUE_OPTIONAL, '覆盖原始文件名')
             ->setDescription('上传本地文件到 OSS 并写入 file 记录');
@@ -26,14 +26,14 @@ class UploadFile extends Command
     protected function execute(Input $input, Output $output)
     {
         $filePath = (string) $input->getArgument('file');
-        $memberId = $this->toNullableInt($input->getOption('member_id'));
+        $entityId = $this->toNullableInt($input->getOption('entity_id'));
         $teamId   = $this->toNullableInt($input->getOption('team_id'));
         $name     = $this->toNullableString($input->getOption('name'));
 
         try {
             $result = app(FileService::class)->uploadByCommand(
                 $filePath,
-                $memberId,
+                $entityId,
                 $teamId,
                 $name
             );

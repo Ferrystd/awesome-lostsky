@@ -13,6 +13,7 @@ class Role extends Validate
         'name'        => 'require|length:1,50',
         'description' => 'max:255',
         'sort'        => 'integer|egt:0',
+        'is_displayed'=> 'in:0,1',
     ];
 
     protected $message = [
@@ -27,16 +28,17 @@ class Role extends Validate
         'description.max'  => '角色说明不能超过255位',
         'sort.integer'     => '排序格式不正确',
         'sort.egt'         => '排序不能小于0',
+        'is_displayed.in'  => '公开展示设置不正确',
     ];
 
     protected $scene = [
-        'create' => ['role_key', 'name', 'description', 'sort'],
+        'create' => ['role_key', 'name', 'description', 'sort', 'is_displayed'],
         'delete' => ['id'],
     ];
 
     public function sceneUpdate(): self
     {
-        return $this->only(['id', 'name', 'description', 'sort'])
+        return $this->only(['id', 'name', 'description', 'sort', 'is_displayed'])
             ->remove('name', 'require');
     }
 }

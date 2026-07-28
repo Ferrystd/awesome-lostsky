@@ -1,4 +1,4 @@
-import type { Customer, Member, TransactionOptions } from './types'
+import type { Customer, Entity, EntitySummary, TransactionOptions } from './types'
 
 export const money = (value: unknown) => new Intl.NumberFormat('zh-CN', {
   style: 'currency',
@@ -20,15 +20,20 @@ export const dateTime = (value: unknown) => {
   }).format(new Date(seconds * 1000)) : '—'
 }
 
-export const memberName = (member?: Member | null, id?: number | null) =>
-  String(member?.nickname || (id ? `成员 #${id}` : '团队主体'))
+type EntityDisplay = Entity | EntitySummary | null | undefined
+
+export const entityName = (entity?: EntityDisplay, id?: number | null) => {
+  const profile = 'profile' in (entity ?? {}) ? (entity as Entity & { profile?: { nickname?: string } }).profile : undefined
+  return String(('name' in (entity ?? {}) ? (entity as EntitySummary).name : null)
+    || profile?.nickname
+    || (id ? `主体 #${id}` : '未知人员'))
+}
 
 export const customerName = (customer?: Customer | null, id?: number | null) =>
   String(customer?.nickname || (id ? `客户 #${id}` : '未关联客户'))
 
-export const memberOptions = (data?: TransactionOptions) => (data?.members ?? [])
-  .filter((item) => Number(item.is_blocked ?? 0) !== 1)
-  .map((item) => ({ label: memberName(item, item.id), value: Number(item.id) }))
+export const entityOptions = (data?: TransactionOptions) => (data?.entities ?? [])
+  .map((item) => ({ label: entityName(item, item.entity_id), value: Number(item.entity_id) }))
 
 export const customerOptions = (data?: TransactionOptions) => (data?.customers ?? [])
   .filter((item) => Number(item.is_blocked ?? 0) !== 1)

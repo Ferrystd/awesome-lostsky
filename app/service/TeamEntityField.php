@@ -34,11 +34,15 @@ class TeamEntityField
         $field = app(TeamEntityFieldModel::class, [], true);
         $field->save([
             'team_id' => $teamId, 'entity_type' => $type, 'field_key' => $data['field_key'],
-            'name' => $data['name'], 'value_type' => $data['value_type'] ?? 'string',
+            'name' => $data['name'], 'source' => $data['source'] ?? 'custom',
+            'value_type' => $data['value_type'] ?? 'string',
             'input_type' => $data['input_type'] ?? 'text', 'options' => $data['options'] ?? null,
+            'default_value' => $data['default_value'] ?? null,
+            'manager_scope' => \app\enum\ManageScope::from((int) ($data['manager_scope'] ?? \app\enum\ManageScope::Team->value)),
+            'visibility' => \app\enum\Visibility::from((int) ($data['visibility'] ?? \app\enum\Visibility::Team->value)),
             'is_required' => (int) ($data['is_required'] ?? 0), 'is_editable' => (int) ($data['is_editable'] ?? 1),
             'is_searchable' => (int) ($data['is_searchable'] ?? 0),
-            'is_visible' => $type === TeamEntityType::Member ? (int) ($data['is_visible'] ?? 0) : 0,
+            'is_visible' => $type === TeamEntityType::Entity ? (int) ($data['is_visible'] ?? 0) : 0,
             'is_system' => 0, 'sort' => (int) ($data['sort'] ?? 0),
         ]);
     }
@@ -48,10 +52,17 @@ class TeamEntityField
         $this->validate('update', $this->validationData($data));
         $field = $this->field($teamId, $id);
         $allow = array_intersect_key($data, array_flip([
-            'name', 'value_type', 'input_type', 'options', 'is_required',
-            'is_editable', 'is_searchable', 'is_visible', 'sort',
+            'name', 'source', 'value_type', 'input_type', 'options', 'default_value',
+            'manager_scope', 'visibility', 'is_required', 'is_editable',
+            'is_searchable', 'is_visible', 'sort',
         ]));
-        if ($field->enumCase('entity_type') !== TeamEntityType::Member) {
+        if (array_key_exists('manager_scope', $allow)) {
+            $allow['manager_scope'] = \app\enum\ManageScope::from((int) $allow['manager_scope']);
+        }
+        if (array_key_exists('visibility', $allow)) {
+            $allow['visibility'] = \app\enum\Visibility::from((int) $allow['visibility']);
+        }
+        if ($field->enumCase('entity_type') !== TeamEntityType::Entity) {
             $allow['is_visible'] = 0;
         }
         if ($allow) {
@@ -82,58 +93,80 @@ class TeamEntityField
     {
         $actor = app(ChatActor::class)->resolve($teamId, $entitySlug);
         return TeamEntityFieldValue::where('team_id', $teamId)
-            ->where('entity_type', $actor['type']->value)
-            ->where('entity_id', $actor['id'])->with(['field'])->select()->toArray();
+            ->where('entity_id', $actor['entity_id'])->with(['field'])->select()->toArray();
     }
 
     public function saveValues(int $teamId, string $entitySlug, array $values): void
+    {
+        $this->persistValues($teamId, $entitySlug, $values, false);
+    }
+
+    public function saveOwnValues(int $teamId, string $entitySlug, array $values): void
+    {
+        $this->persistValues($teamId, $entitySlug, $values, true);
+    }
+
+    private function persistValues(int $teamId, string $entitySlug, array $values, bool $ownOnly): void
     {
         $actor = app(ChatActor::class)->resolve($teamId, $entitySlug);
         $normalizedValues = [];
         foreach ($values as $fieldId => $rawValue) {
             $normalizedValues[(int) $fieldId] = $rawValue;
         }
-        $this->assertRequiredValues($teamId, $actor, $normalizedValues);
-        \think\facade\Db::transaction(function () use ($teamId, $actor, $normalizedValues) {
-            foreach ($normalizedValues as $fieldId => $rawValue) {
-                $field = $this->field($teamId, (int) $fieldId);
-                if ($field->enumCase('entity_type')->value !== $actor['type']->value) {
-                    throw new HttpException(422, '字段与对象类型不匹配');
-                }
-                if (!$field->is_editable) {
-                    throw new HttpException(422, "字段 {$field->name} 不允许编辑");
-                }
-                if ($field->is_required && $this->isEmptyValue($rawValue)) {
-                    throw new HttpException(422, "字段 {$field->name} 不能为空");
-                }
-                $data = $this->valueData(
+        $fieldType = $this->actorFieldType($actor);
+        $prepared = [];
+        foreach ($normalizedValues as $fieldId => $rawValue) {
+            $field = $this->field($teamId, (int) $fieldId);
+            if ($field->enumCase('entity_type') !== $fieldType) {
+                throw new HttpException(422, '字段与对象类型不匹配');
+            }
+            if ($ownOnly && (!(int) $field->is_visible || !(int) $field->is_editable)) {
+                throw new HttpException(403, "字段 {$field->name} 不允许本人编辑");
+            }
+            if (!$ownOnly && !$field->is_editable) {
+                throw new HttpException(422, "字段 {$field->name} 不允许编辑");
+            }
+            if ($field->is_required && $this->isEmptyValue($rawValue)) {
+                throw new HttpException(422, "字段 {$field->name} 不能为空");
+            }
+            $prepared[] = [
+                'field' => $field,
+                'data' => $this->valueData(
                     (string) $field->value_type,
                     $rawValue,
                     is_array($field->options) ? $field->options : []
-                );
+                ),
+            ];
+        }
+        $this->assertRequiredValues($teamId, $actor, $normalizedValues, $ownOnly);
+        \think\facade\Db::transaction(function () use ($teamId, $actor, $prepared) {
+            foreach ($prepared as $item) {
+                $field = $item['field'];
                 $value = TeamEntityFieldValue::withTrashed()
-                    ->where('field_id', $field->id)->where('entity_type', $actor['type']->value)
-                    ->where('entity_id', $actor['id'])->find();
+                    ->where('field_id', $field->id)
+                    ->where('entity_id', $actor['entity_id'])->find();
                 if (!$value) {
                     $value = app(TeamEntityFieldValue::class, [], true);
                 }
-                $value->save(array_merge($data, [
+                $value->save(array_merge($item['data'], [
                     'team_id' => $teamId, 'field_id' => $field->id,
-                    'entity_type' => TeamEntityType::from($actor['type']->value),
-                    'entity_id' => $actor['id'],
+                    'entity_id' => $actor['entity_id'],
                     'delete_time' => null,
                 ]));
             }
         });
     }
 
-    private function assertRequiredValues(int $teamId, array $actor, array $values): void
+    private function assertRequiredValues(int $teamId, array $actor, array $values, bool $ownOnly): void
     {
         $requiredFields = TeamEntityFieldModel::where('team_id', $teamId)
-            ->where('entity_type', $actor['type']->value)
+            ->where('entity_type', $this->actorFieldType($actor)->value)
             ->where('is_required', 1)
             ->select();
         foreach ($requiredFields as $field) {
+            if ($ownOnly && (!(int) $field->is_visible || !(int) $field->is_editable)) {
+                continue;
+            }
             if (array_key_exists((int) $field->id, $values)) {
                 if ($this->isEmptyValue($values[(int) $field->id])) {
                     throw new HttpException(422, "字段 {$field->name} 不能为空");
@@ -141,13 +174,22 @@ class TeamEntityField
                 continue;
             }
             $stored = TeamEntityFieldValue::where('field_id', $field->id)
-                ->where('entity_type', $actor['type']->value)
-                ->where('entity_id', $actor['id'])
+                ->where('entity_id', $actor['entity_id'])
                 ->find();
             if (!$stored || !$this->hasStoredValue($stored)) {
                 throw new HttpException(422, "字段 {$field->name} 不能为空");
             }
         }
+    }
+
+    private function actorFieldType(array $actor): TeamEntityType
+    {
+        return match ($actor['type']) {
+            \app\enum\ChatActorType::Entity => TeamEntityType::Entity,
+            \app\enum\ChatActorType::Customer => TeamEntityType::Customer,
+            \app\enum\ChatActorType::Virtual => TeamEntityType::Virtual,
+            default => throw new HttpException(422, '该实体类型不支持自定义字段'),
+        };
     }
 
     private function hasStoredValue(TeamEntityFieldValue $value): bool

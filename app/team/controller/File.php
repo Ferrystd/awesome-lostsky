@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace app\team\controller;
 
+use app\service\PermissionDictionary as Permissions;
 use think\Request;
 
 class File
@@ -11,16 +12,16 @@ class File
         'JwtAuth'      => ['only' => ['index', 'get', 'delete', 'usage']],
         'Context'      => ['only' => ['index', 'get', 'delete', 'usage']],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'delete', 'usage']],
-        'TeamBelongs'  => ['only' => ['index', 'get', 'delete', 'usage']],
-        'MemberAccess' => ['only' => ['index', 'get', 'delete', 'usage']],
-        'TeamAccess'   => ['only' => ['index', 'get', 'delete', 'usage']],
+        'TeamAuth'     => ['only' => ['index', 'get', 'delete', 'usage']],
+        'Permission:' . Permissions::FILE_READ => ['only' => ['index', 'get', 'usage']],
+        'Permission:' . Permissions::FILE_DELETE => ['only' => ['delete']],
     ];
 
     public function index(Request $request)
     {
         $service = app(\app\service\File::class);
         $result  = $service->list($request->team_id, [
-            'member_id'  => $request->get('member_id'),
+            'entity_id'  => $request->get('entity_id'),
             'mime_type'  => $request->get('mime_type'),
             'keyword'    => $request->get('keyword'),
             'start_time' => $request->get('start_time'),
@@ -46,6 +47,7 @@ class File
 
         $service = app(\app\service\File::class);
         $service->deleteByTeam($request->team_id, $id);
+        app(\app\service\BusinessAudit::class)->record($request, 'team', 'delete', 'file', $id);
 
         return message('文件已删除');
     }

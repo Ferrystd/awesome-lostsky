@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\model\TeamCustomer;
-use app\model\TeamCustomerProfile;
 use think\exception\HttpException;
 
 class CustomerProfile
@@ -22,14 +21,11 @@ class CustomerProfile
             throw new HttpException(422, $validator->getError());
         }
         $customer = $this->customer($teamId, $customerId);
-        $profile = TeamCustomerProfile::withTrashed()->where('customer_id', $customer->id)->find();
-        if (!$profile) {
-            $profile = app(TeamCustomerProfile::class, [], true);
-        }
-        $profile->save([
-            'customer_id' => $customer->id, 'nickname' => $data['nickname'],
+        $entityId = (int) app(Entity::class)
+            ->requireBySubject('teamCustomer', (int) $customer->id)->id;
+        app(EntityProfile::class)->update($teamId, $entityId, [
+            'name' => $data['nickname'],
             'avatar' => $data['avatar'] ?? null, 'description' => $data['description'] ?? null,
-            'delete_time' => null,
         ]);
     }
 
@@ -40,7 +36,7 @@ class CustomerProfile
         if (!$validator->scene('slug')->check(['slug' => $slug])) {
             throw new HttpException(422, $validator->getError());
         }
-        $identity = app(EntityIdentity::class)->claimCustomer($customerId, $slug);
+        $identity = app(Entity::class)->claimCustomer($customerId, $slug);
         return ['slug' => $identity->slug];
     }
 

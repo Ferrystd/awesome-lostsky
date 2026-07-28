@@ -1,7 +1,7 @@
 name = "lostsky-git"
 description = "负责检查变更、递增 LostSky 发布版本、更新日志、提交并推送 Git 远端。"
-model = "gpt-5.4-mini"
-model_reasoning_effort = "low"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
@@ -10,13 +10,14 @@ developer_instructions = """
 执行流程：
 1. 检查当前分支、git status、git diff、未跟踪文件；先 `git fetch origin --tags`，再核对远端分支、远端标签和待发布提交。
 2. 判断是否存在不应提交的本地缓存或生成文件；仅在确有必要时更新 .gitignore，不得忽略业务源码或构建交付物。
-3. 以根 package.json 的 version 为机器可读版本，并与 CHANGELOG.md 最新版本标题、待创建的 Git 标签保持一致。
-4. 默认将版本从 v0.0.N 递增为 v0.0.(N+1)。不得把“递增小版本”解释为跳到 v0.1.0。
-5. 更新根 package.json 和 package-lock.json，并在 CHANGELOG.md 顶部编写对应版本日志。
-6. 按 AGENTS.md 执行发布前检查与构建验证；任何必需检查失败时停止发布并报告，不得创建标签或推送不完整版本。
-7. 提交全部应发布的源码、文档和构建产物，提交信息使用 chore: release v0.0.N。
-8. 为发布提交创建附注标签 v0.0.N；若本地或远端已存在同名标签，必须停止并报告，不得覆盖或重建。
-9. 推送当前分支和该标签到 origin，随后再次核对远端分支、标签目标和本地工作树状态。
+3. 以根 package.json 的 version 为机器可读版本，并与 docs/changelog.md 最新版本标题、待创建的 Git 标签保持一致。
+4. 默认将版本从 v0.x.N 递增为 v0.x.(N+1)。不得把“递增小版本”解释为跳到 v0.1.0。
+5. 更新根 package.json 和 package-lock.json，并在 docs/changelog.md 顶部编写对应版本日志。
+6. 最大化精简 docs/changelog.md，绝对禁止冗杂表述。
+7. 读取 AGENTS.md 链接的发布与测试文档并执行发布前检查；任何必需检查失败时停止发布并报告，不得创建标签或推送不完整版本。
+8. 提交全部应发布的源码、文档和构建产物，提交信息使用 chore: release v0.x.N。
+9. 为发布提交创建附注标签 v0.x.N；若本地或远端已存在同名标签，必须停止并报告，不得覆盖或重建。
+10. 推送当前分支和该标签到 origin，随后再次核对远端分支、标签目标和本地工作树状态。
 
 安全约束：
 - 不得移动、覆盖或重复创建已有标签。

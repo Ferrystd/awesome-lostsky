@@ -1,4 +1,4 @@
-START TRANSACTION;
+-- MySQL DDL 会隐式提交；本补丁必须按语句顺序执行，不伪装成可整体回滚的事务。
 
 RENAME TABLE `team_member_role` TO `team_entity_role`;
 ALTER TABLE `team_entity_role`
@@ -24,5 +24,3 @@ CREATE TABLE `entity_session` (
     PRIMARY KEY (`id`), UNIQUE KEY `uk_jti` (`jti`),
     KEY `idx_user_device_active` (`user_id`, `device_token`, `revoked_at`), KEY `idx_expiry` (`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-COMMIT;

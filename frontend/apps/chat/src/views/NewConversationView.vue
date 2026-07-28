@@ -4,49 +4,56 @@ import { useMutation, useQuery } from '@tanstack/vue-query'
 import { ArrowLeft, MessageCircleMore } from '@lucide/vue'
 import { NCheckbox, NConfigProvider, NDatePicker, NInput, NRadioButton, NRadioGroup, NSelect } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
+import type { EntityDisplay } from '@lostsky/ui/entity'
+import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 
-interface Actor {
-  type: 'member' | 'customer' | 'team' | 'virtual'
-  slug: string
-  name: string
+interface Actor extends EntityDisplay {
+  type: 'entity' | 'customer' | 'team' | 'virtual'
   can_act: boolean
 }
+interface Conversation { participants: Actor[] }
 interface Created { uuid: string; existing: boolean }
 
 const kind = ref<'direct' | 'group'>('direct')
 const actorSlug = ref(localStorage.getItem('lostsky_chat_actor') ?? '')
-const participants = ref<string | string[]>('')
+const participants = ref<EntityDisplay[]>([])
 const title = ref('')
 const temporary = ref(false)
 const expiresAt = ref<number | null>(null)
+const requestedParticipant = new URLSearchParams(location.search).get('participant')?.toLowerCase() ?? ''
 const actorsQuery = useQuery({ queryKey: ['chat-actors'], queryFn: () => api.get<Actor[]>('/actor') })
+const conversationsQuery = useQuery({ queryKey: ['chat-conversations'], queryFn: () => api.get<Conversation[]>('/conversation') })
 const actors = computed(() => actorsQuery.data.value ?? [])
 const actorOptions = computed(() => actors.value.filter(item => item.can_act).map(item => ({ label: `${item.name} · @${item.slug}`, value: item.slug })))
-const participantOptions = computed(() => actors.value.filter(item => item.slug !== actorSlug.value).map(item => ({ label: `${item.name} · @${item.slug}`, value: item.slug })))
-const selectedParticipants = computed(() => Array.isArray(participants.value)
-  ? participants.value
-  : participants.value
-    ? [participants.value]
-    : [])
+const participantCandidates = computed(() => actors.value.filter(item => item.slug !== actorSlug.value))
+const recentParticipants = computed(() => {
+  const seen = new Set<string>()
+  return (conversationsQuery.data.value ?? []).flatMap(conversation => conversation.participants)
+    .filter(item => item.slug !== actorSlug.value && participantCandidates.value.some(candidate => candidate.slug === item.slug))
+    .filter(item => !seen.has(item.slug) && Boolean(seen.add(item.slug)))
+    .slice(0, 6)
+})
 watch(actorOptions, options => {
   if (!options.some(item => item.value === actorSlug.value)) actorSlug.value = options[0]?.value ?? ''
 }, { immediate: true })
 watch(kind, value => {
-  participants.value = value === 'direct'
-    ? selectedParticipants.value[0] ?? ''
-    : selectedParticipants.value
+  participants.value = value === 'direct' ? participants.value.slice(0, 1) : participants.value
 })
 watch(actorSlug, slug => {
-  const available = selectedParticipants.value.filter(participant => participant !== slug)
-  participants.value = kind.value === 'direct' ? available[0] ?? '' : available
+  participants.value = participants.value.filter(participant => participant.slug !== slug)
 })
+watch(participantCandidates, candidates => {
+  if (participants.value.length || !requestedParticipant) return
+  const requested = candidates.find(candidate => candidate.slug === requestedParticipant)
+  if (requested) participants.value = [requested]
+}, { immediate: true })
 const create = useMutation({
   mutationFn: () => api.post<Created>('/conversation/create', {
     kind: kind.value,
     title: kind.value === 'group' ? title.value : null,
     actor_slug: actorSlug.value,
-    participants: selectedParticipants.value,
+    participants: participants.value.map(participant => participant.slug),
     is_temporary: temporary.value ? 1 : 0,
     expires_at: expiresAt.value ? Math.floor(expiresAt.value / 1000) : null,
   }),
@@ -56,8 +63,8 @@ const create = useMutation({
   },
 })
 const valid = computed(() => Boolean(actorSlug.value)
-  && selectedParticipants.value.length >= 1
-  && (kind.value === 'group' || selectedParticipants.value.length === 1))
+  && participants.value.length >= 1
+  && (kind.value === 'group' || participants.value.length === 1))
 </script>
 
 <template>
@@ -68,11 +75,13 @@ const valid = computed(() => Boolean(actorSlug.value)
       <form @submit.prevent="create.mutate()">
         <label>会话形式<NRadioGroup v-model:value="kind"><NRadioButton value="direct">单聊</NRadioButton><NRadioButton value="group">群聊</NRadioButton></NRadioGroup></label>
         <label>你的身份<NSelect v-model:value="actorSlug" :options="actorOptions" placeholder="选择可操作身份" /></label>
-        <label>{{ kind === 'direct' ? '聊天对象' : '参与者' }}<NSelect v-model:value="participants" :options="participantOptions" filterable :multiple="kind === 'group'" :max-tag-count="3" placeholder="按名称或 slug 搜索" /></label>
+        <label>{{ kind === 'direct' ? '聊天对象' : '参与者' }}
+          <LsEntityInput v-model="participants" :candidates="participantCandidates" :recent="recentParticipants" :multiple="kind === 'group'" placeholder="输入 slug 搜索" @chat="kind = 'direct'" />
+        </label>
         <label v-if="kind === 'group'">群聊名称<NInput v-model:value="title" maxlength="100" placeholder="可选" /></label>
         <label class="check"><NCheckbox v-model:checked="temporary">临时会话</NCheckbox><small>临时会话可以重复创建，并可设置自动关闭时间。</small></label>
         <label v-if="temporary">到期时间<NDatePicker v-model:value="expiresAt" type="datetime" clearable /></label>
-        <p v-if="actorsQuery.isError.value || create.isError.value" class="error" role="alert">{{ friendlyError(actorsQuery.error.value || create.error.value) }}</p>
+        <p v-if="actorsQuery.isError.value || conversationsQuery.isError.value || create.isError.value" class="error" role="alert">{{ friendlyError(actorsQuery.error.value || conversationsQuery.error.value || create.error.value) }}</p>
         <button type="submit" :disabled="!valid || create.isPending.value">{{ create.isPending.value ? '正在创建…' : '创建会话' }}</button>
       </form>
     </main>

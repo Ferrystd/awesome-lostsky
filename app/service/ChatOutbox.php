@@ -9,18 +9,21 @@ use app\model\ChatConversation;
 use app\model\ChatEventOutbox;
 use app\model\ChatMessage;
 use app\model\ChatParticipant;
+use app\model\Entity;
 use app\model\ChatWebhookDelivery;
 use app\model\TeamVirtual;
 use app\model\TeamVirtualIntegration;
 
 class ChatOutbox
 {
+    private const LEASE_SECONDS = 600;
+
     public function runOnce(int $limit = 20): array
     {
         $published = 0;
         $failed = 0;
-        $events = ChatEventOutbox::whereNull('published_at')
-            ->where('available_at', '<=', time())->order('id', 'asc')->limit($limit)->select();
+        $eventToken = bin2hex(random_bytes(16));
+        $events = $this->claimEvents($limit, $eventToken);
         foreach ($events as $event) {
             try {
                 [$conversation, $originIntegrationId] = $this->context($event);
@@ -28,16 +31,27 @@ class ChatOutbox
                     'id' => (int) $event->id, 'type' => (string) $event->event_type, 'data' => $event->payload,
                 ]);
                 $this->prepareDeliveries($event, $conversation, $originIntegrationId);
-                $event->save(['published_at' => time(), 'last_error' => null]);
-                $published++;
+                $updated = $this->updateClaimedEvent($event, $eventToken, [
+                    'published_at' => time(),
+                    'last_error' => null,
+                    'processing_token' => null,
+                    'processing_until' => null,
+                ]);
+                if ($updated) {
+                    $published++;
+                }
             } catch (\Throwable $exception) {
                 $attempts = (int) $event->attempts + 1;
-                $event->save([
+                $updated = $this->updateClaimedEvent($event, $eventToken, [
                     'attempts' => $attempts,
                     'available_at' => time() + min(3600, 2 ** min($attempts, 10)),
                     'last_error' => mb_substr($exception->getMessage(), 0, 1000),
+                    'processing_token' => null,
+                    'processing_until' => null,
                 ]);
-                $failed++;
+                if ($updated) {
+                    $failed++;
+                }
             }
         }
 
@@ -67,11 +81,13 @@ class ChatOutbox
         ChatConversation $conversation,
         ?int $originIntegrationId
     ): void {
-        $virtualIds = ChatParticipant::where('conversation_id', $conversation->id)
-            ->where('actor_type', ChatActorType::Virtual->value)->whereNull('left_at')->column('actor_id');
-        if (!$virtualIds) {
+        $entityIds = ChatParticipant::where('conversation_id', $conversation->id)
+            ->whereNull('left_at')->column('entity_id');
+        if (!$entityIds) {
             return;
         }
+        $virtualIds = Entity::whereIn('id', $entityIds)
+            ->where('entityable_type', 'teamVirtual')->column('entityable_id');
         $virtualIds = TeamVirtual::where('team_id', $conversation->team_id)
             ->whereIn('id', $virtualIds)->where('is_active', 1)->column('id');
         if (!$virtualIds) {
@@ -101,14 +117,18 @@ class ChatOutbox
     private function deliverPending(int $limit): int
     {
         $count = 0;
-        $rows = ChatWebhookDelivery::where('status', ChatDeliveryStatus::Pending->value)
-            ->where('available_at', '<=', time())->with(['outbox', 'integration'])
-            ->order('id', 'asc')->limit($limit)->select();
+        $deliveryToken = bin2hex(random_bytes(16));
+        $rows = $this->claimDeliveries($limit, $deliveryToken);
         foreach ($rows as $delivery) {
             $integration = $delivery->integration;
             $event = $delivery->outbox;
             if (!$integration || !$event || !$integration->is_active) {
-                $delivery->save(['status' => ChatDeliveryStatus::Failed, 'last_error' => '集成或事件不可用']);
+                $this->updateClaimedDelivery($delivery, $deliveryToken, [
+                    'status' => ChatDeliveryStatus::Failed,
+                    'last_error' => '集成或事件不可用',
+                    'processing_token' => null,
+                    'processing_until' => null,
+                ]);
                 continue;
             }
             $body = json_encode([
@@ -124,20 +144,88 @@ class ChatOutbox
                     'X-LostSky-Timestamp: ' . $timestamp,
                     'X-LostSky-Signature: sha256=' . $signature,
                 ], [$resolution['curl_resolve']]);
-                $delivery->save([
+                $updated = $this->updateClaimedDelivery($delivery, $deliveryToken, [
                     'status' => ChatDeliveryStatus::Delivered, 'delivered_at' => time(),
                     'response_code' => $response['code'], 'last_error' => null,
+                    'processing_token' => null, 'processing_until' => null,
                 ]);
-                $count++;
+                if ($updated) {
+                    $count++;
+                }
             } catch (\Throwable $exception) {
                 $attempts = (int) $delivery->attempts + 1;
-                $delivery->save([
+                $this->updateClaimedDelivery($delivery, $deliveryToken, [
                     'status' => $attempts >= 6 ? ChatDeliveryStatus::Failed : ChatDeliveryStatus::Pending,
                     'attempts' => $attempts, 'available_at' => time() + min(21600, 5 * (3 ** $attempts)),
                     'last_error' => mb_substr($exception->getMessage(), 0, 1000),
+                    'processing_token' => null, 'processing_until' => null,
                 ]);
             }
         }
         return $count;
+    }
+
+    private function claimEvents(int $limit, string $token)
+    {
+        $now = time();
+        ChatEventOutbox::whereNull('published_at')
+            ->where('available_at', '<=', $now)
+            ->where(function ($query) use ($now) {
+                $query->whereNull('processing_until')
+                    ->whereOr('processing_until', '<', $now);
+            })
+            ->order('id', 'asc')
+            ->limit($limit)
+            ->update([
+                'processing_token' => $token,
+                'processing_until' => $now + self::LEASE_SECONDS,
+            ]);
+
+        return ChatEventOutbox::where('processing_token', $token)
+            ->whereNull('published_at')
+            ->order('id', 'asc')
+            ->select();
+    }
+
+    private function claimDeliveries(int $limit, string $token)
+    {
+        $now = time();
+        ChatWebhookDelivery::where('status', ChatDeliveryStatus::Pending->value)
+            ->where('available_at', '<=', $now)
+            ->where(function ($query) use ($now) {
+                $query->whereNull('processing_until')
+                    ->whereOr('processing_until', '<', $now);
+            })
+            ->order('id', 'asc')
+            ->limit($limit)
+            ->update([
+                'processing_token' => $token,
+                'processing_until' => $now + self::LEASE_SECONDS,
+            ]);
+
+        return ChatWebhookDelivery::where('processing_token', $token)
+            ->where('status', ChatDeliveryStatus::Pending->value)
+            ->with(['outbox', 'integration'])
+            ->order('id', 'asc')
+            ->select();
+    }
+
+    private function updateClaimedEvent(ChatEventOutbox $event, string $token, array $data): bool
+    {
+        return ChatEventOutbox::where('id', $event->id)
+            ->where('processing_token', $token)
+            ->update($data) === 1;
+    }
+
+    private function updateClaimedDelivery(ChatWebhookDelivery $delivery, string $token, array $data): bool
+    {
+        $normalized = $data;
+        if (($normalized['status'] ?? null) instanceof ChatDeliveryStatus) {
+            $normalized['status'] = $normalized['status']->value;
+        }
+
+        return ChatWebhookDelivery::where('id', $delivery->id)
+            ->where('processing_token', $token)
+            ->update($normalized) === 1;
     }
 }

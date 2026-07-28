@@ -14,7 +14,6 @@ class TeamEntityFieldValue extends Base
         'delete_time' => 'integer',
         'team_id'        => 'integer',
         'field_id'       => 'integer',
-        'entity_type'    => TeamEntityType::class,
         'entity_id'      => 'integer',
         // 'value_string'   => 'null|string',
         // 'value_text'     => 'null|string',
@@ -27,19 +26,15 @@ class TeamEntityFieldValue extends Base
     protected $json = ['value_json'];
     protected $hidden = ['delete_time'];
     protected $append = [];
-    protected $readonly = ['team_id', 'field_id', 'entity_type', 'entity_id'];
+    protected $readonly = ['team_id', 'field_id', 'entity_id'];
 
     public function field()
     {
         return $this->belongsTo(TeamEntityField::class, 'field_id');
     }
 
-    public function entityable()
+    public function subject()
     {
-        return $this->morphTo('entity', [
-            'member' => TeamMember::class,
-            'customer' => TeamCustomer::class,
-            'virtual' => TeamVirtual::class,
-        ]);
+        return $this->belongsTo(Entity::class, 'entity_id');
     }
 }

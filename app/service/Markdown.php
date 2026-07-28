@@ -9,7 +9,8 @@ class Markdown
 {
     private const SOURCE_MAP = [
         \app\model\Document::class          => 'document',
-        \app\model\TeamMemberProfile::class => 'teamMemberProfile',
+        \app\model\TeamEntityProfile::class => 'teamEntityProfile',
+        \app\model\TeamProduct::class        => 'teamProduct',
     ];
 
     public function sync(Model $source, string $field, ?string $markdown): void
@@ -22,7 +23,7 @@ class Markdown
         preg_match_all('/\]\(lostsky:\/\/entity\/([a-zA-Z][a-zA-Z0-9_-]{1,49})\)/', (string) $markdown, $matches);
         $slugs = array_values(array_unique(array_map('strtolower', $matches[1] ?? [])));
         $identities = $slugs
-            ? \app\model\EntityIdentity::whereIn('slug', $slugs)->select()
+            ? \app\model\Entity::whereIn('slug', $slugs)->select()
             : [];
         $active = [];
 
@@ -32,7 +33,7 @@ class Markdown
                 'referenceable_type' => $type,
                 'referenceable_id'   => (int) $source->id,
                 'referenceable_field'=> $field,
-                'entity_identity_id' => (int) $identity->id,
+                'entity_id' => (int) $identity->id,
             ], [
                 'delete_time' => null,
             ]);
@@ -43,7 +44,7 @@ class Markdown
             ->where('referenceable_field', $field)
             ->select();
         foreach ($rows as $row) {
-            if (!isset($active[(int) $row->entity_identity_id])) {
+            if (!isset($active[(int) $row->entity_id])) {
                 $row->delete();
             }
         }

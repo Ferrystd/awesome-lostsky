@@ -52,9 +52,9 @@ return [
             ],
             'customer_group_mode' => [
                 'label'       => '客户群聊权限',
-                'description' => '默认仅允许客户被团队成员邀请进群。',
+                'description' => '决定客户是否可以加入或创建群聊。',
                 'type'        => 'enum',
-                'control'     => 'select',
+                'control'     => 'radio',
                 'enum'        => ChatCustomerGroupMode::class,
                 'default'     => ChatCustomerGroupMode::InviteOnly->value,
                 'order'       => 20,
@@ -83,6 +83,21 @@ return [
             'retention_days' => [
                 'label' => '消息保留天数', 'description' => '0 表示永久保存。',
                 'type' => 'integer', 'control' => 'number', 'default' => 0, 'min' => 0, 'max' => 3650, 'order' => 70,
+            ],
+        ],
+    ],
+    'shop' => [
+        'label'       => '商城',
+        'description' => '控制商城订单与其他应用之间的自动联动。',
+        'order'       => 30,
+        'settings'    => [
+            'sync_transaction' => [
+                'label'       => '自动同步记账流水',
+                'description' => '下单时自动生成关联流水；仅在团队已开通且未过期的 Transaction Ability 时生效。',
+                'type'        => 'boolean',
+                'control'     => 'switch',
+                'default'     => true,
+                'order'       => 10,
             ],
         ],
     ],

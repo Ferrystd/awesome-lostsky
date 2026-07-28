@@ -3,14 +3,40 @@
   "info": {
     "title": "LostSky Team API",
     "version": "0.0.9",
-    "description": "团队成员、岗位、成员字段、团队设置和团队文件管理。除特别说明外均需要 JWT + 团队上下文。"
+    "description": "团队成员、岗位、成员字段、团队设置和团队文件管理。除特别说明外均需要 JWT + 团队上下文；基础登录 JWT 进入团队业务时自动切换为当前团队成员。"
   },
   "x-entity-auth": {
-    "team_business_default": ["team", "teamMember", "teamCustomer", "teamVirtual"],
+    "team_business_default": [
+      "team",
+      "teamMember",
+      "teamCustomer",
+      "teamVirtual"
+    ],
+    "base_login_auto_member": true,
     "team_belongs": true,
     "exceptions": {
-      "join_applicant": { "types": ["teamless"], "team_belongs": false },
-      "member_self": { "types": ["teamMember"], "team_belongs": true }
+      "join_applicant": {
+        "types": [
+          "teamless"
+        ],
+        "team_belongs": false
+      },
+      "member_self": {
+        "types": [
+          "teamMember"
+        ],
+        "team_belongs": true
+      },
+      "force_current_member": {
+        "types": [
+          "base",
+          "team",
+          "teamMember",
+          "teamCustomer",
+          "teamVirtual"
+        ],
+        "team_belongs": false
+      }
     }
   },
   "servers": [
@@ -50,28 +76,21 @@
       "name": "Member"
     },
     {
-      "name": "Notice"
+      "name": "Entity"
     },
     {
-      "name": "MemberField"
+      "name": "Notice"
     },
     {
       "name": "Setting"
     },
     {
-      "name": "PostType"
-    },
-    {
       "name": "Role",
-      "description": "团队角色管理，仅团队创建者可访问"
+      "description": "团队角色管理，按 team.role.read 与 team.role.write 权限授权"
     },
     {
       "name": "RolePermission",
-      "description": "角色权限管理，仅团队创建者可访问"
-    },
-    {
-      "name": "MemberRole",
-      "description": "成员角色管理，仅团队创建者可访问"
+      "description": "角色权限管理，按 team.role.read 与 team.role.write 权限授权"
     },
     {
       "name": "File"
@@ -86,6 +105,15 @@
     {
       "name": "JoinReview",
       "description": "管理员审核加入申请"
+    },
+    {
+      "name": "EntityField"
+    },
+    {
+      "name": "Virtual"
+    },
+    {
+      "name": "Integration"
     }
   ],
   "components": {
@@ -106,7 +134,7 @@
           "type": "string",
           "format": "uuid"
         },
-        "description": "前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。"
+        "description": "前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。"
       },
       "Page": {
         "name": "page",
@@ -125,7 +153,8 @@
         "schema": {
           "type": "integer",
           "default": 20,
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 100
         }
       },
       "IdPath": {
@@ -162,6 +191,15 @@
         "schema": {
           "type": "integer",
           "format": "int64"
+        }
+      },
+      "SlugQuery": {
+        "name": "slug",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{1,49}$"
         }
       }
     },
@@ -444,14 +482,6 @@
                 "type": "integer",
                 "format": "int64"
               },
-              "is_displayed": {
-                "type": "integer",
-                "enum": [
-                  0,
-                  1
-                ],
-                "description": "0=false, 1=true"
-              },
               "is_blocked": {
                 "type": "integer",
                 "enum": [
@@ -473,263 +503,107 @@
           {
             "type": "object",
             "properties": {
-              "posts": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/MemberPost"
-                }
-              },
               "fieldValues": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/MemberFieldValue"
+                  "$ref": "#/components/schemas/EntityFieldValue"
                 }
               },
               "custom_fields": {
                 "type": "array",
-                "description": "Only returned by /me/get. Visible custom field definitions for the current member.",
+                "description": "Only returned by /me/get. Visible custom field definitions for the current entity.",
                 "items": {
-                  "$ref": "#/components/schemas/MemberField"
+                  "$ref": "#/components/schemas/EntityField"
                 }
               },
               "custom_field_values": {
                 "type": "array",
-                "description": "Only returned by /me/get. Visible custom field values for the current member.",
+                "description": "Only returned by /me/get. Visible custom field values for the current entity.",
                 "items": {
-                  "$ref": "#/components/schemas/MemberFieldValue"
+                  "$ref": "#/components/schemas/EntityFieldValue"
                 }
+              },
+              "role_assignments": {
+                "type": "array",
+                "description": "Only returned by /me/get. Roles assigned to the current entity, including each role's permissions.",
+                "items": {
+                  "$ref": "#/components/schemas/TeamEntityRole"
+                }
+              },
+              "effective_permissions": {
+                "type": "array",
+                "description": "Only returned by /me/get. Deduplicated permission union from the current entity's roles.",
+                "items": {
+                  "$ref": "#/components/schemas/EffectivePermission"
+                }
+              },
+              "capabilities": {
+                "description": "Only returned by /member/get. Operations the current acting entity may perform on the member task page.",
+                "$ref": "#/components/schemas/MemberCapabilities"
               }
             }
           }
         ]
       },
-      "MemberPost": {
+      "MemberCapabilities": {
         "type": "object",
+        "required": [
+          "member_edit",
+          "field_manage",
+          "role_read",
+          "role_write",
+          "member_block",
+          "member_search",
+          "member_slug",
+          "member_remove",
+          "identity_assume"
+        ],
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
+          "member_edit": {
+            "type": "boolean"
           },
-          "member_id": {
-            "type": "integer",
-            "format": "int64"
+          "field_manage": {
+            "type": "boolean"
           },
-          "type_id": {
-            "type": "integer",
-            "format": "int64"
+          "role_read": {
+            "type": "boolean"
           },
-          "post_id": {
-            "type": "integer",
-            "format": "int64"
+          "role_write": {
+            "type": "boolean"
           },
-          "type": {
-            "$ref": "#/components/schemas/PostType"
+          "member_block": {
+            "type": "boolean"
+          },
+          "member_search": {
+            "type": "boolean"
+          },
+          "member_slug": {
+            "type": "boolean"
+          },
+          "member_remove": {
+            "type": "boolean"
+          },
+          "identity_assume": {
+            "type": "boolean"
           }
         }
       },
-      "PostType": {
+      "EffectivePermission": {
         "type": "object",
+        "required": [
+          "key",
+          "label",
+          "group"
+        ],
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "team_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "name": {
+          "key": {
             "type": "string"
           },
-          "description": {
+          "label": {
             "type": "string"
           },
-          "post_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "sort": {
-            "type": "integer"
-          },
-          "create_time": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Unix timestamp, seconds"
-          },
-          "update_time": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Unix timestamp, seconds"
-          }
-        }
-      },
-      "MemberField": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "team_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "field_key": {
+          "group": {
             "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "source": {
-            "type": "string",
-            "enum": [
-              "system",
-              "custom"
-            ]
-          },
-          "value_type": {
-            "type": "string",
-            "enum": [
-              "string",
-              "text",
-              "int",
-              "decimal",
-              "bool",
-              "date",
-              "datetime",
-              "select",
-              "multi_select",
-              "json"
-            ]
-          },
-          "input_type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "textarea",
-              "radio",
-              "checkbox",
-              "select",
-              "date",
-              "datetime",
-              "upload"
-            ]
-          },
-          "options": {
-            "nullable": true
-          },
-          "default_value": {
-            "type": "string",
-            "nullable": true
-          },
-          "is_required": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "is_editable": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "is_searchable": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "is_system": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "sort": {
-            "type": "integer"
-          },
-          "create_time": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Unix timestamp, seconds"
-          },
-          "update_time": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Unix timestamp, seconds"
-          },
-          "manager_scope": {
-            "type": "integer",
-            "enum": [
-              1,
-              2
-            ],
-            "description": "1=team管理, 2=主体本人和team管理"
-          },
-          "visibility": {
-            "type": "integer",
-            "enum": [
-              1,
-              3,
-              4,
-              5
-            ],
-            "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见"
-          }
-        }
-      },
-      "MemberFieldValue": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "member_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "field_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "value_string": {
-            "type": "string",
-            "nullable": true
-          },
-          "value_text": {
-            "type": "string",
-            "nullable": true
-          },
-          "value_int": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "value_decimal": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
-          },
-          "value_datetime": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "value_json": {
-            "nullable": true
-          },
-          "field": {
-            "$ref": "#/components/schemas/MemberField"
           }
         }
       },
@@ -744,11 +618,6 @@
             "type": "integer",
             "format": "int64"
           },
-          "member_id": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
           "name": {
             "type": "string"
           },
@@ -757,32 +626,38 @@
             "nullable": true
           },
           "price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cost": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "handler_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "sender_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cs_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "team_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "is_active": {
             "type": "integer",
@@ -802,14 +677,19 @@
             "format": "int64",
             "description": "Unix timestamp, seconds"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
-          },
           "handlers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProductHandler"
             }
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
         }
       },
@@ -824,17 +704,17 @@
             "type": "integer",
             "format": "int64"
           },
-          "member_id": {
-            "type": "integer",
-            "format": "int64"
-          },
           "create_time": {
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp, seconds"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
         }
       },
@@ -854,12 +734,12 @@
             "format": "int64",
             "nullable": true
           },
-          "handler_id": {
+          "handler_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
           },
-          "sender_id": {
+          "sender_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
@@ -872,44 +752,53 @@
             "type": "integer"
           },
           "unit_price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "total_price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cost": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "handler_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "sender_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cs_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "team_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cash": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "prepaid": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "trans_id": {
             "type": "integer",
@@ -1012,16 +901,19 @@
             "format": "int64"
           },
           "balance": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "recharged": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "spent": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "create_time": {
             "type": "integer",
@@ -1057,12 +949,14 @@
             "description": "1=充值, 2=消费, 3=退款, 4=手动调整"
           },
           "amount": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "balance_after": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "trans_id": {
             "type": "integer",
@@ -1099,16 +993,16 @@
             "type": "integer",
             "format": "int64"
           },
-          "handler_id": {
+          "handler_entity_id": {
             "type": "integer",
             "format": "int64"
           },
-          "sender_id": {
+          "sender_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
           },
-          "cs_id": {
+          "cs_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
@@ -1127,36 +1021,44 @@
             "description": "1=商城下单, 2=记账登记"
           },
           "total_price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cost": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cash": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "prepaid": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "handler_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "sender_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cs_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "team_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "trans_at": {
             "type": "integer",
@@ -1206,10 +1108,6 @@
             "type": "integer",
             "format": "int64"
           },
-          "member_id": {
-            "type": "integer",
-            "format": "int64"
-          },
           "create_time": {
             "type": "integer",
             "format": "int64",
@@ -1218,8 +1116,12 @@
           "customer": {
             "$ref": "#/components/schemas/Customer"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
         }
       },
@@ -1231,10 +1133,6 @@
             "format": "int64"
           },
           "team_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "member_id": {
             "type": "integer",
             "format": "int64"
           },
@@ -1266,8 +1164,19 @@
             "format": "int64",
             "description": "Unix timestamp, seconds"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
+          "entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "全局实体身份 ID，引用 entity.id；无实体上传时为 null。"
+          },
+          "entity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Entity"
+              }
+            ],
+            "nullable": true
           }
         }
       },
@@ -1314,17 +1223,6 @@
             "type": "string",
             "nullable": true
           },
-          "documentable_type": {
-            "type": "string",
-            "enum": [
-              "team",
-              "teamMember"
-            ]
-          },
-          "documentable_id": {
-            "type": "integer",
-            "format": "int64"
-          },
           "sort": {
             "type": "integer"
           },
@@ -1355,7 +1253,7 @@
               5,
               6
             ],
-            "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见"
+            "description": "1=???????3=????????????4=???????5=?????6=??????"
           },
           "visibility_targets": {
             "type": "array",
@@ -1363,31 +1261,46 @@
               "$ref": "#/components/schemas/VisibilityTarget"
             },
             "description": "visibility=6(custom) 时生效"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
-        }
+        },
+        "required": [
+          "id",
+          "entity_id"
+        ]
       },
       "VisibilityTarget": {
         "type": "object",
         "required": [
-          "target_type",
-          "target_id"
+          "entity_id"
         ],
         "properties": {
-          "target_type": {
-            "type": "string",
-            "enum": [
-              "team",
-              "teamMember"
-            ]
-          },
-          "target_id": {
+          "entity_id": {
             "type": "integer",
             "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
         }
       },
       "TeamNotice": {
         "type": "object",
+        "required": [
+          "id",
+          "team_id",
+          "sender_team_id",
+          "entity_id",
+          "title",
+          "is_pinned",
+          "is_read"
+        ],
         "properties": {
           "id": {
             "type": "integer",
@@ -1395,7 +1308,21 @@
           },
           "team_id": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "nullable": true,
+            "description": "LostSky 通知的收件 Team ID；Team -> Entity 通知为 null"
+          },
+          "sender_team_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "Team -> Entity 通知的发送 Team ID；LostSky -> Team 通知为 null"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "Team 通知的收件 Entity ID；LostSky -> Team 通知为 null"
           },
           "title": {
             "type": "string"
@@ -1448,10 +1375,50 @@
                 "items": {
                   "$ref": "#/components/schemas/TeamNotice"
                 }
+              },
+              "can_send": {
+                "type": "boolean",
+                "description": "当前 acting Entity 是否可代表 Team 发送通知"
               }
             }
           }
         ]
+      },
+      "NoticeSendResult": {
+        "type": "object",
+        "required": [
+          "id",
+          "team_id",
+          "sender_team_id",
+          "entity_id",
+          "is_pinned"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "sender_team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "is_pinned": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        }
       },
       "JoinField": {
         "type": "object",
@@ -1511,7 +1478,7 @@
               0,
               1
             ],
-            "description": "?????????"
+            "description": "Field contract for is_apply_fillable."
           },
           "is_apply_required": {
             "type": "integer",
@@ -1519,17 +1486,17 @@
               0,
               1
             ],
-            "description": "????????"
+            "description": "Field contract for is_apply_required."
           },
-          "is_transfer_member_field": {
+          "is_transfer_entity_field": {
             "type": "integer",
             "enum": [
               0,
               1
             ],
-            "description": "??????? TeamMemberFieldValue"
+            "description": "TeamEntityFieldValue"
           },
-          "member_field_id": {
+          "entity_field_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
@@ -1622,50 +1589,229 @@
       "TeamRole": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer", "format": "int64" },
-          "team_id": { "type": "integer", "format": "int64" },
-          "role_key": { "type": "string", "maxLength": 50 },
-          "name": { "type": "string", "maxLength": 50 },
-          "description": { "type": "string", "nullable": true, "maxLength": 255 },
-          "sort": { "type": "integer", "minimum": 0 },
-          "create_time": { "type": "integer", "format": "int64" },
-          "update_time": { "type": "integer", "format": "int64" }
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "role_key": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "sort": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "is_displayed": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "是否在 Display 公开实体资料中展示此角色。"
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "permissions": {
+            "type": "array",
+            "description": "Included when the role is loaded through /entityRole/index or /me/get.",
+            "items": {
+              "$ref": "#/components/schemas/TeamRolePermission"
+            }
+          }
         }
       },
       "TeamRolePermission": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer", "format": "int64" },
-          "team_id": { "type": "integer", "format": "int64" },
-          "role_id": { "type": "integer", "format": "int64" },
-          "permission_key": { "type": "string", "maxLength": 100 },
-          "create_time": { "type": "integer", "format": "int64" },
-          "update_time": { "type": "integer", "format": "int64" }
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "role_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "permission_key": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64"
+          }
         }
       },
-      "TeamMemberRole": {
+      "PermissionCatalogItem": {
         "type": "object",
+        "required": [
+          "key",
+          "label"
+        ],
         "properties": {
-          "id": { "type": "integer", "format": "int64" },
-          "team_id": { "type": "integer", "format": "int64" },
-          "member_id": { "type": "integer", "format": "int64" },
-          "role_id": { "type": "integer", "format": "int64" },
-          "role": { "$ref": "#/components/schemas/TeamRole" },
-          "create_time": { "type": "integer", "format": "int64" },
-          "update_time": { "type": "integer", "format": "int64" }
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "label": {
+            "type": "string"
+          },
+          "resource_slug": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PermissionCatalogGroup": {
+        "type": "object",
+        "required": [
+          "name",
+          "items"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PermissionCatalogItem"
+            }
+          }
+        }
+      },
+      "PermissionCatalog": {
+        "type": "object",
+        "required": [
+          "groups"
+        ],
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PermissionCatalogGroup"
+            }
+          }
         }
       },
       "TeamEntityRole": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer", "format": "int64" },
-          "team_id": { "type": "integer", "format": "int64" },
-          "entity_type": { "type": "string", "enum": ["teamMember", "teamCustomer", "team", "teamVirtual"] },
-          "entity_id": { "type": "integer", "format": "int64" },
-          "role_id": { "type": "integer", "format": "int64" },
-          "role": { "$ref": "#/components/schemas/TeamRole" },
-          "create_time": { "type": "integer", "format": "int64" },
-          "update_time": { "type": "integer", "format": "int64" }
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": [
+              "teamMember",
+              "teamCustomer",
+              "team",
+              "teamVirtual"
+            ]
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "role_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "role": {
+            "$ref": "#/components/schemas/TeamRole"
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "EntityRoleSubject": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "slug",
+          "name",
+          "team",
+          "is_external"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "teamMember",
+              "teamCustomer",
+              "team",
+              "teamVirtual"
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "team": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "is_external": {
+            "type": "boolean",
+            "description": "实体是否属于当前授权团队之外的团队"
+          }
         }
       },
       "JoinApplication": {
@@ -1682,11 +1828,6 @@
           "user_id": {
             "type": "integer",
             "format": "int64"
-          },
-          "member_id": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
           },
           "status": {
             "type": "string",
@@ -1714,96 +1855,640 @@
             "items": {
               "$ref": "#/components/schemas/JoinTask"
             }
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
           }
         }
       },
       "EntityTeamSummary": {
         "type": "object",
-        "required": ["slug", "display_name"],
+        "required": [
+          "slug",
+          "display_name"
+        ],
         "properties": {
-          "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$" },
-          "display_name": { "type": "string" }
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{1,49}$"
+          },
+          "display_name": {
+            "type": "string"
+          }
         }
       },
       "EntitySummary": {
         "type": "object",
-        "required": ["slug", "type", "display_name", "available"],
+        "required": [
+          "slug",
+          "type",
+          "display_name",
+          "available"
+        ],
         "properties": {
-          "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$" },
-          "type": { "type": "string", "enum": ["team", "teamMember", "unknown"] },
-          "display_name": { "type": "string" },
-          "avatar": { "type": "string", "nullable": true },
-          "team": { "$ref": "#/components/schemas/EntityTeamSummary" },
-          "available": { "type": "boolean" },
-          "href": { "type": "string", "nullable": true }
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{1,49}$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "team",
+              "teamMember",
+              "teamCustomer",
+              "teamVirtual",
+              "unknown"
+            ]
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "team": {
+            "$ref": "#/components/schemas/EntityTeamSummary"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "href": {
+            "type": "string",
+            "nullable": true
+          }
         }
       },
       "TeamSettingValue": {
         "description": "按设置定义返回的真实类型值",
         "oneOf": [
-          { "type": "boolean" },
-          { "type": "integer" },
-          { "type": "string" }
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
         ]
       },
       "TeamSettingOption": {
         "type": "object",
-        "required": ["value", "label"],
+        "required": [
+          "value",
+          "label"
+        ],
         "properties": {
           "value": {
             "oneOf": [
-              { "type": "integer" },
-              { "type": "string" }
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
             ]
           },
-          "label": { "type": "string" },
-          "description": { "type": "string" }
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
         }
       },
       "TeamSettingDefinition": {
         "type": "object",
-        "required": ["key", "label", "description", "type", "control", "order", "default", "value"],
+        "required": [
+          "key",
+          "label",
+          "description",
+          "type",
+          "control",
+          "order",
+          "default",
+          "value"
+        ],
         "properties": {
-          "key": { "type": "string" },
-          "label": { "type": "string" },
-          "description": { "type": "string" },
-          "type": { "type": "string", "enum": ["boolean", "integer", "enum", "string"] },
-          "control": { "type": "string", "enum": ["switch", "radio", "select", "number", "input"] },
-          "order": { "type": "integer" },
-          "default": { "$ref": "#/components/schemas/TeamSettingValue" },
-          "value": { "$ref": "#/components/schemas/TeamSettingValue" },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "boolean",
+              "integer",
+              "enum",
+              "string"
+            ]
+          },
+          "control": {
+            "type": "string",
+            "enum": [
+              "switch",
+              "radio",
+              "select",
+              "number",
+              "input"
+            ]
+          },
+          "order": {
+            "type": "integer"
+          },
+          "default": {
+            "$ref": "#/components/schemas/TeamSettingValue"
+          },
+          "value": {
+            "$ref": "#/components/schemas/TeamSettingValue"
+          },
           "options": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/TeamSettingOption" }
+            "items": {
+              "$ref": "#/components/schemas/TeamSettingOption"
+            }
           },
-          "min": { "type": "integer" },
-          "max": { "type": "integer" },
-          "step": { "type": "integer" },
-          "min_length": { "type": "integer" },
-          "max_length": { "type": "integer" }
+          "min": {
+            "type": "integer"
+          },
+          "max": {
+            "type": "integer"
+          },
+          "step": {
+            "type": "integer"
+          },
+          "min_length": {
+            "type": "integer"
+          },
+          "max_length": {
+            "type": "integer"
+          }
         }
       },
       "TeamSettingApp": {
         "type": "object",
-        "required": ["app_name", "label", "description", "order", "settings"],
+        "required": [
+          "app_name",
+          "label",
+          "description",
+          "order",
+          "settings"
+        ],
         "properties": {
-          "app_name": { "type": "string" },
-          "label": { "type": "string" },
-          "description": { "type": "string" },
-          "order": { "type": "integer" },
+          "app_name": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
+          },
           "settings": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/TeamSettingDefinition" }
+            "items": {
+              "$ref": "#/components/schemas/TeamSettingDefinition"
+            }
           }
         }
       },
       "TeamSettingSchema": {
         "type": "object",
-        "required": ["apps"],
+        "required": [
+          "apps"
+        ],
         "properties": {
           "apps": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/TeamSettingApp" }
+            "items": {
+              "$ref": "#/components/schemas/TeamSettingApp"
+            }
+          }
+        }
+      },
+      "Envelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": "ok"
+          },
+          "data": {}
+        }
+      },
+      "EntityField": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": [
+              "entity",
+              "customer",
+              "virtual"
+            ]
+          },
+          "field_key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value_type": {
+            "type": "string"
+          },
+          "input_type": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {},
+            "nullable": true
+          },
+          "is_required": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_editable": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_searchable": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_visible": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "system",
+              "custom"
+            ]
+          },
+          "default_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "manager_scope": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ]
+          },
+          "visibility": {
+            "type": "integer",
+            "enum": [
+              1,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "is_system": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "VirtualEntity": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{1,49}$"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_active": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "integrations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Integration"
+            }
+          }
+        }
+      },
+      "Integration": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "driver": {
+            "type": "string",
+            "enum": [
+              "webhook"
+            ]
+          },
+          "endpoint_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_active": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "Entity": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "entityable_type",
+          "entityable_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "entityable_type": {
+            "type": "string",
+            "enum": [
+              "team",
+              "teamMember",
+              "teamCustomer",
+              "teamVirtual"
+            ]
+          },
+          "entityable_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "is_displayed": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "是否在团队公开主页展示"
+          },
+          "is_valid": {
+            "type": "boolean"
+          },
+          "is_searchable": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "profile": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityProfile"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "EntityOption": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "type",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "team",
+              "teamMember",
+              "teamCustomer",
+              "teamVirtual"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EntityFieldValue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "field_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "value_string": {
+            "type": "string",
+            "nullable": true
+          },
+          "value_text": {
+            "type": "string",
+            "nullable": true
+          },
+          "value_int": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "value_decimal": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "value_datetime": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "value_json": {
+            "nullable": true
+          },
+          "field": {
+            "$ref": "#/components/schemas/EntityField"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "EntityProfile": {
+        "type": "object",
+        "required": [
+          "id",
+          "entity_id",
+          "name",
+          "avatar"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "avatar": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "intro_image": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "intro_video": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "introduction_markdown": {
+            "type": "string",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "EntityList": {
+        "type": "object",
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entity"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
           }
         }
       }
@@ -1812,11 +2497,17 @@
   "paths": {
     "/role/index": {
       "get": {
-        "tags": ["Role"],
+        "tags": [
+          "Role"
+        ],
         "summary": "团队角色列表",
-        "description": "仅团队创建者可访问。",
+        "description": "要求 team.role.read 权限。",
         "operationId": "teamRoleIndex",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "成功",
@@ -1824,13 +2515,17 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
                     {
                       "type": "object",
                       "properties": {
                         "data": {
                           "type": "array",
-                          "items": { "$ref": "#/components/schemas/TeamRole" }
+                          "items": {
+                            "$ref": "#/components/schemas/TeamRole"
+                          }
                         }
                       }
                     }
@@ -1844,17 +2539,27 @@
     },
     "/role/get": {
       "get": {
-        "tags": ["Role"],
+        "tags": [
+          "Role"
+        ],
         "summary": "团队角色详情",
-        "description": "仅团队创建者可访问。",
+        "description": "要求 team.role.read 权限。",
         "operationId": "teamRoleGet",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
             "in": "query",
             "required": true,
-            "schema": { "type": "integer", "format": "int64", "minimum": 1 }
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
           }
         ],
         "responses": {
@@ -1864,11 +2569,15 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
                     {
                       "type": "object",
                       "properties": {
-                        "data": { "$ref": "#/components/schemas/TeamRole" }
+                        "data": {
+                          "$ref": "#/components/schemas/TeamRole"
+                        }
                       }
                     }
                   ]
@@ -1881,28 +2590,61 @@
     },
     "/role/add": {
       "post": {
-        "tags": ["Role"],
+        "tags": [
+          "Role"
+        ],
         "summary": "新增团队角色",
-        "description": "仅团队创建者可访问。相同 role_key 的软删除角色会被恢复。",
+        "description": "要求 team.role.write 权限；相同 role_key 的软删除角色会被恢复。",
         "operationId": "teamRoleAdd",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["role_key", "name"],
+                "required": [
+                  "role_key",
+                  "name"
+                ],
                 "properties": {
                   "role_key": {
                     "type": "string",
                     "maxLength": 50,
                     "pattern": "^[a-z][a-z0-9._-]*$"
                   },
-                  "name": { "type": "string", "minLength": 1, "maxLength": 50 },
-                  "description": { "type": "string", "nullable": true, "maxLength": 255 },
-                  "sort": { "type": "integer", "minimum": 0, "default": 0 }
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 255
+                  },
+                  "sort": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 0
+                  },
+                  "is_displayed": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ],
+                    "default": 0
+                  }
                 }
               }
             }
@@ -1915,11 +2657,15 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
                     {
                       "type": "object",
                       "properties": {
-                        "data": { "$ref": "#/components/schemas/IdResult" }
+                        "data": {
+                          "$ref": "#/components/schemas/IdResult"
+                        }
                       }
                     }
                   ]
@@ -1932,24 +2678,58 @@
     },
     "/role/edit": {
       "post": {
-        "tags": ["Role"],
+        "tags": [
+          "Role"
+        ],
         "summary": "编辑团队角色",
-        "description": "仅团队创建者可访问；role_key 不可修改。",
+        "description": "要求 team.role.write 权限；role_key 不可修改。",
         "operationId": "teamRoleEdit",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["id"],
+                "required": [
+                  "id"
+                ],
                 "properties": {
-                  "id": { "type": "integer", "format": "int64", "minimum": 1 },
-                  "name": { "type": "string", "minLength": 1, "maxLength": 50 },
-                  "description": { "type": "string", "nullable": true, "maxLength": 255 },
-                  "sort": { "type": "integer", "minimum": 0 }
+                  "id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 255
+                  },
+                  "sort": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "is_displayed": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  }
                 }
               }
             }
@@ -1960,7 +2740,9 @@
             "description": "更新成功",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
               }
             }
           }
@@ -1969,21 +2751,37 @@
     },
     "/role/delete": {
       "post": {
-        "tags": ["Role"],
+        "tags": [
+          "Role"
+        ],
         "summary": "删除团队角色",
-        "description": "仅团队创建者可访问；同时软删除角色权限与成员角色绑定。",
+        "description": "要求 team.role.write 权限；同时软删除角色权限与成员角色绑定。",
         "operationId": "teamRoleDelete",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["id"],
+                "required": [
+                  "id"
+                ],
                 "properties": {
-                  "id": { "type": "integer", "format": "int64", "minimum": 1 }
+                  "id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 1
+                  }
                 }
               }
             }
@@ -1994,7 +2792,9 @@
             "description": "删除成功",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
               }
             }
           }
@@ -2003,17 +2803,27 @@
     },
     "/rolePermission/index": {
       "get": {
-        "tags": ["RolePermission"],
+        "tags": [
+          "RolePermission"
+        ],
         "summary": "角色权限列表",
-        "description": "仅团队创建者可访问。",
+        "description": "要求 team.role.read 权限。",
         "operationId": "teamRolePermissionIndex",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "role_id",
             "in": "query",
             "required": true,
-            "schema": { "type": "integer", "format": "int64", "minimum": 1 }
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
           }
         ],
         "responses": {
@@ -2023,13 +2833,17 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
                     {
                       "type": "object",
                       "properties": {
                         "data": {
                           "type": "array",
-                          "items": { "$ref": "#/components/schemas/TeamRolePermission" }
+                          "items": {
+                            "$ref": "#/components/schemas/TeamRolePermission"
+                          }
                         }
                       }
                     }
@@ -2043,21 +2857,38 @@
     },
     "/rolePermission/save": {
       "post": {
-        "tags": ["RolePermission"],
+        "tags": [
+          "RolePermission"
+        ],
         "summary": "全量同步角色权限",
-        "description": "仅团队创建者可访问；空 permission_keys 清空角色权限。",
+        "description": "要求 team.role.write 权限；空 permission_keys 清空角色权限。",
         "operationId": "teamRolePermissionSave",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["role_id", "permission_keys"],
+                "required": [
+                  "role_id",
+                  "permission_keys"
+                ],
                 "properties": {
-                  "role_id": { "type": "integer", "format": "int64", "minimum": 1 },
+                  "role_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 1
+                  },
                   "permission_keys": {
                     "type": "array",
                     "uniqueItems": true,
@@ -2065,7 +2896,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 100,
-                      "pattern": "^[a-z][a-z0-9._-]*$"
+                      "pattern": "^[a-z][a-z0-9_-]*(?:\\.(?:[a-z0-9][a-z0-9_-]*|\\*))*$"
                     }
                   }
                 }
@@ -2078,26 +2909,38 @@
             "description": "同步成功",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
               }
             }
           }
         }
       }
     },
-    "/memberRole/index": {
+    "/entityRole/index": {
       "get": {
-        "tags": ["MemberRole"],
-        "summary": "成员角色列表",
-        "description": "仅团队创建者可访问。",
-        "operationId": "teamMemberRoleIndex",
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "EntityRole"
+        ],
+        "summary": "实体角色列表",
+        "description": "要求 team.role.read 权限；按全局 slug 查询目标团队授予来源实体的角色。来源实体可以属于任意团队且无需公开可搜索。",
+        "operationId": "teamEntityRoleIndex",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
-            "name": "member_id",
+            "name": "slug",
             "in": "query",
             "required": true,
-            "schema": { "type": "integer", "format": "int64", "minimum": 1 }
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 50
+            }
           }
         ],
         "responses": {
@@ -2107,13 +2950,17 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
                     {
                       "type": "object",
                       "properties": {
                         "data": {
                           "type": "array",
-                          "items": { "$ref": "#/components/schemas/TeamMemberRole" }
+                          "items": {
+                            "$ref": "#/components/schemas/TeamEntityRole"
+                          }
                         }
                       }
                     }
@@ -2125,27 +2972,110 @@
         }
       }
     },
-    "/memberRole/save": {
+    "/entityRole/resolve": {
+      "get": {
+        "tags": [
+          "EntityRole"
+        ],
+        "summary": "按全局 slug 解析角色授权来源实体",
+        "description": "要求 team.role.read 权限。仅按准确 slug 解析有效实体，返回其类型、名称、所属团队及是否跨团队；不改变普通实体搜索隐私。",
+        "operationId": "teamEntityRoleResolve",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 50,
+              "pattern": "^[a-z][a-z0-9_-]{1,49}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "实体摘要",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/EntityRoleSubject"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "实体不存在或不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entityRole/save": {
       "post": {
-        "tags": ["MemberRole"],
-        "summary": "全量同步成员角色",
-        "description": "仅团队创建者可访问；空 role_ids 清空成员角色。",
-        "operationId": "teamMemberRoleSave",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "tags": [
+          "EntityRole"
+        ],
+        "summary": "全量同步实体角色",
+        "description": "要求 team.role.write 权限。角色属于当前目标团队，但来源实体由全局 slug 指定，可以来自任意团队且无需公开可搜索。",
+        "operationId": "teamEntityRoleSave",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["member_id", "role_ids"],
+                "required": [
+                  "slug",
+                  "role_ids"
+                ],
                 "properties": {
-                  "member_id": { "type": "integer", "format": "int64", "minimum": 1 },
+                  "slug": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 50
+                  },
                   "role_ids": {
                     "type": "array",
                     "uniqueItems": true,
-                    "items": { "type": "integer", "format": "int64", "minimum": 1 }
+                    "items": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 1
+                    }
                   }
                 }
               }
@@ -2157,49 +3087,13 @@
             "description": "同步成功",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageEnvelope" }
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
               }
             }
           }
         }
-      }
-    },
-    "/entityRole/index": {
-      "get": {
-        "tags": ["EntityRole"],
-        "summary": "实体角色列表",
-        "description": "按当前团队中的实体 slug 查询其独立角色。",
-        "operationId": "teamEntityRoleIndex",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "slug", "in": "query", "required": true, "schema": { "type": "string", "minLength": 2, "maxLength": 50 } }],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": { "allOf": [{ "$ref": "#/components/schemas/SuccessEnvelope" }, { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/TeamEntityRole" } } } }] }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/entityRole/save": {
-      "post": {
-        "tags": ["EntityRole"],
-        "summary": "全量同步实体角色",
-        "operationId": "teamEntityRoleSave",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "type": "object", "required": ["slug", "role_ids"], "properties": { "slug": { "type": "string", "minLength": 2, "maxLength": 50 }, "role_ids": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "format": "int64", "minimum": 1 } } } }
-            }
-          }
-        },
-        "responses": { "200": { "description": "同步成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } } }
       }
     },
     "/me/get": {
@@ -2443,6 +3337,96 @@
           },
           "429": {
             "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/fields": {
+      "post": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "保存自己可见且可编辑的对象字段",
+        "operationId": "teamMeFields",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "values"
+                ],
+                "properties": {
+                  "values": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求字段格式错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "字段不对本人可见或不可编辑",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "字段值未通过校验",
             "content": {
               "application/json": {
                 "schema": {
@@ -2889,14 +3873,6 @@
                   "introduction_markdown": {
                     "type": "string",
                     "nullable": true
-                  },
-                  "is_displayed": {
-                    "type": "integer",
-                    "enum": [
-                      0,
-                      1
-                    ],
-                    "description": "0=false, 1=true"
                   },
                   "post_type_ids": {
                     "type": "array",
@@ -3359,7 +4335,7 @@
         "tags": [
           "Notice"
         ],
-        "summary": "???????",
+        "summary": "列出当前收件箱；Team 身份读取 LostSky 通知，其他身份读取 Entity 通知",
         "operationId": "teamNoticeIndex",
         "security": [
           {
@@ -3478,7 +4454,7 @@
         "tags": [
           "Notice"
         ],
-        "summary": "???????",
+        "summary": "读取当前 Team 或 Entity 收件箱中的通知详情",
         "operationId": "teamNoticeGet",
         "security": [
           {
@@ -3569,12 +4545,130 @@
         }
       }
     },
+    "/notice/send": {
+      "post": {
+        "tags": [
+          "Notice"
+        ],
+        "summary": "由有权限的当前 Entity 代表 Team 向一个非 Team Entity 发送通知",
+        "operationId": "teamNoticeSend",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "entity_id",
+                  "title"
+                ],
+                "properties": {
+                  "entity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 1,
+                    "description": "当前团队内的非 Team Entity"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "content": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "is_pinned": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "通知已发送",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/NoticeSendResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/notice/confirm": {
       "post": {
         "tags": [
           "Notice"
         ],
-        "summary": "???????",
+        "summary": "将当前 Team 或 Entity 收件箱的一条通知标记为已读",
         "operationId": "teamNoticeConfirm",
         "security": [
           {
@@ -3674,7 +4768,7 @@
         "tags": [
           "Notice"
         ],
-        "summary": "???????",
+        "summary": "将当前 Team 或 Entity 收件箱的全部通知标记为已读",
         "operationId": "teamNoticeConfirmAll",
         "security": [
           {
@@ -3772,7 +4866,7 @@
         "tags": [
           "Notice"
         ],
-        "summary": "???????????????????",
+        "summary": "Operation teamNoticeReceive.",
         "operationId": "teamNoticeReceive",
         "security": [
           {
@@ -3862,7 +4956,7 @@
         "tags": [
           "Notice"
         ],
-        "summary": "???????????????????",
+        "summary": "Operation teamNoticeReceiveAll.",
         "operationId": "teamNoticeReceiveAll",
         "security": [
           {
@@ -3918,1028 +5012,24 @@
         }
       }
     },
-    "/memberField/index": {
-      "get": {
-        "tags": [
-          "MemberField"
-        ],
-        "summary": "获取成员字段定义列表",
-        "operationId": "teamMemberFieldIndex",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          },
-          {
-            "name": "keyword",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "source",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "system",
-                "custom"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessEnvelope"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/MemberField"
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/memberField/get": {
-      "get": {
-        "tags": [
-          "MemberField"
-        ],
-        "summary": "获取单个成员字段定义",
-        "operationId": "teamMemberFieldGet",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          },
-          {
-            "$ref": "#/components/parameters/IdQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessEnvelope"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/MemberField"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/memberField/add": {
-      "post": {
-        "tags": [
-          "MemberField"
-        ],
-        "summary": "新增成员字段定义",
-        "operationId": "teamMemberFieldAdd",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "field_key",
-                  "name"
-                ],
-                "properties": {
-                  "field_key": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "source": {
-                    "type": "string",
-                    "enum": [
-                      "system",
-                      "custom"
-                    ]
-                  },
-                  "value_type": {
-                    "type": "string",
-                    "enum": [
-                      "string",
-                      "text",
-                      "int",
-                      "decimal",
-                      "bool",
-                      "date",
-                      "datetime",
-                      "select",
-                      "multi_select",
-                      "json"
-                    ]
-                  },
-                  "input_type": {
-                    "type": "string",
-                    "enum": [
-                      "text",
-                      "textarea",
-                      "radio",
-                      "checkbox",
-                      "select",
-                      "date",
-                      "datetime",
-                      "upload"
-                    ]
-                  },
-                  "options": {},
-                  "default_value": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "is_required": {
-                    "type": "integer",
-                    "enum": [
-                      0,
-                      1
-                    ],
-                    "description": "0=false, 1=true"
-                  },
-                  "is_editable": {
-                    "type": "integer",
-                    "enum": [
-                      0,
-                      1
-                    ],
-                    "description": "0=false, 1=true"
-                  },
-                  "is_searchable": {
-                    "type": "integer",
-                    "enum": [
-                      0,
-                      1
-                    ],
-                    "description": "0=false, 1=true"
-                  },
-                  "is_system": {
-                    "type": "integer",
-                    "enum": [
-                      0,
-                      1
-                    ],
-                    "description": "0=false, 1=true"
-                  },
-                  "sort": {
-                    "type": "integer"
-                  },
-                  "manager_scope": {
-                    "type": "integer",
-                    "enum": [
-                      1,
-                      2
-                    ],
-                    "description": "1=team管理, 2=主体本人和team管理"
-                  },
-                  "visibility": {
-                    "type": "integer",
-                    "enum": [
-                      1,
-                      3,
-                      4,
-                      5
-                    ],
-                    "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/memberField/edit": {
-      "post": {
-        "tags": [
-          "MemberField"
-        ],
-        "summary": "编辑成员字段定义",
-        "operationId": "teamMemberFieldEdit",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "id"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "value_type": {
-                    "type": "string"
-                  },
-                  "input_type": {
-                    "type": "string"
-                  },
-                  "options": {},
-                  "default_value": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "is_required": {
-                    "type": "integer",
-                    "enum": [
-                      0,
-                      1
-                    ],
-                    "description": "0=false, 1=true"
-                  },
-                  "is_editable": {
-                    "type": "integer",
-                    "enum": [
-                      0,
-                      1
-                    ],
-                    "description": "0=false, 1=true"
-                  },
-                  "is_searchable": {
-                    "type": "integer",
-                    "enum": [
-                      0,
-                      1
-                    ],
-                    "description": "0=false, 1=true"
-                  },
-                  "sort": {
-                    "type": "integer"
-                  },
-                  "manager_scope": {
-                    "type": "integer",
-                    "enum": [
-                      1,
-                      2
-                    ],
-                    "description": "1=team管理, 2=主体本人和team管理"
-                  },
-                  "visibility": {
-                    "type": "integer",
-                    "enum": [
-                      1,
-                      3,
-                      4,
-                      5
-                    ],
-                    "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/memberField/delete": {
-      "post": {
-        "tags": [
-          "MemberField"
-        ],
-        "summary": "删除成员字段定义",
-        "operationId": "teamMemberFieldDelete",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "id"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "format": "int64"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/memberField/values": {
-      "get": {
-        "tags": [
-          "MemberField"
-        ],
-        "summary": "获取成员字段值",
-        "operationId": "teamMemberFieldValues",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          },
-          {
-            "$ref": "#/components/parameters/MemberIdQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessEnvelope"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/MemberFieldValue"
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/memberField/saveValues": {
-      "post": {
-        "tags": [
-          "MemberField"
-        ],
-        "summary": "保存成员字段值",
-        "operationId": "teamMemberFieldSaveValues",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "member_id",
-                  "values"
-                ],
-                "properties": {
-                  "member_id": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "values": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "$ref": "#/components/schemas/AnyValue"
-                    },
-                    "description": "field_id => value"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/setting/schema": {
       "get": {
-        "tags": ["Setting"],
+        "tags": [
+          "Setting"
+        ],
         "summary": "获取团队设置定义与当前值",
         "description": "仅团队管理员可访问。页面根据 control、type 和 options 动态生成设置表单。",
         "operationId": "teamSettingSchema",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
         "responses": {
           "200": {
             "description": "成功",
@@ -4947,11 +5037,15 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
                     {
                       "type": "object",
                       "properties": {
-                        "data": { "$ref": "#/components/schemas/TeamSettingSchema" }
+                        "data": {
+                          "$ref": "#/components/schemas/TeamSettingSchema"
+                        }
                       }
                     }
                   ]
@@ -4961,11 +5055,23 @@
           },
           "401": {
             "description": "未登录",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           },
           "403": {
             "description": "不是团队管理员",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           }
         }
       }
@@ -5019,7 +5125,9 @@
                       "properties": {
                         "data": {
                           "type": "object",
-                          "additionalProperties": { "$ref": "#/components/schemas/TeamSettingValue" }
+                          "additionalProperties": {
+                            "$ref": "#/components/schemas/TeamSettingValue"
+                          }
                         }
                       }
                     }
@@ -5259,624 +5367,6 @@
         }
       }
     },
-    "/postType/index": {
-      "get": {
-        "tags": [
-          "PostType"
-        ],
-        "summary": "获取全部岗位类型",
-        "operationId": "teamPostTypeIndex",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessEnvelope"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/PostType"
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/postType/get": {
-      "get": {
-        "tags": [
-          "PostType"
-        ],
-        "summary": "获取单个岗位类型",
-        "operationId": "teamPostTypeGet",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          },
-          {
-            "$ref": "#/components/parameters/IdQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessEnvelope"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/PostType"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/postType/add": {
-      "post": {
-        "tags": [
-          "PostType"
-        ],
-        "summary": "新增岗位类型",
-        "operationId": "teamPostTypeAdd",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "name",
-                  "post_id"
-                ],
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 50
-                  },
-                  "description": {
-                    "type": "string",
-                    "maxLength": 255
-                  },
-                  "post_id": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "sort": {
-                    "type": "integer"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/postType/edit": {
-      "post": {
-        "tags": [
-          "PostType"
-        ],
-        "summary": "编辑岗位类型",
-        "operationId": "teamPostTypeEdit",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "id"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "description": {
-                    "type": "string"
-                  },
-                  "post_id": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "sort": {
-                    "type": "integer"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/postType/delete": {
-      "post": {
-        "tags": [
-          "PostType"
-        ],
-        "summary": "删除岗位类型",
-        "operationId": "teamPostTypeDelete",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "id"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "format": "int64"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/file/index": {
       "get": {
         "tags": [
@@ -5900,13 +5390,14 @@
             "$ref": "#/components/parameters/Limit"
           },
           {
-            "name": "member_id",
+            "name": "entity_id",
             "in": "query",
             "required": false,
             "schema": {
               "type": "integer",
               "format": "int64"
-            }
+            },
+            "description": "按全局实体身份 ID 筛选。"
           },
           {
             "name": "mime_type",
@@ -6428,26 +5919,14 @@
             "$ref": "#/components/parameters/Limit"
           },
           {
-            "name": "target_type",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "team",
-                "teamMember"
-              ],
-              "default": "team"
-            }
-          },
-          {
-            "name": "target_id",
+            "name": "entity_id",
             "in": "query",
             "required": false,
             "schema": {
               "type": "integer",
               "format": "int64"
-            }
+            },
+            "description": "???????????????"
           },
           {
             "name": "manager_scope",
@@ -6598,122 +6077,6 @@
         }
       }
     },
-    "/doc/{id}": {
-      "get": {
-        "tags": [
-          "Document"
-        ],
-        "summary": "文档详情",
-        "operationId": "teamDocGet",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          },
-          {
-            "$ref": "#/components/parameters/IdPath"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessEnvelope"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/Document"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/doc/create": {
       "post": {
         "tags": [
@@ -6741,18 +6104,6 @@
                   "title"
                 ],
                 "properties": {
-                  "target_type": {
-                    "type": "string",
-                    "enum": [
-                      "team",
-                      "teamMember"
-                    ],
-                    "default": "team"
-                  },
-                  "target_id": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
                   "title": {
                     "type": "string",
                     "maxLength": 255
@@ -6770,7 +6121,7 @@
                       1,
                       2
                     ],
-                    "description": "1=team管理, 2=主体本人和team管理；team主体默认1，teamMember主体默认2"
+                    "description": "1=?????2=?????????"
                   },
                   "visibility": {
                     "type": "integer",
@@ -6781,7 +6132,7 @@
                       5,
                       6
                     ],
-                    "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见；team主体默认1，teamMember主体默认3"
+                    "description": "1=???????3=????????????4=???????5=?????6=??????"
                   },
                   "visibility_targets": {
                     "type": "array",
@@ -6789,6 +6140,11 @@
                       "$ref": "#/components/schemas/VisibilityTarget"
                     },
                     "description": "visibility=6(custom) 时生效"
+                  },
+                  "entity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "???????????????"
                   }
                 }
               }
@@ -6936,7 +6292,7 @@
                       1,
                       2
                     ],
-                    "description": "1=team管理, 2=主体本人和team管理"
+                    "description": "1=?????2=?????????"
                   },
                   "visibility": {
                     "type": "integer",
@@ -6947,7 +6303,7 @@
                       5,
                       6
                     ],
-                    "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见"
+                    "description": "1=???????3=????????????4=???????5=?????6=??????"
                   },
                   "visibility_targets": {
                     "type": "array",
@@ -6958,7 +6314,7 @@
                   },
                   "id": {
                     "type": "integer",
-                    "description": "??ID"
+                    "description": "ID"
                   }
                 }
               }
@@ -7163,7 +6519,7 @@
                 "properties": {
                   "id": {
                     "type": "integer",
-                    "description": "??ID"
+                    "description": "ID"
                   }
                 }
               }
@@ -7198,7 +6554,7 @@
             "schema": {
               "type": "integer"
             },
-            "description": "??ID"
+            "description": "ID"
           }
         ],
         "responses": {
@@ -7312,7 +6668,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7381,7 +6737,7 @@
         },
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7420,7 +6776,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7472,7 +6828,7 @@
         ],
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7534,7 +6890,7 @@
         },
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7584,7 +6940,7 @@
         },
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7612,6 +6968,7 @@
           "JoinField"
         ],
         "summary": "申请表单字段列表",
+        "description": "要求 team.join_field.read 权限。",
         "operationId": "teamJoinFieldIndex",
         "security": [
           {
@@ -7621,7 +6978,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7654,6 +7011,7 @@
           "JoinField"
         ],
         "summary": "新增申请字段",
+        "description": "要求 team.join_field.write 权限。",
         "operationId": "teamJoinFieldAdd",
         "security": [
           {
@@ -7701,10 +7059,10 @@
                   "is_apply_required": {
                     "type": "integer"
                   },
-                  "is_transfer_member_field": {
+                  "is_transfer_entity_field": {
                     "type": "integer"
                   },
-                  "member_field_id": {
+                  "entity_field_id": {
                     "type": "integer",
                     "nullable": true
                   },
@@ -7721,7 +7079,7 @@
         },
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7751,6 +7109,7 @@
           "JoinField"
         ],
         "summary": "编辑申请字段",
+        "description": "要求 team.join_field.write 权限。",
         "operationId": "teamJoinFieldEdit",
         "security": [
           {
@@ -7783,7 +7142,7 @@
         },
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7801,6 +7160,7 @@
           "JoinField"
         ],
         "summary": "删除申请字段",
+        "description": "要求 team.join_field.write 权限。",
         "operationId": "teamJoinFieldDelete",
         "security": [
           {
@@ -7833,7 +7193,7 @@
         },
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7851,6 +7211,7 @@
           "JoinReview"
         ],
         "summary": "管理员申请列表",
+        "description": "要求 team.join_review.read 权限。",
         "operationId": "teamJoinReviewIndex",
         "security": [
           {
@@ -7860,7 +7221,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7888,6 +7249,7 @@
           "JoinReview"
         ],
         "summary": "管理员申请详情",
+        "description": "要求 team.join_review.read 权限。",
         "operationId": "teamJoinReviewGet",
         "security": [
           {
@@ -7907,7 +7269,7 @@
         ],
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7937,6 +7299,7 @@
           "JoinReview"
         ],
         "summary": "申请进入审核中",
+        "description": "要求 team.join_review.write 权限。",
         "operationId": "teamJoinReviewReview",
         "security": [
           {
@@ -7969,7 +7332,7 @@
         },
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7987,6 +7350,7 @@
           "JoinReview"
         ],
         "summary": "拒绝加入申请",
+        "description": "要求 team.join_review.write 权限。",
         "operationId": "teamJoinReviewReject",
         "security": [
           {
@@ -8023,7 +7387,7 @@
         },
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8041,6 +7405,7 @@
           "JoinReview"
         ],
         "summary": "同意加入申请",
+        "description": "要求 team.join_review.write 权限。",
         "operationId": "teamJoinReviewApprove",
         "security": [
           {
@@ -8073,7 +7438,7 @@
         },
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8101,6 +7466,7 @@
           "JoinReview"
         ],
         "summary": "保存审核任务",
+        "description": "要求 team.join_review.write 权限。",
         "operationId": "teamJoinReviewSaveTasks",
         "security": [
           {
@@ -8140,7 +7506,7 @@
         },
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8158,6 +7524,7 @@
           "JoinReview"
         ],
         "summary": "更新审核任务状态",
+        "description": "要求 team.join_review.write 权限。",
         "operationId": "teamJoinReviewSetTaskPassed",
         "security": [
           {
@@ -8203,7 +7570,7 @@
         },
         "responses": {
           "200": {
-            "description": "??",
+            "description": "Field contract for 200.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8217,97 +7584,1192 @@
     },
     "/entity/search": {
       "get": {
-        "tags": ["Entity"],
+        "tags": [
+          "Entity"
+        ],
         "summary": "按 slug 搜索可用团队和成员",
         "operationId": "teamEntitySearch",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/PageId" },
-          { "name": "keyword", "in": "query", "required": true, "schema": { "type": "string", "minLength": 1, "maxLength": 50 } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 20, "default": 10 } }
+          {
+            "$ref": "#/components/parameters/PageId"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "对象摘要列表",
-            "content": { "application/json": { "schema": { "allOf": [
-              { "$ref": "#/components/schemas/SuccessEnvelope" },
-              { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/EntitySummary" } } } }
-            ] } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/EntitySummary"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         }
       }
     },
     "/entity/resolve": {
       "get": {
-        "tags": ["Entity"],
+        "tags": [
+          "Entity"
+        ],
         "summary": "批量解析 Markdown 对象",
         "operationId": "teamEntityResolve",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/PageId" },
-          { "name": "slugs[]", "in": "query", "required": true, "style": "form", "explode": true, "schema": { "type": "array", "maxItems": 50, "items": { "type": "string" } } }
+          {
+            "$ref": "#/components/parameters/PageId"
+          },
+          {
+            "name": "slugs[]",
+            "in": "query",
+            "required": true,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "maxItems": 50,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "按输入顺序返回解析结果；不可用对象不暴露具体原因",
-            "content": { "application/json": { "schema": { "allOf": [
-              { "$ref": "#/components/schemas/SuccessEnvelope" },
-              { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/EntitySummary" } } } }
-            ] } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/EntitySummary"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         }
       }
     },
     "/me/slug": {
       "post": {
-        "tags": ["Me"],
+        "tags": [
+          "Me"
+        ],
         "summary": "本人首次认领成员 slug",
         "operationId": "teamMeClaimSlug",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": {
-          "type": "object", "required": ["slug"], "properties": { "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$" } }
-        } } } },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "slug"
+                ],
+                "properties": {
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_-]{1,49}$"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "认领成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessEnvelope" } } } },
-          "409": { "description": "slug 已确定或已被占用", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } }
+          "200": {
+            "description": "认领成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "slug 已确定或已被占用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/member/slug": {
       "post": {
-        "tags": ["Member"],
+        "tags": [
+          "Member"
+        ],
         "summary": "管理员为指定成员首次认领 slug",
         "operationId": "teamMemberClaimSlug",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": {
-          "type": "object", "required": ["member_id", "slug"], "properties": {
-            "member_id": { "type": "integer", "format": "int64" },
-            "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$" }
+        "security": [
+          {
+            "bearerAuth": []
           }
-        } } } },
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "member_id",
+                  "slug"
+                ],
+                "properties": {
+                  "member_id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "slug": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_-]{1,49}$"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "认领成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessEnvelope" } } } },
-          "409": { "description": "slug 已确定或已被占用", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } }
+          "200": {
+            "description": "认领成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "slug 已确定或已被占用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
         }
       }
     },
     "/member/search": {
       "post": {
-        "tags": ["Member"],
+        "tags": [
+          "Member"
+        ],
         "summary": "管理员设置成员搜索三态值",
         "operationId": "teamMemberSetSearch",
-        "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/PageId" }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": {
-          "type": "object", "required": ["member_id", "search_override"], "properties": {
-            "member_id": { "type": "integer", "format": "int64" },
-            "search_override": { "type": "integer", "enum": [0, 1], "nullable": true }
+        "security": [
+          {
+            "bearerAuth": []
           }
-        } } } },
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "member_id",
+                  "search_override"
+                ],
+                "properties": {
+                  "member_id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "search_override": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ],
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "设置成功", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } }
+          "200": {
+            "description": "设置成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entityField/create": {
+      "post": {
+        "tags": [
+          "EntityField"
+        ],
+        "summary": "创建统一对象字段",
+        "operationId": "chatEntityFieldCreate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityField"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entityField/values": {
+      "get": {
+        "tags": [
+          "EntityField"
+        ],
+        "summary": "读取指定 slug 的团队内部字段值",
+        "operationId": "chatEntityFieldValues",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SlugQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "字段值",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "EntityField"
+        ],
+        "summary": "保存指定 slug 的团队内部字段值",
+        "operationId": "chatEntityFieldSaveValues",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "slug",
+                  "values"
+                ],
+                "properties": {
+                  "slug": {
+                    "type": "string"
+                  },
+                  "values": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "保存成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatVirtual/index": {
+      "get": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台列出可管理虚拟实体",
+        "operationId": "teamChatVirtualList",
+        "responses": {
+          "200": {
+            "description": "列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatVirtual/get": {
+      "get": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台读取虚拟实体",
+        "operationId": "teamChatVirtualGet",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SlugQuery"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatVirtual/create": {
+      "post": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台创建虚拟实体",
+        "operationId": "teamChatVirtualCreate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VirtualEntity"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatVirtual/update": {
+      "post": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台更新虚拟实体",
+        "operationId": "teamChatVirtualUpdate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VirtualEntity"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatVirtual/delete": {
+      "post": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台删除虚拟实体",
+        "operationId": "teamChatVirtualDelete",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "slug"
+                ],
+                "properties": {
+                  "slug": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatIntegration/create": {
+      "post": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台创建 Webhook 集成",
+        "operationId": "teamChatIntegrationCreate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Integration"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "凭据",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatIntegration/update": {
+      "post": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台更新 Webhook 集成",
+        "operationId": "teamChatIntegrationUpdate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Integration"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatIntegration/rotate": {
+      "post": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台轮换 Webhook 凭据",
+        "operationId": "teamChatIntegrationRotate",
+        "responses": {
+          "200": {
+            "description": "新凭据",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatIntegration/delete": {
+      "post": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台删除 Webhook 集成",
+        "operationId": "teamChatIntegrationDelete",
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entityField/index": {
+      "get": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台列出统一对象字段",
+        "operationId": "teamEntityFieldList",
+        "responses": {
+          "200": {
+            "description": "字段列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entityField/get": {
+      "get": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台读取统一对象字段",
+        "operationId": "teamEntityFieldGet",
+        "responses": {
+          "200": {
+            "description": "字段详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entityField/update": {
+      "post": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台更新统一对象字段",
+        "operationId": "teamEntityFieldUpdate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityField"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entityField/delete": {
+      "post": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "团队后台删除统一对象字段及值",
+        "operationId": "teamEntityFieldDelete",
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rolePermission/catalog": {
+      "get": {
+        "tags": [
+          "TeamAdmin"
+        ],
+        "summary": "加载固定权限、当前团队通配委托权限及具体虚拟实体权限目录",
+        "description": "要求 team.role.read 权限。委托权限包括 identity.team.assume 以及 member/customer/virtual 的当前团队通配权限；当前团队有效实体还可通过精确 slug 保存对应 assume 权限。",
+        "operationId": "teamRolePermissionCatalog",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "权限目录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Envelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PermissionCatalog"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entity/options": {
+      "get": {
+        "tags": [
+          "Entity"
+        ],
+        "summary": "??????????",
+        "operationId": "teamEntityOptions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "??",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/EntityOption"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entity/index": {
+      "get": {
+        "tags": [
+          "Entity"
+        ],
+        "summary": "????????????",
+        "description": "?? team.entity.read ????????????",
+        "operationId": "teamEntityIndex",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "team",
+                "teamMember",
+                "teamCustomer",
+                "teamVirtual"
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "??????",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/EntityList"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "????????",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "???????????",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entity/get": {
+      "get": {
+        "tags": [
+          "Entity"
+        ],
+        "summary": "??????????",
+        "description": "?? team.entity.read ????????????????",
+        "operationId": "teamEntityGet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entity_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "????",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Entity"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "??????????????????",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "?????",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entity/profile": {
+      "post": {
+        "tags": [
+          "Entity"
+        ],
+        "summary": "??????????",
+        "description": "?? team.entity_profile.manage ?????????????????",
+        "operationId": "teamEntityProfileUpdate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "entity_id"
+                ],
+                "properties": {
+                  "entity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 255
+                  },
+                  "intro_image": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 255
+                  },
+                  "intro_video": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 255
+                  },
+                  "introduction_markdown": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "???????",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "????????????????????",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "?????",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "??????",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entity/display": {
+      "post": {
+        "tags": [
+          "Entity"
+        ],
+        "summary": "更新实体公开展示状态",
+        "description": "需要 team.entity.profile.manage 权限，仅支持成员与虚拟实体。",
+        "operationId": "teamEntityDisplayUpdate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "entity_id",
+                  "is_displayed"
+                ],
+                "properties": {
+                  "entity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 1
+                  },
+                  "is_displayed": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "公开展示设置已更新",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无权管理实体资料",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "实体不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "实体类型或公开状态不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
         }
       }
     }

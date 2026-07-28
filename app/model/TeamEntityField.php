@@ -4,6 +4,8 @@ declare (strict_types = 1);
 namespace app\model;
 
 use app\enum\TeamEntityType;
+use app\enum\ManageScope;
+use app\enum\Visibility;
 
 class TeamEntityField extends Base
 {
@@ -16,8 +18,12 @@ class TeamEntityField extends Base
         'entity_type'   => TeamEntityType::class,
         'field_key'     => 'string',
         'name'          => 'string',
+        'source'        => 'string',
         'value_type'    => 'string',
         'input_type'    => 'string',
+        'default_value' => 'string',
+        'manager_scope' => ManageScope::class,
+        'visibility'    => Visibility::class,
         'is_required'   => 'integer',
         'is_editable'   => 'integer',
         'is_searchable' => 'integer',
@@ -49,5 +55,10 @@ class TeamEntityField extends Base
     public function fieldValues()
     {
         return $this->hasMany(TeamEntityFieldValue::class, 'field_id');
+    }
+
+    public function visibilityTargets()
+    {
+        return $this->morphMany(VisibilityTarget::class, 'visibleable');
     }
 }

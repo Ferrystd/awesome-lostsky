@@ -24,7 +24,7 @@ class TeamJoinApplication extends Base
 
         'team_id'   => 'integer',
         'user_id'   => 'integer',
-        'member_id' => 'integer',
+        'entity_id' => 'integer',
         'status'    => TeamJoinStatus::class,
         'memo'      => 'string',
     ];
@@ -51,9 +51,9 @@ class TeamJoinApplication extends Base
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function member()
+    public function subject()
     {
-        return $this->belongsTo(TeamMember::class, 'member_id');
+        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
     public function values()

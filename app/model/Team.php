@@ -16,7 +16,6 @@ class Team extends Base
         'delete_time' => 'integer',
 
         'slug'         => 'string',
-        'display_name' => 'string',
         'user_id'      => 'integer',
         'is_banned'    => 'integer',
         'is_cancelled' => 'integer',
@@ -54,11 +53,6 @@ class Team extends Base
         return $this->hasMany(TeamMember::class, 'team_id');
     }
 
-    public function postTypes()
-    {
-        return $this->hasMany(TeamMemberPostType::class, 'team_id');
-    }
-
     public function getIsValidAttr($value, $data): bool
     {
         return (int) ($data['is_banned'] ?? 0) === 0 && (int) ($data['is_cancelled'] ?? 0) === 0;
@@ -87,12 +81,6 @@ class Team extends Base
         return $this->hasMany(TeamEntityRole::class, 'team_id');
     }
 
-    public function memberFields()
-    {
-        return $this->hasMany(TeamEntityField::class, 'team_id')
-            ->where('entity_type', \app\enum\TeamEntityType::Member->value);
-    }
-
     public function joinFields()
     {
         return $this->hasMany(TeamJoinField::class, 'team_id');
@@ -110,8 +98,8 @@ class Team extends Base
 
     public function profile()
     {
-        return $this->hasOne(TeamProfile::class, 'team_id')
-            ->bind(['title', 'description', 'introduction']);
+        return $this->hasOne(TeamEntityProfile::class, 'entity_id', 'root_entity_id')
+            ->bind(['name' => 'display_name', 'avatar', 'description', 'introduction_markdown']);
     }
 
     public function domains()
@@ -127,6 +115,11 @@ class Team extends Base
     public function notices()
     {
         return $this->hasMany(TeamNotice::class, 'team_id');
+    }
+
+    public function sentNotices()
+    {
+        return $this->hasMany(TeamNotice::class, 'sender_team_id');
     }
 
     public function customers()
@@ -156,12 +149,17 @@ class Team extends Base
 
     public function documents()
     {
-        return $this->morphMany(Document::class, 'documentable');
+        return $this->hasMany(Document::class, 'entity_id', 'root_entity_id');
     }
 
     public function identity()
     {
-        return $this->morphOne(EntityIdentity::class, 'entityable', 'team');
+        return $this->morphOne(Entity::class, 'entityable', 'team');
+    }
+
+    public function getRootEntityIdAttr(): int
+    {
+        return (int) ($this->identity?->id ?? 0);
     }
 
     public function settings()
@@ -171,6 +169,6 @@ class Team extends Base
 
     public function files()
     {
-        return $this->hasManyThrough(File::class, TeamMember::class, 'team_id', 'member_id');
+        return $this->hasMany(File::class, 'team_id');
     }
 }

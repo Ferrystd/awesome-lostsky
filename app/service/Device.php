@@ -21,6 +21,7 @@ class Device
             throw new HttpException(404, '设备不存在');
         }
 
+        app(RefreshToken::class)->revokeDevice($userId, (int) $device->id);
         $device->delete();
     }
 
@@ -31,6 +32,7 @@ class Device
     {
         $devices = UserDevice::where('user_id', $userId)->select();
         foreach ($devices as $device) {
+            app(RefreshToken::class)->revokeDevice($userId, (int) $device->id);
             $device->delete();
         }
     }

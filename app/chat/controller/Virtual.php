@@ -3,17 +3,18 @@ declare (strict_types = 1);
 
 namespace app\chat\controller;
 
+use app\service\PermissionDictionary as Permissions;
+
 class Virtual
 {
     protected $middleware = [
         'JwtAuth',
         'Context',
         'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamBelongs',
-        'MemberAccess',
-        'Permission:chat.virtual.create' => ['only' => ['create']],
+        'TeamAuth',
+        'Permission:' . Permissions::CHAT_VIRTUAL_CREATE => ['only' => ['create']],
         [
-            'middleware' => ['Permission', ['chat.virtual.<slug>.manage']],
+            'middleware' => ['Permission', [Permissions::CHAT_VIRTUAL_MANAGE_TEMPLATE]],
             'options' => ['only' => ['get', 'update', 'delete']],
         ],
     ];
@@ -22,7 +23,7 @@ class Virtual
     {
         return success(app(\app\service\ChatVirtual::class)->list(
             (int) $request->team_id,
-            (int) $request->member_id,
+            (array) $request->acting_entity,
             (string) $request->get('mode', 'manage')
         ));
     }

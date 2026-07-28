@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { loginUrl, redirectToLogin, safeRedirect } from './navigation'
+import { loginUrl, memberIdentityCallbackUrl, redirectToLogin, safeRedirect } from './navigation'
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
+})
 
 describe('safeRedirect', () => {
   it('accepts local and LostSky HTTPS destinations only', () => {
@@ -23,6 +26,71 @@ describe('safeRedirect', () => {
     expect(target.searchParams.get('expired')).toBe('1')
   })
 
+  it('preserves a LostSky development subdomain deep link through the Account subdomain', () => {
+    const redirect = 'http://demo.team.lostsky.work:5175/doc?id=11#content'
+    vi.stubGlobal('location', {
+      href: redirect,
+      hostname: 'demo.team.lostsky.work',
+      port: '5175',
+      protocol: 'http:',
+    })
+
+    const target = new URL(loginUrl())
+    expect(target.origin).toBe('http://account.lostsky.work:5174')
+    expect(target.pathname).toBe('/login')
+    expect(target.searchParams.get('redirect')).toBe(redirect)
+    expect(safeRedirect(target.searchParams.get('redirect'))).toBe(redirect)
+  })
+
+  it('keeps browser-facing LostSky development URLs free of internal Vite ports', () => {
+    const redirect = 'http://demo.team.lostsky.work/doc?id=11#content'
+    vi.stubGlobal('location', {
+      href: redirect,
+      hostname: 'demo.team.lostsky.work',
+      port: '',
+      protocol: 'http:',
+    })
+
+    const target = new URL(loginUrl())
+    expect(target.origin).toBe('http://account.lostsky.work')
+    expect(target.searchParams.get('redirect')).toBe(redirect)
+    expect(safeRedirect(target.searchParams.get('redirect'))).toBe(redirect)
+  })
+
+  it('accepts an HTTP LostSky return URL from an HTTP Account page in production builds', () => {
+    const redirect = 'http://demo.team.lostsky.work/doc?id=11#content'
+    vi.stubEnv('DEV', false)
+    vi.stubGlobal('location', {
+      href: `http://account.lostsky.work/login?redirect=${encodeURIComponent(redirect)}`,
+      hostname: 'account.lostsky.work',
+      port: '',
+      protocol: 'http:',
+    })
+
+    expect(safeRedirect(redirect)).toBe(redirect)
+  })
+
+  it('rejects an HTTP downgrade from an HTTPS Account page', () => {
+    vi.stubEnv('DEV', false)
+    vi.stubGlobal('location', {
+      hostname: 'account.lostsky.work',
+      port: '',
+      protocol: 'https:',
+    })
+
+    expect(safeRedirect('http://demo.team.lostsky.work/private')).toBe('/teams')
+  })
+
+  it('rejects non-LostSky hosts and unknown ports during development', () => {
+    vi.stubGlobal('location', {
+      hostname: 'account.lostsky.work',
+      protocol: 'http:',
+    })
+
+    expect(safeRedirect('http://demo.team.lostsky.work:9000/private')).toBe('/teams')
+    expect(safeRedirect('http://example.com:5175/private')).toBe('/teams')
+  })
+
   it('uses history replacement when authentication is required', () => {
     const replace = vi.fn()
     vi.stubGlobal('location', { href: 'https://demo.chat.lostsky.work/new', replace })
@@ -32,5 +100,22 @@ describe('safeRedirect', () => {
     expect(replace).toHaveBeenCalledOnce()
     const target = new URL(String(replace.mock.calls[0]?.[0]), 'https://account.lostsky.work')
     expect(target.searchParams.get('redirect')).toBe('https://demo.chat.lostsky.work/new')
+  })
+
+  it('preserves a standard LostSky deep link in the member callback URL', () => {
+    const href = 'https://demo.transaction.lostsky.work/transactions/7'
+    vi.stubGlobal('location', { href })
+
+    const target = new URL(memberIdentityCallbackUrl('demo', 'team_mismatch'), 'https://account.lostsky.work')
+    expect(target.searchParams.get('team_slug')).toBe('demo')
+    expect(target.searchParams.get('reason')).toBe('team_mismatch')
+    expect(target.searchParams.get('return_to')).toBe(href)
+  })
+
+  it('uses browser history instead of embedding an untrusted custom-domain return URL', () => {
+    vi.stubGlobal('location', { href: 'https://team.example.com/private' })
+
+    const target = new URL(memberIdentityCallbackUrl('demo', 'missing'), 'https://account.lostsky.work')
+    expect(target.searchParams.has('return_to')).toBe(false)
   })
 })

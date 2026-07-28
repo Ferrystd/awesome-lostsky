@@ -4,12 +4,13 @@ Team 是团队工作台的核心应用，负责成员资料、角色权限、团
 
 ## 业务领域
 
-- 当前成员：查看和编辑自己的团队资料，认领稳定的成员标识。
+- 当前成员：查看和编辑自己的团队资料，以及本人可见且可编辑的对象字段；成员在创建或加入时即取得稳定的全局实体标识。
 - 成员管理：成员列表、资料、岗位、封禁、移出和搜索。
 - 扩展资料：成员自定义字段、字段值和岗位类型。
 - RBAC：角色、角色权限和成员角色绑定。
 - 团队设置：按应用读取配置，由团队管理者读取配置结构并保存设置。
-- 内容协作：站内通知、团队文件和团队或成员文档。
+- Chat 管理配置：维护统一实体字段、虚拟实体与 Webhook 集成；管理接口记录在 Team OpenAPI。
+- 内容协作：保留 LostSky 向 Team 发送通知的原有 Team 收件箱；同时允许有权限的当前 Entity 代表 Team 向本团队成员、客户或虚拟 Entity 发送通知。Team 发给 Entity 的通知不自动抄送发送 Team，两条收件通道及已读状态相互隔离。团队文件和任意团队实体的文档通过 `entity_id` 关联全局 `entity`。
 - 加入团队：申请表单、申请记录、审核任务和审批。
 - 实体引用：为 Markdown 等场景搜索和解析可引用对象。
 
@@ -20,35 +21,51 @@ Team 是团队工作台的核心应用，负责成员资料、角色权限、团
 Team 应用按操作组合以下中间件：
 
 - `JwtAuth`：确认登录用户。
-- `Context`：提取 `user_id`、`team_id`、`member_id` 和顾客上下文。
+- `Context`：保留真实 `user_id` 用于认证和审计，只从当前 `acting_entity` 填充业务 `member`、`customer` 与实体上下文。
+- `EntityRequired`：要求请求已携带有效实体会话；缺少实体时返回 HTTP 428、`code=42801` 和当前 `team_slug`。
+- `TeamAuth`：组合 `EntityRequired` 与 `TeamBelongs`，先要求实体，再校验实体归属。
 - `EntityType`：按接口声明允许的基础用户或实体身份类型；同一声明中的多个类型按 OR 处理。
 - `TeamBelongs`：确认显式实体属于当前域名解析出的团队，不重复处理状态或角色权限。
-- `MemberAccess` 或 `TeamMember`：确认当前用户具备团队成员身份。
-- `TeamAccess`：限制团队管理操作。
+- `MemberAccess`：确认当前 actor 就是该团队的有效成员实体。
+- `Permission`：按当前实体绑定角色的权限目录校验具体业务操作。
 - `TeamGuest`：限制加入申请入口只能由非成员使用。
-- `DocAbility`：根据文档归属、管理范围和可见性控制文档操作。
+- `Ability:doc`：确认团队已开通文档能力；文档归属、管理范围和可见性由服务层控制。
 
 控制器仅提取参数、调用服务并返回统一响应；权限判断和跨模型事务由中间件与服务层完成。
 
-团队业务默认接受 `team`、`teamMember`、`teamCustomer`、`teamVirtual` 四种实体 JWT，并依次经过
-`TeamBelongs` 和具体 Access/Ability/Permission 中间件收紧。当前成员资料与成员上传只接受
-`teamMember`；加入申请人的动作只接受 `teamless` 基础用户 JWT，且不经过 `TeamBelongs`。
+团队业务要求 `team`、`teamMember`、`teamCustomer`、`teamVirtual` 四种实体 JWT，不再从基础 JWT 静默领取成员，也不通过响应头换发令牌。
+缺少实体由前端进入 Account 成员回调；实体不属于当前团队时返回 HTTP 403、`code=40301` 和当前 `team_slug`。
+允许跨团队实体的少数接口只声明 `EntityRequired`，要求当前团队归属的接口使用 `TeamAuth`。当前成员资料与成员上传最终只接受
+`teamMember`；加入申请人的动作只接受基础用户 JWT，且不经过 `TeamAuth`。
+
+当前成员通过 `POST /me/fields` 保存对象字段值。该入口不接受目标对象标识，只使用当前成员上下文，并且只允许写入本人可见且可编辑的人员实体字段；隐藏、只读或其他实体类型字段会被拒绝。成员必须先确认全局 slug 才能保存字段；`GET /me/get` 同时返回本人角色、各角色权限以及去重后的有效权限并集，不要求本人拥有角色管理权限。
+
+`GET /member/get` 在成员资料之外返回当前操作者对该任务页的能力集合，包括成员编辑、字段管理、角色读取/编辑、封禁、搜索设置、slug 补全、移出和身份切换。前端据此裁剪整张卡片和操作入口；所有写接口仍各自执行服务端权限校验。
 
 ## 角色与权限
 
-角色、角色权限和成员角色绑定只允许通过 `TeamAccess` 的团队管理者维护。
+角色读取与维护分别要求 `team.role.read`、`team.role.write`；新团队自动创建 owner 角色，并授予创建者成员实体和团队实体当前权限目录的全部权限，包括四类实体的完整 assume 权限。
+固定 key、动态模式和对应业务动作见[《权限字典》](../architecture/permissions.md)，代码以 `PermissionDictionary` 为唯一事实源。
 
-- 角色以 `role_key` 作为稳定标识；编辑时只允许修改名称、说明和排序。
+- 角色以 `role_key` 作为稳定标识；编辑时只允许修改名称、说明、排序和是否在 Display 展示。
+- `is_displayed` 默认关闭，只控制角色名称与说明是否出现在已公开实体资料中，不改变任何授权行为。
 - 删除角色时，服务层同步软删除角色权限和成员角色绑定。
-- 保存角色权限使用完整的 `permission_keys` 集合，空数组表示清空。
+- 保存角色权限使用完整的 `permission_keys` 集合，空数组表示清空；目录外静态 key 和不属于当前团队的动态实体 key 会被拒绝。
 - 保存成员角色使用完整的 `role_ids` 集合，空数组表示清空。
-- 成员拥有多个角色时，业务权限取并集。
+- 保存实体角色以全局 slug 指定来源主体。角色始终属于当前目标团队，来源实体可以属于任意团队，也无需公开可搜索。
+- 成员拥有多个角色时，业务权限取并集；实体角色关联响应会携带每个角色的权限，供本人资料页和管理员资料页展示有效权限。
 
-普通业务接口通过 `Permission:{permission_key}` 检查角色权限；角色管理本身不依赖普通权限 key。动态参数使用 `<slug>` 形式，例如 `chat.virtual.<slug>.manage`。一个 `Permission` 可以用逗号接收多个权限参数，控制器字符串简写为 `Permission:key-a,key-b`；数组写法 `['Permission', ['key-a', 'key-b']]` 具有相同语义，多个参数按 OR 处理。
+身份委托使用 `identity.team.assume`，以及 `identity.member|customer|virtual.*.assume` 或对应精确 slug 权限。通配只覆盖当前授权团队；精确目标保存时必须是当前团队的有效实体。委托成功后，普通业务请求仍必须以目标实体通过 `TeamBelongs`，外部来源实体不能直接跨过团队归属边界。详细会话链与失效规则见[《Entity 身份与跨团队委托》](../architecture/entity-authorization.md)。
+
+普通业务接口通过 `Permission:{permission_key}` 检查角色权限。动态参数使用 `<slug>` 形式，例如 `chat.virtual.<slug>.manage`。一个 `Permission` 可以用逗号接收多个权限参数，控制器字符串简写为 `Permission:key-a,key-b`；数组写法 `['Permission', ['key-a', 'key-b']]` 具有相同语义，多个参数按 OR 处理。
+
+通知发送要求 `team.notice.send`。具备该权限的任意当前 Entity 都是操作执行者，但通知始终以当前 Team 名义发送；集中业务审计保留实际 acting Entity 与认证用户。
+
+加入字段读取和管理分别要求 `team.join_field.read`、`team.join_field.write`；加入申请查看和审核分别要求 `team.join_review.read`、`team.join_review.write`。人员实体字段定义和岗位类型的写操作分别要求 `team.entity_field.manage`、`team.post_type.write`。
 
 ## 加入申请与审核
 
-申请字段独立于成员字段。字段可通过 `is_transfer_member_field` 和 `member_field_id` 配置为：申请获批后自动转存到对应成员字段。
+申请字段独立于人员字段。字段可通过 `is_transfer_entity_field` 和 `entity_field_id` 配置为：申请获批后自动转存到对应的 Entity 字段。
 
 申请状态由 `TeamJoinStatus` 枚举维护：
 
@@ -66,13 +83,13 @@ Team 应用按操作组合以下中间件：
 2. 提交字段值和备注；文件可在尚未创建成员记录时上传。
 3. 查询自己的申请记录和详情，或取消仍可取消的申请。
 
-团队管理者可以配置申请字段、查看申请、进入审核、维护审核任务，并最终同意或拒绝。审批通过时，服务层创建成员并转存已配置的字段值。
+具备相应加入字段或审核权限的实体可以配置申请字段、查看申请、进入审核、维护审核任务，并最终同意或拒绝。审批通过时，服务层创建成员并转存已配置的字段值。
 
 ## 文档
 
-团队文档由 `Document` 服务统一处理，可以归属于团队或成员，并支持管理范围、可见性、目标对象、排序和关键词筛选。
+团队文档由 `Document` 服务统一处理，可以归属于本团队任意有效实体，并支持管理范围、可见性、指定实体、排序和关键词筛选。
 
-所有文档入口都经过 `JwtAuth`、`Context`、`MemberAccess` 和 `DocAbility`。兼容路径仍由路由和控制器处理，但新调用应以 OpenAPI 中的标准路径为准。
+所有文档入口都经过 `JwtAuth`、`Context`、`TeamAuth` 和 `Ability:doc`；归属与指定可见对象只接受全局 `entity_id`。
 
 ## 控制器约定
 

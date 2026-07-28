@@ -1,11 +1,47 @@
-name: Playwright Tests
+name: Test Suite
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 jobs:
-  test:
+  backend:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: lostsky
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+    - uses: actions/checkout@v4
+    - uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: pdo_mysql, fileinfo
+        coverage: none
+    - name: Install Composer dependencies
+      run: composer install --no-interaction --prefer-dist
+    - name: Configure test environment
+      run: |
+        cp .env.example .env
+        printf '\nDB_HOST = 127.0.0.1\nDB_NAME = lostsky\nDB_USER = root\nDB_PASS = root\njwt.secret = ci-only-jwt-secret-with-at-least-32-characters\n' >> .env
+    - name: Import schema
+      run: mysql -h 127.0.0.1 -uroot -proot lostsky < sql/schema.sql
+    - name: PHP syntax
+      run: find app config route tests -name '*.php' -print0 | xargs -0 -n1 php -l
+    - name: Backend integration tests
+      run: npm run test:backend
+
+  frontend:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
@@ -15,8 +51,21 @@ jobs:
         node-version: lts/*
     - name: Install dependencies
       run: npm ci
+    - name: Unit tests
+      run: npm test
+    - name: Typecheck and regenerate API types
+      run: npm run typecheck
+    - name: Validate media and CORS contracts
+      run: npm run check:media && npm run check:cors
+    - name: Production build
+      run: npm run build
+    - name: Verify generated and built artifacts are committed
+      run: git diff --exit-code
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
+    - name: Map LostSky development subdomains
+      run: |
+        echo '127.0.0.1 www.lostsky.work account.lostsky.work demo.team.lostsky.work demo.chat.lostsky.work demo.transaction.lostsky.work demo.display.lostsky.work' | sudo tee -a /etc/hosts
     - name: Run Playwright tests
       run: npx playwright test
     - uses: actions/upload-artifact@v4

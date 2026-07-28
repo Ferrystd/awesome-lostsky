@@ -6,7 +6,7 @@ import { NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
-import { customerOptions, memberOptions, money } from '../lib'
+import { customerOptions, entityOptions, money } from '../lib'
 import type { TransactionOptions, TransactionRecord } from '../types'
 
 const route = useRoute()
@@ -15,9 +15,9 @@ const client = useQueryClient()
 const id = computed(() => Number(route.query.id || 0))
 const editing = computed(() => id.value > 0)
 const form = reactive({
-  handler_id: null as number | null,
-  sender_id: null as number | null,
-  cs_id: null as number | null,
+  handler_entity_id: null as number | null,
+  sender_entity_id: null as number | null,
+  cs_entity_id: null as number | null,
   customer_id: null as number | null,
   total_price: 0,
   cost: 0,
@@ -42,9 +42,9 @@ const detail = useQuery({
 watch(() => detail.data.value, (data) => {
   if (!data) return
   Object.assign(form, {
-    handler_id: Number(data.handler_id) || null,
-    sender_id: data.sender_id ? Number(data.sender_id) : null,
-    cs_id: data.cs_id ? Number(data.cs_id) : null,
+    handler_entity_id: Number(data.handler_entity_id) || null,
+    sender_entity_id: data.sender_entity_id ? Number(data.sender_entity_id) : null,
+    cs_entity_id: data.cs_entity_id ? Number(data.cs_entity_id) : null,
     customer_id: data.customer_id ? Number(data.customer_id) : null,
     total_price: Number(data.total_price ?? 0),
     cost: Number(data.cost ?? 0),
@@ -68,14 +68,14 @@ const balanced = computed(() => {
 })
 const selectedCustomer = computed(() => optionsQuery.data.value?.customers.find(item => Number(item.id) === form.customer_id))
 const balance = computed(() => Number(selectedCustomer.value?.balance?.balance ?? 0))
-const canSubmit = computed(() => Boolean(form.handler_id && form.trans_at && balanced.value && (!form.prepaid || form.customer_id)))
+const canSubmit = computed(() => Boolean(form.handler_entity_id && form.trans_at && balanced.value && (!form.prepaid || form.customer_id)))
 const amountProps = { min: 0, precision: 2, step: 1 } as const
 
 const save = useMutation({
   mutationFn: () => api.post<{ id?: number }>(editing.value ? `/transaction/${id.value}` : '/transaction', {
-    ...(!editing.value ? { handler_id: form.handler_id, type: 2 } : {}),
-    sender_id: form.sender_id,
-    cs_id: form.cs_id,
+    ...(!editing.value ? { handler_entity_id: form.handler_entity_id, type: 2 } : {}),
+    sender_entity_id: form.sender_entity_id,
+    cs_entity_id: form.cs_entity_id,
     customer_id: form.customer_id,
     total_price: form.total_price,
     cost: form.cost,
@@ -106,10 +106,10 @@ const save = useMutation({
     <p v-if="detail.isError.value || optionsQuery.isError.value" class="feedback error" role="alert">{{ friendlyError(detail.error.value || optionsQuery.error.value) }}</p>
     <form v-else class="transaction-form" @submit.prevent="save.mutate()">
       <section class="panel form-panel">
-        <div class="section-title"><div><h3>参与方</h3><p>选择本团队成员与客户；客户为空时不能使用预存款。</p></div></div>
-        <label class="field"><span>接单人 <b>*</b></span><NSelect v-model:value="form.handler_id" :options="memberOptions(optionsQuery.data.value)" filterable :disabled="editing" placeholder="选择接单人" /></label>
-        <label class="field"><span>发单人</span><NSelect v-model:value="form.sender_id" :options="memberOptions(optionsQuery.data.value)" filterable clearable placeholder="可选" /></label>
-        <label class="field"><span>客服</span><NSelect v-model:value="form.cs_id" :options="memberOptions(optionsQuery.data.value)" filterable clearable placeholder="可选" /></label>
+        <div class="section-title"><div><h3>参与方</h3><p>选择接单人、发单人、客服与客户；客户为空时不能使用预存款。</p></div></div>
+        <label class="field"><span>接单人 <b>*</b></span><NSelect v-model:value="form.handler_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable :disabled="editing" placeholder="选择接单人" /></label>
+        <label class="field"><span>发单人</span><NSelect v-model:value="form.sender_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable placeholder="可选" /></label>
+        <label class="field"><span>客服</span><NSelect v-model:value="form.cs_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable placeholder="可选" /></label>
         <label class="field"><span>客户</span><NSelect v-model:value="form.customer_id" :options="customerOptions(optionsQuery.data.value)" filterable clearable placeholder="可选；使用预存款时必填" /></label>
         <p v-if="selectedCustomer" class="balance-hint">当前客户余额 <strong class="ls-tabular">{{ money(balance) }}</strong></p>
       </section>

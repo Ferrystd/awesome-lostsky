@@ -8,7 +8,7 @@ use app\model\TeamJoinApplication;
 use app\model\TeamJoinField;
 use app\model\TeamJoinFieldValue;
 use app\model\TeamJoinTask;
-use app\model\TeamMemberProfile;
+use app\model\TeamEntityProfile;
 use think\exception\HttpException;
 use think\file\UploadedFile;
 
@@ -26,7 +26,7 @@ class TeamJoin
             $query->where('is_apply_fillable', 1);
         }
 
-        return $query->with(['memberField'])
+        return $query->with(['entityField'])
             ->order('sort', 'asc')
             ->order('id', 'asc')
             ->select()
@@ -101,7 +101,7 @@ class TeamJoin
             $application->save([
                 'team_id' => $teamId,
                 'user_id' => $userId,
-                'member_id' => null,
+                'entity_id' => null,
                 'status' => TeamJoinStatus::Applied,
                 'memo' => $data['memo'] ?? null,
             ]);
@@ -124,6 +124,7 @@ class TeamJoin
 
     public function list(int $teamId, array $filters, int $page = 1, int $limit = 20): array
     {
+        [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
         $query = TeamJoinApplication::where('team_id', $teamId);
         if (!empty($filters['status'])) {
             $query->where('status', (int) $filters['status']);
@@ -133,34 +134,10 @@ class TeamJoin
         }
 
         $total = $query->count();
-        $applications = $query->with(['user.profile', 'values.field', 'tasks'])
+        $applications = $query->with(['user.profile', 'subject.entityable', 'values.field', 'tasks'])
             ->order('id', 'desc')
             ->page($page, $limit)
             ->select();
-
-        $memberIds = [];
-        foreach ($applications as $application) {
-            $memberId = $application->getData('member_id');
-            if ($memberId !== null) {
-                $memberIds[] = (int) $memberId;
-            }
-        }
-
-        $members = [];
-        if ($memberIds) {
-            $memberList = \app\model\TeamMember::where('team_id', $teamId)
-                ->whereIn('id', array_values(array_unique($memberIds)))
-                ->with(['profile'])
-                ->select();
-            foreach ($memberList as $member) {
-                $members[(int) $member->id] = $member;
-            }
-        }
-
-        foreach ($applications as $application) {
-            $memberId = $application->getData('member_id');
-            $application->setRelation('member', $memberId === null ? null : ($members[(int) $memberId] ?? null));
-        }
 
         $list = $applications->toArray();
 
@@ -170,23 +147,13 @@ class TeamJoin
     public function get(int $teamId, int $id, ?int $userId = null): array
     {
         $application = TeamJoinApplication::where('team_id', $teamId)
-            ->with(['user.profile', 'values.field', 'tasks'])
+            ->with(['user.profile', 'subject.entityable', 'values.field', 'tasks'])
             ->find($id);
         if (!$application) {
             throw new HttpException(404, '申请不存在');
         }
         if ($userId !== null && (int) $application->user_id !== $userId) {
             throw new HttpException(403, '无权查看此申请');
-        }
-
-        $memberId = $application->getData('member_id');
-        if ($memberId === null) {
-            $application->setRelation('member', null);
-        } else {
-            $member = \app\model\TeamMember::where('team_id', $teamId)
-                ->with(['profile'])
-                ->find((int) $memberId);
-            $application->setRelation('member', $member);
         }
 
         return $application->toArray();
@@ -244,11 +211,16 @@ class TeamJoin
                     'team_id' => $teamId,
                     'user_id' => (int) $application->user_id,
                 ]);
+                $entity = app(\app\service\Entity::class)->claimMember(
+                    $teamId,
+                    (int) $member->id,
+                    "member-{$member->id}"
+                );
 
-                $profile = new TeamMemberProfile;
+                $profile = new TeamEntityProfile;
                 $profile->save([
-                    'member_id' => (int) $member->id,
-                    'nickname' => '',
+                    'entity_id' => (int) $entity->id,
+                    'name' => '',
                     'avatar' => '',
                     'description' => null,
                     'intro_image' => null,
@@ -259,7 +231,8 @@ class TeamJoin
 
             $this->transferValues($teamId, (int) $application->id, (int) $member->id);
 
-            $application->member_id = (int) $member->id;
+            $entity ??= app(Entity::class)->requireBySubject('teamMember', (int) $member->id);
+            $application->entity_id = (int) $entity->id;
             $application->status = TeamJoinStatus::Joined;
             $application->save();
 
@@ -356,8 +329,8 @@ class TeamJoin
             'default_value' => null,
             'is_apply_fillable' => 1,
             'is_apply_required' => 0,
-            'is_transfer_member_field' => 0,
-            'member_field_id' => null,
+            'is_transfer_entity_field' => 0,
+            'entity_field_id' => null,
             'is_active' => 1,
             'sort' => 0,
         ], $data);
@@ -388,17 +361,17 @@ class TeamJoin
 
     private function assertTransferField(int $teamId, array $data): void
     {
-        if (empty($data['is_transfer_member_field'])) {
+        if (empty($data['is_transfer_entity_field'])) {
             return;
         }
-        $memberFieldId = (int) ($data['member_field_id'] ?? 0);
-        if (!$memberFieldId) {
-            throw new HttpException(422, '转存成员字段不能为空');
+        $entityFieldId = (int) ($data['entity_field_id'] ?? 0);
+        if (!$entityFieldId) {
+            throw new HttpException(422, '转存实体字段不能为空');
         }
         if (!\app\model\TeamEntityField::where('team_id', $teamId)
-            ->where('entity_type', \app\enum\TeamEntityType::Member->value)
-            ->find($memberFieldId)) {
-            throw new HttpException(404, '转存成员字段不存在');
+            ->where('entity_type', \app\enum\TeamEntityType::Entity->value)
+            ->find($entityFieldId)) {
+            throw new HttpException(404, '转存实体字段不存在');
         }
     }
 
@@ -444,38 +417,37 @@ class TeamJoin
 
     private function transferValues(int $teamId, int $applicationId, int $memberId): void
     {
+        $entityId = (int) app(Entity::class)->requireBySubject('teamMember', $memberId)->id;
         $values = TeamJoinFieldValue::where('application_id', $applicationId)
             ->with(['field'])
             ->select();
 
         foreach ($values as $value) {
             $field = $value->field;
-            if (!$field || !$field->is_transfer_member_field || !$field->member_field_id) {
+            if (!$field || !$field->is_transfer_entity_field || !$field->entity_field_id) {
                 continue;
             }
-            $memberField = \app\model\TeamEntityField::where('team_id', $teamId)
-                ->where('entity_type', \app\enum\TeamEntityType::Member->value)
-                ->find((int) $field->member_field_id);
-            if (!$memberField) {
+            $entityField = \app\model\TeamEntityField::where('team_id', $teamId)
+                ->where('entity_type', \app\enum\TeamEntityType::Entity->value)
+                ->find((int) $field->entity_field_id);
+            if (!$entityField) {
                 continue;
             }
 
             $target = \app\model\TeamEntityFieldValue::withTrashed()
                 ->where('team_id', $teamId)
-                ->where('entity_type', \app\enum\TeamEntityType::Member->value)
-                ->where('entity_id', $memberId)
-                ->where('field_id', (int) $memberField->id)
+                ->where('entity_id', $entityId)
+                ->where('field_id', (int) $entityField->id)
                 ->find();
             if (!$target) {
                 $target = app(\app\model\TeamEntityFieldValue::class, [], true);
             }
             $target->save(array_merge([
                 'team_id' => $teamId,
-                'field_id' => (int) $memberField->id,
-                'entity_type' => \app\enum\TeamEntityType::Member,
-                'entity_id' => $memberId,
+                'field_id' => (int) $entityField->id,
+                'entity_id' => $entityId,
                 'delete_time' => null,
-            ], $this->valuePayload($memberField->value_type, $this->rawValue($field->value_type, $value))));
+            ], $this->valuePayload($entityField->value_type, $this->rawValue($field->value_type, $value))));
         }
     }
 

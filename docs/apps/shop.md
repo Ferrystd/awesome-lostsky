@@ -1,25 +1,40 @@
 # Shop 应用
 
-Shop 负责团队商品、订单以及顾客自助查询。成员侧管理与顾客侧查询使用不同的身份边界。
+Shop 同时承载团队的展示型商城和既有商家管理接口。访客通过
+`https://{slug}.shop.lostsky.work` 浏览上架商品；客户绑定后使用商家预存余额直接购买。
+第一版不提供购物车、在线充值或第三方支付。
 
 ## 业务职责
 
 - 商品：列表、详情、创建、编辑、删除和接单人配置。
 - 订单：列表、详情、创建、取消和完成，并由服务层处理相关交易与余额联动。
-- 顾客中心：当前顾客的资料、订单、交易流水、预存款余额和余额日志。
+- Storefront：公开团队资料、上架商品列表和脱敏后的商品详情。
+- 顾客中心：绑定当前商家的稳定客户身份，查询资料、余额、订单和交易，并购买或取消自己的订单。
 
 ## 鉴权边界
 
-所有入口都先经过 `JwtAuth` 和 `Context`。商品与订单入口接受四种团队实体 JWT，并经过
-`TeamBelongs`；顾客中心只接受属于当前团队的 `teamCustomer`。
+`GET /storefront*` 无需登录，团队由 `{slug}.shop.lostsky.work` 的请求上下文确定。商品与商家订单入口要求四种团队实体 JWT，并经过
+`TeamAuth`。`POST /customer/bind` 接受基础 User JWT 或任意有效 acting Entity，不使用
+`TeamAuth`；其余客户接口只接受属于当前团队的 `teamCustomer`。
 
 | 领域 | 基础身份 | 额外限制 |
 |---|---|---|
-| 商品 | `MemberAccess` | 读取、写入和删除分别使用 `shop.product.read`、`shop.product.write`、`shop.product.delete` 权限 |
-| 订单 | `MemberAccess` | 创建经过 `TransactionVerify`；取消和完成经过 `ShopAccess` |
-| 顾客中心 | `CustomerAccess` | 只能访问当前团队中由 `team_id + user_id` 识别出的顾客数据 |
+| 商品 | 四类团队实体 | 读取、写入和删除分别使用 `shop.product.read`、`shop.product.write`、`shop.product.delete` 权限 |
+| 订单 | 四类团队实体 | 读取要求 `shop.order.read`；创建、取消和完成要求 `shop.order.write`，创建另经过 `TransactionVerify` |
+| Storefront | 无 | 仅返回上架商品和公开 DTO，不返回成本、分成或内部接单配置 |
+| 客户绑定 | 基础 User 或任意有效 Entity | 一个来源在同一商家只能绑定一个客户；绑定不可转移 |
+| 顾客中心 | `CustomerAccess` | 只能访问当前客户的余额和订单；购买参数不接受客户端价格与分成 |
 
 跨模型的订单、流水和余额变更由服务层在事务中完成，控制器不负责数据联动。
+团队设置 `shop.sync_transaction` 默认开启；只有设置开启且团队具有等级不低于 1、未过期的 `transaction` Ability 时，新订单才自动生成关联流水。未同步流水不阻止订单创建，预存款扣减、余额日志与取消退款照常执行，订单和余额日志的 `trans_id` 保持 `null`。
+有 `customer_id` 的订单使用客户预存款支付；无客户订单使用现金支付。商品默认分成是单件值并随数量缩放，显式订单分成是整单值；未显式给出团队分成时由总价减成本和其他分成后的余额补齐。
+
+客户绑定同时创建零余额记录和不可搜索的 `teamCustomer` Entity。基础用户绑定保存在
+`user_id`，外部 Entity 绑定保存在 `owner_entity_id`，两者严格二选一。派生客户会话沿来源
+Entity 的证明链实时重验；来源失效、会话撤销或客户封禁后立即失效。
+
+客户下单在事务中锁定并复核商品、接单人和余额，金额全部由服务端计算。取消只允许订单所属
+客户操作处理中的订单；订单保留为“已取消”，关联交易被排除，预存余额和退款日志只写一次。
 
 ## 接口契约
 

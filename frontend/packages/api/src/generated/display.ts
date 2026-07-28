@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取团队公开资料 */
+        /** 获取团队公开主页资料 */
         get: operations["displayProfileGet"];
         put?: never;
         post?: never;
@@ -21,15 +21,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/member/index": {
+    "/entity/index": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 获取可展示成员列表 */
-        get: operations["displayMemberIndex"];
+        /** 获取可展示实体列表 */
+        get: operations["displayEntityIndex"];
         put?: never;
         post?: never;
         delete?: never;
@@ -38,15 +38,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/member/get": {
+    "/entity/get": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 获取单个可展示成员详情 */
-        get: operations["displayMemberGet"];
+        /** 获取公开实体详情 */
+        get: operations["displayEntityGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entity/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 解析公开 Markdown 中的实体引用 */
+        get: operations["displayEntityResolve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/document/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取公开文档列表 */
+        get: operations["displayDocumentIndex"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/document/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取公开文档正文 */
+        get: operations["displayDocumentGet"];
         put?: never;
         post?: never;
         delete?: never;
@@ -59,568 +110,116 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        AnyObject: {
-            [key: string]: unknown;
-        };
-        AnyValue: (string | number | boolean | unknown[] | {
-            [key: string]: unknown;
-        }) | null;
         SuccessEnvelope: {
             /** @example 0 */
             code: number;
-            /** @example ok */
             message: string;
-            data: unknown;
-        };
-        MessageEnvelope: {
-            /** @example 0 */
-            code: number;
-            /** @example 操作成功 */
-            message: string;
-            /** @example null */
             data: unknown;
         };
         ErrorEnvelope: {
-            /** @example 1 */
             code: number;
-            /** @example 参数错误 */
             message: string;
-            /** @example null */
-            data: unknown;
+            data?: unknown;
         };
-        PaginationBase: {
-            /** Format: int64 */
-            total: number;
-            list: unknown[];
-            /** @example 1 */
-            page: number;
-            /** @example 20 */
-            limit: number;
-        };
-        IdResult: {
-            /** Format: int64 */
-            id: number;
-        };
-        UserSummary: {
-            /** Format: int64 */
-            id?: number;
-            username?: string;
-            phone?: string;
-            email?: string | null;
-        };
-        LoginResult: {
-            token: string;
-            user: components["schemas"]["UserSummary"];
-        };
-        LoginEnvelope: components["schemas"]["SuccessEnvelope"] & {
-            data?: components["schemas"]["LoginResult"];
-        };
-        TeamSummary: {
-            /** Format: int64 */
-            id?: number;
-            slug?: string;
-            display_name?: string;
-            is_owner?: boolean;
-        };
-        TeamProfile: {
-            /** Format: int64 */
-            id?: number;
-            slug?: string;
-            display_name?: string;
-            title?: string | null;
-            description?: string | null;
-            introduction?: string | null;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-        };
-        MemberProfileFields: {
-            nickname?: string;
-            avatar?: string;
+        PublicProfile: {
+            name: string;
+            avatar?: string | null;
             description?: string | null;
             intro_image?: string | null;
             intro_video?: string | null;
             introduction_markdown?: string | null;
         };
-        Member: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            /** Format: int64 */
-            user_id?: number;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_displayed?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_blocked?: 0 | 1;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-        } & components["schemas"]["MemberProfileFields"] & {
-            posts?: components["schemas"]["MemberPost"][];
-            fieldValues?: components["schemas"]["MemberFieldValue"][];
-        };
-        MemberPost: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            member_id?: number;
-            /** Format: int64 */
-            type_id?: number;
-            /** Format: int64 */
-            post_id?: number;
-            type?: components["schemas"]["PostType"];
-        };
-        PostType: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            name?: string;
-            description?: string;
-            /** Format: int64 */
-            post_id?: number;
-            sort?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-        };
-        MemberField: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            field_key?: string;
-            name?: string;
+        PublicField: {
+            key: string;
+            name: string;
             /** @enum {string} */
-            source?: "system" | "custom";
-            /** @enum {string} */
-            value_type?: "string" | "text" | "int" | "decimal" | "bool" | "date" | "datetime" | "select" | "multi_select" | "json";
-            /** @enum {string} */
-            input_type?: "text" | "textarea" | "radio" | "checkbox" | "select" | "date" | "datetime" | "upload";
-            options?: unknown;
-            default_value?: string | null;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_required?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_editable?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_searchable?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_system?: 0 | 1;
-            sort?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-            /**
-             * @description 1=team管理, 2=主体本人和team管理
-             * @enum {integer}
-             */
-            manager_scope?: 1 | 2;
-            /**
-             * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见
-             * @enum {integer}
-             */
-            visibility?: 1 | 3 | 4 | 5;
+            value_type: "string" | "text" | "int" | "decimal" | "bool" | "date" | "datetime" | "select" | "multi_select" | "json";
+            value: unknown;
+            options?: unknown[] | null;
         };
-        MemberFieldValue: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            member_id?: number;
-            /** Format: int64 */
-            field_id?: number;
-            value_string?: string | null;
-            value_text?: string | null;
-            /** Format: int64 */
-            value_int?: number | null;
-            /** Format: float */
-            value_decimal?: number | null;
-            /** Format: int64 */
-            value_datetime?: number | null;
-            value_json?: unknown;
-            field?: components["schemas"]["MemberField"];
-        };
-        Product: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            /** Format: int64 */
-            member_id?: number | null;
-            name?: string;
+        PublicRole: {
+            name: string;
             description?: string | null;
-            /** Format: float */
-            price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            handler_cut?: number | null;
-            /** Format: float */
-            sender_cut?: number | null;
-            /** Format: float */
-            cs_cut?: number | null;
-            /** Format: float */
-            team_cut?: number | null;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_active?: 0 | 1;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-            member?: components["schemas"]["Member"];
-            handlers?: components["schemas"]["ProductHandler"][];
         };
-        ProductHandler: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            product_id?: number;
-            /** Format: int64 */
-            member_id?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            member?: components["schemas"]["Member"];
+        PublicSubject: {
+            slug: string;
+            /** @enum {string} */
+            type: "team" | "teamMember" | "teamVirtual";
+            profile: components["schemas"]["PublicProfile"];
+            fields: components["schemas"]["PublicField"][];
+            /** @description 实体已获授且开启公开展示的角色；团队主体为空。 */
+            roles?: components["schemas"]["PublicRole"][];
         };
-        Order: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            /** Format: int64 */
-            customer_id?: number | null;
-            /** Format: int64 */
-            handler_id?: number | null;
-            /** Format: int64 */
-            sender_id?: number | null;
-            /** Format: int64 */
-            product_id?: number;
-            quantity?: number;
-            /** Format: float */
-            unit_price?: number;
-            /** Format: float */
-            total_price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            handler_cut?: number | null;
-            /** Format: float */
-            sender_cut?: number | null;
-            /** Format: float */
-            cs_cut?: number | null;
-            /** Format: float */
-            team_cut?: number | null;
-            /** Format: float */
-            cash?: number;
-            /** Format: float */
-            prepaid?: number;
-            /** Format: int64 */
-            trans_id?: number | null;
-            /**
-             * @description 1=处理中, 2=已完成
-             * @enum {integer}
-             */
-            status?: 1 | 2;
-            memo?: string | null;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-            product?: components["schemas"]["Product"];
-            customer?: components["schemas"]["Customer"];
-            handler?: components["schemas"]["Member"];
-            sender?: components["schemas"]["Member"];
-            transaction?: components["schemas"]["Transaction"];
+        EntitySummary: {
+            slug: string;
+            /** @enum {string} */
+            type: "team" | "teamMember" | "teamVirtual";
+            name: string;
+            avatar?: string | null;
+            description?: string | null;
+            roles?: components["schemas"]["PublicRole"][];
         };
-        Customer: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            /** Format: int64 */
-            user_id?: number;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_blocked?: 0 | 1;
-            name?: string;
-            memo?: string | null;
-            balance?: components["schemas"]["Balance"];
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
+        EntityPage: {
+            total: number;
+            list: components["schemas"]["EntitySummary"][];
+            page: number;
+            limit: number;
         };
-        Balance: {
+        DocumentSummary: {
             /** Format: int64 */
-            id?: number;
+            id: number;
+            title: string;
+            sort: number;
             /** Format: int64 */
-            customer_id?: number;
-            /** Format: float */
-            balance?: number;
-            /** Format: float */
-            recharged?: number;
-            /** Format: float */
-            spent?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
+            update_time: number;
+            entity: components["schemas"]["EntitySummary"];
         };
-        BalanceLog: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            customer_id?: number;
-            /**
-             * @description 1=充值, 2=消费, 3=退款, 4=手动调整
-             * @enum {integer}
-             */
-            type?: 1 | 2 | 3 | 4;
-            /** Format: float */
-            amount?: number;
-            /** Format: float */
-            balance_after?: number;
-            /** Format: int64 */
-            trans_id?: number | null;
-            memo?: string | null;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-            transaction?: components["schemas"]["Transaction"];
-        };
-        Transaction: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            /** Format: int64 */
-            handler_id?: number;
-            /** Format: int64 */
-            sender_id?: number | null;
-            /** Format: int64 */
-            cs_id?: number | null;
-            /** Format: int64 */
-            customer_id?: number | null;
-            /**
-             * @description 1=商城下单, 2=记账登记
-             * @enum {integer}
-             */
-            type?: 1 | 2;
-            /** Format: float */
-            total_price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            cash?: number;
-            /** Format: float */
-            prepaid?: number;
-            /** Format: float */
-            handler_cut?: number;
-            /** Format: float */
-            sender_cut?: number;
-            /** Format: float */
-            cs_cut?: number;
-            /** Format: float */
-            team_cut?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            trans_at?: number;
-            memo?: string | null;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-            handler?: components["schemas"]["Member"];
-            sender?: components["schemas"]["Member"];
-            cs?: components["schemas"]["Member"];
-            customer?: components["schemas"]["Customer"];
-        };
-        SenderBinding: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            /** Format: int64 */
-            customer_id?: number;
-            /** Format: int64 */
-            member_id?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            customer?: components["schemas"]["Customer"];
-            member?: components["schemas"]["Member"];
-        };
-        File: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            /** Format: int64 */
-            member_id?: number;
-            hash?: string;
-            name?: string;
-            path?: string;
-            url?: string;
-            size?: number;
-            mime_type?: string;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-            member?: components["schemas"]["Member"];
-        };
-        FileUploadResult: {
-            /** Format: int64 */
-            id?: number;
-            url?: string;
-            name?: string;
-            size?: number;
-        };
-        FileUsage: {
-            count?: number;
-            totalSize?: number;
-        };
-        Document: {
-            /** Format: int64 */
-            id?: number;
-            title?: string;
+        PublicDocument: components["schemas"]["DocumentSummary"] & {
             content?: string | null;
-            /** @enum {string} */
-            documentable_type?: "team" | "teamMember";
-            /** Format: int64 */
-            documentable_id?: number;
-            sort?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-            /**
-             * @description 1=team管理, 2=主体本人和team管理
-             * @enum {integer}
-             */
-            manager_scope?: 1 | 2;
-            /**
-             * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见
-             * @enum {integer}
-             */
-            visibility?: 1 | 3 | 4 | 5 | 6;
-            /** @description visibility=6(custom) 时生效 */
-            visibility_targets?: components["schemas"]["VisibilityTarget"][];
         };
-        VisibilityTarget: {
+        DocumentPage: {
+            total: number;
+            list: components["schemas"]["DocumentSummary"][];
+            page: number;
+            limit: number;
+        };
+        ResolvedEntity: {
+            slug: string;
             /** @enum {string} */
-            target_type: "team" | "teamMember";
-            /** Format: int64 */
-            target_id: number;
+            type: "team" | "teamMember" | "teamVirtual" | "unknown";
+            display_name: string;
+            avatar?: string | null;
+            team?: {
+                slug?: string;
+                display_name?: string;
+            } | null;
+            available: boolean;
+            href?: string | null;
         };
     };
-    responses: never;
+    responses: {
+        /** @description 资源不存在或不可公开访问 */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
+        /** @description 参数验证失败 */
+        ValidationError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
+    };
     parameters: {
-        /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-        PageId: string;
         Page: number;
         Limit: number;
-        IdPath: number;
-        IdQuery: number;
-        MemberIdQuery: number;
-        CustomerIdQuery: number;
     };
     requestBodies: never;
     headers: never;
@@ -631,10 +230,7 @@ export interface operations {
     displayProfileGet: {
         parameters: {
             query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -647,172 +243,21 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["TeamProfile"];
+                        data?: components["schemas"]["PublicSubject"];
                     };
                 };
             };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
+            404: components["responses"]["NotFound"];
         };
     };
-    displayMemberIndex: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["Member"][];
-                    };
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    displayMemberGet: {
+    displayEntityIndex: {
         parameters: {
             query?: {
-                member_id?: components["parameters"]["MemberIdQuery"];
+                page?: components["parameters"]["Page"];
+                limit?: components["parameters"]["Limit"];
+                type?: "teamMember" | "teamVirtual";
             };
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -825,73 +270,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["Member"];
+                        data?: components["schemas"]["EntityPage"];
                     };
                 };
             };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    displayEntityGet: {
+        parameters: {
+            query: {
+                slug: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["PublicSubject"];
+                    };
                 };
             };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
+            404: components["responses"]["NotFound"];
+        };
+    };
+    displayEntityResolve: {
+        parameters: {
+            query: {
+                "slugs[]": string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["ResolvedEntity"][];
+                    };
                 };
             };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
+        };
+    };
+    displayDocumentIndex: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                limit?: components["parameters"]["Limit"];
+                /** @description 缺省时返回团队主体的公开文档。 */
+                entity_slug?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["DocumentPage"];
+                    };
                 };
             };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
+            404: components["responses"]["NotFound"];
+        };
+    };
+    displayDocumentGet: {
+        parameters: {
+            query: {
+                id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["PublicDocument"];
+                    };
                 };
             };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
+            404: components["responses"]["NotFound"];
         };
     };
 }

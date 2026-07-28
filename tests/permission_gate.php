@@ -4,6 +4,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\service\PermissionGate;
+use app\service\PermissionDictionary;
 use think\exception\HttpException;
 use think\Request;
 
@@ -28,7 +29,10 @@ $assertThrows = static function (callable $callback, int $status, string $case) 
 
 $assertSame(
     ['chat.virtual.sales-assistant.manage', 'chat.virtual.*.manage'],
-    $gate->candidates((new Request)->withPost(['slug' => 'Sales-Assistant']), 'chat.virtual.<slug>.manage'),
+    $gate->candidates(
+        (new Request)->withPost(['slug' => 'Sales-Assistant']),
+        PermissionDictionary::CHAT_VIRTUAL_MANAGE_TEMPLATE
+    ),
     'request body slug and wildcard union'
 );
 $assertSame(
@@ -97,6 +101,39 @@ $assertThrows(
     fn () => $gate->assertKey('chat.*.*.manage'),
     500,
     'multiple wildcard segments are rejected'
+);
+$assertThrows(
+    fn () => $gate->assertKey('team.unknown.read'),
+    500,
+    'syntactically valid keys outside the dictionary are rejected'
+);
+$assertSame(
+    PermissionDictionary::keys(),
+    array_values(array_unique(PermissionDictionary::keys())),
+    'fixed dictionary keys are unique'
+);
+$assertSame(
+    ['chat.virtual.support_bot.operate'],
+    [PermissionDictionary::virtual('support_bot', 'operate')],
+    'dynamic virtual keys are built by the dictionary'
+);
+$assertSame(
+    [PermissionDictionary::TEAM_ENTITY_FIELD_MANAGE],
+    [PermissionDictionary::entityField('entity')],
+    'person-facing fields use the canonical entity permission'
+);
+$assertSame(
+    [PermissionDictionary::TEAM_ENTITY_FIELD_CUSTOMER_MANAGE],
+    [PermissionDictionary::entityField('customer')],
+    'customer fields use the customer entity permission'
+);
+$assertSame(
+    [PermissionDictionary::TEAM_NOTICE_SEND],
+    array_values(array_filter(
+        PermissionDictionary::keys(),
+        static fn (string $key): bool => $key === PermissionDictionary::TEAM_NOTICE_SEND
+    )),
+    'notice send permission is part of the fixed dictionary'
 );
 
 if ($failures) {

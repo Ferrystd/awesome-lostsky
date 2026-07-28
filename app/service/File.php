@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\model\TeamAbility;
+use app\model\ExternalCompensation;
+use app\model\Entity;
 use OSS\OssClient;
 use think\exception\FileException;
 use think\exception\HttpException;
@@ -13,17 +15,14 @@ use think\file\UploadedFile;
 
 class File
 {
-    public function upload(UploadedFile $file, int $memberId): array
+    public function upload(UploadedFile $file, int $teamId, array $actor): array
     {
-        $member = \app\model\TeamMember::find($memberId);
-        if (!$member) {
-            throw new HttpException(404, '成员不存在');
-        }
+        $identity = $this->identityForActor($actor, $teamId);
 
         $result = $this->store(
             $file,
-            (int) $member->team_id,
-            $memberId,
+            $teamId,
+            (int) $identity->id,
             true,
             true
         );
@@ -43,22 +42,18 @@ class File
         return $this->store($file, null, null, false, false);
     }
 
-    public function uploadByCommand(string $localPath, ?int $memberId = null, ?int $teamId = null, ?string $originalName = null): array
+    public function uploadByCommand(string $localPath, ?int $entityId = null, ?int $teamId = null, ?string $originalName = null): array
     {
         $file = $this->createUploadedFile($localPath, $originalName);
 
-        if ($memberId !== null) {
-            $member = \app\model\TeamMember::find($memberId);
-            if (!$member) {
-                throw new HttpException(404, '成员不存在');
+        if ($entityId !== null) {
+            $identity = $this->identity($entityId);
+            $entityTeamId = $this->identityTeamId($identity);
+            if ($teamId !== null && $teamId !== $entityTeamId) {
+                throw new HttpException(422, 'team_id 与 entity_id 不匹配');
             }
 
-            $memberTeamId = (int) $member->team_id;
-            if ($teamId !== null && $teamId !== $memberTeamId) {
-                throw new HttpException(422, 'team_id 与 member_id 不匹配');
-            }
-
-            return $this->store($file, $memberTeamId, $memberId, true, true);
+            return $this->store($file, $entityTeamId, $entityId, true, true);
         }
 
         if ($teamId !== null) {
@@ -70,10 +65,11 @@ class File
 
     public function list(int $teamId, array $filters, int $page = 1, int $limit = 20): array
     {
+        [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
         $query = \app\model\File::where('team_id', $teamId);
 
-        if (!empty($filters['member_id'])) {
-            $query->where('member_id', (int) $filters['member_id']);
+        if (!empty($filters['entity_id'])) {
+            $query->where('entity_id', (int) $filters['entity_id']);
         }
         if (!empty($filters['mime_type'])) {
             $query->where('mime_type', (string) $filters['mime_type']);
@@ -94,7 +90,7 @@ class File
         }
 
         $total = $query->count();
-        $list  = $query->with(['member.profile'])
+        $list  = $query->with(['subject'])
             ->order('id', 'desc')
             ->page($page, $limit)
             ->select()
@@ -111,7 +107,7 @@ class File
     public function get(int $teamId, int $id): array
     {
         $file = \app\model\File::where('team_id', $teamId)
-            ->with(['member.profile'])
+            ->with(['subject'])
             ->find($id);
 
         if (!$file) {
@@ -121,13 +117,13 @@ class File
         return $this->format($file->toArray());
     }
 
-    public function delete(int $id, int $memberId): void
+    public function delete(int $id, int $entityId): void
     {
         $file = \app\model\File::find($id);
         if (!$file) {
             throw new HttpException(404, '文件不存在');
         }
-        if ($file->member_id !== $memberId) {
+        if ((int) $file->entity_id !== $entityId) {
             throw new HttpException(403, '无权删除此文件');
         }
         $file->delete();
@@ -184,8 +180,22 @@ class File
         ];
     }
 
-    private function store(UploadedFile $file, ?int $teamId, ?int $memberId, bool $checkAbility, bool $dedupe): array
+    public function purgeObject(string $path): void
     {
+        try {
+            $this->ossClient()->deleteObject(Config::get('aliyun.bucket'), $path);
+        } catch (\OSS\Core\OssException $e) {
+            throw new HttpException(500, '文件对象清理失败', $e);
+        }
+    }
+
+    private function store(UploadedFile $file, ?int $teamId, ?int $entityId, bool $checkAbility, bool $dedupe): array
+    {
+        $validator = app(\app\validate\File::class);
+        if (!$validator->upload($file)) {
+            throw new HttpException(422, $validator->getError());
+        }
+
         if ($checkAbility && $teamId !== null) {
             $this->checkAbility($teamId, (int) $file->getSize());
         }
@@ -193,55 +203,151 @@ class File
         $hash = hash_file('sha256', $file->getPathname());
         $path = $this->buildPath($teamId, $hash, $file->getOriginalExtension());
 
-        return Db::transaction(function () use ($file, $hash, $path, $teamId, $memberId, $dedupe) {
-            if ($dedupe && $teamId !== null) {
-                $exist = \app\model\File::withTrashed()
+        if ($dedupe && $teamId !== null) {
+            $existing = Db::transaction(function () use ($teamId, $hash) {
+                $existing = \app\model\File::withTrashed()
                     ->where('team_id', $teamId)
                     ->where('hash', $hash)
                     ->lock(true)
                     ->find();
-                if ($exist) {
-                    if ($exist->trashed()) {
-                        $exist->restore();
-                        $exist = \app\model\File::where('team_id', $teamId)
-                            ->where('hash', $hash)
-                            ->find();
-                    }
+                if ($existing?->trashed()) {
+                    $existing->restore();
+                    return \app\model\File::where('team_id', $teamId)
+                        ->where('hash', $hash)
+                        ->find();
+                }
 
-                    return [
-                        'id'        => (int) $exist->id,
-                        'url'       => $this->url($exist->path),
-                        'path'      => $exist->path,
-                        'name'      => $exist->name,
-                        'size'      => (int) $exist->size,
-                        'team_id'   => $exist->team_id === null ? null : (int) $exist->team_id,
-                        'member_id' => $exist->member_id === null ? null : (int) $exist->member_id,
-                    ];
+                return $existing;
+            });
+            if ($existing) {
+                return $this->storedResult($existing);
+            }
+        }
+
+        $this->putOss($path, $file->getPathname());
+
+        try {
+            return Db::transaction(function () use ($file, $hash, $path, $teamId, $entityId, $dedupe) {
+                if ($dedupe && $teamId !== null) {
+                    $exist = \app\model\File::withTrashed()
+                        ->where('team_id', $teamId)
+                        ->where('hash', $hash)
+                        ->lock(true)
+                        ->find();
+                    if ($exist) {
+                        if ($exist->trashed()) {
+                            $exist->restore();
+                            $exist = \app\model\File::where('team_id', $teamId)
+                                ->where('hash', $hash)
+                                ->find();
+                        }
+
+                        return $this->storedResult($exist);
+                    }
+                }
+
+                $record = new \app\model\File;
+                $record->hash      = $hash;
+                $record->name      = $file->getOriginalName();
+                $record->path      = $path;
+                $record->size      = $file->getSize();
+                $record->mime_type = $file->getOriginalMime();
+                $record->team_id   = $teamId;
+                $record->entity_id = $entityId;
+                $record->save();
+
+                return $this->storedResult($record);
+            });
+        } catch (\Throwable $exception) {
+            $referenced = \app\model\File::withTrashed()->where('path', $path)->find();
+            if (!$referenced) {
+                try {
+                    $this->purgeObject($path);
+                } catch (\Throwable $cleanupException) {
+                    $this->queueObjectPurge($path, $cleanupException);
+                    throw new HttpException(500, '文件记录保存失败，外部对象已进入补偿队列', $cleanupException);
                 }
             }
 
-            $record = new \app\model\File;
-            $record->hash      = $hash;
-            $record->name      = $file->getOriginalName();
-            $record->path      = $path;
-            $record->size      = $file->getSize();
-            $record->mime_type = $file->getOriginalMime();
-            $record->team_id   = $teamId;
-            $record->member_id = $memberId;
-            $record->save();
+            throw $exception;
+        }
+    }
 
-            $this->putOss($path, $file->getPathname());
+    private function storedResult(\app\model\File $file): array
+    {
+        return [
+            'id'        => (int) $file->id,
+            'url'       => $this->url((string) $file->path),
+            'path'      => (string) $file->path,
+            'name'      => (string) $file->name,
+            'size'      => (int) $file->size,
+            'team_id'   => $file->team_id === null ? null : (int) $file->team_id,
+            'entity_id' => $file->entity_id === null ? null : (int) $file->entity_id,
+        ];
+    }
 
-            return [
-                'id'        => (int) $record->id,
-                'url'       => $this->url($path),
-                'path'      => $path,
-                'name'      => $record->name,
-                'size'      => (int) $record->size,
-                'team_id'   => $record->team_id === null ? null : (int) $record->team_id,
-                'member_id' => $record->member_id === null ? null : (int) $record->member_id,
-            ];
-        });
+    private function identityForActor(array $actor, int $teamId): Entity
+    {
+        $identity = Entity::where('entityable_type', (string) ($actor['type'] ?? ''))
+            ->where('entityable_id', (int) ($actor['id'] ?? 0))
+            ->find();
+        if (!$identity || !$identity->is_valid) {
+            throw new HttpException(422, '当前实体身份不存在或不可用');
+        }
+        if ($this->identityTeamId($identity) !== $teamId) {
+            throw new HttpException(422, 'team_id 与当前实体身份不匹配');
+        }
+
+        return $identity;
+    }
+
+    private function identity(int $entityId): Entity
+    {
+        $identity = Entity::find($entityId);
+        if (!$identity || !$identity->is_valid) {
+            throw new HttpException(404, '实体身份不存在或不可用');
+        }
+
+        return $identity;
+    }
+
+    private function identityTeamId(Entity $identity): int
+    {
+        $entity = $identity->entityable;
+        if (!$entity) {
+            throw new HttpException(404, '实体身份对象不存在');
+        }
+
+        return $identity->entityable_type === 'team'
+            ? (int) $entity->id
+            : (int) $entity->team_id;
+    }
+
+    private function queueObjectPurge(string $path, \Throwable $exception): void
+    {
+        $task = ExternalCompensation::withTrashed()
+            ->where('provider', 'oss')
+            ->where('action', 'delete')
+            ->where('resource_key', $path)
+            ->find();
+        if ($task?->trashed()) {
+            $task->restore();
+            $task = ExternalCompensation::where('provider', 'oss')
+                ->where('action', 'delete')
+                ->where('resource_key', $path)
+                ->find();
+        }
+        if (!$task) {
+            $task = new ExternalCompensation;
+            $task->provider = 'oss';
+            $task->action = 'delete';
+            $task->resource_key = $path;
+        }
+        $task->attempts = (int) $task->attempts;
+        $task->available_at = time();
+        $task->last_error = mb_substr($exception->getMessage(), 0, 1000);
+        $task->completed_at = null;
+        $task->save();
     }
 
     private function apiResult(array $result): array
@@ -303,15 +409,19 @@ class File
     private function putOss(string $path, string $localFile): void
     {
         try {
-            $endpoint = 'oss-' . Config::get('aliyun.region') . '.aliyuncs.com';
-            $client   = new OssClient(
-                Config::get('aliyun.access_key_id'),
-                Config::get('aliyun.access_key_secret'),
-                $endpoint
-            );
-            $client->putObject(Config::get('aliyun.bucket'), $path, $localFile);
+            $this->ossClient()->uploadFile(Config::get('aliyun.bucket'), $path, $localFile);
         } catch (\OSS\Core\OssException $e) {
-            throw new HttpException(500, '文件上传失败：' . $e->getMessage());
+            throw new HttpException(500, '文件上传失败', $e);
         }
+    }
+
+    private function ossClient(): OssClient
+    {
+        $endpoint = 'oss-' . Config::get('aliyun.region') . '.aliyuncs.com';
+        return new OssClient(
+            Config::get('aliyun.access_key_id'),
+            Config::get('aliyun.access_key_secret'),
+            $endpoint
+        );
     }
 }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace app;
 
+use app\exception\EntityContextException;
 use app\middleware\Cors;
 use think\exception\Handle;
 use think\exception\HttpException;
@@ -23,6 +24,12 @@ class ExceptionHandle extends Handle
                 'message' => $e->getError(),
                 'data'    => null,
             ], 422);
+        } elseif ($e instanceof EntityContextException) {
+            $response = json([
+                'code'    => $e->getCode(),
+                'message' => $e->getMessage(),
+                'data'    => $e->data(),
+            ], $e->getStatusCode());
         } elseif ($e instanceof HttpException) {
             $response = json([
                 'code'    => $e->getCode() ?: 1,

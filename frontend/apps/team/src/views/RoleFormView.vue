@@ -3,21 +3,22 @@ import { api, friendlyError } from '@lostsky/api/client'
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { useMutation } from '@tanstack/vue-query'
 import { Check } from '@lucide/vue'
-import { NButton, NConfigProvider, NForm, NFormItem, NInput, NInputNumber } from 'naive-ui'
+import { NButton, NConfigProvider, NForm, NFormItem, NInput, NInputNumber, NSwitch } from 'naive-ui'
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
 const router = useRouter()
-const form = reactive({ role_key: '', name: '', description: '', sort: 0 })
+const form = reactive({ role_key: '', name: '', description: '', sort: 0, is_displayed: false })
 const save = useMutation({
-  mutationFn: () => api.post('/role/add', {
+  mutationFn: () => api.post<{ id?: number }>('/role/add', {
     role_key: form.role_key.trim(),
     name: form.name.trim(),
     description: form.description.trim() || null,
     sort: Number(form.sort),
+    is_displayed: form.is_displayed ? 1 : 0,
   }),
-  onSuccess: () => router.replace('/roles'),
+  onSuccess: (role) => router.replace(role.id ? `/roles/${role.id}` : '/roles'),
 })
 
 function submit() {
@@ -44,6 +45,13 @@ function submit() {
         <NFormItem label="显示顺序">
           <NInputNumber v-model:value="form.sort" aria-label="显示顺序" :min="0" :show-button="false" />
           <template #feedback>数字越小越靠前。</template>
+        </NFormItem>
+        <NFormItem label="公开主页展示">
+          <NSwitch v-model:value="form.is_displayed" aria-label="在公开实体资料中展示此角色">
+            <template #checked>公开</template>
+            <template #unchecked>隐藏</template>
+          </NSwitch>
+          <template #feedback>开启后，获得此角色的公开成员或虚拟实体会展示角色名称和说明；角色权限不会公开。</template>
         </NFormItem>
         <p v-if="save.isError.value" class="error" role="alert">{{ friendlyError(save.error.value) }}</p>
         <footer>

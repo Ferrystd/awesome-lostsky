@@ -8,7 +8,7 @@ import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { loadCentrifuge, type CentrifugeClient, type Subscription } from '../lib/centrifuge'
 
 interface Actor {
-  type: 'member' | 'customer' | 'team' | 'virtual'
+  type: 'entity' | 'customer' | 'team' | 'virtual'
   slug: string
   name: string
   avatar: string | null

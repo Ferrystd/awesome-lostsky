@@ -6,6 +6,7 @@ namespace app\middleware;
 use app\model\Team;
 use app\model\TeamDomain;
 use Closure;
+use think\exception\HttpException;
 use think\Request;
 
 /**
@@ -22,6 +23,14 @@ class AppResolver
         $host    = $request->host();
         $apiHost = config('app.domain.api');
         $root    = config('app.domain.root');
+        $explicitApp = strtolower(trim((string) $request->header('X-LostSky-App')));
+        if ($explicitApp !== '' && $explicitApp !== 'common') {
+            throw new HttpException(400, '不支持显式选择该应用');
+        }
+        if ($explicitApp === 'common') {
+            app('http')->name('common');
+            app('http')->setBind();
+        }
 
         // 方式 1：Host 为 api.lostsky.work，从 Origin 头提取 app 和 slug
         if ($host === $apiHost) {
@@ -30,28 +39,34 @@ class AppResolver
             // 匹配 https://{slug}.{app}.lostsky.work
             if ($origin && preg_match("#^https?://([^.]+)\\.([^.]+)\\.{$rootRx}$#", $origin, $m)) {
                 $slug = $m[1];
-                $app  = $m[2];
-                app('http')->name($app);
-                app('http')->setBind();
+                if ($explicitApp === '') {
+                    $this->assertImplicitApp($m[2]);
+                    app('http')->name($m[2]);
+                    app('http')->setBind();
+                }
                 $this->bindTeam($request, $slug);
             }
             // 匹配 https://{app}.lostsky.work（teamless 应用，如 account）
             elseif ($origin && preg_match("#^https?://([^.]+)\\.{$rootRx}$#", $origin, $m)) {
-                $app = $m[1];
-                app('http')->name($app);
-                app('http')->setBind();
+                if ($explicitApp === '') {
+                    $this->assertImplicitApp($m[1]);
+                    app('http')->name($m[1]);
+                    app('http')->setBind();
+                }
             }
         } else {
             // 方式 2：Host 为 {slug}.{app}.api.lostsky.work，从 Host 提取 app 和 slug
-            if (!$this->bound()) {
-                $rootRx2 = preg_quote($root, '/');
-                if (preg_match("/^([^.]+)\\.([^.]+)\\.api\\.{$rootRx2}$/", $host, $m)) {
-                    $slug = $m[1];
-                    $app  = $m[2];
-                    app('http')->name($app);
-                    app('http')->setBind();
-                    $this->bindTeam($request, $slug);
+            $rootRx2 = preg_quote($root, '/');
+            if (preg_match("/^([^.]+)\\.([^.]+)\\.api\\.{$rootRx2}$/", $host, $m)) {
+                $slug = $m[1];
+                if ($explicitApp === '') {
+                    $this->assertImplicitApp($m[2]);
+                    if (!$this->bound()) {
+                        app('http')->name($m[2]);
+                        app('http')->setBind();
+                    }
                 }
+                $this->bindTeam($request, $slug);
             }
         }
 
@@ -99,6 +114,13 @@ class AppResolver
             return app('http')->isBind();
         } catch (\Throwable) {
             return false;
+        }
+    }
+
+    private function assertImplicitApp(string $appName): void
+    {
+        if (strtolower($appName) === 'common') {
+            throw new HttpException(400, '公共应用必须通过 X-LostSky-App 显式选择');
         }
     }
 }

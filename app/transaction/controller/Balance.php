@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\transaction\controller;
 
 use app\service\Balance as BalanceService;
+use app\service\PermissionDictionary as Permissions;
 use think\Request;
 
 class Balance
@@ -12,10 +13,10 @@ class Balance
         'JwtAuth'            => ['except' => []],
         'Context'            => ['except' => []],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
-        'TeamBelongs'        => ['except' => []],
-        'MemberAccess'       => ['except' => []],
-        'TransactionAbility' => ['only' => ['recharge']],
-        'TeamAccess'         => ['only' => ['recharge']],
+        'TeamAuth'           => ['except' => []],
+        'Ability:transaction' => ['only' => ['recharge']],
+        'Permission:' . Permissions::TRANSACTION_READ => ['only' => ['logs']],
+        'Permission:' . Permissions::TRANSACTION_WRITE => ['only' => ['recharge']],
     ];
 
     public function logs(Request $request)
@@ -34,8 +35,15 @@ class Balance
         $service->recharge(
             $request->team_id,
             (int) $request->post('customer_id', 0),
-            (float) $request->post('amount', 0),
+            $request->post('amount', 0),
             $request->post('memo', '')
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request,
+            'transaction',
+            'recharge',
+            'customerBalance',
+            (int) $request->post('customer_id', 0)
         );
 
         return message('充值成功');

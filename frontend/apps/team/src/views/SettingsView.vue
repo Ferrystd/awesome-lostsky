@@ -87,6 +87,10 @@ function choiceValue(appName: string, setting: SettingField): string | number {
 function isSaving(appName: string): boolean {
   return save.isPending.value && save.variables.value?.app_name === appName
 }
+
+function settingId(appName: string, key: string): string {
+  return `setting-${appName}-${key}`
+}
 </script>
 
 <template>
@@ -126,62 +130,73 @@ function isSaving(appName: string): boolean {
       <section
         v-for="setting in app.settings"
         :key="setting.key"
-        :class="['setting-row', { 'setting-row--stacked': setting.control === 'radio' }]"
+        :class="['setting-row', { 'setting-row--choices': setting.control === 'radio' }]"
       >
         <div class="setting-copy">
-          <h3>{{ setting.label }}</h3>
-          <p>{{ setting.description }}</p>
+          <h3 :id="`${settingId(app.app_name, setting.key)}-label`">{{ setting.label }}</h3>
+          <p :id="`${settingId(app.app_name, setting.key)}-description`">{{ setting.description }}</p>
           <code>{{ app.app_name }}.{{ setting.key }}</code>
         </div>
 
-        <NSwitch
-          v-if="setting.control === 'switch'"
-          :value="Boolean(settingValue(app.app_name, setting))"
-          :aria-label="setting.label"
-          @update:value="setSettingValue(app.app_name, setting.key, $event)"
-        />
+        <div :class="['setting-control', { 'setting-control--choices': setting.control === 'radio' }]">
+          <NSwitch
+            v-if="setting.control === 'switch'"
+            :value="Boolean(settingValue(app.app_name, setting))"
+            :aria-labelledby="`${settingId(app.app_name, setting.key)}-label`"
+            :aria-describedby="`${settingId(app.app_name, setting.key)}-description`"
+            @update:value="setSettingValue(app.app_name, setting.key, $event)"
+          />
 
-        <NRadioGroup
-          v-else-if="setting.control === 'radio'"
-          :value="choiceValue(app.app_name, setting)"
-          :aria-label="setting.label"
-          @update:value="setSettingValue(app.app_name, setting.key, $event)"
-        >
-          <div class="radio-options">
-            <NRadio v-for="option in setting.options ?? []" :key="String(option.value)" :value="option.value">
-              <span class="radio-copy">
-                <strong>{{ option.label }}</strong>
-                <small v-if="option.description">{{ option.description }}</small>
-              </span>
-            </NRadio>
-          </div>
-        </NRadioGroup>
+          <NRadioGroup
+            v-else-if="setting.control === 'radio'"
+            :value="choiceValue(app.app_name, setting)"
+            :aria-labelledby="`${settingId(app.app_name, setting.key)}-label`"
+            :aria-describedby="`${settingId(app.app_name, setting.key)}-description`"
+            @update:value="setSettingValue(app.app_name, setting.key, $event)"
+          >
+            <div class="radio-options">
+              <NRadio v-for="option in setting.options ?? []" :key="String(option.value)" :value="option.value">
+                <span class="radio-copy">
+                  <strong>{{ option.label }}</strong>
+                  <small v-if="option.description">{{ option.description }}</small>
+                </span>
+              </NRadio>
+            </div>
+          </NRadioGroup>
 
-        <NSelect
-          v-else-if="setting.control === 'select'"
-          :value="choiceValue(app.app_name, setting)"
-          :options="setting.options ?? []"
-          :aria-label="setting.label"
-          @update:value="setSettingValue(app.app_name, setting.key, $event)"
-        />
+          <NSelect
+            v-else-if="setting.control === 'select'"
+            :value="choiceValue(app.app_name, setting)"
+            :options="setting.options ?? []"
+            :aria-label="setting.label"
+            :aria-describedby="`${settingId(app.app_name, setting.key)}-description`"
+            @update:value="setSettingValue(app.app_name, setting.key, $event)"
+          />
 
-        <NInputNumber
-          v-else-if="setting.control === 'number'"
-          :value="Number(settingValue(app.app_name, setting))"
-          :min="setting.min"
-          :max="setting.max"
-          :step="setting.step"
-          :aria-label="setting.label"
-          @update:value="setSettingValue(app.app_name, setting.key, $event)"
-        />
+          <NInputNumber
+            v-else-if="setting.control === 'number'"
+            :value="Number(settingValue(app.app_name, setting))"
+            :min="setting.min"
+            :max="setting.max"
+            :step="setting.step"
+            :input-props="{
+              'aria-label': setting.label,
+              'aria-describedby': `${settingId(app.app_name, setting.key)}-description`,
+            }"
+            @update:value="setSettingValue(app.app_name, setting.key, $event)"
+          />
 
-        <NInput
-          v-else
-          :value="String(settingValue(app.app_name, setting))"
-          :maxlength="setting.max_length"
-          :aria-label="setting.label"
-          @update:value="setSettingValue(app.app_name, setting.key, $event)"
-        />
+          <NInput
+            v-else
+            :value="String(settingValue(app.app_name, setting))"
+            :maxlength="setting.max_length"
+            :input-props="{
+              'aria-label': setting.label,
+              'aria-describedby': `${settingId(app.app_name, setting.key)}-description`,
+            }"
+            @update:value="setSettingValue(app.app_name, setting.key, $event)"
+          />
+        </div>
       </section>
 
       <p
@@ -201,23 +216,27 @@ function isSaving(appName: string): boolean {
 
 <style scoped>
 .settings-view{display:grid;gap:1.5rem}.settings-panel,.loading-panel,.empty-panel{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);overflow:hidden}
-.panel-heading{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;padding:1.4rem;border-bottom:1px solid var(--border)}
+.panel-heading{display:flex;align-items:flex-start;flex-direction:column;gap:1rem;padding:1rem;border-bottom:1px solid var(--border)}
+.panel-heading :deep(button){width:100%}
 .panel-heading p,.panel-heading h2,.panel-heading span,.setting-copy h3,.setting-copy p{margin:0}
 .panel-heading p{margin-bottom:.25rem;color:var(--primary);font-size:.7rem;font-weight:800;letter-spacing:.13em}
 .panel-heading h2{font-size:1.08rem}
 .panel-heading span{display:block;max-width:38rem;margin-top:.35rem;color:var(--text-secondary);font-size:.82rem;line-height:1.55}
-.setting-row{min-height:88px;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,320px);align-items:center;gap:1.5rem;padding:1.15rem 1.4rem;border-bottom:1px solid var(--border)}
-.setting-row:last-of-type{border-bottom:0}.setting-row--stacked{grid-template-columns:1fr;align-items:start}
+.setting-row{min-height:96px;display:grid;grid-template-columns:1fr;align-items:center;gap:.9rem;padding:1rem;border-bottom:1px solid var(--border)}
+.setting-row:last-of-type{border-bottom:0}.setting-row--choices{align-items:start;gap:1rem}
 .setting-copy h3{font-size:.92rem}.setting-copy p{margin-top:.3rem;color:var(--text-secondary);font-size:.8rem;line-height:1.55}
 .setting-copy code{display:inline-block;margin-top:.35rem;color:var(--primary);font-size:.7rem}
-.setting-row>.n-switch{justify-self:end}.setting-row>.n-radio-group{width:100%}
-.radio-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.65rem}
-.radio-options :deep(.n-radio){min-height:68px;display:flex;align-items:flex-start;padding:.85rem;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);transition:border-color .18s ease,background-color .18s ease}
+.setting-control{width:100%;min-height:44px;display:flex;align-items:center;justify-content:flex-start}.setting-control--choices{display:block}
+.setting-control>.n-input,.setting-control>.n-input-number,.setting-control>.n-select{width:100%}.setting-control>.n-radio-group{width:100%}
+.radio-options{display:grid;grid-template-columns:1fr;gap:.75rem}
+.radio-options :deep(.n-radio){min-height:80px;display:flex;align-items:flex-start;box-sizing:border-box;padding:1rem;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease}
 .radio-options :deep(.n-radio:hover),.radio-options :deep(.n-radio--checked){border-color:var(--primary);background:color-mix(in srgb,var(--primary) 6%,var(--surface))}
-.radio-copy strong,.radio-copy small{display:block}.radio-copy strong{font-size:.86rem}.radio-copy small{margin-top:.25rem;color:var(--text-secondary);font-size:.75rem;line-height:1.45}
+.radio-options :deep(.n-radio:focus-within){border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 16%,transparent)}
+.radio-copy{display:block;padding-right:.25rem}.radio-copy strong,.radio-copy small{display:block}.radio-copy strong{font-size:.86rem;line-height:1.4}.radio-copy small{margin-top:.3rem;color:var(--text-secondary);font-size:.75rem;line-height:1.5}
 .feedback{margin:1rem 1.4rem;padding:.75rem .85rem;border-radius:var(--radius-md)}
 .error{color:var(--danger);background:color-mix(in srgb,var(--danger) 9%,transparent)}
 .success{color:var(--success);background:color-mix(in srgb,var(--success) 9%,transparent)}
 .loading-panel,.empty-panel{padding:2rem;color:var(--text-secondary)}.empty-panel h2{margin:0;color:var(--text);font-size:1rem}.empty-panel p{margin:.4rem 0 0}
-@media(max-width:640px){.panel-heading{align-items:flex-start;flex-direction:column;padding:1rem}.panel-heading :deep(button){width:100%}.setting-row{grid-template-columns:1fr;gap:.85rem;padding:1rem}.setting-row>.n-switch{justify-self:start}.radio-options{grid-template-columns:1fr}}
+@media(min-width:641px){.panel-heading{align-items:center;flex-direction:row;justify-content:space-between;gap:1.5rem;padding:1.5rem}.panel-heading :deep(button){width:auto}.setting-row{grid-template-columns:minmax(0,1fr) minmax(220px,320px);gap:1.5rem;padding:1.25rem 1.5rem}.setting-row--choices{grid-template-columns:1fr}.setting-control{justify-content:flex-end}.radio-options{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
+@media(prefers-reduced-motion:reduce){.radio-options :deep(.n-radio){transition:none}}
 </style>

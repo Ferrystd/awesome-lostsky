@@ -7,7 +7,7 @@ class Realtime
 {
     protected $middleware = [
         'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamBelongs', 'ChatAccess',
+        'TeamAuth', 'ChatAccess',
     ];
 
     public function connect(\think\Request $request)
@@ -19,7 +19,7 @@ class Realtime
     {
         return success(app(\app\service\ChatRealtime::class)->subscriptionToken(
             (int) $request->team_id, (int) $request->user_id,
-            (int) ($request->member_id ?? 0), (int) ($request->customer_id ?? 0),
+            (array) $request->acting_entity,
             (string) $request->post('conversation', '')
         ));
     }

@@ -14,8 +14,7 @@ const query = useQuery({ queryKey: computed(() => ['doc', id.value]), queryFn: (
 const back = computed(() => {
   const data = query.data.value
   const params = new URLSearchParams()
-  if (data?.target_type) params.set('target_type', String(data.target_type))
-  if (data?.target_id) params.set('target_id', String(data.target_id))
+  if (data?.entity_id) params.set('entity_id', String(data.entity_id))
   return `/docs${params.size ? `?${params}` : ''}`
 })
 </script>

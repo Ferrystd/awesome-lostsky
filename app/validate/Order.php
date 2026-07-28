@@ -9,9 +9,9 @@ class Order extends Validate
 {
     protected $rule = [
         'product_id'  => 'require|integer',
-        'handler_id'  => 'integer',
-        'sender_id'   => 'integer',
-        'cs_id'       => 'integer',
+        'handler_entity_id'  => 'integer',
+        'sender_entity_id'   => 'integer',
+        'cs_entity_id'       => 'integer',
         'customer_id' => 'integer',
         'quantity'    => 'integer|>=:1',
         'handler_cut' => 'float|>=:0',
@@ -24,9 +24,9 @@ class Order extends Validate
     protected $message = [
         'product_id.require'  => '商品ID不能为空',
         'product_id.integer'  => '商品ID格式不正确',
-        'handler_id.integer'  => '接单人ID格式不正确',
-        'sender_id.integer'   => '发单人ID格式不正确',
-        'cs_id.integer'       => '客服ID格式不正确',
+        'handler_entity_id.integer'  => '接单人ID格式不正确',
+        'sender_entity_id.integer'   => '发单人ID格式不正确',
+        'cs_entity_id.integer'       => '客服ID格式不正确',
         'customer_id.integer' => '客户ID格式不正确',
         'quantity.integer'    => '数量格式不正确',
         'quantity.>='         => '数量必须大于0',
@@ -42,6 +42,6 @@ class Order extends Validate
     ];
 
     protected $scene = [
-        'create' => ['product_id', 'handler_id', 'sender_id', 'cs_id', 'customer_id', 'quantity', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'memo'],
+        'create' => ['product_id', 'handler_entity_id', 'sender_entity_id', 'cs_entity_id', 'customer_id', 'quantity', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'memo'],
     ];
 }

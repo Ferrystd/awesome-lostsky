@@ -3,16 +3,17 @@ declare (strict_types = 1);
 
 namespace app\chat\controller;
 
+use app\service\PermissionDictionary as Permissions;
+
 class Integration
 {
     protected $middleware = [
         'JwtAuth' => ['except' => ['send']],
         'Context' => ['except' => ['send']],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => ['send']],
-        'TeamBelongs' => ['except' => ['send']],
-        'MemberAccess' => ['except' => ['send']],
+        'TeamAuth' => ['except' => ['send']],
         [
-            'middleware' => ['Permission', ['chat.virtual.<slug>.manage']],
+            'middleware' => ['Permission', [Permissions::CHAT_VIRTUAL_MANAGE_TEMPLATE]],
             'options' => ['except' => ['send']],
         ],
     ];
@@ -67,15 +68,16 @@ class Integration
     {
         $authorization = (string) $request->header('Authorization', '');
         $token = preg_match('/^Bearer\s+(.+)$/i', $authorization, $match) ? trim($match[1]) : '';
-        $integration = app(\app\service\ChatIntegration::class)->authenticate($token);
-        $virtual = \app\model\TeamVirtual::with(['identity'])->find($integration->virtual_id);
-        if (!$virtual || !$virtual->slug) {
-            throw new \think\exception\HttpException(401, '集成对应的虚拟实体不可用');
-        }
+        $actor = app(\app\service\ChatIntegration::class)->authenticateActor($token);
+        $integration = $actor['integration'];
+        $virtual = $actor['virtual'];
         return success(app(\app\service\ChatMessage::class)->send(
             (int) $integration->team_id,
-            0,
-            0,
+            [
+                'entity_id' => (int) $virtual->identity->id,
+                'type' => 'teamVirtual',
+                'id' => (int) $virtual->id,
+            ],
             [
                 'conversation' => $request->post('conversation', ''),
                 'actor_slug' => $virtual->slug,

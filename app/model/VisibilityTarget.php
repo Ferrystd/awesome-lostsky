@@ -19,8 +19,7 @@ class VisibilityTarget extends Base
         'id'               => 'integer',
         'visibleable_type' => 'string',
         'visibleable_id'   => 'integer',
-        'target_type'      => 'string',
-        'target_id'        => 'integer',
+        'entity_id'        => 'integer',
         'create_time'      => 'integer',
         'update_time'      => 'integer',
         'delete_time'      => 'integer',
@@ -37,22 +36,20 @@ class VisibilityTarget extends Base
     protected $append = [];
 
     /** 只读字段 */
-    protected $readonly = ['visibleable_type', 'visibleable_id', 'target_type', 'target_id'];
+    protected $readonly = ['visibleable_type', 'visibleable_id', 'entity_id'];
 
     public function visibleable()
     {
         return $this->morphTo('visibleable', [
             'document'        => Document::class,
             'teamSetting'     => TeamSetting::class,
-            'teamMemberField' => TeamMemberField::class,
+            'entityField'     => TeamEntityField::class,
         ]);
     }
 
-    public function target()
+    public function subject()
     {
-        return $this->morphTo('target', [
-            'team'       => Team::class,
-            'teamMember' => TeamMember::class,
-        ]);
+        return $this->belongsTo(Entity::class, 'entity_id');
     }
+
 }

@@ -1,4 +1,34 @@
 const ACCOUNT_LOGIN_URL = '//account.lostsky.work/login'
+const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
+const LOCAL_APP_PORTS = new Set(['5173', '5174', '5175', '5176', '5177', '5178', '5179'])
+
+function isLocalDevelopmentHost(hostname: string | undefined) {
+  return import.meta.env.DEV && Boolean(hostname && LOCAL_HOSTS.has(hostname))
+}
+
+function isLostSkyHost(hostname: string | undefined) {
+  return Boolean(hostname && (hostname === 'lostsky.work' || hostname.endsWith('.lostsky.work')))
+}
+
+function accountDevelopmentUrl(path: string) {
+  if (!import.meta.env.DEV) return ''
+  if (isLocalDevelopmentHost(location.hostname)) {
+    return `${location.protocol}//${location.hostname}:5174${path}`
+  }
+  if (isLostSkyHost(location.hostname)) {
+    const port = location.port ? ':5174' : ''
+    return `${location.protocol}//account.lostsky.work${port}${path}`
+  }
+  return ''
+}
+
+function accountLoginUrl() {
+  return accountDevelopmentUrl('/login') || ACCOUNT_LOGIN_URL
+}
+
+function accountIdentityUrl() {
+  return accountDevelopmentUrl('/identity') || '//account.lostsky.work/identity'
+}
 
 export interface LoginRedirectOptions {
   redirect?: string
@@ -12,6 +42,21 @@ export function safeRedirect(value: unknown, fallback = '/teams') {
   try {
     const url = new URL(value)
     if (url.protocol === 'https:' && (url.hostname === 'lostsky.work' || url.hostname.endsWith('.lostsky.work'))) return url.href
+    if (
+      typeof location !== 'undefined'
+      && url.protocol === location.protocol
+      && isLostSkyHost(location.hostname)
+      && isLostSkyHost(url.hostname)
+      && (!url.port || (import.meta.env.DEV && LOCAL_APP_PORTS.has(url.port)))
+    ) return url.href
+    if (
+      typeof location !== 'undefined'
+      && import.meta.env.DEV
+      && url.protocol === location.protocol
+      && (!url.port || LOCAL_APP_PORTS.has(url.port))
+      && isLocalDevelopmentHost(location.hostname)
+      && url.hostname === location.hostname
+    ) return url.href
   } catch { /* invalid redirect falls back */ }
   return fallback
 }
@@ -24,11 +69,33 @@ export function goToSafeRedirect(value: unknown, fallback = '/teams') {
 export function loginUrl(options: Omit<LoginRedirectOptions, 'replace'> = {}) {
   const query = new URLSearchParams({ redirect: options.redirect ?? location.href })
   if (options.expired) query.set('expired', '1')
-  return `${ACCOUNT_LOGIN_URL}?${query}`
+  return `${accountLoginUrl()}?${query}`
 }
 
 export function redirectToLogin(options: LoginRedirectOptions = {}) {
   const target = loginUrl(options)
   if (options.replace === false) location.assign(target)
   else location.replace(target)
+}
+
+export type EntityCallbackReason = 'missing' | 'team_mismatch'
+
+export function identityUrl(redirect = location.href, targetSlug = '') {
+  const query = new URLSearchParams()
+  const target = safeRedirect(redirect, '')
+  if (target) query.set('redirect', target)
+  if (/^[a-z0-9][a-z0-9_-]{0,49}$/.test(targetSlug)) query.set('target', targetSlug)
+  const base = accountIdentityUrl()
+  return query.size ? `${base}?${query}` : base
+}
+
+export function memberIdentityCallbackUrl(teamSlug: string, reason: EntityCallbackReason) {
+  const query = new URLSearchParams({ team_slug: teamSlug, reason })
+  const returnTo = safeRedirect(location.href, '')
+  if (returnTo) query.set('return_to', returnTo)
+  return `${accountIdentityUrl()}/member-callback?${query}`
+}
+
+export function redirectToMemberIdentity(teamSlug: string, reason: EntityCallbackReason) {
+  location.assign(memberIdentityCallbackUrl(teamSlug, reason))
 }

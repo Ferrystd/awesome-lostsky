@@ -1,15 +1,17 @@
-# API CORS 边界
+# CORS 边界
 
-`api.lostsky.work` 的 CORS 由全局 `app\middleware\Cors` 中间件统一处理。前端站点或 Nginx 不应为 API 重复添加另一套 CORS 响应头。
+## API
 
-## 处理原则
+全局 `app\middleware\Cors` 中间件统一处理。
+
+### 处理原则
 
 - 允许来源由 `config/cors.php` 配置。
-- `allowed_headers` 可以配置为 `*`；预检响应会回显 `Access-Control-Request-Headers`，新增前端请求头不需要同步维护静态白名单。
-- CORS 位于全局中间件链首部，预检请求可以在进入应用业务前返回。
-- `app\ExceptionHandle` 也为异常响应补充 CORS 头，浏览器应能读取真实的 HTTP 状态和 JSON 错误信封。
+- `allowed_headers` 为 `*`；预检响应会回显 `Access-Control-Request-Headers`。
+- CORS 位于全局中间件链首部，预检请求进入应用前返回。
+- `app\ExceptionHandle` 也为异常响应补充 CORS 头。
 
-## 故障定位
+### 故障定位
 
 如果生产环境仍出现跨域错误：
 
@@ -18,4 +20,14 @@
 3. 检查预检请求的 Origin、方法和请求头是否与实际业务请求一致。
 4. 先读取真实响应状态和错误体，再处理被跨域提示掩盖的业务错误。
 
-静态资源域名不经过后端中间件，其配置见 [`assets.lostsky.work` 静态资源 CORS](../operations/assets-cors.md)。
+## 静态资源
+
+在 `assets.lostsky.work`配置增加：
+
+```ini
+add_header Access-Control-Allow-Origin "*" always;
+add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS" always;
+add_header Access-Control-Allow-Headers "Range, If-None-Match, If-Modified-Since" always;
+add_header Access-Control-Expose-Headers "Content-Length, Content-Range, ETag" always;
+add_header Cross-Origin-Resource-Policy "cross-origin" always;
+```

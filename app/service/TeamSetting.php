@@ -47,11 +47,11 @@ class TeamSetting
         return $result;
     }
 
-    public function get(int $teamId, string $appName, int $userId = 0, int $memberId = 0): array
+    public function get(int $teamId, string $appName, array $actingEntity): array
     {
         $definitions = $this->definitions($appName);
         $guard       = app(\app\service\Visibility::class);
-        $isManager   = $guard->isTeamManager($teamId, $userId);
+        $isManager   = $guard->isTeamManager($teamId, $actingEntity);
         $result      = $this->defaults($appName);
 
         $rows = TeamSettingModel::where('team_id', $teamId)
@@ -64,7 +64,7 @@ class TeamSetting
                 continue;
             }
 
-            if (!$guard->canView($row, $teamId, $memberId, $isManager, false)) {
+            if (!$guard->canView($row, (int) $actingEntity['entity_id'], $isManager, false)) {
                 unset($result[$key]);
                 continue;
             }
@@ -426,7 +426,7 @@ class TeamSetting
 
     private function assertVisibility(VisibilityEnum $visibility): void
     {
-        if (!in_array($visibility, [VisibilityEnum::Team, VisibilityEnum::Member, VisibilityEnum::Public, VisibilityEnum::Custom], true)) {
+        if (!in_array($visibility, [VisibilityEnum::Team, VisibilityEnum::Entity, VisibilityEnum::Public, VisibilityEnum::Custom], true)) {
             throw new HttpException(422, '设置可见范围不合法');
         }
     }

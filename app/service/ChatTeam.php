@@ -20,7 +20,12 @@ class ChatTeam
         $memberMap = array_fill_keys($memberTeams, true);
         $customerMap = array_fill_keys($customerTeams, true);
         $result = [];
-        foreach (Team::active()->whereIn('id', $teamIds)->order('display_name', 'asc')->select() as $team) {
+        $teams = Team::active()->whereIn('id', $teamIds)->with(['identity', 'profile'])->select()->all();
+        usort($teams, static fn (Team $left, Team $right): int => strcmp(
+            (string) $left->display_name,
+            (string) $right->display_name
+        ));
+        foreach ($teams as $team) {
             $result[] = [
                 'slug' => $team->slug, 'display_name' => $team->display_name,
                 'as_member' => isset($memberMap[(int) $team->id]),

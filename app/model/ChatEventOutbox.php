@@ -13,11 +13,12 @@ class ChatEventOutbox extends Base
         'team_id'      => 'integer',
         'attempts'     => 'integer',
         'available_at' => 'integer',
+        'processing_until' => 'integer',
         // 'published_at' => 'null|integer',
     ];
 
     protected $json = ['payload'];
-    protected $hidden = ['delete_time'];
+    protected $hidden = ['delete_time', 'processing_token', 'processing_until'];
     protected $append = [];
     protected $readonly = ['team_id', 'event_type', 'aggregate_type', 'aggregate_id', 'payload'];
 

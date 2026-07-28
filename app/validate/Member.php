@@ -16,8 +16,6 @@ class Member extends Validate
         'intro_image'           => 'max:255',
         'intro_video'           => 'max:255',
         'introduction_markdown' => 'max:65535',
-        'is_displayed'          => 'in:0,1',
-        'post_type_ids'         => 'array',
     ];
 
     protected $message = [
@@ -31,13 +29,11 @@ class Member extends Validate
         'intro_image.max'               => '自介图地址长度不能超过255位',
         'intro_video.max'               => '音介视频地址长度不能超过255位',
         'introduction_markdown.max'     => 'Markdown介绍内容过长',
-        'is_displayed.in'               => '显示状态格式不正确',
-        'post_type_ids.array'           => '岗位类型格式不正确',
     ];
 
     protected $scene = [
-        'add'    => ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown', 'post_type_ids'],
-        'edit'   => ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown', 'is_displayed', 'post_type_ids'],
+        'add'    => ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown'],
+        'edit'   => ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown'],
         'block'  => ['member_id'],
         'remove' => ['member_id'],
     ];

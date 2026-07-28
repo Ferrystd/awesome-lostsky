@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\common\controller;
 
 use app\service\File;
+use app\service\PermissionDictionary as Permissions;
 use think\Request;
 
 class Upload
@@ -11,9 +12,9 @@ class Upload
     protected $middleware = [
         'JwtAuth'      => ['except' => []],
         'Context'      => ['except' => []],
-        'EntityType:teamMember' => ['except' => []],
-        'TeamBelongs'  => ['except' => []],
-        'MemberAccess' => ['except' => []],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'TeamAuth'     => ['except' => []],
+        'Permission:' . Permissions::FILE_UPLOAD => ['except' => []],
     ];
 
     public function upload(Request $request)
@@ -23,13 +24,19 @@ class Upload
             return error('请选择文件', 1, 422);
         }
 
-        $maxSize = config('file.upload_max_size', 50 * 1024 * 1024);
-        if (!$file->checkSize($maxSize)) {
-            return error('文件大小超出限制', 1, 422);
-        }
-
         $service = app(File::class);
-        $result  = $service->upload($file, $request->member->id);
+        $result  = $service->upload(
+            $file,
+            (int) $request->team_id,
+            (array) $request->acting_entity
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request,
+            'common',
+            'upload',
+            'file',
+            (int) ($result['id'] ?? 0)
+        );
 
         return success($result, '上传成功');
     }

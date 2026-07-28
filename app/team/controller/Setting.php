@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\team\controller;
 
 use app\service\TeamSetting;
+use app\service\PermissionDictionary as Permissions;
 use think\Request;
 
 class Setting
@@ -12,15 +13,19 @@ class Setting
         'JwtAuth'    => ['except' => []],
         'Context'    => ['except' => []],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
-        'TeamBelongs' => ['except' => []],
-        'TeamMember' => ['except' => []],
-        'TeamAccess' => ['only' => ['schema', 'save']],
+        'TeamAuth' => ['except' => []],
+        'Permission:' . Permissions::TEAM_SETTING_READ => ['only' => ['index', 'schema']],
+        'Permission:' . Permissions::TEAM_SETTING_UPDATE => ['only' => ['save']],
     ];
 
     public function index(Request $request)
     {
         $service = app(TeamSetting::class);
-        $result  = $service->get($request->team_id, $request->get('app', 'index'), (int) $request->user_id, (int) $request->member_id);
+        $result  = $service->get(
+            (int) $request->team_id,
+            (string) $request->get('app', 'index'),
+            (array) $request->acting_entity
+        );
         $key     = $request->get('key');
 
         if ($key !== null) {

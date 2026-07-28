@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\model\TeamRole;
+use app\model\TeamEntityRole;
 use app\model\TeamRolePermission;
 use think\exception\HttpException;
 
@@ -22,51 +23,19 @@ class RolePermission
 
     public function catalog(int $teamId): array
     {
-        $groups = [
-            ['name' => '团队成员', 'items' => $this->items([
-                'team.member.read' => '查看成员', 'team.member.invite' => '邀请成员',
-                'team.member.update' => '编辑成员', 'team.member.remove' => '移除成员',
-                'team.role.read' => '查看角色', 'team.role.write' => '管理角色',
-            ])],
-            ['name' => '商店', 'items' => $this->items([
-                'shop.read' => '查看商店', 'shop.update' => '编辑商店',
-                'shop.product.read' => '查看商品', 'shop.product.write' => '编辑商品',
-                'shop.product.delete' => '删除商品', 'shop.order.read' => '查看订单',
-                'shop.order.write' => '处理订单',
-            ])],
-            ['name' => '交易与客户', 'items' => $this->items([
-                'transaction.read' => '查看交易', 'transaction.write' => '编辑交易',
-                'transaction.delete' => '删除交易', 'transaction.category.read' => '查看交易分类',
-                'transaction.category.write' => '管理交易分类', 'transaction.report.read' => '查看报表',
-                'customer.read' => '查看客户', 'customer.write' => '编辑客户',
-                'customer.delete' => '删除客户', 'customer.export' => '导出客户',
-            ])],
-            ['name' => '文件与设置', 'items' => $this->items([
-                'file.read' => '查看文件', 'file.upload' => '上传文件',
-                'file.delete' => '删除文件', 'file.share' => '分享文件',
-                'team.setting.read' => '查看设置', 'team.setting.update' => '编辑设置',
-            ])],
-            ['name' => '聊天', 'items' => $this->items([
-                'identity.team.assume' => '领取团队身份',
-                'identity.virtual.*.assume' => '领取全部虚拟实体身份',
-                'chat.conversation.create' => '创建会话',
-                'chat.group.manage' => '管理群聊',
-                'chat.temporary.create' => '创建临时会话',
-                'chat.message.moderate' => '审核与撤回消息',
-                'chat.virtual.create' => '创建虚拟实体',
-                'chat.virtual.*.manage' => '管理全部虚拟实体',
-                'chat.virtual.*.operate' => '操作全部虚拟实体',
-                'chat.virtual.*.field.manage' => '管理全部虚拟实体字段',
-                'team.entity_field.member.manage' => '管理成员字段',
-                'team.entity_field.customer.manage' => '管理客户字段',
-            ])],
-        ];
+        $groups = [];
+        foreach (PermissionDictionary::groups() as $name => $items) {
+            $groups[] = ['name' => $name, 'items' => $this->items($items)];
+        }
 
         $virtualItems = [];
         $virtuals = \app\model\TeamVirtual::where('team_id', $teamId)
-            ->with(['identity'])
-            ->order('name', 'asc')
-            ->select();
+            ->with(['identity', 'profile'])
+            ->select()
+            ->all();
+        usort($virtuals, static fn ($left, $right): int =>
+            strcasecmp((string) $left->name, (string) $right->name)
+        );
         foreach ($virtuals as $virtual) {
             $slug = (string) ($virtual->slug ?? '');
             if ($slug === '') {
@@ -75,13 +44,13 @@ class RolePermission
             $label = (string) ($virtual->name ?: $slug);
             foreach (['manage' => '管理', 'operate' => '操作', 'field.manage' => '管理字段'] as $action => $actionLabel) {
                 $virtualItems[] = [
-                    'key' => "chat.virtual.{$slug}.{$action}",
+                    'key' => PermissionDictionary::virtual($slug, $action),
                     'label' => "{$actionLabel} · {$label}",
                     'resource_slug' => $slug,
                 ];
             }
             $virtualItems[] = [
-                'key' => "identity.virtual.{$slug}.assume",
+                'key' => PermissionDictionary::assume('virtual', $slug),
                 'label' => "领取 · {$label} 身份",
                 'resource_slug' => $slug,
             ];
@@ -91,6 +60,40 @@ class RolePermission
         }
 
         return ['groups' => $groups];
+    }
+
+    public function bootstrapOwner(int $teamId, int $memberId): void
+    {
+        $role = app(TeamRole::class, [], true);
+        $role->save([
+            'team_id' => $teamId,
+            'role_key' => 'owner',
+            'name' => '所有者',
+            'description' => '团队创建时自动生成的完整管理角色',
+            'sort' => 0,
+        ]);
+
+        foreach ([
+            ['type' => 'teamMember', 'id' => $memberId],
+            ['type' => 'team', 'id' => $teamId],
+        ] as $entity) {
+            $entityId = (int) app(Entity::class)->requireBySubject($entity['type'], $entity['id'])->id;
+            $binding = app(TeamEntityRole::class, [], true);
+            $binding->save([
+                'team_id' => $teamId,
+                'entity_id' => $entityId,
+                'role_id' => (int) $role->id,
+            ]);
+        }
+
+        foreach (PermissionDictionary::keys() as $key) {
+            $permission = app(TeamRolePermission::class, [], true);
+            $permission->save([
+                'team_id' => $teamId,
+                'role_id' => (int) $role->id,
+                'permission_key' => $key,
+            ]);
+        }
     }
 
     public function save(int $teamId, int $roleId, $permissionKeys): void
@@ -159,27 +162,42 @@ class RolePermission
 
     private function assertDynamicEntityKey(int $teamId, string $key): void
     {
-        if ($key === 'identity.team.assume') {
-            return;
-        }
-        if (!str_starts_with($key, 'chat.virtual.') && !str_starts_with($key, 'identity.virtual.')) {
-            return;
-        }
-        if ($key === 'chat.virtual.create') {
-            return;
-        }
-        if (!preg_match('/^(?:chat\.virtual\.([a-z0-9][a-z0-9_-]{0,49}|\*)\.(?:manage|operate|field\.manage)|identity\.virtual\.([a-z0-9][a-z0-9_-]{0,49}|\*)\.assume)$/', $key, $match)) {
-            throw new HttpException(422, 'Invalid virtual entity permission');
-        }
-        $slug = $match[1] !== '' ? $match[1] : $match[2];
-        if ($slug === '*') {
+        if (in_array($key, PermissionDictionary::keys(), true)) {
             return;
         }
 
-        $identity = \app\model\EntityIdentity::virtual()->where('slug', $slug)->find();
+        $dynamic = PermissionDictionary::dynamic($key);
+        if (!$dynamic) {
+            throw new HttpException(422, '权限不在可用目录中');
+        }
+        if ($dynamic['kind'] === 'assume') {
+            $this->assertAssumeKey($teamId, $dynamic['type'], $dynamic['slug']);
+            return;
+        }
+
+        $identity = \app\model\Entity::virtual()->where('slug', $dynamic['slug'])->find();
         $virtual = $identity ? \app\model\TeamVirtual::where('team_id', $teamId)->find($identity->entityable_id) : null;
         if (!$virtual) {
             throw new HttpException(422, 'Virtual entity does not belong to this team');
+        }
+    }
+
+    private function assertAssumeKey(int $teamId, string $type, string $slug): void
+    {
+        $expectedType = match ($type) {
+            'member' => 'teamMember',
+            'customer' => 'teamCustomer',
+            'virtual' => 'teamVirtual',
+        };
+        $identity = \app\model\Entity::where('slug', $slug)
+            ->where('entityable_type', $expectedType)
+            ->find();
+        if (!$identity || !$identity->is_valid
+            || app(IdentitySession::class)->entityTeamId(
+                $expectedType,
+                (int) $identity->entityable_id
+            ) !== $teamId) {
+            throw new HttpException(422, '委托目标不属于当前团队或不可用');
         }
     }
 

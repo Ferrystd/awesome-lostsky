@@ -5,15 +5,14 @@ namespace app\service;
 
 use app\model\TeamCustomer;
 use app\model\TeamCustomerSender;
-use app\model\TeamMember;
 use think\exception\HttpException;
 
 class Sender
 {
-    public function bindings(int $teamId, int $memberId): array
+    public function bindings(int $teamId, int $entityId): array
     {
         return TeamCustomerSender::where('team_id', $teamId)
-            ->where('member_id', $memberId)
+            ->where('entity_id', $entityId)
             ->with(['customer.profile'])
             ->select()
             ->toArray();
@@ -22,22 +21,20 @@ class Sender
     public function allBindings(int $teamId): array
     {
         return TeamCustomerSender::where('team_id', $teamId)
-            ->with(['customer.profile', 'member.profile'])
+            ->with(['customer.profile', 'subject.profile'])
             ->select()
             ->toArray();
     }
 
-    public function bind(int $teamId, int $memberId, int $customerId): void
+    public function bind(int $teamId, int $entityId, int $customerId): void
     {
-        if (!TeamMember::where('team_id', $teamId)->find($memberId)) {
-            throw new HttpException(422, '成员不存在');
-        }
+        app(Entity::class)->assertInTeam($entityId, $teamId);
 
         if (!TeamCustomer::where('team_id', $teamId)->find($customerId)) {
             throw new HttpException(422, '客户不存在');
         }
 
-        $existing = TeamCustomerSender::withTrashed()->sender($memberId, $customerId)->find();
+        $existing = TeamCustomerSender::withTrashed()->sender($entityId, $customerId)->find();
         if ($existing) {
             if (!$existing->trashed()) {
                 throw new HttpException(409, '该绑定已存在');
@@ -49,7 +46,7 @@ class Sender
 
         $binding = new TeamCustomerSender;
         $binding->team_id     = $teamId;
-        $binding->member_id   = $memberId;
+        $binding->entity_id   = $entityId;
         $binding->customer_id = $customerId;
         $binding->save();
     }

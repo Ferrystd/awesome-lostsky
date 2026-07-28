@@ -3,13 +3,16 @@ declare(strict_types=1);
 
 namespace app\team\controller;
 
+use app\service\PermissionDictionary as Permissions;
 use think\Request;
 
 class Role
 {
     protected $middleware = [
         'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamBelongs', 'TeamAccess',
+        'TeamAuth',
+        'Permission:' . Permissions::TEAM_ROLE_READ => ['only' => ['index', 'get']],
+        'Permission:' . Permissions::TEAM_ROLE_WRITE => ['only' => ['add', 'edit', 'delete']],
     ];
 
     public function index(Request $request)
@@ -31,6 +34,7 @@ class Role
             'name'        => $request->post('name', ''),
             'description' => $request->post('description'),
             'sort'        => (int) $request->post('sort', 0),
+            'is_displayed'=> (int) $request->post('is_displayed', 0),
         ]);
 
         return success(['id' => $id], '角色已创建');
@@ -40,9 +44,9 @@ class Role
     {
         $id   = (int) $request->post('id', 0);
         $data = [];
-        foreach (['name', 'description', 'sort'] as $field) {
+        foreach (['name', 'description', 'sort', 'is_displayed'] as $field) {
             if ($request->has($field)) {
-                $data[$field] = $field === 'sort'
+                $data[$field] = in_array($field, ['sort', 'is_displayed'], true)
                     ? (int) $request->post($field)
                     : $request->post($field);
             }

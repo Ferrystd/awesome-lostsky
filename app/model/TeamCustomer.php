@@ -14,7 +14,7 @@ class TeamCustomer extends Base
     protected $type = [
         'id'          => 'integer',
         'team_id'     => 'integer',
-        'user_id'     => 'integer',
+        // user_id / owner_entity_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
         'is_blocked'  => 'integer',
         'create_time' => 'integer',
         'update_time' => 'integer',
@@ -27,7 +27,7 @@ class TeamCustomer extends Base
 
     protected $append = ['is_valid', 'is_searchable'];
 
-    protected $readonly = ['team_id', 'user_id'];
+    protected $readonly = ['team_id', 'user_id', 'owner_entity_id'];
 
     public function team()
     {
@@ -47,6 +47,11 @@ class TeamCustomer extends Base
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function ownerEntity()
+    {
+        return $this->belongsTo(Entity::class, 'owner_entity_id');
     }
 
     public function balance()
@@ -76,15 +81,17 @@ class TeamCustomer extends Base
 
     public function profile()
     {
-        return $this->hasOne(TeamCustomerProfile::class, 'customer_id')
-            ->bind(['nickname', 'avatar', 'description']);
+        return $this->hasOne(TeamEntityProfile::class, 'entity_id', 'root_entity_id')
+            ->bind(['name' => 'nickname', 'avatar', 'description']);
     }
 
     public function identity()
     {
-        return $this->morphOne(EntityIdentity::class, 'entityable', 'teamCustomer')
+        return $this->morphOne(Entity::class, 'entityable', 'teamCustomer')
             ->bind(['slug']);
     }
+
+    public function getRootEntityIdAttr(): int { return (int) ($this->identity?->id ?? 0); }
 
     public function fieldValues()
     {

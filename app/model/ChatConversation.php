@@ -3,7 +3,6 @@ declare (strict_types = 1);
 
 namespace app\model;
 
-use app\enum\ChatActorType;
 use app\enum\ChatConversationKind;
 
 class ChatConversation extends Base
@@ -17,8 +16,7 @@ class ChatConversation extends Base
         'uuid'            => 'string',
         'kind'            => ChatConversationKind::class,
         'is_temporary'    => 'integer',
-        'created_by_type' => ChatActorType::class,
-        'created_by_id'   => 'integer',
+        'entity_id'       => 'integer',
         // 'last_message_id' => 'null|integer',
         // 'last_message_at' => 'null|integer',
         // 'expires_at'      => 'null|integer',
@@ -28,7 +26,7 @@ class ChatConversation extends Base
     protected $json = [];
     protected $hidden = ['delete_time'];
     protected $append = ['is_closed'];
-    protected $readonly = ['team_id', 'uuid', 'kind', 'is_temporary', 'created_by_type', 'created_by_id', 'direct_key'];
+    protected $readonly = ['team_id', 'uuid', 'kind', 'is_temporary', 'entity_id', 'direct_key'];
 
     public function getIsClosedAttr($value, $data): bool
     {
@@ -38,6 +36,11 @@ class ChatConversation extends Base
     public function team()
     {
         return $this->belongsTo(Team::class, 'team_id');
+    }
+
+    public function subject()
+    {
+        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
     public function participants()

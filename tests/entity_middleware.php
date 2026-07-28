@@ -4,7 +4,9 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\middleware\EntityType;
+use app\middleware\EntityRequired;
 use app\middleware\TeamBelongs;
+use app\exception\EntityContextException;
 use think\exception\HttpException;
 use think\Request;
 
@@ -41,6 +43,7 @@ $request = static function (?array $acting = null, int $teamId = 0, bool $withCo
     }
     if ($teamId > 0) {
         $request->team_id = $teamId;
+        $request->slug = "team-{$teamId}";
     }
     return $request;
 };
@@ -105,6 +108,24 @@ $assertThrows(
 );
 
 $teamBelongs = new TeamBelongs;
+$entityRequired = new EntityRequired;
+$assertSame(
+    'passed',
+    $entityRequired->handle($request(['type' => 'team', 'id' => 11], 10), $next),
+    'EntityRequired allows an entity from another team when no belonging check is declared'
+);
+$assertThrows(
+    fn () => $entityRequired->handle($request(null, 10), $next),
+    428,
+    'EntityRequired rejects a base user without silently receiving a member'
+);
+try {
+    $entityRequired->handle($request(null, 10), $next);
+    $failures[] = 'missing entity error exposes the unified contract';
+} catch (EntityContextException $exception) {
+    $assertSame(42801, $exception->getCode(), 'missing entity uses code 42801');
+    $assertSame('team-10', $exception->data()['team_slug'] ?? null, 'missing entity includes current team slug');
+}
 $assertSame(
     'passed',
     $teamBelongs->handle($request(['type' => 'team', 'id' => 10], 10), $next),
@@ -115,10 +136,17 @@ $assertThrows(
     403,
     'team entity cannot cross team boundaries'
 );
+try {
+    $teamBelongs->handle($request(['type' => 'team', 'id' => 11], 10), $next);
+    $failures[] = 'team mismatch error exposes the unified contract';
+} catch (EntityContextException $exception) {
+    $assertSame(40301, $exception->getCode(), 'team mismatch uses code 40301');
+    $assertSame('team-10', $exception->data()['team_slug'] ?? null, 'team mismatch includes current team slug');
+}
 $assertThrows(
     fn () => $teamBelongs->handle($request(null, 10), $next),
-    403,
-    'teamless identity does not belong to a team'
+    428,
+    'teamless identity is rejected by the missing-entity contract'
 );
 $assertThrows(
     fn () => $teamBelongs->handle($request(['type' => 'team', 'id' => 10]), $next),
@@ -137,8 +165,17 @@ $assertThrows(
 $aliases = require dirname(__DIR__) . '/config/middleware.php';
 $assert(
     ($aliases['alias']['EntityType'] ?? null) === EntityType::class
-        && ($aliases['alias']['TeamBelongs'] ?? null) === TeamBelongs::class,
-    'middleware aliases expose EntityType and TeamBelongs'
+        && ($aliases['alias']['EntityRequired'] ?? null) === EntityRequired::class
+        && ($aliases['alias']['TeamBelongs'] ?? null) === TeamBelongs::class
+        && !isset($aliases['alias']['AutoMember'])
+        && ($aliases['alias']['TeamAuth'] ?? null) === ['EntityRequired', 'TeamBelongs'],
+    'middleware aliases expose entity checks and the TeamAuth group'
+);
+$priority = $aliases['priority'] ?? [];
+$assert(
+    array_search(EntityRequired::class, $priority, true) < array_search(EntityType::class, $priority, true)
+        && array_search(EntityType::class, $priority, true) < array_search(TeamBelongs::class, $priority, true),
+    'middleware priority requires an entity before entity type and team checks'
 );
 
 $middleware = static fn (string $class): array =>
@@ -154,8 +191,9 @@ $has = static function (array $middleware, string $name): bool {
 };
 $generic = 'EntityType:team,teamMember,teamCustomer,teamVirtual';
 $assert(
-    $has($middleware(\app\account\controller\Team::class), 'EntityType:teamless'),
-    'Account team endpoints require teamless identity'
+    !$has($middleware(\app\account\controller\Team::class), 'EntityType:teamless')
+        && $has($middleware(\app\account\controller\Team::class), 'JwtAuth'),
+    'Account endpoints accept any valid login identity and use the user claim'
 );
 $assert(
     $has($middleware(\app\team\controller\Join::class), 'EntityType:teamless'),
@@ -163,29 +201,30 @@ $assert(
 );
 $assert(
     $has($middleware(\app\team\controller\Me::class), 'EntityType:teamMember')
-        && $has($middleware(\app\team\controller\Me::class), 'TeamBelongs'),
-    'member self endpoints require a member belonging to the team'
+        && $has($middleware(\app\team\controller\Me::class), 'TeamAuth'),
+    'member self endpoints require a member and verify team belonging'
 );
 $assert(
     $has($middleware(\app\shop\controller\Customer::class), 'EntityType:teamCustomer')
-        && $has($middleware(\app\shop\controller\Customer::class), 'TeamBelongs'),
+        && $has($middleware(\app\shop\controller\Customer::class), 'TeamAuth'),
     'customer self endpoints require a customer belonging to the team'
 );
 $assert(
     $has($middleware(\app\transaction\controller\Transaction::class), $generic)
-        && $has($middleware(\app\transaction\controller\Transaction::class), 'TeamBelongs'),
+        && $has($middleware(\app\transaction\controller\Transaction::class), 'TeamAuth'),
     'generic team business accepts all team entity types and checks belonging'
 );
-$identityMiddleware = $middleware(\app\chat\controller\Identity::class);
+$identityMiddleware = $middleware(\app\account\controller\Identity::class);
 $assert(
-    $has($identityMiddleware, 'EntityType:teamless')
-        && $has($identityMiddleware, $generic),
-    'identity receive and drop declare separate type policies'
+    isset($identityMiddleware['EntityType:teamless,team,teamMember,teamCustomer,teamVirtual'])
+        && ($identityMiddleware['EntityType:teamless,team,teamMember,teamCustomer,teamVirtual']['only'] ?? null) === ['candidates', 'receive']
+        && ($identityMiddleware[$generic]['only'] ?? null) === ['drop'],
+    'Account identity candidates and receive accept roots or entities while drop requires an entity'
 );
 $integrationMiddleware = $middleware(\app\chat\controller\Integration::class);
 $assert(
     ($integrationMiddleware[$generic]['except'] ?? null) === ['send']
-        && ($integrationMiddleware['TeamBelongs']['except'] ?? null) === ['send'],
+        && ($integrationMiddleware['TeamAuth']['except'] ?? null) === ['send'],
     'external integration send bypasses entity middleware'
 );
 

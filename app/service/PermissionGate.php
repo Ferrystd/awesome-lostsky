@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\model\Entity;
 use app\model\TeamEntityRole;
 use app\model\TeamMember;
 use app\model\TeamRolePermission;
@@ -25,37 +26,44 @@ class PermissionGate
             return false;
         }
 
-        $keys = array_values(array_unique(array_filter(array_map('strval', $permissionKeys))));
-        if (!$keys) {
-            return false;
-        }
-        foreach ($keys as $key) {
-            $this->assertKey($key);
-        }
+        return $this->assignedAllows($teamId, $subject, $permissionKeys);
+    }
 
-        $roleIds = TeamEntityRole::where('team_id', $teamId)
-            ->where('entity_type', $subject['type'])
-            ->where('entity_id', $subject['id'])
-            ->column('role_id');
-        if (!$roleIds) {
+    /**
+     * 校验目标团队授予来源实体的权限。来源实体可以属于其他团队。
+     */
+    public function delegatedAllows(int $targetTeamId, array $source, Entity $target): bool
+    {
+        $source = $this->subject($source);
+        if (!$this->validGlobalSubject($source) || !$target->is_valid) {
             return false;
         }
 
-        return (bool) TeamRolePermission::where('team_id', $teamId)
-            ->whereIn('role_id', $roleIds)
-            ->whereIn('permission_key', $keys)
-            ->find();
+        $targetTeamIdFromEntity = app(IdentitySession::class)->entityTeamId(
+            (string) $target->entityable_type,
+            (int) $target->entityable_id
+        );
+        if ($targetTeamIdFromEntity !== $targetTeamId) {
+            return false;
+        }
+
+        $keys = app(IdentitySession::class)->assumePermissionKeys($target);
+        return $this->assignedAllows($targetTeamId, $source, $keys);
     }
 
     private function subject(int|array $subject): array
     {
-        if (is_int($subject)) return ['type' => 'teamMember', 'id' => $subject];
+        if (is_int($subject)) $subject = ['type' => 'teamMember', 'id' => $subject];
         $type = (string) ($subject['type'] ?? '');
         $id = (int) ($subject['id'] ?? 0);
         if (!in_array($type, ['teamMember', 'teamCustomer', 'team', 'teamVirtual'], true) || $id < 1) {
             throw new HttpException(500, 'Permission subject is invalid');
         }
-        return compact('type', 'id');
+        $entity = Entity::where('entityable_type', $type)->where('entityable_id', $id)->find();
+        if (!$entity) {
+            throw new HttpException(500, 'Permission subject has no entity');
+        }
+        return ['type' => $type, 'id' => $id, 'entity_id' => (int) $entity->id];
     }
 
     private function validSubject(int $teamId, array $subject): bool
@@ -67,6 +75,38 @@ class PermissionGate
             'teamVirtual' => (bool) \app\model\TeamVirtual::where('team_id', $teamId)->where('id', $subject['id'])->where('is_active', 1)->find(),
             default => false,
         };
+    }
+
+    private function validGlobalSubject(array $subject): bool
+    {
+        $identity = Entity::where('entityable_type', $subject['type'])
+            ->where('entityable_id', $subject['id'])
+            ->find();
+
+        return $identity ? (bool) $identity->is_valid : false;
+    }
+
+    private function assignedAllows(int $teamId, array $subject, array $permissionKeys): bool
+    {
+        $keys = array_values(array_unique(array_filter(array_map('strval', $permissionKeys))));
+        if (!$keys) {
+            return false;
+        }
+        foreach ($keys as $key) {
+            $this->assertKey($key);
+        }
+
+        $roleIds = TeamEntityRole::where('team_id', $teamId)
+            ->where('entity_id', $subject['entity_id'])
+            ->column('role_id');
+        if (!$roleIds) {
+            return false;
+        }
+
+        return (bool) TeamRolePermission::where('team_id', $teamId)
+            ->whereIn('role_id', $roleIds)
+            ->whereIn('permission_key', $keys)
+            ->find();
     }
 
     public function candidates(Request $request, string ...$templates): array
@@ -134,7 +174,8 @@ class PermissionGate
     {
         if ($key === '' || mb_strlen($key) > 100
             || !preg_match('/^[a-z][a-z0-9_-]*(?:\.(?:[a-z0-9][a-z0-9_-]*|\*))*$/', $key)
-            || substr_count($key, '*') > 1) {
+            || substr_count($key, '*') > 1
+            || !PermissionDictionary::contains($key)) {
             throw new HttpException(500, '权限配置无效');
         }
     }

@@ -21,12 +21,30 @@ const editing = computed(() => id.value > 0)
 const form = reactive({
   title: '',
   content: '',
-  target_type: route.query.target_type === 'teamMember' ? 'teamMember' : 'team',
-  target_id: Number(route.query.target_id || 0),
-  manager_scope: route.query.target_type === 'teamMember' ? 2 : 1,
-  visibility: route.query.target_type === 'teamMember' ? 3 : 1,
+  entity_id: Number(route.query.entity_id || 0),
+  manager_scope: route.query.entity_id ? 2 : 1,
+  visibility: route.query.entity_id ? 3 : 1,
   sort: 0,
 })
+
+interface EntityOption {
+  entity_id: number
+  slug: string
+  name: string
+}
+
+const entities = useQuery({
+  queryKey: ['entity-options'],
+  queryFn: () => api.get<EntityOption[]>('/entity/options'),
+})
+const entityOptions = computed<SelectOption[]>(() => (entities.data.value ?? []).map(entity => ({
+  label: entity.slug ? `${entity.name} (@${entity.slug})` : entity.name,
+  value: entity.entity_id,
+})))
+
+watch(() => entities.data.value, (items) => {
+  if (!editing.value && !form.entity_id && items?.length) form.entity_id = items[0].entity_id
+}, { immediate: true })
 
 const detail = useQuery({
   queryKey: computed(() => ['doc', id.value]),
@@ -41,8 +59,7 @@ watch(() => detail.data.value, (data) => {
   if (!data) return
   form.title = String(data.title ?? '')
   form.content = String(data.content ?? '')
-  form.target_type = data.target_type === 'teamMember' ? 'teamMember' : 'team'
-  form.target_id = Number(data.target_id ?? 0)
+  form.entity_id = Number(data.entity_id ?? 0)
   form.manager_scope = enumOptionValue(data.manager_scope, managerScopeOptions, 1)
   form.visibility = enumOptionValue(data.visibility, visibilityOptions, 1)
   form.sort = Number(data.sort ?? 0)
@@ -50,10 +67,7 @@ watch(() => detail.data.value, (data) => {
 
 const save = useMutation({
   mutationFn: () => api.post<{ id?: number }>(editing.value ? '/doc/edit' : '/doc/create', {
-    ...(editing.value ? { id: id.value } : {
-      target_type: form.target_type,
-      ...(form.target_type === 'teamMember' ? { target_id: form.target_id } : {}),
-    }),
+    ...(editing.value ? { id: id.value } : { entity_id: form.entity_id }),
     title: form.title.trim(),
     content: form.content,
     manager_scope: form.manager_scope,
@@ -68,10 +82,6 @@ const save = useMutation({
   },
 })
 
-const targetOptions = [
-  { label: '团队文档', value: 'team' },
-  { label: '成员文档', value: 'teamMember' },
-]
 </script>
 
 <template>
@@ -93,11 +103,7 @@ const targetOptions = [
       <div v-if="!editing" class="field-row">
         <label class="field">
           <span>归属对象</span>
-          <NSelect v-model:value="form.target_type" :options="targetOptions" />
-        </label>
-        <label v-if="form.target_type === 'teamMember'" class="field">
-          <span>成员 ID <b>*</b></span>
-          <NInputNumber v-model:value="form.target_id" :min="1" :precision="0" class="control" />
+          <NSelect v-model:value="form.entity_id" :options="entityOptions" filterable />
         </label>
       </div>
 
@@ -138,7 +144,7 @@ const targetOptions = [
       <p v-if="save.isError.value" class="feedback error" role="alert">{{ friendlyError(save.error.value) }}</p>
       <div class="actions">
         <LsButton type="button" variant="secondary" @click="router.push('/docs')">取消</LsButton>
-        <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="!form.title.trim() || (form.target_type === 'teamMember' && !form.target_id)">
+        <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="!form.title.trim() || (!editing && !form.entity_id)">
           保存文档
         </LsButton>
       </div>

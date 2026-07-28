@@ -5,24 +5,22 @@ Transaction 负责团队记账流水、客户与发单人的绑定关系，以�
 ## 业务职责
 
 - 查询、创建、编辑和删除流水。
-- 查询当前团队的成员、客户及余额，作为流水、绑定和充值表单的统一选项来源。
-- 按汇总、角色、成员、时间或客户生成统计结果。
-- 查询当前成员或全团队的客户绑定关系，并由管理员维护绑定。
+- 查询当前团队的全部有效实体、客户及余额，作为流水、绑定和充值表单的统一选项来源。
+- 按汇总、角色实体、时间或客户生成统计结果。
+- 查询当前实体或全团队的客户绑定关系，并由管理员维护绑定。
 - 查询顾客余额日志并执行充值。
 
-流水编辑不允许更换 `handler_id`；涉及余额和多模型变更的操作由服务层事务保证一致性。
-预存款支付必须关联本团队客户，接单人、发单人和客服必须为本团队成员；所有金额均为非负有限数值。
+流水编辑不允许更换 `handler_entity_id`；涉及余额和多模型变更的操作由服务层事务保证一致性。
+预存款支付必须关联本团队客户，接单、发单和客服主体必须是本团队有效实体；所有金额均为非负有限数值。
 
 ## 鉴权边界
 
-所有接口都经过 `JwtAuth`、`Context`、允许四种团队实体的 `EntityType`、`TeamBelongs`
-和 `MemberAccess`；实体类型与归属先确定请求主体，成员及业务权限中间件再取交集。
+所有接口都经过 `JwtAuth`、`Context`、允许四种团队实体的 `EntityType` 和 `TeamAuth`；基础 JWT 不再静默领取成员，已有实体先验证当前团队归属，再按当前实体校验业务权限。
 
-- 流水创建和编辑还要求 `TransactionAbility` 与 `TransactionVerify`。
-- 流水删除要求 `TransactionAbility` 与 `TransactionAccess`。
-- 统计要求 `TransactionAbility`。
-- 全团队绑定查询、绑定和解绑要求 `TeamAccess`；当前成员的绑定列表不要求管理身份。
-- 充值同时要求 `TransactionAbility` 与 `TeamAccess`。
+- 流水查询、创建/编辑、删除分别要求 `transaction.read`、`transaction.write`、`transaction.delete`，写操作继续叠加 `Ability:transaction` 与 `TransactionVerify`。
+- 统计要求 `Ability:transaction` 与 `transaction.report.read`。
+- 绑定查询要求 `transaction.read`；绑定和解绑要求 `transaction.write`。
+- 余额日志要求 `transaction.read`；充值要求 `Ability:transaction` 与 `transaction.write`。
 
 ## 接口契约
 

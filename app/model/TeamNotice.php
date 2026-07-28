@@ -20,7 +20,6 @@ class TeamNotice extends Base
         'create_time' => 'integer',
         'update_time' => 'integer',
         'delete_time' => 'integer',
-        'team_id'     => 'integer',
         'title'       => 'string',
         'content'     => 'string',
         'is_pinned'   => 'integer',
@@ -36,5 +35,15 @@ class TeamNotice extends Base
     public function team()
     {
         return $this->belongsTo(Team::class, 'team_id');
+    }
+
+    public function senderTeam()
+    {
+        return $this->belongsTo(Team::class, 'sender_team_id');
+    }
+
+    public function recipient()
+    {
+        return $this->belongsTo(Entity::class, 'entity_id');
     }
 }

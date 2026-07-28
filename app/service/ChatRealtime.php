@@ -28,12 +28,11 @@ class ChatRealtime
     public function subscriptionToken(
         int $teamId,
         int $userId,
-        int $memberId,
-        int $customerId,
+        array $actingEntity,
         string $uuid
     ): array {
         $conversation = app(ChatConversation::class)->model($teamId, $uuid, true);
-        app(ChatConversation::class)->assertAccess($conversation, $teamId, $memberId, $customerId);
+        app(ChatConversation::class)->assertAccess($conversation, $teamId, $actingEntity);
         $channel = $this->channel($uuid);
         $now = time();
         $token = JWT::encode([

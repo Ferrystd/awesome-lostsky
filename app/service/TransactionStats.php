@@ -37,15 +37,12 @@ class TransactionStats
     public function byRole(int $teamId, int $startTime, int $endTime): array
     {
         $build = fn(string $column, string $cutColumn) => TeamTransaction::alias('t')
-            ->join('team_member m', "t.{$column} = m.id", 'LEFT')
-            ->join('team_member_profile p', 'm.id = p.member_id', 'LEFT')
             ->where('t.team_id', $teamId)
             ->where('t.trans_at', '>=', $startTime)
             ->where('t.trans_at', '<', $endTime)
             ->group("t.{$column}")
             ->field([
-                "t.{$column} as member_id",
-                "CASE WHEN t.{$column} = 0 THEN '团队主体' ELSE COALESCE(p.nickname, '') END as nickname",
+                "t.{$column} as entity_id",
                 'COUNT(*) as count',
                 "COALESCE(SUM(t.{$cutColumn}), 0) as amount",
             ])
@@ -53,36 +50,35 @@ class TransactionStats
             ->toArray();
 
         return [
-            'handler' => $build('handler_id', 'handler_cut'),
-            'sender'  => $build('sender_id', 'sender_cut'),
-            'cs'      => $build('cs_id', 'cs_cut'),
+            'handler' => $this->withEntitySummaries($build('handler_entity_id', 'handler_cut')),
+            'sender'  => $this->withEntitySummaries($build('sender_entity_id', 'sender_cut')),
+            'cs'      => $this->withEntitySummaries($build('cs_entity_id', 'cs_cut')),
         ];
     }
 
-    public function byMember(int $teamId, int $startTime, int $endTime, string $role): array
+    public function byEntity(int $teamId, int $startTime, int $endTime, string $role): array
     {
         [$column, $cutColumn] = match ($role) {
-            'sender'  => ['sender_id', 'sender_cut'],
-            'cs'      => ['cs_id', 'cs_cut'],
-            default   => ['handler_id', 'handler_cut'],
+            'sender'  => ['sender_entity_id', 'sender_cut'],
+            'cs'      => ['cs_entity_id', 'cs_cut'],
+            default   => ['handler_entity_id', 'handler_cut'],
         };
 
-        return TeamTransaction::alias('t')
-            ->join('team_member m', "t.{$column} = m.id", 'LEFT')
-            ->join('team_member_profile p', 'm.id = p.member_id', 'LEFT')
+        $rows = TeamTransaction::alias('t')
             ->where('t.team_id', $teamId)
             ->where('t.trans_at', '>=', $startTime)
             ->where('t.trans_at', '<', $endTime)
             ->group("t.{$column}")
             ->order('amount', 'desc')
             ->field([
-                "t.{$column} as member_id",
-                "CASE WHEN t.{$column} = 0 THEN '团队主体' ELSE COALESCE(p.nickname, '') END as nickname",
+                "t.{$column} as entity_id",
                 'COUNT(*) as count',
                 "COALESCE(SUM(t.{$cutColumn}), 0) as amount",
             ])
             ->select()
             ->toArray();
+
+        return array_values($this->withEntitySummaries($rows));
     }
 
     public function timeline(int $teamId, int $startTime, int $endTime, string $granularity = 'day'): array
@@ -109,9 +105,10 @@ class TransactionStats
 
     public function byCustomer(int $teamId, int $startTime, int $endTime): array
     {
-        return TeamTransaction::alias('t')
+        return array_values(TeamTransaction::alias('t')
             ->join('team_customer c', 't.customer_id = c.id', 'LEFT')
-            ->join('team_customer_profile cp', 'c.id = cp.customer_id', 'LEFT')
+            ->join('entity e', "e.entityable_type = 'teamCustomer' AND e.entityable_id = c.id", 'LEFT')
+            ->join('team_entity_profile p', 'p.entity_id = e.id', 'LEFT')
             ->where('t.team_id', $teamId)
             ->where('t.trans_at', '>=', $startTime)
             ->where('t.trans_at', '<', $endTime)
@@ -119,11 +116,29 @@ class TransactionStats
             ->order('amount', 'desc')
             ->field([
                 't.customer_id',
-                'COALESCE(cp.nickname, \'\') as customer_name',
+                'COALESCE(p.name, \'\') as customer_name',
                 'COUNT(*) as count',
                 'COALESCE(SUM(t.total_price), 0) as amount',
             ])
             ->select()
-            ->toArray();
+            ->toArray());
+    }
+
+    private function withEntitySummaries(array $rows): array
+    {
+        foreach ($rows as &$row) {
+            $entityId = (int) ($row['entity_id'] ?? 0);
+            $summary = $entityId > 0
+                ? app(ChatActor::class)->summaryEntity($entityId)
+                : ['slug' => null, 'name' => '未知人员', 'avatar' => null];
+            $row = array_merge($row, [
+                'slug' => $summary['slug'],
+                'name' => $summary['name'],
+                'avatar' => $summary['avatar'],
+            ]);
+        }
+        unset($row);
+
+        return $rows;
     }
 }

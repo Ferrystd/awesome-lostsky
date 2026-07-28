@@ -1,14 +1,22 @@
 <script setup lang="ts">
 import type { EntityResolve, EntitySummary } from '../markdown'
 
-import { ExternalLink, Users } from '@lucide/vue'
+import { Users } from '@lucide/vue'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, useId, watch } from 'vue'
+import LsEntityCard from './LsEntityCard.vue'
 
-const props = defineProps<{ content?: string | null; resolveEntities?: EntityResolve }>()
+const props = withDefaults(defineProps<{
+  content?: string | null
+  resolveEntities?: EntityResolve
+  chatEnabled?: boolean
+}>(), { chatEnabled: true })
 const entities = ref<Record<string, EntitySummary>>({})
 const selected = ref<EntitySummary | null>(null)
+const markdownRoot = ref<HTMLElement | null>(null)
+const selectedTrigger = ref<HTMLButtonElement | null>(null)
+const detailsId = `ls-entity-details-${useId().replaceAll(':', '')}`
 let resolveVersion = 0
 
 const slugs = computed(() => {
@@ -22,6 +30,7 @@ const slugs = computed(() => {
 watch(slugs, async (value) => {
   const version = ++resolveVersion
   selected.value = null
+  selectedTrigger.value = null
   if (!value.length || !props.resolveEntities) {
     entities.value = {}
     return
@@ -50,39 +59,111 @@ const html = computed(() => {
     const fallback = this.parser.parseInline(token.tokens)
     const label = entity?.available && entity.display_name ? `@${attr(entity.display_name)}` : fallback
     const state = entity?.available ? 'available' : 'unavailable'
-    return `<button type="button" class="ls-entity-chip ls-entity-chip--${state}" data-entity-slug="${attr(slug)}" aria-label="${entity?.available ? '查看对象' : '对象不可用'} ${attr(slug)}">${label}</button>`
+    return `<button type="button" class="ls-entity-chip ls-entity-chip--${state}" data-entity-slug="${attr(slug)}" aria-label="${entity?.available ? '查看对象' : '对象不可用'} ${attr(slug)}" aria-expanded="false" aria-controls="${detailsId}">${label}</button>`
   }
   return DOMPurify.sanitize(marked.parse(props.content ?? '', { async: false, renderer }) as string, {
     USE_PROFILES: { html: true },
-    ADD_ATTR: ['data-entity-slug', 'aria-label'],
+    ADD_ATTR: ['data-entity-slug', 'aria-label', 'aria-expanded', 'aria-controls'],
   })
 })
 
 function selectEntity(event: MouseEvent) {
-  const button = (event.target as HTMLElement).closest<HTMLElement>('[data-entity-slug]')
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-entity-slug]')
   if (!button) return
   const slug = button.dataset.entitySlug ?? ''
-  selected.value = entities.value[slug] ?? { slug, type: 'unknown', display_name: slug, available: false }
+  const shouldOpen = selected.value?.slug !== slug
+  markdownRoot.value?.querySelectorAll<HTMLButtonElement>('[data-entity-slug]').forEach((chip) => {
+    chip.setAttribute('aria-expanded', String(shouldOpen && chip.dataset.entitySlug === slug))
+  })
+  selected.value = shouldOpen
+    ? entities.value[slug] ?? { slug, type: 'unknown', display_name: slug, available: false }
+    : null
+  selectedTrigger.value = shouldOpen ? button : null
+}
+
+async function closeSelected() {
+  const trigger = selectedTrigger.value
+  markdownRoot.value?.querySelectorAll<HTMLButtonElement>('[data-entity-slug]').forEach((chip) => {
+    chip.setAttribute('aria-expanded', 'false')
+  })
+  selected.value = null
+  selectedTrigger.value = null
+  await nextTick()
+  if (trigger?.isConnected) trigger.focus()
+}
+
+function openProfile() {
+  if (selected.value?.href) window.location.href = selected.value.href
+}
+
+function startChat() {
+  if (props.chatEnabled && selected.value?.available) {
+    window.location.href = `/new?participant=${encodeURIComponent(selected.value.slug)}`
+  }
 }
 </script>
 
 <template>
   <div class="ls-markdown-renderer">
-    <div class="markdown" @click="selectEntity" v-html="html" />
-    <aside v-if="selected" class="entity-card" role="status">
-      <span class="entity-card__icon"><Users :size="19" /></span>
-      <div v-if="selected.available">
-        <small>{{ selected.type === 'team' ? '团队' : selected.team?.display_name || '成员' }}</small>
-        <strong>{{ selected.display_name || `@${selected.slug}` }}</strong>
-        <span>@{{ selected.slug }}</span>
-      </div>
-      <div v-else><small>对象不可用</small><strong>@{{ selected.slug }}</strong><span>该对象已隐藏、停用或不存在。</span></div>
-      <a v-if="selected.available && selected.href" :href="selected.href"><ExternalLink :size="16" />打开详情</a>
-      <button type="button" aria-label="关闭对象信息" @click="selected = null">×</button>
-    </aside>
+    <div ref="markdownRoot" class="markdown" @click="selectEntity" v-html="html" />
+    <LsEntityCard
+      v-if="selected && selected.available"
+      :id="detailsId"
+      :entity="{ slug: selected.slug, type: selected.type, name: selected.display_name || `@${selected.slug}`, avatar: selected.avatar }"
+      clearable
+      :clear-label="`收起 ${selected.display_name || selected.slug} 的对象信息`"
+      :chat-enabled="chatEnabled"
+      :profile-enabled="Boolean(selected.href)"
+      @chat="startChat"
+      @clear="closeSelected"
+      @profile="openProfile"
+    />
+    <aside v-else-if="selected" :id="detailsId" class="unavailable-card" role="status"><Users :size="19" /><span>对象不可用 · @{{ selected.slug }}</span><button type="button" aria-label="关闭对象信息" @click="closeSelected">×</button></aside>
   </div>
 </template>
 
 <style scoped>
-.ls-markdown-renderer{display:grid;gap:.75rem}.markdown{min-width:0;line-height:1.75;overflow-wrap:anywhere}.markdown :deep(img){max-width:100%;height:auto}.markdown :deep(pre){overflow:auto;padding:1rem;color:white;background:var(--sky-void);border-radius:8px}.markdown :deep(blockquote){margin-inline:0;padding:1rem;background:var(--cloud);border:1px solid var(--line);border-radius:8px}.markdown :deep(a){color:var(--sky-lost-strong);text-decoration:underline}.markdown :deep(table){display:block;max-width:100%;overflow:auto;border-collapse:collapse}.markdown :deep(th),.markdown :deep(td){padding:.55rem;border:1px solid var(--line)}.markdown :deep(.ls-entity-chip){display:inline-flex;align-items:center;min-height:28px;padding:.08rem .45rem;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 82%);border:1px solid color-mix(in oklch,var(--sky-lost-strong),transparent 62%);border-radius:999px;font:inherit;font-size:.9em;cursor:pointer}.markdown :deep(.ls-entity-chip--unavailable){color:var(--muted-ink);background:var(--cloud);border-style:dashed}.markdown :deep(.ls-entity-chip:focus-visible){outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 60%);outline-offset:2px}.entity-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:.75rem;padding:.75rem;background:var(--cloud);border:1px solid var(--line);border-radius:9px}.entity-card__icon{width:38px;height:38px;display:grid;place-items:center;color:var(--sky-lost-strong);background:white;border-radius:8px}.entity-card small,.entity-card strong,.entity-card span{display:block}.entity-card small,.entity-card span{color:var(--muted-ink);font-size:.75rem}.entity-card a{min-height:40px;display:inline-flex;align-items:center;gap:.35rem;color:var(--sky-lost-strong);font-size:.8rem;font-weight:700}.entity-card>button{width:40px;height:40px;background:transparent;border:0;border-radius:7px;font-size:1.25rem;cursor:pointer}.entity-card>button:hover{background:white}@media(max-width:560px){.entity-card{grid-template-columns:auto minmax(0,1fr) auto}.entity-card a{grid-column:2}.entity-card>button{grid-column:3;grid-row:1}}
+.ls-markdown-renderer{display:grid;gap:.75rem}
+.markdown{min-width:0;color:inherit;font-size:var(--markdown-body-size,1rem);line-height:var(--markdown-line-height,1.8);overflow-wrap:anywhere}
+.markdown :deep(> :first-child){margin-top:0}
+.markdown :deep(> :last-child){margin-bottom:0}
+.markdown :deep(p),.markdown :deep(ul),.markdown :deep(ol),.markdown :deep(blockquote),.markdown :deep(pre),.markdown :deep(table){margin-block:1.25em}
+.markdown :deep(p){text-wrap:pretty}
+.markdown :deep(h1),.markdown :deep(h2),.markdown :deep(h3),.markdown :deep(h4){margin:2em 0 .7em;color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;font-weight:700;line-height:1.22;letter-spacing:-.025em;text-wrap:balance;scroll-margin-top:6rem}
+.markdown :deep(h1){font-size:var(--markdown-h1-size,2.4rem)}
+.markdown :deep(h2){font-size:var(--markdown-h2-size,1.9rem)}
+.markdown :deep(h3){font-size:var(--markdown-h3-size,1.45rem)}
+.markdown :deep(h4){font-size:var(--markdown-h4-size,1.15rem)}
+.markdown :deep(ul),.markdown :deep(ol){padding-left:1.45em}
+.markdown :deep(ul){list-style:disc}
+.markdown :deep(ol){list-style:decimal}
+.markdown :deep(li){padding-left:.3em}
+.markdown :deep(li+li){margin-top:.45em}
+.markdown :deep(li::marker){color:var(--sky-lost-strong);font-weight:700}
+.markdown :deep(li:has(> input[type="checkbox"])){padding-left:0;list-style:none}
+.markdown :deep(li>ul),.markdown :deep(li>ol){margin-block:.55em}
+.markdown :deep(strong){color:var(--ink);font-weight:700}
+.markdown :deep(a){color:var(--sky-lost-strong);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:.22em}
+.markdown :deep(a:hover){color:var(--ink)}
+.markdown :deep(img){max-width:100%;height:auto;margin:2rem auto;border-radius:12px}
+.markdown :deep(code){padding:.12em .38em;border-radius:5px;color:oklch(.88 .11 190);background:color-mix(in oklch,var(--sky-lost),transparent 86%);font:500 .88em/1.6 ui-monospace,SFMono-Regular,Consolas,monospace}
+.markdown :deep(pre){overflow:auto;padding:1.15rem 1.25rem;color:oklch(.93 .012 210);background:oklch(.075 .018 225);border:1px solid color-mix(in oklch,var(--line),transparent 28%);border-radius:10px;tab-size:2}
+.markdown :deep(pre code){padding:0;color:inherit;background:transparent;font-size:.88rem}
+.markdown :deep(blockquote){margin-inline:0;padding:1rem 1.15rem;color:color-mix(in oklch,var(--ink),transparent 12%);background:color-mix(in oklch,var(--cloud),transparent 38%);border:1px solid var(--line);border-radius:10px}
+.markdown :deep(blockquote> :first-child){margin-top:0}
+.markdown :deep(blockquote> :last-child){margin-bottom:0}
+.markdown :deep(table){display:block;max-width:100%;overflow:auto;border-collapse:collapse;font-size:.92em}
+.markdown :deep(th),.markdown :deep(td){min-width:8rem;padding:.7rem .8rem;border:1px solid var(--line);text-align:left}
+.markdown :deep(th){color:var(--ink);background:color-mix(in oklch,var(--cloud),transparent 20%);font-weight:700}
+.markdown :deep(hr){height:1px;margin:2.5rem 0;border:0;background:var(--line)}
+.markdown :deep(input[type="checkbox"]){width:1rem;height:1rem;margin:0 .5rem 0 0;accent-color:var(--sky-lost-strong)}
+.markdown :deep(.ls-entity-chip){display:inline-flex;align-items:center;min-height:28px;padding:.08rem .45rem;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),transparent 84%);border:1px solid color-mix(in oklch,var(--sky-lost-strong),transparent 62%);border-radius:999px;font:inherit;font-size:.9em;cursor:pointer;transition:color 160ms ease-out,background-color 160ms ease-out,border-color 160ms ease-out}
+.markdown :deep(.ls-entity-chip[aria-expanded="true"]){color:var(--ink);background:color-mix(in oklch,var(--sky-lost),transparent 72%);border-color:var(--sky-lost-strong)}
+.markdown :deep(.ls-entity-chip--unavailable){color:var(--muted-ink);background:var(--cloud);border-style:dashed}
+.markdown :deep(.ls-entity-chip:focus-visible){outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 60%);outline-offset:2px}
+.unavailable-card{display:flex;align-items:center;gap:.65rem;padding:.75rem;color:var(--muted-ink);background:var(--cloud);border:1px solid var(--line);border-radius:9px}
+.unavailable-card button{margin-left:auto;width:40px;height:40px;background:transparent;border:0;border-radius:7px;font-size:1.25rem;cursor:pointer}
+.unavailable-card button:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 60%);outline-offset:2px}
+@media(max-width:480px){.markdown{--markdown-h1-size:2rem;--markdown-h2-size:1.65rem;--markdown-h3-size:1.3rem}.markdown :deep(pre){padding:1rem}.markdown :deep(th),.markdown :deep(td){min-width:7rem;padding:.6rem}}
+@media(prefers-reduced-motion:reduce){.markdown :deep(.ls-entity-chip){transition:none}}
 </style>

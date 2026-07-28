@@ -6,7 +6,13 @@
     "description": "记账流水、客户发单人绑定和预存款管理。"
   },
   "x-entity-auth": {
-    "authenticated_default": ["team", "teamMember", "teamCustomer", "teamVirtual"],
+    "authenticated_default": [
+      "team",
+      "teamMember",
+      "teamCustomer",
+      "teamVirtual"
+    ],
+    "base_login_auto_member": true,
     "team_belongs": true
   },
   "servers": [
@@ -67,7 +73,7 @@
           "type": "string",
           "format": "uuid"
         },
-        "description": "前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。"
+        "description": "前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。"
       },
       "Page": {
         "name": "page",
@@ -86,7 +92,8 @@
         "schema": {
           "type": "integer",
           "default": 20,
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 100
         }
       },
       "IdPath": {
@@ -100,15 +107,6 @@
       },
       "IdQuery": {
         "name": "id",
-        "in": "query",
-        "required": false,
-        "schema": {
-          "type": "integer",
-          "format": "int64"
-        }
-      },
-      "MemberIdQuery": {
-        "name": "member_id",
         "in": "query",
         "required": false,
         "schema": {
@@ -405,14 +403,6 @@
                 "type": "integer",
                 "format": "int64"
               },
-              "is_displayed": {
-                "type": "integer",
-                "enum": [
-                  0,
-                  1
-                ],
-                "description": "0=false, 1=true"
-              },
               "is_blocked": {
                 "type": "integer",
                 "enum": [
@@ -443,7 +433,7 @@
               "fieldValues": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/MemberFieldValue"
+                  "$ref": "#/components/schemas/EntityFieldValue"
                 }
               }
             }
@@ -457,7 +447,7 @@
             "type": "integer",
             "format": "int64"
           },
-          "member_id": {
+          "entity_id": {
             "type": "integer",
             "format": "int64"
           },
@@ -510,176 +500,6 @@
           }
         }
       },
-      "MemberField": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "team_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "field_key": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "source": {
-            "type": "string",
-            "enum": [
-              "system",
-              "custom"
-            ]
-          },
-          "value_type": {
-            "type": "string",
-            "enum": [
-              "string",
-              "text",
-              "int",
-              "decimal",
-              "bool",
-              "date",
-              "datetime",
-              "select",
-              "multi_select",
-              "json"
-            ]
-          },
-          "input_type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "textarea",
-              "radio",
-              "checkbox",
-              "select",
-              "date",
-              "datetime",
-              "upload"
-            ]
-          },
-          "options": {
-            "nullable": true
-          },
-          "default_value": {
-            "type": "string",
-            "nullable": true
-          },
-          "is_required": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "is_editable": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "is_searchable": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "is_system": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ],
-            "description": "0=false, 1=true"
-          },
-          "sort": {
-            "type": "integer"
-          },
-          "create_time": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Unix timestamp, seconds"
-          },
-          "update_time": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Unix timestamp, seconds"
-          },
-          "manager_scope": {
-            "type": "integer",
-            "enum": [
-              1,
-              2
-            ],
-            "description": "1=team管理, 2=主体本人和team管理"
-          },
-          "visibility": {
-            "type": "integer",
-            "enum": [
-              1,
-              3,
-              4,
-              5
-            ],
-            "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见"
-          }
-        }
-      },
-      "MemberFieldValue": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "member_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "field_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "value_string": {
-            "type": "string",
-            "nullable": true
-          },
-          "value_text": {
-            "type": "string",
-            "nullable": true
-          },
-          "value_int": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "value_decimal": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
-          },
-          "value_datetime": {
-            "type": "integer",
-            "format": "int64",
-            "nullable": true
-          },
-          "value_json": {
-            "nullable": true
-          },
-          "field": {
-            "$ref": "#/components/schemas/MemberField"
-          }
-        }
-      },
       "Product": {
         "type": "object",
         "properties": {
@@ -691,7 +511,7 @@
             "type": "integer",
             "format": "int64"
           },
-          "member_id": {
+          "entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
@@ -704,32 +524,38 @@
             "nullable": true
           },
           "price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cost": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "handler_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "sender_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cs_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "team_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "is_active": {
             "type": "integer",
@@ -749,8 +575,8 @@
             "format": "int64",
             "description": "Unix timestamp, seconds"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           },
           "handlers": {
             "type": "array",
@@ -771,7 +597,7 @@
             "type": "integer",
             "format": "int64"
           },
-          "member_id": {
+          "entity_id": {
             "type": "integer",
             "format": "int64"
           },
@@ -780,8 +606,8 @@
             "format": "int64",
             "description": "Unix timestamp, seconds"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
         }
       },
@@ -801,12 +627,17 @@
             "format": "int64",
             "nullable": true
           },
-          "handler_id": {
+          "handler_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
           },
-          "sender_id": {
+          "sender_entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "cs_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
@@ -819,44 +650,53 @@
             "type": "integer"
           },
           "unit_price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "total_price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cost": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "handler_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "sender_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cs_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "team_cut": {
-            "type": "number",
-            "format": "float",
-            "nullable": true
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cash": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "prepaid": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "trans_id": {
             "type": "integer",
@@ -892,10 +732,13 @@
             "$ref": "#/components/schemas/Customer"
           },
           "handler": {
-            "$ref": "#/components/schemas/Member"
+            "$ref": "#/components/schemas/Entity"
           },
           "sender": {
-            "$ref": "#/components/schemas/Member"
+            "$ref": "#/components/schemas/Entity"
+          },
+          "cs": {
+            "$ref": "#/components/schemas/Entity"
           },
           "transaction": {
             "$ref": "#/components/schemas/Transaction"
@@ -963,16 +806,19 @@
             "format": "int64"
           },
           "balance": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "recharged": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "spent": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "create_time": {
             "type": "integer",
@@ -1008,12 +854,14 @@
             "description": "1=充值, 2=消费, 3=退款, 4=手动调整"
           },
           "amount": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "balance_after": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "trans_id": {
             "type": "integer",
@@ -1050,16 +898,16 @@
             "type": "integer",
             "format": "int64"
           },
-          "handler_id": {
+          "handler_entity_id": {
             "type": "integer",
             "format": "int64"
           },
-          "sender_id": {
+          "sender_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
           },
-          "cs_id": {
+          "cs_entity_id": {
             "type": "integer",
             "format": "int64",
             "nullable": true
@@ -1078,36 +926,44 @@
             "description": "1=商城下单, 2=记账登记"
           },
           "total_price": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cost": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cash": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "prepaid": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "handler_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "sender_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "cs_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "team_cut": {
-            "type": "number",
-            "format": "float"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "trans_at": {
             "type": "integer",
@@ -1129,13 +985,13 @@
             "description": "Unix timestamp, seconds"
           },
           "handler": {
-            "$ref": "#/components/schemas/Member"
+            "$ref": "#/components/schemas/Entity"
           },
           "sender": {
-            "$ref": "#/components/schemas/Member"
+            "$ref": "#/components/schemas/Entity"
           },
           "cs": {
-            "$ref": "#/components/schemas/Member"
+            "$ref": "#/components/schemas/Entity"
           },
           "customer": {
             "$ref": "#/components/schemas/Customer"
@@ -1157,7 +1013,7 @@
             "type": "integer",
             "format": "int64"
           },
-          "member_id": {
+          "entity_id": {
             "type": "integer",
             "format": "int64"
           },
@@ -1169,22 +1025,22 @@
           "customer": {
             "$ref": "#/components/schemas/Customer"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
         }
       },
       "TransactionOptions": {
         "type": "object",
         "required": [
-          "members",
+          "entities",
           "customers"
         ],
         "properties": {
-          "members": {
+          "entities": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Member"
+              "$ref": "#/components/schemas/EntitySummary"
             }
           },
           "customers": {
@@ -1211,7 +1067,9 @@
             "type": "integer"
           },
           "total_price": {
-            "type": "number"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           },
           "total_cost": {
             "type": "number"
@@ -1230,27 +1088,37 @@
           }
         }
       },
-      "TransactionMemberStat": {
+      "TransactionEntityStat": {
         "type": "object",
         "required": [
-          "member_id",
-          "nickname",
+          "entity_id",
+          "name",
           "count",
           "amount"
         ],
         "properties": {
-          "member_id": {
+          "entity_id": {
             "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
             "nullable": true
           },
-          "nickname": {
-            "type": "string"
+          "avatar": {
+            "type": "string",
+            "nullable": true
           },
           "count": {
             "type": "integer"
           },
           "amount": {
-            "type": "number"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           }
         }
       },
@@ -1265,19 +1133,19 @@
           "handler": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TransactionMemberStat"
+              "$ref": "#/components/schemas/TransactionEntityStat"
             }
           },
           "sender": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TransactionMemberStat"
+              "$ref": "#/components/schemas/TransactionEntityStat"
             }
           },
           "cs": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TransactionMemberStat"
+              "$ref": "#/components/schemas/TransactionEntityStat"
             }
           }
         }
@@ -1297,7 +1165,9 @@
             "type": "integer"
           },
           "amount": {
-            "type": "number"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           }
         }
       },
@@ -1321,7 +1191,9 @@
             "type": "integer"
           },
           "amount": {
-            "type": "number"
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
           }
         }
       },
@@ -1336,7 +1208,7 @@
           {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TransactionMemberStat"
+              "$ref": "#/components/schemas/TransactionEntityStat"
             }
           },
           {
@@ -1361,10 +1233,6 @@
             "format": "int64"
           },
           "team_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "member_id": {
             "type": "integer",
             "format": "int64"
           },
@@ -1396,8 +1264,19 @@
             "format": "int64",
             "description": "Unix timestamp, seconds"
           },
-          "member": {
-            "$ref": "#/components/schemas/Member"
+          "entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "全局实体身份 ID，引用 entity.id；无实体上传时为 null。"
+          },
+          "entity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Entity"
+              }
+            ],
+            "nullable": true
           }
         }
       },
@@ -1444,17 +1323,6 @@
             "type": "string",
             "nullable": true
           },
-          "documentable_type": {
-            "type": "string",
-            "enum": [
-              "team",
-              "teamMember"
-            ]
-          },
-          "documentable_id": {
-            "type": "integer",
-            "format": "int64"
-          },
           "sort": {
             "type": "integer"
           },
@@ -1493,26 +1361,250 @@
               "$ref": "#/components/schemas/VisibilityTarget"
             },
             "description": "visibility=6(custom) 时生效"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
           }
-        }
+        },
+        "required": [
+          "id",
+          "entity_id"
+        ]
       },
       "VisibilityTarget": {
         "type": "object",
         "required": [
-          "target_type",
-          "target_id"
+          "entity_id"
         ],
         "properties": {
-          "target_type": {
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
+          }
+        }
+      },
+      "EntitySummary": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Entity": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "entityable_type",
+          "entityable_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "entityable_type": {
             "type": "string",
             "enum": [
               "team",
-              "teamMember"
+              "teamMember",
+              "teamCustomer",
+              "teamVirtual"
             ]
           },
-          "target_id": {
+          "entityable_id": {
             "type": "integer",
             "format": "int64"
+          },
+          "is_valid": {
+            "type": "boolean"
+          },
+          "is_searchable": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EntityFieldValue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "field_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "value_string": {
+            "type": "string",
+            "nullable": true
+          },
+          "value_text": {
+            "type": "string",
+            "nullable": true
+          },
+          "value_int": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "value_decimal": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "value_datetime": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "value_json": {
+            "nullable": true
+          },
+          "field": {
+            "$ref": "#/components/schemas/EntityField"
+          }
+        }
+      },
+      "EntityField": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": [
+              "entity",
+              "customer",
+              "virtual"
+            ]
+          },
+          "field_key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value_type": {
+            "type": "string"
+          },
+          "input_type": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {},
+            "nullable": true
+          },
+          "is_required": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_editable": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_searchable": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_visible": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "system",
+              "custom"
+            ]
+          },
+          "default_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "manager_scope": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ]
+          },
+          "visibility": {
+            "type": "integer",
+            "enum": [
+              1,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "is_system": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
           }
         }
       }
@@ -1574,7 +1666,7 @@
             }
           },
           {
-            "name": "handler_id",
+            "name": "handler_entity_id",
             "in": "query",
             "required": false,
             "schema": {
@@ -1583,7 +1675,7 @@
             }
           },
           {
-            "name": "sender_id",
+            "name": "sender_entity_id",
             "in": "query",
             "required": false,
             "schema": {
@@ -1592,7 +1684,7 @@
             }
           },
           {
-            "name": "cs_id",
+            "name": "cs_entity_id",
             "in": "query",
             "required": false,
             "schema": {
@@ -1752,20 +1844,20 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "handler_id",
+                  "handler_entity_id",
                   "total_price"
                 ],
                 "properties": {
-                  "handler_id": {
+                  "handler_entity_id": {
                     "type": "integer",
                     "format": "int64"
                   },
-                  "sender_id": {
+                  "sender_entity_id": {
                     "type": "integer",
                     "format": "int64",
                     "nullable": true
                   },
-                  "cs_id": {
+                  "cs_entity_id": {
                     "type": "integer",
                     "format": "int64",
                     "nullable": true
@@ -1784,36 +1876,44 @@
                     "default": 2
                   },
                   "total_price": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "cost": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "cash": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "prepaid": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "handler_cut": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "sender_cut": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "cs_cut": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "team_cut": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "trans_at": {
                     "type": "integer",
@@ -2034,7 +2134,7 @@
               "enum": [
                 "summary",
                 "byRole",
-                "byMember",
+                "byEntity",
                 "timeline",
                 "byCustomer"
               ],
@@ -2316,27 +2416,31 @@
                     ]
                   },
                   "total_price": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "cost": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "cash": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "prepaid": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
-                  "sender_id": {
+                  "sender_entity_id": {
                     "type": "integer",
                     "format": "int64",
                     "nullable": true
                   },
-                  "cs_id": {
+                  "cs_entity_id": {
                     "type": "integer",
                     "format": "int64",
                     "nullable": true
@@ -2347,20 +2451,24 @@
                     "nullable": true
                   },
                   "handler_cut": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "sender_cut": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "cs_cut": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "team_cut": {
-                    "type": "number",
-                    "format": "float"
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "trans_at": {
                     "type": "integer",
@@ -2820,11 +2928,11 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "member_id",
+                  "entity_id",
                   "customer_id"
                 ],
                 "properties": {
-                  "member_id": {
+                  "entity_id": {
                     "type": "integer",
                     "format": "int64"
                   },
@@ -3211,9 +3319,11 @@
                     "format": "int64"
                   },
                   "amount": {
-                    "type": "number",
+                    "type": "string",
                     "minimum": 0,
-                    "exclusiveMinimum": true
+                    "exclusiveMinimum": true,
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
                   },
                   "memo": {
                     "type": "string"

@@ -55,20 +55,31 @@ class Login
     {
         $deviceToken = bin2hex(random_bytes(16));
 
-        $jwt = app(Jwt::class);
-        $token = $jwt->createToken($user->id, $deviceToken);
+        $issued = \think\facade\Db::transaction(function () use ($user, $deviceToken, $deviceInfo): array {
+            $device = new UserDevice;
+            $device->user_id          = $user->id;
+            $device->device_token     = $deviceToken;
+            $device->device_name      = $deviceInfo['device_name'] ?? '';
+            $device->ua               = $deviceInfo['ua'] ?? '';
+            $device->last_active_time = time();
+            $device->save();
 
-        $device = new UserDevice;
-        $device->user_id          = $user->id;
-        $device->device_token     = $deviceToken;
-        $device->device_name      = $deviceInfo['device_name'] ?? '';
-        $device->ua               = $deviceInfo['ua'] ?? '';
-        $device->last_active_time = time();
-        $device->save();
+            $issued = app(RefreshToken::class)->issue($device);
+            $issued['token'] = app(Jwt::class)->createToken((int) $user->id, $deviceToken);
+
+            return $issued;
+        });
 
         return [
-            'token' => $token,
-            'user'  => $user->visible(['id', 'username', 'phone', 'email'])->toArray(),
+            'token' => $issued['token'],
+            'refresh_token' => $issued['plain'],
+            'refresh_expires_at' => $issued['expires_at'],
+            'user' => $user->visible(['id', 'username', 'phone', 'email'])->toArray(),
         ];
+    }
+
+    public function refresh(string $refreshToken): array
+    {
+        return app(RefreshToken::class)->rotate($refreshToken);
     }
 }

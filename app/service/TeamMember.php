@@ -3,15 +3,13 @@ declare(strict_types=1);
 
 namespace app\service;
 
-use app\model\TeamMemberProfile;
-use app\model\TeamMemberPost;
-use app\model\TeamMemberPostType;
+use app\model\TeamEntityProfile;
 use app\validate\Member as MemberValidator;
 use think\exception\HttpException;
 
 class TeamMember
 {
-    private const PROFILE_FIELDS = ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown'];
+    private const PROFILE_FIELDS = [];
 
     /**
      * 获取所有成员
@@ -19,25 +17,24 @@ class TeamMember
     public function list(int $teamId): array
     {
         return \app\model\TeamMember::where('team_id', $teamId)
-            ->with(['profile', 'posts.type', 'fieldValues.field', 'identity', 'team'])
+            ->with(['profile', 'fieldValues.field', 'identity', 'team'])
             ->visible([
                 'id',
                 'team_id',
                 'user_id',
-                'is_displayed',
+                'entity_id',
                 'is_blocked',
                 'slug',
                 'search_override',
                 'is_valid',
                 'is_searchable',
-                'nickname',
+                'name',
                 'avatar',
                 'description',
                 'intro_image',
                 'intro_video',
                 'introduction_markdown',
                 'create_time',
-                'posts',
                 'fieldValues',
             ])
             ->select()
@@ -50,7 +47,7 @@ class TeamMember
     public function get(int $teamId, int $memberId): array
     {
         $member = \app\model\TeamMember::where('team_id', $teamId)
-            ->with(['profile', 'posts.type', 'fieldValues.field', 'identity', 'team'])
+            ->with(['profile', 'fieldValues.field', 'identity', 'team'])
             ->find($memberId);
 
         if (!$member) {
@@ -58,6 +55,29 @@ class TeamMember
         }
 
         return $member->toArray();
+    }
+
+    public function capabilities(int $teamId, array $subject, array $member): array
+    {
+        $gate = app(PermissionGate::class);
+        $allows = static fn (string $key): bool => $gate->allows($teamId, $subject, [$key]);
+        $canUpdate = $allows(PermissionDictionary::TEAM_MEMBER_UPDATE);
+        $slug = (string) ($member['slug'] ?? '');
+
+        return [
+            'member_edit' => $canUpdate,
+            'field_manage' => $allows(PermissionDictionary::TEAM_ENTITY_FIELD_MANAGE),
+            'role_read' => $allows(PermissionDictionary::TEAM_ROLE_READ),
+            'role_write' => $allows(PermissionDictionary::TEAM_ROLE_WRITE),
+            'member_block' => $canUpdate,
+            'member_search' => $canUpdate,
+            'member_slug' => $canUpdate,
+            'member_remove' => $allows(PermissionDictionary::TEAM_MEMBER_REMOVE),
+            'identity_assume' => $slug !== '' && $gate->allows($teamId, $subject, [
+                PermissionDictionary::assume('member', $slug),
+                PermissionDictionary::IDENTITY_MEMBER_ALL_ASSUME,
+            ]),
+        ];
     }
 
     /**
@@ -80,17 +100,22 @@ class TeamMember
                 'team_id' => $teamId,
                 'user_id' => $userId,
             ]);
+            $entity = app(\app\service\Entity::class)->claimMember(
+                $teamId,
+                (int) $member->id,
+                "member-{$member->id}"
+            );
 
-            $profile = new TeamMemberProfile;
+            $profile = new TeamEntityProfile;
             $profile->save(array_merge([
-                'member_id' => $member->id,
-                'nickname' => '',
+                'entity_id' => $entity->id,
+                'name' => '',
                 'avatar' => '',
                 'description' => null,
                 'intro_image' => null,
                 'intro_video' => null,
                 'introduction_markdown' => null,
-            ], $this->pick($data, self::PROFILE_FIELDS)));
+            ]));
 
             app(\app\service\Markdown::class)->sync(
                 $profile,
@@ -98,9 +123,6 @@ class TeamMember
                 $profile->introduction_markdown
             );
 
-            if (!empty($data['post_type_ids'])) {
-                $this->syncPosts($member->id, $teamId, $data['post_type_ids']);
-            }
         });
     }
 
@@ -120,27 +142,6 @@ class TeamMember
                 throw new HttpException(404, '成员不存在');
             }
 
-            if (isset($data['is_displayed'])) {
-                $member->is_displayed = (int) $data['is_displayed'];
-                $member->save();
-            }
-
-            $profileData = $this->pick($data, self::PROFILE_FIELDS);
-            if ($profileData) {
-                $profile = TeamMemberProfile::where('member_id', $memberId)->findOrEmpty();
-                $profile->save(array_merge(['member_id' => $memberId], $profileData));
-                if (array_key_exists('introduction_markdown', $profileData)) {
-                    app(\app\service\Markdown::class)->sync(
-                        $profile,
-                        'introduction_markdown',
-                        $profileData['introduction_markdown']
-                    );
-                }
-            }
-
-            if (isset($data['post_type_ids'])) {
-                $this->syncPosts($memberId, $teamId, $data['post_type_ids']);
-            }
         });
     }
 
@@ -188,39 +189,13 @@ class TeamMember
                 throw new HttpException(404, '成员不存在');
             }
 
-            $profile = TeamMemberProfile::where('member_id', $memberId)->find();
+            $entityId = (int) app(Entity::class)->requireBySubject('teamMember', $memberId)->id;
+            $profile = TeamEntityProfile::where('entity_id', $entityId)->find();
             if ($profile) {
                 $profile->delete();
             }
-            $posts = TeamMemberPost::where('member_id', $memberId)->select();
-            foreach ($posts as $post) {
-                $post->delete();
-            }
             $member->delete();
         });
-    }
-
-    /**
-     * 同步成员的岗位分配
-     */
-    private function syncPosts(int $memberId, int $teamId, array $typeIds): void
-    {
-        $existing = TeamMemberPost::where('member_id', $memberId)->select();
-        foreach ($existing as $post) {
-            $post->delete();
-        }
-
-        foreach ($typeIds as $typeId) {
-            $type = TeamMemberPostType::where('team_id', $teamId)->find((int) $typeId);
-            if (!$type) {
-                continue;
-            }
-            $post = new TeamMemberPost;
-            $post->member_id = $memberId;
-            $post->type_id   = $type->id;
-            $post->post_id   = $type->post_id;
-            $post->save();
-        }
     }
 
     private function pick(array $data, array $fields): array

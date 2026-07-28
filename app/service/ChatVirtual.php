@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace app\service;
 
-use app\model\EntityIdentity;
+use app\model\Entity;
 use app\model\TeamEntityFieldValue;
 use app\model\TeamRolePermission;
 use app\model\TeamVirtual as TeamVirtualModel;
@@ -12,26 +12,29 @@ use think\exception\HttpException;
 
 class ChatVirtual
 {
-    public function list(int $teamId, int $memberId, string $mode = 'manage'): array
+    public function list(int $teamId, array $actingEntity, string $mode = 'manage'): array
     {
         $mode = $mode === 'operate' ? 'operate' : 'manage';
         $gate = app(PermissionGate::class);
         $items = TeamVirtualModel::where('team_id', $teamId)
-            ->with(['identity', 'integrations'])
-            ->order('name', 'asc')
+            ->with(['identity', 'profile', 'integrations'])
             ->select()
-            ->filter(fn ($virtual) => $virtual->slug && $gate->allows($teamId, $memberId, [
-                "chat.virtual.*.{$mode}",
-                "chat.virtual.{$virtual->slug}.{$mode}",
+            ->filter(fn ($virtual) => $virtual->slug && $gate->allows($teamId, $actingEntity, [
+                PermissionDictionary::virtual('*', $mode),
+                PermissionDictionary::virtual((string) $virtual->slug, $mode),
             ]))
             ->toArray();
+        usort($items, static fn (array $left, array $right): int => strcmp(
+            (string) ($left['name'] ?? ''),
+            (string) ($right['name'] ?? '')
+        ));
         return array_values($items);
     }
 
     public function get(int $teamId, string $slug): array
     {
         $virtual = $this->virtual($teamId, $slug);
-        return TeamVirtualModel::with(['identity', 'integrations'])->find($virtual->id)->toArray();
+        return TeamVirtualModel::with(['identity', 'profile', 'integrations'])->find($virtual->id)->toArray();
     }
 
     public function create(int $teamId, array $data): array
@@ -42,13 +45,15 @@ class ChatVirtual
             $virtual = app(TeamVirtualModel::class, [], true);
             $virtual->save([
                 'team_id' => $teamId,
+                'is_active' => 1,
+            ]);
+            $identity = app(\app\service\Entity::class)
+                ->claimVirtual($virtual, (string) $data['slug']);
+            app(EntityProfile::class)->update($teamId, (int) $identity->id, [
                 'name' => $data['name'],
                 'avatar' => $data['avatar'] ?? null,
                 'description' => $data['description'] ?? null,
-                'is_active' => 1,
             ]);
-            $identity = app(\app\service\EntityIdentity::class)
-                ->claimVirtual($virtual, (string) $data['slug']);
 
             return ['slug' => $identity->slug];
         });
@@ -57,9 +62,15 @@ class ChatVirtual
     public function update(int $teamId, string $slug, array $data): void
     {
         $this->validate('update', $data);
-        $allow = array_intersect_key($data, array_flip(['name', 'avatar', 'description', 'is_active']));
-        if ($allow) {
-            $this->virtual($teamId, $slug)->save($allow);
+        $virtual = $this->virtual($teamId, $slug);
+        if (array_key_exists('is_active', $data)) {
+            $virtual->save(['is_active' => $data['is_active']]);
+        }
+        $profile = array_intersect_key($data, array_flip(['name', 'avatar', 'description']));
+        if ($profile) {
+            $entityId = (int) app(\app\service\Entity::class)
+                ->requireBySubject('teamVirtual', (int) $virtual->id)->id;
+            app(EntityProfile::class)->update($teamId, $entityId, $profile);
         }
     }
 
@@ -70,23 +81,25 @@ class ChatVirtual
             foreach (TeamVirtualIntegration::where('virtual_id', $virtual->id)->select() as $integration) {
                 $integration->delete();
             }
+            $entityId = (int) app(\app\service\Entity::class)
+                ->requireBySubject('teamVirtual', (int) $virtual->id)->id;
             foreach (TeamEntityFieldValue::where('team_id', $teamId)
-                ->where('entity_type', 'virtual')->where('entity_id', $virtual->id)->select() as $value) {
+                ->where('entity_id', $entityId)->select() as $value) {
                 $value->delete();
             }
             foreach (TeamRolePermission::where('team_id', $teamId)
                 ->whereIn('permission_key', [
-                    "chat.virtual.{$slug}.manage",
-                    "chat.virtual.{$slug}.operate",
-                    "chat.virtual.{$slug}.field.manage",
+                    PermissionDictionary::virtual($slug, 'manage'),
+                    PermissionDictionary::virtual($slug, 'operate'),
+                    PermissionDictionary::virtual($slug, 'field.manage'),
                 ])->select() as $permission) {
                 $permission->delete();
             }
-            $identity = EntityIdentity::virtual()->where('entityable_id', $virtual->id)->find();
+            $identity = Entity::virtual()->where('entityable_id', $virtual->id)->find();
             if ($identity) {
-                $identity->delete();
+                Entity::destroy((int) $identity->id);
             }
-            $virtual->delete();
+            TeamVirtualModel::destroy((int) $virtual->id);
         });
     }
 
@@ -97,8 +110,10 @@ class ChatVirtual
 
     private function virtual(int $teamId, string $slug): TeamVirtualModel
     {
-        $identity = EntityIdentity::virtual()->where('slug', strtolower(trim($slug)))->find();
-        $virtual = $identity ? TeamVirtualModel::where('team_id', $teamId)->find($identity->entityable_id) : null;
+        $identity = Entity::virtual()->where('slug', strtolower(trim($slug)))->find();
+        $virtual = $identity
+            ? TeamVirtualModel::where('team_id', $teamId)->with(['profile'])->find($identity->entityable_id)
+            : null;
         if (!$virtual) {
             throw new HttpException(404, '虚拟实体不存在');
         }

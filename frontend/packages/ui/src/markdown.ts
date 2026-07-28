@@ -1,3 +1,5 @@
+import type { EntityType } from './entity'
+
 export interface EntityTeamSummary {
   slug: string
   display_name: string
@@ -5,7 +7,7 @@ export interface EntityTeamSummary {
 
 export interface EntitySummary {
   slug: string
-  type: 'team' | 'teamMember' | 'unknown'
+  type: EntityType
   display_name: string
   avatar?: string | null
   team?: EntityTeamSummary | null

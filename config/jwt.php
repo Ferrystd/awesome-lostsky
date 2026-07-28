@@ -2,7 +2,7 @@
 
 return [
     // JWT 密钥
-    'secret' => env('jwt.secret', 'lostsky_jwt_secret_default_change_in_production'),
+    'secret' => env('jwt.secret', ''),
 
     // 加密算法
     'algo' => env('jwt.algo', 'HS256'),

@@ -8,7 +8,7 @@ import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
-type EntityType = 'member' | 'customer' | 'virtual'
+type EntityType = 'entity' | 'customer' | 'virtual'
 interface EntityField {
   id: number
   entity_type: EntityType
@@ -29,7 +29,7 @@ const client = useQueryClient()
 const id = computed(() => Number(route.query.id ?? 0))
 const editing = computed(() => id.value > 0)
 const form = reactive({
-  entity_type: String(route.query.type ?? 'member') as EntityType,
+  entity_type: String(route.query.type ?? 'entity') as EntityType,
   field_key: '',
   name: '',
   value_type: 'string',
@@ -70,7 +70,7 @@ const payload = () => ({
   is_required: form.is_required ? 1 : 0,
   is_editable: form.is_editable ? 1 : 0,
   is_searchable: form.is_searchable ? 1 : 0,
-  is_visible: form.entity_type === 'member' && form.is_visible ? 1 : 0,
+  is_visible: form.entity_type === 'entity' && form.is_visible ? 1 : 0,
   sort: form.sort,
 })
 const save = useMutation({
@@ -86,7 +86,7 @@ const remove = useMutation({
   mutationFn: () => api.post('/entityField/delete', { id: id.value }),
   onSuccess: () => router.replace('/fields'),
 })
-const typeOptions = [{ label: '成员', value: 'member' }, { label: '客户', value: 'customer' }, { label: '虚拟实体', value: 'virtual' }]
+const typeOptions = [{ label: '人员', value: 'entity' }, { label: '客户', value: 'customer' }, { label: '虚拟实体', value: 'virtual' }]
 const valueOptions = ['string','text','int','decimal','bool','date','datetime','select','multi_select','json'].map(value => ({ label: value, value }))
 const inputOptions = ['text','textarea','radio','checkbox','select','date','datetime'].map(value => ({ label: value, value }))
 function deleteField() {
@@ -109,7 +109,7 @@ function deleteField() {
           <NCheckbox v-model:checked="form.is_required">必填</NCheckbox>
           <NCheckbox v-model:checked="form.is_editable">允许编辑</NCheckbox>
           <NCheckbox v-model:checked="form.is_searchable">允许搜索</NCheckbox>
-          <NCheckbox v-if="form.entity_type === 'member'" v-model:checked="form.is_visible">成员可见</NCheckbox>
+          <NCheckbox v-if="form.entity_type === 'entity'" v-model:checked="form.is_visible">人员本人可见</NCheckbox>
         </div>
         <label>排序<NInputNumber v-model:value="form.sort" :precision="0" /></label>
         <p v-if="save.isError.value || remove.isError.value" class="error" role="alert">{{ friendlyError(save.error.value || remove.error.value) }}</p>

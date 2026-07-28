@@ -5,8 +5,6 @@ namespace app\service;
 
 use app\enum\ManageScope;
 use app\enum\Visibility as VisibilityEnum;
-use app\model\Team;
-use app\model\TeamMember;
 use app\model\VisibilityTarget;
 use think\exception\HttpException;
 use think\Model;
@@ -14,74 +12,64 @@ use think\Model;
 class Visibility
 {
     private const VISIBLEABLE_MAP = [
-        \app\model\Document::class        => 'document',
-        \app\model\TeamSetting::class     => 'teamSetting',
-        \app\model\TeamMemberField::class => 'teamMemberField',
+        \app\model\Document::class => 'document',
+        \app\model\TeamSetting::class => 'teamSetting',
+        \app\model\TeamEntityField::class => 'entityField',
     ];
 
-    public function isTeamManager(int $teamId, int $userId): bool
+    public function isTeamManager(int $teamId, array $actingEntity): bool
     {
-        return (int) Team::where('id', $teamId)->value('user_id') === $userId;
+        return ($actingEntity['type'] ?? '') === 'team'
+            && (int) ($actingEntity['id'] ?? 0) === $teamId;
     }
 
     public function assertManage(ManageScope $scope, bool $isTeamManager, bool $isSubject): void
     {
         $allowed = match ($scope) {
-            ManageScope::Team        => $isTeamManager,
+            ManageScope::Team => $isTeamManager,
             ManageScope::SubjectTeam => $isTeamManager || $isSubject,
         };
-
         if (!$allowed) {
             throw new HttpException(403, '无权管理该资源');
         }
     }
 
-    public function assertView(Model $model, int $teamId, int $memberId, bool $isTeamManager, bool $isSubject): void
+    public function assertView(Model $model, int $actingEntityId, bool $isTeamManager, bool $isSubject): void
     {
-        if (!$this->canView($model, $teamId, $memberId, $isTeamManager, $isSubject)) {
+        if (!$this->canView($model, $actingEntityId, $isTeamManager, $isSubject)) {
             throw new HttpException(403, '无权查看该资源');
         }
     }
 
-    public function canView(Model $model, int $teamId, int $memberId, bool $isTeamManager, bool $isSubject): bool
+    public function canView(Model $model, int $actingEntityId, bool $isTeamManager, bool $isSubject): bool
     {
-        $visibility = $model->enumCase('visibility');
-
-        return match ($visibility) {
-            VisibilityEnum::Public      => true,
-            VisibilityEnum::Member      => $memberId > 0,
-            VisibilityEnum::Team        => $isTeamManager,
+        return match ($model->enumCase('visibility')) {
+            VisibilityEnum::Public => true,
+            VisibilityEnum::Entity => $actingEntityId > 0,
+            VisibilityEnum::Team => $isTeamManager,
             VisibilityEnum::SubjectTeam => $isTeamManager || $isSubject,
-            VisibilityEnum::Custom      => $this->hasTarget($model, $teamId, $memberId, $isTeamManager),
+            VisibilityEnum::Custom => $this->hasTarget($model, $actingEntityId),
         };
     }
 
     public function syncTargets(Model $model, array $targets, int $teamId): void
     {
-        $alias      = $this->visibleableAlias($model::class);
-        $normalized = $this->normalizeTargets($targets, $teamId);
+        $alias = $this->visibleableAlias($model::class);
         $activeKeys = [];
-
-        foreach ($normalized as $target) {
-            $activeKeys["{$target['target_type']}:{$target['target_id']}"] = true;
-
+        foreach ($this->normalizeTargets($targets, $teamId) as $target) {
+            $entityId = (int) $target['entity_id'];
+            $activeKeys[$entityId] = true;
             VisibilityTarget::withTrashed()->updateOrCreate([
                 'visibleable_type' => $alias,
-                'visibleable_id'   => (int) $model->id,
-                'target_type'      => $target['target_type'],
-                'target_id'        => $target['target_id'],
-            ], [
-                'delete_time' => null,
-            ]);
+                'visibleable_id' => (int) $model->id,
+                'entity_id' => $entityId,
+            ], ['delete_time' => null]);
         }
 
         $rows = VisibilityTarget::where('visibleable_type', $alias)
-            ->where('visibleable_id', (int) $model->id)
-            ->select();
-
+            ->where('visibleable_id', (int) $model->id)->select();
         foreach ($rows as $row) {
-            $key = "{$row->target_type}:{$row->target_id}";
-            if (!isset($activeKeys[$key])) {
+            if (!isset($activeKeys[(int) $row->entity_id])) {
                 $row->delete();
             }
         }
@@ -90,64 +78,24 @@ class Visibility
     public function normalizeTargets(array $targets, int $teamId): array
     {
         $normalized = [];
-
         foreach ($targets as $target) {
-            $type = (string) ($target['target_type'] ?? '');
-            $id   = (int) ($target['target_id'] ?? 0);
-
-            if ($type === 'team') {
-                if ($id !== $teamId) {
-                    throw new HttpException(422, '指定团队不属于当前上下文');
-                }
-            } elseif ($type === 'teamMember') {
-                $exists = TeamMember::where('team_id', $teamId)->where('id', $id)->find();
-                if (!$exists) {
-                    throw new HttpException(422, '指定成员不属于当前团队');
-                }
-            } else {
-                throw new HttpException(422, '指定可见对象类型不正确');
+            $entityId = (int) ($target['entity_id'] ?? 0);
+            if ($entityId <= 0) {
+                throw new HttpException(422, '可见对象必须提供 entity_id');
             }
-
-            $normalized["{$type}:{$id}"] = [
-                'target_type' => $type,
-                'target_id'   => $id,
-            ];
+            app(Entity::class)->assertInTeam($entityId, $teamId);
+            $normalized[$entityId] = ['entity_id' => $entityId];
         }
-
         return array_values($normalized);
     }
 
-    private function hasTarget(Model $model, int $teamId, int $memberId, bool $isTeamManager): bool
+    private function hasTarget(Model $model, int $actingEntityId): bool
     {
-        $alias = $this->visibleableAlias($model::class);
-
-        $query = VisibilityTarget::where('visibleable_type', $alias)
-            ->where('visibleable_id', (int) $model->id);
-
-        $query->where(function ($query) use ($teamId, $memberId, $isTeamManager) {
-            $hasCondition = false;
-
-            if ($isTeamManager) {
-                $query->where(function ($query) use ($teamId) {
-                    $query->where('target_type', 'team')->where('target_id', $teamId);
-                });
-                $hasCondition = true;
-            }
-
-            if ($memberId > 0) {
-                $method = $hasCondition ? 'whereOr' : 'where';
-                $query->{$method}(function ($query) use ($memberId) {
-                    $query->where('target_type', 'teamMember')->where('target_id', $memberId);
-                });
-                $hasCondition = true;
-            }
-
-            if (!$hasCondition) {
-                $query->whereRaw('1=0');
-            }
-        });
-
-        return (bool) $query->find();
+        return $actingEntityId > 0
+            && (bool) VisibilityTarget::where('visibleable_type', $this->visibleableAlias($model::class))
+                ->where('visibleable_id', (int) $model->id)
+                ->where('entity_id', $actingEntityId)
+                ->find();
     }
 
     private function visibleableAlias(string $class): string
@@ -156,7 +104,6 @@ class Visibility
         if (!$alias) {
             throw new HttpException(500, '不支持的可见性主体');
         }
-
         return $alias;
     }
 }

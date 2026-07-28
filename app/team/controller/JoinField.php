@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\team\controller;
 
 use app\service\TeamJoin;
+use app\service\PermissionDictionary as Permissions;
 use think\Request;
 
 class JoinField
@@ -12,8 +13,9 @@ class JoinField
         'JwtAuth'    => ['only' => ['index', 'add', 'edit', 'delete']],
         'Context'    => ['only' => ['index', 'add', 'edit', 'delete']],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'add', 'edit', 'delete']],
-        'TeamBelongs' => ['only' => ['index', 'add', 'edit', 'delete']],
-        'TeamAccess' => ['only' => ['index', 'add', 'edit', 'delete']],
+        'TeamAuth' => ['only' => ['index', 'add', 'edit', 'delete']],
+        'Permission:' . Permissions::TEAM_JOIN_FIELD_READ => ['only' => ['index']],
+        'Permission:' . Permissions::TEAM_JOIN_FIELD_WRITE => ['only' => ['add', 'edit', 'delete']],
     ];
 
     public function index(Request $request)
@@ -63,8 +65,8 @@ class JoinField
             'default_value',
             'is_apply_fillable',
             'is_apply_required',
-            'is_transfer_member_field',
-            'member_field_id',
+            'is_transfer_entity_field',
+            'entity_field_id',
             'is_active',
             'sort',
         ];

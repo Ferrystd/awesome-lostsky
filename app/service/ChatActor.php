@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\enum\ChatActorType;
-use app\model\EntityIdentity;
+use app\model\Entity;
 use app\model\TeamCustomer;
 use app\model\TeamMember;
 use app\model\Team;
@@ -13,30 +13,29 @@ use think\exception\HttpException;
 
 class ChatActor
 {
-    public function list(int $teamId, int $memberId, int $customerId): array
+    public function list(int $teamId, array $actingEntity): array
     {
         $items = [];
         $memberQuery = TeamMember::where('team_id', $teamId)->where('is_blocked', 0);
-        if ($memberId < 1) {
-            $memberQuery->where('is_displayed', 1);
-        }
         $members = $memberQuery->with(['profile', 'identity'])->select();
         foreach ($members as $member) {
             if (!$member->slug) {
                 continue;
             }
-            $summary = $this->summary(ChatActorType::Member, (int) $member->id);
-            $summary['can_act'] = $this->currentIdentityAllows(ChatActorType::Member, (int) $member->id)
-                || (!$this->hasCurrentIdentity() && (int) $member->id === $memberId);
+            $summary = $this->summary(ChatActorType::Entity, (int) $member->id);
+            $summary['can_act'] = (int) $member->identity->id === (int) ($actingEntity['entity_id'] ?? 0);
             $items[$summary['slug']] = $summary;
         }
 
-        if ($memberId > 0) {
+        if (($actingEntity['type'] ?? '') === 'teamMember') {
             $customers = TeamCustomer::where('team_id', $teamId)
                 ->where('is_blocked', 0)
                 ->with(['profile', 'identity'])
                 ->select();
         } else {
+            $customerId = ($actingEntity['type'] ?? '') === 'teamCustomer'
+                ? (int) ($actingEntity['id'] ?? 0)
+                : 0;
             $customers = $customerId > 0
                 ? TeamCustomer::where('team_id', $teamId)
                     ->where('id', $customerId)
@@ -50,15 +49,14 @@ class ChatActor
                 continue;
             }
             $summary = $this->summary(ChatActorType::Customer, (int) $customer->id);
-            $summary['can_act'] = $this->currentIdentityAllows(ChatActorType::Customer, (int) $customer->id)
-                || (!$this->hasCurrentIdentity() && (int) $customer->id === $customerId);
+            $summary['can_act'] = (int) $customer->identity->id === (int) ($actingEntity['entity_id'] ?? 0);
             $items[$summary['slug']] = $summary;
         }
 
         $team = Team::active()->where('id', $teamId)->with(['identity'])->find();
         if ($team && $team->slug) {
             $summary = $this->summary(ChatActorType::Team, (int) $team->id);
-            $summary['can_act'] = $this->currentIdentityAllows(ChatActorType::Team, (int) $team->id);
+            $summary['can_act'] = (int) $team->identity->id === (int) ($actingEntity['entity_id'] ?? 0);
             $items[$summary['slug']] = $summary;
         }
 
@@ -70,11 +68,11 @@ class ChatActor
                 continue;
             }
             $summary = $this->summary(ChatActorType::Virtual, (int) $virtual->id);
-            $summary['can_act'] = $this->currentIdentityAllows(ChatActorType::Virtual, (int) $virtual->id)
-                || (!$this->hasCurrentIdentity() && app(PermissionGate::class)->allows($teamId, $this->permissionSubject($memberId), [
-                'chat.virtual.*.operate',
-                "chat.virtual.{$virtual->slug}.operate",
-            ]));
+            $summary['can_act'] = (int) $virtual->identity->id === (int) ($actingEntity['entity_id'] ?? 0)
+                || app(PermissionGate::class)->allows($teamId, $actingEntity, [
+                PermissionDictionary::CHAT_VIRTUAL_ALL_OPERATE,
+                PermissionDictionary::virtual((string) $virtual->slug, 'operate'),
+            ]);
             $items[$summary['slug']] = $summary;
         }
 
@@ -88,13 +86,13 @@ class ChatActor
     public function resolve(int $teamId, string $slug): array
     {
         $slug = strtolower(trim($slug));
-        $identity = EntityIdentity::where('slug', $slug)->find();
+        $identity = Entity::where('slug', $slug)->find();
         if (!$identity) {
             throw new HttpException(404, '聊天身份不存在');
         }
 
         [$type, $model] = match ((string) $identity->entityable_type) {
-            'teamMember' => [ChatActorType::Member, TeamMember::where('team_id', $teamId)->find($identity->entityable_id)],
+            'teamMember' => [ChatActorType::Entity, TeamMember::where('team_id', $teamId)->find($identity->entityable_id)],
             'teamCustomer' => [ChatActorType::Customer, TeamCustomer::where('team_id', $teamId)->find($identity->entityable_id)],
             'teamVirtual' => [ChatActorType::Virtual, TeamVirtual::where('team_id', $teamId)->find($identity->entityable_id)],
             'team' => [ChatActorType::Team, Team::active()->where('id', $teamId)->find($identity->entityable_id)],
@@ -105,6 +103,7 @@ class ChatActor
         }
 
         return [
+            'entity_id' => (int) $identity->id,
             'type' => $type,
             'id' => (int) $model->id,
             'slug' => $slug,
@@ -112,29 +111,25 @@ class ChatActor
         ];
     }
 
-    public function assertCanAct(array $actor, int $teamId, int $memberId, int $customerId): void
+    public function assertCanAct(array $actor, int $teamId, array $actingEntity): void
     {
-        $currentAllowed = $this->currentIdentityAllows($actor['type'], (int) $actor['id']);
-        if ($currentAllowed) return;
-        if ($this->hasCurrentIdentity()) throw new HttpException(403, 'The current entity identity cannot act as another entity');
-        $allowed = match ($actor['type']) {
-            ChatActorType::Member => (int) $actor['id'] === $memberId,
-            ChatActorType::Customer => (int) $actor['id'] === $customerId,
-            ChatActorType::Team => false,
-            ChatActorType::Virtual => app(PermissionGate::class)->allows($teamId, $memberId, [
-                'chat.virtual.*.operate',
-                "chat.virtual.{$actor['slug']}.operate",
-            ]),
-        };
+        if ((int) $actor['entity_id'] === (int) ($actingEntity['entity_id'] ?? 0)) {
+            return;
+        }
+        $allowed = $actor['type'] === ChatActorType::Virtual
+            && app(PermissionGate::class)->allows($teamId, $actingEntity, [
+                PermissionDictionary::CHAT_VIRTUAL_ALL_OPERATE,
+                PermissionDictionary::virtual((string) $actor['slug'], 'operate'),
+            ]);
         if (!$allowed) {
             throw new HttpException(403, '你不能使用该聊天身份');
         }
     }
 
-    public function canAct(array $actor, int $teamId, int $memberId, int $customerId): bool
+    public function canAct(array $actor, int $teamId, array $actingEntity): bool
     {
         try {
-            $this->assertCanAct($actor, $teamId, $memberId, $customerId);
+            $this->assertCanAct($actor, $teamId, $actingEntity);
             return true;
         } catch (HttpException) {
             return false;
@@ -145,10 +140,10 @@ class ChatActor
     {
         $type = $type instanceof ChatActorType ? $type : ChatActorType::from($type);
         $model = match ($type) {
-            ChatActorType::Member => TeamMember::with(['profile', 'identity'])->find($id),
+            ChatActorType::Entity => TeamMember::with(['profile', 'identity'])->find($id),
             ChatActorType::Customer => TeamCustomer::with(['profile', 'identity'])->find($id),
-            ChatActorType::Team => Team::with(['identity'])->find($id),
-            ChatActorType::Virtual => TeamVirtual::with(['identity'])->find($id),
+            ChatActorType::Team => Team::with(['identity', 'profile'])->find($id),
+            ChatActorType::Virtual => TeamVirtual::with(['identity', 'profile'])->find($id),
         };
         if (!$model) {
             return ['type' => $type->value, 'slug' => null, 'name' => '已失效身份', 'avatar' => null];
@@ -158,7 +153,7 @@ class ChatActor
             'type' => $type->value,
             'slug' => $model->slug ?? null,
             'name' => match ($type) {
-                ChatActorType::Member => $model->nickname ?: '团队成员',
+                ChatActorType::Entity => $model->nickname ?: '人员',
                 ChatActorType::Customer => $model->nickname ?: '客户',
                 ChatActorType::Team => $model->display_name ?: '团队',
                 ChatActorType::Virtual => $model->name ?: '虚拟实体',
@@ -167,23 +162,34 @@ class ChatActor
         ];
     }
 
-    private function currentIdentityAllows(ChatActorType $type, int $id): bool
+    public function summaryEntity(int $entityId): array
     {
-        $acting = request()->acting_entity ?? null;
-        $entityType = match ($type) {
-            ChatActorType::Member => 'teamMember', ChatActorType::Customer => 'teamCustomer',
-            ChatActorType::Team => 'team', ChatActorType::Virtual => 'teamVirtual',
+        $subject = app(\app\service\Entity::class)->subject($entityId);
+        $type = match ($subject['type']) {
+            'teamMember' => ChatActorType::Entity,
+            'teamCustomer' => ChatActorType::Customer,
+            'teamVirtual' => ChatActorType::Virtual,
+            'team' => ChatActorType::Team,
         };
-        return is_array($acting) && ($acting['type'] ?? '') === $entityType && (int) ($acting['id'] ?? 0) === $id;
+
+        return $this->summary($type, $subject['id']);
     }
 
-    private function hasCurrentIdentity(): bool
+    public function actorEntity(int $entityId): array
     {
-        return is_array(request()->acting_entity ?? null);
+        $subject = app(\app\service\Entity::class)->subject($entityId);
+        return [
+            'entity_id' => $entityId,
+            'type' => match ($subject['type']) {
+                'teamMember' => ChatActorType::Entity,
+                'teamCustomer' => ChatActorType::Customer,
+                'teamVirtual' => ChatActorType::Virtual,
+                'team' => ChatActorType::Team,
+            },
+            'id' => $subject['id'],
+            'slug' => (string) $subject['entity']->slug,
+            'model' => $subject['entity']->entityable,
+        ];
     }
 
-    private function permissionSubject(int $memberId): int|array
-    {
-        return request()->acting_entity ?: $memberId;
-    }
 }

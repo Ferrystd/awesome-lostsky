@@ -3,8 +3,6 @@ declare (strict_types = 1);
 
 namespace app\model;
 
-use app\enum\ChatActorType;
-
 class ChatMessage extends Base
 {
     protected $type = [
@@ -14,8 +12,7 @@ class ChatMessage extends Base
         'delete_time' => 'integer',
         'team_id'               => 'integer',
         'conversation_id'       => 'integer',
-        'sender_type'           => ChatActorType::class,
-        'sender_id'             => 'integer',
+        'entity_id'             => 'integer',
         // 'reply_id'              => 'null|integer',
         // 'origin_integration_id' => 'null|integer',
         // 'edited_at'             => 'null|integer',
@@ -25,20 +22,16 @@ class ChatMessage extends Base
     protected $json = [];
     protected $hidden = ['delete_time'];
     protected $append = [];
-    protected $readonly = ['team_id', 'conversation_id', 'sender_type', 'sender_id', 'reply_id', 'origin_integration_id'];
+    protected $readonly = ['team_id', 'conversation_id', 'entity_id', 'reply_id', 'origin_integration_id'];
 
     public function conversation()
     {
         return $this->belongsTo(ChatConversation::class, 'conversation_id');
     }
 
-    public function sender()
+    public function subject()
     {
-        return $this->morphTo('sender', [
-            'member' => TeamMember::class,
-            'customer' => TeamCustomer::class,
-            'virtual' => TeamVirtual::class,
-        ]);
+        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
     public function reply()

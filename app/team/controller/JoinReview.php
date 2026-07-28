@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\team\controller;
 
 use app\service\TeamJoin;
+use app\service\PermissionDictionary as Permissions;
 use think\Request;
 
 class JoinReview
@@ -12,8 +13,9 @@ class JoinReview
         'JwtAuth'    => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
         'Context'    => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
-        'TeamBelongs' => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
-        'TeamAccess' => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
+        'TeamAuth' => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
+        'Permission:' . Permissions::TEAM_JOIN_REVIEW_READ => ['only' => ['index', 'get']],
+        'Permission:' . Permissions::TEAM_JOIN_REVIEW_WRITE => ['only' => ['review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
     ];
 
     public function index(Request $request)

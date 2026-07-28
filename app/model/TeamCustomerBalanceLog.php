@@ -16,9 +16,10 @@ class TeamCustomerBalanceLog extends Base
         'id'            => 'integer',
         'customer_id'   => 'integer',
         'type'          => LogType::class,
-        'amount'        => 'float',
-        'balance_after' => 'float',
-        'trans_id'      => 'integer',
+        'amount'        => 'string',
+        'balance_after' => 'string',
+        // trans_id 允许为 NULL（充值等无关联流水日志），不能声明 integer，否则 NULL 会被转换为 0
+        // 'trans_id'      => 'integer|null',
         'create_time'   => 'integer',
         'update_time'   => 'integer',
         'delete_time'   => 'integer',

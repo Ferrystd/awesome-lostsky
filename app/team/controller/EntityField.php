@@ -3,16 +3,18 @@ declare (strict_types = 1);
 
 namespace app\team\controller;
 
+use app\service\PermissionDictionary as Permissions;
+
 class EntityField
 {
     protected $middleware = [
         'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamBelongs', 'MemberAccess',
+        'TeamAuth',
     ];
 
     public function index(\think\Request $request)
     {
-        $type = (string) $request->get('entity_type', 'member');
+        $type = (string) $request->get('entity_type', 'entity');
         $this->assertTypePermission($request, $type);
         return success(app(\app\service\TeamEntityField::class)->list((int) $request->team_id, $type));
     }
@@ -28,7 +30,7 @@ class EntityField
     public function create(\think\Request $request)
     {
         $data = $request->post();
-        $type = (string) ($data['entity_type'] ?? 'member');
+        $type = (string) ($data['entity_type'] ?? 'entity');
         $this->assertTypePermission($request, $type);
         app(\app\service\TeamEntityField::class)->create((int) $request->team_id, $data);
         return message('对象字段已创建');
@@ -78,13 +80,13 @@ class EntityField
     private function assertTypePermission(\think\Request $request, string $type): void
     {
         $key = match ($type) {
-            'customer' => 'team.entity_field.customer.manage',
-            'virtual' => 'chat.virtual.*.field.manage',
-            default => 'team.entity_field.member.manage',
+            'customer' => Permissions::TEAM_ENTITY_FIELD_CUSTOMER_MANAGE,
+            'virtual' => Permissions::CHAT_VIRTUAL_ALL_FIELD_MANAGE,
+            default => Permissions::TEAM_ENTITY_FIELD_MANAGE,
         };
         app(\app\service\PermissionGate::class)->assert(
             (int) $request->team_id,
-            (int) $request->member_id,
+            (array) $request->acting_entity,
             [$key]
         );
     }
@@ -93,11 +95,14 @@ class EntityField
     {
         $actor = app(\app\service\ChatActor::class)->resolve((int) $request->team_id, $slug);
         $keys = $actor['type'] === \app\enum\ChatActorType::Virtual
-            ? ['chat.virtual.*.field.manage', "chat.virtual.{$actor['slug']}.field.manage"]
-            : ["team.entity_field.{$actor['type']->value}.manage"];
+            ? [
+                Permissions::CHAT_VIRTUAL_ALL_FIELD_MANAGE,
+                Permissions::virtual((string) $actor['slug'], 'field.manage'),
+            ]
+            : [Permissions::entityField($actor['type']->value)];
         app(\app\service\PermissionGate::class)->assert(
             (int) $request->team_id,
-            (int) $request->member_id,
+            (array) $request->acting_entity,
             $keys
         );
     }

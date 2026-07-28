@@ -26,7 +26,7 @@ function mutate(endpoint: string, item: Record<string, unknown>, message: string
 
 <template>
   <div class="members-view">
-    <AdminPageHeader title="成员" description="查看成员状态，进入独立页面维护公开资料、岗位和管理员身份设置。">
+    <AdminPageHeader title="成员" description="查看成员状态，预览公开资料，或进入独立页面完成成员管理。">
       <template #actions><RouterLink class="primary-link" to="/member-add"><Plus :size="17" />添加成员</RouterLink></template>
     </AdminPageHeader>
 
@@ -55,8 +55,8 @@ function mutate(endpoint: string, item: Record<string, unknown>, message: string
           <small>{{ item.description || '暂无成员简介' }}</small>
         </div>
         <nav aria-label="成员操作">
-          <RouterLink :to="`/member-detail?id=${item.id}`" title="自定义资料"><FileText :size="18" /><span>资料</span></RouterLink>
-          <RouterLink :to="`/member-edit?id=${item.id}`" title="编辑成员"><Pencil :size="18" /><span>编辑</span></RouterLink>
+          <RouterLink :to="`/member-detail?id=${item.id}`" title="预览成员资料"><FileText :size="18" /><span>预览</span></RouterLink>
+          <RouterLink :to="`/member-edit?id=${item.id}`" title="管理成员"><Pencil :size="18" /><span>管理</span></RouterLink>
           <button v-if="Number(item.is_blocked) === 1" type="button" @click="mutate('/member/unblock', item, '确认解除该成员的封禁？')"><ShieldCheck :size="18" /><span>解封</span></button>
           <button v-else type="button" @click="mutate('/member/block', item, '确认封禁该成员？其身份与旧引用会保留，但暂时不可用。')"><ShieldBan :size="18" /><span>封禁</span></button>
           <button type="button" class="danger" @click="mutate('/member/remove', item, '确认将该成员移出团队？其 slug 将永久保留。')"><UserX :size="18" /><span>移出</span></button>

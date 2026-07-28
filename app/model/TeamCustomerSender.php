@@ -15,7 +15,7 @@ class TeamCustomerSender extends Base
         'id'          => 'integer',
         'team_id'     => 'integer',
         'customer_id' => 'integer',
-        'member_id'   => 'integer',
+        'entity_id'   => 'integer',
         'create_time' => 'integer',
         'update_time' => 'integer',
         'delete_time' => 'integer',
@@ -27,7 +27,7 @@ class TeamCustomerSender extends Base
 
     protected $append = [];
 
-    protected $readonly = ['team_id', 'customer_id', 'member_id'];
+    protected $readonly = ['team_id', 'customer_id', 'entity_id'];
 
     public function team()
     {
@@ -39,13 +39,13 @@ class TeamCustomerSender extends Base
         return $this->belongsTo(TeamCustomer::class, 'customer_id');
     }
 
-    public function member()
+    public function subject()
     {
-        return $this->belongsTo(TeamMember::class, 'member_id');
+        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
-    public function scopeSender($query, int $memberId, int $customerId)
+    public function scopeSender($query, int $entityId, int $customerId)
     {
-        return $query->where('member_id', $memberId)->where('customer_id', $customerId);
+        return $query->where('entity_id', $entityId)->where('customer_id', $customerId);
     }
 }

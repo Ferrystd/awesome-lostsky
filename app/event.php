@@ -9,7 +9,9 @@ return [
         'HttpRun'  => [
             function () {
                 app()->config->set([
-                    'domain_bind' => \app\model\TeamDomain::cache('team_domain_bind', 3600)->column('app', 'domain'),
+                    'domain_bind' => \app\model\TeamDomain::cache('team_domain_bind_without_common', 3600)
+                        ->where('app', '<>', 'common')
+                        ->column('app', 'domain'),
                 ], 'app');
             },
         ],

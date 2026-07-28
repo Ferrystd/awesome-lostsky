@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\middleware;
 
 use app\model\UserDevice;
+use app\model\User;
 use app\service\Jwt;
 use Firebase\JWT\ExpiredException;
 use think\exception\HttpException;
@@ -38,26 +39,34 @@ class JwtAuth
             throw new HttpException(401, 'Token 无效');
         }
 
-        // 设备校验：如果 JWT 中携带了设备标识，检查设备是否仍然有效
-        if (!empty($decoded->dvt)) {
-            $device = UserDevice::where('user_id', $decoded->uid)
-                ->where('device_token', $decoded->dvt)
-                ->find();
-
-            if (!$device) {
-                throw new HttpException(401, '设备已被取消授权，请重新登录');
-            }
+        $uid = is_numeric($decoded->uid ?? null) ? (int) $decoded->uid : 0;
+        $deviceToken = is_string($decoded->dvt ?? null) ? (string) $decoded->dvt : '';
+        if (($decoded->iss ?? null) !== config('jwt.iss')
+            || $uid < 1
+            || $deviceToken === ''
+            || !is_numeric($decoded->iat ?? null)
+            || !is_numeric($decoded->exp ?? null)) {
+            throw new HttpException(401, 'Token 声明无效');
         }
 
-        // 将用户信息绑定到请求
-        if (isset($decoded->act) || isset($decoded->jti)) {
+        $device = UserDevice::where('user_id', $uid)
+            ->where('device_token', $deviceToken)
+            ->find();
+        if (!$device || !User::find($uid)) {
+            throw new HttpException(401, '设备已被取消授权，请重新登录');
+        }
+
+        $hasEntityClaim = isset($decoded->act) || isset($decoded->jti) || isset($decoded->aud);
+        if ($hasEntityClaim) {
             $act = isset($decoded->act) ? (array) $decoded->act : [];
             if (($decoded->aud ?? '') !== 'lostsky' || !is_string($decoded->jti ?? null)
-                || !is_string($act['type'] ?? null) || !is_numeric($act['id'] ?? null)) {
+                || !preg_match('/^[a-f0-9]{48}$/', (string) $decoded->jti)
+                || !in_array($act['type'] ?? null, ['team', 'teamMember', 'teamCustomer', 'teamVirtual'], true)
+                || !is_numeric($act['id'] ?? null) || (int) $act['id'] < 1) {
                 throw new HttpException(401, 'Entity identity token is invalid');
             }
             $request->entity_session = app(\app\service\IdentitySession::class)->session(
-                (int) $decoded->uid, (string) ($decoded->dvt ?? ''), (string) $decoded->jti,
+                $uid, $deviceToken, (string) $decoded->jti,
                 (string) $act['type'], (int) $act['id']
             );
         }

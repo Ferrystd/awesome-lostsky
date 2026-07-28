@@ -45,6 +45,7 @@ class Role
                 'name'        => $data['name'],
                 'description' => $data['description'] ?? null,
                 'sort'        => (int) ($data['sort'] ?? 0),
+                'is_displayed'=> (int) ($data['is_displayed'] ?? 0),
             ];
 
             if ($role) {
@@ -65,9 +66,11 @@ class Role
         $role = $this->find($teamId, $id);
 
         $update = [];
-        foreach (['name', 'description', 'sort'] as $field) {
+        foreach (['name', 'description', 'sort', 'is_displayed'] as $field) {
             if (array_key_exists($field, $data)) {
-                $update[$field] = $field === 'sort' ? (int) $data[$field] : $data[$field];
+                $update[$field] = in_array($field, ['sort', 'is_displayed'], true)
+                    ? (int) $data[$field]
+                    : $data[$field];
             }
         }
         if ($update) {
@@ -85,8 +88,8 @@ class Role
             foreach (TeamRolePermission::where('team_id', $teamId)->where('role_id', $id)->select() as $permission) {
                 $permission->delete();
             }
-            foreach (TeamEntityRole::where('team_id', $teamId)->where('role_id', $id)->select() as $memberRole) {
-                $memberRole->delete();
+            foreach (TeamEntityRole::where('team_id', $teamId)->where('role_id', $id)->select() as $entityRole) {
+                $entityRole->delete();
             }
             $role->delete();
         });

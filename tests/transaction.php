@@ -9,16 +9,19 @@ use app\model\Team;
 use app\model\TeamCustomer;
 use app\model\TeamCustomerBalance;
 use app\model\TeamCustomerBalanceLog;
-use app\model\TeamCustomerProfile;
 use app\model\TeamCustomerSender;
 use app\model\TeamMember;
-use app\model\TeamMemberProfile;
 use app\model\TeamTransaction;
+use app\model\User;
+use app\middleware\TransactionVerify;
 use app\service\Balance;
+use app\service\Entity as EntityService;
+use app\service\EntityProfile;
 use app\service\Sender;
 use app\service\Transaction;
 use app\service\TransactionStats;
 use think\App;
+use think\Request;
 use think\exception\HttpException;
 
 (new App(dirname(__DIR__)))->initialize();
@@ -37,7 +40,7 @@ if (($argv[1] ?? '') === '--worker') {
 
     try {
         $id = app(Transaction::class)->create((int) $argv[3], [
-            'handler_id'  => (int) $argv[4],
+            'handler_entity_id'  => (int) $argv[4],
             'customer_id' => (int) $argv[5],
             'type'        => TransactionType::LedgerEntry,
             'total_price' => 80,
@@ -56,6 +59,26 @@ if (($argv[1] ?? '') === '--worker') {
             'ok'     => false,
             'status' => $exception instanceof HttpException ? $exception->getStatusCode() : 500,
             'error'  => $exception->getMessage(),
+        ]) . PHP_EOL);
+    }
+    exit(0);
+}
+
+if (($argv[1] ?? '') === '--delete-worker') {
+    $barrier = (string) ($argv[2] ?? '');
+    $deadline = microtime(true) + 10;
+    while (!is_file($barrier) && microtime(true) < $deadline) {
+        usleep(10_000);
+    }
+
+    try {
+        app(Transaction::class)->delete((int) $argv[3], (int) $argv[4]);
+        fwrite(STDOUT, json_encode(['ok' => true]) . PHP_EOL);
+    } catch (Throwable $exception) {
+        fwrite(STDOUT, json_encode([
+            'ok' => false,
+            'status' => $exception instanceof HttpException ? $exception->getStatusCode() : 500,
+            'error' => $exception->getMessage(),
         ]) . PHP_EOL);
     }
     exit(0);
@@ -91,46 +114,76 @@ $assertThrows = static function (callable $callback, int $status, string $case) 
     }
 };
 
+$exactMoney = (new TeamTransaction)->normalizeMoney([
+    'total_price' => '0.30',
+    'cost' => '0.00',
+    'cash' => '0.10',
+    'prepaid' => '0.20',
+    'handler_cut' => '0.30',
+    'sender_cut' => '0.00',
+    'cs_cut' => '0.00',
+    'team_cut' => '0.00',
+]);
+$assertSame('0.30', $exactMoney['total_price'], 'decimal money keeps exact total');
+$assertSame('0.20', $exactMoney['prepaid'], 'decimal money keeps exact prepaid amount');
+
 $createFixture = static function (string $suffix): array {
+    $users = [];
+    foreach (['owner', 'foreign-owner', 'member-a', 'member-b', 'foreign-member', 'customer-a', 'customer-b', 'foreign-customer'] as $index => $label) {
+        $user = new User;
+        $user->save([
+            'phone' => '15' . str_pad((string) random_int(0, 999999999), 9, '0', STR_PAD_LEFT),
+            'username' => "transaction-{$label}-{$suffix}",
+            'password' => password_hash('transaction-test', PASSWORD_DEFAULT),
+        ]);
+        $users[$index] = $user;
+    }
+
     $team = new Team;
     $team->save([
         'slug'         => "transaction-test-{$suffix}",
-        'display_name' => 'Transaction Test',
-        'user_id'      => 1,
+        'user_id'      => $users[0]->id,
         'is_banned'    => 0,
         'is_cancelled' => 0,
     ]);
+    $teamEntity = app(EntityService::class)->claimTeam($team);
 
     $foreignTeam = new Team;
     $foreignTeam->save([
         'slug'         => "transaction-foreign-{$suffix}",
-        'display_name' => 'Transaction Foreign Test',
-        'user_id'      => 2,
+        'user_id'      => $users[1]->id,
         'is_banned'    => 0,
         'is_cancelled' => 0,
     ]);
+    $foreignTeamEntity = app(EntityService::class)->claimTeam($foreignTeam);
 
     $member = new TeamMember;
-    $member->save(['team_id' => $team->id, 'user_id' => 11, 'is_displayed' => 1, 'is_blocked' => 0]);
-    (new TeamMemberProfile)->save(['member_id' => $member->id, 'nickname' => 'Alice Handler', 'avatar' => '']);
+    $member->save(['team_id' => $team->id, 'user_id' => $users[2]->id, 'is_blocked' => 0]);
+    $memberEntity = app(EntityService::class)->claimMember((int) $team->id, (int) $member->id, "transaction-member-{$suffix}");
+    app(EntityProfile::class)->update((int) $team->id, (int) $memberEntity->id, ['name' => 'Alice Handler', 'avatar' => '']);
 
     $secondMember = new TeamMember;
-    $secondMember->save(['team_id' => $team->id, 'user_id' => 12, 'is_displayed' => 1, 'is_blocked' => 0]);
-    (new TeamMemberProfile)->save(['member_id' => $secondMember->id, 'nickname' => 'Bob Sender', 'avatar' => '']);
+    $secondMember->save(['team_id' => $team->id, 'user_id' => $users[3]->id, 'is_blocked' => 0]);
+    $secondMemberEntity = app(EntityService::class)->claimMember((int) $team->id, (int) $secondMember->id, "transaction-sender-{$suffix}");
+    app(EntityProfile::class)->update((int) $team->id, (int) $secondMemberEntity->id, ['name' => 'Bob Sender', 'avatar' => '']);
 
     $foreignMember = new TeamMember;
-    $foreignMember->save(['team_id' => $foreignTeam->id, 'user_id' => 13, 'is_displayed' => 1, 'is_blocked' => 0]);
+    $foreignMember->save(['team_id' => $foreignTeam->id, 'user_id' => $users[4]->id, 'is_blocked' => 0]);
+    $foreignMemberEntity = app(EntityService::class)->claimMember((int) $foreignTeam->id, (int) $foreignMember->id, "transaction-foreign-member-{$suffix}");
 
     $customer = new TeamCustomer;
-    $customer->save(['team_id' => $team->id, 'user_id' => 21, 'is_blocked' => 0]);
-    (new TeamCustomerProfile)->save(['customer_id' => $customer->id, 'nickname' => 'Alice Customer']);
+    $customer->save(['team_id' => $team->id, 'user_id' => $users[5]->id, 'is_blocked' => 0]);
+    $customerEntity = app(EntityService::class)->claimCustomer((int) $customer->id, "transaction-customer-{$suffix}");
+    app(EntityProfile::class)->update((int) $team->id, (int) $customerEntity->id, ['name' => 'Alice Customer']);
 
     $secondCustomer = new TeamCustomer;
-    $secondCustomer->save(['team_id' => $team->id, 'user_id' => 22, 'is_blocked' => 0]);
-    (new TeamCustomerProfile)->save(['customer_id' => $secondCustomer->id, 'nickname' => 'Bob Customer']);
+    $secondCustomer->save(['team_id' => $team->id, 'user_id' => $users[6]->id, 'is_blocked' => 0]);
+    $secondCustomerEntity = app(EntityService::class)->claimCustomer((int) $secondCustomer->id, "transaction-second-customer-{$suffix}");
+    app(EntityProfile::class)->update((int) $team->id, (int) $secondCustomerEntity->id, ['name' => 'Bob Customer']);
 
     $foreignCustomer = new TeamCustomer;
-    $foreignCustomer->save(['team_id' => $foreignTeam->id, 'user_id' => 23, 'is_blocked' => 0]);
+    $foreignCustomer->save(['team_id' => $foreignTeam->id, 'user_id' => $users[7]->id, 'is_blocked' => 0]);
+    $foreignCustomerEntity = app(EntityService::class)->claimCustomer((int) $foreignCustomer->id, "transaction-foreign-customer-{$suffix}");
 
     return compact(
         'team',
@@ -138,9 +191,18 @@ $createFixture = static function (string $suffix): array {
         'member',
         'secondMember',
         'foreignMember',
+        'memberEntity',
+        'secondMemberEntity',
+        'foreignMemberEntity',
+        'teamEntity',
+        'foreignTeamEntity',
+        'customerEntity',
+        'secondCustomerEntity',
+        'foreignCustomerEntity',
         'customer',
         'secondCustomer',
-        'foreignCustomer'
+        'foreignCustomer',
+        'users'
     );
 };
 
@@ -152,22 +214,30 @@ $cleanupFixture = static function (array $fixture): void {
         (int) $fixture['secondCustomer']->id,
         (int) $fixture['foreignCustomer']->id,
     ];
-    $memberIds = [
-        (int) $fixture['member']->id,
-        (int) $fixture['secondMember']->id,
-        (int) $fixture['foreignMember']->id,
+    $entityIds = [
+        (int) $fixture['memberEntity']->id,
+        (int) $fixture['secondMemberEntity']->id,
+        (int) $fixture['foreignMemberEntity']->id,
+        (int) $fixture['teamEntity']->id,
+        (int) $fixture['foreignTeamEntity']->id,
+        (int) $fixture['customerEntity']->id,
+        (int) $fixture['secondCustomerEntity']->id,
+        (int) $fixture['foreignCustomerEntity']->id,
     ];
 
-    $db->transaction(function () use ($db, $teamIds, $customerIds, $memberIds): void {
+    $userIds = array_map(static fn (User $user): int => (int) $user->id, $fixture['users']);
+
+    $db->transaction(function () use ($db, $teamIds, $customerIds, $entityIds, $userIds): void {
         $db->name('team_customer_balance_log')->whereIn('customer_id', $customerIds)->delete();
         $db->name('team_transaction')->whereIn('team_id', $teamIds)->delete();
         $db->name('team_customer_balance')->whereIn('customer_id', $customerIds)->delete();
         $db->name('team_customer_sender')->whereIn('team_id', $teamIds)->delete();
-        $db->name('team_customer_profile')->whereIn('customer_id', $customerIds)->delete();
+        $db->name('team_entity_profile')->whereIn('entity_id', $entityIds)->delete();
         $db->name('team_customer')->whereIn('team_id', $teamIds)->delete();
-        $db->name('team_member_profile')->whereIn('member_id', $memberIds)->delete();
+        $db->name('entity')->whereIn('id', $entityIds)->delete();
         $db->name('team_member')->whereIn('team_id', $teamIds)->delete();
         $db->name('team')->whereIn('id', $teamIds)->delete();
+        $db->name('user')->whereIn('id', $userIds)->delete();
     });
 };
 
@@ -176,8 +246,8 @@ $db->startTrans();
 try {
     $fixture = $createFixture(bin2hex(random_bytes(6)));
     $teamId = (int) $fixture['team']->id;
-    $memberId = (int) $fixture['member']->id;
-    $secondMemberId = (int) $fixture['secondMember']->id;
+    $memberId = (int) $fixture['memberEntity']->id;
+    $secondMemberId = (int) $fixture['secondMemberEntity']->id;
     $customerId = (int) $fixture['customer']->id;
     $secondCustomerId = (int) $fixture['secondCustomer']->id;
 
@@ -191,7 +261,7 @@ try {
     $assertFloat(200, $balance->balance, 'recharge increases balance');
     $assertFloat(200, $balance->recharged, 'recharge increases cumulative recharged');
     $options = $transactionService->options($teamId);
-    $assertSame(2, count($options['members']), 'transaction options list team members');
+    $assertSame(5, count($options['entities']), 'transaction options list every available team entity');
     $assertSame(2, count($options['customers']), 'transaction options list team customers');
     $assertSame('Alice Customer', $options['customers'][0]['nickname'], 'transaction options expose customer nickname');
     $assertFloat(200, $options['customers'][0]['balance']['balance'], 'transaction options expose customer balance');
@@ -219,10 +289,47 @@ try {
     $senderService->bind($teamId, $secondMemberId, $customerId);
     $assertSame(1, count($senderService->allBindings($teamId)), 'soft-deleted sender binding can be restored');
 
+    $verifyRequest = static function (Team $team, int $entityId, int $subjectId, int $customerId): Request {
+        $request = (new Request)->withPost(['customer_id' => $customerId]);
+        $request->team = $team;
+        $request->acting_entity = [
+            'entity_id' => $entityId,
+            'type' => 'teamMember',
+            'id' => $subjectId,
+        ];
+        return $request;
+    };
+    $assertSame(
+        'allowed',
+        (new TransactionVerify)->handle(
+            $verifyRequest(
+                $fixture['team'],
+                $secondMemberId,
+                (int) $fixture['secondMember']->id,
+                $customerId
+            ),
+            static fn (): string => 'allowed'
+        ),
+        'transaction verification uses the bound entity id'
+    );
+    $assertThrows(
+        fn () => (new TransactionVerify)->handle(
+            $verifyRequest(
+                $fixture['team'],
+                $memberId,
+                (int) $fixture['member']->id,
+                $customerId
+            ),
+            static fn (): string => 'allowed'
+        ),
+        403,
+        'unbound entity cannot operate for a customer'
+    );
+
     $valid = [
-        'handler_id'  => $memberId,
-        'sender_id'   => $secondMemberId,
-        'cs_id'       => $secondMemberId,
+        'handler_entity_id'  => $memberId,
+        'sender_entity_id'   => $secondMemberId,
+        'cs_entity_id'       => $secondMemberId,
         'customer_id' => $customerId,
         'type'        => TransactionType::LedgerEntry,
         'total_price' => 100,
@@ -262,17 +369,17 @@ try {
         'non-numeric monetary values are rejected'
     );
     $assertThrows(
-        fn () => $transactionService->create($teamId, [...$valid, 'handler_id' => $fixture['foreignMember']->id]),
+        fn () => $transactionService->create($teamId, [...$valid, 'handler_entity_id' => $fixture['foreignMemberEntity']->id]),
         422,
         'foreign handler is rejected'
     );
     $assertThrows(
-        fn () => $transactionService->create($teamId, [...$valid, 'sender_id' => $fixture['foreignMember']->id]),
+        fn () => $transactionService->create($teamId, [...$valid, 'sender_entity_id' => $fixture['foreignMemberEntity']->id]),
         422,
         'foreign sender is rejected'
     );
     $assertThrows(
-        fn () => $transactionService->create($teamId, [...$valid, 'cs_id' => $fixture['foreignMember']->id]),
+        fn () => $transactionService->create($teamId, [...$valid, 'cs_entity_id' => $fixture['foreignMemberEntity']->id]),
         422,
         'foreign customer-service member is rejected'
     );
@@ -345,7 +452,7 @@ try {
     $roleStats = $statsService->byRole($teamId, 1_719_999_999, 1_720_200_000);
     $assertSame(1, count($roleStats['handler']), 'role stats group handler');
     $assertFloat(50, $roleStats['handler'][0]['amount'], 'role stats use handler cut column');
-    $assertSame(1, count($statsService->byMember($teamId, 1_719_999_999, 1_720_200_000, 'handler')), 'member stats group handler');
+    $assertSame(1, count($statsService->byEntity($teamId, 1_719_999_999, 1_720_200_000, 'handler')), 'entity stats group handler');
     $assertSame(2, count($statsService->timeline($teamId, 1_719_999_999, 1_720_200_000, 'day')), 'timeline groups by day');
     $assertSame(1, count($statsService->byCustomer($teamId, 1_719_999_999, 1_720_200_000)), 'customer stats group customer');
 
@@ -377,7 +484,7 @@ $barrier = null;
 try {
     $committedFixture = $db->transaction(fn () => $createFixture(bin2hex(random_bytes(6))));
     $teamId = (int) $committedFixture['team']->id;
-    $memberId = (int) $committedFixture['member']->id;
+    $memberId = (int) $committedFixture['memberEntity']->id;
     $customerId = (int) $committedFixture['customer']->id;
     app(Balance::class)->recharge($teamId, $customerId, 100, 'concurrency balance');
 
@@ -449,6 +556,56 @@ try {
     $assertFloat(20, $balance->balance, 'concurrent deduction cannot overspend balance');
     $assertFloat(80, $balance->spent, 'concurrent deduction records one spend');
     $assertSame(1, TeamTransaction::where('team_id', $teamId)->count(), 'concurrent requests create one transaction');
+
+    $transactionId = (int) $successes[0]['id'];
+    unlink($barrier);
+    $barrier = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lostsky-transaction-delete-' . bin2hex(random_bytes(8));
+    $deleteCommand = [
+        PHP_BINARY,
+        __FILE__,
+        '--delete-worker',
+        $barrier,
+        (string) $teamId,
+        (string) $transactionId,
+    ];
+    $workers = [];
+    for ($i = 0; $i < 2; $i++) {
+        $process = proc_open($deleteCommand, $descriptors, $pipes, dirname(__DIR__));
+        if (!is_resource($process)) {
+            throw new RuntimeException('Unable to start transaction delete worker.');
+        }
+        fclose($pipes[0]);
+        $workers[] = [$process, $pipes];
+    }
+    file_put_contents($barrier, 'go');
+
+    $deleteResults = [];
+    foreach ($workers as [$process, $pipes]) {
+        $stdout = trim(stream_get_contents($pipes[1]));
+        $stderr = trim(stream_get_contents($pipes[2]));
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $exitCode = proc_close($process);
+        $result = json_decode($stdout, true);
+        if ($exitCode !== 0 || !is_array($result)) {
+            $failures[] = 'delete concurrency worker failed: ' . ($stderr ?: $stdout);
+            continue;
+        }
+        $deleteResults[] = $result;
+    }
+    $deleteSuccesses = array_values(array_filter(
+        $deleteResults,
+        fn (array $result): bool => $result['ok'] === true
+    ));
+    $deleteMissing = array_values(array_filter(
+        $deleteResults,
+        fn (array $result): bool => $result['ok'] === false && (int) ($result['status'] ?? 0) === 404
+    ));
+    $assertSame(1, count($deleteSuccesses), 'only one concurrent transaction delete succeeds');
+    $assertSame(1, count($deleteMissing), 'second concurrent transaction delete sees the deleted row');
+    $balance = TeamCustomerBalance::where('customer_id', $customerId)->find();
+    $assertFloat(100, $balance->balance, 'concurrent delete refunds prepaid payment once');
+    $assertFloat(0, $balance->spent, 'concurrent delete reverses spent once');
 } finally {
     if ($barrier && is_file($barrier)) {
         unlink($barrier);

@@ -8,7 +8,7 @@ use think\Request;
 
 class Devices
 {
-    protected $middleware = ['JwtAuth', 'Context', 'EntityType:teamless'];
+    protected $middleware = ['JwtAuth', 'Context'];
 
     /**
      * 退出指定设备（默认当前设备）

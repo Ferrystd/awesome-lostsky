@@ -4,6 +4,86 @@
  */
 
 export interface paths {
+    "/identity/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 列出当前身份可领取的实体身份
+         * @description 基础用户返回本人关联的有效成员与客户身份；实体 JWT 返回当前实体在各目标团队通过角色获得的全部委托候选。候选包含目标团队摘要。
+         */
+        get: operations["accountIdentityCandidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/receive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 领取实体身份并签发实体 JWT
+         * @description 基础用户只能直接领取本人关联的有效成员或客户身份。实体 JWT 按目标全局 slug 解析身份，并验证目标团队授予当前来源实体的精确或通配 identity.*.assume 权限。每次领取创建父子会话证明链且不延长根会话有效期。
+         */
+        post: operations["accountIdentityReceive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/drop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 放弃当前实体身份并撤销实体 JWT
+         * @description 撤销当前实体会话并回到基础 user JWT；历史父会话仅作为授权证明保留到整条链可清理。
+         */
+        post: operations["accountIdentityDrop"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/member": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 按团队 slug 领取当前用户的有效成员身份
+         * @description 接受基础用户或已有实体 JWT，并按真实 user 根身份重置到本人有效成员。旧活动实体 JWT 立即失效。
+         */
+        post: operations["accountIdentityMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/login/phone": {
         parameters: {
             query?: never;
@@ -32,6 +112,23 @@ export interface paths {
         put?: never;
         /** 账号/邮箱登录 */
         post: operations["accountLoginByPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/login/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 轮换刷新令牌并签发新的基础登录 JWT */
+        post: operations["accountRefreshLogin"];
         delete?: never;
         options?: never;
         head?: never;
@@ -123,23 +220,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/team/delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 删除团队 */
-        post: operations["accountTeamDelete"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -195,7 +275,17 @@ export interface components {
         };
         LoginResult: {
             token: string;
+            /** @description 仅登录或刷新成功时返回；服务端只保存 SHA-256 */
+            refresh_token: string;
+            /** Format: int64 */
+            refresh_expires_at: number;
             user: components["schemas"]["UserSummary"];
+        };
+        RefreshResult: {
+            token: string;
+            refresh_token: string;
+            /** Format: int64 */
+            refresh_expires_at: number;
         };
         LoginEnvelope: components["schemas"]["SuccessEnvelope"] & {
             data?: components["schemas"]["LoginResult"];
@@ -206,6 +296,25 @@ export interface components {
             slug?: string;
             display_name?: string;
             is_owner?: boolean;
+        };
+        IdentityTeamSummary: {
+            /** Format: int64 */
+            id: number;
+            slug: string;
+            name: string;
+        };
+        IdentitySummary: {
+            /** @enum {string} */
+            type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
+            /** Format: int64 */
+            id: number;
+            slug: string;
+            name: string;
+            team: components["schemas"]["IdentityTeamSummary"] | null;
+        };
+        IdentityIssue: {
+            token: string;
+            identity: components["schemas"]["IdentitySummary"];
         };
         TeamProfile: {
             /** Format: int64 */
@@ -240,11 +349,6 @@ export interface components {
              * @description 0=false, 1=true
              * @enum {integer}
              */
-            is_displayed?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
             is_blocked?: 0 | 1;
             /**
              * Format: int64
@@ -253,18 +357,18 @@ export interface components {
             create_time?: number;
         } & components["schemas"]["MemberProfileFields"] & {
             posts?: components["schemas"]["MemberPost"][];
-            fieldValues?: components["schemas"]["MemberFieldValue"][];
+            fieldValues?: components["schemas"]["EntityFieldValue"][];
         };
         MemberPost: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
-            member_id?: number;
-            /** Format: int64 */
             type_id?: number;
             /** Format: int64 */
             post_id?: number;
             type?: components["schemas"]["PostType"];
+            /** Format: int64 */
+            entity_id?: number;
         };
         PostType: {
             /** Format: int64 */
@@ -287,102 +391,25 @@ export interface components {
              */
             update_time?: number;
         };
-        MemberField: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            field_key?: string;
-            name?: string;
-            /** @enum {string} */
-            source?: "system" | "custom";
-            /** @enum {string} */
-            value_type?: "string" | "text" | "int" | "decimal" | "bool" | "date" | "datetime" | "select" | "multi_select" | "json";
-            /** @enum {string} */
-            input_type?: "text" | "textarea" | "radio" | "checkbox" | "select" | "date" | "datetime" | "upload";
-            options?: unknown;
-            default_value?: string | null;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_required?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_editable?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_searchable?: 0 | 1;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_system?: 0 | 1;
-            sort?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            update_time?: number;
-            /**
-             * @description 1=team管理, 2=主体本人和team管理
-             * @enum {integer}
-             */
-            manager_scope?: 1 | 2;
-            /**
-             * @description 1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见
-             * @enum {integer}
-             */
-            visibility?: 1 | 3 | 4 | 5;
-        };
-        MemberFieldValue: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            member_id?: number;
-            /** Format: int64 */
-            field_id?: number;
-            value_string?: string | null;
-            value_text?: string | null;
-            /** Format: int64 */
-            value_int?: number | null;
-            /** Format: float */
-            value_decimal?: number | null;
-            /** Format: int64 */
-            value_datetime?: number | null;
-            value_json?: unknown;
-            field?: components["schemas"]["MemberField"];
-        };
         Product: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             team_id?: number;
-            /** Format: int64 */
-            member_id?: number | null;
             name?: string;
             description?: string | null;
-            /** Format: float */
-            price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            handler_cut?: number | null;
-            /** Format: float */
-            sender_cut?: number | null;
-            /** Format: float */
-            cs_cut?: number | null;
-            /** Format: float */
-            team_cut?: number | null;
+            /** @description Exact decimal string. */
+            price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string | null;
+            /** @description Exact decimal string. */
+            sender_cut?: string | null;
+            /** @description Exact decimal string. */
+            cs_cut?: string | null;
+            /** @description Exact decimal string. */
+            team_cut?: string | null;
             /**
              * @description 0=false, 1=true
              * @enum {integer}
@@ -398,22 +425,24 @@ export interface components {
              * @description Unix timestamp, seconds
              */
             update_time?: number;
-            member?: components["schemas"]["Member"];
             handlers?: components["schemas"]["ProductHandler"][];
+            /** Format: int64 */
+            entity_id?: number | null;
+            subject?: components["schemas"]["Entity"];
         };
         ProductHandler: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             product_id?: number;
-            /** Format: int64 */
-            member_id?: number;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
              */
             create_time?: number;
-            member?: components["schemas"]["Member"];
+            /** Format: int64 */
+            entity_id?: number;
+            subject?: components["schemas"]["Entity"];
         };
         Order: {
             /** Format: int64 */
@@ -423,30 +452,30 @@ export interface components {
             /** Format: int64 */
             customer_id?: number | null;
             /** Format: int64 */
-            handler_id?: number | null;
+            handler_entity_id?: number | null;
             /** Format: int64 */
-            sender_id?: number | null;
+            sender_entity_id?: number | null;
             /** Format: int64 */
             product_id?: number;
             quantity?: number;
-            /** Format: float */
-            unit_price?: number;
-            /** Format: float */
-            total_price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            handler_cut?: number | null;
-            /** Format: float */
-            sender_cut?: number | null;
-            /** Format: float */
-            cs_cut?: number | null;
-            /** Format: float */
-            team_cut?: number | null;
-            /** Format: float */
-            cash?: number;
-            /** Format: float */
-            prepaid?: number;
+            /** @description Exact decimal string. */
+            unit_price?: string;
+            /** @description Exact decimal string. */
+            total_price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string | null;
+            /** @description Exact decimal string. */
+            sender_cut?: string | null;
+            /** @description Exact decimal string. */
+            cs_cut?: string | null;
+            /** @description Exact decimal string. */
+            team_cut?: string | null;
+            /** @description Exact decimal string. */
+            cash?: string;
+            /** @description Exact decimal string. */
+            prepaid?: string;
             /** Format: int64 */
             trans_id?: number | null;
             /**
@@ -502,12 +531,12 @@ export interface components {
             id?: number;
             /** Format: int64 */
             customer_id?: number;
-            /** Format: float */
-            balance?: number;
-            /** Format: float */
-            recharged?: number;
-            /** Format: float */
-            spent?: number;
+            /** @description Exact decimal string. */
+            balance?: string;
+            /** @description Exact decimal string. */
+            recharged?: string;
+            /** @description Exact decimal string. */
+            spent?: string;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
@@ -529,10 +558,10 @@ export interface components {
              * @enum {integer}
              */
             type?: 1 | 2 | 3 | 4;
-            /** Format: float */
-            amount?: number;
-            /** Format: float */
-            balance_after?: number;
+            /** @description Exact decimal string. */
+            amount?: string;
+            /** @description Exact decimal string. */
+            balance_after?: string;
             /** Format: int64 */
             trans_id?: number | null;
             memo?: string | null;
@@ -554,11 +583,11 @@ export interface components {
             /** Format: int64 */
             team_id?: number;
             /** Format: int64 */
-            handler_id?: number;
+            handler_entity_id?: number;
             /** Format: int64 */
-            sender_id?: number | null;
+            sender_entity_id?: number | null;
             /** Format: int64 */
-            cs_id?: number | null;
+            cs_entity_id?: number | null;
             /** Format: int64 */
             customer_id?: number | null;
             /**
@@ -566,22 +595,22 @@ export interface components {
              * @enum {integer}
              */
             type?: 1 | 2;
-            /** Format: float */
-            total_price?: number;
-            /** Format: float */
-            cost?: number;
-            /** Format: float */
-            cash?: number;
-            /** Format: float */
-            prepaid?: number;
-            /** Format: float */
-            handler_cut?: number;
-            /** Format: float */
-            sender_cut?: number;
-            /** Format: float */
-            cs_cut?: number;
-            /** Format: float */
-            team_cut?: number;
+            /** @description Exact decimal string. */
+            total_price?: string;
+            /** @description Exact decimal string. */
+            cost?: string;
+            /** @description Exact decimal string. */
+            cash?: string;
+            /** @description Exact decimal string. */
+            prepaid?: string;
+            /** @description Exact decimal string. */
+            handler_cut?: string;
+            /** @description Exact decimal string. */
+            sender_cut?: string;
+            /** @description Exact decimal string. */
+            cs_cut?: string;
+            /** @description Exact decimal string. */
+            team_cut?: string;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
@@ -610,23 +639,21 @@ export interface components {
             team_id?: number;
             /** Format: int64 */
             customer_id?: number;
-            /** Format: int64 */
-            member_id?: number;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
              */
             create_time?: number;
             customer?: components["schemas"]["Customer"];
-            member?: components["schemas"]["Member"];
+            /** Format: int64 */
+            entity_id?: number;
+            subject?: components["schemas"]["Entity"];
         };
         File: {
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
             team_id?: number;
-            /** Format: int64 */
-            member_id?: number;
             hash?: string;
             name?: string;
             path?: string;
@@ -643,7 +670,12 @@ export interface components {
              * @description Unix timestamp, seconds
              */
             update_time?: number;
-            member?: components["schemas"]["Member"];
+            /**
+             * Format: int64
+             * @description 全局实体身份 ID，引用 entity.id；无实体上传时为 null。
+             */
+            entity_id?: number | null;
+            entity?: components["schemas"]["Entity"] | null;
         };
         FileUploadResult: {
             /** Format: int64 */
@@ -658,13 +690,9 @@ export interface components {
         };
         Document: {
             /** Format: int64 */
-            id?: number;
+            id: number;
             title?: string;
             content?: string | null;
-            /** @enum {string} */
-            documentable_type?: "team" | "teamMember";
-            /** Format: int64 */
-            documentable_id?: number;
             sort?: number;
             /**
              * Format: int64
@@ -688,23 +716,82 @@ export interface components {
             visibility?: 1 | 3 | 4 | 5 | 6;
             /** @description visibility=6(custom) 时生效 */
             visibility_targets?: components["schemas"]["VisibilityTarget"][];
+            /** Format: int64 */
+            entity_id: number;
+            subject?: components["schemas"]["Entity"];
         };
         VisibilityTarget: {
-            /** @enum {string} */
-            target_type: "team" | "teamMember";
             /** Format: int64 */
-            target_id: number;
+            entity_id: number;
+            subject?: components["schemas"]["Entity"];
+        };
+        Entity: {
+            /** Format: int64 */
+            id: number;
+            slug: string;
+            /** @enum {string} */
+            entityable_type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
+            /** Format: int64 */
+            entityable_id: number;
+            is_valid?: boolean;
+            is_searchable?: boolean;
+        };
+        EntityFieldValue: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            field_id?: number;
+            value_string?: string | null;
+            value_text?: string | null;
+            /** Format: int64 */
+            value_int?: number | null;
+            /** Format: float */
+            value_decimal?: number | null;
+            /** Format: int64 */
+            value_datetime?: number | null;
+            value_json?: unknown;
+            field?: components["schemas"]["EntityField"];
+            /** Format: int64 */
+            entity_id?: number;
+        };
+        EntityField: {
+            /** Format: int64 */
+            id?: number;
+            /** @enum {string} */
+            entity_type?: "entity" | "customer" | "virtual";
+            field_key?: string;
+            name?: string;
+            value_type?: string;
+            input_type?: string;
+            options?: unknown[] | null;
+            /** @enum {integer} */
+            is_required?: 0 | 1;
+            /** @enum {integer} */
+            is_editable?: 0 | 1;
+            /** @enum {integer} */
+            is_searchable?: 0 | 1;
+            /** @enum {integer} */
+            is_visible?: 0 | 1;
+            sort?: number;
+            /** @enum {string} */
+            source?: "system" | "custom";
+            default_value?: string | null;
+            /** @enum {integer} */
+            manager_scope?: 1 | 2;
+            /** @enum {integer} */
+            visibility?: 1 | 3 | 4 | 5 | 6;
+            /** @enum {integer} */
+            is_system?: 0 | 1;
         };
     };
     responses: never;
     parameters: {
-        /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+        /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
         PageId: string;
         Page: number;
         Limit: number;
         IdPath: number;
         IdQuery: number;
-        MemberIdQuery: number;
         CustomerIdQuery: number;
     };
     requestBodies: never;
@@ -713,11 +800,128 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    accountIdentityCandidates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 可领取身份列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["IdentitySummary"][];
+                    };
+                };
+            };
+        };
+    };
+    accountIdentityReceive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    slug: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 实体令牌与身份 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["IdentityIssue"];
+                    };
+                };
+            };
+        };
+    };
+    accountIdentityDrop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 基础用户令牌 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"];
+                };
+            };
+        };
+    };
+    accountIdentityMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example demo */
+                    team_slug: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成员实体令牌与身份 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["IdentityIssue"];
+                    };
+                };
+            };
+            /** @description 当前用户不是该团队的有效成员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 团队不存在或不可用 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     accountLoginByPhone: {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -812,7 +1016,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -902,11 +1106,60 @@ export interface operations {
             };
         };
     };
+    accountRefreshLogin: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    refresh_token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 轮换成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["RefreshResult"];
+                    };
+                };
+            };
+            /** @description 刷新令牌无效、过期、撤销或检测到重放 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 短时间并发轮换；客户端应读取最新共享令牌后重试 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     accountRegisterByPhone: {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -1000,7 +1253,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -1093,7 +1346,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -1179,7 +1432,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -1267,7 +1520,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
             };
             path?: never;
@@ -1291,99 +1544,6 @@ export interface operations {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
                         data?: components["schemas"]["TeamSummary"];
                     };
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    accountTeamDelete: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。携带后 Dedup 中间件会对同页面同请求做防重复提交；缺省时直接放行。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: int64 */
-                    team_id: number;
-                };
-            };
-        };
-        responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
                 };
             };
             /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */

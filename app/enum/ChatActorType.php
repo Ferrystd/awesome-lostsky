@@ -5,7 +5,7 @@ namespace app\enum;
 
 enum ChatActorType: string
 {
-    case Member = 'member';
+    case Entity = 'entity';
     case Customer = 'customer';
     case Team = 'team';
     case Virtual = 'virtual';

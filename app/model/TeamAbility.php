@@ -36,4 +36,12 @@ class TeamAbility extends Base
     {
         return $this->belongsTo(Team::class, 'team_id');
     }
+
+    public function isAvailable(int $minimumLevel = 1, ?int $at = null): bool
+    {
+        $at ??= time();
+
+        return $this->level >= $minimumLevel
+            && ($this->expire_time === 0 || $this->expire_time >= $at);
+    }
 }

@@ -12,6 +12,9 @@ use app\model\Base;
  */
 class ApiRequestCache extends Base
 {
+    /** 临时幂等缓存必须物理过期，否则唯一 hash 无法复用。 */
+    protected $deleteTime = false;
+
     /**
      * 自动写入时间戳（用于定时清理过期哈希）
      * @var bool
@@ -28,7 +31,7 @@ class ApiRequestCache extends Base
         'update_time' => 'integer',
         'hash'        => 'string',
 
-        //由于不进行软删除，无delete_time字段
+        // delete_time 仅为历史表结构兼容，模型禁用软删除。
     ];
 
     /**

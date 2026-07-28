@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { auth } from '@lostsky/api/client'
+import { redirectToLogin } from '@lostsky/shared/navigation'
 import { BarChart3, ChevronRight, CircleDollarSign, Handshake, ListChecks, LogOut, Menu, Plus, X } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -15,7 +16,7 @@ const nav = [
 const title = computed(() => String(route.meta.title ?? '记账工作台'))
 function logout() {
   auth.clear()
-  location.href = '//account.lostsky.work/login'
+  redirectToLogin()
 }
 </script>
 

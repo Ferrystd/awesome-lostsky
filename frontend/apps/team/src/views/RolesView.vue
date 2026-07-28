@@ -1,19 +1,63 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
-import { Plus, Save, Trash2 } from '@lucide/vue'
-import { computed, reactive, ref, watch } from 'vue'
+import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
+import { useQuery } from '@tanstack/vue-query'
+import { ArrowRight, Plus, ShieldCheck, UserRoundCog } from '@lucide/vue'
+import { NConfigProvider, NSkeleton } from 'naive-ui'
+import { computed } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
-const client=useQueryClient();const tab=ref<'roles'|'members'>('roles');const activeRoleId=ref<number|null>(null);const activeMemberId=ref<number|null>(null);const permissionKeys=ref<string[]>([]);const memberRoleIds=ref<number[]>([]);const edit=reactive({name:'',description:'',sort:0})
-interface PermissionCatalog { groups: Array<{ name: string; items: Array<{ key: string; label: string }> }> }
-const catalogQuery=useQuery({queryKey:['role-permission-catalog'],queryFn:()=>api.get<PermissionCatalog>('/rolePermission/catalog')})
-const groups=computed(()=>Array.isArray(catalogQuery.data.value?.groups)?catalogQuery.data.value.groups.map(group=>({name:group.name,items:group.items.map(item=>[item.key,item.label])})):[])
-const rolesQuery=useQuery({queryKey:['roles'],queryFn:()=>api.get<Record<string,unknown>[]>('/role/index')});const membersQuery=useQuery({queryKey:['members-for-roles'],queryFn:()=>api.get<Record<string,unknown>[]>('/member/index')});const roles=computed(()=>rolesQuery.data.value??[]);const members=computed(()=>membersQuery.data.value??[]);const activeRole=computed(()=>roles.value.find(item=>Number(item.id)===activeRoleId.value));const activeMember=computed(()=>members.value.find(item=>Number(item.id)===activeMemberId.value))
-watch(roles,(items)=>{if(!activeRoleId.value&&items[0])activeRoleId.value=Number(items[0].id)},{immediate:true});watch(members,(items)=>{if(!activeMemberId.value&&items[0])activeMemberId.value=Number(items[0].id)},{immediate:true});watch(activeRoleId,async(id)=>{if(!id)return;const role=roles.value.find(item=>Number(item.id)===id);edit.name=String(role?.name??'');edit.description=String(role?.description??'');edit.sort=Number(role?.sort??0);const list=await api.get<Record<string,unknown>[]>('/rolePermission/index',{role_id:id});permissionKeys.value=(list??[]).map(item=>String(item.permission_key??item.key??''))},{immediate:true});watch(activeMemberId,async(id)=>{if(!id)return;const list=await api.get<Record<string,unknown>[]>('/memberRole/index',{member_id:id});memberRoleIds.value=(list??[]).map(item=>Number(item.role_id??(item.role as Record<string,unknown>|undefined)?.id)).filter(Boolean)},{immediate:true})
-const saveInfo=useMutation({mutationFn:()=>api.post('/role/edit',{id:activeRoleId.value,...edit}),onSuccess:()=>client.invalidateQueries({queryKey:['roles']})});const savePermissions=useMutation({mutationFn:()=>api.post('/rolePermission/save',{role_id:activeRoleId.value,permission_keys:permissionKeys.value})});const saveMemberRoles=useMutation({mutationFn:()=>api.post('/memberRole/save',{member_id:activeMemberId.value,role_ids:memberRoleIds.value})});const remove=useMutation({mutationFn:()=>api.post('/role/delete',{id:activeRoleId.value}),onSuccess:async()=>{activeRoleId.value=null;await client.invalidateQueries({queryKey:['roles']})}})
-function checked(list:number[],id:unknown){return list.includes(Number(id))}function toggleRole(id:unknown,on:boolean){const value=Number(id);memberRoleIds.value=on?[...new Set([...memberRoleIds.value,value])]:memberRoleIds.value.filter(item=>item!==value)}function togglePermission(key:string,on:boolean){permissionKeys.value=on?[...new Set([...permissionKeys.value,key])]:permissionKeys.value.filter(item=>item!==key)}
-function deleteRole(){if(window.confirm('确认删除这个角色？'))remove.mutate()}
+
+interface RoleRecord {
+  id: number
+  name?: string
+  role_key?: string
+  description?: string
+  is_displayed?: number
+}
+
+const query = useQuery({
+  queryKey: ['roles'],
+  queryFn: () => api.get<RoleRecord[]>('/role/index'),
+})
+const roles = computed(() => query.data.value ?? [])
 </script>
-<template><div class="roles"><AdminPageHeader title="角色与权限" description="按最小权限原则，为角色配置固定能力、全部虚拟实体能力或指定 slug 的能力。"><template #actions><div class="header-actions"><div class="tabs"><button type="button" :aria-pressed="tab==='roles'" @click="tab='roles'">角色</button><button type="button" :aria-pressed="tab==='members'" @click="tab='members'">成员分配</button></div><RouterLink v-if="tab==='roles'" class="create-link" to="/roles/new"><Plus :size="16"/>新建角色</RouterLink></div></template></AdminPageHeader><p v-if="rolesQuery.isError.value||membersQuery.isError.value||catalogQuery.isError.value" class="error" role="alert">{{friendlyError(rolesQuery.error.value||membersQuery.error.value||catalogQuery.error.value)}}</p><template v-else-if="tab==='roles'"><div class="workspace"><nav><button v-for="role in roles" :key="String(role.id)" type="button" :class="{active:Number(role.id)===activeRoleId}" @click="activeRoleId=Number(role.id)"><strong>{{role.name}}</strong><small>{{role.role_key}}</small></button><p v-if="!roles.length">暂无角色</p></nav><form v-if="activeRole" class="editor" @submit.prevent="saveInfo.mutate()"><section><h3>角色信息</h3><label>名称<input v-model="edit.name" required></label><label>说明<textarea v-model="edit.description" rows="3"></textarea></label><label>顺序<input v-model.number="edit.sort" type="number"></label><div class="actions"><LsButton type="submit" size="sm" :loading="saveInfo.isPending.value"><Save :size="16"/>保存信息</LsButton><LsButton type="button" variant="danger" size="sm" :loading="remove.isPending.value" @click="deleteRole"><Trash2 :size="16"/>删除</LsButton></div></section><section><div class="section-title"><div><h3>权限</h3><p>只授予完成工作需要的能力。</p></div><LsButton type="button" size="sm" :loading="savePermissions.isPending.value" @click="savePermissions.mutate()">保存权限</LsButton></div><fieldset v-for="group in groups" :key="group.name"><legend>{{group.name}}</legend><label v-for="item in group.items" :key="item[0]"><input type="checkbox" :checked="permissionKeys.includes(item[0])" @change="togglePermission(item[0],($event.target as HTMLInputElement).checked)"><span><strong>{{item[1]}}</strong><small>{{item[0]}}</small></span></label></fieldset></section></form></div></template><div v-else class="workspace"><nav><button v-for="member in members" :key="String(member.id)" type="button" :class="{active:Number(member.id)===activeMemberId}" @click="activeMemberId=Number(member.id)"><strong>{{member.nickname||member.name||`成员 #${member.id}`}}</strong><small>User #{{member.user_id}}</small></button></nav><section v-if="activeMember" class="editor member-editor"><div class="section-title"><div><h3>分配角色</h3><p>{{activeMember.nickname||activeMember.name||`成员 #${activeMember.id}`}}</p></div><LsButton size="sm" :loading="saveMemberRoles.isPending.value" @click="saveMemberRoles.mutate()">保存分配</LsButton></div><label v-for="role in roles" :key="String(role.id)" class="role-option"><input type="checkbox" :checked="checked(memberRoleIds,role.id)" @change="toggleRole(role.id,($event.target as HTMLInputElement).checked)"><span><strong>{{role.name}}</strong><small>{{role.role_key}}</small></span></label></section></div><p v-if="saveInfo.isError.value||savePermissions.isError.value||saveMemberRoles.isError.value||remove.isError.value" class="error" role="alert">{{friendlyError(saveInfo.error.value||savePermissions.error.value||saveMemberRoles.error.value||remove.error.value)}}</p></div></template>
-<style scoped>.roles{display:grid;gap:1rem}.roles>header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:1rem}header p,header h2{margin:0}header p{color:var(--sky-lost-strong);font-size:.78rem;font-weight:700}.header-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem}.tabs{display:flex;padding:3px;background:white;border:1px solid var(--line);border-radius:9px}.tabs button{min-height:38px;padding:0 .8rem;color:var(--muted-ink);background:transparent;border:0;border-radius:7px}.tabs button[aria-pressed=true]{color:white;background:var(--sky-lost-strong)}.create-link{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;color:white;background:var(--sky-lost-strong);border-radius:9px;font-size:.86rem;font-weight:680}.editor input:not([type=checkbox]),.editor textarea{min-height:44px;padding:.65rem .75rem;border:1px solid var(--line);border-radius:8px}.workspace{display:grid;gap:1rem}.workspace>nav{display:flex;gap:.5rem;overflow:auto}.workspace>nav button{min-width:150px;padding:.8rem;text-align:left;background:white;border:1px solid var(--line);border-radius:8px}.workspace>nav button.active{border-color:var(--sky-lost-strong);outline:2px solid color-mix(in oklch,var(--sky-lost),transparent 80%)}.workspace>nav strong,.workspace>nav small{display:block}.workspace>nav small,.section-title p,.role-option small{color:var(--muted-ink);font-size:.75rem}.editor{display:grid;gap:1rem}.editor>section,.member-editor{display:grid;gap:1rem;padding:1rem;background:white;border:1px solid var(--line);border-radius:10px}.editor h3,.editor p{margin:0}.editor>section>label{display:grid;gap:.35rem;font-size:.84rem;font-weight:650}.actions,.section-title{display:flex;align-items:center;justify-content:space-between;gap:.5rem}.actions{justify-content:flex-start}fieldset{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.45rem;padding:1rem;border:1px solid var(--line);border-radius:8px}legend{padding:0 .35rem;font-weight:700}fieldset label,.role-option{min-height:48px;display:flex;align-items:center;gap:.55rem;padding:.45rem;background:var(--cloud);border-radius:7px}fieldset input,.role-option input{width:20px;height:20px}.role-option strong,.role-option small{display:block}.error{padding:1rem;color:var(--danger);background:white;border:1px solid var(--line);border-radius:8px}@media(max-width:560px){.header-actions{width:100%;justify-content:space-between}.tabs{flex:1}.tabs button{flex:1}.create-link{width:100%;justify-content:center}}@media(min-width:760px){.workspace{grid-template-columns:220px minmax(0,1fr);align-items:start}.workspace>nav{display:grid;overflow:visible}.workspace>nav button{min-width:0}.editor{grid-template-columns:minmax(240px,.6fr) minmax(0,1.4fr)}.member-editor{grid-column:2}}</style>
+
+<template>
+  <NConfigProvider :theme-overrides="lostskyNaiveTheme">
+    <div class="roles-page">
+      <AdminPageHeader title="角色与权限" description="角色列表只用于查找和进入管理任务；角色资料、权限与实体分配分别在独立页面完成。">
+        <template #actions>
+          <RouterLink class="secondary-link" to="/roles/entities"><UserRoundCog :size="17" />实体角色分配</RouterLink>
+          <RouterLink class="primary-link" to="/roles/new"><Plus :size="17" />新建角色</RouterLink>
+        </template>
+      </AdminPageHeader>
+
+      <p v-if="query.isError.value" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
+      <section v-else-if="query.isPending.value" class="loading" aria-label="正在加载角色">
+        <div v-for="index in 4" :key="index"><NSkeleton text width="34%" /><NSkeleton text width="58%" /></div>
+      </section>
+      <section v-else-if="!roles.length" class="empty">
+        <ShieldCheck :size="34" aria-hidden="true" />
+        <h2>还没有角色</h2>
+        <p>先创建角色，再为它选择完成工作所需的最小权限。</p>
+        <RouterLink class="primary-link" to="/roles/new"><Plus :size="17" />新建角色</RouterLink>
+      </section>
+      <section v-else class="role-list" aria-label="角色列表">
+        <RouterLink v-for="role in roles" :key="role.id" :to="`/roles/${role.id}`">
+          <div>
+            <h2>{{ role.name || `角色 #${role.id}` }}</h2>
+            <code>{{ role.role_key }}</code>
+            <small class="visibility">{{ Number(role.is_displayed) === 1 ? '公开展示' : '仅内部' }}</small>
+            <p>{{ role.description || '暂无角色说明' }}</p>
+          </div>
+          <span>管理角色<ArrowRight :size="18" /></span>
+        </RouterLink>
+      </section>
+    </div>
+  </NConfigProvider>
+</template>
+
+<style scoped>
+.roles-page{display:grid;gap:1.5rem}.primary-link,.secondary-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 1rem;border-radius:10px;font-size:.875rem;font-weight:680}.primary-link{color:white;background:var(--sky-lost-strong)}.primary-link:hover{background:color-mix(in oklch,var(--sky-lost-strong),black 10%)}.secondary-link{color:var(--sky-lost-strong);background:white;border:1px solid var(--line)}.secondary-link:hover{border-color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 94%)}.role-list{display:grid;background:white;border:1px solid var(--line);border-radius:12px}.role-list>a{min-height:88px;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.25rem;color:var(--ink)}.role-list>a+a{border-top:1px solid var(--line)}.role-list>a:hover{background:var(--cloud)}.role-list>a:first-child{border-radius:11px 11px 0 0}.role-list>a:last-child{border-radius:0 0 11px 11px}.role-list>a:only-child{border-radius:11px}.role-list h2,.role-list p{margin:0}.role-list h2{display:inline;font-size:1rem}.role-list code{margin-left:.5rem;color:var(--muted-ink);font-size:.75rem}.role-list .visibility{display:inline-flex;margin-left:.5rem;padding:.2rem .5rem;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 92%);border-radius:999px;font-size:.72rem;font-weight:680}.role-list p{max-width:70ch;margin-top:.35rem;color:var(--muted-ink);font-size:.82rem;line-height:1.5}.role-list span{display:inline-flex;align-items:center;gap:.35rem;flex:none;color:var(--sky-lost-strong);font-size:.82rem;font-weight:680}.loading{display:grid;gap:1px;overflow:hidden;background:var(--line);border:1px solid var(--line);border-radius:12px}.loading>div{display:grid;gap:.7rem;padding:1.25rem;background:white}.empty{display:grid;justify-items:center;gap:.65rem;padding:3.5rem 1.25rem;color:var(--muted-ink);text-align:center;background:white;border:1px dashed var(--line);border-radius:12px}.empty h2,.empty p{margin:0}.empty h2{color:var(--ink);font-size:1.05rem}.empty p{line-height:1.6}.empty .primary-link{margin-top:.5rem}.error{margin:0;padding:1rem;color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%);border-radius:8px}
+@media(max-width:639px){.role-list>a{align-items:flex-start;flex-direction:column}.role-list span{min-height:44px}.role-list code{display:block;margin:.25rem 0 0}}
+</style>

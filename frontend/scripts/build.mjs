@@ -5,17 +5,12 @@ import { fileURLToPath } from 'node:url'
 
 const frontend = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(frontend, '..')
-const aliases = {
-  site: ['index'],
-  account: ['index', 'login', 'register', 'teams'],
-  team: ['index', 'settings', 'roles', 'posts', 'notice', 'notice-detail', 'members', 'member-add', 'member-edit', 'member-detail', 'me', 'join', 'join-review', 'files', 'fields', 'field-new', 'field-edit', 'chat-virtuals', 'chat-virtual-new', 'chat-virtual', 'chat-integration-new', 'chat-integration', 'docs', 'doc', 'doc-create', 'doc-edit'],
-  chat: ['index', 'new', 'profile', 'identity'],
-  transaction: ['index', 'new', 'detail', 'edit', 'stats', 'bindings', 'binding-new', 'balances', 'balance', 'recharge'],
-}
-const domains = { site: 'www.lostsky.work', account: 'account.lostsky.work', team: 'team.lostsky.work', chat: 'chat.lostsky.work', transaction: 'transaction.lostsky.work' }
+const apps = ['site', 'account', 'team', 'chat', 'transaction', 'display', 'shop']
+const domains = { site: 'www.lostsky.work', account: 'account.lostsky.work', team: 'team.lostsky.work', chat: 'chat.lostsky.work', transaction: 'transaction.lostsky.work', display: 'display.lostsky.work', shop: 'shop.lostsky.work' }
 const heroVideo = existsSync(join(frontend, 'media/source/site/lostsky-loop.webm'))
+const removeOptions = { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }
 
-for (const app of Object.keys(aliases)) {
+for (const app of apps) {
   execFileSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['vite', 'build', '--config', `frontend/vite.${app}.ts`], {
     cwd: root,
     stdio: 'inherit',
@@ -23,21 +18,22 @@ for (const app of Object.keys(aliases)) {
   })
   const dist = join(frontend, `.dist/${app}`)
   const assetOut = join(root, `www/assets.lostsky.work/build/${app}`)
-  rmSync(assetOut, { recursive: true, force: true })
+  rmSync(assetOut, removeOptions)
   mkdirSync(assetOut, { recursive: true })
   for (const entry of readdirSync(dist)) {
     if (entry !== 'index.html') cpSync(join(dist, entry), join(assetOut, entry), { recursive: true })
   }
   const html = readFileSync(join(dist, 'index.html'), 'utf8')
   const domainOut = join(root, 'www', domains[app])
+  rmSync(domainOut, removeOptions)
   mkdirSync(domainOut, { recursive: true })
-  for (const alias of aliases[app]) writeFileSync(join(domainOut, `${alias}.html`), html, 'utf8')
+  writeFileSync(join(domainOut, 'index.html'), html, 'utf8')
 }
 
 const mediaSource = join(frontend, 'media/source')
 const mediaOut = join(root, 'www/assets.lostsky.work/media')
 if (existsSync(mediaSource)) {
-  rmSync(mediaOut, { recursive: true, force: true })
+  rmSync(mediaOut, removeOptions)
   cpSync(mediaSource, mediaOut, { recursive: true })
 }
 

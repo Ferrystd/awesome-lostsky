@@ -2,6 +2,7 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { useQuery } from '@tanstack/vue-query'
 import { ArrowRight, Building2, MessageCircleMore, UserRound, Users } from '@lucide/vue'
+import { identityUrl } from '@lostsky/shared/navigation'
 
 interface TeamItem {
   slug: string
@@ -17,7 +18,7 @@ const teams = useQuery({ queryKey: ['chat-teams'], queryFn: () => api.get<TeamIt
   <main class="picker">
     <header>
       <a class="brand" href="//www.lostsky.work"><span>LostSky</span><strong>Chat</strong></a>
-      <a class="identity-link" href="/identity">切换身份</a>
+      <a class="identity-link" :href="identityUrl()">切换身份</a>
       <div class="hero-icon"><MessageCircleMore :size="34" /></div>
       <p class="eyebrow">YOUR CONVERSATIONS</p>
       <h1>从一个团队开始</h1>

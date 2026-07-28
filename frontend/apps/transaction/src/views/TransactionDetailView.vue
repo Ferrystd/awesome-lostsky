@@ -5,7 +5,7 @@ import { Pencil, Trash2 } from '@lucide/vue'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
-import { customerName, dateTime, memberName, money, transactionType } from '../lib'
+import { customerName, dateTime, entityName, money, transactionType } from '../lib'
 import type { TransactionRecord } from '../types'
 
 const route = useRoute()
@@ -46,9 +46,9 @@ function confirmDelete() {
         <p>{{ query.data.value.memo || '这笔流水没有备注。' }}</p>
       </section>
       <section class="facts panel">
-        <div><span>接单人</span><strong>{{ memberName(query.data.value.handler, query.data.value.handler_id) }}</strong></div>
-        <div><span>发单人</span><strong>{{ memberName(query.data.value.sender, query.data.value.sender_id) }}</strong></div>
-        <div><span>客服</span><strong>{{ memberName(query.data.value.cs, query.data.value.cs_id) }}</strong></div>
+        <div><span>接单人</span><strong>{{ entityName(query.data.value.handler, query.data.value.handler_entity_id) }}</strong></div>
+        <div><span>发单人</span><strong>{{ entityName(query.data.value.sender, query.data.value.sender_entity_id) }}</strong></div>
+        <div><span>客服</span><strong>{{ entityName(query.data.value.cs, query.data.value.cs_entity_id) }}</strong></div>
         <div><span>客户</span><strong>{{ customerName(query.data.value.customer, query.data.value.customer_id) }}</strong></div>
       </section>
       <section class="breakdown">

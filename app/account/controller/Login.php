@@ -35,4 +35,11 @@ class Login
 
         return success($result);
     }
+
+    public function refresh(Request $request)
+    {
+        $result = app(LoginService::class)->refresh((string) $request->post('refresh_token', ''));
+
+        return success($result);
+    }
 }
