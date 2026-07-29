@@ -16,18 +16,18 @@ class Doc
     public function index(Request $request)
     {
         $teamEntityId = (int) app(\app\service\Entity::class)
-            ->requireBySubject('team', (int) $request->team_id)->id;
+            ->requireBySubject('team', $request->team_id)->id;
         $result = app(DocumentService::class)->list(
-            (int) $request->get('entity_id', $teamEntityId),
+            $request->get('entity_id/d', $teamEntityId),
             [
                 'manager_scope' => $request->get('manager_scope'),
                 'visibility' => $request->get('visibility'),
                 'keyword' => $request->get('keyword'),
             ],
-            (int) $request->get('page', 1),
-            (int) $request->get('limit', 20),
-            (int) $request->team_id,
-            (array) $request->acting_entity
+            $request->get('page/d', 1),
+            $request->get('limit/d', 20),
+            $request->team_id,
+            $request->acting_entity
         );
         return success($result);
     }
@@ -35,9 +35,9 @@ class Doc
     public function get(Request $request)
     {
         return success(app(DocumentService::class)->get(
-            (int) $request->param('id', 0),
-            (int) $request->team_id,
-            (array) $request->acting_entity
+            $request->get('id/d', 0),
+            $request->team_id,
+            $request->acting_entity
         ));
     }
 
@@ -45,7 +45,7 @@ class Doc
     {
         $input = $this->input($request);
         $teamEntityId = (int) app(\app\service\Entity::class)
-            ->requireBySubject('team', (int) $request->team_id)->id;
+            ->requireBySubject('team', $request->team_id)->id;
         $id = app(DocumentService::class)->create(
             (int) ($input['entity_id'] ?? $teamEntityId),
             [
@@ -56,8 +56,8 @@ class Doc
                 'visibility_targets' => $input['visibility_targets'] ?? [],
                 'sort' => (int) ($input['sort'] ?? 0),
             ],
-            (int) $request->team_id,
-            (array) $request->acting_entity
+            $request->team_id,
+            $request->acting_entity
         );
         app(\app\service\BusinessAudit::class)->record($request, 'team', 'create', 'document', $id);
         return success(['id' => $id], '文档已创建');
@@ -72,12 +72,12 @@ class Doc
                 $data[$field] = $input[$field];
             }
         }
-        $id = (int) ($input['id'] ?? $request->param('id', 0));
+        $id = (int) ($input['id'] ?? 0);
         app(DocumentService::class)->edit(
             $id,
             $data,
-            (int) $request->team_id,
-            (array) $request->acting_entity
+            $request->team_id,
+            $request->acting_entity
         );
         app(\app\service\BusinessAudit::class)->record($request, 'team', 'update', 'document', $id);
         return message('文档已更新');
@@ -86,11 +86,11 @@ class Doc
     public function delete(Request $request)
     {
         $input = $this->input($request);
-        $id = (int) ($input['id'] ?? $request->param('id', 0));
+        $id = (int) ($input['id'] ?? 0);
         app(DocumentService::class)->delete(
             $id,
-            (int) $request->team_id,
-            (array) $request->acting_entity
+            $request->team_id,
+            $request->acting_entity
         );
         app(\app\service\BusinessAudit::class)->record($request, 'team', 'delete', 'document', $id);
         return message('文档已删除');
@@ -98,8 +98,8 @@ class Doc
 
     private function input(Request $request): array
     {
-        $input = $request->param();
-        $json = json_decode((string) $request->getContent(), true);
+        $input = $request->post();
+        $json = json_decode($request->getContent(), true);
         return is_array($json) ? array_merge($input, $json) : $input;
     }
 }

@@ -101,6 +101,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/login/sms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 手机号短信验证码登录 */
+        post: operations["accountLoginBySms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/login/password": {
         parameters: {
             query?: never;
@@ -110,7 +127,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 账号/邮箱登录 */
+        /** 手机号/账号/邮箱密码登录 */
         post: operations["accountLoginByPassword"];
         delete?: never;
         options?: never;
@@ -135,6 +152,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/verification/sms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发送注册或登录短信验证码 */
+        post: operations["accountSendSmsVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/register/phone": {
         parameters: {
             query?: never;
@@ -146,6 +180,23 @@ export interface paths {
         put?: never;
         /** 手机号注册并登录 */
         post: operations["accountRegisterByPhone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/register/sms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 短信验证手机号、设置密码并注册 */
+        post: operations["accountRegisterBySms"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1012,6 +1063,56 @@ export interface operations {
             };
         };
     };
+    accountLoginBySms: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example 13800138000 */
+                    phone: string;
+                    code: string;
+                    device_name?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 登录成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginEnvelope"];
+                };
+            };
+            /** @description 验证码错误、失效或格式不正确 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 验证码尝试次数过多 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     accountLoginByPassword: {
         parameters: {
             query?: never;
@@ -1155,6 +1256,62 @@ export interface operations {
             };
         };
     };
+    accountSendSmsVerification: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example 13800138000 */
+                    phone: string;
+                    /** @enum {string} */
+                    purpose: "register" | "login";
+                };
+            };
+        };
+        responses: {
+            /** @description 发送请求已受理 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: {
+                            expires_in: number;
+                            retry_after: number;
+                            debug_bypass: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description 发送过于频繁 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 短信服务未配置或暂时不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     accountRegisterByPhone: {
         parameters: {
             query?: never;
@@ -1169,6 +1326,7 @@ export interface operations {
             content: {
                 "application/json": {
                     phone: string;
+                    code: string;
                     password: string;
                     device_name?: string;
                 };
@@ -1240,6 +1398,57 @@ export interface operations {
             };
             /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    accountRegisterBySms: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example 13800138000 */
+                    phone: string;
+                    code: string;
+                    password: string;
+                    device_name?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 注册并登录成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginEnvelope"];
+                };
+            };
+            /** @description 手机号已注册 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 验证码或注册信息无效 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

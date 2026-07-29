@@ -1,6 +1,6 @@
 {
   "name": "lostsky",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "LostSky API 与 Vue 多应用前端",
   "type": "module",
@@ -19,7 +19,7 @@
     "generate:api": "openapi-typescript docs/openapi/account.openapi.json -o frontend/packages/api/src/generated/account.ts && openapi-typescript docs/openapi/chat.openapi.json -o frontend/packages/api/src/generated/chat.ts && openapi-typescript docs/openapi/common.openapi.json -o frontend/packages/api/src/generated/common.ts && openapi-typescript docs/openapi/display.openapi.json -o frontend/packages/api/src/generated/display.ts && openapi-typescript docs/openapi/shop.openapi.json -o frontend/packages/api/src/generated/shop.ts && openapi-typescript docs/openapi/team.openapi.json -o frontend/packages/api/src/generated/team.ts && openapi-typescript docs/openapi/transaction.openapi.json -o frontend/packages/api/src/generated/transaction.ts",
     "typecheck": "npm run generate:api && vue-tsc --noEmit -p frontend/tsconfig.json",
     "test": "vitest run --dir frontend",
-    "test:backend": "php tests/service_call.php && php tests/service_docs.php && php tests/controller_boundaries.php && php tests/openapi_routes.php && php tests/foreign_keys.php && php tests/entity_root.php && php tests/document.php && php tests/display.php && php tests/entity_middleware.php && php tests/auth.php && php tests/identity_delegation.php && php tests/dedup.php && php tests/file.php && php tests/business_audit.php && php tests/permission_gate.php && php tests/notice.php && php tests/chat_backend.php && php tests/transaction.php && php tests/order.php && php tests/shop_storefront.php",
+    "test:backend": "php tests/service_call.php && php tests/service_docs.php && php tests/controller_boundaries.php && php tests/request_types.php && php tests/openapi_routes.php && php tests/foreign_keys.php && php tests/entity_root.php && php tests/document.php && php tests/display.php && php tests/entity_middleware.php && php tests/auth.php && php tests/sms_auth.php && php tests/identity_delegation.php && php tests/dedup.php && php tests/file.php && php tests/business_audit.php && php tests/permission_gate.php && php tests/notice.php && php tests/chat_backend.php && php tests/transaction.php && php tests/order.php && php tests/shop_storefront.php",
     "test:e2e": "playwright test",
     "build": "node frontend/scripts/build.mjs",
     "docs:setup": "node frontend/scripts/wiki.mjs setup",

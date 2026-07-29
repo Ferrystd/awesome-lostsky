@@ -20,8 +20,8 @@ class ChatIntegration
     public function create(\think\Request $request)
     {
         return success(app(\app\service\ChatIntegration::class)->create(
-            (int) $request->team_id,
-            (string) $request->post('slug', ''),
+            $request->team_id,
+            $request->post('slug/s', ''),
             [
                 'name' => $request->post('name', ''),
                 'endpoint_url' => $request->post('endpoint_url', ''),
@@ -39,9 +39,9 @@ class ChatIntegration
             }
         }
         app(\app\service\ChatIntegration::class)->update(
-            (int) $request->team_id,
-            (string) $request->post('slug', ''),
-            (int) $request->post('id', 0),
+            $request->team_id,
+            $request->post('slug/s', ''),
+            $request->post('id/d', 0),
             $data
         );
         return message('集成已更新');
@@ -50,18 +50,18 @@ class ChatIntegration
     public function rotate(\think\Request $request)
     {
         return success(app(\app\service\ChatIntegration::class)->rotate(
-            (int) $request->team_id,
-            (string) $request->post('slug', ''),
-            (int) $request->post('id', 0)
+            $request->team_id,
+            $request->post('slug/s', ''),
+            $request->post('id/d', 0)
         ), '凭据已轮换，请立即保存');
     }
 
     public function delete(\think\Request $request)
     {
         app(\app\service\ChatIntegration::class)->delete(
-            (int) $request->team_id,
-            (string) $request->post('slug', ''),
-            (int) $request->post('id', 0)
+            $request->team_id,
+            $request->post('slug/s', ''),
+            $request->post('id/d', 0)
         );
         return message('集成已删除');
     }

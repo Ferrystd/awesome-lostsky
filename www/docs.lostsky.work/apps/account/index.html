@@ -2249,8 +2249,8 @@
 <p>Account 是不依赖团队上下文的账户入口，负责统一账号、设备会话以及用户可访问的团队。当前无团队应用配置见 <a href="../../../config/app.php"><code>config/app.php</code></a> 的 <code>teamless_apps</code>。</p>
 <h2 id="_1">业务职责<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <ul>
-<li>使用手机号注册账号。</li>
-<li>使用手机号或账号密码登录，签发设备关联的短期 access JWT 和一次性轮换 refresh token。</li>
+<li>使用手机号和短信验证码注册账号，并在注册时设置密码。</li>
+<li>使用手机号和短信验证码登录，或使用手机号、用户名、邮箱加密码登录，签发设备关联的短期 access JWT 和一次性轮换 refresh token。</li>
 <li>使用独立 refresh token 轮换基础登录 JWT；服务端只保存哈希，检测到宽限期外重放时撤销整个设备。</li>
 <li>退出当前设备、指定设备或全部设备的登录态。</li>
 <li>查询用户加入或创建的团队，以及创建团队。</li>
@@ -2261,6 +2261,9 @@
 <h2 id="_2">鉴权边界<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <ul>
 <li>注册、登录和 refresh token 轮换不要求 access JWT。</li>
+<li><code>POST /verification/sms</code> 按 <code>purpose=register|login</code> 发送验证码；注册必须校验未注册手机号，登录必须校验已注册手机号。</li>
+<li>短信类型使用 <code>SmsType</code> 枚举，并在 <code>config/auth.php</code> 的 <code>sms.type</code> 中选择：<code>SmsType::AliyunSms</code> 使用阿里云短信服务并由应用生成、缓存和核验验证码；<code>SmsType::AliyunPnvsSms</code> 使用号码认证服务的短信认证，由阿里云生成并核验验证码。号码认证通道不使用融合认证或一键取号。</li>
+<li>调试绕过必须同时满足 <code>.env</code> 中的 <code>APP_DEBUG=true</code> 和 <code>config/auth.php</code> 中的 <code>sms.debug_bypass=true</code>。绕过时不调用短信服务，验证码输入任意内容均可通过；任一条件不满足时都执行真实核验。</li>
 <li>设备与团队入口经过 <code>JwtAuth</code> 和 <code>Context</code>，始终按 JWT 中的真实用户 ID 操作，不限制当前是否携带团队、成员、客户或虚拟实体身份。</li>
 <li>Account 不要求请求域名提供团队 slug；选择团队后，其他应用再从域名解析团队上下文。</li>
 <li><code>/identity/candidates</code> 在基础 JWT 下返回本人有效成员/客户，在 entity JWT 下跨团队返回当前实体通过目标团队角色可领取的全部目标。</li>
@@ -2271,6 +2274,13 @@
 <p>实体会话和跨团队授权链的完整约束见<a href="../../architecture/entity-authorization/">《Entity 身份与跨团队委托》</a>。</p>
 <h2 id="_3">接口契约<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <p>具体路径、请求字段和响应结构见 <a href="../../openapi/account.openapi.json"><code>account.openapi.json</code></a>。</p>
+<p>认证相关入口：</p>
+<ul>
+<li><code>POST /verification/sms</code>：发送注册或登录验证码。</li>
+<li><code>POST /register/sms</code>：短信验证码注册并设置密码；<code>/register/phone</code> 保留为兼容别名。</li>
+<li><code>POST /login/sms</code>：短信验证码登录。</li>
+<li><code>POST /login/password</code>：手机号、用户名或邮箱加密码登录；<code>/login/phone</code> 保留为手机号密码兼容入口。</li>
+</ul>
 
 
 

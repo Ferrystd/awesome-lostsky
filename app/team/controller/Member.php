@@ -39,13 +39,13 @@ class Member
      */
     public function get(Request $request)
     {
-        $memberId = (int) $request->param('member_id', 0);
+        $memberId = $request->get('member_id/d', 0);
 
         $service = app(TeamMemberService::class);
         $result  = $service->get($request->team_id, $memberId);
         $result['capabilities'] = $service->capabilities(
-            (int) $request->team_id,
-            (array) $request->acting_entity,
+            $request->team_id,
+            $request->acting_entity,
             $result
         );
         return success($result);
@@ -56,7 +56,7 @@ class Member
      */
     public function add(Request $request)
     {
-        $userId = (int) $request->post('user_id', 0);
+        $userId = $request->post('user_id/d', 0);
         $data   = $request->only(self::PROFILE_FIELDS, 'post');
 
         $service = app(TeamMemberService::class);
@@ -70,7 +70,7 @@ class Member
      */
     public function edit(Request $request)
     {
-        $memberId = (int) $request->post('member_id', 0);
+        $memberId = $request->post('member_id/d', 0);
 
         $data = $request->only(self::PROFILE_FIELDS, 'post');
 
@@ -85,7 +85,7 @@ class Member
      */
     public function block(Request $request)
     {
-        $memberId = (int) $request->post('member_id', 0);
+        $memberId = $request->post('member_id/d', 0);
 
         $service = app(TeamMemberService::class);
         $service->block($request->team_id, $memberId);
@@ -98,7 +98,7 @@ class Member
      */
     public function unblock(Request $request)
     {
-        $memberId = (int) $request->post('member_id', 0);
+        $memberId = $request->post('member_id/d', 0);
 
         $service = app(TeamMemberService::class);
         $service->unblock($request->team_id, $memberId);
@@ -111,7 +111,7 @@ class Member
      */
     public function remove(Request $request)
     {
-        $memberId = (int) $request->post('member_id', 0);
+        $memberId = $request->post('member_id/d', 0);
 
         $service = app(TeamMemberService::class);
         $service->remove($request->team_id, $memberId);
@@ -121,12 +121,12 @@ class Member
 
     public function slug(Request $request)
     {
-        $memberId = (int) $request->post('member_id', 0);
+        $memberId = $request->post('member_id/d', 0);
 
         $identity = app(\app\service\Entity::class)->claimMember(
-            (int) $request->team_id,
+            $request->team_id,
             $memberId,
-            (string) $request->post('slug', '')
+            $request->post('slug/s', '')
         );
 
         return success(['slug' => $identity->slug], '成员标识已确定');
@@ -140,8 +140,8 @@ class Member
         }
 
         app(\app\service\Entity::class)->setMemberSearch(
-            (int) $request->team_id,
-            (int) $request->post('member_id', 0),
+            $request->team_id,
+            $request->post('member_id/d', 0),
             $input['search_override']
         );
 

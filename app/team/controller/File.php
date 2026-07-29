@@ -26,14 +26,14 @@ class File
             'keyword'    => $request->get('keyword'),
             'start_time' => $request->get('start_time'),
             'end_time'   => $request->get('end_time'),
-        ], (int) $request->get('page', 1), (int) $request->get('limit', 20));
+        ], $request->get('page/d', 1), $request->get('limit/d', 20));
 
         return success($result);
     }
 
     public function get(Request $request)
     {
-        $id = (int) $request->param('id', $request->get('id', 0));
+        $id = $request->get('id/d', 0);
 
         $service = app(\app\service\File::class);
         $result  = $service->get($request->team_id, $id);
@@ -43,7 +43,7 @@ class File
 
     public function delete(Request $request)
     {
-        $id = (int) $request->post('id', 0);
+        $id = $request->post('id/d', 0);
 
         $service = app(\app\service\File::class);
         $service->deleteByTeam($request->team_id, $id);

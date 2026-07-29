@@ -1,11 +1,13 @@
 <?php
 use think\facade\Route;
 
+Route::pattern(['id' => 'int']);
+
 // transaction
 Route::get('transaction', 'Transaction/index');
 Route::get('transaction/stats', 'Transaction/stats');
 Route::get('transaction/options', 'Options/index');
-Route::get('transaction/<id>', 'Transaction/get')->pattern(['id' => '\d+']);
+Route::get('transaction/<id>', 'Transaction/get');
 Route::post('transaction', 'Transaction/create');
 Route::post('transaction/<id>', 'Transaction/edit');
 Route::post('transaction/<id>/delete', 'Transaction/delete');

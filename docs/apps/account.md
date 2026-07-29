@@ -4,8 +4,8 @@ Account 是不依赖团队上下文的账户入口，负责统一账号、设备
 
 ## 业务职责
 
-- 使用手机号注册账号。
-- 使用手机号或账号密码登录，签发设备关联的短期 access JWT 和一次性轮换 refresh token。
+- 使用手机号和短信验证码注册账号，并在注册时设置密码。
+- 使用手机号和短信验证码登录，或使用手机号、用户名、邮箱加密码登录，签发设备关联的短期 access JWT 和一次性轮换 refresh token。
 - 使用独立 refresh token 轮换基础登录 JWT；服务端只保存哈希，检测到宽限期外重放时撤销整个设备。
 - 退出当前设备、指定设备或全部设备的登录态。
 - 查询用户加入或创建的团队，以及创建团队。
@@ -17,6 +17,9 @@ Account 是不依赖团队上下文的账户入口，负责统一账号、设备
 ## 鉴权边界
 
 - 注册、登录和 refresh token 轮换不要求 access JWT。
+- `POST /verification/sms` 按 `purpose=register|login` 发送验证码；注册必须校验未注册手机号，登录必须校验已注册手机号。
+- 短信类型使用 `SmsType` 枚举，并在 `config/auth.php` 的 `sms.type` 中选择：`SmsType::AliyunSms` 使用阿里云短信服务并由应用生成、缓存和核验验证码；`SmsType::AliyunPnvsSms` 使用号码认证服务的短信认证，由阿里云生成并核验验证码。号码认证通道不使用融合认证或一键取号。
+- 调试绕过必须同时满足 `.env` 中的 `APP_DEBUG=true` 和 `config/auth.php` 中的 `sms.debug_bypass=true`。绕过时不调用短信服务，验证码输入任意内容均可通过；任一条件不满足时都执行真实核验。
 - 设备与团队入口经过 `JwtAuth` 和 `Context`，始终按 JWT 中的真实用户 ID 操作，不限制当前是否携带团队、成员、客户或虚拟实体身份。
 - Account 不要求请求域名提供团队 slug；选择团队后，其他应用再从域名解析团队上下文。
 - `/identity/candidates` 在基础 JWT 下返回本人有效成员/客户，在 entity JWT 下跨团队返回当前实体通过目标团队角色可领取的全部目标。
@@ -29,3 +32,10 @@ Account 是不依赖团队上下文的账户入口，负责统一账号、设备
 ## 接口契约
 
 具体路径、请求字段和响应结构见 [`account.openapi.json`](../openapi/account.openapi.json)。
+
+认证相关入口：
+
+- `POST /verification/sms`：发送注册或登录验证码。
+- `POST /register/sms`：短信验证码注册并设置密码；`/register/phone` 保留为兼容别名。
+- `POST /login/sms`：短信验证码登录。
+- `POST /login/password`：手机号、用户名或邮箱加密码登录；`/login/phone` 保留为手机号密码兼容入口。

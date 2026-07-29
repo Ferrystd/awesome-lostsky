@@ -27,8 +27,8 @@ class Upload
         $service = app(File::class);
         $result  = $service->upload(
             $file,
-            (int) $request->team_id,
-            (array) $request->acting_entity
+            $request->team_id,
+            $request->acting_entity
         );
         app(\app\service\BusinessAudit::class)->record(
             $request,

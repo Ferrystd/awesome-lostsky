@@ -42,7 +42,7 @@ class Join
 
     public function get(Request $request)
     {
-        $id = (int) $request->get('id', 0);
+        $id = $request->get('id/d', 0);
 
         $service = app(TeamJoin::class);
 
@@ -51,7 +51,7 @@ class Join
 
     public function cancel(Request $request)
     {
-        $id = (int) $request->post('id', 0);
+        $id = $request->post('id/d', 0);
 
         $service = app(TeamJoin::class);
         $service->cancel($request->team_id, $request->user_id, $id);

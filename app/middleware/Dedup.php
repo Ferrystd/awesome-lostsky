@@ -19,8 +19,8 @@ class Dedup
 {
     public function handle(Request $request, \Closure $next)
     {
-        $pageId    = trim((string) $request->header('X-Page-Id'));
-        $requestId = trim((string) $request->header('X-Request-Id'));
+        $pageId    = $this->header($request, 'X-Page-Id');
+        $requestId = $this->header($request, 'X-Request-Id');
 
         if ($this->shouldPass($request)) {
             return $next($request);
@@ -54,7 +54,7 @@ class Dedup
      */
     private function buildHash(Request $request, string $pageId, string $requestId): string
     {
-        $principal = hash('sha256', (string) $request->header('Authorization'));
+        $principal = hash('sha256', $this->header($request, 'Authorization'));
         $raw = $requestId !== ''
             ? implode('|', [$request->url(), $request->method(), $principal, $requestId])
             : ($pageId !== '' ? implode('|', [
@@ -71,6 +71,13 @@ class Dedup
             ]));
 
         return hash('sha256', $raw);
+    }
+
+    private function header(Request $request, string $name): string
+    {
+        $value = $request->header($name);
+
+        return is_scalar($value) ? trim((string) $value) : '';
     }
 
     /**

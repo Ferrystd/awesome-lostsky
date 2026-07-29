@@ -10,20 +10,20 @@ class Entity
 {
     public function index(Request $request)
     {
-        $type = trim((string) $request->get('type', ''));
+        $type = trim($request->get('type/s', ''));
         return success(app(DisplayService::class)->entities(
-            (int) $request->team_id,
+            $request->team_id,
             $type === '' ? null : $type,
-            (int) $request->get('page', 1),
-            (int) $request->get('limit', 20)
+            $request->get('page/d', 1),
+            $request->get('limit/d', 20)
         ));
     }
 
     public function get(Request $request)
     {
         return success(app(DisplayService::class)->entity(
-            (int) $request->team_id,
-            (string) $request->get('slug', '')
+            $request->team_id,
+            $request->get('slug/s', '')
         ));
     }
 

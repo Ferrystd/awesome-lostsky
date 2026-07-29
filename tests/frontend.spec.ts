@@ -375,13 +375,17 @@ test('account login remains usable at mobile and desktop widths', async ({ page 
   await page.goto('http://account.lostsky.work:5174/login')
   await expect(page.getByRole('heading', { name: '欢迎回来' }), `login did not render; ${errors.join(' | ')}`).toBeVisible()
   await expect(page.getByLabel('手机号码')).toBeVisible()
+  await expect(page.getByLabel('短信验证码')).toBeVisible()
+  await expect(page.getByRole('button', { name: '获取验证码' })).toBeVisible()
+  await page.getByRole('tab', { name: '密码登录' }).click()
+  await expect(page.getByLabel('手机号 / 用户名 / 邮箱')).toBeVisible()
   await expect(page.getByRole('textbox', { name: '密码', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '登录' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '密码登录' })).toBeVisible()
 })
 
 test('login returns to the original LostSky subdomain deep link', async ({ page }) => {
   const originalUrl = 'http://demo.team.lostsky.work:5175/doc?id=11'
-  await page.route('http://account.lostsky.work:5174/api/login/phone', async (route) => {
+  await page.route('http://account.lostsky.work:5174/api/login/password', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -407,9 +411,10 @@ test('login returns to the original LostSky subdomain deep link', async ({ page 
     && url.searchParams.get('redirect') === originalUrl
   ))
 
-  await page.getByLabel('手机号码').fill('13800138000')
+  await page.getByRole('tab', { name: '密码登录' }).click()
+  await page.getByLabel('手机号 / 用户名 / 邮箱').fill('13800138000')
   await page.getByRole('textbox', { name: '密码', exact: true }).fill('test-password')
-  await page.getByRole('button', { name: '登录' }).click()
+  await page.getByRole('button', { name: '密码登录' }).click()
 
   await expect(page).toHaveURL(originalUrl)
   await expect(page.getByRole('heading', { name: '回跳验证文档', level: 1 })).toBeVisible()

@@ -19,11 +19,11 @@ class TeamBelongs
 {
     public function handle(Request $request, \Closure $next)
     {
-        if ((int) ($request->authenticated_user_id ?? 0) < 1) {
+        if (($request->authenticated_user_id ?? 0) < 1) {
             throw new HttpException(500, 'TeamBelongs 中间件必须在 Context 之后运行');
         }
 
-        $teamId = (int) ($request->team_id ?? 0);
+        $teamId = ($request->team_id ?? 0);
         if ($teamId < 1) {
             throw new HttpException(400, '无法确定团队上下文');
         }

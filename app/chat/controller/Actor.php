@@ -13,8 +13,8 @@ class Actor
     public function index(\think\Request $request)
     {
         return success(app(\app\service\ChatActor::class)->list(
-            (int) $request->team_id,
-            (array) $request->acting_entity
+            $request->team_id,
+            $request->acting_entity
         ));
     }
 }

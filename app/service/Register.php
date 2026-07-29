@@ -13,7 +13,7 @@ class Register
     /**
      * 手机号注册
      */
-    public function phone(string $phone, string $password, array $deviceInfo = []): array
+    public function phone(string $phone, string $code, string $password, array $deviceInfo = []): array
     {
         $validator = new RegisterValidator;
         if (!$validator->check(['phone' => $phone, 'password' => $password])) {
@@ -24,10 +24,12 @@ class Register
             throw new HttpException(409, '手机号已注册');
         }
 
+        app(SmsVerification::class)->verify($phone, $code, SmsVerification::PURPOSE_REGISTER);
+
         $user = \think\facade\Db::transaction(function () use ($phone, $password) {
             $user = new User;
             $user->phone    = $phone;
-            $user->password = $password;
+            $user->password = password_hash($password, PASSWORD_DEFAULT);
             $user->username = 'user_' . bin2hex(random_bytes(4));
             $user->save();
 

@@ -14,17 +14,17 @@ class EntityField
 
     public function index(\think\Request $request)
     {
-        $type = (string) $request->get('entity_type', 'entity');
+        $type = $request->get('entity_type/s', 'entity');
         $this->assertTypePermission($request, $type);
-        return success(app(\app\service\TeamEntityField::class)->list((int) $request->team_id, $type));
+        return success(app(\app\service\TeamEntityField::class)->list($request->team_id, $type));
     }
 
     public function get(\think\Request $request)
     {
-        $id = (int) $request->get('id', 0);
-        $type = app(\app\service\TeamEntityField::class)->typeFor((int) $request->team_id, $id);
+        $id = $request->get('id/d', 0);
+        $type = app(\app\service\TeamEntityField::class)->typeFor($request->team_id, $id);
         $this->assertTypePermission($request, $type);
-        return success(app(\app\service\TeamEntityField::class)->get((int) $request->team_id, $id));
+        return success(app(\app\service\TeamEntityField::class)->get($request->team_id, $id));
     }
 
     public function create(\think\Request $request)
@@ -32,17 +32,17 @@ class EntityField
         $data = $request->post();
         $type = (string) ($data['entity_type'] ?? 'entity');
         $this->assertTypePermission($request, $type);
-        app(\app\service\TeamEntityField::class)->create((int) $request->team_id, $data);
+        app(\app\service\TeamEntityField::class)->create($request->team_id, $data);
         return message('对象字段已创建');
     }
 
     public function update(\think\Request $request)
     {
-        $id = (int) $request->post('id', 0);
-        $type = app(\app\service\TeamEntityField::class)->typeFor((int) $request->team_id, $id);
+        $id = $request->post('id/d', 0);
+        $type = app(\app\service\TeamEntityField::class)->typeFor($request->team_id, $id);
         $this->assertTypePermission($request, $type);
         app(\app\service\TeamEntityField::class)->update(
-            (int) $request->team_id,
+            $request->team_id,
             $id,
             $request->except(['id'], 'post')
         );
@@ -51,28 +51,28 @@ class EntityField
 
     public function delete(\think\Request $request)
     {
-        $id = (int) $request->post('id', 0);
-        $type = app(\app\service\TeamEntityField::class)->typeFor((int) $request->team_id, $id);
+        $id = $request->post('id/d', 0);
+        $type = app(\app\service\TeamEntityField::class)->typeFor($request->team_id, $id);
         $this->assertTypePermission($request, $type);
-        app(\app\service\TeamEntityField::class)->delete((int) $request->team_id, $id);
+        app(\app\service\TeamEntityField::class)->delete($request->team_id, $id);
         return message('对象字段已删除');
     }
 
     public function values(\think\Request $request)
     {
-        $slug = (string) $request->param('slug', '');
+        $slug = $request->get('slug/s', '');
         $this->assertEntityPermission($request, $slug);
-        return success(app(\app\service\TeamEntityField::class)->values((int) $request->team_id, $slug));
+        return success(app(\app\service\TeamEntityField::class)->values($request->team_id, $slug));
     }
 
     public function saveValues(\think\Request $request)
     {
-        $slug = (string) $request->post('slug', '');
+        $slug = $request->post('slug/s', '');
         $this->assertEntityPermission($request, $slug);
         app(\app\service\TeamEntityField::class)->saveValues(
-            (int) $request->team_id,
+            $request->team_id,
             $slug,
-            (array) $request->post('values', [])
+            $request->post('values/a', [])
         );
         return message('字段值已保存');
     }
@@ -85,15 +85,15 @@ class EntityField
             default => Permissions::TEAM_ENTITY_FIELD_MANAGE,
         };
         app(\app\service\PermissionGate::class)->assert(
-            (int) $request->team_id,
-            (array) $request->acting_entity,
+            $request->team_id,
+            $request->acting_entity,
             [$key]
         );
     }
 
     private function assertEntityPermission(\think\Request $request, string $slug): void
     {
-        $actor = app(\app\service\ChatActor::class)->resolve((int) $request->team_id, $slug);
+        $actor = app(\app\service\ChatActor::class)->resolve($request->team_id, $slug);
         $keys = $actor['type'] === \app\enum\ChatActorType::Virtual
             ? [
                 Permissions::CHAT_VIRTUAL_ALL_FIELD_MANAGE,
@@ -101,8 +101,8 @@ class EntityField
             ]
             : [Permissions::entityField($actor['type']->value)];
         app(\app\service\PermissionGate::class)->assert(
-            (int) $request->team_id,
-            (array) $request->acting_entity,
+            $request->team_id,
+            $request->acting_entity,
             $keys
         );
     }

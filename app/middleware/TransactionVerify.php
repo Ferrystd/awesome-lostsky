@@ -22,7 +22,7 @@ class TransactionVerify
     public function handle(Request $request, \Closure $next)
     {
         $team = $request->team ?? null;
-        $actingEntity = (array) ($request->acting_entity ?? []);
+        $actingEntity = ($request->acting_entity ?? []);
         $entityId = (int) ($actingEntity['entity_id'] ?? 0);
         if (!$team || $entityId < 1) {
             throw new HttpException(403, '当前实体无效');
@@ -34,7 +34,7 @@ class TransactionVerify
         }
 
         $customerId = (int) ($request->post('customer_id', 0) ?: 0);
-        $isEdit     = (bool) $request->param('id', 0);
+        $isEdit     = $request->route('id/d', 0) > 0;
 
         // 规则 B：发单人已绑定该客户
         if ($customerId > 0) {

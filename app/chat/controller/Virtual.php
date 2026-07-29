@@ -22,23 +22,23 @@ class Virtual
     public function index(\think\Request $request)
     {
         return success(app(\app\service\ChatVirtual::class)->list(
-            (int) $request->team_id,
-            (array) $request->acting_entity,
-            (string) $request->get('mode', 'manage')
+            $request->team_id,
+            $request->acting_entity,
+            $request->get('mode/s', 'manage')
         ));
     }
 
     public function get(\think\Request $request)
     {
         return success(app(\app\service\ChatVirtual::class)->get(
-            (int) $request->team_id,
-            (string) $request->param('slug', '')
+            $request->team_id,
+            $request->get('slug/s', '')
         ));
     }
 
     public function create(\think\Request $request)
     {
-        return success(app(\app\service\ChatVirtual::class)->create((int) $request->team_id, [
+        return success(app(\app\service\ChatVirtual::class)->create($request->team_id, [
             'slug' => $request->post('slug', ''), 'name' => $request->post('name', ''),
             'avatar' => $request->post('avatar'), 'description' => $request->post('description'),
         ]), '虚拟实体已创建');
@@ -53,8 +53,8 @@ class Virtual
             }
         }
         app(\app\service\ChatVirtual::class)->update(
-            (int) $request->team_id,
-            (string) $request->param('slug', ''),
+            $request->team_id,
+            $request->post('slug/s', ''),
             $data
         );
         return message('虚拟实体已更新');
@@ -63,8 +63,8 @@ class Virtual
     public function delete(\think\Request $request)
     {
         app(\app\service\ChatVirtual::class)->delete(
-            (int) $request->team_id,
-            (string) $request->param('slug', '')
+            $request->team_id,
+            $request->post('slug/s', '')
         );
         return message('虚拟实体已删除');
     }

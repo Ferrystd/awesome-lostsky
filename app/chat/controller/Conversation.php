@@ -13,22 +13,22 @@ class Conversation
     public function index(\think\Request $request)
     {
         return success(app(\app\service\ChatConversation::class)->list(
-            (int) $request->team_id, (array) $request->acting_entity
+            $request->team_id, $request->acting_entity
         ));
     }
 
     public function get(\think\Request $request)
     {
         return success(app(\app\service\ChatConversation::class)->get(
-            (int) $request->team_id, (string) $request->param('uuid', ''),
-            (array) $request->acting_entity
+            $request->team_id, $request->get('uuid/s', ''),
+            $request->acting_entity
         ));
     }
 
     public function create(\think\Request $request)
     {
         return success(app(\app\service\ChatConversation::class)->create(
-            (int) $request->team_id, (array) $request->acting_entity,
+            $request->team_id, $request->acting_entity,
             [
                 'kind' => $request->post('kind', 'direct'), 'title' => $request->post('title'),
                 'actor_slug' => $request->post('actor_slug', ''), 'participants' => $request->post('participants', []),
@@ -40,8 +40,8 @@ class Conversation
     public function close(\think\Request $request)
     {
         app(\app\service\ChatConversation::class)->close(
-            (int) $request->team_id, (string) $request->param('uuid', ''),
-            (array) $request->acting_entity
+            $request->team_id, $request->post('uuid/s', ''),
+            $request->acting_entity
         );
         return message('会话已关闭');
     }
@@ -49,10 +49,10 @@ class Conversation
     public function addParticipants(\think\Request $request)
     {
         app(\app\service\ChatConversation::class)->addParticipants(
-            (int) $request->team_id,
-            (string) $request->post('uuid', ''),
-            (array) $request->acting_entity,
-            (array) $request->post('participants', [])
+            $request->team_id,
+            $request->post('uuid/s', ''),
+            $request->acting_entity,
+            $request->post('participants/a', [])
         );
         return message('参与者已加入群聊');
     }
@@ -60,10 +60,10 @@ class Conversation
     public function removeParticipant(\think\Request $request)
     {
         app(\app\service\ChatConversation::class)->removeParticipant(
-            (int) $request->team_id,
-            (string) $request->post('uuid', ''),
-            (array) $request->acting_entity,
-            (string) $request->post('slug', '')
+            $request->team_id,
+            $request->post('uuid/s', ''),
+            $request->acting_entity,
+            $request->post('slug/s', '')
         );
         return message('参与者已移出群聊');
     }

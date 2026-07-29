@@ -36,7 +36,7 @@ class JoinField
 
     public function edit(Request $request)
     {
-        $id = (int) $request->post('id', 0);
+        $id = $request->post('id/d', 0);
 
         $service = app(TeamJoin::class);
         $service->updateField($request->team_id, $id, $this->data($request));
@@ -46,7 +46,7 @@ class JoinField
 
     public function delete(Request $request)
     {
-        $id = (int) $request->post('id', 0);
+        $id = $request->post('id/d', 0);
 
         $service = app(TeamJoin::class);
         $service->deleteField($request->team_id, $id);

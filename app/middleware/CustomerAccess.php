@@ -13,7 +13,7 @@ class CustomerAccess
         $acting = $request->acting_entity ?? null;
         if (!is_array($acting)
             || ($acting['type'] ?? '') !== 'teamCustomer'
-            || (int) ($acting['id'] ?? 0) !== (int) ($request->customer_id ?? 0)) {
+            || (int) ($acting['id'] ?? 0) !== ($request->customer_id ?? 0)) {
             throw new HttpException(403, '当前实体不是该团队客户');
         }
 

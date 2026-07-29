@@ -22,7 +22,7 @@ class MemberAccess
         $acting = $request->acting_entity ?? null;
         if (!is_array($acting)
             || ($acting['type'] ?? '') !== 'teamMember'
-            || (int) ($acting['id'] ?? 0) !== (int) ($request->member_id ?? 0)) {
+            || (int) ($acting['id'] ?? 0) !== ($request->member_id ?? 0)) {
             throw new HttpException(403, '当前实体不是该团队成员');
         }
 

@@ -24,14 +24,14 @@ class JoinReview
         $result = $service->list($request->team_id, [
             'status' => $request->get('status'),
             'user_id' => $request->get('user_id'),
-        ], (int) $request->get('page', 1), (int) $request->get('limit', 20));
+        ], $request->get('page/d', 1), $request->get('limit/d', 20));
 
         return success($result);
     }
 
     public function get(Request $request)
     {
-        $id = (int) $request->get('id', 0);
+        $id = $request->get('id/d', 0);
 
         $service = app(TeamJoin::class);
 
@@ -40,7 +40,7 @@ class JoinReview
 
     public function review(Request $request)
     {
-        $id = (int) $request->post('id', 0);
+        $id = $request->post('id/d', 0);
 
         $service = app(TeamJoin::class);
         $service->startReview($request->team_id, $id);
@@ -50,17 +50,17 @@ class JoinReview
 
     public function reject(Request $request)
     {
-        $id = (int) $request->post('id', 0);
+        $id = $request->post('id/d', 0);
 
         $service = app(TeamJoin::class);
-        $service->reject($request->team_id, $id, (string) $request->post('memo', ''));
+        $service->reject($request->team_id, $id, $request->post('memo/s', ''));
 
         return message('申请已拒绝');
     }
 
     public function approve(Request $request)
     {
-        $id = (int) $request->post('id', 0);
+        $id = $request->post('id/d', 0);
 
         $service = app(TeamJoin::class);
         $memberId = $service->approve($request->team_id, $id);
@@ -70,7 +70,7 @@ class JoinReview
 
     public function saveTasks(Request $request)
     {
-        $id = (int) $request->post('id', 0);
+        $id = $request->post('id/d', 0);
 
         $service = app(TeamJoin::class);
         $service->saveTasks($request->team_id, $id, $request->post('tasks', []));
@@ -80,11 +80,11 @@ class JoinReview
 
     public function setTaskPassed(Request $request)
     {
-        $id = (int) $request->post('id', 0);
-        $taskId = (int) $request->post('task_id', 0);
+        $id = $request->post('id/d', 0);
+        $taskId = $request->post('task_id/d', 0);
 
         $service = app(TeamJoin::class);
-        $service->setTaskPassed($request->team_id, $id, $taskId, (bool) $request->post('is_passed', false));
+        $service->setTaskPassed($request->team_id, $id, $taskId, $request->post('is_passed/b', false));
 
         return message('审核任务状态已更新');
     }

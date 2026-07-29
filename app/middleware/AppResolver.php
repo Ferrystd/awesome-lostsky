@@ -23,7 +23,7 @@ class AppResolver
         $host    = $request->host();
         $apiHost = config('app.domain.api');
         $root    = config('app.domain.root');
-        $explicitApp = strtolower(trim((string) $request->header('X-LostSky-App')));
+        $explicitApp = strtolower($this->header($request, 'X-LostSky-App'));
         if ($explicitApp !== '' && $explicitApp !== 'common') {
             throw new HttpException(400, '不支持显式选择该应用');
         }
@@ -34,7 +34,7 @@ class AppResolver
 
         // 方式 1：Host 为 api.lostsky.work，从 Origin 头提取 app 和 slug
         if ($host === $apiHost) {
-            $origin = $request->header('Origin');
+            $origin = $this->header($request, 'Origin');
             $rootRx = preg_quote($root, '#');
             // 匹配 https://{slug}.{app}.lostsky.work
             if ($origin && preg_match("#^https?://([^.]+)\\.([^.]+)\\.{$rootRx}$#", $origin, $m)) {
@@ -115,6 +115,13 @@ class AppResolver
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    private function header(Request $request, string $name): string
+    {
+        $value = $request->header($name);
+
+        return is_scalar($value) ? trim((string) $value) : '';
     }
 
     private function assertImplicitApp(string $appName): void

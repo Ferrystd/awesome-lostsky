@@ -38,7 +38,7 @@ class Cors
 
     public function headers(Request $request): array
     {
-        $origin = $request->header('Origin');
+        $origin = $this->header($request, 'Origin');
         $allowOrigin = $this->allowOrigin($origin);
         if (!$allowOrigin) {
             return [];
@@ -100,6 +100,13 @@ class Cors
             return $allowedHeaders;
         }
 
-        return $request->header('Access-Control-Request-Headers') ?: '*';
+        return $this->header($request, 'Access-Control-Request-Headers') ?: '*';
+    }
+
+    private function header(Request $request, string $name): string
+    {
+        $value = $request->header($name);
+
+        return is_scalar($value) ? (string) $value : '';
     }
 }

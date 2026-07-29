@@ -18,7 +18,7 @@ class EntityType
 
     public function handle(Request $request, \Closure $next, string ...$allowedTypes)
     {
-        if ((int) ($request->authenticated_user_id ?? 0) < 1) {
+        if (($request->authenticated_user_id ?? 0) < 1) {
             throw new HttpException(500, 'EntityType 中间件必须在 Context 之后运行');
         }
 

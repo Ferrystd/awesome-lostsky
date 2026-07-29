@@ -3,8 +3,12 @@ use think\facade\Route;
 
 // login
 Route::post('login/phone', 'login/phone');
+Route::post('login/sms', 'login/sms');
 Route::post('login/password', 'login/password');
 Route::post('login/refresh', 'login/refresh');
+
+// SMS verification
+Route::post('verification/sms', 'verification/sms');
 
 // devices (JwtAuth + Context)
 Route::post('devices/quit', 'devices/quit');
@@ -22,3 +26,4 @@ Route::post('team/add', 'team/add');
 
 // register
 Route::post('register/phone', 'register/phone');
+Route::post('register/sms', 'register/phone');

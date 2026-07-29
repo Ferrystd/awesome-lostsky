@@ -11,6 +11,6 @@ class Team
 
     public function index(\think\Request $request)
     {
-        return success(app(\app\service\ChatTeam::class)->list((int) $request->user_id));
+        return success(app(\app\service\ChatTeam::class)->list($request->user_id));
     }
 }

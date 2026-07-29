@@ -1575,7 +1575,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        数据
+        请求参数边界
       </span>
     </span>
   </a>
@@ -1584,6 +1584,17 @@
       
         <li class="md-nav__item">
   <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        数据
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         安全与外部系统
@@ -2159,7 +2170,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        数据
+        请求参数边界
       </span>
     </span>
   </a>
@@ -2168,6 +2179,17 @@
       
         <li class="md-nav__item">
   <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        数据
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         安全与外部系统
@@ -2254,7 +2276,18 @@
 <li>业务模型继承 <code>app\model\Base</code>；类名不附加 <code>Service</code>、<code>Controller</code>、<code>Validate</code>。</li>
 <li>响应使用 <code>{code, message, data}</code>，列表使用 <code>{total, list, page, limit}</code>；部分更新不得覆盖未提交字段。</li>
 </ul>
-<h2 id="_3">数据<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<h2 id="_3">请求参数边界<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>参数来源必须明确，类型只在边界转换一次。</strong> 路径变量使用 <code>route()</code>，查询参数使用 <code>get()</code>，请求体使用 <code>post()</code>；控制器不得用 <code>param()</code> 混合多个来源。</p>
+</blockquote>
+<ul>
+<li>使用 ThinkPHP Request 类型后缀完成基础转换：整数 <code>/d</code>、字符串 <code>/s</code>、布尔值 <code>/b</code>、数组 <code>/a</code>。例如 <code>$request-&gt;route('id/d')</code>、<code>$request-&gt;get('page/d', 1)</code>、<code>$request-&gt;post('enabled/b', false)</code>。</li>
+<li>不要在支持类型后缀的 Request 取值外再写 <code>(int)</code>、<code>(string)</code>、<code>(bool)</code> 或 <code>(array)</code>。Header 不支持类型后缀；读取后先用 <code>is_scalar()</code> 检查，再在请求边界转换。</li>
+<li><code>AppResolver</code>、<code>Context</code>、JWT 等生产端负责首次构造 <code>team_id</code>、<code>user_id</code>、<code>entity_id</code> 与 <code>acting_entity</code>。控制器、服务和后续中间件直接消费，不重复强转。</li>
+<li>通用基础设施确需接受多个来源时，应逐一读取 route、query、body，声明优先级并拒绝冲突值。仅用于请求指纹等不产生业务参数语义的场景，才可保留 <code>param()</code>。</li>
+<li>ORM 字段、枚举、金额、序列化结果和外部 SDK 数据位于其他边界，仍按各自契约转换。</li>
+</ul>
+<h2 id="_4">数据<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <ul>
 <li>团队数据始终限定 <code>team_id</code>，关联 ID 同时校验团队归属。</li>
 <li>金额使用数据库精确计算，并以十进制字符串跨 API 传递。</li>
@@ -2262,7 +2295,7 @@
 <li>唯一关系、余额、库存和状态迁移依靠约束、条件更新或事务内行锁保证并发正确性。</li>
 <li>数据结构变化同步 <code>sql/schema.sql</code> 与日期补丁；执行前确认目标数据库，执行后只读验证。</li>
 </ul>
-<h2 id="_4">安全与外部系统<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<h2 id="_5">安全与外部系统<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <ul>
 <li>密码只存哈希；refresh token 设备绑定、只存哈希并一次性轮换。</li>
 <li>上传统一经过 <code>app\validate\File</code>，校验扩展名、大小、服务端 MIME 和配额。</li>

@@ -34,14 +34,14 @@ class Transaction
             'cs_entity_id'       => $request->get('cs_entity_id'),
             'customer_id' => $request->get('customer_id'),
             'keyword'     => $request->get('keyword'),
-        ], (int) $request->get('page', 1), (int) $request->get('limit', 20));
+        ], $request->get('page/d', 1), $request->get('limit/d', 20));
 
         return success($result);
     }
 
     public function get(Request $request)
     {
-        $id = (int) $request->param('id', 0);
+        $id = $request->route('id/d', 0);
 
         $service = app(\app\service\Transaction::class);
         $result  = $service->get($request->team_id, $id);
@@ -76,7 +76,7 @@ class Transaction
 
     public function edit(Request $request)
     {
-        $id = (int) $request->param('id', 0);
+        $id = $request->route('id/d', 0);
 
         $data = [];
         foreach (['type','total_price','cost','cash','prepaid',
@@ -96,7 +96,7 @@ class Transaction
 
     public function delete(Request $request)
     {
-        $id = (int) $request->param('id', 0);
+        $id = $request->route('id/d', 0);
 
         $service = app(\app\service\Transaction::class);
         $service->delete($request->team_id, $id);
@@ -108,8 +108,8 @@ class Transaction
     public function stats(Request $request)
     {
         $service   = app(TransactionStats::class);
-        $startTime = (int) $request->get('start_time', 0);
-        $endTime   = (int) $request->get('end_time', 0);
+        $startTime = $request->get('start_time/d', 0);
+        $endTime   = $request->get('end_time/d', 0);
         $type      = $request->get('type', 'summary');
 
         $result = match ($type) {

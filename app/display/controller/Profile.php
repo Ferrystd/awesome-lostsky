@@ -14,7 +14,7 @@ class Profile
     public function get(Request $request)
     {
         $service = app(DisplayService::class);
-        $result  = $service->profile((int) $request->team_id);
+        $result  = $service->profile($request->team_id);
 
         return success($result);
     }

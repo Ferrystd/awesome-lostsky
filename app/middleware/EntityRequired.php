@@ -11,7 +11,7 @@ class EntityRequired
 {
     public function handle(Request $request, \Closure $next)
     {
-        if ((int) ($request->authenticated_user_id ?? 0) < 1) {
+        if (($request->authenticated_user_id ?? 0) < 1) {
             throw new HttpException(500, 'EntityRequired 中间件必须在 Context 之后运行');
         }
 

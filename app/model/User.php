@@ -19,7 +19,7 @@ class User extends Base
 
         'phone'    => 'string',
         'email'    => 'string',
-        'password' => 'string',//开发阶段，使用明文存储
+        'password' => 'string',
         'username' => 'string',
     ];
 

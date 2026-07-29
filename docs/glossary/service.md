@@ -232,6 +232,7 @@
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `byPhone` | `string $phone`、`string $password`、`array $deviceInfo = []` | `array` |
+| `bySms` | `string $phone`、`string $code`、`array $deviceInfo = []` | `array` |
 | `byAccount` | `string $account`、`string $password`、`array $deviceInfo = []` | `array` |
 | `loginSuccess` | `model\User $user`、`array $deviceInfo` | `array` |
 | `refresh` | `string $refreshToken` | `array` |
@@ -323,7 +324,7 @@
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `phone` | `string $phone`、`string $password`、`array $deviceInfo = []` | `array` |
+| `phone` | `string $phone`、`string $code`、`string $password`、`array $deviceInfo = []` | `array` |
 
 ## Role
 
@@ -352,6 +353,13 @@
 | `allBindings` | `int $teamId` | `array` |
 | `bind` | `int $teamId`、`int $entityId`、`int $customerId` | `void` |
 | `unbind` | `int $teamId`、`int $id` | `void` |
+
+## SmsVerification
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `send` | `string $phone`、`string $purpose` | `array` |
+| `verify` | `string $phone`、`string $code`、`string $purpose` | `void` |
 
 ## Storefront
 

@@ -21,11 +21,11 @@ class Customer
     public function bind(Request $request)
     {
         $result = app(CustomerBinding::class)->bind(
-            (int) $request->team_id,
-            (int) $request->authenticated_user_id,
+            $request->team_id,
+            $request->authenticated_user_id,
             (string) ($request->jwt->dvt ?? ''),
             $request->entity_session ?? null,
-            $request->post('slug') === null ? null : (string) $request->post('slug')
+            $request->post('slug') === null ? null : $request->post('slug/s')
         );
 
         return success($result, $result['created'] ? '客户身份已建立' : '客户身份已领取');
@@ -46,7 +46,7 @@ class Customer
             'status'     => $request->get('status'),
             'start_time' => $request->get('start_time'),
             'end_time'   => $request->get('end_time'),
-        ], (int) $request->get('page', 1), (int) $request->get('limit', 20));
+        ], $request->get('page/d', 1), $request->get('limit/d', 20));
 
         return success($result);
     }
@@ -54,17 +54,17 @@ class Customer
     public function order(Request $request)
     {
         return success(app(TeamCustomer::class)->order(
-            (int) $request->team_id,
-            (int) $request->customer_id,
-            (int) $request->param('id', 0)
+            $request->team_id,
+            $request->customer_id,
+            $request->route('id/d', 0)
         ));
     }
 
     public function purchase(Request $request)
     {
         $id = app(TeamCustomer::class)->purchase(
-            (int) $request->team_id,
-            (int) $request->customer_id,
+            $request->team_id,
+            $request->customer_id,
             [
                 'product_id' => $request->post('product_id'),
                 'quantity' => $request->post('quantity', 1),
@@ -79,10 +79,10 @@ class Customer
 
     public function cancelOrder(Request $request)
     {
-        $id = (int) $request->param('id', 0);
+        $id = $request->route('id/d', 0);
         app(TeamCustomer::class)->cancelOrder(
-            (int) $request->team_id,
-            (int) $request->customer_id,
+            $request->team_id,
+            $request->customer_id,
             $id
         );
         app(\app\service\BusinessAudit::class)->record($request, 'shop', 'cancel', 'order', $id);
@@ -97,7 +97,7 @@ class Customer
             'type'       => $request->get('type'),
             'start_time' => $request->get('start_time'),
             'end_time'   => $request->get('end_time'),
-        ], (int) $request->get('page', 1), (int) $request->get('limit', 20));
+        ], $request->get('page/d', 1), $request->get('limit/d', 20));
 
         return success($result);
     }
@@ -116,8 +116,8 @@ class Customer
         $result  = $service->balanceLogs(
             $request->team_id,
             $request->customer_id,
-            (int) $request->get('page', 1),
-            (int) $request->get('limit', 20)
+            $request->get('page/d', 1),
+            $request->get('limit/d', 20)
         );
 
         return success($result);

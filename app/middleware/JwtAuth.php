@@ -18,7 +18,8 @@ class JwtAuth
 {
     public function handle(Request $request, \Closure $next)
     {
-        $token = $request->header('Authorization');
+        $header = $request->header('Authorization');
+        $token = is_scalar($header) ? (string) $header : '';
 
         if (empty($token)) {
             throw new HttpException(401, '缺少 Token');

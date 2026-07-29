@@ -1,10 +1,12 @@
 <?php
 use think\facade\Route;
 
+Route::pattern(['id' => 'int']);
+
 // public storefront
 Route::get('storefront', 'Storefront/index')->completeMatch();
 Route::get('storefront/products', 'Storefront/products')->completeMatch();
-Route::get('storefront/products/<id>', 'Storefront/product')->pattern(['id' => '\d+'])->completeMatch();
+Route::get('storefront/products/<id>', 'Storefront/product')->completeMatch();
 
 // product
 Route::get('product', 'Product/index')->completeMatch();
@@ -26,8 +28,8 @@ Route::post('customer/bind', 'Customer/bind')->completeMatch();
 Route::get('customer/me', 'Customer/me')->completeMatch();
 Route::get('customer/orders', 'Customer/orders')->completeMatch();
 Route::post('customer/orders', 'Customer/purchase')->completeMatch();
-Route::get('customer/orders/<id>', 'Customer/order')->pattern(['id' => '\d+'])->completeMatch();
-Route::post('customer/orders/<id>/cancel', 'Customer/cancelOrder')->pattern(['id' => '\d+'])->completeMatch();
+Route::get('customer/orders/<id>', 'Customer/order')->completeMatch();
+Route::post('customer/orders/<id>/cancel', 'Customer/cancelOrder')->completeMatch();
 Route::get('customer/transactions', 'Customer/transactions')->completeMatch();
 Route::get('customer/balance', 'Customer/balance')->completeMatch();
 Route::get('customer/balance/logs', 'Customer/balanceLogs')->completeMatch();

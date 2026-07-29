@@ -21,8 +21,8 @@ class Integration
     public function create(\think\Request $request)
     {
         return success(app(\app\service\ChatIntegration::class)->create(
-            (int) $request->team_id,
-            (string) $request->param('slug', ''),
+            $request->team_id,
+            $request->post('slug/s', ''),
             ['name' => $request->post('name', ''), 'endpoint_url' => $request->post('endpoint_url', ''),
                 'events' => $request->post('events', [])]
         ), '集成已创建，请立即保存凭据');
@@ -37,9 +37,9 @@ class Integration
             }
         }
         app(\app\service\ChatIntegration::class)->update(
-            (int) $request->team_id,
-            (string) $request->param('slug', ''),
-            (int) $request->param('id', 0),
+            $request->team_id,
+            $request->post('slug/s', ''),
+            $request->post('id/d', 0),
             $data
         );
         return message('集成已更新');
@@ -48,25 +48,26 @@ class Integration
     public function rotate(\think\Request $request)
     {
         return success(app(\app\service\ChatIntegration::class)->rotate(
-            (int) $request->team_id,
-            (string) $request->param('slug', ''),
-            (int) $request->param('id', 0)
+            $request->team_id,
+            $request->post('slug/s', ''),
+            $request->post('id/d', 0)
         ), '凭据已轮换，请立即保存');
     }
 
     public function delete(\think\Request $request)
     {
         app(\app\service\ChatIntegration::class)->delete(
-            (int) $request->team_id,
-            (string) $request->param('slug', ''),
-            (int) $request->param('id', 0)
+            $request->team_id,
+            $request->post('slug/s', ''),
+            $request->post('id/d', 0)
         );
         return message('集成已删除');
     }
 
     public function send(\think\Request $request)
     {
-        $authorization = (string) $request->header('Authorization', '');
+        $header = $request->header('Authorization', '');
+        $authorization = is_scalar($header) ? (string) $header : '';
         $token = preg_match('/^Bearer\s+(.+)$/i', $authorization, $match) ? trim($match[1]) : '';
         $actor = app(\app\service\ChatIntegration::class)->authenticateActor($token);
         $integration = $actor['integration'];

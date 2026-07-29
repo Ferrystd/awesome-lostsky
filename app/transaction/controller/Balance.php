@@ -21,10 +21,10 @@ class Balance
 
     public function logs(Request $request)
     {
-        $customerId = (int) $request->get('customer_id', 0);
+        $customerId = $request->get('customer_id/d', 0);
 
         $service = app(BalanceService::class);
-        $result  = $service->logs($request->team_id, $customerId, (int) $request->get('page', 1), (int) $request->get('limit', 20));
+        $result  = $service->logs($request->team_id, $customerId, $request->get('page/d', 1), $request->get('limit/d', 20));
 
         return success($result);
     }
@@ -34,7 +34,7 @@ class Balance
         $service = app(BalanceService::class);
         $service->recharge(
             $request->team_id,
-            (int) $request->post('customer_id', 0),
+            $request->post('customer_id/d', 0),
             $request->post('amount', 0),
             $request->post('memo', '')
         );
@@ -43,7 +43,7 @@ class Balance
             'transaction',
             'recharge',
             'customerBalance',
-            (int) $request->post('customer_id', 0)
+            $request->post('customer_id/d', 0)
         );
 
         return message('充值成功');

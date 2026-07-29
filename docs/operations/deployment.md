@@ -43,14 +43,43 @@ composer --version
    cp .env.example .env
    ```
 
-3. 将 `sql/schema.sql` 和所需日期补丁导入已确认的目标数据库。
-4. 清理框架缓存：
+3. 在 `.env` 中配置阿里云 AccessKey：
+
+   ```ini
+   ALIYUN_ACCESS_KEY_ID=你的AccessKeyID
+   ALIYUN_ACCESS_KEY_SECRET=你的AccessKeySecret
+   ```
+
+   短信类型、验证码策略、签名和模板统一写在 `config/auth.php`，不通过环境变量选择。默认使用阿里云短信服务：
+
+   ```php
+   use app\enum\SmsType;
+
+   'type' => SmsType::AliyunSms,
+   'aliyun_sms' => [
+       'sign_name' => '已审核短信签名',
+       'template_code' => '已审核验证码模板Code',
+   ],
+   ```
+
+   若改用号码认证服务的短信认证，将类型改为 `SmsType::AliyunPnvsSms`，并填写 `aliyun_pnvs_sms` 下的方案、签名和模板。两个通道是不同的阿里云产品和 API 权限。RAM 身份需要按所选通道分别授予短信服务 `SendSms`，或号码认证服务 `SendSmsVerifyCode`、`CheckSmsVerifyCode` 的最小权限。号码认证配置使用短信认证，不使用融合认证或一键取号。
+
+   生产环境必须保持 `.env` 中：
+
+   ```ini
+   APP_DEBUG=false
+   ```
+
+   并保持 `config/auth.php` 中 `sms.debug_bypass=false`。本地开发如需跳过短信，仅在 `APP_DEBUG=true` 时将该配置改为 `true`。该模式不会发送短信，并接受任意验证码输入。
+
+4. 将 `sql/schema.sql` 和所需日期补丁导入已确认的目标数据库。
+5. 清理框架缓存：
 
    ```bash
    php think clear
    ```
 
-5. 将 API 站点运行目录指向项目的 `public/`，不要指向项目根目录。
+6. 将 API 站点运行目录指向项目的 `public/`，不要指向项目根目录。
 
 ThinkPHP 站点使用以下 Nginx 规则：
 
@@ -97,6 +126,7 @@ php think version
 ```
 
 - 生产环境只安装生产依赖。
+- 生产环境确认 `APP_DEBUG=false` 且 `config/auth.php` 中 `sms.debug_bypass=false`，并用真实手机号完成一次验证码发送和校验冒烟测试。
 - `.env` 注释使用 `;`，避免复杂内容触发解析警告。
 - Packagist 访问缓慢时可配置可信的 Composer 镜像源。
 - 接口返回 `404` 时，先检查多应用依赖是否完整，再运行 `php think clear`。

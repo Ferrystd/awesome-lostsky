@@ -2302,21 +2302,41 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cp<span class="w"> </span>.env.example<span class="w"> </span>.env
 </span></code></pre></div>
 <ol>
+<li>在 <code>.env</code> 中配置阿里云 AccessKey：</li>
+</ol>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="na">ALIYUN_ACCESS_KEY_ID</span><span class="o">=</span><span class="s">你的AccessKeyID</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="na">ALIYUN_ACCESS_KEY_SECRET</span><span class="o">=</span><span class="s">你的AccessKeySecret</span>
+</span></code></pre></div>
+<p>短信类型、验证码策略、签名和模板统一写在 <code>config/auth.php</code>，不通过环境变量选择。默认使用阿里云短信服务：</p>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">use app\enum\SmsType;</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="x">&#39;type&#39; =&gt; SmsType::AliyunSms,</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="x">&#39;aliyun_sms&#39; =&gt; [</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="x">    &#39;sign_name&#39; =&gt; &#39;已审核短信签名&#39;,</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="x">    &#39;template_code&#39; =&gt; &#39;已审核验证码模板Code&#39;,</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="x">],</span>
+</span></code></pre></div>
+<p>若改用号码认证服务的短信认证，将类型改为 <code>SmsType::AliyunPnvsSms</code>，并填写 <code>aliyun_pnvs_sms</code> 下的方案、签名和模板。两个通道是不同的阿里云产品和 API 权限。RAM 身份需要按所选通道分别授予短信服务 <code>SendSms</code>，或号码认证服务 <code>SendSmsVerifyCode</code>、<code>CheckSmsVerifyCode</code> 的最小权限。号码认证配置使用短信认证，不使用融合认证或一键取号。</p>
+<p>生产环境必须保持 <code>.env</code> 中：</p>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="na">APP_DEBUG</span><span class="o">=</span><span class="s">false</span>
+</span></code></pre></div>
+<p>并保持 <code>config/auth.php</code> 中 <code>sms.debug_bypass=false</code>。本地开发如需跳过短信，仅在 <code>APP_DEBUG=true</code> 时将该配置改为 <code>true</code>。该模式不会发送短信，并接受任意验证码输入。</p>
+<ol>
 <li>将 <code>sql/schema.sql</code> 和所需日期补丁导入已确认的目标数据库。</li>
 <li>清理框架缓存：</li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>php<span class="w"> </span>think<span class="w"> </span>clear
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>php<span class="w"> </span>think<span class="w"> </span>clear
 </span></code></pre></div>
 <ol>
 <li>将 API 站点运行目录指向项目的 <code>public/</code>，不要指向项目根目录。</li>
 </ol>
 <p>ThinkPHP 站点使用以下 Nginx 规则：</p>
-<div class="language-nginx highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="kn">if</span><span class="w"> </span><span class="s">(!-e</span><span class="w"> </span><span class="nv">$request_filename</span><span class="s">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">        </span><span class="kn">rewrite</span><span class="w"> </span><span class="s">^(.*)</span>$<span class="w"> </span><span class="s">/index.php?s=</span><span class="nv">$1</span><span class="w"> </span><span class="s">last</span><span class="p">;</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">        </span><span class="kn">break</span><span class="p">;</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">}</span>
+<div class="language-nginx highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="kn">if</span><span class="w"> </span><span class="s">(!-e</span><span class="w"> </span><span class="nv">$request_filename</span><span class="s">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">        </span><span class="kn">rewrite</span><span class="w"> </span><span class="s">^(.*)</span>$<span class="w"> </span><span class="s">/index.php?s=</span><span class="nv">$1</span><span class="w"> </span><span class="s">last</span><span class="p">;</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">        </span><span class="kn">break</span><span class="p">;</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="p">}</span>
 </span></code></pre></div>
 <h2 id="_4">宝塔静态前端部署<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>宝塔添加站点时会在根目录生成默认 <code>index.html</code> 和 <code>404.html</code>。LostSky 前端是单入口 SPA，每个业务域名目录只保留 <code>index.html</code>，前端路径统一回退到该文件，因此不要直接在已经发布的 <code>www/{domain}</code> 目录上添加站点。</p>
@@ -2327,12 +2347,12 @@
 <li>完成站点创建和域名绑定后，在「网站 → 设置 → 网站目录」中将根目录切换为真实产物目录，例如 <code>/www/deploy/lostsky/www/account.lostsky.work/</code>。同一站点新增域名只使用「域名管理」。</li>
 <li>删除或注释宝塔生成的 <code>error_page 404 /404.html;</code>，并配置：</li>
 </ol>
-<div class="language-nginx highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">root</span><span class="w"> </span><span class="s">/www/deploy/lostsky/www/account.lostsky.work</span><span class="p">;</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">index</span><span class="w"> </span><span class="s">index.html</span><span class="p">;</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="kn">try_files</span><span class="w"> </span><span class="nv">$uri</span><span class="w"> </span><span class="nv">$uri/</span><span class="w"> </span><span class="s">/index.html</span><span class="p">;</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">}</span>
+<div class="language-nginx highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">root</span><span class="w"> </span><span class="s">/www/deploy/lostsky/www/account.lostsky.work</span><span class="p">;</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">index</span><span class="w"> </span><span class="s">index.html</span><span class="p">;</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="kn">try_files</span><span class="w"> </span><span class="nv">$uri</span><span class="w"> </span><span class="nv">$uri/</span><span class="w"> </span><span class="s">/index.html</span><span class="p">;</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">}</span>
 </span></code></pre></div>
 <ol>
 <li><code>assets.lostsky.work</code> 不使用 SPA 回退，文件不存在时直接返回 <code>404</code>；完整模板见 <code>deploy/nginx/lostsky-static-wildcard.conf</code>，CORS 配置见<a href="../assets-cors/">静态资源 CORS</a>。</li>
@@ -2340,12 +2360,13 @@
 </ol>
 <p>若服务器目录布局无法调整，应先在宝塔创建并绑定站点，再部署前端，由构建产物最后覆盖默认页面。不要用 <code>chattr +i</code> 锁定 <code>index.html</code>，否则正常发布也无法替换它。相关行为可参考宝塔的<a href="https://docs.bt.cn/getting-started/create-web">快速创建站点</a>和<a href="https://www.bt.cn/bbs/thread-67517-1-1.html">默认页面说明</a>。</p>
 <h2 id="_5">上线检查<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>composer<span class="w"> </span>check-platform-reqs<span class="w"> </span>--no-dev
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>composer<span class="w"> </span>show<span class="w"> </span>--no-dev<span class="w"> </span>--direct
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>php<span class="w"> </span>think<span class="w"> </span>version
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>composer<span class="w"> </span>check-platform-reqs<span class="w"> </span>--no-dev
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>composer<span class="w"> </span>show<span class="w"> </span>--no-dev<span class="w"> </span>--direct
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>php<span class="w"> </span>think<span class="w"> </span>version
 </span></code></pre></div>
 <ul>
 <li>生产环境只安装生产依赖。</li>
+<li>生产环境确认 <code>APP_DEBUG=false</code> 且 <code>config/auth.php</code> 中 <code>sms.debug_bypass=false</code>，并用真实手机号完成一次验证码发送和校验冒烟测试。</li>
 <li><code>.env</code> 注释使用 <code>;</code>，避免复杂内容触发解析警告。</li>
 <li>Packagist 访问缓慢时可配置可信的 Composer 镜像源。</li>
 <li>接口返回 <code>404</code> 时，先检查多应用依赖是否完整，再运行 <code>php think clear</code>。</li>

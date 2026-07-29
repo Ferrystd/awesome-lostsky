@@ -1811,12 +1811,87 @@
         }
       }
     },
+    "/login/sms": {
+      "post": {
+        "tags": [
+          "Login"
+        ],
+        "summary": "手机号短信验证码登录",
+        "operationId": "accountLoginBySms",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "phone",
+                  "code"
+                ],
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "example": "13800138000"
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 4,
+                    "maxLength": 8
+                  },
+                  "device_name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "验证码错误、失效或格式不正确",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "验证码尝试次数过多",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/login/password": {
       "post": {
         "tags": [
           "Login"
         ],
-        "summary": "账号/邮箱登录",
+        "summary": "手机号/账号/邮箱密码登录",
         "operationId": "accountLoginByPassword",
         "security": [],
         "parameters": [
@@ -2013,6 +2088,109 @@
         }
       }
     },
+    "/verification/sms": {
+      "post": {
+        "tags": [
+          "Login",
+          "Register"
+        ],
+        "summary": "发送注册或登录短信验证码",
+        "operationId": "accountSendSmsVerification",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "phone",
+                  "purpose"
+                ],
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "example": "13800138000"
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "enum": [
+                      "register",
+                      "login"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "发送请求已受理",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "expires_in",
+                            "retry_after",
+                            "debug_bypass"
+                          ],
+                          "properties": {
+                            "expires_in": {
+                              "type": "integer"
+                            },
+                            "retry_after": {
+                              "type": "integer"
+                            },
+                            "debug_bypass": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "发送过于频繁",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "短信服务未配置或暂时不可用",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/register/phone": {
       "post": {
         "tags": [
@@ -2034,11 +2212,17 @@
                 "type": "object",
                 "required": [
                   "phone",
+                  "code",
                   "password"
                 ],
                 "properties": {
                   "phone": {
                     "type": "string"
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 4,
+                    "maxLength": 8
                   },
                   "password": {
                     "type": "string",
@@ -2126,6 +2310,87 @@
           },
           "429": {
             "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/register/sms": {
+      "post": {
+        "tags": [
+          "Register"
+        ],
+        "summary": "短信验证手机号、设置密码并注册",
+        "operationId": "accountRegisterBySms",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "phone",
+                  "code",
+                  "password"
+                ],
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "example": "13800138000"
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 4,
+                    "maxLength": 8
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 32
+                  },
+                  "device_name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "注册并登录成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "手机号已注册",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "验证码或注册信息无效",
             "content": {
               "application/json": {
                 "schema": {

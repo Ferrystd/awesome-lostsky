@@ -10,23 +10,23 @@ class Storefront
 {
     public function index(Request $request)
     {
-        return success(app(StorefrontService::class)->home((int) $request->team_id));
+        return success(app(StorefrontService::class)->home($request->team_id));
     }
 
     public function products(Request $request)
     {
         return success(app(StorefrontService::class)->products(
-            (int) $request->team_id,
-            (int) $request->get('page', 1),
-            (int) $request->get('limit', 20)
+            $request->team_id,
+            $request->get('page/d', 1),
+            $request->get('limit/d', 20)
         ));
     }
 
     public function product(Request $request)
     {
         return success(app(StorefrontService::class)->product(
-            (int) $request->team_id,
-            (int) $request->param('id', 0)
+            $request->team_id,
+            $request->route('id/d', 0)
         ));
     }
 }

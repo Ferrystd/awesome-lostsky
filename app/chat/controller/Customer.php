@@ -12,14 +12,14 @@ class Customer
     public function me(\think\Request $request)
     {
         return success(app(\app\service\CustomerProfile::class)->get(
-            (int) $request->team_id, (int) $request->customer_id
+            $request->team_id, $request->customer_id
         ));
     }
 
     public function update(\think\Request $request)
     {
         app(\app\service\CustomerProfile::class)->update(
-            (int) $request->team_id, (int) $request->customer_id,
+            $request->team_id, $request->customer_id,
             ['nickname' => $request->post('nickname', ''), 'avatar' => $request->post('avatar'),
                 'description' => $request->post('description')]
         );
@@ -29,7 +29,7 @@ class Customer
     public function slug(\think\Request $request)
     {
         return success(app(\app\service\CustomerProfile::class)->claimSlug(
-            (int) $request->team_id, (int) $request->customer_id, (string) $request->post('slug', '')
+            $request->team_id, $request->customer_id, $request->post('slug/s', '')
         ), '客户标识已确定');
     }
 }

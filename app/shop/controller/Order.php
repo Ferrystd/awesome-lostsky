@@ -28,14 +28,14 @@ class Order
             'status'      => $request->get('status'),
             'start_time'  => $request->get('start_time'),
             'end_time'    => $request->get('end_time'),
-        ], (int) $request->get('page', 1), (int) $request->get('limit', 20));
+        ], $request->get('page/d', 1), $request->get('limit/d', 20));
 
         return success($result);
     }
 
     public function get(Request $request)
     {
-        $id = (int) $request->param('id', 0);
+        $id = $request->route('id/d', 0);
 
         $service = app(OrderService::class);
         $result  = $service->get($request->team_id, $id);
@@ -66,7 +66,7 @@ class Order
 
     public function cancel(Request $request)
     {
-        $id = (int) $request->param('id', 0);
+        $id = $request->route('id/d', 0);
 
         $service = app(OrderService::class);
         $service->cancel($request->team_id, $id);
@@ -77,7 +77,7 @@ class Order
 
     public function complete(Request $request)
     {
-        $id = (int) $request->param('id', 0);
+        $id = $request->route('id/d', 0);
 
         $service = app(OrderService::class);
         $service->complete($request->team_id, $id);

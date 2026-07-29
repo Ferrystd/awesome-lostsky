@@ -11,7 +11,7 @@ class Permission
 {
     public function handle(Request $request, \Closure $next, string ...$permissionTemplates)
     {
-        $teamId = (int) ($request->team_id ?? 0);
+        $teamId = ($request->team_id ?? 0);
         $subject = $request->acting_entity ?? null;
 
         if ($teamId < 1) {

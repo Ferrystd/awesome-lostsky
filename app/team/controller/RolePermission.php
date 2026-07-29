@@ -17,7 +17,7 @@ class RolePermission
 
     public function index(Request $request)
     {
-        $roleId = (int) $request->param('role_id', 0);
+        $roleId = $request->get('role_id/d', 0);
 
         return success(app(\app\service\RolePermission::class)->list($request->team_id, $roleId));
     }
@@ -26,7 +26,7 @@ class RolePermission
     {
         app(\app\service\RolePermission::class)->save(
             $request->team_id,
-            (int) $request->post('role_id', 0),
+            $request->post('role_id/d', 0),
             $request->post('permission_keys')
         );
 
@@ -35,6 +35,6 @@ class RolePermission
 
     public function catalog(Request $request)
     {
-        return success(app(\app\service\RolePermission::class)->catalog((int) $request->team_id));
+        return success(app(\app\service\RolePermission::class)->catalog($request->team_id));
     }
 }

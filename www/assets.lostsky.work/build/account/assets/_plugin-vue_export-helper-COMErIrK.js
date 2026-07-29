@@ -1,4 +1,4 @@
-import{al as _,O as l,l as b}from"./index-BrtU2dad.js";/**
+import{al as _,O as l,k as b}from"./index-DENb82WC.js";/**
  * @license @lucide/vue v1.24.0 - ISC
  *
  * This source code is licensed under the ISC license.
@@ -13,7 +13,7 @@ import{al as _,O as l,l as b}from"./index-BrtU2dad.js";/**
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */const w=t=>t.replace(/([a-z0-9])([A-Z])/g,"$1-$2").toLowerCase();/**
+ */const k=t=>t.replace(/([a-z0-9])([A-Z])/g,"$1-$2").toLowerCase();/**
  * @license @lucide/vue v1.24.0 - ISC
  *
  * This source code is licensed under the ISC license.
@@ -33,7 +33,7 @@ import{al as _,O as l,l as b}from"./index-BrtU2dad.js";/**
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
- */const $=({name:t,iconNode:e,"icon-node":r,absoluteStrokeWidth:o,"absolute-stroke-width":s,strokeWidth:k,"stroke-width":p,size:i,color:f,...C},{slots:u})=>{const{size:n,color:g,strokeWidth:m=2,absoluteStrokeWidth:x=!1,class:v=""}=_(),A=b(()=>{const a=h(o)||h(s)||o===!0||s===!0||x===!0,d=k||p||m||c["stroke-width"];return a?Number(d)*24/Number(i??n??c.width):d});return l("svg",{...c,...C,width:i??n??c.width,height:i??n??c.height,stroke:f??g??c.stroke,"stroke-width":A.value,class:S("lucide",v,...t?[`lucide-${w(L(t))}-icon`,`lucide-${w(t)}`]:["lucide-icon"])},[...(e??r??[]).map(a=>l(...a)),...u.default?[u.default()]:[]])};/**
+ */const $=({name:t,iconNode:e,"icon-node":r,absoluteStrokeWidth:o,"absolute-stroke-width":s,strokeWidth:w,"stroke-width":p,size:i,color:f,...C},{slots:u})=>{const{size:n,color:g,strokeWidth:m=2,absoluteStrokeWidth:x=!1,class:v=""}=_(),A=b(()=>{const a=h(o)||h(s)||o===!0||s===!0||x===!0,d=w||p||m||c["stroke-width"];return a?Number(d)*24/Number(i??n??c.width):d});return l("svg",{...c,...C,width:i??n??c.width,height:i??n??c.height,stroke:f??g??c.stroke,"stroke-width":A.value,class:S("lucide",v,...t?[`lucide-${k(L(t))}-icon`,`lucide-${k(t)}`]:["lucide-icon"])},[...(e??r??[]).map(a=>l(...a)),...u.default?[u.default()]:[]])};/**
  * @license @lucide/vue v1.24.0 - ISC
  *
  * This source code is licensed under the ISC license.

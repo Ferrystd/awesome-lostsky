@@ -62,6 +62,21 @@ app/{app}/controller/
 
 `config/route.php` 使用 `url_route_must=true` 禁止控制器与动作自动回退；所有对外接口必须声明在应用的 `route/app.php` 中，并同步维护 OpenAPI。
 
+含通用 `<id>` 路径变量的应用，在自己的路由文件顶部集中声明整数规则：
+
+```php
+use think\facade\Route;
+
+Route::pattern(['id' => 'int']);
+
+Route::get('product/<id>', 'Product/get');
+Route::post('product/<id>', 'Product/edit');
+```
+
+全局规则必须放在 `app/{app}/route/app.php`，作用域只覆盖当前应用；不要在每条路由后重复 `->pattern(['id' => '\d+'])`。规则名称和写法参见 [ThinkPHP 全局变量规则](https://doc.thinkphp.cn/v8_0/vars_rule.html)。
+
+当前锁定的 ThinkPHP 8.1.4 中，全局 `id => int` 负责限制路由匹配，因此非数字 ID 在路由层返回 404，但匹配后的原始路由变量仍是字符串。控制器必须使用 `$request->route('id/d')` 完成整数转换；不得改用 `param()`，否则 query 或 body 中的同名字段可能覆盖路径 ID。
+
 控制器中间件的位置参数使用冒号，例如 `Ability:transaction:2`；只有中间件自行定义的参数列表使用逗号，例如 `EntityType:team,teamMember`。
 
 ## 新增应用

@@ -12,15 +12,15 @@ class Realtime
 
     public function connect(\think\Request $request)
     {
-        return success(app(\app\service\ChatRealtime::class)->connectionToken((int) $request->user_id));
+        return success(app(\app\service\ChatRealtime::class)->connectionToken($request->user_id));
     }
 
     public function subscribe(\think\Request $request)
     {
         return success(app(\app\service\ChatRealtime::class)->subscriptionToken(
-            (int) $request->team_id, (int) $request->user_id,
-            (array) $request->acting_entity,
-            (string) $request->post('conversation', '')
+            $request->team_id, $request->user_id,
+            $request->acting_entity,
+            $request->post('conversation/s', '')
         ));
     }
 }

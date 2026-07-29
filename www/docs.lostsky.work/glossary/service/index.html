@@ -1300,6 +1300,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#smsverification" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        SmsVerification
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#storefront" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3014,6 +3025,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#smsverification" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        SmsVerification
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#storefront" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -4028,6 +4050,11 @@
 <td><code>array</code></td>
 </tr>
 <tr>
+<td><code>bySms</code></td>
+<td><code>string $phone</code>、<code>string $code</code>、<code>array $deviceInfo = []</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
 <td><code>byAccount</code></td>
 <td><code>string $account</code>、<code>string $password</code>、<code>array $deviceInfo = []</code></td>
 <td><code>array</code></td>
@@ -4367,7 +4394,7 @@
 <tbody>
 <tr>
 <td><code>phone</code></td>
-<td><code>string $phone</code>、<code>string $password</code>、<code>array $deviceInfo = []</code></td>
+<td><code>string $phone</code>、<code>string $code</code>、<code>string $password</code>、<code>array $deviceInfo = []</code></td>
 <td><code>array</code></td>
 </tr>
 </tbody>
@@ -4469,6 +4496,28 @@
 <tr>
 <td><code>unbind</code></td>
 <td><code>int $teamId</code>、<code>int $id</code></td>
+<td><code>void</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="smsverification">SmsVerification<a class="headerlink" href="#smsverification" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>参数</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>send</code></td>
+<td><code>string $phone</code>、<code>string $purpose</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>verify</code></td>
+<td><code>string $phone</code>、<code>string $code</code>、<code>string $purpose</code></td>
 <td><code>void</code></td>
 </tr>
 </tbody>

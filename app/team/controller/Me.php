@@ -23,7 +23,7 @@ class Me
         $result  = $service->get($request->team_id, $request->member_id);
         $fieldService = app(\app\service\TeamEntityField::class);
         $result['custom_fields'] = array_values(array_filter(
-            $fieldService->list((int) $request->team_id, 'entity'),
+            $fieldService->list($request->team_id, 'entity'),
             static fn (array $field): bool => (int) ($field['is_visible'] ?? 0) === 1
         ));
         $visibleFieldIds = array_fill_keys(array_map(
@@ -33,13 +33,13 @@ class Me
         $result['custom_field_values'] = empty($result['slug'])
             ? []
             : array_values(array_filter(
-                $fieldService->values((int) $request->team_id, (string) $result['slug']),
+                $fieldService->values($request->team_id, (string) $result['slug']),
                 static fn (array $value): bool => isset($visibleFieldIds[(int) ($value['field_id'] ?? 0)])
             ));
         $roleSummary = empty($result['slug'])
             ? ['role_assignments' => [], 'effective_permissions' => []]
             : app(\app\service\EntityRole::class)->summary(
-                (int) $request->team_id,
+                $request->team_id,
                 (string) $result['slug']
             );
         $result = array_merge($result, $roleSummary);
@@ -62,9 +62,9 @@ class Me
     public function slug(Request $request)
     {
         $identity = app(\app\service\Entity::class)->claimMember(
-            (int) $request->team_id,
-            (int) $request->member_id,
-            (string) $request->post('slug', '')
+            $request->team_id,
+            $request->member_id,
+            $request->post('slug/s', '')
         );
 
         return success(['slug' => $identity->slug], '成员标识已确定');
@@ -73,8 +73,8 @@ class Me
     public function fields(Request $request)
     {
         $member = app(TeamMemberService::class)->get(
-            (int) $request->team_id,
-            (int) $request->member_id
+            $request->team_id,
+            $request->member_id
         );
         $slug = (string) ($member['slug'] ?? '');
         if ($slug === '') {
@@ -82,9 +82,9 @@ class Me
         }
 
         app(\app\service\TeamEntityField::class)->saveOwnValues(
-            (int) $request->team_id,
+            $request->team_id,
             $slug,
-            (array) $request->post('values', [])
+            $request->post('values/a', [])
         );
 
         return message('字段值已保存');

@@ -26,14 +26,14 @@ class Product
             'entity_id' => $request->get('entity_id'),
             'is_active' => $request->get('is_active'),
             'keyword'   => $request->get('keyword'),
-        ], (int) $request->get('page', 1), (int) $request->get('limit', 20));
+        ], $request->get('page/d', 1), $request->get('limit/d', 20));
 
         return success($result);
     }
 
     public function get(Request $request)
     {
-        $id = (int) $request->param('id', 0);
+        $id = $request->route('id/d', 0);
 
         $service = app(ProductService::class);
         $result  = $service->get($request->team_id, $id);
@@ -64,7 +64,7 @@ class Product
 
     public function edit(Request $request)
     {
-        $id = (int) $request->param('id', 0);
+        $id = $request->route('id/d', 0);
 
         $data = [];
         foreach (['name', 'price', 'cost', 'description', 'cover_image', 'introduction_markdown', 'is_active',
@@ -83,7 +83,7 @@ class Product
 
     public function delete(Request $request)
     {
-        $id = (int) $request->param('id', 0);
+        $id = $request->route('id/d', 0);
 
         $service = app(ProductService::class);
         $service->delete($request->team_id, $id);
@@ -94,7 +94,7 @@ class Product
 
     public function setHandlers(Request $request)
     {
-        $id        = (int) $request->param('id', 0);
+        $id        = $request->route('id/d', 0);
         $entityIds = $request->post('entity_ids', []);
 
         $service = app(ProductService::class);

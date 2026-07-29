@@ -22,7 +22,7 @@ class Role
 
     public function get(Request $request)
     {
-        $id = (int) $request->param('id', 0);
+        $id = $request->get('id/d', 0);
 
         return success(app(\app\service\Role::class)->get($request->team_id, $id));
     }
@@ -33,8 +33,8 @@ class Role
             'role_key'    => $request->post('role_key', ''),
             'name'        => $request->post('name', ''),
             'description' => $request->post('description'),
-            'sort'        => (int) $request->post('sort', 0),
-            'is_displayed'=> (int) $request->post('is_displayed', 0),
+            'sort'        => $request->post('sort/d', 0),
+            'is_displayed'=> $request->post('is_displayed/d', 0),
         ]);
 
         return success(['id' => $id], '角色已创建');
@@ -42,12 +42,12 @@ class Role
 
     public function edit(Request $request)
     {
-        $id   = (int) $request->post('id', 0);
+        $id   = $request->post('id/d', 0);
         $data = [];
         foreach (['name', 'description', 'sort', 'is_displayed'] as $field) {
             if ($request->has($field)) {
                 $data[$field] = in_array($field, ['sort', 'is_displayed'], true)
-                    ? (int) $request->post($field)
+                    ? $request->post("{$field}/d")
                     : $request->post($field);
             }
         }
@@ -61,7 +61,7 @@ class Role
     {
         app(\app\service\Role::class)->delete(
             $request->team_id,
-            (int) $request->post('id', 0)
+            $request->post('id/d', 0)
         );
 
         return message('角色已删除');

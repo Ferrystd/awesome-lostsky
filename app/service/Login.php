@@ -21,7 +21,7 @@ class Login
         }
 
         $user = User::where('phone', $phone)->find();
-        if (!$user || $password !== $user->password) {
+        if (!$user || !$this->verifyPassword($user, $password)) {
             throw new HttpException(401, '手机号或密码错误');
         }
 
@@ -29,7 +29,22 @@ class Login
     }
 
     /**
-     * 用户名/邮箱 + 密码登录
+     * 手机号 + 短信验证码登录
+     */
+    public function bySms(string $phone, string $code, array $deviceInfo = []): array
+    {
+        app(SmsVerification::class)->verify($phone, $code, SmsVerification::PURPOSE_LOGIN);
+
+        $user = User::where('phone', $phone)->find();
+        if (!$user) {
+            throw new HttpException(404, '手机号尚未注册');
+        }
+
+        return $this->loginSuccess($user, $deviceInfo);
+    }
+
+    /**
+     * 手机号/用户名/邮箱 + 密码登录
      */
     public function byAccount(string $account, string $password, array $deviceInfo = []): array
     {
@@ -40,8 +55,9 @@ class Login
 
         $user = User::where('username', $account)
             ->whereOr('email', $account)
+            ->whereOr('phone', $account)
             ->find();
-        if (!$user || $password !== $user->password) {
+        if (!$user || !$this->verifyPassword($user, $password)) {
             throw new HttpException(401, '账号或密码错误');
         }
 
@@ -81,5 +97,26 @@ class Login
     public function refresh(string $refreshToken): array
     {
         return app(RefreshToken::class)->rotate($refreshToken);
+    }
+
+    private function verifyPassword(User $user, string $password): bool
+    {
+        $stored = (string) $user->password;
+        if (password_verify($password, $stored)) {
+            if (password_needs_rehash($stored, PASSWORD_DEFAULT)) {
+                $user->password = password_hash($password, PASSWORD_DEFAULT);
+                $user->save();
+            }
+            return true;
+        }
+
+        // 兼容开发阶段遗留的明文密码；首次成功登录后立即迁移为哈希。
+        if ($stored !== '' && hash_equals($stored, $password)) {
+            $user->password = password_hash($password, PASSWORD_DEFAULT);
+            $user->save();
+            return true;
+        }
+
+        return false;
     }
 }

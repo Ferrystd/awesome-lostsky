@@ -18,7 +18,7 @@ class Identity
     public function candidates(Request $request)
     {
         return success(app(IdentitySession::class)->candidates(
-            (int) $request->authenticated_user_id,
+            $request->authenticated_user_id,
             $request->entity_session ?? null
         ));
     }
@@ -26,9 +26,9 @@ class Identity
     public function receive(Request $request)
     {
         return success(app(IdentitySession::class)->receive(
-            (int) $request->authenticated_user_id,
+            $request->authenticated_user_id,
             (string) ($request->jwt->dvt ?? ''),
-            (string) $request->post('slug', ''),
+            $request->post('slug/s', ''),
             $request->entity_session ?? null
         ), 'Identity received');
     }
@@ -36,7 +36,7 @@ class Identity
     public function drop(Request $request)
     {
         return success(app(IdentitySession::class)->drop(
-            (int) $request->authenticated_user_id,
+            $request->authenticated_user_id,
             (string) ($request->jwt->dvt ?? ''),
             (string) ($request->jwt->jti ?? '')
         ), 'Identity dropped');
@@ -45,9 +45,9 @@ class Identity
     public function member(Request $request)
     {
         return success(app(IdentitySession::class)->receiveMember(
-            (int) $request->authenticated_user_id,
+            $request->authenticated_user_id,
             (string) ($request->jwt->dvt ?? ''),
-            (string) $request->post('team_slug', '')
+            $request->post('team_slug/s', '')
         ), '已切换为当前团队成员');
     }
 }

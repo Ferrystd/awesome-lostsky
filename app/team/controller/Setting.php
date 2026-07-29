@@ -22,9 +22,9 @@ class Setting
     {
         $service = app(TeamSetting::class);
         $result  = $service->get(
-            (int) $request->team_id,
-            (string) $request->get('app', 'index'),
-            (array) $request->acting_entity
+            $request->team_id,
+            $request->get('app/s', 'index'),
+            $request->acting_entity
         );
         $key     = $request->get('key');
 
@@ -52,6 +52,6 @@ class Setting
 
     public function schema(Request $request)
     {
-        return success(app(TeamSetting::class)->schema((int) $request->team_id));
+        return success(app(TeamSetting::class)->schema($request->team_id));
     }
 }

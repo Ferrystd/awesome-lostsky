@@ -39,8 +39,8 @@ class Sender
         $service = app(SenderService::class);
         $service->bind(
             $request->team_id,
-            (int) $request->post('entity_id', 0),
-            (int) $request->post('customer_id', 0)
+            $request->post('entity_id/d', 0),
+            $request->post('customer_id/d', 0)
         );
         app(\app\service\BusinessAudit::class)->record(
             $request,
@@ -48,7 +48,7 @@ class Sender
             'bind',
             'customerSender',
             null,
-            ['customer_id' => (int) $request->post('customer_id', 0)]
+            ['customer_id' => $request->post('customer_id/d', 0)]
         );
 
         return message('绑定成功');
@@ -57,7 +57,7 @@ class Sender
     public function unbind(Request $request)
     {
         $service = app(SenderService::class);
-        $id = (int) $request->post('id', 0);
+        $id = $request->post('id/d', 0);
         $service->unbind($request->team_id, $id);
         app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'unbind', 'customerSender', $id);
 
