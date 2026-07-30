@@ -5,6 +5,7 @@ namespace app\shop\controller;
 
 use app\service\TeamCustomer;
 use app\service\CustomerBinding;
+use app\service\CustomerProfile;
 use think\Request;
 
 class Customer
@@ -25,7 +26,8 @@ class Customer
             $request->authenticated_user_id,
             (string) ($request->jwt->dvt ?? ''),
             $request->entity_session ?? null,
-            $request->post('slug') === null ? null : $request->post('slug/s')
+            $request->post('slug') === null ? null : $request->post('slug/s'),
+            $request->post('inviter_slug') === null ? null : $request->post('inviter_slug/s')
         );
 
         return success($result, $result['created'] ? '客户身份已建立' : '客户身份已领取');
@@ -33,10 +35,51 @@ class Customer
 
     public function me(Request $request)
     {
-        $service = app(TeamCustomer::class);
-        $result  = $service->me($request->team_id, $request->customer_id);
+        return success(app(CustomerProfile::class)->get(
+            $request->team_id,
+            $request->customer_id
+        ));
+    }
 
-        return success($result);
+    public function update(Request $request)
+    {
+        $data = [
+            'nickname' => $request->post('nickname', ''),
+            'avatar' => $request->post('avatar'),
+            'description' => $request->post('description'),
+        ];
+        if ($request->has('assignee_entity_id', 'post')) {
+            $data['assignee_entity_id'] = $request->post('assignee_entity_id');
+        }
+        app(CustomerProfile::class)->update(
+            $request->team_id,
+            $request->customer_id,
+            $data
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request,
+            'shop',
+            'update',
+            'customer',
+            $request->customer_id,
+            ['fields' => array_keys($data)]
+        );
+
+        return message('客户资料已更新');
+    }
+
+    public function assignees(Request $request)
+    {
+        return success(app(CustomerProfile::class)->assignees($request->team_id));
+    }
+
+    public function slug(Request $request)
+    {
+        return success(app(CustomerProfile::class)->claimSlug(
+            $request->team_id,
+            $request->customer_id,
+            $request->post('slug/s', '')
+        ), '客户标识已确定');
     }
 
     public function orders(Request $request)

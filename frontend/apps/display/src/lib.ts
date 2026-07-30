@@ -1,7 +1,7 @@
 import { api } from '@lostsky/api/client'
 import type { EntitySummary as ResolvedEntity } from '@lostsky/ui/markdown'
 import type { DocumentSummary, EntitySummary, Page, PublicDocument, PublicSubject } from './types'
-export { entityTypeLabel, formatPublicField } from './format'
+export { entityTypeLabel, formatMoney, formatPublicField } from './format'
 
 export const displayApi = {
   profile: () => api.get<PublicSubject>('/profile/get'),

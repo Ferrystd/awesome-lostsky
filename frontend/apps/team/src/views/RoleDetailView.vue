@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
+import type { EntityDisplay } from '@lostsky/ui/entity'
+import { feedback } from '@lostsky/ui/feedback'
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { Check, Save, Trash2, X } from '@lucide/vue'
+import { Save, Trash2, X } from '@lucide/vue'
 import {
   NButton,
   NCheckbox,
@@ -30,6 +33,13 @@ interface EntitySummary {
   name: string
   is_external: boolean
 }
+interface SearchEntitySummary {
+  type: EntityType
+  slug: string
+  display_name: string
+  avatar?: string | null
+  available: boolean
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -38,9 +48,8 @@ const roleId = computed(() => Number(route.params.id))
 const form = reactive({ name: '', description: '', sort: 0, is_displayed: false })
 const permissionKeys = ref<string[]>([])
 const targetSlug = ref('')
+const targetEntities = ref<EntityDisplay[]>([])
 const localError = ref('')
-const infoSaved = ref(false)
-const permissionsSaved = ref(false)
 
 const roleQuery = useQuery({
   queryKey: computed(() => ['role', roleId.value]),
@@ -84,26 +93,30 @@ const saveInfo = useMutation({
     is_displayed: form.is_displayed ? 1 : 0,
   }),
   onSuccess: async () => {
-    infoSaved.value = true
     await Promise.all([
       client.invalidateQueries({ queryKey: ['role', roleId.value] }),
       client.invalidateQueries({ queryKey: ['roles'] }),
     ])
+    feedback.success('角色资料已保存')
   },
+  onError: error => feedback.error(friendlyError(error)),
 })
 const savePermissions = useMutation({
   mutationFn: () => api.post('/rolePermission/save', {
     role_id: roleId.value,
     permission_keys: permissionKeys.value,
   }),
-  onSuccess: () => { permissionsSaved.value = true },
+  onSuccess: () => feedback.success('角色权限已保存'),
+  onError: error => feedback.error(friendlyError(error)),
 })
 const remove = useMutation({
   mutationFn: () => api.post('/role/delete', { id: roleId.value }),
   onSuccess: async () => {
     await client.invalidateQueries({ queryKey: ['roles'] })
+    feedback.success('角色已删除')
     await router.replace('/roles')
   },
+  onError: error => feedback.error(friendlyError(error)),
 })
 const resolveTarget = useMutation({
   mutationFn: async () => {
@@ -122,8 +135,8 @@ const resolveTarget = useMutation({
     }
     togglePermission(key, true)
     targetSlug.value = ''
+    targetEntities.value = []
     localError.value = ''
-    permissionsSaved.value = false
   },
 })
 
@@ -131,9 +144,6 @@ const requestError = computed(() =>
   roleQuery.error.value
   || permissionsQuery.error.value
   || catalogQuery.error.value
-  || saveInfo.error.value
-  || savePermissions.error.value
-  || remove.error.value
   || resolveTarget.error.value,
 )
 const pending = computed(() =>
@@ -146,13 +156,25 @@ function togglePermission(key: string, checked: boolean) {
   permissionKeys.value = checked
     ? [...new Set([...permissionKeys.value, key])]
     : permissionKeys.value.filter(item => item !== key)
-  permissionsSaved.value = false
 }
 function selectedCount(items: PermissionItem[]) {
   return items.filter(item => permissionKeys.value.includes(item.key)).length
 }
 function deleteRole() {
   if (window.confirm(`确认删除角色“${roleQuery.data.value?.name || roleId.value}”？`)) remove.mutate()
+}
+async function searchEntities(keyword: string): Promise<EntityDisplay[]> {
+  const found = await api.get<SearchEntitySummary[]>('/entity/search', { keyword, limit: 6 })
+  return found.filter(entity => entity.available).map(entity => ({
+    slug: entity.slug,
+    type: entity.type,
+    name: entity.display_name,
+    avatar: entity.avatar,
+  }))
+}
+function selectTargetEntities(entities: EntityDisplay[]) {
+  targetEntities.value = entities
+  targetSlug.value = entities[0]?.slug ?? ''
 }
 </script>
 
@@ -179,20 +201,19 @@ function deleteRole() {
           </header>
           <NForm label-placement="top" @submit.prevent="saveInfo.mutate()">
             <NFormItem label="角色名称" required>
-              <NInput v-model:value="form.name" aria-label="角色名称" @update:value="infoSaved = false" />
+              <NInput v-model:value="form.name" aria-label="角色名称" />
             </NFormItem>
             <NFormItem label="说明">
-              <NInput v-model:value="form.description" aria-label="说明" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" @update:value="infoSaved = false" />
+              <NInput v-model:value="form.description" aria-label="说明" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" />
             </NFormItem>
             <NFormItem label="显示顺序">
-              <NInputNumber v-model:value="form.sort" aria-label="显示顺序" :min="0" :show-button="false" @update:value="infoSaved = false" />
+              <NInputNumber v-model:value="form.sort" aria-label="显示顺序" :min="0" :show-button="false" />
               <template #feedback>数字越小越靠前。</template>
             </NFormItem>
             <NFormItem label="公开主页展示">
               <NSwitch
                 v-model:value="form.is_displayed"
                 aria-label="在公开实体资料中展示此角色"
-                @update:value="infoSaved = false"
               >
                 <template #checked>公开</template>
                 <template #unchecked>隐藏</template>
@@ -200,7 +221,6 @@ function deleteRole() {
               <template #feedback>开启后，获得此角色的公开成员或虚拟实体会展示角色名称和说明；角色权限不会公开。</template>
             </NFormItem>
             <footer>
-              <span v-if="infoSaved" class="saved"><Check :size="16" />角色资料已保存</span>
               <NButton type="error" secondary :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</NButton>
               <NButton attr-type="submit" type="primary" :loading="saveInfo.isPending.value" :disabled="!form.name.trim()"><template #icon><Save :size="17" /></template>保存资料</NButton>
             </footer>
@@ -219,13 +239,14 @@ function deleteRole() {
               <p>输入当前团队实体的准确 slug，只授予领取该目标身份的权限。</p>
             </div>
             <div class="slug-controls">
-              <NInput
-                id="target-slug"
-                v-model:value="targetSlug"
-                placeholder="例如 bot-a"
-                autocapitalize="none"
-                :input-props="{ 'aria-label': '添加精确委托目标' }"
-                @keyup.enter="targetSlug.trim() && resolveTarget.mutate()"
+              <LsEntityInput
+                :model-value="targetEntities"
+                :query="targetSlug"
+                :search-entities="searchEntities"
+                input-id="target-slug"
+                placeholder="按 slug 搜索当前团队实体"
+                @update:model-value="selectTargetEntities"
+                @update:query="targetSlug = $event"
               />
               <NButton secondary :loading="resolveTarget.isPending.value" :disabled="!targetSlug.trim()" @click="resolveTarget.mutate()">解析并添加</NButton>
             </div>
@@ -258,7 +279,6 @@ function deleteRole() {
               </div>
             </NCollapseItem>
           </NCollapse>
-          <p v-if="permissionsSaved" class="saved"><Check :size="16" />权限已保存</p>
         </section>
       </template>
     </div>

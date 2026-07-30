@@ -1430,13 +1430,6 @@
               1
             ]
           },
-          "is_visible": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ]
-          },
           "sort": {
             "type": "integer"
           },

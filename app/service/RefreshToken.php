@@ -5,6 +5,7 @@ namespace app\service;
 
 use app\model\UserDevice;
 use app\model\UserRefreshToken;
+use app\model\User;
 use think\exception\HttpException;
 use think\facade\Db;
 
@@ -55,6 +56,10 @@ class RefreshToken
             if (!$device) {
                 return ['status' => 401];
             }
+            $user = User::where('id', $current->user_id)->lock(true)->find();
+            if (!$user || (int) $user->is_banned === 1) {
+                return ['status' => 403];
+            }
 
             if ($current->used_at) {
                 if ((int) $current->used_at + self::ROTATION_GRACE_SECONDS >= time()) {
@@ -89,6 +94,9 @@ class RefreshToken
 
         if ($result['status'] === 409) {
             throw new HttpException(409, '刷新令牌已轮换，请使用最新令牌重试');
+        }
+        if ($result['status'] === 403) {
+            throw new HttpException(403, '账号已被平台封禁，请联系平台管理员');
         }
         if ($result['status'] !== 200) {
             throw new HttpException(401, '刷新令牌无效或已撤销');

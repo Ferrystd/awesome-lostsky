@@ -124,6 +124,30 @@ class TransactionStats
             ->toArray());
     }
 
+    public function byAssignee(int $teamId, int $startTime, int $endTime): array
+    {
+        $rows = TeamTransaction::alias('t')
+            ->where('t.team_id', $teamId)
+            ->where('t.trans_at', '>=', $startTime)
+            ->where('t.trans_at', '<', $endTime)
+            ->whereNotNull('t.customer_id')
+            ->whereNotNull('t.sender_entity_id')
+            ->group('t.sender_entity_id')
+            ->order('total_price', 'desc')
+            ->field([
+                't.sender_entity_id as entity_id',
+                'COUNT(DISTINCT t.customer_id) as customer_count',
+                'COUNT(*) as transaction_count',
+                'COALESCE(SUM(t.total_price), 0) as total_price',
+                'COALESCE(SUM(t.cost), 0) as total_cost',
+                'COALESCE(SUM(t.team_cut), 0) as team_cut',
+            ])
+            ->select()
+            ->toArray();
+
+        return array_values($this->withEntitySummaries($rows));
+    }
+
     private function withEntitySummaries(array $rows): array
     {
         foreach ($rows as &$row) {

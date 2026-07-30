@@ -1,16 +1,22 @@
-import sys
 import os
+import sys
+from pathlib import Path
 
-HOSTS_PATH = r"C:\Windows\System32\drivers\etc\hosts"
 TARGET_IP = "127.0.0.1"
 
 
+def get_hosts_path():
+    if os.name == "nt":
+        system_root = os.environ.get("SystemRoot", r"C:\Windows")
+        return Path(system_root) / "System32" / "drivers" / "etc" / "hosts"
+    return Path("/etc/hosts")
+
+
 def is_admin():
-    try:
-        return os.getuid() == 0
-    except AttributeError:
+    if os.name == "nt":
         import ctypes
         return ctypes.windll.shell32.IsUserAnAdmin() != 0
+    return os.geteuid() == 0
 
 
 def main():
@@ -19,17 +25,19 @@ def main():
         sys.exit(1)
 
     if not is_admin():
-        print("Error: This script must be run as Administrator.")
+        privilege = "Administrator" if os.name == "nt" else "root"
+        print(f"Error: This script must be run as {privilege}.")
         sys.exit(1)
 
     app = sys.argv[1]
     slug = sys.argv[2] if len(sys.argv) > 2 else None
+    hosts_path = get_hosts_path()
 
     entries_to_add = [f"{app}.lostsky.work"]
     if slug:
         entries_to_add.append(f"{slug}.{app}.lostsky.work")
 
-    with open(HOSTS_PATH, "r", encoding="utf-8") as f:
+    with hosts_path.open("r", encoding="utf-8") as f:
         lines = f.readlines()
 
     existing_hosts = set()
@@ -49,9 +57,9 @@ def main():
         print("All entries already exist. Nothing to do.")
         return
 
-    with open(HOSTS_PATH, "a", encoding="utf-8") as f:
+    with hosts_path.open("a", encoding="utf-8") as f:
         for entry in new_entries:
-            f.write(f"\n{entry}")
+            f.write(f"{os.linesep}{entry}")
 
     for entry in new_entries:
         print(f"Added: {entry}")

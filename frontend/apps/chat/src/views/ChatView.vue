@@ -6,6 +6,7 @@ import { NConfigProvider, NInput, NSelect } from 'naive-ui'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { loadCentrifuge, type CentrifugeClient, type Subscription } from '../lib/centrifuge'
+import { identityManagementLink } from '../lib/profile-navigation'
 
 interface Actor {
   type: 'entity' | 'customer' | 'team' | 'virtual'
@@ -14,6 +15,8 @@ interface Actor {
   avatar: string | null
   can_act: boolean
 }
+
+const identityManagement = identityManagementLink()
 interface Participant extends Actor {
   joined_at: number
   left_at: number | null
@@ -234,7 +237,7 @@ onUnmounted(() => {
         <a class="brand" href="//chat.lostsky.work"><MessageCircleMore :size="22" /><strong>LostSky Chat</strong></a>
         <span class="team">@{{ teamSlug }}</span>
         <nav>
-          <a href="/profile"><UserRound :size="18" />资料</a>
+          <a :href="identityManagement.href"><UserRound :size="18" />{{ identityManagement.label }}</a>
           <a class="new-chat" href="/new"><Plus :size="18" />新会话</a>
         </nav>
       </header>

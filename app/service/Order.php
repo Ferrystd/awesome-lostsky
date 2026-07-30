@@ -80,6 +80,13 @@ class Order
             $handlerId = $this->resolveHandler($product, $data['handler_entity_id'] ?? null);
             $quantity  = (int) ($data['quantity'] ?? 1);
             $customerId = empty($data['customer_id']) ? null : (int) $data['customer_id'];
+            if ($customerId) {
+                $customer = app(CustomerAssignment::class)->customer($teamId, $customerId, true);
+                $assignedSenderId = app(CustomerAssignment::class)->sender($customer, $teamId);
+                if ($assignedSenderId) {
+                    $data['sender_entity_id'] = $assignedSenderId;
+                }
+            }
             $overrides = [];
             foreach (['handler_cut', 'sender_cut', 'cs_cut', 'team_cut'] as $field) {
                 if (array_key_exists($field, $data) && $data[$field] !== null) {

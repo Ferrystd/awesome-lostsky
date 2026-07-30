@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { entityTypeLabel, formatPublicField } from './format'
+import { entityTypeLabel, formatMoney, formatPublicField } from './format'
 
 describe('display public fields', () => {
   it('renders booleans, dates and select labels for visitors', () => {
@@ -51,5 +51,10 @@ describe('display public fields', () => {
     expect(entityTypeLabel('team')).toBe('团队')
     expect(entityTypeLabel('teamMember')).toBe('成员')
     expect(entityTypeLabel('teamVirtual')).toBe('虚拟实体')
+  })
+
+  it('formats public product prices consistently with the shop', () => {
+    expect(formatMoney('32')).toBe('¥32.00')
+    expect(formatMoney('19.90')).toBe('¥19.90')
   })
 })

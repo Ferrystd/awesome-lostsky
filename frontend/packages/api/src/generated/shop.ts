@@ -153,7 +153,42 @@ export interface paths {
         /** 当前顾客资料 */
         get: operations["shopCustomerMe"];
         put?: never;
+        /** 更新当前商家的团队内客户资料 */
+        post: operations["shopCustomerUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取当前客户可选择的归属实体 */
+        get: operations["shopCustomerAssignees"];
+        put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/slug": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 为历史客户首次领取不可变 slug */
+        post: operations["shopCustomerClaimSlug"];
         delete?: never;
         options?: never;
         head?: never;
@@ -617,6 +652,41 @@ export interface components {
             /** Format: int64 */
             owner_entity_id?: number | null;
         };
+        CustomerSelfProfile: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            team_id: number;
+            /** @enum {integer} */
+            is_blocked: 0 | 1;
+            profile: {
+                /** @description 当前商家团队内使用的昵称 */
+                name: string;
+                avatar?: string | null;
+                /** @description 当前商家团队内使用的简介 */
+                description?: string | null;
+            };
+            identity: {
+                /** @description 只用于身份签发和内部引用，不代表公开主页 */
+                slug: string | null;
+            };
+            balance?: components["schemas"]["Balance"] | null;
+            /** @description 当前客户归属实体；客户本人可以在候选实体中修改或清空。 */
+            assignee?: components["schemas"]["CustomerAssignee"] | null;
+            /** Format: int64 */
+            create_time?: number;
+            /** Format: int64 */
+            update_time?: number;
+        };
+        CustomerAssignee: {
+            /** Format: int64 */
+            entity_id: number;
+            slug: string;
+            /** @enum {string} */
+            type: "team" | "teamMember" | "teamVirtual";
+            name: string;
+            avatar?: string | null;
+        };
         Balance: {
             /** Format: int64 */
             id?: number;
@@ -863,8 +933,6 @@ export interface components {
             is_editable?: 0 | 1;
             /** @enum {integer} */
             is_searchable?: 0 | 1;
-            /** @enum {integer} */
-            is_visible?: 0 | 1;
             sort?: number;
             /** @enum {string} */
             source?: "system" | "custom";
@@ -2059,7 +2127,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["Customer"];
+                        data?: components["schemas"]["CustomerSelfProfile"];
                     };
                 };
             };
@@ -2119,6 +2187,174 @@ export interface operations {
             };
             /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    shopCustomerUpdate: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 团队内昵称 */
+                    nickname: string;
+                    avatar?: string | null;
+                    /** @description 团队内简介 */
+                    description?: string | null;
+                    /**
+                     * Format: int64
+                     * @description 新的归属实体 ID；传 null 清空。只允许当前团队的 Team、成员或虚拟实体。
+                     */
+                    assignee_entity_id?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description 客户资料已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+            /** @description 未登录或身份已失效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 当前身份不是本商家的有效客户，或客户已被封禁 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 资料格式不符合要求 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    shopCustomerAssignees: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["CustomerAssignee"][];
+                    };
+                };
+            };
+            /** @description 未登录 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 当前身份不是有效客户 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    shopCustomerClaimSlug: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    slug: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 客户标识已确定 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: {
+                            slug?: string;
+                        };
+                    };
+                };
+            };
+            /** @description 当前身份不是本商家的有效客户，或客户已被封禁 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 客户 slug 已存在 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description slug 格式不符合要求 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2878,6 +3114,8 @@ export interface operations {
                 "application/json": {
                     /** @description ??????????? customer-{id} */
                     slug?: string;
+                    /** @description 邀请实体 slug。仅首次建立客户身份时写入归属；无效值会被忽略。 */
+                    inviter_slug?: string;
                 };
             };
         };

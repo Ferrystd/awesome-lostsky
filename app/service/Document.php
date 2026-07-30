@@ -17,6 +17,7 @@ class Document
         app(Entity::class)->assertInTeam($entityId, $teamId);
         $guard = app(Visibility::class);
         $isTeamManager = $guard->isTeamManager($teamId, $actingEntity);
+        $canReadAll = $this->canReadAll($teamId, $actingEntity);
         $isSubject = $entityId === (int) $actingEntity['entity_id'];
 
         $query = DocumentModel::with(['subject'])->where('entity_id', $entityId);
@@ -27,10 +28,14 @@ class Document
             $query->where('visibility', (int) $filters['visibility']);
         }
         if (!empty($filters['keyword'])) {
-            $query->where('title', 'like', "%{$filters['keyword']}%");
+            $keyword = trim((string) $filters['keyword']);
+            $query->where(function ($query) use ($keyword) {
+                $query->whereLike('title', "%{$keyword}%")
+                    ->whereOr('content', 'like', "%{$keyword}%");
+            });
         }
 
-        $query->visibleTo((int) $actingEntity['entity_id'], $isTeamManager, $isSubject);
+        $query->visibleTo((int) $actingEntity['entity_id'], $isTeamManager || $canReadAll, $isSubject);
         $total = $query->count();
         $list = $query->order('sort', 'asc')->order('id', 'desc')
             ->page($page, $limit)->select()->toArray();
@@ -182,8 +187,18 @@ class Document
         $visibility->assertView(
             $doc,
             (int) $actingEntity['entity_id'],
-            $visibility->isTeamManager($teamId, $actingEntity),
+            $visibility->isTeamManager($teamId, $actingEntity)
+                || $this->canReadAll($teamId, $actingEntity),
             (int) $doc->entity_id === (int) $actingEntity['entity_id']
+        );
+    }
+
+    private function canReadAll(int $teamId, array $actingEntity): bool
+    {
+        return app(PermissionGate::class)->allows(
+            $teamId,
+            $actingEntity,
+            [PermissionDictionary::TEAM_DOCUMENT_READ]
         );
     }
 

@@ -20,22 +20,34 @@ class Me
     public function get(Request $request)
     {
         $service = app(TeamMemberService::class);
-        $result  = $service->get($request->team_id, $request->member_id);
+        $result  = $service->get(
+            $request->team_id,
+            $request->member_id,
+            $request->acting_entity
+        );
         $fieldService = app(\app\service\TeamEntityField::class);
-        $result['custom_fields'] = array_values(array_filter(
-            $fieldService->list($request->team_id, 'entity'),
-            static fn (array $field): bool => (int) ($field['is_visible'] ?? 0) === 1
-        ));
-        $visibleFieldIds = array_fill_keys(array_map(
-            static fn (array $field): int => (int) $field['id'],
-            $result['custom_fields']
-        ), true);
-        $result['custom_field_values'] = empty($result['slug'])
-            ? []
-            : array_values(array_filter(
-                $fieldService->values($request->team_id, (string) $result['slug']),
-                static fn (array $value): bool => isset($visibleFieldIds[(int) ($value['field_id'] ?? 0)])
-            ));
+        $subjectEntityId = (int) ($result['entity_id'] ?? 0);
+        $isFieldManager = app(\app\service\PermissionGate::class)->allows(
+            $request->team_id,
+            $request->acting_entity,
+            [\app\service\PermissionDictionary::TEAM_ENTITY_FIELD_MANAGE]
+        );
+        $result['custom_fields'] = $fieldService->visibleFields(
+            $request->team_id,
+            'entity',
+            $subjectEntityId,
+            $request->acting_entity,
+            $isFieldManager
+        );
+        $result['custom_field_values'] = $subjectEntityId > 0
+            ? $fieldService->visibleValues(
+                $request->team_id,
+                $subjectEntityId,
+                'entity',
+                $request->acting_entity,
+                $isFieldManager
+            )
+            : [];
         $roleSummary = empty($result['slug'])
             ? ['role_assignments' => [], 'effective_permissions' => []]
             : app(\app\service\EntityRole::class)->summary(
@@ -74,7 +86,8 @@ class Me
     {
         $member = app(TeamMemberService::class)->get(
             $request->team_id,
-            $request->member_id
+            $request->member_id,
+            $request->acting_entity
         );
         $slug = (string) ($member['slug'] ?? '');
         if ($slug === '') {

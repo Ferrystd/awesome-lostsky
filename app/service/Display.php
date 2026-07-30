@@ -12,6 +12,7 @@ use app\model\TeamEntityField;
 use app\model\TeamEntityFieldValue;
 use app\model\TeamEntityRole;
 use app\model\TeamMember;
+use app\model\TeamProduct;
 use app\model\TeamVirtual;
 use think\exception\HttpException;
 
@@ -101,6 +102,7 @@ class Display
             'profile' => $this->profileData($entity),
             'fields' => $this->publicFields($teamId, $entity),
             'roles' => $this->publicRoles($teamId, (int) $entity->id),
+            'products' => $this->publicProducts($teamId, $entity),
         ];
     }
 
@@ -251,9 +253,23 @@ class Display
         $fieldType = $entity->entityable_type === 'teamVirtual'
             ? TeamEntityType::Virtual
             : TeamEntityType::Entity;
+        $visibleFields = app(\app\service\TeamEntityField::class)->visibleFields(
+            $teamId,
+            $fieldType->value,
+            (int) $entity->id,
+            [],
+            false
+        );
+        $visibleFieldIds = array_map(
+            static fn (array $field): int => (int) $field['id'],
+            $visibleFields
+        );
+        if (!$visibleFieldIds) {
+            return [];
+        }
         $fields = TeamEntityField::where('team_id', $teamId)
             ->where('entity_type', $fieldType->value)
-            ->where('visibility', Visibility::Public->value)
+            ->whereIn('id', $visibleFieldIds)
             ->order('sort', 'asc')->order('id', 'asc')->select();
         if ($fields->isEmpty()) {
             return [];
@@ -333,6 +349,25 @@ class Display
     private function publicRoles(int $teamId, int $entityId): array
     {
         return $this->publicRolesForEntities($teamId, [$entityId])[$entityId] ?? [];
+    }
+
+    private function publicProducts(int $teamId, EntityModel $entity): array
+    {
+        $team = $this->team($teamId);
+        $products = $entity->products()
+            ->where('team_id', $teamId)
+            ->where('is_active', 1)
+            ->order('id', 'desc')
+            ->select();
+
+        return array_map(static fn (TeamProduct $product): array => [
+            'id' => (int) $product->id,
+            'name' => (string) $product->name,
+            'description' => $product->description ?: null,
+            'cover_image' => $product->cover_image ?: null,
+            'price' => (string) $product->price,
+            'href' => "//{$team->slug}.shop.lostsky.work/product/{$product->id}",
+        ], $products->all());
     }
 
     private function publicRolesForEntities(int $teamId, array $entityIds): array

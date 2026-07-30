@@ -7,6 +7,7 @@ Route::pattern(['id' => 'int']);
 Route::get('transaction', 'Transaction/index');
 Route::get('transaction/stats', 'Transaction/stats');
 Route::get('transaction/options', 'Options/index');
+Route::get('transaction/invite', 'Options/invite');
 Route::get('transaction/<id>', 'Transaction/get');
 Route::post('transaction', 'Transaction/create');
 Route::post('transaction/<id>', 'Transaction/edit');

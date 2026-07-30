@@ -20,6 +20,7 @@ use app\service\EntityProfile;
 use app\service\Sender;
 use app\service\Transaction;
 use app\service\TransactionStats;
+use app\service\TeamCustomerManagement;
 use think\App;
 use think\Request;
 use think\exception\HttpException;
@@ -325,6 +326,69 @@ try {
         403,
         'unbound entity cannot operate for a customer'
     );
+    $fixture['customer']->assignee_entity_id = $memberId;
+    $fixture['customer']->save();
+    $assertSame(
+        'allowed',
+        (new TransactionVerify)->handle(
+            $verifyRequest(
+                $fixture['team'],
+                $memberId,
+                (int) $fixture['member']->id,
+                $customerId
+            ),
+            static fn (): string => 'allowed'
+        ),
+        'current assignee can operate for their customer without an extra sender binding'
+    );
+    $customerManagement = app(TeamCustomerManagement::class);
+    $memberCustomers = $customerManagement->listing($teamId, [
+        'entity_id' => $memberId,
+        'type' => 'teamMember',
+        'id' => (int) $fixture['member']->id,
+    ], [], 1, 20);
+    $assertSame('own', $memberCustomers['scope'], 'entity without customer read permission gets an own-customer scope');
+    $assertSame(1, $memberCustomers['total'], 'entity without customer read permission sees only assigned customers');
+    $assertSame($customerId, (int) $memberCustomers['list'][0]['id'], 'own-customer scope returns the assigned customer');
+    $assertThrows(
+        fn () => $customerManagement->get($teamId, [
+            'entity_id' => $memberId,
+            'type' => 'teamMember',
+            'id' => (int) $fixture['member']->id,
+        ], $secondCustomerId),
+        404,
+        'own-customer scope hides another customer detail'
+    );
+    $roleId = app()->db->name('team_role')->insertGetId([
+        'team_id' => $teamId,
+        'role_key' => 'customer-reader-test',
+        'name' => 'Customer Reader Test',
+        'sort' => 0,
+        'is_displayed' => 0,
+        'create_time' => time(),
+        'update_time' => time(),
+    ]);
+    app()->db->name('team_role_permission')->insert([
+        'team_id' => $teamId,
+        'role_id' => $roleId,
+        'permission_key' => \app\service\PermissionDictionary::TEAM_CUSTOMER_READ,
+        'create_time' => time(),
+        'update_time' => time(),
+    ]);
+    app()->db->name('team_entity_role')->insert([
+        'team_id' => $teamId,
+        'entity_id' => (int) $fixture['teamEntity']->id,
+        'role_id' => $roleId,
+        'create_time' => time(),
+        'update_time' => time(),
+    ]);
+    $teamCustomers = $customerManagement->listing($teamId, [
+        'entity_id' => (int) $fixture['teamEntity']->id,
+        'type' => 'team',
+        'id' => $teamId,
+    ], [], 1, 20);
+    $assertSame('all', $teamCustomers['scope'], 'team entity receives full customer scope');
+    $assertSame(2, $teamCustomers['total'], 'team entity sees every customer');
 
     $valid = [
         'handler_entity_id'  => $memberId,
@@ -400,6 +464,11 @@ try {
     );
 
     $cashId = $transactionService->create($teamId, $valid);
+    $assertSame(
+        $memberId,
+        (int) TeamTransaction::find($cashId)->sender_entity_id,
+        'customer assignee overrides a submitted sender when the transaction is created'
+    );
     $prepaidId = $transactionService->create($teamId, [
         ...$valid,
         'cash'        => 40,
@@ -455,6 +524,19 @@ try {
     $assertSame(1, count($statsService->byEntity($teamId, 1_719_999_999, 1_720_200_000, 'handler')), 'entity stats group handler');
     $assertSame(2, count($statsService->timeline($teamId, 1_719_999_999, 1_720_200_000, 'day')), 'timeline groups by day');
     $assertSame(1, count($statsService->byCustomer($teamId, 1_719_999_999, 1_720_200_000)), 'customer stats group customer');
+    $assigneeStats = $statsService->byAssignee($teamId, 1_719_999_999, 1_720_200_000);
+    $assertSame(1, count($assigneeStats), 'assignee stats group snapshotted senders');
+    $assertSame(1, (int) $assigneeStats[0]['customer_count'], 'assignee stats count distinct customers');
+    $assertSame(2, (int) $assigneeStats[0]['transaction_count'], 'assignee stats count transactions');
+    $assertFloat(200, $assigneeStats[0]['total_price'], 'assignee stats total transaction price');
+
+    $fixture['customer']->assignee_entity_id = $secondMemberId;
+    $fixture['customer']->save();
+    $assertSame(
+        $memberId,
+        (int) TeamTransaction::find($cashId)->sender_entity_id,
+        'changing customer assignment does not rewrite historical transactions'
+    );
 
     $transactionService->delete($teamId, $prepaidId);
     $firstBalance = TeamCustomerBalance::where('customer_id', $customerId)->find();

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\exception\AccessDeniedException;
 use app\model\Entity;
 use app\model\TeamEntityRole;
 use app\model\TeamMember;
@@ -15,8 +16,30 @@ class PermissionGate
     public function assert(int $teamId, int|array $subject, array $permissionKeys): void
     {
         if (!$this->allows($teamId, $subject, $permissionKeys)) {
-            throw new HttpException(403, '你没有执行此操作的权限');
+            throw AccessDeniedException::permission($permissionKeys);
         }
+    }
+
+    public function effective(int $teamId, int|array $subject): array
+    {
+        $subject = $this->subject($subject);
+        if (!$this->validSubject($teamId, $subject)) {
+            return [];
+        }
+
+        $roleIds = TeamEntityRole::where('team_id', $teamId)
+            ->where('entity_id', $subject['entity_id'])
+            ->column('role_id');
+        if (!$roleIds) {
+            return [];
+        }
+
+        return array_values(array_unique(array_map(
+            'strval',
+            TeamRolePermission::where('team_id', $teamId)
+                ->whereIn('role_id', $roleIds)
+                ->column('permission_key')
+        )));
     }
 
     public function allows(int $teamId, int|array $subject, array $permissionKeys): bool

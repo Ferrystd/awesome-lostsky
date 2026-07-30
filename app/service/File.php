@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\exception\AccessDeniedException;
 use app\model\TeamAbility;
 use app\model\ExternalCompensation;
 use app\model\Entity;
@@ -150,7 +151,7 @@ class File
         $tier  = $tiers[$level] ?? $tiers[0];
 
         if ($tier['count'] === 0 && $tier['size'] === 0 && $level !== 3) {
-            throw new HttpException(403, '团队未开通文件上传能力');
+            throw AccessDeniedException::ability('file', '文件上传');
         }
 
         if ($level === 3) {

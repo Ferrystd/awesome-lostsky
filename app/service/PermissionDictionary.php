@@ -9,6 +9,8 @@ final class PermissionDictionary
     public const TEAM_MEMBER_INVITE = 'team.member.invite';
     public const TEAM_MEMBER_UPDATE = 'team.member.update';
     public const TEAM_MEMBER_REMOVE = 'team.member.remove';
+    public const TEAM_CUSTOMER_READ = 'team.customer.read';
+    public const TEAM_CUSTOMER_MANAGE = 'team.customer.manage';
     public const TEAM_ROLE_READ = 'team.role.read';
     public const TEAM_ROLE_WRITE = 'team.role.write';
 
@@ -31,8 +33,10 @@ final class PermissionDictionary
     public const FILE_READ = 'file.read';
     public const FILE_UPLOAD = 'file.upload';
     public const FILE_DELETE = 'file.delete';
+    public const TEAM_DOCUMENT_READ = 'team.document.read';
     public const TEAM_SETTING_READ = 'team.setting.read';
     public const TEAM_SETTING_UPDATE = 'team.setting.update';
+    public const TEAM_NOTICE_READ = 'team.notice.read';
     public const TEAM_NOTICE_SEND = 'team.notice.send';
 
     public const IDENTITY_TEAM_ASSUME = 'identity.team.assume';
@@ -50,21 +54,37 @@ final class PermissionDictionary
     public const CHAT_VIRTUAL_ALL_FIELD_MANAGE = 'chat.virtual.*.field.manage';
     public const TEAM_ENTITY_FIELD_MANAGE = 'team.entity_field.manage';
     public const TEAM_ENTITY_READ = 'team.entity.read';
-    public const TEAM_ENTITY_PROFILE_MANAGE = 'team.entity_profile.manage';
+    public const TEAM_ENTITY_PROFILE_MANAGE = 'team.entity.profile.manage';
     public const TEAM_ENTITY_FIELD_CUSTOMER_MANAGE = 'team.entity_field.customer.manage';
+
+    public const ADMIN_DASHBOARD_READ = 'admin.dashboard.read';
+    public const ADMIN_USER_READ = 'admin.user.read';
+    public const ADMIN_USER_SENSITIVE_READ = 'admin.user.sensitive.read';
+    public const ADMIN_USER_MODERATE = 'admin.user.moderate';
+    public const ADMIN_USER_SESSION_REVOKE = 'admin.user.session.revoke';
+    public const ADMIN_TEAM_READ = 'admin.team.read';
+    public const ADMIN_TEAM_MODERATE = 'admin.team.moderate';
+    public const ADMIN_ACCESS_READ = 'admin.access.read';
+    public const ADMIN_ACCESS_WRITE = 'admin.access.write';
+    public const ADMIN_AUDIT_READ = 'admin.audit.read';
+    public const ADMIN_SYSTEM_READ = 'admin.system.read';
 
     public const CHAT_VIRTUAL_MANAGE_TEMPLATE = 'chat.virtual.<slug>.manage';
 
     private const GROUPS = [
         '团队成员' => [
-            self::TEAM_ENTITY_READ => '查看实体',
-            self::TEAM_ENTITY_PROFILE_MANAGE => '管理实体资料',
-            self::TEAM_MEMBER_READ => '查看成员',
+            self::TEAM_ENTITY_READ => '查看全部实体（含团队内隐藏）',
+            self::TEAM_ENTITY_PROFILE_MANAGE => '管理实体资料与展示状态',
+            self::TEAM_MEMBER_READ => '查看全部成员（含团队内隐藏）',
             self::TEAM_MEMBER_INVITE => '邀请成员',
             self::TEAM_MEMBER_UPDATE => '编辑成员',
             self::TEAM_MEMBER_REMOVE => '移除成员',
             self::TEAM_ROLE_READ => '查看角色',
             self::TEAM_ROLE_WRITE => '管理角色',
+        ],
+        '客户' => [
+            self::TEAM_CUSTOMER_READ => '查看全部客户',
+            self::TEAM_CUSTOMER_MANAGE => '管理客户资料、归属与封禁状态',
         ],
         '加入审核' => [
             self::TEAM_JOIN_FIELD_READ => '查看申请字段',
@@ -89,8 +109,12 @@ final class PermissionDictionary
             self::FILE_READ => '查看文件',
             self::FILE_UPLOAD => '上传文件',
             self::FILE_DELETE => '删除文件',
+            self::TEAM_DOCUMENT_READ => '查看全部文档（含当前 Entity 不可见文档）',
             self::TEAM_SETTING_READ => '查看设置',
             self::TEAM_SETTING_UPDATE => '编辑设置',
+        ],
+        '通知' => [
+            self::TEAM_NOTICE_READ => '查看团队站内通知',
             self::TEAM_NOTICE_SEND => '发送通知',
         ],
         '身份委托' => [
@@ -113,6 +137,28 @@ final class PermissionDictionary
         ],
     ];
 
+    private const ADMIN_GROUPS = [
+        '平台概览' => [
+            self::ADMIN_DASHBOARD_READ => '查看平台概览',
+            self::ADMIN_SYSTEM_READ => '查看系统状态',
+        ],
+        '用户治理' => [
+            self::ADMIN_USER_READ => '查看用户',
+            self::ADMIN_USER_SENSITIVE_READ => '查看用户完整联系方式',
+            self::ADMIN_USER_MODERATE => '封禁与解封用户',
+            self::ADMIN_USER_SESSION_REVOKE => '撤销用户会话',
+        ],
+        '团队治理' => [
+            self::ADMIN_TEAM_READ => '查看团队',
+            self::ADMIN_TEAM_MODERATE => '封禁与解封团队',
+        ],
+        '平台权限' => [
+            self::ADMIN_ACCESS_READ => '查看平台管理员与角色',
+            self::ADMIN_ACCESS_WRITE => '管理平台管理员与角色',
+            self::ADMIN_AUDIT_READ => '查看平台审计日志',
+        ],
+    ];
+
     public static function groups(): array
     {
         return self::GROUPS;
@@ -131,6 +177,21 @@ final class PermissionDictionary
     public static function contains(string $key): bool
     {
         return in_array($key, self::keys(), true) || self::dynamic($key) !== null;
+    }
+
+    public static function adminGroups(): array
+    {
+        return self::ADMIN_GROUPS;
+    }
+
+    public static function adminKeys(): array
+    {
+        $keys = [];
+        foreach (self::ADMIN_GROUPS as $items) {
+            $keys = array_merge($keys, array_keys($items));
+        }
+
+        return array_values(array_unique($keys));
     }
 
     /**

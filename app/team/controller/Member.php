@@ -16,8 +16,7 @@ class Member
         'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
         'TeamAuth'     => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
-        'MemberAccess' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
-        'Permission:' . Permissions::TEAM_MEMBER_READ => ['only' => ['index', 'get']],
+        'MemberAccess' => ['only' => ['add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
         'Permission:' . Permissions::TEAM_MEMBER_INVITE => ['only' => ['add']],
         'Permission:' . Permissions::TEAM_MEMBER_UPDATE => ['only' => ['edit', 'block', 'unblock', 'slug', 'search']],
         'Permission:' . Permissions::TEAM_MEMBER_REMOVE => ['only' => ['remove']],
@@ -29,7 +28,7 @@ class Member
     public function index(Request $request)
     {
         $service = app(TeamMemberService::class);
-        $result  = $service->list($request->team_id);
+        $result  = $service->list($request->team_id, $request->acting_entity);
 
         return success($result);
     }
@@ -42,7 +41,7 @@ class Member
         $memberId = $request->get('member_id/d', 0);
 
         $service = app(TeamMemberService::class);
-        $result  = $service->get($request->team_id, $memberId);
+        $result  = $service->get($request->team_id, $memberId, $request->acting_entity);
         $result['capabilities'] = $service->capabilities(
             $request->team_id,
             $request->acting_entity,

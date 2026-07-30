@@ -22,6 +22,8 @@ class TeamRole extends Base
         'name'        => 'string',
         'description' => 'string',
         'sort'        => 'integer',
+        // 角色对外展示：仅决定该角色标签是否出现在公开资料中；
+        // 不控制实体的公开 Display、团队内目录可见性或任何权限判定。
         'is_displayed'=> 'integer',
     ];
 

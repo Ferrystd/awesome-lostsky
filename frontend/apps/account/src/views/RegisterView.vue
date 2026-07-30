@@ -5,6 +5,7 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
 import { goToSafeRedirect } from '@lostsky/shared/navigation'
 import { ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AuthShell from '../components/AuthShell.vue'
 import SmsCodeField from '../components/SmsCodeField.vue'
@@ -16,6 +17,10 @@ const password = ref('')
 const confirm = ref('')
 const loading = ref(false)
 const error = ref('')
+const loginTarget = computed(() => ({
+  path: '/login',
+  query: route.query.redirect ? { redirect: route.query.redirect } : {},
+}))
 
 async function submit() {
   error.value = ''
@@ -72,7 +77,7 @@ async function submit() {
       </LsField>
       <LsButton type="submit" size="lg" :loading="loading">验证并创建账号</LsButton>
     </form>
-    <p class="switch">已有账号？<RouterLink to="/login">直接登录</RouterLink></p>
+    <p class="switch">已有账号？<RouterLink :to="loginTarget">直接登录</RouterLink></p>
   </AuthShell>
 </template>
 

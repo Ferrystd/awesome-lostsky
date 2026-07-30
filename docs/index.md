@@ -5,7 +5,7 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 
 # LostSky 文档
 
-`docs/` 是 LostSky 所有项目文档的唯一正文来源，并直接发布到文档站。
+`docs/` 是 LostSky 所有项目文档的唯一正文来源。`docs.lostsky.work` 发布完整项目文档；`doc.lostsky.work` 复用 `manual/` 内容，只发布面向用户的使用指南。
 
 ## 项目
 
@@ -13,6 +13,7 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 - [设计系统](design.md)
 - [项目概览](overview.md)
 - [开始使用](getting-started.md)
+- [使用手册](manual/index.md)
 - [最近更新](updates.md)
 - [完整变更日志](changelog.md)
 

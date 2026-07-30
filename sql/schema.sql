@@ -14,6 +14,7 @@ CREATE TABLE `user` (
     `email`       VARCHAR(100) NULL     DEFAULT NULL COMMENT '邮箱',
     `password`    VARCHAR(255) NOT NULL DEFAULT '' COMMENT '密码',
     `username`    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '用户名',
+    `is_banned`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否被平台封禁 0-否 1-是',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
@@ -234,12 +235,12 @@ CREATE TABLE `team_ability` (
 CREATE TABLE `team_notice` (
     `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `team_id`     INT UNSIGNED NULL DEFAULT NULL COMMENT 'LostSky通知的收件Team ID',
-    `sender_team_id` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Entity通知的发送Team ID',
-    `entity_id`   INT UNSIGNED NULL DEFAULT NULL COMMENT 'Team通知的收件Entity ID',
+    `sender_team_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '通知的发送Team ID',
+    `entity_id`   INT UNSIGNED NULL DEFAULT NULL COMMENT '通知的收件Entity ID（可为Team实体）',
     `title`       VARCHAR(200) NOT NULL DEFAULT '' COMMENT '通知标题',
     `content`     TEXT         NULL     COMMENT '通知正文(Markdown)',
     `is_pinned`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否置顶 0-否 1-是',
-    `is_read`     TINYINT      NOT NULL DEFAULT 0 COMMENT '收件Entity已读 0-未读 1-已读',
+    `is_read`     TINYINT      NOT NULL DEFAULT 0 COMMENT '收件Team或Entity共享已读 0-未读 1-已读',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
@@ -251,7 +252,7 @@ CREATE TABLE `team_notice` (
         (`team_id` IS NOT NULL AND `entity_id` IS NULL)
         OR (`team_id` IS NULL AND `entity_id` IS NOT NULL)
     )
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='LostSky到Team及Team到Entity的站内通知';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='LostSky到Team的站内通知及Team到Entity的通知';
 
 -- ----------------------------
 -- Table: team_customer
@@ -262,6 +263,7 @@ CREATE TABLE `team_customer` (
     `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
     `user_id`     INT UNSIGNED NULL     DEFAULT NULL COMMENT '直接绑定用户ID',
     `owner_entity_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '来源实体ID',
+    `assignee_entity_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '当前归属实体ID',
     `is_blocked`  TINYINT      NOT NULL DEFAULT 0 COMMENT '是否被封禁 0-否 1-是',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
@@ -270,7 +272,8 @@ CREATE TABLE `team_customer` (
     UNIQUE KEY `uk_team_user` (`team_id`, `user_id`),
     UNIQUE KEY `uk_team_owner_entity` (`team_id`, `owner_entity_id`),
     KEY `idx_user_id` (`user_id`),
-    KEY `idx_owner_entity_id` (`owner_entity_id`)
+    KEY `idx_owner_entity_id` (`owner_entity_id`),
+    KEY `idx_assignee_entity_id` (`assignee_entity_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队客户表';
 
 -- ----------------------------
@@ -702,15 +705,17 @@ CREATE TABLE `entity` (
     `slug`              VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '全站唯一且永久保留的对象标识',
     `entityable_type`   VARCHAR(30)  NOT NULL DEFAULT '' COMMENT '对象类型 team/teamMember/teamCustomer/teamVirtual',
     `entityable_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '对象ID',
-    `is_displayed`      TINYINT      NOT NULL DEFAULT 0 COMMENT '是否在团队公开主页展示 0-否 1-是',
-    `search_override`   TINYINT      NULL     DEFAULT NULL COMMENT '人员搜索覆盖 NULL-继承 0-禁止 1-允许',
+    `is_displayed`      TINYINT      NOT NULL DEFAULT 0 COMMENT '公开Display可见：是否进入团队公开主页；不影响团队后台目录或全局搜索 0-否 1-是',
+    `is_internal_visible` TINYINT    NOT NULL DEFAULT 0 COMMENT 'Team内部目录可见：无team.entity.read时仅非Customer实体可按此字段进入工作空间目录；Customer始终需要全量读取权限 0-否 1-是',
+    `search_override`   TINYINT      NULL     DEFAULT NULL COMMENT '全局实体搜索覆盖：NULL-继承Team策略 0-禁止 1-允许；不影响内部目录或Display',
     `create_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time`       INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间（身份永久保留）',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_slug` (`slug`),
     UNIQUE KEY `uk_entityable` (`entityable_type`, `entityable_id`),
-    KEY `idx_display` (`is_displayed`, `entityable_type`, `id`)
+    KEY `idx_display` (`is_displayed`, `entityable_type`, `id`),
+    KEY `idx_internal_visible` (`is_internal_visible`, `entityable_type`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队对象统一身份表';
 
 -- ----------------------------
@@ -792,8 +797,7 @@ CREATE TABLE `team_entity_field` (
     `visibility`    TINYINT      NOT NULL DEFAULT 1 COMMENT '可见范围 1-team 3-subject_team 4-entity 5-public 6-custom',
     `is_required`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否必填',
     `is_editable`   TINYINT      NOT NULL DEFAULT 1 COMMENT '是否可编辑',
-    `is_searchable` TINYINT      NOT NULL DEFAULT 0 COMMENT '是否可搜索',
-    `is_visible`    TINYINT      NOT NULL DEFAULT 0 COMMENT '对象本人是否可见，仅人员允许开启',
+    `is_searchable` TINYINT      NOT NULL DEFAULT 0 COMMENT '是否可搜索（预留，当前未接入字段值搜索）',
     `is_system`     TINYINT      NOT NULL DEFAULT 0 COMMENT '是否系统字段',
     `sort`          INT          NOT NULL DEFAULT 0 COMMENT '排序',
     `create_time`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
@@ -945,13 +949,69 @@ CREATE TABLE `chat_webhook_delivery` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天Webhook投递表';
 
 -- ----------------------------
--- Foreign keys
+-- Table: platform_admin_role
+-- Model: app\model\PlatformAdminRole
+-- ----------------------------
+CREATE TABLE `platform_admin_role` (
+    `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `role_key`    VARCHAR(50)  NOT NULL COMMENT '角色标识',
+    `name`        VARCHAR(50)  NOT NULL COMMENT '角色名称',
+    `description` VARCHAR(255) NULL DEFAULT NULL COMMENT '角色说明',
+    `is_system`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否系统角色',
+    `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time` INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_platform_admin_role_key` (`role_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='平台管理员角色';
+
+-- ----------------------------
+-- Table: platform_admin_role_permission
+-- Model: app\model\PlatformAdminRolePermission
+-- ----------------------------
+CREATE TABLE `platform_admin_role_permission` (
+    `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `role_id`        INT UNSIGNED NOT NULL COMMENT '平台角色ID',
+    `permission_key` VARCHAR(100) NOT NULL COMMENT '权限标识',
+    `create_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`    INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_platform_role_permission` (`role_id`, `permission_key`),
+    KEY `idx_platform_permission_key` (`permission_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='平台角色权限';
+
+-- ----------------------------
+-- Table: platform_admin_user_role
+-- Model: app\model\PlatformAdminUserRole
+-- ----------------------------
+CREATE TABLE `platform_admin_user_role` (
+    `id`                  INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `user_id`             INT UNSIGNED NOT NULL COMMENT '用户ID',
+    `role_id`             INT UNSIGNED NOT NULL COMMENT '平台角色ID',
+    `assigned_by_user_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '授予人用户ID，CLI为NULL',
+    `create_time`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`         INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_platform_admin_user_role` (`user_id`, `role_id`),
+    KEY `idx_platform_admin_role_user` (`role_id`, `user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='平台管理员角色绑定';
+
+INSERT INTO `platform_admin_role`
+    (`role_key`, `name`, `description`, `is_system`, `create_time`, `update_time`)
+VALUES
+    ('super_admin', '超级管理员', '拥有全部平台管理权限', 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+
+-- ----------------------------
+-- Table: business_audit_event
+-- Model: app\model\BusinessAuditEvent
 -- ----------------------------
 CREATE TABLE `business_audit_event` (
     `id`                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `team_id`               INT UNSIGNED NULL DEFAULT NULL COMMENT '团队ID',
-    `entity_id`             INT UNSIGNED NOT NULL COMMENT '执行操作的实体ID',
-    `authenticated_user_id` INT UNSIGNED NOT NULL COMMENT '完成认证的用户ID',
+    `entity_id`             INT UNSIGNED NULL DEFAULT NULL COMMENT '执行操作的实体ID，平台或CLI操作为NULL',
+    `authenticated_user_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '完成认证的用户ID，CLI操作为NULL',
     `application`           VARCHAR(30) NOT NULL COMMENT '业务应用',
     `action`                VARCHAR(50) NOT NULL COMMENT '业务动作',
     `resource_type`         VARCHAR(50) NOT NULL COMMENT '资源类型',
@@ -968,17 +1028,22 @@ CREATE TABLE `business_audit_event` (
     KEY `idx_audit_resource` (`resource_type`, `resource_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='集中业务审计事件';
 
+-- ----------------------------
+-- Foreign keys
+-- ----------------------------
 ALTER TABLE `user_profile` ADD CONSTRAINT `fk_user_profile_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
 ALTER TABLE `user_setting` ADD CONSTRAINT `fk_user_setting_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
 ALTER TABLE `user_device` ADD CONSTRAINT `fk_user_device_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
 ALTER TABLE `user_refresh_token` ADD CONSTRAINT `fk_refresh_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`), ADD CONSTRAINT `fk_refresh_device` FOREIGN KEY (`device_id`) REFERENCES `user_device` (`id`);
+ALTER TABLE `platform_admin_role_permission` ADD CONSTRAINT `fk_platform_permission_role` FOREIGN KEY (`role_id`) REFERENCES `platform_admin_role` (`id`);
+ALTER TABLE `platform_admin_user_role` ADD CONSTRAINT `fk_platform_admin_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`), ADD CONSTRAINT `fk_platform_admin_role` FOREIGN KEY (`role_id`) REFERENCES `platform_admin_role` (`id`), ADD CONSTRAINT `fk_platform_admin_assigner` FOREIGN KEY (`assigned_by_user_id`) REFERENCES `user` (`id`);
 ALTER TABLE `team` ADD CONSTRAINT `fk_team_owner_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
 ALTER TABLE `team_domain` ADD CONSTRAINT `fk_team_domain_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`);
 ALTER TABLE `team_member` ADD CONSTRAINT `fk_team_member_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_member_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
 ALTER TABLE `team_entity_profile` ADD CONSTRAINT `fk_entity_profile_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_ability` ADD CONSTRAINT `fk_team_ability_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`);
 ALTER TABLE `team_notice` ADD CONSTRAINT `fk_team_notice_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_notice_sender_team` FOREIGN KEY (`sender_team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_notice_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
-ALTER TABLE `team_customer` ADD CONSTRAINT `fk_team_customer_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_customer_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`), ADD CONSTRAINT `fk_team_customer_owner_entity` FOREIGN KEY (`owner_entity_id`) REFERENCES `entity` (`id`);
+ALTER TABLE `team_customer` ADD CONSTRAINT `fk_team_customer_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_customer_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`), ADD CONSTRAINT `fk_team_customer_owner_entity` FOREIGN KEY (`owner_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_team_customer_assignee_entity` FOREIGN KEY (`assignee_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_transaction` ADD CONSTRAINT `fk_transaction_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_transaction_handler_entity` FOREIGN KEY (`handler_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_transaction_sender_entity` FOREIGN KEY (`sender_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_transaction_cs_entity` FOREIGN KEY (`cs_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_transaction_customer` FOREIGN KEY (`customer_id`) REFERENCES `team_customer` (`id`);
 ALTER TABLE `team_customer_balance` ADD CONSTRAINT `fk_balance_customer` FOREIGN KEY (`customer_id`) REFERENCES `team_customer` (`id`);
 ALTER TABLE `team_customer_balance_log` ADD CONSTRAINT `fk_balance_log_customer` FOREIGN KEY (`customer_id`) REFERENCES `team_customer` (`id`), ADD CONSTRAINT `fk_balance_log_transaction` FOREIGN KEY (`trans_id`) REFERENCES `team_transaction` (`id`);

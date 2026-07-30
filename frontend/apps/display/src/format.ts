@@ -4,6 +4,10 @@ export function entityTypeLabel(type: string) {
   return type === 'teamVirtual' ? '虚拟实体' : type === 'teamMember' ? '成员' : '团队'
 }
 
+export function formatMoney(value: string | number) {
+  return `¥${Number(value).toFixed(2)}`
+}
+
 function optionLabel(options: unknown[] | null | undefined, value: unknown) {
   const found = options?.find((item) => {
     if (item && typeof item === 'object') {

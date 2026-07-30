@@ -1,6 +1,11 @@
 <?php
 use think\facade\Route;
 
+Route::pattern(['id' => 'int']);
+
+Route::get('access', 'Access/index');
+Route::get('dashboard', 'Dashboard/index');
+
 // me
 Route::get('me/get', 'me/get');
 Route::post('me/edit', 'me/edit');
@@ -26,6 +31,13 @@ Route::get('entity/index', 'entity/index');
 Route::get('entity/get', 'entity/get');
 Route::post('entity/profile', 'entity/profile');
 Route::post('entity/display', 'entity/display');
+Route::post('entity/visibility', 'entity/visibility');
+
+// customer
+Route::get('customer', 'Customer/index');
+Route::get('customer/assignees', 'Customer/assignees');
+Route::get('customer/<id>', 'Customer/get');
+Route::post('customer/<id>', 'Customer/update');
 
 // role
 Route::get('role/index', 'role/index');
@@ -45,6 +57,7 @@ Route::get('entityRole/resolve', 'EntityRole/resolve');
 Route::post('entityRole/save', 'EntityRole/save');
 
 // notice
+Route::get('notice/capabilities', 'notice/capabilities');
 Route::get('notice/index', 'notice/index');
 Route::get('notice/get', 'notice/get');
 Route::post('notice/send', 'notice/send');

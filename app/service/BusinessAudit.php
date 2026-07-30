@@ -38,6 +38,33 @@ final class BusinessAudit
         return (int) $event->id;
     }
 
+    public function recordPlatform(
+        ?int $authenticatedUserId,
+        string $action,
+        string $resourceType,
+        ?int $resourceId = null,
+        array $context = [],
+        ?Request $request = null
+    ): int {
+        $context = ['source' => $request ? 'api' : 'cli'] + $context;
+        $event = new BusinessAuditEvent;
+        $event->save([
+            'team_id' => null,
+            'entity_id' => null,
+            'authenticated_user_id' => $authenticatedUserId && $authenticatedUserId > 0
+                ? $authenticatedUserId
+                : null,
+            'application' => 'admin',
+            'action' => trim($action),
+            'resource_type' => trim($resourceType),
+            'resource_id' => $resourceId && $resourceId > 0 ? $resourceId : null,
+            'request_id' => $request ? $this->requestId($request) : null,
+            'context' => $context ?: null,
+        ]);
+
+        return (int) $event->id;
+    }
+
     private function requestId(Request $request): ?string
     {
         $value = $request->request_id ?? $request->header('X-Request-Id', '');

@@ -2,7 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 
-export function appConfig(app: 'site' | 'account' | 'team' | 'chat' | 'transaction' | 'display' | 'shop', port: number) {
+export function appConfig(app: 'site' | 'account' | 'admin' | 'team' | 'chat' | 'transaction' | 'display' | 'shop', port: number) {
   const root = fileURLToPath(new URL(`./apps/${app}`, import.meta.url))
   return defineConfig(({ command }) => ({
     root,
@@ -23,7 +23,7 @@ export function appConfig(app: 'site' | 'account' | 'team' | 'chat' | 'transacti
       allowedHosts: ['.lostsky.work'],
       proxy: {
         '/api': {
-          target: 'https://api.lostsky.work',
+          target: process.env.VITE_DEV_API_TARGET || 'http://api.lostsky.work',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
           configure: (proxy) => proxy.on('proxyReq', (request) => {

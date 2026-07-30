@@ -10,9 +10,10 @@ Team 是团队工作台的核心应用，负责成员资料、角色权限、团
 - RBAC：角色、角色权限和成员角色绑定。
 - 团队设置：按应用读取配置，由团队管理者读取配置结构并保存设置。
 - Chat 管理配置：维护统一实体字段、虚拟实体与 Webhook 集成；管理接口记录在 Team OpenAPI。
-- 内容协作：保留 LostSky 向 Team 发送通知的原有 Team 收件箱；同时允许有权限的当前 Entity 代表 Team 向本团队成员、客户或虚拟 Entity 发送通知。Team 发给 Entity 的通知不自动抄送发送 Team，两条收件通道及已读状态相互隔离。团队文件和任意团队实体的文档通过 `entity_id` 关联全局 `entity`。
+- 内容协作：保留 LostSky 向 Team 发送的共享站内通知；同时允许有权限的当前 Entity 代表 Team 向本团队任意 Entity（包括 Team 自身）发送通知。两种通道相互隔离，每条通知的已读状态由其收件 Team 或 Entity 共享。团队文件和任意团队实体的文档通过 `entity_id` 关联全局 `entity`。
 - 加入团队：申请表单、申请记录、审核任务和审批。
 - 实体引用：为 Markdown 等场景搜索和解析可引用对象。
+- 访问快照与概览：向四类 Team Entity 返回有效 Permission、Ability 状态，以及互不连带失败的实体、成员、文档、通知指标。
 
 具体接口路径和数据结构见 [`team.openapi.json`](../openapi/team.openapi.json)。
 
@@ -40,6 +41,10 @@ Team 应用按操作组合以下中间件：
 
 当前成员通过 `POST /me/fields` 保存对象字段值。该入口不接受目标对象标识，只使用当前成员上下文，并且只允许写入本人可见且可编辑的人员实体字段；隐藏、只读或其他实体类型字段会被拒绝。成员必须先确认全局 slug 才能保存字段；`GET /me/get` 同时返回本人角色、各角色权限以及去重后的有效权限并集，不要求本人拥有角色管理权限。
 
+`GET /access` 是当前 Entity 的通用访问快照，不依赖成员专属 `/me/get`。`GET /dashboard` 独立计算实体、成员、文档和通知：实体、成员与文档只有在具备相应全量读取 Permission 时返回计数，否则返回 `count=null`；Doc Ability 缺失时只把文档指标标记为不可用；任一指标异常不会把其余指标变成 `0`。
+
+`GET /entity/index|get` 与 `GET /member/index|get` 不把 `team.entity.read` 或 `team.member.read` 作为页面门票。缺少实体全量读取权限时只返回有效、非 Customer 且团队内可见的实体；Customer 与隐藏实体统一返回 404。具有权限时读取完整集合。`team.entity.profile.manage` 控制资料、内部可见和公开 Display 写入，读取基础详情本身不要求该权限。
+
 `GET /member/get` 在成员资料之外返回当前操作者对该任务页的能力集合，包括成员编辑、字段管理、角色读取/编辑、封禁、搜索设置、slug 补全、移出和身份切换。前端据此裁剪整张卡片和操作入口；所有写接口仍各自执行服务端权限校验。
 
 ## 角色与权限
@@ -59,7 +64,9 @@ Team 应用按操作组合以下中间件：
 
 普通业务接口通过 `Permission:{permission_key}` 检查角色权限。动态参数使用 `<slug>` 形式，例如 `chat.virtual.<slug>.manage`。一个 `Permission` 可以用逗号接收多个权限参数，控制器字符串简写为 `Permission:key-a,key-b`；数组写法 `['Permission', ['key-a', 'key-b']]` 具有相同语义，多个参数按 OR 处理。
 
-通知发送要求 `team.notice.send`。具备该权限的任意当前 Entity 都是操作执行者，但通知始终以当前 Team 名义发送；集中业务审计保留实际 acting Entity 与认证用户。
+Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `scope=team|entity` 显式选择 Team 共享站内通知或当前 Entity 收件箱，省略 scope 时保持旧版身份默认行为。`GET /notice/capabilities` 为前端返回共享站内通知查看、通知发送和默认收件箱能力。
+
+发送通知要求 `team.notice.send`。该权限本身定义本通知模型中的上级资格，具备权限的任意当前 Entity 可以向同 Team 任意 Entity 发送，不使用角色排序建立层级。通知始终以当前 Team 名义显示，集中业务审计保留实际 acting Entity 与认证用户。通知是单向通道，不支持回复、抄送、会话、跨 Team 投递或 LostSky 直发 Entity。
 
 加入字段读取和管理分别要求 `team.join_field.read`、`team.join_field.write`；加入申请查看和审核分别要求 `team.join_review.read`、`team.join_review.write`。人员实体字段定义和岗位类型的写操作分别要求 `team.entity_field.manage`、`team.post_type.write`。
 
@@ -87,7 +94,7 @@ Team 应用按操作组合以下中间件：
 
 ## 文档
 
-团队文档由 `Document` 服务统一处理，可以归属于本团队任意有效实体，并支持管理范围、可见性、指定实体、排序和关键词筛选。
+团队文档由 `Document` 服务统一处理，可以归属于本团队任意有效实体，并支持管理范围、可见性、指定实体、排序和关键词筛选。`team.document.read` 表示文档全量读取；没有该权限仍可进入文档页，但只返回当前 Entity 按可见性可读取的文档。
 
 所有文档入口都经过 `JwtAuth`、`Context`、`TeamAuth` 和 `Ability:doc`；归属与指定可见对象只接受全局 `entity_id`。
 

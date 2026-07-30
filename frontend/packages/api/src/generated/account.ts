@@ -821,8 +821,6 @@ export interface components {
             is_editable?: 0 | 1;
             /** @enum {integer} */
             is_searchable?: 0 | 1;
-            /** @enum {integer} */
-            is_visible?: 0 | 1;
             sort?: number;
             /** @enum {string} */
             source?: "system" | "custom";

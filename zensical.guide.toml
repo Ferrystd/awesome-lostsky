@@ -1,0 +1,31 @@
+[project]
+site_name = "LostSky 使用指南"
+site_url = "https://doc.lostsky.work"
+site_description = "从用户任务出发，了解 LostSky 的功能、操作结果与使用边界。"
+site_author = "LostSky"
+copyright = "Copyright &copy; 2026 LostSky"
+docs_dir = "docs/manual"
+site_dir = "www/doc.lostsky.work"
+nav = [
+  {"开始使用" = "index.md"},
+  {"账号与协作" = [
+    "account-and-identity.md",
+    "team-workspace.md",
+    "chat.md"
+  ]},
+  {"业务使用" = [
+    "transactions.md",
+    "public-pages-and-shop.md"
+  ]},
+  {"平台管理" = "platform-admin.md"}
+]
+
+[project.theme]
+language = "zh"
+features = [
+  "navigation.sections",
+  "navigation.path",
+  "navigation.top",
+  "search.highlight",
+  "content.code.copy"
+]

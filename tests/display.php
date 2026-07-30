@@ -14,6 +14,7 @@ use app\model\TeamEntityField;
 use app\model\TeamEntityFieldValue;
 use app\model\TeamEntityRole;
 use app\model\TeamMember;
+use app\model\TeamProduct;
 use app\model\TeamRole;
 use app\model\TeamVirtual;
 use app\model\User;
@@ -228,7 +229,6 @@ $publicField->save([
     'is_required' => 0,
     'is_editable' => 1,
     'is_searchable' => 1,
-    'is_visible' => 1,
     'is_system' => 0,
     'sort' => 10,
 ]);
@@ -247,7 +247,6 @@ $privateField->save([
     'is_required' => 0,
     'is_editable' => 1,
     'is_searchable' => 0,
-    'is_visible' => 0,
     'is_system' => 0,
     'sort' => 20,
 ]);
@@ -280,7 +279,6 @@ $virtualField->save([
     'is_required' => 0,
     'is_editable' => 1,
     'is_searchable' => 0,
-    'is_visible' => 0,
     'is_system' => 0,
     'sort' => 5,
 ]);
@@ -290,6 +288,37 @@ $teamPrivateDocument = $document($teamEntity, '团队内部文档', Visibility::
 $memberPublicDocument = $document($publicEntity, '成员公开文档', Visibility::Public);
 $hiddenPublicDocument = $document($hiddenEntity, '隐藏成员文档', Visibility::Public);
 $foreignPublicDocument = $document($foreignEntity, '外部成员文档', Visibility::Public);
+
+$publicProduct = new TeamProduct;
+$publicProduct->save([
+    'team_id' => (int) $team->id,
+    'entity_id' => (int) $publicEntity->id,
+    'name' => '成员专属商品',
+    'description' => '公开商品简介',
+    'cover_image' => 'https://assets.example.test/member-product.png',
+    'price' => '39.00',
+    'cost' => '10.00',
+    'handler_cut' => '8.00',
+    'is_active' => 1,
+]);
+$inactiveProduct = new TeamProduct;
+$inactiveProduct->save([
+    'team_id' => (int) $team->id,
+    'entity_id' => (int) $publicEntity->id,
+    'name' => '已下架商品',
+    'price' => '99.00',
+    'cost' => '1.00',
+    'is_active' => 0,
+]);
+$sharedProduct = new TeamProduct;
+$sharedProduct->save([
+    'team_id' => (int) $team->id,
+    'entity_id' => null,
+    'name' => '团队公用商品',
+    'price' => '29.00',
+    'cost' => '1.00',
+    'is_active' => 1,
+]);
 
 $display = app(Display::class);
 $profile = $display->profile((int) $team->id);
@@ -331,6 +360,23 @@ $assertStatus(
 
 $detail = $display->entity((int) $team->id, (string) $publicEntity->slug);
 $assertSame('成员公开值', $detail['fields'][0]['value'] ?? null, 'member public value is returned');
+$assertSame(
+    [[
+        'id' => (int) $publicProduct->id,
+        'name' => '成员专属商品',
+        'description' => '公开商品简介',
+        'cover_image' => 'https://assets.example.test/member-product.png',
+        'price' => '39.00',
+        'href' => "//{$team->slug}.shop.lostsky.work/product/{$publicProduct->id}",
+    ]],
+    $detail['products'],
+    'entity detail only exposes its active product summaries'
+);
+$assert(
+    !array_key_exists('cost', $detail['products'][0])
+        && !array_key_exists('handler_cut', $detail['products'][0]),
+    'entity products exclude internal money and handler configuration'
+);
 $assertSame(
     ['name', 'description'],
     array_keys($detail['roles'][0]),

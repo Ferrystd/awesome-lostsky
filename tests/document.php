@@ -9,10 +9,15 @@ use app\middleware\Ability;
 use app\model\Document;
 use app\model\Team;
 use app\model\TeamAbility;
+use app\model\TeamEntityRole;
 use app\model\TeamMember;
+use app\model\TeamRole;
+use app\model\TeamRolePermission;
 use app\model\User;
 use app\service\Document as DocumentService;
 use app\service\Entity as EntityService;
+use app\service\PermissionDictionary;
+use app\service\TeamDashboard;
 use think\App;
 use think\exception\HttpException;
 use think\Request;
@@ -67,7 +72,7 @@ try {
     $public = new Document;
     $public->save([
         'title' => 'Public',
-        'content' => null,
+        'content' => 'Runbook recovery phrase',
         'entity_id' => $teamEntity->id,
         'manager_scope' => ManageScope::Team,
         'visibility' => Visibility::Public,
@@ -123,6 +128,92 @@ try {
         'expire_time' => 0,
     ]);
     $abilityIds[] = $ability->id;
+
+    $summary = app(TeamDashboard::class)->summary(
+        (int) $team->id,
+        [
+            'entity_id' => (int) $memberEntity->id,
+            'type' => 'teamMember',
+            'id' => (int) $member->id,
+        ]
+    );
+    if ($summary['documents']['count'] !== null || !$summary['documents']['available']) {
+        throw new RuntimeException('Document dashboard metric requires team.document.read for a count');
+    }
+
+    $documentReaderRole = new TeamRole;
+    $documentReaderRole->save([
+        'team_id' => (int) $team->id,
+        'role_key' => "document_reader_{$suffix}",
+        'name' => 'Document reader',
+        'description' => null,
+        'sort' => 10,
+        'is_displayed' => 0,
+    ]);
+    $documentReaderPermission = new TeamRolePermission;
+    $documentReaderPermission->save([
+        'team_id' => (int) $team->id,
+        'role_id' => (int) $documentReaderRole->id,
+        'permission_key' => PermissionDictionary::TEAM_DOCUMENT_READ,
+    ]);
+    $documentReaderBinding = new TeamEntityRole;
+    $documentReaderBinding->save([
+        'team_id' => (int) $team->id,
+        'entity_id' => (int) $memberEntity->id,
+        'role_id' => (int) $documentReaderRole->id,
+    ]);
+
+    $fullResult = app(DocumentService::class)->list(
+        (int) $teamEntity->id,
+        [],
+        1,
+        999,
+        (int) $team->id,
+        [
+            'entity_id' => (int) $memberEntity->id,
+            'type' => 'teamMember',
+            'id' => (int) $member->id,
+        ]
+    );
+    if ($fullResult['total'] !== 2) {
+        throw new RuntimeException('team.document.read must expose all Team documents');
+    }
+    $contentSearch = app(DocumentService::class)->list(
+        (int) $teamEntity->id,
+        ['keyword' => 'recovery phrase'],
+        1,
+        20,
+        (int) $team->id,
+        [
+            'entity_id' => (int) $memberEntity->id,
+            'type' => 'teamMember',
+            'id' => (int) $member->id,
+        ]
+    );
+    if ($contentSearch['total'] !== 1 || $contentSearch['list'][0]['title'] !== 'Public') {
+        throw new RuntimeException('Document keyword search must include Markdown content');
+    }
+    app(DocumentService::class)->get(
+        (int) $hidden->id,
+        (int) $team->id,
+        [
+            'entity_id' => (int) $memberEntity->id,
+            'type' => 'teamMember',
+            'id' => (int) $member->id,
+        ]
+    );
+
+    $summary = app(TeamDashboard::class)->summary(
+        (int) $team->id,
+        [
+            'entity_id' => (int) $memberEntity->id,
+            'type' => 'teamMember',
+            'id' => (int) $member->id,
+        ]
+    );
+    if ($summary['documents']['count'] !== 2) {
+        throw new RuntimeException('Document dashboard metric shows a count with team.document.read');
+    }
 
     $request = new Request;
     $request->team = $team;
@@ -185,6 +276,9 @@ try {
         'Ability rejects an expired capability'
     );
 } finally {
+    if (isset($documentReaderBinding)) TeamEntityRole::destroy((int) $documentReaderBinding->id, true);
+    if (isset($documentReaderPermission)) TeamRolePermission::destroy((int) $documentReaderPermission->id, true);
+    if (isset($documentReaderRole)) TeamRole::destroy((int) $documentReaderRole->id, true);
     Document::destroy([$public->id ?? 0, $hidden->id ?? 0, $entityDocument->id ?? 0], true);
     if ($abilityIds) {
         TeamAbility::destroy($abilityIds, true);

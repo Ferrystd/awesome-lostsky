@@ -19,11 +19,11 @@ class TeamEntityField extends Validate
         'manager_scope' => 'in:1,2',
         'visibility' => 'in:1,3,4,5,6',
         'is_required' => 'in:0,1', 'is_editable' => 'in:0,1', 'is_searchable' => 'in:0,1',
-        'is_visible' => 'in:0,1', 'sort' => 'integer',
+        'sort' => 'integer',
     ];
 
     protected $scene = [
-        'create' => ['entity_type', 'field_key', 'name', 'source', 'value_type', 'input_type', 'options', 'default_value', 'manager_scope', 'visibility', 'is_required', 'is_editable', 'is_searchable', 'is_visible', 'sort'],
+        'create' => ['entity_type', 'field_key', 'name', 'source', 'value_type', 'input_type', 'options', 'default_value', 'manager_scope', 'visibility', 'is_required', 'is_editable', 'is_searchable', 'sort'],
     ];
 
     public function sceneUpdate(): self
@@ -31,7 +31,7 @@ class TeamEntityField extends Validate
         return $this->only([
             'name', 'source', 'value_type', 'input_type', 'options', 'default_value',
             'manager_scope', 'visibility', 'is_required', 'is_editable',
-            'is_searchable', 'is_visible', 'sort',
+            'is_searchable', 'sort',
         ])->remove('name', 'require');
     }
 }

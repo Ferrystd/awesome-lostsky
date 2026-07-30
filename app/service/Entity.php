@@ -7,7 +7,7 @@ use think\exception\HttpException;
 
 class Entity
 {
-    public function optionsForTeam(int $teamId): array
+    public function optionsForTeam(int $teamId, bool $canReadAll = false): array
     {
         $subjects = [
             'team' => [$teamId],
@@ -26,6 +26,15 @@ class Entity
                 });
             }
         });
+        if (!$canReadAll) {
+            $query->where(function ($query) {
+                $query->where('entityable_type', 'team')
+                    ->whereOr(function ($query) {
+                        $query->where('entityable_type', '<>', 'teamCustomer')
+                            ->where('is_internal_visible', 1);
+                    });
+            });
+        }
 
         $items = [];
         foreach ($query->order('id', 'asc')->select() as $entity) {
@@ -185,6 +194,25 @@ class Entity
         $entity->save(['is_displayed' => (int) (bool) $isDisplayed]);
     }
 
+    public function setInternalVisibility(int $teamId, int $entityId, mixed $isInternalVisible): void
+    {
+        if (!in_array($isInternalVisible, [0, 1, '0', '1', false, true], true)) {
+            throw new HttpException(422, '团队内可见设置格式不正确');
+        }
+
+        $entity = $this->assertInTeam($entityId, $teamId);
+        if (!in_array($entity->entityable_type, ['teamMember', 'teamVirtual'], true)) {
+            throw new HttpException(
+                422,
+                $entity->entityable_type === 'teamCustomer'
+                    ? 'Customer 始终需要 team.entity.read，不支持团队内可见设置'
+                    : 'Team 实体始终在团队内部可见'
+            );
+        }
+
+        $entity->save(['is_internal_visible' => (int) (bool) $isInternalVisible]);
+    }
+
     public function search(string $keyword, int $limit, int $userId): array
     {
         $keyword = strtolower(trim($keyword));
@@ -212,7 +240,10 @@ class Entity
         return array_slice($result, 0, $limit);
     }
 
-    public function resolve(array $slugs, int $userId): array
+    // [Copilot] resolve() 现在接收 $teamId，用于区分同团队显式引用与跨团队搜索可见性。
+    // 同团队实体只检查 is_valid（文档内显式引用不应受 is_searchable 限制），
+    // 跨团队实体仍保留 is_searchable 以控制跨团队可见性。
+    public function resolve(array $slugs, int $userId, int $teamId = 0): array
     {
         $slugs = array_values(array_unique(array_filter(array_map(
             fn ($slug) => strtolower(trim((string) $slug)),
@@ -228,7 +259,10 @@ class Entity
         $map     = [];
         $teamIds = $this->userTeamIds($userId);
         foreach ($rows as $identity) {
-            $map[$identity->slug] = $identity->is_valid && $identity->is_searchable
+            // [Copilot] 同团队实体不卡 is_searchable，显式引用只需要实体有效即可解析。
+            $inSameTeam = $teamId > 0 && $this->entityTeamId($identity) === $teamId;
+            $available  = $identity->is_valid && ($inSameTeam || $identity->is_searchable);
+            $map[$identity->slug] = $available
                 ? $this->summary($identity, $teamIds, true)
                 : $this->unavailable((string) $identity->slug, (string) $identity->entityable_type);
         }
@@ -259,6 +293,7 @@ class Entity
                 'entityable_type' => $type,
                 'entityable_id'   => $id,
                 'is_displayed'    => 0,
+                'is_internal_visible' => in_array($type, ['team', 'teamMember'], true) ? 1 : 0,
                 'search_override' => null,
             ]);
             app(EntityProfile::class)->ensure((int) $identity->id);
@@ -399,6 +434,17 @@ class Entity
             'available'    => false,
             'href'         => null,
         ];
+    }
+
+    // [Copilot] 从已 hydrate 的 entityable 上提取实体所属团队 ID；
+    // 模型字段已有类型转换，不需要手动 (int) 强转。
+    private function entityTeamId(\app\model\Entity $identity): int
+    {
+        $entity = $identity->entityable;
+        if ($entity instanceof \app\model\Team) {
+            return $entity->id;
+        }
+        return $entity->team_id ?? 0;
     }
 
     private function userTeamIds(int $userId): array

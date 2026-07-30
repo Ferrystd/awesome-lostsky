@@ -62,6 +62,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/transaction/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取当前实体的客户邀请链接 */
+        get: operations["transactionInvite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/transaction/{id}": {
         parameters: {
             query?: never;
@@ -645,7 +662,29 @@ export interface components {
             /** @description Exact decimal string. */
             amount: string;
         };
-        TransactionStatsResult: components["schemas"]["TransactionStatsSummary"] | components["schemas"]["TransactionRoleStats"] | components["schemas"]["TransactionEntityStat"][] | components["schemas"]["TransactionTimelineStat"][] | components["schemas"]["TransactionCustomerStat"][];
+        TransactionAssigneeStat: {
+            /** Format: int64 */
+            entity_id: number;
+            slug?: string | null;
+            name: string;
+            avatar?: string | null;
+            customer_count: number;
+            transaction_count: number;
+            total_price: string;
+            total_cost: string;
+            team_cut: string;
+        };
+        TransactionInviteIdentity: {
+            /** Format: int64 */
+            entity_id: number;
+            /** @enum {string} */
+            type: "team" | "teamMember" | "teamVirtual";
+            slug: string;
+            name: string;
+            avatar?: string | null;
+            display_url: string;
+        };
+        TransactionStatsResult: components["schemas"]["TransactionStatsSummary"] | components["schemas"]["TransactionRoleStats"] | components["schemas"]["TransactionEntityStat"][] | components["schemas"]["TransactionTimelineStat"][] | components["schemas"]["TransactionCustomerStat"][] | components["schemas"]["TransactionAssigneeStat"][];
         File: {
             /** Format: int64 */
             id?: number;
@@ -778,8 +817,6 @@ export interface components {
             is_editable?: 0 | 1;
             /** @enum {integer} */
             is_searchable?: 0 | 1;
-            /** @enum {integer} */
-            is_visible?: 0 | 1;
             sort?: number;
             /** @enum {string} */
             source?: "system" | "custom";
@@ -1085,7 +1122,7 @@ export interface operations {
             query?: {
                 start_time?: number;
                 end_time?: number;
-                type?: "summary" | "byRole" | "byEntity" | "timeline" | "byCustomer";
+                type?: "summary" | "byRole" | "byEntity" | "timeline" | "byCustomer" | "byAssignee";
                 role?: "handler" | "sender" | "cs";
                 granularity?: "day" | "week" | "month";
             };
@@ -1165,6 +1202,49 @@ export interface operations {
             };
             /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    transactionInvite: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["TransactionInviteIdentity"];
+                    };
+                };
+            };
+            /** @description 缺少报表权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 当前身份不能成为客户归属人 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

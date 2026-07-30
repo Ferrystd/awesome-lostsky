@@ -16,6 +16,15 @@ nav = [
     "updates.md",
     "changelog.md"
   ]},
+  {"使用手册" = [
+    "manual/index.md",
+    "manual/account-and-identity.md",
+    "manual/team-workspace.md",
+    "manual/chat.md",
+    "manual/transactions.md",
+    "manual/public-pages-and-shop.md",
+    "manual/platform-admin.md"
+  ]},
   {"术语" = [
     "glossary/index.md",
     {"Entity" = "glossary/entity.md"},
@@ -30,6 +39,7 @@ nav = [
   ]},
   {"应用" = [
     "apps/account.md",
+    "apps/admin.md",
     "apps/chat.md",
     "apps/common.md",
     "apps/display.md",

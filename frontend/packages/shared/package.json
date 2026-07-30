@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./navigation": "./src/navigation.ts"
+    "./navigation": "./src/navigation.ts",
+    "./referral": "./src/referral.ts"
   }
 }

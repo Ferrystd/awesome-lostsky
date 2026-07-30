@@ -1197,6 +1197,87 @@
           }
         }
       },
+      "TransactionAssigneeStat": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "name",
+          "customer_count",
+          "transaction_count",
+          "total_price",
+          "total_cost",
+          "team_cut"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "customer_count": {
+            "type": "integer"
+          },
+          "transaction_count": {
+            "type": "integer"
+          },
+          "total_price": {
+            "type": "string"
+          },
+          "total_cost": {
+            "type": "string"
+          },
+          "team_cut": {
+            "type": "string"
+          }
+        }
+      },
+      "TransactionInviteIdentity": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "type",
+          "slug",
+          "name",
+          "display_url"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "team",
+              "teamMember",
+              "teamVirtual"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_url": {
+            "type": "string"
+          }
+        }
+      },
       "TransactionStatsResult": {
         "oneOf": [
           {
@@ -1221,6 +1302,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TransactionCustomerStat"
+            }
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionAssigneeStat"
             }
           }
         ]
@@ -1555,13 +1642,6 @@
             ]
           },
           "is_searchable": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ]
-          },
-          "is_visible": {
             "type": "integer",
             "enum": [
               0,
@@ -2136,7 +2216,8 @@
                 "byRole",
                 "byEntity",
                 "timeline",
-                "byCustomer"
+                "byCustomer",
+                "byAssignee"
               ],
               "default": "summary"
             }
@@ -2255,6 +2336,69 @@
           },
           "429": {
             "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transaction/invite": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "获取当前实体的客户邀请链接",
+        "operationId": "transactionInvite",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/TransactionInviteIdentity"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "缺少报表权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "当前身份不能成为客户归属人",
             "content": {
               "application/json": {
                 "schema": {

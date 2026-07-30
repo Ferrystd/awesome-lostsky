@@ -29,4 +29,6 @@ python tests/hosts.py <app> [slug]
 npm run dev:<app> -- --host 127.0.0.1
 ```
 
-HMR 端口：`site 5173`、`account 5174`、`team 5175`、`chat 5176`、`transaction 5177`、`display 5178`、`shop 5179`。
+HMR 端口：`site 5173`、`account 5174`、`team 5175`、`chat 5176`、`transaction 5177`、`display 5178`、`shop 5179`、`admin 5180`。
+
+本地 Vite 默认把 `/api` 代理到 `http://api.lostsky.work`，与 `tests/hosts.py` 配置的本地 API 虚拟主机一致；需要连接其他开发 API 时通过 `VITE_DEV_API_TARGET` 显式覆盖。不要把默认目标改成生产 HTTPS 地址，否则本地证书或静态站点兜底会把真实 API 错误伪装成 CORS。

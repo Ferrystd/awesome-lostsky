@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsSearchInput from '@lostsky/ui/components/LsSearchInput.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { CirclePlus, ListChecks, Search, SlidersHorizontal } from '@lucide/vue'
-import { NButton, NDatePicker, NInput, NSelect } from 'naive-ui'
+import { CirclePlus, ListChecks, SlidersHorizontal } from '@lucide/vue'
+import { NButton, NDatePicker, NSelect } from 'naive-ui'
 import { computed, reactive } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
 import { customerName, customerOptions, dateTime, entityName, entityOptions, money, transactionType } from '../lib'
@@ -54,11 +55,7 @@ function reset() {
     </PageHeader>
 
     <section class="filters panel" aria-label="筛选流水">
-      <label class="search">
-        <Search :size="18" aria-hidden="true" />
-        <span class="ls-sr-only">搜索客户</span>
-        <NInput v-model:value="filters.keyword" clearable placeholder="搜索客户昵称" @update:value="filters.page = 1" />
-      </label>
+      <LsSearchInput v-model="filters.keyword" placeholder="搜索客户昵称" aria-label="搜索流水客户" @update:model-value="filters.page = 1" />
       <NDatePicker v-model:value="filters.range" type="daterange" clearable start-placeholder="开始日期" end-placeholder="结束日期" @update:value="filters.page = 1" />
       <NSelect v-model:value="filters.type" :options="typeOptions" clearable placeholder="全部类型" @update:value="filters.page = 1" />
       <NSelect v-model:value="filters.handler_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable placeholder="全部接单人" @update:value="filters.page = 1" />
@@ -100,5 +97,5 @@ function reset() {
 </template>
 
 <style scoped>
-.transactions-view{display:grid;gap:1.35rem}.filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:.65rem;padding:.8rem}.filters .search{display:flex;align-items:center;gap:.35rem}.filters .search :deep(.n-input){flex:1}.filters :deep(.n-date-picker){grid-column:span 2}.data-table strong,.data-table small,.data-table span{display:block}.data-table strong{font-size:.84rem}.data-table small{margin-top:.15rem;color:var(--muted-ink);font-size:.75rem}.amount{font-weight:750;white-space:nowrap}@media(max-width:700px){.filters{grid-template-columns:1fr}.filters>*{width:100%;min-width:0}.filters :deep(.n-date-picker){grid-column:auto}.data-table th:nth-child(3),.data-table td:nth-child(3){display:none}}
+.transactions-view{display:grid;gap:1.35rem}.filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:.65rem;padding:.8rem}.filters :deep(.n-date-picker){grid-column:span 2}.data-table strong,.data-table small,.data-table span{display:block}.data-table strong{font-size:.84rem}.data-table small{margin-top:.15rem;color:var(--muted-ink);font-size:.75rem}.amount{font-weight:750;white-space:nowrap}@media(max-width:700px){.filters{grid-template-columns:1fr}.filters>*{width:100%;min-width:0}.filters :deep(.n-date-picker){grid-column:auto}.data-table th:nth-child(3),.data-table td:nth-child(3){display:none}}
 </style>

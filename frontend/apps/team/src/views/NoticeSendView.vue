@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
+import { entityTypeLabel, entityTypeTone } from '@lostsky/ui/entity'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { Bot, Building2, Handshake, UserRound } from '@lucide/vue'
 import { NCheckbox, NInput, NSelect } from 'naive-ui'
-import type { SelectOption } from 'naive-ui'
-import { computed, reactive, ref, watch } from 'vue'
+import type { SelectOption, SelectRenderLabel } from 'naive-ui'
+import { computed, h, reactive, ref } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
+import { fileUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 interface EntityOption {
   entity_id: number
@@ -19,14 +24,24 @@ interface SendResult {
   entity_id: number
 }
 
-const typeLabels: Record<EntityOption['type'], string> = {
-  team: '团队',
-  teamMember: '成员',
-  teamCustomer: '客户',
-  teamVirtual: '虚拟实体',
+interface RecipientSelectOption extends SelectOption {
+  type: EntityOption['type']
+  slug: string
+  name: string
 }
 
+const typeIcons = {
+  team: Building2,
+  teamMember: UserRound,
+  teamCustomer: Handshake,
+  teamVirtual: Bot,
+} as const
+const recipientMenuProps = { class: 'recipient-select-menu' }
+
 const client = useQueryClient()
+const editor = ref<InstanceType<typeof LsMarkdownEditor> | null>(null)
+const access = useTeamAccess()
+const uploadDisabledReason = computed(() => fileUploadReason(access.data.value))
 const success = ref('')
 const form = reactive({
   entity_id: 0,
@@ -39,15 +54,33 @@ const entities = useQuery({
   queryKey: ['entity-options'],
   queryFn: () => api.get<EntityOption[]>('/entity/options'),
 })
-const recipients = computed(() => (entities.data.value ?? []).filter((entity) => entity.type !== 'team'))
-const recipientOptions = computed<SelectOption[]>(() => recipients.value.map((entity) => ({
-  label: `${entity.name} · ${typeLabels[entity.type]}${entity.slug ? ` (@${entity.slug})` : ''}`,
+const recipients = computed(() => entities.data.value ?? [])
+const recipientOptions = computed<RecipientSelectOption[]>(() => recipients.value.map((entity) => ({
+  label: `${entity.name} ${entityTypeLabel(entity.type)} ${entity.slug ? `@${entity.slug}` : ''}`,
   value: entity.entity_id,
+  type: entity.type,
+  slug: entity.slug,
+  name: entity.name,
 })))
+const renderRecipientLabel: SelectRenderLabel = (rawOption) => {
+  const option = rawOption as RecipientSelectOption
+  const icon = typeIcons[option.type]
+  const typeLabel = entityTypeLabel(option.type)
+  const tone = entityTypeTone(option.type)
 
-watch(recipients, (items) => {
-  if (!form.entity_id && items.length) form.entity_id = items[0].entity_id
-}, { immediate: true })
+  return h('span', { class: 'recipient-option', 'data-entity-tone': tone }, [
+    h('span', { class: 'recipient-option__icon', 'aria-hidden': 'true' }, [
+      h(icon, { size: 19, strokeWidth: 1.8 }),
+    ]),
+    h('span', { class: 'recipient-option__identity' }, [
+      h('strong', option.name),
+      h('span', { class: 'recipient-option__meta' }, [
+        h('span', { class: 'recipient-option__type' }, typeLabel),
+        option.slug ? h('span', { class: 'recipient-option__slug' }, `@${option.slug}`) : null,
+      ]),
+    ]),
+  ])
+}
 
 const send = useMutation({
   mutationFn: () => api.post<SendResult>('/notice/send', {
@@ -57,12 +90,13 @@ const send = useMutation({
     is_pinned: form.is_pinned,
   }),
   onSuccess: async (result) => {
+    editor.value?.clearDraft()
     const recipient = recipients.value.find((item) => item.entity_id === result.entity_id)
-    success.value = `通知已发送给 ${recipient?.name || '所选 Entity'}，没有自动抄送 Team。`
+    success.value = `通知已发送给 ${recipient?.name || '所选 Entity'}。`
     form.title = ''
     form.content = ''
     form.is_pinned = false
-    await client.invalidateQueries({ queryKey: ['notices'] })
+    await client.invalidateQueries({ queryKey: ['notices', 'entity'] })
   },
   onError: () => {
     success.value = ''
@@ -74,28 +108,32 @@ const send = useMutation({
   <div class="notice-send-view">
     <AdminPageHeader
       title="发送通知"
-      description="以当前 Team 名义向一个 Entity 发送站内通知。收件人可以是成员、客户或虚拟实体。"
-      back-to="/notice"
-      back-label="返回站内信"
+      description="由有权限的当前实体代表 Team，向同 Team 的一个实体发送单向通知。"
+      back-to="/notices/entity"
+      back-label="返回通知"
     />
 
     <form class="notice-form" @submit.prevent="send.mutate()">
       <section class="delivery-note" aria-labelledby="delivery-note-title">
-        <strong id="delivery-note-title">单向送达</strong>
-        <p>本次通知只进入所选 Entity 的收件箱，不会自动抄送 Team；Team 原有的 LostSky 收件箱保持不变。</p>
+        <strong id="delivery-note-title">单向、同 Team 送达</strong>
+        <p>通知只进入所选实体的收件箱，不支持回复、抄送或会话；发送方统一显示为当前 Team。</p>
       </section>
 
       <label class="field">
         <span>收件 Entity <b aria-hidden="true">*</b></span>
         <NSelect
           v-model:value="form.entity_id"
+          class="recipient-select"
           :options="recipientOptions"
+          :render-label="renderRecipientLabel"
+          :menu-props="recipientMenuProps"
           :loading="entities.isPending.value"
           :disabled="entities.isError.value || !recipientOptions.length"
+          :virtual-scroll="false"
           filterable
-          placeholder="选择成员、客户或虚拟实体"
+          placeholder="选择本 Team 内的实体"
         />
-        <small>选择结果包含 Entity 类型与全局标识，避免发给同名对象。</small>
+        <small>可选择 Team、成员、客户或虚拟实体；结果包含类型与全局标识，避免发给同名对象。</small>
       </label>
       <p v-if="entities.isError.value" class="feedback error" role="alert">
         收件对象加载失败：{{ friendlyError(entities.error.value) }}
@@ -115,15 +153,18 @@ const send = useMutation({
         />
       </label>
 
-      <label class="field">
-        <span>正文</span>
-        <NInput
-          v-model:value="form.content"
-          type="textarea"
-          :autosize="{ minRows: 7, maxRows: 14 }"
-          placeholder="补充背景、时间和需要收件人采取的行动"
+      <div class="field" role="group" aria-labelledby="notice-content-label">
+        <span id="notice-content-label">正文</span>
+        <LsMarkdownEditor
+          ref="editor"
+          v-model="form.content"
+          draft-key="notice:new"
+          :search-entities="searchEntities"
+          :upload-image="uploadMarkdownImage"
+          :upload-disabled-reason="uploadDisabledReason"
+          placeholder="使用 Markdown 补充背景、时间和需要收件人采取的行动；输入 @ 可引用对象"
         />
-      </label>
+      </div>
 
       <NCheckbox v-model:checked="form.is_pinned">
         在收件人的通知列表中置顶
@@ -135,7 +176,7 @@ const send = useMutation({
       </p>
 
       <div class="actions">
-        <RouterLink class="cancel" to="/notice">取消</RouterLink>
+        <RouterLink class="cancel" to="/notices/entity">取消</RouterLink>
         <LsButton
           type="submit"
           size="lg"
@@ -150,5 +191,9 @@ const send = useMutation({
 </template>
 
 <style scoped>
-.notice-send-view,.notice-form{display:grid;gap:24px}.notice-form{max-width:42rem}.delivery-note{padding:16px;background:var(--surface-subtle);border:1px solid var(--border);border-radius:var(--radius-md)}.delivery-note strong{font-size:.9375rem}.delivery-note p{margin:6px 0 0;color:var(--text-secondary);font-size:.875rem;line-height:1.6}.field{display:grid;gap:8px}.field>span{color:var(--text-secondary);font-size:.875rem;font-weight:650}.field b{color:var(--danger)}.field small{color:var(--text-secondary);font-size:.8125rem;line-height:1.5}.feedback{margin:0;padding:12px 14px;border-radius:var(--radius-md);font-size:.875rem;line-height:1.55}.success{color:var(--success);background:color-mix(in srgb,var(--success) 9%,transparent)}.error{color:var(--danger);background:color-mix(in srgb,var(--danger) 9%,transparent)}.empty{color:var(--text-secondary);background:var(--surface-subtle)}.actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding-bottom:36px}.cancel{min-height:50px;display:inline-flex;align-items:center;justify-content:center;padding:.8rem 1.25rem;color:var(--ink);background:white;border:1px solid var(--line);border-radius:var(--radius-sm);font-weight:650;text-decoration:none}.cancel:hover{background:var(--cloud)}.cancel:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost),transparent 72%);outline-offset:2px}@media(max-width:639px){.notice-send-view,.notice-form{gap:20px}.actions>*{flex:1}}
+.notice-send-view,.notice-form{display:grid;gap:24px}.notice-form{max-width:42rem}.delivery-note{padding:16px;background:var(--surface-subtle);border:1px solid var(--border);border-radius:var(--radius-md)}.delivery-note strong{font-size:.9375rem}.delivery-note p{margin:6px 0 0;color:var(--text-secondary);font-size:.875rem;line-height:1.6}.field{display:grid;gap:8px}.field>span{color:var(--text-secondary);font-size:.875rem;font-weight:650}.field b{color:var(--danger)}.field small{color:var(--text-secondary);font-size:.8125rem;line-height:1.5}.recipient-select :deep(.n-base-selection-label){padding-right:2.5rem}.recipient-select :deep(.recipient-option){grid-template-columns:auto minmax(0,1fr);gap:.5rem}.recipient-select :deep(.recipient-option__icon){width:auto;height:auto;background:transparent;border-radius:0}.recipient-select :deep(.recipient-option__identity){display:flex;align-items:center;gap:.5rem}.recipient-select :deep(.recipient-option__identity strong){flex:0 1 auto}.recipient-select :deep(.recipient-option__meta){min-width:0}.recipient-select :deep(.recipient-option__type){display:none}.feedback{margin:0;padding:12px 14px;border-radius:var(--radius-md);font-size:.875rem;line-height:1.55}.success{color:var(--success);background:color-mix(in srgb,var(--success) 9%,transparent)}.error{color:var(--danger);background:color-mix(in srgb,var(--danger) 9%,transparent)}.empty{color:var(--text-secondary);background:var(--surface-subtle)}.actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;padding-bottom:36px}.cancel{min-height:50px;display:inline-flex;align-items:center;justify-content:center;padding:.8rem 1.25rem;color:var(--ink);background:white;border:1px solid var(--line);border-radius:var(--radius-sm);font-weight:650;text-decoration:none}.cancel:hover{background:var(--cloud)}.cancel:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost),transparent 72%);outline-offset:2px}@media(max-width:639px){.notice-send-view,.notice-form{gap:20px}.recipient-select :deep(.recipient-option__slug){display:none}.actions>*{flex:1}}
+</style>
+
+<style>
+.recipient-select-menu{padding:6px}.recipient-select-menu .n-base-select-option{height:auto;min-height:62px;padding:7px 10px;border-radius:8px}.recipient-select-menu .n-base-select-option__content{min-width:0;width:100%}.recipient-option{width:100%;min-width:0;display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:10px}.recipient-option__icon{width:38px;height:38px;display:grid;place-items:center;color:var(--entity-accent);background:color-mix(in oklch,var(--entity-accent),transparent 88%);border-radius:8px}.recipient-option__identity{min-width:0;display:grid;gap:4px}.recipient-option__identity strong,.recipient-option__slug{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recipient-option__identity strong{color:var(--ink);font-size:.875rem;line-height:1.2}.recipient-option__meta{min-width:0;display:flex;align-items:center;gap:7px;color:var(--muted-ink);font-size:.75rem;line-height:1.2}.recipient-option__type{flex:none;padding:2px 7px;color:var(--entity-accent);background:color-mix(in oklch,var(--entity-accent),transparent 89%);border-radius:999px;font-weight:700}.recipient-option__slug{min-width:0}.recipient-select-menu .n-base-select-option--selected .recipient-option__identity strong{color:var(--sky-lost-strong)}@media(prefers-reduced-motion:reduce){.recipient-select-menu .n-base-select-option{transition:none}}
 </style>

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "302ca569105abb8aebab4a80ae8b02f4",
+    "content-hash": "6260242bee7633c926702b234ebeeaa5",
     "packages": [
         {
             "name": "adbario/php-dot-notation",
@@ -416,6 +416,62 @@
                 "source": "https://github.com/alibabacloud-sdk-php/openapi-core/tree/1.0.9"
             },
             "time": "2026-01-15T06:47:29+00:00"
+        },
+        {
+            "name": "alibabacloud/oss-v2",
+            "version": "0.4.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/aliyun/alibabacloud-oss-php-sdk-v2.git",
+                "reference": "a65ffd843cc8429c24a091804edd3a05f43050e4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/aliyun/alibabacloud-oss-php-sdk-v2/zipball/a65ffd843cc8429c24a091804edd3a05f43050e4",
+                "reference": "a65ffd843cc8429c24a091804edd3a05f43050e4",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
+            },
+            "require": {
+                "ext-json": "*",
+                "ext-simplexml": "*",
+                "guzzlehttp/guzzle": "^6.5.8 || ^7.4.5",
+                "guzzlehttp/promises": "^1.4.0 || ^2.0",
+                "guzzlehttp/psr7": "^2.7",
+                "php": "^7.4 || ^8.0",
+                "psr/http-message": "^1.0 || ^2.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "AlibabaCloud\\Oss\\V2\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Alibaba Cloud OSS SDK",
+                    "email": "sdk-team@alibabacloud.com"
+                }
+            ],
+            "description": "Aliyun OSS SDK for PHP v2",
+            "homepage": "https://github.com/aliyun/alibabacloud-oss-php-sdk-v2",
+            "support": {
+                "issues": "https://github.com/aliyun/alibabacloud-oss-php-sdk-v2/issues",
+                "source": "https://github.com/aliyun/alibabacloud-oss-php-sdk-v2/tree/0.4.0"
+            },
+            "time": "2025-12-25T08:21:31+00:00"
         },
         {
             "name": "alibabacloud/tea",

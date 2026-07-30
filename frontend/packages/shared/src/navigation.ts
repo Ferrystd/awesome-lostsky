@@ -1,6 +1,6 @@
 const ACCOUNT_LOGIN_URL = '//account.lostsky.work/login'
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
-const LOCAL_APP_PORTS = new Set(['5173', '5174', '5175', '5176', '5177', '5178', '5179'])
+const LOCAL_APP_PORTS = new Set(['5173', '5174', '5175', '5176', '5177', '5178', '5179', '5180'])
 
 function isLocalDevelopmentHost(hostname: string | undefined) {
   return import.meta.env.DEV && Boolean(hostname && LOCAL_HOSTS.has(hostname))
@@ -76,6 +76,39 @@ export function redirectToLogin(options: LoginRedirectOptions = {}) {
   const target = loginUrl(options)
   if (options.replace === false) location.assign(target)
   else location.replace(target)
+}
+
+function workspaceUrl(
+  app: 'chat' | 'shop' | 'team',
+  developmentPort: number,
+  path = '/',
+  params: Record<string, string | number | boolean | null | undefined> = {},
+) {
+  const host = location.hostname.replace(
+    /\.(?:account|team|chat|transaction|display|shop|admin)\./,
+    `.${app}.`,
+  )
+  const port = import.meta.env.DEV ? `:${developmentPort}` : location.port ? `:${location.port}` : ''
+  const url = new URL(path, `${location.protocol}//${host}${port}`)
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== null && value !== undefined && value !== '') url.searchParams.set(key, String(value))
+  }
+  return url.href
+}
+
+export function chatWorkspaceUrl(
+  path = '/',
+  params: Record<string, string | number | boolean | null | undefined> = {},
+) {
+  return workspaceUrl('chat', 5176, path, params)
+}
+
+export function shopWorkspaceUrl(path = '/') {
+  return workspaceUrl('shop', 5179, path)
+}
+
+export function teamWorkspaceUrl(path = '/') {
+  return workspaceUrl('team', 5175, path)
 }
 
 export type EntityCallbackReason = 'missing' | 'team_mismatch'

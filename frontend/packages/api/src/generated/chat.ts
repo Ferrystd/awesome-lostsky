@@ -429,41 +429,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/customer/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 读取当前团队客户身份资料 */
-        get: operations["chatCustomerMe"];
-        put?: never;
-        /** 客户自行维护当前团队公开资料 */
-        post: operations["chatCustomerUpdate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/customer/slug": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 为当前团队客户身份首次确定全局 slug */
-        post: operations["chatCustomerSlug"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/entityField": {
         parameters: {
             query?: never;
@@ -610,20 +575,36 @@ export interface components {
             options?: unknown[] | null;
             /** @enum {integer} */
             is_required?: 0 | 1;
-            /** @enum {integer} */
+            /**
+             * @description 是否允许手动修改字段值；关闭后字段管理员和对象本人均只读
+             * @enum {integer}
+             */
             is_editable?: 0 | 1;
-            /** @enum {integer} */
+            /**
+             * @description 预留字段；当前版本未接入字段值搜索，不参与可见性判断
+             * @enum {integer}
+             */
             is_searchable?: 0 | 1;
-            /** @enum {integer} */
-            is_visible?: 0 | 1;
+            readonly can_edit?: boolean;
             sort?: number;
             /** @enum {string} */
             source?: "system" | "custom";
             default_value?: string | null;
-            /** @enum {integer} */
+            /**
+             * @description 值维护范围：1=仅字段管理员，2=对象本人和字段管理员
+             * @enum {integer}
+             */
             manager_scope?: 1 | 2;
-            /** @enum {integer} */
+            /**
+             * @description 值可见范围：1=字段管理员，3=对象本人和字段管理员，4=团队实体，5=公开，6=指定对象
+             * @enum {integer}
+             */
             visibility?: 1 | 3 | 4 | 5 | 6;
+            /** @description visibility=6 时生效 */
+            visibility_targets?: {
+                /** Format: int64 */
+                entity_id: number;
+            }[];
             /** @enum {integer} */
             is_system?: 0 | 1;
         };
@@ -1286,80 +1267,6 @@ export interface operations {
         };
         responses: {
             /** @description channel 与 token */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatCustomerMe: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 客户资料 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatCustomerUpdate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    nickname: string;
-                    avatar?: string | null;
-                    description?: string | null;
-                };
-            };
-        };
-        responses: {
-            /** @description 更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    chatCustomerSlug: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    slug: string;
-                };
-            };
-        };
-        responses: {
-            /** @description 确定成功 */
             200: {
                 headers: {
                     [name: string]: unknown;

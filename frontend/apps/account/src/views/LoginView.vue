@@ -20,6 +20,10 @@ const visible = ref(false)
 const loading = ref(false)
 const error = ref('')
 const expired = computed(() => route.query.expired === '1')
+const registerTarget = computed(() => ({
+  path: '/register',
+  query: route.query.redirect ? { redirect: route.query.redirect } : {},
+}))
 
 async function submit() {
   error.value = ''
@@ -106,7 +110,7 @@ async function submit() {
         {{ mode === 'sms' ? '验证码登录' : '密码登录' }}
       </LsButton>
     </form>
-    <p class="switch">还没有账号？<RouterLink to="/register">创建通行证</RouterLink></p>
+    <p class="switch">还没有账号？<RouterLink :to="registerTarget">创建通行证</RouterLink></p>
   </AuthShell>
 </template>
 

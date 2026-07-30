@@ -12,6 +12,8 @@ use app\model\Team;
 use app\model\TeamEntityField;
 use app\model\TeamEntityFieldValue;
 use app\model\TeamEntityRole;
+use app\model\TeamProduct;
+use app\model\TeamProductHandler;
 use app\model\TeamRole;
 use app\service\Entity as EntityService;
 use think\App;
@@ -249,7 +251,6 @@ MARKDOWN,
             'is_required' => 0,
             'is_editable' => 1,
             'is_searchable' => 0,
-            'is_visible' => 1,
             'is_system' => 0,
         ]));
         $upsert(TeamEntityFieldValue::class, [
@@ -265,6 +266,47 @@ MARKDOWN,
             'value_json' => null,
         ], $value));
         $fieldIds[] = (int) $field->id;
+    }
+
+    $products = [
+        [
+            'name' => '夜航陪伴',
+            'description' => '由 member-2 提供的晚间语音陪伴与协作体验。',
+            'cover_image' => $portrait,
+            'price' => '39.00',
+            'cost' => '10.00',
+            'handler_cut' => '20.00',
+            'is_active' => 1,
+        ],
+        [
+            'name' => '内部下架商品',
+            'description' => '用于验证下架商品不会出现在公开实体资料。',
+            'cover_image' => null,
+            'price' => '99.00',
+            'cost' => '1.00',
+            'handler_cut' => null,
+            'is_active' => 0,
+        ],
+    ];
+    $productIds = [];
+    foreach ($products as $productData) {
+        $name = $productData['name'];
+        unset($productData['name']);
+        $product = $upsert(TeamProduct::class, [
+            'team_id' => (int) $team->id,
+            'entity_id' => (int) $entity->id,
+            'name' => $name,
+        ], array_merge($productData, [
+            'introduction_markdown' => "## {$name}\n\n这是用于验证实体专属商品公开陈列的演示内容。",
+            'sender_cut' => null,
+            'cs_cut' => null,
+            'team_cut' => null,
+        ]));
+        $upsert(TeamProductHandler::class, [
+            'product_id' => (int) $product->id,
+            'entity_id' => (int) $entity->id,
+        ], []);
+        $productIds[] = (int) $product->id;
     }
 
     $teamEntity = Entity::where('entityable_type', 'team')
@@ -343,6 +385,7 @@ MARKDOWN,
         'intro_image' => $portrait,
         'role_ids' => $roleIds,
         'field_ids' => $fieldIds,
+        'product_ids' => $productIds,
         'document_ids' => $documentIds,
     ];
 });

@@ -13,7 +13,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 上传文件 */
+        /**
+         * 上传文件
+         * @description 响应正文始终为合法 JSON。缺少 file.upload 时返回 Permission 原因；File Ability 缺失、等级不足或过期时返回 Ability 原因。
+         */
         post: operations["commonUpload"];
         delete?: never;
         options?: never;
@@ -43,8 +46,24 @@ export interface components {
             code: number;
             /** @example 操作成功 */
             message: string;
-            /** @example null */
-            data: unknown;
+            /** @description 授权错误返回结构化原因；其他错误可为 null。 */
+            data: (components["schemas"]["PermissionDeniedReason"] | components["schemas"]["AbilityDeniedReason"]) | null;
+        };
+        PermissionDeniedReason: {
+            /** @enum {string} */
+            kind: "permission";
+            required_any: string[];
+        };
+        AbilityDeniedReason: {
+            /** @enum {string} */
+            kind: "ability";
+            /** @example file */
+            key: string;
+            /** @example 文件上传 */
+            label: string;
+            minimum_level?: number;
+            /** @enum {string} */
+            reason?: "missing" | "level" | "expired";
         };
         ErrorEnvelope: {
             /** @example 1 */
@@ -542,8 +561,6 @@ export interface components {
             is_editable?: 0 | 1;
             /** @enum {integer} */
             is_searchable?: 0 | 1;
-            /** @enum {integer} */
-            is_visible?: 0 | 1;
             sort?: number;
             /** @enum {string} */
             source?: "system" | "custom";
@@ -627,7 +644,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
+            /** @description 缺少 file.upload Permission 或 File Ability；data.kind 标识具体原因。 */
             403: {
                 headers: {
                     [name: string]: unknown;

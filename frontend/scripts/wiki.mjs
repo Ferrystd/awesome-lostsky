@@ -7,6 +7,11 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const venv = join(root, '.wiki-venv')
 const venvPython = join(venv, process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python')
 const action = process.argv[2]
+const target = process.argv[3] ?? 'docs'
+const configs = {
+  docs: 'zensical.toml',
+  guide: 'zensical.guide.toml',
+}
 
 function commandWorks(command, args) {
   const result = spawnSync(command, args, { encoding: 'utf8' })
@@ -35,7 +40,10 @@ function setup() {
 }
 
 function serve() {
-  const server = spawn(venvPython, ['-m', 'zensical', 'serve', '--config-file', 'zensical.toml'], {
+  const config = configs[target]
+  if (!config) throw new Error(`未知文档站：${target}`)
+
+  const server = spawn(venvPython, ['-m', 'zensical', 'serve', '--config-file', config], {
     cwd: root,
     stdio: 'inherit',
   })
@@ -52,10 +60,12 @@ if (action === 'setup') {
   if (action === 'serve') {
     serve()
   } else {
-    execFileSync(venvPython, ['-m', 'zensical', 'build', '--config-file', 'zensical.toml', '--clean', '--strict'], {
-      cwd: root,
-      stdio: 'inherit',
-    })
+    for (const config of Object.values(configs)) {
+      execFileSync(venvPython, ['-m', 'zensical', 'build', '--config-file', config, '--clean', '--strict'], {
+        cwd: root,
+        stdio: 'inherit',
+      })
+    }
   }
 } else {
   throw new Error('用法：node frontend/scripts/wiki.mjs <setup|build|serve>')

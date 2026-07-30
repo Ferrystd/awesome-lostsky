@@ -99,9 +99,6 @@
       "name": "Realtime"
     },
     {
-      "name": "Customer"
-    },
-    {
       "name": "EntityField"
     },
     {
@@ -424,21 +421,20 @@
             "enum": [
               0,
               1
-            ]
+            ],
+            "description": "是否允许手动修改字段值；关闭后字段管理员和对象本人均只读"
           },
           "is_searchable": {
             "type": "integer",
             "enum": [
               0,
               1
-            ]
+            ],
+            "description": "预留字段；当前版本未接入字段值搜索，不参与可见性判断"
           },
-          "is_visible": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ]
+          "can_edit": {
+            "type": "boolean",
+            "readOnly": true
           },
           "sort": {
             "type": "integer"
@@ -459,7 +455,8 @@
             "enum": [
               1,
               2
-            ]
+            ],
+            "description": "值维护范围：1=仅字段管理员，2=对象本人和字段管理员"
           },
           "visibility": {
             "type": "integer",
@@ -469,7 +466,24 @@
               4,
               5,
               6
-            ]
+            ],
+            "description": "值可见范围：1=字段管理员，3=对象本人和字段管理员，4=团队实体，5=公开，6=指定对象"
+          },
+          "visibility_targets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "entity_id"
+              ],
+              "properties": {
+                "entity_id": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            },
+            "description": "visibility=6 时生效"
           },
           "is_system": {
             "type": "integer",
@@ -1538,111 +1552,6 @@
         "responses": {
           "200": {
             "description": "channel 与 token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Envelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/customer/me": {
-      "get": {
-        "tags": [
-          "Customer"
-        ],
-        "summary": "读取当前团队客户身份资料",
-        "operationId": "chatCustomerMe",
-        "responses": {
-          "200": {
-            "description": "客户资料",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Envelope"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Customer"
-        ],
-        "summary": "客户自行维护当前团队公开资料",
-        "operationId": "chatCustomerUpdate",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "nickname"
-                ],
-                "properties": {
-                  "nickname": {
-                    "type": "string"
-                  },
-                  "avatar": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "description": {
-                    "type": "string",
-                    "nullable": true
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "更新成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/customer/slug": {
-      "post": {
-        "tags": [
-          "Customer"
-        ],
-        "summary": "为当前团队客户身份首次确定全局 slug",
-        "operationId": "chatCustomerSlug",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "slug"
-                ],
-                "properties": {
-                  "slug": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "确定成功",
             "content": {
               "application/json": {
                 "schema": {

@@ -15,6 +15,7 @@ export interface EntityFieldDefinition {
   default_value?: unknown
   is_required?: number
   is_editable?: number
+  can_edit?: boolean
 }
 
 type FieldValue = string | number | boolean | string[] | null
@@ -75,7 +76,9 @@ watch(() => props.success, (success) => {
 })
 
 function editable(field: EntityFieldDefinition) {
-  return (props.mode === 'manager' || props.mode === 'self') && Number(field.is_editable) === 1
+  if (props.mode === 'manager') return Number(field.is_editable) === 1
+  if (props.mode === 'self') return field.can_edit === true
+  return false
 }
 
 function normalizedOptions(field: EntityFieldDefinition) {
@@ -274,11 +277,10 @@ function submit() {
     </div>
 
     <p v-if="error || uploadError" class="feedback error" role="alert">{{ friendlyError(error || uploadError) }}</p>
-    <p v-if="success" class="feedback success" role="status">对象字段已保存。</p>
   </section>
 </template>
 
 <style scoped>
-.entity-fields-card{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.entity-fields-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.entity-fields-card h2,.entity-fields-card p{margin:0}.entity-fields-card h2{font-size:1.05rem}.entity-fields-card header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.field-list{border-top:1px solid var(--line)}.field-row{display:grid;grid-template-columns:minmax(9rem,.36fr) minmax(0,1fr);align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}.field-label{display:grid;gap:.2rem}.field-label>span{font-size:.875rem;font-weight:680}.field-label b{color:var(--danger)}.field-label small,.readonly-value small{color:var(--muted-ink);font-size:.75rem}.readonly-value{min-width:0;display:grid;gap:.2rem;overflow-wrap:anywhere;color:var(--ink);line-height:1.55}.readonly-value small{font-weight:500}.number-input{width:100%}.native-input{width:100%;min-height:44px;padding:.55rem .75rem;color:var(--ink);background:white;border:1px solid var(--line);border-radius:8px;font:inherit}.native-input:focus{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 84%);border-color:var(--sky-lost-strong)}.choice-list{display:flex;flex-wrap:wrap;gap:.75rem 1rem}.upload-control{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem}.upload-control>label{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;color:var(--ink);background:white;border:1px solid var(--line);border-radius:8px;font-size:.875rem;font-weight:650;cursor:pointer}.upload-control input{position:absolute;width:1px;height:1px;opacity:0}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}.feedback{padding:.75rem;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}.success{color:var(--success);background:color-mix(in oklch,var(--success),white 94%)}
+.entity-fields-card{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.entity-fields-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.entity-fields-card h2,.entity-fields-card p{margin:0}.entity-fields-card h2{font-size:1.05rem}.entity-fields-card header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.field-list{border-top:1px solid var(--line)}.field-row{display:grid;grid-template-columns:minmax(9rem,.36fr) minmax(0,1fr);align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}.field-label{display:grid;gap:.2rem}.field-label>span{font-size:.875rem;font-weight:680}.field-label b{color:var(--danger)}.field-label small,.readonly-value small{color:var(--muted-ink);font-size:.75rem}.readonly-value{min-width:0;display:grid;gap:.2rem;overflow-wrap:anywhere;color:var(--ink);line-height:1.55}.readonly-value small{font-weight:500}.number-input{width:100%}.native-input{width:100%;min-height:44px;padding:.55rem .75rem;color:var(--ink);background:white;border:1px solid var(--line);border-radius:8px;font:inherit}.native-input:focus{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 84%);border-color:var(--sky-lost-strong)}.choice-list{display:flex;flex-wrap:wrap;gap:.75rem 1rem}.upload-control{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem}.upload-control>label{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;color:var(--ink);background:white;border:1px solid var(--line);border-radius:8px;font-size:.875rem;font-weight:650;cursor:pointer}.upload-control input{position:absolute;width:1px;height:1px;opacity:0}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}.feedback{padding:.75rem;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}
 @media(max-width:639px){.entity-fields-card{padding:1rem}.entity-fields-card>header{align-items:stretch;flex-direction:column}.entity-fields-card>header :deep(.ls-button){width:100%}.field-row{grid-template-columns:1fr;gap:.65rem}.upload-control{grid-template-columns:1fr}.upload-control>label{justify-content:center}}
 </style>

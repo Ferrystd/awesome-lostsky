@@ -4,6 +4,7 @@ import { identityUrl } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
+import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
@@ -16,6 +17,7 @@ import EntityPermissionsCard, {
   type RoleRecord,
 } from '../components/EntityPermissionsCard.vue'
 import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
+import { fileUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 interface MemberCapabilities {
   member_edit: boolean
@@ -33,9 +35,12 @@ const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const editor = ref<InstanceType<typeof LsMarkdownEditor> | null>(null)
+const access = useTeamAccess()
+const uploadDisabledReason = computed(() => fileUploadReason(access.data.value))
 const id = computed(() => Number(route.query.id || 0))
 const editing = computed(() => id.value > 0)
 const uploading = ref('')
+const uploadError = ref('')
 const form = reactive({
   user_id: null as number | null,
   nickname: '',
@@ -143,24 +148,42 @@ const save = useMutation({
     editor.value?.clearDraft()
     profileSnapshot.value = profileState()
     await queryClient.invalidateQueries({ queryKey: ['members'] })
+    feedback.success(editing.value ? '成员资料已保存' : '成员已添加')
     await router.push('/members')
   },
+  onError: error => feedback.error(friendlyError(error)),
 })
 const claim = useMutation({
   mutationFn: () => api.post<{ slug: string }>('/member/slug', { member_id: id.value, slug: identityForm.slug.trim() }),
-  onSuccess: async () => { await detail.refetch() },
+  onSuccess: async () => {
+    await detail.refetch()
+    feedback.success('对象标识已确认')
+  },
+  onError: error => feedback.error(friendlyError(error)),
 })
 const saveSearch = useMutation({
   mutationFn: () => api.post('/member/search', { member_id: id.value, search_override: identityForm.search_override === 'inherit' ? null : Number(identityForm.search_override) }),
-  onSuccess: async () => { await detail.refetch() },
+  onSuccess: async () => {
+    await detail.refetch()
+    feedback.success('成员搜索设置已保存')
+  },
+  onError: error => feedback.error(friendlyError(error)),
 })
 const saveFields = useMutation({
   mutationFn: (values: Record<number, unknown>) => api.post('/entityField/values', { slug: memberSlug.value, values }),
-  onSuccess: async () => { await fieldValues.refetch() },
+  onSuccess: async () => {
+    await fieldValues.refetch()
+    feedback.success('对象字段已保存')
+  },
+  onError: error => feedback.error(friendlyError(error)),
 })
 const saveRoles = useMutation({
   mutationFn: (role_ids: number[]) => api.post('/entityRole/save', { slug: memberSlug.value, role_ids }),
-  onSuccess: async () => { await roleAssignments.refetch() },
+  onSuccess: async () => {
+    await roleAssignments.refetch()
+    feedback.success('角色分配已保存')
+  },
+  onError: error => feedback.error(friendlyError(error)),
 })
 const memberAction = useMutation({
   mutationFn: (endpoint: string) => api.post(endpoint, { member_id: id.value }),
@@ -171,7 +194,11 @@ const memberAction = useMutation({
     } else {
       await detail.refetch()
     }
+    feedback.success(endpoint === '/member/remove'
+      ? '成员已移出团队'
+      : endpoint === '/member/block' ? '成员已封禁' : '成员封禁已解除')
   },
+  onError: error => feedback.error(friendlyError(error)),
 })
 
 const searchOptions = [
@@ -183,10 +210,17 @@ const searchOptions = [
 async function upload(key: 'avatar' | 'intro_image' | 'intro_video', event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
+  if (uploadDisabledReason.value) {
+    uploadError.value = uploadDisabledReason.value
+    return
+  }
   uploading.value = key
+  uploadError.value = ''
   try {
     const result = await api.upload<Record<string, unknown>>(file)
     form[key] = String(result.url ?? result.path ?? result.id ?? '')
+  } catch (error) {
+    uploadError.value = friendlyError(error)
   } finally {
     uploading.value = ''
     ;(event.target as HTMLInputElement).value = ''
@@ -267,9 +301,9 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
             <span>头像</span>
             <div class="upload-field">
               <NInput v-model:value="form.avatar" placeholder="图片 URL 或上传文件" />
-              <label class="upload-action">
+              <label :class="['upload-action', { disabled: uploadDisabledReason }]" :tabindex="uploadDisabledReason ? 0 : -1" aria-describedby="member-upload-reason">
                 {{ uploading === 'avatar' ? '上传中…' : '上传图片' }}
-                <input type="file" accept="image/*" :disabled="Boolean(uploading)" @change="upload('avatar', $event)">
+                <input type="file" accept="image/*" :disabled="Boolean(uploading) || Boolean(uploadDisabledReason)" @change="upload('avatar', $event)">
               </label>
             </div>
           </label>
@@ -282,19 +316,21 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
               <span>介绍图片</span>
               <div class="upload-field">
                 <NInput v-model:value="form.intro_image" placeholder="图片 URL" />
-                <label class="upload-action">{{ uploading === 'intro_image' ? '上传中…' : '上传' }}<input type="file" accept="image/*" @change="upload('intro_image', $event)"></label>
+                <label :class="['upload-action', { disabled: uploadDisabledReason }]" :tabindex="uploadDisabledReason ? 0 : -1" aria-describedby="member-upload-reason">{{ uploading === 'intro_image' ? '上传中…' : '上传' }}<input type="file" accept="image/*" :disabled="Boolean(uploadDisabledReason)" @change="upload('intro_image', $event)"></label>
               </div>
             </label>
             <label class="field">
               <span>介绍视频</span>
               <div class="upload-field">
                 <NInput v-model:value="form.intro_video" placeholder="视频 URL" />
-                <label class="upload-action">{{ uploading === 'intro_video' ? '上传中…' : '上传' }}<input type="file" accept="video/*" @change="upload('intro_video', $event)"></label>
+                <label :class="['upload-action', { disabled: uploadDisabledReason }]" :tabindex="uploadDisabledReason ? 0 : -1" aria-describedby="member-upload-reason">{{ uploading === 'intro_video' ? '上传中…' : '上传' }}<input type="file" accept="video/*" :disabled="Boolean(uploadDisabledReason)" @change="upload('intro_video', $event)"></label>
               </div>
             </label>
           </div>
-          <label class="field">
-            <span>详细介绍</span>
+          <p v-if="uploadDisabledReason" id="member-upload-reason" class="feedback access" role="note">{{ uploadDisabledReason }}；仍可填写外部图片或视频 URL。</p>
+          <p v-if="uploadError" class="feedback error" role="alert">{{ uploadError }}</p>
+          <div class="field" role="group" aria-labelledby="member-introduction-label">
+            <span id="member-introduction-label">详细介绍</span>
             <LsMarkdownEditor
               v-if="!editing || detail.isSuccess.value"
               ref="editor"
@@ -302,9 +338,10 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
               :draft-key="`member-profile:${editing ? id : 'new'}`"
               :search-entities="searchEntities"
               :upload-image="uploadMarkdownImage"
+              :upload-disabled-reason="uploadDisabledReason"
               placeholder="写下成员介绍，输入 @ 可引用团队或其他成员…"
             />
-          </label>
+          </div>
         </template>
         <dl v-else class="readonly-profile">
           <div><dt>团队昵称</dt><dd>{{ form.nickname || '未填写' }}</dd></div>
@@ -316,7 +353,6 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
         </dl>
       </section>
 
-      <p v-if="save.isError.value" class="feedback error" role="alert">{{ friendlyError(save.error.value) }}</p>
     </form>
 
     <EntityFieldsCard
@@ -326,7 +362,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       mode="manager"
       :loading="fields.isPending.value || fieldValues.isPending.value"
       :saving="saveFields.isPending.value"
-      :error="fields.error.value || fieldValues.error.value || saveFields.error.value"
+      :error="fields.error.value || fieldValues.error.value"
       :success="saveFields.isSuccess.value"
       @save="saveFields.mutate"
       @dirty="setFieldsDirty"
@@ -340,7 +376,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       :can-edit="capabilities.role_write"
       :loading="roles.isPending.value || (Boolean(roles.data.value?.length) && rolesWithPermissions.isPending.value) || roleAssignments.isPending.value || permissionCatalog.isPending.value"
       :saving="saveRoles.isPending.value"
-      :error="roles.error.value || rolesWithPermissions.error.value || roleAssignments.error.value || permissionCatalog.error.value || saveRoles.error.value"
+      :error="roles.error.value || rolesWithPermissions.error.value || roleAssignments.error.value || permissionCatalog.error.value"
       :success="saveRoles.isSuccess.value"
       @save="saveRoles.mutate"
       @dirty="setRolesDirty"
@@ -372,7 +408,6 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
         <LsButton type="submit" variant="secondary" :loading="claim.isPending.value" :disabled="!identityForm.slug.trim()">确认标识</LsButton>
       </form>
       <div v-else class="identity-status"><span>对象标识</span><strong>@{{ detail.data.value.slug }}</strong><small>创建后不可修改</small></div>
-      <p v-if="claim.isError.value" class="feedback error" role="alert">{{ friendlyError(claim.error.value) }}</p>
 
       <form v-if="capabilities.member_search" class="inline-form search-form" @submit.prevent="saveSearch.mutate()">
         <label class="field">
@@ -381,8 +416,6 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
         </label>
         <LsButton type="submit" variant="secondary" :loading="saveSearch.isPending.value" :disabled="!detail.data.value.slug">保存搜索设置</LsButton>
       </form>
-      <p v-if="saveSearch.isError.value" class="feedback error" role="alert">{{ friendlyError(saveSearch.error.value) }}</p>
-      <p v-if="saveSearch.isSuccess.value" class="feedback success" role="status">成员搜索设置已保存。</p>
 
       <div class="management-actions">
         <LsButton
@@ -419,7 +452,6 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
           移出成员
         </LsButton>
       </div>
-      <p v-if="memberAction.isError.value" class="feedback error" role="alert">{{ friendlyError(memberAction.error.value) }}</p>
     </section>
   </div>
 </template>
@@ -440,6 +472,8 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
 .upload-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .upload-action { min-height: 36px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-secondary); background: var(--surface-subtle); font-size: .85rem; font-weight: 650; cursor: pointer; }
 .upload-action:hover { border-color: var(--primary); color: var(--primary); }
+.upload-action.disabled { opacity: .48; cursor: not-allowed; }
+.upload-action:focus-visible { outline: 3px solid color-mix(in srgb, var(--primary) 25%, transparent); outline-offset: 2px; }
 .upload-action input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .post-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .readonly-profile { display: grid; margin: 0; border-top: 1px solid var(--border); }
@@ -461,6 +495,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
 .danger-zone strong, .danger-zone p { margin: 0; }
 .danger-zone p { max-width: 55ch; margin-top: 4px; color: var(--text-secondary); font-size: .82rem; line-height: 1.55; }
 .feedback { margin: 0; padding: 11px 13px; border-radius: var(--radius-md); }
+.feedback.access { color: var(--text-secondary); background: var(--surface-subtle); }
 .error { color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); }
 .success { color: var(--success); background: color-mix(in srgb, var(--success) 9%, transparent); }
 @media (max-width: 680px) {

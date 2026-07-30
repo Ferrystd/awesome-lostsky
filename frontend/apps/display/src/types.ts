@@ -20,12 +20,22 @@ export interface PublicRole {
   description?: string | null
 }
 
+export interface PublicProduct {
+  id: number
+  name: string
+  description?: string | null
+  cover_image?: string | null
+  price: string
+  href: string
+}
+
 export interface PublicSubject {
   slug: string
   type: 'team' | 'teamMember' | 'teamVirtual'
   profile: PublicProfile
   fields: PublicField[]
   roles?: PublicRole[]
+  products?: PublicProduct[]
 }
 
 export interface EntitySummary {

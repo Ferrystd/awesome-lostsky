@@ -437,6 +437,41 @@
           }
         }
       },
+      "PublicProduct": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "price",
+          "href"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "cover_image": {
+            "type": "string",
+            "nullable": true
+          },
+          "price": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d{2}$"
+          },
+          "href": {
+            "type": "string",
+            "description": "同团队 Shop 商品详情的协议相对地址。"
+          }
+        }
+      },
       "PublicSubject": {
         "type": "object",
         "required": [
@@ -471,6 +506,13 @@
             "description": "实体已获授且开启公开展示的角色；团队主体为空。",
             "items": {
               "$ref": "#/components/schemas/PublicRole"
+            }
+          },
+          "products": {
+            "type": "array",
+            "description": "实体专属且已上架的商品摘要；团队主体为空。",
+            "items": {
+              "$ref": "#/components/schemas/PublicProduct"
             }
           }
         }

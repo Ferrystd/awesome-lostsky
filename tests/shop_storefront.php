@@ -4,6 +4,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\model\EntitySession;
+use app\model\Entity;
 use app\model\Team;
 use app\model\TeamCustomer;
 use app\model\TeamCustomerBalance;
@@ -12,6 +13,7 @@ use app\model\TeamProduct;
 use app\model\User;
 use app\model\UserDevice;
 use app\service\CustomerBinding;
+use app\service\CustomerProfile as CustomerProfileService;
 use app\service\Balance as BalanceService;
 use app\service\Entity as EntityService;
 use app\service\IdentitySession;
@@ -67,6 +69,9 @@ try {
         'Storefront Test'
     );
     $team = Team::find((int) $teamData['id']);
+    $teamEntity = Entity::where('entityable_type', 'team')
+        ->where('entityable_id', (int) $team->id)
+        ->find();
 
     $activeId = app(Product::class)->create((int) $team->id, [
         'name' => 'Visible Product',
@@ -101,11 +106,19 @@ try {
         'last_active_time' => time(),
     ]);
     $binding = app(CustomerBinding::class);
-    $manual = $binding->bind((int) $team->id, (int) $buyer->id, $deviceToken, null, "buyer-{$suffix}");
+    $manual = $binding->bind(
+        (int) $team->id,
+        (int) $buyer->id,
+        $deviceToken,
+        null,
+        "buyer-{$suffix}",
+        (string) $teamEntity->slug
+    );
     $customerId = (int) $manual['customer']['id'];
     $customer = TeamCustomer::with(['identity', 'balance'])->find($customerId);
     $assert($manual['created'] === true && ($manual['identity']['slug'] ?? '') === "buyer-{$suffix}", 'base user creates a customer with a manual slug');
     $assert($customer->owner_entity_id === null && (int) $customer->user_id === (int) $buyer->id, 'base user binding has exactly one owner');
+    $assert((int) $customer->assignee_entity_id === (int) $teamEntity->id, 'valid inviter becomes the initial customer assignee');
     $assert((string) $customer->balance->balance === '0.00' && !$customer->identity->is_searchable, 'binding creates zero balance and a non-searchable entity');
 
     $decoded = app(Jwt::class)->parseToken((string) $manual['token']);
@@ -118,6 +131,107 @@ try {
     );
     $again = $binding->bind((int) $team->id, (int) $buyer->id, $deviceToken, $current);
     $assert((int) $again['customer']['id'] === $customerId && $again['created'] === false, 'binding is idempotent for the current shop customer');
+    $assert(
+        (int) TeamCustomer::find($customerId)->assignee_entity_id === (int) $teamEntity->id,
+        'rebinding an existing customer does not replace the initial assignee'
+    );
+    $customerProfile = app(CustomerProfileService::class);
+    $initialProfile = $customerProfile->get((int) $team->id, $customerId);
+    $assert(
+        ($initialProfile['profile']['name'] ?? '') !== ''
+            && ($initialProfile['identity']['slug'] ?? '') === "buyer-{$suffix}",
+        'shop customer profile returns normalized team profile and identity data'
+    );
+    $customerProfile->update((int) $team->id, $customerId, [
+        'nickname' => 'Shop Customer',
+        'avatar' => 'https://assets.lostsky.work/customer.webp',
+        'description' => 'Merchant-only customer notes',
+        'assignee_entity_id' => null,
+    ]);
+    $updatedProfile = $customerProfile->get((int) $team->id, $customerId);
+    $assert(
+        ($updatedProfile['profile']['name'] ?? '') === 'Shop Customer'
+            && ($updatedProfile['profile']['description'] ?? '') === 'Merchant-only customer notes',
+        'shop customer can update their team-local profile'
+    );
+    $assert($updatedProfile['assignee'] === null, 'shop customer can clear their own assignee');
+    $customerProfile->update((int) $team->id, $customerId, [
+        'nickname' => 'Shop Customer',
+        'avatar' => 'https://assets.lostsky.work/customer.webp',
+        'description' => 'Merchant-only customer notes',
+        'assignee_entity_id' => (int) $teamEntity->id,
+    ]);
+    $assert(
+        (int) ($customerProfile->get((int) $team->id, $customerId)['assignee']['entity_id'] ?? 0) === (int) $teamEntity->id,
+        'shop customer can select an eligible same-team assignee'
+    );
+    $otherBuyer = new User;
+    $otherBuyer->save([
+        'phone' => '17' . random_int(100000000, 999999999),
+        'username' => "shop-other-buyer-{$suffix}",
+        'password' => password_hash('shop-test', PASSWORD_DEFAULT),
+    ]);
+    $otherDeviceToken = bin2hex(random_bytes(16));
+    (new UserDevice)->save([
+        'user_id' => (int) $otherBuyer->id,
+        'device_token' => $otherDeviceToken,
+        'device_name' => 'Shop Invalid Inviter Test',
+        'ua' => 'tests/shop_storefront.php',
+        'last_active_time' => time(),
+    ]);
+    $invalidInviter = $binding->bind(
+        (int) $team->id,
+        (int) $otherBuyer->id,
+        $otherDeviceToken,
+        null,
+        null,
+        "buyer-{$suffix}"
+    );
+    $assert(
+        TeamCustomer::find((int) $invalidInviter['customer']['id'])->assignee_entity_id === null,
+        'customer entity slug cannot become another customer assignee'
+    );
+    $assertThrows(
+        fn () => $customerProfile->get((int) $team->id + 1, $customerId),
+        404,
+        'shop customer profile rejects a different team boundary'
+    );
+    $customer->is_blocked = 1;
+    $customer->save();
+    $assertThrows(
+        fn () => $customerProfile->get((int) $team->id, $customerId),
+        404,
+        'blocked shop customer cannot read their profile'
+    );
+    $customer->is_blocked = 0;
+    $customer->save();
+
+    $legacyCustomer = new TeamCustomer;
+    $legacyCustomer->save([
+        'team_id' => (int) $team->id,
+        'user_id' => (int) $owner->id,
+        'is_blocked' => 0,
+    ]);
+    $legacyProfile = $customerProfile->get((int) $team->id, (int) $legacyCustomer->id);
+    $assert(
+        ($legacyProfile['identity']['slug'] ?? null) === null,
+        'legacy customer without an identity exposes an empty slug'
+    );
+    $claimedSlug = $customerProfile->claimSlug(
+        (int) $team->id,
+        (int) $legacyCustomer->id,
+        "legacy-{$suffix}"
+    );
+    $customerProfile->update((int) $team->id, (int) $legacyCustomer->id, [
+        'nickname' => 'Legacy Customer',
+        'avatar' => null,
+        'description' => null,
+    ]);
+    $assert(
+        ($claimedSlug['slug'] ?? '') === "legacy-{$suffix}"
+            && ($customerProfile->get((int) $team->id, (int) $legacyCustomer->id)['profile']['name'] ?? '') === 'Legacy Customer',
+        'legacy shop customer can claim their first slug and then maintain a profile'
+    );
     $customerService = app(CustomerService::class);
     $assertThrows(
         fn () => $customerService->purchase((int) $team->id, $customerId, [

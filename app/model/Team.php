@@ -60,6 +60,8 @@ class Team extends Base
 
     public function getIsSearchableAttr(): bool
     {
+        // 全局实体搜索可发现性：决定 Team 是否出现在跨团队搜索结果中。
+        // 不控制 Team 工作空间内的目录可见性，也不控制公开 Display 页面。
         if (!$this->is_valid) {
             return false;
         }

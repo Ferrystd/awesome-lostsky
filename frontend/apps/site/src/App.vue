@@ -207,7 +207,7 @@ const advantages = [
 .hero-proof li b { color: #d3deeb; font-size: .9rem; font-weight: 600; }
 .scroll-indicator { position: absolute; bottom: 1.5rem; left: 50%; display: grid; width: 44px; height: 44px; place-items: center; color: #d5dfeb; transform: translateX(-50%); }
 .scroll-indicator svg, .service-icon svg, .advantage-copy svg, .contact-actions svg { stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
-.scroll-indicator svg { width: 23px; animation: scroll-cue 1.8s ease-in-out infinite; }
+.scroll-indicator svg { width: 23px; animation: scroll-cue 1.8s ease-in-out 3; }
 
 .team-section, .services-section, .advantages-section { position: relative; padding: clamp(5rem, 10vw, 8rem) 0; scroll-margin-top: 4.75rem; }
 .section-title { margin-bottom: clamp(3rem, 7vw, 5rem); text-align: center; }

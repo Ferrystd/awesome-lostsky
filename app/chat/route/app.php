@@ -36,7 +36,3 @@ Route::get('entityField', 'EntityField/index');
 Route::post('entityField/create', 'EntityField/create');
 Route::get('entityField/values', 'EntityField/values');
 Route::post('entityField/values', 'EntityField/saveValues');
-
-Route::get('customer/me', 'Customer/me');
-Route::post('customer/me', 'Customer/update');
-Route::post('customer/slug', 'Customer/slug');

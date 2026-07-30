@@ -13,5 +13,9 @@ return [
         'system:cleanup' => \app\command\SystemCleanup::class,
         'service:call' => \app\command\CallService::class,
         'docs:services' => \app\command\GenerateServiceDocs::class,
+        'admin:grant' => \app\command\AdminGrant::class,
+        'admin:revoke' => \app\command\AdminRevoke::class,
+        'team:grant-ability' => \app\command\TeamGrantAbility::class,
+        'certificate:update' => \app\command\UpdateCertificates::class,
     ],
 ];

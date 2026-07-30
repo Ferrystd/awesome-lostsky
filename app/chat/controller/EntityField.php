@@ -22,16 +22,23 @@ class EntityField
 
     public function create(\think\Request $request)
     {
-        $type = $request->post('entity_type/s', 'entity');
+        $input = $request->post();
+        $type = (string) ($input['entity_type'] ?? 'entity');
         $this->assertTypePermission($request, $type);
-        app(\app\service\TeamEntityField::class)->create($request->team_id, [
-            'entity_type' => $type, 'field_key' => $request->post('field_key', ''),
-            'name' => $request->post('name', ''), 'value_type' => $request->post('value_type', 'string'),
-            'input_type' => $request->post('input_type', 'text'), 'options' => $request->post('options'),
-            'is_required' => $request->post('is_required', 0), 'is_editable' => $request->post('is_editable', 1),
-            'is_searchable' => $request->post('is_searchable', 0), 'is_visible' => $request->post('is_visible', 0),
-            'sort' => $request->post('sort', 0),
-        ]);
+        $data = [
+            'entity_type' => $type, 'field_key' => $input['field_key'] ?? '',
+            'name' => $input['name'] ?? '', 'value_type' => $input['value_type'] ?? 'string',
+            'input_type' => $input['input_type'] ?? 'text', 'options' => $input['options'] ?? null,
+            'is_required' => $input['is_required'] ?? 0, 'is_editable' => $input['is_editable'] ?? 1,
+            'is_searchable' => $input['is_searchable'] ?? 0,
+            'sort' => $input['sort'] ?? 0,
+        ];
+        foreach (['manager_scope', 'visibility', 'visibility_targets'] as $key) {
+            if (array_key_exists($key, $input)) {
+                $data[$key] = $input[$key];
+            }
+        }
+        app(\app\service\TeamEntityField::class)->create($request->team_id, $data);
         return message('对象字段已创建');
     }
 

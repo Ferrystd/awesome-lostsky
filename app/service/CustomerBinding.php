@@ -19,7 +19,8 @@ class CustomerBinding
         int $userId,
         string $deviceToken,
         ?EntitySession $current,
-        ?string $slug = null
+        ?string $slug = null,
+        ?string $inviterSlug = null
     ): array {
         if (!Team::active()->find($teamId)) {
             throw new HttpException(404, '团队不存在或不可用');
@@ -55,19 +56,22 @@ class CustomerBinding
 
         $created = false;
         if (!$customer) {
+            $assignee = app(CustomerAssignment::class)->resolveInviter($teamId, $inviterSlug);
             try {
                 $customer = Db::transaction(function () use (
                     $teamId,
                     $userId,
                     $ownerEntityId,
                     $current,
-                    $slug
+                    $slug,
+                    $assignee
                 ) {
                     $customer = new TeamCustomer;
                     $customer->save([
                         'team_id' => $teamId,
                         'user_id' => $ownerEntityId === null ? $userId : null,
                         'owner_entity_id' => $ownerEntityId,
+                        'assignee_entity_id' => $assignee?->id,
                         'is_blocked' => 0,
                     ]);
 

@@ -53,8 +53,12 @@ class JwtAuth
         $device = UserDevice::where('user_id', $uid)
             ->where('device_token', $deviceToken)
             ->find();
-        if (!$device || !User::find($uid)) {
+        $user = User::find($uid);
+        if (!$device || !$user) {
             throw new HttpException(401, '设备已被取消授权，请重新登录');
+        }
+        if ((int) $user->is_banned === 1) {
+            throw new HttpException(403, '账号已被平台封禁，请联系平台管理员');
         }
 
         $hasEntityClaim = isset($decoded->act) || isset($decoded->jti) || isset($decoded->aud);

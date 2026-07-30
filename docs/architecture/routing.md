@@ -13,7 +13,7 @@ LostSky 使用 ThinkPHP 8 多应用模式。API 请求先确定应用，再按�
 | 自定义域名 | `workspace.example.com` | `team_domain.app` | `team_domain.team_id` |
 | 公共上传 | `Host: api.lostsky.work`，`X-LostSky-App: common` | 显式请求头，仅允许 `common` | Host、Origin 或 `team_domain` |
 
-不依赖团队上下文的应用也可以使用单段前端域名。例如 `Origin: https://account.lostsky.work` 会选择 Account 应用，但不会绑定团队。
+不依赖团队上下文的应用也可以使用单段前端域名。例如 `Origin: https://account.lostsky.work` 会选择 Account 应用但不会绑定团队；`Origin: https://admin.lostsky.work` 同理选择平台 Admin 应用。
 
 Display 与 Shop 使用标准团队前端 Origin
 `https://{slug}.display.lostsky.work`、`https://{slug}.shop.lostsky.work`。两者都需要有效团队上下文，
@@ -39,10 +39,10 @@ Display 与 Shop 使用标准团队前端 Origin
 `config/app.php` 的 `teamless_apps` 保存无需团队上下文即可运行的应用。当前配置为：
 
 ```php
-'teamless_apps' => ['account'],
+'teamless_apps' => ['account', 'admin'],
 ```
 
-Account 负责登录、注册、设备、用户团队入口和所有实体会话签发/撤销；选定团队后，团队业务应用再使用包含 slug 的域名。业务应用的共享客户端收到 `42801` 或 `40301` 时进入 Account 成员回调，显式按 `team_slug` 领取身份后返回原深链接。`X-LostSky-App` 的显式白名单仍只包含 `common`。
+Account 负责登录、注册、设备、用户团队入口和所有实体会话签发/撤销；Admin 负责平台级 RBAC、用户与团队治理、审计和系统状态。两者均不接收团队上下文。选定团队后，团队业务应用再使用包含 slug 的域名。业务应用的共享客户端收到 `42801` 或 `40301` 时进入 Account 成员回调，显式按 `team_slug` 领取身份后返回原深链接。`X-LostSky-App` 的显式白名单仍只包含 `common`。
 
 ## 自定义域名
 

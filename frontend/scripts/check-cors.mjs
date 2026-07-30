@@ -3,6 +3,9 @@ import { extname, join, resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '../..')
 const nginx = readFileSync(join(root, 'deploy/nginx/lostsky-static-wildcard.conf'), 'utf8')
+const middleware = readFileSync(join(root, 'app/middleware.php'), 'utf8')
+const corsConfig = readFileSync(join(root, 'config/cors.php'), 'utf8')
+const viteConfig = readFileSync(join(root, 'frontend/vite.shared.ts'), 'utf8')
 const required = [
   'server_name assets.lostsky.work;',
   'Access-Control-Allow-Origin "*" always;',
@@ -13,10 +16,22 @@ const required = [
 for (const directive of required) {
   if (!nginx.includes(directive)) throw new Error(`Missing assets CORS directive: ${directive}`)
 }
+const corsMiddlewarePosition = middleware.indexOf('\\app\\middleware\\Cors::class')
+const appResolverPosition = middleware.indexOf('\\app\\middleware\\AppResolver::class')
+if (corsMiddlewarePosition < 0 || appResolverPosition < 0 || corsMiddlewarePosition > appResolverPosition) {
+  throw new Error('API CORS middleware must run before app resolution')
+}
+if (!corsConfig.includes("'allowed_headers' => '*'")) {
+  throw new Error('API CORS must accept requested authorization and tracing headers')
+}
+if (!viteConfig.includes("process.env.VITE_DEV_API_TARGET || 'http://api.lostsky.work'")) {
+  throw new Error('Local Vite proxy must target the HTTP API virtual host unless explicitly overridden')
+}
 
 const htmlRoots = [
   'www.lostsky.work',
   'account.lostsky.work',
+  'admin.lostsky.work',
   'team.lostsky.work',
   'chat.lostsky.work',
   'transaction.lostsky.work',

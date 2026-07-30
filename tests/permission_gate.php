@@ -5,6 +5,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\service\PermissionGate;
 use app\service\PermissionDictionary;
+use app\exception\AccessDeniedException;
 use think\exception\HttpException;
 use think\Request;
 
@@ -113,6 +114,16 @@ $assertSame(
     'fixed dictionary keys are unique'
 );
 $assertSame(
+    PermissionDictionary::adminKeys(),
+    array_values(array_unique(PermissionDictionary::adminKeys())),
+    'platform administrator dictionary keys are unique'
+);
+$assertSame(
+    [],
+    array_values(array_intersect(PermissionDictionary::keys(), PermissionDictionary::adminKeys())),
+    'platform administrator permissions are not exposed to team roles'
+);
+$assertSame(
     ['chat.virtual.support_bot.operate'],
     [PermissionDictionary::virtual('support_bot', 'operate')],
     'dynamic virtual keys are built by the dictionary'
@@ -128,12 +139,54 @@ $assertSame(
     'customer fields use the customer entity permission'
 );
 $assertSame(
-    [PermissionDictionary::TEAM_NOTICE_SEND],
+    [PermissionDictionary::TEAM_NOTICE_READ, PermissionDictionary::TEAM_NOTICE_SEND],
     array_values(array_filter(
         PermissionDictionary::keys(),
-        static fn (string $key): bool => $key === PermissionDictionary::TEAM_NOTICE_SEND
+        static fn (string $key): bool => in_array(
+            $key,
+            [PermissionDictionary::TEAM_NOTICE_READ, PermissionDictionary::TEAM_NOTICE_SEND],
+            true
+        )
     )),
-    'notice send permission is part of the fixed dictionary'
+    'notice read and send permissions are part of the fixed dictionary'
+);
+$permissionError = AccessDeniedException::permission([
+    PermissionDictionary::TEAM_ENTITY_PROFILE_MANAGE,
+]);
+$assertSame(
+    [
+        'kind' => 'permission',
+        'required_any' => [PermissionDictionary::TEAM_ENTITY_PROFILE_MANAGE],
+    ],
+    $permissionError->data(),
+    'permission rejection exposes a structured reason'
+);
+$assertSame(
+    ['team.entity.profile.manage'],
+    [PermissionDictionary::TEAM_ENTITY_PROFILE_MANAGE],
+    'entity profile permission uses the documented dotted key'
+);
+$assertSame(
+    ['team.document.read'],
+    [PermissionDictionary::TEAM_DOCUMENT_READ],
+    'document read permission uses the documented dotted key'
+);
+$assertSame(
+    ['team.customer.read', 'team.customer.manage'],
+    [PermissionDictionary::TEAM_CUSTOMER_READ, PermissionDictionary::TEAM_CUSTOMER_MANAGE],
+    'customer read and manage permissions use documented dotted keys'
+);
+$abilityError = AccessDeniedException::ability('file', '文件上传');
+$assertSame(
+    [
+        'kind' => 'ability',
+        'key' => 'file',
+        'label' => '文件上传',
+        'minimum_level' => 1,
+        'reason' => 'missing',
+    ],
+    $abilityError->data(),
+    'ability rejection exposes a structured reason'
 );
 
 if ($failures) {

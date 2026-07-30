@@ -26,5 +26,6 @@ export default defineConfig({
     { command: 'npm run dev:transaction -- --host 127.0.0.1', url: 'http://demo.transaction.lostsky.work:5177', reuseExistingServer: !process.env.CI },
     { command: 'npm run dev:display -- --host 127.0.0.1', url: 'http://127.0.0.1:5178', reuseExistingServer: !process.env.CI },
     { command: 'npm run dev:shop -- --host 127.0.0.1', url: 'http://127.0.0.1:5179', reuseExistingServer: !process.env.CI },
+    { command: 'npm run dev:admin -- --host 127.0.0.1', url: 'http://127.0.0.1:5180', reuseExistingServer: !process.env.CI },
   ],
 })

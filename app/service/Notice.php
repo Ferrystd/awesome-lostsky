@@ -35,10 +35,7 @@ class Notice
         bool $isPinned = false
     ): array {
         $this->assertTeam($senderTeamId);
-        $recipient = app(\app\service\Entity::class)->assertInTeam($entityId, $senderTeamId);
-        if ((string) $recipient->entityable_type === 'team') {
-            throw new HttpException(422, 'Team 发件不能以发送 Team 自身作为收件对象');
-        }
+        app(\app\service\Entity::class)->assertInTeam($entityId, $senderTeamId);
 
         return $this->create([
             'team_id' => null,
@@ -98,23 +95,23 @@ class Notice
     public function receive(int $teamId, int $id): void
     {
         $this->notice('team_id', $teamId, $id);
-        throw new HttpException(501, '站内信资产收取暂未实现');
+        throw new HttpException(501, '站内通知资产收取暂未实现');
     }
 
     public function receiveForEntity(int $entityId, int $id): void
     {
         $this->notice('entity_id', $entityId, $id);
-        throw new HttpException(501, '站内信资产收取暂未实现');
+        throw new HttpException(501, '站内通知资产收取暂未实现');
     }
 
     public function receiveAll(int $teamId): void
     {
-        throw new HttpException(501, '站内信资产批量收取暂未实现');
+        throw new HttpException(501, '站内通知资产批量收取暂未实现');
     }
 
     public function receiveAllForEntity(int $entityId): void
     {
-        throw new HttpException(501, '站内信资产批量收取暂未实现');
+        throw new HttpException(501, '站内通知资产批量收取暂未实现');
     }
 
     private function create(array $recipient, string $title, ?string $content, bool $isPinned): array
@@ -181,7 +178,7 @@ class Notice
             ->whereNull($recipientColumn === 'team_id' ? 'entity_id' : 'team_id')
             ->find($id);
         if (!$notice) {
-            throw new HttpException(404, '站内信不存在');
+            throw new HttpException(404, '通知不存在');
         }
 
         return $notice;
@@ -216,6 +213,6 @@ class Notice
     {
         $entity = Entity::find($entityId);
 
-        return $entity && $entity->is_valid && (string) $entity->entityable_type !== 'team';
+        return $entity && $entity->is_valid;
     }
 }

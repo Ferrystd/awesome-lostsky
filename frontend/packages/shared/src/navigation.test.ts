@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { loginUrl, memberIdentityCallbackUrl, redirectToLogin, safeRedirect } from './navigation'
+import {
+  chatWorkspaceUrl,
+  loginUrl,
+  memberIdentityCallbackUrl,
+  redirectToLogin,
+  safeRedirect,
+  shopWorkspaceUrl,
+  teamWorkspaceUrl,
+} from './navigation'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -117,5 +125,46 @@ describe('safeRedirect', () => {
 
     const target = new URL(memberIdentityCallbackUrl('demo', 'missing'), 'https://account.lostsky.work')
     expect(target.searchParams.has('return_to')).toBe(false)
+  })
+})
+
+describe('chatWorkspaceUrl', () => {
+  it('opens the matching team Chat workspace and preserves participant context', () => {
+    vi.stubEnv('DEV', false)
+    vi.stubGlobal('location', {
+      hostname: 'demo.team.lostsky.work',
+      port: '',
+      protocol: 'https:',
+    })
+
+    expect(chatWorkspaceUrl('/new', { participant: 'member-1' }))
+      .toBe('https://demo.chat.lostsky.work/new?participant=member-1')
+  })
+
+  it('uses the Chat development port from a local team workspace', () => {
+    vi.stubEnv('DEV', true)
+    vi.stubGlobal('location', {
+      hostname: 'demo.team.lostsky.work',
+      port: '5175',
+      protocol: 'http:',
+    })
+
+    expect(chatWorkspaceUrl()).toBe('http://demo.chat.lostsky.work:5176/')
+  })
+})
+
+describe('workspace destinations', () => {
+  it('moves from Chat to the matching Shop and Team workspaces', () => {
+    vi.stubEnv('DEV', true)
+    vi.stubGlobal('location', {
+      hostname: 'demo.chat.lostsky.work',
+      port: '5176',
+      protocol: 'http:',
+    })
+
+    expect(shopWorkspaceUrl('/customer/profile'))
+      .toBe('http://demo.shop.lostsky.work:5179/customer/profile')
+    expect(teamWorkspaceUrl('/me'))
+      .toBe('http://demo.team.lostsky.work:5175/me')
   })
 })

@@ -16,6 +16,7 @@
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `record` | `think\Request $request`、`string $application`、`string $action`、`string $resourceType`、`?int $resourceId = null`、`array $context = []` | `int` |
+| `recordPlatform` | `?int $authenticatedUserId`、`string $action`、`string $resourceType`、`?int $resourceId = null`、`array $context = []`、`?think\Request $request = null` | `int` |
 
 ## ChatActor
 
@@ -103,11 +104,21 @@
 | `delete` | `int $teamId`、`string $slug` | `void` |
 | `model` | `int $teamId`、`string $slug` | `model\TeamVirtual` |
 
+## CustomerAssignment
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `resolveInviter` | `int $teamId`、`?string $slug` | `?model\Entity` |
+| `assertEntity` | `int $teamId`、`int $entityId` | `model\Entity` |
+| `customer` | `int $teamId`、`int $customerId`、`bool $lock = false` | `model\TeamCustomer` |
+| `sender` | `model\TeamCustomer $customer`、`int $teamId` | `?int` |
+| `options` | `int $teamId` | `array` |
+
 ## CustomerBinding
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `bind` | `int $teamId`、`int $userId`、`string $deviceToken`、`?model\EntitySession $current`、`?string $slug = null` | `array` |
+| `bind` | `int $teamId`、`int $userId`、`string $deviceToken`、`?model\EntitySession $current`、`?string $slug = null`、`?string $inviterSlug = null` | `array` |
 
 ## CustomerProfile
 
@@ -115,6 +126,7 @@
 | --- | --- | --- |
 | `get` | `int $teamId`、`int $customerId` | `array` |
 | `update` | `int $teamId`、`int $customerId`、`array $data` | `void` |
+| `assignees` | `int $teamId` | `array` |
 | `claimSlug` | `int $teamId`、`int $customerId`、`string $slug` | `array` |
 
 ## Device
@@ -149,7 +161,7 @@
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `optionsForTeam` | `int $teamId` | `array` |
+| `optionsForTeam` | `int $teamId`、`bool $canReadAll = false` | `array` |
 | `requireBySubject` | `string $type`、`int $id` | `model\Entity` |
 | `subject` | `int $entityId` | `array` |
 | `assertInTeam` | `int $entityId`、`int $teamId` | `model\Entity` |
@@ -159,6 +171,7 @@
 | `claimVirtual` | `model\TeamVirtual $virtual`、`string $slug` | `model\Entity` |
 | `setMemberSearch` | `int $teamId`、`int $memberId`、`mixed $override` | `void` |
 | `setDisplay` | `int $teamId`、`int $entityId`、`mixed $isDisplayed` | `void` |
+| `setInternalVisibility` | `int $teamId`、`int $entityId`、`mixed $isInternalVisible` | `void` |
 | `search` | `string $keyword`、`int $limit`、`int $userId` | `array` |
 | `resolve` | `array $slugs`、`int $userId` | `array` |
 
@@ -167,8 +180,8 @@
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `ensure` | `int $entityId`、`array $data = []` | `model\TeamEntityProfile` |
-| `listing` | `int $teamId`、`?string $type`、`int $page`、`int $limit` | `array` |
-| `get` | `int $teamId`、`int $entityId` | `array` |
+| `listing` | `int $teamId`、`?string $type`、`int $page`、`int $limit`、`bool $canReadAll` | `array` |
+| `get` | `int $teamId`、`int $entityId`、`bool $canReadAll` | `array` |
 | `update` | `int $teamId`、`int $entityId`、`array $data` | `void` |
 
 ## EntityRole
@@ -286,6 +299,8 @@
 | `groups` | — | `array` |
 | `keys` | — | `array` |
 | `contains` | `string $key` | `bool` |
+| `adminGroups` | — | `array` |
+| `adminKeys` | — | `array` |
 | `dynamic` | `string $key` | `?array` |
 | `virtual` | `string $slug`、`string $action` | `string` |
 | `assume` | `string $type`、`string $slug = '*'` | `string` |
@@ -296,10 +311,48 @@
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `assert` | `int $teamId`、`array\|int $subject`、`array $permissionKeys` | `void` |
+| `effective` | `int $teamId`、`array\|int $subject` | `array` |
 | `allows` | `int $teamId`、`array\|int $subject`、`array $permissionKeys` | `bool` |
 | `delegatedAllows` | `int $targetTeamId`、`array $source`、`model\Entity $target` | `bool` |
 | `candidates` | `think\Request $request`、`string ...$templates` | `array` |
 | `assertKey` | `string $key` | `void` |
+
+## PlatformAdmin
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `dashboard` | `int $userId` | `array` |
+| `search` | `string $keyword`、`int $userId` | `array` |
+| `users` | `array $filters`、`bool $includeSensitive = false` | `array` |
+| `user` | `int $id`、`bool $includeSensitive = false` | `array` |
+| `moderateUser` | `int $actorUserId`、`int $targetUserId`、`bool $banned`、`string $reason`、`think\Request $request` | `void` |
+| `revokeUserSessions` | `int $actorUserId`、`int $targetUserId`、`string $reason`、`think\Request $request` | `void` |
+| `teams` | `array $filters` | `array` |
+| `team` | `int $id` | `array` |
+| `moderateTeam` | `int $actorUserId`、`int $teamId`、`bool $banned`、`string $reason`、`think\Request $request` | `void` |
+| `auditEvents` | `array $filters` | `array` |
+| `systemHealth` | — | `array` |
+
+## PlatformAdminAccess
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `session` | `int $userId` | `array` |
+| `assertAdmin` | `int $userId` | `void` |
+| `has` | `int $userId`、`string $permission` | `bool` |
+| `assert` | `int $userId`、`string ...$permissions` | `void` |
+| `administrators` | — | `array` |
+| `roles` | — | `array` |
+| `role` | `int $id` | `array` |
+| `createRole` | `array $data`、`int $actorUserId`、`?think\Request $request = null` | `int` |
+| `updateRole` | `int $id`、`array $data`、`int $actorUserId`、`?think\Request $request = null` | `void` |
+| `deleteRole` | `int $id`、`int $actorUserId`、`?think\Request $request = null` | `void` |
+| `savePermissions` | `int $roleId`、`array $permissionKeys`、`int $actorUserId`、`?think\Request $request = null` | `void` |
+| `assignRoles` | `int $actorUserId`、`int $targetUserId`、`array $roleIds`、`?think\Request $request = null` | `void` |
+| `grantByKey` | `int $userId`、`string $roleKey` | `void` |
+| `revokeByKey` | `int $userId`、`string $roleKey` | `void` |
+| `bootstrapSuperRole` | — | `void` |
+| `assertAnotherActiveSuperAdmin` | `int $excludedUserId` | `void` |
 
 ## Product
 
@@ -376,6 +429,13 @@
 | `list` | `int $userId` | `array` |
 | `create` | `int $userId`、`string $slug`、`string $displayName` | `array` |
 
+## TeamAccess
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `snapshot` | `int $teamId`、`array $actingEntity` | `array` |
+| `ability` | `int $teamId`、`string $key`、`string $label`、`int $minimumLevel = 1` | `array` |
+
 ## TeamCustomer
 
 | 方法 | 参数 | 返回 |
@@ -389,6 +449,21 @@
 | `balance` | `int $teamId`、`int $customerId` | `array` |
 | `balanceLogs` | `int $teamId`、`int $customerId`、`int $page = 1`、`int $limit = 20` | `array` |
 
+## TeamCustomerManagement
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `listing` | `int $teamId`、`array $actingEntity`、`array $filters`、`int $page`、`int $limit` | `array` |
+| `get` | `int $teamId`、`array $actingEntity`、`int $customerId` | `array` |
+| `update` | `int $teamId`、`int $customerId`、`array $data` | `void` |
+| `assignees` | `int $teamId` | `array` |
+
+## TeamDashboard
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `summary` | `int $teamId`、`array $actingEntity` | `array` |
+
 ## TeamEntityField
 
 | 方法 | 参数 | 返回 |
@@ -400,6 +475,8 @@
 | `delete` | `int $teamId`、`int $id` | `void` |
 | `typeFor` | `int $teamId`、`int $id` | `string` |
 | `values` | `int $teamId`、`string $entitySlug` | `array` |
+| `visibleFields` | `int $teamId`、`string $entityType`、`int $subjectEntityId`、`array $actingEntity`、`bool $isFieldManager = false` | `array` |
+| `visibleValues` | `int $teamId`、`int $subjectEntityId`、`string $entityType`、`array $actingEntity`、`bool $isFieldManager = false` | `array` |
 | `saveValues` | `int $teamId`、`string $entitySlug`、`array $values` | `void` |
 | `saveOwnValues` | `int $teamId`、`string $entitySlug`、`array $values` | `void` |
 
@@ -427,8 +504,8 @@
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `list` | `int $teamId` | `array` |
-| `get` | `int $teamId`、`int $memberId` | `array` |
+| `list` | `int $teamId`、`array $actingEntity` | `array` |
+| `get` | `int $teamId`、`int $memberId`、`array $actingEntity` | `array` |
 | `capabilities` | `int $teamId`、`array $subject`、`array $member` | `array` |
 | `add` | `int $teamId`、`int $userId`、`array $data` | `void` |
 | `edit` | `int $teamId`、`int $memberId`、`array $data` | `void` |
@@ -467,6 +544,7 @@
 | `byEntity` | `int $teamId`、`int $startTime`、`int $endTime`、`string $role` | `array` |
 | `timeline` | `int $teamId`、`int $startTime`、`int $endTime`、`string $granularity = 'day'` | `array` |
 | `byCustomer` | `int $teamId`、`int $startTime`、`int $endTime` | `array` |
+| `byAssignee` | `int $teamId`、`int $startTime`、`int $endTime` | `array` |
 
 ## Visibility
 

@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 获取当前 Entity 的访问快照
+         * @description 返回当前 Entity 在本 Team 的全部有效 Permission，以及 File、Doc Ability 状态。四类团队 Entity 均可调用。
+         */
+        get: operations["teamAccessSnapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 获取访问感知的团队概览
+         * @description 四个指标独立计算。实体、成员或文档缺少对应全量读取 Permission 时 count 为 null；文档缺少 Ability 时 available=false；单项失败不影响其他项。
+         */
+        get: operations["teamDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/role/index": {
         parameters: {
             query?: never;
@@ -262,7 +302,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取所有成员 */
+        /**
+         * 获取所有成员
+         * @description 不以 team.member.read 作为入口门票。无该权限时仅返回有效且团队内可见成员；有该权限时返回完整管理集合，包括隐藏或封禁成员。
+         */
         get: operations["teamMemberIndex"];
         put?: never;
         post?: never;
@@ -279,7 +322,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 获取单个成员 */
+        /**
+         * 获取单个成员
+         * @description 团队内可见成员可直接读取；team.member.read 可读取隐藏或封禁成员。无权限直接访问隐藏成员统一返回 404。
+         */
         get: operations["teamMemberGet"];
         put?: never;
         post?: never;
@@ -374,6 +420,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/notice/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取当前实体的通知导航与操作能力 */
+        get: operations["teamNoticeCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/notice/index": {
         parameters: {
             query?: never;
@@ -381,7 +444,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 列出当前收件箱；Team 身份读取 LostSky 通知，其他身份读取 Entity 通知 */
+        /** 按 scope 列出 Team 共享站内通知或当前 Entity 通知；省略时兼容原身份默认值 */
         get: operations["teamNoticeIndex"];
         put?: never;
         post?: never;
@@ -398,7 +461,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 读取当前 Team 或 Entity 收件箱中的通知详情 */
+        /** 按 scope 读取 Team 共享站内通知或当前 Entity 通知详情 */
         get: operations["teamNoticeGet"];
         put?: never;
         post?: never;
@@ -417,7 +480,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 由有权限的当前 Entity 代表 Team 向一个非 Team Entity 发送通知 */
+        /** 由有权限的当前 Entity 代表 Team 向同 Team 的一个 Entity 发送单向通知 */
         post: operations["teamNoticeSend"];
         delete?: never;
         options?: never;
@@ -434,7 +497,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 将当前 Team 或 Entity 收件箱的一条通知标记为已读 */
+        /** 按 scope 将 Team 共享站内通知或当前 Entity 的一条通知标记为已读 */
         post: operations["teamNoticeConfirm"];
         delete?: never;
         options?: never;
@@ -451,7 +514,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 将当前 Team 或 Entity 收件箱的全部通知标记为已读 */
+        /** 按 scope 将 Team 共享站内通知或当前 Entity 的全部通知标记为已读 */
         post: operations["teamNoticeConfirmAll"];
         delete?: never;
         options?: never;
@@ -468,7 +531,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Operation teamNoticeReceive. */
+        /** 按 scope 收取通知资产；当前版本返回未实现 */
         post: operations["teamNoticeReceive"];
         delete?: never;
         options?: never;
@@ -485,7 +548,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Operation teamNoticeReceiveAll. */
+        /** 按 scope 批量收取通知资产；当前版本返回未实现 */
         post: operations["teamNoticeReceiveAll"];
         delete?: never;
         options?: never;
@@ -606,7 +669,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 文档列表 */
+        /**
+         * 文档列表
+         * @description 不以 team.document.read 作为入口门票。无该权限时仅返回当前 Entity 按可见性可读取的文档；有该权限时可读取团队全部文档。
+         */
         get: operations["teamDocIndex"];
         put?: never;
         post?: never;
@@ -674,7 +740,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 文档详情 */
+        /**
+         * 文档详情
+         * @description 当前 Entity 可见的文档可直接读取；team.document.read 可读取团队内全部文档。
+         */
         get: operations["teamDocGetByQuery"];
         put?: never;
         post?: never;
@@ -1392,8 +1461,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * ????????????
-         * @description ?? team.entity.read ????????????
+         * 获取实体目录
+         * @description 不以 team.entity.read 作为入口门票。无该权限时仅返回有效、非 Customer 且团队内可见的实体；有该权限时返回全部有效实体，包括 Customer 与团队内隐藏实体。
          */
         get: operations["teamEntityIndex"];
         put?: never;
@@ -1412,8 +1481,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * ??????????
-         * @description ?? team.entity.read ????????????????
+         * 获取实体详情
+         * @description 非 Customer 的团队内可见实体可直接读取；team.entity.read 可读取 Customer 与团队内隐藏实体。无权限直接访问 Customer 或隐藏实体统一返回 404，避免泄露存在性。
          */
         get: operations["teamEntityGet"];
         put?: never;
@@ -1434,10 +1503,96 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * ??????????
-         * @description ?? team.entity_profile.manage ?????????????????
+         * 更新实体资料
+         * @description 需要 team.entity.profile.manage 权限；拒绝时返回结构化 Permission 原因。
          */
         post: operations["teamEntityProfileUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 团队客户列表
+         * @description 拥有 team.customer.read 或 team.customer.manage 时查看全部客户；否则仅查看归属于当前实体的客户。
+         */
+        get: operations["teamCustomerList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 客户归属候选实体
+         * @description 需要 team.customer.read 或 team.customer.manage。
+         */
+        get: operations["teamCustomerAssignees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/{id}": {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** 团队客户详情 */
+        get: operations["teamCustomerGet"];
+        put?: never;
+        /**
+         * 更新团队客户资料与归属
+         * @description 需要 team.customer.manage。归属仅允许当前团队的 Team、成员或虚拟实体。
+         */
+        post: operations["teamCustomerUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entity/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 更新实体的团队内可见状态
+         * @description 需要 team.entity.profile.manage，仅成员与虚拟实体支持该设置。该状态只控制当前 Team 工作空间中的发现范围，不影响全局搜索或公开 Display；Team 始终可见，Customer 始终需要 team.entity.read 且不进入普通目录。
+         */
+        post: operations["teamEntityInternalVisibilityUpdate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1486,8 +1641,54 @@ export interface components {
             code: number;
             /** @example 操作成功 */
             message: string;
-            /** @example null */
-            data: unknown;
+            /** @description 普通业务错误为 null；授权错误返回可供界面解释的结构化原因。 */
+            data: (components["schemas"]["PermissionDeniedReason"] | components["schemas"]["AbilityDeniedReason"]) | null;
+        };
+        PermissionDeniedReason: {
+            /** @enum {string} */
+            kind: "permission";
+            required_any: string[];
+        };
+        AbilityDeniedReason: {
+            /** @enum {string} */
+            kind: "ability";
+            key: string;
+            label: string;
+            minimum_level?: number;
+            /** @enum {string} */
+            reason?: "missing" | "level" | "expired";
+        };
+        TeamAbilityState: {
+            enabled: boolean;
+            level: number;
+            /** Format: int64 */
+            expire_time: number;
+            /** @enum {string|null} */
+            reason: "missing" | "level" | "expired" | null;
+            label: string;
+        };
+        TeamAccessSnapshot: {
+            permissions: string[];
+            abilities: {
+                file: components["schemas"]["TeamAbilityState"];
+                doc: components["schemas"]["TeamAbilityState"];
+            };
+        };
+        DashboardMetric: {
+            available: boolean;
+            /**
+             * Format: int64
+             * @description null 且无错误时表示可进入但无全量计数资格。
+             */
+            count: number | null;
+            error: string | null;
+            reason: components["schemas"]["AbilityDeniedReason"] | null;
+        };
+        TeamDashboard: {
+            entities: components["schemas"]["DashboardMetric"];
+            members: components["schemas"]["DashboardMetric"];
+            documents: components["schemas"]["DashboardMetric"];
+            notices: components["schemas"]["DashboardMetric"];
         };
         ErrorEnvelope: {
             /** @example 1 */
@@ -1734,6 +1935,51 @@ export interface components {
              */
             update_time?: number;
         };
+        CustomerAssignee: {
+            /** Format: int64 */
+            entity_id: number;
+            slug: string;
+            /** @enum {string} */
+            type: "team" | "teamMember" | "teamVirtual";
+            name: string;
+            avatar?: string | null;
+        };
+        ManagedCustomer: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            entity_id: number;
+            slug: string;
+            name: string;
+            avatar?: string | null;
+            description?: string | null;
+            is_blocked: boolean;
+            /** Format: int64 */
+            create_time: number;
+            /** Format: int64 */
+            update_time: number;
+            balance: {
+                balance: string;
+                recharged: string;
+                spent: string;
+            };
+            assignee?: components["schemas"]["CustomerAssignee"] | null;
+            summary?: {
+                transaction_count?: number;
+                transaction_total?: string;
+                order_count?: number;
+                order_total?: string;
+            };
+            can_manage?: boolean;
+        };
+        ManagedCustomerPage: {
+            total: number;
+            list: components["schemas"]["ManagedCustomer"][];
+            page: number;
+            limit: number;
+            /** @enum {string} */
+            scope: "all" | "own";
+        };
         Balance: {
             /** Format: int64 */
             id?: number;
@@ -1975,6 +2221,17 @@ export interface components {
             /** @description 当前 acting Entity 是否可代表 Team 发送通知 */
             can_send?: boolean;
         };
+        NoticeCapabilities: {
+            /** @description 当前 acting Entity 是否可查看 Team 共享站内通知 */
+            can_read_team: boolean;
+            /** @description 当前 acting Entity 是否可代表 Team 发送通知 */
+            can_send: boolean;
+            /**
+             * @description 顶部通知入口默认打开的收件箱
+             * @enum {string}
+             */
+            default_scope: "team" | "entity";
+        };
         NoticeSendResult: {
             /** Format: int64 */
             id: number;
@@ -2212,20 +2469,34 @@ export interface components {
             options?: unknown[] | null;
             /** @enum {integer} */
             is_required?: 0 | 1;
-            /** @enum {integer} */
+            /**
+             * @description 是否允许手动修改字段值；关闭后字段管理员和对象本人均只读
+             * @enum {integer}
+             */
             is_editable?: 0 | 1;
-            /** @enum {integer} */
+            /**
+             * @description 预留字段；当前版本未接入字段值搜索，不参与可见性判断
+             * @enum {integer}
+             */
             is_searchable?: 0 | 1;
-            /** @enum {integer} */
-            is_visible?: 0 | 1;
+            /** @description 当前 acting Entity 是否可在当前资料上下文中编辑该字段 */
+            readonly can_edit?: boolean;
             sort?: number;
             /** @enum {string} */
             source?: "system" | "custom";
             default_value?: string | null;
-            /** @enum {integer} */
+            /**
+             * @description 值维护范围：1=仅字段管理员，2=对象本人和字段管理员
+             * @enum {integer}
+             */
             manager_scope?: 1 | 2;
-            /** @enum {integer} */
+            /**
+             * @description 值可见范围：1=字段管理员，3=对象本人和字段管理员，4=团队实体，5=公开，6=指定对象
+             * @enum {integer}
+             */
             visibility?: 1 | 3 | 4 | 5 | 6;
+            /** @description visibility=6 时生效；目标可查看该字段在其原本有权打开的对象资料中的值 */
+            visibility_targets?: components["schemas"]["VisibilityTarget"][];
             /** @enum {integer} */
             is_system?: 0 | 1;
         };
@@ -2259,15 +2530,26 @@ export interface components {
             /** Format: int64 */
             entityable_id: number;
             /**
-             * @description 是否在团队公开主页展示
+             * @description 是否向互联网访客展示在公开 Display；不影响团队工作空间目录或全局搜索。
              * @enum {integer}
              */
             is_displayed?: 0 | 1;
+            /**
+             * @description 是否向当前 Team 内没有 team.entity.read 的 Entity 展示；Team 实体恒为 1，Customer 即使为 1 仍需 team.entity.read。
+             * @enum {integer}
+             */
+            is_internal_visible?: 0 | 1;
             is_valid?: boolean;
+            /** @description 是否进入全局实体搜索；不影响团队工作空间目录或公开 Display。 */
             is_searchable?: boolean;
             name?: string;
             avatar?: string | null;
             profile?: components["schemas"]["EntityProfile"] | null;
+            /** @description 仅 /entity/get 返回。 */
+            capabilities?: {
+                read_all?: boolean;
+                manage_profile?: boolean;
+            };
         };
         EntityOption: {
             /** Format: int64 */
@@ -2340,6 +2622,77 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    teamAccessSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 访问快照 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["TeamAccessSnapshot"];
+                    };
+                };
+            };
+            /** @description 未登录或身份上下文无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 团队或 Entity 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 实体、成员、文档和通知概览 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["TeamDashboard"];
+                    };
+                };
+            };
+            /** @description 未登录或身份上下文无效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     teamRoleIndex: {
         parameters: {
             query?: never;
@@ -3542,11 +3895,56 @@ export interface operations {
             };
         };
     };
+    teamNoticeCapabilities: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["NoticeCapabilities"];
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     teamNoticeIndex: {
         parameters: {
             query?: {
                 page?: components["parameters"]["Page"];
                 limit?: components["parameters"]["Limit"];
+                /** @description team 需要 team.notice.read；省略时 Team 身份默认 team，其他身份默认 entity */
+                scope?: "team" | "entity";
                 is_read?: 0 | 1;
                 keyword?: string;
             };
@@ -3621,6 +4019,8 @@ export interface operations {
         parameters: {
             query?: {
                 id?: components["parameters"]["IdQuery"];
+                /** @description team 需要 team.notice.read；省略时兼容原身份默认值 */
+                scope?: "team" | "entity";
             };
             header?: {
                 /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
@@ -3704,7 +4104,7 @@ export interface operations {
                 "application/json": {
                     /**
                      * Format: int64
-                     * @description 当前团队内的非 Team Entity
+                     * @description 当前团队内的 Entity，可为 Team 实体
                      */
                     entity_id: number;
                     title: string;
@@ -3779,6 +4179,11 @@ export interface operations {
                 "application/json": {
                     /** Format: int64 */
                     id: number;
+                    /**
+                     * @description team 需要 team.notice.read；省略时兼容原身份默认值
+                     * @enum {string}
+                     */
+                    scope?: "team" | "entity";
                 };
             };
         };
@@ -3849,7 +4254,17 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description team 需要 team.notice.read；省略时兼容原身份默认值
+                     * @enum {string}
+                     */
+                    scope?: "team" | "entity";
+                };
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -3926,6 +4341,11 @@ export interface operations {
                 "application/json": {
                     /** Format: int64 */
                     id: number;
+                    /**
+                     * @description team 需要 team.notice.read；省略时兼容原身份默认值
+                     * @enum {string}
+                     */
+                    scope?: "team" | "entity";
                 };
             };
         };
@@ -3987,7 +4407,17 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description team 需要 team.notice.read；省略时兼容原身份默认值
+                     * @enum {string}
+                     */
+                    scope?: "team" | "entity";
+                };
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -4644,10 +5074,11 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 limit?: components["parameters"]["Limit"];
-                /** @description ??????????????? */
+                /** @description 按归属实体 ID 筛选 */
                 entity_id?: number;
                 manager_scope?: 1 | 2;
                 visibility?: 1 | 3 | 4 | 5 | 6;
+                /** @description 匹配文档标题或 Markdown 正文的关键词 */
                 keyword?: string;
             };
             header?: {
@@ -6228,7 +6659,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description ?????? */
+            /** @description 访问感知的实体列表 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6237,15 +6668,6 @@ export interface operations {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
                         data?: components["schemas"]["EntityList"];
                     };
-                };
-            };
-            /** @description ???????? */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description ??????????? */
@@ -6270,7 +6692,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description ???? */
+            /** @description 实体详情与当前 Entity 的管理能力 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6279,15 +6701,6 @@ export interface operations {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
                         data?: components["schemas"]["Entity"];
                     };
-                };
-            };
-            /** @description ?????????????????? */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description ????? */
@@ -6326,7 +6739,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description ??????? */
+            /** @description 实体资料已更新 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -6335,7 +6748,7 @@ export interface operations {
                     "application/json": components["schemas"]["MessageEnvelope"];
                 };
             };
-            /** @description ???????????????????? */
+            /** @description 缺少 team.entity.profile.manage */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6344,7 +6757,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description ????? */
+            /** @description 实体不存在 */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -6353,7 +6766,237 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description ?????? */
+            /** @description 资料格式不正确 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamCustomerList: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                limit?: components["parameters"]["Limit"];
+                keyword?: string;
+                assignee_entity_id?: number;
+                blocked?: 0 | 1;
+            };
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["ManagedCustomerPage"];
+                    };
+                };
+            };
+            /** @description 当前实体无团队访问权 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamCustomerAssignees: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["CustomerAssignee"][];
+                    };
+                };
+            };
+            /** @description 缺少客户读取或管理权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamCustomerGet: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["ManagedCustomer"];
+                    };
+                };
+            };
+            /** @description 客户不存在或不在当前实体可见范围 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamCustomerUpdate: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    avatar?: string | null;
+                    description?: string | null;
+                    /** Format: int64 */
+                    assignee_entity_id?: number | null;
+                    /** @enum {integer} */
+                    is_blocked?: 0 | 1;
+                };
+            };
+        };
+        responses: {
+            /** @description 客户资料已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+            /** @description 缺少 team.customer.manage */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 客户不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 归属实体或资料不合法 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamEntityInternalVisibilityUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    entity_id: number;
+                    /** @enum {integer} */
+                    is_internal_visible: 0 | 1;
+                };
+            };
+        };
+        responses: {
+            /** @description 团队内可见设置已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+            /** @description 缺少 team.entity.profile.manage，data.kind=permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 实体不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 状态不合法或尝试隐藏 Team 实体 */
             422: {
                 headers: {
                     [name: string]: unknown;

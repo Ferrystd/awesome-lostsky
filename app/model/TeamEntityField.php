@@ -27,7 +27,6 @@ class TeamEntityField extends Base
         'is_required'   => 'integer',
         'is_editable'   => 'integer',
         'is_searchable' => 'integer',
-        'is_visible'    => 'integer',
         'is_system'     => 'integer',
         'sort'          => 'integer',
     ];

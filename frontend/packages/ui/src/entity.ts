@@ -1,4 +1,5 @@
 export type EntityType = 'entity' | 'customer' | 'team' | 'virtual' | 'teamMember' | 'teamCustomer' | 'teamVirtual' | 'unknown'
+export type EntityTone = 'team' | 'member' | 'customer' | 'virtual' | 'unknown'
 
 export interface EntityDisplay {
   slug: string
@@ -17,3 +18,21 @@ export const entityTypeLabel = (type: EntityType) => ({
   teamVirtual: '虚拟实体',
   unknown: '实体',
 })[type]
+
+export const entityTypeTone = (type: EntityType): EntityTone => ({
+  entity: 'member',
+  teamMember: 'member',
+  customer: 'customer',
+  teamCustomer: 'customer',
+  team: 'team',
+  virtual: 'virtual',
+  teamVirtual: 'virtual',
+  unknown: 'unknown',
+} as const)[type]
+
+export function entityMatchesKeyword(entity: EntityDisplay, keyword: string): boolean {
+  const normalizedKeyword = keyword.trim().toLowerCase()
+  if (!normalizedKeyword) return true
+  return entity.slug.toLowerCase().includes(normalizedKeyword)
+    || entity.name.toLowerCase().includes(normalizedKeyword)
+}

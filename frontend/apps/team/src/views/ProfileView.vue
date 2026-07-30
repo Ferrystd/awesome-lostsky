@@ -2,6 +2,7 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
+import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput } from 'naive-ui'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
@@ -14,13 +15,17 @@ import EntityPermissionsCard, {
   type RoleRecord,
 } from '../components/EntityPermissionsCard.vue'
 import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
+import { fileUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 const client = useQueryClient()
 const editor = ref<InstanceType<typeof LsMarkdownEditor> | null>(null)
+const access = useTeamAccess()
+const uploadDisabledReason = computed(() => fileUploadReason(access.data.value))
 const query = useQuery({ queryKey: ['me'], queryFn: () => api.get<Record<string, unknown>>('/me/get') })
 const form = reactive({ nickname: '', avatar: '', description: '', intro_image: '', intro_video: '', introduction_markdown: '' })
 const slug = ref('')
 const uploading = ref('')
+const uploadError = ref('')
 const profileSnapshot = ref('')
 const fieldsDirty = ref(false)
 
@@ -54,15 +59,25 @@ const save = useMutation({
     editor.value?.clearDraft()
     profileSnapshot.value = profileState()
     await client.invalidateQueries({ queryKey: ['me'] })
+    feedback.success('资料已保存')
   },
+  onError: error => feedback.error(friendlyError(error)),
 })
 const claim = useMutation({
   mutationFn: () => api.post<{ slug: string }>('/me/slug', { slug: slug.value.trim() }),
-  onSuccess: async () => { await query.refetch() },
+  onSuccess: async () => {
+    await query.refetch()
+    feedback.success('对象标识已认领')
+  },
+  onError: error => feedback.error(friendlyError(error)),
 })
 const saveFields = useMutation({
   mutationFn: (values: Record<number, unknown>) => api.post('/me/fields', { values }),
-  onSuccess: async () => { await query.refetch() },
+  onSuccess: async () => {
+    await query.refetch()
+    feedback.success('对象字段已保存')
+  },
+  onError: error => feedback.error(friendlyError(error)),
 })
 const initials = computed(() => (form.nickname || 'L').slice(0, 1))
 const customFields = computed(() => (query.data.value?.custom_fields ?? []) as EntityFieldDefinition[])
@@ -83,10 +98,17 @@ function setFieldsDirty(value: boolean) {
 async function upload(key: 'avatar' | 'intro_image' | 'intro_video', event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
+  if (uploadDisabledReason.value) {
+    uploadError.value = uploadDisabledReason.value
+    return
+  }
   uploading.value = key
+  uploadError.value = ''
   try {
     const result = await api.upload<Record<string, unknown>>(file)
     form[key] = String(result.url ?? result.path ?? result.id ?? '')
+  } catch (error) {
+    uploadError.value = friendlyError(error)
   } finally {
     uploading.value = ''
     ;(event.target as HTMLInputElement).value = ''
@@ -133,7 +155,6 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
         <label class="field"><span>我的 slug</span><NInput v-model:value="slug" placeholder="例如 zhang-san" autocapitalize="none" /></label>
         <LsButton type="submit" :loading="claim.isPending.value" :disabled="!slug.trim()">确认认领</LsButton>
       </form>
-      <p v-if="claim.isError.value" class="feedback error" role="alert">{{ friendlyError(claim.error.value) }}</p>
     </section>
 
     <form id="my-profile-form" class="panel profile-form" @submit.prevent="save.mutate()">
@@ -143,15 +164,17 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       <label class="field"><span>团队昵称</span><NInput v-model:value="form.nickname" autocomplete="name" maxlength="80" show-count /></label>
       <label class="field">
         <span>头像</span>
-        <div class="upload-field"><NInput v-model:value="form.avatar" placeholder="图片 URL" /><label class="upload-action">{{ uploading === 'avatar' ? '上传中…' : '上传图片' }}<input type="file" accept="image/*" @change="upload('avatar', $event)"></label></div>
+        <div class="upload-field"><NInput v-model:value="form.avatar" placeholder="图片 URL" /><label :class="['upload-action', { disabled: uploadDisabledReason }]" :tabindex="uploadDisabledReason ? 0 : -1" aria-describedby="profile-upload-reason">{{ uploading === 'avatar' ? '上传中…' : '上传图片' }}<input type="file" accept="image/*" :disabled="Boolean(uploadDisabledReason)" @change="upload('avatar', $event)"></label></div>
       </label>
       <label class="field"><span>简短介绍</span><NInput v-model:value="form.description" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" maxlength="500" show-count /></label>
       <div class="media-row">
-        <label class="field"><span>介绍图片</span><div class="upload-field"><NInput v-model:value="form.intro_image" placeholder="图片 URL" /><label class="upload-action">{{ uploading === 'intro_image' ? '上传中…' : '上传' }}<input type="file" accept="image/*" @change="upload('intro_image', $event)"></label></div></label>
-        <label class="field"><span>介绍视频</span><div class="upload-field"><NInput v-model:value="form.intro_video" placeholder="视频 URL" /><label class="upload-action">{{ uploading === 'intro_video' ? '上传中…' : '上传' }}<input type="file" accept="video/*" @change="upload('intro_video', $event)"></label></div></label>
+        <label class="field"><span>介绍图片</span><div class="upload-field"><NInput v-model:value="form.intro_image" placeholder="图片 URL" /><label :class="['upload-action', { disabled: uploadDisabledReason }]" :tabindex="uploadDisabledReason ? 0 : -1" aria-describedby="profile-upload-reason">{{ uploading === 'intro_image' ? '上传中…' : '上传' }}<input type="file" accept="image/*" :disabled="Boolean(uploadDisabledReason)" @change="upload('intro_image', $event)"></label></div></label>
+        <label class="field"><span>介绍视频</span><div class="upload-field"><NInput v-model:value="form.intro_video" placeholder="视频 URL" /><label :class="['upload-action', { disabled: uploadDisabledReason }]" :tabindex="uploadDisabledReason ? 0 : -1" aria-describedby="profile-upload-reason">{{ uploading === 'intro_video' ? '上传中…' : '上传' }}<input type="file" accept="video/*" :disabled="Boolean(uploadDisabledReason)" @change="upload('intro_video', $event)"></label></div></label>
       </div>
-      <label class="field">
-        <span>详细介绍</span>
+      <p v-if="uploadDisabledReason" id="profile-upload-reason" class="feedback access" role="note">{{ uploadDisabledReason }}；仍可填写外部图片或视频 URL。</p>
+      <p v-if="uploadError" class="feedback error" role="alert">{{ uploadError }}</p>
+      <div class="field" role="group" aria-labelledby="profile-introduction-label">
+        <span id="profile-introduction-label">详细介绍</span>
         <LsMarkdownEditor
           v-if="query.isSuccess.value"
           ref="editor"
@@ -159,11 +182,10 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
           draft-key="my-profile"
           :search-entities="searchEntities"
           :upload-image="uploadMarkdownImage"
+          :upload-disabled-reason="uploadDisabledReason"
           placeholder="写下你的详细介绍，输入 @ 可引用对象…"
         />
-      </label>
-      <p v-if="save.isError.value" class="feedback error" role="alert">{{ friendlyError(save.error.value) }}</p>
-      <p v-if="save.isSuccess.value" class="feedback success" role="status">资料已保存。</p>
+      </div>
     </form>
 
     <EntityFieldsCard
@@ -173,7 +195,6 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       mode="self"
       :loading="query.isPending.value"
       :saving="saveFields.isPending.value"
-      :error="saveFields.error.value"
       :success="saveFields.isSuccess.value"
       @save="saveFields.mutate"
       @dirty="setFieldsDirty"
@@ -217,13 +238,15 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
 .media-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .upload-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .upload-action { min-height: 36px; display: inline-flex; align-items: center; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--text-secondary); background: var(--surface-subtle); font-size: .85rem; font-weight: 650; cursor: pointer; }
+.upload-action.disabled { opacity: .48; cursor: not-allowed; }
+.upload-action:focus-visible { outline: 3px solid color-mix(in srgb, var(--primary) 25%, transparent); outline-offset: 2px; }
 .upload-action input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .feedback { margin: 0; padding: 11px 13px; border-radius: var(--radius-md); }
+.feedback.access { color: var(--text-secondary); background: var(--surface-subtle); }
 .identity-required { display: grid; gap: 5px; padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-subtle); }
 .identity-required strong, .identity-required p { margin: 0; }
 .identity-required p { color: var(--text-secondary); font-size: .85rem; line-height: 1.55; }
 .error { color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); }
-.success { color: var(--success); background: color-mix(in srgb, var(--success) 9%, transparent); }
 @media (max-width: 680px) {
   .profile-view { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
   .profile-primary-actions { position: fixed; z-index: 20; right: 0; bottom: 0; left: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border); }

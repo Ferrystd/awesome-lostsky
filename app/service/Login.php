@@ -24,6 +24,7 @@ class Login
         if (!$user || !$this->verifyPassword($user, $password)) {
             throw new HttpException(401, '手机号或密码错误');
         }
+        $this->assertActive($user);
 
         return $this->loginSuccess($user, $deviceInfo);
     }
@@ -39,6 +40,7 @@ class Login
         if (!$user) {
             throw new HttpException(404, '手机号尚未注册');
         }
+        $this->assertActive($user);
 
         return $this->loginSuccess($user, $deviceInfo);
     }
@@ -60,6 +62,7 @@ class Login
         if (!$user || !$this->verifyPassword($user, $password)) {
             throw new HttpException(401, '账号或密码错误');
         }
+        $this->assertActive($user);
 
         return $this->loginSuccess($user, $deviceInfo);
     }
@@ -72,8 +75,14 @@ class Login
         $deviceToken = bin2hex(random_bytes(16));
 
         $issued = \think\facade\Db::transaction(function () use ($user, $deviceToken, $deviceInfo): array {
+            $lockedUser = User::where('id', $user->id)->lock(true)->find();
+            if (!$lockedUser) {
+                throw new HttpException(401, '当前账号不存在');
+            }
+            $this->assertActive($lockedUser);
+
             $device = new UserDevice;
-            $device->user_id          = $user->id;
+            $device->user_id          = $lockedUser->id;
             $device->device_token     = $deviceToken;
             $device->device_name      = $deviceInfo['device_name'] ?? '';
             $device->ua               = $deviceInfo['ua'] ?? '';
@@ -81,7 +90,7 @@ class Login
             $device->save();
 
             $issued = app(RefreshToken::class)->issue($device);
-            $issued['token'] = app(Jwt::class)->createToken((int) $user->id, $deviceToken);
+            $issued['token'] = app(Jwt::class)->createToken((int) $lockedUser->id, $deviceToken);
 
             return $issued;
         });
@@ -118,5 +127,12 @@ class Login
         }
 
         return false;
+    }
+
+    private function assertActive(User $user): void
+    {
+        if ((int) $user->is_banned === 1) {
+            throw new HttpException(403, '账号已被平台封禁，请联系平台管理员');
+        }
     }
 }

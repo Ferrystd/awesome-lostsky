@@ -43,6 +43,8 @@ class TeamMember extends Base
 
     public function getIsSearchableAttr(): bool
     {
+        // 全局实体搜索可发现性：决定成员是否出现在跨页面实体搜索结果中。
+        // 不控制当前 Team 工作空间内的成员/实体目录，也不等同于公开 Display 展示。
         if (!$this->is_valid) {
             return false;
         }

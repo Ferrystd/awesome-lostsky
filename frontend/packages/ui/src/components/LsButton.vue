@@ -23,7 +23,7 @@ const classes = computed(() => [
 </template>
 
 <style scoped>
-.ls-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .65rem 1rem; border: 0; border-radius: var(--radius-sm); font-weight: 650; cursor: pointer; transition: background-color .18s ease, color .18s ease, transform .18s ease; }
+.ls-button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .65rem 1rem; border: 0; border-radius: var(--radius-sm); font-weight: 650; cursor: pointer; transition: background-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard), transform var(--motion-instant) var(--ease-out); }
 .ls-button:active:not(:disabled) { transform: translateY(1px); }
 .ls-button:disabled { opacity: .48; cursor: not-allowed; }
 .ls-button--primary { background: var(--sky-lost-strong); color: white; }

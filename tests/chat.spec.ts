@@ -53,6 +53,48 @@ test('chat workspace renders conversations and sends through the API boundary', 
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })
 
+test('Chat identity entry follows the authenticated JWT identity and legacy profile redirects', async ({ page }) => {
+  await page.route('http://demo.chat.lostsky.work:5176/api/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    const data = path.endsWith('/actor') || path.endsWith('/conversation') ? [] : null
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 0, message: 'ok', data }),
+    })
+  })
+  const identityToken = (type: string, id: number) =>
+    `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type, id } })).toString('base64url')}.x`
+
+  await setToken(page, identityToken('teamCustomer', 31))
+  await page.goto('http://demo.chat.lostsky.work:5176/')
+  await expect(page.getByRole('link', { name: '顾客中心' }))
+    .toHaveAttribute('href', 'http://demo.shop.lostsky.work:5179/customer/profile')
+
+  await setToken(page, identityToken('teamMember', 11))
+  await page.reload()
+  await expect(page.getByRole('link', { name: '我的资料' }))
+    .toHaveAttribute('href', 'http://demo.team.lostsky.work:5175/me')
+
+  await setToken(page, identityToken('teamVirtual', 9))
+  await page.reload()
+  await expect(page.getByRole('link', { name: '切换身份' }))
+    .toHaveAttribute('href', /account\.lostsky\.work:5174\/identity\?redirect=/)
+
+  await setToken(page, identityToken('team', 1))
+  await page.reload()
+  await expect(page.getByRole('link', { name: '切换身份' }))
+    .toHaveAttribute('href', /account\.lostsky\.work:5174\/identity\?redirect=/)
+
+  await setToken(page, identityToken('teamMember', 11))
+  await page.goto('http://demo.chat.lostsky.work:5176/profile')
+  await expect(page).toHaveURL('http://demo.team.lostsky.work:5175/me')
+
+  await setToken(page, identityToken('teamCustomer', 31))
+  await page.goto('http://demo.chat.lostsky.work:5176/profile')
+  await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/customer/profile')
+})
+
 test('direct conversation submits a single selected participant as an array', async ({ page }) => {
   let createPayload: Record<string, unknown> | null = null
   await setToken(page, 'e2e-token')
@@ -76,6 +118,9 @@ test('direct conversation submits a single selected participant as an array', as
   })
 
   await page.goto('http://demo.chat.lostsky.work:5176/new')
+  await page.getByRole('textbox', { name: '聊天对象' }).fill('missing')
+  await expect(page.getByText('没有匹配的可搜索实体')).toBeVisible()
+  await expect(page.getByText('匹配的实体', { exact: true })).toHaveCount(0)
   await page.getByRole('textbox', { name: '聊天对象' }).fill('sales')
   await page.getByRole('option').filter({ hasText: '@sales-assistant' }).click()
   await expect(page.getByRole('button', { name: '创建会话' })).toBeEnabled()

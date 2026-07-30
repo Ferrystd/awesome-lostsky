@@ -23,7 +23,12 @@ class Entity extends Base
         'slug'             => 'string',
         'entityable_type'  => 'string',
         'entityable_id'    => 'integer',
+        // 公开展示：决定成员/虚拟实体是否进入 {team}.display.lostsky.work；不影响团队后台目录或全局搜索。
         'is_displayed'     => 'integer',
+        // 团队内可见：决定无 team.entity.read 的 Entity 是否能在当前 Team 工作空间目录发现非 Customer 实体；
+        // Customer 属于敏感目录，即使该字段为 1 也仍需 team.entity.read。此字段不影响公开 Display 或全局搜索。
+        'is_internal_visible' => 'integer',
+        // 全局搜索覆盖：只影响跨页面实体搜索，NULL 继承 Team 搜索策略；不影响团队后台目录或 Display。
         'search_override'  => 'integer',
     ];
 
@@ -74,6 +79,11 @@ class Entity extends Base
         return $this->hasMany(TeamEntityRole::class, 'entity_id');
     }
 
+    public function products()
+    {
+        return $this->hasMany(TeamProduct::class, 'entity_id');
+    }
+
     public function ownedCustomers()
     {
         return $this->hasMany(TeamCustomer::class, 'owner_entity_id');
@@ -107,6 +117,8 @@ class Entity extends Base
 
     public function getIsSearchableAttr(): bool
     {
+        // 全局实体搜索可发现性，由底层对象状态、Team 搜索策略和 search_override 共同计算。
+        // 它与 is_internal_visible（团队后台目录）及 is_displayed（公开 Display）相互独立。
         $entity = $this->entityable;
         return $entity ? (bool) $entity->is_searchable : false;
     }

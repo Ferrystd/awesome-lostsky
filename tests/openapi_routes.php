@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__);
-$apps = ['account', 'chat', 'common', 'display', 'shop', 'team', 'transaction'];
+$apps = ['account', 'admin', 'chat', 'common', 'display', 'shop', 'team', 'transaction'];
 $errors = [];
 
 foreach ($apps as $app) {

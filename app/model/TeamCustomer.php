@@ -14,7 +14,7 @@ class TeamCustomer extends Base
     protected $type = [
         'id'          => 'integer',
         'team_id'     => 'integer',
-        // user_id / owner_entity_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
+        // user_id / owner_entity_id / assignee_entity_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
         'is_blocked'  => 'integer',
         'create_time' => 'integer',
         'update_time' => 'integer',
@@ -52,6 +52,11 @@ class TeamCustomer extends Base
     public function ownerEntity()
     {
         return $this->belongsTo(Entity::class, 'owner_entity_id');
+    }
+
+    public function assignee()
+    {
+        return $this->belongsTo(Entity::class, 'assignee_entity_id');
     }
 
     public function balance()
@@ -105,6 +110,8 @@ class TeamCustomer extends Base
 
     public function getIsSearchableAttr(): bool
     {
+        // 客户实体固定不进入全局实体搜索和普通团队目录；读取 Customer 始终需要 team.entity.read。
+        // Entity.is_internal_visible 不会降低该权限边界，Customer 也不支持公开 Display。
         return false;
     }
 }

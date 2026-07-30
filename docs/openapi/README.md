@@ -5,6 +5,7 @@
 ## 文件
 
 - [`account.openapi.json`](account.openapi.json)：注册、登录、设备、用户团队入口
+- [`admin.openapi.json`](admin.openapi.json)：平台管理员、用户与团队治理、审计和系统状态
 - [`display.openapi.json`](display.openapi.json)：团队主页、公开实体、公开文档与 Markdown 实体解析接口
 - [`team.openapi.json`](team.openapi.json)：团队成员、成员/实体字段、岗位、设置、文件、虚拟实体与 Webhook 集成管理
 - [`chat.openapi.json`](chat.openapi.json)：聊天身份、会话、消息、实时令牌与实体自助接口

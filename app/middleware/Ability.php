@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace app\middleware;
 
+use app\exception\AccessDeniedException;
 use app\model\TeamAbility;
 use think\exception\HttpException;
 use think\Request;
@@ -44,17 +45,37 @@ class Ability
             ->find();
 
         if (!$ability) {
-            throw new HttpException(403, '团队未开通所需能力');
+            throw AccessDeniedException::ability($abilityKey, $this->label($abilityKey), (int) $minimumLevel);
         }
 
         if ($ability->level < (int) $minimumLevel) {
-            throw new HttpException(403, '团队能力等级不足');
+            throw AccessDeniedException::ability(
+                $abilityKey,
+                $this->label($abilityKey),
+                (int) $minimumLevel,
+                'level'
+            );
         }
 
         if ($ability->expire_time > 0 && $ability->expire_time < time()) {
-            throw new HttpException(403, '团队能力已过期');
+            throw AccessDeniedException::ability(
+                $abilityKey,
+                $this->label($abilityKey),
+                (int) $minimumLevel,
+                'expired'
+            );
         }
 
         return $next($request);
+    }
+
+    private function label(string $abilityKey): string
+    {
+        return match ($abilityKey) {
+            'file' => '文件上传',
+            'doc' => '文档',
+            'transaction' => '记账',
+            default => $abilityKey,
+        };
     }
 }

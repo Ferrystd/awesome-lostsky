@@ -827,6 +827,127 @@
           }
         }
       },
+      "CustomerSelfProfile": {
+        "type": "object",
+        "required": [
+          "id",
+          "team_id",
+          "is_blocked",
+          "profile",
+          "identity"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "is_blocked": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "profile": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "当前商家团队内使用的昵称"
+              },
+              "avatar": {
+                "type": "string",
+                "nullable": true,
+                "maxLength": 500
+              },
+              "description": {
+                "type": "string",
+                "nullable": true,
+                "maxLength": 500,
+                "description": "当前商家团队内使用的简介"
+              }
+            }
+          },
+          "identity": {
+            "type": "object",
+            "required": [
+              "slug"
+            ],
+            "properties": {
+              "slug": {
+                "type": "string",
+                "nullable": true,
+                "description": "只用于身份签发和内部引用，不代表公开主页"
+              }
+            }
+          },
+          "balance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Balance"
+              }
+            ],
+            "nullable": true
+          },
+          "assignee": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomerAssignee"
+              }
+            ],
+            "nullable": true,
+            "description": "当前客户归属实体；客户本人可以在候选实体中修改或清空。"
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CustomerAssignee": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "slug",
+          "type",
+          "name"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "team",
+              "teamMember",
+              "teamVirtual"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "Balance": {
         "type": "object",
         "properties": {
@@ -1365,13 +1486,6 @@
             ]
           },
           "is_searchable": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ]
-          },
-          "is_visible": {
             "type": "integer",
             "enum": [
               0,
@@ -3253,7 +3367,7 @@
                       "type": "object",
                       "properties": {
                         "data": {
-                          "$ref": "#/components/schemas/Customer"
+                          "$ref": "#/components/schemas/CustomerSelfProfile"
                         }
                       }
                     }
@@ -3324,6 +3438,269 @@
           },
           "429": {
             "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "更新当前商家的团队内客户资料",
+        "operationId": "shopCustomerUpdate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "nickname"
+                ],
+                "properties": {
+                  "nickname": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50,
+                    "description": "团队内昵称"
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 500
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 500,
+                    "description": "团队内简介"
+                  },
+                  "assignee_entity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "nullable": true,
+                    "minimum": 1,
+                    "description": "新的归属实体 ID；传 null 清空。只允许当前团队的 Team、成员或虚拟实体。"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "客户资料已更新",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或身份已失效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "当前身份不是本商家的有效客户，或客户已被封禁",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "资料格式不符合要求",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/assignees": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "获取当前客户可选择的归属实体",
+        "operationId": "shopCustomerAssignees",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CustomerAssignee"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "当前身份不是有效客户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/slug": {
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "为历史客户首次领取不可变 slug",
+        "operationId": "shopCustomerClaimSlug",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "slug"
+                ],
+                "properties": {
+                  "slug": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 50,
+                    "pattern": "^[a-zA-Z][a-zA-Z0-9_-]+$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "客户标识已确定",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "slug": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "当前身份不是本商家的有效客户，或客户已被封禁",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "客户 slug 已存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "slug 格式不符合要求",
             "content": {
               "application/json": {
                 "schema": {
@@ -4429,6 +4806,11 @@
                     "type": "string",
                     "pattern": "^[a-z][a-z0-9_-]{1,49}$",
                     "description": "??????????? customer-{id}"
+                  },
+                  "inviter_slug": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_-]{1,49}$",
+                    "description": "邀请实体 slug。仅首次建立客户身份时写入归属；无效值会被忽略。"
                   }
                 }
               }

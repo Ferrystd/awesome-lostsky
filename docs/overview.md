@@ -20,10 +20,11 @@ LostSky 是面向小型数字服务工作室的运营与协作平台，把团队
 | 应用 | 作用 |
 | --- | --- |
 | [Account](apps/account.md) | 注册、登录、设备、团队入口与身份切换 |
+| [Admin](apps/admin.md) | 平台总览、用户与团队治理、平台 RBAC、审计和系统状态 |
 | [Team](apps/team.md) | 团队后台与协作管理 |
-| [Chat](apps/chat.md) | 会话、消息、虚拟实体与实时事件 |
+| [Chat](apps/chat.md) | 会话、消息、参与身份选择与实时事件 |
 | [Transaction](apps/transaction.md) | 流水、余额和经营统计 |
-| [Shop](apps/shop.md) | 商品、订单和展示型商城 |
+| [Shop](apps/shop.md) | 商品、订单、展示型商城与顾客中心 |
 | [Display](apps/display.md) | 团队公开主页、实体资料与文档 |
 | [Common](apps/common.md) | 公共上传入口 |
 

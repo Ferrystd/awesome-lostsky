@@ -169,7 +169,7 @@ try {
         'is_banned' => 0,
         'is_cancelled' => 0,
     ]);
-    app(EntityService::class)->claimTeam($foreignTeam);
+    $foreignTeamEntity = app(EntityService::class)->claimTeam($foreignTeam);
 
     $member = new TeamMember;
     $member->save([
@@ -192,7 +192,11 @@ try {
         'is_blocked' => 0,
     ]);
     $hiddenMemberSlug = "chat-hidden-{$suffix}";
-    app(EntityService::class)->claimMember((int) $team->id, (int) $hiddenMember->id, $hiddenMemberSlug);
+    $hiddenMemberEntity = app(EntityService::class)->claimMember(
+        (int) $team->id,
+        (int) $hiddenMember->id,
+        $hiddenMemberSlug
+    );
 
     $customer = new TeamCustomer;
     $customer->save([
@@ -541,7 +545,8 @@ try {
         'is_required' => 0,
         'is_editable' => 1,
         'is_searchable' => 0,
-        'is_visible' => 0,
+        'manager_scope' => \app\enum\ManageScope::Team->value,
+        'visibility' => \app\enum\Visibility::Team->value,
         'sort' => 0,
     ]);
     $selectFieldKey = "chat_select_{$suffix}";
@@ -555,7 +560,8 @@ try {
         'is_required' => 1,
         'is_editable' => 1,
         'is_searchable' => 0,
-        'is_visible' => 0,
+        'manager_scope' => \app\enum\ManageScope::Team->value,
+        'visibility' => \app\enum\Visibility::Team->value,
         'sort' => 0,
     ]);
     $selectField = \app\model\TeamEntityField::where('team_id', $team->id)
@@ -570,7 +576,8 @@ try {
         'is_required' => 0,
         'is_editable' => 1,
         'is_searchable' => 0,
-        'is_visible' => 1,
+        'manager_scope' => \app\enum\ManageScope::SubjectTeam->value,
+        'visibility' => \app\enum\Visibility::SubjectTeam->value,
         'sort' => 0,
     ]);
     $entityFields->create((int) $team->id, [
@@ -583,7 +590,8 @@ try {
         'is_required' => 0,
         'is_editable' => 1,
         'is_searchable' => 0,
-        'is_visible' => 0,
+        'manager_scope' => \app\enum\ManageScope::Team->value,
+        'visibility' => \app\enum\Visibility::Team->value,
         'sort' => 0,
     ]);
     $entityFields->create((int) $team->id, [
@@ -596,7 +604,8 @@ try {
         'is_required' => 0,
         'is_editable' => 0,
         'is_searchable' => 0,
-        'is_visible' => 1,
+        'manager_scope' => \app\enum\ManageScope::SubjectTeam->value,
+        'visibility' => \app\enum\Visibility::SubjectTeam->value,
         'sort' => 0,
     ]);
     $entityFields->create((int) $team->id, [
@@ -609,7 +618,8 @@ try {
         'is_required' => 0,
         'is_editable' => 1,
         'is_searchable' => 0,
-        'is_visible' => 1,
+        'manager_scope' => \app\enum\ManageScope::Team->value,
+        'visibility' => \app\enum\Visibility::Team->value,
         'sort' => 0,
     ]);
     $selfNoteField = \app\model\TeamEntityField::where('team_id', $team->id)
@@ -620,6 +630,141 @@ try {
         ->where('field_key', "self_readonly_{$suffix}")->find();
     $customerOnlyField = \app\model\TeamEntityField::where('team_id', $team->id)
         ->where('field_key', "self_customer_{$suffix}")->find();
+    $entityFields->create((int) $team->id, [
+        'entity_type' => 'entity',
+        'field_key' => "team_visible_{$suffix}",
+        'name' => 'Team Visible',
+        'manager_scope' => \app\enum\ManageScope::Team->value,
+        'visibility' => \app\enum\Visibility::Entity->value,
+        'is_editable' => 1,
+    ]);
+    $entityFields->create((int) $team->id, [
+        'entity_type' => 'entity',
+        'field_key' => "public_visible_{$suffix}",
+        'name' => 'Public Visible',
+        'manager_scope' => \app\enum\ManageScope::Team->value,
+        'visibility' => \app\enum\Visibility::Public->value,
+        'is_editable' => 1,
+    ]);
+    $customFieldKey = "custom_visible_{$suffix}";
+    $assertThrows(
+        fn () => $entityFields->create((int) $team->id, [
+            'entity_type' => 'entity',
+            'field_key' => "foreign_custom_{$suffix}",
+            'name' => 'Foreign Custom',
+            'visibility' => \app\enum\Visibility::Custom->value,
+            'visibility_targets' => [['entity_id' => (int) $foreignTeamEntity->id]],
+        ]),
+        422,
+        'custom field visibility rejects targets from another team'
+    );
+    $entityFields->create((int) $team->id, [
+        'entity_type' => 'entity',
+        'field_key' => $customFieldKey,
+        'name' => 'Custom Visible',
+        'manager_scope' => \app\enum\ManageScope::Team->value,
+        'visibility' => \app\enum\Visibility::Custom->value,
+        'visibility_targets' => [['entity_id' => (int) $customerEntity->id]],
+        'is_editable' => 1,
+    ]);
+    $customField = \app\model\TeamEntityField::where('team_id', $team->id)
+        ->where('field_key', $customFieldKey)->find();
+    $memberActingForFields = [
+        'entity_id' => (int) $memberEntity->id,
+        'type' => 'teamMember',
+        'id' => (int) $member->id,
+    ];
+    $customerActingForFields = [
+        'entity_id' => (int) $customerEntity->id,
+        'type' => 'teamCustomer',
+        'id' => (int) $customer->id,
+    ];
+    $fieldKeys = static fn (array $fields): array => array_column($fields, 'field_key');
+    $selfVisibleFields = $entityFields->visibleFields(
+        (int) $team->id,
+        'entity',
+        (int) $memberEntity->id,
+        $memberActingForFields
+    );
+    $selfVisibleKeys = $fieldKeys($selfVisibleFields);
+    $assert(
+        in_array("self_note_{$suffix}", $selfVisibleKeys, true)
+            && in_array("self_readonly_{$suffix}", $selfVisibleKeys, true)
+            && in_array("team_visible_{$suffix}", $selfVisibleKeys, true)
+            && in_array("public_visible_{$suffix}", $selfVisibleKeys, true)
+            && !in_array("self_hidden_{$suffix}", $selfVisibleKeys, true)
+            && !in_array($customFieldKey, $selfVisibleKeys, true),
+        'subject visibility includes subject, team entity and public fields without manager-only or untargeted custom fields'
+    );
+    $selfFieldMap = [];
+    foreach ($selfVisibleFields as $field) {
+        $selfFieldMap[$field['field_key']] = $field;
+    }
+    $assert(
+        ($selfFieldMap["self_note_{$suffix}"]['can_edit'] ?? false) === true
+            && ($selfFieldMap["self_readonly_{$suffix}"]['can_edit'] ?? true) === false,
+        'self edit capability combines management scope and editable state'
+    );
+    $targetVisibleKeys = $fieldKeys($entityFields->visibleFields(
+        (int) $team->id,
+        'entity',
+        (int) $memberEntity->id,
+        $customerActingForFields
+    ));
+    $assert(
+        in_array("team_visible_{$suffix}", $targetVisibleKeys, true)
+            && in_array("public_visible_{$suffix}", $targetVisibleKeys, true)
+            && in_array($customFieldKey, $targetVisibleKeys, true)
+            && !in_array("self_note_{$suffix}", $targetVisibleKeys, true),
+        'team entity and targeted custom visibility do not expose subject-only fields'
+    );
+    $anonymousVisibleKeys = $fieldKeys($entityFields->visibleFields(
+        (int) $team->id,
+        'entity',
+        (int) $memberEntity->id,
+        []
+    ));
+    $assertSame(
+        ["public_visible_{$suffix}"],
+        array_values(array_filter(
+            $anonymousVisibleKeys,
+            static fn (string $key): bool => str_ends_with($key, "_visible_{$suffix}")
+        )),
+        'anonymous field visibility only includes public fields'
+    );
+    $managerVisibleKeys = $fieldKeys($entityFields->visibleFields(
+        (int) $team->id,
+        'entity',
+        (int) $memberEntity->id,
+        $memberActingForFields,
+        true
+    ));
+    $assert(
+        in_array("self_hidden_{$suffix}", $managerVisibleKeys, true)
+            && in_array($customFieldKey, $managerVisibleKeys, true),
+        'field managers can view every field definition and value'
+    );
+    $customDetail = $entityFields->get((int) $team->id, (int) $customField->id);
+    $assertSame(
+        (int) $customerEntity->id,
+        (int) ($customDetail['visibility_targets'][0]['entity_id'] ?? 0),
+        'custom visibility targets round-trip through field detail'
+    );
+    $entityFields->update((int) $team->id, (int) $customField->id, [
+        'visibility' => \app\enum\Visibility::Entity->value,
+        'visibility_targets' => [],
+    ]);
+    $assertSame(
+        0,
+        \app\model\VisibilityTarget::where('visibleable_type', 'entityField')
+            ->where('visibleable_id', (int) $customField->id)
+            ->count(),
+        'switching away from custom visibility clears targets'
+    );
+    $entityFields->update((int) $team->id, (int) $customField->id, [
+        'visibility' => \app\enum\Visibility::Custom->value,
+        'visibility_targets' => [['entity_id' => (int) $customerEntity->id]],
+    ]);
     $entityFields->saveOwnValues((int) $team->id, $memberSlug, []);
     $entityFields->saveOwnValues((int) $team->id, $memberSlug, [(int) $selfNoteField->id => 'self value']);
     $assertThrows(
@@ -671,6 +816,67 @@ try {
         ),
         422,
         'entity select value outside configured options is rejected'
+    );
+    $publicVisibleField = \app\model\TeamEntityField::where('team_id', $team->id)
+        ->where('field_key', "public_visible_{$suffix}")->find();
+    $entityFields->saveValues((int) $team->id, $memberSlug, [
+        (int) $selfHiddenField->id => 'manager secret',
+        (int) $publicVisibleField->id => 'public value',
+        (int) $customField->id => 'targeted value',
+    ]);
+    $memberRead = app(\app\service\TeamMember::class)->get(
+        (int) $team->id,
+        (int) $member->id,
+        $customerActingForFields
+    );
+    $memberReadFieldKeys = array_map(
+        static fn (array $value): string => (string) ($value['field']['field_key'] ?? ''),
+        $memberRead['fieldValues']
+    );
+    $assert(
+        !in_array("self_hidden_{$suffix}", $memberReadFieldKeys, true),
+        'member detail relation filters manager-only values'
+    );
+    $assert(
+        in_array("public_visible_{$suffix}", $memberReadFieldKeys, true),
+        'member detail relation preserves public values'
+    );
+    $assert(
+        in_array($customFieldKey, $memberReadFieldKeys, true),
+        'member detail relation preserves targeted values'
+    );
+    $memberList = app(\app\service\TeamMember::class)->list(
+        (int) $team->id,
+        $customerActingForFields
+    );
+    $listedMember = array_values(array_filter(
+        $memberList,
+        static fn (array $item): bool => (int) $item['id'] === (int) $member->id
+    ))[0] ?? null;
+    $assert(is_array($listedMember), 'member list includes the tested member');
+    $memberListFieldKeys = array_map(
+        static fn (array $value): string => (string) ($value['field']['field_key'] ?? ''),
+        $listedMember['fieldValues']
+    );
+    $assert(
+        !in_array("self_hidden_{$suffix}", $memberListFieldKeys, true),
+        'member list relation filters manager-only values'
+    );
+    $assert(
+        in_array("public_visible_{$suffix}", $memberListFieldKeys, true),
+        'member list relation preserves public values'
+    );
+    $assert(
+        in_array($customFieldKey, $memberListFieldKeys, true),
+        'member list relation preserves targeted values'
+    );
+    $entityFields->delete((int) $team->id, (int) $customField->id);
+    $assertSame(
+        0,
+        \app\model\VisibilityTarget::where('visibleable_type', 'entityField')
+            ->where('visibleable_id', (int) $customField->id)
+            ->count(),
+        'deleting an entity field removes custom visibility targets'
     );
 
     $permissions->save((int) $team->id, (int) $role->id, [

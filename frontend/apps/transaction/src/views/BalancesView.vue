@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsSearchInput from '@lostsky/ui/components/LsSearchInput.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { CircleDollarSign, Search } from '@lucide/vue'
-import { NInput } from 'naive-ui'
+import { CircleDollarSign } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
 import { customerName, money } from '../lib'
@@ -21,7 +21,7 @@ const customers = computed(() => {
     <PageHeader title="客户余额" description="查看客户的可用预存款、累计充值与累计消费；充值和明细使用独立任务页。">
       <template #actions><RouterLink class="primary-link" to="/recharge">客户充值</RouterLink></template>
     </PageHeader>
-    <label class="balance-search panel"><Search :size="18" /><span class="ls-sr-only">搜索客户</span><NInput v-model:value="search" clearable placeholder="搜索客户昵称" /></label>
+    <div class="balance-search panel"><LsSearchInput v-model="search" placeholder="搜索客户昵称" aria-label="搜索客户余额" /></div>
     <p v-if="query.isError.value" class="feedback error" role="alert">{{ friendlyError(query.error.value) }}</p>
     <div v-else-if="query.isPending.value" class="loading-list"><span v-for="i in 5" :key="i" /></div>
     <section v-else-if="!customers.length" class="empty"><CircleDollarSign :size="34" /><h3>{{ search ? '没有匹配的客户' : '还没有客户余额' }}</h3><p>客户产生充值记录后，可在这里查看余额及完整变动明细。</p></section>
@@ -29,4 +29,4 @@ const customers = computed(() => {
   </div>
 </template>
 
-<style scoped>.balances-view{display:grid;gap:1.25rem}.balance-search{max-width:28rem;display:flex;align-items:center;gap:.35rem;padding:.35rem .7rem}.balance-search :deep(.n-input){flex:1}.amount{font-weight:750}</style>
+<style scoped>.balances-view{display:grid;gap:1.25rem}.balance-search{max-width:30rem;padding:.7rem}.amount{font-weight:750}</style>

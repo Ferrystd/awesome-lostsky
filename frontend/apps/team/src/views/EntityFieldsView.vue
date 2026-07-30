@@ -15,7 +15,6 @@ interface EntityField {
   value_type: string
   input_type: string
   is_required: number
-  is_visible: number
 }
 const type = ref<EntityType>('entity')
 const fields = useQuery({

@@ -26,6 +26,9 @@ Route::post('order/<id>/complete', 'Order/complete')->completeMatch();
 // customer
 Route::post('customer/bind', 'Customer/bind')->completeMatch();
 Route::get('customer/me', 'Customer/me')->completeMatch();
+Route::post('customer/me', 'Customer/update')->completeMatch();
+Route::get('customer/assignees', 'Customer/assignees')->completeMatch();
+Route::post('customer/slug', 'Customer/slug')->completeMatch();
 Route::get('customer/orders', 'Customer/orders')->completeMatch();
 Route::post('customer/orders', 'Customer/purchase')->completeMatch();
 Route::get('customer/orders/<id>', 'Customer/order')->completeMatch();

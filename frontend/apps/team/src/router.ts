@@ -1,7 +1,10 @@
-import { auth } from '@lostsky/api/client'
+import { api, auth } from '@lostsky/api/client'
 import { redirectToLogin } from '@lostsky/shared/navigation'
+import { feedback } from '@lostsky/ui/feedback'
 import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteLocationGeneric } from 'vue-router'
 import { managerScopeOptions, visibilityOptions } from './lib/access'
+import { abilityReason, type TeamAccessSnapshot } from './lib/teamAccess'
 const DashboardView = () => import('./views/DashboardView.vue')
 const DocumentView = () => import('./views/DocumentView.vue')
 const DocumentsView = () => import('./views/DocumentsView.vue')
@@ -30,6 +33,8 @@ const EntityFieldsView = () => import('./views/EntityFieldsView.vue')
 const EntityFieldFormView = () => import('./views/EntityFieldFormView.vue')
 const EntitiesView = () => import('./views/EntitiesView.vue')
 const EntityDetailView = () => import('./views/EntityDetailView.vue')
+const CustomersView = () => import('./views/CustomersView.vue')
+const CustomerDetailView = () => import('./views/CustomerDetailView.vue')
 
 export interface ResourceFormField {
   key: string
@@ -69,24 +74,38 @@ const resources: Record<string, ResourceMeta> = {
     createEndpoint: '/role/add', editEndpoint: '/role/edit', deleteEndpoint: '/role/delete',
     formFields: [{ key: 'role_key', label: '角色标识', required: true, createOnly: true }, { key: 'name', label: '角色名称', required: true }, { key: 'description', label: '说明', type: 'textarea' }, { key: 'sort', label: '顺序', type: 'number', defaultValue: 0 }],
   },
-  notice: { title: '站内信', description: '集中处理系统提醒和团队消息。', endpoint: '/notice/index', fields: ['title', 'content', 'is_read', 'create_time'], empty: '目前没有站内信' },
+  notice: { title: '站内通知', description: '集中处理系统提醒和团队消息。', endpoint: '/notice/index', fields: ['title', 'content', 'is_read', 'create_time'], empty: '目前没有站内通知' },
   'join-review': { title: '加入审核', description: '审核加入申请并跟踪入队任务。', endpoint: '/joinReview/index', fields: ['user_id', 'status', 'memo', 'create_time'], empty: '没有待处理的加入申请' },
   files: { title: '文件', description: '查找和管理上传到团队空间的文件。', endpoint: '/file/index', fields: ['name', 'mime_type', 'size', 'create_time'], deleteEndpoint: '/file/delete', empty: '团队空间还没有文件' },
   docs: {
     title: '文档', description: '组织团队流程、规范和长期知识。', endpoint: '/doc', fields: ['title', 'entity_id', 'visibility', 'update_time'], empty: '文档库还是空的',
     createEndpoint: '/doc/create', editEndpoint: '/doc/edit', deleteEndpoint: '/doc/delete',
     formFields: [
-      { key: 'title', label: '标题', required: true }, { key: 'content', label: 'Markdown 内容', type: 'textarea' }, { key: 'entity_id', label: '???? ID', type: 'number', required: true },
-      { key: 'manager_scope', label: '????', type: 'select', defaultValue: 1, options: managerScopeOptions }, { key: 'visibility', label: '????', type: 'select', defaultValue: 1, options: visibilityOptions }, { key: 'sort', label: '??', type: 'number', defaultValue: 0 },
+      { key: 'title', label: '标题', required: true }, { key: 'content', label: 'Markdown 内容', type: 'textarea' }, { key: 'entity_id', label: '对象 ID', type: 'number', required: true },
+      { key: 'manager_scope', label: '管理范围', type: 'select', defaultValue: 1, options: managerScopeOptions }, { key: 'visibility', label: '可见范围', type: 'select', defaultValue: 1, options: visibilityOptions }, { key: 'sort', label: '顺序', type: 'number', defaultValue: 0 },
     ],
   },
 }
 
+function legacyNoticeRedirect(to: RouteLocationGeneric, detail = false) {
+  const scope = auth.entity()?.type === 'team' ? 'team' : 'entity'
+  return {
+    path: `/notices/${scope}${detail ? '/detail' : ''}`,
+    query: to.query,
+    hash: to.hash,
+  }
+}
+
 const routes = [
   { path: '/', component: DashboardView, meta: { title: '概览' } },
-  { path: '/notice', component: NoticesView, meta: { title: '站内信' } },
-  { path: '/notice-detail', component: NoticeDetailView, meta: { title: '阅读站内信', pageWidth: 'content' } },
-  { path: '/notice-send', component: NoticeSendView, meta: { title: '发送通知', pageWidth: 'form' } },
+  { path: '/notices/entity', component: NoticesView, meta: { title: '通知', noticeScope: 'entity' } },
+  { path: '/notices/entity/detail', component: NoticeDetailView, meta: { title: '阅读通知', noticeScope: 'entity', pageWidth: 'content' } },
+  { path: '/notices/team', component: NoticesView, meta: { title: '站内通知', noticeScope: 'team' } },
+  { path: '/notices/team/detail', component: NoticeDetailView, meta: { title: '阅读站内通知', noticeScope: 'team', pageWidth: 'content' } },
+  { path: '/notices/send', component: NoticeSendView, meta: { title: '发送通知', pageWidth: 'form' } },
+  { path: '/notice', redirect: (to: RouteLocationGeneric) => legacyNoticeRedirect(to) },
+  { path: '/notice-detail', redirect: (to: RouteLocationGeneric) => legacyNoticeRedirect(to, true) },
+  { path: '/notice-send', redirect: (to: RouteLocationGeneric) => ({ path: '/notices/send', query: to.query, hash: to.hash }) },
   { path: '/files', component: FilesView, meta: { title: '文件' } },
   { path: '/settings', component: SettingsView, meta: { title: '团队设置', pageWidth: 'content' } },
   { path: '/chat-virtuals', component: ChatVirtualsView, meta: { title: '虚拟实体' } },
@@ -106,23 +125,43 @@ const routes = [
   { path: '/join-review/review', component: JoinReviewDetailView, meta: { title: '审核加入申请', pageWidth: 'content' } },
   { path: '/join-review', component: JoinReviewView, meta: { title: '加入审核' } },
   { path: '/members', component: MembersView, meta: { title: '成员' } },
+  { path: '/customers', component: CustomersView, meta: { title: '客户' } },
+  { path: '/customers/:id(\\d+)', component: CustomerDetailView, meta: { title: '客户详情', pageWidth: 'content' } },
   { path: '/member-add', component: MemberFormView, meta: { title: '添加成员', pageWidth: 'form' } },
   { path: '/member-edit', component: MemberFormView, meta: { title: '编辑成员', pageWidth: 'content' } },
-  { path: '/docs', component: DocumentsView, meta: { title: '文档' } },
-  { path: '/doc-create', component: DocumentFormView, meta: { title: '新建文档', pageWidth: 'content' } },
-  { path: '/doc-edit', component: DocumentFormView, meta: { title: '编辑文档', pageWidth: 'content' } },
+  { path: '/docs', component: DocumentsView, meta: { title: '文档', ability: 'doc' } },
+  { path: '/doc-create', component: DocumentFormView, meta: { title: '新建文档', pageWidth: 'content', ability: 'doc' } },
+  { path: '/doc-edit', component: DocumentFormView, meta: { title: '编辑文档', pageWidth: 'content', ability: 'doc' } },
   ...Object.entries(resources).filter(([path]) => !['notice', 'files', 'roles', 'join-review', 'members', 'fields', 'docs'].includes(path)).map(([path, resource]) => ({ path: `/${path}`, component: ResourceView, props: { resource }, meta: { title: resource.title } })),
   { path: '/member-detail', component: MemberDetailView, meta: { title: '成员详情', pageWidth: 'content' } },
-  { path: '/doc', component: DocumentView, meta: { title: '文档' } },
+  { path: '/doc', component: DocumentView, meta: { title: '文档', ability: 'doc' } },
   { path: '/me', component: ProfileView, meta: { title: '我的资料', pageWidth: 'content' } },
   { path: '/join', component: JoinView, meta: { public: true, title: '申请加入' } },
 ]
 
 export const router = createRouter({ history: createWebHistory(), routes, scrollBehavior: () => ({ top: 0 }) })
-router.beforeEach((to) => {
+let routeAccess: { value: TeamAccessSnapshot; expiresAt: number } | null = null
+router.beforeEach(async (to) => {
   document.title = `${String(to.meta.title ?? '工作台')} · LostSky`
   if (!to.meta.public && !auth.token()) {
     redirectToLogin()
     return false
+  }
+  if (to.meta.ability === 'doc') {
+    try {
+      if (!routeAccess || routeAccess.expiresAt < Date.now()) {
+        routeAccess = {
+          value: await api.get<TeamAccessSnapshot>('/access'),
+          expiresAt: Date.now() + 30_000,
+        }
+      }
+      const state = routeAccess.value.abilities.doc
+      if (!state?.enabled) {
+        feedback.warning(abilityReason('doc', state?.label ?? '文档'))
+        return '/'
+      }
+    } catch {
+      // 请求失败时交给页面自己的可恢复错误状态，避免路由守卫形成死路。
+    }
   }
 })

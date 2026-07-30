@@ -5,17 +5,21 @@ import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
-import type { SelectOption } from 'naive-ui'
-import { computed, reactive, ref, watch } from 'vue'
+import type { SelectOption, SelectRenderLabel } from 'naive-ui'
+import { computed, h, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import EntitySelectOption from '../components/EntitySelectOption.vue'
 import { managerScopeOptions, visibilityOptions } from '../lib/access'
 import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
+import { fileUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const editor = ref<InstanceType<typeof LsMarkdownEditor> | null>(null)
+const access = useTeamAccess()
+const uploadDisabledReason = computed(() => fileUploadReason(access.data.value))
 const id = computed(() => Number(route.query.id || 0))
 const editing = computed(() => id.value > 0)
 const form = reactive({
@@ -29,18 +33,23 @@ const form = reactive({
 
 interface EntityOption {
   entity_id: number
+  type: 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'
   slug: string
   name: string
 }
+interface DocumentEntitySelectOption extends SelectOption, EntityOption {}
+const entitySelectMenuProps = { class: 'entity-select-menu' }
 
 const entities = useQuery({
   queryKey: ['entity-options'],
   queryFn: () => api.get<EntityOption[]>('/entity/options'),
 })
-const entityOptions = computed<SelectOption[]>(() => (entities.data.value ?? []).map(entity => ({
-  label: entity.slug ? `${entity.name} (@${entity.slug})` : entity.name,
+const entityOptions = computed<DocumentEntitySelectOption[]>(() => (entities.data.value ?? []).map(entity => ({
+  label: `${entity.name} ${entity.slug ? `@${entity.slug}` : ''}`,
   value: entity.entity_id,
+  ...entity,
 })))
+const renderEntityLabel: SelectRenderLabel = option => h(EntitySelectOption, { entity: option as DocumentEntitySelectOption })
 
 watch(() => entities.data.value, (items) => {
   if (!editing.value && !form.entity_id && items?.length) form.entity_id = items[0].entity_id
@@ -103,12 +112,12 @@ const save = useMutation({
       <div v-if="!editing" class="field-row">
         <label class="field">
           <span>归属对象</span>
-          <NSelect v-model:value="form.entity_id" :options="entityOptions" filterable />
+          <NSelect v-model:value="form.entity_id" :options="entityOptions" :render-label="renderEntityLabel" :menu-props="entitySelectMenuProps" :loading="entities.isPending.value" :disabled="entities.isError.value || !entityOptions.length" :virtual-scroll="false" filterable placeholder="选择归属对象" />
         </label>
       </div>
 
-      <label class="field full">
-        <span>正文</span>
+      <div class="field full" role="group" aria-labelledby="document-content-label">
+        <span id="document-content-label">正文</span>
         <LsMarkdownEditor
           v-if="!editing || detail.isSuccess.value"
           ref="editor"
@@ -116,9 +125,10 @@ const save = useMutation({
           :draft-key="`document:${editing ? id : 'new'}`"
           :search-entities="searchEntities"
           :upload-image="uploadMarkdownImage"
+          :upload-disabled-reason="uploadDisabledReason"
           placeholder="开始写作，或输入 @ 引用团队与成员…"
         />
-      </label>
+      </div>
 
       <section class="policy" aria-labelledby="document-policy-title">
         <div>

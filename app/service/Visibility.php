@@ -59,11 +59,21 @@ class Visibility
         foreach ($this->normalizeTargets($targets, $teamId) as $target) {
             $entityId = (int) $target['entity_id'];
             $activeKeys[$entityId] = true;
-            VisibilityTarget::withTrashed()->updateOrCreate([
-                'visibleable_type' => $alias,
-                'visibleable_id' => (int) $model->id,
-                'entity_id' => $entityId,
-            ], ['delete_time' => null]);
+            $row = VisibilityTarget::withTrashed()
+                ->where('visibleable_type', $alias)
+                ->where('visibleable_id', (int) $model->id)
+                ->where('entity_id', $entityId)
+                ->find();
+            if (!$row) {
+                $row = app(VisibilityTarget::class, [], true);
+                $row->save([
+                    'visibleable_type' => $alias,
+                    'visibleable_id' => (int) $model->id,
+                    'entity_id' => $entityId,
+                ]);
+            } elseif ($row->trashed()) {
+                $row->restore();
+            }
         }
 
         $rows = VisibilityTarget::where('visibleable_type', $alias)

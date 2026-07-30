@@ -21,6 +21,7 @@ class User extends Base
         'email'    => 'string',
         'password' => 'string',
         'username' => 'string',
+        'is_banned' => 'integer',
     ];
 
     protected $json = [];

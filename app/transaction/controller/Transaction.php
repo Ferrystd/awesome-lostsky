@@ -117,6 +117,7 @@ class Transaction
             'byEntity'   => $service->byEntity($request->team_id, $startTime, $endTime, $request->get('role', 'handler')),
             'timeline'   => $service->timeline($request->team_id, $startTime, $endTime, $request->get('granularity', 'day')),
             'byCustomer' => $service->byCustomer($request->team_id, $startTime, $endTime),
+            'byAssignee' => $service->byAssignee($request->team_id, $startTime, $endTime),
             default      => $service->summary($request->team_id, $startTime, $endTime),
         };
 

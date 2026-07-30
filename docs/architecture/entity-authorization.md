@@ -13,6 +13,14 @@ LostSky 将认证主体与业务主体分离：`user` 负责登录、设备、�
 
 持久化实体类型为 `team`、`teamMember`、`teamCustomer`、`teamVirtual`，每个实体通过 `entity.slug` 获得全局唯一标识。成员创建时自动领取 `member-{id}` 标识；已有自定义标识保持不变。
 
+实体有三套独立的发现范围：
+
+- `entity.is_internal_visible`：只控制普通当前 Team Entity 能否在团队工作空间目录发现对象；`team.entity.read` 可越过该限制，Team 实体恒可见。
+- `entity.search_override` 与底层对象的 `is_searchable`：只控制全局实体搜索。
+- `entity.is_displayed`：只控制互联网访客能否在公开 Display 浏览该实体。
+
+这三者不互相继承。无 `team.entity.read` 的请求访问团队内隐藏实体时返回 404，避免通过深链接确认对象存在。
+
 基础 user JWT 只能直接领取：
 
 - `user_id` 指向当前用户的有效 `teamMember`；
@@ -66,6 +74,10 @@ LostSky 将认证主体与业务主体分离：`user` 负责登录、设备、�
 
 `entity` 是持久化业务主体的唯一根表。业务表只保存一个指向 `entity.id` 的外键；不同职责使用带语义的列名，例如 `handler_entity_id`、`sender_entity_id`、`cs_entity_id`。引用表不再重复保存实体类型，本地 `team_member.id` 等子类型 ID 仅用于子类型自身的结构关系。
 
+`team_customer.assignee_entity_id` 表示客户可变的当前归属，只允许引用同 Team 的 Team、成员或虚拟实体。公开页面的 `ref=<entity-slug>` 只在首次创建客户时登记初始值；客户本人和具备 `team.customer.manage` 的后台实体可修改。订单与流水在创建时把当前归属快照到 `team_transaction.sender_entity_id`，后续改归属不追溯历史记录。
+
 ## 集中业务审计
 
-Transaction、Shop、File、Document 的写操作统一写入 `business_audit_event`。事件记录当前 `entity_id`、真实 `authenticated_user_id`、团队、应用、动作、资源和请求标识；审计独立存储，业务表不重复保存 actor 类型或认证用户列。`entity_id` 始终指向全局 `entity.id`，slug 不参与审计外键。审计事件默认保留 730 天，可通过 `cleanup.business_audit_retention_days` 调整，并由 `php think system:cleanup` 清理过期记录。
+Transaction、Shop、File、Document 的写操作统一写入 `business_audit_event`。普通业务事件记录当前 `entity_id`、真实 `authenticated_user_id`、团队、应用、动作、资源和请求标识；审计独立存储，业务表不重复保存 actor 类型或认证用户列。`entity_id` 始终指向全局 `entity.id`，slug 不参与审计外键。
+
+Admin 平台治理与 CLI 自举也写入同一张表。平台事件不依赖团队和业务实体，因此 `team_id`、`entity_id` 可以为空；CLI 没有认证用户时 `authenticated_user_id` 也可以为空。平台事件在 `context.source` 标明 `api` 或 `cli`，治理事件同时记录操作原因和状态变化。审计事件默认保留 730 天，可通过 `cleanup.business_audit_retention_days` 调整，并由 `php think system:cleanup` 清理过期记录。

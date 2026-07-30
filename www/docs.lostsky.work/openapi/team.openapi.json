@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "LostSky Team API",
-    "version": "0.0.9",
+    "version": "0.0.10",
     "description": "团队成员、岗位、成员字段、团队设置和团队文件管理。除特别说明外均需要 JWT + 团队上下文；基础登录 JWT 进入团队业务时自动切换为当前团队成员。"
   },
   "x-entity-auth": {
@@ -77,6 +77,10 @@
     },
     {
       "name": "Entity"
+    },
+    {
+      "name": "Access",
+      "description": "当前 Entity 的有效权限、团队能力和访问感知概览"
     },
     {
       "name": "Notice"
@@ -269,8 +273,193 @@
             "example": "操作成功"
           },
           "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PermissionDeniedReason"
+              },
+              {
+                "$ref": "#/components/schemas/AbilityDeniedReason"
+              }
+            ],
             "nullable": true,
-            "example": null
+            "description": "普通业务错误为 null；授权错误返回可供界面解释的结构化原因。"
+          }
+        }
+      },
+      "PermissionDeniedReason": {
+        "type": "object",
+        "required": [
+          "kind",
+          "required_any"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "permission"
+            ]
+          },
+          "required_any": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AbilityDeniedReason": {
+        "type": "object",
+        "required": [
+          "kind",
+          "key",
+          "label"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ability"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "minimum_level": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "missing",
+              "level",
+              "expired"
+            ]
+          }
+        }
+      },
+      "TeamAbilityState": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "level",
+          "expire_time",
+          "reason",
+          "label"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expire_time": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "missing",
+              "level",
+              "expired"
+            ]
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "TeamAccessSnapshot": {
+        "type": "object",
+        "required": [
+          "permissions",
+          "abilities"
+        ],
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "abilities": {
+            "type": "object",
+            "required": [
+              "file",
+              "doc"
+            ],
+            "properties": {
+              "file": {
+                "$ref": "#/components/schemas/TeamAbilityState"
+              },
+              "doc": {
+                "$ref": "#/components/schemas/TeamAbilityState"
+              }
+            }
+          }
+        }
+      },
+      "DashboardMetric": {
+        "type": "object",
+        "required": [
+          "available",
+          "count",
+          "error",
+          "reason"
+        ],
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "nullable": true,
+            "description": "null 且无错误时表示可进入但无全量计数资格。"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AbilityDeniedReason"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "TeamDashboard": {
+        "type": "object",
+        "required": [
+          "entities",
+          "members",
+          "documents",
+          "notices"
+        ],
+        "properties": {
+          "entities": {
+            "$ref": "#/components/schemas/DashboardMetric"
+          },
+          "members": {
+            "$ref": "#/components/schemas/DashboardMetric"
+          },
+          "documents": {
+            "$ref": "#/components/schemas/DashboardMetric"
+          },
+          "notices": {
+            "$ref": "#/components/schemas/DashboardMetric"
           }
         }
       },
@@ -889,6 +1078,168 @@
           }
         }
       },
+      "CustomerAssignee": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "slug",
+          "type",
+          "name"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "team",
+              "teamMember",
+              "teamVirtual"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ManagedCustomer": {
+        "type": "object",
+        "required": [
+          "id",
+          "entity_id",
+          "slug",
+          "name",
+          "is_blocked",
+          "balance",
+          "create_time",
+          "update_time"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_blocked": {
+            "type": "boolean"
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "balance": {
+            "type": "object",
+            "required": [
+              "balance",
+              "recharged",
+              "spent"
+            ],
+            "properties": {
+              "balance": {
+                "type": "string"
+              },
+              "recharged": {
+                "type": "string"
+              },
+              "spent": {
+                "type": "string"
+              }
+            }
+          },
+          "assignee": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomerAssignee"
+              }
+            ],
+            "nullable": true
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "transaction_count": {
+                "type": "integer"
+              },
+              "transaction_total": {
+                "type": "string"
+              },
+              "order_count": {
+                "type": "integer"
+              },
+              "order_total": {
+                "type": "string"
+              }
+            }
+          },
+          "can_manage": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ManagedCustomerPage": {
+        "type": "object",
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit",
+          "scope"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagedCustomer"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "own"
+            ]
+          }
+        }
+      },
       "Balance": {
         "type": "object",
         "properties": {
@@ -1383,6 +1734,32 @@
             }
           }
         ]
+      },
+      "NoticeCapabilities": {
+        "type": "object",
+        "required": [
+          "can_read_team",
+          "can_send",
+          "default_scope"
+        ],
+        "properties": {
+          "can_read_team": {
+            "type": "boolean",
+            "description": "当前 acting Entity 是否可查看 Team 共享站内通知"
+          },
+          "can_send": {
+            "type": "boolean",
+            "description": "当前 acting Entity 是否可代表 Team 发送通知"
+          },
+          "default_scope": {
+            "type": "string",
+            "enum": [
+              "team",
+              "entity"
+            ],
+            "description": "顶部通知入口默认打开的收件箱"
+          }
+        }
       },
       "NoticeSendResult": {
         "type": "object",
@@ -2140,21 +2517,21 @@
             "enum": [
               0,
               1
-            ]
+            ],
+            "description": "是否允许手动修改字段值；关闭后字段管理员和对象本人均只读"
           },
           "is_searchable": {
             "type": "integer",
             "enum": [
               0,
               1
-            ]
+            ],
+            "description": "预留字段；当前版本未接入字段值搜索，不参与可见性判断"
           },
-          "is_visible": {
-            "type": "integer",
-            "enum": [
-              0,
-              1
-            ]
+          "can_edit": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "当前 acting Entity 是否可在当前资料上下文中编辑该字段"
           },
           "sort": {
             "type": "integer"
@@ -2175,7 +2552,8 @@
             "enum": [
               1,
               2
-            ]
+            ],
+            "description": "值维护范围：1=仅字段管理员，2=对象本人和字段管理员"
           },
           "visibility": {
             "type": "integer",
@@ -2185,7 +2563,15 @@
               4,
               5,
               6
-            ]
+            ],
+            "description": "值可见范围：1=字段管理员，3=对象本人和字段管理员，4=团队实体，5=公开，6=指定对象"
+          },
+          "visibility_targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VisibilityTarget"
+            },
+            "description": "visibility=6 时生效；目标可查看该字段在其原本有权打开的对象资料中的值"
           },
           "is_system": {
             "type": "integer",
@@ -2300,13 +2686,22 @@
               0,
               1
             ],
-            "description": "是否在团队公开主页展示"
+            "description": "是否向互联网访客展示在公开 Display；不影响团队工作空间目录或全局搜索。"
+          },
+          "is_internal_visible": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "是否向当前 Team 内没有 team.entity.read 的 Entity 展示；Team 实体恒为 1，Customer 即使为 1 仍需 team.entity.read。"
           },
           "is_valid": {
             "type": "boolean"
           },
           "is_searchable": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否进入全局实体搜索；不影响团队工作空间目录或公开 Display。"
           },
           "name": {
             "type": "string"
@@ -2322,6 +2717,18 @@
               }
             ],
             "nullable": true
+          },
+          "capabilities": {
+            "type": "object",
+            "description": "仅 /entity/get 返回。",
+            "properties": {
+              "read_all": {
+                "type": "boolean"
+              },
+              "manage_profile": {
+                "type": "boolean"
+              }
+            }
           }
         }
       },
@@ -2495,6 +2902,114 @@
     }
   },
   "paths": {
+    "/access": {
+      "get": {
+        "tags": [
+          "Access"
+        ],
+        "summary": "获取当前 Entity 的访问快照",
+        "description": "返回当前 Entity 在本 Team 的全部有效 Permission，以及 File、Doc Ability 状态。四类团队 Entity 均可调用。",
+        "operationId": "teamAccessSnapshot",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "访问快照",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/TeamAccessSnapshot"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或身份上下文无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "团队或 Entity 不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "tags": [
+          "Access"
+        ],
+        "summary": "获取访问感知的团队概览",
+        "description": "四个指标独立计算。实体、成员或文档缺少对应全量读取 Permission 时 count 为 null；文档缺少 Ability 时 available=false；单项失败不影响其他项。",
+        "operationId": "teamDashboard",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "实体、成员、文档和通知概览",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/TeamDashboard"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或身份上下文无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/role/index": {
       "get": {
         "tags": [
@@ -3444,6 +3959,7 @@
           "Member"
         ],
         "summary": "获取所有成员",
+        "description": "不以 team.member.read 作为入口门票。无该权限时仅返回有效且团队内可见成员；有该权限时返回完整管理集合，包括隐藏或封禁成员。",
         "operationId": "teamMemberIndex",
         "security": [
           {
@@ -3560,6 +4076,7 @@
           "Member"
         ],
         "summary": "获取单个成员",
+        "description": "团队内可见成员可直接读取；team.member.read 可读取隐藏或封禁成员。无权限直接访问隐藏成员统一返回 404。",
         "operationId": "teamMemberGet",
         "security": [
           {
@@ -4330,12 +4847,75 @@
         }
       }
     },
+    "/notice/capabilities": {
+      "get": {
+        "tags": [
+          "Notice"
+        ],
+        "summary": "读取当前实体的通知导航与操作能力",
+        "operationId": "teamNoticeCapabilities",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/NoticeCapabilities"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/notice/index": {
       "get": {
         "tags": [
           "Notice"
         ],
-        "summary": "列出当前收件箱；Team 身份读取 LostSky 通知，其他身份读取 Entity 通知",
+        "summary": "按 scope 列出 Team 共享站内通知或当前 Entity 通知；省略时兼容原身份默认值",
         "operationId": "teamNoticeIndex",
         "security": [
           {
@@ -4351,6 +4931,19 @@
           },
           {
             "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "team",
+                "entity"
+              ]
+            },
+            "description": "team 需要 team.notice.read；省略时 Team 身份默认 team，其他身份默认 entity"
           },
           {
             "name": "is_read",
@@ -4454,7 +5047,7 @@
         "tags": [
           "Notice"
         ],
-        "summary": "读取当前 Team 或 Entity 收件箱中的通知详情",
+        "summary": "按 scope 读取 Team 共享站内通知或当前 Entity 通知详情",
         "operationId": "teamNoticeGet",
         "security": [
           {
@@ -4467,6 +5060,19 @@
           },
           {
             "$ref": "#/components/parameters/IdQuery"
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "team",
+                "entity"
+              ]
+            },
+            "description": "team 需要 team.notice.read；省略时兼容原身份默认值"
           }
         ],
         "responses": {
@@ -4550,7 +5156,7 @@
         "tags": [
           "Notice"
         ],
-        "summary": "由有权限的当前 Entity 代表 Team 向一个非 Team Entity 发送通知",
+        "summary": "由有权限的当前 Entity 代表 Team 向同 Team 的一个 Entity 发送单向通知",
         "operationId": "teamNoticeSend",
         "security": [
           {
@@ -4577,7 +5183,7 @@
                     "type": "integer",
                     "format": "int64",
                     "minimum": 1,
-                    "description": "当前团队内的非 Team Entity"
+                    "description": "当前团队内的 Entity，可为 Team 实体"
                   },
                   "title": {
                     "type": "string",
@@ -4668,7 +5274,7 @@
         "tags": [
           "Notice"
         ],
-        "summary": "将当前 Team 或 Entity 收件箱的一条通知标记为已读",
+        "summary": "按 scope 将 Team 共享站内通知或当前 Entity 的一条通知标记为已读",
         "operationId": "teamNoticeConfirm",
         "security": [
           {
@@ -4693,6 +5299,14 @@
                   "id": {
                     "type": "integer",
                     "format": "int64"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "team",
+                      "entity"
+                    ],
+                    "description": "team 需要 team.notice.read；省略时兼容原身份默认值"
                   }
                 }
               }
@@ -4768,7 +5382,7 @@
         "tags": [
           "Notice"
         ],
-        "summary": "将当前 Team 或 Entity 收件箱的全部通知标记为已读",
+        "summary": "按 scope 将 Team 共享站内通知或当前 Entity 的全部通知标记为已读",
         "operationId": "teamNoticeConfirmAll",
         "security": [
           {
@@ -4780,6 +5394,26 @@
             "$ref": "#/components/parameters/PageId"
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "team",
+                      "entity"
+                    ],
+                    "description": "team 需要 team.notice.read；省略时兼容原身份默认值"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -4866,7 +5500,7 @@
         "tags": [
           "Notice"
         ],
-        "summary": "Operation teamNoticeReceive.",
+        "summary": "按 scope 收取通知资产；当前版本返回未实现",
         "operationId": "teamNoticeReceive",
         "security": [
           {
@@ -4891,6 +5525,14 @@
                   "id": {
                     "type": "integer",
                     "format": "int64"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "team",
+                      "entity"
+                    ],
+                    "description": "team 需要 team.notice.read；省略时兼容原身份默认值"
                   }
                 }
               }
@@ -4956,7 +5598,7 @@
         "tags": [
           "Notice"
         ],
-        "summary": "Operation teamNoticeReceiveAll.",
+        "summary": "按 scope 批量收取通知资产；当前版本返回未实现",
         "operationId": "teamNoticeReceiveAll",
         "security": [
           {
@@ -4968,6 +5610,26 @@
             "$ref": "#/components/parameters/PageId"
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "team",
+                      "entity"
+                    ],
+                    "description": "team 需要 team.notice.read；省略时兼容原身份默认值"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -5902,6 +6564,7 @@
           "Document"
         ],
         "summary": "文档列表",
+        "description": "不以 team.document.read 作为入口门票。无该权限时仅返回当前 Entity 按可见性可读取的文档；有该权限时可读取团队全部文档。",
         "operationId": "teamDocIndex",
         "security": [
           {
@@ -5926,7 +6589,7 @@
               "type": "integer",
               "format": "int64"
             },
-            "description": "???????????????"
+            "description": "按归属实体 ID 筛选"
           },
           {
             "name": "manager_scope",
@@ -5963,7 +6626,8 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "匹配文档标题或 Markdown 正文的关键词"
           }
         ],
         "responses": {
@@ -6534,6 +7198,7 @@
           "Document"
         ],
         "summary": "文档详情",
+        "description": "当前 Entity 可见的文档可直接读取；team.document.read 可读取团队内全部文档。",
         "operationId": "teamDocGetByQuery",
         "security": [
           {
@@ -8427,8 +9092,8 @@
         "tags": [
           "Entity"
         ],
-        "summary": "????????????",
-        "description": "?? team.entity.read ????????????",
+        "summary": "获取实体目录",
+        "description": "不以 team.entity.read 作为入口门票。无该权限时仅返回有效、非 Customer 且团队内可见的实体；有该权限时返回全部有效实体，包括 Customer 与团队内隐藏实体。",
         "operationId": "teamEntityIndex",
         "security": [
           {
@@ -8459,7 +9124,7 @@
         ],
         "responses": {
           "200": {
-            "description": "??????",
+            "description": "访问感知的实体列表",
             "content": {
               "application/json": {
                 "schema": {
@@ -8476,16 +9141,6 @@
                       }
                     }
                   ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "????????",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -8508,8 +9163,8 @@
         "tags": [
           "Entity"
         ],
-        "summary": "??????????",
-        "description": "?? team.entity.read ????????????????",
+        "summary": "获取实体详情",
+        "description": "非 Customer 的团队内可见实体可直接读取；team.entity.read 可读取 Customer 与团队内隐藏实体。无权限直接访问 Customer 或隐藏实体统一返回 404，避免泄露存在性。",
         "operationId": "teamEntityGet",
         "security": [
           {
@@ -8530,7 +9185,7 @@
         ],
         "responses": {
           "200": {
-            "description": "????",
+            "description": "实体详情与当前 Entity 的管理能力",
             "content": {
               "application/json": {
                 "schema": {
@@ -8547,16 +9202,6 @@
                       }
                     }
                   ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "??????????????????",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -8579,8 +9224,8 @@
         "tags": [
           "Entity"
         ],
-        "summary": "??????????",
-        "description": "?? team.entity_profile.manage ?????????????????",
+        "summary": "更新实体资料",
+        "description": "需要 team.entity.profile.manage 权限；拒绝时返回结构化 Permission 原因。",
         "operationId": "teamEntityProfileUpdate",
         "security": [
           {
@@ -8641,7 +9286,7 @@
         },
         "responses": {
           "200": {
-            "description": "???????",
+            "description": "实体资料已更新",
             "content": {
               "application/json": {
                 "schema": {
@@ -8651,7 +9296,7 @@
             }
           },
           "403": {
-            "description": "????????????????????",
+            "description": "缺少 team.entity.profile.manage",
             "content": {
               "application/json": {
                 "schema": {
@@ -8661,7 +9306,7 @@
             }
           },
           "404": {
-            "description": "?????",
+            "description": "实体不存在",
             "content": {
               "application/json": {
                 "schema": {
@@ -8671,7 +9316,391 @@
             }
           },
           "422": {
-            "description": "??????",
+            "description": "资料格式不正确",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "团队客户列表",
+        "description": "拥有 team.customer.read 或 team.customer.manage 时查看全部客户；否则仅查看归属于当前实体的客户。",
+        "operationId": "teamCustomerList",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assignee_entity_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "blocked",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ManagedCustomerPage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "当前实体无团队访问权",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/assignees": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "客户归属候选实体",
+        "description": "需要 team.customer.read 或 team.customer.manage。",
+        "operationId": "teamCustomerAssignees",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CustomerAssignee"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "缺少客户读取或管理权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/PageId"
+        },
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "团队客户详情",
+        "operationId": "teamCustomerGet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ManagedCustomer"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "客户不存在或不在当前实体可见范围",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "更新团队客户资料与归属",
+        "description": "需要 team.customer.manage。归属仅允许当前团队的 Team、成员或虚拟实体。",
+        "operationId": "teamCustomerUpdate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 50
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 500
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true,
+                    "maxLength": 500
+                  },
+                  "assignee_entity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "nullable": true,
+                    "minimum": 1
+                  },
+                  "is_blocked": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "客户资料已更新",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "缺少 team.customer.manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "客户不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "归属实体或资料不合法",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/entity/visibility": {
+      "post": {
+        "tags": [
+          "Entity"
+        ],
+        "summary": "更新实体的团队内可见状态",
+        "description": "需要 team.entity.profile.manage，仅成员与虚拟实体支持该设置。该状态只控制当前 Team 工作空间中的发现范围，不影响全局搜索或公开 Display；Team 始终可见，Customer 始终需要 team.entity.read 且不进入普通目录。",
+        "operationId": "teamEntityInternalVisibilityUpdate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "entity_id",
+                  "is_internal_visible"
+                ],
+                "properties": {
+                  "entity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "minimum": 1
+                  },
+                  "is_internal_visible": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "团队内可见设置已更新",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "缺少 team.entity.profile.manage，data.kind=permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "实体不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "状态不合法或尝试隐藏 Team 实体",
             "content": {
               "application/json": {
                 "schema": {

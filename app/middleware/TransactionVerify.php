@@ -42,7 +42,10 @@ class TransactionVerify
                 ->where('team_id', $team->id)
                 ->find();
 
-            if ($customer && TeamCustomerSender::sender($entityId, $customerId)->find()) {
+            if ($customer && (
+                (int) ($customer->assignee_entity_id ?? 0) === $entityId
+                || TeamCustomerSender::sender($entityId, $customerId)->find()
+            )) {
                 return $next($request);
             }
         }

@@ -227,6 +227,25 @@ $assert(
         && ($integrationMiddleware['TeamAuth']['except'] ?? null) === ['send'],
     'external integration send bypasses entity middleware'
 );
+$entityMiddleware = $middleware(\app\team\controller\Entity::class);
+$memberMiddleware = $middleware(\app\team\controller\Member::class);
+$assert(
+    !isset($entityMiddleware['Permission:' . \app\service\PermissionDictionary::TEAM_ENTITY_READ])
+        && ($entityMiddleware['Permission:' . \app\service\PermissionDictionary::TEAM_ENTITY_PROFILE_MANAGE]['only'] ?? null)
+            === ['profile', 'display', 'visibility'],
+    'entity directory is a base read surface while profile and visibility writes require manage permission'
+);
+$assert(
+    !in_array('index', $memberMiddleware['MemberAccess']['only'] ?? [], true)
+        && !in_array('get', $memberMiddleware['MemberAccess']['only'] ?? [], true)
+        && !isset($memberMiddleware['Permission:' . \app\service\PermissionDictionary::TEAM_MEMBER_READ]),
+    'member directory is a base read surface and team.member.read only expands the result set'
+);
+$assert(
+    $has($middleware(\app\team\controller\Access::class), 'TeamAuth')
+        && $has($middleware(\app\team\controller\Dashboard::class), 'TeamAuth'),
+    'access snapshot and dashboard are available to every entity belonging to the team'
+);
 
 if ($failures) {
     fwrite(STDERR, implode(PHP_EOL, $failures) . PHP_EOL);

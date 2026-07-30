@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ShoppingBag } from '@lucide/vue'
+import { ShoppingBag, UserRound } from '@lucide/vue'
 import { NConfigProvider, darkTheme, type GlobalThemeOverrides } from 'naive-ui'
 import { RouterLink, RouterView } from 'vue-router'
 
@@ -39,6 +39,7 @@ const shopTheme: GlobalThemeOverrides = {
         <RouterLink class="brand" to="/" aria-label="返回商城首页"><span>LOSTSKY</span><small>TEAM SHOP</small></RouterLink>
         <nav aria-label="商城导航">
           <RouterLink to="/">商城首页</RouterLink>
+          <RouterLink to="/customer/profile"><UserRound :size="17" aria-hidden="true" />我的资料</RouterLink>
           <RouterLink to="/orders"><ShoppingBag :size="17" aria-hidden="true" />我的订单</RouterLink>
         </nav>
       </header>

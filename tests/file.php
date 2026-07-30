@@ -64,6 +64,23 @@ try {
             && !str_contains((string) $schema, 'CONSTRAINT `fk_file_member`'),
         'file model and schema reference entity'
     );
+    $exceptionHandle = file_get_contents(dirname(__DIR__) . '/app/ExceptionHandle.php');
+    $deployment = file_get_contents(dirname(__DIR__) . '/docs/operations/deployment.md');
+    $productionIni = file_get_contents(dirname(__DIR__) . '/deploy/php/lostsky-production.ini');
+    $assert(
+        str_contains((string) $source, "AccessDeniedException::ability('file', '文件上传')")
+            && str_contains((string) $exceptionHandle, 'AccessDeniedException')
+            && str_contains((string) $exceptionHandle, "'data'    => \$e->data()"),
+        'file ability failures use the structured JSON error contract'
+    );
+    $assert(
+        str_contains((string) $productionIni, 'upload_tmp_dir=')
+            && str_contains((string) $productionIni, 'display_errors=Off')
+            && str_contains((string) $productionIni, 'display_startup_errors=Off')
+            && str_contains((string) $productionIni, 'log_errors=On')
+            && str_contains((string) $deployment, 'Content-Type'),
+        'production upload runtime documents a writable temp directory and pure JSON smoke test'
+    );
 } finally {
     @unlink($path);
 }

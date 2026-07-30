@@ -141,6 +141,16 @@ export interface components {
             name: string;
             description?: string | null;
         };
+        PublicProduct: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            description?: string | null;
+            cover_image?: string | null;
+            price: string;
+            /** @description 同团队 Shop 商品详情的协议相对地址。 */
+            href: string;
+        };
         PublicSubject: {
             slug: string;
             /** @enum {string} */
@@ -149,6 +159,8 @@ export interface components {
             fields: components["schemas"]["PublicField"][];
             /** @description 实体已获授且开启公开展示的角色；团队主体为空。 */
             roles?: components["schemas"]["PublicRole"][];
+            /** @description 实体专属且已上架的商品摘要；团队主体为空。 */
+            products?: components["schemas"]["PublicProduct"][];
         };
         EntitySummary: {
             slug: string;

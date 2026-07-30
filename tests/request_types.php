@@ -49,7 +49,7 @@ foreach ($iterator as $file) {
     }
 }
 
-foreach (['shop', 'transaction'] as $appName) {
+foreach (['admin', 'shop', 'transaction'] as $appName) {
     $routeFile = "{$root}/app/{$appName}/route/app.php";
     $source = (string) file_get_contents($routeFile);
 
@@ -63,6 +63,9 @@ foreach (['shop', 'transaction'] as $appName) {
 }
 
 $routeIdControllers = [
+    'app/admin/controller/Access.php',
+    'app/admin/controller/Teams.php',
+    'app/admin/controller/Users.php',
     'app/shop/controller/Storefront.php',
     'app/shop/controller/Product.php',
     'app/shop/controller/Order.php',

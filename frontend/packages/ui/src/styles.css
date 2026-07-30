@@ -21,6 +21,11 @@
   --success: oklch(0.515 0.125 155);
   --warning: oklch(0.69 0.15 75);
   --focus: oklch(0.62 0.12 185);
+  --entity-team: oklch(0.42 0.1 190);
+  --entity-member: oklch(0.44 0.16 270);
+  --entity-customer: oklch(0.42 0.1 75);
+  --entity-virtual: oklch(0.42 0.12 305);
+  --entity-unknown: var(--muted-ink);
   --primary: var(--sky-lost-strong);
   --primary-hover: color-mix(in oklch, var(--sky-lost-strong), black 12%);
   --surface: var(--daylight);
@@ -32,6 +37,15 @@
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
+  --motion-instant: 100ms;
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
+  --motion-loading: 1.2s;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --motion-distance-sm: 0.25rem;
   --z-dropdown: 30;
   --z-sticky: 40;
   --z-backdrop: 50;
@@ -75,8 +89,50 @@ img, video { display: block; max-width: 100%; }
 }
 .ls-panel { background: white; border: 1px solid var(--line); border-radius: var(--radius-md); }
 .ls-divider { border-color: var(--line); }
+[data-entity-tone='team'] { --entity-accent: var(--entity-team); }
+[data-entity-tone='member'] { --entity-accent: var(--entity-member); }
+[data-entity-tone='customer'] { --entity-accent: var(--entity-customer); }
+[data-entity-tone='virtual'] { --entity-accent: var(--entity-virtual); }
+[data-entity-tone='unknown'] { --entity-accent: var(--entity-unknown); }
+
+.ls-state-enter-active {
+  transition: opacity var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out);
+}
+.ls-state-leave-active {
+  transition: opacity var(--motion-fast) var(--ease-in), transform var(--motion-fast) var(--ease-in);
+}
+.ls-state-enter-from { opacity: 0; transform: translateY(var(--motion-distance-sm)); }
+.ls-state-leave-to { opacity: 0; transform: translateY(calc(var(--motion-distance-sm) * -0.5)); }
+
+.ls-popover-enter-active {
+  transform-origin: top center;
+  transition: opacity var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out);
+}
+.ls-popover-leave-active {
+  transform-origin: top center;
+  transition: opacity var(--motion-fast) var(--ease-in), transform var(--motion-fast) var(--ease-in);
+}
+.ls-popover-enter-from { opacity: 0; transform: translateY(calc(var(--motion-distance-sm) * -1)) scale(0.985); }
+.ls-popover-leave-to { opacity: 0; transform: translateY(calc(var(--motion-distance-sm) * -0.5)) scale(0.99); }
+
+.ls-list-enter-active,
+.ls-list-leave-active,
+.ls-list-move {
+  transition: opacity var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out);
+}
+.ls-list-enter-from,
+.ls-list-leave-to { opacity: 0; transform: translateY(var(--motion-distance-sm)); }
+
+.ls-backdrop-enter-active { transition: opacity var(--motion-base) var(--ease-out); }
+.ls-backdrop-leave-active { transition: opacity var(--motion-fast) var(--ease-in); }
+.ls-backdrop-enter-from,
+.ls-backdrop-leave-to { opacity: 0; }
+
+.ls-skeleton { animation: ls-skeleton-pulse var(--motion-loading) var(--ease-standard) infinite alternate; }
+@keyframes ls-skeleton-pulse { to { opacity: 0.5; } }
 
 @media (prefers-reduced-motion: reduce) {
+  :root { --motion-distance-sm: 0; }
   *, *::before, *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;

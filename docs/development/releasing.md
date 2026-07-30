@@ -13,7 +13,7 @@
 
 - `package.json`、`package-lock.json`、`docs/changelog.md` 和标签版本一致。
 - 数据变化同时更新 `sql/schema.sql` 和日期补丁。
-- OpenAPI、生成类型、调用方、测试、文档和 `www/` 产物一致。
+- OpenAPI、生成类型、调用方、测试、文档和 `www/` 产物一致；涉及前端或文档源文件时必须运行生成命令。保留已有构建差异是指合并保留，不是跳过 `npm run build` 或 `npm run build:docs`。
 - 运行并记录实际结果：
 
 ```bash

@@ -15,7 +15,8 @@ class Transaction
 {
     public function options(int $teamId): array
     {
-        $entities = app(Entity::class)->optionsForTeam($teamId);
+        // 交易选项接口已由 transaction.read 保护，需要完整主体集合（包括 Customer 与内部隐藏实体）。
+        $entities = app(Entity::class)->optionsForTeam($teamId, true);
 
         $customers = TeamCustomer::where('team_id', $teamId)
             ->with(['profile', 'balance'])
@@ -103,12 +104,17 @@ class Transaction
         $this->assertEntity($teamId, $data['sender_entity_id'] ?? null, '发单人');
         $this->assertEntity($teamId, $data['cs_entity_id'] ?? null, '客服');
 
-        $customerId = $data['customer_id'] ?? null;
-        if ($customerId && !TeamCustomer::where('team_id', $teamId)->find($customerId)) {
-            throw new HttpException(422, '客户不存在');
-        }
+        return \think\facade\Db::transaction(function () use ($teamId, $data) {
+            $customerId = empty($data['customer_id']) ? null : (int) $data['customer_id'];
+            if ($customerId) {
+                $customer = app(CustomerAssignment::class)->customer($teamId, $customerId, true);
+                $assignedSenderId = app(CustomerAssignment::class)->sender($customer, $teamId);
+                if ($assignedSenderId) {
+                    $data['sender_entity_id'] = $assignedSenderId;
+                }
+            }
+            $this->assertEntity($teamId, $data['sender_entity_id'] ?? null, '发单人');
 
-        return \think\facade\Db::transaction(function () use ($teamId, $data, $customerId) {
             $prepaid = $data['prepaid'];
             $prepaidChange = (new TeamTransaction)->prepaidChange('0.00', $prepaid);
             if ((int) $prepaidChange['direction'] > 0 && !$customerId) {
@@ -202,12 +208,7 @@ class Transaction
                 $merged[$field] = $value;
             }
 
-            $this->assertEntity($teamId, $update['sender_entity_id'] ?? null, '发单人');
             $this->assertEntity($teamId, $update['cs_entity_id'] ?? null, '客服');
-
-            if (!empty($update['customer_id']) && !TeamCustomer::where('team_id', $teamId)->find($update['customer_id'])) {
-                throw new HttpException(422, '客户不存在');
-            }
 
             $oldPrepaid = $transaction->prepaid;
             $newPrepaid = $update['prepaid'] ?? $oldPrepaid;
@@ -215,6 +216,25 @@ class Transaction
             $newCustomerId = array_key_exists('customer_id', $update)
                 ? ($update['customer_id'] ? (int) $update['customer_id'] : null)
                 : $oldCustomerId;
+
+            $customerChanged = array_key_exists('customer_id', $update)
+                && $newCustomerId !== $oldCustomerId;
+            $senderSubmitted = array_key_exists('sender_entity_id', $update);
+            if ($senderSubmitted) {
+                $this->assertEntity($teamId, $update['sender_entity_id'], '发单人');
+            }
+            if ($newCustomerId && ($customerChanged || $senderSubmitted)) {
+                $customer = app(CustomerAssignment::class)->customer($teamId, $newCustomerId, true);
+                $assignedSenderId = app(CustomerAssignment::class)->sender($customer, $teamId);
+                if ($assignedSenderId) {
+                    $update['sender_entity_id'] = $assignedSenderId;
+                } elseif ($customerChanged && !$senderSubmitted) {
+                    $update['sender_entity_id'] = null;
+                }
+            } elseif (!$newCustomerId && $customerChanged && !$senderSubmitted) {
+                $update['sender_entity_id'] = null;
+            }
+            $this->assertEntity($teamId, $update['sender_entity_id'] ?? null, '发单人');
 
             $newPrepaidState = (new TeamTransaction)->prepaidChange('0.00', $newPrepaid);
             if ((int) $newPrepaidState['direction'] > 0 && !$newCustomerId) {

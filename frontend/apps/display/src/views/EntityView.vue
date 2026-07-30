@@ -7,6 +7,7 @@ import { computed, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import DocumentList from '../components/DocumentList.vue'
 import ProfileMedia from '../components/ProfileMedia.vue'
+import ProductList from '../components/ProductList.vue'
 import PublicFields from '../components/PublicFields.vue'
 import { displayApi, entityTypeLabel } from '../lib'
 
@@ -69,6 +70,10 @@ watch(() => detail.data.value?.profile.name, (name) => {
       <section v-if="detail.data.value.fields.length" class="reading-section">
         <header class="section-heading"><h2>公开资料</h2><p>由团队维护的信息</p></header>
         <PublicFields :fields="detail.data.value.fields" />
+      </section>
+      <section v-if="detail.data.value.products?.length" class="reading-section">
+        <header class="section-heading"><h2>商品</h2><p>由该实体提供的已上架商品</p></header>
+        <ProductList :products="detail.data.value.products" />
       </section>
       <section v-if="documents.data.value?.list.length || documents.isPending.value || documents.isError.value" class="reading-section">
         <header class="section-heading"><h2>公开文档</h2><p>与该实体相关的内容</p></header>

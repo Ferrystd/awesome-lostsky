@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app;
 
 use app\exception\EntityContextException;
+use app\exception\AccessDeniedException;
 use app\middleware\Cors;
 use think\exception\Handle;
 use think\exception\HttpException;
@@ -24,7 +25,7 @@ class ExceptionHandle extends Handle
                 'message' => $e->getError(),
                 'data'    => null,
             ], 422);
-        } elseif ($e instanceof EntityContextException) {
+        } elseif ($e instanceof EntityContextException || $e instanceof AccessDeniedException) {
             $response = json([
                 'code'    => $e->getCode(),
                 'message' => $e->getMessage(),

@@ -1,4 +1,5 @@
 import { api, auth } from '@lostsky/api/client'
+import { storedReferral } from '@lostsky/shared/referral'
 import type { Balance, BindResult, Customer, Order, Page, ProductDetail, ProductSummary, StoreProfile } from './types'
 
 const readyKey = () => `lostsky_shop_customer:${location.host}`
@@ -24,12 +25,28 @@ export function forgetCustomer() {
   sessionStorage.removeItem(readyKey())
 }
 
+export async function verifyCustomer() {
+  const customer = await shopApi.me()
+  rememberCustomer(customer.id)
+  return customer
+}
+
 export const shopApi = {
   storefront: () => api.get<StoreProfile>('/storefront'),
   products: (page = 1, limit = 24) => pageRequest<ProductSummary>('/storefront/products', { page, limit }, '商品列表'),
   product: (id: number) => api.get<ProductDetail>(`/storefront/products/${id}`),
-  bind: (slug?: string) => api.post<BindResult>('/customer/bind', slug ? { slug } : {}),
+  bind: (slug?: string) => {
+    const inviterSlug = storedReferral()
+    return api.post<BindResult>('/customer/bind', {
+      ...(slug ? { slug } : {}),
+      ...(inviterSlug ? { inviter_slug: inviterSlug } : {}),
+    })
+  },
   me: () => api.get<Customer>('/customer/me'),
+  updateProfile: (body: { nickname: string; avatar?: string | null; description?: string | null; assignee_entity_id?: number | null }) =>
+    api.post<void>('/customer/me', body),
+  assignees: () => api.get<Array<{ entity_id: number; slug: string; type: string; name: string; avatar?: string | null }>>('/customer/assignees'),
+  claimSlug: (slug: string) => api.post<{ slug: string }>('/customer/slug', { slug }),
   balance: () => api.get<Balance>('/customer/balance'),
   orders: (page = 1, limit = 20) => pageRequest<Order>('/customer/orders', { page, limit }, '订单列表'),
   order: (id: number) => api.get<Order>(`/customer/orders/${id}`),

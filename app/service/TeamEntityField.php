@@ -3,9 +3,12 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\enum\ManageScope;
 use app\enum\TeamEntityType;
+use app\enum\Visibility;
 use app\model\TeamEntityField as TeamEntityFieldModel;
 use app\model\TeamEntityFieldValue;
+use app\model\VisibilityTarget;
 use think\exception\HttpException;
 
 class TeamEntityField
@@ -20,7 +23,14 @@ class TeamEntityField
 
     public function get(int $teamId, int $id): array
     {
-        return $this->field($teamId, $id)->toArray();
+        $field = $this->field($teamId, $id);
+        $result = $field->toArray();
+        $result['visibility_targets'] = VisibilityTarget::with(['subject'])
+            ->where('visibleable_type', 'entityField')
+            ->where('visibleable_id', (int) $field->id)
+            ->select()
+            ->toArray();
+        return $result;
     }
 
     public function create(int $teamId, array $data): void
@@ -31,43 +41,73 @@ class TeamEntityField
             ->where('field_key', $data['field_key'])->find()) {
             throw new HttpException(409, '字段标识已存在');
         }
-        $field = app(TeamEntityFieldModel::class, [], true);
-        $field->save([
-            'team_id' => $teamId, 'entity_type' => $type, 'field_key' => $data['field_key'],
-            'name' => $data['name'], 'source' => $data['source'] ?? 'custom',
-            'value_type' => $data['value_type'] ?? 'string',
-            'input_type' => $data['input_type'] ?? 'text', 'options' => $data['options'] ?? null,
-            'default_value' => $data['default_value'] ?? null,
-            'manager_scope' => \app\enum\ManageScope::from((int) ($data['manager_scope'] ?? \app\enum\ManageScope::Team->value)),
-            'visibility' => \app\enum\Visibility::from((int) ($data['visibility'] ?? \app\enum\Visibility::Team->value)),
-            'is_required' => (int) ($data['is_required'] ?? 0), 'is_editable' => (int) ($data['is_editable'] ?? 1),
-            'is_searchable' => (int) ($data['is_searchable'] ?? 0),
-            'is_visible' => $type === TeamEntityType::Entity ? (int) ($data['is_visible'] ?? 0) : 0,
-            'is_system' => 0, 'sort' => (int) ($data['sort'] ?? 0),
-        ]);
+        $visibility = Visibility::from((int) ($data['visibility'] ?? Visibility::Team->value));
+        $visibilityTargets = $this->visibilityTargetsInput($data);
+        \think\facade\Db::transaction(function () use (
+            $teamId,
+            $type,
+            $data,
+            $visibility,
+            $visibilityTargets
+        ) {
+            $field = app(TeamEntityFieldModel::class, [], true);
+            $field->save([
+                'team_id' => $teamId, 'entity_type' => $type, 'field_key' => $data['field_key'],
+                'name' => $data['name'], 'source' => $data['source'] ?? 'custom',
+                'value_type' => $data['value_type'] ?? 'string',
+                'input_type' => $data['input_type'] ?? 'text', 'options' => $data['options'] ?? null,
+                'default_value' => $data['default_value'] ?? null,
+                'manager_scope' => ManageScope::from((int) ($data['manager_scope'] ?? ManageScope::Team->value)),
+                'visibility' => $visibility,
+                'is_required' => (int) ($data['is_required'] ?? 0),
+                'is_editable' => (int) ($data['is_editable'] ?? 1),
+                'is_searchable' => (int) ($data['is_searchable'] ?? 0),
+                'is_system' => 0, 'sort' => (int) ($data['sort'] ?? 0),
+            ]);
+            app(\app\service\Visibility::class)->syncTargets(
+                $field,
+                $visibility === Visibility::Custom ? $visibilityTargets : [],
+                $teamId
+            );
+        });
     }
 
     public function update(int $teamId, int $id, array $data): void
     {
-        $this->validate('update', $this->validationData($data));
         $field = $this->field($teamId, $id);
+        $this->validate('update', $this->validationData($data));
         $allow = array_intersect_key($data, array_flip([
             'name', 'source', 'value_type', 'input_type', 'options', 'default_value',
             'manager_scope', 'visibility', 'is_required', 'is_editable',
-            'is_searchable', 'is_visible', 'sort',
+            'is_searchable', 'sort',
         ]));
         if (array_key_exists('manager_scope', $allow)) {
-            $allow['manager_scope'] = \app\enum\ManageScope::from((int) $allow['manager_scope']);
+            $allow['manager_scope'] = ManageScope::from((int) $allow['manager_scope']);
         }
         if (array_key_exists('visibility', $allow)) {
-            $allow['visibility'] = \app\enum\Visibility::from((int) $allow['visibility']);
+            $allow['visibility'] = Visibility::from((int) $allow['visibility']);
         }
-        if ($field->enumCase('entity_type') !== TeamEntityType::Entity) {
-            $allow['is_visible'] = 0;
-        }
-        if ($allow) {
-            $field->save($allow);
-        }
+        $visibility = $allow['visibility'] ?? $field->enumCase('visibility');
+        $visibilityTargets = $this->visibilityTargetsInput($data);
+        \think\facade\Db::transaction(function () use (
+            $field,
+            $allow,
+            $data,
+            $teamId,
+            $visibility,
+            $visibilityTargets
+        ) {
+            if ($allow) {
+                $field->save($allow);
+            }
+            if (array_key_exists('visibility', $data) || array_key_exists('visibility_targets', $data)) {
+                app(\app\service\Visibility::class)->syncTargets(
+                    $field,
+                    $visibility === Visibility::Custom ? $visibilityTargets : [],
+                    $teamId
+                );
+            }
+        });
     }
 
     public function delete(int $teamId, int $id): void
@@ -77,6 +117,11 @@ class TeamEntityField
             throw new HttpException(422, '系统字段不能删除');
         }
         \think\facade\Db::transaction(function () use ($field) {
+            foreach (VisibilityTarget::where('visibleable_type', 'entityField')
+                ->where('visibleable_id', (int) $field->id)
+                ->select() as $target) {
+                $target->delete();
+            }
             foreach (TeamEntityFieldValue::where('field_id', $field->id)->select() as $value) {
                 $value->delete();
             }
@@ -94,6 +139,69 @@ class TeamEntityField
         $actor = app(ChatActor::class)->resolve($teamId, $entitySlug);
         return TeamEntityFieldValue::where('team_id', $teamId)
             ->where('entity_id', $actor['entity_id'])->with(['field'])->select()->toArray();
+    }
+
+    public function visibleFields(
+        int $teamId,
+        string $entityType,
+        int $subjectEntityId,
+        array $actingEntity,
+        bool $isFieldManager = false
+    ): array {
+        $type = $this->type($entityType);
+        $actingEntityId = (int) ($actingEntity['entity_id'] ?? 0);
+        $result = [];
+        $fields = TeamEntityFieldModel::where('team_id', $teamId)
+            ->where('entity_type', $type->value)
+            ->order('sort', 'asc')->order('id', 'asc')->select();
+        foreach ($fields as $field) {
+            if (!$this->canView($field, $actingEntityId, $subjectEntityId, $isFieldManager)) {
+                continue;
+            }
+            $item = $field->toArray();
+            $item['can_edit'] = (bool) $field->is_editable && (
+                $isFieldManager
+                || (
+                    $actingEntityId === $subjectEntityId
+                    && $field->enumCase('manager_scope') === ManageScope::SubjectTeam
+                )
+            );
+            $result[] = $item;
+        }
+        return $result;
+    }
+
+    public function visibleValues(
+        int $teamId,
+        int $subjectEntityId,
+        string $entityType,
+        array $actingEntity,
+        bool $isFieldManager = false
+    ): array {
+        $fields = $this->visibleFields(
+            $teamId,
+            $entityType,
+            $subjectEntityId,
+            $actingEntity,
+            $isFieldManager
+        );
+        $fieldMap = [];
+        foreach ($fields as $field) {
+            $fieldMap[(int) $field['id']] = $field;
+        }
+        if (!$fieldMap) {
+            return [];
+        }
+
+        $result = [];
+        foreach (TeamEntityFieldValue::where('team_id', $teamId)
+            ->where('entity_id', $subjectEntityId)
+            ->whereIn('field_id', array_keys($fieldMap))
+            ->select()->toArray() as $value) {
+            $value['field'] = $fieldMap[(int) $value['field_id']];
+            $result[] = $value;
+        }
+        return $result;
     }
 
     public function saveValues(int $teamId, string $entitySlug, array $values): void
@@ -120,7 +228,11 @@ class TeamEntityField
             if ($field->enumCase('entity_type') !== $fieldType) {
                 throw new HttpException(422, '字段与对象类型不匹配');
             }
-            if ($ownOnly && (!(int) $field->is_visible || !(int) $field->is_editable)) {
+            if ($ownOnly && (
+                !$this->canView($field, (int) $actor['entity_id'], (int) $actor['entity_id'], false)
+                || $field->enumCase('manager_scope') !== ManageScope::SubjectTeam
+                || !(int) $field->is_editable
+            )) {
                 throw new HttpException(403, "字段 {$field->name} 不允许本人编辑");
             }
             if (!$ownOnly && !$field->is_editable) {
@@ -164,7 +276,11 @@ class TeamEntityField
             ->where('is_required', 1)
             ->select();
         foreach ($requiredFields as $field) {
-            if ($ownOnly && (!(int) $field->is_visible || !(int) $field->is_editable)) {
+            if ($ownOnly && (
+                !$this->canView($field, (int) $actor['entity_id'], (int) $actor['entity_id'], false)
+                || $field->enumCase('manager_scope') !== ManageScope::SubjectTeam
+                || !(int) $field->is_editable
+            )) {
                 continue;
             }
             if (array_key_exists((int) $field->id, $values)) {
@@ -234,6 +350,41 @@ class TeamEntityField
             unset($data['options']);
         }
         return $data;
+    }
+
+    private function visibilityTargetsInput(array $data): array
+    {
+        if (!array_key_exists('visibility_targets', $data) || $data['visibility_targets'] === null) {
+            return [];
+        }
+        if (!is_array($data['visibility_targets'])) {
+            throw new HttpException(422, '指定可见对象格式不正确');
+        }
+        return $data['visibility_targets'];
+    }
+
+    private function canView(
+        TeamEntityFieldModel $field,
+        int $actingEntityId,
+        int $subjectEntityId,
+        bool $isFieldManager
+    ): bool {
+        if ($isFieldManager) {
+            return true;
+        }
+        return match ($field->enumCase('visibility')) {
+            Visibility::Team => false,
+            Visibility::SubjectTeam => $actingEntityId > 0 && $actingEntityId === $subjectEntityId,
+            Visibility::Entity => $actingEntityId > 0,
+            Visibility::Public => true,
+            Visibility::Custom => $actingEntityId > 0 && (bool) VisibilityTarget::where(
+                'visibleable_type',
+                'entityField'
+            )
+                ->where('visibleable_id', (int) $field->id)
+                ->where('entity_id', $actingEntityId)
+                ->find(),
+        };
     }
 
     private function isEmptyValue(mixed $value): bool

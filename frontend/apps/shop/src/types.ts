@@ -33,7 +33,27 @@ export interface ProductDetail extends ProductSummary {
 
 export interface Page<T> { total: number; list: T[]; page: number; limit: number }
 export interface Balance { balance: string; recharged: string; spent: string }
-export interface Customer { id: number; balance?: Balance; profile?: { name?: string; avatar?: string | null }; nickname?: string }
+export interface Customer {
+  id: number
+  team_id: number
+  is_blocked: 0 | 1
+  balance?: Balance | null
+  profile: {
+    name: string
+    avatar?: string | null
+    description?: string | null
+  }
+  identity: {
+    slug?: string | null
+  }
+  assignee?: {
+    entity_id: number
+    slug: string
+    type: 'team' | 'teamMember' | 'teamVirtual'
+    name: string
+    avatar?: string | null
+  } | null
+}
 export interface BindResult { token?: string | null; customer: Customer; created: boolean }
 
 export interface Order {

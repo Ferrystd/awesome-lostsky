@@ -5,6 +5,7 @@ import { Users } from '@lucide/vue'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import { computed, nextTick, ref, useId, watch } from 'vue'
+import { entityTypeTone } from '../entity'
 import LsEntityCard from './LsEntityCard.vue'
 
 const props = withDefaults(defineProps<{
@@ -59,11 +60,12 @@ const html = computed(() => {
     const fallback = this.parser.parseInline(token.tokens)
     const label = entity?.available && entity.display_name ? `@${attr(entity.display_name)}` : fallback
     const state = entity?.available ? 'available' : 'unavailable'
-    return `<button type="button" class="ls-entity-chip ls-entity-chip--${state}" data-entity-slug="${attr(slug)}" aria-label="${entity?.available ? '查看对象' : '对象不可用'} ${attr(slug)}" aria-expanded="false" aria-controls="${detailsId}">${label}</button>`
+    const tone = entity?.available ? entityTypeTone(entity.type) : 'unknown'
+    return `<button type="button" class="ls-entity-chip ls-entity-chip--${state}" data-entity-slug="${attr(slug)}" data-entity-tone="${tone}" aria-label="${entity?.available ? '查看对象' : '对象不可用'} ${attr(slug)}" aria-expanded="false" aria-controls="${detailsId}">${label}</button>`
   }
   return DOMPurify.sanitize(marked.parse(props.content ?? '', { async: false, renderer }) as string, {
     USE_PROFILES: { html: true },
-    ADD_ATTR: ['data-entity-slug', 'aria-label', 'aria-expanded', 'aria-controls'],
+    ADD_ATTR: ['data-entity-slug', 'data-entity-tone', 'aria-label', 'aria-expanded', 'aria-controls'],
   })
 })
 
@@ -157,10 +159,10 @@ function startChat() {
 .markdown :deep(th){color:var(--ink);background:color-mix(in oklch,var(--cloud),transparent 20%);font-weight:700}
 .markdown :deep(hr){height:1px;margin:2.5rem 0;border:0;background:var(--line)}
 .markdown :deep(input[type="checkbox"]){width:1rem;height:1rem;margin:0 .5rem 0 0;accent-color:var(--sky-lost-strong)}
-.markdown :deep(.ls-entity-chip){display:inline-flex;align-items:center;min-height:28px;padding:.08rem .45rem;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),transparent 84%);border:1px solid color-mix(in oklch,var(--sky-lost-strong),transparent 62%);border-radius:999px;font:inherit;font-size:.9em;cursor:pointer;transition:color 160ms ease-out,background-color 160ms ease-out,border-color 160ms ease-out}
-.markdown :deep(.ls-entity-chip[aria-expanded="true"]){color:var(--ink);background:color-mix(in oklch,var(--sky-lost),transparent 72%);border-color:var(--sky-lost-strong)}
-.markdown :deep(.ls-entity-chip--unavailable){color:var(--muted-ink);background:var(--cloud);border-style:dashed}
-.markdown :deep(.ls-entity-chip:focus-visible){outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 60%);outline-offset:2px}
+.markdown :deep(.ls-entity-chip){display:inline-flex;align-items:center;min-height:28px;padding:.08rem .45rem;color:var(--entity-accent);background:color-mix(in oklch,var(--entity-accent),transparent 88%);border:1px solid color-mix(in oklch,var(--entity-accent),transparent 58%);border-radius:999px;font:inherit;font-size:.9em;cursor:pointer;transition:color var(--motion-fast) var(--ease-standard),background-color var(--motion-fast) var(--ease-standard),border-color var(--motion-fast) var(--ease-standard)}
+.markdown :deep(.ls-entity-chip[aria-expanded="true"]){color:var(--ink);background:color-mix(in oklch,var(--entity-accent),transparent 78%);border-color:var(--entity-accent)}
+.markdown :deep(.ls-entity-chip--unavailable),.markdown :deep(.ls-entity-chip--unavailable[aria-expanded="true"]){color:var(--muted-ink);background:var(--cloud);border-color:var(--line);border-style:dashed}
+.markdown :deep(.ls-entity-chip:focus-visible){outline:3px solid color-mix(in oklch,var(--entity-accent),transparent 55%);outline-offset:2px}
 .unavailable-card{display:flex;align-items:center;gap:.65rem;padding:.75rem;color:var(--muted-ink);background:var(--cloud);border:1px solid var(--line);border-radius:9px}
 .unavailable-card button{margin-left:auto;width:40px;height:40px;background:transparent;border:0;border-radius:7px;font-size:1.25rem;cursor:pointer}
 .unavailable-card button:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 60%);outline-offset:2px}

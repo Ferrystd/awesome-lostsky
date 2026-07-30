@@ -37,7 +37,9 @@ function logout() {
       <RouterLink class="new-entry" to="/new" @click="drawer = false"><Plus :size="18" />登记流水</RouterLink>
       <button class="logout" type="button" @click="logout"><LogOut :size="18" />退出登录</button>
     </aside>
-    <div v-if="drawer" class="backdrop" aria-hidden="true" @click="drawer = false"></div>
+    <Transition name="ls-backdrop">
+      <div v-if="drawer" class="backdrop" aria-hidden="true" @click="drawer = false"></div>
+    </Transition>
     <section class="workspace">
       <header class="topbar">
         <button type="button" aria-label="打开导航" @click="drawer = true"><Menu /></button>

@@ -14,10 +14,22 @@ class TeamMember
     /**
      * 获取所有成员
      */
-    public function list(int $teamId): array
+    public function list(int $teamId, array $actingEntity): array
     {
-        return \app\model\TeamMember::where('team_id', $teamId)
-            ->with(['profile', 'fieldValues.field', 'identity', 'team'])
+        $canReadAll = app(PermissionGate::class)->allows(
+            $teamId,
+            $actingEntity,
+            [PermissionDictionary::TEAM_MEMBER_READ]
+        );
+        $query = \app\model\TeamMember::where('team_id', $teamId);
+        if (!$canReadAll) {
+            $visibleMemberIds = \app\model\Entity::member()
+                ->where('is_internal_visible', 1)
+                ->column('entityable_id');
+            $query->where('is_blocked', 0)->whereIn('id', $visibleMemberIds);
+        }
+        $members = $query
+            ->with(['profile', 'identity', 'team'])
             ->visible([
                 'id',
                 'team_id',
@@ -35,26 +47,69 @@ class TeamMember
                 'intro_video',
                 'introduction_markdown',
                 'create_time',
-                'fieldValues',
             ])
             ->select()
-            ->toArray();
+            ->all();
+        $fieldService = app(TeamEntityField::class);
+        $isFieldManager = app(PermissionGate::class)->allows(
+            $teamId,
+            $actingEntity,
+            [PermissionDictionary::TEAM_ENTITY_FIELD_MANAGE]
+        );
+        return array_map(function ($member) use (
+            $teamId,
+            $actingEntity,
+            $fieldService,
+            $isFieldManager
+        ): array {
+            $item = $member->toArray();
+            $item['fieldValues'] = $fieldService->visibleValues(
+                $teamId,
+                (int) $member->entity_id,
+                'entity',
+                $actingEntity,
+                $isFieldManager
+            );
+            return $item;
+        }, $members);
     }
 
     /**
      * 获取单个成员
      */
-    public function get(int $teamId, int $memberId): array
+    public function get(int $teamId, int $memberId, array $actingEntity): array
     {
         $member = \app\model\TeamMember::where('team_id', $teamId)
-            ->with(['profile', 'fieldValues.field', 'identity', 'team'])
+            ->with(['profile', 'identity', 'team'])
             ->find($memberId);
 
-        if (!$member) {
+        $canReadAll = app(PermissionGate::class)->allows(
+            $teamId,
+            $actingEntity,
+            [PermissionDictionary::TEAM_MEMBER_READ]
+        );
+        $identity = $member
+            ? \app\model\Entity::member()->where('entityable_id', $memberId)->find()
+            : null;
+        if (!$member || !$identity || (!$canReadAll
+            && ((int) $member->is_blocked !== 0 || (int) $identity->is_internal_visible !== 1))) {
             throw new HttpException(404, '成员不存在');
         }
 
-        return $member->toArray();
+        $result = $member->toArray();
+        $isFieldManager = app(PermissionGate::class)->allows(
+            $teamId,
+            $actingEntity,
+            [PermissionDictionary::TEAM_ENTITY_FIELD_MANAGE]
+        );
+        $result['fieldValues'] = app(TeamEntityField::class)->visibleValues(
+            $teamId,
+            (int) $member->entity_id,
+            'entity',
+            $actingEntity,
+            $isFieldManager
+        );
+        return $result;
     }
 
     public function capabilities(int $teamId, array $subject, array $member): array

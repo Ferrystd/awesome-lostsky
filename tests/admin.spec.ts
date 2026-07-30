@@ -1,0 +1,205 @@
+import { expect, test, type Page } from '@playwright/test'
+
+const session = {
+  user: { id: 1, username: 'platform-owner', phone_masked: '138****8000', email_masked: 'p***@example.test' },
+  roles: [{ id: 1, role_key: 'super_admin', name: '超级管理员', description: '全部权限', is_system: 1 }],
+  permissions: [
+    'admin.dashboard.read', 'admin.user.read', 'admin.user.sensitive.read', 'admin.user.moderate',
+    'admin.user.session.revoke', 'admin.team.read', 'admin.team.moderate', 'admin.access.read',
+    'admin.access.write', 'admin.audit.read', 'admin.system.read',
+  ],
+  is_super_admin: true,
+}
+const user = {
+  id: 23, username: 'sky-user', nickname: '青空用户', phone_masked: '139****1234',
+  email_masked: 's***@example.test', is_banned: 0, team_count: 1, device_count: 2,
+  create_time: 1_753_660_800, update_time: 1_753_660_800,
+}
+const team = {
+  id: 7, slug: 'demo', name: '青空协作组', user_id: 23, owner_username: 'sky-user',
+  member_count: 12, is_banned: 0, is_cancelled: 0, create_time: 1_753_660_800, update_time: 1_753_660_800,
+}
+const audit = {
+  id: 9, application: 'admin', action: 'user.sessions.revoke', resource_type: 'user',
+  resource_id: 23, authenticated_user_id: 1, actor_username: 'platform-owner',
+  request_id: 'admin-test', context: { source: 'api', reason: '用户本人请求退出全部设备' },
+  create_time: 1_753_660_800,
+}
+
+async function mockAdminApi(
+  page: Page,
+  options: { forbidden?: boolean; session?: typeof session; dashboardFailures?: number } = {},
+) {
+  let dashboardFailures = options.dashboardFailures ?? 0
+  await page.addInitScript(() => localStorage.setItem('lostsky_token', 'admin-test-token'))
+  await page.route(/^http:\/\/127\.0\.0\.1:5180\/api\//, async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const path = url.pathname.replace(/^\/api/, '')
+    if (path === '/session' && options.forbidden) {
+      await route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 403, message: '你没有进入平台管理后台的权限', data: null }),
+      })
+      return
+    }
+    if (path === '/dashboard' && dashboardFailures > 0) {
+      dashboardFailures -= 1
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 503, message: '平台状态暂时不可用', data: null }),
+      })
+      return
+    }
+    let data: unknown = null
+    if (path === '/session') data = options.session ?? session
+    else if (path === '/dashboard') {
+      data = {
+        counts: { users: 128, new_users_7d: 9, banned_users: 2, teams: 16, new_teams_7d: 2, banned_teams: 1, administrators: 3, active_sessions: 84 },
+        recent_users: [user], recent_teams: [team], recent_audit_events: [audit],
+      }
+    } else if (path === '/search') data = { users: [user], teams: [team] }
+    else if (path === '/users') data = { total: 1, list: [user], page: 1, limit: 20 }
+    else if (path === '/users/23') {
+      data = { ...user, teams: [team], devices: [{ id: 3, device_name: 'Chrome', ua: 'Desktop Chrome', last_active_time: 1_753_660_800, create_time: 1_753_660_800 }], roles: [], audit_events: [audit] }
+    } else if (path === '/teams') data = { total: 1, list: [team], page: 1, limit: 20 }
+    else if (path === '/teams/7') data = { ...team, domains: [], abilities: [], audit_events: [audit] }
+    else if (path === '/administrators') data = [{ ...session.user, is_banned: 0, roles: session.roles }]
+    else if (path === '/roles' && request.method() === 'POST') data = { id: 4 }
+    else if (path === '/roles') data = session.roles.map((role) => ({ ...role, permissions: session.permissions, administrator_count: 1 }))
+    else if (path === '/roles/1' || path === '/roles/4') data = { ...session.roles[0], id: Number(path.split('/').pop()), permissions: session.permissions, administrator_count: 1 }
+    else if (path === '/permissions') data = { groups: [{ name: '平台概览', items: [{ key: 'admin.dashboard.read', label: '查看平台概览' }] }] }
+    else if (path === '/audit-events') data = { total: 1, list: [audit], page: 1, limit: 20 }
+    else if (path === '/system/health') data = { status: 'healthy', checked_at: 1_753_660_800, checks: [{ key: 'api', name: 'API 服务', status: 'healthy', message: '正常' }], backlogs: { chat_outbox_pending: 0 } }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 0, message: 'ok', data }),
+    })
+  })
+  return {
+    recoverDashboard: () => {
+      dashboardFailures = 0
+    },
+  }
+}
+
+test('Admin supports dashboard search, resource navigation and governed confirmation', async ({ page }, testInfo) => {
+  const pageErrors: string[] = []
+  page.on('pageerror', (error) => pageErrors.push(error.message))
+  await page.setViewportSize({ width: 1440, height: 960 })
+  await mockAdminApi(page)
+  await page.goto('http://127.0.0.1:5180/')
+
+  expect(pageErrors).toEqual([])
+  await expect(page).toHaveTitle(/平台总览 · LostSky/)
+  await expect(page.getByRole('button', { name: /搜索平台资源/ }).last()).toBeFocused()
+  await expect(page.getByText('128')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '近期团队' })).toBeVisible()
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.locator('.top-search').click()
+  } else {
+    await page.keyboard.press('Control+K')
+  }
+  const search = page.getByPlaceholder('输入用户名、手机号、邮箱、团队名称或 ID')
+  await expect(search).toBeVisible()
+  await search.fill('青空')
+  await expect(page.getByRole('button', { name: /青空用户/ })).toBeVisible()
+  await page.getByRole('button', { name: /青空用户/ }).click()
+  await expect(page).toHaveURL(/\/users\/23$/)
+
+  await page.getByRole('button', { name: '封禁用户' }).click()
+  const confirm = page.getByRole('button', { name: '封禁用户' }).last()
+  await expect(confirm).toBeDisabled()
+  await page.getByLabel('操作原因').fill('确认该账号存在违反平台规则的行为')
+  const request = page.waitForRequest((candidate) => candidate.url().endsWith('/api/users/23/ban'))
+  await confirm.click()
+  expect((await request).postDataJSON()).toEqual({ reason: '确认该账号存在违反平台规则的行为' })
+
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+  expect(overflow).toBe(false)
+})
+
+test('Admin renders mobile records and navigation without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await mockAdminApi(page)
+  await page.goto('http://127.0.0.1:5180/users')
+
+  await expect(page.getByText('用户 ID')).toBeVisible()
+  await expect(page.locator('table')).toBeHidden()
+  await page.getByRole('button', { name: '打开导航' }).click()
+  await expect(page.locator('aside[aria-label="平台管理导航"]')).toBeVisible()
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+  expect(overflow).toBe(false)
+
+  await page.setViewportSize({ width: 768, height: 1024 })
+  await page.reload()
+  await expect(page.locator('#admin-main').getByRole('heading', { name: '用户', level: 1 })).toBeVisible()
+  const tabletOverflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+  expect(tabletOverflow).toBe(false)
+})
+
+test('Admin shows an explicit forbidden page for authenticated non-admin users', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 })
+  await mockAdminApi(page, { forbidden: true })
+  await page.goto('http://127.0.0.1:5180/')
+
+  await expect(page).toHaveURL(/\/forbidden$/)
+  await expect(page.getByRole('heading', { name: '你没有进入平台管理后台的权限' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '返回账号登录' })).toBeVisible()
+})
+
+test('Admin preserves the return URL when an unauthenticated user is sent to Account', async ({ page }) => {
+  await page.goto('http://127.0.0.1:5180/users/23')
+
+  await expect(page).toHaveURL(/127\.0\.0\.1:5174\/login/)
+  const redirect = new URL(page.url()).searchParams.get('redirect')
+  expect(redirect).toBe('http://127.0.0.1:5180/users/23')
+})
+
+test('Admin navigation and route guards follow the current permission set', async ({ page }) => {
+  const limited = {
+    ...session,
+    roles: [{ id: 2, role_key: 'user_reader', name: '用户只读', description: '只读用户', is_system: 0 }],
+    permissions: ['admin.dashboard.read', 'admin.user.read'],
+    is_super_admin: false,
+  }
+  await mockAdminApi(page, { session: limited })
+  await page.goto('http://127.0.0.1:5180/')
+
+  await expect(page.getByRole('link', { name: '用户' })).toBeVisible()
+  await expect(page.getByRole('link', { name: '团队' })).toHaveCount(0)
+  await page.goto('http://127.0.0.1:5180/teams')
+  await expect(page).toHaveURL(/\/forbidden$/)
+})
+
+test('Admin role creation route is refreshable and submits the permission selection', async ({ page }) => {
+  await mockAdminApi(page)
+  await page.goto('http://127.0.0.1:5180/roles/new')
+
+  await expect(page.getByLabel('角色标识')).toBeVisible()
+  await page.getByLabel('角色标识').fill('support_operator')
+  await page.getByLabel('角色名称').fill('支持运营')
+  await page.getByText('查看平台概览').click()
+  const create = page.waitForRequest((request) => request.url().endsWith('/api/roles') && request.method() === 'POST')
+  await page.getByRole('button', { name: '保存平台角色' }).click()
+  expect((await create).postDataJSON()).toMatchObject({
+    role_key: 'support_operator',
+    name: '支持运营',
+    permission_keys: ['admin.dashboard.read'],
+  })
+  await expect(page).toHaveURL(/\/roles\/4$/)
+})
+
+test('Admin query errors expose a working retry action', async ({ page }) => {
+  const api = await mockAdminApi(page, { dashboardFailures: Number.MAX_SAFE_INTEGER })
+  await page.goto('http://127.0.0.1:5180/')
+
+  await expect(page.getByText('服务暂时不可用，请稍后再试')).toBeVisible({ timeout: 15_000 })
+  api.recoverDashboard()
+  await page.getByRole('button', { name: '重试' }).click()
+  await expect(page.getByText('128')).toBeVisible()
+})

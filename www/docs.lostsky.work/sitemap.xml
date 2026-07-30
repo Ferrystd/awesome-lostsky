@@ -22,6 +22,27 @@
         <loc>https://docs.lostsky.work/changelog/</loc>
       </url>
       <url>
+        <loc>https://docs.lostsky.work/manual/</loc>
+      </url>
+      <url>
+        <loc>https://docs.lostsky.work/manual/account-and-identity/</loc>
+      </url>
+      <url>
+        <loc>https://docs.lostsky.work/manual/team-workspace/</loc>
+      </url>
+      <url>
+        <loc>https://docs.lostsky.work/manual/chat/</loc>
+      </url>
+      <url>
+        <loc>https://docs.lostsky.work/manual/transactions/</loc>
+      </url>
+      <url>
+        <loc>https://docs.lostsky.work/manual/public-pages-and-shop/</loc>
+      </url>
+      <url>
+        <loc>https://docs.lostsky.work/manual/platform-admin/</loc>
+      </url>
+      <url>
         <loc>https://docs.lostsky.work/glossary/</loc>
       </url>
       <url>
@@ -53,6 +74,9 @@
       </url>
       <url>
         <loc>https://docs.lostsky.work/apps/account/</loc>
+      </url>
+      <url>
+        <loc>https://docs.lostsky.work/apps/admin/</loc>
       </url>
       <url>
         <loc>https://docs.lostsky.work/apps/chat/</loc>
