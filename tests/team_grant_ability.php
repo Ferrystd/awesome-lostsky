@@ -45,7 +45,7 @@ $run = static function (array $arguments): array {
 
 try {
     [$exitCode, $stdout, $stderr] = $run([
-        '--team=' . $team->id,
+        '--team=' . $team->slug,
         '--ability=doc',
         '--level=2',
         '--expire-time=2000000000',
@@ -61,7 +61,7 @@ try {
     $abilityId = (int) $ability->id;
 
     [$exitCode] = $run([
-        '--team=' . $team->id,
+        '--team=' . $team->slug,
         '--ability=doc',
         '--level=3',
     ]);
@@ -76,7 +76,7 @@ try {
 
     $ability->delete();
     [$exitCode] = $run([
-        '--team=' . $team->id,
+        '--team=' . $team->slug,
         '--ability=doc',
     ]);
     $ability = TeamAbility::where('team_id', $team->id)->where('ability_key', 'doc')->find();
@@ -86,15 +86,15 @@ try {
 
     [$exitCode] = $run(['--team=0', '--ability=doc']);
     if ($exitCode === 0) {
-        throw new RuntimeException('Grant command accepted an invalid team ID');
+        throw new RuntimeException('Grant command accepted a team ID instead of a slug');
     }
 
-    [$exitCode] = $run(['--team=4294967295', '--ability=doc']);
+    [$exitCode] = $run(['--team=missing-team', '--ability=doc']);
     if ($exitCode === 0) {
         throw new RuntimeException('Grant command accepted a missing team');
     }
 
-    [$exitCode] = $run(['--team=' . $team->id, '--ability=invalid:key']);
+    [$exitCode] = $run(['--team=' . $team->slug, '--ability=invalid:key']);
     if ($exitCode === 0) {
         throw new RuntimeException('Grant command accepted an invalid ability key');
     }
@@ -106,6 +106,14 @@ try {
         ->count();
     if ($auditCount !== 3) {
         throw new RuntimeException('Grant command did not write one audit event per successful grant');
+    }
+
+    [$exitCode, $stdout] = $run(['--help']);
+    if ($exitCode !== 0
+        || !str_contains($stdout, 'doc')
+        || !str_contains($stdout, 'file')
+        || !str_contains($stdout, 'transaction')) {
+        throw new RuntimeException('Grant command help does not describe existing abilities');
     }
 } finally {
     if (isset($abilityId)) {

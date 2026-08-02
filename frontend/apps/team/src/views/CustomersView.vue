@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { Contact, Search } from '@lucide/vue'
-import { NInput, NSelect } from 'naive-ui'
+import { NPagination, NSelect, NTag } from 'naive-ui'
 import { computed, reactive } from 'vue'
-import AdminPage from '../components/AdminPage.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { hasPermission, useTeamAccess } from '../lib/teamAccess'
 
@@ -82,7 +82,7 @@ const date = (value: number) => new Intl.DateTimeFormat('zh-CN', {
 </script>
 
 <template>
-  <AdminPage width="wide">
+  <div class="customers-view">
     <AdminPageHeader
       title="客户"
       :description="query.data.value?.scope === 'own'
@@ -90,12 +90,8 @@ const date = (value: number) => new Intl.DateTimeFormat('zh-CN', {
         : '查看团队客户、当前归属与余额状态，进入详情后执行维护或发起会话。'"
     />
 
-    <section class="filters" aria-label="筛选客户">
-      <label class="search">
-        <Search :size="18" aria-hidden="true" />
-        <span class="ls-sr-only">搜索客户</span>
-        <NInput v-model:value="filters.keyword" clearable placeholder="搜索客户昵称" @update:value="filters.page = 1" />
-      </label>
+    <LsListToolbar v-model="filters.keyword" placeholder="搜索客户昵称" aria-label="搜索客户" :count-label="`${query.data.value?.total ?? 0} 位客户`" @update:model-value="filters.page = 1">
+      <template #filters>
       <NSelect
         v-if="canReadAll"
         v-model:value="filters.assignee_entity_id"
@@ -112,15 +108,16 @@ const date = (value: number) => new Intl.DateTimeFormat('zh-CN', {
         placeholder="全部状态"
         @update:value="filters.page = 1"
       />
-    </section>
+      </template>
+    </LsListToolbar>
 
     <p v-if="query.isError.value" class="feedback error" role="alert">{{ friendlyError(query.error.value) }}</p>
     <div v-else-if="query.isPending.value" class="loading-list" aria-label="正在加载客户"><span v-for="i in 6" :key="i" /></div>
-    <section v-else-if="!query.data.value?.list.length" class="empty">
-      <Contact :size="34" />
-      <h3>{{ filters.keyword || filters.assignee_entity_id !== null || filters.blocked !== null ? '没有匹配的客户' : '还没有可查看的客户' }}</h3>
-      <p>{{ query.data.value?.scope === 'own' ? '客户通过你的邀请链接领取身份后会出现在这里。' : '客户领取团队商店身份后会进入客户目录。' }}</p>
-    </section>
+    <LsEmptyState
+      v-else-if="!query.data.value?.list.length"
+      :title="filters.keyword || filters.assignee_entity_id !== null || filters.blocked !== null ? '没有匹配的客户' : '还没有可查看的客户'"
+      :description="query.data.value?.scope === 'own' ? '客户通过你的邀请链接领取身份后会出现在这里。' : '客户领取团队商店身份后会进入客户目录。'"
+    />
     <div v-else class="table-wrap">
       <table class="data-table">
         <thead><tr><th>客户</th><th>当前归属</th><th>可用余额</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead>
@@ -130,7 +127,7 @@ const date = (value: number) => new Intl.DateTimeFormat('zh-CN', {
             <td>{{ item.assignee?.name || '未归属' }}<small v-if="item.assignee">@{{ item.assignee.slug }}</small></td>
             <td class="ls-tabular">{{ money(item.balance.balance) }}</td>
             <td>{{ date(item.create_time) }}</td>
-            <td><span :class="['status', { blocked: item.is_blocked }]">{{ item.is_blocked ? '已封禁' : '正常' }}</span></td>
+            <td><NTag :type="item.is_blocked ? 'error' : 'success'" size="small" :bordered="false">{{ item.is_blocked ? '已封禁' : '正常' }}</NTag></td>
             <td><RouterLink :to="`/customers/${item.id}`">查看详情</RouterLink></td>
           </tr>
         </tbody>
@@ -138,15 +135,13 @@ const date = (value: number) => new Intl.DateTimeFormat('zh-CN', {
     </div>
     <div v-if="query.data.value && query.data.value.total > 0" class="pager">
       <span>共 {{ query.data.value.total }} 位客户，第 {{ filters.page }} / {{ pages }} 页</span>
-      <div>
-        <button type="button" :disabled="filters.page <= 1" @click="filters.page--">上一页</button>
-        <button type="button" :disabled="filters.page >= pages" @click="filters.page++">下一页</button>
-      </div>
+      <NPagination v-model:page="filters.page" :page-count="pages" />
     </div>
-  </AdminPage>
+  </div>
 </template>
 
 <style scoped>
-.filters{display:grid;grid-template-columns:minmax(16rem,2fr) repeat(2,minmax(10rem,1fr));gap:.75rem;padding:.85rem;background:white;border:1px solid var(--line);border-radius:12px}.search{display:flex;align-items:center;gap:.45rem}.search :deep(.n-input){flex:1}.data-table strong,.data-table small{display:block}.data-table small{margin-top:.15rem;color:var(--muted-ink);font-size:.74rem}.status{display:inline-flex;padding:.2rem .5rem;border-radius:999px;color:var(--success);background:color-mix(in oklch,var(--success),white 91%);font-size:.74rem;font-weight:700}.status.blocked{color:var(--danger);background:color-mix(in oklch,var(--danger),white 92%)}.pager{display:flex;align-items:center;justify-content:space-between;gap:1rem;color:var(--muted-ink);font-size:.82rem}.pager div{display:flex;gap:.5rem}.pager button{min-height:40px;padding:0 .85rem;border:1px solid var(--line);border-radius:8px;background:white}.pager button:disabled{opacity:.45}
+.customers-view{display:grid;gap:1.5rem}
+.filters{display:grid;grid-template-columns:minmax(16rem,2fr) repeat(2,minmax(10rem,1fr));gap:.75rem;padding:.85rem;background:white;border:1px solid var(--line);border-radius:12px}.search{display:flex;align-items:center;gap:.45rem}.search :deep(.n-input){flex:1}.data-table strong,.data-table small{display:block}.data-table small{margin-top:.15rem;color:var(--muted-ink);font-size:.74rem}.pager{display:flex;align-items:center;justify-content:space-between;gap:1rem;color:var(--muted-ink);font-size:.82rem}
 @media(max-width:760px){.filters{grid-template-columns:1fr}.table-wrap th:nth-child(3),.table-wrap td:nth-child(3),.table-wrap th:nth-child(4),.table-wrap td:nth-child(4){display:none}.pager{align-items:stretch;flex-direction:column}.pager div{display:grid;grid-template-columns:1fr 1fr}}
 </style>

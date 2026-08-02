@@ -2,11 +2,10 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NConfigProvider, NInput, NInputNumber, NSelect, NSwitch } from 'naive-ui'
+import { NInput, NInputNumber, NSelect, NSwitch } from 'naive-ui'
 import type { SelectOption, SelectRenderLabel } from 'naive-ui'
 import { computed, h, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import EntitySelectOption from '../components/EntitySelectOption.vue'
@@ -135,7 +134,6 @@ function deleteField() {
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme">
     <div class="field-form-page">
       <AdminPageHeader :title="editing ? '编辑对象字段' : '创建对象字段'" description="字段定义属于团队；值按对象类型与内部 ID 关联，不把数字 ID 暴露到权限 key。" back-to="/fields" back-label="返回对象字段" />
       <form @submit.prevent="save.mutate()">
@@ -184,7 +182,6 @@ function deleteField() {
         <div class="actions"><LsButton type="submit" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton></div>
       </form>
     </div>
-  </NConfigProvider>
 </template>
 
 <style scoped>

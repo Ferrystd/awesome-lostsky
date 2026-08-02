@@ -205,7 +205,7 @@ test('Account identity picker exposes loading and empty states', async ({ page }
 
   await page.goto('http://account.lostsky.work:5174/identity')
   await expect(page.getByLabel('正在加载身份')).toBeVisible()
-  await expect(page.getByRole('heading', { name: '暂无可领取身份' })).toBeVisible()
+  await expect(page.locator('.ls-empty-state')).toContainText('暂无可领取身份')
 })
 
 test('cross-team member callback waits for confirmation and cancel preserves the entity', async ({ page }) => {

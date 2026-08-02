@@ -2,10 +2,9 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Plus, Trash2, Webhook } from '@lucide/vue'
-import { NConfigProvider, NInput, NSwitch } from 'naive-ui'
+import { NInput, NSwitch } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
@@ -50,7 +49,6 @@ function deleteVirtual() {
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme">
     <div class="virtual-form-page">
       <AdminPageHeader :title="editing ? '编辑虚拟实体' : '创建虚拟实体'" description="slug 用于 URL、权限和集成身份；确定后不可修改或复用。" back-to="/chat-virtuals" back-label="返回虚拟实体">
         <template v-if="editing" #actions><LsButton variant="danger" :loading="remove.isPending.value" @click="deleteVirtual"><Trash2 :size="16" />删除实体</LsButton></template>
@@ -86,7 +84,6 @@ function deleteVirtual() {
         </section>
       </template>
     </div>
-  </NConfigProvider>
 </template>
 
 <style scoped>

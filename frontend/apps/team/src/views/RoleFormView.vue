@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { useMutation } from '@tanstack/vue-query'
 import { Check } from '@lucide/vue'
-import { NButton, NConfigProvider, NForm, NFormItem, NInput, NInputNumber, NSwitch } from 'naive-ui'
+import { NButton, NForm, NFormItem, NInput, NInputNumber, NSwitch } from 'naive-ui'
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -28,7 +27,6 @@ function submit() {
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme">
     <div class="role-form-page">
       <AdminPageHeader title="新建角色" description="先建立角色，再为它分配完成工作所需的最小权限。" back-to="/roles" back-label="返回角色与权限" />
       <NForm class="role-form" label-placement="top" :show-require-mark="true" @submit.prevent="submit">
@@ -62,7 +60,6 @@ function submit() {
         </footer>
       </NForm>
     </div>
-  </NConfigProvider>
 </template>
 
 <style scoped>

@@ -2,6 +2,7 @@
 import type { EntityDisplay } from '../entity'
 
 import { Search, Users } from '@lucide/vue'
+import { NButton, NInput } from 'naive-ui'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { entityMatchesKeyword, entityTypeLabel } from '../entity'
 import LsEntityCard from './LsEntityCard.vue'
@@ -100,14 +101,13 @@ onBeforeUnmount(() => {
       <LsEntityCard v-for="entity in selected" :key="entity.slug" :entity="entity" clearable @clear="clear" @chat="emit('chat', $event)" @profile="emit('profile', $event)" />
     </div>
     <div v-if="multiple || !selected.length" class="entity-input__search">
-      <Search :size="17" aria-hidden="true" />
-      <input :id="inputId" v-model="keyword" :placeholder="placeholder" autocomplete="off" autocapitalize="none" spellcheck="false" @focus="focus" @blur="blur" />
+      <NInput v-model:value="keyword" :placeholder="placeholder" autocomplete="off" :input-props="{ id: inputId, autocapitalize: 'none', spellcheck: false }" @focus="focus" @blur="blur"><template #prefix><Search :size="17" aria-hidden="true" /></template></NInput>
       <Transition name="ls-popover">
         <div v-if="showResults" class="entity-input__menu" role="listbox" :aria-label="normalizedKeyword ? '实体搜索结果' : '最近聊天的实体'">
           <p v-if="menuHint" class="entity-input__hint">{{ menuHint }}</p>
-          <button v-for="entity in results" :key="entity.slug" type="button" role="option" @mousedown.prevent="choose(entity)">
+          <NButton v-for="entity in results" :key="entity.slug" quaternary role="option" @mousedown.prevent="choose(entity)">
             <span><Users :size="16" /></span><span><strong>{{ entity.name }}</strong><small>@{{ entity.slug }} · {{ entityTypeLabel(entity.type) }}</small></span>
-          </button>
+          </NButton>
           <p v-if="normalizedKeyword.length >= 2 && !searching && !searchError && !results.length" class="entity-input__empty">没有匹配的可搜索实体</p>
           <p v-else-if="!normalizedKeyword && !results.length" class="entity-input__empty">暂无最近聊天的实体</p>
         </div>
@@ -117,6 +117,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.entity-input{display:grid;gap:.65rem}.entity-input__selected{display:grid;gap:.5rem}.entity-input__search{position:relative;min-height:44px;display:flex;align-items:center;gap:.5rem;padding:0 .75rem;color:var(--muted-ink);background:white;border:1px solid var(--line);border-radius:8px;transition:border-color var(--motion-fast) var(--ease-standard),box-shadow var(--motion-fast) var(--ease-standard)}.entity-input__search:focus-within{border-color:var(--sky-lost-strong);box-shadow:0 0 0 3px color-mix(in oklch,var(--sky-lost-strong),transparent 84%)}.entity-input input{width:100%;min-width:0;height:42px;color:var(--ink);background:transparent;border:0;outline:0}.entity-input__menu{position:absolute;z-index:var(--z-dropdown);top:calc(100% + .35rem);right:0;left:0;padding:.35rem;background:white;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 8px color-mix(in oklch,var(--sky-night),transparent 88%)}.entity-input__hint,.entity-input__empty{margin:0;padding:.4rem .55rem;color:var(--muted-ink);font-size:.78rem}.entity-input__menu button{width:100%;min-height:48px;display:flex;align-items:center;gap:.6rem;padding:.5rem .55rem;text-align:left;color:var(--ink);background:transparent;border:0;border-radius:6px;cursor:pointer;transition:background-color var(--motion-fast) var(--ease-standard)}.entity-input__menu button:hover,.entity-input__menu button:focus-visible{background:var(--cloud)}.entity-input__menu button>span:first-child{width:32px;height:32px;display:grid;place-items:center;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 84%);border-radius:7px}.entity-input__menu strong,.entity-input__menu small{display:block}.entity-input__menu strong{font-size:.85rem}.entity-input__menu small{color:var(--muted-ink);font-size:.73rem}
-@media(max-width:639px){.entity-input__search{display:grid;grid-template-columns:17px minmax(0,1fr)}.entity-input__menu{position:static;grid-column:1/-1;margin:0 -.75rem;padding:.35rem;border-width:1px 0 0;border-radius:0 0 8px 8px;box-shadow:none}}
+.entity-input{display:grid;gap:.65rem}.entity-input__selected{display:grid;gap:.5rem}.entity-input__search{position:relative;min-height:44px}.entity-input__menu{position:absolute;z-index:var(--z-dropdown);top:calc(100% + .35rem);right:0;left:0;padding:.35rem;background:white;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 8px color-mix(in oklch,var(--sky-night),transparent 88%)}.entity-input__hint,.entity-input__empty{margin:0;padding:.4rem .55rem;color:var(--muted-ink);font-size:.78rem}.entity-input__menu :deep(.n-button){width:100%;min-height:48px;justify-content:stretch;padding:.5rem .55rem;text-align:left}.entity-input__menu :deep(.n-button__content){width:100%;display:flex;align-items:center;gap:.6rem}.entity-input__menu :deep(.n-button__content)>span:first-child{width:32px;height:32px;display:grid;place-items:center;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 84%);border-radius:7px}.entity-input__menu strong,.entity-input__menu small{display:block}.entity-input__menu strong{font-size:.85rem}.entity-input__menu small{color:var(--muted-ink);font-size:.73rem}
+@media(max-width:639px){.entity-input__menu{position:static;margin-top:.35rem;padding:.35rem;border-radius:8px;box-shadow:none}}
 </style>

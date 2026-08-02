@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { BookOpen, Pencil, Plus, Trash2 } from '@lucide/vue'
-import { NSelect } from 'naive-ui'
+import { NButton, NSelect, NTag } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -95,12 +96,12 @@ function removeDoc(item: Record<string, unknown>) {
     <Transition name="ls-state" mode="out-in">
       <p v-if="query.isError.value" key="error" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
       <div v-else-if="query.isPending.value" key="loading" class="loading" aria-label="正在加载文档"><span v-for="i in 4" :key="i" class="ls-skeleton" /></div>
-      <section v-else-if="!docs.length" key="empty" class="empty">
-        <BookOpen :size="34" />
-        <h2>{{ keyword || visibility !== 'all' ? '没有匹配的文档' : '文档库还是空的' }}</h2>
-        <p>{{ keyword || visibility !== 'all' ? '尝试更短的关键词或切换文档分类。' : '创建第一份文档，编辑时无需手写 Markdown 语法。' }}</p>
-        <RouterLink v-if="!keyword && visibility === 'all'" class="primary-link" :to="createTo">新建文档</RouterLink>
-      </section>
+      <LsEmptyState
+        v-else-if="!docs.length"
+        key="empty"
+        :title="keyword || visibility !== 'all' ? '没有匹配的文档' : '文档库还是空的'"
+        :description="keyword || visibility !== 'all' ? '尝试更短的关键词或切换文档分类。' : '创建第一份文档，编辑时无需手写 Markdown 语法。'"
+      />
       <TransitionGroup v-else key="list" name="ls-list" tag="section" class="document-list">
         <article v-for="item in docs" :key="String(item.id)">
           <RouterLink class="document-main" :to="`/doc?id=${item.id}`">
@@ -112,9 +113,9 @@ function removeDoc(item: Record<string, unknown>) {
             </span>
           </RouterLink>
           <footer>
-            <span>{{ visibilityLabels[Number(item.visibility)] ?? '可见范围未设置' }}</span>
+            <NTag size="small" :bordered="false">{{ visibilityLabels[Number(item.visibility)] ?? '可见范围未设置' }}</NTag>
             <RouterLink class="icon-link" :to="`/doc-edit?id=${item.id}`" aria-label="编辑文档"><Pencil :size="17" /></RouterLink>
-            <button type="button" class="icon-button danger" aria-label="删除文档" @click="removeDoc(item)"><Trash2 :size="17" /></button>
+            <NButton quaternary circle type="error" aria-label="删除文档" @click="removeDoc(item)"><template #icon><Trash2 :size="17" /></template></NButton>
           </footer>
         </article>
       </TransitionGroup>

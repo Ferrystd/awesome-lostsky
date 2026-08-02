@@ -25,7 +25,7 @@ const queries = useQueries({
     { queryKey: ['transaction-stats', 'assignees', params.value], queryFn: () => api.get<AssigneeStat[]>('/transaction/stats', { ...params.value, type: 'byAssignee' }) },
   ]),
 })
-const invite = useQuery({ queryKey: ['transaction-invite'], queryFn: () => api.get<InviteIdentity>('/transaction/invite'), retry: false })
+const invite = useQuery({ queryKey: ['transaction-invite'], queryFn: () => api.get<InviteIdentity>('/transaction/invite') })
 const summary = computed(() => queries.value[0]?.data as StatsSummary | undefined)
 const timeline = computed(() => (queries.value[1]?.data ?? []) as TimelineStat[])
 const entities = computed(() => (queries.value[2]?.data ?? []) as EntityStat[])

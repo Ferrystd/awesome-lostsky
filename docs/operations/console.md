@@ -27,12 +27,12 @@ php think admin:revoke --user=123 --role=super_admin
 通过服务器终端为现有团队开通或更新一项 Ability：
 
 ```bash
-php think team:grant-ability --team=123 --ability=doc
-php think team:grant-ability --team=123 --ability=transaction --level=2 --expire-time=1798761599
+php think team:grant-ability --team=example-team --ability=doc
+php think team:grant-ability --team=example-team --ability=transaction --level=2 --expire-time=1798761599
 ```
 
-- `--team`：必填，现有团队 ID。
-- `--ability`：必填，最长 50 个字符的能力标识，不得包含 `,` 或 `:`。
+- `--team`：必填，现有团队 slug。
+- `--ability`：必填，已有能力标识：`doc`（文档）、`file`（文件上传）或 `transaction`（交易）。
 - `--level`：可选，正整数能力等级，默认 `1`。
 - `--expire-time`：可选，Unix 时间戳；默认 `0`，表示永久有效。
 

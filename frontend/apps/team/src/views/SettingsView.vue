@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NRadio, NRadioGroup, NSelect, NSwitch } from 'naive-ui'
@@ -104,10 +105,7 @@ function settingId(appName: string, key: string): string {
       {{ friendlyError(query.error.value) }}
     </p>
     <div v-else-if="query.isPending.value" class="loading-panel" role="status">正在加载团队设置…</div>
-    <div v-else-if="!apps.length" class="empty-panel">
-      <h2>当前没有可配置项</h2>
-      <p>应用登记团队设置后会自动显示在这里。</p>
-    </div>
+    <LsEmptyState v-else-if="!apps.length" title="当前没有可配置项" description="应用登记团队设置后会自动显示在这里。" />
 
     <template v-else>
       <form

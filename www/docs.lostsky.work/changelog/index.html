@@ -539,6 +539,283 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台设计规范
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  后台设计规范
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台设计规范
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/admin/foundations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台基础令牌
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/admin/components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台公共组件
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/admin/patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台页面模式
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/admin/states-and-access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  状态、权限与能力
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/admin/responsive-accessibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  响应式与无障碍
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/admin/applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台应用与页面规则
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/admin/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台前端完成定义
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../overview/" class="md-nav__link">
         
@@ -4973,6 +5250,9 @@
                   
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>注意</strong>：v0.1.4 的变更日志由 GitHub Copilot（DeepSeek V4 Pro）辅助编写，人工审核并确认。</p>
+</blockquote>
 <h2 id="v014">v0.1.4<a class="headerlink" href="#v014" title="Permanent link">&para;</a></h2>
 <h3 id="_1">新增<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
 <ul>
@@ -4980,6 +5260,7 @@
 <li>团队工作台新增客户列表与详情，支持归属范围读取、资料/归属/封禁管理和 Chat 对话入口；新增 <code>team.customer.read</code>、<code>team.customer.manage</code>。</li>
 <li>商城顾客中心允许客户本人查看、修改或清空服务归属；流水统计新增归属业绩和当前实体邀请链接。</li>
 <li>收紧团队实体基础目录：Customer 始终要求 <code>team.entity.read</code>，既有未公开虚拟实体默认转为团队内隐藏；新增 <code>team.document.read</code> 控制文档全量读取与概览计数，无权限时文档卡显示进入箭头。</li>
+<li>修复团队文档阅读页未兼容分页列表详情响应而显示“未命名文档”和空正文的问题，并重整阅读层级、元信息与加载/错误/空正文状态。</li>
 <li>实体与成员新增独立的团队内可见状态；<code>team.entity.read</code> 与 <code>team.member.read</code> 调整为全量读取权限，基础目录继续向所有团队 Entity 提供内部可见内容。</li>
 <li>团队新增通用访问快照和访问感知概览接口，概览固定展示实体、成员、文档和通知，并支持单指标降级。</li>
 <li>团队工作台新增“查看公开主页”，实体详情新增团队内可见控制和已公开实体直达入口。</li>
@@ -4987,11 +5268,14 @@
 <li>新增独立的 Admin 平台治理应用，覆盖平台 RBAC、用户与团队封禁、会话撤销、集中审计、系统状态、CLI 超级管理员自举，以及桌面和移动端管理界面。</li>
 <li>新增 <code>team.notice.read</code> 与通知能力接口，分别控制 Team 共享站内通知入口并向前端返回站内通知查看、通知发送和默认收件箱能力。</li>
 <li>新增 <code>certificate:update</code> 命令，以一张多 SAN Let’s Encrypt 证书统一更新全部 Nginx 前端/API 域名和 OSS 自定义域名，并支持 Certbot 续期钩子。</li>
-<li>新增 <code>team:grant-ability</code> 命令，支持通过服务器终端为指定团队幂等授予、更新或恢复 Ability。</li>
+<li>新增 <code>team:grant-ability</code> 命令，支持通过服务器终端按团队 slug 幂等授予、更新或恢复 Ability，并在帮助中列出已有能力。</li>
 <li>公开实体详情新增该实体已上架专属商品陈列，并可直接进入同团队商城查看和购买。</li>
 </ul>
 <h3 id="_2">变更<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <ul>
+<li>后台统一空状态保持约 192px 的紧凑基准高度，不再随桌面视口宽度增加上下留白；长文案和文本放大时仍可自然增高。</li>
+<li>后台页面级无数据与筛选无结果统一复用仅含标题、提示两个参数的 <code>LsEmptyState</code>；Account、Chat 团队选择、Team、Transaction 与 Admin 主目录不再分别拼装空状态图标和文案。</li>
+<li>后台统一采用 Naive UI 2.44.1 与 <code>@lostsky/ui</code>：Team、Transaction、Admin 使用同一顶栏、页面标题、搜索筛选、主体识别和响应式动作模式，Account 与 Chat 同步主题和主体识别；普通页面移除手动刷新/重试，并建立完整的后台设计 Wiki 与强制入 Wiki 维护规则。</li>
 <li>新增独立的 <code>doc.lostsky.work</code> 用户指南站，与完整的 <code>docs.lostsky.work</code> 文档站复用 <code>docs/manual/</code> 正文，并按用户任务提供精简导航；补充双站 Linux 与 Windows 宝塔/Nginx 部署基线。</li>
 <li>客户资料管理从 Chat 迁入 Shop 顾客中心：资料按商家团队隔离且不公开，Shop 提供读取、更新与历史 slug 首次领取接口；Chat 旧 <code>/profile</code> 只按当前 JWT 身份跳转到 Shop、Team 或 Account。</li>
 <li>团队成员、文档与文件列表统一为克制的搜索筛选工具栏和连续列表；成员增加状态分类，文档增加可见范围分类与标题/正文搜索。</li>
@@ -5016,6 +5300,9 @@
 </ul>
 <h3 id="_3">修复<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <ul>
+<li>修复成员状态标签漂到列表行末端、实体与成员操作入口错误呈现为成组按钮气泡，以及客户空状态退化为未排版裸图标和文字的问题；行内入口现统一为图标加文字。</li>
+<li>修复后台集合页筛选器折叠成竖线、选择箭头错位、搜索与选择控件过度肥大，以及工作台顶栏桌面动作与移动“操作”按钮同时出现、字体字重不一致的问题。</li>
+<li>修复新建流水在选项响应缺少 <code>customers</code> 时调用 <code>.find()</code> 导致整页空白的问题；缺少 <code>entities/customers</code> 时现在继续显示表单并只禁用受影响字段。</li>
 <li>修复本地 Vite 代理误用生产 HTTPS 地址时，证书或静态站点兜底响应被浏览器表现为 CORS 的问题，并扩充 CORS 静态检查。</li>
 <li>修复文件空状态图标偏到内容区左侧、文档列表乱码与检索能力不足，以及 Markdown 编辑器重复出现本地上传按钮、禁用图片按钮仍会插入待上传节点或在刷新后干扰正文焦点且不提示原因的问题。</li>
 <li>修复 PHP 上传临时目录异常污染 JSON 时前端无反馈的问题：部署基线要求可写临时目录并关闭生产错误直出，上传界面同时增加可见错误区域。</li>
@@ -5024,7 +5311,7 @@
 <li>修复 Admin 联系方式搜索绕过敏感权限、团队封禁缓存延迟、RBAC API 审计误记为 CLI、角色资料与权限部分保存，以及 OSS 故障阻断 Nginx 证书重载的问题。</li>
 <li>修复 Admin 用户与团队搜索在真实 MySQL 查询中无法解析关联表字段的问题，并使 Admin 集成 fixture 可在已有超级管理员测试数据的数据库中重复运行。</li>
 <li>公开文档中的实体引用卡片改为撑满文档内容区，同时保留正文阅读行宽。</li>
-<li>团队概览入口改为“使用文档”，未读消息只统计未读项，并为既有团队 owner 角色补齐实体目录与资料管理权限。</li>
+<li>团队概览入口改为“使用文档”，未读消息只统计未读项，并为既有团队 owner 角色补齐实体目录与资料管理权限。- 修复团队文档中 Markdown 实体引用解析（<code>/entity/resolve</code>）错误使用 <code>is_searchable</code>（全局搜索可见性）判断可用性，导致团队内可见但不可搜索的成员引用显示为"对象不可用"；现改为同团队实体仅检查 <code>is_valid</code>，跨团队实体仍保留 <code>is_searchable</code> 控制。</li>
 </ul>
 <h2 id="v013-2026-07-29">v0.1.3 (2026-07-29)<a class="headerlink" href="#v013-2026-07-29" title="Permanent link">&para;</a></h2>
 <h3 id="_4">新增<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>

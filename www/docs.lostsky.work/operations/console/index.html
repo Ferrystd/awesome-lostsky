@@ -534,6 +534,280 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台设计规范
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  后台设计规范
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台设计规范
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/foundations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台基础令牌
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台公共组件
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台页面模式
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/states-and-access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  状态、权限与能力
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/responsive-accessibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  响应式与无障碍
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台应用与页面规则
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台前端完成定义
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../overview/" class="md-nav__link">
         
@@ -2621,12 +2895,12 @@
 <p><code>--user</code> 是现有用户 ID，<code>--role</code> 是现有平台角色标识。授予已存在的绑定或撤销不存在的绑定都是幂等操作；撤销最后一位可用超级管理员会返回失败。命令变更写入 <code>business_audit_event</code>，来源为 <code>cli</code>，认证用户与实体为空。</p>
 <h2 id="_3">授予团队能力<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <p>通过服务器终端为现有团队开通或更新一项 Ability：</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>php<span class="w"> </span>think<span class="w"> </span>team:grant-ability<span class="w"> </span>--team<span class="o">=</span><span class="m">123</span><span class="w"> </span>--ability<span class="o">=</span>doc
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>php<span class="w"> </span>think<span class="w"> </span>team:grant-ability<span class="w"> </span>--team<span class="o">=</span><span class="m">123</span><span class="w"> </span>--ability<span class="o">=</span>transaction<span class="w"> </span>--level<span class="o">=</span><span class="m">2</span><span class="w"> </span>--expire-time<span class="o">=</span><span class="m">1798761599</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>php<span class="w"> </span>think<span class="w"> </span>team:grant-ability<span class="w"> </span>--team<span class="o">=</span>example-team<span class="w"> </span>--ability<span class="o">=</span>doc
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>php<span class="w"> </span>think<span class="w"> </span>team:grant-ability<span class="w"> </span>--team<span class="o">=</span>example-team<span class="w"> </span>--ability<span class="o">=</span>transaction<span class="w"> </span>--level<span class="o">=</span><span class="m">2</span><span class="w"> </span>--expire-time<span class="o">=</span><span class="m">1798761599</span>
 </span></code></pre></div>
 <ul>
-<li><code>--team</code>：必填，现有团队 ID。</li>
-<li><code>--ability</code>：必填，最长 50 个字符的能力标识，不得包含 <code>,</code> 或 <code>:</code>。</li>
+<li><code>--team</code>：必填，现有团队 slug。</li>
+<li><code>--ability</code>：必填，已有能力标识：<code>doc</code>（文档）、<code>file</code>（文件上传）或 <code>transaction</code>（交易）。</li>
 <li><code>--level</code>：可选，正整数能力等级，默认 <code>1</code>。</li>
 <li><code>--expire-time</code>：可选，Unix 时间戳；默认 <code>0</code>，表示永久有效。</li>
 </ul>

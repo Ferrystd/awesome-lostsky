@@ -534,6 +534,280 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台设计规范
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  后台设计规范
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台设计规范
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/foundations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台基础令牌
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台公共组件
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台页面模式
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/states-and-access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  状态、权限与能力
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/responsive-accessibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  响应式与无障碍
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台应用与页面规则
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台前端完成定义
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../overview/" class="md-nav__link">
         
@@ -2639,6 +2913,8 @@
 <p>“发单绑定”继续维护客户与发单实体的额外协作关系。客户存在当前归属时，创建订单或流水会优先把该归属快照为发单实体；额外绑定不替代当前归属。团队管理员可以在权限范围内新增或解除绑定。</p>
 <p>“客户余额”展示预存余额；进入单个客户可查看余额明细。充值成功时余额与日志应同时更新，失败时不应只改动其中一项。</p>
 <h2 id="_5">当前边界<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<p>流水、绑定和客户余额页使用统一搜索筛选栏与结果数量。桌面顶栏的“登记流水”包含文字，移动端从“操作”菜单进入。流水、绑定、客户余额与余额明细没有数据或筛选无结果时，会显示统一的有边界空面板、当前情况和下一步提示。页面数据会在进入、窗口重新聚焦和操作后自动更新，不提供手动刷新或重试按钮。</p>
+<p>新建流水即使选项响应暂时缺少 <code>entities</code> 或 <code>customers</code> 也会继续显示表单：只禁用受影响的参与方、客户或预存款字段，并给出中性说明；不会让整个页面空白。提交时服务端仍重新校验主体、客户、余额和权限。</p>
 <ul>
 <li>Transaction 不是银行账户或第三方支付工具；余额是团队维护的商家预存余额。</li>
 <li>当前身份必须属于地址对应的团队，且不能凭其他团队的角色访问数据。</li>

@@ -2,13 +2,15 @@
 import { auth } from '@lostsky/api/client'
 import { chatWorkspaceUrl, redirectToLogin } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
+import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import {
   Bell, BookOpen, Bot, Boxes, ChevronDown, ChevronRight, ExternalLink,
   FileText, Files, House, LogOut, Menu, MessageCircleMore, Send, Settings, ShieldCheck,
   Contact, UserRound, Users, X,
 } from '@lucide/vue'
+import { NButton } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   abilityReason,
   hasPermission,
@@ -27,6 +29,7 @@ type NavItem = {
 }
 
 const route = useRoute()
+const router = useRouter()
 const access = useTeamAccess()
 const drawer = ref(false)
 const menuScroll = ref<HTMLElement | null>(null)
@@ -60,17 +63,28 @@ const teamSlug = window.location.hostname.split('.')[0] || ''
 const displayUrl = computed(() => `//${teamSlug}.display.lostsky.work`)
 const chatUrl = computed(() => chatWorkspaceUrl())
 const noticeTarget = '/notices/entity'
+const headerActions = [
+  { key: 'display', label: '查看公开主页' },
+  { key: 'chat', label: '消息' },
+  { key: 'notice', label: '通知' },
+]
+
+function handleHeaderAction(key: string) {
+  if (key === 'display') window.open(displayUrl.value, '_blank', 'noopener,noreferrer')
+  else if (key === 'chat') window.location.href = chatUrl.value
+  else if (key === 'notice') void router.push(noticeTarget)
+}
 
 function disabledReason(item: NavItem): string {
   if (access.isPending.value || access.isError.value) return ''
   if (item.ability) {
-    const state = snapshot.value?.abilities[item.ability]
-    if (!state?.enabled) return abilityReason(item.ability, state?.label ?? '文档')
+    const state = snapshot.value?.abilities?.[item.ability]
+    if (state && !state.enabled) return abilityReason(item.ability, state.label ?? '文档')
   }
-  if (item.permission && !hasPermission(snapshot.value, item.permission)) {
+  if (item.permission && snapshot.value?.permissions && !hasPermission(snapshot.value, item.permission)) {
     return permissionReason(item.permission)
   }
-  if (item.permissionPattern && !hasPermissionMatching(snapshot.value, item.permissionPattern)) {
+  if (item.permissionPattern && snapshot.value?.permissions && !hasPermissionMatching(snapshot.value, item.permissionPattern)) {
     return permissionReason('chat.virtual.*.manage')
   }
   return ''
@@ -117,15 +131,15 @@ watch(
     <aside :class="['sidebar', { open: drawer }]" aria-label="团队导航">
       <div class="sidebar-head">
         <a href="/" class="wordmark"><strong>LostSky</strong><span>失落青空</span></a>
-        <button type="button" aria-label="关闭导航" @click="drawer = false"><X /></button>
+        <NButton quaternary aria-label="关闭导航" @click="drawer = false"><template #icon><X /></template></NButton>
       </div>
       <div :class="['menu-scroll', { 'has-more': canScrollDown }]">
         <nav ref="menuScroll" @scroll="updateMenuScroll">
           <p>工作空间</p>
           <template v-for="item in sidebarPrimary" :key="item.to">
-            <button
+            <NButton
               v-if="disabledReason(item)"
-              type="button"
+              quaternary
               class="nav-disabled"
               :aria-label="`${item.label}不可用：${disabledReason(item)}`"
               :title="disabledReason(item)"
@@ -134,7 +148,7 @@ watch(
               <component :is="item.icon" :size="19" />
               <span>{{ item.label }}</span>
               <ChevronRight :size="15" />
-            </button>
+            </NButton>
             <RouterLink v-else :to="item.to" @click="drawer = false">
               <component :is="item.icon" :size="19" />
               <span>{{ item.label }}</span>
@@ -144,9 +158,9 @@ watch(
 
           <p>管理</p>
           <template v-for="item in secondary" :key="item.to">
-            <button
+            <NButton
               v-if="disabledReason(item)"
-              type="button"
+              quaternary
               class="nav-disabled"
               :aria-label="`${item.label}不可用：${disabledReason(item)}`"
               :title="disabledReason(item)"
@@ -155,7 +169,7 @@ watch(
               <component :is="item.icon" :size="19" />
               <span>{{ item.label }}</span>
               <ChevronRight :size="15" />
-            </button>
+            </NButton>
             <RouterLink v-else :to="item.to" @click="drawer = false">
               <component :is="item.icon" :size="19" />
               <span>{{ item.label }}</span>
@@ -163,45 +177,41 @@ watch(
             </RouterLink>
           </template>
         </nav>
-        <button v-if="canScrollDown" class="menu-more" type="button" aria-label="向下查看更多菜单" @click="scrollMenuDown">
+        <NButton v-if="canScrollDown" class="menu-more" quaternary circle aria-label="向下查看更多菜单" @click="scrollMenuDown">
           <ChevronDown :size="18" stroke-width="2.4" />
-        </button>
+        </NButton>
       </div>
-      <button class="logout" type="button" @click="logout"><LogOut :size="18" />退出登录</button>
+      <NButton class="logout" quaternary @click="logout"><template #icon><LogOut :size="18" /></template>退出登录</NButton>
     </aside>
 
     <Transition name="ls-backdrop">
       <div v-if="drawer" class="backdrop" aria-hidden="true" @click="drawer = false" />
     </Transition>
     <section class="workspace">
-      <header class="topbar">
-        <button type="button" aria-label="打开导航" @click="drawer = true"><Menu /></button>
-        <div><p>TEAM WORKSPACE</p><h1>{{ title }}</h1></div>
-        <a class="display-link" :href="displayUrl" target="_blank" rel="noopener noreferrer">
-          <ExternalLink :size="17" /><span>查看公开主页</span>
-        </a>
-        <a class="chat-link" :href="chatUrl" aria-label="打开消息">
-          <MessageCircleMore :size="19" /><span>消息</span>
-        </a>
-        <RouterLink :to="noticeTarget" aria-label="查看通知"><Bell :size="20" /></RouterLink>
-      </header>
+      <LsWorkspaceHeader context-label="TEAM WORKSPACE" :title="title" :actions="headerActions" @menu="drawer = true" @action="handleHeaderAction">
+        <template #actions>
+          <a class="display-link" :href="displayUrl" target="_blank" rel="noopener noreferrer"><ExternalLink :size="17" /><span>查看公开主页</span></a>
+          <a class="chat-link" :href="chatUrl"><MessageCircleMore :size="19" /><span>消息</span></a>
+          <RouterLink :to="noticeTarget"><Bell :size="19" /><span>通知</span></RouterLink>
+        </template>
+      </LsWorkspaceHeader>
       <main id="workspace"><slot /></main>
       <nav class="bottom-nav" aria-label="移动端导航">
         <template v-for="item in bottomPrimary" :key="item.to">
-          <button
+          <NButton
             v-if="disabledReason(item)"
-            type="button"
+            quaternary
             :aria-label="`${item.label}不可用：${disabledReason(item)}`"
             :title="disabledReason(item)"
             @click="explain(disabledReason(item))"
           >
             <component :is="item.icon" :size="20" /><span>{{ item.label }}</span>
-          </button>
+          </NButton>
           <RouterLink v-else :to="item.to">
             <component :is="item.icon" :size="20" /><span>{{ item.label }}</span>
           </RouterLink>
         </template>
-        <button type="button" @click="drawer = true"><Menu :size="20" /><span>更多</span></button>
+        <NButton quaternary @click="drawer = true"><template #icon><Menu :size="20" /></template><span>更多</span></NButton>
       </nav>
     </section>
   </div>

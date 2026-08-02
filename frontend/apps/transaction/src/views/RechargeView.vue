@@ -16,7 +16,7 @@ const customerId = ref<number | null>(Number(route.query.customer_id || 0) || nu
 const amount = ref<number | null>(null)
 const memo = ref('')
 const options = useQuery({ queryKey: ['transaction-options'], queryFn: () => api.get<TransactionOptions>('/transaction/options') })
-const customer = computed(() => options.data.value?.customers.find(item => Number(item.id) === customerId.value))
+const customer = computed(() => (options.data.value?.customers ?? []).find(item => Number(item.id) === customerId.value))
 const save = useMutation({
   mutationFn: () => api.post('/transaction/balance/recharge', { customer_id: customerId.value, amount: amount.value, memo: memo.value.trim() }),
   onSuccess: async () => {

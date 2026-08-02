@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Check, Plus, X } from '@lucide/vue'
-import { NButton, NCheckbox, NConfigProvider, NEmpty, NInput, NModal, NSkeleton, NTag, zhCN } from 'naive-ui'
+import { NButton, NCheckbox, NEmpty, NInput, NModal, NSkeleton, NTag } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -33,7 +32,6 @@ function statusType(value: unknown) { if (value === '已加入') return 'success
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme" :locale="zhCN">
     <div class="join-review-detail-page">
       <AdminPageHeader title="审核加入申请" :description="reviewId ? `申请 #${reviewId}` : '缺少申请编号'" back-to="/join-review" back-label="返回申请列表">
         <template v-if="detail" #actions><NTag :type="statusType(detail.status)" size="large" :bordered="false">{{ detail.status }}</NTag></template>
@@ -66,7 +64,6 @@ function statusType(value: unknown) { if (value === '已加入') return 'success
         <template #footer><div class="modal-actions"><NButton @click="rejectOpen = false">取消</NButton><NButton type="error" :disabled="!rejectMemo.trim()" @click="submitReject">确认拒绝</NButton></div></template>
       </NModal>
     </div>
-  </NConfigProvider>
 </template>
 
 <style scoped>

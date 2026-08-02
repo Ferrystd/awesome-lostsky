@@ -20,6 +20,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 <template>
   <NInput
     class="ls-search-input"
+    size="small"
     :value="modelValue"
     :placeholder="placeholder"
     :autofocus="autofocus"
@@ -34,8 +35,8 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 <style scoped>
 .ls-search-input{
   width:100%;
-  min-height:44px;
-  --n-height:44px!important;
+  min-height:40px;
+  --n-height:40px!important;
   --n-border-radius:10px!important;
   --n-color:var(--surface, white)!important;
   --n-color-focus:var(--surface, white)!important;
@@ -47,4 +48,5 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 .ls-search-input :deep(.n-input-wrapper){padding-inline:.8rem}
 .ls-search-input :deep(.n-input__prefix){margin-right:.45rem;color:var(--text-secondary, var(--muted-ink))}
 .ls-search-input :deep(.n-input__input-el){font-size:.9rem}
+@media(max-width:639px){.ls-search-input{min-height:44px;--n-height:44px!important}}
 </style>

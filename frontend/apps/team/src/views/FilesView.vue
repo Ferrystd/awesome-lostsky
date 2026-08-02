@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { File, Trash2, Upload } from '@lucide/vue'
+import { File, Trash2 } from '@lucide/vue'
+import { NButton } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { abilityReason, hasPermission, permissionReason, useTeamAccess } from '../lib/teamAccess'
 
@@ -12,7 +15,6 @@ const client = useQueryClient()
 const access = useTeamAccess()
 const page = ref(1)
 const keyword = ref('')
-const input = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
 const uploadError = ref('')
 const usage = useQuery({
@@ -32,7 +34,7 @@ const files = computed<Record<string, unknown>[]>(() => (
 ))
 const total = computed(() => Number(query.data.value?.total ?? files.value.length))
 const pages = computed(() => Math.max(1, Math.ceil(total.value / 18)))
-const fileAbility = computed(() => access.data.value?.abilities.file)
+const fileAbility = computed(() => access.data.value?.abilities?.file)
 const uploadReason = computed(() => {
   if (access.isPending.value || access.isError.value) return ''
   if (!fileAbility.value?.enabled) return abilityReason('file', fileAbility.value?.label ?? '文件上传')
@@ -74,7 +76,6 @@ async function upload(event: Event) {
     feedback.error(uploadError.value)
   } finally {
     uploading.value = false
-    if (input.value) input.value.value = ''
   }
 }
 
@@ -88,6 +89,7 @@ function size(value: unknown) {
 function removeFile(id: number) {
   if (!deleteReason.value && window.confirm('确认删除此文件？')) remove.mutate(id)
 }
+
 function explain(reason: string) {
   if (reason) feedback.info(reason)
 }
@@ -100,17 +102,7 @@ function explain(reason: string) {
         <p>已使用 {{ size(usage.data.value?.total_size ?? usage.data.value?.totalSize) }} · {{ usage.data.value?.count ?? total }} 个文件</p>
         <h2>团队文件</h2>
       </div>
-      <span
-        :tabindex="uploadReason ? 0 : -1"
-        :title="uploadReason || undefined"
-        @click="explain(uploadReason)"
-        @keydown.enter.prevent="explain(uploadReason)"
-      >
-        <LsButton :disabled="Boolean(uploadReason)" :loading="uploading" @click="input?.click()">
-          <Upload :size="17" />上传文件
-        </LsButton>
-      </span>
-      <input ref="input" class="hidden" type="file" multiple :disabled="Boolean(uploadReason)" @change="upload">
+      <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload" />
     </header>
     <p v-if="uploadError" class="error" role="alert">{{ uploadError }}</p>
 
@@ -124,10 +116,12 @@ function explain(reason: string) {
     <Transition name="ls-state" mode="out-in">
       <p v-if="query.isError.value" key="error" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
       <div v-else-if="query.isPending.value" key="loading" class="loading"><span v-for="i in 6" :key="i" class="ls-skeleton" /></div>
-      <div v-else-if="!files.length" key="empty" class="empty">
-        <File :size="32" /><h3>还没有文件</h3>
-        <p>{{ uploadReason ? '当前可查看团队文件，但不能上传本地文件。' : '上传团队需要共享的第一份资料。' }}</p>
-      </div>
+      <LsEmptyState
+        v-else-if="!files.length"
+        key="empty"
+        title="还没有文件"
+        :description="uploadReason ? '当前可查看团队文件，但不能上传本地文件。' : '上传团队需要共享的第一份资料。'"
+      />
       <TransitionGroup v-else key="list" name="ls-list" tag="div" class="file-list">
         <article v-for="item in files" :key="String(item.id)">
           <div class="file-icon"><File /></div>
@@ -142,9 +136,7 @@ function explain(reason: string) {
             @click="explain(deleteReason)"
             @keydown.enter.prevent="explain(deleteReason)"
           >
-            <button type="button" aria-label="删除文件" :disabled="Boolean(deleteReason)" @click="removeFile(Number(item.id))">
-              <Trash2 :size="17" />
-            </button>
+            <NButton quaternary circle type="error" aria-label="删除文件" :disabled="Boolean(deleteReason)" @click="removeFile(Number(item.id))"><template #icon><Trash2 :size="17" /></template></NButton>
           </span>
         </article>
       </TransitionGroup>

@@ -2,6 +2,7 @@
 import { api } from '@lostsky/api/client'
 import { useQuery } from '@tanstack/vue-query'
 import { ArrowRight, Search, ShieldAlert } from '@lucide/vue'
+import { NButton } from 'naive-ui'
 import { computed } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
 import RetryState from '../components/RetryState.vue'
@@ -22,11 +23,11 @@ function openSearch() { window.dispatchEvent(new CustomEvent('admin:open-search'
 
 <template>
   <PageHeader title="平台总览" description="先确认平台状态，再进入具体资源处理治理任务。" />
-  <button autofocus type="button" class="dashboard-search" @click="openSearch">
+  <NButton autofocus block class="dashboard-search" @click="openSearch">
     <Search :size="19" /><span><strong>搜索平台资源</strong><small>用户、手机号、邮箱、团队或资源 ID</small></span><kbd>Ctrl K</kbd>
-  </button>
+  </NButton>
   <div v-if="query.isPending.value" class="panel state">正在读取平台数据…</div>
-  <RetryState v-else-if="query.isError.value" class="panel" :error="query.error.value" @retry="query.refetch()" />
+  <RetryState v-else-if="query.isError.value" class="panel" :error="query.error.value" />
   <template v-else-if="query.data.value">
     <section class="summary-strip" aria-label="平台关键数据">
       <div><span>用户总数</span><strong>{{ query.data.value.counts.users }}</strong><small>近 7 日 +{{ query.data.value.counts.new_users_7d }}</small></div>
@@ -77,5 +78,5 @@ function openSearch() { window.dispatchEvent(new CustomEvent('admin:open-search'
 </template>
 
 <style scoped>
-.dashboard-search{min-height:64px;display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:12px;padding:10px 16px;color:var(--muted-ink);text-align:left;background:white;border:1px solid var(--line);border-radius:10px}.dashboard-search:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost),transparent 68%);outline-offset:2px}.dashboard-search strong,.dashboard-search small{display:block}.dashboard-search strong{color:var(--ink)}.dashboard-search small{margin-top:2px}.dashboard-primary,.dashboard-side{display:grid;align-content:start;gap:16px}.summary-strip small{color:var(--muted-ink);font-size:.72rem}.panel-heading a{display:inline-flex;align-items:center;gap:5px;color:var(--sky-lost-strong);font-weight:650}.simple-dashboard-list,.attention-list,.audit-feed{display:grid}.simple-dashboard-list a,.attention-list a{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line)}.simple-dashboard-list a:last-child,.attention-list a:last-child,.audit-feed>div:last-child{border-bottom:0}.simple-dashboard-list strong,.simple-dashboard-list small{display:block}.simple-dashboard-list small,.audit-feed span{color:var(--muted-ink);font-size:.76rem}.attention-list strong{color:var(--danger);font-variant-numeric:tabular-nums}.attention-clear{margin:0;padding:16px;color:var(--success)}.audit-feed>div{display:grid;gap:3px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.dashboard-search{min-height:64px;justify-content:stretch;padding:10px 16px;color:var(--muted-ink);text-align:left}.dashboard-search :deep(.n-button__content){width:100%;display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:12px}.dashboard-search strong,.dashboard-search small{display:block}.dashboard-search strong{color:var(--ink)}.dashboard-search small{margin-top:2px}.dashboard-primary,.dashboard-side{display:grid;align-content:start;gap:16px}.summary-strip small{color:var(--muted-ink);font-size:.72rem}.panel-heading a{display:inline-flex;align-items:center;gap:5px;color:var(--sky-lost-strong);font-weight:650}.simple-dashboard-list,.attention-list,.audit-feed{display:grid}.simple-dashboard-list a,.attention-list a{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line)}.simple-dashboard-list a:last-child,.attention-list a:last-child,.audit-feed>div:last-child{border-bottom:0}.simple-dashboard-list strong,.simple-dashboard-list small{display:block}.simple-dashboard-list small,.audit-feed span{color:var(--muted-ink);font-size:.76rem}.attention-list strong{color:var(--danger);font-variant-numeric:tabular-nums}.attention-clear{margin:0;padding:16px;color:var(--success)}.audit-feed>div{display:grid;gap:3px;padding:13px 16px;border-bottom:1px solid var(--line)}
 </style>

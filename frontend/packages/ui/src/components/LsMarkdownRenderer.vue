@@ -4,6 +4,7 @@ import type { EntityResolve, EntitySummary } from '../markdown'
 import { Users } from '@lucide/vue'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
+import { NButton } from 'naive-ui'
 import { computed, nextTick, ref, useId, watch } from 'vue'
 import { entityTypeTone } from '../entity'
 import LsEntityCard from './LsEntityCard.vue'
@@ -120,7 +121,7 @@ function startChat() {
       @clear="closeSelected"
       @profile="openProfile"
     />
-    <aside v-else-if="selected" :id="detailsId" class="unavailable-card" role="status"><Users :size="19" /><span>对象不可用 · @{{ selected.slug }}</span><button type="button" aria-label="关闭对象信息" @click="closeSelected">×</button></aside>
+    <aside v-else-if="selected" :id="detailsId" class="unavailable-card" role="status"><Users :size="19" /><span>对象不可用 · @{{ selected.slug }}</span><NButton quaternary circle aria-label="关闭对象信息" @click="closeSelected">×</NButton></aside>
   </div>
 </template>
 

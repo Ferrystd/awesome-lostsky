@@ -1,5 +1,7 @@
 # Team 应用
 
+界面专属约束见[后台设计规范：Team](../design/admin/applications.md#team)；公共组件、状态和响应式规则不在本页重复。
+
 Team 是团队工作台的核心应用，负责成员资料、角色权限、团队配置、文件、文档、通知和加入审核。除加入申请的访客入口外，业务接口都以当前团队上下文为边界。
 
 ## 业务领域
@@ -97,6 +99,10 @@ Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `sco
 团队文档由 `Document` 服务统一处理，可以归属于本团队任意有效实体，并支持管理范围、可见性、指定实体、排序和关键词筛选。`team.document.read` 表示文档全量读取；没有该权限仍可进入文档页，但只返回当前 Entity 按可见性可读取的文档。
 
 所有文档入口都经过 `JwtAuth`、`Context`、`TeamAuth` 和 `Ability:doc`；归属与指定可见对象只接受全局 `entity_id`。
+
+## 前端列表约束
+
+实体与成员列表的主体操作必须复用 `LsResponsiveActions`，显示为透明、无边框的图标加文字；创建、提交和确认仍使用命令按钮。成员状态通过 `LsEntityIdentity` 的 `status` 插槽紧随名称，客户空目录使用 `LsAsyncState` 呈现标题和说明。公共规则正文见[后台组件规范](../design/admin/components.md)与[后台页面模式](../design/admin/patterns.md)，本节只登记 Team 的落点，不复制公共参数。
 
 ## 控制器约定
 

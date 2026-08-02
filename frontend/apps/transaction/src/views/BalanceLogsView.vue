@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { History } from '@lucide/vue'
+import { NPagination } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
@@ -12,7 +13,7 @@ const route = useRoute()
 const customerId = computed(() => Number(route.query.customer_id || 0))
 const page = ref(1)
 const options = useQuery({ queryKey: ['transaction-options'], queryFn: () => api.get<TransactionOptions>('/transaction/options') })
-const customer = computed(() => options.data.value?.customers.find(item => Number(item.id) === customerId.value))
+const customer = computed(() => (options.data.value?.customers ?? []).find(item => Number(item.id) === customerId.value))
 const query = useQuery({
   queryKey: computed(() => ['balance-logs', customerId.value, page.value]),
   queryFn: () => api.get<Pagination<BalanceLog>>('/transaction/balance/logs', { customer_id: customerId.value, page: page.value, limit: 20 }),
@@ -30,9 +31,9 @@ const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.tota
     <p v-if="!customerId" class="feedback error">缺少客户 ID。</p>
     <p v-else-if="query.isError.value" class="feedback error" role="alert">{{ friendlyError(query.error.value) }}</p>
     <div v-else-if="query.isPending.value" class="loading-list"><span v-for="i in 5" :key="i" /></div>
-    <section v-else-if="!query.data.value?.list.length" class="empty"><History :size="34" /><h3>还没有余额变动</h3><p>充值或使用预存款后，记录会出现在这里。</p></section>
+    <LsEmptyState v-else-if="!query.data.value?.list.length" title="还没有余额变动" description="充值或使用预存款后，记录会出现在这里。" />
     <div v-else class="table-wrap"><table class="data-table"><thead><tr><th>时间</th><th>类型</th><th>金额</th><th>变动后余额</th><th>备注</th></tr></thead><tbody><tr v-for="item in query.data.value.list" :key="item.id"><td>{{ dateTime(item.create_time) }}</td><td>{{ balanceLogType(item.type) }}</td><td :class="Number(item.amount) >= 0 ? 'amount-positive' : 'amount-negative'">{{ Number(item.amount) >= 0 ? '+' : '' }}{{ money(item.amount) }}</td><td class="ls-tabular">{{ money(item.balance_after) }}</td><td>{{ item.memo || '—' }}</td></tr></tbody></table></div>
-    <div v-if="query.data.value?.total" class="pager"><span>共 {{ query.data.value.total }} 条</span><div class="pager-actions"><button :disabled="page <= 1" @click="page--">上一页</button><button :disabled="page >= pages" @click="page++">下一页</button></div></div>
+    <div v-if="query.data.value?.total" class="pager"><span>共 {{ query.data.value.total }} 条</span><NPagination v-model:page="page" :page-count="pages" /></div>
   </div>
 </template>
 

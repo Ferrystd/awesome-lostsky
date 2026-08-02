@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { goToSafeRedirect } from '@lostsky/shared/navigation'
-import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { ArrowLeft, BadgeCheck, Building2, Bot, ShieldUser, UserRound } from '@lucide/vue'
-import { NButton, NConfigProvider, NSkeleton } from 'naive-ui'
+import { NButton, NSkeleton } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -52,7 +52,6 @@ function label(type: Identity['type']) {
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme">
     <main class="identity-page">
       <a class="back" href="/teams"><ArrowLeft :size="18" />返回团队列表</a>
       <header>
@@ -82,7 +81,6 @@ function label(type: Identity['type']) {
         </section>
         <section v-else-if="candidates.isError.value" class="state error" role="alert">
           <p>{{ friendlyError(candidates.error.value) }}</p>
-          <NButton @click="candidates.refetch()">重试</NButton>
         </section>
         <section v-else-if="orderedCandidates.length" class="identity-list" aria-label="可领取身份">
           <article v-for="item in orderedCandidates" :key="item.slug" :class="{ targeted: item.slug === targetSlug }">
@@ -97,14 +95,14 @@ function label(type: Identity['type']) {
             </NButton>
           </article>
         </section>
-        <section v-else class="state empty">
-          <h2>{{ activeEntity ? '暂无可切换身份' : '暂无可领取身份' }}</h2>
-          <p>{{ activeEntity ? '当前实体尚未获得任何团队授予的身份委托权限。' : '成员或客户需先完成全局 slug 设置，才能作为根身份领取。' }}</p>
-        </section>
+        <LsEmptyState
+          v-else
+          :title="activeEntity ? '暂无可切换身份' : '暂无可领取身份'"
+          :description="activeEntity ? '当前实体尚未获得任何团队授予的身份委托权限。' : '成员或客户需先完成全局 slug 设置，才能作为根身份领取。'"
+        />
         <p v-if="receive.isError.value" class="error" role="alert">{{ friendlyError(receive.error.value) }}</p>
       </div>
     </main>
-  </NConfigProvider>
 </template>
 
 <style scoped>

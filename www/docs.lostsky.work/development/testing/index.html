@@ -534,6 +534,280 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台设计规范
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  后台设计规范
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台设计规范
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/foundations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台基础令牌
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台公共组件
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台页面模式
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/states-and-access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  状态、权限与能力
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/responsive-accessibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  响应式与无障碍
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台应用与页面规则
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台前端完成定义
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../overview/" class="md-nav__link">
         
@@ -1920,6 +2194,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#e2e" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        前端 E2E 域名与就绪检查
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2428,6 +2713,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#e2e" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        前端 E2E 域名与就绪检查
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2541,6 +2837,9 @@
 </ol>
 <p>目标库已经核对清楚且用户已授权时，应继续执行补丁、fixture 和测试数据清理验证；数据库保护步骤不是默认跳过写入的理由。只有目标库仍不明确、疑似生产环境或缺少授权时才停止。</p>
 <p>测试数据使用现有 fixture,推荐调用(生产环境慎用) <a href="../../operations/console/"><code>service:call</code></a>；写调用前先阅读服务实现。E2E 域名按<a href="../development/">开发须知</a>配置。</p>
+<h2 id="e2e">前端 E2E 域名与就绪检查<a class="headerlink" href="#e2e" title="Permanent link">&para;</a></h2>
+<p>Playwright 的开发服务器就绪地址必须使用 <code>127.0.0.1:&lt;端口&gt;</code>，不得依赖开发机 hosts、公共 DNS 或系统代理判断本地服务是否启动；浏览器进程通过 <code>--host-resolver-rules</code> 将测试所需的 LostSky 业务域名显式映射到 <code>127.0.0.1</code>。新增后台应用或测试子域名时，必须在同一变更中增加本地 webServer、浏览器映射和对应路由用例。桌面与移动项目使用相同映射；服务器启动失败属于测试基础设施失败，不得通过延长断言超时掩盖。</p>
+<p>检查方法：在没有自定义 hosts 的环境运行 <code>npm run test:e2e</code>；就绪探测只访问 <code>127.0.0.1</code>，浏览器地址栏和请求仍保持真实业务域名，以继续覆盖 cookie、子域隔离和跨应用跳转。</p>
 
 
 

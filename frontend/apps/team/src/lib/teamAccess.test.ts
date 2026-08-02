@@ -36,10 +36,10 @@ describe('team access helpers', () => {
 
   it('reports upload Permission only after File Ability is available', () => {
     const value = snapshot()
-    value.abilities.file!.enabled = true
+    value.abilities!.file!.enabled = true
     expect(fileUploadReason(value)).toBe('缺少权限(Permission): file.upload')
 
-    value.permissions.push('file.upload')
+    value.permissions!.push('file.upload')
     expect(fileUploadReason(value)).toBe('')
     expect(hasPermission(value, 'file.upload')).toBe(true)
   })

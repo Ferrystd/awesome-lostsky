@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import LsSearchInput from '@lostsky/ui/components/LsSearchInput.vue'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { CirclePlus, ListChecks, SlidersHorizontal } from '@lucide/vue'
-import { NButton, NDatePicker, NSelect } from 'naive-ui'
+import { CirclePlus, SlidersHorizontal } from '@lucide/vue'
+import { NButton, NDatePicker, NPagination, NSelect } from 'naive-ui'
 import { computed, reactive } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
 import { customerName, customerOptions, dateTime, entityName, entityOptions, money, transactionType } from '../lib'
@@ -54,23 +55,23 @@ function reset() {
       </template>
     </PageHeader>
 
-    <section class="filters panel" aria-label="筛选流水">
-      <LsSearchInput v-model="filters.keyword" placeholder="搜索客户昵称" aria-label="搜索流水客户" @update:model-value="filters.page = 1" />
+    <LsListToolbar v-model="filters.keyword" placeholder="搜索客户昵称" aria-label="搜索流水客户" :count-label="`${query.data.value?.total ?? 0} 条流水`" @update:model-value="filters.page = 1">
+      <template #filters>
       <NDatePicker v-model:value="filters.range" type="daterange" clearable start-placeholder="开始日期" end-placeholder="结束日期" @update:value="filters.page = 1" />
       <NSelect v-model:value="filters.type" :options="typeOptions" clearable placeholder="全部类型" @update:value="filters.page = 1" />
       <NSelect v-model:value="filters.handler_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable placeholder="全部接单人" @update:value="filters.page = 1" />
       <NSelect v-model:value="filters.customer_id" :options="customerOptions(optionsQuery.data.value)" filterable clearable placeholder="全部客户" @update:value="filters.page = 1" />
-      <NButton v-if="hasFilters" secondary @click="reset"><SlidersHorizontal :size="17" />清除筛选</NButton>
-    </section>
+      </template>
+      <template v-if="hasFilters" #actions><NButton secondary @click="reset"><SlidersHorizontal :size="17" />清除筛选</NButton></template>
+    </LsListToolbar>
 
     <p v-if="query.isError.value" class="feedback error" role="alert">{{ friendlyError(query.error.value) }}</p>
     <div v-else-if="query.isPending.value" class="loading-list"><span v-for="i in 6" :key="i" /></div>
-    <section v-else-if="!rows.length" class="empty">
-      <ListChecks :size="34" />
-      <h3>{{ hasFilters ? '没有匹配的流水' : '还没有流水' }}</h3>
-      <p>{{ hasFilters ? '调整筛选条件后再试。' : '登记第一笔流水后，这里会按交易时间展示记录。' }}</p>
-      <RouterLink v-if="!hasFilters" class="primary-link" to="/new">登记第一笔流水</RouterLink>
-    </section>
+    <LsEmptyState
+      v-else-if="!rows.length"
+      :title="hasFilters ? '没有匹配的流水' : '还没有流水'"
+      :description="hasFilters ? '调整筛选条件后再试。' : '登记第一笔流水后，这里会按交易时间展示记录。'"
+    />
     <div v-else class="table-wrap">
       <table class="data-table">
         <thead><tr><th>时间 / 类型</th><th>客户</th><th>接单人</th><th>支付构成</th><th>总价</th><th>操作</th></tr></thead>
@@ -88,10 +89,7 @@ function reset() {
     </div>
     <div v-if="query.data.value && Number(query.data.value.total) > 0" class="pager">
       <span>共 {{ query.data.value.total }} 条，第 {{ filters.page }} / {{ pages }} 页</span>
-      <div class="pager-actions">
-        <button type="button" :disabled="filters.page <= 1" @click="filters.page--">上一页</button>
-        <button type="button" :disabled="filters.page >= pages" @click="filters.page++">下一页</button>
-      </div>
+      <NPagination v-model:page="filters.page" :page-count="pages" />
     </div>
   </div>
 </template>

@@ -2,6 +2,7 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Pencil, Trash2 } from '@lucide/vue'
+import { NButton } from 'naive-ui'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
@@ -34,7 +35,7 @@ function confirmDelete() {
     <PageHeader title="流水详情" description="核对参与方、支付构成与分配结果。" back-to="/" back-label="返回流水列表">
       <template v-if="query.data.value?.type === 2" #actions>
         <RouterLink class="secondary-link" :to="`/edit?id=${id}`"><Pencil :size="17" />编辑</RouterLink>
-        <button class="delete-action" type="button" @click="confirmDelete"><Trash2 :size="17" />删除</button>
+        <NButton type="error" secondary @click="confirmDelete"><template #icon><Trash2 :size="17" /></template>删除</NButton>
       </template>
     </PageHeader>
     <p v-if="!id" class="feedback error">缺少流水 ID。</p>
@@ -60,5 +61,5 @@ function confirmDelete() {
 </template>
 
 <style scoped>
-.detail-view{display:grid;gap:1.25rem}.delete-action{min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .9rem;border:1px solid color-mix(in oklch,var(--danger),white 65%);border-radius:9px;color:var(--danger);background:white;font-weight:700}.summary{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding:1.5rem}.summary>div{display:grid}.summary span,.facts span{color:var(--muted-ink);font-size:.78rem}.summary strong{font-size:2rem;line-height:1.2}.summary small{margin-top:.35rem;color:var(--muted-ink)}.summary p{max-width:46ch;margin:0;color:var(--text-secondary);font-size:.875rem}.facts{display:grid;grid-template-columns:repeat(4,1fr)}.facts>div{display:grid;gap:.2rem;padding:1rem;border-right:1px solid var(--line)}.facts>div:last-child{border-right:0}.breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.breakdown article{padding:1.25rem}.breakdown dl{margin:1rem 0 0}.breakdown dl div{display:flex;justify-content:space-between;gap:1rem;padding:.65rem 0;border-bottom:1px solid var(--line)}.breakdown dl div:last-child{border-bottom:0}.breakdown dt{color:var(--muted-ink)}.breakdown dd{margin:0;font-variant-numeric:tabular-nums;font-weight:700}.breakdown .total{color:var(--ink);font-weight:700}@media(max-width:700px){.summary{align-items:flex-start;flex-direction:column;gap:1rem}.facts{grid-template-columns:repeat(2,1fr)}.facts>div:nth-child(2){border-right:0}.facts>div:nth-child(-n+2){border-bottom:1px solid var(--line)}.breakdown{grid-template-columns:1fr}}
+.detail-view{display:grid;gap:1.25rem}.summary{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding:1.5rem}.summary>div{display:grid}.summary span,.facts span{color:var(--muted-ink);font-size:.78rem}.summary strong{font-size:2rem;line-height:1.2}.summary small{margin-top:.35rem;color:var(--muted-ink)}.summary p{max-width:46ch;margin:0;color:var(--text-secondary);font-size:.875rem}.facts{display:grid;grid-template-columns:repeat(4,1fr)}.facts>div{display:grid;gap:.2rem;padding:1rem;border-right:1px solid var(--line)}.facts>div:last-child{border-right:0}.breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.breakdown article{padding:1.25rem}.breakdown dl{margin:1rem 0 0}.breakdown dl div{display:flex;justify-content:space-between;gap:1rem;padding:.65rem 0;border-bottom:1px solid var(--line)}.breakdown dl div:last-child{border-bottom:0}.breakdown dt{color:var(--muted-ink)}.breakdown dd{margin:0;font-variant-numeric:tabular-nums;font-weight:700}.breakdown .total{color:var(--ink);font-weight:700}@media(max-width:700px){.summary{align-items:flex-start;flex-direction:column;gap:1rem}.facts{grid-template-columns:repeat(2,1fr)}.facts>div:nth-child(2){border-right:0}.facts>div:nth-child(-n+2){border-bottom:1px solid var(--line)}.breakdown{grid-template-columns:1fr}}
 </style>

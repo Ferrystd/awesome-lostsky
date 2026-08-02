@@ -17,8 +17,8 @@ export interface TeamAbilityState {
 }
 
 export interface TeamAccessSnapshot {
-  permissions: string[]
-  abilities: Record<string, TeamAbilityState>
+  permissions?: string[]
+  abilities?: Record<string, TeamAbilityState>
 }
 
 export function useTeamAccess() {
@@ -26,6 +26,5 @@ export function useTeamAccess() {
     queryKey: ['team-access'],
     queryFn: () => api.get<TeamAccessSnapshot>('/access'),
     staleTime: 30_000,
-    retry: false,
   })
 }

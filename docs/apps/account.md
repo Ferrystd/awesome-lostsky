@@ -1,5 +1,7 @@
 # Account 应用
 
+界面专属约束见[后台设计规范：Account](../design/admin/applications.md#account)；认证流程保持专属布局，但主题、控件和主体识别遵守公共规范。
+
 Account 是不依赖团队上下文的账户入口，负责统一账号、设备会话以及用户可访问的团队。当前无团队应用配置见 [`config/app.php`](../../config/app.php) 的 `teamless_apps`。
 
 ## 业务职责

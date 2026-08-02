@@ -155,8 +155,8 @@ router.beforeEach(async (to) => {
           expiresAt: Date.now() + 30_000,
         }
       }
-      const state = routeAccess.value.abilities.doc
-      if (!state?.enabled) {
+      const state = routeAccess.value.abilities?.doc
+      if (state && !state.enabled) {
         feedback.warning(abilityReason('doc', state?.label ?? '文档'))
         return '/'
       }

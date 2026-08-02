@@ -534,6 +534,280 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台设计规范
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+  后台设计规范
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台设计规范
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/foundations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台基础令牌
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台公共组件
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台页面模式
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/states-and-access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  状态、权限与能力
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/responsive-accessibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  响应式与无障碍
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台应用与页面规则
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/admin/checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台前端完成定义
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../overview/" class="md-nav__link">
         
@@ -2544,18 +2818,19 @@
 <h2 id="_2">开始前<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <ul>
 <li>阅读对应 <a href="../../openapi/">OpenAPI</a>、<a href="../../product/">产品定义</a>和<a href="../../design/">设计系统</a>。</li>
+<li>后台改动必须继续阅读<a href="../../design/admin/">后台设计规范</a>、对应应用条目和<a href="../../design/admin/checklist/">完成定义</a>。任何未来仍需遵守、复用、解释或验收的规则，无论跨应用、单应用或单页面，都必须先更新 Wiki；组件默认值、代码、测试和口头约定不能替代规范正文。</li>
 <li>使用 <code>karpathy-guidelines</code> 控制范围，<code>impeccable</code> 负责设计，<code>ui-ux-pro-max</code> 只做专项检查；不得使用 <code>lostsky-frontend</code>。</li>
 </ul>
 <h2 id="_3">实现<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <ul>
-<li>标准控件使用 Naive UI 和 <code>frontend/packages/ui/src/naive-theme.ts</code>。</li>
+<li>标准控件只使用 Naive UI 2.44.1 和 <code>@lostsky/ui</code>；不得引入 PrimeVue 或复制 shadcn-vue 组件。完整边界见<a href="../../design/admin/components/">公共组件</a>。</li>
 <li>API、鉴权与错误归入 <code>@lostsky/api</code>；通用 UI 归入 <code>@lostsky/ui</code>；导航与无界面工具归入 <code>@lostsky/shared</code>。</li>
 <li>列表搜索与筛选优先复用 <code>LsSearchInput.vue</code> 和 <code>LsListToolbar.vue</code>，同一对象的选择搜索应展示名称、Slug、类型和全局标识，不退化为要求精确输入 Slug 的普通文本框。</li>
 <li>保存、删除、权限/能力原因等短时操作反馈统一通过 <code>@lostsky/ui/feedback</code>；默认自动消失并抑制短时间重复消息。字段校验和可恢复的加载错误仍靠近问题展示，不以全局提示替代。</li>
 <li>请求通过 <code>@lostsky/api/client</code>，登录回跳使用 <code>@lostsky/shared/navigation</code>。</li>
 <li>能使用 Markdown 的地方都使用 Markdown。编辑端统一使用 <code>LsMarkdownEditor.vue</code>，展示端统一使用 <code>LsMarkdownRenderer.vue</code>、<code>marked</code> 和 DOMPurify；列表等紧凑场景只显示去除语法后的纯文本摘要，新增来源时同步后端引用与清理。</li>
 <li>枚举表单复用同一组选项，并通过 <code>enumOptionValue()</code> 兼容回填值。</li>
-<li>团队后台使用 <code>AdminPage.vue</code> 与 <code>AdminPageHeader.vue</code>；查看、创建、编辑和审核使用独立路由。</li>
+<li>后台页面使用 <code>LsPage</code>、<code>LsPageHeader</code>、<code>LsWorkspaceHeader</code> 等公共组件；Team 的历史适配组件只允许做无样式薄包装。查看、创建、编辑和审核使用独立路由。</li>
 <li>交互覆盖键盘、触控、加载、空、错误、禁用和 <code>prefers-reduced-motion</code>。</li>
 <li>后台动效复用 <code>@lostsky/ui/styles.css</code> 的 <code>--motion-*</code>、<code>--ease-*</code> 和 <code>ls-state</code>、<code>ls-popover</code>、<code>ls-list</code>、<code>ls-backdrop</code> 过渡；只动画 <code>transform</code>、<code>opacity</code> 与必要的颜色/边框，不为列表首次渲染添加 <code>appear</code>，不在页面内另造时长与缓动。</li>
 <li>一律使用<code>//</code>,不使用<code>http://</code>,<code>https://</code></li>

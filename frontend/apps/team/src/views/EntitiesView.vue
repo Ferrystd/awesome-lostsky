@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { MessageCircleMore } from '@lucide/vue'
+import { MessageCircleMore, Pencil } from '@lucide/vue'
 import { NSelect, NSpin } from 'naive-ui'
 import { computed, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { hasPermission, useTeamAccess } from '../lib/teamAccess'
 
@@ -18,7 +22,9 @@ type Entity = {
 }
 
 const type = ref<string | null>(null)
+const search = ref('')
 const access = useTeamAccess()
+const router = useRouter()
 const canManage = computed(() => hasPermission(access.data.value, 'team.entity.profile.manage'))
 const query = useQuery({
   queryKey: computed(() => ['entities', type.value]),
@@ -37,44 +43,46 @@ const options = [
   { label: '全部实体', value: '' },
   ...Object.entries(labels).map(([value, label]) => ({ label, value })),
 ]
+const rows = computed(() => {
+  const keyword = search.value.trim().toLocaleLowerCase()
+  const list = query.data.value?.list ?? []
+  return keyword ? list.filter(entity => `${entity.profile?.name ?? ''} ${entity.slug} ${labels[entity.entityable_type] ?? ''}`.toLocaleLowerCase().includes(keyword)) : list
+})
+function entityActions(entity: Entity) {
+  return [
+    { key: 'chat', label: '对话', icon: MessageCircleMore },
+    { key: 'manage', label: canManage.value ? '管理' : '查看', icon: Pencil },
+  ]
+}
+function handleAction(key: string, entity: Entity) {
+  if (key === 'chat') window.location.href = chatWorkspaceUrl('/new', { participant: entity.slug })
+  else void router.push({ path: '/entity', query: { id: entity.id } })
+}
 </script>
 
 <template>
   <div class="entities-view">
     <AdminPageHeader title="实体" description="浏览团队、成员、客户与虚拟实体。具有全量读取权限时也会列出团队内隐藏实体。" />
-    <label class="filter"><span>实体类型</span><NSelect v-model:value="type" :options="options" clearable /></label>
+    <LsListToolbar v-model="search" placeholder="搜索实体名称或 slug" aria-label="搜索实体" :count-label="`${rows.length} 个实体`"><template #filters><NSelect v-model:value="type" :options="options" clearable placeholder="全部类型" /></template></LsListToolbar>
     <NSpin v-if="query.isPending.value" size="large" />
     <p v-else-if="query.isError.value" class="feedback" role="alert">{{ friendlyError(query.error.value) }}</p>
+    <LsEmptyState v-else-if="!rows.length" title="没有可查看的实体" description="调整搜索词或实体类型筛选后查看。" />
     <div v-else class="entity-list">
       <article
-        v-for="entity in query.data.value?.list ?? []"
+        v-for="entity in rows"
         :key="entity.id"
         class="entity-row"
       >
         <RouterLink :to="{ path: '/entity', query: { id: entity.id } }" class="entity-main">
-          <span class="avatar">{{ entity.profile?.name?.slice(0, 1) || '—' }}</span>
-          <span>
-            <strong>{{ entity.profile?.name || '未命名实体' }}</strong>
-            <small>
-              {{ labels[entity.entityable_type] }} · @{{ entity.slug }}
-              <em v-if="entity.entityable_type !== 'team' && Number(entity.is_internal_visible) !== 1">团队内隐藏</em>
-            </small>
-          </span>
+          <LsEntityIdentity :type="entity.entityable_type as 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'" :name="entity.profile?.name || '未命名实体'" :slug="entity.slug" :image-url="entity.profile?.avatar" />
         </RouterLink>
-        <nav :aria-label="`${entity.profile?.name || entity.slug} 操作`">
-          <a
-            :href="chatWorkspaceUrl('/new', { participant: entity.slug })"
-            :aria-label="`与 ${entity.profile?.name || entity.slug} 对话`"
-          ><MessageCircleMore :size="17" /><span>对话</span></a>
-          <RouterLink :to="{ path: '/entity', query: { id: entity.id } }">{{ canManage ? '管理' : '查看' }}</RouterLink>
-        </nav>
+        <LsResponsiveActions :actions="entityActions(entity)" primary-key="manage" @select="handleAction($event, entity)" />
       </article>
-      <p v-if="!query.data.value?.list?.length" class="empty">当前筛选下没有可查看的实体。</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-.entities-view{display:grid;gap:22px}.filter{display:grid;gap:7px;max-width:22rem}.filter span{font-size:.875rem;font-weight:650;color:var(--text-secondary)}.entity-list{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface)}.entity-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;min-height:76px;padding:8px 12px 8px 16px;border-bottom:1px solid var(--border)}.entity-row:last-of-type{border-bottom:0}.entity-row:hover{background:var(--surface-subtle)}.entity-main{min-width:0;min-height:56px;display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:center;color:inherit;text-decoration:none}.entity-row strong,.entity-row small{display:block}.entity-row small{margin-top:3px;color:var(--text-secondary)}.entity-row small em{margin-left:.45rem;padding:.1rem .35rem;color:var(--muted-ink);background:var(--cloud);border-radius:999px;font-size:.68rem;font-style:normal}.entity-row nav{display:flex;align-items:center;gap:.25rem}.entity-row nav a{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;padding:0 .65rem;color:var(--primary);border-radius:8px;font-size:.82rem;font-weight:650}.entity-row nav a:hover{background:color-mix(in oklch,var(--sky-lost),white 90%)}.avatar{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--surface-subtle);color:var(--primary);font-weight:700}.feedback{color:var(--danger)}.empty{padding:28px 16px;margin:0;color:var(--text-secondary)}
+.entities-view{display:grid;gap:22px}.filter{display:grid;gap:7px;max-width:22rem}.filter span{font-size:.875rem;font-weight:650;color:var(--text-secondary)}.entity-list{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface)}.entity-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;min-height:76px;padding:8px 12px 8px 16px;border-bottom:1px solid var(--border);transition:background-color var(--motion-fast) var(--ease-standard)}.entity-row:last-of-type{border-bottom:0}.entity-row:hover{background:var(--surface-subtle)}.entity-main{min-width:0;min-height:56px;display:grid;align-items:center;color:inherit;text-decoration:none}.feedback{color:var(--danger)}.empty{padding:28px 16px;margin:0;color:var(--text-secondary)}
 @media(max-width:560px){.entity-row{grid-template-columns:minmax(0,1fr)}.entity-row nav{justify-content:flex-end;padding-top:.25rem;border-top:1px solid var(--border)}}
 </style>

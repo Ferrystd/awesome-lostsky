@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
-import { Upload } from '@lucide/vue'
-import { NCheckbox, NInput, NInputNumber, NSelect, NSwitch } from 'naive-ui'
+import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
+import { NCheckbox, NDatePicker, NInput, NInputNumber, NSelect, NSwitch } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 
 export interface EntityFieldDefinition {
@@ -240,32 +240,25 @@ function submit() {
           :precision="field.value_type === 'int' ? 0 : undefined"
           class="number-input"
         />
-        <div v-else-if="field.input_type === 'upload'" class="upload-control">
-          <NInput
-            v-model:value="values[field.id] as string"
-            :aria-label="`${field.name}文件地址`"
-            :aria-describedby="`entity-field-${field.id}-label`"
-            :placeholder="`文件地址或上传${field.name}`"
-          />
-          <label>
-            <Upload :size="16" aria-hidden="true" />
-            {{ uploading === field.id ? '上传中…' : '上传' }}
-            <input
-              type="file"
-              :aria-label="`上传${field.name}`"
-              :disabled="Boolean(uploading)"
-              @change="upload(field, $event)"
-            >
-          </label>
-        </div>
-        <input
+        <LsUploadField
+          v-else-if="field.input_type === 'upload'"
+          :model-value="String(values[field.id] ?? '')"
+          :placeholder="`文件地址或上传${field.name}`"
+          :loading="uploading === field.id"
+          :disabled="Boolean(uploading)"
+          @update:model-value="value => values[field.id] = value"
+          @change="upload(field, $event)"
+        />
+        <NDatePicker
           v-else-if="field.value_type === 'date' || field.value_type === 'datetime'"
-          v-model="values[field.id] as string"
-          :type="field.value_type === 'date' ? 'date' : 'datetime-local'"
+          :formatted-value="typeof values[field.id] === 'string' && values[field.id] ? values[field.id] as string : null"
+          :type="field.value_type === 'date' ? 'date' : 'datetime'"
+          :value-format="field.value_type === 'date' ? 'yyyy-MM-dd' : 'yyyy-MM-dd HH:mm:ss'"
           :aria-label="field.name"
           :aria-describedby="`entity-field-${field.id}-label`"
-          class="native-input"
-        >
+          clearable
+          @update:formatted-value="value => values[field.id] = value"
+        />
         <NInput
           v-else
           v-model:value="values[field.id] as string"
@@ -281,6 +274,6 @@ function submit() {
 </template>
 
 <style scoped>
-.entity-fields-card{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.entity-fields-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.entity-fields-card h2,.entity-fields-card p{margin:0}.entity-fields-card h2{font-size:1.05rem}.entity-fields-card header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.field-list{border-top:1px solid var(--line)}.field-row{display:grid;grid-template-columns:minmax(9rem,.36fr) minmax(0,1fr);align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}.field-label{display:grid;gap:.2rem}.field-label>span{font-size:.875rem;font-weight:680}.field-label b{color:var(--danger)}.field-label small,.readonly-value small{color:var(--muted-ink);font-size:.75rem}.readonly-value{min-width:0;display:grid;gap:.2rem;overflow-wrap:anywhere;color:var(--ink);line-height:1.55}.readonly-value small{font-weight:500}.number-input{width:100%}.native-input{width:100%;min-height:44px;padding:.55rem .75rem;color:var(--ink);background:white;border:1px solid var(--line);border-radius:8px;font:inherit}.native-input:focus{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 84%);border-color:var(--sky-lost-strong)}.choice-list{display:flex;flex-wrap:wrap;gap:.75rem 1rem}.upload-control{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem}.upload-control>label{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;padding:0 .85rem;color:var(--ink);background:white;border:1px solid var(--line);border-radius:8px;font-size:.875rem;font-weight:650;cursor:pointer}.upload-control input{position:absolute;width:1px;height:1px;opacity:0}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}.feedback{padding:.75rem;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}
+.entity-fields-card{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.entity-fields-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.entity-fields-card h2,.entity-fields-card p{margin:0}.entity-fields-card h2{font-size:1.05rem}.entity-fields-card header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.field-list{border-top:1px solid var(--line)}.field-row{display:grid;grid-template-columns:minmax(9rem,.36fr) minmax(0,1fr);align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}.field-label{display:grid;gap:.2rem}.field-label>span{font-size:.875rem;font-weight:680}.field-label b{color:var(--danger)}.field-label small,.readonly-value small{color:var(--muted-ink);font-size:.75rem}.readonly-value{min-width:0;display:grid;gap:.2rem;overflow-wrap:anywhere;color:var(--ink);line-height:1.55}.readonly-value small{font-weight:500}.number-input{width:100%}.choice-list{display:flex;flex-wrap:wrap;gap:.75rem 1rem}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}.feedback{padding:.75rem;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}
 @media(max-width:639px){.entity-fields-card{padding:1rem}.entity-fields-card>header{align-items:stretch;flex-direction:column}.entity-fields-card>header :deep(.ls-button){width:100%}.field-row{grid-template-columns:1fr;gap:.65rem}.upload-control{grid-template-columns:1fr}.upload-control>label{justify-content:center}}
 </style>

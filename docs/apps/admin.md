@@ -1,5 +1,7 @@
 # Admin 应用
 
+界面专属约束见[后台设计规范：Admin](../design/admin/applications.md#admin)；公共组件、状态和响应式规则不在本页重复。
+
 Admin 是不依赖团队上下文的平台治理后台，前端入口为 `admin.lostsky.work`。它管理 LostSky 平台本身，不代替 Team 应用处理团队内容。
 
 ## 业务职责

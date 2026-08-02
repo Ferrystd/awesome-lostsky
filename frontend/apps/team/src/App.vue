@@ -1,11 +1,20 @@
 <script setup lang="ts">
+import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { setLucideProps } from '@lucide/vue'
+import { NConfigProvider, NDialogProvider, NMessageProvider, zhCN } from 'naive-ui'
 import { RouterView, useRoute } from 'vue-router'
 import TeamShell from './components/TeamShell.vue'
 import AdminPage from './components/AdminPage.vue'
 import { computed } from 'vue'
-setLucideProps({})
+setLucideProps({ strokeWidth: 1.8 })
 const route = useRoute()
 const pageWidth = computed<'wide' | 'content' | 'form'>(() => ['content', 'form'].includes(String(route.meta.pageWidth)) ? route.meta.pageWidth as 'content' | 'form' : 'wide')
 </script>
-<template><TeamShell v-if="!route.meta.public"><AdminPage :width="pageWidth"><RouterView /></AdminPage></TeamShell><RouterView v-else /></template>
+<template>
+  <NConfigProvider :theme-overrides="lostskyNaiveTheme" :locale="zhCN">
+    <NDialogProvider><NMessageProvider>
+      <TeamShell v-if="!route.meta.public"><AdminPage :width="pageWidth"><RouterView /></AdminPage></TeamShell>
+      <RouterView v-else />
+    </NMessageProvider></NDialogProvider>
+  </NConfigProvider>
+</template>

@@ -1,5 +1,7 @@
 # Chat 应用
 
+界面专属约束见[后台设计规范：Chat](../design/admin/applications.md#chat)；会话布局保留专属模式，但主题、控件和主体识别遵守公共规范。
+
 Chat 只负责团队会话、消息、参与身份选择、实时订阅和 Webhook 运行时。统一实体字段定义、虚拟实体和 Webhook 集成的管理入口属于 Team 应用；客户资料由 Shop 顾客中心维护，成员资料由 Team 维护，身份领取与切换由 Account 维护。Chat OpenAPI 只保留聊天运行时接口。
 
 ## 身份与鉴权边界

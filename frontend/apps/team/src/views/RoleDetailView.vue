@@ -3,7 +3,6 @@ import { api, friendlyError } from '@lostsky/api/client'
 import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
 import { feedback } from '@lostsky/ui/feedback'
-import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Save, Trash2, X } from '@lucide/vue'
 import {
@@ -11,7 +10,6 @@ import {
   NCheckbox,
   NCollapse,
   NCollapseItem,
-  NConfigProvider,
   NForm,
   NFormItem,
   NInput,
@@ -179,7 +177,6 @@ function selectTargetEntities(entities: EntityDisplay[]) {
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme">
     <div class="role-detail">
       <AdminPageHeader
         :title="roleQuery.data.value?.name || '编辑角色权限'"
@@ -256,7 +253,7 @@ function selectTargetEntities(entities: EntityDisplay[]) {
             <h4>精确委托</h4>
             <div v-for="key in exactAssumeKeys" :key="key">
               <span><strong>@{{ key.split('.')[2] }}</strong><code>{{ key }}</code></span>
-              <button type="button" :aria-label="`移除 ${key}`" @click="togglePermission(key, false)"><X :size="18" /></button>
+              <NButton quaternary circle :aria-label="`移除 ${key}`" @click="togglePermission(key, false)"><template #icon><X :size="18" /></template></NButton>
             </div>
           </div>
 
@@ -282,7 +279,6 @@ function selectTargetEntities(entities: EntityDisplay[]) {
         </section>
       </template>
     </div>
-  </NConfigProvider>
 </template>
 
 <style scoped>

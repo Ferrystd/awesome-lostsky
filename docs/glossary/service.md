@@ -173,7 +173,7 @@
 | `setDisplay` | `int $teamId`、`int $entityId`、`mixed $isDisplayed` | `void` |
 | `setInternalVisibility` | `int $teamId`、`int $entityId`、`mixed $isInternalVisible` | `void` |
 | `search` | `string $keyword`、`int $limit`、`int $userId` | `array` |
-| `resolve` | `array $slugs`、`int $userId` | `array` |
+| `resolve` | `array $slugs`、`int $userId`、`int $teamId = 0` | `array` |
 
 ## EntityProfile
 

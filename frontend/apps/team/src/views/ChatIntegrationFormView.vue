@@ -2,10 +2,9 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { KeyRound, RotateCw, Trash2 } from '@lucide/vue'
-import { NCheckbox, NCheckboxGroup, NConfigProvider, NInput, NSwitch } from 'naive-ui'
+import { NCheckbox, NCheckboxGroup, NInput, NSwitch } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
@@ -110,7 +109,6 @@ function deleteIntegration() {
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme">
     <div class="integration-form-page">
       <AdminPageHeader
         :title="editing ? '编辑 Webhook 集成' : '创建 Webhook 集成'"
@@ -160,7 +158,6 @@ function deleteIntegration() {
         </div>
       </section>
     </div>
-  </NConfigProvider>
 </template>
 
 <style scoped>

@@ -1,5 +1,7 @@
 # Transaction 应用
 
+界面专属约束见[后台设计规范：Transaction](../design/admin/applications.md#transaction)；公共组件、状态和响应式规则不在本页重复。
+
 Transaction 负责团队记账流水、客户与发单人的绑定关系，以及顾客预存款管理。
 
 ## 业务职责

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import { BookOpen, Clock3, FileText, Pencil, UserRound } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
+import { NTag } from 'naive-ui'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -109,7 +109,6 @@ const back = computed(() => {
     <section v-else-if="query.isError.value" class="state-panel error" role="alert">
       <FileText :size="24" />
       <div><strong>文档加载失败</strong><p>{{ friendlyError(query.error.value) }}</p></div>
-      <LsButton type="button" variant="secondary" @click="query.refetch()">重新加载</LsButton>
     </section>
 
     <section v-else-if="query.isPending.value" class="document-sheet loading" aria-label="正在加载文档">
@@ -123,7 +122,7 @@ const back = computed(() => {
       <header class="document-header">
         <div class="document-kicker">
           <span><BookOpen :size="16" />文档 #{{ id }}</span>
-          <span v-if="visibilityLabel" class="visibility">{{ visibilityLabel }}</span>
+          <NTag v-if="visibilityLabel" size="small" :bordered="false">{{ visibilityLabel }}</NTag>
         </div>
         <h1>{{ title }}</h1>
         <div class="document-meta">

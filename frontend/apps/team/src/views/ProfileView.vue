@@ -2,6 +2,7 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
+import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput } from 'naive-ui'
@@ -164,14 +165,13 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       <label class="field"><span>团队昵称</span><NInput v-model:value="form.nickname" autocomplete="name" maxlength="80" show-count /></label>
       <label class="field">
         <span>头像</span>
-        <div class="upload-field"><NInput v-model:value="form.avatar" placeholder="图片 URL" /><label :class="['upload-action', { disabled: uploadDisabledReason }]" :tabindex="uploadDisabledReason ? 0 : -1" aria-describedby="profile-upload-reason">{{ uploading === 'avatar' ? '上传中…' : '上传图片' }}<input type="file" accept="image/*" :disabled="Boolean(uploadDisabledReason)" @change="upload('avatar', $event)"></label></div>
+        <LsUploadField v-model="form.avatar" placeholder="图片 URL" button-label="上传图片" accept="image/*" :disabled="Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" :loading="uploading === 'avatar'" @change="upload('avatar', $event)" />
       </label>
       <label class="field"><span>简短介绍</span><NInput v-model:value="form.description" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" maxlength="500" show-count /></label>
       <div class="media-row">
-        <label class="field"><span>介绍图片</span><div class="upload-field"><NInput v-model:value="form.intro_image" placeholder="图片 URL" /><label :class="['upload-action', { disabled: uploadDisabledReason }]" :tabindex="uploadDisabledReason ? 0 : -1" aria-describedby="profile-upload-reason">{{ uploading === 'intro_image' ? '上传中…' : '上传' }}<input type="file" accept="image/*" :disabled="Boolean(uploadDisabledReason)" @change="upload('intro_image', $event)"></label></div></label>
-        <label class="field"><span>介绍视频</span><div class="upload-field"><NInput v-model:value="form.intro_video" placeholder="视频 URL" /><label :class="['upload-action', { disabled: uploadDisabledReason }]" :tabindex="uploadDisabledReason ? 0 : -1" aria-describedby="profile-upload-reason">{{ uploading === 'intro_video' ? '上传中…' : '上传' }}<input type="file" accept="video/*" :disabled="Boolean(uploadDisabledReason)" @change="upload('intro_video', $event)"></label></div></label>
+        <label class="field"><span>介绍图片</span><LsUploadField v-model="form.intro_image" placeholder="图片 URL" button-label="上传" accept="image/*" :disabled="Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" :show-reason="false" :loading="uploading === 'intro_image'" @change="upload('intro_image', $event)" /></label>
+        <label class="field"><span>介绍视频</span><LsUploadField v-model="form.intro_video" placeholder="视频 URL" button-label="上传" accept="video/*" :disabled="Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" :show-reason="false" :loading="uploading === 'intro_video'" @change="upload('intro_video', $event)" /></label>
       </div>
-      <p v-if="uploadDisabledReason" id="profile-upload-reason" class="feedback access" role="note">{{ uploadDisabledReason }}；仍可填写外部图片或视频 URL。</p>
       <p v-if="uploadError" class="feedback error" role="alert">{{ uploadError }}</p>
       <div class="field" role="group" aria-labelledby="profile-introduction-label">
         <span id="profile-introduction-label">详细介绍</span>

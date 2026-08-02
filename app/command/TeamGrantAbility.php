@@ -17,21 +17,21 @@ final class TeamGrantAbility extends Command
     protected function configure(): void
     {
         $this->setName('team:grant-ability')
-            ->setDescription('向团队授予能力')
-            ->addOption('team', null, Option::VALUE_REQUIRED, '团队 ID')
-            ->addOption('ability', null, Option::VALUE_REQUIRED, '能力标识')
+            ->setDescription('向团队授予能力（已有：doc 文档、file 文件上传、transaction 交易）')
+            ->addOption('team', null, Option::VALUE_REQUIRED, '团队 slug')
+            ->addOption('ability', null, Option::VALUE_REQUIRED, '能力标识：doc 文档、file 文件上传、transaction 交易')
             ->addOption('level', null, Option::VALUE_OPTIONAL, '能力等级', '1')
             ->addOption('expire-time', null, Option::VALUE_OPTIONAL, '过期时间戳，0 表示永久', '0');
     }
 
     protected function execute(Input $input, Output $output): int
     {
-        $teamId = $this->positiveInteger($input->getOption('team'));
+        $teamSlug = trim((string) $input->getOption('team'));
         $abilityKey = trim((string) $input->getOption('ability'));
         $level = $this->positiveInteger($input->getOption('level'));
         $expireTime = $this->nonNegativeInteger($input->getOption('expire-time'));
 
-        if ($teamId === null
+        if ($teamSlug === ''
             || $abilityKey === ''
             || mb_strlen($abilityKey) > 50
             || str_contains($abilityKey, ',')
@@ -44,11 +44,12 @@ final class TeamGrantAbility extends Command
             return 1;
         }
 
-        $ability = Db::transaction(function () use ($teamId, $abilityKey, $level, $expireTime): ?TeamAbility {
-            $team = Team::where('id', $teamId)->lock(true)->find();
+        $ability = Db::transaction(function () use ($teamSlug, $abilityKey, $level, $expireTime): ?TeamAbility {
+            $team = Team::where('slug', $teamSlug)->lock(true)->find();
             if (!$team) {
                 return null;
             }
+            $teamId = (int) $team->id;
 
             $ability = TeamAbility::withTrashed()
                 ->where('team_id', $teamId)
@@ -89,13 +90,13 @@ final class TeamGrantAbility extends Command
         });
 
         if (!$ability) {
-            $output->writeln("<error>团队 {$teamId} 不存在</error>");
+            $output->writeln("<error>团队 {$teamSlug} 不存在</error>");
             return 1;
         }
 
         $expiry = $expireTime === 0 ? '永久' : (string) $expireTime;
         $output->writeln(
-            "<info>已向团队 {$teamId} 授予 {$abilityKey}，等级 {$level}，有效期 {$expiry}</info>"
+            "<info>已向团队 {$teamSlug} 授予 {$abilityKey}，等级 {$level}，有效期 {$expiry}</info>"
         );
         return 0;
     }

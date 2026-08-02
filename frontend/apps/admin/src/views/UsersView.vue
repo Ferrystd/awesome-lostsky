@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { api } from '@lostsky/api/client'
-import LsSearchInput from '@lostsky/ui/components/LsSearchInput.vue'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NPagination, NSelect } from 'naive-ui'
 import { ref } from 'vue'
@@ -22,15 +23,11 @@ const query = useQuery({
 
 <template>
   <PageHeader title="用户" description="查询平台账号、会话与团队归属；敏感联系方式按当前角色权限展示。" />
-  <section class="toolbar" aria-label="用户筛选">
-    <LsSearchInput v-model="q" placeholder="搜索用户名、手机号、邮箱、昵称或 ID" aria-label="搜索用户" @update:model-value="page=1" />
-    <NSelect v-model:value="status" :options="options" @update:value="page=1" />
-  </section>
-  <section class="panel">
-    <div v-if="query.isPending.value" class="state">正在读取用户…</div>
-    <RetryState v-else-if="query.isError.value" :error="query.error.value" @retry="query.refetch()" />
-    <div v-else-if="!query.data.value?.list.length" class="state"><h2>没有匹配的用户</h2><p>调整搜索词或状态筛选后重试。</p></div>
-    <template v-else>
+  <LsListToolbar v-model="q" placeholder="搜索用户名、手机号、邮箱、昵称或 ID" aria-label="搜索用户" :count-label="`${query.data.value?.total ?? 0} 位用户`" @update:model-value="page=1"><template #filters><NSelect v-model:value="status" :options="options" @update:value="page=1" /></template></LsListToolbar>
+  <section v-if="query.isPending.value" class="panel"><div class="state">正在读取用户…</div></section>
+  <RetryState v-else-if="query.isError.value" :error="query.error.value" @retry="query.refetch()" />
+  <LsEmptyState v-else-if="!query.data.value?.list.length" title="没有匹配的用户" description="调整搜索词或状态筛选后重试。" />
+  <section v-else class="panel">
       <div class="mobile-records">
         <RouterLink v-for="user in query.data.value?.list" :key="user.id" class="mobile-record" :to="`/users/${user.id}`">
           <header><strong>{{ user.nickname || user.username }}</strong><StatusBadge :status="user.is_banned ? 'banned' : 'active'" /></header>
@@ -41,6 +38,5 @@ const query = useQuery({
         <tr v-for="user in query.data.value?.list" :key="user.id"><td class="cell-primary"><RouterLink :to="`/users/${user.id}`">{{ user.nickname || user.username }}</RouterLink><small>#{{ user.id }} · @{{ user.username }}</small></td><td>{{ user.phone || user.phone_masked || user.email || user.email_masked || '—' }}</td><td>{{ user.team_count }}</td><td>{{ user.device_count }}</td><td><StatusBadge :status="user.is_banned ? 'banned' : 'active'" /></td><td>{{ formatTime(user.create_time) }}</td></tr>
       </tbody></table>
       <div class="pagination"><NPagination v-model:page="page" :page-size="20" :item-count="query.data.value?.total ?? 0" /></div>
-    </template>
   </section>
 </template>

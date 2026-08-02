@@ -1,8 +1,9 @@
 import '@lostsky/ui/styles.css'
 import './app.css'
+import { lostskyQueryPluginOptions } from '@lostsky/api/query'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createApp } from 'vue'
 import App from './App.vue'
 import { router } from './router'
 
-createApp(App).use(VueQueryPlugin).use(router).mount('#app')
+createApp(App).use(VueQueryPlugin, lostskyQueryPluginOptions).use(router).mount('#app')

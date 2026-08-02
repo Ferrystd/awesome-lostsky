@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { ArrowRight, Plus, ShieldCheck, UserRoundCog } from '@lucide/vue'
-import { NConfigProvider, NSkeleton } from 'naive-ui'
-import { computed } from 'vue'
+import { ArrowRight, Plus, UserRoundCog } from '@lucide/vue'
+import { NSkeleton, NTag } from 'naive-ui'
+import { computed, ref } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
 interface RoleRecord {
@@ -20,10 +21,11 @@ const query = useQuery({
   queryFn: () => api.get<RoleRecord[]>('/role/index'),
 })
 const roles = computed(() => query.data.value ?? [])
+const search = ref('')
+const filtered = computed(() => { const keyword = search.value.trim().toLocaleLowerCase(); return roles.value.filter(role => !keyword || `${role.name ?? ''} ${role.role_key ?? ''} ${role.description ?? ''}`.toLocaleLowerCase().includes(keyword)) })
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme">
     <div class="roles-page">
       <AdminPageHeader title="角色与权限" description="角色列表只用于查找和进入管理任务；角色资料、权限与实体分配分别在独立页面完成。">
         <template #actions>
@@ -31,30 +33,25 @@ const roles = computed(() => query.data.value ?? [])
           <RouterLink class="primary-link" to="/roles/new"><Plus :size="17" />新建角色</RouterLink>
         </template>
       </AdminPageHeader>
+      <LsListToolbar v-model="search" placeholder="搜索角色名称或标识" aria-label="搜索角色" :count-label="`${filtered.length} 个角色`" />
 
       <p v-if="query.isError.value" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
       <section v-else-if="query.isPending.value" class="loading" aria-label="正在加载角色">
         <div v-for="index in 4" :key="index"><NSkeleton text width="34%" /><NSkeleton text width="58%" /></div>
       </section>
-      <section v-else-if="!roles.length" class="empty">
-        <ShieldCheck :size="34" aria-hidden="true" />
-        <h2>还没有角色</h2>
-        <p>先创建角色，再为它选择完成工作所需的最小权限。</p>
-        <RouterLink class="primary-link" to="/roles/new"><Plus :size="17" />新建角色</RouterLink>
-      </section>
+      <LsEmptyState v-else-if="!filtered.length" title="还没有角色" description="先创建角色，再为它选择完成工作所需的最小权限。" />
       <section v-else class="role-list" aria-label="角色列表">
-        <RouterLink v-for="role in roles" :key="role.id" :to="`/roles/${role.id}`">
+        <RouterLink v-for="role in filtered" :key="role.id" :to="`/roles/${role.id}`">
           <div>
             <h2>{{ role.name || `角色 #${role.id}` }}</h2>
             <code>{{ role.role_key }}</code>
-            <small class="visibility">{{ Number(role.is_displayed) === 1 ? '公开展示' : '仅内部' }}</small>
+            <NTag size="small" :type="Number(role.is_displayed) === 1 ? 'info' : 'default'" :bordered="false">{{ Number(role.is_displayed) === 1 ? '公开展示' : '仅内部' }}</NTag>
             <p>{{ role.description || '暂无角色说明' }}</p>
           </div>
           <span>管理角色<ArrowRight :size="18" /></span>
         </RouterLink>
       </section>
     </div>
-  </NConfigProvider>
 </template>
 
 <style scoped>

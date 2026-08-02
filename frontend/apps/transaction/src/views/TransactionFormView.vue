@@ -66,7 +66,10 @@ const balanced = computed(() => {
   return Math.round(total * 100) === Math.round(paymentTotal.value * 100)
     && Math.round(total * 100) === Math.round(allocationTotal.value * 100)
 })
-const selectedCustomer = computed(() => optionsQuery.data.value?.customers.find(item => Number(item.id) === form.customer_id))
+const hasEntityOptions = computed(() => Array.isArray(optionsQuery.data.value?.entities))
+const hasCustomerOptions = computed(() => Array.isArray(optionsQuery.data.value?.customers))
+const customers = computed(() => optionsQuery.data.value?.customers ?? [])
+const selectedCustomer = computed(() => customers.value.find(item => Number(item.id) === form.customer_id))
 const balance = computed(() => Number(selectedCustomer.value?.balance?.balance ?? 0))
 const canSubmit = computed(() => Boolean(form.handler_entity_id && form.trans_at && balanced.value && (!form.prepaid || form.customer_id)))
 const amountProps = { min: 0, precision: 2, step: 1 } as const
@@ -103,21 +106,24 @@ const save = useMutation({
       :back-to="editing ? `/detail?id=${id}` : '/'"
       :back-label="editing ? '返回流水详情' : '返回流水列表'"
     />
-    <p v-if="detail.isError.value || optionsQuery.isError.value" class="feedback error" role="alert">{{ friendlyError(detail.error.value || optionsQuery.error.value) }}</p>
+    <p v-if="detail.isError.value" class="feedback error" role="alert">{{ friendlyError(detail.error.value) }}</p>
     <form v-else class="transaction-form" @submit.prevent="save.mutate()">
+      <p v-if="optionsQuery.isError.value" class="feedback error" role="alert">参与方选项暂时无法读取；表单仍可查看，但相关字段已禁用。</p>
       <section class="panel form-panel">
         <div class="section-title"><div><h3>参与方</h3><p>选择接单人、发单人、客服与客户；客户为空时不能使用预存款。</p></div></div>
-        <label class="field"><span>接单人 <b>*</b></span><NSelect v-model:value="form.handler_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable :disabled="editing" placeholder="选择接单人" /></label>
-        <label class="field"><span>发单人</span><NSelect v-model:value="form.sender_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable placeholder="可选" /></label>
-        <label class="field"><span>客服</span><NSelect v-model:value="form.cs_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable placeholder="可选" /></label>
-        <label class="field"><span>客户</span><NSelect v-model:value="form.customer_id" :options="customerOptions(optionsQuery.data.value)" filterable clearable placeholder="可选；使用预存款时必填" /></label>
+        <p v-if="optionsQuery.data.value && !hasEntityOptions" class="hint">当前响应未提供主体选项，主体字段已禁用，其他金额与备注仍可填写。</p>
+        <p v-if="optionsQuery.data.value && !hasCustomerOptions" class="hint">当前响应未提供客户选项，客户与预存款暂不可用。</p>
+        <label class="field"><span>接单人 <b>*</b></span><NSelect v-model:value="form.handler_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable :disabled="editing || !hasEntityOptions" placeholder="选择接单人" /></label>
+        <label class="field"><span>发单人</span><NSelect v-model:value="form.sender_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable :disabled="!hasEntityOptions" placeholder="可选" /></label>
+        <label class="field"><span>客服</span><NSelect v-model:value="form.cs_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable :disabled="!hasEntityOptions" placeholder="可选" /></label>
+        <label class="field"><span>客户</span><NSelect v-model:value="form.customer_id" :options="customerOptions(optionsQuery.data.value)" filterable clearable :disabled="!hasCustomerOptions" placeholder="可选；使用预存款时必填" /></label>
         <p v-if="selectedCustomer" class="balance-hint">当前客户余额 <strong class="ls-tabular">{{ money(balance) }}</strong></p>
       </section>
       <section class="panel form-panel">
         <div class="section-title"><div><h3>金额与支付</h3><p>现款 + 预存款必须等于总价。</p></div><strong :class="balanced ? 'ok' : 'warn'">{{ balanced ? '金额平衡' : '金额未平衡' }}</strong></div>
         <label class="field"><span>总价 <b>*</b></span><NInputNumber v-model:value="form.total_price" v-bind="amountProps" /></label>
         <label class="field"><span>现款</span><NInputNumber v-model:value="form.cash" v-bind="amountProps" /></label>
-        <label class="field"><span>预存款</span><NInputNumber v-model:value="form.prepaid" v-bind="amountProps" /></label>
+        <label class="field"><span>预存款</span><NInputNumber v-model:value="form.prepaid" v-bind="amountProps" :disabled="!hasCustomerOptions" /></label>
         <p class="equation ls-tabular">支付合计 {{ money(paymentTotal) }} / 总价 {{ money(form.total_price) }}</p>
       </section>
       <section class="panel form-panel">

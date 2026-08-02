@@ -23,7 +23,6 @@ type DashboardSummary = {
 const query = useQuery({
   queryKey: ['team-dashboard'],
   queryFn: () => api.get<DashboardSummary>('/dashboard'),
-  retry: false,
 })
 
 const stats = computed(() => [
@@ -52,12 +51,12 @@ function reason(metric: DashboardMetric | undefined) {
       <div class="welcome-actions">
         <a class="welcome-chat" :href="chatUrl"><MessageCircleMore :size="18" />进入消息 <ArrowRight :size="18" /></a>
         <div class="welcome-document">
-          <button
+          <div
             v-if="documents && !documents.available"
-            type="button"
             class="welcome-disabled"
+            aria-disabled="true"
             :aria-describedby="'welcome-doc-reason'"
-          ><BookOpen :size="18" />使用文档</button>
+          ><BookOpen :size="18" />使用文档</div>
           <RouterLink v-else class="welcome-doc" to="/docs"><BookOpen :size="18" />使用文档</RouterLink>
           <small v-if="documents && !documents.available" id="welcome-doc-reason">{{ reason(documents) }}</small>
         </div>
@@ -66,17 +65,17 @@ function reason(metric: DashboardMetric | undefined) {
 
     <section class="stats" aria-label="团队入口">
       <template v-for="item in stats" :key="item.key">
-        <button
+        <div
           v-if="item.metric && !item.metric.available"
-          type="button"
           class="stat-card disabled"
+          aria-disabled="true"
           :aria-describedby="`${item.key}-reason`"
         >
           <component :is="item.icon" :size="20" />
           <span>{{ item.label }}</span>
           <strong>—</strong>
           <small :id="`${item.key}-reason`">{{ reason(item.metric) }}</small>
-        </button>
+        </div>
         <RouterLink v-else :to="item.to" class="stat-card">
           <component :is="item.icon" :size="20" />
           <span>{{ item.label }}</span>

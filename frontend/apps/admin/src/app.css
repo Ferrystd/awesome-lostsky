@@ -59,11 +59,6 @@ kbd { padding: 2px 6px; color: inherit; background: color-mix(in oklch,currentCo
 .data-table a { color: var(--sky-lost-strong); font-weight: 680; }
 .cell-primary strong,.cell-primary small { display: block; }
 .cell-primary small { color: var(--muted-ink); font-size: .78rem; font-weight: 400; }
-.status-badge { width: fit-content; display: inline-flex; align-items: center; gap: 6px; color: var(--muted-ink); font-size: .78rem; font-weight: 650; }
-.status-badge i { width: 7px; height: 7px; background: currentColor; border-radius: 50%; }
-.status-badge--active,.status-badge--healthy { color: var(--success); }
-.status-badge--banned,.status-badge--unhealthy { color: var(--danger); }
-.status-badge--cancelled,.status-badge--degraded { color: var(--warning); }
 .state { padding: 48px 20px; text-align: center; color: var(--muted-ink); }
 .state h2 { margin: 8px 0 4px; color: var(--ink); font-size: 1.05rem; }
 .state p { margin: 0 0 12px; }
@@ -129,6 +124,9 @@ kbd { padding: 2px 6px; color: inherit; background: color-mix(in oklch,currentCo
 }
 .admin-sidebar { transition-duration: var(--motion-slow); transition-timing-function: var(--ease-out); }
 .admin-sidebar nav a { transition: color var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard); }
+#admin-main { padding: 16px; }
+.top-search { min-height: 44px; display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 8px; padding: 0 10px; color: var(--muted-ink); background: var(--cloud); border: 1px solid var(--line); border-radius: 10px; }
+@media (min-width: 960px) { #admin-main { padding: 24px; } }
 @media (prefers-reduced-motion: reduce) {
   .admin-sidebar { transition: none; }
 }

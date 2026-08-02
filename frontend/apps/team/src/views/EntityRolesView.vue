@@ -4,10 +4,9 @@ import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
 import { feedback } from '@lostsky/ui/feedback'
-import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { ExternalLink, Search, ShieldCheck } from '@lucide/vue'
-import { NButton, NCheckbox, NConfigProvider, NEmpty, NSkeleton, NTag } from 'naive-ui'
+import { NButton, NCheckbox, NEmpty, NSkeleton, NTag } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -123,7 +122,6 @@ function entityTypeLabel(type: EntityType) {
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme">
     <div class="entity-roles">
       <AdminPageHeader
         title="实体角色分配"
@@ -192,7 +190,6 @@ function entityTypeLabel(type: EntityType) {
         <NEmpty description="输入实体 slug 后，可查看归属并分配角色" />
       </section>
     </div>
-  </NConfigProvider>
 </template>
 
 <style scoped>

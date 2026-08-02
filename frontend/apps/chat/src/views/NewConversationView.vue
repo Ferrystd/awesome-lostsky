@@ -2,11 +2,11 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { ArrowLeft, MessageCircleMore } from '@lucide/vue'
-import { NCheckbox, NConfigProvider, NDatePicker, NInput, NRadioButton, NRadioGroup, NSelect } from 'naive-ui'
+import { NCheckbox, NDatePicker, NInput, NRadioButton, NRadioGroup, NSelect } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
 import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
-import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
+import LsButton from '@lostsky/ui/components/LsButton.vue'
 
 interface Actor extends EntityDisplay {
   type: 'entity' | 'customer' | 'team' | 'virtual'
@@ -68,7 +68,6 @@ const valid = computed(() => Boolean(actorSlug.value)
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme">
     <main class="task-page">
       <a class="back" href="/"><ArrowLeft :size="18" />返回消息</a>
       <header><span><MessageCircleMore /></span><p>NEW CONVERSATION</p><h1>创建会话</h1><small>选择你要使用的身份，并邀请成员、客户或虚拟实体参与。</small></header>
@@ -82,12 +81,11 @@ const valid = computed(() => Boolean(actorSlug.value)
         <label class="check"><NCheckbox v-model:checked="temporary">临时会话</NCheckbox><small>临时会话可以重复创建，并可设置自动关闭时间。</small></label>
         <label v-if="temporary">到期时间<NDatePicker v-model:value="expiresAt" type="datetime" clearable /></label>
         <p v-if="actorsQuery.isError.value || conversationsQuery.isError.value || create.isError.value" class="error" role="alert">{{ friendlyError(actorsQuery.error.value || conversationsQuery.error.value || create.error.value) }}</p>
-        <button type="submit" :disabled="!valid || create.isPending.value">{{ create.isPending.value ? '正在创建…' : '创建会话' }}</button>
+        <LsButton type="submit" size="lg" :disabled="!valid" :loading="create.isPending.value">创建会话</LsButton>
       </form>
     </main>
-  </NConfigProvider>
 </template>
 
 <style scoped>
-.task-page{width:min(100% - 2rem,42rem);margin:0 auto;padding:2rem 0 4rem;display:grid;gap:1.5rem}.back{width:fit-content;min-height:44px;display:flex;align-items:center;gap:.4rem;color:var(--sky-lost-strong);font-weight:650}.task-page>header{text-align:center;display:grid;justify-items:center;gap:.45rem}.task-page>header>span{width:58px;height:58px;display:grid;place-items:center;color:white;background:var(--sky-night);border-radius:17px}.task-page header p,.task-page header h1,.task-page header small{margin:0}.task-page header p{color:var(--sky-lost-strong);font:700 .7rem/1 'Barlow Condensed',sans-serif;letter-spacing:.12em}.task-page header h1{font-size:2rem}.task-page header small{max-width:34rem;color:var(--muted-ink);font-size:.84rem}form{display:grid;gap:1rem;padding:clamp(1rem,4vw,1.75rem);background:white;border:1px solid var(--line);border-radius:14px}form>label{display:grid;gap:.4rem;font-size:.82rem;font-weight:650}.check{padding:.85rem;background:var(--cloud);border-radius:10px}.check small{color:var(--muted-ink);font-weight:400}form>button{min-height:46px;color:white;background:var(--sky-lost-strong);border:0;border-radius:10px;font-weight:700}form>button:disabled{opacity:.5}.error{margin:0;padding:.65rem;color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%);border-radius:8px;font-size:.8rem}
+.task-page{width:min(100% - 2rem,42rem);margin:0 auto;padding:2rem 0 4rem;display:grid;gap:1.5rem}.back{width:fit-content;min-height:44px;display:flex;align-items:center;gap:.4rem;color:var(--sky-lost-strong);font-weight:650}.task-page>header{text-align:center;display:grid;justify-items:center;gap:.45rem}.task-page>header>span{width:58px;height:58px;display:grid;place-items:center;color:white;background:var(--sky-night);border-radius:17px}.task-page header p,.task-page header h1,.task-page header small{margin:0}.task-page header p{color:var(--sky-lost-strong);font:700 .7rem/1 'Barlow Condensed',sans-serif;letter-spacing:.12em}.task-page header h1{font-size:2rem}.task-page header small{max-width:34rem;color:var(--muted-ink);font-size:.84rem}form{display:grid;gap:1rem;padding:clamp(1rem,4vw,1.75rem);background:white;border:1px solid var(--line);border-radius:14px}form>label{display:grid;gap:.4rem;font-size:.82rem;font-weight:650}.check{padding:.85rem;background:var(--cloud);border-radius:10px}.check small{color:var(--muted-ink);font-weight:400}.error{margin:0;padding:.65rem;color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%);border-radius:8px;font-size:.8rem}
 </style>

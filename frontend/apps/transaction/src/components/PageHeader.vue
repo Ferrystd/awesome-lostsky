@@ -1,16 +1,10 @@
 <script setup lang="ts">
-import { ArrowLeft } from '@lucide/vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import type { RouteLocationRaw } from 'vue-router'
 
 defineProps<{ title: string; description?: string; backTo?: RouteLocationRaw; backLabel?: string }>()
 </script>
 
 <template>
-  <div class="page-heading">
-    <RouterLink v-if="backTo" class="back-link" :to="backTo"><ArrowLeft :size="18" />{{ backLabel || '返回' }}</RouterLink>
-    <header>
-      <div><h2>{{ title }}</h2><p v-if="description">{{ description }}</p></div>
-      <div v-if="$slots.actions" class="heading-actions"><slot name="actions" /></div>
-    </header>
-  </div>
+  <LsPageHeader :title="title" :description="description" :back-to="backTo" :back-label="backLabel"><template v-if="$slots.actions" #actions><slot name="actions" /></template></LsPageHeader>
 </template>

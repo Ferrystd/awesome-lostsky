@@ -11,6 +11,16 @@ nav = [
   {"项目" = [
     "product.md",
     "design.md",
+    {"后台设计规范" = [
+      "design/admin/index.md",
+      "design/admin/foundations.md",
+      "design/admin/components.md",
+      "design/admin/patterns.md",
+      "design/admin/states-and-access.md",
+      "design/admin/responsive-accessibility.md",
+      "design/admin/applications.md",
+      "design/admin/checklist.md"
+    ]},
     "overview.md",
     "getting-started.md",
     "updates.md",

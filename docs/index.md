@@ -11,6 +11,7 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 
 - [产品定义](product.md)
 - [设计系统](design.md)
+- [后台设计规范](design/admin/index.md)
 - [项目概览](overview.md)
 - [开始使用](getting-started.md)
 - [使用手册](manual/index.md)

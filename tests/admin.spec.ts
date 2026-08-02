@@ -126,6 +126,12 @@ test('Admin supports dashboard search, resource navigation and governed confirma
 test('Admin renders mobile records and navigation without horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
   await mockAdminApi(page)
+  for (const path of ['/users', '/teams', '/administrators', '/roles', '/audit']) {
+    await page.goto(`http://127.0.0.1:5180${path}`)
+    await expect(page.locator('.ls-list-toolbar')).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `horizontal overflow at ${path}`).toBe(false)
+  }
+
   await page.goto('http://127.0.0.1:5180/users')
 
   await expect(page.getByText('用户 ID')).toBeVisible()
@@ -194,12 +200,17 @@ test('Admin role creation route is refreshable and submits the permission select
   await expect(page).toHaveURL(/\/roles\/4$/)
 })
 
-test('Admin query errors expose a working retry action', async ({ page }) => {
+test('Admin query errors recover on focus without a manual retry action', async ({ page }) => {
   const api = await mockAdminApi(page, { dashboardFailures: Number.MAX_SAFE_INTEGER })
   await page.goto('http://127.0.0.1:5180/')
 
   await expect(page.getByText('服务暂时不可用，请稍后再试')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('button', { name: '重试' })).toHaveCount(0)
   api.recoverDashboard()
-  await page.getByRole('button', { name: '重试' }).click()
+  const background = await page.context().newPage()
+  await background.bringToFront()
+  await page.bringToFront()
+  await background.close()
+  await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')))
   await expect(page.getByText('128')).toBeVisible()
 })

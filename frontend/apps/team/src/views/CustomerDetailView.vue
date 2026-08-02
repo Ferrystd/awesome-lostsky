@@ -87,8 +87,8 @@ const assigneeOptions = computed(() => (assignees.data.value ?? []).map(item => 
 })))
 const chatReason = computed(() => {
   const snapshot = access.data.value
-  if (!snapshot) return ''
-  const chat = snapshot.abilities.chat
+  if (!snapshot || !snapshot.permissions) return ''
+  const chat = snapshot.abilities?.chat
   if (chat && !chat.enabled) return abilityReason('chat', chat.label || '聊天')
   if (!hasPermission(snapshot, 'chat.conversation.create')) return permissionReason('chat.conversation.create')
   return ''
@@ -112,7 +112,7 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
     >
       <template #actions>
         <a v-if="!chatReason && chatUrl" class="chat-link" :href="chatUrl"><MessageCircleMore :size="18" />发起对话</a>
-        <button v-else class="chat-link disabled" type="button" :title="chatReason" disabled><MessageCircleMore :size="18" />发起对话</button>
+        <NButton v-else secondary class="chat-link" :title="chatReason" disabled><template #icon><MessageCircleMore :size="18" /></template>发起对话</NButton>
       </template>
     </AdminPageHeader>
 
