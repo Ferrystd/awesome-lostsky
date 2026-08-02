@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
-import PageHeader from '../components/PageHeader.vue'
+import type { DataTableColumns } from 'naive-ui'
+import { computed, h, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { customerName, money } from '../lib'
-import type { TransactionOptions } from '../types'
+import type { Customer, TransactionOptions } from '../types'
 
 const search = ref('')
 const query = useQuery({ queryKey: ['transaction-options'], queryFn: () => api.get<TransactionOptions>('/transaction/options') })
@@ -14,18 +19,35 @@ const customers = computed(() => {
   const term = search.value.trim().toLowerCase()
   return (query.data.value?.customers ?? []).filter(item => !term || String(item.nickname ?? item.id).toLowerCase().includes(term))
 })
+const columns: DataTableColumns<Customer> = [
+  { title: '客户', key: 'customer', render: row => h(LsEntityIdentity, { type: 'customer', name: customerName(row, row.id), slug: String((row as any).slug ?? ''), imageUrl: (row as any).avatar ?? null, size: 'sm' }) },
+  { title: '可用余额', key: 'balance', render: row => h('strong', { class: 'ls-tabular' }, money(row.balance?.balance)) },
+  { title: '累计充值', key: 'recharged', render: row => h('span', { class: 'ls-tabular' }, money(row.balance?.recharged)) },
+  { title: '累计消费', key: 'spent', render: row => h('span', { class: 'ls-tabular' }, money(row.balance?.spent)) },
+  { title: '操作', key: 'actions', render: row => h(RouterLink, { to: `/balance?customer_id=${row.id}` }, { default: () => '查看明细' }) },
+]
 </script>
 
 <template>
   <div class="balances-view">
-    <PageHeader title="客户余额" description="查看客户的可用预存款、累计充值与累计消费；充值和明细使用独立任务页。">
+    <LsPageHeader title="客户余额" description="查看客户的可用预存款、累计充值与累计消费；充值和明细使用独立任务页。">
       <template #actions><RouterLink class="primary-link" to="/recharge">客户充值</RouterLink></template>
-    </PageHeader>
+    </LsPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索客户昵称" aria-label="搜索客户余额" :count-label="`${customers.length} 位客户`" />
-    <p v-if="query.isError.value" class="feedback error" role="alert">{{ friendlyError(query.error.value) }}</p>
-    <div v-else-if="query.isPending.value" class="loading-list"><span v-for="i in 5" :key="i" /></div>
+    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取客户余额" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
     <LsEmptyState v-else-if="!customers.length" :title="search ? '没有匹配的客户' : '还没有客户余额'" description="客户产生充值记录后，可在这里查看余额及完整变动明细。" />
-    <div v-else class="table-wrap"><table class="data-table"><thead><tr><th>客户</th><th>可用余额</th><th>累计充值</th><th>累计消费</th><th>操作</th></tr></thead><tbody><tr v-for="item in customers" :key="item.id"><td>{{ customerName(item, item.id) }}</td><td class="ls-tabular amount">{{ money(item.balance?.balance) }}</td><td class="ls-tabular">{{ money(item.balance?.recharged) }}</td><td class="ls-tabular">{{ money(item.balance?.spent) }}</td><td><RouterLink :to="`/balance?customer_id=${item.id}`">查看明细</RouterLink></td></tr></tbody></table></div>
+    <LsResponsiveDataTable v-else :columns="columns" :data="customers" :row-key="row => Number(row.id)" :scroll-x="720">
+      <template #mobile-title="{ row }">{{ customerName(row, row.id) }}</template>
+      <template #mobile="{ row }">
+        <dl>
+          <dt>可用余额</dt><dd class="ls-tabular"><strong>{{ money(row.balance?.balance) }}</strong></dd>
+          <dt>累计充值</dt><dd class="ls-tabular">{{ money(row.balance?.recharged) }}</dd>
+          <dt>累计消费</dt><dd class="ls-tabular">{{ money(row.balance?.spent) }}</dd>
+          <dt>操作</dt><dd><RouterLink :to="`/balance?customer_id=${row.id}`">查看明细</RouterLink></dd>
+        </dl>
+      </template>
+    </LsResponsiveDataTable>
   </div>
 </template>
 

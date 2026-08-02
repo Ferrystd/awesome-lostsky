@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { File, Trash2 } from '@lucide/vue'
-import { NButton } from 'naive-ui'
+import { NPagination } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { abilityReason, hasPermission, permissionReason, useTeamAccess } from '../lib/teamAccess'
 
@@ -90,8 +92,15 @@ function removeFile(id: number) {
   if (!deleteReason.value && window.confirm('确认删除此文件？')) remove.mutate(id)
 }
 
-function explain(reason: string) {
-  if (reason) feedback.info(reason)
+function fileActions(item: Record<string, unknown>) {
+  return [
+    ...(item.url ? [{ key: 'open', label: '打开', icon: File }] : []),
+    { key: 'delete', label: '删除', icon: Trash2, danger: true, disabled: Boolean(deleteReason.value), reason: deleteReason.value },
+  ]
+}
+function runFileAction(key: string, item: Record<string, unknown>) {
+  if (key === 'open' && item.url) window.open(String(item.url), '_blank', 'noopener,noreferrer')
+  if (key === 'delete') removeFile(Number(item.id))
 }
 </script>
 
@@ -104,7 +113,7 @@ function explain(reason: string) {
       </div>
       <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload" />
     </header>
-    <p v-if="uploadError" class="error" role="alert">{{ uploadError }}</p>
+    <LsInlineError v-if="uploadError" :message="uploadError" />
 
     <LsListToolbar
       v-model="keyword"
@@ -114,8 +123,8 @@ function explain(reason: string) {
       @update:model-value="page = 1"
     />
     <Transition name="ls-state" mode="out-in">
-      <p v-if="query.isError.value" key="error" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
-      <div v-else-if="query.isPending.value" key="loading" class="loading"><span v-for="i in 6" :key="i" class="ls-skeleton" /></div>
+      <LsAsyncState v-if="query.isError.value" key="error" state="error" title="暂时无法读取文件" :description="friendlyError(query.error.value)" />
+      <LsAsyncState v-else-if="query.isPending.value" key="loading" state="loading" :rows="6" />
       <LsEmptyState
         v-else-if="!files.length"
         key="empty"
@@ -129,27 +138,14 @@ function explain(reason: string) {
             <strong>{{ item.name || item.original_name || '未命名文件' }}</strong>
             <small>{{ item.mime_type || item.ext || '未知格式' }} · {{ size(item.size) }}</small>
           </div>
-          <a v-if="item.url" :href="String(item.url)" target="_blank" rel="noopener noreferrer">打开</a>
-          <span
-            :tabindex="deleteReason ? 0 : -1"
-            :title="deleteReason || undefined"
-            @click="explain(deleteReason)"
-            @keydown.enter.prevent="explain(deleteReason)"
-          >
-            <NButton quaternary circle type="error" aria-label="删除文件" :disabled="Boolean(deleteReason)" @click="removeFile(Number(item.id))"><template #icon><Trash2 :size="17" /></template></NButton>
-          </span>
+          <LsResponsiveActions :actions="fileActions(item)" :primary-key="item.url ? 'open' : ''" @select="runFileAction($event, item)" />
         </article>
       </TransitionGroup>
     </Transition>
-    <footer v-if="pages > 1">
-      <LsButton variant="secondary" size="sm" :disabled="page <= 1" @click="page--">上一页</LsButton>
-      <span>第 {{ page }} / {{ pages }} 页</span>
-      <LsButton variant="secondary" size="sm" :disabled="page >= pages" @click="page++">下一页</LsButton>
-    </footer>
+    <footer v-if="pages > 1"><NPagination v-model:page="page" :page-count="pages" /></footer>
   </div>
 </template>
 
 <style scoped>
-.files{display:grid;gap:1rem}header{display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap}header p,header h2{margin:0}header p{color:var(--muted-ink);font-size:.82rem}header h2{margin-top:.2rem}.hidden{display:none}header>span:focus-visible,.file-list article>span:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 65%);outline-offset:2px;border-radius:8px}.file-list{display:grid;gap:0;overflow:hidden;background:white;border:1px solid var(--line);border-radius:10px}.file-list article{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto;align-items:center;gap:.75rem;padding:.85rem;border-bottom:1px solid var(--line);background:white;transition:background-color var(--motion-fast) var(--ease-standard),opacity var(--motion-base) var(--ease-out),transform var(--motion-base) var(--ease-out)}.file-list article:last-child{border-bottom:0}.file-list article:hover{background:var(--cloud)}.file-icon{width:44px;height:44px;display:grid;place-items:center;color:var(--sky-lost-strong);background:var(--cloud);border-radius:8px}.file-list strong,.file-list small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.file-list small{margin-top:.2rem;color:var(--muted-ink);font-size:.75rem}.file-list a,.file-list button{min-width:44px;min-height:44px;display:grid;place-items:center;color:var(--sky-lost-strong);background:transparent;border:0;transition:color var(--motion-fast) var(--ease-standard),background-color var(--motion-fast) var(--ease-standard)}.file-list button{color:var(--danger)}.file-list button:disabled{color:var(--muted-ink);opacity:.45;cursor:not-allowed}footer{display:flex;align-items:center;justify-content:center;gap:1rem;color:var(--muted-ink);font-size:.8rem}.empty,.error{display:grid;justify-items:center;gap:.35rem;padding:3rem 1rem;text-align:center;background:white;border:1px solid var(--line);border-radius:10px}.empty h3,.empty p{margin:0}.empty svg{color:var(--sky-lost-strong)}.error{display:block;padding:1rem;color:var(--danger);text-align:left}.loading{display:grid;gap:.6rem}.loading span{height:72px;background:var(--line);border-radius:10px}
-@media(max-width:639px){.file-list article{grid-template-columns:44px minmax(0,1fr) auto}.file-list article>a{grid-column:2}.file-list article>span{grid-column:3;grid-row:1/3}}
+.files{display:grid;gap:1rem}header{display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap}header p,header h2{margin:0}header p{color:var(--muted-ink);font-size:.82rem}header h2{margin-top:.2rem}.file-list{display:grid;gap:0;overflow:hidden;background:white;border:1px solid var(--line);border-radius:10px}.file-list article{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:.75rem;padding:.85rem;border-bottom:1px solid var(--line);background:white;transition:background-color var(--motion-fast) var(--ease-standard),opacity var(--motion-base) var(--ease-out),transform var(--motion-base) var(--ease-out)}.file-list article:last-child{border-bottom:0}.file-list article:hover{background:var(--cloud)}.file-icon{width:44px;height:44px;display:grid;place-items:center;color:var(--sky-lost-strong);background:var(--cloud);border-radius:8px}.file-list strong,.file-list small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.file-list small{margin-top:.2rem;color:var(--muted-ink);font-size:.75rem}footer{display:flex;align-items:center;justify-content:center;gap:1rem;color:var(--muted-ink);font-size:.8rem}
 </style>

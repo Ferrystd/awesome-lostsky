@@ -2858,9 +2858,27 @@
 <tbody>
 <tr>
 <td><code>LsButton</code></td>
-<td><code>variant=primary/secondary/ghost/danger</code>、<code>size=sm/md/lg</code>、<code>loading</code>、<code>disabled</code>、<code>type=button/submit/reset</code>；是 <code>NButton</code> 薄适配层</td>
-<td>页面私有按钮皮肤、同组混合尺寸</td>
-<td>loading 保留尺寸；disabled 有原生语义；40/44/48px</td>
+<td><code>variant=primary/secondary/ghost/danger</code>、<code>size=sm/md/lg</code>、<code>loading</code>、<code>disabled</code>、<code>type=button/submit/reset</code>；<code>icon</code> 插槽承载命令图标；是 <code>NButton</code> 薄适配层</td>
+<td>页面私有按钮皮肤、同组混合尺寸、在默认插槽中反复手排图标间距</td>
+<td>loading 保留尺寸；disabled 有原生语义；40/44/48px；图标不改变可读文案</td>
+</tr>
+<tr>
+<td><code>LsInlineError</code></td>
+<td>只接收必填 <code>message</code>；用于字段组、表单或局部操作的阻断错误</td>
+<td>自定义颜色、图标、标题、动作、插槽或重复书写 <code>role=alert</code></td>
+<td>固定区域 <code>alert</code>、危险色和紧凑内边距；长文案与 200% 文本自然换行；空状态和页面加载错误不得使用</td>
+</tr>
+<tr>
+<td><code>LsPanel</code></td>
+<td>无 props；<code>header/default/footer</code> 三个插槽承载有边界的独立内容区</td>
+<td>视觉变体、页面级 <code>.panel</code> 皮肤、嵌套面板、为连续列表逐项套面板</td>
+<td>桌面 20px、移动端 16px 内边距；插槽边界使用细分隔线；加载、空、错误由内容区对应状态组件表达</td>
+</tr>
+<tr>
+<td><code>LsStatusTag</code></td>
+<td><code>label</code> 必填，<code>type=default/success/warning/error/info</code>；统一状态标签</td>
+<td>调用端重复 <code>size=small</code>、<code>bordered=false</code>，或按页面自建 StatusBadge</td>
+<td>固定 small、无边框；颜色不能替代文案；移动端和文本放大时不裁切状态文案</td>
 </tr>
 <tr>
 <td><code>LsPage</code></td>
@@ -2909,6 +2927,12 @@
 <td><code>actions</code> 必填；<code>primaryKey=''</code>、<code>moreLabel='更多'</code>；动作含 <code>key/label/disabled/reason/danger/icon</code>，选择后发出 <code>select</code>；行内入口统一为透明、无边框的图标加文字</td>
 <td>手机端混排纯图标和文字；危险操作成为主操作；用主色填充、浅色底或圆角胶囊把行内入口伪装成一组按钮</td>
 <td>禁用原因保留；危险项有文字；桌面显示完整动作；小于 640px 为一个主操作加菜单；触控区至少 44px；hover/focus 不改变布局边界</td>
+</tr>
+<tr>
+<td><code>LsResponsiveDataTable</code></td>
+<td><code>columns/data/rowKey</code> 必填，<code>scrollX</code> 可选；只用于至少三个页面共享同一“桌面表格、移动记录”需求，移动结构通过 <code>mobile-title/mobile-status/mobile</code> 插槽表达</td>
+<td>单页提前包装、复制两份数据请求或同时挂载两份重复语义 DOM；为不同业务语义增加视觉参数</td>
+<td>桌面直接使用 <code>NDataTable</code>；小于 720px 只挂载由同一 <code>data</code> 渲染的连续记录，避免隐藏副本造成重复辅助语义；页面无横向溢出；移动记录保留标题、状态和字段名</td>
 </tr>
 <tr>
 <td><code>LsUploadField</code></td>
@@ -2967,6 +2991,7 @@
 </tbody>
 </table>
 <p>新增 props、插槽、默认值或允许组合前必须先更新本表，组件测试覆盖默认、禁用、加载和移动端行为。</p>
+<p>页面的创建、保存、取消、删除、确认等命令必须使用 <code>LsButton</code>。直接 <code>NButton</code> 只允许用于应用壳层导航、Admin 平台命令搜索结果和确实没有可见文案的 44×44px 微操作；新增例外必须先在应用规则登记，并同步源码契约白名单。导航链接继续使用 <code>RouterLink</code> 或安全的 <code>&lt;a&gt;</code>，不得为了复用按钮外观把链接伪装成提交命令。</p>
 <h2 id="_4">实现级例外<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>例外只能解决浏览器或第三方编辑器的实现边界，不能改变用户可见的设计语言：</p>
 <ul>

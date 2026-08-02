@@ -2,9 +2,10 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { ArrowRight, Plus, UserRoundCog } from '@lucide/vue'
-import { NSkeleton, NTag } from 'naive-ui'
+import { NSkeleton } from 'naive-ui'
 import { computed, ref } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
@@ -45,7 +46,7 @@ const filtered = computed(() => { const keyword = search.value.trim().toLocaleLo
           <div>
             <h2>{{ role.name || `角色 #${role.id}` }}</h2>
             <code>{{ role.role_key }}</code>
-            <NTag size="small" :type="Number(role.is_displayed) === 1 ? 'info' : 'default'" :bordered="false">{{ Number(role.is_displayed) === 1 ? '公开展示' : '仅内部' }}</NTag>
+            <LsStatusTag :label="Number(role.is_displayed) === 1 ? '公开展示' : '仅内部'" :type="Number(role.is_displayed) === 1 ? 'info' : 'default'" />
             <p>{{ role.description || '暂无角色说明' }}</p>
           </div>
           <span>管理角色<ArrowRight :size="18" /></span>

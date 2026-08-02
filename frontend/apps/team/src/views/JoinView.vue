@@ -2,9 +2,11 @@
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import { ArrowLeft } from '@lucide/vue'
-import { NCheckbox, NCheckboxGroup, NDatePicker, NInput, NRadioButton, NRadioGroup, NSelect, NTag } from 'naive-ui'
+import { NCheckbox, NCheckboxGroup, NDatePicker, NFormItem, NInput, NRadioButton, NRadioGroup, NSelect } from 'naive-ui'
 import { computed, reactive, ref } from 'vue'
 
 interface JoinField {
@@ -54,9 +56,8 @@ async function upload(field: JoinField, event: Event) {
     <form @submit.prevent="mutation.mutate()">
       <h2>加入申请</h2>
       <p v-if="form.isPending.value" class="form-state">正在读取申请表…</p>
-      <p v-else-if="form.isError.value" class="error" role="alert">{{ friendlyError(form.error.value) }}</p>
-      <label v-for="field in fields" :key="keyOf(field)" class="field">
-        <span>{{ field.name || field.field_key }} <b v-if="field.is_apply_required" aria-hidden="true">*</b></span>
+      <LsInlineError v-else-if="form.isError.value" :message="friendlyError(form.error.value)" />
+      <NFormItem v-for="field in fields" :key="keyOf(field)" :label="field.name || field.field_key" :required="Boolean(field.is_apply_required)">
         <NInput v-if="field.input_type === 'textarea'" :value="String(values[keyOf(field)] ?? '')" type="textarea" :autosize="{ minRows: 4, maxRows: 8 }" @update:value="value => values[keyOf(field)] = value" />
         <NSelect v-else-if="field.input_type === 'select'" :value="String(values[keyOf(field)] ?? '') || null" :options="choices(field)" placeholder="请选择" @update:value="value => values[keyOf(field)] = value" />
         <NRadioGroup v-else-if="field.input_type === 'radio'" :value="String(values[keyOf(field)] ?? '')" class="choices" :name="keyOf(field)" @update:value="value => values[keyOf(field)] = value"><NRadioButton v-for="option in choices(field)" :key="option.value" :value="option.value">{{ option.label }}</NRadioButton></NRadioGroup>
@@ -64,12 +65,12 @@ async function upload(field: JoinField, event: Event) {
         <LsUploadField v-else-if="field.input_type === 'upload'" :show-url="false" :button-label="values[keyOf(field)] ? '重新选择文件' : '选择文件'" :loading="uploading === keyOf(field)" :disabled="Boolean(uploading)" @change="upload(field, $event)" />
         <NDatePicker v-else-if="field.input_type === 'date' || field.input_type === 'datetime'" :formatted-value="String(values[keyOf(field)] ?? '') || null" :type="field.input_type === 'date' ? 'date' : 'datetime'" :value-format="field.input_type === 'date' ? 'yyyy-MM-dd' : 'yyyy-MM-dd HH:mm:ss'" clearable @update:formatted-value="value => values[keyOf(field)] = value ?? ''" />
         <NInput v-else :value="String(values[keyOf(field)] ?? '')" :placeholder="field.default_value || ''" @update:value="value => values[keyOf(field)] = value" />
-      </label>
-      <label class="field"><span>补充说明</span><NInput v-model:value="memo" type="textarea" :autosize="{ minRows: 4, maxRows: 8 }" placeholder="还有什么希望团队了解的？" /></label>
-      <p v-if="mutation.isError.value" class="error" role="alert">{{ friendlyError(mutation.error.value) }}</p>
+      </NFormItem>
+      <NFormItem label="补充说明"><NInput v-model:value="memo" type="textarea" :autosize="{ minRows: 4, maxRows: 8 }" placeholder="还有什么希望团队了解的？" /></NFormItem>
+      <LsInlineError v-if="mutation.isError.value" :message="friendlyError(mutation.error.value)" />
       <p v-if="mutation.isSuccess.value" class="success" role="status">申请已提交，请等待审核。</p>
       <LsButton type="submit" size="lg" :loading="mutation.isPending.value" :disabled="form.isPending.value || Boolean(uploading) || missingRequired">提交申请</LsButton>
-      <section v-if="mine.data.value?.length" class="mine"><h2>我的申请</h2><article v-for="item in mine.data.value" :key="String(item.id)"><div><strong>申请 #{{item.id}}</strong><NTag size="small" :bordered="false">{{item.status}}</NTag></div><p>{{item.memo||'没有补充说明'}}</p><LsButton v-if="['已申请','审核中',1,2].includes(item.status as string|number)" type="button" variant="danger" size="sm" :loading="cancel.isPending.value" @click="cancel.mutate(Number(item.id))">取消申请</LsButton></article></section>
+      <section v-if="mine.data.value?.length" class="mine"><h2>我的申请</h2><article v-for="item in mine.data.value" :key="String(item.id)"><div><strong>申请 #{{item.id}}</strong><LsStatusTag :label="String(item.status)" /></div><p>{{item.memo||'没有补充说明'}}</p><LsButton v-if="['已申请','审核中',1,2].includes(item.status as string|number)" type="button" variant="danger" size="sm" :loading="cancel.isPending.value" @click="cancel.mutate(Number(item.id))">取消申请</LsButton></article></section>
     </form>
   </main>
 </template>

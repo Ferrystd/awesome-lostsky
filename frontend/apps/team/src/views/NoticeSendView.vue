@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import { entityTypeLabel, entityTypeTone } from '@lostsky/ui/entity'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Bot, Building2, Handshake, UserRound } from '@lucide/vue'
-import { NCheckbox, NInput, NSelect } from 'naive-ui'
+import { NCheckbox, NFormItem, NInput, NSelect } from 'naive-ui'
 import type { SelectOption, SelectRenderLabel } from 'naive-ui'
 import { computed, h, reactive, ref } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -119,9 +121,9 @@ const send = useMutation({
         <p>通知只进入所选实体的收件箱，不支持回复、抄送或会话；发送方统一显示为当前 Team。</p>
       </section>
 
-      <label class="field">
-        <span>收件 Entity <b aria-hidden="true">*</b></span>
+      <LsField label="收件 Entity" for-id="notice-recipient" required hint="可选择 Team、成员、客户或虚拟实体；结果包含类型与全局标识，避免发给同名对象。">
         <NSelect
+          id="notice-recipient"
           v-model:value="form.entity_id"
           class="recipient-select"
           :options="recipientOptions"
@@ -133,28 +135,24 @@ const send = useMutation({
           filterable
           placeholder="选择本 Team 内的实体"
         />
-        <small>可选择 Team、成员、客户或虚拟实体；结果包含类型与全局标识，避免发给同名对象。</small>
-      </label>
-      <p v-if="entities.isError.value" class="feedback error" role="alert">
-        收件对象加载失败：{{ friendlyError(entities.error.value) }}
-      </p>
+      </LsField>
+      <LsInlineError v-if="entities.isError.value" :message="`收件对象加载失败：${friendlyError(entities.error.value)}`" />
       <p v-else-if="entities.isSuccess.value && !recipientOptions.length" class="feedback empty" role="status">
         当前团队还没有可接收通知的 Entity。
       </p>
 
-      <label class="field">
-        <span>标题 <b aria-hidden="true">*</b></span>
+      <LsField label="标题" for-id="notice-title" required>
         <NInput
+          :input-props="{ id: 'notice-title' }"
           v-model:value="form.title"
           maxlength="200"
           show-count
           placeholder="一句话说明通知事项"
           required
         />
-      </label>
+      </LsField>
 
-      <div class="field" role="group" aria-labelledby="notice-content-label">
-        <span id="notice-content-label">正文</span>
+      <NFormItem label="正文">
         <LsMarkdownEditor
           ref="editor"
           v-model="form.content"
@@ -164,16 +162,12 @@ const send = useMutation({
           :upload-disabled-reason="uploadDisabledReason"
           placeholder="使用 Markdown 补充背景、时间和需要收件人采取的行动；输入 @ 可引用对象"
         />
-      </div>
+      </NFormItem>
 
-      <NCheckbox v-model:checked="form.is_pinned">
-        在收件人的通知列表中置顶
-      </NCheckbox>
+      <NFormItem label="列表位置"><NCheckbox v-model:checked="form.is_pinned">在收件人的通知列表中置顶</NCheckbox></NFormItem>
 
       <p v-if="success" class="feedback success" role="status" aria-live="polite">{{ success }}</p>
-      <p v-if="send.isError.value" class="feedback error" role="alert">
-        发送失败：{{ friendlyError(send.error.value) }}。请检查收件对象和内容后重试。
-      </p>
+      <LsInlineError v-if="send.isError.value" :message="`发送失败：${friendlyError(send.error.value)}。请检查收件对象和内容后重试。`" />
 
       <div class="actions">
         <RouterLink class="cancel" to="/notices/entity">取消</RouterLink>

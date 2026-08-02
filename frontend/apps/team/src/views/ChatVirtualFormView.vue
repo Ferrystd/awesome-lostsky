@@ -6,6 +6,9 @@ import { NInput, NSwitch } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
 interface Integration { id: number; name: string; endpoint_url: string; events: string[]; is_active: number }
@@ -53,25 +56,25 @@ function deleteVirtual() {
       <AdminPageHeader :title="editing ? '编辑虚拟实体' : '创建虚拟实体'" description="slug 用于 URL、权限和集成身份；确定后不可修改或复用。" back-to="/chat-virtuals" back-label="返回虚拟实体">
         <template v-if="editing" #actions><LsButton variant="danger" :loading="remove.isPending.value" @click="deleteVirtual"><Trash2 :size="16" />删除实体</LsButton></template>
       </AdminPageHeader>
-      <form class="panel" @submit.prevent="save.mutate()">
+      <form @submit.prevent="save.mutate()"><LsPanel><div class="virtual-fields">
         <h3>基本信息</h3>
-        <label>永久 slug<NInput v-model:value="form.slug" :disabled="editing" maxlength="50" placeholder="sales-assistant" /></label>
-        <label>显示名称<NInput v-model:value="form.name" maxlength="50" placeholder="销售助手" /></label>
-        <label>头像地址<NInput v-model:value="form.avatar" maxlength="500" placeholder="https://…" /></label>
-        <label>简介<NInput v-model:value="form.description" type="textarea" maxlength="500" :autosize="{ minRows: 3, maxRows: 7 }" /></label>
+        <LsField label="永久 slug" for-id="virtual-slug" required><NInput id="virtual-slug" v-model:value="form.slug" :disabled="editing" maxlength="50" placeholder="sales-assistant" /></LsField>
+        <LsField label="显示名称" for-id="virtual-name" required><NInput id="virtual-name" v-model:value="form.name" maxlength="50" placeholder="销售助手" /></LsField>
+        <LsField label="头像地址" for-id="virtual-avatar"><NInput id="virtual-avatar" v-model:value="form.avatar" maxlength="500" placeholder="https://…" /></LsField>
+        <LsField label="简介" for-id="virtual-description"><NInput id="virtual-description" v-model:value="form.description" type="textarea" maxlength="500" :autosize="{ minRows: 3, maxRows: 7 }" /></LsField>
         <label v-if="editing" class="switch-row"><span><strong>启用实体</strong><small>停用后不能参与新操作。</small></span><NSwitch v-model:value="form.is_active" /></label>
-        <p v-if="save.isError.value || remove.isError.value" class="error">{{ friendlyError(save.error.value || remove.error.value) }}</p>
+        <LsInlineError v-if="save.isError.value || remove.isError.value" :message="friendlyError(save.error.value || remove.error.value)" />
         <LsButton type="submit" :loading="save.isPending.value">保存实体</LsButton>
-      </form>
+      </div></LsPanel></form>
 
       <template v-if="editing">
-        <section class="panel">
-          <header>
+        <LsPanel>
+          <template #header><header>
             <div><h3>Webhook 集成</h3><p>同一虚拟实体可以同时由成员操作并连接多个外部系统。</p></div>
             <RouterLink :to="{ path: '/chat-integration-new', query: { slug } }">
               <LsButton size="sm"><Plus :size="16" />创建集成</LsButton>
             </RouterLink>
-          </header>
+          </header></template>
           <div v-if="detail.data.value?.integrations?.length" class="integration-list">
             <article v-for="item in detail.data.value.integrations" :key="item.id">
               <Webhook :size="19" />
@@ -81,18 +84,17 @@ function deleteVirtual() {
             </article>
           </div>
           <p v-else class="empty-integrations">还没有集成。创建后会一次性显示 API Token 与签名密钥。</p>
-        </section>
+        </LsPanel>
       </template>
     </div>
 </template>
 
 <style scoped>
 .virtual-form-page{max-width:60rem;display:grid;gap:1rem}
-.panel{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}
-.panel h3,.panel p{margin:0}.panel>label{display:grid;gap:.4rem;max-width:42rem;font-size:.82rem;font-weight:650}
+.virtual-fields{display:grid;gap:1rem}.virtual-fields h3,.virtual-fields p{margin:0}
 .switch-row{display:flex!important;align-items:center;justify-content:space-between;padding:.8rem;background:var(--cloud);border-radius:9px}
-.switch-row strong,.switch-row small{display:block}.switch-row small,.panel header p{color:var(--muted-ink);font-size:.75rem;font-weight:400}
-.panel>.ls-button{width:fit-content}.panel>header{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.switch-row strong,.switch-row small{display:block}.switch-row small,header p{color:var(--muted-ink);font-size:.75rem;font-weight:400}
+.virtual-fields>.ls-button{width:fit-content}header{display:flex;align-items:center;justify-content:space-between;gap:1rem}header h3,header p{margin:0}
 .integration-list{display:grid;gap:.5rem}
 .integration-list article{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;align-items:center;gap:.65rem;padding:.65rem;background:var(--cloud);border-radius:9px}
 .integration-list article>svg{color:var(--sky-lost-strong)}
@@ -100,6 +102,6 @@ function deleteVirtual() {
 .integration-list article>span{padding:.12rem .45rem;color:var(--success);background:color-mix(in oklch,var(--success),white 91%);border-radius:999px;font-size:.67rem}
 .integration-list article>span.inactive{color:var(--muted-ink);background:white}
 .integration-list article>a{min-height:40px;display:inline-flex;align-items:center;padding:0 .7rem;color:var(--sky-lost-strong);background:white;border:1px solid var(--line);border-radius:8px;font-size:.8rem;font-weight:650}
-.empty-integrations{padding:1rem;text-align:center;background:var(--cloud);border-radius:9px}.error{color:var(--danger)}
-@media(max-width:560px){.panel>header{align-items:stretch;flex-direction:column}.panel>header a,.panel>header .ls-button{width:100%}.integration-list article{grid-template-columns:24px minmax(0,1fr) auto}.integration-list article>span{display:none}.integration-list article>a{padding-inline:.5rem}}
+.empty-integrations{padding:1rem;text-align:center;background:var(--cloud);border-radius:9px}
+@media(max-width:560px){header{align-items:stretch;flex-direction:column}header a,header .ls-button{width:100%}.integration-list article{grid-template-columns:24px minmax(0,1fr) auto}.integration-list article>span{display:none}.integration-list article>a{padding-inline:.5rem}}
 </style>

@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { CirclePlus, SlidersHorizontal } from '@lucide/vue'
-import { NButton, NDatePicker, NPagination, NSelect } from 'naive-ui'
-import { computed, reactive } from 'vue'
-import PageHeader from '../components/PageHeader.vue'
+import { NDatePicker, NPagination, NSelect } from 'naive-ui'
+import type { DataTableColumns } from 'naive-ui'
+import { computed, h, reactive } from 'vue'
+import { RouterLink } from 'vue-router'
 import { customerName, customerOptions, dateTime, entityName, entityOptions, money, transactionType } from '../lib'
 import type { Pagination, TransactionOptions, TransactionRecord } from '../types'
 
@@ -45,15 +51,23 @@ const typeOptions = [{ label: '商城订单', value: 1 }, { label: '记账登记
 function reset() {
   Object.assign(filters, { keyword: '', type: null, handler_entity_id: null, customer_id: null, range: null, page: 1 })
 }
+const columns: DataTableColumns<TransactionRecord> = [
+  { title: '时间 / 类型', key: 'time', render: row => h('span', { class: 'transaction-cell' }, [h('strong', dateTime(row.trans_at)), h('small', transactionType(row.type))]) },
+  { title: '客户', key: 'customer', render: row => h(LsEntityIdentity, { type: 'customer', name: customerName(row.customer, row.customer_id), slug: String((row.customer as any)?.slug ?? ''), imageUrl: (row.customer as any)?.avatar ?? null, size: 'sm' }) },
+  { title: '接单人', key: 'handler', render: row => h(LsEntityIdentity, { type: (row.handler as any)?.type ?? 'entity', name: entityName(row.handler, row.handler_entity_id), slug: String((row.handler as any)?.slug ?? ''), imageUrl: (row.handler as any)?.avatar ?? null, size: 'sm' }) },
+  { title: '支付构成', key: 'payment', render: row => h('span', { class: 'transaction-cell' }, [h('span', `现款 ${money(row.cash)}`), h('small', `预存 ${money(row.prepaid)}`)]) },
+  { title: '总价', key: 'total_price', render: row => h('strong', { class: 'ls-tabular' }, money(row.total_price)) },
+  { title: '操作', key: 'actions', render: row => h(RouterLink, { to: `/detail?id=${row.id}` }, { default: () => '查看' }) },
+]
 </script>
 
 <template>
   <div class="transactions-view">
-    <PageHeader title="流水" description="按时间查看收入构成与参与方；创建、查看和编辑均在独立任务页完成。">
+    <LsPageHeader title="流水" description="按时间查看收入构成与参与方；创建、查看和编辑均在独立任务页完成。">
       <template #actions>
         <RouterLink class="primary-link" to="/new"><CirclePlus :size="18" />登记流水</RouterLink>
       </template>
-    </PageHeader>
+    </LsPageHeader>
 
     <LsListToolbar v-model="filters.keyword" placeholder="搜索客户昵称" aria-label="搜索流水客户" :count-label="`${query.data.value?.total ?? 0} 条流水`" @update:model-value="filters.page = 1">
       <template #filters>
@@ -62,31 +76,28 @@ function reset() {
       <NSelect v-model:value="filters.handler_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable placeholder="全部接单人" @update:value="filters.page = 1" />
       <NSelect v-model:value="filters.customer_id" :options="customerOptions(optionsQuery.data.value)" filterable clearable placeholder="全部客户" @update:value="filters.page = 1" />
       </template>
-      <template v-if="hasFilters" #actions><NButton secondary @click="reset"><SlidersHorizontal :size="17" />清除筛选</NButton></template>
+      <template v-if="hasFilters" #actions><LsButton variant="secondary" size="sm" @click="reset"><template #icon><SlidersHorizontal :size="17" /></template>清除筛选</LsButton></template>
     </LsListToolbar>
 
-    <p v-if="query.isError.value" class="feedback error" role="alert">{{ friendlyError(query.error.value) }}</p>
-    <div v-else-if="query.isPending.value" class="loading-list"><span v-for="i in 6" :key="i" /></div>
+    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取流水" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
     <LsEmptyState
       v-else-if="!rows.length"
       :title="hasFilters ? '没有匹配的流水' : '还没有流水'"
       :description="hasFilters ? '调整筛选条件后再试。' : '登记第一笔流水后，这里会按交易时间展示记录。'"
     />
-    <div v-else class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th>时间 / 类型</th><th>客户</th><th>接单人</th><th>支付构成</th><th>总价</th><th>操作</th></tr></thead>
-        <tbody>
-          <tr v-for="item in rows" :key="item.id">
-            <td><strong>{{ dateTime(item.trans_at) }}</strong><small>{{ transactionType(item.type) }}</small></td>
-            <td>{{ customerName(item.customer, item.customer_id) }}</td>
-            <td>{{ entityName(item.handler, item.handler_entity_id) }}</td>
-            <td class="optional-column"><span>现款 {{ money(item.cash) }}</span><small>预存 {{ money(item.prepaid) }}</small></td>
-            <td class="ls-tabular amount">{{ money(item.total_price) }}</td>
-            <td><RouterLink :to="`/detail?id=${item.id}`">查看</RouterLink></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <LsResponsiveDataTable v-else :columns="columns" :data="rows" :row-key="row => Number(row.id)" :scroll-x="940">
+      <template #mobile-title="{ row }">{{ dateTime(row.trans_at) }} · {{ transactionType(row.type) }}</template>
+      <template #mobile="{ row }">
+        <dl>
+          <dt>客户</dt><dd>{{ customerName(row.customer, row.customer_id) }}</dd>
+          <dt>接单人</dt><dd>{{ entityName(row.handler, row.handler_entity_id) }}</dd>
+          <dt>现金 / 预存</dt><dd class="ls-tabular">{{ money(row.cash) }} / {{ money(row.prepaid) }}</dd>
+          <dt>总价</dt><dd class="ls-tabular"><strong>{{ money(row.total_price) }}</strong></dd>
+          <dt>操作</dt><dd><RouterLink :to="`/detail?id=${row.id}`">查看</RouterLink></dd>
+        </dl>
+      </template>
+    </LsResponsiveDataTable>
     <div v-if="query.data.value && Number(query.data.value.total) > 0" class="pager">
       <span>共 {{ query.data.value.total }} 条，第 {{ filters.page }} / {{ pages }} 页</span>
       <NPagination v-model:page="filters.page" :page-count="pages" />
@@ -95,5 +106,5 @@ function reset() {
 </template>
 
 <style scoped>
-.transactions-view{display:grid;gap:1.35rem}.filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:.65rem;padding:.8rem}.filters :deep(.n-date-picker){grid-column:span 2}.data-table strong,.data-table small,.data-table span{display:block}.data-table strong{font-size:.84rem}.data-table small{margin-top:.15rem;color:var(--muted-ink);font-size:.75rem}.amount{font-weight:750;white-space:nowrap}@media(max-width:700px){.filters{grid-template-columns:1fr}.filters>*{width:100%;min-width:0}.filters :deep(.n-date-picker){grid-column:auto}.data-table th:nth-child(3),.data-table td:nth-child(3){display:none}}
+.transactions-view{display:grid;gap:1.35rem}.filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:.65rem;padding:.8rem}.filters :deep(.n-date-picker){grid-column:span 2}.transactions-view :deep(.transaction-cell>*){display:block}.transactions-view :deep(.transaction-cell small){margin-top:.15rem;color:var(--muted-ink);font-size:.75rem}@media(max-width:700px){.filters{grid-template-columns:1fr}.filters>*{width:100%;min-width:0}.filters :deep(.n-date-picker){grid-column:auto}}
 </style>

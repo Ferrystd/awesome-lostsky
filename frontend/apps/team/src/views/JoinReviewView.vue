@@ -2,9 +2,10 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { ArrowRight } from '@lucide/vue'
-import { NSelect, NSkeleton, NTag } from 'naive-ui'
+import { NSelect, NSkeleton } from 'naive-ui'
 import { computed, ref } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
@@ -21,7 +22,7 @@ const rows = computed<Record<string, unknown>[]>(() => {
   if (data && typeof data === 'object' && Array.isArray((data as Record<string, unknown>).list)) return (data as Record<string, unknown>).list as Record<string, unknown>[]
   return []
 })
-function statusType(value: unknown) { if (value === '已加入') return 'success'; if (value === '已拒绝' || value === '已取消') return 'error'; if (value === '审核中') return 'warning'; return 'info' }
+function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { if (value === '已加入') return 'success'; if (value === '已拒绝' || value === '已取消') return 'error'; if (value === '审核中') return 'warning'; return 'info' }
 function applicant(item: Record<string, unknown>) { return String((item.user as Record<string, unknown> | undefined)?.name || item.name || `用户 #${item.user_id}`) }
 const visibleRows = computed(() => { const keyword = search.value.trim().toLocaleLowerCase(); return rows.value.filter(item => !keyword || `${applicant(item)} ${item.id ?? ''} ${item.memo ?? ''}`.toLocaleLowerCase().includes(keyword)) })
 </script>
@@ -38,7 +39,7 @@ const visibleRows = computed(() => { const keyword = search.value.trim().toLocal
         <RouterLink v-for="item in visibleRows" :key="String(item.id)" :to="{ path: '/join-review/review', query: { id: String(item.id ?? '') } }">
           <div class="identity"><strong>{{ applicant(item) }}</strong><small>申请 #{{ item.id }}</small></div>
           <p>{{ item.memo || '没有补充说明' }}</p>
-          <NTag :type="statusType(item.status)" size="small" :bordered="false">{{ item.status }}</NTag>
+          <LsStatusTag :label="String(item.status)" :type="statusType(item.status)" />
           <ArrowRight class="arrow" :size="18" aria-hidden="true" />
         </RouterLink>
       </div>

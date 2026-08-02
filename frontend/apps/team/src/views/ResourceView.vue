@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import { Eye, Pencil, Plus, Trash2 } from '@lucide/vue'
-import { NButton, NCheckbox, NInput, NInputNumber, NModal, NSelect } from 'naive-ui'
-import { computed, ref } from 'vue'
+import { NCheckbox, NDataTable, NFormItem, NInput, NInputNumber, NModal, NSelect } from 'naive-ui'
+import type { DataTableColumns } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import type { ResourceMeta } from '../router'
 
 const props = defineProps<{ resource: ResourceMeta }>()
@@ -61,21 +66,33 @@ function initialForm(row?: Record<string, unknown>) {
 }
 function openDialog(nextMode: typeof mode.value, row?: Record<string, unknown>) { mode.value = nextMode; selected.value = row ?? null; form.value = initialForm(row); save.reset(); dialogOpen.value = true }
 async function confirmRemove(row: Record<string, unknown>) { if (!props.resource.deleteEndpoint || !confirm(`确认删除“${display(row.name ?? row.title ?? row.id)}”？`)) return; await remove.mutateAsync(row) }
+function resourceActions() {
+  return [
+    { key: 'detail', label: '详情', icon: Eye },
+    ...(props.resource.editEndpoint ? [{ key: 'edit', label: '编辑', icon: Pencil }] : []),
+    ...(props.resource.deleteEndpoint ? [{ key: 'delete', label: '删除', icon: Trash2, danger: true }] : []),
+  ]
+}
+function runResourceAction(key: string, row: Record<string, unknown>) {
+  if (key === 'detail' || key === 'edit') openDialog(key, row)
+  if (key === 'delete') void confirmRemove(row)
+}
+const columns = computed<DataTableColumns<Record<string, unknown>>>(() => [
+  ...props.resource.fields.map(field => ({ title: label(field), key: field, render: (row: Record<string, unknown>) => display(row[field]) })),
+  { title: '操作', key: 'actions', render: (row: Record<string, unknown>) => h(LsResponsiveActions, { actions: resourceActions(), primaryKey: 'detail', onSelect: key => runResourceAction(key, row) }) },
+])
 </script>
 
 <template>
   <div class="resource">
     <p class="resource-description">{{ resource.description }}</p>
     <LsListToolbar v-model="search" :placeholder="`搜索${resource.title}`" :aria-label="`搜索${resource.title}`" :count-label="`${filtered.length} 项`"><template v-if="resource.createEndpoint" #actions><LsButton size="sm" @click="openDialog('create')"><Plus :size="16" />新建</LsButton></template></LsListToolbar>
-    <p v-if="query.isError.value" class="state error" role="alert">{{ friendlyError(query.error.value) }}</p>
-    <div v-else-if="query.isPending.value" class="loading" aria-label="正在加载"><span v-for="i in 5" :key="i" /></div>
+    <LsAsyncState v-if="query.isError.value" state="error" :title="`暂时无法读取${resource.title}`" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
     <LsEmptyState v-else-if="!filtered.length" :title="resource.empty" description="可以调整搜索条件，或创建第一条记录。" />
-    <div v-else class="records">
-      <article v-for="row in filtered" :key="String(row.id ?? JSON.stringify(row))"><div v-for="field in resource.fields.slice(0, 3)" :key="field"><span>{{ label(field) }}</span><strong>{{ display(row[field]) }}</strong></div><footer><NButton secondary @click="openDialog('detail', row)"><template #icon><Eye :size="17" /></template>详情</NButton><NButton v-if="resource.editEndpoint" secondary @click="openDialog('edit', row)"><template #icon><Pencil :size="17" /></template>编辑</NButton><NButton v-if="resource.deleteEndpoint" secondary type="error" @click="confirmRemove(row)"><template #icon><Trash2 :size="17" /></template>删除</NButton></footer></article>
-    </div>
-    <div v-if="filtered.length" class="table-wrap"><table><thead><tr><th v-for="field in resource.fields" :key="field">{{ label(field) }}</th><th>操作</th></tr></thead><tbody><tr v-for="row in filtered" :key="String(row.id ?? JSON.stringify(row))"><td v-for="field in resource.fields" :key="field">{{ display(row[field]) }}</td><td><div class="actions"><NButton quaternary circle aria-label="查看详情" @click="openDialog('detail', row)"><template #icon><Eye :size="17" /></template></NButton><NButton v-if="resource.editEndpoint" quaternary circle aria-label="编辑" @click="openDialog('edit', row)"><template #icon><Pencil :size="17" /></template></NButton><NButton v-if="resource.deleteEndpoint" quaternary circle type="error" aria-label="删除" @click="confirmRemove(row)"><template #icon><Trash2 :size="17" /></template></NButton></div></td></tr></tbody></table></div>
-    <p v-if="remove.isError.value" class="state error" role="alert">{{ friendlyError(remove.error.value) }}</p>
-    <NModal v-model:show="dialogOpen" preset="card" class="resource-dialog" :title="mode === 'create' ? `新建${resource.title}` : mode === 'edit' ? `编辑${resource.title}` : `${resource.title}详情`"><form @submit.prevent="save.mutate()"><dl v-if="mode === 'detail' && selected"><template v-for="(value, key) in selected" :key="key"><dt>{{ label(String(key)) }}</dt><dd>{{ display(value) }}</dd></template></dl><div v-else class="form-fields"><label v-for="field in resource.formFields" :key="field.key"><span>{{ field.label }} <b v-if="field.required">*</b></span><NInput v-if="field.type === 'textarea'" :value="String(form[field.key] ?? '')" type="textarea" :autosize="{ minRows: 4, maxRows: 8 }" @update:value="value => form[field.key] = value" /><NSelect v-else-if="field.type === 'select'" :value="form[field.key] as string | number" :options="field.options ?? []" placeholder="请选择" @update:value="value => form[field.key] = value" /><NCheckbox v-else-if="field.type === 'checkbox'" :checked="Boolean(form[field.key])" @update:checked="value => form[field.key] = value">启用</NCheckbox><NInputNumber v-else-if="field.type === 'number'" :value="Number(form[field.key]) || null" @update:value="value => form[field.key] = value ?? 0" /><NInput v-else :value="String(form[field.key] ?? '')" :disabled="mode === 'edit' && field.createOnly" @update:value="value => form[field.key] = value" /></label><p v-if="save.isError.value" class="error" role="alert">{{ friendlyError(save.error.value) }}</p><div class="dialog-actions"><LsButton type="button" variant="secondary" @click="dialogOpen = false">取消</LsButton><LsButton type="submit" :loading="save.isPending.value">保存</LsButton></div></div></form></NModal>
+    <NDataTable v-else :columns="columns" :data="filtered" :row-key="row => String(row.id ?? JSON.stringify(row))" :scroll-x="760" />
+    <LsInlineError v-if="remove.isError.value" :message="friendlyError(remove.error.value)" />
+    <NModal v-model:show="dialogOpen" preset="card" class="resource-dialog" :title="mode === 'create' ? `新建${resource.title}` : mode === 'edit' ? `编辑${resource.title}` : `${resource.title}详情`"><form @submit.prevent="save.mutate()"><dl v-if="mode === 'detail' && selected"><template v-for="(value, key) in selected" :key="key"><dt>{{ label(String(key)) }}</dt><dd>{{ display(value) }}</dd></template></dl><div v-else class="form-fields"><template v-for="field in resource.formFields" :key="field.key"><NFormItem v-if="field.type === 'checkbox'" :label="field.label"><NCheckbox :checked="Boolean(form[field.key])" @update:checked="value => form[field.key] = value">启用</NCheckbox></NFormItem><LsField v-else :label="field.label" :for-id="`resource-${field.key}`" :required="field.required"><NInput v-if="field.type === 'textarea'" :id="`resource-${field.key}`" :value="String(form[field.key] ?? '')" type="textarea" :autosize="{ minRows: 4, maxRows: 8 }" @update:value="value => form[field.key] = value" /><NSelect v-else-if="field.type === 'select'" :id="`resource-${field.key}`" :value="form[field.key] as string | number" :options="field.options ?? []" placeholder="请选择" @update:value="value => form[field.key] = value" /><NInputNumber v-else-if="field.type === 'number'" :id="`resource-${field.key}`" :value="Number(form[field.key]) || null" @update:value="value => form[field.key] = value ?? 0" /><NInput v-else :id="`resource-${field.key}`" :value="String(form[field.key] ?? '')" :disabled="mode === 'edit' && field.createOnly" @update:value="value => form[field.key] = value" /></LsField></template><LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" /><div class="dialog-actions"><LsButton type="button" variant="secondary" @click="dialogOpen = false">取消</LsButton><LsButton type="submit" :loading="save.isPending.value">保存</LsButton></div></div></form></NModal>
   </div>
 </template>
 

@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Plus, Unlink } from '@lucide/vue'
-import { NButton } from 'naive-ui'
-import PageHeader from '../components/PageHeader.vue'
+import type { DataTableColumns } from 'naive-ui'
 import { customerName, dateTime, entityName } from '../lib'
 import type { SenderBinding } from '../types'
-import { computed, ref } from 'vue'
+import { computed, h, ref } from 'vue'
 
 const client = useQueryClient()
 const query = useQuery({ queryKey: ['sender-bindings'], queryFn: () => api.get<SenderBinding[]>('/transaction/sender/all') })
@@ -21,18 +26,34 @@ const remove = useMutation({
 function unbind(id: number) {
   if (confirm('确认解除这组发单人和客户的绑定？')) remove.mutate(id)
 }
+const columns: DataTableColumns<SenderBinding> = [
+  { title: '发单人', key: 'subject', render: row => h(LsEntityIdentity, { type: (row.subject as any)?.type ?? 'entity', name: entityName(row.subject, row.entity_id), slug: String((row.subject as any)?.slug ?? ''), imageUrl: (row.subject as any)?.avatar ?? null, size: 'sm' }) },
+  { title: '客户', key: 'customer', render: row => h(LsEntityIdentity, { type: 'customer', name: customerName(row.customer, row.customer_id), slug: String((row.customer as any)?.slug ?? ''), imageUrl: (row.customer as any)?.avatar ?? null, size: 'sm' }) },
+  { title: '绑定时间', key: 'create_time', render: row => dateTime(row.create_time) },
+  { title: '操作', key: 'actions', render: row => h(LsButton, { variant: 'danger', size: 'sm', onClick: () => unbind(Number(row.id)) }, { icon: () => h(Unlink, { size: 16 }), default: () => '解绑' }) },
+]
 </script>
 
 <template>
   <div class="bindings-view">
-    <PageHeader title="发单绑定" description="绑定后，发单人可以在自己的客户范围内查询和协作。此页需要团队管理权限。">
+    <LsPageHeader title="发单绑定" description="绑定后，发单人可以在自己的客户范围内查询和协作。此页需要团队管理权限。">
       <template #actions><RouterLink class="primary-link" to="/binding-new"><Plus :size="18" />新增绑定</RouterLink></template>
-    </PageHeader>
+    </LsPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索发单人或客户" aria-label="搜索发单绑定" :count-label="`${rows.length} 条绑定`" />
-    <p v-if="query.isError.value || remove.isError.value" class="feedback error" role="alert">{{ friendlyError(query.error.value || remove.error.value) }}</p>
-    <div v-else-if="query.isPending.value" class="loading-list"><span v-for="i in 5" :key="i" /></div>
+    <LsInlineError v-if="remove.isError.value" :message="friendlyError(remove.error.value)" />
+    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取发单绑定" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
     <LsEmptyState v-else-if="!rows.length" :title="search ? '没有匹配的发单绑定' : '还没有发单绑定'" description="将客户绑定给负责发单的人员，便于维护客户关系。" />
-    <div v-else class="table-wrap"><table class="data-table"><thead><tr><th>发单人</th><th>客户</th><th>绑定时间</th><th>操作</th></tr></thead><tbody><tr v-for="item in rows" :key="item.id"><td>{{ entityName(item.subject, item.entity_id) }}</td><td>{{ customerName(item.customer, item.customer_id) }}</td><td>{{ dateTime(item.create_time) }}</td><td><NButton type="error" secondary @click="unbind(Number(item.id))"><template #icon><Unlink :size="16" /></template>解绑</NButton></td></tr></tbody></table></div>
+    <LsResponsiveDataTable v-else :columns="columns" :data="rows" :row-key="row => Number(row.id)" :scroll-x="720">
+      <template #mobile-title="{ row }">{{ entityName(row.subject, row.entity_id) }}</template>
+      <template #mobile="{ row }">
+        <dl>
+          <dt>客户</dt><dd>{{ customerName(row.customer, row.customer_id) }}</dd>
+          <dt>绑定时间</dt><dd>{{ dateTime(row.create_time) }}</dd>
+          <dt>操作</dt><dd><LsButton variant="danger" size="sm" @click="unbind(Number(row.id))"><template #icon><Unlink :size="16" /></template>解绑</LsButton></dd>
+        </dl>
+      </template>
+    </LsResponsiveDataTable>
   </div>
 </template>
 

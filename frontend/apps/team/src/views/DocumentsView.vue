@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { BookOpen, Pencil, Plus, Trash2 } from '@lucide/vue'
-import { NButton, NSelect, NTag } from 'naive-ui'
+import { NPagination, NSelect } from 'naive-ui'
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
 const route = useRoute()
+const router = useRouter()
 const client = useQueryClient()
 const page = ref(1)
 const keyword = ref('')
@@ -70,6 +73,16 @@ function date(value: unknown) {
 function removeDoc(item: Record<string, unknown>) {
   if (confirm(`确认删除“${String(item.title ?? '未命名文档')}”？`)) remove.mutate(Number(item.id))
 }
+function documentActions() {
+  return [
+    { key: 'edit', label: '编辑', icon: Pencil },
+    { key: 'delete', label: '删除', icon: Trash2, danger: true },
+  ]
+}
+function runDocumentAction(key: string, item: Record<string, unknown>) {
+  if (key === 'edit') void router.push(`/doc-edit?id=${item.id}`)
+  if (key === 'delete') removeDoc(item)
+}
 </script>
 
 <template>
@@ -94,8 +107,8 @@ function removeDoc(item: Record<string, unknown>) {
     </LsListToolbar>
 
     <Transition name="ls-state" mode="out-in">
-      <p v-if="query.isError.value" key="error" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
-      <div v-else-if="query.isPending.value" key="loading" class="loading" aria-label="正在加载文档"><span v-for="i in 4" :key="i" class="ls-skeleton" /></div>
+      <LsAsyncState v-if="query.isError.value" key="error" state="error" title="暂时无法读取文档" :description="friendlyError(query.error.value)" />
+      <LsAsyncState v-else-if="query.isPending.value" key="loading" state="loading" :rows="4" />
       <LsEmptyState
         v-else-if="!docs.length"
         key="empty"
@@ -113,18 +126,13 @@ function removeDoc(item: Record<string, unknown>) {
             </span>
           </RouterLink>
           <footer>
-            <NTag size="small" :bordered="false">{{ visibilityLabels[Number(item.visibility)] ?? '可见范围未设置' }}</NTag>
-            <RouterLink class="icon-link" :to="`/doc-edit?id=${item.id}`" aria-label="编辑文档"><Pencil :size="17" /></RouterLink>
-            <NButton quaternary circle type="error" aria-label="删除文档" @click="removeDoc(item)"><template #icon><Trash2 :size="17" /></template></NButton>
+            <LsStatusTag :label="visibilityLabels[Number(item.visibility)] ?? '可见范围未设置'" />
+            <LsResponsiveActions :actions="documentActions()" primary-key="edit" @select="runDocumentAction($event, item)" />
           </footer>
         </article>
       </TransitionGroup>
     </Transition>
-    <footer v-if="pages > 1" class="pager">
-      <LsButton variant="secondary" size="sm" :disabled="page <= 1" @click="page--">上一页</LsButton>
-      <span>第 {{ page }} / {{ pages }} 页</span>
-      <LsButton variant="secondary" size="sm" :disabled="page >= pages" @click="page++">下一页</LsButton>
-    </footer>
+    <footer v-if="pages > 1" class="pager"><NPagination v-model:page="page" :page-count="pages" /></footer>
   </div>
 </template>
 

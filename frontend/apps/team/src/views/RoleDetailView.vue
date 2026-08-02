@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -14,7 +18,6 @@ import {
   NFormItem,
   NInput,
   NInputNumber,
-  NSkeleton,
   NSwitch,
 } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
@@ -185,17 +188,14 @@ function selectTargetEntities(entities: EntityDisplay[]) {
         back-label="返回角色列表"
       />
 
-      <p v-if="requestError || localError" class="error" role="alert">{{ localError || friendlyError(requestError) }}</p>
-      <section v-if="pending" class="loading" aria-label="正在加载角色权限">
-        <NSkeleton text width="28%" /><NSkeleton height="46px" /><NSkeleton height="46px" />
-        <NSkeleton text width="36%" /><NSkeleton v-for="index in 4" :key="index" height="52px" />
-      </section>
+      <LsInlineError v-if="requestError || localError" :message="localError || friendlyError(requestError)" />
+      <LsAsyncState v-if="pending" state="loading" :rows="7" />
 
       <template v-else>
-        <section class="panel">
-          <header>
+        <LsPanel>
+          <template #header><header>
             <div><h3>角色资料</h3><p>名称和说明帮助管理者理解角色用途，角色标识保持不变。</p></div>
-          </header>
+          </header></template>
           <NForm label-placement="top" @submit.prevent="saveInfo.mutate()">
             <NFormItem label="角色名称" required>
               <NInput v-model:value="form.name" aria-label="角色名称" />
@@ -218,16 +218,16 @@ function selectTargetEntities(entities: EntityDisplay[]) {
               <template #feedback>开启后，获得此角色的公开成员或虚拟实体会展示角色名称和说明；角色权限不会公开。</template>
             </NFormItem>
             <footer>
-              <NButton type="error" secondary :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</NButton>
-              <NButton attr-type="submit" type="primary" :loading="saveInfo.isPending.value" :disabled="!form.name.trim()"><template #icon><Save :size="17" /></template>保存资料</NButton>
+              <LsButton variant="danger" :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</LsButton>
+              <LsButton type="submit" :loading="saveInfo.isPending.value" :disabled="!form.name.trim()"><template #icon><Save :size="17" /></template>保存资料</LsButton>
             </footer>
           </NForm>
-        </section>
+        </LsPanel>
 
-        <section class="panel permissions-panel">
+        <LsPanel><section class="permissions-panel">
           <header>
             <div><h3>角色权限</h3><p>权限按工作领域折叠展示，展开需要调整的分组即可。</p></div>
-            <NButton type="primary" :loading="savePermissions.isPending.value" @click="savePermissions.mutate()">保存权限</NButton>
+            <LsButton :loading="savePermissions.isPending.value" @click="savePermissions.mutate()">保存权限</LsButton>
           </header>
 
           <div class="slug-tool">
@@ -245,7 +245,7 @@ function selectTargetEntities(entities: EntityDisplay[]) {
                 @update:model-value="selectTargetEntities"
                 @update:query="targetSlug = $event"
               />
-              <NButton secondary :loading="resolveTarget.isPending.value" :disabled="!targetSlug.trim()" @click="resolveTarget.mutate()">解析并添加</NButton>
+              <LsButton variant="secondary" :loading="resolveTarget.isPending.value" :disabled="!targetSlug.trim()" @click="resolveTarget.mutate()">解析并添加</LsButton>
             </div>
           </div>
 
@@ -276,12 +276,12 @@ function selectTargetEntities(entities: EntityDisplay[]) {
               </div>
             </NCollapseItem>
           </NCollapse>
-        </section>
+        </section></LsPanel>
       </template>
     </div>
 </template>
 
 <style scoped>
-.role-detail{display:grid;gap:1.5rem}.panel{display:grid;gap:1.25rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.panel>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.panel h3,.panel h4,.panel p{margin:0}.panel h3{font-size:1.05rem}.panel header p,.slug-tool p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.panel :deep(.n-form-item-label){font-weight:650}.panel :deep(.n-input-number){width:100%}.panel footer{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;padding-top:.25rem}.saved{display:inline-flex;align-items:center;gap:.4rem;margin:0 auto 0 0;color:var(--success);font-size:.82rem;font-weight:650}.slug-tool{display:grid;gap:.75rem;padding:1rem;background:var(--cloud);border-radius:10px}.slug-tool label{font-size:.875rem;font-weight:700}.slug-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.75rem}.exact-permissions{display:grid;gap:.5rem}.exact-permissions h4{font-size:.9rem}.exact-permissions>div{min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.65rem .75rem;border-bottom:1px solid var(--line)}.exact-permissions span,.permission-copy{display:grid;gap:.15rem}.exact-permissions strong,.permission-copy strong{font-size:.875rem}.exact-permissions code,.permission-copy code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.72rem}.exact-permissions button{width:44px;height:44px;display:grid;place-items:center;flex:none;color:var(--muted-ink);background:transparent;border:0;border-radius:8px;cursor:pointer}.exact-permissions button:hover{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}.permission-groups{border-top:1px solid var(--line)}.permission-groups :deep(.n-collapse-item){margin:0;border-bottom:1px solid var(--line)}.permission-groups :deep(.n-collapse-item__header){min-height:56px;padding:0}.permission-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;margin-bottom:1rem;overflow:hidden;background:var(--line);border:1px solid var(--line);border-radius:8px}.permission-list :deep(.n-checkbox){min-height:58px;align-items:center;padding:.65rem .75rem;background:white}.permission-list :deep(.n-checkbox:hover){background:var(--cloud)}.loading{display:grid;gap:1rem;padding:1.25rem;background:white;border-radius:12px}.error{margin:0;padding:1rem;color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%);border-radius:8px}
-@media(max-width:639px){.panel{padding:1rem}.panel>header,.panel footer{align-items:stretch;flex-direction:column}.panel>header :deep(.n-button),.panel footer :deep(.n-button){width:100%}.panel footer .saved{margin:0}.slug-controls{grid-template-columns:1fr}.permission-list{grid-template-columns:1fr}}
+.role-detail{display:grid;gap:1.5rem}.permissions-panel{display:grid;gap:1.25rem}.role-detail header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.role-detail h3,.role-detail h4,.role-detail p{margin:0}.role-detail h3{font-size:1.05rem}.role-detail header p,.slug-tool p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.role-detail :deep(.n-form-item-label){font-weight:650}.role-detail :deep(.n-input-number){width:100%}.role-detail footer{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;padding-top:.25rem}.saved{display:inline-flex;align-items:center;gap:.4rem;margin:0 auto 0 0;color:var(--success);font-size:.82rem;font-weight:650}.slug-tool{display:grid;gap:.75rem;padding:1rem;background:var(--cloud);border-radius:10px}.slug-tool label{font-size:.875rem;font-weight:700}.slug-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.75rem}.exact-permissions{display:grid;gap:.5rem}.exact-permissions h4{font-size:.9rem}.exact-permissions>div{min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.65rem .75rem;border-bottom:1px solid var(--line)}.exact-permissions span,.permission-copy{display:grid;gap:.15rem}.exact-permissions strong,.permission-copy strong{font-size:.875rem}.exact-permissions code,.permission-copy code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.72rem}.exact-permissions button{width:44px;height:44px;display:grid;place-items:center;flex:none;color:var(--muted-ink);background:transparent;border:0;border-radius:8px;cursor:pointer}.exact-permissions button:hover{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}.permission-groups{border-top:1px solid var(--line)}.permission-groups :deep(.n-collapse-item){margin:0;border-bottom:1px solid var(--line)}.permission-groups :deep(.n-collapse-item__header){min-height:56px;padding:0}.permission-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;margin-bottom:1rem;overflow:hidden;background:var(--line);border:1px solid var(--line);border-radius:8px}.permission-list :deep(.n-checkbox){min-height:58px;align-items:center;padding:.65rem .75rem;background:white}.permission-list :deep(.n-checkbox:hover){background:var(--cloud)}
+@media(max-width:639px){.role-detail header,.role-detail footer{align-items:stretch;flex-direction:column}.role-detail header :deep(.n-button),.role-detail footer :deep(.n-button){width:100%}.role-detail footer .saved{margin:0}.slug-controls{grid-template-columns:1fr}.permission-list{grid-template-columns:1fr}}
 </style>

@@ -3,9 +3,10 @@ import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { CheckCheck, Mail, MailOpen, Pin } from '@lucide/vue'
-import { NSelect, NTag } from 'naive-ui'
+import { NSelect } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -108,7 +109,7 @@ function summary(content: string | null | undefined) {
           <strong>{{ item.title || '无标题消息' }}</strong>
           <span class="summary">{{ summary(item.content).slice(0, 120) || `这条${copy.noun}没有正文。` }}</span>
         </span>
-        <NTag v-if="item.is_read !== 1" type="info" size="small" :bordered="false">未读</NTag>
+        <LsStatusTag v-if="item.is_read !== 1" label="未读" type="info" />
       </RouterLink>
     </section>
     <LsEmptyState

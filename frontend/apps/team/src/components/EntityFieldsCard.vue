@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import { NCheckbox, NDatePicker, NInput, NInputNumber, NSelect, NSwitch } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
@@ -144,7 +146,7 @@ function submit() {
 </script>
 
 <template>
-  <section class="entity-fields-card" aria-labelledby="entity-fields-title">
+  <LsPanel><section class="entity-fields-card" aria-labelledby="entity-fields-title">
     <header>
       <div>
         <h2 id="entity-fields-title">对象字段</h2>
@@ -269,11 +271,11 @@ function submit() {
       </div>
     </div>
 
-    <p v-if="error || uploadError" class="feedback error" role="alert">{{ friendlyError(error || uploadError) }}</p>
-  </section>
+    <LsInlineError v-if="error || uploadError" :message="friendlyError(error || uploadError)" />
+  </section></LsPanel>
 </template>
 
 <style scoped>
-.entity-fields-card{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.entity-fields-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.entity-fields-card h2,.entity-fields-card p{margin:0}.entity-fields-card h2{font-size:1.05rem}.entity-fields-card header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.field-list{border-top:1px solid var(--line)}.field-row{display:grid;grid-template-columns:minmax(9rem,.36fr) minmax(0,1fr);align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}.field-label{display:grid;gap:.2rem}.field-label>span{font-size:.875rem;font-weight:680}.field-label b{color:var(--danger)}.field-label small,.readonly-value small{color:var(--muted-ink);font-size:.75rem}.readonly-value{min-width:0;display:grid;gap:.2rem;overflow-wrap:anywhere;color:var(--ink);line-height:1.55}.readonly-value small{font-weight:500}.number-input{width:100%}.choice-list{display:flex;flex-wrap:wrap;gap:.75rem 1rem}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}.feedback{padding:.75rem;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}
-@media(max-width:639px){.entity-fields-card{padding:1rem}.entity-fields-card>header{align-items:stretch;flex-direction:column}.entity-fields-card>header :deep(.ls-button){width:100%}.field-row{grid-template-columns:1fr;gap:.65rem}.upload-control{grid-template-columns:1fr}.upload-control>label{justify-content:center}}
+.entity-fields-card{display:grid;gap:1rem}.entity-fields-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.entity-fields-card h2,.entity-fields-card p{margin:0}.entity-fields-card h2{font-size:1.05rem}.entity-fields-card header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.field-list{border-top:1px solid var(--line)}.field-row{display:grid;grid-template-columns:minmax(9rem,.36fr) minmax(0,1fr);align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}.field-label{display:grid;gap:.2rem}.field-label>span{font-size:.875rem;font-weight:680}.field-label b{color:var(--danger)}.field-label small,.readonly-value small{color:var(--muted-ink);font-size:.75rem}.readonly-value{min-width:0;display:grid;gap:.2rem;overflow-wrap:anywhere;color:var(--ink);line-height:1.55}.readonly-value small{font-weight:500}.number-input{width:100%}.choice-list{display:flex;flex-wrap:wrap;gap:.75rem 1rem}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}
+@media(max-width:639px){.entity-fields-card>header{align-items:stretch;flex-direction:column}.entity-fields-card>header :deep(.ls-button){width:100%}.field-row{grid-template-columns:1fr;gap:.65rem}.upload-control{grid-template-columns:1fr}.upload-control>label{justify-content:center}}
 </style>

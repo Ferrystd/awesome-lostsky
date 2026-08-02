@@ -52,7 +52,7 @@ describe('后台源码设计契约', () => {
 
   it('公共组件和 Wiki 板块保持可定位', () => {
     const componentRules = readFileSync(join(repository, 'docs', 'design', 'admin', 'components.md'), 'utf8')
-    for (const name of ['LsButton', 'LsPage', 'LsPageHeader', 'LsWorkspaceHeader', 'LsListToolbar', 'LsEntityIdentity', 'LsEntityCard', 'LsEntityInput', 'LsResponsiveActions', 'LsUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
+    for (const name of ['LsButton', 'LsInlineError', 'LsPanel', 'LsStatusTag', 'LsPage', 'LsPageHeader', 'LsWorkspaceHeader', 'LsListToolbar', 'LsEntityIdentity', 'LsEntityCard', 'LsEntityInput', 'LsResponsiveActions', 'LsResponsiveDataTable', 'LsUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
       expect(componentRules, `${name} 缺少 Wiki 契约`).toContain(`\`${name}\``)
     }
     for (const page of ['index.md', 'foundations.md', 'components.md', 'patterns.md', 'states-and-access.md', 'responsive-accessibility.md', 'applications.md', 'checklist.md']) {
@@ -91,5 +91,42 @@ describe('后台源码设计契约', () => {
       const source = readFileSync(join(repository, 'frontend', 'apps', page), 'utf8')
       expect(source, `${page} 未复用页面级空状态`).toContain('LsEmptyState')
     }
+  })
+
+  it('后台页面不恢复已经废弃的页面级皮肤和重复表格', () => {
+    const roots = ['admin', 'team', 'transaction'].map(name => join(repository, 'frontend', 'apps', name, 'src'))
+    const pages = roots.flatMap(filesUnder).filter(path => path.endsWith('.vue'))
+    const forbidden = [
+      { pattern: /<table\b/i, label: '原生 table' },
+      { pattern: /class=["'][^"']*\bloading-list\b/i, label: '页面级 loading-list' },
+      { pattern: /class=["'][^"']*\bfeedback\s+error\b/i, label: '手写行内错误' },
+    ]
+    for (const path of pages) {
+      const source = readFileSync(path, 'utf8')
+      const file = relative(repository, path).replaceAll('\\', '/')
+      for (const rule of forbidden) expect(source, `${file} 出现${rule.label}`).not.toMatch(rule.pattern)
+      for (const match of source.matchAll(/class=["']([^"']+)["']/gi)) {
+        expect(match[1].split(/\s+/), `${file} 出现页面级 panel`).not.toContain('panel')
+      }
+      for (const match of source.matchAll(/<label\b[^>]*class=["']([^"']+)["']/gi)) {
+        expect(match[1].split(/\s+/), `${file} 出现手写字段容器`).not.toContain('field')
+      }
+    }
+  })
+
+  it('直接 NButton 只用于壳层、平台命令搜索和纯图标微操作', () => {
+    const allowed = new Set([
+      'frontend/apps/admin/src/components/AdminShell.vue',
+      'frontend/apps/admin/src/views/DashboardView.vue',
+      'frontend/apps/team/src/components/TeamShell.vue',
+      'frontend/apps/team/src/views/RoleDetailView.vue',
+      'frontend/apps/transaction/src/components/TransactionShell.vue',
+    ])
+    const offenders = ['admin', 'team', 'transaction']
+      .flatMap(name => filesUnder(join(repository, 'frontend', 'apps', name, 'src')))
+      .filter(path => path.endsWith('.vue') && readFileSync(path, 'utf8').includes('<NButton'))
+      .map(path => relative(repository, path).replaceAll('\\', '/'))
+      .filter(path => !allowed.has(path))
+    expect(offenders).toEqual([])
   })
 })

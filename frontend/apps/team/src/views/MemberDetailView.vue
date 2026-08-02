@@ -2,6 +2,7 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { BookOpen, MessageCircleMore } from '@lucide/vue'
 import { computed } from 'vue'
@@ -52,7 +53,7 @@ const fields = computed(() => {
       </template>
     </AdminPageHeader>
 
-    <p v-if="member.isError.value" class="feedback error" role="alert">{{ friendlyError(member.error.value) }}</p>
+    <LsInlineError v-if="member.isError.value" :message="friendlyError(member.error.value)" />
     <section v-else-if="member.data.value" class="identity">
       <div class="avatar">
         <img v-if="profile?.avatar || member.data.value.avatar" :src="String(profile?.avatar || member.data.value.avatar)" alt="成员头像">

@@ -1051,7 +1051,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         return color
       })
       expect(toolbarIconColor).toBe(inkColor)
-      const visibilitySelect = page.locator('label.field').filter({ hasText: '可见范围' }).locator('.n-select')
+      const visibilitySelect = page.locator('.ls-field').filter({ hasText: '可见范围' }).locator('.n-select')
       await visibilitySelect.click()
       await expect(page.locator('.n-base-select-option').filter({ hasText: '团队管理员可见' }).first()).toBeVisible()
       await expect(page.locator('.n-base-select-option').filter({ hasText: '团队管理员可见，不含成员本人' })).toHaveCount(0)

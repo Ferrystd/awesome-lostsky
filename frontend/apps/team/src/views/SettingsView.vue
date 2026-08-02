@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NRadio, NRadioGroup, NSelect, NSwitch } from 'naive-ui'
 import type { SelectOption } from 'naive-ui'
@@ -101,10 +103,8 @@ function settingId(appName: string, key: string): string {
       description="配置团队级行为。设置项、输入类型和可选值均由服务端统一定义。"
     />
 
-    <p v-if="query.isError.value" class="feedback error" role="alert">
-      {{ friendlyError(query.error.value) }}
-    </p>
-    <div v-else-if="query.isPending.value" class="loading-panel" role="status">正在加载团队设置…</div>
+    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取团队设置" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="4" />
     <LsEmptyState v-else-if="!apps.length" title="当前没有可配置项" description="应用登记团队设置后会自动显示在这里。" />
 
     <template v-else>
@@ -197,13 +197,10 @@ function settingId(appName: string, key: string): string {
         </div>
       </section>
 
-      <p
+      <LsInlineError
         v-if="save.isError.value && save.variables.value?.app_name === app.app_name"
-        class="feedback error"
-        role="alert"
-      >
-        {{ friendlyError(save.error.value) }}
-      </p>
+        :message="friendlyError(save.error.value)"
+      />
       <p v-if="savedApp === app.app_name" class="feedback success" role="status">
         {{ app.label }}设置已保存。
       </p>

@@ -1,0 +1,1 @@
+const n={active:"正常",banned:"已封禁",cancelled:"已注销",healthy:"正常",degraded:"需关注",unhealthy:"异常"};function a(e){return n[e]}function r(e){return e==="active"||e==="healthy"?"success":e==="banned"||e==="unhealthy"?"error":"warning"}export{r as a,a as b};

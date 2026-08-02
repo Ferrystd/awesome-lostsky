@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { MessageCircleMore, Save } from '@lucide/vue'
-import { NButton, NInput, NSelect, NSwitch } from 'naive-ui'
+import { NFormItem, NInput, NSelect, NSwitch } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPage from '../components/AdminPage.vue'
@@ -112,12 +117,13 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
     >
       <template #actions>
         <a v-if="!chatReason && chatUrl" class="chat-link" :href="chatUrl"><MessageCircleMore :size="18" />发起对话</a>
-        <NButton v-else secondary class="chat-link" :title="chatReason" disabled><template #icon><MessageCircleMore :size="18" /></template>发起对话</NButton>
+        <LsButton v-else variant="secondary" class="chat-link" :title="chatReason" disabled><template #icon><MessageCircleMore :size="18" /></template>发起对话</LsButton>
       </template>
     </AdminPageHeader>
 
-    <p v-if="query.isError.value || save.isError.value" class="feedback error" role="alert">{{ friendlyError(query.error.value || save.error.value) }}</p>
-    <div v-else-if="query.isPending.value" class="loading-list"><span v-for="i in 5" :key="i" /></div>
+    <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
+    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取客户详情" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
     <template v-else-if="query.data.value">
       <section class="summary-grid" aria-label="客户经营摘要">
         <article><span>可用余额</span><strong>{{ money(query.data.value.balance.balance) }}</strong><small>累计充值 {{ money(query.data.value.balance.recharged) }}</small></article>
@@ -125,14 +131,15 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
         <article><span>订单</span><strong>{{ query.data.value.summary.order_count }} 笔</strong><small>{{ money(query.data.value.summary.order_total) }}</small></article>
       </section>
 
-      <section class="detail-panel">
-        <header><div><h3>客户资料</h3><p>@{{ query.data.value.slug }}</p></div><span>{{ canManage ? '可维护' : '只读' }}</span></header>
+      <LsPanel>
+        <template #header><header class="detail-heading"><div><h3>客户资料</h3><p>@{{ query.data.value.slug }}</p></div><span>{{ canManage ? '可维护' : '只读' }}</span></header></template>
         <form @submit.prevent="save.mutate()">
-          <label>客户昵称<NInput v-model:value="form.name" :disabled="!canManage" maxlength="50" /></label>
-          <label>头像地址<NInput v-model:value="form.avatar" :disabled="!canManage" placeholder="可选" /></label>
-          <label>说明<NInput v-model:value="form.description" :disabled="!canManage" type="textarea" maxlength="500" /></label>
-          <label>当前归属人
+          <LsField label="客户昵称" for-id="customer-name"><NInput v-model:value="form.name" :input-props="{ id: 'customer-name' }" :disabled="!canManage" maxlength="50" /></LsField>
+          <LsField label="头像地址" for-id="customer-avatar"><NInput v-model:value="form.avatar" :input-props="{ id: 'customer-avatar' }" :disabled="!canManage" placeholder="可选" /></LsField>
+          <LsField label="说明" for-id="customer-description"><NInput v-model:value="form.description" :input-props="{ id: 'customer-description' }" :disabled="!canManage" type="textarea" maxlength="500" /></LsField>
+          <LsField label="当前归属人" for-id="customer-assignee" hint="变更只影响之后创建的订单和流水，不修改历史发单人。">
             <NSelect
+              id="customer-assignee"
               v-model:value="form.assignee_entity_id"
               :options="assigneeOptions"
               :disabled="!canManage"
@@ -140,20 +147,16 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
               clearable
               placeholder="未归属"
             />
-            <small>变更只影响之后创建的订单和流水，不修改历史发单人。</small>
-          </label>
-          <label class="switch-field">
-            <span><strong>封禁客户</strong><small>封禁后客户现有身份会话不能继续使用。</small></span>
-            <NSwitch v-model:value="form.is_blocked" :disabled="!canManage" />
-          </label>
-          <NButton v-if="canManage" attr-type="submit" type="primary" :loading="save.isPending.value"><Save :size="18" />保存客户资料</NButton>
+          </LsField>
+          <NFormItem label="客户状态"><div class="switch-field"><span><strong>封禁客户</strong><small>封禁后客户现有身份会话不能继续使用。</small></span><NSwitch v-model:value="form.is_blocked" :disabled="!canManage" /></div></NFormItem>
+          <LsButton v-if="canManage" type="submit" :loading="save.isPending.value"><template #icon><Save :size="18" /></template>保存客户资料</LsButton>
         </form>
-      </section>
+      </LsPanel>
     </template>
   </AdminPage>
 </template>
 
 <style scoped>
-.chat-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .9rem;border:0;border-radius:9px;color:white;background:var(--sky-lost-strong);font-size:.875rem;font-weight:700}.chat-link.disabled{color:var(--muted-ink);background:var(--cloud);cursor:not-allowed}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden;background:white;border:1px solid var(--line);border-radius:12px}.summary-grid article{display:grid;gap:.25rem;padding:1.1rem;border-right:1px solid var(--line)}.summary-grid article:last-child{border-right:0}.summary-grid span,.summary-grid small{color:var(--muted-ink);font-size:.76rem}.summary-grid strong{font-size:1.1rem;font-variant-numeric:tabular-nums}.detail-panel{padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.detail-panel>header{display:flex;align-items:start;justify-content:space-between;gap:1rem;padding-bottom:1rem;border-bottom:1px solid var(--line)}.detail-panel h3,.detail-panel p{margin:0}.detail-panel p{margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.detail-panel>header>span{padding:.2rem .5rem;border-radius:999px;background:var(--cloud);font-size:.72rem;font-weight:700}.detail-panel form{max-width:42rem;display:grid;gap:1rem;margin-top:1rem}.detail-panel label{display:grid;gap:.4rem;font-size:.82rem;font-weight:650}.detail-panel label>small,.switch-field small{color:var(--muted-ink);font-weight:400;line-height:1.5}.switch-field{grid-template-columns:1fr auto!important;align-items:center;padding:.85rem;background:var(--cloud);border-radius:10px}.switch-field span,.switch-field strong,.switch-field small{display:block}
+.chat-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .9rem;border:0;border-radius:9px;color:white;background:var(--sky-lost-strong);font-size:.875rem;font-weight:700}.chat-link.disabled{color:var(--muted-ink);background:var(--cloud);cursor:not-allowed}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden;background:white;border:1px solid var(--line);border-radius:12px}.summary-grid article{display:grid;gap:.25rem;padding:1.1rem;border-right:1px solid var(--line)}.summary-grid article:last-child{border-right:0}.summary-grid span,.summary-grid small{color:var(--muted-ink);font-size:.76rem}.summary-grid strong{font-size:1.1rem;font-variant-numeric:tabular-nums}.detail-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}.detail-heading h3,.detail-heading p{margin:0}.detail-heading p{margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.detail-heading>span{padding:.2rem .5rem;border-radius:999px;background:var(--cloud);font-size:.72rem;font-weight:700}.ls-panel form{max-width:42rem;display:grid;gap:1rem}.switch-field{width:100%;display:grid;grid-template-columns:1fr auto;align-items:center;padding:.85rem;background:var(--cloud);border-radius:10px}.switch-field span,.switch-field strong,.switch-field small{display:block}.switch-field small{color:var(--muted-ink);font-weight:400;line-height:1.5}
 @media(max-width:640px){.summary-grid{grid-template-columns:1fr}.summary-grid article{border-right:0;border-bottom:1px solid var(--line)}.summary-grid article:last-child{border-bottom:0}}
 </style>

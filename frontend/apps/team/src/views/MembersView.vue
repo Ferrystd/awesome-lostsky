@@ -5,10 +5,11 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { FileText, MessageCircleMore, Pencil, Plus, ShieldBan, ShieldCheck, UserX } from '@lucide/vue'
-import { NSelect, NTag } from 'naive-ui'
+import { NSelect } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -116,7 +117,7 @@ function handleAction(key: string, item: Record<string, unknown>) {
         <article v-for="item in filtered" :key="String(item.id)">
         <div class="identity">
           <LsEntityIdentity type="teamMember" :name="String(item.nickname || `成员 #${item.id}`)" :slug="String(item.slug || '')" :image-url="item.avatar ? String(item.avatar) : null" fallback="initial">
-            <template #status><NTag size="small" :type="Number(item.is_blocked) === 1 ? 'error' : 'success'" :bordered="false">{{ Number(item.is_blocked) === 1 ? '已封禁' : '正常' }}</NTag></template>
+            <template #status><LsStatusTag :label="Number(item.is_blocked) === 1 ? '已封禁' : '正常'" :type="Number(item.is_blocked) === 1 ? 'error' : 'success'" /></template>
           </LsEntityIdentity>
           <small>{{ item.description || '暂无成员简介' }}</small>
         </div>

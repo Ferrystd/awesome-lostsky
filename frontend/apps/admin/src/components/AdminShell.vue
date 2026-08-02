@@ -2,12 +2,13 @@
 import { api, auth } from '@lostsky/api/client'
 import { redirectToLogin } from '@lostsky/shared/navigation'
 import LsSearchInput from '@lostsky/ui/components/LsSearchInput.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import {
   Activity, ChevronRight, Command, FileClock, Gauge, LogOut, Menu, Search,
   ShieldCheck, Users, UserRoundCog, X,
 } from '@lucide/vue'
-import { NButton, NModal, NTag } from 'naive-ui'
+import { NButton, NModal } from 'naive-ui'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { adminSession, can } from '../session'
@@ -110,8 +111,8 @@ onBeforeUnmount(() => {
       <p v-if="searching" class="command-hint">正在搜索…</p>
       <p v-else-if="search.trim().length<2" class="command-hint">至少输入 2 个字符。按 Esc 关闭。</p>
       <div v-else class="command-results">
-        <section v-if="results.users.length"><h2>用户</h2><NButton v-for="user in results.users" :key="user.id" quaternary @click="open(`/users/${user.id}`)"><span><strong>{{ user.nickname || user.username }}</strong><small>#{{ user.id }} · {{ user.phone_masked || user.email_masked }}</small></span><NTag size="small" :type="user.is_banned ? 'error' : 'success'">{{ user.is_banned ? '已封禁' : '正常' }}</NTag></NButton></section>
-        <section v-if="results.teams.length"><h2>团队</h2><NButton v-for="team in results.teams" :key="team.id" quaternary @click="open(`/teams/${team.id}`)"><span><strong>{{ team.name || team.slug }}</strong><small>#{{ team.id }} · {{ team.slug }}</small></span><NTag size="small" :type="team.is_banned ? 'error' : 'success'">{{ team.is_banned ? '已封禁' : '正常' }}</NTag></NButton></section>
+        <section v-if="results.users.length"><h2>用户</h2><NButton v-for="user in results.users" :key="user.id" quaternary @click="open(`/users/${user.id}`)"><span><strong>{{ user.nickname || user.username }}</strong><small>#{{ user.id }} · {{ user.phone_masked || user.email_masked }}</small></span><LsStatusTag :label="user.is_banned ? '已封禁' : '正常'" :type="user.is_banned ? 'error' : 'success'" /></NButton></section>
+        <section v-if="results.teams.length"><h2>团队</h2><NButton v-for="team in results.teams" :key="team.id" quaternary @click="open(`/teams/${team.id}`)"><span><strong>{{ team.name || team.slug }}</strong><small>#{{ team.id }} · {{ team.slug }}</small></span><LsStatusTag :label="team.is_banned ? '已封禁' : '正常'" :type="team.is_banned ? 'error' : 'success'" /></NButton></section>
         <p v-if="!results.users.length&&!results.teams.length" class="command-hint">没有找到匹配的用户或团队。</p>
       </div>
     </NModal>

@@ -2904,7 +2904,8 @@
 <p>页面主内容或主集合的空数据和筛选无结果必须使用 <code>LsEmptyState</code>，且只传 <code>title</code> 与 <code>description</code>：标题说明当前没有什么，说明文本给出来源、边界或下一步；不得直接拼装裸图标、标题和段落，不得为单页扩展图标、动作、尺寸或样式参数。组件固定为白色有边界面板、Naive <code>NEmpty</code> 图标与居中排版，标准最小高度为 <code>12rem</code>、上下内边距为 <code>2rem</code>；禁止用 <code>vw</code> 或页面私有样式随桌面宽度继续拉高，仅在文案换行或文本放大确实需要时自然增高。桌面和移动端均须自然换行且不得横向溢出。创建等主操作保留在页面标题，不塞入空状态。消息时间线、详情卡片、表单候选区和统计小卡等局部区域不是“页面无数据”，继续使用与所在区域密度一致的紧凑说明；如需偏离，必须在应用规则登记原因。</p>
 <p>同一顶栏中的链接、路由入口和 Naive UI 按钮使用完全相同的 <code>--font-ui</code>、14px 字号和 600 字重。<code>NDropdown</code> 等无根组件必须由真实 DOM 容器承担响应式显示类；验收时桌面不得同时出现完整动作和移动端“操作”按钮。</p>
 <h2 id="_5">表单、上传与分页<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
-<p>表单默认单列，宽度不超过 <code>form</code> 容器；同组提交与取消按钮同尺寸。上传必须使用 <code>LsUploadField</code>，按钮不得因“上传”语义单独放大。分页使用 <code>NPagination</code>；确需上一页/下一页模式时使用同尺寸 <code>LsButton</code>。</p>
+<p>表单默认单列，宽度不超过 <code>form</code> 容器；普通单控件字段必须使用 <code>LsField</code>，复杂联动、校验组或 Naive 表单验证使用 <code>NFormItem</code>，不得保留页面级 <code>.field</code> 标签皮肤。表单与局部操作错误使用只接收 <code>message</code> 的 <code>LsInlineError</code>；页面级异步加载和真实错误使用 <code>LsAsyncState</code>，两者不得互换或重复报告。同组提交与取消按钮同尺寸，并通过 <code>LsButton</code> 的 <code>icon</code> 插槽承载图标。上传必须使用 <code>LsUploadField</code>，按钮不得因“上传”语义单独放大。分页使用 <code>NPagination</code>；确需上一页/下一页模式时使用同尺寸 <code>LsButton</code>。</p>
+<p>有边界的独立内容区统一使用无视觉参数的 <code>LsPanel</code>，标题、正文和页脚分别进入对应插槽；页面不得重新声明 <code>.panel</code> 的圆角、边框或内边距。连续表格、列表、弹层和确需不同语义根节点的表单不强行套用 <code>LsPanel</code>，但应使用 Naive UI 自有容器或公共列表边界。原生 <code>&lt;table&gt;</code> 只用于纯展示文档内容；后台数据表优先使用 <code>NDataTable</code>。Admin 用户、团队、管理员与审计页，以及 Transaction 流水、绑定、客户余额与余额明细页，已满足三页以上相同的响应式需求，统一使用 <code>LsResponsiveDataTable</code>；Team 客户目录复用这一既有模式。其他新模式不得仅为包一层 DOM 建组件，必须在 Wiki 登记达到相同复用阈值。</p>
 <h2 id="_6">例外与检查<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <p>Admin 平台命令搜索是应用专属能力，可保留快捷键和弹层，但输入、结果行、移动布局和状态遵守公共组件。检查：在 320、375、768、1024、1440px 分别确认标题、工具栏、列表边界、操作层级与无横向溢出。</p>
 

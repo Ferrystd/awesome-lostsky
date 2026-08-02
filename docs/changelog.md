@@ -23,6 +23,7 @@
 
 ### 变更
 
+- 后台表单字段、命令按钮、行内错误、面板和状态标签分别统一到 `LsField`、`LsButton`、`LsInlineError`、`LsPanel` 与 `LsStatusTag`；数据表与分页优先直接使用 Naive UI，减少页面重复参数和私有样式。
 - 后台统一空状态保持约 192px 的紧凑基准高度，不再随桌面视口宽度增加上下留白；长文案和文本放大时仍可自然增高。
 - 后台页面级无数据与筛选无结果统一复用仅含标题、提示两个参数的 `LsEmptyState`；Account、Chat 团队选择、Team、Transaction 与 Admin 主目录不再分别拼装空状态图标和文案。
 - 后台统一采用 Naive UI 2.44.1 与 `@lostsky/ui`：Team、Transaction、Admin 使用同一顶栏、页面标题、搜索筛选、主体识别和响应式动作模式，Account 与 Chat 同步主题和主体识别；普通页面移除手动刷新/重试，并建立完整的后台设计 Wiki 与强制入 Wiki 维护规则。

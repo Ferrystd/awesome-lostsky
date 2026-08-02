@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
+import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { ExternalLink, Search, ShieldCheck } from '@lucide/vue'
-import { NButton, NCheckbox, NEmpty, NSkeleton, NTag } from 'naive-ui'
+import { NCheckbox, NEmpty, NSkeleton, NTag } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -145,9 +146,9 @@ function entityTypeLabel(type: EntityType) {
             @chat="startChat"
             @profile="openProfile"
           />
-          <NButton attr-type="submit" type="primary" :loading="resolveEntity.isPending.value" :disabled="!sourceSlug.trim()">
+          <LsButton type="submit" :loading="resolveEntity.isPending.value" :disabled="!sourceSlug.trim()">
             <template #icon><Search :size="17" /></template>查找实体
-          </NButton>
+          </LsButton>
         </div>
       </form>
 
@@ -170,7 +171,7 @@ function entityTypeLabel(type: EntityType) {
 
         <div class="assignment-heading">
           <div><h3>当前团队角色</h3><p>勾选后保存完整角色集合；未勾选表示撤销该角色。</p></div>
-          <NButton type="primary" :loading="save.isPending.value" :disabled="!roles.length" @click="save.mutate()">保存分配</NButton>
+          <LsButton :loading="save.isPending.value" :disabled="!roles.length" @click="save.mutate()">保存分配</LsButton>
         </div>
         <div v-if="roles.length" class="role-options">
           <NCheckbox

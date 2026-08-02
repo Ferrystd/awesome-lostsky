@@ -1,12 +1,19 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { NPagination, NSelect, NTag } from 'naive-ui'
-import { computed, reactive } from 'vue'
+import { NPagination, NSelect } from 'naive-ui'
+import type { DataTableColumns } from 'naive-ui'
+import { computed, h, reactive } from 'vue'
+import { RouterLink } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { hasPermission, useTeamAccess } from '../lib/teamAccess'
+import type { EntityType } from '@lostsky/ui/entity'
 
 interface EntitySummary {
   entity_id: number
@@ -79,6 +86,14 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
 const date = (value: number) => new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'medium',
 }).format(value * 1000)
+const columns: DataTableColumns<CustomerRow> = [
+  { title: '客户', key: 'customer', render: item => h(LsEntityIdentity, { type: 'customer', name: item.name, slug: item.slug, imageUrl: item.avatar ?? null, size: 'sm' }) },
+  { title: '当前归属', key: 'assignee', render: item => item.assignee ? h(LsEntityIdentity, { type: item.assignee.type as EntityType, name: item.assignee.name, slug: item.assignee.slug, imageUrl: item.assignee.avatar ?? null, size: 'sm' }) : '未归属' },
+  { title: '可用余额', key: 'balance', render: item => h('span', { class: 'ls-tabular' }, money(item.balance.balance)) },
+  { title: '创建时间', key: 'create_time', render: item => date(item.create_time) },
+  { title: '状态', key: 'status', render: item => h(LsStatusTag, { label: item.is_blocked ? '已封禁' : '正常', type: item.is_blocked ? 'error' : 'success' }) },
+  { title: '操作', key: 'actions', render: item => h(RouterLink, { to: `/customers/${item.id}` }, { default: () => '查看详情' }) },
+]
 </script>
 
 <template>
@@ -111,28 +126,29 @@ const date = (value: number) => new Intl.DateTimeFormat('zh-CN', {
       </template>
     </LsListToolbar>
 
-    <p v-if="query.isError.value" class="feedback error" role="alert">{{ friendlyError(query.error.value) }}</p>
-    <div v-else-if="query.isPending.value" class="loading-list" aria-label="正在加载客户"><span v-for="i in 6" :key="i" /></div>
+    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取客户" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
     <LsEmptyState
       v-else-if="!query.data.value?.list.length"
       :title="filters.keyword || filters.assignee_entity_id !== null || filters.blocked !== null ? '没有匹配的客户' : '还没有可查看的客户'"
       :description="query.data.value?.scope === 'own' ? '客户通过你的邀请链接领取身份后会出现在这里。' : '客户领取团队商店身份后会进入客户目录。'"
     />
-    <div v-else class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th>客户</th><th>当前归属</th><th>可用余额</th><th>创建时间</th><th>状态</th><th>操作</th></tr></thead>
-        <tbody>
-          <tr v-for="item in query.data.value.list" :key="item.id">
-            <td><strong>{{ item.name }}</strong><small>@{{ item.slug }}</small></td>
-            <td>{{ item.assignee?.name || '未归属' }}<small v-if="item.assignee">@{{ item.assignee.slug }}</small></td>
-            <td class="ls-tabular">{{ money(item.balance.balance) }}</td>
-            <td>{{ date(item.create_time) }}</td>
-            <td><NTag :type="item.is_blocked ? 'error' : 'success'" size="small" :bordered="false">{{ item.is_blocked ? '已封禁' : '正常' }}</NTag></td>
-            <td><RouterLink :to="`/customers/${item.id}`">查看详情</RouterLink></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <LsResponsiveDataTable v-else :columns="columns" :data="query.data.value.list" :row-key="row => row.id" :scroll-x="920">
+      <template #mobile-title="{ row: customer }">
+        <RouterLink :to="`/customers/${customer.id}`">{{ customer.name }}</RouterLink>
+      </template>
+      <template #mobile-status="{ row: customer }">
+        <LsStatusTag :label="customer.is_blocked ? '已封禁' : '正常'" :type="customer.is_blocked ? 'error' : 'success'" />
+      </template>
+      <template #mobile="{ row: customer }">
+        <LsEntityIdentity type="customer" :name="customer.name" :slug="customer.slug" :image-url="customer.avatar ?? null" size="sm" />
+        <dl>
+          <dt>当前归属</dt><dd>{{ customer.assignee ? `${customer.assignee.name} · @${customer.assignee.slug}` : '未归属' }}</dd>
+          <dt>可用余额</dt><dd class="ls-tabular">{{ money(customer.balance.balance) }}</dd>
+          <dt>创建时间</dt><dd>{{ date(customer.create_time) }}</dd>
+        </dl>
+      </template>
+    </LsResponsiveDataTable>
     <div v-if="query.data.value && query.data.value.total > 0" class="pager">
       <span>共 {{ query.data.value.total }} 位客户，第 {{ filters.page }} / {{ pages }} 页</span>
       <NPagination v-model:page="filters.page" :page-count="pages" />
@@ -142,6 +158,6 @@ const date = (value: number) => new Intl.DateTimeFormat('zh-CN', {
 
 <style scoped>
 .customers-view{display:grid;gap:1.5rem}
-.filters{display:grid;grid-template-columns:minmax(16rem,2fr) repeat(2,minmax(10rem,1fr));gap:.75rem;padding:.85rem;background:white;border:1px solid var(--line);border-radius:12px}.search{display:flex;align-items:center;gap:.45rem}.search :deep(.n-input){flex:1}.data-table strong,.data-table small{display:block}.data-table small{margin-top:.15rem;color:var(--muted-ink);font-size:.74rem}.pager{display:flex;align-items:center;justify-content:space-between;gap:1rem;color:var(--muted-ink);font-size:.82rem}
-@media(max-width:760px){.filters{grid-template-columns:1fr}.table-wrap th:nth-child(3),.table-wrap td:nth-child(3),.table-wrap th:nth-child(4),.table-wrap td:nth-child(4){display:none}.pager{align-items:stretch;flex-direction:column}.pager div{display:grid;grid-template-columns:1fr 1fr}}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:1rem;color:var(--muted-ink);font-size:.82rem}
+@media(max-width:760px){.pager{align-items:stretch;flex-direction:column}.pager div{display:grid;grid-template-columns:1fr 1fr}}
 </style>

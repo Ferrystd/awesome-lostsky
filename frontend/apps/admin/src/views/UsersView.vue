@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { api } from '@lostsky/api/client'
+import { api, friendlyError } from '@lostsky/api/client'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NPagination, NSelect } from 'naive-ui'
-import { ref } from 'vue'
-import PageHeader from '../components/PageHeader.vue'
-import RetryState from '../components/RetryState.vue'
-import StatusBadge from '../components/StatusBadge.vue'
+import type { DataTableColumns } from 'naive-ui'
+import { h, ref } from 'vue'
+import { RouterLink } from 'vue-router'
+import { adminStatusLabel, adminStatusType } from '../status'
 import type { Page, UserSummary } from '../types'
 import { formatTime } from '../utils'
 
@@ -19,24 +23,39 @@ const query = useQuery({
   queryKey: ['admin-users', q, status, page],
   queryFn: () => api.get<Page<UserSummary>>('/users', { q: q.value, status: status.value, page: page.value, limit: 20 }),
 })
+const columns: DataTableColumns<UserSummary> = [
+  {
+    title: '用户', key: 'user',
+    render: user => h('div', { class: 'cell-primary' }, [
+      h(RouterLink, { to: `/users/${user.id}` }, { default: () => user.nickname || user.username }),
+      h('small', `#${user.id} · @${user.username}`),
+    ]),
+  },
+  { title: '联系方式', key: 'contact', render: user => user.phone || user.phone_masked || user.email || user.email_masked || '—' },
+  { title: '团队', key: 'team_count' },
+  { title: '设备', key: 'device_count' },
+  {
+    title: '状态', key: 'status',
+    render: user => h(LsStatusTag, { label: adminStatusLabel(user.is_banned ? 'banned' : 'active'), type: adminStatusType(user.is_banned ? 'banned' : 'active') }),
+  },
+  { title: '注册时间', key: 'create_time', render: user => formatTime(user.create_time) },
+]
 </script>
 
 <template>
-  <PageHeader title="用户" description="查询平台账号、会话与团队归属；敏感联系方式按当前角色权限展示。" />
-  <LsListToolbar v-model="q" placeholder="搜索用户名、手机号、邮箱、昵称或 ID" aria-label="搜索用户" :count-label="`${query.data.value?.total ?? 0} 位用户`" @update:model-value="page=1"><template #filters><NSelect v-model:value="status" :options="options" @update:value="page=1" /></template></LsListToolbar>
-  <section v-if="query.isPending.value" class="panel"><div class="state">正在读取用户…</div></section>
-  <RetryState v-else-if="query.isError.value" :error="query.error.value" @retry="query.refetch()" />
+  <LsPageHeader title="用户" description="查询平台账号、会话与团队归属；敏感联系方式按当前角色权限展示。" />
+  <LsListToolbar v-model="q" placeholder="搜索用户名、手机号、邮箱、昵称或 ID" aria-label="搜索用户" :count-label="`${query.data.value?.total ?? 0} 位用户`" @update:model-value="page = 1">
+    <template #filters><NSelect v-model:value="status" :options="options" @update:value="page = 1" /></template>
+  </LsListToolbar>
+  <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
+  <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取用户" :description="friendlyError(query.error.value)" />
   <LsEmptyState v-else-if="!query.data.value?.list.length" title="没有匹配的用户" description="调整搜索词或状态筛选后重试。" />
-  <section v-else class="panel">
-      <div class="mobile-records">
-        <RouterLink v-for="user in query.data.value?.list" :key="user.id" class="mobile-record" :to="`/users/${user.id}`">
-          <header><strong>{{ user.nickname || user.username }}</strong><StatusBadge :status="user.is_banned ? 'banned' : 'active'" /></header>
-          <dl><dt>用户 ID</dt><dd>#{{ user.id }}</dd><dt>联系方式</dt><dd>{{ user.phone || user.phone_masked || user.email || user.email_masked || '—' }}</dd><dt>团队 / 设备</dt><dd>{{ user.team_count }} / {{ user.device_count }}</dd><dt>注册时间</dt><dd>{{ formatTime(user.create_time) }}</dd></dl>
-        </RouterLink>
-      </div>
-      <table class="data-table desktop-table"><thead><tr><th>用户</th><th>联系方式</th><th>团队</th><th>设备</th><th>状态</th><th>注册时间</th></tr></thead><tbody>
-        <tr v-for="user in query.data.value?.list" :key="user.id"><td class="cell-primary"><RouterLink :to="`/users/${user.id}`">{{ user.nickname || user.username }}</RouterLink><small>#{{ user.id }} · @{{ user.username }}</small></td><td>{{ user.phone || user.phone_masked || user.email || user.email_masked || '—' }}</td><td>{{ user.team_count }}</td><td>{{ user.device_count }}</td><td><StatusBadge :status="user.is_banned ? 'banned' : 'active'" /></td><td>{{ formatTime(user.create_time) }}</td></tr>
-      </tbody></table>
-      <div class="pagination"><NPagination v-model:page="page" :page-size="20" :item-count="query.data.value?.total ?? 0" /></div>
-  </section>
+  <template v-else>
+    <LsResponsiveDataTable :columns="columns" :data="query.data.value.list" :row-key="row => row.id" :scroll-x="860">
+      <template #mobile-title="{ row: user }"><RouterLink :to="`/users/${user.id}`">{{ user.nickname || user.username }}</RouterLink></template>
+      <template #mobile-status="{ row: user }"><LsStatusTag :label="adminStatusLabel(user.is_banned ? 'banned' : 'active')" :type="adminStatusType(user.is_banned ? 'banned' : 'active')" /></template>
+      <template #mobile="{ row: user }"><dl><dt>用户 ID</dt><dd>#{{ user.id }}</dd><dt>联系方式</dt><dd>{{ user.phone || user.phone_masked || user.email || user.email_masked || '—' }}</dd><dt>团队 / 设备</dt><dd>{{ user.team_count }} / {{ user.device_count }}</dd><dt>注册时间</dt><dd>{{ formatTime(user.create_time) }}</dd></dl></template>
+    </LsResponsiveDataTable>
+    <div class="pagination"><NPagination v-model:page="page" :page-size="20" :item-count="query.data.value.total" /></div>
+  </template>
 </template>

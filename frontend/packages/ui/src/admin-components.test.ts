@@ -18,11 +18,15 @@ vi.mock('naive-ui', async () => {
 })
 import LsAsyncState from './components/LsAsyncState.vue'
 import LsButton from './components/LsButton.vue'
+import LsInlineError from './components/LsInlineError.vue'
+import LsPanel from './components/LsPanel.vue'
+import LsStatusTag from './components/LsStatusTag.vue'
 import LsEmptyState from './components/LsEmptyState.vue'
 import LsEntityIdentity from './components/LsEntityIdentity.vue'
 import LsListToolbar from './components/LsListToolbar.vue'
 import LsPageHeader from './components/LsPageHeader.vue'
 import LsResponsiveActions from './components/LsResponsiveActions.vue'
+import LsResponsiveDataTable from './components/LsResponsiveDataTable.vue'
 import LsUploadField from './components/LsUploadField.vue'
 import LsWorkspaceHeader from './components/LsWorkspaceHeader.vue'
 import { lostskyNaiveTheme } from './naive-theme'
@@ -45,6 +49,37 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('n-button')
     expect(html).toContain('disabled')
     expect(html).toContain('删除')
+  })
+
+  it('LsButton 将命令图标交给固定 icon 插槽', async () => {
+    const html = await render(LsButton, {}, { icon: () => h('span', '图标'), default: () => h('span', '保存') })
+    expect(html).toContain('图标')
+    expect(html).toContain('保存')
+  })
+
+  it('LsInlineError 固定行内错误语义且仅接收 message', async () => {
+    expect(Object.keys((LsInlineError as any).props)).toEqual(['message'])
+    const html = await render(LsInlineError, { message: '保存失败' })
+    expect(html).toContain('role="alert"')
+    expect(html).toContain('保存失败')
+  })
+
+  it('LsPanel 只提供结构插槽，不暴露视觉参数', async () => {
+    expect((LsPanel as any).props).toBeUndefined()
+    const html = await render(LsPanel, {}, {
+      header: () => h('h2', '标题'),
+      default: () => h('p', '正文'),
+      footer: () => h('span', '页脚'),
+    })
+    expect(html).toContain('ls-panel__header')
+    expect(html).toContain('ls-panel__body')
+    expect(html).toContain('ls-panel__footer')
+  })
+
+  it('LsStatusTag 固定 small 和无边框外观', async () => {
+    const html = await render(LsStatusTag, { label: '正常', type: 'success' })
+    expect(html).toContain('正常')
+    expect(html).toContain('--n-text-color:#18a058')
   })
 
   it('工具栏统一搜索、筛选、动作和结果数量', async () => {
@@ -82,6 +117,15 @@ describe('后台设计系统组件契约', () => {
     expect(actions).toContain('--n-color:#0000')
     expect(actions).toContain('--n-border:none')
     expect(actions).not.toContain('n-button--primary-type')
+  })
+
+  it('响应式数据表在移动端切换为同一份数据的记录结构', () => {
+    const props = (LsResponsiveDataTable as unknown as { props: Record<string, unknown> }).props
+    expect(Object.keys(props).sort()).toEqual(['columns', 'data', 'rowKey', 'scrollX'])
+    const source = readFileSync(new URL('./components/LsResponsiveDataTable.vue', import.meta.url), 'utf8')
+    expect(source).toContain('v-for="row in data"')
+    expect(source).toContain('@media (max-width: 719px)')
+    expect(source).toContain('.ls-responsive-data-table__desktop { display: none; }')
   })
 
   it('上传和错误状态提供禁用原因，且不渲染刷新或重试按钮', async () => {

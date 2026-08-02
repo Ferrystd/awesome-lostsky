@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NInput, NInputNumber, NSelect } from 'naive-ui'
+import { NFormItem, NInput, NInputNumber, NSelect } from 'naive-ui'
 import type { SelectOption, SelectRenderLabel } from 'naive-ui'
 import { computed, h, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -102,22 +104,15 @@ const save = useMutation({
       back-label="返回文档列表"
     />
 
-    <p v-if="detail.isError.value" class="feedback error" role="alert">{{ friendlyError(detail.error.value) }}</p>
+    <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
     <form v-else class="document-form" @submit.prevent="save.mutate()">
-      <label class="field full">
-        <span>标题 <b>*</b></span>
-        <NInput v-model:value="form.title" size="large" placeholder="一句话说明这份文档解决什么问题" maxlength="120" show-count required />
-      </label>
+      <LsField label="标题" for-id="document-title" required><NInput id="document-title" v-model:value="form.title" placeholder="一句话说明这份文档解决什么问题" maxlength="120" show-count required /></LsField>
 
       <div v-if="!editing" class="field-row">
-        <label class="field">
-          <span>归属对象</span>
-          <NSelect v-model:value="form.entity_id" :options="entityOptions" :render-label="renderEntityLabel" :menu-props="entitySelectMenuProps" :loading="entities.isPending.value" :disabled="entities.isError.value || !entityOptions.length" :virtual-scroll="false" filterable placeholder="选择归属对象" />
-        </label>
+        <LsField label="归属对象" for-id="document-entity"><NSelect id="document-entity" v-model:value="form.entity_id" :options="entityOptions" :render-label="renderEntityLabel" :menu-props="entitySelectMenuProps" :loading="entities.isPending.value" :disabled="entities.isError.value || !entityOptions.length" :virtual-scroll="false" filterable placeholder="选择归属对象" /></LsField>
       </div>
 
-      <div class="field full" role="group" aria-labelledby="document-content-label">
-        <span id="document-content-label">正文</span>
+      <NFormItem label="正文">
         <LsMarkdownEditor
           v-if="!editing || detail.isSuccess.value"
           ref="editor"
@@ -128,7 +123,7 @@ const save = useMutation({
           :upload-disabled-reason="uploadDisabledReason"
           placeholder="开始写作，或输入 @ 引用团队与成员…"
         />
-      </div>
+      </NFormItem>
 
       <section class="policy" aria-labelledby="document-policy-title">
         <div>
@@ -136,22 +131,13 @@ const save = useMutation({
           <p>归属成员时可允许本人管理；公开可见会将正文暴露给未登录访客。</p>
         </div>
         <div class="field-row">
-          <label class="field">
-            <span>管理范围</span>
-            <NSelect v-model:value="form.manager_scope" :options="managerSelectOptions" />
-          </label>
-          <label class="field">
-            <span>可见范围</span>
-            <NSelect v-model:value="form.visibility" :options="visibilitySelectOptions" />
-          </label>
-          <label class="field compact">
-            <span>排序</span>
-            <NInputNumber v-model:value="form.sort" :precision="0" class="control" />
-          </label>
+          <LsField label="管理范围" for-id="document-manager-scope"><NSelect id="document-manager-scope" v-model:value="form.manager_scope" :options="managerSelectOptions" /></LsField>
+          <LsField label="可见范围" for-id="document-visibility"><NSelect id="document-visibility" v-model:value="form.visibility" :options="visibilitySelectOptions" /></LsField>
+          <LsField label="排序" for-id="document-sort"><NInputNumber id="document-sort" v-model:value="form.sort" :precision="0" class="control" /></LsField>
         </div>
       </section>
 
-      <p v-if="save.isError.value" class="feedback error" role="alert">{{ friendlyError(save.error.value) }}</p>
+      <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <div class="actions">
         <LsButton type="button" variant="secondary" @click="router.push('/docs')">取消</LsButton>
         <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="!form.title.trim() || (!editing && !form.entity_id)">
@@ -165,9 +151,6 @@ const save = useMutation({
 <style scoped>
 .document-form-view { display: grid; gap: 24px; }
 .document-form { display: grid; gap: 22px; max-width: 920px; }
-.field { display: grid; gap: 8px; min-width: 0; }
-.field > span { color: var(--text-secondary); font-size: .875rem; font-weight: 650; }
-.field b { color: var(--danger); }
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .field-row .compact { grid-column: 1 / 2; }
 .control { width: 100%; }
@@ -175,7 +158,6 @@ const save = useMutation({
 .policy h2 { margin: 0 0 5px; font-size: 1rem; }
 .policy p { margin: 0; color: var(--text-secondary); font-size: .875rem; }
 .actions { display: flex; justify-content: flex-end; gap: 10px; padding-bottom: 36px; }
-.feedback { margin: 0; padding: 12px 14px; border-radius: var(--radius-md); }
 .error { color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); }
 @media (max-width: 720px) {
   .field-row { grid-template-columns: 1fr; }

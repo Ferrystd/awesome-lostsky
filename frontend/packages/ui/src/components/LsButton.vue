@@ -25,6 +25,7 @@ const naiveSize = computed(() => ({ sm: 'small', md: 'medium', lg: 'large' } as 
     :loading="loading"
     :disabled="disabled"
   >
+    <template v-if="$slots.icon" #icon><slot name="icon" /></template>
     <slot />
   </NButton>
 </template>

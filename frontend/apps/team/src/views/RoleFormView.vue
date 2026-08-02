@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import LsButton from '@lostsky/ui/components/LsButton.vue'
 import { useMutation } from '@tanstack/vue-query'
 import { Check } from '@lucide/vue'
-import { NButton, NForm, NFormItem, NInput, NInputNumber, NSwitch } from 'naive-ui'
+import { NForm, NFormItem, NInput, NInputNumber, NSwitch } from 'naive-ui'
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -53,10 +54,10 @@ function submit() {
         </NFormItem>
         <p v-if="save.isError.value" class="error" role="alert">{{ friendlyError(save.error.value) }}</p>
         <footer>
-          <NButton attr-type="button" secondary @click="router.push('/roles')">取消</NButton>
-          <NButton attr-type="submit" type="primary" :loading="save.isPending.value" :disabled="!form.role_key.trim() || !form.name.trim()">
+          <LsButton variant="secondary" @click="router.push('/roles')">取消</LsButton>
+          <LsButton type="submit" :loading="save.isPending.value" :disabled="!form.role_key.trim() || !form.name.trim()">
             <template #icon><Check :size="17" /></template>创建角色
-          </NButton>
+          </LsButton>
         </footer>
       </NForm>
     </div>

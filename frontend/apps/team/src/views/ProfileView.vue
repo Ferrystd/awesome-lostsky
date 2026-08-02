@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
-import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
-import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput } from 'naive-ui'
@@ -15,18 +16,19 @@ import EntityPermissionsCard, {
   type RoleAssignment,
   type RoleRecord,
 } from '../components/EntityPermissionsCard.vue'
-import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
+import MemberProfileFields from '../components/MemberProfileFields.vue'
+import { useMemberProfileUpload } from '../composables/useMemberProfileUpload'
 import { fileUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 const client = useQueryClient()
-const editor = ref<InstanceType<typeof LsMarkdownEditor> | null>(null)
+const editor = ref<InstanceType<typeof MemberProfileFields> | null>(null)
 const access = useTeamAccess()
 const uploadDisabledReason = computed(() => fileUploadReason(access.data.value))
 const query = useQuery({ queryKey: ['me'], queryFn: () => api.get<Record<string, unknown>>('/me/get') })
 const form = reactive({ nickname: '', avatar: '', description: '', intro_image: '', intro_video: '', introduction_markdown: '' })
+const profileModel = computed({ get: () => form, set: value => Object.assign(form, value) })
 const slug = ref('')
-const uploading = ref('')
-const uploadError = ref('')
+const { uploading, uploadError, upload } = useMemberProfileUpload(form, uploadDisabledReason)
 const profileSnapshot = ref('')
 const fieldsDirty = ref(false)
 
@@ -96,26 +98,6 @@ function setFieldsDirty(value: boolean) {
   if (value) saveFields.reset()
 }
 
-async function upload(key: 'avatar' | 'intro_image' | 'intro_video', event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  if (uploadDisabledReason.value) {
-    uploadError.value = uploadDisabledReason.value
-    return
-  }
-  uploading.value = key
-  uploadError.value = ''
-  try {
-    const result = await api.upload<Record<string, unknown>>(file)
-    form[key] = String(result.url ?? result.path ?? result.id ?? '')
-  } catch (error) {
-    uploadError.value = friendlyError(error)
-  } finally {
-    uploading.value = ''
-    ;(event.target as HTMLInputElement).value = ''
-  }
-}
-
 function beforeUnload(event: BeforeUnloadEvent) {
   if (!hasUnsavedChanges.value) return
   event.preventDefault()
@@ -148,45 +130,22 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       <div><p>当前成员</p><h1>{{ form.nickname || '未设置昵称' }}</h1><span>User #{{ query.data.value?.user_id ?? '—' }}</span></div>
     </section>
 
-    <section class="panel self-identity" aria-labelledby="self-identity-title">
+    <LsPanel><section class="self-identity" aria-labelledby="self-identity-title">
       <div class="section-heading"><div><h2 id="self-identity-title">我的对象标识</h2><p>用于对象引用和实体身份切换。</p></div><span>本人可见</span></div>
       <p class="muted">设置后，其他成员可以在 Markdown 中通过 @slug 引用你。标识首次确认后永久不变。</p>
       <div v-if="query.data.value?.slug" class="claimed"><span>已认领</span><strong>@{{ query.data.value.slug }}</strong><small>不可修改或释放</small></div>
       <form v-else class="claim-form" @submit.prevent="claim.mutate()">
-        <label class="field"><span>我的 slug</span><NInput v-model:value="slug" placeholder="例如 zhang-san" autocapitalize="none" /></label>
+        <LsField label="我的 slug" for-id="profile-slug"><NInput id="profile-slug" v-model:value="slug" placeholder="例如 zhang-san" autocapitalize="none" /></LsField>
         <LsButton type="submit" :loading="claim.isPending.value" :disabled="!slug.trim()">确认认领</LsButton>
       </form>
-    </section>
+    </section></LsPanel>
 
-    <form id="my-profile-form" class="panel profile-form" @submit.prevent="save.mutate()">
+    <form id="my-profile-form" @submit.prevent="save.mutate()"><LsPanel><div class="profile-form">
       <div class="section-heading">
         <div><h2>公开资料</h2><p>展示在当前团队中的名称、头像和介绍。</p></div>
       </div>
-      <label class="field"><span>团队昵称</span><NInput v-model:value="form.nickname" autocomplete="name" maxlength="80" show-count /></label>
-      <label class="field">
-        <span>头像</span>
-        <LsUploadField v-model="form.avatar" placeholder="图片 URL" button-label="上传图片" accept="image/*" :disabled="Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" :loading="uploading === 'avatar'" @change="upload('avatar', $event)" />
-      </label>
-      <label class="field"><span>简短介绍</span><NInput v-model:value="form.description" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" maxlength="500" show-count /></label>
-      <div class="media-row">
-        <label class="field"><span>介绍图片</span><LsUploadField v-model="form.intro_image" placeholder="图片 URL" button-label="上传" accept="image/*" :disabled="Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" :show-reason="false" :loading="uploading === 'intro_image'" @change="upload('intro_image', $event)" /></label>
-        <label class="field"><span>介绍视频</span><LsUploadField v-model="form.intro_video" placeholder="视频 URL" button-label="上传" accept="video/*" :disabled="Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" :show-reason="false" :loading="uploading === 'intro_video'" @change="upload('intro_video', $event)" /></label>
-      </div>
-      <p v-if="uploadError" class="feedback error" role="alert">{{ uploadError }}</p>
-      <div class="field" role="group" aria-labelledby="profile-introduction-label">
-        <span id="profile-introduction-label">详细介绍</span>
-        <LsMarkdownEditor
-          v-if="query.isSuccess.value"
-          ref="editor"
-          v-model="form.introduction_markdown"
-          draft-key="my-profile"
-          :search-entities="searchEntities"
-          :upload-image="uploadMarkdownImage"
-          :upload-disabled-reason="uploadDisabledReason"
-          placeholder="写下你的详细介绍，输入 @ 可引用对象…"
-        />
-      </div>
-    </form>
+      <MemberProfileFields ref="editor" v-model="profileModel" draft-key="my-profile" :upload-disabled-reason="uploadDisabledReason" :uploading="uploading" :editor-ready="query.isSuccess.value" @upload="upload"><template #error><LsInlineError v-if="uploadError" :message="uploadError" /></template></MemberProfileFields>
+    </div></LsPanel></form>
 
     <EntityFieldsCard
       v-if="query.data.value?.slug"
@@ -224,13 +183,11 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
 .identity-card p { margin: 0 0 4px; color: var(--text-tertiary); font-size: .75rem; }
 .identity-card h1 { margin: 0 0 4px; font-size: 1.45rem; }
 .identity-card span { color: var(--text-secondary); font-size: .82rem; }
-.panel { display: grid; gap: 18px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+.self-identity, .profile-form { display: grid; gap: 18px; }
 .section-heading { display: flex; justify-content: space-between; gap: 16px; }
 .section-heading p { max-width: 65ch; margin: 5px 0 0; color: var(--text-secondary); font-size: .82rem; line-height: 1.55; }
 .section-heading h2 { margin: 0; font-size: 1.05rem; }
 .section-heading > span { color: var(--text-tertiary); font-size: .8rem; }
-.field { display: grid; gap: 8px; min-width: 0; }
-.field > span { color: var(--text-secondary); font-size: .875rem; font-weight: 650; }
 .claim-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; }
 .claimed { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--radius-md); background: var(--surface-subtle); }
 .claimed strong { color: var(--primary); }
@@ -241,17 +198,13 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
 .upload-action.disabled { opacity: .48; cursor: not-allowed; }
 .upload-action:focus-visible { outline: 3px solid color-mix(in srgb, var(--primary) 25%, transparent); outline-offset: 2px; }
 .upload-action input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.feedback { margin: 0; padding: 11px 13px; border-radius: var(--radius-md); }
-.feedback.access { color: var(--text-secondary); background: var(--surface-subtle); }
 .identity-required { display: grid; gap: 5px; padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-subtle); }
 .identity-required strong, .identity-required p { margin: 0; }
 .identity-required p { color: var(--text-secondary); font-size: .85rem; line-height: 1.55; }
-.error { color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); }
 @media (max-width: 680px) {
   .profile-view { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
   .profile-primary-actions { position: fixed; z-index: 20; right: 0; bottom: 0; left: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--border); }
   .profile-primary-actions > * { width: 100%; }
-  .panel { padding: 17px; }
   .media-row, .upload-field, .claim-form { grid-template-columns: 1fr; }
   .claimed { align-items: flex-start; flex-direction: column; }
 }

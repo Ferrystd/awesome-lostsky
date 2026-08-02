@@ -3,10 +3,10 @@ import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { ChevronRight, Plus, Webhook } from '@lucide/vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
-import { NTag } from 'naive-ui'
 import { computed, ref } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
@@ -36,7 +36,7 @@ const rows = computed(() => { const keyword = search.value.trim().toLocaleLowerC
         <LsEntityIdentity type="teamVirtual" :name="item.name" :slug="item.slug" :image-url="item.avatar" />
         <p>{{ item.description || '还没有简介。' }}</p>
         <span class="integration-count"><Webhook :size="14" />{{ item.integrations?.length ?? 0 }} 个集成</span>
-        <NTag :type="item.is_active ? 'success' : 'default'" size="small" :bordered="false">{{ item.is_active ? '启用' : '停用' }}</NTag>
+        <LsStatusTag :label="item.is_active ? '启用' : '停用'" :type="item.is_active ? 'success' : 'default'" />
         <ChevronRight :size="18" />
       </RouterLink>
     </div>

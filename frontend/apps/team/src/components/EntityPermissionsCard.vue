@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { NCheckbox, NCollapse, NCollapseItem, NEmpty } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 
@@ -100,7 +102,7 @@ function toggle(id: number, checked: boolean) {
 </script>
 
 <template>
-  <section class="permissions-card" aria-labelledby="entity-permissions-title">
+  <LsPanel><section class="permissions-card" aria-labelledby="entity-permissions-title">
     <header>
       <div>
         <h2 id="entity-permissions-title">角色与权限</h2>
@@ -153,11 +155,11 @@ function toggle(id: number, checked: boolean) {
       </div>
     </template>
 
-    <p v-if="error" class="feedback error" role="alert">{{ friendlyError(error) }}</p>
-  </section>
+    <LsInlineError v-if="error" :message="friendlyError(error)" />
+  </section></LsPanel>
 </template>
 
 <style scoped>
-.permissions-card{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.permissions-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.permissions-card h2,.permissions-card h3,.permissions-card p{margin:0}.permissions-card h2{font-size:1.05rem}.permissions-card header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.role-options{display:grid;overflow:hidden;border:1px solid var(--line);border-radius:8px}.role-options :deep(.n-checkbox){min-height:60px;align-items:center;padding:.65rem .75rem;border-bottom:1px solid var(--line)}.role-options :deep(.n-checkbox:last-child){border-bottom:0}.role-options span,.role-summary>span{display:grid;gap:.18rem}.role-options small,.role-summary small{color:var(--muted-ink);font-size:.75rem}.role-summary{display:flex;flex-wrap:wrap;gap:.5rem}.role-summary>span{min-width:10rem;padding:.65rem .75rem;background:var(--cloud);border-radius:8px}.effective{display:grid;gap:.75rem;padding-top:.25rem;border-top:1px solid var(--line)}.effective>div{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding-top:.75rem}.effective h3{font-size:.92rem}.effective>div>span{color:var(--muted-ink);font-size:.78rem}.effective :deep(.n-collapse-item__header){min-height:48px}.effective ul{display:grid;gap:.5rem;margin:0 0 1rem;padding:0;list-style:none}.effective li{display:grid;grid-template-columns:minmax(8rem,.35fr) minmax(0,1fr);gap:1rem;padding:.45rem 0;border-bottom:1px solid var(--line);font-size:.82rem}.effective code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.75rem}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}.feedback{padding:.75rem;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}
-@media(max-width:639px){.permissions-card{padding:1rem}.permissions-card>header{align-items:stretch;flex-direction:column}.permissions-card>header :deep(.ls-button){width:100%}.effective li{grid-template-columns:1fr;gap:.2rem}}
+.permissions-card{display:grid;gap:1rem}.permissions-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.permissions-card h2,.permissions-card h3,.permissions-card p{margin:0}.permissions-card h2{font-size:1.05rem}.permissions-card header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.role-options{display:grid;overflow:hidden;border:1px solid var(--line);border-radius:8px}.role-options :deep(.n-checkbox){min-height:60px;align-items:center;padding:.65rem .75rem;border-bottom:1px solid var(--line)}.role-options :deep(.n-checkbox:last-child){border-bottom:0}.role-options span,.role-summary>span{display:grid;gap:.18rem}.role-options small,.role-summary small{color:var(--muted-ink);font-size:.75rem}.role-summary{display:flex;flex-wrap:wrap;gap:.5rem}.role-summary>span{min-width:10rem;padding:.65rem .75rem;background:var(--cloud);border-radius:8px}.effective{display:grid;gap:.75rem;padding-top:.25rem;border-top:1px solid var(--line)}.effective>div{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding-top:.75rem}.effective h3{font-size:.92rem}.effective>div>span{color:var(--muted-ink);font-size:.78rem}.effective :deep(.n-collapse-item__header){min-height:48px}.effective ul{display:grid;gap:.5rem;margin:0 0 1rem;padding:0;list-style:none}.effective li{display:grid;grid-template-columns:minmax(8rem,.35fr) minmax(0,1fr);gap:1rem;padding:.45rem 0;border-bottom:1px solid var(--line);font-size:.82rem}.effective code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.75rem}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}
+@media(max-width:639px){.permissions-card>header{align-items:stretch;flex-direction:column}.permissions-card>header :deep(.ls-button){width:100%}.effective li{grid-template-columns:1fr;gap:.2rem}}
 </style>
