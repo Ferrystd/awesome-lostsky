@@ -8,6 +8,18 @@
 - MySQL 5.7+ 或 MariaDB 10.3+
 - Composer 2
 
+## 交付物身份
+
+- 生产或预发布环境必须指定不可变的正式标签 `vX.Y.Z`、预发布标签 `vX.Y.Z-stage.N` 或构建标签 `build-YYYYMMDD.N`，不得以会继续移动的分支名作为部署身份。
+- 部署记录须保存目标标签、peeled commit SHA、环境、时间、执行人和结果；同一产品版本下的不同构建不得只记录 `X.Y.Z`。
+- 构建目录、备份和回滚记录使用完整标签或 commit SHA，避免同一产品版本的多个构建互相覆盖。
+- `php think version` 显示 ThinkPHP 框架版本，不能作为 LostSky 交付物身份；发布目录中使用以下命令核对实际代码：
+
+  ```bash
+  git describe --tags --always
+  git rev-parse HEAD
+  ```
+
 部署前将 PHP 目录加入 `PATH`，确保终端可以直接执行 `php` 和 `composer`。Windows PowerShell 示例：
 
 ```powershell

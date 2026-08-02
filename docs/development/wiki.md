@@ -25,7 +25,7 @@ npm run build:docs
 
 新增文档时直接编辑 `docs/` 下对应 Markdown，并同步更新 `zensical.toml` 导航。新增、改名或删除用户指南页面时还需同步更新 `zensical.guide.toml`。项目文档不得写入凭据、Token、Cookie、内部地址或其他敏感信息。
 
-`docs/updates.md` 只摘要最近两个版本，完整事实以 [`docs/changelog.md`](../changelog.md) 为准；发布时同步更新摘要。
+`docs/updates.md` 只摘要最近两个正式产品版本，完整事实以 [`docs/changelog.md`](../changelog.md) 为准；正式产品版本发布时同步更新摘要，预发布和构建发布不滚动正式版本摘要。
 
 ## 由使用手册驱动功能
 

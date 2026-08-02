@@ -1007,9 +1007,9 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     if (path === '/notices/send') {
       await expect(page.locator('#workspace').getByRole('heading', { name: '发送通知', level: 1 })).toBeVisible()
       await expect(page.getByText('通知只进入所选实体的收件箱，不支持回复、抄送或会话；发送方统一显示为当前 Team。')).toBeVisible()
-      await expect(page.locator('.mode-tabs .n-radio-button').filter({ hasText: '可视化' })).toBeVisible()
-      await expect(page.locator('.mode-tabs .n-radio-button').filter({ hasText: '源码' })).toBeVisible()
-      await expect(page.locator('.mode-tabs .n-radio-button').filter({ hasText: '预览' })).toBeVisible()
+      await expect(page.getByRole('tab', { name: '可视化' })).toBeVisible()
+      await expect(page.getByRole('tab', { name: '源码' })).toBeVisible()
+      await expect(page.getByRole('tab', { name: '预览' })).toBeVisible()
       const noticeVisualEditor = page.locator('.ls-markdown-editor .ProseMirror')
       await noticeVisualEditor.click()
       await expect(noticeVisualEditor).toBeFocused()
@@ -1022,7 +1022,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '协作助手' })).toContainText('虚拟实体@helper')
       await recipientMenu.locator('.n-base-select-option').filter({ hasText: '测试客户' }).click()
       await page.getByLabel('标题 *').fill('客户专属通知')
-      await page.locator('.mode-tabs .n-radio-button').filter({ hasText: '源码' }).click()
+      await page.getByRole('tab', { name: '源码' }).click()
       await page.getByRole('textbox', { name: 'Markdown 源码' }).fill('## 行动\n\n- 保存工作\n- 回复确认')
       await page.getByRole('button', { name: '发送通知' }).click()
       await expect(page.getByRole('status')).toContainText('通知已发送给 测试客户')
@@ -1030,9 +1030,9 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     }
     if (path === '/doc-create') {
       await expect(page.locator('#workspace').getByRole('heading', { name: '新建文档', level: 1 })).toBeVisible()
-      await expect(page.locator('.mode-tabs .n-radio-button').filter({ hasText: '可视化' })).toBeVisible()
-      await expect(page.locator('.mode-tabs .n-radio-button').filter({ hasText: '源码' })).toBeVisible()
-      await expect(page.locator('.mode-tabs .n-radio-button').filter({ hasText: '预览' })).toBeVisible()
+      await expect(page.getByRole('tab', { name: '可视化' })).toBeVisible()
+      await expect(page.getByRole('tab', { name: '源码' })).toBeVisible()
+      await expect(page.getByRole('tab', { name: '预览' })).toBeVisible()
       await expect(page.locator('dialog')).toHaveCount(0)
       const mentionButton = page.getByRole('button', { name: '引用团队或成员' })
       await expect(mentionButton).toBeVisible()
@@ -1062,7 +1062,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await editor.pressSequentially('al')
       await expect(page.locator('.entity-picker [role="option"]')).toContainText('@alice')
       await page.keyboard.press('Enter')
-      await page.locator('.mode-tabs .n-radio-button').filter({ hasText: '源码' }).click()
+      await page.getByRole('tab', { name: '源码' }).click()
       await expect(page.locator('.ls-markdown-editor textarea')).toHaveValue(/\[@测试成员\]\(lostsky:\/\/entity\/alice\)/)
     }
     if (path === '/docs') {

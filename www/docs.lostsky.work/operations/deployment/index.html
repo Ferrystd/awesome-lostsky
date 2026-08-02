@@ -2336,7 +2336,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        后端部署
+        交付物身份
       </span>
     </span>
   </a>
@@ -2347,7 +2347,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        宝塔静态前端部署
+        后端部署
       </span>
     </span>
   </a>
@@ -2356,6 +2356,17 @@
       
         <li class="md-nav__item">
   <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        宝塔静态前端部署
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         上线检查
@@ -2739,7 +2750,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        后端部署
+        交付物身份
       </span>
     </span>
   </a>
@@ -2750,7 +2761,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        宝塔静态前端部署
+        后端部署
       </span>
     </span>
   </a>
@@ -2759,6 +2770,17 @@
       
         <li class="md-nav__item">
   <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        宝塔静态前端部署
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         上线检查
@@ -2844,94 +2866,104 @@
 <li>MySQL 5.7+ 或 MariaDB 10.3+</li>
 <li>Composer 2</li>
 </ul>
+<h2 id="_3">交付物身份<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<ul>
+<li>生产或预发布环境必须指定不可变的正式标签 <code>vX.Y.Z</code>、预发布标签 <code>vX.Y.Z-stage.N</code> 或构建标签 <code>build-YYYYMMDD.N</code>，不得以会继续移动的分支名作为部署身份。</li>
+<li>部署记录须保存目标标签、peeled commit SHA、环境、时间、执行人和结果；同一产品版本下的不同构建不得只记录 <code>X.Y.Z</code>。</li>
+<li>构建目录、备份和回滚记录使用完整标签或 commit SHA，避免同一产品版本的多个构建互相覆盖。</li>
+<li><code>php think version</code> 显示 ThinkPHP 框架版本，不能作为 LostSky 交付物身份；发布目录中使用以下命令核对实际代码：</li>
+</ul>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>describe<span class="w"> </span>--tags<span class="w"> </span>--always
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>git<span class="w"> </span>rev-parse<span class="w"> </span>HEAD
+</span></code></pre></div>
 <p>部署前将 PHP 目录加入 <code>PATH</code>，确保终端可以直接执行 <code>php</code> 和 <code>composer</code>。Windows PowerShell 示例：</p>
-<div class="language-powershell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">$phpDir</span> <span class="p">=</span> <span class="s2">&quot;你的 PHP 安装目录&quot;</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nv">$composerPhar</span> <span class="p">=</span> <span class="nb">Join-Path</span> <span class="nv">$phpDir</span> <span class="s2">&quot;composer.phar&quot;</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nv">$composerBat</span> <span class="p">=</span> <span class="nb">Join-Path</span> <span class="nv">$phpDir</span> <span class="s2">&quot;composer.bat&quot;</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nb">Set-Content</span> <span class="n">-Path</span> <span class="nv">$composerBat</span> <span class="n">-Value</span> <span class="s2">&quot;@echo off</span><span class="se">`r`n`&quot;</span><span class="s2">$phpDir\php.exe</span><span class="se">`&quot;</span><span class="s2"> </span><span class="se">`&quot;</span><span class="s2">$composerPhar</span><span class="se">`&quot;</span><span class="s2"> %*&quot;</span> <span class="n">-Encoding</span> <span class="n">ASCII</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nv">$machinePath</span> <span class="p">=</span> <span class="no">[Environment]</span><span class="p">::</span><span class="n">GetEnvironmentVariable</span><span class="p">(</span><span class="s2">&quot;Path&quot;</span><span class="p">,</span> <span class="s2">&quot;Machine&quot;</span><span class="p">)</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">if</span> <span class="p">((</span><span class="nv">$machinePath</span> <span class="n">-split</span> <span class="s2">&quot;;&quot;</span><span class="p">)</span> <span class="o">-notcontains</span> <span class="nv">$phpDir</span><span class="p">)</span> <span class="p">{</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="no">[Environment]</span><span class="p">::</span><span class="n">SetEnvironmentVariable</span><span class="p">(</span><span class="s2">&quot;Path&quot;</span><span class="p">,</span> <span class="s2">&quot;$machinePath;$phpDir&quot;</span><span class="p">,</span> <span class="s2">&quot;Machine&quot;</span><span class="p">)</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">}</span>
+<div class="language-powershell highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">$phpDir</span> <span class="p">=</span> <span class="s2">&quot;你的 PHP 安装目录&quot;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">$composerPhar</span> <span class="p">=</span> <span class="nb">Join-Path</span> <span class="nv">$phpDir</span> <span class="s2">&quot;composer.phar&quot;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nv">$composerBat</span> <span class="p">=</span> <span class="nb">Join-Path</span> <span class="nv">$phpDir</span> <span class="s2">&quot;composer.bat&quot;</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nb">Set-Content</span> <span class="n">-Path</span> <span class="nv">$composerBat</span> <span class="n">-Value</span> <span class="s2">&quot;@echo off</span><span class="se">`r`n`&quot;</span><span class="s2">$phpDir\php.exe</span><span class="se">`&quot;</span><span class="s2"> </span><span class="se">`&quot;</span><span class="s2">$composerPhar</span><span class="se">`&quot;</span><span class="s2"> %*&quot;</span> <span class="n">-Encoding</span> <span class="n">ASCII</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nv">$machinePath</span> <span class="p">=</span> <span class="no">[Environment]</span><span class="p">::</span><span class="n">GetEnvironmentVariable</span><span class="p">(</span><span class="s2">&quot;Path&quot;</span><span class="p">,</span> <span class="s2">&quot;Machine&quot;</span><span class="p">)</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">if</span> <span class="p">((</span><span class="nv">$machinePath</span> <span class="n">-split</span> <span class="s2">&quot;;&quot;</span><span class="p">)</span> <span class="o">-notcontains</span> <span class="nv">$phpDir</span><span class="p">)</span> <span class="p">{</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="no">[Environment]</span><span class="p">::</span><span class="n">SetEnvironmentVariable</span><span class="p">(</span><span class="s2">&quot;Path&quot;</span><span class="p">,</span> <span class="s2">&quot;$machinePath;$phpDir&quot;</span><span class="p">,</span> <span class="s2">&quot;Machine&quot;</span><span class="p">)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>重新打开终端后确认：</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>php<span class="w"> </span>-v
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>composer<span class="w"> </span>--version
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>php<span class="w"> </span>-v
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>composer<span class="w"> </span>--version
 </span></code></pre></div>
-<h2 id="_3">后端部署<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<h2 id="_4">后端部署<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <ol>
 <li>安装生产依赖：</li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>composer<span class="w"> </span>install<span class="w"> </span>--no-dev<span class="w"> </span>--prefer-dist<span class="w"> </span>--no-interaction
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>composer<span class="w"> </span>install<span class="w"> </span>--no-dev<span class="w"> </span>--prefer-dist<span class="w"> </span>--no-interaction
 </span></code></pre></div>
 <ol>
 <li>从模板创建 <code>.env</code>，再按目标环境配置数据库、域名、JWT 和 OSS 等参数：</li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cp<span class="w"> </span>.env.example<span class="w"> </span>.env
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>cp<span class="w"> </span>.env.example<span class="w"> </span>.env
 </span></code></pre></div>
 <ol>
 <li>在 <code>.env</code> 中配置阿里云 AccessKey：</li>
 </ol>
-<div class="language-ini highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="na">ALIYUN_ACCESS_KEY_ID</span><span class="o">=</span><span class="s">你的AccessKeyID</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="na">ALIYUN_ACCESS_KEY_SECRET</span><span class="o">=</span><span class="s">你的AccessKeySecret</span>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="na">ALIYUN_ACCESS_KEY_ID</span><span class="o">=</span><span class="s">你的AccessKeyID</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="na">ALIYUN_ACCESS_KEY_SECRET</span><span class="o">=</span><span class="s">你的AccessKeySecret</span>
 </span></code></pre></div>
 <p>OSS 自定义域名使用 Let’s Encrypt 证书时，同时配置 Bucket、地域和域名：</p>
-<div class="language-ini highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="na">ALIYUN_OSS_BUCKET</span><span class="o">=</span><span class="s">你的Bucket</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="na">ALIYUN_OSS_REGION</span><span class="o">=</span><span class="s">cn-hangzhou</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="na">ALIYUN_OSS_DOMAIN</span><span class="o">=</span><span class="s">https://oss.lostsky.work</span>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="na">ALIYUN_OSS_BUCKET</span><span class="o">=</span><span class="s">你的Bucket</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="na">ALIYUN_OSS_REGION</span><span class="o">=</span><span class="s">cn-hangzhou</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="na">ALIYUN_OSS_DOMAIN</span><span class="o">=</span><span class="s">https://oss.lostsky.work</span>
 </span></code></pre></div>
 <p>所有前端、API 和 OSS 域名共用一张多 SAN 通配符证书：</p>
-<div class="language-ini highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="na">TLS_CERTIFICATE_PATH</span><span class="o">=</span><span class="s">/etc/letsencrypt/live/lostsky.work/fullchain.pem</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="na">TLS_PRIVATE_KEY_PATH</span><span class="o">=</span><span class="s">/etc/letsencrypt/live/lostsky.work/privkey.pem</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="na">TLS_NGINX_BINARY</span><span class="o">=</span><span class="s">/www/server/nginx/sbin/nginx</span>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="na">TLS_CERTIFICATE_PATH</span><span class="o">=</span><span class="s">/etc/letsencrypt/live/lostsky.work/fullchain.pem</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="na">TLS_PRIVATE_KEY_PATH</span><span class="o">=</span><span class="s">/etc/letsencrypt/live/lostsky.work/privkey.pem</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="na">TLS_NGINX_BINARY</span><span class="o">=</span><span class="s">/www/server/nginx/sbin/nginx</span>
 </span></code></pre></div>
 <p>RAM 身份至少需要 <code>oss:PutCname</code> 以及证书托管所需的 <code>yundun-cert:DescribeSSLCertificatePrivateKey</code>、<code>yundun-cert:DescribeSSLCertificatePublicKeyDetail</code>、<code>yundun-cert:CreateSSLCertificate</code>。首次配置并确认域名已经绑定到 Bucket 后，执行 <code>php think certificate:update</code>；完整 SAN 清单和 Certbot deploy hook 见<a href="../console/">控制台命令</a>。</p>
 <p>短信类型、验证码策略、签名和模板统一写在 <code>config/auth.php</code>，不通过环境变量选择。默认使用阿里云短信服务：</p>
-<div class="language-php highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="x">use app\enum\SmsType;</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="x">&#39;type&#39; =&gt; SmsType::AliyunSms,</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="x">&#39;aliyun_sms&#39; =&gt; [</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="x">    &#39;sign_name&#39; =&gt; &#39;已审核短信签名&#39;,</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="x">    &#39;template_code&#39; =&gt; &#39;已审核验证码模板Code&#39;,</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="x">],</span>
+<div class="language-php highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">use app\enum\SmsType;</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="x">&#39;type&#39; =&gt; SmsType::AliyunSms,</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="x">&#39;aliyun_sms&#39; =&gt; [</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="x">    &#39;sign_name&#39; =&gt; &#39;已审核短信签名&#39;,</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="x">    &#39;template_code&#39; =&gt; &#39;已审核验证码模板Code&#39;,</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="x">],</span>
 </span></code></pre></div>
 <p>若改用号码认证服务的短信认证，将类型改为 <code>SmsType::AliyunPnvsSms</code>，并填写 <code>aliyun_pnvs_sms</code> 下的方案、签名和模板。两个通道是不同的阿里云产品和 API 权限。RAM 身份需要按所选通道分别授予短信服务 <code>SendSms</code>，或号码认证服务 <code>SendSmsVerifyCode</code>、<code>CheckSmsVerifyCode</code> 的最小权限。号码认证配置使用短信认证，不使用融合认证或一键取号。</p>
 <p>生产环境必须保持 <code>.env</code> 中：</p>
-<div class="language-ini highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="na">APP_DEBUG</span><span class="o">=</span><span class="s">false</span>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="na">APP_DEBUG</span><span class="o">=</span><span class="s">false</span>
 </span></code></pre></div>
 <p>并保持 <code>config/auth.php</code> 中 <code>sms.debug_bypass=false</code>。本地开发如需跳过短信，仅在 <code>APP_DEBUG=true</code> 时将该配置改为 <code>true</code>。该模式不会发送短信，并接受任意验证码输入。</p>
 <p>PHP 上传临时目录必须存在、可写，并且生产环境不得把启动 Notice 写入 API 响应正文。项目提供 <a href="../../../deploy/php/lostsky-production.ini"><code>deploy/php/lostsky-production.ini</code></a>；将其安装到 PHP-FPM 的 <code>conf.d</code> 目录，或把同样配置写入 FPM 实际加载的 <code>php.ini</code>：</p>
-<div class="language-ini highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="na">upload_tmp_dir</span><span class="o">=</span><span class="s">/var/lib/lostsky/upload-tmp</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="na">display_errors</span><span class="o">=</span><span class="s">Off</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="na">log_errors</span><span class="o">=</span><span class="s">On</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="na">error_log</span><span class="o">=</span><span class="s">/var/log/php/lostsky-error.log</span>
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="na">upload_tmp_dir</span><span class="o">=</span><span class="s">/var/lib/lostsky/upload-tmp</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="na">display_errors</span><span class="o">=</span><span class="s">Off</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="na">log_errors</span><span class="o">=</span><span class="s">On</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="na">error_log</span><span class="o">=</span><span class="s">/var/log/php/lostsky-error.log</span>
 </span></code></pre></div>
 <p>创建目录后将所有者设置为 PHP-FPM 运行用户，并通过 <code>phpinfo()</code> 或 FPM 配置检查实际加载的 <code>php.ini</code>。上线冒烟测试应上传一个小文件，确认 HTTP <code>Content-Type</code> 为 <code>application/json</code>、响应可被 JSON 解析，且正文开头不存在 <code>&lt;br&gt;</code>、<code>Notice</code> 或 PHP 警告。</p>
 <ol>
 <li>将 <code>sql/schema.sql</code> 和所需日期补丁导入已确认的目标数据库。</li>
 <li>清理框架缓存：</li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>php<span class="w"> </span>think<span class="w"> </span>clear
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>php<span class="w"> </span>think<span class="w"> </span>clear
 </span></code></pre></div>
 <ol>
 <li>将 API 站点运行目录指向项目的 <code>public/</code>，不要指向项目根目录。</li>
 </ol>
 <p>ThinkPHP 站点使用以下 Nginx 规则：</p>
-<div class="language-nginx highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">listen</span><span class="w"> </span><span class="mi">80</span><span class="p">;</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">listen</span><span class="w"> </span><span class="mi">443</span><span class="w"> </span><span class="s">ssl</span><span class="p">;</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">server_name</span><span class="w"> </span><span class="s">api.lostsky.work</span><span class="p">;</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">ssl_certificate</span><span class="w"> </span><span class="s">/etc/letsencrypt/live/lostsky.work/fullchain.pem</span><span class="p">;</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="k">ssl_certificate_key</span><span class="w"> </span><span class="s">/etc/letsencrypt/live/lostsky.work/privkey.pem</span><span class="p">;</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="k">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="kn">if</span><span class="w"> </span><span class="s">(!-e</span><span class="w"> </span><span class="nv">$request_filename</span><span class="s">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">        </span><span class="kn">rewrite</span><span class="w"> </span><span class="s">^(.*)</span>$<span class="w"> </span><span class="s">/index.php?s=</span><span class="nv">$1</span><span class="w"> </span><span class="s">last</span><span class="p">;</span>
-</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">        </span><span class="kn">break</span><span class="p">;</span>
-</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="p">}</span>
+<div class="language-nginx highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">listen</span><span class="w"> </span><span class="mi">80</span><span class="p">;</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">listen</span><span class="w"> </span><span class="mi">443</span><span class="w"> </span><span class="s">ssl</span><span class="p">;</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">server_name</span><span class="w"> </span><span class="s">api.lostsky.work</span><span class="p">;</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="k">ssl_certificate</span><span class="w"> </span><span class="s">/etc/letsencrypt/live/lostsky.work/fullchain.pem</span><span class="p">;</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="k">ssl_certificate_key</span><span class="w"> </span><span class="s">/etc/letsencrypt/live/lostsky.work/privkey.pem</span><span class="p">;</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="k">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">    </span><span class="kn">if</span><span class="w"> </span><span class="s">(!-e</span><span class="w"> </span><span class="nv">$request_filename</span><span class="s">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">        </span><span class="kn">rewrite</span><span class="w"> </span><span class="s">^(.*)</span>$<span class="w"> </span><span class="s">/index.php?s=</span><span class="nv">$1</span><span class="w"> </span><span class="s">last</span><span class="p">;</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">        </span><span class="kn">break</span><span class="p">;</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="p">}</span>
 </span></code></pre></div>
-<h2 id="_4">宝塔静态前端部署<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<h2 id="_5">宝塔静态前端部署<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <p>宝塔添加站点时会在根目录生成默认 <code>index.html</code> 和 <code>404.html</code>。LostSky 前端是单入口 SPA，每个业务域名目录只保留 <code>index.html</code>，前端路径统一回退到该文件，因此不要直接在已经发布的 <code>www/{domain}</code> 目录上添加站点。</p>
 <p>推荐流程：</p>
 <ol>
@@ -2940,12 +2972,12 @@
 <li>完成站点创建和域名绑定后，在「网站 → 设置 → 网站目录」中将根目录切换为真实产物目录，例如 <code>/www/deploy/lostsky/www/account.lostsky.work/</code>。同一站点新增域名只使用「域名管理」。</li>
 <li>删除或注释宝塔生成的 <code>error_page 404 /404.html;</code>，并配置：</li>
 </ol>
-<div class="language-nginx highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">root</span><span class="w"> </span><span class="s">/www/deploy/lostsky/www/account.lostsky.work</span><span class="p">;</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">index</span><span class="w"> </span><span class="s">index.html</span><span class="p">;</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="k">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">    </span><span class="kn">try_files</span><span class="w"> </span><span class="nv">$uri</span><span class="w"> </span><span class="nv">$uri/</span><span class="w"> </span><span class="s">/index.html</span><span class="p">;</span>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="p">}</span>
+<div class="language-nginx highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">root</span><span class="w"> </span><span class="s">/www/deploy/lostsky/www/account.lostsky.work</span><span class="p">;</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="k">index</span><span class="w"> </span><span class="s">index.html</span><span class="p">;</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="kn">try_files</span><span class="w"> </span><span class="nv">$uri</span><span class="w"> </span><span class="nv">$uri/</span><span class="w"> </span><span class="s">/index.html</span><span class="p">;</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="p">}</span>
 </span></code></pre></div>
 <ol>
 <li><code>assets.lostsky.work</code> 不使用 SPA 回退，文件不存在时直接返回 <code>404</code>；完整模板见 <code>deploy/nginx/lostsky-static-wildcard.conf</code>，CORS 配置见<a href="../assets-cors/">静态资源 CORS</a>。</li>
@@ -2966,10 +2998,10 @@
 <p>宝塔创建 HTML 项目会覆盖或生成默认首页，因此必须先完成域名和目录绑定，再运行 <code>npm run build:docs</code> 恢复两站产物。验收时分别确认完整站出现“开发”“运维”“API”导航，用户指南站只出现用户任务导航，并确认不存在的路径返回 <code>404</code>。</p>
 <p>Admin 使用同一静态发布结构，将 <code>admin.lostsky.work</code> 指向 <code>/www/deploy/lostsky/www/admin.lostsky.work/</code>，并保留 SPA 的 <code>try_files</code> 回退。首次发布顺序固定为：应用 <code>sql/patches/20260729_admin_platform.sql</code> 并发布后端；执行 <code>php think admin:grant --user=&lt;id&gt; --role=super_admin</code>；发布 Admin 前端及域名；最后验证登录回跳、普通用户 403、治理审计和系统状态。</p>
 <p>若服务器目录布局无法调整，应先在宝塔创建并绑定站点，再部署前端，由构建产物最后覆盖默认页面。不要用 <code>chattr +i</code> 锁定 <code>index.html</code>，否则正常发布也无法替换它。相关行为可参考宝塔的<a href="https://docs.bt.cn/getting-started/create-web">快速创建站点</a>和<a href="https://www.bt.cn/bbs/thread-67517-1-1.html">默认页面说明</a>。</p>
-<h2 id="_5">上线检查<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>composer<span class="w"> </span>check-platform-reqs<span class="w"> </span>--no-dev
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>composer<span class="w"> </span>show<span class="w"> </span>--no-dev<span class="w"> </span>--direct
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>php<span class="w"> </span>think<span class="w"> </span>version
+<h2 id="_6">上线检查<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>composer<span class="w"> </span>check-platform-reqs<span class="w"> </span>--no-dev
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>composer<span class="w"> </span>show<span class="w"> </span>--no-dev<span class="w"> </span>--direct
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>php<span class="w"> </span>think<span class="w"> </span>version
 </span></code></pre></div>
 <ul>
 <li>生产环境只安装生产依赖。</li>

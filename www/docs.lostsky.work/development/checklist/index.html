@@ -2818,7 +2818,7 @@
 <p>按改动类型勾选；不相关的项目无需运行。</p>
 <h2 id="_2">每次代码改动<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> 更新 <code>docs/changelog.md</code> 当前版本。</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> 更新 <code>docs/changelog.md</code> 的“未发布”区，不修改已经发布的版本章节。</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> 更新直接相关测试；输入、结构或示例变化时同步 fixture 和测试数据清理逻辑。</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> 运行直接相关检查和 <code>git diff --check</code>，只记录实际结果。</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> 不手改 <code>www/</code>、生成 API 类型或 Service 字典；涉及对应源文件时必须运行生成命令并保留生成差异。这里的“保留现有改动”仅指不得丢弃、回退或覆盖用户已有差异，不表示跳过生成。</li>
@@ -2912,6 +2912,11 @@
 </table>
 <h2 id="_4">发布时<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>按<a href="../releasing/">发布须知</a>统一核对版本、锁文件、Changelog、生成物、全量测试和构建。</p>
+<ul>
+<li>产品版本发布：更新版本文件，将“未发布”内容固化为 <code>vX.Y.Z</code>，同步 <code>docs/updates.md</code> 并创建同名附注标签。</li>
+<li>产品预发布：版本文件更新为 <code>X.Y.Z-stage.N</code>，保留目标正式版本的“未发布”日志，不滚动 <code>docs/updates.md</code>，并创建同名 <code>vX.Y.Z-stage.N</code> 附注标签。</li>
+<li>构建发布：产品版本文件保持不变，保留“未发布”日志并创建唯一的 <code>build-YYYYMMDD.N</code> 附注标签。</li>
+</ul>
 
 
 

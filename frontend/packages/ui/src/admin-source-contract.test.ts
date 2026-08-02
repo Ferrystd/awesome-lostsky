@@ -45,6 +45,11 @@ describe('后台源码设计契约', () => {
       }))
     })
     expect(controls).toEqual([
+      { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
+      { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
+      { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
+      { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
+      { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'textarea' },
       { file: 'frontend/packages/ui/src/components/LsMarkdownRenderer.vue', control: 'button' },
       { file: 'frontend/packages/ui/src/components/LsUploadField.vue', control: 'input' },
     ])

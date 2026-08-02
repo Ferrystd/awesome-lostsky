@@ -2214,7 +2214,7 @@
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        版本
+        发布标识
       </span>
     </span>
   </a>
@@ -2728,7 +2728,7 @@
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        版本
+        发布标识
       </span>
     </span>
   </a>
@@ -2840,16 +2840,21 @@
 <blockquote>
 <p>仅维护者执行发布；本文不得记录凭据或内部地址。</p>
 </blockquote>
-<h2 id="_2">版本<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<h2 id="_2">发布标识<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <ul>
-<li>默认开发版本是最新 Git 发布标签的下一个补丁版本。</li>
-<li>根 <code>package.json</code> 的 <code>version</code> 是机器可读来源；发布时须与 <code>package-lock.json</code>、<code>docs/changelog.md</code> 最新标题和 Git 标签一致。</li>
-<li>每次代码改动记录到待发布版本的 <code>docs/changelog.md</code>。内部 workspace 不维护独立产品版本。</li>
-<li>用户要求上传、发布或推送新版本时，交给 <code>.codex/agents/lostsky-git.toml</code> 定义的 <code>lostsky-git</code> 子代理；禁止移动标签、强制推送或重复发布已有版本。</li>
+<li>根 <code>package.json</code> 的 <code>version</code> 是当前公开产品版本的机器可读来源，并与 <code>package-lock.json</code> 一致；内部 workspace 不维护独立产品版本。</li>
+<li>日常代码改动记录到 <code>docs/changelog.md</code> 的“未发布”区，不得追加到已经发布的版本章节。</li>
+<li>产品版本发布使用附注标签 <code>vX.Y.Z</code>：更新两个版本文件，将“未发布”内容固化为对应版本，并同步 <code>docs/updates.md</code>。</li>
+<li>下一产品版本的预发布使用 <code>vX.Y.Z-alpha.N</code>、<code>vX.Y.Z-beta.N</code> 或 <code>vX.Y.Z-rc.N</code>：版本文件与标签使用完整预发布版本，“未发布”日志注明目标正式版本，但不滚动 <code>docs/updates.md</code>；未指定阶段时默认 beta。</li>
+<li>不增加公开版本号的临时交付使用附注标签 <code>build-YYYYMMDD.N</code>：产品版本文件保持不变，日期按 Asia/Shanghai 计算，序号在当天从 1 递增。</li>
+<li>产品标签和构建标签都是不可变交付物标识；部署与回滚同时记录标签及其 commit SHA。</li>
+<li>用户要求上传、发布或推送交付物时，交给 <code>.codex/agents/lostsky-git.toml</code> 定义的 <code>lostsky-git</code> 子代理；禁止移动标签、强制推送或重复发布已有标识。</li>
 </ul>
 <h2 id="_3">发布前<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>package.json</code>、<code>package-lock.json</code>、<code>docs/changelog.md</code> 和标签版本一致。</li>
+<li><code>package.json</code> 与 <code>package-lock.json</code> 的产品版本一致；产品版本发布还须与固化后的 Changelog 标题和 <code>vX.Y.Z</code> 标签一致。</li>
+<li>预发布须从最新稳定产品标签推导目标版本，确认完整预发布标签未被使用，并保持版本文件与 <code>vX.Y.Z-stage.N</code> 标签一致。</li>
+<li>构建发布须保留“未发布”日志，确认对应产品标签存在、发布提交是其后代，且 <code>build-YYYYMMDD.N</code> 在本地与远端均未被使用。</li>
 <li>数据变化同时更新 <code>sql/schema.sql</code> 和日期补丁。</li>
 <li>OpenAPI、生成类型、调用方、测试、文档和 <code>www/</code> 产物一致；涉及前端或文档源文件时必须运行生成命令。保留已有构建差异是指合并保留，不是跳过 <code>npm run build</code> 或 <code>npm run build:docs</code>。</li>
 <li>运行并记录实际结果：</li>
@@ -2868,16 +2873,16 @@
 <h2 id="_4">发布<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <ol>
 <li>审查并提交完整发布内容。</li>
-<li>创建附注标签：<code>git tag -a vX.Y.Z -m "LostSky vX.Y.Z"</code>。</li>
-<li>推送提交和标签，核对二者指向同一状态。</li>
-<li>备份数据库，应用补丁，使用 <code>composer install</code> 部署该标签的锁定依赖与构建产物。</li>
-<li>检查 API、登录、团队解析、前端资源、数据库结构和后台任务。</li>
+<li>产品版本发布创建 <code>git tag -a vX.Y.Z -m "LostSky vX.Y.Z"</code>；预发布创建 <code>git tag -a vX.Y.Z-stage.N -m "LostSky vX.Y.Z-stage.N"</code>；构建发布创建 <code>git tag -a build-YYYYMMDD.N -m "LostSky build YYYYMMDD.N (product vX.Y.Z)"</code>。</li>
+<li>推送提交和本次唯一标签，核对远端标签的 peeled commit 与分支目标。</li>
+<li>备份数据库，应用补丁，使用 <code>composer install</code> 部署该不可变标签的锁定依赖与构建产物。</li>
+<li>记录标签、commit SHA、环境、时间、执行人和结果，再检查 API、登录、团队解析、前端资源、数据库结构和后台任务。</li>
 </ol>
 <p>Git 推送只同步版本，不代替服务器部署。宝塔/Nginx、CDN 缓存和静态资源响应头按运维文档单独应用并验证。</p>
 <h2 id="_5">失败<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <ul>
-<li>公开标签不移动；用新提交和新版本修复。</li>
-<li>应用恢复到上一个已验证标签。</li>
+<li>产品标签和构建标签均不移动；使用新提交及新的产品版本或构建标识修复。</li>
+<li>应用恢复到上一个已验证的产品标签或构建标签。</li>
 <li>数据库依赖备份或前向修复；MySQL DDL 不保证整体回滚。</li>
 <li>外部副作用使用幂等重试或补偿流程。</li>
 </ul>

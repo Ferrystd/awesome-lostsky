@@ -8,7 +8,6 @@ import '@milkdown/crepe/theme/frame.css'
 import { editorViewCtx } from '@milkdown/kit/core'
 import { replaceAll } from '@milkdown/kit/utils'
 import { Code2, Eye, FileText, Search, Users } from '@lucide/vue'
-import { NButton, NInput, NRadioButton, NRadioGroup } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { feedback } from '../feedback'
 import LsMarkdownRenderer from './LsMarkdownRenderer.vue'
@@ -309,7 +308,11 @@ onBeforeUnmount(() => {
 
 <template>
   <section ref="root" class="ls-markdown-editor" @keydown.capture="onKeydown" @keyup="detectMention" @pointerdown.capture="explainDisabledImage" @click="onEditorClick">
-    <NRadioGroup :value="mode" class="mode-tabs" name="markdown-mode" aria-label="Markdown 编辑模式" @update:value="setMode($event as 'visual' | 'source' | 'preview')"><NRadioButton value="visual"><FileText :size="16" />可视化</NRadioButton><NRadioButton value="source"><Code2 :size="16" />源码</NRadioButton><NRadioButton value="preview"><Eye :size="16" />预览</NRadioButton></NRadioGroup>
+    <div class="mode-tabs" role="tablist" aria-label="Markdown 编辑模式">
+      <button type="button" role="tab" :aria-selected="mode === 'visual'" @click="setMode('visual')"><FileText :size="16" />可视化</button>
+      <button type="button" role="tab" :aria-selected="mode === 'source'" @click="setMode('source')"><Code2 :size="16" />源码</button>
+      <button type="button" role="tab" :aria-selected="mode === 'preview'" @click="setMode('preview')"><Eye :size="16" />预览</button>
+    </div>
 
     <p v-if="uploadDisabledReason" id="markdown-upload-reason" class="ls-sr-only">{{ uploadDisabledReason }}；仍可粘贴外部图片 URL。</p>
     <p v-if="uploadError" class="upload-error" role="alert">{{ uploadError }}</p>
@@ -319,15 +322,15 @@ onBeforeUnmount(() => {
       <Transition name="ls-popover">
         <div v-if="showSuggestions" class="entity-picker" role="listbox" aria-label="对象搜索结果">
           <div class="picker-status"><Search :size="15" /><span v-if="mentionQuery.length < 2">继续输入至少 2 个字符</span><span v-else-if="searching">正在搜索 @{{ mentionQuery }}…</span><span v-else-if="searchError">{{ searchError }}</span><span v-else-if="!suggestions.length">没有匹配的可用对象</span><span v-else>选择要引用的对象</span></div>
-          <NButton v-for="(item, index) in suggestions" :key="`${item.type}:${item.slug}`" quaternary role="option" :aria-selected="index === selectedIndex" @mousedown.prevent="insertEntity(item)">
+          <button v-for="(item, index) in suggestions" :key="`${item.type}:${item.slug}`" type="button" role="option" :aria-selected="index === selectedIndex" @mousedown.prevent="insertEntity(item)">
             <span class="entity-icon"><Users :size="17" /></span>
             <span><strong>@{{ item.slug }}</strong><small>{{ item.display_name }} · {{ item.type === 'team' ? '团队' : item.team?.display_name || '成员' }}</small></span>
-          </NButton>
+          </button>
         </div>
       </Transition>
     </div>
 
-    <NInput v-if="mode === 'source'" class="source-editor" :value="current" type="textarea" :placeholder="placeholder" :input-props="{ 'aria-label': 'Markdown 源码' }" :autosize="{ minRows: 18, maxRows: 40 }" @update:value="update" />
+    <textarea v-if="mode === 'source'" :value="current" :placeholder="placeholder" aria-label="Markdown 源码" @input="update(($event.target as HTMLTextAreaElement).value)" />
     <LsMarkdownRenderer v-if="mode === 'preview'" :content="current" :resolve-entities="resolveEntities" />
   </section>
 </template>
@@ -335,7 +338,6 @@ onBeforeUnmount(() => {
 <style scoped>
 .ls-markdown-editor{position:relative;min-width:0;background:var(--surface,#fff);border:1px solid var(--line);border-radius:10px;overflow:visible}.mode-tabs{display:flex;gap:.25rem;padding:.4rem;background:var(--cloud);border-bottom:1px solid var(--line);border-radius:10px 10px 0 0}.mode-tabs button{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:0 .7rem;color:var(--ink);background:transparent;border:0;border-radius:7px;font-size:.8rem;font-weight:650;cursor:pointer;transition:color var(--motion-fast) var(--ease-standard),background-color var(--motion-fast) var(--ease-standard),box-shadow var(--motion-fast) var(--ease-standard)}.mode-tabs button:hover{background:color-mix(in oklch,var(--sky-lost),white 88%)}.mode-tabs button[aria-selected=true]{color:var(--sky-night);background:white;box-shadow:0 1px 2px color-mix(in oklch,var(--sky-night),transparent 90%)}.mode-tabs button:focus-visible,.entity-picker button:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 65%);outline-offset:1px}.visual-pane{position:relative;min-height:24rem}.ls-markdown-editor textarea{width:100%;min-height:26rem;padding:1rem;resize:vertical;color:var(--ink);background:white;border:0;border-radius:0 0 10px 10px;outline:0;font:500 .9rem/1.7 ui-monospace,SFMono-Regular,Consolas,monospace}.entity-picker{position:absolute;z-index:var(--z-popover,40);left:1rem;right:1rem;top:3.75rem;max-width:34rem;padding:.35rem;background:white;border:1px solid var(--line);border-radius:10px;box-shadow:0 14px 35px color-mix(in oklch,var(--sky-night),transparent 82%);overflow:hidden}.picker-status{min-height:38px;display:flex;align-items:center;gap:.45rem;padding:0 .65rem;color:var(--muted-ink);font-size:.78rem}.entity-picker button{width:100%;min-height:52px;display:flex;align-items:center;gap:.65rem;padding:.55rem .65rem;text-align:left;background:transparent;border:0;border-radius:7px;cursor:pointer;transition:background-color var(--motion-fast) var(--ease-standard)}.entity-picker button[aria-selected=true],.entity-picker button:hover{background:var(--cloud)}.entity-picker strong,.entity-picker small{display:block}.entity-picker strong{color:var(--ink);font-size:.85rem}.entity-picker small{margin-top:.15rem;color:var(--muted-ink);font-size:.74rem}.entity-icon{width:34px;height:34px;display:grid;place-items:center;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 80%);border-radius:8px}
 .upload-error{margin:0;padding:.65rem .8rem;color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%);border-bottom:1px solid color-mix(in oklch,var(--danger),white 75%);font-size:.8rem}
-.mode-tabs{width:100%}.mode-tabs :deep(.n-radio-button){min-height:44px;display:inline-flex;align-items:center}.mode-tabs :deep(.n-radio-button__label){display:inline-flex;align-items:center;gap:.4rem}.source-editor{border-radius:0 0 10px 10px}.source-editor :deep(textarea){font:500 .9rem/1.7 ui-monospace,SFMono-Regular,Consolas,monospace}.entity-picker :deep(.n-button){width:100%;min-height:52px;justify-content:stretch;text-align:left}.entity-picker :deep(.n-button__content){width:100%;display:flex;align-items:center;gap:.65rem}
 .ls-markdown-editor :deep(.milkdown){--crepe-color-background:#fff;--crepe-color-surface:var(--cloud);--crepe-color-surface-low:color-mix(in oklch,var(--cloud),white 45%);--crepe-color-primary:var(--sky-lost-strong);--crepe-color-on-background:var(--ink);--crepe-color-on-surface:var(--ink);--crepe-color-on-surface-variant:var(--muted-ink);--crepe-color-outline:var(--line);--crepe-color-hover:var(--cloud);--crepe-color-selected:color-mix(in oklch,var(--sky-lost),white 70%);--crepe-font-default:inherit;--crepe-font-title:inherit;min-height:24rem}.ls-markdown-editor :deep(.milkdown .ProseMirror){min-height:22rem;padding:1rem;line-height:1.75}.ls-markdown-editor :deep(a[href^="lostsky://entity/"]){display:inline-flex;align-items:center;padding:.08rem .38rem;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 82%);border:1px solid color-mix(in oklch,var(--sky-lost-strong),transparent 65%);border-radius:999px;text-decoration:none;cursor:default}
 .ls-markdown-editor :deep(.milkdown .milkdown-top-bar .top-bar-item:not(:disabled):not([aria-disabled="true"]) svg),.ls-markdown-editor :deep(.milkdown .milkdown-toolbar .toolbar-item:not(:disabled):not([aria-disabled="true"]) svg){color:var(--ink);fill:var(--ink)}.ls-markdown-editor :deep(.milkdown .milkdown-top-bar .top-bar-chevron svg){color:var(--ink);stroke:var(--ink)}.ls-markdown-editor :deep(.milkdown .milkdown-top-bar .top-bar-item.active svg),.ls-markdown-editor :deep(.milkdown .milkdown-toolbar .toolbar-item.active svg){color:var(--sky-lost-strong);fill:var(--sky-lost-strong)}.ls-markdown-editor :deep(.milkdown button:disabled),.ls-markdown-editor :deep(.milkdown button[aria-disabled="true"]){color:var(--muted-ink);cursor:not-allowed;opacity:.42}.ls-markdown-editor :deep(.milkdown button:focus-visible){outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 65%);outline-offset:1px}
 @media(max-width:639px){.mode-tabs{overflow:auto}.mode-tabs button{flex:1;white-space:nowrap}.entity-picker{left:.5rem;right:.5rem}.ls-markdown-editor :deep(.milkdown .ProseMirror){padding:.75rem}}
