@@ -403,7 +403,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/member/remove": {
+    "/memberDeparture/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询离队申请 */
+        get: operations["teamMemberDepartureIndex"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memberDeparture/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 获取离队申请 */
+        get: operations["teamMemberDepartureGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memberDeparture/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 获取本人离队申请
+         * @description 仅正常成员本人通过直接领取的根身份会话调用。
+         */
+        get: operations["teamMemberDepartureMine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memberDeparture/apply": {
         parameters: {
             query?: never;
             header?: never;
@@ -412,8 +466,76 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 移出成员 */
-        post: operations["teamMemberRemove"];
+        /** 本人申请离队 */
+        post: operations["teamMemberDepartureApply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memberDeparture/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 管理员代为发起离队申请 */
+        post: operations["teamMemberDepartureCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memberDeparture/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 目标成员取消离队申请 */
+        post: operations["teamMemberDepartureCancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memberDeparture/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 批准离队申请 */
+        post: operations["teamMemberDepartureApprove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memberDeparture/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 拒绝离队申请 */
+        post: operations["teamMemberDepartureReject"];
         delete?: never;
         options?: never;
         head?: never;
@@ -864,9 +986,29 @@ export interface paths {
         };
         /**
          * 申请表单字段列表
-         * @description 要求 team.join_field.read 权限。
+         * @description 要求 team.join_field.read 权限。返回当前团队全部申请字段，包括已停用字段。
          */
         get: operations["teamJoinFieldIndex"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/joinField/transferOptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 申请字段转存目标
+         * @description 要求 team.join_field.write 权限。仅返回当前团队可作为转存目标的人员 Entity 字段摘要。
+         */
+        get: operations["teamJoinFieldTransferOptions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1676,6 +1818,10 @@ export interface components {
         };
         DashboardMetric: {
             available: boolean;
+            is_valid?: boolean;
+            /** @enum {string|null} */
+            status_code?: "active" | "blocked" | "departed" | null;
+            status_label?: string | null;
             /**
              * Format: int64
              * @description null 且无错误时表示可进入但无全量计数资格。
@@ -1767,10 +1913,27 @@ export interface components {
              */
             is_blocked?: 0 | 1;
             /**
+             * @description 成员生命周期状态：1=正常，2=已封禁，3=已离队
+             * @enum {integer}
+             */
+            status?: 1 | 2 | 3;
+            /** @enum {string} */
+            status_code?: "active" | "blocked" | "departed";
+            status_label?: string;
+            /** @description 实体当前是否可执行业务；封禁和离队成员由 member.inactive_entity_available 决定 */
+            is_valid?: boolean;
+            /**
              * Format: int64
-             * @description Unix timestamp, seconds
+             * @description 成员加入时间，Unix timestamp, seconds
              */
             create_time?: number;
+            /**
+             * Format: int64
+             * @description 邀请人 Entity ID，可属于其他团队
+             */
+            inviter_entity_id?: number | null;
+            /** @description 仅 /member/get 返回的邀请人摘要；邀请人可属于其他团队 */
+            inviter?: components["schemas"]["EntityRoleSubject"] | null;
         } & components["schemas"]["MemberProfileFields"] & {
             fieldValues?: components["schemas"]["EntityFieldValue"][];
             /** @description Only returned by /me/get. Visible custom field definitions for the current entity. */
@@ -2147,6 +2310,7 @@ export interface components {
             id: number;
             title?: string;
             content?: string | null;
+            tags: string[];
             sort?: number;
             /**
              * Format: int64
@@ -2274,9 +2438,19 @@ export interface components {
             is_transfer_entity_field?: 0 | 1;
             /** Format: int64 */
             entity_field_id?: number | null;
+            entity_field?: components["schemas"]["JoinFieldTransferOption"] | null;
             /** @enum {integer} */
             is_active?: 0 | 1;
             sort?: number;
+        };
+        JoinFieldTransferOption: {
+            /** Format: int64 */
+            id: number;
+            field_key: string;
+            name: string;
+            value_type: string;
+            input_type: string;
+            sort: number;
         };
         JoinFieldValue: {
             /** Format: int64 */
@@ -2391,6 +2565,16 @@ export interface components {
             /** Format: int64 */
             user_id?: number;
             /**
+             * @description 1=加入，2=复职
+             * @enum {integer}
+             */
+            purpose?: 1 | 2;
+            /** @enum {string} */
+            purpose_code?: "join" | "reinstate";
+            purpose_label?: string;
+            status_code?: string;
+            status_label?: string;
+            /**
              * @description 加入申请状态
              * @enum {string}
              */
@@ -2400,6 +2584,52 @@ export interface components {
             tasks?: components["schemas"]["JoinTask"][];
             /** Format: int64 */
             entity_id?: number | null;
+            /**
+             * Format: int64
+             * @description 申请时确认的邀请人 Entity ID，可属于其他团队
+             */
+            inviter_entity_id?: number | null;
+            /** @description 申请时确认的邀请人摘要 */
+            inviter?: components["schemas"]["EntityRoleSubject"] | null;
+        };
+        MemberDeparture: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            team_id: number;
+            /** Format: int64 */
+            member_id: number;
+            /** Format: int64 */
+            requester_entity_id: number;
+            /** Format: int64 */
+            decision_entity_id?: number | null;
+            /** @enum {integer} */
+            status: 1 | 2 | 3 | 4;
+            /** @enum {string} */
+            status_code: "applied" | "cancelled" | "approved" | "rejected";
+            status_label: string;
+            /** Format: int64 */
+            decided_at?: number | null;
+            /** Format: int64 */
+            create_time?: number;
+            /** Format: int64 */
+            update_time?: number;
+            member?: components["schemas"]["Member"];
+            requester?: components["schemas"]["EntityRoleSubject"];
+            decision_entity?: components["schemas"]["EntityRoleSubject"] | null;
+        };
+        MemberDeparturePage: {
+            total: number;
+            list: components["schemas"]["MemberDeparture"][];
+            page: number;
+            limit: number;
+        };
+        JoinForm: {
+            /** @enum {string} */
+            purpose_code: "join" | "reinstate";
+            purpose_label: string;
+            refill_required: boolean;
+            fields: components["schemas"]["JoinField"][];
         };
         EntityTeamSummary: {
             slug: string;
@@ -2591,6 +2821,10 @@ export interface components {
             intro_image?: string | null;
             intro_video?: string | null;
             introduction_markdown?: string | null;
+            document_tags: {
+                tag: string;
+                description: string | null;
+            }[];
             /** Format: int64 */
             create_time?: number;
             /** Format: int64 */
@@ -3240,7 +3474,9 @@ export interface operations {
     };
     teamMemberIndex: {
         parameters: {
-            query?: never;
+            query?: {
+                status?: "active" | "blocked" | "departed";
+            };
             header?: {
                 /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
                 "X-Page-Id"?: components["parameters"]["PageId"];
@@ -3802,7 +4038,114 @@ export interface operations {
             };
         };
     };
-    teamMemberRemove: {
+    teamMemberDepartureIndex: {
+        parameters: {
+            query?: {
+                status?: 1 | 2 | 3 | 4;
+                member_id?: number;
+                page?: number;
+                limit?: number;
+            };
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["MemberDeparturePage"];
+                    };
+                };
+            };
+        };
+    };
+    teamMemberDepartureGet: {
+        parameters: {
+            query: {
+                id: number;
+            };
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["MemberDeparture"];
+                    };
+                };
+            };
+        };
+    };
+    teamMemberDepartureMine: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["MemberDeparture"][];
+                    };
+                };
+            };
+        };
+    };
+    teamMemberDepartureApply: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 申请已创建或已自动批准 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["MemberDeparture"];
+                    };
+                };
+            };
+        };
+    };
+    teamMemberDepartureCreate: {
         parameters: {
             query?: never;
             header?: {
@@ -3821,7 +4164,39 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 操作成功 */
+            /** @description 申请已创建 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["IdResult"];
+                    };
+                };
+            };
+        };
+    };
+    teamMemberDepartureCancel: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 申请已取消 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3830,67 +4205,64 @@ export interface operations {
                     "application/json": components["schemas"]["MessageEnvelope"];
                 };
             };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+    };
+    teamMemberDepartureApprove: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    id: number;
                 };
             };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
+        };
+        responses: {
+            /** @description 申请已批准 */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["MessageEnvelope"];
                 };
             };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+        };
+    };
+    teamMemberDepartureReject: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    id: number;
                 };
             };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
+        };
+        responses: {
+            /** @description 申请已拒绝 */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["MessageEnvelope"];
                 };
             };
         };
@@ -5183,6 +5555,7 @@ export interface operations {
                 "application/json": {
                     title: string;
                     content?: string | null;
+                    tags?: string[];
                     sort?: number;
                     /**
                      * @description 1=?????2=?????????
@@ -5298,6 +5671,7 @@ export interface operations {
                 "application/json": {
                     title?: string;
                     content?: string | null;
+                    tags?: string[] | null;
                     sort?: number;
                     /**
                      * @description 1=?????2=?????????
@@ -5595,7 +5969,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["JoinField"][];
+                        data?: components["schemas"]["JoinForm"];
                     };
                 };
             };
@@ -5618,6 +5992,8 @@ export interface operations {
                         [key: string]: unknown;
                     };
                     memo?: string | null;
+                    /** @description 邀请实体 slug，与客户领取身份使用相同参数名；允许来自其他团队，无效值会被忽略 */
+                    inviter_slug?: string;
                 };
             };
         };
@@ -5765,6 +6141,28 @@ export interface operations {
             };
         };
     };
+    teamJoinFieldTransferOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Field contract for 200. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["JoinFieldTransferOption"][];
+                    };
+                };
+            };
+        };
+    };
     teamJoinFieldAdd: {
         parameters: {
             query?: never;
@@ -5822,6 +6220,17 @@ export interface operations {
                 "application/json": {
                     /** Format: int64 */
                     id: number;
+                    name?: string;
+                    value_type?: string;
+                    input_type?: string;
+                    options?: unknown;
+                    default_value?: string | null;
+                    is_apply_fillable?: number;
+                    is_apply_required?: number;
+                    is_transfer_entity_field?: number;
+                    entity_field_id?: number | null;
+                    is_active?: number;
+                    sort?: number;
                 };
             };
         };
@@ -6735,6 +7144,10 @@ export interface operations {
                     intro_image?: string | null;
                     intro_video?: string | null;
                     introduction_markdown?: string | null;
+                    document_tags?: {
+                        tag: string;
+                        description?: string | null;
+                    }[] | null;
                 };
             };
         };

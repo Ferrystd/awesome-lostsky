@@ -11,7 +11,7 @@ use think\Request;
  *
  * 依赖 Context 已运行，校验：
  *   - 成员记录存在（非成员 → 403）
- *   - 未被封禁（is_blocked → 403）
+ *   - 成员实体当前具备业务可用性（is_valid → 403）
  *
  * 这里只校验成员身份和有效状态；具体业务权限由 Permission 等中间件单独校验。
  */
@@ -30,8 +30,8 @@ class MemberAccess
             throw new HttpException(403, '你不是该团队的成员');
         }
 
-        if ($request->member->is_blocked) {
-            throw new HttpException(403, '你已被该团队封禁');
+        if (!(bool) $request->member->is_valid) {
+            throw new HttpException(403, '当前成员实体不可用');
         }
 
         return $next($request);

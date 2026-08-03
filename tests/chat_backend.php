@@ -118,7 +118,7 @@ try {
     foreach ($settingSchema['apps'] as $settingApp) {
         $settingApps[$settingApp['app_name']] = $settingApp;
     }
-    $assertSame(['entity', 'chat', 'shop'], array_keys($settingApps), 'team setting apps keep their configured order');
+    $assertSame(['entity', 'member', 'chat', 'shop', 'display'], array_keys($settingApps), 'team setting apps keep their configured order');
     $chatSettingFields = [];
     foreach ($settingApps['chat']['settings'] ?? [] as $settingField) {
         $chatSettingFields[$settingField['key']] = $settingField;
@@ -162,6 +162,21 @@ try {
             "{$settingKey} exposes a description for every option"
         );
     }
+    $displaySettingFields = [];
+    foreach ($settingApps['display']['settings'] ?? [] as $settingField) {
+        $displaySettingFields[$settingField['key']] = $settingField;
+    }
+    $assertSame(
+        [
+            'homepage_welcome' => '欢迎来到我们的公开主页',
+            'homepage_entities_link' => '浏览公开实体',
+            'homepage_entities_title' => '公开实体',
+            'homepage_entities_description' => '团队成员与虚拟实体',
+            'homepage_entities_empty' => '团队暂时没有公开实体',
+        ],
+        array_map(static fn (array $field): mixed => $field['default'], $displaySettingFields),
+        'display homepage copy settings expose their configured defaults'
+    );
     $foreignTeam = new Team;
     $foreignTeam->save([
         'slug' => "chat-foreign-{$suffix}",

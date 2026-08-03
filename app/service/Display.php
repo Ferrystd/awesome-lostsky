@@ -8,6 +8,7 @@ use app\enum\Visibility;
 use app\model\Document as DocumentModel;
 use app\model\Entity as EntityModel;
 use app\model\Team;
+use app\model\TeamEntityProfile;
 use app\model\TeamEntityField;
 use app\model\TeamEntityFieldValue;
 use app\model\TeamEntityRole;
@@ -36,20 +37,37 @@ class Display
             'type' => 'team',
             'profile' => $this->profileData($entity),
             'fields' => $this->publicFields($teamId, $entity),
+            'settings' => app(TeamSetting::class)->internal($teamId, 'display'),
         ];
     }
 
-    public function entities(int $teamId, ?string $type, int $page, int $limit): array
+    public function entities(
+        int $teamId,
+        ?string $type,
+        int $page,
+        int $limit,
+        string $keyword = ''
+    ): array
     {
         $this->team($teamId);
         if ($type !== null && !in_array($type, self::PUBLIC_TYPES, true)) {
             throw new HttpException(422, '实体类型不正确');
         }
+        $keyword = trim($keyword);
+        if (mb_strlen($keyword, 'UTF-8') > 100) {
+            throw new HttpException(422, '搜索关键词不能超过100个字符');
+        }
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
 
         $memberIds = $type === 'teamVirtual'
             ? []
-            : TeamMember::where('team_id', $teamId)->where('is_blocked', 0)->column('id');
+            : array_map(
+                static fn (TeamMember $member): int => (int) $member->id,
+                array_values(array_filter(
+                    TeamMember::where('team_id', $teamId)->select()->all(),
+                    static fn (TeamMember $member): bool => (bool) $member->is_valid
+                ))
+            );
         $virtualIds = $type === 'teamMember'
             ? []
             : TeamVirtual::where('team_id', $teamId)->where('is_active', 1)->column('id');
@@ -75,6 +93,20 @@ class Display
                 }
             });
 
+        if ($keyword !== '') {
+            $escaped = addcslashes($keyword, '\\%_');
+            $profileEntityIds = TeamEntityProfile::whereLike('name', "%{$escaped}%")
+                ->column('entity_id');
+            $query->where(function ($query) use ($escaped, $profileEntityIds) {
+                $query->whereLike('slug', "%{$escaped}%");
+                if ($profileEntityIds) {
+                    $query->whereOr(function ($query) use ($profileEntityIds) {
+                        $query->whereIn('id', $profileEntityIds);
+                    });
+                }
+            });
+        }
+
         $total = $query->count();
         $rows = $query->order('id', 'asc')->page($page, $limit)->select();
         $roleMap = $this->publicRolesForEntities($teamId, array_map(
@@ -99,6 +131,8 @@ class Display
         return [
             'slug' => (string) $entity->slug,
             'type' => (string) $entity->entityable_type,
+            'status_code' => $entity->status_code,
+            'status_label' => $entity->status_label,
             'profile' => $this->profileData($entity),
             'fields' => $this->publicFields($teamId, $entity),
             'roles' => $this->publicRoles($teamId, (int) $entity->id),
@@ -245,6 +279,7 @@ class Display
             'intro_image' => $profile?->intro_image ?: null,
             'intro_video' => $profile?->intro_video ?: null,
             'introduction_markdown' => $profile?->introduction_markdown ?: null,
+            'document_tags' => $this->outputTags($profile?->document_tags),
         ];
     }
 
@@ -419,6 +454,8 @@ class Display
             'name' => $profile['name'],
             'avatar' => $profile['avatar'],
             'description' => $profile['description'],
+            'status_code' => $entity->status_code,
+            'status_label' => $entity->status_label,
         ];
         if (in_array($summary['type'], self::PUBLIC_TYPES, true)) {
             $summary['roles'] = $roles;
@@ -435,6 +472,7 @@ class Display
             'sort' => (int) $document->sort,
             'update_time' => (int) $document->getData('update_time'),
             'entity' => $subject,
+            'tags' => $this->outputTags($document->tags),
         ];
         if ($withContent) {
             $result['content'] = $document->content;
@@ -504,5 +542,10 @@ class Display
             'available' => false,
             'href' => null,
         ];
+    }
+
+    private function outputTags(mixed $tags): array
+    {
+        return is_array($tags) && array_is_list($tags) ? array_values($tags) : [];
     }
 }

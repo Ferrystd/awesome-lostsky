@@ -20,7 +20,9 @@ $patch = file_get_contents(dirname(__DIR__) . '/sql/patches/20260724_foreign_key
     . PHP_EOL
     . file_get_contents(dirname(__DIR__) . '/sql/patches/20260726_member_field_to_entity.sql')
     . PHP_EOL
-    . file_get_contents(dirname(__DIR__) . '/sql/patches/20260727_entity_profile_post.sql');
+    . file_get_contents(dirname(__DIR__) . '/sql/patches/20260727_entity_profile_post.sql')
+    . PHP_EOL
+    . file_get_contents(dirname(__DIR__) . '/sql/patches/20260803_member_inviter.sql');
 preg_match_all(
     '/ALTER TABLE `([^`]+)`\s+(.*?);/s',
     (string) $patch,

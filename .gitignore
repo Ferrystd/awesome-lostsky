@@ -15,6 +15,7 @@ Thumbs.db
 node_modules/
 /frontend/.dist/
 /frontend/.vite/
+/frontend/component-previews/generated/
 /test-results/
 /playwright-report/
 /blob-report/

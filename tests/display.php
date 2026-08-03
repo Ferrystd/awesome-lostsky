@@ -78,7 +78,8 @@ $document = static function (
     Entity $entity,
     string $title,
     Visibility $visibility,
-    int $sort = 0
+    int $sort = 0,
+    ?array $tags = null
 ): Document {
     $record = new Document;
     $record->save([
@@ -88,6 +89,7 @@ $document = static function (
         'manager_scope' => ManageScope::Team,
         'visibility' => $visibility,
         'sort' => $sort,
+        'tags' => $tags,
     ]);
     return $record;
 };
@@ -109,6 +111,9 @@ app(EntityProfile::class)->update((int) $team->id, (int) $teamEntity->id, [
     'description' => '团队公开简介',
     'intro_image' => 'https://assets.example.test/team-portrait.png',
     'introduction_markdown' => '欢迎访问 @public',
+    'document_tags' => [
+        ['tag' => '说明文档', 'description' => '用于介绍和解释相关内容'],
+    ],
 ]);
 
 $foreignTeam = new Team;
@@ -209,7 +214,7 @@ foreach ([$publicEntity, $blockedEntity, $deletedEntity, $virtualEntity, $inacti
     $teamId = $entity === $foreignEntity ? (int) $foreignTeam->id : (int) $team->id;
     $entities->setDisplay($teamId, (int) $entity->id, 1);
 }
-$blockedMember->save(['is_blocked' => 1]);
+$blockedMember->save(['status' => 2, 'is_blocked' => 1]);
 $deletedMember->delete();
 $inactiveVirtual->save(['is_active' => 0]);
 $customerEntity->save(['is_displayed' => 1]);
@@ -285,7 +290,7 @@ $virtualField->save([
 
 $teamPublicDocument = $document($teamEntity, '团队公开文档', Visibility::Public, 2);
 $teamPrivateDocument = $document($teamEntity, '团队内部文档', Visibility::Team, 1);
-$memberPublicDocument = $document($publicEntity, '成员公开文档', Visibility::Public);
+$memberPublicDocument = $document($publicEntity, '成员公开文档', Visibility::Public, 0, ['说明文档', 'A', 'a']);
 $hiddenPublicDocument = $document($hiddenEntity, '隐藏成员文档', Visibility::Public);
 $foreignPublicDocument = $document($foreignEntity, '外部成员文档', Visibility::Public);
 
@@ -334,6 +339,53 @@ $assertSame(
     array_keys($profile['fields'][0]),
     'public field response excludes internal configuration'
 );
+$assertSame(
+    [['tag' => '说明文档', 'description' => '用于介绍和解释相关内容']],
+    $profile['profile']['document_tags'],
+    'team document display tags are public'
+);
+$assertSame(
+    [
+        'homepage_welcome' => '欢迎来到我们的公开主页',
+        'homepage_entities_link' => '浏览公开实体',
+        'homepage_entities_title' => '公开实体',
+        'homepage_entities_description' => '团队成员与虚拟实体',
+        'homepage_entities_empty' => '团队暂时没有公开实体',
+    ],
+    $profile['settings'],
+    'display profile exposes the default homepage copy settings'
+);
+app(\app\service\TeamSetting::class)->batch((int) $team->id, 'display', [
+    'homepage_welcome' => '自定义欢迎语',
+    'homepage_entities_link' => '认识我们的伙伴',
+    'homepage_entities_title' => '伙伴展示',
+    'homepage_entities_description' => '真人成员与数字伙伴',
+    'homepage_entities_empty' => '伙伴资料正在准备中',
+]);
+$assertSame(
+    [
+        'homepage_welcome' => '自定义欢迎语',
+        'homepage_entities_link' => '认识我们的伙伴',
+        'homepage_entities_title' => '伙伴展示',
+        'homepage_entities_description' => '真人成员与数字伙伴',
+        'homepage_entities_empty' => '伙伴资料正在准备中',
+    ],
+    $display->profile((int) $team->id)['settings'],
+    'display profile exposes stored homepage copy settings'
+);
+$assertStatus(
+    fn () => app(\app\service\TeamSetting::class)->batch((int) $team->id, 'display', [
+        'homepage_welcome' => '不应保存的欢迎语',
+        'homepage_entities_link' => '',
+    ]),
+    422,
+    'display homepage copy cannot be empty'
+);
+$assertSame(
+    '自定义欢迎语',
+    $display->profile((int) $team->id)['settings']['homepage_welcome'],
+    'invalid display copy batch does not partially overwrite stored settings'
+);
 
 $page = $display->entities((int) $team->id, null, 0, 999);
 $listedSlugs = array_column($page['list'], 'slug');
@@ -352,10 +404,42 @@ foreach ([$hiddenEntity, $blockedEntity, $deletedEntity, $inactiveVirtualEntity,
 }
 $assertSame(1, $display->entities((int) $team->id, 'teamMember', 1, 20)['total'], 'member filter works');
 $assertSame(1, $display->entities((int) $team->id, 'teamVirtual', 1, 20)['total'], 'virtual filter works');
+$assertSame(
+    [(string) $publicEntity->slug],
+    array_column($display->entities((int) $team->id, null, 1, 20, ' 公开成员 ')['list'], 'slug'),
+    'entity name search trims the keyword'
+);
+$assertSame(
+    [(string) $virtualEntity->slug],
+    array_column($display->entities((int) $team->id, null, 1, 20, 'DISPLAY-VIRTUAL')['list'], 'slug'),
+    'entity slug search is case insensitive'
+);
+$assertSame(
+    0,
+    $display->entities((int) $team->id, 'teamMember', 1, 20, '公开机器人')['total'],
+    'entity type and keyword filters are combined'
+);
+$assertSame(2, $display->entities((int) $team->id, null, 1, 20, '   ')['total'], 'blank keyword keeps the full public list');
+$searchPage = $display->entities((int) $team->id, null, 1, 1, 'display');
+$assertSame(2, $searchPage['total'], 'search total is calculated before pagination');
+$assertSame(1, count($searchPage['list']), 'search result respects pagination');
+foreach ([$hiddenEntity, $blockedEntity, $inactiveVirtualEntity, $customerEntity, $foreignEntity] as $excluded) {
+    $assertSame(
+        0,
+        $display->entities((int) $team->id, null, 1, 20, (string) $excluded->slug)['total'],
+        "{$excluded->slug} remains excluded from search"
+    );
+}
+$assertSame(0, $display->entities((int) $team->id, null, 1, 20, '%')['total'], 'search wildcard characters are treated literally');
 $assertStatus(
     fn () => $display->entities((int) $team->id, 'teamCustomer', 1, 20),
     422,
     'customer type cannot be queried'
+);
+$assertStatus(
+    fn () => $display->entities((int) $team->id, null, 1, 20, str_repeat('a', 101)),
+    422,
+    'entity search keyword is limited to 100 characters'
 );
 
 $detail = $display->entity((int) $team->id, (string) $publicEntity->slug);
@@ -397,6 +481,7 @@ $assertSame(1, $teamDocuments['total'], 'only public team documents are listed')
 $assertSame((int) $teamPublicDocument->id, $teamDocuments['list'][0]['id'], 'team public document is listed');
 $memberDocuments = $display->documents((int) $team->id, (string) $publicEntity->slug, 1, 20);
 $assertSame((int) $memberPublicDocument->id, $memberDocuments['list'][0]['id'], 'member document is listed');
+$assertSame(['说明文档', 'A', 'a'], $memberDocuments['list'][0]['tags'], 'document summary tags are public');
 $assertSame(
     (int) $memberPublicDocument->getData('update_time'),
     $memberDocuments['list'][0]['update_time'],
@@ -404,6 +489,7 @@ $assertSame(
 );
 $publicDocument = $display->document((int) $team->id, (int) $memberPublicDocument->id);
 $assert(str_contains((string) $publicDocument['content'], '公开正文'), 'public document content is returned');
+$assertSame(['说明文档', 'A', 'a'], $publicDocument['tags'], 'document detail tags are public');
 $assertSame(
     (int) $memberPublicDocument->getData('update_time'),
     $publicDocument['update_time'],
@@ -469,5 +555,14 @@ $assertStatus(
     404,
     'cancelled team page is unavailable'
 );
+$teamPublicDocument->save(['tags' => null]);
+if ($display->documents((int) $team->id, null, 1, 20)['list'][0]['tags'] !== []) {
+    throw new RuntimeException('Legacy null public document tags are returned as an empty array');
+}
+$teamProfile = \app\model\TeamEntityProfile::where('entity_id', (int) $teamEntity->id)->find();
+$teamProfile?->delete(true);
+if ($display->profile((int) $team->id)['profile']['document_tags'] !== []) {
+    throw new RuntimeException('Missing public profile returns an empty document tag array');
+}
 
 echo "display backend tests passed\n";

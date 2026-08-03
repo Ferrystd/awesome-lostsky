@@ -10,8 +10,12 @@ const DocumentView = () => import('./views/DocumentView.vue')
 const DocumentsView = () => import('./views/DocumentsView.vue')
 const DocumentFormView = () => import('./views/DocumentFormView.vue')
 const JoinView = () => import('./views/JoinView.vue')
+const JoinFieldsView = () => import('./views/JoinFieldsView.vue')
+const JoinFieldFormView = () => import('./views/JoinFieldFormView.vue')
 const JoinReviewView = () => import('./views/JoinReviewView.vue')
 const JoinReviewDetailView = () => import('./views/JoinReviewDetailView.vue')
+const MemberDepartureView = () => import('./views/MemberDepartureView.vue')
+const MemberDepartureDetailView = () => import('./views/MemberDepartureDetailView.vue')
 const MembersView = () => import('./views/MembersView.vue')
 const MemberFormView = () => import('./views/MemberFormView.vue')
 const MemberDetailView = () => import('./views/MemberDetailView.vue')
@@ -62,7 +66,7 @@ export interface ResourceMeta {
 const resources: Record<string, ResourceMeta> = {
   members: {
     title: '成员', description: '管理成员状态、公开资料与岗位信息。', endpoint: '/member/index', fields: ['nickname', 'phone', 'status', 'create_time'], empty: '团队中还没有其他成员',
-    createEndpoint: '/member/add', editEndpoint: '/member/edit', deleteEndpoint: '/member/remove', idKey: 'member_id', deleteKey: 'member_id',
+    createEndpoint: '/member/add', editEndpoint: '/member/edit', idKey: 'member_id',
     formFields: [
       { key: 'user_id', label: '用户 ID', type: 'number', required: true, createOnly: true }, { key: 'nickname', label: '团队昵称', required: true },
       { key: 'avatar', label: '头像地址' }, { key: 'description', label: '简介', type: 'textarea' }, { key: 'intro_image', label: '介绍图片地址' },
@@ -122,8 +126,13 @@ const routes = [
   { path: '/roles/entities', component: EntityRolesView, meta: { title: '实体角色分配', pageWidth: 'content' } },
   { path: '/roles/:id(\\d+)', component: RoleDetailView, meta: { title: '编辑角色权限', pageWidth: 'content' } },
   { path: '/roles', component: RolesView, meta: { title: '角色权限' } },
+  { path: '/join-fields/new', component: JoinFieldFormView, meta: { title: '创建申请字段', pageWidth: 'form' } },
+  { path: '/join-fields/:id(\\d+)', component: JoinFieldFormView, meta: { title: '申请字段', pageWidth: 'form' } },
+  { path: '/join-fields', component: JoinFieldsView, meta: { title: '申请字段' } },
   { path: '/join-review/review', component: JoinReviewDetailView, meta: { title: '审核加入申请', pageWidth: 'content' } },
   { path: '/join-review', component: JoinReviewView, meta: { title: '加入审核' } },
+  { path: '/departure-review/review', component: MemberDepartureDetailView, meta: { title: '审核离队申请', pageWidth: 'content' } },
+  { path: '/departure-review', component: MemberDepartureView, meta: { title: '离队审核' } },
   { path: '/members', component: MembersView, meta: { title: '成员' } },
   { path: '/customers', component: CustomersView, meta: { title: '客户' } },
   { path: '/customers/:id(\\d+)', component: CustomerDetailView, meta: { title: '客户详情', pageWidth: 'content' } },

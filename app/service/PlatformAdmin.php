@@ -139,7 +139,7 @@ final class PlatformAdmin
             ->join('team team', 'team.id = member.team_id')
             ->where('member.user_id', $id)
             ->whereNull('member.delete_time')
-            ->field('team.id,team.slug,team.is_banned,team.is_cancelled,member.is_blocked,member.create_time')
+            ->field('team.id,team.slug,team.is_banned,team.is_cancelled,member.status,member.is_blocked,member.create_time')
             ->order('member.id', 'desc')
             ->select()
             ->toArray();

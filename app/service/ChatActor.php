@@ -16,10 +16,10 @@ class ChatActor
     public function list(int $teamId, array $actingEntity): array
     {
         $items = [];
-        $memberQuery = TeamMember::where('team_id', $teamId)->where('is_blocked', 0);
+        $memberQuery = TeamMember::where('team_id', $teamId);
         $members = $memberQuery->with(['profile', 'identity'])->select();
         foreach ($members as $member) {
-            if (!$member->slug) {
+            if (!$member->is_valid || !$member->slug) {
                 continue;
             }
             $summary = $this->summary(ChatActorType::Entity, (int) $member->id);
@@ -159,20 +159,34 @@ class ChatActor
                 ChatActorType::Virtual => $model->name ?: '虚拟实体',
             },
             'avatar' => $type === ChatActorType::Team ? null : ($model->avatar ?: null),
+            'status_code' => $type === ChatActorType::Entity ? $model->status_code : null,
+            'status_label' => $type === ChatActorType::Entity ? $model->status_label : null,
+            'is_valid' => (bool) $model->is_valid,
         ];
     }
 
     public function summaryEntity(int $entityId): array
     {
-        $subject = app(\app\service\Entity::class)->subject($entityId);
-        $type = match ($subject['type']) {
+        $identity = Entity::find($entityId);
+        if (!$identity) {
+            return [
+                'type' => 'entity',
+                'slug' => null,
+                'name' => '已失效实体',
+                'avatar' => null,
+                'status_code' => null,
+                'status_label' => null,
+                'is_valid' => false,
+            ];
+        }
+        $type = match ((string) $identity->entityable_type) {
             'teamMember' => ChatActorType::Entity,
             'teamCustomer' => ChatActorType::Customer,
             'teamVirtual' => ChatActorType::Virtual,
             'team' => ChatActorType::Team,
         };
 
-        return $this->summary($type, $subject['id']);
+        return $this->summary($type, (int) $identity->entityable_id);
     }
 
     public function actorEntity(int $entityId): array

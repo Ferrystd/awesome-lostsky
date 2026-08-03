@@ -7,13 +7,13 @@ Team 是团队工作台的核心应用，负责成员资料、角色权限、团
 ## 业务领域
 
 - 当前成员：查看和编辑自己的团队资料，以及本人可见且可编辑的对象字段；成员在创建或加入时即取得稳定的全局实体标识。
-- 成员管理：成员列表、资料、岗位、封禁、移出和搜索。
+- 成员管理：正常、封禁、离队三态，成员资料、任期留存、封禁、离队申请、复职和搜索。
 - 扩展资料：成员自定义字段、字段值和岗位类型。
 - RBAC：角色、角色权限和成员角色绑定。
 - 团队设置：按应用读取配置，由团队管理者读取配置结构并保存设置。
 - Chat 管理配置：维护统一实体字段、虚拟实体与 Webhook 集成；管理接口记录在 Team OpenAPI。
 - 内容协作：保留 LostSky 向 Team 发送的共享站内通知；同时允许有权限的当前 Entity 代表 Team 向本团队任意 Entity（包括 Team 自身）发送通知。两种通道相互隔离，每条通知的已读状态由其收件 Team 或 Entity 共享。团队文件和任意团队实体的文档通过 `entity_id` 关联全局 `entity`。
-- 加入团队：申请表单、申请记录、审核任务和审批。
+- 加入团队：申请表单、可选的全局邀请来源、申请记录、审核任务和审批；仅在链接带有邀请参数时显示只读邀请人，审批通过后把有效申请邀请人写入成员关系。
 - 实体引用：为 Markdown 等场景搜索和解析可引用对象。
 - 访问快照与概览：向四类 Team Entity 返回有效 Permission、Ability 状态，以及互不连带失败的实体、成员、文档、通知指标。
 
@@ -47,7 +47,9 @@ Team 应用按操作组合以下中间件：
 
 `GET /entity/index|get` 与 `GET /member/index|get` 不把 `team.entity.read` 或 `team.member.read` 作为页面门票。缺少实体全量读取权限时只返回有效、非 Customer 且团队内可见的实体；Customer 与隐藏实体统一返回 404。具有权限时读取完整集合。`team.entity.profile.manage` 控制资料、内部可见和公开 Display 写入，读取基础详情本身不要求该权限。
 
-`GET /member/get` 在成员资料之外返回当前操作者对该任务页的能力集合，包括成员编辑、字段管理、角色读取/编辑、封禁、搜索设置、slug 补全、移出和身份切换。前端据此裁剪整张卡片和操作入口；所有写接口仍各自执行服务端权限校验。
+`GET /member/get` 在成员资料之外返回当前操作者对该任务页的能力集合，包括成员编辑、字段管理、角色读取/编辑、封禁、搜索设置、slug 补全、发起离队申请和身份切换。前端据此裁剪整张卡片和操作入口；所有写接口仍各自执行服务端权限校验。
+
+成员生命周期不再使用软删除：`team_member.status` 保存正常、封禁和已离队状态，`is_blocked` 仅保留为弃用兼容字段。离队通过 `/memberDeparture/index|get|mine|apply|create|cancel|approve|reject` 完成；任期写入 `team_member_tenure`，第一版只后端留存。复职是 `team_join_application.purpose=reinstate`，服务端按成员状态推断目的，批准时复用原 Member 与 Entity。
 
 ## 角色与权限
 
@@ -74,7 +76,7 @@ Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `sco
 
 ## 加入申请与审核
 
-申请字段独立于人员字段。字段可通过 `is_transfer_entity_field` 和 `entity_field_id` 配置为：申请获批后自动转存到对应的 Entity 字段。
+申请字段独立于人员字段。管理列表返回当前团队全部申请字段，包括停用字段；访客表单只返回启用且允许申请人填写的字段。字段可通过 `is_transfer_entity_field` 和 `entity_field_id` 配置为：申请获批后自动转存到对应的 Entity 字段。`GET /joinField/transferOptions` 由 `team.join_field.write` 保护，只返回当前团队人员 Entity 字段的最小摘要，不额外要求对象字段管理 Permission。
 
 申请状态由 `TeamJoinStatus` 枚举维护：
 

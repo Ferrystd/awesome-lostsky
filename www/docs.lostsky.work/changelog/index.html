@@ -2344,6 +2344,114 @@
   
   
     <li class="md-nav__item">
+      <a href="../manual/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  核心概念
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manual/access-and-abilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  能力、权限与功能降级
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manual/permissions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  权限目录
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manual/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  问题排查
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../manual/account-and-identity/" class="md-nav__link">
         
   
@@ -3444,6 +3552,33 @@
     
   
   前端约定
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/component-previews/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  组件代码预览
 
     
   </span>
@@ -5334,19 +5469,28 @@
 <h2 id="v015">未发布（目标 v0.1.5）<a class="headerlink" href="#v015" title="Permanent link">&para;</a></h2>
 <h3 id="_1">变更<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
 <ul>
-<li>发布流程区分正式产品版本、下一版本预发布和同版本临时构建：分别使用 <code>vX.Y.Z</code>、<code>vX.Y.Z-stage.N</code> 与 <code>build-YYYYMMDD.N</code> 不可变附注标签，并以标签和 commit SHA 共同定位部署与回滚。</li>
+<li>成员生命周期统一为正常、封禁和已离队，离队改为申请审核并保留业务关系，复职复用原成员身份。</li>
+<li>团队工作台新增离队审核、成员状态筛选，以及自动区分加入与复职的申请流程。</li>
+<li>新增 41 个 Vue 组件的代码化状态预览和按需截图能力，生成结果不进入 Git。</li>
+<li>Display 主页的欢迎语和实体区域文案改为团队设置，可由团队管理员维护。</li>
+<li>成员新增跨团队邀请人记录，加入申请与客户身份领取统一确认邀请来源。</li>
+<li>团队工作台补齐申请字段管理，并支持审批后转存为人员字段。</li>
+<li>经营统计暂停提供客户邀请链接，客户空状态不再依赖该入口。</li>
+<li>Display 新增可搜索、筛选和分页的公开实体目录，主页仅保留实体预览。</li>
+<li>文档标签改为独立数据，团队与实体公开页可按自定义标签分组展示文档。</li>
+<li>发布流程使用不可变的产品、预发布和构建标签，并以标签与提交共同定位交付。</li>
 <li><code>team:grant-ability</code> 命令支持按团队 slug 操作，并在帮助中列出已有能力。</li>
-<li>后台表单字段、命令按钮、行内错误、面板和状态标签分别统一到 <code>LsField</code>、<code>LsButton</code>、<code>LsInlineError</code>、<code>LsPanel</code> 与 <code>LsStatusTag</code>；数据表与分页优先直接使用 Naive UI，减少页面重复参数和私有样式。</li>
-<li>后台统一空状态保持约 192px 的紧凑基准高度，不再随桌面视口宽度增加上下留白；长文案和文本放大时仍可自然增高。</li>
-<li>后台页面级无数据与筛选无结果统一复用仅含标题、提示两个参数的 <code>LsEmptyState</code>；Account、Chat 团队选择、Team、Transaction 与 Admin 主目录不再分别拼装空状态图标和文案。</li>
-<li>后台统一采用 Naive UI 2.44.1 与 <code>@lostsky/ui</code>：Team、Transaction、Admin 使用同一顶栏、页面标题、搜索筛选、主体识别和响应式动作模式，Account 与 Chat 同步主题和主体识别；普通页面移除手动刷新/重试，并建立完整的后台设计 Wiki 与强制入 Wiki 维护规则。</li>
+<li>后台统一表单、反馈、面板、状态、列表、导航和响应式操作，并采用紧凑空状态。</li>
 </ul>
 <h3 id="_2">修复<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <ul>
-<li>恢复 Team 文档编辑器在后台样式统一化前的原有工具栏、模式切换与候选项视觉样式，避免第三方 Milkdown 编辑器被通用 Naive UI 控件皮肤干扰。</li>
-<li>修复成员状态标签漂到列表行末端、实体与成员操作入口错误呈现为成组按钮气泡，以及客户空状态退化为未排版裸图标和文字的问题；行内入口现统一为图标加文字。</li>
-<li>修复后台集合页筛选器折叠成竖线、选择箭头错位、搜索与选择控件过度肥大，以及工作台顶栏桌面动作与移动“操作”按钮同时出现、字体字重不一致的问题。</li>
-<li>修复新建流水在选项响应缺少 <code>customers</code> 时调用 <code>.find()</code> 导致整页空白的问题；缺少 <code>entities/customers</code> 时现在继续显示表单并只禁用受影响字段。</li>
+<li>文件上传权限不足时改为点击后短时提示原因，同时继续阻止选择和上传。</li>
+<li>恢复 Account 登录方式与密码可见按钮样式，并稳定验证码表单的对齐和高度。</li>
+<li>修复公开文档分组输入框过高和基线不齐，统一为 44px 标准输入控件。</li>
+<li>恢复 Team 文档编辑器原有工具栏和模式样式，避免通用控件皮肤干扰。</li>
+<li>修复成员状态、行内操作和客户空状态错位或样式退化的问题。</li>
+<li>修复后台筛选控件、选择箭头、顶栏动作和字体样式异常。</li>
+<li>新建流水缺少部分选项时继续显示表单，仅禁用受影响字段。</li>
 </ul>
 <h2 id="v014">v0.1.4<a class="headerlink" href="#v014" title="Permanent link">&para;</a></h2>
 <h3 id="_3">新增<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>

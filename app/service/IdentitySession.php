@@ -12,10 +12,52 @@ use app\model\TeamMember;
 use app\model\TeamRolePermission;
 use app\model\TeamVirtual;
 use app\model\UserDevice;
+use app\enum\TeamMemberStatus;
 use think\exception\HttpException;
 
 class IdentitySession
 {
+    public function revokeInactiveMembers(int $teamId): void
+    {
+        $memberIds = TeamMember::where('team_id', $teamId)
+            ->whereIn('status', [TeamMemberStatus::Blocked->value, TeamMemberStatus::Departed->value])
+            ->column('id');
+        if (!$memberIds) {
+            return;
+        }
+
+        $entityIds = Entity::member()->whereIn('entityable_id', $memberIds)->column('id');
+        $this->revokeForEntities(array_map('intval', $entityIds));
+    }
+
+    public function revokeForEntities(array $entityIds): void
+    {
+        $entityIds = array_values(array_unique(array_filter(array_map('intval', $entityIds))));
+        if (!$entityIds) {
+            return;
+        }
+
+        $frontier = EntitySession::whereIn('entity_id', $entityIds)
+            ->whereNull('revoked_at')
+            ->column('id');
+        $sessionIds = [];
+        while ($frontier) {
+            $frontier = array_values(array_diff(array_unique(array_map('intval', $frontier)), $sessionIds));
+            if (!$frontier) {
+                break;
+            }
+            $sessionIds = array_merge($sessionIds, $frontier);
+            $frontier = EntitySession::whereIn('parent_session_id', $frontier)
+                ->whereNull('revoked_at')
+                ->column('id');
+        }
+
+        if ($sessionIds) {
+            EntitySession::whereIn('id', array_values(array_unique($sessionIds)))
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => time()]);
+        }
+    }
     public function candidates(int $userId, ?EntitySession $current = null): array
     {
         return $current
@@ -77,10 +119,10 @@ class IdentitySession
 
         $member = TeamMember::where('team_id', (int) $team->id)
             ->where('user_id', $userId)
-            ->where('is_blocked', 0)
+            ->where('status', TeamMemberStatus::Active->value)
             ->with(['identity'])
             ->find();
-        if (!$member || !$member->identity || !$member->identity->is_valid) {
+        if (!$member || !$member->canDirectReceive() || !$member->identity) {
             throw new HttpException(403, '你没有该团队的有效成员身份');
         }
 
@@ -187,7 +229,7 @@ class IdentitySession
     {
         return match ($type) {
             'team' => (int) (Team::active()->find($id)?->id ?? 0),
-            'teamMember' => (int) (TeamMember::where('is_blocked', 0)->find($id)?->team_id ?? 0),
+            'teamMember' => $this->memberTeamId($id),
             'teamCustomer' => (int) (TeamCustomer::where('is_blocked', 0)->find($id)?->team_id ?? 0),
             'teamVirtual' => (int) (TeamVirtual::where('is_active', 1)->find($id)?->team_id ?? 0),
             default => 0,
@@ -254,11 +296,11 @@ class IdentitySession
     {
         $items = [];
         $members = TeamMember::where('user_id', $userId)
-            ->where('is_blocked', 0)
+            ->where('status', TeamMemberStatus::Active->value)
             ->with(['identity', 'profile'])
             ->select();
         foreach ($members as $member) {
-            if ($member->identity && $member->identity->is_valid) {
+            if ($member->canDirectReceive() && $member->identity) {
                 $item = $this->itemFromIdentity($member->identity);
                 if ($item) {
                     $items[$item['slug']] = $item;
@@ -353,7 +395,6 @@ class IdentitySession
     {
         $ids = match ($type) {
             'teamMember' => TeamMember::where('team_id', $teamId)
-                ->where('is_blocked', 0)
                 ->column('id'),
             'teamCustomer' => TeamCustomer::where('team_id', $teamId)
                 ->where('is_blocked', 0)
@@ -398,6 +439,8 @@ class IdentitySession
             'id' => $id,
             'slug' => (string) $identity->slug,
             'name' => $this->entityName($type, $id),
+            'status_code' => $identity->status_code,
+            'status_label' => $identity->status_label,
             'team' => $this->teamSummary($teamId),
         ];
     }
@@ -420,16 +463,25 @@ class IdentitySession
     private function rootAllows(string $type, int $id, int $userId): bool
     {
         return match ($type) {
-            'teamMember' => (bool) TeamMember::where('id', $id)
-                ->where('user_id', $userId)
-                ->where('is_blocked', 0)
-                ->find(),
+            'teamMember' => $this->memberRootAllows($id, $userId),
             'teamCustomer' => (bool) TeamCustomer::where('id', $id)
                 ->where('user_id', $userId)
                 ->where('is_blocked', 0)
                 ->find(),
             default => false,
         };
+    }
+
+    private function memberTeamId(int $id): int
+    {
+        $member = TeamMember::find($id);
+        return $member && $member->is_valid ? (int) $member->team_id : 0;
+    }
+
+    private function memberRootAllows(int $id, int $userId): bool
+    {
+        $member = TeamMember::where('id', $id)->where('user_id', $userId)->find();
+        return $member ? $member->canDirectReceive() : false;
     }
 
     private function validChain(EntitySession $leaf, int $userId, string $deviceToken): bool

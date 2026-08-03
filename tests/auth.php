@@ -232,6 +232,7 @@ try {
         HttpException::class,
         'Account member receipt rejects an invalid team slug without changing the active identity'
     );
+    $member->status = 2;
     $member->is_blocked = 1;
     $member->save();
     $assertThrows(
@@ -243,6 +244,7 @@ try {
         HttpException::class,
         'Account member receipt rejects a blocked member'
     );
+    $member->status = 1;
     $member->is_blocked = 0;
     $member->save();
 

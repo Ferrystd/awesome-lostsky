@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\enum\TeamMemberStatus;
 use app\model\TeamEntityProfile;
+use app\model\TeamMemberTenure;
 use app\validate\Member as MemberValidator;
 use think\exception\HttpException;
 
@@ -14,7 +16,7 @@ class TeamMember
     /**
      * 获取所有成员
      */
-    public function list(int $teamId, array $actingEntity): array
+    public function list(int $teamId, array $actingEntity, ?string $statusCode = null): array
     {
         $canReadAll = app(PermissionGate::class)->allows(
             $teamId,
@@ -22,11 +24,24 @@ class TeamMember
             [PermissionDictionary::TEAM_MEMBER_READ]
         );
         $query = \app\model\TeamMember::where('team_id', $teamId);
+        if ($statusCode !== null && $statusCode !== '') {
+            $status = null;
+            foreach (TeamMemberStatus::cases() as $candidate) {
+                if ($candidate->code() === strtolower($statusCode)) {
+                    $status = $candidate;
+                    break;
+                }
+            }
+            if (!$status) {
+                throw new HttpException(422, '成员状态不正确');
+            }
+            $query->where('status', $status->value);
+        }
         if (!$canReadAll) {
             $visibleMemberIds = \app\model\Entity::member()
                 ->where('is_internal_visible', 1)
                 ->column('entityable_id');
-            $query->where('is_blocked', 0)->whereIn('id', $visibleMemberIds);
+            $query->where('status', TeamMemberStatus::Active->value)->whereIn('id', $visibleMemberIds);
         }
         $members = $query
             ->with(['profile', 'identity', 'team'])
@@ -35,6 +50,9 @@ class TeamMember
                 'team_id',
                 'user_id',
                 'entity_id',
+                'status',
+                'status_code',
+                'status_label',
                 'is_blocked',
                 'slug',
                 'search_override',
@@ -92,11 +110,13 @@ class TeamMember
             ? \app\model\Entity::member()->where('entityable_id', $memberId)->find()
             : null;
         if (!$member || !$identity || (!$canReadAll
-            && ((int) $member->is_blocked !== 0 || (int) $identity->is_internal_visible !== 1))) {
+            && ($member->statusCase() !== TeamMemberStatus::Active
+                || (int) $identity->is_internal_visible !== 1))) {
             throw new HttpException(404, '成员不存在');
         }
 
         $result = $member->toArray();
+        $result['inviter'] = app(Inviter::class)->summary($teamId, $member->inviter_entity_id);
         $isFieldManager = app(PermissionGate::class)->allows(
             $teamId,
             $actingEntity,
@@ -145,8 +165,14 @@ class TeamMember
             throw new HttpException(422, $validator->getError());
         }
 
-        if (\app\model\TeamMember::where('team_id', $teamId)->where('user_id', $userId)->find()) {
-            throw new HttpException(409, '该用户已是本团队成员');
+        $existing = \app\model\TeamMember::where('team_id', $teamId)->where('user_id', $userId)->find();
+        if ($existing) {
+            throw new HttpException(
+                409,
+                $existing->statusCase() === TeamMemberStatus::Departed
+                    ? '该用户已离队，请由其提交复职申请'
+                    : '该用户已是本团队成员'
+            );
         }
 
         \think\facade\Db::transaction(function () use ($teamId, $userId, $data) {
@@ -154,6 +180,8 @@ class TeamMember
             $member->save([
                 'team_id' => $teamId,
                 'user_id' => $userId,
+                'status' => TeamMemberStatus::Active->value,
+                'is_blocked' => 0,
             ]);
             $entity = app(\app\service\Entity::class)->claimMember(
                 $teamId,
@@ -177,6 +205,15 @@ class TeamMember
                 'introduction_markdown',
                 $profile->introduction_markdown
             );
+
+            $tenure = new TeamMemberTenure;
+            $tenure->save([
+                'team_id' => $teamId,
+                'member_id' => (int) $member->id,
+                'join_application_id' => null,
+                'joined_at' => time(),
+                'departed_at' => null,
+            ]);
 
         });
     }
@@ -210,8 +247,12 @@ class TeamMember
             throw new HttpException(404, '成员不存在');
         }
 
-        $member->is_blocked = 1;
-        $member->save();
+        if ($member->statusCase() !== TeamMemberStatus::Active) {
+            throw new HttpException(409, '只有正常成员可以被封禁');
+        }
+
+        $member->save(['status' => TeamMemberStatus::Blocked->value, 'is_blocked' => 1]);
+        $this->revokeMemberSessions($memberId);
     }
 
     /**
@@ -224,33 +265,21 @@ class TeamMember
             throw new HttpException(404, '成员不存在');
         }
 
-        $member->is_blocked = 0;
-        $member->save();
-    }
-
-    /**
-     * 移出成员
-     */
-    public function remove(int $teamId, int $memberId): void
-    {
-        $validator = new MemberValidator;
-        if (!$validator->scene('remove')->check(['member_id' => $memberId])) {
-            throw new HttpException(422, $validator->getError());
+        if ($member->statusCase() !== TeamMemberStatus::Blocked) {
+            throw new HttpException(409, '只有已封禁成员可以解封');
         }
 
-        \think\facade\Db::transaction(function () use ($teamId, $memberId) {
-            $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
-            if (!$member) {
-                throw new HttpException(404, '成员不存在');
-            }
+        $member->save(['status' => TeamMemberStatus::Active->value, 'is_blocked' => 0]);
+    }
 
-            $entityId = (int) app(Entity::class)->requireBySubject('teamMember', $memberId)->id;
-            $profile = TeamEntityProfile::where('entity_id', $entityId)->find();
-            if ($profile) {
-                $profile->delete();
-            }
-            $member->delete();
-        });
+    private function revokeMemberSessions(int $memberId): void
+    {
+        $entityId = (int) (\app\model\Entity::member()
+            ->where('entityable_id', $memberId)
+            ->value('id') ?? 0);
+        if ($entityId > 0) {
+            app(IdentitySession::class)->revokeForEntities([$entityId]);
+        }
     }
 
     private function pick(array $data, array $fields): array

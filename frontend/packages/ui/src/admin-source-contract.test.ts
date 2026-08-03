@@ -45,6 +45,9 @@ describe('后台源码设计契约', () => {
       }))
     })
     expect(controls).toEqual([
+      { file: 'frontend/apps/account/src/views/LoginView.vue', control: 'button' },
+      { file: 'frontend/apps/account/src/views/LoginView.vue', control: 'button' },
+      { file: 'frontend/apps/account/src/views/LoginView.vue', control: 'button' },
       { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
       { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
       { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
@@ -57,12 +60,19 @@ describe('后台源码设计契约', () => {
 
   it('公共组件和 Wiki 板块保持可定位', () => {
     const componentRules = readFileSync(join(repository, 'docs', 'design', 'admin', 'components.md'), 'utf8')
-    for (const name of ['LsButton', 'LsInlineError', 'LsPanel', 'LsStatusTag', 'LsPage', 'LsPageHeader', 'LsWorkspaceHeader', 'LsListToolbar', 'LsEntityIdentity', 'LsEntityCard', 'LsEntityInput', 'LsResponsiveActions', 'LsResponsiveDataTable', 'LsUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
+    for (const name of ['LsButton', 'LsInlineError', 'LsPanel', 'LsStatusTag', 'LsPage', 'LsPageHeader', 'LsWorkspaceHeader', 'LsListToolbar', 'LsFormList', 'LsEntityIdentity', 'LsEntityCard', 'LsEntityInput', 'LsResponsiveActions', 'LsResponsiveDataTable', 'LsUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
       expect(componentRules, `${name} 缺少 Wiki 契约`).toContain(`\`${name}\``)
     }
     for (const page of ['index.md', 'foundations.md', 'components.md', 'patterns.md', 'states-and-access.md', 'responsive-accessibility.md', 'applications.md', 'checklist.md']) {
       expect(() => readFileSync(join(repository, 'docs', 'design', 'admin', page), 'utf8')).not.toThrow()
     }
+  })
+
+  it('拖拽实现只存在于公共表单列表组件', () => {
+    const imports = sourceFiles()
+      .filter(path => readFileSync(path, 'utf8').includes("from 'vue-draggable-plus'"))
+      .map(path => relative(repository, path).replaceAll('\\', '/'))
+    expect(imports).toEqual(['frontend/packages/ui/src/components/LsFormList.vue'])
   })
 
   it('页面级空数据状态统一复用 LsEmptyState', () => {
@@ -85,6 +95,7 @@ describe('后台源码设计契约', () => {
       'team/src/views/EntityFieldsView.vue',
       'team/src/views/NoticesView.vue',
       'team/src/views/JoinReviewView.vue',
+      'team/src/views/JoinFieldsView.vue',
       'team/src/views/ResourceView.vue',
       'team/src/views/SettingsView.vue',
       'transaction/src/views/TransactionsView.vue',

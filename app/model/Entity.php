@@ -39,7 +39,14 @@ class Entity extends Base
     protected $hidden = ['delete_time'];
 
     /** 计算属性 */
-    protected $append = ['is_valid', 'is_searchable', 'name', 'avatar'];
+    protected $append = [
+        'is_valid',
+        'is_searchable',
+        'name',
+        'avatar',
+        'status_code',
+        'status_label',
+    ];
 
     /** 只读字段 */
     protected $readonly = ['slug', 'entityable_type', 'entityable_id'];
@@ -133,6 +140,18 @@ class Entity extends Base
         $avatar = TeamEntityProfile::where('entity_id', $this->id)->value('avatar');
 
         return $avatar ? (string) $avatar : null;
+    }
+
+    public function getStatusCodeAttr(): ?string
+    {
+        $subject = $this->entityable;
+        return $subject instanceof TeamMember ? $subject->status_code : null;
+    }
+
+    public function getStatusLabelAttr(): ?string
+    {
+        $subject = $this->entityable;
+        return $subject instanceof TeamMember ? $subject->status_label : null;
     }
 
     public function setSlugAttr($value): string

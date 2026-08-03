@@ -34,7 +34,7 @@
                       "type": "object",
                       "properties": {
                         "data": {
-                          "$ref": "#/components/schemas/PublicSubject"
+                          "$ref": "#/components/schemas/DisplayHomepage"
                         }
                       }
                     }
@@ -69,6 +69,15 @@
                 "teamMember",
                 "teamVirtual"
               ]
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "description": "按公开实体名称或 Slug 模糊搜索",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
             }
           }
         ],
@@ -351,7 +360,8 @@
       "PublicProfile": {
         "type": "object",
         "required": [
-          "name"
+          "name",
+          "document_tags"
         ],
         "properties": {
           "name": {
@@ -377,8 +387,93 @@
           "introduction_markdown": {
             "type": "string",
             "nullable": true
+          },
+          "document_tags": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "tag",
+                "description"
+              ],
+              "properties": {
+                "tag": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "maxLength": 255
+                }
+              }
+            }
           }
         }
+      },
+      "DisplayHomepageSettings": {
+        "type": "object",
+        "description": "团队公开主页固定展示文案，由 TeamSetting display 应用提供。",
+        "required": [
+          "homepage_welcome",
+          "homepage_entities_link",
+          "homepage_entities_title",
+          "homepage_entities_description",
+          "homepage_entities_empty"
+        ],
+        "properties": {
+          "homepage_welcome": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "homepage_entities_link": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "homepage_entities_title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "homepage_entities_description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "homepage_entities_empty": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        }
+      },
+      "DisplayHomepage": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PublicSubject"
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "settings"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "team"
+                ]
+              },
+              "settings": {
+                "$ref": "#/components/schemas/DisplayHomepageSettings"
+              }
+            }
+          }
+        ]
       },
       "PublicField": {
         "type": "object",
@@ -514,6 +609,15 @@
             "items": {
               "$ref": "#/components/schemas/PublicProduct"
             }
+          },
+          "status_code": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["active", "blocked", "departed"]
+          },
+          "status_label": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -552,6 +656,15 @@
             "items": {
               "$ref": "#/components/schemas/PublicRole"
             }
+          },
+          "status_code": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["active", "blocked", "departed"]
+          },
+          "status_label": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -588,7 +701,8 @@
           "title",
           "sort",
           "update_time",
-          "entity"
+          "entity",
+          "tags"
         ],
         "properties": {
           "id": {
@@ -597,6 +711,14 @@
           },
           "title": {
             "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50
+            }
           },
           "sort": {
             "type": "integer"

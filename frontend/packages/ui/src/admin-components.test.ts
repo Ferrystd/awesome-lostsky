@@ -3,6 +3,12 @@ import { renderToString } from '@vue/server-renderer'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 
+const feedbackInfo = vi.hoisted(() => vi.fn())
+
+vi.mock('./feedback', () => ({
+  feedback: { info: feedbackInfo },
+}))
+
 vi.mock('naive-ui', async () => {
   const actual = await vi.importActual<typeof import('naive-ui')>('naive-ui')
   const { defineComponent, h: createNode } = await import('vue')
@@ -23,6 +29,7 @@ import LsPanel from './components/LsPanel.vue'
 import LsStatusTag from './components/LsStatusTag.vue'
 import LsEmptyState from './components/LsEmptyState.vue'
 import LsEntityIdentity from './components/LsEntityIdentity.vue'
+import LsFormList from './components/LsFormList.vue'
 import LsListToolbar from './components/LsListToolbar.vue'
 import LsPageHeader from './components/LsPageHeader.vue'
 import LsResponsiveActions from './components/LsResponsiveActions.vue'
@@ -94,6 +101,25 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('2 位成员')
   })
 
+  it('表单列表提供稳定键值、等价排序动作和只读状态', async () => {
+    const items = [{ key: 1, name: '指南' }, { key: 2, name: '精选' }]
+    const html = await render(LsFormList as any, {
+      modelValue: items,
+      itemKey: (item: typeof items[number]) => item.key,
+      createItem: () => ({ key: 3, name: '' }),
+      itemLabel: '标签',
+      addLabel: '添加标签',
+      disabled: true,
+    }, { item: () => h('span', '标签字段') })
+    expect(html).toContain('标签 1')
+    expect(html).toContain('上移标签 1')
+    expect(html).toContain('下移标签 2')
+    expect(html).toContain('删除标签 1')
+    expect(html).toContain('添加标签')
+    expect(html).toContain('aria-live="polite"')
+    expect(html).toContain('disabled')
+  })
+
   it('主体身份优先真实头像，并保留类型、名称和 slug', async () => {
     const html = await render(LsEntityIdentity, { type: 'teamMember', name: '青空', slug: 'sky', imageUrl: '/avatar.png' }, { status: () => h('span', '正常') })
     expect(html).toContain('src="/avatar.png"')
@@ -134,10 +160,19 @@ describe('后台设计系统组件契约', () => {
     const empty = await render(LsEmptyState, { title: '还没有客户', description: '客户领取身份后会出现在这里。' })
     expect(upload).toContain('当前团队未开通文件上传')
     expect(upload).toContain('disabled')
+    expect(upload).not.toContain('ls-upload-field__reason')
     expect(error).toContain('网络连接失败')
     expect(error).not.toMatch(/刷新|重试/)
     expect(empty).toContain('还没有客户')
     expect(empty).toContain('客户领取身份后会出现在这里。')
+  })
+
+  it('LsUploadField 可说明的禁用入口只提示原因，不打开文件选择', () => {
+    const source = readFileSync(new URL('./components/LsUploadField.vue', import.meta.url), 'utf8')
+    expect(source).toContain(':aria-disabled="disabled || undefined"')
+    expect(source).toContain('if (props.disabled)')
+    expect(source).toContain('feedback.info(props.disabledReason.trim())')
+    expect(source).toMatch(/if \(props\.disabled\)[^]*return[^]*emit\('choose'\)[^]*input\.value\?\.click\(\)/)
   })
 
   it('LsEmptyState 只接收标题与提示文案并统一使用 Naive 空状态', async () => {
@@ -154,5 +189,13 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain('min-height: 12rem')
     expect(source).toContain('padding: 2rem 1.25rem')
     expect(source).not.toMatch(/padding:\s*clamp\([^;]*vw/)
+  })
+
+  it('LsFormList 固定触控尺寸、移动换行和减少动态', () => {
+    const source = readFileSync(new URL('./components/LsFormList.vue', import.meta.url), 'utf8')
+    expect(source).toContain('width: 44px; height: 44px')
+    expect(source).toContain('@media (max-width: 639px)')
+    expect(source).toContain('@media (prefers-reduced-motion: reduce)')
+    expect(source).toContain(':animation="animation"')
   })
 })

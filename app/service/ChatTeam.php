@@ -6,12 +6,15 @@ namespace app\service;
 use app\model\Team;
 use app\model\TeamCustomer;
 use app\model\TeamMember;
+use app\enum\TeamMemberStatus;
 
 class ChatTeam
 {
     public function list(int $userId): array
     {
-        $memberTeams = TeamMember::where('user_id', $userId)->where('is_blocked', 0)->column('team_id');
+        $memberTeams = TeamMember::where('user_id', $userId)
+            ->where('status', TeamMemberStatus::Active->value)
+            ->column('team_id');
         $customerTeams = TeamCustomer::where('user_id', $userId)->where('is_blocked', 0)->column('team_id');
         $teamIds = array_values(array_unique(array_merge($memberTeams, $customerTeams)));
         if (!$teamIds) {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { auth, friendlyError } from '@lostsky/api/client'
 import { redirectToLogin, safeRedirect } from '@lostsky/shared/navigation'
+import { storedReferral } from '@lostsky/shared/referral'
 import { useQuery } from '@tanstack/vue-query'
 import { ArrowRight, BadgeCheck, WalletCards } from '@lucide/vue'
 import { NButton, NInput } from 'naive-ui'
@@ -12,6 +13,7 @@ const route = useRoute()
 const router = useRouter()
 const storefront = useQuery({ queryKey: ['shop-storefront'], queryFn: shopApi.storefront })
 const shopName = computed(() => storefront.data.value?.profile.name || '当前商家')
+const inviterSlug = storedReferral()
 const slug = ref('')
 const pending = ref(false)
 const error = ref('')
@@ -50,6 +52,11 @@ async function bind() {
 
     <form class="bind-form" @submit.prevent="bind">
       <div class="form-heading"><span>可选设置</span><strong>给客户账户起一个标识</strong><p>不填写时，系统会自动生成唯一标识。</p></div>
+      <div v-if="inviterSlug" class="referral-confirmation" aria-label="当前邀请人">
+        <span>邀请人</span>
+        <strong>@{{ inviterSlug }}</strong>
+        <small>邀请人来自当前链接，建立账户时会一并确认，无法在此修改。</small>
+      </div>
       <label for="customer-slug">客户标识 <span>可选</span></label>
       <NInput id="customer-slug" v-model:value="slug" size="large" maxlength="50" aria-label="客户标识（可选）" placeholder="例如 sky-friend" />
       <p class="field-help">创建后不可更改或转移，请勿填写手机号等隐私信息。</p>

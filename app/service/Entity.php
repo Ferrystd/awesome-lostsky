@@ -93,6 +93,25 @@ class Entity
         return $subject['entity'];
     }
 
+    public function assertBelongsToTeam(int $entityId, int $teamId): \app\model\Entity
+    {
+        $entity = \app\model\Entity::find($entityId);
+        if (!$entity) {
+            throw new HttpException(404, '实体不存在');
+        }
+        $actualTeamId = match ((string) $entity->entityable_type) {
+            'team' => (int) $entity->entityable_id,
+            'teamMember' => (int) (\app\model\TeamMember::find($entity->entityable_id)?->team_id ?? 0),
+            'teamCustomer' => (int) (\app\model\TeamCustomer::find($entity->entityable_id)?->team_id ?? 0),
+            'teamVirtual' => (int) (\app\model\TeamVirtual::find($entity->entityable_id)?->team_id ?? 0),
+            default => 0,
+        };
+        if ($actualTeamId !== $teamId) {
+            throw new HttpException(422, '实体不属于当前团队');
+        }
+        return $entity;
+    }
+
     public function claimTeam(\app\model\Team $team): \app\model\Entity
     {
         $existing = \app\model\Entity::withTrashed()
@@ -262,8 +281,8 @@ class Entity
             // [Copilot] 同团队实体不卡 is_searchable，显式引用只需要实体有效即可解析。
             $inSameTeam = $teamId > 0 && $this->entityTeamId($identity) === $teamId;
             $available  = $identity->is_valid && ($inSameTeam || $identity->is_searchable);
-            $map[$identity->slug] = $available
-                ? $this->summary($identity, $teamIds, true)
+            $map[$identity->slug] = ($available || $inSameTeam)
+                ? $this->summary($identity, $teamIds, $available)
                 : $this->unavailable((string) $identity->slug, (string) $identity->entityable_type);
         }
 
@@ -417,6 +436,8 @@ class Entity
             'avatar'       => $entity->avatar ?: null,
             'team'         => $team ? ['slug' => $team->slug, 'display_name' => $team->display_name] : null,
             'available'    => $available,
+            'status_code'  => $type === 'teamMember' ? $entity->status_code : null,
+            'status_label' => $type === 'teamMember' ? $entity->status_label : null,
             'href'         => $type === 'teamMember' && $team && isset($userTeamIds[(int) $team->id])
                 ? "//{$team->slug}.team.lostsky.work/member-detail?id={$entity->id}"
                 : null,
@@ -453,7 +474,7 @@ class Entity
             return [];
         }
         return array_fill_keys(\app\model\TeamMember::where('user_id', $userId)
-            ->where('is_blocked', 0)
+            ->where('status', \app\enum\TeamMemberStatus::Active->value)
             ->column('team_id'), true);
     }
 }

@@ -1,0 +1,26 @@
+import{c as d,d as h,o as t,a,h as c,t as r,f as g,az as $,aA as y,i as u,s as M,j as m,aB as f,_ as p,w as z,u as _,b as V}from"./index-jJm09f4n.js";import{N as I}from"./Input-DO2jS9EE.js";/**
+ * @license @lucide/vue v1.24.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const N=[["path",{d:"M12 8V4H8",key:"hb8ula"}],["rect",{width:"16",height:"12",x:"4",y:"8",rx:"2",key:"enze0r"}],["path",{d:"M2 14h2",key:"vft8re"}],["path",{d:"M20 14h2",key:"4cs60a"}],["path",{d:"M15 13v2",key:"1xurst"}],["path",{d:"M9 13v2",key:"rq6x2g"}]],v=d("bot",N);/**
+ * @license @lucide/vue v1.24.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const x=[["path",{d:"M10 12h4",key:"a56b0p"}],["path",{d:"M10 8h4",key:"1sr2af"}],["path",{d:"M14 21v-3a2 2 0 0 0-4 0v3",key:"1rgiei"}],["path",{d:"M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2",key:"secmi2"}],["path",{d:"M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16",key:"16ra0t"}]],C=d("building-2",x);/**
+ * @license @lucide/vue v1.24.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const w=[["path",{d:"m21 21-4.34-4.34",key:"14j7rj"}],["circle",{cx:"11",cy:"11",r:"8",key:"4ej97u"}]],B=d("search",w);/**
+ * @license @lucide/vue v1.24.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const U=[["circle",{cx:"12",cy:"8",r:"5",key:"1hypcn"}],["path",{d:"M20 21a8 8 0 0 0-16 0",key:"rfgkzh"}]],b=d("user-round",U);/**
+ * @license @lucide/vue v1.24.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const j=[["path",{d:"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",key:"1yyitq"}],["path",{d:"M16 3.128a4 4 0 0 1 0 7.744",key:"16gr8j"}],["path",{d:"M22 21v-2a4 4 0 0 0-3-3.87",key:"kshegd"}],["circle",{cx:"9",cy:"7",r:"4",key:"nufk8"}]],L=d("users",j),S=e=>({entity:"成员",teamMember:"成员",customer:"客户",teamCustomer:"客户",team:"团队",virtual:"虚拟实体",teamVirtual:"虚拟实体",unknown:"实体"})[e],T=e=>({entity:"member",teamMember:"member",customer:"customer",teamCustomer:"customer",team:"team",virtual:"virtual",teamVirtual:"virtual",unknown:"unknown"})[e],H=["data-entity-tone"],E={class:"ls-entity-identity__media"},q=["src","alt"],D={key:1,"aria-hidden":"true"},A={class:"ls-entity-identity__text"},R={class:"ls-entity-identity__name-row"},F={key:0,class:"ls-entity-identity__status"},G={key:0,class:"ls-entity-identity__slug"},J=h({__name:"LsEntityIdentity",props:{type:{},name:{},slug:{default:""},imageUrl:{default:null},fallback:{default:"icon"},size:{default:"md"}},setup(e){const s=e,n=m(()=>S(s.type)),l=m(()=>T(s.type)),o=m(()=>s.name.trim().slice(0,1).toLocaleUpperCase()||"?"),i=m(()=>({team:C,entity:b,teamMember:b,customer:f,teamCustomer:f,virtual:v,teamVirtual:v,unknown:L})[s.type]||L);return(k,Z)=>(t(),a("div",{class:M(["ls-entity-identity",`ls-entity-identity--${e.size}`]),"data-entity-tone":l.value},[c("span",E,[e.imageUrl?(t(),a("img",{key:0,src:e.imageUrl,alt:`${e.name}头像`},null,8,q)):e.fallback==="initial"?(t(),a("span",D,r(o.value),1)):(t(),g($(i.value),{key:2,size:e.size==="lg"?24:20,"aria-hidden":"true"},null,8,["size"]))]),c("span",A,[c("small",null,r(n.value),1),c("span",R,[c("strong",null,r(e.name),1),k.$slots.status?(t(),a("span",F,[y(k.$slots,"status",{},void 0,!0)])):u("",!0)]),e.slug?(t(),a("span",G,"@"+r(e.slug),1)):u("",!0)])],10,H))}}),ae=p(J,[["__scopeId","data-v-e3c32e51"]]),K=h({__name:"LsSearchInput",props:{modelValue:{default:""},placeholder:{default:"搜索"},ariaLabel:{default:"搜索"},autofocus:{type:Boolean,default:!1}},emits:["update:modelValue"],setup(e,{emit:s}){const n=s;return(l,o)=>(t(),g(_(I),{class:"ls-search-input",size:"small",value:e.modelValue,placeholder:e.placeholder,autofocus:e.autofocus,"input-props":{type:"search","aria-label":e.ariaLabel},clearable:"","onUpdate:value":o[0]||(o[0]=i=>n("update:modelValue",i))},{prefix:z(()=>[V(_(B),{size:18,"aria-hidden":"true"})]),_:1},8,["value","placeholder","autofocus","input-props"]))}}),O=p(K,[["__scopeId","data-v-20d87732"]]),P={class:"ls-list-toolbar",role:"search"},Q={key:0,class:"ls-list-toolbar__filters"},W={key:1,class:"ls-list-toolbar__actions"},X={key:2,class:"ls-list-toolbar__count","aria-live":"polite"},Y=h({__name:"LsListToolbar",props:{modelValue:{default:""},placeholder:{default:"搜索"},ariaLabel:{default:"搜索列表"},countLabel:{default:""}},emits:["update:modelValue"],setup(e,{emit:s}){const n=s;return(l,o)=>(t(),a("section",P,[V(O,{class:"ls-list-toolbar__search","model-value":e.modelValue,placeholder:e.placeholder,"aria-label":e.ariaLabel,"onUpdate:modelValue":o[0]||(o[0]=i=>n("update:modelValue",i))},null,8,["model-value","placeholder","aria-label"]),l.$slots.filters?(t(),a("div",Q,[y(l.$slots,"filters",{},void 0,!0)])):u("",!0),l.$slots.actions?(t(),a("div",W,[y(l.$slots,"actions",{},void 0,!0)])):u("",!0),e.countLabel?(t(),a("span",X,r(e.countLabel),1)):u("",!0)]))}}),se=p(Y,[["__scopeId","data-v-300effb4"]]);export{se as L,ae as a};

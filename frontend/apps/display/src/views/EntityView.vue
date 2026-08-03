@@ -5,17 +5,22 @@ import { useQuery } from '@tanstack/vue-query'
 import { ArrowLeft } from '@lucide/vue'
 import { computed, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import DocumentList from '../components/DocumentList.vue'
 import ProfileMedia from '../components/ProfileMedia.vue'
 import ProductList from '../components/ProductList.vue'
+import PublicDocumentSection from '../components/PublicDocumentSection.vue'
 import PublicFields from '../components/PublicFields.vue'
-import { displayApi, entityTypeLabel } from '../lib'
+import { displayApi, entityTypeLabel, groupPublicDocuments } from '../lib'
 
 const route = useRoute()
 const slug = computed(() => String(route.params.slug ?? ''))
 const detail = useQuery({ queryKey: computed(() => ['display-entity', slug.value]), queryFn: () => displayApi.entity(slug.value) })
 const documents = useQuery({ queryKey: computed(() => ['display-documents', slug.value]), queryFn: () => displayApi.documents(slug.value) })
 const missing = computed(() => detail.error.value instanceof ApiError && detail.error.value.status === 404)
+const documentGroups = computed(() => groupPublicDocuments(
+  documents.data.value?.list ?? [],
+  detail.data.value?.profile.document_tags ?? [],
+  '与该实体相关的内容',
+))
 
 watch(() => detail.data.value?.profile.name, (name) => {
   if (name) document.title = `${name} · LostSky`
@@ -49,7 +54,7 @@ watch(() => detail.data.value?.profile.name, (name) => {
           <img v-if="!detail.data.value.profile.intro_image && detail.data.value.profile.avatar" class="subject-avatar" :src="detail.data.value.profile.avatar" :alt="`${detail.data.value.profile.name} 头像`" width="120" height="120">
           <span v-else-if="!detail.data.value.profile.intro_image" class="subject-avatar-fallback" aria-hidden="true">{{ detail.data.value.profile.name.slice(0, 1) }}</span>
           <div class="subject-copy">
-            <small>{{ entityTypeLabel(detail.data.value.type) }} · @{{ detail.data.value.slug }}</small>
+            <small>{{ entityTypeLabel(detail.data.value.type) }} · @{{ detail.data.value.slug }}<em v-if="detail.data.value.status_label && detail.data.value.status_code !== 'active'">{{ detail.data.value.status_label }}</em></small>
             <h1 tabindex="-1">{{ detail.data.value.profile.name }}</h1>
             <ul v-if="detail.data.value.roles?.length" class="public-roles" aria-label="公开角色">
               <li v-for="role in detail.data.value.roles" :key="role.name">
@@ -75,12 +80,25 @@ watch(() => detail.data.value?.profile.name, (name) => {
         <header class="section-heading"><h2>商品</h2><p>由该实体提供的已上架商品</p></header>
         <ProductList :products="detail.data.value.products" />
       </section>
-      <section v-if="documents.data.value?.list.length || documents.isPending.value || documents.isError.value" class="reading-section">
-        <header class="section-heading"><h2>公开文档</h2><p>与该实体相关的内容</p></header>
-        <div v-if="documents.isPending.value" class="row-skeleton"><span /><span /></div>
-        <div v-else-if="documents.isError.value" class="inline-error"><span>文档加载失败。</span><button type="button" @click="documents.refetch()">重试</button></div>
-        <DocumentList v-else :documents="documents.data.value?.list ?? []" />
-      </section>
+      <PublicDocumentSection
+        v-if="documents.isPending.value || documents.isError.value"
+        class="reading-section"
+        title="公开文档"
+        description="与该实体相关的内容"
+        :documents="[]"
+        :loading="documents.isPending.value"
+        :error="documents.isError.value"
+        @retry="documents.refetch()"
+      />
+      <PublicDocumentSection
+        v-for="group in documentGroups"
+        v-else
+        :key="group.key"
+        class="reading-section"
+        :title="group.title"
+        :description="group.description"
+        :documents="group.documents"
+      />
     </div>
   </article>
 </template>

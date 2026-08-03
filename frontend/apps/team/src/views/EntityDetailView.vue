@@ -2,15 +2,26 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsFormList from '@lostsky/ui/components/LsFormList.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ExternalLink, MessageCircleMore } from '@lucide/vue'
 import { NInput, NSwitch } from 'naive-ui'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import {
+  createDocumentTagGroupDraft,
+  documentTagDescriptionError,
+  documentTagError,
+  documentTagGroupDrafts,
+  documentTagGroupsPayload,
+  hasDocumentTagGroupErrors,
+  type DocumentTagGroupDraft,
+} from '../lib/documentTags'
 import { permissionReason } from '../lib/teamAccess'
 
 type EntityDetail = {
@@ -27,6 +38,7 @@ type EntityDetail = {
     intro_image?: string
     intro_video?: string
     introduction_markdown?: string
+    document_tags?: Array<{ tag: string; description: string | null }>
   }
 }
 
@@ -44,13 +56,18 @@ const form = reactive({
   intro_image: '',
   intro_video: '',
   introduction_markdown: '',
+  document_tags: [] as DocumentTagGroupDraft[],
 })
+const tagValidationSubmitted = ref(false)
 const isDisplayed = ref(false)
 const isInternalVisible = ref(true)
 const canManage = computed(() => Boolean(detail.data.value?.capabilities?.manage_profile))
 const manageReason = permissionReason('team.entity.profile.manage')
 const canDisplay = computed(() => (
   ['teamMember', 'teamVirtual'].includes(String(detail.data.value?.entityable_type ?? ''))
+))
+const supportsPublicDocuments = computed(() => (
+  ['team', 'teamMember', 'teamVirtual'].includes(String(detail.data.value?.entityable_type ?? ''))
 ))
 const canToggleInternal = computed(() =>
   ['teamMember', 'teamVirtual'].includes(String(detail.data.value?.entityable_type ?? ''))
@@ -72,7 +89,19 @@ const chatUrl = computed(() => (
 ))
 
 const profileSave = useMutation({
-  mutationFn: () => api.post('/entity/profile', { entity_id: id.value, ...form }),
+  mutationFn: () => {
+    const payload: Record<string, unknown> = {
+      entity_id: id.value,
+      name: form.name,
+      avatar: form.avatar,
+      description: form.description,
+      intro_image: form.intro_image,
+      intro_video: form.intro_video,
+      introduction_markdown: form.introduction_markdown,
+    }
+    if (supportsPublicDocuments.value) payload.document_tags = documentTagGroupsPayload(form.document_tags)
+    return api.post('/entity/profile', payload)
+  },
   onSuccess: () => {
     feedback.success('实体资料已保存')
     return client.invalidateQueries({ queryKey: ['entity', id.value] })
@@ -115,9 +144,26 @@ watch(() => detail.data.value, (data) => {
       intro_image: profile.intro_image || '',
       intro_video: profile.intro_video || '',
       introduction_markdown: profile.introduction_markdown || '',
+      document_tags: documentTagGroupDrafts(profile.document_tags),
     })
   }
 }, { immediate: true })
+
+const tagKey = (item: DocumentTagGroupDraft) => item.key
+const createTagGroup = () => createDocumentTagGroupDraft()
+const tagFieldError = (item: DocumentTagGroupDraft, index: number) => documentTagError(item, form.document_tags, index, tagValidationSubmitted.value)
+const descriptionFieldError = (item: DocumentTagGroupDraft) => documentTagDescriptionError(item, tagValidationSubmitted.value)
+
+async function submitProfile() {
+  if (!canManage.value) return
+  tagValidationSubmitted.value = true
+  if (supportsPublicDocuments.value && hasDocumentTagGroupErrors(form.document_tags)) {
+    await nextTick()
+    document.querySelector<HTMLElement>('.document-tag-groups [data-invalid="true"] input, .document-tag-groups [data-invalid="true"] textarea')?.focus()
+    return
+  }
+  profileSave.mutate()
+}
 </script>
 
 <template>
@@ -138,7 +184,7 @@ watch(() => detail.data.value, (data) => {
         当前为只读模式。{{ manageReason }}
       </p>
 
-      <form @submit.prevent="canManage && profileSave.mutate()"><LsPanel><div class="profile-panel">
+      <form @submit.prevent="submitProfile"><LsPanel><div class="profile-panel">
         <div class="panel-heading">
           <div>
             <h2>{{ detail.data.value.entityable_type }} · @{{ detail.data.value.slug }}</h2>
@@ -155,6 +201,58 @@ watch(() => detail.data.value, (data) => {
         </label>
         <p class="field-help">建议使用透明背景或竖版人物图；未设置时使用名称占位。</p>
         <label>简介<NInput v-model:value="form.description" type="textarea" :disabled="!canManage" /></label>
+        <section v-if="supportsPublicDocuments" class="document-tag-groups" aria-labelledby="document-tag-groups-title">
+          <div>
+            <h3 id="document-tag-groups-title">公开文档分组</h3>
+            <p>按这里的顺序组织该实体的公开文档；说明会显示在对应分组标题下方。</p>
+          </div>
+          <LsFormList
+            v-model="form.document_tags"
+            :item-key="tagKey"
+            :create-item="createTagGroup"
+            item-label="展示标签"
+            add-label="添加展示标签"
+            empty-text="尚未配置公开文档分组"
+            :disabled="!canManage"
+          >
+            <template #item="{ item, index }">
+              <div class="document-tag-group-fields">
+                <LsField
+                  label="标签"
+                  :for-id="`entity-document-tag-${item.key}`"
+                  :error="tagFieldError(item, index)"
+                  required
+                >
+                  <NInput
+                    :id="`entity-document-tag-${item.key}`"
+                    v-model:value="item.tag"
+                    placeholder="例如：精选"
+                    maxlength="50"
+                    show-count
+                    :disabled="!canManage"
+                    :status="tagFieldError(item, index) ? 'error' : undefined"
+                    @blur="item.touched = true; item.tag = item.tag.trim()"
+                  />
+                </LsField>
+                <LsField
+                  label="说明（可选）"
+                  :for-id="`entity-document-tag-description-${item.key}`"
+                  :error="descriptionFieldError(item)"
+                >
+                  <NInput
+                    :id="`entity-document-tag-description-${item.key}`"
+                    v-model:value="item.description"
+                    maxlength="255"
+                    show-count
+                    :disabled="!canManage"
+                    :status="descriptionFieldError(item) ? 'error' : undefined"
+                    @blur="item.descriptionTouched = true; item.description = item.description.trim()"
+                  />
+                </LsField>
+              </div>
+            </template>
+          </LsFormList>
+        </section>
         <span :tabindex="canManage ? -1 : 0" :aria-describedby="canManage ? undefined : 'entity-manage-reason'">
           <LsButton type="submit" :disabled="!canManage" :loading="profileSave.isPending.value">保存资料</LsButton>
         </span>
@@ -197,6 +295,6 @@ watch(() => detail.data.value, (data) => {
 </template>
 
 <style scoped>
-.entity-detail{display:grid;gap:22px}.chat-action{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .875rem;color:white;background:var(--sky-lost-strong);border-radius:8px;font-size:.875rem;font-weight:650}.profile-panel,.setting{display:grid;gap:16px}.profile-panel h2,.profile-panel p,.setting h2,.setting p{margin:0}.profile-panel h2,.setting h2{font-size:1.05rem}.profile-panel label{display:grid;gap:7px;color:var(--text-secondary);font-weight:650}.panel-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}.panel-heading p,.setting>div p{max-width:68ch;margin-top:.4rem;color:var(--text-secondary);font-size:.84rem;line-height:1.6}.panel-heading a{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;color:var(--primary);font-size:.82rem;font-weight:650;white-space:nowrap}.field-help{margin-top:-10px!important;color:var(--text-secondary);font-size:.8rem;line-height:1.55}.setting :deep(.n-switch){min-height:44px;justify-self:start}.profile-panel>span{justify-self:start}.profile-panel>span:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 65%);outline-offset:3px;border-radius:8px}.permission-note{margin:0;padding:.8rem 1rem;color:var(--muted-ink);background:color-mix(in oklch,var(--sky-lost),white 92%);border:1px solid color-mix(in oklch,var(--sky-lost),white 65%);border-radius:8px;font-size:.84rem}.fixed-state{color:var(--muted-ink);font-size:.84rem}.feedback{padding:.75rem;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}code{font-size:.8em}
-@media(max-width:639px){.panel-heading{display:grid}.profile-panel>span,.profile-panel :deep(.ls-button){width:100%}}
+.entity-detail{display:grid;gap:22px}.chat-action{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .875rem;color:white;background:var(--sky-lost-strong);border-radius:8px;font-size:.875rem;font-weight:650}.profile-panel,.setting{display:grid;gap:16px}.profile-panel h2,.profile-panel p,.setting h2,.setting p,.document-tag-groups h3,.document-tag-groups p{margin:0}.profile-panel h2,.setting h2{font-size:1.05rem}.profile-panel label{display:grid;gap:7px;color:var(--text-secondary);font-weight:650}.panel-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}.panel-heading p,.setting>div p{max-width:68ch;margin-top:.4rem;color:var(--text-secondary);font-size:.84rem;line-height:1.6}.panel-heading a{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;color:var(--primary);font-size:.82rem;font-weight:650;white-space:nowrap}.field-help{margin-top:-10px!important;color:var(--text-secondary);font-size:.8rem;line-height:1.55}.document-tag-groups{display:grid;gap:16px;padding-top:4px}.document-tag-groups h3{font-size:1rem}.document-tag-groups>div>p{max-width:68ch;margin-top:5px;color:var(--text-secondary);font-size:.84rem;line-height:1.55}.document-tag-group-fields{min-width:0;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);align-items:start;gap:12px}.setting :deep(.n-switch){min-height:44px;justify-self:start}.profile-panel>span{justify-self:start}.profile-panel>span:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 65%);outline-offset:3px;border-radius:8px}.permission-note{margin:0;padding:.8rem 1rem;color:var(--muted-ink);background:color-mix(in oklch,var(--sky-lost),white 92%);border:1px solid color-mix(in oklch,var(--sky-lost),white 65%);border-radius:8px;font-size:.84rem}.fixed-state{color:var(--muted-ink);font-size:.84rem}.feedback{padding:.75rem;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}code{font-size:.8em}
+@media(max-width:639px){.panel-heading{display:grid}.document-tag-group-fields{grid-template-columns:1fr}.profile-panel>span,.profile-panel :deep(.ls-button){width:100%}}
 </style>

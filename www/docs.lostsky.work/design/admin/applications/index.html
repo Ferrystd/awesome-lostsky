@@ -824,6 +824,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Team">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#team_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Team 申请字段管理
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -856,6 +873,23 @@
       </span>
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Account">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#account_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Account 登录页原生按钮例外
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1105,6 +1139,114 @@
     
   
   使用手册
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../manual/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  核心概念
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../manual/access-and-abilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  能力、权限与功能降级
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../manual/permissions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  权限目录
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../manual/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  问题排查
 
     
   </span>
@@ -2243,6 +2385,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../development/component-previews/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  组件代码预览
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../development/testing/" class="md-nav__link">
         
   
@@ -2760,6 +2929,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Team">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#team_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Team 申请字段管理
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2792,6 +2978,23 @@
       </span>
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Account">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#account_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Account 登录页原生按钮例外
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2912,14 +3115,26 @@
 <h2 id="team">Team<a class="headerlink" href="#team" title="Permanent link">&para;</a></h2>
 <ul>
 <li>实体、成员、客户及所有候选项统一使用 <code>LsEntityIdentity</code>；媒体为圆角方形，真实头像优先。此前实体与成员分别使用圆形和方形不是巧思，而是没有语义依据、会破坏主体识别的一致性问题，不得恢复。</li>
-<li>实体、成员、客户、文件、文档、角色、虚拟实体、通知、加入审核是集合页，必须有 <code>LsListToolbar</code>。</li>
+<li>实体、成员、客户、文件、文档、角色、虚拟实体、申请字段、通知、加入审核是集合页，必须有 <code>LsListToolbar</code>。</li>
 <li>成员移动端以“管理/查看”为主操作，对话、预览、封禁、移出进入更多；危险操作不得成为主操作。</li>
 <li>客户列表不得再嵌套第二个 <code>LsPage</code>；通知和审核使用连续列表。</li>
-<li>实体、成员、客户、文件、文档、角色、虚拟实体、对象字段、通知、加入审核、资源页和团队设置的页面级无数据统一使用 <code>LsEmptyState</code>；创建入口仍位于页面标题，不进入空状态组件。</li>
+<li>实体、成员、客户、文件、文档、角色、虚拟实体、对象字段、申请字段、通知、加入审核、资源页和团队设置的页面级无数据统一使用 <code>LsEmptyState</code>；创建入口仍位于页面标题，不进入空状态组件。</li>
 <li>上传缺少 Ability 时只禁用文件选择，不显示常驻错误。加入申请的动态文件字段统一使用 <code>LsUploadField</code>，其余动态字段使用对应 Naive UI 控件；缺失必填项时阻止提交并在字段区域说明，不得让协议字段回退到页面级原生控件。</li>
+<li>加入申请页仅在链接包含有效邀请参数时，以非输入控件只读确认当前邀请人，不允许申请人改写链接带入的来源；没有邀请参数时不得渲染邀请人区域，页面结构与引入该功能前保持一致。成员详情将加入时间与邀请人放在独立的成员信息区，邀请人必须按全局 Entity 展示并明确标注其他团队来源。</li>
 <li>成员资料编辑与“我的资料”共享 Team 专属 <code>MemberProfileFields</code> 和 <code>useMemberProfileUpload</code> 上传逻辑；前者统一昵称、头像、简介媒体和 Markdown，后者统一上传状态、错误与媒体字段回填。身份领取、管理权限等页面专属字段留在各自页面，不进入共享资料组件。文档、文件和资源目录的行内动作统一使用 <code>LsResponsiveActions</code>；文件与文档分页统一使用 <code>NPagination</code>。</li>
 <li>文档编辑页的 <code>LsMarkdownEditor</code> 是第三方编辑器实现级例外：保留其原有的模式切换、候选项与工具栏视觉结构，不将 <code>NRadioGroup</code>、<code>NButton</code> 或 <code>NInput</code> 的通用皮肤套入编辑器内部。页面其余字段仍使用标准 Naive UI；验收时确认编辑器模式、源码与对象候选项和统一化前版本一致。</li>
+<li>文档创建/编辑页的文档标签与实体资料管理页的公开文档分组统一使用 <code>LsFormList</code>。两处都允许添加、删除、拖拽及按钮排序，并按顺序提交；标签错误必须就近阻止保存。公开文档分组只出现在 Team、Member 和 Virtual 实体，Customer 不显示；缺少 <code>team.entity.profile.manage</code> 时展示只读内容并禁用列表变更，不发写请求。</li>
 </ul>
+<h3 id="team_1">Team 申请字段管理<a class="headerlink" href="#team_1" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>范围</strong>：Team 的 <code>/join-fields</code>、<code>/join-fields/new</code>、<code>/join-fields/:id</code>，用于团队管理员维护加入申请表结构和审批后转存规则。</li>
+<li><strong>行为</strong>：列表必须同时展示启用和停用字段，并支持按名称/标识搜索及按启用状态筛选；创建、查看和编辑使用独立路由。字段标识创建后只读；删除已有提交记录的字段必须失败并提示改为停用。禁止在列表中常驻编辑器、隐藏停用字段或把字段排序改为仅支持拖拽。</li>
+<li><strong>实现</strong>：列表使用 <code>LsListToolbar</code>、<code>LsEmptyState</code>、<code>LsAsyncState</code> 与连续边界；表单使用 <code>LsField</code>、<code>LsFormList</code>、Naive UI 控件、<code>LsInlineError</code> 和 <code>LsButton</code>。选项以有序的“显示名称 + 提交值”编辑并兼容历史字符串或对象格式；布尔设置使用 <code>NSwitch</code>，状态使用 <code>LsStatusTag</code>，动效只使用公共令牌。</li>
+<li><strong>适配</strong>：桌面与移动端均为单列任务流；320px 下工具栏、选项和命令按钮纵向排列，交互目标不小于 44px。键盘可完成搜索、筛选、选项增删排序、保存和删除确认；文本放大后标签与说明自然换行；减少动态时取消列表位移。</li>
+<li><strong>状态</strong>：首次加载显示结构骨架，无字段与筛选无结果使用不同文案，读取和写入错误只在对应区域显示。<code>team.join_field.read</code> 控制列表和详情读取，<code>team.join_field.write</code> 控制创建、保存、删除及转存候选；只有读取权限时详情为只读模式，已知缺少权限时不得发起受保护请求。停用字段保留历史值并可重新启用。</li>
+<li><strong>例外</strong>：转存候选通过申请字段专用接口读取，只暴露当前团队人员 Entity 字段摘要，不额外要求 <code>team.entity_field.manage</code>；这是为了保持 <code>team.join_field.write</code> 已有的完整转存配置语义。除此之外无例外。</li>
+<li><strong>验收</strong>：Vitest 检查公共组件与导航契约；Playwright 覆盖启用/停用列表、选项校验、转存选择、只读权限和零越权请求，并在 320、375、768、1024、1440px 检查无横向溢出；后端测试锁定管理列表与公开表单的不同过滤范围。</li>
+</ol>
 <h2 id="transaction">Transaction<a class="headerlink" href="#transaction" title="Permanent link">&para;</a></h2>
 <ul>
 <li>壳层、顶栏、页面标题、工具栏和按钮遵守公共组件；移动端顶栏“登记流水”进入操作菜单，不显示孤立加号。</li>
@@ -2943,6 +3158,16 @@
 <li>团队目录和身份候选没有数据时使用 <code>LsEmptyState</code>；认证表单内的字段反馈不是页面空状态。</li>
 <li>团队选择使用 <code>NModal</code>、<code>NButton</code> 和有细分隔线的连续列表；加载、空和错误留在弹层内容区，关闭弹层后焦点回到触发入口。</li>
 </ul>
+<h3 id="account_1">Account 登录页原生按钮例外<a class="headerlink" href="#account_1" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>范围</strong>：仅适用于 <code>account/login</code> 的登录方式分段按钮和密码可见性按钮；注册、团队、身份及其他 Account 页面不适用。</li>
+<li><strong>行为</strong>：验证码登录与密码登录必须保持同一行并各占一半，当前方式以选中表面明确标识；密码可见性按钮只切换输入内容是否可见。禁止把此例外扩展到提交、获取验证码或其他表单命令。</li>
+<li><strong>实现</strong>：登录方式沿用 v0.1.4 的两个原生 <code>button</code>、<code>role="tab"</code> 与 <code>aria-selected</code>，由两列 <code>.mode</code> 网格承载；密码可见性沿用带可读 <code>aria-label</code> 的 44×44px 原生图标按钮。颜色只使用 <code>--cloud</code>、<code>--ink</code> 与 <code>--muted-ink</code>，提交仍使用 <code>LsButton</code>。这是原生标准控件源码契约的具名例外。</li>
+<li><strong>适配</strong>：桌面与 320px 移动端均保持两个登录方式同排，按钮触控高度至少 44px；键盘按文档顺序访问并使用全局 <code>:focus-visible</code>，读屏可识别 tablist、选中状态及显示/隐藏密码文案；文本放大时允许标签内部自然换行但不得拆成上下两项；不包含动效。</li>
+<li><strong>状态</strong>：分段按钮只包含已选与未选状态，密码按钮只包含显示与隐藏状态；加载、错误、过期登录及禁用状态继续由原表单和提交按钮处理，不涉及权限、Ability、空数据或额外恢复流程。</li>
+<li><strong>例外</strong>：Naive UI 2.44.1 的 <code>NRadioGroup</code> 会在两个选项之间插入额外分隔节点，无法直接复现旧版稳定的两子项网格与视觉结构，因此保留 v0.1.4 原生实现。公共组件可无额外结构节点地复现相同语义、布局和样式时，本例外失效并应移除。</li>
+<li><strong>验收</strong>：<code>npm test</code> 的源码契约锁定仅这三个原生按钮；<code>tests/frontend.spec.ts</code> 在桌面和移动项目中断言两个 tab 数量为二且纵坐标一致，并继续检查两种登录表单均可操作；发布前运行 <code>npm run typecheck</code>、对应 E2E 与 <code>npm run build</code>。</li>
+</ol>
 <h2 id="chat">Chat<a class="headerlink" href="#chat" title="Permanent link">&para;</a></h2>
 <ul>
 <li>保留会话专属布局，不套用管理侧栏；根部使用统一主题，团队与参与者使用 <code>LsEntityIdentity</code>。</li>

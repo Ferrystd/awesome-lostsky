@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.lostsky.work/development/testing/">
       
       
-        <link rel="prev" href="../frontend/">
+        <link rel="prev" href="../component-previews/">
       
       
         <link rel="next" href="../releasing/">
@@ -982,6 +982,114 @@
     
   
   使用手册
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  核心概念
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/access-and-abilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  能力、权限与功能降级
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/permissions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  权限目录
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  问题排查
 
     
   </span>
@@ -2122,6 +2230,33 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../component-previews/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  组件代码预览
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -2185,6 +2320,28 @@
       
         <li class="md-nav__item">
   <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        范围判定
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        执行去重与输出控制
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         数据库保护
@@ -2706,6 +2863,28 @@
   <a href="#_2" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
+        范围判定
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        执行去重与输出控制
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
         数据库保护
       </span>
     </span>
@@ -2793,7 +2972,17 @@
                   
 
 <h1 id="_1">测试须知<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
-<p>维护项与生成命令见<a href="../checklist/">代码更新清单</a>。测试先从直接相关范围开始，再按风险扩大。</p>
+<p>维护项与生成命令见<a href="../checklist/">代码更新清单</a>。测试范围以本页规则为准。</p>
+<h2 id="_2">范围判定<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>测试范围按当前任务实际修改的文件和契约判定，不按 <code>git status</code> 中整个工作区的差异判定。用户已有改动、前序任务改动和本次只读取或消费的文件必须保留，但默认不纳入当前任务的测试范围。</p>
+<ul>
+<li>纯前端任务只选择前端测试、类型检查、按需 E2E 和静态构建；本次没有修改 PHP、路由、OpenAPI 或请求/响应契约时，不运行 <code>php -l</code>、<code>php tests/*</code>、<code>npm run test:backend</code> 或 OpenAPI 路由测试。</li>
+<li>读取现有 OpenAPI、生成前端类型、消费既有接口，或发现工作区存在前序后端差异，都不构成运行后端测试的理由。</li>
+<li>PHP、路由、OpenAPI 或后端行为测试只由当前任务对对应层的实际修改触发。前端失败只有在错误证据明确指向后端契约时，才可以扩大到直接相关的后端检查。</li>
+<li>只有直接相关检查失败且证据指向其他层、当前任务实际跨层，或用户明确要求全量回归、发布验证时，才扩大测试范围。扩大前先说明具体风险、证据和准备执行的命令。</li>
+<li>计划与交付记录应列出实际命令及其对应改动，不使用“相关 PHP/OpenAPI 测试”“必要时全量测试”等无法判定边界的表述。</li>
+</ul>
+<p>满足范围条件后，从下表选择覆盖当前改动的最小非重叠命令集；较大命令已经包含直接相关测试时，不再预跑其子集。只有定位失败时才单独运行子集，再依据上述触发条件扩大：</p>
 <table>
 <thead>
 <tr>
@@ -2828,7 +3017,16 @@
 </tr>
 </tbody>
 </table>
-<h2 id="_2">数据库保护<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<h2 id="_3">执行去重与输出控制<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<ul>
+<li>同一份源码状态下，每条成功命令只运行一次；只有该命令覆盖的源码后来改变、上次失败或用户明确要求复验时才重跑。文档、Changelog 或构建产物的后续变化不触发已通过的源码测试。</li>
+<li>全量命令包含目标测试时直接运行全量命令，不先运行目标文件；目标文件仅用于失败定位。<code>git diff --check</code> 只在最终差异稳定后运行一次。</li>
+<li>长命令运行中不重复启动；需要轮询时以约 60 秒为间隔，命令提前结束则立即处理，不为进度播报增加轮询回合。</li>
+<li>成功结果只保留退出码、通过数量和耗时摘要；失败时只读取相关错误与必要日志尾部，不把完整成功日志反复送入上下文。</li>
+<li>构建退出码为 0 即完成构建验证。除非任务明确涉及静态产物写入或加载错误，不再搜索、展开或逐行检查 <code>www/</code>、<code>dist/</code> 中的压缩文件；需要核对产物时优先检查清单、文件名或哈希。</li>
+<li>交付前只做一次最终差异检查，不用重复读取源码、规范或已验证生成物代替测试证据。</li>
+</ul>
+<h2 id="_4">数据库保护<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>数据库测试或补丁执行前：</p>
 <ol>
 <li>从根 <code>.env</code> 读取配置，不输出密码。</li>

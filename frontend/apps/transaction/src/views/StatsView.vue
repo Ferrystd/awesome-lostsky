@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import { useQueries, useQuery } from '@tanstack/vue-query'
-import { BarChart3, Check, Copy } from '@lucide/vue'
+import { useQueries } from '@tanstack/vue-query'
+import { BarChart3 } from '@lucide/vue'
 import { NDataTable, NDatePicker } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { computed, h, ref } from 'vue'
 import { integer, money } from '../lib'
-import type { AssigneeStat, CustomerStat, EntityStat, InviteIdentity, StatsSummary, TimelineStat } from '../types'
+import type { AssigneeStat, CustomerStat, EntityStat, StatsSummary, TimelineStat } from '../types'
 
 const now = new Date()
 const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
@@ -29,7 +28,6 @@ const queries = useQueries({
     { queryKey: ['transaction-stats', 'assignees', params.value], queryFn: () => api.get<AssigneeStat[]>('/transaction/stats', { ...params.value, type: 'byAssignee' }) },
   ]),
 })
-const invite = useQuery({ queryKey: ['transaction-invite'], queryFn: () => api.get<InviteIdentity>('/transaction/invite') })
 const summary = computed(() => queries.value[0]?.data as StatsSummary | undefined)
 const timeline = computed(() => (queries.value[1]?.data ?? []) as TimelineStat[])
 const entities = computed(() => (queries.value[2]?.data ?? []) as EntityStat[])
@@ -38,17 +36,6 @@ const assignees = computed(() => (queries.value[4]?.data ?? []) as AssigneeStat[
 const pending = computed(() => queries.value.some(item => item.isPending))
 const error = computed(() => queries.value.find(item => item.error)?.error)
 const maxTimeline = computed(() => Math.max(1, ...timeline.value.map(item => Number(item.amount))))
-const copied = ref(false)
-async function copyInvite() {
-  if (!invite.data.value?.display_url) return
-  try {
-    await navigator.clipboard.writeText(invite.data.value.display_url)
-    copied.value = true
-    window.setTimeout(() => { copied.value = false }, 1800)
-  } catch {
-    copied.value = false
-  }
-}
 const assigneeColumns: DataTableColumns<AssigneeStat> = [
   { title: '归属人', key: 'name', render: row => h('span', [h('strong', row.name || `主体 #${row.entity_id}`), row.slug ? h('small', `@${row.slug}`) : null]) },
   { title: '成交客户', key: 'customer_count', render: row => integer(row.customer_count) },
@@ -63,14 +50,6 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
   <div class="stats-view">
     <LsPageHeader title="经营统计" description="用同一时间范围查看成交、支付构成、接单人分配与客户贡献。">
       <template #actions>
-        <LsButton
-          v-if="invite.data.value"
-          variant="secondary"
-          :aria-label="copied ? '邀请链接已复制' : '复制邀请链接'"
-          @click="copyInvite"
-        >
-          <template #icon><Check v-if="copied" :size="17" /><Copy v-else :size="17" /></template>{{ copied ? '已复制邀请链接' : '复制邀请链接' }}
-        </LsButton>
         <NDatePicker v-model:value="range" type="daterange" :clearable="false" />
       </template>
     </LsPageHeader>

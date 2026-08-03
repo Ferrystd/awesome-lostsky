@@ -7,7 +7,13 @@ copyright = "Copyright &copy; 2026 LostSky"
 docs_dir = "docs/manual"
 site_dir = "www/doc.lostsky.work"
 nav = [
-  {"开始使用" = "index.md"},
+  {"开始使用" = [
+    "index.md",
+    "concepts.md",
+    "access-and-abilities.md",
+    "permissions.md",
+    "troubleshooting.md"
+  ]},
   {"账号与协作" = [
     "account-and-identity.md",
     "team-workspace.md",

@@ -1001,6 +1001,114 @@
   
   
     <li class="md-nav__item">
+      <a href="../manual/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  核心概念
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manual/access-and-abilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  能力、权限与功能降级
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manual/permissions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  权限目录
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../manual/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  问题排查
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../manual/account-and-identity/" class="md-nav__link">
         
   
@@ -2120,6 +2228,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../development/component-previews/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  组件代码预览
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../development/testing/" class="md-nav__link">
         
   
@@ -2659,7 +2794,7 @@
   <a href="#_7" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        成员复职
+        团队解散
       </span>
     </span>
   </a>
@@ -2670,7 +2805,7 @@
   <a href="#_8" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        团队解散
+        实体自动化回调
       </span>
     </span>
   </a>
@@ -2681,7 +2816,7 @@
   <a href="#_9" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        实体自动化回调
+        客户删除与导出
       </span>
     </span>
   </a>
@@ -2692,17 +2827,6 @@
   <a href="#_10" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        客户删除与导出
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_11" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
         文件分享
       </span>
     </span>
@@ -2711,7 +2835,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#_12" class="md-nav__link">
+  <a href="#_11" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         对象字段值搜索
@@ -2979,7 +3103,7 @@
   <a href="#_7" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        成员复职
+        团队解散
       </span>
     </span>
   </a>
@@ -2990,7 +3114,7 @@
   <a href="#_8" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        团队解散
+        实体自动化回调
       </span>
     </span>
   </a>
@@ -3001,7 +3125,7 @@
   <a href="#_9" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        实体自动化回调
+        客户删除与导出
       </span>
     </span>
   </a>
@@ -3012,17 +3136,6 @@
   <a href="#_10" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        客户删除与导出
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_11" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
         文件分享
       </span>
     </span>
@@ -3031,7 +3144,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#_12" class="md-nav__link">
+  <a href="#_11" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         对象字段值搜索
@@ -3147,27 +3260,23 @@
 <ul>
 <li><a href=".././plans/markdown-ai/">启用 AI 的实施计划</a></li>
 </ul>
-<h3 id="_7">成员复职<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
-<ul>
-<li>增加团队成员复职入口：通过 <code>withTrashed()</code> 按 <code>team_id + user_id</code> 锁定历史成员。软删除的成员slug,id等不解放。</li>
-</ul>
-<h3 id="_8">团队解散<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<h3 id="_7">团队解散<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li>当前版本暂时禁用团队解散入口；未来完成以下可恢复状态机后再开放：先标记 <code>cancelling</code> 并禁止新写入，立即撤销实体会话、Webhook 和域名绑定并清除 <code>team_slug_*</code>、<code>team_id_*</code>、<code>team_domain_*</code>、<code>team_domain_bind_without_common</code> 缓存；再由后台清理任务按依赖顺序处理 Chat/outbox、订单流水与余额、文档引用、文件元数据及 OSS 对象，保存审计汇总后最终软删除团队。失败批次必须可重试，财务与审计记录按保留策略归档而不是直接级联物理删除。</li>
 </ul>
-<h3 id="_9">实体自动化回调<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<h3 id="_8">实体自动化回调<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
 <ul>
 <li>为实体（一般是虚拟实体，但是不做限制）接入自动化工作流，最大化交给二开</li>
 </ul>
-<h3 id="_10">客户删除与导出<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<h3 id="_9">客户删除与导出<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
 <ul>
 <li>客户列表、详情、资料/归属/封禁管理已经进入团队工作台；后续再定义安全删除与导出规则，未实现动作不预留权限。</li>
 </ul>
-<h3 id="_11">文件分享<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<h3 id="_10">文件分享<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
 <ul>
 <li>设计分享对象、受众、有效期、撤销、下载鉴权、审计与 OSS 临时地址策略；完成分享接口时再引入对应权限，并纳入文件引用和删除清理。</li>
 </ul>
-<h3 id="_12">对象字段值搜索<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h3>
+<h3 id="_11">对象字段值搜索<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
 <ul>
 <li>启用 <code>team_entity_field.is_searchable</code> 前，先定义支持搜索的值类型、精确/模糊匹配规则、团队内与公开搜索边界、字段 <code>visibility</code> 过滤、查询索引和分页排序；完成后再恢复对象字段表单中的搜索开关，禁止仅凭字段标记绕过可见性读取值。</li>
 </ul>

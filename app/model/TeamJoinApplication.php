@@ -4,6 +4,7 @@ declare (strict_types = 1);
 namespace app\model;
 
 use app\enum\TeamJoinStatus;
+use app\enum\TeamJoinPurpose;
 use app\model\Base;
 
 /**
@@ -25,6 +26,7 @@ class TeamJoinApplication extends Base
         'team_id'   => 'integer',
         'user_id'   => 'integer',
         'entity_id' => 'integer',
+        'purpose'   => TeamJoinPurpose::class,
         'status'    => TeamJoinStatus::class,
         'memo'      => 'string',
     ];
@@ -36,10 +38,34 @@ class TeamJoinApplication extends Base
     protected $hidden = ['delete_time'];
 
     /** 计算属性 */
-    protected $append = [];
+    protected $append = ['purpose_code', 'purpose_label', 'status_code', 'status_label'];
 
     /** 只读字段 */
     protected $readonly = ['team_id', 'user_id'];
+
+    public function getPurposeCodeAttr(): string
+    {
+        /** @var TeamJoinPurpose $purpose */
+        $purpose = $this->enumCase('purpose');
+        return $purpose->code();
+    }
+
+    public function getPurposeLabelAttr(): string
+    {
+        /** @var TeamJoinPurpose $purpose */
+        $purpose = $this->enumCase('purpose');
+        return $purpose->value();
+    }
+
+    public function getStatusCodeAttr(): string
+    {
+        return strtolower($this->enumCase('status')->name);
+    }
+
+    public function getStatusLabelAttr(): string
+    {
+        return $this->enumCase('status')->value();
+    }
 
     public function team()
     {
@@ -54,6 +80,11 @@ class TeamJoinApplication extends Base
     public function subject()
     {
         return $this->belongsTo(Entity::class, 'entity_id');
+    }
+
+    public function inviter()
+    {
+        return $this->belongsTo(Entity::class, 'inviter_entity_id');
     }
 
     public function values()

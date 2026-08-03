@@ -37,8 +37,10 @@ class Document
 
         $query->visibleTo((int) $actingEntity['entity_id'], $isTeamManager || $canReadAll, $isSubject);
         $total = $query->count();
-        $list = $query->order('sort', 'asc')->order('id', 'desc')
-            ->page($page, $limit)->select()->toArray();
+        $list = array_map(
+            fn (DocumentModel $document): array => $this->data($document),
+            $query->order('sort', 'asc')->order('id', 'desc')->page($page, $limit)->select()->all()
+        );
 
         return compact('total', 'list', 'page', 'limit');
     }
@@ -50,7 +52,7 @@ class Document
             throw new HttpException(404, '文档不存在');
         }
         $this->guardView($doc, $teamId, $actingEntity);
-        return $doc->toArray();
+        return $this->data($doc);
     }
 
     public function create(int $entityId, array $data, int $teamId, array $actingEntity): int
@@ -63,6 +65,7 @@ class Document
         if (trim((string) ($data['title'] ?? '')) === '') {
             throw new HttpException(422, '文档标题不能为空');
         }
+        $data['tags'] = $this->normalizeTags($data['tags'] ?? []);
 
         $isTeamSubject = $entity->entityable_type === 'team';
         $managerScope = $this->managerScope($data['manager_scope']
@@ -87,6 +90,7 @@ class Document
                 'manager_scope' => $managerScope,
                 'visibility' => $visibility,
                 'sort' => $data['sort'] ?? 0,
+                'tags' => $data['tags'],
             ]);
             app(Markdown::class)->sync($doc, 'content', $data['content'] ?? null);
             if ($visibility === VisibilityEnum::Custom) {
@@ -114,7 +118,7 @@ class Document
         );
 
         $update = [];
-        foreach (['title', 'content', 'manager_scope', 'visibility', 'sort'] as $field) {
+        foreach (['title', 'content', 'manager_scope', 'visibility', 'sort', 'tags'] as $field) {
             if (array_key_exists($field, $data)) {
                 $update[$field] = $data[$field];
             }
@@ -130,6 +134,9 @@ class Document
         }
         if (array_key_exists('visibility', $update)) {
             $update['visibility'] = $this->visibility($update['visibility']);
+        }
+        if (array_key_exists('tags', $update)) {
+            $update['tags'] = $this->normalizeTags($update['tags']);
         }
 
         $managerScope = $update['manager_scope'] ?? $doc->enumCase('manager_scope');
@@ -232,5 +239,52 @@ class Document
         } catch (\ValueError) {
             throw new HttpException(422, '可见范围格式不正确');
         }
+    }
+
+    private function data(DocumentModel $document): array
+    {
+        $data = $document->toArray();
+        $data['tags'] = $this->outputTags($data['tags'] ?? null);
+        return $data;
+    }
+
+    private function normalizeTags(mixed $tags): array
+    {
+        if ($tags === null) {
+            return [];
+        }
+        if (!is_array($tags) || !array_is_list($tags)) {
+            throw new HttpException(422, '文档标签必须是字符串数组');
+        }
+
+        $normalized = [];
+        foreach ($tags as $tag) {
+            if (!is_string($tag)) {
+                throw new HttpException(422, '文档标签必须是字符串');
+            }
+            $tag = preg_replace('/^\s+|\s+$/u', '', $tag);
+            if ($tag === null || $tag === '') {
+                throw new HttpException(422, '文档标签不能为空');
+            }
+            if (str_starts_with($tag, '#')) {
+                throw new HttpException(422, '文档标签不能以#开头');
+            }
+            if (preg_match('/\p{Cc}/u', $tag) !== 0) {
+                throw new HttpException(422, '文档标签不能包含控制字符');
+            }
+            if (mb_strlen($tag, 'UTF-8') > 50) {
+                throw new HttpException(422, '文档标签长度不能超过50个字符');
+            }
+            if (!in_array($tag, $normalized, true)) {
+                $normalized[] = $tag;
+            }
+        }
+
+        return $normalized;
+    }
+
+    private function outputTags(mixed $tags): array
+    {
+        return is_array($tags) && array_is_list($tags) ? array_values($tags) : [];
     }
 }

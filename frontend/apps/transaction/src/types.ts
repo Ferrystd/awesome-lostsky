@@ -25,15 +25,6 @@ export interface AssigneeStat {
   team_cut: string
 }
 
-export interface InviteIdentity {
-  entity_id: number
-  type: 'team' | 'teamMember' | 'teamVirtual'
-  slug: string
-  name: string
-  avatar?: string | null
-  display_url: string
-}
-
 export interface Pagination<T> {
   total: number
   list: T[]

@@ -15,8 +15,9 @@
     "paths": {
       "@lostsky/ui/*": ["packages/ui/src/*"],
       "@lostsky/api/*": ["packages/api/src/*"],
-      "@lostsky/shared/*": ["packages/shared/src/*"]
+      "@lostsky/shared/*": ["packages/shared/src/*"],
+      "vue-draggable-plus": ["packages/ui/src/types/vue-draggable-plus.d.ts"]
     }
   },
-  "include": ["apps/**/*.ts", "apps/**/*.vue", "packages/**/*.ts", "packages/**/*.vue", "vite.*.ts"]
+  "include": ["apps/**/*.ts", "apps/**/*.vue", "packages/**/*.ts", "packages/**/*.vue", "component-previews/**/*.ts", "component-previews/**/*.vue", "vite.*.ts"]
 }

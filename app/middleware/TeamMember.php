@@ -30,8 +30,8 @@ class TeamMember
             throw new HttpException(403, '你不是该团队的成员');
         }
 
-        if ($member->is_blocked) {
-            throw new HttpException(403, '你已被该团队封禁');
+        if (!$member->canDirectReceive()) {
+            throw new HttpException(403, '当前成员账号无法直接登录');
         }
 
         $request->member = $member;

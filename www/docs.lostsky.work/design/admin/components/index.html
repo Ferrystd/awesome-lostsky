@@ -1091,6 +1091,114 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../manual/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  核心概念
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../manual/access-and-abilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  能力、权限与功能降级
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../manual/permissions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  权限目录
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../manual/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  问题排查
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../manual/account-and-identity/" class="md-nav__link">
         
   
@@ -2210,6 +2318,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../development/component-previews/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  组件代码预览
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../development/testing/" class="md-nav__link">
         
   
@@ -2905,6 +3040,12 @@
 <td>桌面搜索→筛选→动作→数量，搜索不超过 28rem、筛选通常为 10rem、控件高 40px；移动端纵向且控件高 44px；数量使用 <code>aria-live=polite</code></td>
 </tr>
 <tr>
+<td><code>LsFormList</code></td>
+<td><code>v-model</code>、<code>itemKey</code>、<code>createItem</code> 必填；<code>itemLabel='项目'</code>、<code>addLabel='添加一项'</code>、<code>emptyText='尚未添加项目'</code>、<code>disabled=false</code>；<code>item</code> 插槽接收当前项目与索引</td>
+<td>页面自行实现重复字段的增删排序；业务页面直接导入拖拽库；只提供拖拽而没有键盘替代路径</td>
+<td>连续有边界列表；拖拽手柄支持指针与触控，上移/下移为完整键盘路径；增删排序后维持焦点并礼貌播报；行操作至少 44px；移动端字段与操作自然换行；减少动态时取消排序动画</td>
+</tr>
+<tr>
 <td><code>LsEntityIdentity</code></td>
 <td><code>type/name/slug/imageUrl/fallback/size</code>；<code>status</code> 插槽只承载与当前主体直接相关的 <code>NTag</code>；真实头像优先，圆角方形回退</td>
 <td>同一主体在列表和选择器使用圆形/不同信息结构；把主体状态推到列表行远端</td>
@@ -2936,9 +3077,9 @@
 </tr>
 <tr>
 <td><code>LsUploadField</code></td>
-<td><code>modelValue=''</code>、<code>placeholder</code>、<code>buttonLabel='选择文件'</code>、<code>disabled/loading/progress/accept/multiple/showUrl/showReason</code>；发出模型、<code>choose/change</code></td>
+<td><code>modelValue=''</code>、<code>placeholder</code>、<code>buttonLabel='选择文件'</code>、<code>disabled/loading/progress/accept/multiple/showUrl</code>、<code>showReason=false</code>；发出模型、<code>choose/change</code></td>
 <td>常驻“缺少能力”错误条；大号上传按钮；页面直接暴露原生文件输入</td>
-<td>无能力时稳定禁用且不发请求；进度为区域状态；移动端纵向；禁用原因进入标题和可选说明</td>
+<td>无能力时保持禁用外观与 <code>aria-disabled</code>，点击或键盘触发后以全局提示说明原因且不发请求；进度为区域状态；移动端纵向；禁用原因进入标题，可按需启用局部说明</td>
 </tr>
 <tr>
 <td><code>LsEmptyState</code></td>
@@ -2995,9 +3136,10 @@
 <h2 id="_4">实现级例外<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>例外只能解决浏览器或第三方编辑器的实现边界，不能改变用户可见的设计语言：</p>
 <ul>
-<li><code>LsUploadField</code> 内部保留一个 <code>display:none</code> 的原生 <code>input[type=file]</code>。适用范围仅为该公共组件，因为浏览器安全模型要求由文件输入取得本地文件；页面不得直接引用或设计它。桌面和移动端都由 44px 以上的 <code>NButton</code> 触发，禁用时不点击隐藏输入、不发请求，进度和错误仍由公共组件表达。检查方法：源码扫描中只允许 <code>LsUploadField.vue</code> 出现这一原生文件输入，并用组件测试断言 disabled 不触发 <code>change/choose</code> 后续请求。</li>
+<li><code>LsUploadField</code> 内部保留一个 <code>display:none</code> 的原生 <code>input[type=file]</code>。适用范围仅为该公共组件，因为浏览器安全模型要求由文件输入取得本地文件；页面不得直接引用或设计它。桌面和移动端都由 44px 以上的 <code>NButton</code> 触发；存在禁用原因时按钮以 <code>aria-disabled</code> 保留可触发说明的语义，点击或键盘触发只显示短时全局提示，不点击隐藏输入、不发请求。检查方法：源码扫描中只允许 <code>LsUploadField.vue</code> 出现这一原生文件输入，并用组件测试断言 disabled 不触发 <code>change/choose</code> 后续请求。</li>
 <li><code>LsMarkdownRenderer</code> 的清洗结果内允许生成主体引用 <code>button</code>。适用范围仅为 DOMPurify 清洗后的 <code>lostsky://entity/</code> 引用，因为字符串渲染结果不能直接挂载 Vue/Naive 组件；它必须使用公共按钮令牌、提供主体名称、键盘触发与焦点恢复，不得生成其他原生控件。解析、权限或主体解析失败时退化为普通安全文本，不弹全局错误。检查方法：源码允许清单只包含该生成语句，并测试清洗、键盘和关闭后焦点。</li>
 <li>Milkdown/Crepe 可管理其编辑区内部语义和必要工具栏 DOM。适用范围仅为 <code>LsMarkdownEditor</code> 的第三方编辑区；LostSky 仍负责外层模式、搜索、上传、错误、尺寸、焦点和减少动态效果，不得复制一套页面级编辑器控件。检查方法：组件测试三个模式和禁用上传，静态检查禁止其他页面直接引入 Crepe。</li>
+<li><code>LsFormList</code> 内部使用 <code>vue-draggable-plus</code> 同步单列表拖拽排序。适用范围仅为该公共组件；业务页面只能使用 <code>v-model</code>、项目工厂和项目插槽，不得直接导入拖拽库或依赖其事件结构。拖拽是指针与触控增强，上移/下移按钮始终提供等价键盘路径；组件卸载时由 Vue 封装销毁实例。检查方法：静态测试只允许 <code>LsFormList.vue</code> 导入 <code>vue-draggable-plus</code>，组件与 E2E 分别覆盖按钮和拖拽排序。</li>
 </ul>
 
 

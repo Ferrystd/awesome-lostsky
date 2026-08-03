@@ -10,12 +10,12 @@ use think\Request;
 class JoinField
 {
     protected $middleware = [
-        'JwtAuth'    => ['only' => ['index', 'add', 'edit', 'delete']],
-        'Context'    => ['only' => ['index', 'add', 'edit', 'delete']],
-        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'add', 'edit', 'delete']],
-        'TeamAuth' => ['only' => ['index', 'add', 'edit', 'delete']],
+        'JwtAuth'    => ['only' => ['index', 'transferOptions', 'add', 'edit', 'delete']],
+        'Context'    => ['only' => ['index', 'transferOptions', 'add', 'edit', 'delete']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'transferOptions', 'add', 'edit', 'delete']],
+        'TeamAuth' => ['only' => ['index', 'transferOptions', 'add', 'edit', 'delete']],
         'Permission:' . Permissions::TEAM_JOIN_FIELD_READ => ['only' => ['index']],
-        'Permission:' . Permissions::TEAM_JOIN_FIELD_WRITE => ['only' => ['add', 'edit', 'delete']],
+        'Permission:' . Permissions::TEAM_JOIN_FIELD_WRITE => ['only' => ['transferOptions', 'add', 'edit', 'delete']],
     ];
 
     public function index(Request $request)
@@ -24,6 +24,13 @@ class JoinField
         $result = $service->fields($request->team_id, false);
 
         return success($result);
+    }
+
+    public function transferOptions(Request $request)
+    {
+        $service = app(TeamJoin::class);
+
+        return success($service->transferOptions($request->team_id));
     }
 
     public function add(Request $request)

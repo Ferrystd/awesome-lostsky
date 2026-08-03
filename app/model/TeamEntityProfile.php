@@ -12,6 +12,7 @@ class TeamEntityProfile extends Base
         'intro_video' => 'string', 'introduction_markdown' => 'string',
     ];
 
+    protected $json = ['document_tags'];
     protected $hidden = ['delete_time'];
     protected $readonly = ['entity_id'];
 

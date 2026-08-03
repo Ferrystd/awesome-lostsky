@@ -344,6 +344,7 @@ try {
         'an inactive target entity is rejected'
     );
 
+    $memberA->status = 2;
     $memberA->is_blocked = 1;
     $memberA->save();
     $assertThrows(

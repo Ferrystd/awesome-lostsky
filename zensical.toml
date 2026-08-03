@@ -28,6 +28,10 @@ nav = [
   ]},
   {"使用手册" = [
     "manual/index.md",
+    "manual/concepts.md",
+    "manual/access-and-abilities.md",
+    "manual/permissions.md",
+    "manual/troubleshooting.md",
     "manual/account-and-identity.md",
     "manual/team-workspace.md",
     "manual/chat.md",
@@ -69,6 +73,7 @@ nav = [
     "development/checklist.md",
     "development/backend.md",
     "development/frontend.md",
+    "development/component-previews.md",
     "development/testing.md",
     "development/releasing.md",
     "development/wiki.md"

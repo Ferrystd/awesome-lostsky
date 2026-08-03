@@ -4,11 +4,13 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\enum\TeamJoinStatus;
+use app\enum\TeamJoinPurpose;
+use app\enum\TeamMemberStatus;
 use app\model\TeamJoinApplication;
 use app\model\TeamJoinField;
 use app\model\TeamJoinFieldValue;
 use app\model\TeamJoinTask;
-use app\model\TeamEntityProfile;
+use app\model\TeamMemberTenure;
 use think\exception\HttpException;
 use think\file\UploadedFile;
 
@@ -19,14 +21,67 @@ class TeamJoin
         TeamJoinStatus::Reviewing->value,
     ];
 
-    public function fields(int $teamId, bool $onlyFillable = false): array
+    public function form(int $teamId, int $userId): array
     {
-        $query = TeamJoinField::where('team_id', $teamId)->where('is_active', 1);
-        if ($onlyFillable) {
-            $query->where('is_apply_fillable', 1);
+        $member = \app\model\TeamMember::where('team_id', $teamId)
+            ->where('user_id', $userId)
+            ->find();
+        if ($member && $member->statusCase() !== TeamMemberStatus::Departed) {
+            throw new HttpException(409, '你已经是本团队成员');
         }
 
-        return $query->with(['entityField'])
+        $purpose = $member ? TeamJoinPurpose::Reinstate : TeamJoinPurpose::Join;
+        $refill = $purpose === TeamJoinPurpose::Join || (bool) (
+            app(TeamSetting::class)->internal($teamId, 'member')['reinstate_refill_join_fields'] ?? false
+        );
+
+        return [
+            'purpose_code' => $purpose->code(),
+            'purpose_label' => $purpose->value(),
+            'refill_required' => $refill,
+            'fields' => $refill ? $this->fields($teamId, true) : [],
+        ];
+    }
+
+    public function fields(int $teamId, bool $onlyFillable = false): array
+    {
+        $query = TeamJoinField::where('team_id', $teamId);
+        if ($onlyFillable) {
+            $query->where('is_active', 1)->where('is_apply_fillable', 1);
+        }
+
+        $fields = $query
+            ->order('sort', 'asc')
+            ->order('id', 'asc')
+            ->select();
+        $entityFieldIds = [];
+        foreach ($fields as $field) {
+            if ($field->entity_field_id) {
+                $entityFieldIds[] = (int) $field->entity_field_id;
+            }
+        }
+        $entityFieldMap = [];
+        if ($entityFieldIds) {
+            foreach (\app\model\TeamEntityField::where('team_id', $teamId)
+                ->whereIn('id', array_values(array_unique($entityFieldIds)))
+                ->select() as $entityField) {
+                $entityFieldMap[(int) $entityField->id] = $entityField->toArray();
+            }
+        }
+
+        return array_map(static function (TeamJoinField $field) use ($entityFieldMap): array {
+            $data = $field->toArray();
+            $data['entity_field'] = $entityFieldMap[(int) ($field->entity_field_id ?? 0)] ?? null;
+
+            return $data;
+        }, $fields->all());
+    }
+
+    public function transferOptions(int $teamId): array
+    {
+        return \app\model\TeamEntityField::where('team_id', $teamId)
+            ->where('entity_type', \app\enum\TeamEntityType::Entity->value)
+            ->field(['id', 'field_key', 'name', 'value_type', 'input_type', 'sort'])
             ->order('sort', 'asc')
             ->order('id', 'asc')
             ->select()
@@ -86,27 +141,56 @@ class TeamJoin
         if (!$validator->scene('apply')->check($data)) {
             throw new HttpException(422, $validator->getError());
         }
-        if (\app\model\TeamMember::where('team_id', $teamId)->where('user_id', $userId)->find()) {
+        $member = \app\model\TeamMember::where('team_id', $teamId)->where('user_id', $userId)->find();
+        if ($member && $member->statusCase() !== TeamMemberStatus::Departed) {
             throw new HttpException(409, '你已经是本团队成员');
         }
         if (TeamJoinApplication::where('team_id', $teamId)->where('user_id', $userId)->whereIn('status', self::ACTIVE_STATUSES)->find()) {
             throw new HttpException(409, '你已有正在处理中的加入申请');
         }
 
-        $values = $data['values'] ?? [];
-        $this->assertRequiredValues($teamId, $values);
+        $purpose = $member ? TeamJoinPurpose::Reinstate : TeamJoinPurpose::Join;
+        $refill = $purpose === TeamJoinPurpose::Join || (bool) (
+            app(TeamSetting::class)->internal($teamId, 'member')['reinstate_refill_join_fields'] ?? false
+        );
+        $values = $refill ? ($data['values'] ?? []) : [];
+        if ($refill) {
+            $this->assertRequiredValues($teamId, $values);
+        }
+        $inviter = $purpose === TeamJoinPurpose::Join
+            ? app(Inviter::class)->resolve($data['inviter_slug'] ?? null)
+            : null;
+        $entityId = $member
+            ? (int) (\app\model\Entity::member()->where('entityable_id', (int) $member->id)->value('id') ?? 0)
+            : 0;
+        if ($member && $entityId < 1) {
+            throw new HttpException(409, '原成员实体不存在，无法申请复职');
+        }
 
-        return \think\facade\Db::transaction(function () use ($teamId, $userId, $data, $values) {
+        return \think\facade\Db::transaction(function () use (
+            $teamId,
+            $userId,
+            $data,
+            $values,
+            $inviter,
+            $purpose,
+            $entityId,
+            $refill
+        ) {
             $application = new TeamJoinApplication;
             $application->save([
                 'team_id' => $teamId,
                 'user_id' => $userId,
-                'entity_id' => null,
+                'entity_id' => $entityId > 0 ? $entityId : null,
+                'inviter_entity_id' => $inviter?->id,
+                'purpose' => $purpose,
                 'status' => TeamJoinStatus::Applied,
-                'memo' => $data['memo'] ?? null,
+                'memo' => $purpose === TeamJoinPurpose::Join ? ($data['memo'] ?? null) : null,
             ]);
 
-            $this->saveApplicationValues((int) $application->id, $teamId, $values);
+            if ($refill) {
+                $this->saveApplicationValues((int) $application->id, $teamId, $values);
+            }
 
             return (int) $application->id;
         });
@@ -114,12 +198,16 @@ class TeamJoin
 
     public function mine(int $teamId, int $userId): array
     {
-        return TeamJoinApplication::where('team_id', $teamId)
+        $applications = TeamJoinApplication::where('team_id', $teamId)
             ->where('user_id', $userId)
             ->with(['values.field', 'tasks'])
             ->order('id', 'desc')
-            ->select()
-            ->toArray();
+            ->select();
+
+        return array_map(
+            fn (TeamJoinApplication $application): array => $this->applicationData($application, $teamId),
+            $applications->all()
+        );
     }
 
     public function list(int $teamId, array $filters, int $page = 1, int $limit = 20): array
@@ -134,12 +222,15 @@ class TeamJoin
         }
 
         $total = $query->count();
-        $applications = $query->with(['user.profile', 'subject.entityable', 'values.field', 'tasks'])
+        $applications = $query->with(['user.profile', 'values.field', 'tasks'])
             ->order('id', 'desc')
             ->page($page, $limit)
             ->select();
 
-        $list = $applications->toArray();
+        $list = array_map(
+            fn (TeamJoinApplication $application): array => $this->applicationData($application, $teamId),
+            $applications->all()
+        );
 
         return compact('total', 'list', 'page', 'limit');
     }
@@ -147,7 +238,7 @@ class TeamJoin
     public function get(int $teamId, int $id, ?int $userId = null): array
     {
         $application = TeamJoinApplication::where('team_id', $teamId)
-            ->with(['user.profile', 'subject.entityable', 'values.field', 'tasks'])
+            ->with(['user.profile', 'values.field', 'tasks'])
             ->find($id);
         if (!$application) {
             throw new HttpException(404, '申请不存在');
@@ -156,7 +247,7 @@ class TeamJoin
             throw new HttpException(403, '无权查看此申请');
         }
 
-        return $application->toArray();
+        return $this->applicationData($application, $teamId);
     }
 
     public function cancel(int $teamId, int $userId, int $id): void
@@ -201,40 +292,59 @@ class TeamJoin
             }
             $this->assertPending($application);
 
+            $purpose = $application->enumCase('purpose');
             $member = \app\model\TeamMember::where('team_id', $teamId)
                 ->where('user_id', (int) $application->user_id)
+                ->lock(true)
                 ->find();
+
+            if ($purpose === TeamJoinPurpose::Join && $member) {
+                throw new HttpException(409, '申请人已经是团队成员');
+            }
+            if ($purpose === TeamJoinPurpose::Reinstate
+                && (!$member || $member->statusCase() !== TeamMemberStatus::Departed)) {
+                throw new HttpException(409, '成员当前状态不能复职');
+            }
 
             if (!$member) {
                 $member = new \app\model\TeamMember;
                 $member->save([
                     'team_id' => $teamId,
                     'user_id' => (int) $application->user_id,
+                    'inviter_entity_id' => $application->inviter_entity_id,
+                    'status' => TeamMemberStatus::Active->value,
+                    'is_blocked' => 0,
                 ]);
                 $entity = app(\app\service\Entity::class)->claimMember(
                     $teamId,
                     (int) $member->id,
                     "member-{$member->id}"
                 );
-
-                $profile = new TeamEntityProfile;
-                $profile->save([
-                    'entity_id' => (int) $entity->id,
-                    'name' => '',
-                    'avatar' => '',
-                    'description' => null,
-                    'intro_image' => null,
-                    'intro_video' => null,
-                    'introduction_markdown' => null,
+            } else {
+                $member->save([
+                    'status' => TeamMemberStatus::Active->value,
+                    'is_blocked' => 0,
                 ]);
             }
 
             $this->transferValues($teamId, (int) $application->id, (int) $member->id);
 
-            $entity ??= app(Entity::class)->requireBySubject('teamMember', (int) $member->id);
+            $entity ??= \app\model\Entity::member()->where('entityable_id', (int) $member->id)->find();
+            if (!$entity) {
+                throw new HttpException(409, '成员实体不存在');
+            }
             $application->entity_id = (int) $entity->id;
             $application->status = TeamJoinStatus::Joined;
             $application->save();
+
+            $tenure = new TeamMemberTenure;
+            $tenure->save([
+                'team_id' => $teamId,
+                'member_id' => (int) $member->id,
+                'join_application_id' => (int) $application->id,
+                'joined_at' => time(),
+                'departed_at' => null,
+            ]);
 
             return (int) $member->id;
         });
@@ -311,6 +421,14 @@ class TeamJoin
         }
 
         return $application;
+    }
+
+    private function applicationData(TeamJoinApplication $application, int $teamId): array
+    {
+        $data = $application->toArray();
+        $data['inviter'] = app(Inviter::class)->summary($teamId, $application->inviter_entity_id);
+
+        return $data;
     }
 
     private function assertPending(TeamJoinApplication $application): void
@@ -417,7 +535,12 @@ class TeamJoin
 
     private function transferValues(int $teamId, int $applicationId, int $memberId): void
     {
-        $entityId = (int) app(Entity::class)->requireBySubject('teamMember', $memberId)->id;
+        $entityId = (int) (\app\model\Entity::member()
+            ->where('entityable_id', $memberId)
+            ->value('id') ?? 0);
+        if ($entityId < 1) {
+            throw new HttpException(409, '成员实体不存在');
+        }
         $values = TeamJoinFieldValue::where('application_id', $applicationId)
             ->with(['field'])
             ->select();

@@ -5,7 +5,6 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
 import { goToSafeRedirect } from '@lostsky/shared/navigation'
 import { Eye, EyeOff } from '@lucide/vue'
-import { NButton, NRadioButton, NRadioGroup } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import AuthShell from '../components/AuthShell.vue'
@@ -61,7 +60,10 @@ async function submit() {
 
 <template>
   <AuthShell title="欢迎回来" intro="使用短信验证码或密码继续进入你的工作空间。">
-    <NRadioGroup v-model:value="mode" class="mode" name="login-mode" aria-label="登录方式"><NRadioButton value="sms">验证码登录</NRadioButton><NRadioButton value="password">密码登录</NRadioButton></NRadioGroup>
+    <div class="mode" role="tablist" aria-label="登录方式">
+      <button type="button" role="tab" :aria-selected="mode === 'sms'" @click="mode = 'sms'">验证码登录</button>
+      <button type="button" role="tab" :aria-selected="mode === 'password'" @click="mode = 'password'">密码登录</button>
+    </div>
     <p v-if="expired" class="notice">登录状态已过期，请重新登录。</p>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <form class="form" @submit.prevent="submit">
@@ -97,7 +99,10 @@ async function submit() {
               autocomplete="current-password"
               placeholder="至少 6 位"
             />
-            <NButton quaternary circle :aria-label="visible ? '隐藏密码' : '显示密码'" @click="visible = !visible"><template #icon><EyeOff v-if="visible" :size="19" /><Eye v-else :size="19" /></template></NButton>
+            <button type="button" :aria-label="visible ? '隐藏密码' : '显示密码'" @click="visible = !visible">
+              <EyeOff v-if="visible" :size="19" />
+              <Eye v-else :size="19" />
+            </button>
           </div>
         </LsField>
       </template>
@@ -110,13 +115,14 @@ async function submit() {
 </template>
 
 <style scoped>
-.mode { width: 100%; display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem; }
-.mode :deep(.n-radio-button) { min-height: 44px; display: grid; place-items: center; }
+.mode { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem; padding: 3px; background: var(--cloud); border-radius: 10px; }
+.mode button { min-height: 44px; border: 0; border-radius: 8px; color: var(--muted-ink); background: transparent; cursor: pointer; }
+.mode button[aria-selected='true'] { color: var(--ink); background: white; box-shadow: 0 2px 7px color-mix(in oklch, var(--ink), transparent 92%); }
 .form { display: grid; gap: 1.25rem; }
 .form :deep(.ls-button) { width: 100%; margin-top: .25rem; }
 .password { position: relative; }
 .password :deep(input) { padding-right: 3rem; }
-.password :deep(.n-button) { position: absolute; right: .2rem; top: 0; width: 44px; height: 44px; }
+.password button { position: absolute; right: .2rem; top: .1rem; width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted-ink); background: transparent; border: 0; cursor: pointer; }
 .error, .notice { padding: .75rem .85rem; border-radius: 8px; font-size: .875rem; }
 .error { color: var(--danger); background: color-mix(in oklch, var(--danger), white 93%); }
 .notice { color: var(--sky-lost-strong); background: color-mix(in oklch, var(--sky-lost), white 91%); }

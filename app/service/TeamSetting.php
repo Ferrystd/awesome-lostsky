@@ -135,6 +135,7 @@ class TeamSetting
         int $visibility = VisibilityEnum::Team->value,
         array $targets = []
     ): void {
+        $before = $appName === 'member' ? $this->internal($teamId, 'member') : [];
         $preparedVisibility = $this->visibility($visibility);
         $this->assertVisibility($preparedVisibility);
         $normalized = $this->normalize($appName, $key, $value);
@@ -142,10 +143,12 @@ class TeamSetting
         \think\facade\Db::transaction(function () use ($teamId, $appName, $key, $normalized, $preparedVisibility, $targets) {
             $this->persist($teamId, $appName, $key, $normalized, $preparedVisibility, $targets);
         });
+        $this->afterMemberSettingsChanged($teamId, $appName, $before);
     }
 
     public function batch(int $teamId, string $appName, array $kv): void
     {
+        $before = $appName === 'member' ? $this->internal($teamId, 'member') : [];
         $this->definitions($appName);
         $prepared = [];
         foreach ($kv as $key => $value) {
@@ -169,6 +172,19 @@ class TeamSetting
                 );
             }
         });
+        $this->afterMemberSettingsChanged($teamId, $appName, $before);
+    }
+
+    private function afterMemberSettingsChanged(int $teamId, string $appName, array $before): void
+    {
+        if ($appName !== 'member' || !(bool) ($before['inactive_entity_available'] ?? false)) {
+            return;
+        }
+
+        $after = $this->internal($teamId, 'member');
+        if (!(bool) ($after['inactive_entity_available'] ?? false)) {
+            app(IdentitySession::class)->revokeInactiveMembers($teamId);
+        }
     }
 
     private function persist(

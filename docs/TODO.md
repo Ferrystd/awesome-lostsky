@@ -37,10 +37,6 @@
 
 - [启用 AI 的实施计划](./plans/markdown-ai.md)
 
-### 成员复职
-
-- 增加团队成员复职入口：通过 `withTrashed()` 按 `team_id + user_id` 锁定历史成员。软删除的成员slug,id等不解放。
-
 ### 团队解散
 
 - 当前版本暂时禁用团队解散入口；未来完成以下可恢复状态机后再开放：先标记 `cancelling` 并禁止新写入，立即撤销实体会话、Webhook 和域名绑定并清除 `team_slug_*`、`team_id_*`、`team_domain_*`、`team_domain_bind_without_common` 缓存；再由后台清理任务按依赖顺序处理 Chat/outbox、订单流水与余额、文档引用、文件元数据及 OSS 对象，保存审计汇总后最终软删除团队。失败批次必须可重试，财务与审计记录按保留策略归档而不是直接级联物理删除。

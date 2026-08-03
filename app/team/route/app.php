@@ -19,9 +19,18 @@ Route::post('member/add', 'member/add');
 Route::post('member/edit', 'member/edit');
 Route::post('member/block', 'member/block');
 Route::post('member/unblock', 'member/unblock');
-Route::post('member/remove', 'member/remove');
 Route::post('member/slug', 'member/slug');
 Route::post('member/search', 'member/search');
+
+// memberDeparture
+Route::get('memberDeparture/index', 'memberDeparture/index');
+Route::get('memberDeparture/get', 'memberDeparture/get');
+Route::get('memberDeparture/mine', 'memberDeparture/mine');
+Route::post('memberDeparture/apply', 'memberDeparture/apply');
+Route::post('memberDeparture/create', 'memberDeparture/create');
+Route::post('memberDeparture/cancel', 'memberDeparture/cancel');
+Route::post('memberDeparture/approve', 'memberDeparture/approve');
+Route::post('memberDeparture/reject', 'memberDeparture/reject');
 
 // entity
 Route::get('entity/search', 'entity/search');
@@ -105,6 +114,7 @@ Route::post('joinReview/setTaskPassed', 'joinReview/setTaskPassed');
 
 // joinField
 Route::get('joinField/index', 'joinField/index');
+Route::get('joinField/transferOptions', 'joinField/transferOptions');
 Route::post('joinField/add', 'joinField/add');
 Route::post('joinField/edit', 'joinField/edit');
 Route::post('joinField/delete', 'joinField/delete');

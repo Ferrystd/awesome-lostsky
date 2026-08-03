@@ -12,14 +12,13 @@ class Member
     private const PROFILE_FIELDS = [];
 
     protected $middleware = [
-        'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
-        'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
-        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
-        'TeamAuth'     => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
-        'MemberAccess' => ['only' => ['add', 'edit', 'block', 'unblock', 'remove', 'slug', 'search']],
+        'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
+        'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
+        'TeamAuth'     => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
+        'MemberAccess' => ['only' => ['add', 'edit', 'block', 'unblock', 'slug', 'search']],
         'Permission:' . Permissions::TEAM_MEMBER_INVITE => ['only' => ['add']],
         'Permission:' . Permissions::TEAM_MEMBER_UPDATE => ['only' => ['edit', 'block', 'unblock', 'slug', 'search']],
-        'Permission:' . Permissions::TEAM_MEMBER_REMOVE => ['only' => ['remove']],
     ];
 
     /**
@@ -28,7 +27,11 @@ class Member
     public function index(Request $request)
     {
         $service = app(TeamMemberService::class);
-        $result  = $service->list($request->team_id, $request->acting_entity);
+        $result  = $service->list(
+            $request->team_id,
+            $request->acting_entity,
+            $request->get('status/s', '') ?: null
+        );
 
         return success($result);
     }
@@ -103,19 +106,6 @@ class Member
         $service->unblock($request->team_id, $memberId);
 
         return message('成员已解封');
-    }
-
-    /**
-     * 移出成员
-     */
-    public function remove(Request $request)
-    {
-        $memberId = $request->post('member_id/d', 0);
-
-        $service = app(TeamMemberService::class);
-        $service->remove($request->team_id, $memberId);
-
-        return message('成员已移出');
     }
 
     public function slug(Request $request)

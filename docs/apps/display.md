@@ -5,8 +5,9 @@ Display 提供团队公开主页、可展示实体详情和公开文档。入口
 
 ## 业务职责
 
-- 返回团队 Profile、介绍媒体、Markdown、Public 字段和 Public 文档。
+- 返回团队 Profile、介绍媒体、Markdown、Public 字段、主页展示文案和 Public 文档。
 - 分页返回 `entity.is_displayed = 1` 的有效成员与虚拟实体。
+- 公开实体目录支持按资料名称或全局 Slug 模糊搜索，并可与成员、虚拟实体类型筛选及分页组合。
 - 返回单个公开实体的 Profile、Public 字段、公开角色和 Public 文档。
 - 解析公开 Markdown 中的 Entity 引用，并生成所属团队的 Display 链接。
 
@@ -27,6 +28,8 @@ Display 提供团队公开主页、可展示实体详情和公开文档。入口
 ## 前端边界
 
 - Display 使用统一的 LostSky 深空青色模板，不接受团队主题或联系方式配置。
+- 团队主页首屏欢迎语回退、实体入口、实体区域标题、说明和空状态文案来自 `display.*` TeamSetting；独立实体目录不读取这些主页专属文案。
+- `/entities` 提供完整公开实体目录；团队主页只保留桌面最多三行、移动端最多三个对象的预览。本期不在导航或主页增加该独立目录入口。
 - 实体详情复用 Profile 现有 `intro_image` 作为唯一的全宽 Hero 背景，在固定高度容器内以 `cover` 居中裁剪；该页不再叠加站点背景，同一图片也不在正文媒体区重复渲染。
 - 公开文档继续通过共享 `LsMarkdownRenderer` 使用 `marked` 与 DOMPurify 安全渲染；Milkdown/Crepe 只用于后台编辑。文档阅读页为标题、列表、引用、代码、表格和媒体提供独立排版层级。
 - Markdown Entity 引用使用统一的展开式资料卡；再次点击同一引用会收起。共享组件识别团队、成员、客户和虚拟实体，但 Display 解析仍不公开客户资料，客户引用只显示不可用状态。

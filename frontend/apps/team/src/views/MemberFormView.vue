@@ -20,6 +20,7 @@ import EntityPermissionsCard, {
 } from '../components/EntityPermissionsCard.vue'
 import MemberProfileFields from '../components/MemberProfileFields.vue'
 import { useMemberProfileUpload } from '../composables/useMemberProfileUpload'
+import { memberStatusCode, memberStatusLabel } from '../lib/memberStatus'
 import { fileUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 interface MemberCapabilities {
@@ -64,6 +65,7 @@ const detail = useQuery({
   enabled: editing,
 })
 const memberSlug = computed(() => String(detail.data.value?.slug ?? ''))
+const lifecycleStatus = computed(() => memberStatusCode(detail.data.value ?? {}))
 const capabilities = computed<MemberCapabilities>(() => ({
   member_edit: Boolean((detail.data.value?.capabilities as Partial<MemberCapabilities> | undefined)?.member_edit),
   field_manage: Boolean((detail.data.value?.capabilities as Partial<MemberCapabilities> | undefined)?.field_manage),
@@ -192,13 +194,9 @@ const memberAction = useMutation({
   mutationFn: (endpoint: string) => api.post(endpoint, { member_id: id.value }),
   onSuccess: async (_, endpoint) => {
     await queryClient.invalidateQueries({ queryKey: ['members'] })
-    if (endpoint === '/member/remove') {
-      await router.push('/members')
-    } else {
-      await detail.refetch()
-    }
-    feedback.success(endpoint === '/member/remove'
-      ? '成员已移出团队'
+    await detail.refetch()
+    feedback.success(endpoint === '/memberDeparture/create'
+      ? '离队申请已创建，等待审核'
       : endpoint === '/member/block' ? '成员已封禁' : '成员封禁已解除')
   },
   onError: error => feedback.error(friendlyError(error)),
@@ -338,7 +336,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       <section class="management">
       <div class="section-heading">
         <div><h2 id="member-management-title">管理操作</h2><p>成员状态、搜索范围与实体身份操作。</p></div>
-        <span>{{ Number(detail.data.value.is_blocked) ? '已封禁' : '正常' }}</span>
+        <span>{{ memberStatusLabel(detail.data.value) }}</span>
       </div>
       <form v-if="!detail.data.value.slug && capabilities.member_slug" class="inline-form" @submit.prevent="claim.mutate()">
         <LsField label="补全对象标识" for-id="member-slug"><NInput id="member-slug" v-model:value="identityForm.slug" placeholder="例如 zhang-san" autocapitalize="none" /></LsField>
@@ -353,7 +351,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
 
       <div class="management-actions">
         <LsButton
-          v-if="capabilities.member_block && !Number(detail.data.value.is_blocked)"
+          v-if="capabilities.member_block && lifecycleStatus === 'active'"
           type="button"
           variant="secondary"
           :loading="memberAction.isPending.value"
@@ -362,7 +360,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
           封禁成员
         </LsButton>
         <LsButton
-          v-if="capabilities.member_block && Number(detail.data.value.is_blocked)"
+          v-if="capabilities.member_block && lifecycleStatus === 'blocked'"
           type="button"
           variant="secondary"
           :loading="memberAction.isPending.value"
@@ -375,15 +373,15 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
         </LsButton>
       </div>
 
-      <div v-if="capabilities.member_remove" class="danger-zone">
-        <div><strong>移出团队</strong><p>移出后成员资料停止使用，已占用的对象标识仍会保留。</p></div>
+      <div v-if="capabilities.member_remove && lifecycleStatus !== 'departed'" class="danger-zone">
+        <div><strong>发起离队申请</strong><p>申请获批后成员进入已离队状态；资料、角色、对象标识和全部业务关系都会保留。</p></div>
         <LsButton
           type="button"
           variant="danger"
           :loading="memberAction.isPending.value"
-          @click="confirmAction('/member/remove', '确认将该成员移出团队？此操作会删除成员资料和岗位关联。')"
+          @click="confirmAction('/memberDeparture/create', '确认发起该成员的离队申请？申请创建后仍需审核。')"
         >
-          移出成员
+          发起离队申请
         </LsButton>
       </div>
       </section>

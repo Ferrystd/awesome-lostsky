@@ -9,3 +9,5 @@
 新增或改变用户可见功能时，必须先阅读[使用手册](docs/manual/index.md)及对应章节，以用户目标、可观察结果和使用边界指导实现与测试，并在同一变更中同步手册。
 
 无论user使用什么语言，用中文回应。
+
+前端对话提及、检查或改动 `frontend/component-previews/catalog.json` 已登记组件时，必须使用 `.agents/skills/preview-components/` 从真实代码生成并展示最多 4 个最相关预览；禁止用 AI 生成图片代替组件真实渲染。

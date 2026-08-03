@@ -5,6 +5,12 @@ export interface PublicProfile {
   intro_image?: string | null
   intro_video?: string | null
   introduction_markdown?: string | null
+  document_tags: DocumentDisplayTag[]
+}
+
+export interface DocumentDisplayTag {
+  tag: string
+  description: string | null
 }
 
 export interface PublicField {
@@ -36,6 +42,21 @@ export interface PublicSubject {
   fields: PublicField[]
   roles?: PublicRole[]
   products?: PublicProduct[]
+  status_code?: 'active' | 'blocked' | 'departed' | null
+  status_label?: string | null
+}
+
+export interface DisplayHomepageSettings {
+  homepage_welcome: string
+  homepage_entities_link: string
+  homepage_entities_title: string
+  homepage_entities_description: string
+  homepage_entities_empty: string
+}
+
+export interface PublicTeamSubject extends PublicSubject {
+  type: 'team'
+  settings: DisplayHomepageSettings
 }
 
 export interface EntitySummary {
@@ -45,6 +66,8 @@ export interface EntitySummary {
   avatar?: string | null
   description?: string | null
   roles?: PublicRole[]
+  status_code?: 'active' | 'blocked' | 'departed' | null
+  status_label?: string | null
 }
 
 export interface Page<T> {
@@ -57,6 +80,7 @@ export interface Page<T> {
 export interface DocumentSummary {
   id: number
   title: string
+  tags: string[]
   sort: number
   update_time: number
   entity: EntitySummary

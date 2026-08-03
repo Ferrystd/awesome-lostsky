@@ -2,17 +2,26 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
+import LsFormList from '@lostsky/ui/components/LsFormList.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NFormItem, NInput, NInputNumber, NSelect } from 'naive-ui'
 import type { SelectOption, SelectRenderLabel } from 'naive-ui'
-import { computed, h, reactive, ref, watch } from 'vue'
+import { computed, h, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import EntitySelectOption from '../components/EntitySelectOption.vue'
 import { managerScopeOptions, visibilityOptions } from '../lib/access'
+import {
+  createDocumentTagDraft,
+  documentTagDrafts,
+  documentTagError,
+  documentTagsPayload,
+  hasDocumentTagErrors,
+  type DocumentTagDraft,
+} from '../lib/documentTags'
 import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
 import { fileUploadReason, useTeamAccess } from '../lib/teamAccess'
 
@@ -31,7 +40,9 @@ const form = reactive({
   manager_scope: route.query.entity_id ? 2 : 1,
   visibility: route.query.entity_id ? 3 : 1,
   sort: 0,
+  tags: [] as DocumentTagDraft[],
 })
+const tagValidationSubmitted = ref(false)
 
 interface EntityOption {
   entity_id: number
@@ -74,6 +85,7 @@ watch(() => detail.data.value, (data) => {
   form.manager_scope = enumOptionValue(data.manager_scope, managerScopeOptions, 1)
   form.visibility = enumOptionValue(data.visibility, visibilityOptions, 1)
   form.sort = Number(data.sort ?? 0)
+  form.tags = documentTagDrafts(data.tags)
 }, { immediate: true })
 
 const save = useMutation({
@@ -84,6 +96,7 @@ const save = useMutation({
     manager_scope: form.manager_scope,
     visibility: form.visibility,
     sort: form.sort,
+    tags: documentTagsPayload(form.tags),
   }),
   onSuccess: async (result) => {
     editor.value?.clearDraft()
@@ -92,6 +105,20 @@ const save = useMutation({
     await router.push(savedId ? `/doc?id=${savedId}` : '/docs')
   },
 })
+
+const tagKey = (item: DocumentTagDraft) => item.key
+const createTag = () => createDocumentTagDraft()
+const tagFieldError = (item: DocumentTagDraft, index: number) => documentTagError(item, form.tags, index, tagValidationSubmitted.value)
+
+async function submit() {
+  tagValidationSubmitted.value = true
+  if (hasDocumentTagErrors(form.tags)) {
+    await nextTick()
+    document.querySelector<HTMLElement>('.document-tags [data-invalid="true"] input')?.focus()
+    return
+  }
+  save.mutate()
+}
 
 </script>
 
@@ -105,12 +132,46 @@ const save = useMutation({
     />
 
     <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
-    <form v-else class="document-form" @submit.prevent="save.mutate()">
+    <form v-else class="document-form" @submit.prevent="submit">
       <LsField label="标题" for-id="document-title" required><NInput id="document-title" v-model:value="form.title" placeholder="一句话说明这份文档解决什么问题" maxlength="120" show-count required /></LsField>
 
       <div v-if="!editing" class="field-row">
         <LsField label="归属对象" for-id="document-entity"><NSelect id="document-entity" v-model:value="form.entity_id" :options="entityOptions" :render-label="renderEntityLabel" :menu-props="entitySelectMenuProps" :loading="entities.isPending.value" :disabled="entities.isError.value || !entityOptions.length" :virtual-scroll="false" filterable placeholder="选择归属对象" /></LsField>
       </div>
+
+      <section class="document-tags" aria-labelledby="document-tags-title">
+        <div>
+          <h2 id="document-tags-title">文档标签</h2>
+          <p>用于公开页面的文档分组；标签是独立资料，无需输入 #。</p>
+        </div>
+        <LsFormList
+          v-model="form.tags"
+          :item-key="tagKey"
+          :create-item="createTag"
+          item-label="文档标签"
+          add-label="添加标签"
+          empty-text="尚未添加文档标签"
+        >
+          <template #item="{ item, index }">
+            <LsField
+              label="标签"
+              :for-id="`document-tag-${item.key}`"
+              :error="tagFieldError(item, index)"
+              required
+            >
+              <NInput
+                :id="`document-tag-${item.key}`"
+                v-model:value="item.tag"
+                placeholder="例如：指南"
+                maxlength="50"
+                show-count
+                :status="tagFieldError(item, index) ? 'error' : undefined"
+                @blur="item.touched = true; item.tag = item.tag.trim()"
+              />
+            </LsField>
+          </template>
+        </LsFormList>
+      </section>
 
       <NFormItem label="正文">
         <LsMarkdownEditor
@@ -154,6 +215,9 @@ const save = useMutation({
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .field-row .compact { grid-column: 1 / 2; }
 .control { width: 100%; }
+.document-tags { display: grid; gap: 16px; }
+.document-tags h2 { margin: 0 0 5px; font-size: 1rem; }
+.document-tags p { margin: 0; color: var(--text-secondary); font-size: .875rem; line-height: 1.55; }
 .policy { display: grid; gap: 18px; padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-subtle); }
 .policy h2 { margin: 0 0 5px; font-size: 1rem; }
 .policy p { margin: 0; color: var(--text-secondary); font-size: .875rem; }

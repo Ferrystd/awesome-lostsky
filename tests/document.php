@@ -16,6 +16,7 @@ use app\model\TeamRolePermission;
 use app\model\User;
 use app\service\Document as DocumentService;
 use app\service\Entity as EntityService;
+use app\service\EntityProfile;
 use app\service\PermissionDictionary;
 use app\service\TeamDashboard;
 use think\App;
@@ -119,6 +120,9 @@ try {
         || count($result['list']) !== 1 || $result['list'][0]['title'] !== 'Public') {
         throw new RuntimeException('Document visibility must be filtered before count and pagination');
     }
+    if (($result['list'][0]['tags'] ?? null) !== []) {
+        throw new RuntimeException('Legacy null document tags are returned as an empty array in lists');
+    }
 
     $ability = new TeamAbility;
     $ability->save([
@@ -215,6 +219,108 @@ try {
         throw new RuntimeException('Document dashboard metric shows a count with team.document.read');
     }
 
+    $teamActor = [
+        'entity_id' => (int) $teamEntity->id,
+        'type' => 'team',
+        'id' => (int) $team->id,
+    ];
+    $taggedId = app(DocumentService::class)->create((int) $teamEntity->id, [
+        'title' => 'Tagged document',
+        'content' => '',
+        'manager_scope' => ManageScope::Team->value,
+        'visibility' => Visibility::Public->value,
+        'tags' => ['  说明 文档！  ', 'A', 'a', '说明 文档！'],
+    ], (int) $team->id, $teamActor);
+    $tagged = Document::find($taggedId);
+    if (!$tagged || $tagged->tags !== ['说明 文档！', 'A', 'a']) {
+        throw new RuntimeException('Document tags are trimmed, ordered, deduplicated and case-sensitive');
+    }
+    if (app(DocumentService::class)->get($taggedId, (int) $team->id, $teamActor)['tags'] !== ['说明 文档！', 'A', 'a']) {
+        throw new RuntimeException('Document detail returns normalized tags');
+    }
+    app(DocumentService::class)->edit($taggedId, ['sort' => 8], (int) $team->id, $teamActor);
+    if (Document::find($taggedId)?->tags !== ['说明 文档！', 'A', 'a']) {
+        throw new RuntimeException('Omitted document tags retain their previous value');
+    }
+    app(DocumentService::class)->edit($taggedId, ['tags' => null], (int) $team->id, $teamActor);
+    if (Document::find($taggedId)?->tags !== []) {
+        throw new RuntimeException('Null document tags clear the value');
+    }
+    $tagged->save(['tags' => null]);
+    if (app(DocumentService::class)->get($taggedId, (int) $team->id, $teamActor)['tags'] !== []) {
+        throw new RuntimeException('Legacy null document tags are returned as an empty array');
+    }
+    foreach ([[123], ['#tag'], ["line\nbreak"], ['']] as $invalidTags) {
+        $assertHttpStatus(
+            fn () => app(DocumentService::class)->create((int) $teamEntity->id, [
+                'title' => 'Invalid tags',
+                'tags' => $invalidTags,
+            ], (int) $team->id, $teamActor),
+            422,
+            'Document tag validation rejects invalid values'
+        );
+    }
+    $assertHttpStatus(
+        fn () => app(DocumentService::class)->create((int) $teamEntity->id, [
+            'title' => 'Invalid tag type',
+            'tags' => 'not-an-array',
+        ], (int) $team->id, $teamActor),
+        422,
+        'Document tag validation rejects a non-array value'
+    );
+
+    $profiles = app(EntityProfile::class);
+    $profiles->update((int) $team->id, (int) $teamEntity->id, [
+        'document_tags' => [
+            ['tag' => '  说明 文档！  ', 'description' => '  用于介绍  '],
+            ['tag' => 'A', 'description' => ''],
+        ],
+    ]);
+    $profile = $profiles->get((int) $team->id, (int) $teamEntity->id, true)['profile'];
+    if (($profile['document_tags'] ?? null) !== [
+        ['tag' => '说明 文档！', 'description' => '用于介绍'],
+        ['tag' => 'A', 'description' => null],
+    ]) {
+        throw new RuntimeException('Document display tags preserve order and normalize descriptions');
+    }
+    $profiles->update((int) $team->id, (int) $teamEntity->id, ['name' => 'Tags team']);
+    if (($profiles->get((int) $team->id, (int) $teamEntity->id, true)['profile']['document_tags'] ?? null) !== [
+        ['tag' => '说明 文档！', 'description' => '用于介绍'],
+        ['tag' => 'A', 'description' => null],
+    ]) {
+        throw new RuntimeException('Omitted document display tags retain their previous value');
+    }
+    $profiles->update((int) $team->id, (int) $memberEntity->id, [
+        'document_tags' => [['tag' => '说明 文档！', 'description' => '成员说明']],
+    ]);
+    if (($profiles->get((int) $team->id, (int) $memberEntity->id, true)['profile']['document_tags'][0]['description'] ?? null) !== '成员说明') {
+        throw new RuntimeException('Document display tags are isolated by entity');
+    }
+    foreach ([
+        [['tag' => '重复'], ['tag' => '重复']],
+        [['tag' => '说明', 'description' => str_repeat('x', 256)]],
+        [['tag' => "bad\tlabel"]],
+    ] as $invalidDocumentTags) {
+        $assertHttpStatus(
+            fn () => $profiles->update((int) $team->id, (int) $teamEntity->id, ['document_tags' => $invalidDocumentTags]),
+            422,
+            'Document display tag validation rejects invalid values'
+        );
+    }
+    $profiles->update((int) $team->id, (int) $teamEntity->id, ['document_tags' => null]);
+    if (($profiles->get((int) $team->id, (int) $teamEntity->id, true)['profile']['document_tags'] ?? null) !== []) {
+        throw new RuntimeException('Null document display tags clear the value');
+    }
+    \app\model\TeamEntityProfile::where('entity_id', (int) $teamEntity->id)->find()?->save(['document_tags' => null]);
+    if (($profiles->get((int) $team->id, (int) $teamEntity->id, true)['profile']['document_tags'] ?? null) !== []) {
+        throw new RuntimeException('Legacy null document display tags are returned as an empty array');
+    }
+    $assertHttpStatus(
+        fn () => $profiles->update((int) $team->id, (int) $teamEntity->id, ['document_tags' => 'not-an-array']),
+        422,
+        'Document display tags reject a non-array value'
+    );
+
     $request = new Request;
     $request->team = $team;
     $next = static fn (Request $request): string => 'passed';
@@ -279,7 +385,7 @@ try {
     if (isset($documentReaderBinding)) TeamEntityRole::destroy((int) $documentReaderBinding->id, true);
     if (isset($documentReaderPermission)) TeamRolePermission::destroy((int) $documentReaderPermission->id, true);
     if (isset($documentReaderRole)) TeamRole::destroy((int) $documentReaderRole->id, true);
-    Document::destroy([$public->id ?? 0, $hidden->id ?? 0, $entityDocument->id ?? 0], true);
+    Document::destroy([$public->id ?? 0, $hidden->id ?? 0, $entityDocument->id ?? 0, $tagged->id ?? 0], true);
     if ($abilityIds) {
         TeamAbility::destroy($abilityIds, true);
     }

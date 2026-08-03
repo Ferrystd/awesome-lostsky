@@ -166,13 +166,16 @@ CREATE TABLE `team_member` (
     `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `team_id`      INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
     `user_id`      INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '用户ID',
+    `inviter_entity_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '邀请人实体ID，可来自其他团队',
+    `status`       TINYINT      NOT NULL DEFAULT 1 COMMENT '成员状态 1-正常 2-封禁 3-已离队',
     `is_blocked`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否被封禁 0-正常 1-封禁',
     `create_time`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
-    `delete_time`  INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间(退出团队)',
+    `delete_time`  INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_team_user` (`team_id`, `user_id`),
-    KEY `idx_user_id` (`user_id`)
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_inviter_entity_id` (`inviter_entity_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队成员表';
 
 -- ----------------------------
@@ -180,6 +183,7 @@ CREATE TABLE `team_member` (
 -- Model: app\model\TeamEntityProfile
 -- ----------------------------
 CREATE TABLE `team_entity_profile` (
+    `document_tags`         JSON         NULL COMMENT '文档展示标签',
     `id`                    INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `entity_id`             INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '实体ID',
     `name`                  VARCHAR(100) NOT NULL DEFAULT '' COMMENT '展示名称',
@@ -457,6 +461,7 @@ CREATE TABLE `document` (
     `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `title`             VARCHAR(255) NOT NULL DEFAULT '' COMMENT '文档标题',
     `content`           LONGTEXT     NULL COMMENT '文档内容',
+    `tags`              JSON         NULL COMMENT '文档标签',
     `entity_id`         INT UNSIGNED NOT NULL COMMENT '归属实体ID',
     `manager_scope`     TINYINT      NOT NULL DEFAULT 1 COMMENT '管理范围 1-team 2-subject_team',
     `visibility`        TINYINT      NOT NULL DEFAULT 1 COMMENT '可见范围 1-team 3-subject_team 4-团队人员 5-public 6-custom',
@@ -565,6 +570,8 @@ CREATE TABLE `team_join_application` (
     `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
     `user_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '申请用户ID',
     `entity_id`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '同意后实体ID',
+    `inviter_entity_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '申请时确认的邀请人实体ID，可来自其他团队',
+    `purpose`     TINYINT      NOT NULL DEFAULT 1 COMMENT '目的 1-加入 2-复职',
     `status`      TINYINT      NOT NULL DEFAULT 1 COMMENT '状态 1-已申请 2-审核中 3-已取消 4-已加入 5-已拒绝',
     `memo`        VARCHAR(500) NULL     DEFAULT NULL COMMENT '备注/拒绝原因',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
@@ -573,8 +580,51 @@ CREATE TABLE `team_join_application` (
     PRIMARY KEY (`id`),
     KEY `idx_team_status` (`team_id`, `status`, `id`),
     KEY `idx_team_user` (`team_id`, `user_id`),
-    KEY `idx_entity_id` (`entity_id`)
+    KEY `idx_entity_id` (`entity_id`),
+    KEY `idx_inviter_entity_id` (`inviter_entity_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队加入申请表';
+
+-- ----------------------------
+-- Table: team_member_departure
+-- Model: app\model\TeamMemberDeparture
+-- ----------------------------
+CREATE TABLE `team_member_departure` (
+    `id`                  INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`             INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `member_id`           INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '目标成员ID',
+    `requester_entity_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '发起实体ID',
+    `decision_entity_id`  INT UNSIGNED NULL DEFAULT NULL COMMENT '决定实体ID',
+    `status`              TINYINT      NOT NULL DEFAULT 1 COMMENT '状态 1-申请中 2-已取消 3-已批准 4-已拒绝',
+    `decided_at`          INT UNSIGNED NULL DEFAULT NULL COMMENT '决定时间',
+    `create_time`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`         INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_team_status` (`team_id`, `status`, `id`),
+    KEY `idx_member_status` (`member_id`, `status`, `id`),
+    KEY `idx_requester_entity_id` (`requester_entity_id`),
+    KEY `idx_decision_entity_id` (`decision_entity_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='成员离队申请表';
+
+-- ----------------------------
+-- Table: team_member_tenure
+-- Model: app\model\TeamMemberTenure
+-- ----------------------------
+CREATE TABLE `team_member_tenure` (
+    `id`                  INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `team_id`             INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `member_id`           INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '成员ID',
+    `join_application_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '加入或复职申请ID',
+    `joined_at`           INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '本次入队时间',
+    `departed_at`         INT UNSIGNED NULL DEFAULT NULL COMMENT '本次离队时间',
+    `create_time`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`         INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_member_joined` (`member_id`, `joined_at`, `id`),
+    KEY `idx_team_departed` (`team_id`, `departed_at`, `id`),
+    KEY `idx_join_application_id` (`join_application_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='成员任期表';
 
 -- ----------------------------
 -- Table: team_join_field_value
@@ -1039,7 +1089,7 @@ ALTER TABLE `platform_admin_role_permission` ADD CONSTRAINT `fk_platform_permiss
 ALTER TABLE `platform_admin_user_role` ADD CONSTRAINT `fk_platform_admin_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`), ADD CONSTRAINT `fk_platform_admin_role` FOREIGN KEY (`role_id`) REFERENCES `platform_admin_role` (`id`), ADD CONSTRAINT `fk_platform_admin_assigner` FOREIGN KEY (`assigned_by_user_id`) REFERENCES `user` (`id`);
 ALTER TABLE `team` ADD CONSTRAINT `fk_team_owner_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
 ALTER TABLE `team_domain` ADD CONSTRAINT `fk_team_domain_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`);
-ALTER TABLE `team_member` ADD CONSTRAINT `fk_team_member_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_member_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
+ALTER TABLE `team_member` ADD CONSTRAINT `fk_team_member_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_member_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`), ADD CONSTRAINT `fk_team_member_inviter_entity` FOREIGN KEY (`inviter_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_entity_profile` ADD CONSTRAINT `fk_entity_profile_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_ability` ADD CONSTRAINT `fk_team_ability_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`);
 ALTER TABLE `team_notice` ADD CONSTRAINT `fk_team_notice_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_notice_sender_team` FOREIGN KEY (`sender_team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_notice_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
@@ -1056,7 +1106,9 @@ ALTER TABLE `file` ADD CONSTRAINT `fk_file_team` FOREIGN KEY (`team_id`) REFEREN
 ALTER TABLE `team_setting` ADD CONSTRAINT `fk_team_setting_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`);
 ALTER TABLE `visibility_target` ADD CONSTRAINT `fk_visibility_target_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_join_field` ADD CONSTRAINT `fk_join_field_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_join_field_entity_field` FOREIGN KEY (`entity_field_id`) REFERENCES `team_entity_field` (`id`);
-ALTER TABLE `team_join_application` ADD CONSTRAINT `fk_join_application_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_join_application_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`), ADD CONSTRAINT `fk_join_application_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
+ALTER TABLE `team_join_application` ADD CONSTRAINT `fk_join_application_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_join_application_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`), ADD CONSTRAINT `fk_join_application_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_join_application_inviter_entity` FOREIGN KEY (`inviter_entity_id`) REFERENCES `entity` (`id`);
+ALTER TABLE `team_member_departure` ADD CONSTRAINT `fk_member_departure_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_member_departure_member` FOREIGN KEY (`member_id`) REFERENCES `team_member` (`id`), ADD CONSTRAINT `fk_member_departure_requester` FOREIGN KEY (`requester_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_member_departure_decision` FOREIGN KEY (`decision_entity_id`) REFERENCES `entity` (`id`);
+ALTER TABLE `team_member_tenure` ADD CONSTRAINT `fk_member_tenure_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_member_tenure_member` FOREIGN KEY (`member_id`) REFERENCES `team_member` (`id`), ADD CONSTRAINT `fk_member_tenure_join_application` FOREIGN KEY (`join_application_id`) REFERENCES `team_join_application` (`id`);
 ALTER TABLE `team_join_field_value` ADD CONSTRAINT `fk_join_value_application` FOREIGN KEY (`application_id`) REFERENCES `team_join_application` (`id`), ADD CONSTRAINT `fk_join_value_field` FOREIGN KEY (`field_id`) REFERENCES `team_join_field` (`id`);
 ALTER TABLE `team_join_task` ADD CONSTRAINT `fk_join_task_application` FOREIGN KEY (`application_id`) REFERENCES `team_join_application` (`id`);
 ALTER TABLE `team_role` ADD CONSTRAINT `fk_team_role_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`);

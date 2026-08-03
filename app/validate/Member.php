@@ -35,6 +35,5 @@ class Member extends Validate
         'add'    => ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown'],
         'edit'   => ['nickname', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown'],
         'block'  => ['member_id'],
-        'remove' => ['member_id'],
     ];
 }

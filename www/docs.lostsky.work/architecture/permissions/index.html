@@ -1001,6 +1001,114 @@
   
   
     <li class="md-nav__item">
+      <a href="../../manual/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  核心概念
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/access-and-abilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  能力、权限与功能降级
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/permissions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  权限目录
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  问题排查
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../manual/account-and-identity/" class="md-nav__link">
         
   
@@ -2216,6 +2324,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../development/component-previews/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  组件代码预览
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../development/testing/" class="md-nav__link">
         
   
@@ -2878,7 +3013,7 @@
 <tr>
 <td>团队成员</td>
 <td><code>team.member.remove</code></td>
-<td>移除成员</td>
+<td>查询、代提、批准和拒绝成员离队申请；不提供直接移出通道</td>
 </tr>
 <tr>
 <td>团队成员</td>
@@ -3121,6 +3256,7 @@
 Permission 不支持 deny，多个候选权限按 OR 判断。</p>
 <p><code>team.entity.read</code>、<code>team.member.read</code>、<code>team.document.read</code> 和 <code>team.customer.read</code> 表示“全量读取”，不是基础入口许可。没有客户全量读取权限时，当前归属实体仍可查看自己的客户；Customer 在通用实体目录中始终需要 <code>team.entity.read</code>，对无权 Customer 与团队内隐藏实体的直接访问返回 404；文档继续按自身可见性返回。<code>team.customer.manage</code> 同时授予客户全量读取，并控制资料、归属与封禁更新；客户本人在 Shop 只可修改自己的资料和归属，不因此获得后台管理权限。</p>
 <p>权限拒绝使用结构化错误：<code>data.kind=permission</code> 且 <code>data.required_any</code> 列出任一可满足的 Permission；用户界面显示 <code>缺少权限(Permission): &lt;key&gt;</code>。能力拒绝使用 <code>data.kind=ability</code> 并返回能力键、标签、最低等级和缺失原因。</p>
+<p><code>team.member.remove</code> 保护独立的离队申请流，管理员代提也必须先创建待审申请；成员自助离队不依赖该 Permission，但只允许正常成员本人使用直接领取的根身份会话。复职继续复用 <code>team.join_review.read/write</code>，不新增独立复职 Permission。非正常成员 Entity 是否具备业务可用性由 <code>member.inactive_entity_available</code> 动态决定，assume Permission 只决定谁可以代入，不覆盖 Entity 可用性。</p>
 <h2 id="_4">平台权限<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>Admin 平台权限与团队权限共用 <code>PermissionDictionary</code> 作为代码事实源，但分别由 <code>adminGroups()</code>、<code>adminKeys()</code> 暴露，绝不进入团队角色目录。平台角色保存于 <code>platform_admin_role</code>，角色权限保存于 <code>platform_admin_role_permission</code>，用户与多个角色的绑定保存于 <code>platform_admin_user_role</code>；有效权限取角色并集。</p>
 <table>

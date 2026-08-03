@@ -428,6 +428,16 @@ main { min-height: calc(100dvh - 156px); }
 .form-heading > span { color: var(--cyan); font-size: .76rem; font-weight: 700; }
 .form-heading > strong { font-size: 1.35rem; }
 .form-heading > p, .field-help, .form-footnote { margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.6; }
+.referral-confirmation {
+  display: grid;
+  grid-template-columns: minmax(5rem, .35fr) minmax(0, 1fr);
+  gap: .3rem 1rem;
+  padding: .9rem 0;
+  border-block: 1px solid var(--line);
+}
+.referral-confirmation span, .referral-confirmation small { color: var(--muted); font-size: .8rem; }
+.referral-confirmation strong { overflow-wrap: anywhere; }
+.referral-confirmation small { grid-column: 2; line-height: 1.5; }
 .bind-form label, .checkout-fields label { display: grid; gap: .55rem; font-weight: 700; }
 .bind-form label span { color: var(--muted); font-size: .76rem; font-weight: 400; }
 .form-footnote { text-align: center; }
@@ -708,6 +718,8 @@ main { min-height: calc(100dvh - 156px); }
   .product-copy h3 { font-size: 2.6rem; }
   .bind-page { padding-block: 2.5rem; }
   .bind-intro h1 { font-size: 2.35rem; }
+  .referral-confirmation { grid-template-columns: 1fr; }
+  .referral-confirmation small { grid-column: 1; }
   .orders-page { padding-top: 2.5rem; }
   .account-heading-copy h1 { margin-top: 1.75rem; font-size: 2.65rem; }
   .balance-brief { min-height: 9.5rem; }

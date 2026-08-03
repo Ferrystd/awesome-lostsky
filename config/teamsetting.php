@@ -3,6 +3,7 @@
 use app\enum\MemberSearchPriority;
 use app\enum\ChatCustomerGroupMode;
 use app\enum\ChatGroupHistory;
+use app\enum\TeamMemberDepartureMode;
 
 return [
     'entity' => [
@@ -33,6 +34,38 @@ return [
                 'control'     => 'radio',
                 'enum'        => MemberSearchPriority::class,
                 'default'     => MemberSearchPriority::Team->value,
+                'order'       => 30,
+            ],
+        ],
+    ],
+    'member' => [
+        'label'       => '成员生命周期',
+        'description' => '配置成员离队、复职与非正常状态实体的处理方式。',
+        'order'       => 15,
+        'settings'    => [
+            'departure_mode' => [
+                'label'       => '成员自助离队',
+                'description' => '决定成员能否自行发起离队，以及是否需要审核。',
+                'type'        => 'enum',
+                'control'     => 'radio',
+                'enum'        => TeamMemberDepartureMode::class,
+                'default'     => TeamMemberDepartureMode::Review->value,
+                'order'       => 10,
+            ],
+            'inactive_entity_available' => [
+                'label'       => '封禁或离队后仍可代管实体',
+                'description' => '开启后，有代入权限的实体仍可以进入并使用其完整业务能力；成员本人始终无法直接登录。',
+                'type'        => 'boolean',
+                'control'     => 'switch',
+                'default'     => false,
+                'order'       => 20,
+            ],
+            'reinstate_refill_join_fields' => [
+                'label'       => '复职时重新填写申请资料',
+                'description' => '开启后，已离队成员申请复职时需重新填写当前的加入字段。',
+                'type'        => 'boolean',
+                'control'     => 'switch',
+                'default'     => false,
                 'order'       => 30,
             ],
         ],
@@ -98,6 +131,63 @@ return [
                 'control'     => 'switch',
                 'default'     => true,
                 'order'       => 10,
+            ],
+        ],
+    ],
+    'display' => [
+        'label'       => '公开主页',
+        'description' => '配置团队公开主页的固定展示文案。',
+        'order'       => 40,
+        'settings'    => [
+            'homepage_welcome' => [
+                'label'       => '主页欢迎语',
+                'description' => '团队公开简介为空时显示在主页首屏。',
+                'type'        => 'string',
+                'control'     => 'input',
+                'default'     => '欢迎来到我们的公开主页',
+                'min_length'  => 1,
+                'max_length'  => 100,
+                'order'       => 10,
+            ],
+            'homepage_entities_link' => [
+                'label'       => '实体入口文案',
+                'description' => '主页首屏中跳转到公开实体区域的链接文案。',
+                'type'        => 'string',
+                'control'     => 'input',
+                'default'     => '浏览公开实体',
+                'min_length'  => 1,
+                'max_length'  => 100,
+                'order'       => 20,
+            ],
+            'homepage_entities_title' => [
+                'label'       => '实体区域标题',
+                'description' => '主页公开实体预览区域的标题。',
+                'type'        => 'string',
+                'control'     => 'input',
+                'default'     => '公开实体',
+                'min_length'  => 1,
+                'max_length'  => 100,
+                'order'       => 30,
+            ],
+            'homepage_entities_description' => [
+                'label'       => '实体区域说明',
+                'description' => '主页公开实体预览区域的辅助说明。',
+                'type'        => 'string',
+                'control'     => 'input',
+                'default'     => '团队成员与虚拟实体',
+                'min_length'  => 1,
+                'max_length'  => 100,
+                'order'       => 40,
+            ],
+            'homepage_entities_empty' => [
+                'label'       => '实体空状态文案',
+                'description' => '团队没有可公开实体时显示的提示。',
+                'type'        => 'string',
+                'control'     => 'input',
+                'default'     => '团队暂时没有公开实体',
+                'min_length'  => 1,
+                'max_length'  => 100,
+                'order'       => 50,
             ],
         ],
     ],

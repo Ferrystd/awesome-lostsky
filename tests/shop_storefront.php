@@ -301,9 +301,11 @@ try {
         (int) $boundDecoded->act->id
     );
     $assert($boundSession() instanceof EntitySession, 'bound customer session validates through its source entity');
+    $sourceMember->status = 2;
     $sourceMember->is_blocked = 1;
     $sourceMember->save();
     $assertThrows($boundSession, 401, 'invalid source entity revokes downstream customer session');
+    $sourceMember->status = 1;
     $sourceMember->is_blocked = 0;
     $sourceMember->save();
     $entityCustomer->is_blocked = 1;

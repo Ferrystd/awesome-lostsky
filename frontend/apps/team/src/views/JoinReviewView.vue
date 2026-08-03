@@ -37,9 +37,9 @@ const visibleRows = computed(() => { const keyword = search.value.trim().toLocal
       <LsEmptyState v-else-if="!visibleRows.length" title="没有匹配的加入申请" description="调整搜索词或申请状态筛选后查看。" />
       <div v-else class="review-list" aria-label="加入申请列表">
         <RouterLink v-for="item in visibleRows" :key="String(item.id)" :to="{ path: '/join-review/review', query: { id: String(item.id ?? '') } }">
-          <div class="identity"><strong>{{ applicant(item) }}</strong><small>申请 #{{ item.id }}</small></div>
+          <div class="identity"><strong>{{ applicant(item) }}</strong><small>{{ item.purpose_label || '加入' }}申请 #{{ item.id }}</small></div>
           <p>{{ item.memo || '没有补充说明' }}</p>
-          <LsStatusTag :label="String(item.status)" :type="statusType(item.status)" />
+          <div class="tags"><LsStatusTag :label="String(item.purpose_label || '加入')" type="info" /><LsStatusTag :label="String(item.status_label || item.status)" :type="statusType(item.status_label || item.status)" /></div>
           <ArrowRight class="arrow" :size="18" aria-hidden="true" />
         </RouterLink>
       </div>
@@ -49,4 +49,5 @@ const visibleRows = computed(() => { const keyword = search.value.trim().toLocal
 <style scoped>
 .join-review-list-page{display:grid;gap:1.5rem}.status-filter{width:11rem}.review-list{display:grid;overflow:hidden;background:white;border:1px solid var(--line);border-radius:12px}.review-list>a{min-width:0;min-height:88px;display:grid;grid-template-columns:minmax(8rem,.5fr) minmax(0,1fr) auto 24px;align-items:center;gap:1rem;padding:1rem;color:var(--ink);background:white;border-bottom:1px solid var(--line);transition:background-color var(--motion-fast) var(--ease-standard)}.review-list>a:last-child{border-bottom:0}.review-list>a:hover{background:var(--cloud)}.review-list>a:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost),transparent 72%);outline-offset:-3px}.identity strong,.identity small{display:block}.identity small{margin-top:.25rem;color:var(--muted-ink);font-size:.75rem}.review-list p{min-width:0;margin:0;color:var(--muted-ink);font-size:.875rem;overflow-wrap:anywhere}.arrow{color:var(--muted-ink)}.error,.empty{padding:1rem;background:white;border:1px solid var(--line);border-radius:10px}.error{color:var(--danger)}.empty{padding-block:4rem}.loading{display:grid;gap:.75rem}
 @media(max-width:639px){.status-filter{width:100%}.review-list>a{grid-template-columns:minmax(0,1fr) auto 24px;gap:.5rem 1rem}.identity{grid-column:1}.review-list p{grid-column:1/-1;grid-row:2}.review-list :deep(.n-tag){grid-column:2;grid-row:1}.arrow{grid-column:3;grid-row:1}}
+.tags{display:flex;flex-wrap:wrap;gap:.4rem}
 </style>

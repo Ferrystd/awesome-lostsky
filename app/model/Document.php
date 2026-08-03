@@ -21,6 +21,7 @@ class Document extends Base
         'content' => 'string',
     ];
 
+    protected $json = ['tags'];
     protected $hidden = ['delete_time'];
     protected $readonly = ['entity_id'];
 

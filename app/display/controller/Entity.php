@@ -15,7 +15,8 @@ class Entity
             $request->team_id,
             $type === '' ? null : $type,
             $request->get('page/d', 1),
-            $request->get('limit/d', 20)
+            $request->get('limit/d', 20),
+            $request->get('keyword/s', '')
         ));
     }
 

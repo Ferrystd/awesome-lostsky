@@ -1,22 +1,25 @@
 <script setup lang="ts">
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { ArrowLeft, ArrowRight } from '@lucide/vue'
-import { computed, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
-import DocumentList from '../components/DocumentList.vue'
+import { ArrowRight } from '@lucide/vue'
+import { computed, watch } from 'vue'
+import EntityList from '../components/EntityList.vue'
 import ProfileMedia from '../components/ProfileMedia.vue'
+import PublicDocumentSection from '../components/PublicDocumentSection.vue'
 import PublicFields from '../components/PublicFields.vue'
-import { displayApi, entityTypeLabel } from '../lib'
+import { displayApi, groupPublicDocuments } from '../lib'
 
-const page = ref(1)
 const profile = useQuery({ queryKey: ['display-profile'], queryFn: displayApi.profile })
 const documents = useQuery({ queryKey: ['display-documents', 'team'], queryFn: () => displayApi.documents() })
 const entities = useQuery({
-  queryKey: computed(() => ['display-entities', page.value]),
-  queryFn: () => displayApi.entities(page.value),
+  queryKey: ['display-entities', 'preview'],
+  queryFn: () => displayApi.entities(1, 6),
 })
-const pageCount = computed(() => Math.max(1, Math.ceil((entities.data.value?.total ?? 0) / (entities.data.value?.limit ?? 20))))
+const documentGroups = computed(() => groupPublicDocuments(
+  documents.data.value?.list ?? [],
+  profile.data.value?.profile.document_tags ?? [],
+  '由团队持续维护的公开内容',
+))
 
 watch(() => profile.data.value?.profile.name, (name) => {
   if (name) document.title = `${name} · LostSky`
@@ -42,8 +45,8 @@ watch(() => profile.data.value?.profile.name, (name) => {
           <small>@{{ profile.data.value.slug }}</small>
         </div>
         <h1 tabindex="-1">{{ profile.data.value.profile.name }}</h1>
-        <p>{{ profile.data.value.profile.description || '欢迎来到我们的公开主页。' }}</p>
-        <a class="hero-link" href="#entities">浏览公开实体 <ArrowRight :size="18" aria-hidden="true" /></a>
+        <p>{{ profile.data.value.profile.description || profile.data.value.settings.homepage_welcome }}</p>
+        <a class="hero-link" href="#entities">{{ profile.data.value.settings.homepage_entities_link }} <ArrowRight :size="18" aria-hidden="true" /></a>
       </div>
       <div class="hero-visual" aria-hidden="true">
         <span class="orb orb-one" />
@@ -81,36 +84,35 @@ watch(() => profile.data.value?.profile.name, (name) => {
       <ProfileMedia :profile="profile.data.value.profile" />
     </section>
 
-    <section v-if="documents.data.value?.list.length || documents.isPending.value || documents.isError.value" class="content-section">
-      <header class="section-heading"><h2>公开文档</h2><p>由团队持续维护的公开内容</p></header>
-      <div v-if="documents.isPending.value" class="row-skeleton"><span /><span /></div>
-      <div v-else-if="documents.isError.value" class="inline-error"><span>文档加载失败。</span><button type="button" @click="documents.refetch()">重试</button></div>
-      <DocumentList v-else :documents="documents.data.value?.list ?? []" />
-    </section>
+    <PublicDocumentSection
+      v-if="documents.isPending.value || documents.isError.value"
+      class="content-section"
+      title="公开文档"
+      description="由团队持续维护的公开内容"
+      :documents="[]"
+      :loading="documents.isPending.value"
+      :error="documents.isError.value"
+      @retry="documents.refetch()"
+    />
+    <PublicDocumentSection
+      v-for="group in documentGroups"
+      v-else
+      :key="group.key"
+      class="content-section"
+      :title="group.title"
+      :description="group.description"
+      :documents="group.documents"
+    />
 
     <section id="entities" class="content-section entity-section">
-      <header class="section-heading"><h2>公开实体</h2><p>团队成员与虚拟实体</p></header>
-      <div v-if="entities.isPending.value" class="entity-skeleton"><span v-for="item in 4" :key="item" /></div>
+      <header class="section-heading">
+        <h2>{{ profile.data.value.settings.homepage_entities_title }}</h2>
+        <p>{{ profile.data.value.settings.homepage_entities_description }}</p>
+      </header>
+      <div v-if="entities.isPending.value" class="entity-skeleton entity-skeleton-preview"><span v-for="item in 6" :key="item" /></div>
       <div v-else-if="entities.isError.value" class="inline-error"><span>实体列表加载失败。</span><button type="button" @click="entities.refetch()">重试</button></div>
-      <div v-else-if="entities.data.value?.list.length" class="entity-list">
-        <RouterLink v-for="entity in entities.data.value.list" :key="entity.slug" :to="`/entity/${entity.slug}`">
-          <img v-if="entity.avatar" :src="entity.avatar" :alt="`${entity.name} 头像`" width="88" height="88" loading="lazy">
-          <span v-else class="entity-placeholder" aria-hidden="true">{{ entity.name.slice(0, 1) }}</span>
-          <span class="entity-copy">
-            <small>{{ entityTypeLabel(entity.type) }} · @{{ entity.slug }}</small>
-            <strong>{{ entity.name }}</strong>
-            <span v-if="entity.roles?.length" class="entity-roles">{{ entity.roles.map(role => role.name).join(' · ') }}</span>
-            <p>{{ entity.description || '查看公开资料与文档' }}</p>
-          </span>
-          <ArrowRight :size="20" aria-hidden="true" />
-        </RouterLink>
-      </div>
-      <p v-else class="empty-state">团队暂时没有公开实体。</p>
-      <nav v-if="pageCount > 1" class="pager" aria-label="实体列表分页">
-        <button type="button" :disabled="page <= 1" @click="page -= 1"><ArrowLeft :size="17" aria-hidden="true" />上一页</button>
-        <span>第 {{ page }} / {{ pageCount }} 页</span>
-        <button type="button" :disabled="page >= pageCount" @click="page += 1">下一页<ArrowRight :size="17" aria-hidden="true" /></button>
-      </nav>
+      <EntityList v-else-if="entities.data.value?.list.length" :entities="entities.data.value.list" preview />
+      <p v-else class="empty-state">{{ profile.data.value.settings.homepage_entities_empty }}</p>
     </section>
   </template>
 </template>

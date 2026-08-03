@@ -5,7 +5,7 @@ import { feedback } from '@lostsky/ui/feedback'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import {
   Bell, BookOpen, Bot, Boxes, ChevronDown, ChevronRight, ExternalLink,
-  FileText, Files, House, LogOut, Menu, MessageCircleMore, Send, Settings, ShieldCheck,
+  FileText, Files, House, ListPlus, LogOut, Menu, MessageCircleMore, Send, Settings, ShieldCheck,
   Contact, UserRound, Users, X,
 } from '@lucide/vue'
 import { NButton } from 'naive-ui'
@@ -51,7 +51,9 @@ const secondary: NavItem[] = [
   { to: '/fields', label: '对象字段', icon: FileText, permission: 'team.entity_field.manage' },
   { to: '/chat-virtuals', label: '虚拟实体', icon: Bot, permissionPattern: /^chat\.virtual\.(?:\*|[^.]+)\.manage$/ },
   { to: '/roles', label: '角色权限', icon: ShieldCheck, permission: 'team.role.read' },
+  { to: '/join-fields', label: '申请字段', icon: ListPlus, permission: 'team.join_field.read' },
   { to: '/join-review', label: '加入审核', icon: Users, permission: 'team.join_review.read' },
+  { to: '/departure-review', label: '离队审核', icon: UserRound, permission: 'team.member.remove' },
   { to: '/notices/team', label: '站内通知', icon: Bell, permission: 'team.notice.read' },
   { to: '/notices/send', label: '发送通知', icon: Send, permission: 'team.notice.send' },
   { to: '/settings', label: '团队设置', icon: Settings, permission: 'team.setting.read' },

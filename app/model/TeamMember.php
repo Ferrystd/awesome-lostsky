@@ -3,6 +3,7 @@ declare (strict_types = 1);
 
 namespace app\model;
 
+use app\enum\TeamMemberStatus;
 use app\model\Base;
 
 /**
@@ -19,12 +20,19 @@ class TeamMember extends Base
 
         'team_id' => 'integer',
         'user_id' => 'integer',
+        'status' => 'integer',
         'is_blocked' => 'integer',
     ];
 
     protected $json = [];
 
-    protected $append = ['entity_id', 'is_valid', 'is_searchable'];
+    protected $append = [
+        'entity_id',
+        'is_valid',
+        'is_searchable',
+        'status_code',
+        'status_label',
+    ];
 
     public function getEntityIdAttr(): int
     {
@@ -33,12 +41,45 @@ class TeamMember extends Base
 
     public function getIsValidAttr($value, $data): bool
     {
-        if ((int) ($data['is_blocked'] ?? 0) !== 0) {
+        $team = $this->team;
+        if (!$team || !(bool) $team->is_valid) {
             return false;
         }
 
-        $team = $this->team;
-        return $team ? (bool) $team->is_valid : false;
+        if ($this->statusCase() === TeamMemberStatus::Active) {
+            return true;
+        }
+
+        $settings = app(\app\service\TeamSetting::class)->internal((int) $team->id, 'member');
+        return (bool) ($settings['inactive_entity_available'] ?? false);
+    }
+
+    public function getStatusCodeAttr(): string
+    {
+        return $this->statusCase()->code();
+    }
+
+    public function getStatusLabelAttr(): string
+    {
+        return $this->statusCase()->value();
+    }
+
+    public function statusCase(): TeamMemberStatus
+    {
+        if (!array_key_exists('status', $this->getData())) {
+            return (int) ($this->getData('is_blocked') ?? 0) === 1
+                ? TeamMemberStatus::Blocked
+                : TeamMemberStatus::Active;
+        }
+
+        return TeamMemberStatus::tryFrom((int) $this->getData('status'))
+            ?? TeamMemberStatus::Active;
+    }
+
+    public function canDirectReceive(): bool
+    {
+        return $this->statusCase() === TeamMemberStatus::Active
+            && (bool) ($this->team?->is_valid ?? false);
     }
 
     public function getIsSearchableAttr(): bool
@@ -83,6 +124,11 @@ class TeamMember extends Base
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function inviter()
+    {
+        return $this->belongsTo(Entity::class, 'inviter_entity_id');
+    }
+
     public function profile()
     {
         return $this->hasOne(TeamEntityProfile::class, 'entity_id', 'root_entity_id')
@@ -102,6 +148,16 @@ class TeamMember extends Base
     public function joinApplication()
     {
         return $this->hasOne(TeamJoinApplication::class, 'entity_id', 'root_entity_id');
+    }
+
+    public function tenures()
+    {
+        return $this->hasMany(TeamMemberTenure::class, 'member_id');
+    }
+
+    public function departures()
+    {
+        return $this->hasMany(TeamMemberDeparture::class, 'member_id');
     }
 
     public function handledTransactions()

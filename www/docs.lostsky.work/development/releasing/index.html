@@ -1001,6 +1001,114 @@
   
   
     <li class="md-nav__item">
+      <a href="../../manual/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  核心概念
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/access-and-abilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  能力、权限与功能降级
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/permissions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  权限目录
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  问题排查
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../manual/account-and-identity/" class="md-nav__link">
         
   
@@ -2125,6 +2233,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../component-previews/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  组件代码预览
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../testing/" class="md-nav__link">
         
   
@@ -2215,6 +2350,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         发布标识
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changelog" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Changelog
       </span>
     </span>
   </a>
@@ -2736,6 +2882,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#changelog" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Changelog
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -2849,6 +3006,15 @@
 <li>不增加公开版本号的临时交付使用附注标签 <code>build-YYYYMMDD.N</code>：产品版本文件保持不变，日期按 Asia/Shanghai 计算，序号在当天从 1 递增。</li>
 <li>产品标签和构建标签都是不可变交付物标识；部署与回滚同时记录标签及其 commit SHA。</li>
 <li>用户要求上传、发布或推送交付物时，交给 <code>.codex/agents/lostsky-git.toml</code> 定义的 <code>lostsky-git</code> 子代理；禁止移动标签、强制推送或重复发布已有标识。</li>
+</ul>
+<h2 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h2>
+<p><code>docs/changelog.md</code> 是面向用户的结果索引，不是实现报告：</p>
+<ul>
+<li>只写已经完成且用户或运维者可观察的结果；纯内部重构、测试、文件清单和开发过程不单独成条，除非影响兼容性、安全、迁移或部署。</li>
+<li>同一用户目标及其后续调整合并为一条，只保留最终结果；一次任务原则上新增一条，确有互不相关的结果才拆分。</li>
+<li>每条只写一个句子，先写结果，再补必要边界；正文原则上不超过 60 个汉字，必要的命令、版本和公开标识不计入。</li>
+<li>不罗列文件、类、接口或测试数量；实现细节归入提交、使用手册、OpenAPI 或对应专题文档。</li>
+<li>发布前合并重复项并删除中间过程，只按最终性质归入“新增”“变更”或“修复”。</li>
 </ul>
 <h2 id="_3">发布前<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <ul>

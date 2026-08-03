@@ -5,6 +5,8 @@ namespace app\service;
 
 use app\model\Team as TeamModel;
 use app\model\TeamMember;
+use app\model\TeamMemberTenure;
+use app\enum\TeamMemberStatus;
 use app\validate\Team as TeamValidator;
 use think\exception\HttpException;
 
@@ -16,7 +18,7 @@ class Team
     public function list(int $userId): array
     {
         $members = TeamMember::where('user_id', $userId)
-            ->where('is_blocked', 0)
+            ->where('status', TeamMemberStatus::Active->value)
             ->select();
 
         if ($members->isEmpty()) {
@@ -62,6 +64,8 @@ class Team
             $member->save([
                 'team_id' => $team->id,
                 'user_id' => $userId,
+                'status' => TeamMemberStatus::Active->value,
+                'is_blocked' => 0,
             ]);
             app(\app\service\Entity::class)->claimMember(
                 (int) $team->id,
@@ -72,6 +76,14 @@ class Team
                 (int) $team->id,
                 (int) $member->id
             );
+            $tenure = new TeamMemberTenure;
+            $tenure->save([
+                'team_id' => (int) $team->id,
+                'member_id' => (int) $member->id,
+                'join_application_id' => null,
+                'joined_at' => time(),
+                'departed_at' => null,
+            ]);
 
             return $team;
         });

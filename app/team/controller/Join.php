@@ -19,7 +19,7 @@ class Join
     {
         $service = app(TeamJoin::class);
 
-        return success($service->fields($request->team_id, true));
+        return success($service->form($request->team_id, $request->user_id));
     }
 
     public function apply(Request $request)
@@ -28,6 +28,7 @@ class Join
         $id = $service->apply($request->team_id, $request->user_id, [
             'values' => $request->post('values', []),
             'memo' => $request->post('memo'),
+            'inviter_slug' => $request->post('inviter_slug/s', ''),
         ]);
 
         return success(['id' => $id], '申请已提交');

@@ -128,6 +128,23 @@ export interface components {
             intro_image?: string | null;
             intro_video?: string | null;
             introduction_markdown?: string | null;
+            document_tags: {
+                tag: string;
+                description: string | null;
+            }[];
+        };
+        /** @description 团队公开主页固定展示文案，由 TeamSetting display 应用提供。 */
+        DisplayHomepageSettings: {
+            homepage_welcome: string;
+            homepage_entities_link: string;
+            homepage_entities_title: string;
+            homepage_entities_description: string;
+            homepage_entities_empty: string;
+        };
+        DisplayHomepage: components["schemas"]["PublicSubject"] & {
+            /** @enum {string} */
+            type: "team";
+            settings: components["schemas"]["DisplayHomepageSettings"];
         };
         PublicField: {
             key: string;
@@ -161,6 +178,9 @@ export interface components {
             roles?: components["schemas"]["PublicRole"][];
             /** @description 实体专属且已上架的商品摘要；团队主体为空。 */
             products?: components["schemas"]["PublicProduct"][];
+            /** @enum {string|null} */
+            status_code?: "active" | "blocked" | "departed" | null;
+            status_label?: string | null;
         };
         EntitySummary: {
             slug: string;
@@ -170,6 +190,9 @@ export interface components {
             avatar?: string | null;
             description?: string | null;
             roles?: components["schemas"]["PublicRole"][];
+            /** @enum {string|null} */
+            status_code?: "active" | "blocked" | "departed" | null;
+            status_label?: string | null;
         };
         EntityPage: {
             total: number;
@@ -181,6 +204,7 @@ export interface components {
             /** Format: int64 */
             id: number;
             title: string;
+            tags: string[];
             sort: number;
             /** Format: int64 */
             update_time: number;
@@ -255,7 +279,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["PublicSubject"];
+                        data?: components["schemas"]["DisplayHomepage"];
                     };
                 };
             };
@@ -268,6 +292,8 @@ export interface operations {
                 page?: components["parameters"]["Page"];
                 limit?: components["parameters"]["Limit"];
                 type?: "teamMember" | "teamVirtual";
+                /** @description 按公开实体名称或 Slug 模糊搜索 */
+                keyword?: string;
             };
             header?: never;
             path?: never;

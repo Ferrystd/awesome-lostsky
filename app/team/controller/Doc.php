@@ -55,6 +55,7 @@ class Doc
                 'visibility' => $input['visibility'] ?? null,
                 'visibility_targets' => $input['visibility_targets'] ?? [],
                 'sort' => (int) ($input['sort'] ?? 0),
+                'tags' => array_key_exists('tags', $input) ? $input['tags'] : [],
             ],
             $request->team_id,
             $request->acting_entity
@@ -67,7 +68,7 @@ class Doc
     {
         $input = $this->input($request);
         $data = [];
-        foreach (['title', 'content', 'manager_scope', 'visibility', 'visibility_targets', 'sort'] as $field) {
+        foreach (['title', 'content', 'manager_scope', 'visibility', 'visibility_targets', 'sort', 'tags'] as $field) {
             if (array_key_exists($field, $input)) {
                 $data[$field] = $input[$field];
             }

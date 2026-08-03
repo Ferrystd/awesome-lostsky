@@ -92,7 +92,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .65rem; }
+.code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-auto-rows: var(--control-md); align-items: center; gap: .65rem; }
 .code-row :deep(.ls-button) { min-width: 7.5rem; white-space: nowrap; }
 .field-message, .field-error { margin: .5rem 0 0; font-size: .82rem; }
 .field-message { color: var(--sky-lost-strong); }

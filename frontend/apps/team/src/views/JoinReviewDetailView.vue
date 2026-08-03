@@ -38,8 +38,8 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
 
 <template>
     <div class="join-review-detail-page">
-      <AdminPageHeader title="审核加入申请" :description="reviewId ? `申请 #${reviewId}` : '缺少申请编号'" back-to="/join-review" back-label="返回申请列表">
-        <template v-if="detail" #actions><LsStatusTag :label="String(detail.status)" :type="statusType(detail.status)" /></template>
+      <AdminPageHeader :title="`审核${detail?.purpose_label || '加入'}申请`" :description="reviewId ? `申请 #${reviewId}` : '缺少申请编号'" back-to="/join-review" back-label="返回申请列表">
+        <template v-if="detail" #actions><LsStatusTag :label="String(detail.purpose_label || '加入')" type="info" /><LsStatusTag :label="String(detail.status_label || detail.status)" :type="statusType(detail.status_label || detail.status)" /></template>
       </AdminPageHeader>
       <LsInlineError v-if="!reviewId" message="缺少有效的申请编号，请返回列表重新选择。" />
       <LsAsyncState v-else-if="detailQuery.isError.value" state="error" title="暂时无法读取加入申请" :description="friendlyError(detailQuery.error.value)" />
@@ -60,7 +60,7 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
           </div>
           <NEmpty v-else description="暂无审核任务，按需添加" size="small" />
         </section></LsPanel>
-        <LsPanel v-if="['已申请', '审核中'].includes(String(detail.status))"><section class="decision"><div><h3>审核决定</h3><p>确认资料与任务后处理本次申请。</p></div><div class="decision-actions"><LsButton v-if="detail.status === '已申请'" variant="secondary" :loading="action.isPending.value" @click="run('/joinReview/review')">进入审核</LsButton><LsButton :loading="action.isPending.value" @click="run('/joinReview/approve')"><template #icon><Check :size="17" /></template>同意加入</LsButton><LsButton variant="danger" :loading="action.isPending.value" @click="reject">拒绝申请</LsButton></div></section></LsPanel>
+        <LsPanel v-if="['applied', 'reviewing', '已申请', '审核中'].includes(String(detail.status_code || detail.status))"><section class="decision"><div><h3>审核决定</h3><p>确认资料与任务后处理本次申请。</p></div><div class="decision-actions"><LsButton v-if="['applied', '已申请'].includes(String(detail.status_code || detail.status))" variant="secondary" :loading="action.isPending.value" @click="run('/joinReview/review')">进入审核</LsButton><LsButton :loading="action.isPending.value" @click="run('/joinReview/approve')"><template #icon><Check :size="17" /></template>同意{{ detail.purpose_label || '加入' }}</LsButton><LsButton variant="danger" :loading="action.isPending.value" @click="reject">拒绝申请</LsButton></div></section></LsPanel>
       </template>
       <LsInlineError v-if="action.isError.value" :message="friendlyError(action.error.value)" />
       <NModal v-model:show="rejectOpen" preset="card" title="拒绝加入申请" :style="{ width: 'min(92vw, 30rem)' }">

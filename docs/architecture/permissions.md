@@ -13,7 +13,7 @@
 | 团队成员 | `team.member.read` | 查看完整成员管理集合，包括团队内隐藏或封禁成员；基础目录不要求此权限 |
 | 团队成员 | `team.member.invite` | 邀请或新增成员 |
 | 团队成员 | `team.member.update` | 编辑、封禁、解封、设置 slug 与搜索成员 |
-| 团队成员 | `team.member.remove` | 移除成员 |
+| 团队成员 | `team.member.remove` | 查询、代提、批准和拒绝成员离队申请；不提供直接移出通道 |
 | 团队成员 | `team.post_type.write` | 管理岗位类型 |
 | 团队成员 | `team.role.read` | 查看角色、权限和角色分配 |
 | 团队成员 | `team.role.write` | 管理角色、权限和角色分配 |
@@ -72,6 +72,8 @@ Permission 不支持 deny，多个候选权限按 OR 判断。
 `team.entity.read`、`team.member.read`、`team.document.read` 和 `team.customer.read` 表示“全量读取”，不是基础入口许可。没有客户全量读取权限时，当前归属实体仍可查看自己的客户；Customer 在通用实体目录中始终需要 `team.entity.read`，对无权 Customer 与团队内隐藏实体的直接访问返回 404；文档继续按自身可见性返回。`team.customer.manage` 同时授予客户全量读取，并控制资料、归属与封禁更新；客户本人在 Shop 只可修改自己的资料和归属，不因此获得后台管理权限。
 
 权限拒绝使用结构化错误：`data.kind=permission` 且 `data.required_any` 列出任一可满足的 Permission；用户界面显示 `缺少权限(Permission): <key>`。能力拒绝使用 `data.kind=ability` 并返回能力键、标签、最低等级和缺失原因。
+
+`team.member.remove` 保护独立的离队申请流，管理员代提也必须先创建待审申请；成员自助离队不依赖该 Permission，但只允许正常成员本人使用直接领取的根身份会话。复职继续复用 `team.join_review.read/write`，不新增独立复职 Permission。非正常成员 Entity 是否具备业务可用性由 `member.inactive_entity_available` 动态决定，assume Permission 只决定谁可以代入，不覆盖 Entity 可用性。
 
 ## 平台权限
 

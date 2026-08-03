@@ -141,7 +141,7 @@
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `profile` | `int $teamId` | `array` |
-| `entities` | `int $teamId`、`?string $type`、`int $page`、`int $limit` | `array` |
+| `entities` | `int $teamId`、`?string $type`、`int $page`、`int $limit`、`string $keyword = ''` | `array` |
 | `entity` | `int $teamId`、`string $slug` | `array` |
 | `documents` | `int $teamId`、`?string $entitySlug`、`int $page`、`int $limit` | `array` |
 | `document` | `int $teamId`、`int $id` | `array` |
@@ -165,6 +165,7 @@
 | `requireBySubject` | `string $type`、`int $id` | `model\Entity` |
 | `subject` | `int $entityId` | `array` |
 | `assertInTeam` | `int $entityId`、`int $teamId` | `model\Entity` |
+| `assertBelongsToTeam` | `int $entityId`、`int $teamId` | `model\Entity` |
 | `claimTeam` | `model\Team $team` | `model\Entity` |
 | `claimMember` | `int $teamId`、`int $memberId`、`string $slug` | `model\Entity` |
 | `claimCustomer` | `int $customerId`、`string $slug` | `model\Entity` |
@@ -213,6 +214,8 @@
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
+| `revokeInactiveMembers` | `int $teamId` | `void` |
+| `revokeForEntities` | `array $entityIds` | `void` |
 | `candidates` | `int $userId`、`?model\EntitySession $current = null` | `array` |
 | `receive` | `int $userId`、`string $deviceToken`、`string $slug`、`?model\EntitySession $current = null` | `array` |
 | `receiveMember` | `int $userId`、`string $deviceToken`、`string $teamSlug` | `array` |
@@ -225,6 +228,13 @@
 | `assumePermissionKeys` | `model\Entity $target` | `array` |
 | `entityName` | `string $type`、`int $id` | `string` |
 | `teamSummary` | `int $teamId` | `?array` |
+
+## Inviter
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `resolve` | `mixed $slug` | `?model\Entity` |
+| `summary` | `int $targetTeamId`、`mixed $entityId` | `?array` |
 
 ## Jwt
 
@@ -484,7 +494,9 @@
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
+| `form` | `int $teamId`、`int $userId` | `array` |
 | `fields` | `int $teamId`、`bool $onlyFillable = false` | `array` |
+| `transferOptions` | `int $teamId` | `array` |
 | `createField` | `int $teamId`、`array $data` | `int` |
 | `updateField` | `int $teamId`、`int $id`、`array $data` | `void` |
 | `deleteField` | `int $teamId`、`int $id` | `void` |
@@ -504,14 +516,27 @@
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `list` | `int $teamId`、`array $actingEntity` | `array` |
+| `list` | `int $teamId`、`array $actingEntity`、`?string $statusCode = null` | `array` |
 | `get` | `int $teamId`、`int $memberId`、`array $actingEntity` | `array` |
 | `capabilities` | `int $teamId`、`array $subject`、`array $member` | `array` |
 | `add` | `int $teamId`、`int $userId`、`array $data` | `void` |
 | `edit` | `int $teamId`、`int $memberId`、`array $data` | `void` |
 | `block` | `int $teamId`、`int $memberId` | `void` |
 | `unblock` | `int $teamId`、`int $memberId` | `void` |
-| `remove` | `int $teamId`、`int $memberId` | `void` |
+
+## TeamMemberDeparture
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `directMemberId` | `int $teamId`、`mixed $actingEntity`、`mixed $session`、`int $authenticatedUserId` | `int` |
+| `list` | `int $teamId`、`array $filters`、`int $page`、`int $limit` | `array` |
+| `get` | `int $teamId`、`int $id` | `array` |
+| `mine` | `int $teamId`、`int $memberId` | `array` |
+| `apply` | `int $teamId`、`int $memberId`、`int $requesterEntityId` | `array` |
+| `create` | `int $teamId`、`int $memberId`、`int $requesterEntityId` | `int` |
+| `cancel` | `int $teamId`、`int $memberId`、`int $id`、`int $decisionEntityId` | `void` |
+| `approve` | `int $teamId`、`int $id`、`int $decisionEntityId` | `int` |
+| `reject` | `int $teamId`、`int $id`、`int $decisionEntityId` | `void` |
 
 ## TeamSetting
 

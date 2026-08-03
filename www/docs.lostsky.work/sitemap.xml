@@ -49,6 +49,18 @@
         <loc>https://docs.lostsky.work/manual/</loc>
       </url>
       <url>
+        <loc>https://docs.lostsky.work/manual/concepts/</loc>
+      </url>
+      <url>
+        <loc>https://docs.lostsky.work/manual/access-and-abilities/</loc>
+      </url>
+      <url>
+        <loc>https://docs.lostsky.work/manual/permissions/</loc>
+      </url>
+      <url>
+        <loc>https://docs.lostsky.work/manual/troubleshooting/</loc>
+      </url>
+      <url>
         <loc>https://docs.lostsky.work/manual/account-and-identity/</loc>
       </url>
       <url>
@@ -146,6 +158,9 @@
       </url>
       <url>
         <loc>https://docs.lostsky.work/development/frontend/</loc>
+      </url>
+      <url>
+        <loc>https://docs.lostsky.work/development/component-previews/</loc>
       </url>
       <url>
         <loc>https://docs.lostsky.work/development/testing/</loc>

@@ -92,12 +92,18 @@ class PermissionGate
     private function validSubject(int $teamId, array $subject): bool
     {
         return match ($subject['type']) {
-            'teamMember' => (bool) TeamMember::where('team_id', $teamId)->where('id', $subject['id'])->where('is_blocked', 0)->find(),
+            'teamMember' => $this->validTeamMember($teamId, (int) $subject['id']),
             'teamCustomer' => (bool) \app\model\TeamCustomer::where('team_id', $teamId)->where('id', $subject['id'])->where('is_blocked', 0)->find(),
             'team' => (bool) \app\model\Team::active()->where('id', $teamId)->where('id', $subject['id'])->find(),
             'teamVirtual' => (bool) \app\model\TeamVirtual::where('team_id', $teamId)->where('id', $subject['id'])->where('is_active', 1)->find(),
             default => false,
         };
+    }
+
+    private function validTeamMember(int $teamId, int $memberId): bool
+    {
+        $member = TeamMember::where('team_id', $teamId)->find($memberId);
+        return $member ? (bool) $member->is_valid : false;
     }
 
     private function validGlobalSubject(array $subject): bool

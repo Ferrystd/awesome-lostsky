@@ -1001,6 +1001,114 @@
   
   
     <li class="md-nav__item">
+      <a href="../../manual/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  核心概念
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/access-and-abilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  能力、权限与功能降级
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/permissions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  权限目录
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../manual/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  问题排查
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../manual/account-and-identity/" class="md-nav__link">
         
   
@@ -1688,6 +1796,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#inviter" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Inviter
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#jwt" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1978,6 +2097,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         TeamMember
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#teammemberdeparture" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        TeamMemberDeparture
       </span>
     </span>
   </a>
@@ -2755,6 +2885,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../development/component-previews/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  组件代码预览
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../development/testing/" class="md-nav__link">
         
   
@@ -3506,6 +3663,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#inviter" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Inviter
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#jwt" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3796,6 +3964,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         TeamMember
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#teammemberdeparture" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        TeamMemberDeparture
       </span>
     </span>
   </a>
@@ -4401,7 +4580,7 @@
 </tr>
 <tr>
 <td><code>entities</code></td>
-<td><code>int $teamId</code>、<code>?string $type</code>、<code>int $page</code>、<code>int $limit</code></td>
+<td><code>int $teamId</code>、<code>?string $type</code>、<code>int $page</code>、<code>int $limit</code>、<code>string $keyword = ''</code></td>
 <td><code>array</code></td>
 </tr>
 <tr>
@@ -4490,6 +4669,11 @@
 </tr>
 <tr>
 <td><code>assertInTeam</code></td>
+<td><code>int $entityId</code>、<code>int $teamId</code></td>
+<td><code>model\Entity</code></td>
+</tr>
+<tr>
+<td><code>assertBelongsToTeam</code></td>
 <td><code>int $entityId</code>、<code>int $teamId</code></td>
 <td><code>model\Entity</code></td>
 </tr>
@@ -4682,6 +4866,16 @@
 </thead>
 <tbody>
 <tr>
+<td><code>revokeInactiveMembers</code></td>
+<td><code>int $teamId</code></td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td><code>revokeForEntities</code></td>
+<td><code>array $entityIds</code></td>
+<td><code>void</code></td>
+</tr>
+<tr>
 <td><code>candidates</code></td>
 <td><code>int $userId</code>、<code>?model\EntitySession $current = null</code></td>
 <td><code>array</code></td>
@@ -4739,6 +4933,28 @@
 <tr>
 <td><code>teamSummary</code></td>
 <td><code>int $teamId</code></td>
+<td><code>?array</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="inviter">Inviter<a class="headerlink" href="#inviter" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>参数</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resolve</code></td>
+<td><code>mixed $slug</code></td>
+<td><code>?model\Entity</code></td>
+</tr>
+<tr>
+<td><code>summary</code></td>
+<td><code>int $targetTeamId</code>、<code>mixed $entityId</code></td>
 <td><code>?array</code></td>
 </tr>
 </tbody>
@@ -5699,8 +5915,18 @@
 </thead>
 <tbody>
 <tr>
+<td><code>form</code></td>
+<td><code>int $teamId</code>、<code>int $userId</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
 <td><code>fields</code></td>
 <td><code>int $teamId</code>、<code>bool $onlyFillable = false</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>transferOptions</code></td>
+<td><code>int $teamId</code></td>
 <td><code>array</code></td>
 </tr>
 <tr>
@@ -5787,7 +6013,7 @@
 <tbody>
 <tr>
 <td><code>list</code></td>
-<td><code>int $teamId</code>、<code>array $actingEntity</code></td>
+<td><code>int $teamId</code>、<code>array $actingEntity</code>、<code>?string $statusCode = null</code></td>
 <td><code>array</code></td>
 </tr>
 <tr>
@@ -5820,9 +6046,61 @@
 <td><code>int $teamId</code>、<code>int $memberId</code></td>
 <td><code>void</code></td>
 </tr>
+</tbody>
+</table>
+<h2 id="teammemberdeparture">TeamMemberDeparture<a class="headerlink" href="#teammemberdeparture" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
 <tr>
-<td><code>remove</code></td>
+<th>方法</th>
+<th>参数</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>directMemberId</code></td>
+<td><code>int $teamId</code>、<code>mixed $actingEntity</code>、<code>mixed $session</code>、<code>int $authenticatedUserId</code></td>
+<td><code>int</code></td>
+</tr>
+<tr>
+<td><code>list</code></td>
+<td><code>int $teamId</code>、<code>array $filters</code>、<code>int $page</code>、<code>int $limit</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>get</code></td>
+<td><code>int $teamId</code>、<code>int $id</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>mine</code></td>
 <td><code>int $teamId</code>、<code>int $memberId</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>apply</code></td>
+<td><code>int $teamId</code>、<code>int $memberId</code>、<code>int $requesterEntityId</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>create</code></td>
+<td><code>int $teamId</code>、<code>int $memberId</code>、<code>int $requesterEntityId</code></td>
+<td><code>int</code></td>
+</tr>
+<tr>
+<td><code>cancel</code></td>
+<td><code>int $teamId</code>、<code>int $memberId</code>、<code>int $id</code>、<code>int $decisionEntityId</code></td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td><code>approve</code></td>
+<td><code>int $teamId</code>、<code>int $id</code>、<code>int $decisionEntityId</code></td>
+<td><code>int</code></td>
+</tr>
+<tr>
+<td><code>reject</code></td>
+<td><code>int $teamId</code>、<code>int $id</code>、<code>int $decisionEntityId</code></td>
 <td><code>void</code></td>
 </tr>
 </tbody>

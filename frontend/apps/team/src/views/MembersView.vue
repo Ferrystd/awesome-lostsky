@@ -13,17 +13,19 @@ import { NSelect } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { memberStatusCode, memberStatusLabel, memberStatusType } from '../lib/memberStatus'
 import { hasPermission, permissionReason, useTeamAccess } from '../lib/teamAccess'
 
 const client = useQueryClient()
 const router = useRouter()
 const access = useTeamAccess()
 const search = ref('')
-const category = ref<'all' | 'active' | 'blocked' | 'unclaimed'>('all')
+const category = ref<'all' | 'active' | 'blocked' | 'departed' | 'unclaimed'>('all')
 const categoryOptions = [
   { label: '全部成员', value: 'all' },
   { label: '正常成员', value: 'active' },
   { label: '已封禁', value: 'blocked' },
+  { label: '已离队', value: 'departed' },
   { label: '未认领 slug', value: 'unclaimed' },
 ]
 const accessUnknown = computed(() => access.isPending.value || access.isError.value)
@@ -38,10 +40,9 @@ const members = computed(() => query.data.value ?? [])
 const filtered = computed(() => {
   const term = search.value.trim().toLowerCase()
   return members.value.filter((item) => {
-    const blocked = Number(item.is_blocked) === 1
+    const status = memberStatusCode(item)
     const matchesCategory = category.value === 'all'
-      || (category.value === 'active' && !blocked)
-      || (category.value === 'blocked' && blocked)
+      || category.value === status
       || (category.value === 'unclaimed' && !item.slug)
     const matchesSearch = !term || [item.nickname, item.slug, item.user_id, item.description]
       .some(value => String(value ?? '').toLowerCase().includes(term))
@@ -63,13 +64,14 @@ function mutate(endpoint: string, item: Record<string, unknown>, message: string
   if (confirm(message)) action.mutate({ endpoint, member_id: Number(item.id), success })
 }
 function memberActions(item: Record<string, unknown>) {
-  const blocked = Number(item.is_blocked) === 1
+  const status = memberStatusCode(item)
+  const available = item.is_valid !== false
   return [
-    { key: 'chat', label: '对话', icon: MessageCircleMore, disabled: !item.slug || blocked, reason: !item.slug ? '尚未认领 slug' : blocked ? '成员已封禁' : '' },
+    { key: 'chat', label: '对话', icon: MessageCircleMore, disabled: !item.slug || !available, reason: !item.slug ? '尚未认领 slug' : !available ? `${memberStatusLabel(item)}，实体当前不可用` : '' },
     { key: 'preview', label: '预览', icon: FileText },
     { key: 'manage', label: canUpdate.value ? '管理' : '查看', icon: Pencil },
-    { key: blocked ? 'unblock' : 'block', label: blocked ? '解封' : '封禁', icon: blocked ? ShieldCheck : ShieldBan, disabled: !canUpdate.value, reason: canUpdate.value ? '' : permissionReason('team.member.update') },
-    { key: 'remove', label: '移出', icon: UserX, danger: true, disabled: !canRemove.value, reason: canRemove.value ? '' : permissionReason('team.member.remove') },
+    ...(status === 'departed' ? [] : [{ key: status === 'blocked' ? 'unblock' : 'block', label: status === 'blocked' ? '解封' : '封禁', icon: status === 'blocked' ? ShieldCheck : ShieldBan, disabled: !canUpdate.value, reason: canUpdate.value ? '' : permissionReason('team.member.update') }]),
+    ...(status === 'departed' ? [] : [{ key: 'departure', label: '发起离队申请', icon: UserX, danger: true, disabled: !canRemove.value, reason: canRemove.value ? '' : permissionReason('team.member.remove') }]),
   ]
 }
 function handleAction(key: string, item: Record<string, unknown>) {
@@ -78,7 +80,7 @@ function handleAction(key: string, item: Record<string, unknown>) {
   else if (key === 'manage') void router.push(`/member-edit?id=${item.id}`)
   else if (key === 'block') mutate('/member/block', item, '确认封禁该成员？其身份与旧引用会保留，但暂时不可用。', '成员已封禁')
   else if (key === 'unblock') mutate('/member/unblock', item, '确认解除该成员的封禁？', '成员已解除封禁')
-  else if (key === 'remove') mutate('/member/remove', item, '确认将该成员移出团队？其 slug 将永久保留。', '成员已移出团队')
+  else if (key === 'departure') mutate('/memberDeparture/create', item, '确认发起该成员的离队申请？资料、角色和业务关系都会保留，申请仍需审核。', '离队申请已创建')
 }
 </script>
 
@@ -117,7 +119,7 @@ function handleAction(key: string, item: Record<string, unknown>) {
         <article v-for="item in filtered" :key="String(item.id)">
         <div class="identity">
           <LsEntityIdentity type="teamMember" :name="String(item.nickname || `成员 #${item.id}`)" :slug="String(item.slug || '')" :image-url="item.avatar ? String(item.avatar) : null" fallback="initial">
-            <template #status><LsStatusTag :label="Number(item.is_blocked) === 1 ? '已封禁' : '正常'" :type="Number(item.is_blocked) === 1 ? 'error' : 'success'" /></template>
+            <template #status><LsStatusTag :label="memberStatusLabel(item)" :type="memberStatusType(item)" /></template>
           </LsEntityIdentity>
           <small>{{ item.description || '暂无成员简介' }}</small>
         </div>

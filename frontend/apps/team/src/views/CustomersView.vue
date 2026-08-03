@@ -131,7 +131,7 @@ const columns: DataTableColumns<CustomerRow> = [
     <LsEmptyState
       v-else-if="!query.data.value?.list.length"
       :title="filters.keyword || filters.assignee_entity_id !== null || filters.blocked !== null ? '没有匹配的客户' : '还没有可查看的客户'"
-      :description="query.data.value?.scope === 'own' ? '客户通过你的邀请链接领取身份后会出现在这里。' : '客户领取团队商店身份后会进入客户目录。'"
+      :description="query.data.value?.scope === 'own' ? '归属于当前身份的客户会出现在这里。' : '客户领取团队商店身份后会进入客户目录。'"
     />
     <LsResponsiveDataTable v-else :columns="columns" :data="query.data.value.list" :row-key="row => row.id" :scroll-x="920">
       <template #mobile-title="{ row: customer }">
