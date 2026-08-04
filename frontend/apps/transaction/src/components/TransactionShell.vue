@@ -2,7 +2,7 @@
 import { auth } from '@lostsky/api/client'
 import { redirectToLogin } from '@lostsky/shared/navigation'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
-import { BarChart3, ChevronRight, CircleDollarSign, Handshake, ListChecks, LogOut, Menu, Plus, X } from '@lucide/vue'
+import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Handshake, ListChecks, LogOut, Menu, Plus, X } from '@lucide/vue'
 import { NButton } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -12,10 +12,12 @@ const router = useRouter()
 const drawer = ref(false)
 const nav = [
   ['/', '流水', ListChecks],
+  ['/services', '服务核销', BadgeCheck],
   ['/stats', '统计', BarChart3],
   ['/bindings', '发单绑定', Handshake],
   ['/balances', '客户余额', CircleDollarSign],
 ] as const
+const mobileNav = nav.slice(0, 3)
 const title = computed(() => String(route.meta.title ?? '记账工作台'))
 const headerActions = [{ key: 'new', label: '登记流水' }]
 function logout() {
@@ -50,7 +52,7 @@ function logout() {
       </LsWorkspaceHeader>
       <slot />
       <nav class="bottom-nav" aria-label="移动端导航">
-        <RouterLink v-for="item in nav" :key="item[0]" :to="item[0]"><component :is="item[2]" :size="20" /><span>{{ item[1] }}</span></RouterLink>
+        <RouterLink v-for="item in mobileNav" :key="item[0]" :to="item[0]"><component :is="item[2]" :size="20" /><span>{{ item[1] }}</span></RouterLink>
         <NButton quaternary @click="drawer = true"><template #icon><Menu :size="20" /></template><span>更多</span></NButton>
       </nav>
     </section>

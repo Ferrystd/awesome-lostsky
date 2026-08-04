@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace app\middleware;
 
 use app\exception\AccessDeniedException;
-use app\model\TeamAbility;
+use app\service\AbilityResolver;
 use think\exception\HttpException;
 use think\Request;
 
@@ -40,29 +40,13 @@ class Ability
             throw new HttpException(400, '无法确定团队上下文');
         }
 
-        $ability = TeamAbility::where('team_id', $team->id)
-            ->where('ability_key', $abilityKey)
-            ->find();
-
-        if (!$ability) {
-            throw AccessDeniedException::ability($abilityKey, $this->label($abilityKey), (int) $minimumLevel);
-        }
-
-        if ($ability->level < (int) $minimumLevel) {
+        $ability = app(AbilityResolver::class)->resolve((int) $team->id, $abilityKey, (int) $minimumLevel);
+        if (!$ability['enabled']) {
             throw AccessDeniedException::ability(
                 $abilityKey,
                 $this->label($abilityKey),
                 (int) $minimumLevel,
-                'level'
-            );
-        }
-
-        if ($ability->expire_time > 0 && $ability->expire_time < time()) {
-            throw AccessDeniedException::ability(
-                $abilityKey,
-                $this->label($abilityKey),
-                (int) $minimumLevel,
-                'expired'
+                $ability['reason']
             );
         }
 

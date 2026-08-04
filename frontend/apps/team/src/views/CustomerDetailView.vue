@@ -1,26 +1,30 @@
 <script setup lang="ts">
-import { api, friendlyError } from '@lostsky/api/client'
+import { ApiError, api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import type { EntityType } from '@lostsky/ui/entity'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { MessageCircleMore, Save } from '@lucide/vue'
 import { NFormItem, NInput, NSelect, NSwitch } from 'naive-ui'
-import { computed, reactive, watch } from 'vue'
+import type { SelectOption, SelectRenderLabel } from 'naive-ui'
+import { computed, h, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPage from '../components/AdminPage.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import EntitySelectOption from '../components/EntitySelectOption.vue'
 import { abilityReason, hasPermission, permissionReason, useTeamAccess } from '../lib/teamAccess'
 
 interface EntitySummary {
   entity_id: number
   slug: string
-  type: string
+  type: EntityType
   name: string
 }
+interface AssigneeSelectOption extends SelectOption, EntitySummary {}
 interface CustomerDetail {
   id: number
   slug: string
@@ -40,13 +44,41 @@ interface CustomerDetail {
   can_manage: boolean
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isCustomerDetail(value: unknown): value is CustomerDetail {
+  if (!isRecord(value) || !isRecord(value.balance) || !isRecord(value.summary)) return false
+  return typeof value.id === 'number'
+    && typeof value.slug === 'string'
+    && typeof value.name === 'string'
+    && typeof value.is_blocked === 'boolean'
+    && typeof value.balance.balance === 'string'
+    && typeof value.balance.recharged === 'string'
+    && typeof value.balance.spent === 'string'
+    && typeof value.summary.transaction_count === 'number'
+    && typeof value.summary.transaction_total === 'string'
+    && typeof value.summary.order_count === 'number'
+    && typeof value.summary.order_total === 'string'
+    && typeof value.can_manage === 'boolean'
+}
+
 const route = useRoute()
 const id = computed(() => Number(route.params.id))
 const client = useQueryClient()
 const access = useTeamAccess()
+async function loadCustomerDetail() {
+  const path = `/customer/${id.value}`
+  const value = await api.get<unknown>(path)
+  if (!isCustomerDetail(value)) {
+    throw new ApiError('客户详情数据不完整，请刷新后重试', { method: 'GET', path })
+  }
+  return value
+}
 const query = useQuery({
   queryKey: computed(() => ['team-customer', id.value]),
-  queryFn: () => api.get<CustomerDetail>(`/customer/${id.value}`),
+  queryFn: loadCustomerDetail,
 })
 const canManage = computed(() => Boolean(query.data.value?.can_manage))
 const assignees = useQuery({
@@ -86,10 +118,13 @@ const save = useMutation({
     ])
   },
 })
-const assigneeOptions = computed(() => (assignees.data.value ?? []).map(item => ({
-  label: `${item.name} · @${item.slug}`,
+const assigneeOptions = computed<AssigneeSelectOption[]>(() => (assignees.data.value ?? []).map(item => ({
+  ...item,
+  label: `${item.name} @${item.slug}`,
   value: item.entity_id,
 })))
+const assigneeMenuProps = { class: 'entity-select-menu' }
+const renderAssigneeLabel: SelectRenderLabel = option => h(EntitySelectOption, { entity: option as AssigneeSelectOption })
 const chatReason = computed(() => {
   const snapshot = access.data.value
   if (!snapshot || !snapshot.permissions) return ''
@@ -142,7 +177,11 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
               id="customer-assignee"
               v-model:value="form.assignee_entity_id"
               :options="assigneeOptions"
+              :render-label="renderAssigneeLabel"
+              :menu-props="assigneeMenuProps"
+              :loading="assignees.isPending.value"
               :disabled="!canManage"
+              :virtual-scroll="false"
               filterable
               clearable
               placeholder="未归属"

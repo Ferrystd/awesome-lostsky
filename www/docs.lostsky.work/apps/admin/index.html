@@ -3004,6 +3004,7 @@
 <li>查询团队、所有者、成员规模、域名和能力；封禁或解封团队，不修改团队内容，也不影响用户在其他团队的会话。</li>
 <li>维护平台管理员、平台角色及权限并集。</li>
 <li>查询集中业务审计事件和经过脱敏的系统健康状态。</li>
+<li>维护平台 Ability 权益包、公共体验活动与兑换码；平台权益与团队商家服务权益相互隔离。</li>
 </ul>
 <p>首版不提供用户删除、密码重置、身份代办、团队内容编辑、能力授权、域名管理、订单交易管理、审计导出、队列重试或自动修复。</p>
 <h2 id="_2">鉴权与安全边界<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
@@ -3018,10 +3019,11 @@
 <li><code>admin.team.read</code>、<code>admin.team.moderate</code></li>
 <li><code>admin.access.read</code>、<code>admin.access.write</code></li>
 <li><code>admin.audit.read</code>、<code>admin.system.read</code></li>
+<li><code>admin.entitlement.read</code>、<code>admin.entitlement.write</code></li>
 </ul>
 <p>完整分组和文案以 <a href="../../../app/service/PermissionDictionary.php"><code>PermissionDictionary</code></a> 为事实源。</p>
 <h2 id="_4">接口与前端<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
-<p>接口契约见 <a href="../../openapi/admin.openapi.json"><code>admin.openapi.json</code></a>。前端路由覆盖平台总览、用户、团队、管理员、角色、审计和系统状态；桌面端使用固定资源侧栏与命令搜索，移动端使用导航抽屉、全屏搜索和字段化记录行。</p>
+<p>接口契约见 <a href="../../openapi/admin.openapi.json"><code>admin.openapi.json</code></a>。前端路由覆盖平台总览、用户、团队、管理员、角色、审计、系统状态和平台权益；桌面端使用固定资源侧栏与命令搜索，移动端使用导航抽屉、全屏搜索和字段化记录行。</p>
 <p>未登录请求跳转 Account 并保留原地址；已登录但没有平台角色的用户显示明确的 403 页面。前端权限只控制导航和操作入口，服务端中间件始终是授权事实源。</p>
 <h2 id="_5">自举与发布<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <p>首位超级管理员必须通过服务器终端授予：</p>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\model\TeamTransaction;
+use app\enum\TransactionType;
 
 class TransactionStats
 {
@@ -14,18 +15,26 @@ class TransactionStats
             ->where('trans_at', '<', $endTime)
             ->field([
                 'COUNT(*) as total_count',
-                'COALESCE(SUM(total_price), 0) as total_price',
-                'COALESCE(SUM(cost), 0) as total_cost',
-                'COALESCE(SUM(handler_cut + sender_cut + cs_cut + team_cut), 0) as total_cut',
+                'COALESCE(SUM(CASE WHEN type <> 3 THEN total_price ELSE 0 END), 0) as total_price',
+                'COALESCE(SUM(cash + prepaid), 0) as receipt_total',
+                'COALESCE(SUM(CASE WHEN type <> 3 THEN total_price ELSE 0 END), 0) as performance_total',
+                'SUM(CASE WHEN type = 3 THEN 1 ELSE 0 END) as service_receipt_count',
+                'SUM(CASE WHEN type = 4 THEN 1 ELSE 0 END) as service_redemption_count',
+                'COALESCE(SUM(CASE WHEN type <> 3 THEN cost ELSE 0 END), 0) as total_cost',
+                'COALESCE(SUM(CASE WHEN type <> 3 THEN handler_cut + sender_cut + cs_cut + team_cut ELSE 0 END), 0) as total_cut',
                 'COALESCE(SUM(cash), 0) as cash_total',
                 'COALESCE(SUM(prepaid), 0) as prepaid_total',
-                'COALESCE(AVG(total_price), 0) as avg_price',
+                'COALESCE(AVG(CASE WHEN type <> 3 THEN total_price ELSE NULL END), 0) as avg_price',
             ])
             ->find();
 
         return $row ? $row->toArray() : [
             'total_count'   => 0,
             'total_price'   => 0,
+            'receipt_total' => 0,
+            'performance_total' => 0,
+            'service_receipt_count' => 0,
+            'service_redemption_count' => 0,
             'total_cost'    => 0,
             'total_cut'     => 0,
             'cash_total'    => 0,
@@ -40,6 +49,7 @@ class TransactionStats
             ->where('t.team_id', $teamId)
             ->where('t.trans_at', '>=', $startTime)
             ->where('t.trans_at', '<', $endTime)
+            ->where('t.type', '<>', TransactionType::ServicePackageReceipt->value)
             ->group("t.{$column}")
             ->field([
                 "t.{$column} as entity_id",
@@ -68,6 +78,7 @@ class TransactionStats
             ->where('t.team_id', $teamId)
             ->where('t.trans_at', '>=', $startTime)
             ->where('t.trans_at', '<', $endTime)
+            ->where('t.type', '<>', TransactionType::ServicePackageReceipt->value)
             ->group("t.{$column}")
             ->order('amount', 'desc')
             ->field([
@@ -97,7 +108,8 @@ class TransactionStats
             ->field([
                 "FROM_UNIXTIME(trans_at, '{$format}') as date",
                 'COUNT(*) as count',
-                'COALESCE(SUM(total_price), 0) as amount',
+                'COALESCE(SUM(CASE WHEN type <> 3 THEN total_price ELSE 0 END), 0) as amount',
+                'COALESCE(SUM(cash + prepaid), 0) as receipt_amount',
             ])
             ->select()
             ->toArray();
@@ -118,7 +130,8 @@ class TransactionStats
                 't.customer_id',
                 'COALESCE(p.name, \'\') as customer_name',
                 'COUNT(*) as count',
-                'COALESCE(SUM(t.total_price), 0) as amount',
+                'COALESCE(SUM(CASE WHEN t.type <> 3 THEN t.total_price ELSE 0 END), 0) as amount',
+                'COALESCE(SUM(t.cash + t.prepaid), 0) as receipt_amount',
             ])
             ->select()
             ->toArray());
@@ -130,6 +143,7 @@ class TransactionStats
             ->where('t.team_id', $teamId)
             ->where('t.trans_at', '>=', $startTime)
             ->where('t.trans_at', '<', $endTime)
+            ->where('t.type', '<>', TransactionType::ServicePackageReceipt->value)
             ->whereNotNull('t.customer_id')
             ->whereNotNull('t.sender_entity_id')
             ->group('t.sender_entity_id')

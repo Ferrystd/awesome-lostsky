@@ -17,6 +17,7 @@ class TeamTransaction extends Base
         'cost',
         'cash',
         'prepaid',
+        'service_credit',
         'handler_cut',
         'sender_cut',
         'cs_cut',
@@ -26,7 +27,7 @@ class TeamTransaction extends Base
     protected $type = [
         'id'          => 'integer',
         'team_id'     => 'integer',
-        'handler_entity_id' => 'integer',
+        // handler_entity_id 允许为 NULL，服务包收款没有接单人
         // customer_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
         // 'customer_id' => 'integer|null',
         'type'        => TransactionType::class,
@@ -34,6 +35,7 @@ class TeamTransaction extends Base
         'cost'        => 'string',
         'cash'        => 'string',
         'prepaid'     => 'string',
+        'service_credit' => 'string',
         'handler_cut' => 'string',
         'sender_cut'  => 'string',
         'cs_cut'      => 'string',
@@ -82,6 +84,11 @@ class TeamTransaction extends Base
         return $this->hasMany(TeamCustomerBalanceLog::class, 'trans_id');
     }
 
+    public function serviceInstance()
+    {
+        return $this->belongsTo(TeamServiceInstance::class, 'service_instance_id');
+    }
+
     public function normalizeMoney(array $values): array
     {
         $bind = [];
@@ -94,7 +101,7 @@ class TeamTransaction extends Base
         }
 
         $sql = 'SELECT money.*, '
-            . '(money.total_price = money.cash + money.prepaid) AS payment_balanced, '
+            . '(money.total_price = money.cash + money.prepaid + money.service_credit) AS payment_balanced, '
             . '(money.total_price = money.cost + money.handler_cut + money.sender_cut + money.cs_cut + money.team_cut) AS distribution_balanced, '
             . '(money.prepaid > 0) AS prepaid_positive '
             . 'FROM (SELECT ' . implode(', ', $columns) . ') AS money';

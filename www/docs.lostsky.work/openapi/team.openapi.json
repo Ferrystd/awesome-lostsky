@@ -3090,6 +3090,9 @@
     }
   },
   "paths": {
+    "/ability": {"get":{"tags":["Access"],"operationId":"teamAbilities","summary":"读取当前团队 Ability 状态","responses":{"200":{"description":"成功"}}}},
+    "/ability/card/inspect": {"post":{"tags":["Access"],"operationId":"inspectAbilityCard","summary":"预检 Ability 卡密","responses":{"200":{"description":"成功"}}}},
+    "/ability/card/redeem": {"post":{"tags":["Access"],"operationId":"redeemAbilityCard","summary":"为当前 Team 兑换 Ability","responses":{"200":{"description":"成功"}}}},
     "/access": {
       "get": {
         "tags": [

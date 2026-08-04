@@ -16,7 +16,7 @@ class TeamOrder extends Base
         'id'          => 'integer',
         'team_id'     => 'integer',
         // customer_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
-        'handler_entity_id' => 'integer',
+        // handler_entity_id 允许为 NULL，服务套餐与卡密订单没有购买时接单人
         'product_id'  => 'integer',
         'product_name' => 'string',
         'product_cover_image' => 'string',
@@ -101,6 +101,11 @@ class TeamOrder extends Base
     public function transaction()
     {
         return $this->belongsTo(TeamTransaction::class, 'trans_id');
+    }
+
+    public function serviceInstances()
+    {
+        return $this->hasMany(TeamServiceInstance::class, 'source_order_id');
     }
 
     public function quote(TeamProduct $product, int $quantity, array $overrides, bool $usesPrepaid): array

@@ -11,6 +11,8 @@ const BindingFormView = () => import('./views/BindingFormView.vue')
 const BalancesView = () => import('./views/BalancesView.vue')
 const BalanceLogsView = () => import('./views/BalanceLogsView.vue')
 const RechargeView = () => import('./views/RechargeView.vue')
+const ServicesView = () => import('./views/ServicesView.vue')
+const ServiceDetailView = () => import('./views/ServiceDetailView.vue')
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -21,6 +23,8 @@ export const router = createRouter({
     { path: '/detail', component: TransactionDetailView, meta: { title: '流水详情', pageWidth: 'content' } },
     { path: '/edit', component: TransactionFormView, meta: { title: '编辑流水', pageWidth: 'form' } },
     { path: '/stats', component: StatsView, meta: { title: '经营统计', pageWidth: 'wide' } },
+    { path: '/services', component: ServicesView, meta: { title: '服务核销', pageWidth: 'wide' } },
+    { path: '/services/:id(\\d+)', component: ServiceDetailView, meta: { title: '核销详情', pageWidth: 'content' } },
     { path: '/bindings', component: BindingsView, meta: { title: '发单绑定', pageWidth: 'wide' } },
     { path: '/binding-new', component: BindingFormView, meta: { title: '新增发单绑定', pageWidth: 'form' } },
     { path: '/balances', component: BalancesView, meta: { title: '客户余额', pageWidth: 'wide' } },

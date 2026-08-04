@@ -24,6 +24,8 @@ final class PermissionDictionary
     public const SHOP_PRODUCT_DELETE = 'shop.product.delete';
     public const SHOP_ORDER_READ = 'shop.order.read';
     public const SHOP_ORDER_WRITE = 'shop.order.write';
+    public const SERVICE_REDEMPTION_READ = 'service.redemption.read';
+    public const SERVICE_REDEMPTION_MANAGE = 'service.redemption.manage';
 
     public const TRANSACTION_READ = 'transaction.read';
     public const TRANSACTION_WRITE = 'transaction.write';
@@ -36,6 +38,7 @@ final class PermissionDictionary
     public const TEAM_DOCUMENT_READ = 'team.document.read';
     public const TEAM_SETTING_READ = 'team.setting.read';
     public const TEAM_SETTING_UPDATE = 'team.setting.update';
+    public const TEAM_ABILITY_REDEEM = 'team.ability.redeem';
     public const TEAM_NOTICE_READ = 'team.notice.read';
     public const TEAM_NOTICE_SEND = 'team.notice.send';
 
@@ -68,6 +71,8 @@ final class PermissionDictionary
     public const ADMIN_ACCESS_WRITE = 'admin.access.write';
     public const ADMIN_AUDIT_READ = 'admin.audit.read';
     public const ADMIN_SYSTEM_READ = 'admin.system.read';
+    public const ADMIN_ENTITLEMENT_READ = 'admin.entitlement.read';
+    public const ADMIN_ENTITLEMENT_WRITE = 'admin.entitlement.write';
 
     public const CHAT_VIRTUAL_MANAGE_TEMPLATE = 'chat.virtual.<slug>.manage';
 
@@ -104,6 +109,8 @@ final class PermissionDictionary
             self::TRANSACTION_WRITE => '编辑交易',
             self::TRANSACTION_DELETE => '删除交易',
             self::TRANSACTION_REPORT_READ => '查看报表',
+            self::SERVICE_REDEMPTION_READ => '查看全部服务核销',
+            self::SERVICE_REDEMPTION_MANAGE => '管理服务核销',
         ],
         '文件与设置' => [
             self::FILE_READ => '查看文件',
@@ -112,6 +119,7 @@ final class PermissionDictionary
             self::TEAM_DOCUMENT_READ => '查看全部文档（含当前 Entity 不可见文档）',
             self::TEAM_SETTING_READ => '查看设置',
             self::TEAM_SETTING_UPDATE => '编辑设置',
+            self::TEAM_ABILITY_REDEEM => '兑换团队能力',
         ],
         '通知' => [
             self::TEAM_NOTICE_READ => '查看团队站内通知',
@@ -156,6 +164,10 @@ final class PermissionDictionary
             self::ADMIN_ACCESS_READ => '查看平台管理员与角色',
             self::ADMIN_ACCESS_WRITE => '管理平台管理员与角色',
             self::ADMIN_AUDIT_READ => '查看平台审计日志',
+        ],
+        '平台权益' => [
+            self::ADMIN_ENTITLEMENT_READ => '查看平台权益与体验码',
+            self::ADMIN_ENTITLEMENT_WRITE => '管理平台权益与体验码',
         ],
     ];
 

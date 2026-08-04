@@ -5,6 +5,8 @@ namespace app\command;
 
 use app\model\Team;
 use app\model\TeamAbility;
+use app\model\TeamAbilityGrant;
+use app\service\AbilityResolver;
 use app\service\BusinessAudit;
 use think\console\Command;
 use think\console\Input;
@@ -51,27 +53,22 @@ final class TeamGrantAbility extends Command
             }
             $teamId = (int) $team->id;
 
-            $ability = TeamAbility::withTrashed()
-                ->where('team_id', $teamId)
+            TeamAbilityGrant::where('team_id', $teamId)
                 ->where('ability_key', $abilityKey)
-                ->lock(true)
-                ->find();
-
-            if ($ability) {
-                $ability->restore();
-                $ability->save([
-                    'level' => $level,
-                    'expire_time' => $expireTime,
-                ]);
-            } else {
-                $ability = new TeamAbility;
-                $ability->save([
-                    'team_id' => $teamId,
-                    'ability_key' => $abilityKey,
-                    'level' => $level,
-                    'expire_time' => $expireTime,
-                ]);
-            }
+                ->where('source_type', 'manual')
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => time(), 'revoke_reason' => 'replaced']);
+            $grant = new TeamAbilityGrant;
+            $grant->save([
+                'team_id' => $teamId,
+                'ability_key' => $abilityKey,
+                'level' => $level,
+                'starts_at' => time(),
+                'ends_at' => $expireTime,
+                'source_type' => 'manual',
+            ]);
+            app(AbilityResolver::class)->syncProjection($teamId, $abilityKey);
+            $ability = TeamAbility::where('team_id', $teamId)->where('ability_key', $abilityKey)->find();
 
             app(BusinessAudit::class)->recordPlatform(
                 null,

@@ -145,4 +145,10 @@ describe('后台源码设计契约', () => {
       .filter(path => !allowed.has(path))
     expect(offenders).toEqual([])
   })
+
+  it('Team 侧栏退出入口保持导航式左对齐', () => {
+    const source = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'components', 'TeamShell.vue'), 'utf8')
+    expect(source).toContain('<NButton class="logout"')
+    expect(source).toMatch(/\.logout\{[^}]*justify-content:flex-start/)
+  })
 })

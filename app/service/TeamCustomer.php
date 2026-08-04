@@ -17,9 +17,7 @@ class TeamCustomer
     public function order(int $teamId, int $customerId, int $orderId): array
     {
         $customer = $this->customer($teamId, $customerId);
-        $order = $customer->orders()
-            ->with(['handler.profile'])
-            ->find($orderId);
+        $order = $customer->orders()->find($orderId);
         if (!$order) {
             throw new HttpException(404, '订单不存在');
         }
@@ -68,8 +66,7 @@ class TeamCustomer
         }
 
         $total = $query->count();
-        $rows = $query->with(['handler.profile'])
-            ->order('id', 'desc')
+        $rows = $query->order('id', 'desc')
             ->page($page, $limit)
             ->select();
         $list = array_map(fn ($order): array => $this->orderData($order), $rows->all());
@@ -79,29 +76,8 @@ class TeamCustomer
 
     public function transactions(int $teamId, int $customerId, array $filters, int $page = 1, int $limit = 20): array
     {
-        [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
-        $customer = $this->customer($teamId, $customerId);
-        $query    = $customer->transactions();
-
-        if (!empty($filters['type'])) {
-            $query->where('type', (int) $filters['type']);
-        }
-        if (!empty($filters['start_time'])) {
-            $query->where('trans_at', '>=', (int) $filters['start_time']);
-        }
-        if (!empty($filters['end_time'])) {
-            $query->where('trans_at', '<', (int) $filters['end_time']);
-        }
-
-        $total = $query->count();
-        $list  = $query->with(['handler.profile', 'sender.profile', 'cs.profile'])
-            ->order('trans_at', 'desc')
-            ->order('id', 'desc')
-            ->page($page, $limit)
-            ->select()
-            ->toArray();
-
-        return compact('total', 'list', 'page', 'limit');
+        $this->customer($teamId, $customerId);
+        return app(Transaction::class)->list($teamId, $filters + ['customer_id' => $customerId], $page, $limit);
     }
 
     public function balance(int $teamId, int $customerId): array

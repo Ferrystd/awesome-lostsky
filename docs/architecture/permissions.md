@@ -83,6 +83,8 @@ Admin 平台权限与团队权限共用 `PermissionDictionary` 作为代码事�
 | --- | --- | --- |
 | 平台概览 | `admin.dashboard.read` | 查看平台总览 |
 | 平台概览 | `admin.system.read` | 查看系统状态 |
+| 平台权益 | `admin.entitlement.read` | 查看 Ability 权益与体验码 |
+| 平台权益 | `admin.entitlement.write` | 管理 Ability 权益与体验码 |
 | 用户治理 | `admin.user.read` | 查看用户与脱敏联系方式 |
 | 用户治理 | `admin.user.sensitive.read` | 查看用户完整手机和邮箱 |
 | 用户治理 | `admin.user.moderate` | 封禁与解封用户 |

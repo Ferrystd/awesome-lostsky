@@ -90,6 +90,11 @@ class TeamCustomer extends Base
             ->bind(['name' => 'nickname', 'avatar', 'description']);
     }
 
+    public function serviceInstances()
+    {
+        return $this->hasMany(TeamServiceInstance::class, 'customer_id');
+    }
+
     public function identity()
     {
         return $this->morphOne(Entity::class, 'entityable', 'teamCustomer')

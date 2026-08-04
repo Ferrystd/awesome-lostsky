@@ -18,6 +18,7 @@ Admin 管理 LostSky 平台本身，不代替团队管理员编辑成员、客�
 | ADMIN-05 | 管理平台管理员与角色 | `admin.access.read` / `admin.access.write` | 完整保存角色和管理员绑定，不破坏超级管理员安全线 |
 | ADMIN-06 | 查看审计 | `admin.audit.read` | 按执行人、应用和资源查看脱敏事件 |
 | ADMIN-07 | 查看系统状态 | `admin.system.read` | 看到核心依赖、积压和检查时间的只读状态 |
+| ADMIN-08 | 管理 Ability 体验权益 | `admin.entitlement.read/write` | 配置平台权益包、公共体验活动与兑换码 |
 
 完整平台 Permission 见[权限目录](permissions.md)。
 

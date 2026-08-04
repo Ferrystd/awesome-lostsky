@@ -17,7 +17,7 @@
 - 枚举表单复用同一组选项，并通过 `enumOptionValue()` 兼容回填值。
 - 后台页面使用 `LsPage`、`LsPageHeader`、`LsWorkspaceHeader` 等公共组件；Team 的历史适配组件只允许做无样式薄包装。查看、创建、编辑和审核使用独立路由。
 - 交互覆盖键盘、触控、加载、空、错误、禁用和 `prefers-reduced-motion`。
-- 已登记组件的讨论、修改与验收必须按[组件代码预览](component-previews.md)从真实 Vue 代码生成状态矩阵，不得使用 AI 生成图片替代。
+- 已登记组件的讨论、修改与验收必须按[组件代码预览](component-previews.md)从真实 Vue 代码生成状态矩阵；PNG 只供人类查看，Agent 不得读图或据其修改界面，也不得使用 AI 生成图片替代。
 - 后台动效复用 `@lostsky/ui/styles.css` 的 `--motion-*`、`--ease-*` 和 `ls-state`、`ls-popover`、`ls-list`、`ls-backdrop` 过渡；只动画 `transform`、`opacity` 与必要的颜色/边框，不为列表首次渲染添加 `appear`，不在页面内另造时长与缓动。
 - 一律使用`//`,不使用`http://`,`https://`
 

@@ -4,6 +4,137 @@
  */
 
 export interface paths {
+    "/service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 服务核销列表 */
+        get: operations["serviceRedemptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** 服务核销详情 */
+        get: operations["serviceRedemption"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service/{id}/handlers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** 核销接单池 */
+        get: operations["serviceRedemptionHandlers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service/{id}/reassign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 改派接单人 */
+        post: operations["reassignServiceRedemption"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service/{id}/cancel/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 同意取消核销 */
+        post: operations["approveServiceCancellation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service/{id}/cancel/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 拒绝取消核销 */
+        post: operations["rejectServiceCancellation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 确认已核销 */
+        post: operations["completeServiceRedemption"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/transaction": {
         parameters: {
             query?: never;
@@ -554,7 +685,7 @@ export interface components {
             /** Format: int64 */
             team_id?: number;
             /** Format: int64 */
-            handler_entity_id?: number;
+            handler_entity_id?: number | null;
             /** Format: int64 */
             sender_entity_id?: number | null;
             /** Format: int64 */
@@ -562,10 +693,10 @@ export interface components {
             /** Format: int64 */
             customer_id?: number | null;
             /**
-             * @description 1=商城下单, 2=记账登记
+             * @description 1=商城下单, 2=记账登记, 3=服务包收款, 4=服务核销
              * @enum {integer}
              */
-            type?: 1 | 2;
+            type?: 1 | 2 | 3 | 4;
             /** @description Exact decimal string. */
             total_price?: string;
             /** @description Exact decimal string. */
@@ -574,6 +705,10 @@ export interface components {
             cash?: string;
             /** @description Exact decimal string. */
             prepaid?: string;
+            /** @description 由服务包预付覆盖的履约金额。 */
+            service_credit?: string;
+            /** Format: int64 */
+            service_instance_id?: number | null;
             /** @description Exact decimal string. */
             handler_cut?: string;
             /** @description Exact decimal string. */
@@ -632,6 +767,12 @@ export interface components {
             total_cut: number;
             cash_total: number;
             prepaid_total: number;
+            /** @description 现金与预存款的实际收款口径。 */
+            receipt_total: number;
+            /** @description 排除服务包收款后的履约业绩口径。 */
+            performance_total: number;
+            service_receipt_count: number;
+            service_redemption_count: number;
             avg_price: number;
         };
         TransactionEntityStat: {
@@ -845,6 +986,144 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    serviceRedemptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    serviceRedemption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    serviceRedemptionHandlers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reassignServiceRedemption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    approveServiceCancellation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rejectServiceCancellation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    completeServiceRedemption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     transactionIndex: {
         parameters: {
             query?: {

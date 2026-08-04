@@ -31,3 +31,15 @@ export interface Pagination<T> {
   page: number
   limit: number
 }
+
+export interface ServiceField {
+  id: number; name: string; value_type: string; input_type: string; options?: string[] | null
+  fill_stage: 'customer' | 'manager'; is_required: number; value?: Record<string, unknown> | null
+}
+export interface ServiceRedemption {
+  id: number; status: 1 | 2 | 3; expire_time: number; started_at?: number | null; completed_at?: number | null
+  service: { name: string; description?: string | null }; customer_id?: number | null; customer?: Customer | null
+  handler_entity_id?: number | null; handler?: Entity | null; sender?: Entity | null; cs?: Entity | null
+  cancel_requests?: Array<{ id:number; status:1|2|3; reason:string }>; redemption_fields?: ServiceField[]
+  capabilities?: { manage: boolean; approve_cancel: boolean }
+}

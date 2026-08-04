@@ -29,15 +29,16 @@ foreach ($apps as $app) {
         ];
     }
 
-    if ($app === 'shop') {
+    if (in_array($app, ['shop', 'team'], true)) {
         foreach ($definitions as $index => $definition) {
-            if ($definition['complete']) {
+            if ($definition['complete']
+                || ($app === 'team' && !str_starts_with($definition['path'], 'customer'))) {
                 continue;
             }
             foreach (array_slice($definitions, $index + 1) as $later) {
                 if ($definition['method'] === $later['method']
                     && str_starts_with($later['path'], $definition['path'] . '/')) {
-                    $errors[] = "shop: prefix route must use completeMatch: {$definition['method']} /{$definition['path']}";
+                    $errors[] = "{$app}: prefix route must use completeMatch: {$definition['method']} /{$definition['path']}";
                     break;
                 }
             }

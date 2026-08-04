@@ -8,11 +8,11 @@ use app\model\TeamProductHandler;
 use app\model\TeamOrder;
 use app\model\TeamCustomerBalance;
 use app\model\TeamCustomerBalanceLog;
-use app\model\TeamAbility;
 use app\model\TeamTransaction;
 use app\enum\OrderStatus;
 use app\enum\TransactionType;
 use app\enum\LogType;
+use app\enum\ProductKind;
 use think\exception\HttpException;
 
 class Order
@@ -39,26 +39,27 @@ class Order
         }
 
         $total = $query->count();
-        $list  = $query->with(['product', 'customer.profile', 'handler.profile', 'sender.profile', 'cs.profile', 'transaction'])
-            ->order('id', 'desc')
+        $list  = $query->order('id', 'desc')
             ->page($page, $limit)
             ->select()
             ->toArray();
+        $this->attachRelations($list);
 
         return compact('total', 'list', 'page', 'limit');
     }
 
     public function get(int $teamId, int $id): array
     {
-        $order = TeamOrder::where('team_id', $teamId)
-            ->with(['product', 'customer.profile', 'handler.profile', 'sender.profile', 'cs.profile', 'transaction'])
-            ->find($id);
+        $order = TeamOrder::where('team_id', $teamId)->find($id);
 
         if (!$order) {
             throw new HttpException(404, '订单不存在');
         }
 
-        return $order->toArray();
+        $result = $order->toArray();
+        $rows = [&$result];
+        $this->attachRelations($rows);
+        return $result;
     }
 
     public function create(int $teamId, array $data): int
@@ -77,7 +78,10 @@ class Order
                 throw new HttpException(422, '商品不存在或已下架');
             }
 
-            $handlerId = $this->resolveHandler($product, $data['handler_entity_id'] ?? null);
+            $kind = $product->enumCase('kind') ?? ProductKind::Standard;
+            $handlerId = $kind === ProductKind::Standard
+                ? $this->resolveHandler($product, $data['handler_entity_id'] ?? null)
+                : null;
             $quantity  = (int) ($data['quantity'] ?? 1);
             $customerId = empty($data['customer_id']) ? null : (int) $data['customer_id'];
             if ($customerId) {
@@ -110,7 +114,9 @@ class Order
                 'sender_entity_id'   => $data['sender_entity_id'] ?? null,
                 'cs_entity_id'       => $data['cs_entity_id'] ?? null,
                 'customer_id' => $customerId,
-                'type'        => TransactionType::ShopOrder->value,
+                'type'        => $kind === ProductKind::Standard
+                    ? TransactionType::ShopOrder->value
+                    : TransactionType::ServicePackageReceipt->value,
                 'total_price' => $quote['total_price'],
                 'cost'        => $quote['cost'],
                 'cash'        => $quote['cash'],
@@ -221,6 +227,7 @@ class Order
                 throw new HttpException(422, '仅处理中的订单可标记完成');
             }
 
+            app(BenefitFulfillment::class)->fulfillOrder($order);
             $order->status = OrderStatus::Completed;
             $order->save();
         });
@@ -254,6 +261,61 @@ class Order
         return $handlerEntityId;
     }
 
+    private function attachRelations(array &$rows): void
+    {
+        $entityIds = [];
+        $customerIds = [];
+        $productIds = [];
+        $transactionIds = [];
+        foreach ($rows as $row) {
+            foreach (['handler_entity_id', 'sender_entity_id', 'cs_entity_id'] as $key) {
+                $id = (int) ($row[$key] ?? 0);
+                if ($id > 0) $entityIds[$id] = $id;
+            }
+            $customerId = (int) ($row['customer_id'] ?? 0);
+            if ($customerId > 0) $customerIds[$customerId] = $customerId;
+            $productId = (int) ($row['product_id'] ?? 0);
+            if ($productId > 0) $productIds[$productId] = $productId;
+            $transactionId = (int) ($row['trans_id'] ?? 0);
+            if ($transactionId > 0) $transactionIds[$transactionId] = $transactionId;
+        }
+
+        $entityMap = $this->mapById($entityIds
+            ? \app\model\Entity::whereIn('id', array_values($entityIds))->with(['profile'])->select()->toArray()
+            : []);
+        $customerMap = $this->mapById($customerIds
+            ? \app\model\TeamCustomer::whereIn('id', array_values($customerIds))->with(['profile'])->select()->toArray()
+            : []);
+        $productMap = $this->mapById($productIds
+            ? TeamProduct::whereIn('id', array_values($productIds))->select()->toArray()
+            : []);
+        $transactionMap = $this->mapById($transactionIds
+            ? TeamTransaction::whereIn('id', array_values($transactionIds))->select()->toArray()
+            : []);
+
+        foreach ($rows as &$row) {
+            foreach (['handler' => 'handler_entity_id', 'sender' => 'sender_entity_id', 'cs' => 'cs_entity_id'] as $relation => $key) {
+                $id = (int) ($row[$key] ?? 0);
+                $row[$relation] = $id > 0 ? ($entityMap[$id] ?? null) : null;
+            }
+            foreach ([
+                'customer' => ['customer_id', $customerMap],
+                'product' => ['product_id', $productMap],
+                'transaction' => ['trans_id', $transactionMap],
+            ] as $relation => [$key, $map]) {
+                $id = (int) ($row[$key] ?? 0);
+                $row[$relation] = $id > 0 ? ($map[$id] ?? null) : null;
+            }
+        }
+    }
+
+    private function mapById(array $rows): array
+    {
+        $map = [];
+        foreach ($rows as $row) $map[(int) $row['id']] = $row;
+        return $map;
+    }
+
     private function shouldSyncTransaction(int $teamId): bool
     {
         $settings = app(TeamSetting::class)->internal($teamId, 'shop');
@@ -261,11 +323,7 @@ class Order
             return false;
         }
 
-        $ability = TeamAbility::where('team_id', $teamId)
-            ->where('ability_key', 'transaction')
-            ->find();
-
-        return $ability?->isAvailable(1) ?? false;
+        return app(AbilityResolver::class)->available($teamId, 'transaction');
     }
 
     private function consumePrepaid(?int $customerId, string $amount): void

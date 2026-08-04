@@ -1940,6 +1940,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        服务核销与统计口径
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2881,6 +2892,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        服务核销与统计口径
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2975,6 +2997,9 @@
 <p>后端回归测试使用项目 <code>.env</code> 指向的 MySQL 数据库，并自动回滚或清理隔离测试数据：</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>npm<span class="w"> </span>run<span class="w"> </span>test:backend
 </span></code></pre></div>
+<h2 id="_4">服务核销与统计口径<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>Transaction 将“服务包收款”和“服务核销”作为独立流水类型。收款流水只进入现金或预存款口径；核销流水使用 <code>service_credit</code>，进入履约、接单与分成口径而不重复形成现金收入。每个服务实例最多关联一条核销流水。</p>
+<p><code>service.redemption.read</code> 允许读取核销任务；<code>service.redemption.manage</code> 允许管理 Entity 改派、处理取消申请和确认完成。完成动作与流水创建在同一事务中；团队缺少有效 Transaction Ability 时只完成服务，不创建或后补流水。</p>
 
 
 

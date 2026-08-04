@@ -99,6 +99,13 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('全部成员')
     expect(html).toContain('新建')
     expect(html).toContain('2 位成员')
+
+    const filtersOnly = await render(LsListToolbar, { searchable: false, countLabel: '4 条订单' }, {
+      filters: () => h('span', '全部状态'),
+    })
+    expect(filtersOnly).toContain('ls-list-toolbar--filters-only')
+    expect(filtersOnly).not.toContain('ls-search-input')
+    expect(filtersOnly).toContain('4 条订单')
   })
 
   it('表单列表提供稳定键值、等价排序动作和只读状态', async () => {

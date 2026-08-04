@@ -5,7 +5,7 @@ import LsSearchInput from '@lostsky/ui/components/LsSearchInput.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import {
-  Activity, ChevronRight, Command, FileClock, Gauge, LogOut, Menu, Search,
+  Activity, ChevronRight, Command, FileClock, Gauge, KeyRound, LogOut, Menu, Search,
   ShieldCheck, Users, UserRoundCog, X,
 } from '@lucide/vue'
 import { NButton, NModal } from 'naive-ui'
@@ -31,6 +31,7 @@ const nav = [
   { to: '/roles', label: '平台角色', icon: Command, permission: 'admin.access.read' },
   { to: '/audit', label: '审计日志', icon: FileClock, permission: 'admin.audit.read' },
   { to: '/system', label: '系统状态', icon: Activity, permission: 'admin.system.read' },
+  { to: '/entitlements/packages', label: '平台权益', icon: KeyRound, permission: 'admin.entitlement.read' },
 ]
 const visibleNav = computed(() => nav.filter((item) => can(item.permission)))
 const title = computed(() => String(route.meta.title ?? '平台管理'))

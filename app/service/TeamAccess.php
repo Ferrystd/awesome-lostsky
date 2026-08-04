@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace app\service;
 
-use app\model\TeamAbility;
 
 class TeamAccess
 {
@@ -20,24 +19,13 @@ class TeamAccess
 
     public function ability(int $teamId, string $key, string $label, int $minimumLevel = 1): array
     {
-        $ability = TeamAbility::where('team_id', $teamId)
-            ->where('ability_key', $key)
-            ->find();
-        $enabled = $ability ? $ability->isAvailable($minimumLevel) : false;
-        $reason = null;
-        if (!$ability) {
-            $reason = 'missing';
-        } elseif ((int) $ability->level < $minimumLevel) {
-            $reason = 'level';
-        } elseif ((int) $ability->expire_time > 0 && (int) $ability->expire_time < time()) {
-            $reason = 'expired';
-        }
+        $ability = app(AbilityResolver::class)->resolve($teamId, $key, $minimumLevel);
 
         return [
-            'enabled' => $enabled,
-            'level' => $ability ? (int) $ability->level : 0,
-            'expire_time' => $ability ? (int) $ability->expire_time : 0,
-            'reason' => $reason,
+            'enabled' => $ability['enabled'],
+            'level' => $ability['level'],
+            'expire_time' => $ability['expire_time'],
+            'reason' => $ability['reason'],
             'label' => $label,
         ];
     }

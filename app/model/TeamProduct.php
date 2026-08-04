@@ -4,6 +4,7 @@ declare (strict_types = 1);
 namespace app\model;
 
 use app\model\Base;
+use app\enum\ProductKind;
 
 /**
  * TeamProduct 模型 — 商品/服务
@@ -25,6 +26,7 @@ class TeamProduct extends Base
         'sender_cut'  => 'string',
         'cs_cut'      => 'string',
         'team_cut'    => 'string',
+        'kind'        => ProductKind::class,
         'is_active'   => 'integer',
         'create_time' => 'integer',
         'update_time' => 'integer',
@@ -52,6 +54,21 @@ class TeamProduct extends Base
     public function handlers()
     {
         return $this->hasMany(TeamProductHandler::class, 'product_id');
+    }
+
+    public function benefitPackage()
+    {
+        return $this->belongsTo(BenefitPackage::class, 'benefit_package_id');
+    }
+
+    public function redemptionCampaign()
+    {
+        return $this->belongsTo(RedemptionCampaign::class, 'redemption_campaign_id');
+    }
+
+    public function redemptionFields()
+    {
+        return $this->hasMany(TeamProductRedemptionField::class, 'product_id');
     }
 
     public function markdownReferences()

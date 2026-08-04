@@ -15,6 +15,10 @@ const RoleFormView = () => import('./views/RoleFormView.vue')
 const AuditView = () => import('./views/AuditView.vue')
 const SystemView = () => import('./views/SystemView.vue')
 const ForbiddenView = () => import('./views/ForbiddenView.vue')
+const EntitlementPackagesView = () => import('./views/EntitlementPackagesView.vue')
+const EntitlementPackageFormView = () => import('./views/EntitlementPackageFormView.vue')
+const EntitlementCampaignsView = () => import('./views/EntitlementCampaignsView.vue')
+const EntitlementCampaignView = () => import('./views/EntitlementCampaignView.vue')
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -32,6 +36,12 @@ export const router = createRouter({
     { path: '/roles/:id(\\d+)', component: RoleFormView, meta: { title: '编辑平台角色', permission: 'admin.access.read', width: 'form' } },
     { path: '/audit', component: AuditView, meta: { title: '审计日志', permission: 'admin.audit.read' } },
     { path: '/system', component: SystemView, meta: { title: '系统状态', permission: 'admin.system.read', width: 'content' } },
+    { path: '/entitlements/packages', component: EntitlementPackagesView, meta: { title: 'Ability 权益包', permission: 'admin.entitlement.read' } },
+    { path: '/entitlements/packages/new', component: EntitlementPackageFormView, meta: { title: '创建 Ability 权益包', permission: 'admin.entitlement.write', width: 'form' } },
+    { path: '/entitlements/packages/:id(\\d+)', component: EntitlementPackageFormView, meta: { title: '编辑 Ability 权益包', permission: 'admin.entitlement.read', width: 'form' } },
+    { path: '/entitlements/campaigns', component: EntitlementCampaignsView, meta: { title: 'Ability 体验活动', permission: 'admin.entitlement.read' } },
+    { path: '/entitlements/campaigns/new', component: EntitlementCampaignView, meta: { title: '创建 Ability 体验活动', permission: 'admin.entitlement.write', width: 'content' } },
+    { path: '/entitlements/campaigns/:id(\\d+)', component: EntitlementCampaignView, meta: { title: 'Ability 体验活动', permission: 'admin.entitlement.read', width: 'content' } },
     { path: '/forbidden', component: ForbiddenView, meta: { title: '没有访问权限', publicAdmin: true, width: 'content' } },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],

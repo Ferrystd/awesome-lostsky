@@ -165,4 +165,84 @@ class Customer
 
         return success($result);
     }
+
+    public function services(Request $request)
+    {
+        return success(app(\app\service\ServiceRedemption::class)->customerList(
+            $request->team_id,
+            $request->customer_id,
+            ['status' => $request->get('status')],
+            $request->get('page/d', 1),
+            $request->get('limit/d', 20)
+        ));
+    }
+
+    public function service(Request $request)
+    {
+        return success(app(\app\service\ServiceRedemption::class)->customerGet(
+            $request->team_id,
+            $request->customer_id,
+            $request->route('id/d', 0)
+        ));
+    }
+
+    public function serviceHandlers(Request $request)
+    {
+        return success(app(\app\service\ServiceRedemption::class)->handlers(
+            $request->team_id,
+            $request->customer_id,
+            $request->route('id/d', 0)
+        ));
+    }
+
+    public function startService(Request $request)
+    {
+        $id = $request->route('id/d', 0);
+        app(\app\service\ServiceRedemption::class)->start(
+            $request->team_id,
+            $request->customer_id,
+            $id,
+            $request->post('handler_entity_id/d', 0),
+            $request->post('memo/s', ''),
+            $request->post('field_values/a', []),
+            $request->entity_id
+        );
+        return message('已发起核销');
+    }
+
+    public function cancelService(Request $request)
+    {
+        $id = app(\app\service\ServiceRedemption::class)->requestCancel(
+            $request->team_id,
+            $request->customer_id,
+            $request->route('id/d', 0),
+            $request->post('reason/s', ''),
+            $request->entity_id
+        );
+        return success(['id' => $id], '取消申请已提交');
+    }
+
+    public function cards(Request $request)
+    {
+        return success(app(\app\service\Redemption::class)->held($request->entity_id));
+    }
+
+    public function revealCard(Request $request)
+    {
+        return success(app(\app\service\Redemption::class)->reveal(
+            $request->entity_id,
+            $request->route('id/d', 0)
+        ));
+    }
+
+    public function claimCard(Request $request)
+    {
+        $id = app(\app\service\Redemption::class)->claimForCustomer(
+            $request->post('code/s', ''),
+            $request->team_id,
+            $request->customer_id,
+            $request->entity_id
+        );
+        return success(['id' => $id], '卡密已领取');
+    }
 }

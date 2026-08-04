@@ -39,6 +39,7 @@ const EntitiesView = () => import('./views/EntitiesView.vue')
 const EntityDetailView = () => import('./views/EntityDetailView.vue')
 const CustomersView = () => import('./views/CustomersView.vue')
 const CustomerDetailView = () => import('./views/CustomerDetailView.vue')
+const AbilitiesView = () => import('./views/AbilitiesView.vue')
 
 export interface ResourceFormField {
   key: string
@@ -112,6 +113,7 @@ const routes = [
   { path: '/notice-send', redirect: (to: RouteLocationGeneric) => ({ path: '/notices/send', query: to.query, hash: to.hash }) },
   { path: '/files', component: FilesView, meta: { title: '文件' } },
   { path: '/settings', component: SettingsView, meta: { title: '团队设置', pageWidth: 'content' } },
+  { path: '/abilities', component: AbilitiesView, meta: { title: '团队能力', pageWidth: 'content' } },
   { path: '/chat-virtuals', component: ChatVirtualsView, meta: { title: '虚拟实体' } },
   { path: '/chat-virtual-new', component: ChatVirtualFormView, meta: { title: '创建虚拟实体', pageWidth: 'content' } },
   { path: '/chat-virtual', component: ChatVirtualFormView, meta: { title: '编辑虚拟实体', pageWidth: 'content' } },

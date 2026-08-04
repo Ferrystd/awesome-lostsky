@@ -10,4 +10,4 @@
 
 无论user使用什么语言，用中文回应。
 
-前端对话提及、检查或改动 `frontend/component-previews/catalog.json` 已登记组件时，必须使用 `.agents/skills/preview-components/` 从真实代码生成并展示最多 4 个最相关预览；禁止用 AI 生成图片代替组件真实渲染。
+前端对话提及、检查或改动 `frontend/component-previews/catalog.json` 已登记组件时，必须使用 `.agents/skills/preview-components/` 从真实代码生成并展示最多 4 个最相关预览；PNG 只供人类查看，Agent 禁止打开、读图、OCR、比较或据其调整代码，也禁止用 AI 生成图片代替组件真实渲染。

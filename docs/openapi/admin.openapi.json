@@ -12,7 +12,8 @@
     { "name": "Users" },
     { "name": "Teams" },
     { "name": "Access" },
-    { "name": "Operations" }
+    { "name": "Operations" },
+    { "name": "Entitlements" }
   ],
   "paths": {
     "/session": {
@@ -165,7 +166,17 @@
         "security": [{ "bearerAuth": [] }],
         "responses": { "200": { "$ref": "#/components/responses/Success" }, "403": { "$ref": "#/components/responses/Error" } }
       }
-    }
+    },
+    "/entitlements/ability-catalog": {"get":{"tags":["Entitlements"],"operationId":"adminAbilityCatalog","summary":"Ability 目录","responses":{"200":{"$ref":"#/components/responses/Success"}}}},
+    "/entitlements/packages": {"get":{"tags":["Entitlements"],"operationId":"adminEntitlementPackages","summary":"平台权益包列表","responses":{"200":{"$ref":"#/components/responses/Success"}}},"post":{"tags":["Entitlements"],"operationId":"adminCreateEntitlementPackage","summary":"创建平台权益包","responses":{"200":{"$ref":"#/components/responses/Success"}}}},
+    "/entitlements/packages/{id}": {"parameters":[{"$ref":"#/components/parameters/Id"}],"get":{"tags":["Entitlements"],"operationId":"adminEntitlementPackage","summary":"平台权益包详情","responses":{"200":{"$ref":"#/components/responses/Success"}}},"post":{"tags":["Entitlements"],"operationId":"adminUpdateEntitlementPackage","summary":"更新平台权益包","responses":{"200":{"$ref":"#/components/responses/Success"}}}},
+    "/entitlements/packages/{id}/disable": {"parameters":[{"$ref":"#/components/parameters/Id"}],"post":{"tags":["Entitlements"],"operationId":"adminDisableEntitlementPackage","summary":"停用平台权益包","responses":{"200":{"$ref":"#/components/responses/Success"}}}},
+    "/entitlements/campaigns": {"get":{"tags":["Entitlements"],"operationId":"adminEntitlementCampaigns","summary":"体验活动列表","responses":{"200":{"$ref":"#/components/responses/Success"}}},"post":{"tags":["Entitlements"],"operationId":"adminCreateEntitlementCampaign","summary":"创建体验活动","responses":{"200":{"$ref":"#/components/responses/Success"}}}},
+    "/entitlements/campaigns/{id}": {"parameters":[{"$ref":"#/components/parameters/Id"}],"get":{"tags":["Entitlements"],"operationId":"adminEntitlementCampaign","summary":"体验活动详情","responses":{"200":{"$ref":"#/components/responses/Success"}}},"post":{"tags":["Entitlements"],"operationId":"adminUpdateEntitlementCampaign","summary":"更新体验活动","responses":{"200":{"$ref":"#/components/responses/Success"}}}},
+    "/entitlements/campaigns/{id}/disable": {"parameters":[{"$ref":"#/components/parameters/Id"}],"post":{"tags":["Entitlements"],"operationId":"adminDisableEntitlementCampaign","summary":"停用体验活动","responses":{"200":{"$ref":"#/components/responses/Success"}}}},
+    "/entitlements/campaigns/{id}/codes": {"parameters":[{"$ref":"#/components/parameters/Id"}],"get":{"tags":["Entitlements"],"operationId":"adminEntitlementCodes","summary":"体验码列表（不含明文）","responses":{"200":{"$ref":"#/components/responses/Success"}}},"post":{"tags":["Entitlements"],"operationId":"adminIssueEntitlementCodes","summary":"发行体验码","responses":{"200":{"$ref":"#/components/responses/Success"}}}},
+    "/entitlements/campaigns/{id}/codes/{code_id}/reveal": {"parameters":[{"$ref":"#/components/parameters/Id"},{"name":"code_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Entitlements"],"operationId":"adminRevealEntitlementCode","summary":"显式查看体验码","responses":{"200":{"$ref":"#/components/responses/Success"}}}},
+    "/entitlements/campaigns/{id}/codes/{code_id}/disable": {"parameters":[{"$ref":"#/components/parameters/Id"},{"name":"code_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Entitlements"],"operationId":"adminDisableEntitlementCode","summary":"停用体验码","responses":{"200":{"$ref":"#/components/responses/Success"}}}}
   },
   "components": {
     "securitySchemes": {

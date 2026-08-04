@@ -3,6 +3,7 @@ use think\facade\Route;
 
 Route::pattern(['id' => 'int']);
 Route::pattern(['user_id' => 'int']);
+Route::pattern(['code_id' => 'int']);
 
 Route::get('session', 'session/index');
 Route::get('search', 'session/search');
@@ -31,3 +32,19 @@ Route::put('roles/<id>/permissions', 'access/savePermissions');
 
 Route::get('audit-events', 'operations/auditEvents');
 Route::get('system/health', 'operations/health');
+
+Route::get('entitlements/ability-catalog', 'entitlement/catalog');
+Route::get('entitlements/packages', 'entitlement/packages')->completeMatch();
+Route::get('entitlements/packages/<id>', 'entitlement/package');
+Route::post('entitlements/packages', 'entitlement/savePackage')->completeMatch();
+Route::post('entitlements/packages/<id>', 'entitlement/savePackage')->completeMatch();
+Route::post('entitlements/packages/<id>/disable', 'entitlement/disablePackage');
+Route::get('entitlements/campaigns', 'entitlement/campaigns')->completeMatch();
+Route::get('entitlements/campaigns/<id>', 'entitlement/campaign');
+Route::post('entitlements/campaigns', 'entitlement/saveCampaign')->completeMatch();
+Route::post('entitlements/campaigns/<id>', 'entitlement/saveCampaign')->completeMatch();
+Route::post('entitlements/campaigns/<id>/disable', 'entitlement/disableCampaign');
+Route::get('entitlements/campaigns/<id>/codes', 'entitlement/codes');
+Route::post('entitlements/campaigns/<id>/codes', 'entitlement/issueCodes');
+Route::post('entitlements/campaigns/<id>/codes/<code_id>/reveal', 'entitlement/revealCode');
+Route::post('entitlements/campaigns/<id>/codes/<code_id>/disable', 'entitlement/disableCode');

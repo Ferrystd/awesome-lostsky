@@ -900,7 +900,8 @@
           },
           "handler_entity_id": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "nullable": true
           },
           "sender_entity_id": {
             "type": "integer",
@@ -921,9 +922,11 @@
             "type": "integer",
             "enum": [
               1,
-              2
+              2,
+              3,
+              4
             ],
-            "description": "1=商城下单, 2=记账登记"
+            "description": "1=商城下单, 2=记账登记, 3=服务包收款, 4=服务核销"
           },
           "total_price": {
             "type": "string",
@@ -944,6 +947,16 @@
             "type": "string",
             "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
             "description": "Exact decimal string."
+          },
+          "service_credit": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "由服务包预付覆盖的履约金额。"
+          },
+          "service_instance_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
           },
           "handler_cut": {
             "type": "string",
@@ -1060,6 +1073,10 @@
           "total_cut",
           "cash_total",
           "prepaid_total",
+          "receipt_total",
+          "performance_total",
+          "service_receipt_count",
+          "service_redemption_count",
           "avg_price"
         ],
         "properties": {
@@ -1082,6 +1099,20 @@
           },
           "prepaid_total": {
             "type": "number"
+          },
+          "receipt_total": {
+            "type": "number",
+            "description": "现金与预存款的实际收款口径。"
+          },
+          "performance_total": {
+            "type": "number",
+            "description": "排除服务包收款后的履约业绩口径。"
+          },
+          "service_receipt_count": {
+            "type": "integer"
+          },
+          "service_redemption_count": {
+            "type": "integer"
           },
           "avg_price": {
             "type": "number"
@@ -1691,6 +1722,13 @@
     }
   },
   "paths": {
+    "/service": {"get":{"tags":["Transaction"],"operationId":"serviceRedemptions","summary":"服务核销列表","responses":{"200":{"description":"成功"}}}},
+    "/service/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Transaction"],"operationId":"serviceRedemption","summary":"服务核销详情","responses":{"200":{"description":"成功"}}}},
+    "/service/{id}/handlers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Transaction"],"operationId":"serviceRedemptionHandlers","summary":"核销接单池","responses":{"200":{"description":"成功"}}}},
+    "/service/{id}/reassign": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"reassignServiceRedemption","summary":"改派接单人","responses":{"200":{"description":"成功"}}}},
+    "/service/{id}/cancel/approve": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"approveServiceCancellation","summary":"同意取消核销","responses":{"200":{"description":"成功"}}}},
+    "/service/{id}/cancel/reject": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"rejectServiceCancellation","summary":"拒绝取消核销","responses":{"200":{"description":"成功"}}}},
+    "/service/{id}/complete": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"completeServiceRedemption","summary":"确认已核销","responses":{"200":{"description":"成功"}}}},
     "/transaction": {
       "get": {
         "tags": [

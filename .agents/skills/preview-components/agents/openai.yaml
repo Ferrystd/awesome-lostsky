@@ -1,7 +1,7 @@
 interface:
   display_name: "组件预览"
-  short_description: "从真实 Vue 代码按需渲染并展示 LostSky 组件状态矩阵预览"
-  default_prompt: "Use $preview-components to render and show the relevant LostSky component previews."
+  short_description: "渲染供人类查看的 LostSky 组件预览，Agent 不读取图片"
+  default_prompt: "Use $preview-components to render human-only LostSky component previews without inspecting the images."
 
 policy:
   allow_implicit_invocation: true

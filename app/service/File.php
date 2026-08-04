@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\exception\AccessDeniedException;
-use app\model\TeamAbility;
 use app\model\ExternalCompensation;
 use app\model\Entity;
 use OSS\OssClient;
@@ -142,11 +141,8 @@ class File
 
     public function checkAbility(int $teamId, int $newSize): void
     {
-        $ability = TeamAbility::where('team_id', $teamId)
-            ->where('ability_key', 'file')
-            ->find();
-
-        $level = $ability ? $ability->level : 0;
+        $ability = app(AbilityResolver::class)->resolve($teamId, 'file');
+        $level = (int) $ability['level'];
         $tiers = Config::get('file.tiers');
         $tier  = $tiers[$level] ?? $tiers[0];
 

@@ -52,6 +52,13 @@ class Base extends Model
         try {
             return $enum::from($value);
         } catch (\TypeError | \ValueError) {
+            if (is_numeric($value)) {
+                try {
+                    return $enum::from((int) $value);
+                } catch (\TypeError | \ValueError) {
+                    // 字符串背景枚举继续走下方兼容分支。
+                }
+            }
             foreach ($enum::cases() as $case) {
                 if ($case->name === $value || ($case instanceof EnumTransform && $case->value() === $value)) {
                     return $case;

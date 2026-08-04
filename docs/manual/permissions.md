@@ -128,6 +128,8 @@ Team 界面中的“虚拟实体”入口会识别通配或任一具体 manage �
 | --- | --- |
 | `admin.dashboard.read` | 查看平台总览 |
 | `admin.system.read` | 查看脱敏系统状态 |
+| `admin.entitlement.read` | 查看平台 Ability 权益包、体验活动与脱敏兑换码 |
+| `admin.entitlement.write` | 管理平台 Ability 权益包、体验活动及兑换码 |
 | `admin.user.read` | 查看用户和脱敏联系方式 |
 | `admin.user.sensitive.read` | 使用完整手机或邮箱搜索并查看完整联系方式 |
 | `admin.user.moderate` | 封禁或解封用户 |

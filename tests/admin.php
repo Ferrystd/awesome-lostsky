@@ -75,6 +75,8 @@ $assert(
         'admin.access.read',
         'admin.access.write',
         'admin.audit.read',
+        'admin.entitlement.read',
+        'admin.entitlement.write',
     ],
     'platform permission catalog matches the public contract'
 );

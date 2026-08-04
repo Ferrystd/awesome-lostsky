@@ -33,3 +33,9 @@ Transaction 负责团队记账流水、客户与发单人的绑定关系，以�
 ```bash
 npm run test:backend
 ```
+
+## 服务核销与统计口径
+
+Transaction 将“服务包收款”和“服务核销”作为独立流水类型。收款流水只进入现金或预存款口径；核销流水使用 `service_credit`，进入履约、接单与分成口径而不重复形成现金收入。每个服务实例最多关联一条核销流水。
+
+`service.redemption.read` 允许读取核销任务；`service.redemption.manage` 允许管理 Entity 改派、处理取消申请和确认完成。完成动作与流水创建在同一事务中；团队缺少有效 Transaction Ability 时只完成服务，不创建或后补流水。

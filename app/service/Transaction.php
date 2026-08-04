@@ -72,35 +72,43 @@ class Transaction
         }
 
         $total = $query->count();
-        $list  = $query->with(['handler.profile', 'sender.profile', 'cs.profile', 'customer.profile'])
-            ->order('trans_at', 'desc')
+        $list  = $query->order('trans_at', 'desc')
             ->order('id', 'desc')
             ->page($page, $limit)
             ->select()
             ->toArray();
+        $this->attachRelations($list);
 
         return compact('total', 'list', 'page', 'limit');
     }
 
     public function get(int $teamId, int $id): array
     {
-        $transaction = TeamTransaction::where('team_id', $teamId)
-            ->with(['handler.profile', 'sender.profile', 'cs.profile', 'customer.profile'])
-            ->find($id);
+        $transaction = TeamTransaction::where('team_id', $teamId)->find($id);
 
         if (!$transaction) {
             throw new HttpException(404, '流水不存在');
         }
 
-        return $transaction->toArray();
+        $result = $transaction->toArray();
+        $rows = [&$result];
+        $this->attachRelations($rows);
+        return $result;
     }
 
     public function create(int $teamId, array $data): int
     {
-        $data = array_merge($data, $this->validateMath($data));
         $data['type'] = $this->normalizeType($data['type'] ?? TransactionType::LedgerEntry);
+        $data = array_merge($data, $data['type'] === TransactionType::ServicePackageReceipt
+            ? $this->validateReceipt($data)
+            : $this->validateMath($data));
 
-        $this->assertEntity($teamId, $data['handler_entity_id'] ?? 0, '接单人', true);
+        $this->assertEntity(
+            $teamId,
+            $data['handler_entity_id'] ?? null,
+            '接单人',
+            $data['type'] !== TransactionType::ServicePackageReceipt
+        );
         $this->assertEntity($teamId, $data['sender_entity_id'] ?? null, '发单人');
         $this->assertEntity($teamId, $data['cs_entity_id'] ?? null, '客服');
 
@@ -151,6 +159,56 @@ class Transaction
         });
     }
 
+    /** 核销流水只表达履约与分成，不再计现金收入。 */
+    public function createServiceRedemption(int $teamId, array $data): int
+    {
+        $data['type'] = TransactionType::ServiceRedemption;
+        $data['cash'] = '0.00';
+        $data['prepaid'] = '0.00';
+        $data['service_credit'] = $data['total_price'] ?? '0.00';
+        $data = array_merge($data, $this->validateMath($data));
+
+        $this->assertEntity($teamId, $data['handler_entity_id'] ?? null, '接单人', true);
+        $this->assertEntity($teamId, $data['sender_entity_id'] ?? null, '发单人');
+        $this->assertEntity($teamId, $data['cs_entity_id'] ?? null, '客服');
+
+        return $this->saveTransaction($teamId, $data);
+    }
+
+    private function attachRelations(array &$rows): void
+    {
+        $entityIds = [];
+        $customerIds = [];
+        foreach ($rows as $row) {
+            foreach (['handler_entity_id', 'sender_entity_id', 'cs_entity_id'] as $key) {
+                $id = (int) ($row[$key] ?? 0);
+                if ($id > 0) $entityIds[$id] = $id;
+            }
+            $customerId = (int) ($row['customer_id'] ?? 0);
+            if ($customerId > 0) $customerIds[$customerId] = $customerId;
+        }
+
+        $entities = $entityIds
+            ? \app\model\Entity::whereIn('id', array_values($entityIds))->with(['profile'])->select()->toArray()
+            : [];
+        $entityMap = [];
+        foreach ($entities as $entity) $entityMap[(int) $entity['id']] = $entity;
+        $customers = $customerIds
+            ? TeamCustomer::whereIn('id', array_values($customerIds))->with(['profile'])->select()->toArray()
+            : [];
+        $customerMap = [];
+        foreach ($customers as $customer) $customerMap[(int) $customer['id']] = $customer;
+
+        foreach ($rows as &$row) {
+            foreach (['handler' => 'handler_entity_id', 'sender' => 'sender_entity_id', 'cs' => 'cs_entity_id'] as $relation => $key) {
+                $id = (int) ($row[$key] ?? 0);
+                $row[$relation] = $id > 0 ? ($entityMap[$id] ?? null) : null;
+            }
+            $customerId = (int) ($row['customer_id'] ?? 0);
+            $row['customer'] = $customerId > 0 ? ($customerMap[$customerId] ?? null) : null;
+        }
+    }
+
     public function edit(int $teamId, int $id, array $data): void
     {
         if (isset($data['handler_entity_id'])) {
@@ -181,7 +239,7 @@ class Transaction
             if (!$transaction) {
                 throw new HttpException(404, '流水不存在');
             }
-            if ($transaction->enumCase('type') === TransactionType::ShopOrder) {
+            if ($this->isImmutableSourceType($transaction->enumCase('type'))) {
                 throw new HttpException(422, '商城订单流水不可单独编辑，请通过订单操作');
             }
 
@@ -270,7 +328,7 @@ class Transaction
             if (!$transaction) {
                 throw new HttpException(404, '流水不存在');
             }
-            if ($transaction->enumCase('type') === TransactionType::ShopOrder) {
+            if ($this->isImmutableSourceType($transaction->enumCase('type'))) {
                 throw new HttpException(422, '商城订单流水不可单独删除，请取消对应订单');
             }
 
@@ -317,7 +375,7 @@ class Transaction
     {
         $trans = new TeamTransaction;
         $trans->team_id     = $teamId;
-        $trans->handler_entity_id  = $data['handler_entity_id'];
+        $trans->handler_entity_id  = $data['handler_entity_id'] ?? null;
         $trans->sender_entity_id   = $data['sender_entity_id'] ?? null;
         $trans->cs_entity_id       = $data['cs_entity_id'] ?? null;
         $trans->customer_id = $data['customer_id'] ?? null;
@@ -328,15 +386,39 @@ class Transaction
         $trans->cost        = $data['cost'] ?? 0;
         $trans->cash        = $data['cash'] ?? 0;
         $trans->prepaid     = $data['prepaid'] ?? 0;
+        $trans->service_credit = $data['service_credit'] ?? 0;
         $trans->handler_cut = $data['handler_cut'] ?? 0;
         $trans->sender_cut  = $data['sender_cut'] ?? 0;
         $trans->cs_cut      = $data['cs_cut'] ?? 0;
         $trans->team_cut    = $data['team_cut'] ?? 0;
+        $trans->service_instance_id = $data['service_instance_id'] ?? null;
         $trans->trans_at    = $data['trans_at'] ?? time();
         $trans->memo        = $data['memo'] ?? null;
         $trans->save();
 
         return (int) $trans->id;
+    }
+
+    private function validateReceipt(array $data): array
+    {
+        $data['handler_entity_id'] = null;
+        $data['service_credit'] = '0.00';
+        $data['handler_cut'] = '0.00';
+        $data['sender_cut'] = '0.00';
+        $data['cs_cut'] = '0.00';
+        $data['cost'] = '0.00';
+        $data['team_cut'] = $data['total_price'] ?? '0.00';
+
+        return $this->validateMath($data);
+    }
+
+    private function isImmutableSourceType(TransactionType $type): bool
+    {
+        return in_array($type, [
+            TransactionType::ShopOrder,
+            TransactionType::ServicePackageReceipt,
+            TransactionType::ServiceRedemption,
+        ], true);
     }
 
     private function assertEntity(int $teamId, mixed $entityId, string $role, bool $required = false): void

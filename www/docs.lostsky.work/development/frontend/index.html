@@ -2967,7 +2967,7 @@
 <li>枚举表单复用同一组选项，并通过 <code>enumOptionValue()</code> 兼容回填值。</li>
 <li>后台页面使用 <code>LsPage</code>、<code>LsPageHeader</code>、<code>LsWorkspaceHeader</code> 等公共组件；Team 的历史适配组件只允许做无样式薄包装。查看、创建、编辑和审核使用独立路由。</li>
 <li>交互覆盖键盘、触控、加载、空、错误、禁用和 <code>prefers-reduced-motion</code>。</li>
-<li>已登记组件的讨论、修改与验收必须按<a href="../component-previews/">组件代码预览</a>从真实 Vue 代码生成状态矩阵，不得使用 AI 生成图片替代。</li>
+<li>已登记组件的讨论、修改与验收必须按<a href="../component-previews/">组件代码预览</a>从真实 Vue 代码生成状态矩阵；PNG 只供人类查看，Agent 不得读图或据其修改界面，也不得使用 AI 生成图片替代。</li>
 <li>后台动效复用 <code>@lostsky/ui/styles.css</code> 的 <code>--motion-*</code>、<code>--ease-*</code> 和 <code>ls-state</code>、<code>ls-popover</code>、<code>ls-list</code>、<code>ls-backdrop</code> 过渡；只动画 <code>transform</code>、<code>opacity</code> 与必要的颜色/边框，不为列表首次渲染添加 <code>appear</code>，不在页面内另造时长与缓动。</li>
 <li>一律使用<code>//</code>,不使用<code>http://</code>,<code>https://</code></li>
 </ul>

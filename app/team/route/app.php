@@ -5,6 +5,9 @@ Route::pattern(['id' => 'int']);
 
 Route::get('access', 'Access/index');
 Route::get('dashboard', 'Dashboard/index');
+Route::get('ability', 'AbilityCard/index');
+Route::post('ability/card/inspect', 'AbilityCard/inspect');
+Route::post('ability/card/redeem', 'AbilityCard/redeem');
 
 // me
 Route::get('me/get', 'me/get');
@@ -43,10 +46,10 @@ Route::post('entity/display', 'entity/display');
 Route::post('entity/visibility', 'entity/visibility');
 
 // customer
-Route::get('customer', 'Customer/index');
-Route::get('customer/assignees', 'Customer/assignees');
-Route::get('customer/<id>', 'Customer/get');
-Route::post('customer/<id>', 'Customer/update');
+Route::get('customer', 'Customer/index')->completeMatch();
+Route::get('customer/assignees', 'Customer/assignees')->completeMatch();
+Route::get('customer/<id>', 'Customer/get')->completeMatch();
+Route::post('customer/<id>', 'Customer/update')->completeMatch();
 
 // role
 Route::get('role/index', 'role/index');

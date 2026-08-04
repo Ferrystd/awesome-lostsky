@@ -6,6 +6,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 use app\model\BusinessAuditEvent;
 use app\model\Team;
 use app\model\TeamAbility;
+use app\model\TeamAbilityGrant;
 use app\model\User;
 use think\App;
 
@@ -126,6 +127,8 @@ try {
         if ($auditIds) {
             BusinessAuditEvent::destroy($auditIds, true);
         }
+        $grantIds = TeamAbilityGrant::withTrashed()->where('team_id', $team->id)->column('id');
+        if ($grantIds) TeamAbilityGrant::destroy($grantIds, true);
         TeamAbility::destroy($abilityId, true);
     }
     Team::destroy($team->id, true);

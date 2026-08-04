@@ -13,6 +13,17 @@ use think\exception\HttpException;
 
 class TeamEntityField
 {
+    /** 与实体字段共享同一套值类型校验。 */
+    public function normalizeValue(string $type, mixed $value, array $options = []): array
+    {
+        return $this->valueData($type, $value, $options);
+    }
+
+    public function emptyValue(mixed $value): bool
+    {
+        return $this->isEmptyValue($value);
+    }
+
     public function list(int $teamId, string $entityType): array
     {
         $type = $this->type($entityType);

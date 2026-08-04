@@ -1776,6 +1776,41 @@
     }
   },
   "paths": {
+    "/manage/access": {"get":{"tags":["Product"],"operationId":"shopManageAccess","summary":"商城管理权限快照","responses":{"200":{"description":"成功"}}}},
+    "/manage/options": {"get":{"tags":["Product"],"operationId":"shopManageOptions","summary":"商城管理候选项","responses":{"200":{"description":"成功"}}}},
+    "/manage/services": {"get":{"tags":["Product"],"operationId":"shopManageServices","summary":"服务定义列表","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopCreateService","summary":"创建服务定义","responses":{"200":{"description":"成功"}}}},
+    "/manage/services/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManageService","summary":"服务定义详情","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopUpdateService","summary":"更新服务定义","responses":{"200":{"description":"成功"}}}},
+    "/manage/services/{id}/disable": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Product"],"operationId":"shopDisableService","summary":"停用服务定义","responses":{"200":{"description":"成功"}}}},
+    "/manage/packages": {"get":{"tags":["Product"],"operationId":"shopManagePackages","summary":"服务权益包列表","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopCreatePackage","summary":"创建服务权益包","responses":{"200":{"description":"成功"}}}},
+    "/manage/packages/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManagePackage","summary":"服务权益包详情","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopUpdatePackage","summary":"更新服务权益包","responses":{"200":{"description":"成功"}}}},
+    "/manage/packages/{id}/disable": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Product"],"operationId":"shopDisablePackage","summary":"停用服务权益包","responses":{"200":{"description":"成功"}}}},
+    "/manage/campaigns": {"get":{"tags":["Product"],"operationId":"shopManageCampaigns","summary":"服务卡活动列表","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopCreateCampaign","summary":"创建服务卡活动","responses":{"200":{"description":"成功"}}}},
+    "/manage/campaigns/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManageCampaign","summary":"服务卡活动详情","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopUpdateCampaign","summary":"更新服务卡活动","responses":{"200":{"description":"成功"}}}},
+    "/manage/campaigns/{id}/disable": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Product"],"operationId":"shopDisableCampaign","summary":"停用服务卡活动","responses":{"200":{"description":"成功"}}}},
+    "/manage/campaigns/{id}/codes": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopCampaignCodes","summary":"卡密列表（不含明文）","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopIssueCampaignCodes","summary":"发行卡密","responses":{"200":{"description":"成功"}}}},
+    "/manage/campaigns/{id}/codes/{code_id}/reveal": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"code_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Product"],"operationId":"shopRevealCampaignCode","summary":"显式查看卡密","responses":{"200":{"description":"成功"}}}},
+    "/manage/campaigns/{id}/codes/{code_id}/disable": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"code_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Product"],"operationId":"shopDisableCampaignCode","summary":"停用卡密","responses":{"200":{"description":"成功"}}}},
+    "/product/{id}/redemption-fields": {
+      "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
+      "get": {"tags":["Product"],"operationId":"productRedemptionFields","summary":"查询商品核销字段","responses":{"200":{"description":"成功"}}},
+      "post": {"tags":["Product"],"operationId":"createProductRedemptionField","summary":"创建商品核销字段","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object"}}}},"responses":{"200":{"description":"成功"}}}
+    },
+    "/product/{id}/redemption-fields/{field_id}": {
+      "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"field_id","in":"path","required":true,"schema":{"type":"integer"}}],
+      "post": {"tags":["Product"],"operationId":"updateProductRedemptionField","summary":"更新商品核销字段","responses":{"200":{"description":"成功"}}}
+    },
+    "/product/{id}/redemption-fields/{field_id}/delete": {
+      "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"field_id","in":"path","required":true,"schema":{"type":"integer"}}],
+      "post": {"tags":["Product"],"operationId":"deleteProductRedemptionField","summary":"删除商品核销字段","responses":{"200":{"description":"成功"}}}
+    },
+    "/customer/services": {"get":{"tags":["Customer"],"operationId":"customerServices","summary":"我的服务","responses":{"200":{"description":"成功"}}}},
+    "/customer/services/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Customer"],"operationId":"customerService","summary":"服务详情","responses":{"200":{"description":"成功"}}}},
+    "/customer/services/{id}/handlers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Customer"],"operationId":"customerServiceHandlers","summary":"可选接单 Entity","responses":{"200":{"description":"成功"}}}},
+    "/customer/services/{id}/start": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"startCustomerService","summary":"发起核销","responses":{"200":{"description":"成功"}}}},
+    "/customer/services/{id}/cancel": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"cancelCustomerService","summary":"申请取消核销","responses":{"200":{"description":"成功"}}}},
+    "/customer/cards": {"get":{"tags":["Customer"],"operationId":"customerCards","summary":"我的卡密","responses":{"200":{"description":"成功"}}}},
+    "/customer/cards/claim": {"post":{"tags":["Customer"],"operationId":"claimCustomerCard","summary":"领取服务卡密","responses":{"200":{"description":"成功"}}}},
+    "/customer/cards/{id}/reveal": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"revealCustomerCard","summary":"查看卡密明文","responses":{"200":{"description":"成功"}}}},
     "/product": {
       "get": {
         "tags": [

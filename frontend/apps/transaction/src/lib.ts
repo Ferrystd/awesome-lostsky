@@ -39,5 +39,5 @@ export const customerOptions = (data?: TransactionOptions) => (data?.customers ?
   .filter((item) => Number(item.is_blocked ?? 0) !== 1)
   .map((item) => ({ label: customerName(item, item.id), value: Number(item.id) }))
 
-export const transactionType = (value: unknown) => Number(value) === 1 ? '商城订单' : '记账登记'
+export const transactionType = (value: unknown) => ({ 1: '商城订单', 2: '记账登记', 3: '服务包收款', 4: '服务核销' }[Number(value)] ?? '其他流水')
 export const balanceLogType = (value: unknown) => ({ 1: '充值', 2: '消费', 3: '退款', 4: '调整' }[Number(value)] ?? '变动')

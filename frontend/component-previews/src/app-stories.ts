@@ -1,129 +1,544 @@
-import { h } from 'vue'
-import { NInput } from 'naive-ui'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
-import AuthShell from '../../apps/account/src/components/AuthShell.vue'
-import SmsCodeField from '../../apps/account/src/components/SmsCodeField.vue'
-import AdminShell from '../../apps/admin/src/components/AdminShell.vue'
-import ReasonDialog from '../../apps/admin/src/components/ReasonDialog.vue'
-import DocumentList from '../../apps/display/src/components/DocumentList.vue'
-import EntityList from '../../apps/display/src/components/EntityList.vue'
-import ProductList from '../../apps/display/src/components/ProductList.vue'
-import ProfileMedia from '../../apps/display/src/components/ProfileMedia.vue'
-import PublicDocumentSection from '../../apps/display/src/components/PublicDocumentSection.vue'
-import PublicFields from '../../apps/display/src/components/PublicFields.vue'
-import AdminPage from '../../apps/team/src/components/AdminPage.vue'
-import AdminPageHeader from '../../apps/team/src/components/AdminPageHeader.vue'
-import EntityFieldsCard from '../../apps/team/src/components/EntityFieldsCard.vue'
-import EntityPermissionsCard from '../../apps/team/src/components/EntityPermissionsCard.vue'
-import EntitySelectOption from '../../apps/team/src/components/EntitySelectOption.vue'
-import MemberProfileFields from '../../apps/team/src/components/MemberProfileFields.vue'
-import TeamShell from '../../apps/team/src/components/TeamShell.vue'
-import TransactionShell from '../../apps/transaction/src/components/TransactionShell.vue'
-import { previewStates, type PreviewState, type StoryDefinition } from './story-types'
+import { h } from "vue";
+import { NInput } from "naive-ui";
+import LsButton from "@lostsky/ui/components/LsButton.vue";
+import AuthShell from "../../apps/account/src/components/AuthShell.vue";
+import SmsCodeField from "../../apps/account/src/components/SmsCodeField.vue";
+import AdminShell from "../../apps/admin/src/components/AdminShell.vue";
+import ReasonDialog from "../../apps/admin/src/components/ReasonDialog.vue";
+import DocumentList from "../../apps/display/src/components/DocumentList.vue";
+import EntityList from "../../apps/display/src/components/EntityList.vue";
+import ProductList from "../../apps/display/src/components/ProductList.vue";
+import ProfileMedia from "../../apps/display/src/components/ProfileMedia.vue";
+import PublicDocumentSection from "../../apps/display/src/components/PublicDocumentSection.vue";
+import PublicFields from "../../apps/display/src/components/PublicFields.vue";
+import AdminPage from "../../apps/team/src/components/AdminPage.vue";
+import AdminPageHeader from "../../apps/team/src/components/AdminPageHeader.vue";
+import EntityFieldsCard from "../../apps/team/src/components/EntityFieldsCard.vue";
+import EntityPermissionsCard from "../../apps/team/src/components/EntityPermissionsCard.vue";
+import EntitySelectOption from "../../apps/team/src/components/EntitySelectOption.vue";
+import MemberProfileFields from "../../apps/team/src/components/MemberProfileFields.vue";
+import TeamShell from "../../apps/team/src/components/TeamShell.vue";
+import TransactionShell from "../../apps/transaction/src/components/TransactionShell.vue";
+import ShopManageShell from "../../apps/shop/src/components/ShopManageShell.vue";
+import {
+  previewStates,
+  type PreviewState,
+  type StoryDefinition,
+} from "./story-types";
 
-const layout: PreviewState[] = ['default', 'mobile']
-const interactive: PreviewState[] = ['default', 'hover', 'focus', 'active', 'disabled', 'mobile']
-const stage = (children: unknown, className = '') => h('div', { class: ['story-stage', className] }, children as never)
+const layout: PreviewState[] = ["default", "mobile"];
+const interactive: PreviewState[] = [
+  "default",
+  "hover",
+  "focus",
+  "active",
+  "disabled",
+  "mobile",
+];
+const stage = (children: unknown, className = "") =>
+  h("div", { class: ["story-stage", className] }, children as never);
 const unsupportedDefaults: Record<PreviewState, string> = {
-  default: '默认状态为必选项。', hover: '该组件没有可悬停的交互目标。', focus: '该组件不接收键盘焦点。',
-  active: '该组件没有激活或选中状态。', disabled: '该组件没有整体禁用或只读状态。', loading: '该组件不负责表达加载状态。',
-  error: '该组件不负责表达错误或空状态。', mobile: '移动端状态为必选项。',
-}
-const story = (name: string, supported: PreviewState[], render: StoryDefinition['render'], reason: StoryDefinition['reason'] = {}): StoryDefinition => ({
-  name, supported, render,
-  reason: Object.fromEntries(previewStates.filter(state => !supported.includes(state)).map(state => [state, reason[state] || unsupportedDefaults[state]])),
-})
+  default: "默认状态为必选项。",
+  hover: "该组件没有可悬停的交互目标。",
+  focus: "该组件不接收键盘焦点。",
+  active: "该组件没有激活或选中状态。",
+  disabled: "该组件没有整体禁用或只读状态。",
+  loading: "该组件不负责表达加载状态。",
+  error: "该组件不负责表达错误或空状态。",
+  mobile: "移动端状态为必选项。",
+};
+const story = (
+  name: string,
+  supported: PreviewState[],
+  render: StoryDefinition["render"],
+  reason: StoryDefinition["reason"] = {},
+): StoryDefinition => ({
+  name,
+  supported,
+  render,
+  reason: Object.fromEntries(
+    previewStates
+      .filter((state) => !supported.includes(state))
+      .map((state) => [state, reason[state] || unsupportedDefaults[state]]),
+  ),
+});
 
-const imageData = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="960" height="540"%3E%3Cdefs%3E%3ClinearGradient id="g" x2="1" y2="1"%3E%3Cstop stop-color="%23006f66"/%3E%3Cstop offset="1" stop-color="%23223366"/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="960" height="540" fill="url(%23g)"/%3E%3Ccircle cx="700" cy="170" r="110" fill="%23ffffff" fill-opacity=".12"/%3E%3C/svg%3E'
-const profile = { name: '青空成员', avatar: null, description: '负责内容维护与客户协作。', intro_image: imageData, intro_video: 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDE=', introduction_markdown: '', document_tags: [] }
-const entity = { slug: 'qingkong', type: 'teamMember' as const, name: '青空成员', avatar: null, description: '内容维护与客户协作', roles: [{ name: '内容主理人', description: '维护公开资料' }], status_code: 'departed' as const, status_label: '已离队' }
-const documents = [{ id: 11, title: '团队协作指南', tags: ['指南'], sort: 10, update_time: 1_782_633_600, entity }]
-const products = [{ id: 1, name: '夜航陪伴', description: '一段被认真准备的体验。', cover_image: imageData, price: '39.00', href: '//demo.shop.lostsky.work/product/1' }]
+const imageData =
+  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="960" height="540"%3E%3Cdefs%3E%3ClinearGradient id="g" x2="1" y2="1"%3E%3Cstop stop-color="%23006f66"/%3E%3Cstop offset="1" stop-color="%23223366"/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="960" height="540" fill="url(%23g)"/%3E%3Ccircle cx="700" cy="170" r="110" fill="%23ffffff" fill-opacity=".12"/%3E%3C/svg%3E';
+const profile = {
+  name: "青空成员",
+  avatar: null,
+  description: "负责内容维护与客户协作。",
+  intro_image: imageData,
+  intro_video:
+    "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDE=",
+  introduction_markdown: "",
+  document_tags: [],
+};
+const entity = {
+  slug: "qingkong",
+  type: "teamMember" as const,
+  name: "青空成员",
+  avatar: null,
+  description: "内容维护与客户协作",
+  roles: [{ name: "内容主理人", description: "维护公开资料" }],
+  status_code: "departed" as const,
+  status_label: "已离队",
+};
+const documents = [
+  {
+    id: 11,
+    title: "团队协作指南",
+    tags: ["指南"],
+    sort: 10,
+    update_time: 1_782_633_600,
+    entity,
+  },
+];
+const products = [
+  {
+    id: 1,
+    name: "夜航陪伴",
+    description: "一段被认真准备的体验。",
+    cover_image: imageData,
+    price: "39.00",
+    href: "//demo.shop.lostsky.work/product/1",
+  },
+];
 
-const authShell = story('AuthShell', layout, () => h(AuthShell, { title: '欢迎回来', intro: '登录后继续管理你的团队、资料与协作。' }, {
-  default: () => stage([h('label', '手机号'), h(NInput, { value: '13800138000' }), h(LsButton, null, { default: () => '登录' })], 'story-form'),
-}))
+const authShell = story("AuthShell", layout, () =>
+  h(
+    AuthShell,
+    { title: "欢迎回来", intro: "登录后继续管理你的团队、资料与协作。" },
+    {
+      default: () =>
+        stage(
+          [
+            h("label", "手机号"),
+            h(NInput, { value: "13800138000" }),
+            h(LsButton, null, { default: () => "登录" }),
+          ],
+          "story-form",
+        ),
+    },
+  ),
+);
 
-const smsCodeField = story('SmsCodeField', interactive, state => stage(h(SmsCodeField, {
-  modelValue: '123456', phone: state === 'disabled' ? '' : '13800138000', purpose: 'login', id: `sms-${state}`,
-})), { loading: '发送中的状态由短信请求触发，不暴露外部参数。', error: '请求错误只在实际发送失败后出现。' })
+const smsCodeField = story(
+  "SmsCodeField",
+  interactive,
+  (state) =>
+    stage(
+      h(SmsCodeField, {
+        modelValue: "123456",
+        phone: state === "disabled" ? "" : "13800138000",
+        purpose: "login",
+        id: `sms-${state}`,
+      }),
+    ),
+  {
+    loading: "发送中的状态由短信请求触发，不暴露外部参数。",
+    error: "请求错误只在实际发送失败后出现。",
+  },
+);
 
-const adminShell = story('AdminShell', ['default', 'hover', 'focus', 'active', 'mobile'], () => h(AdminShell, null, {
-  default: () => h('section', { class: 'shell-content' }, [h('h2', '平台总览'), h('p', '查看用户、团队和系统运行状态。')]),
-}), { disabled: '平台壳层没有整体禁用状态。', loading: '页面内容负责表达加载状态。', error: '路由内容负责表达错误状态。' })
+const adminShell = story(
+  "AdminShell",
+  ["default", "hover", "focus", "active", "mobile"],
+  () =>
+    h(AdminShell, null, {
+      default: () =>
+        h("section", { class: "shell-content" }, [
+          h("h2", "平台总览"),
+          h("p", "查看用户、团队和系统运行状态。"),
+          h(LsButton, { "data-preview-target": "" }, { default: () => "查看团队" }),
+        ]),
+    }),
+  {
+    disabled: "平台壳层没有整体禁用状态。",
+    loading: "页面内容负责表达加载状态。",
+    error: "路由内容负责表达错误状态。",
+  },
+);
 
-const reasonDialog = story('ReasonDialog', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'mobile'], state => h(ReasonDialog, {
-  show: true, title: '确认封禁团队', consequence: '封禁后团队成员将无法继续进入工作台。', actionLabel: '确认封禁', danger: true, loading: state === 'loading',
-}), { error: '字段校验在用户输入后就近显示。' })
+const reasonDialog = story(
+  "ReasonDialog",
+  ["default", "hover", "focus", "active", "disabled", "loading", "mobile"],
+  (state) =>
+    h(ReasonDialog, {
+      show: true,
+      title: "确认封禁团队",
+      consequence: "封禁后团队成员将无法继续进入工作台。",
+      actionLabel: "确认封禁",
+      danger: true,
+      loading: state === "loading",
+    }),
+  { error: "字段校验在用户输入后就近显示。" },
+);
 
-const documentList = story('DocumentList', ['default', 'hover', 'focus', 'active', 'error', 'mobile'], state => stage(h(DocumentList, { documents: state === 'error' ? [] : documents })), { disabled: '公开文档列表只读。', loading: '加载由父级文档区表达。' })
+const documentList = story(
+  "DocumentList",
+  ["default", "hover", "focus", "active", "error", "mobile"],
+  (state) =>
+    stage(h(DocumentList, { documents: state === "error" ? [] : documents })),
+  { disabled: "公开文档列表只读。", loading: "加载由父级文档区表达。" },
+);
 
-const entityList = story('EntityList', ['default', 'hover', 'focus', 'active', 'error', 'mobile'], state => stage(h(EntityList, { entities: state === 'error' ? [] : [entity, { ...entity, slug: 'helper', type: 'teamVirtual', name: '协作助手', status_code: null, status_label: null }], preview: true })), { disabled: '公开实体列表只读。', loading: '加载由页面表达。' })
+const entityList = story(
+  "EntityList",
+  ["default", "hover", "focus", "active", "error", "mobile"],
+  (state) =>
+    stage(
+      h(EntityList, {
+        entities:
+          state === "error"
+            ? []
+            : [
+                entity,
+                {
+                  ...entity,
+                  slug: "helper",
+                  type: "teamVirtual",
+                  name: "协作助手",
+                  status_code: null,
+                  status_label: null,
+                },
+              ],
+        preview: true,
+      }),
+    ),
+  { disabled: "公开实体列表只读。", loading: "加载由页面表达。" },
+);
 
-const productList = story('ProductList', ['default', 'hover', 'focus', 'active', 'error', 'mobile'], state => stage(h(ProductList, { products: state === 'error' ? [] : products })), { disabled: '公开商品列表只读。', loading: '加载由页面表达。' })
+const productList = story(
+  "ProductList",
+  ["default", "hover", "focus", "active", "error", "mobile"],
+  (state) =>
+    stage(h(ProductList, { products: state === "error" ? [] : products })),
+  { disabled: "公开商品列表只读。", loading: "加载由页面表达。" },
+);
 
-const profileMedia = story('ProfileMedia', ['default', 'error', 'mobile'], state => stage(h(ProfileMedia, { profile: state === 'error' ? { ...profile, intro_video: null } : profile })), { hover: '媒体容器没有悬停动作。', focus: '媒体不是命令控件。', active: '媒体没有选中状态。', disabled: '公开媒体只读。', loading: '加载由浏览器媒体元素表达。' })
+const profileMedia = story(
+  "ProfileMedia",
+  ["default", "error", "mobile"],
+  (state) =>
+    stage(
+      h(ProfileMedia, {
+        profile:
+          state === "error" ? { ...profile, intro_video: null } : profile,
+      }),
+    ),
+  {
+    hover: "媒体容器没有悬停动作。",
+    focus: "媒体不是命令控件。",
+    active: "媒体没有选中状态。",
+    disabled: "公开媒体只读。",
+    loading: "加载由浏览器媒体元素表达。",
+  },
+);
 
-const publicDocumentSection = story('PublicDocumentSection', ['default', 'hover', 'focus', 'active', 'loading', 'error', 'mobile'], state => stage(h(PublicDocumentSection, {
-  title: '精选文档', description: '团队持续维护的公开说明。', documents: state === 'error' || state === 'loading' ? [] : documents, loading: state === 'loading', error: state === 'error',
-})), { disabled: '公开文档区只读。' })
+const publicDocumentSection = story(
+  "PublicDocumentSection",
+  ["default", "hover", "focus", "active", "loading", "error", "mobile"],
+  (state) =>
+    stage(
+      h(PublicDocumentSection, {
+        title: "精选文档",
+        description: "团队持续维护的公开说明。",
+        documents: state === "error" || state === "loading" ? [] : documents,
+        loading: state === "loading",
+        error: state === "error",
+      }),
+    ),
+  { disabled: "公开文档区只读。" },
+);
 
-const publicFields = story('PublicFields', ['default', 'error', 'mobile'], state => stage(h(PublicFields, { fields: state === 'error' ? [] : [
-  { key: 'founded', name: '成立年份', value_type: 'int', value: 2025 },
-  { key: 'available', name: '当前在线', value_type: 'bool', value: 1 },
-] })), { hover: '公开字段没有悬停动作。', focus: '公开字段不是命令控件。', active: '公开字段没有选中状态。', disabled: '公开字段只读。', loading: '加载由页面表达。' })
+const publicFields = story(
+  "PublicFields",
+  ["default", "error", "mobile"],
+  (state) =>
+    stage(
+      h(PublicFields, {
+        fields:
+          state === "error"
+            ? []
+            : [
+                {
+                  key: "founded",
+                  name: "成立年份",
+                  value_type: "int",
+                  value: 2025,
+                },
+                {
+                  key: "available",
+                  name: "当前在线",
+                  value_type: "bool",
+                  value: 1,
+                },
+              ],
+      }),
+    ),
+  {
+    hover: "公开字段没有悬停动作。",
+    focus: "公开字段不是命令控件。",
+    active: "公开字段没有选中状态。",
+    disabled: "公开字段只读。",
+    loading: "加载由页面表达。",
+  },
+);
 
-const adminPage = story('AdminPage', layout, () => h(AdminPage, { width: 'content' }, { default: () => stage([h('h2', '客户详情'), h('p', '内容区域遵循详情页最大宽度。')]) }))
+const adminPage = story("AdminPage", layout, () =>
+  h(
+    AdminPage,
+    { width: "content" },
+    {
+      default: () =>
+        stage([h("h2", "客户详情"), h("p", "内容区域遵循详情页最大宽度。")]),
+    },
+  ),
+);
 
-const adminPageHeader = story('AdminPageHeader', interactive, state => stage(h(AdminPageHeader, {
-  title: '成员', description: '查看团队成员、当前状态与可执行操作。', backTo: '/', backLabel: '返回工作台',
-}, { actions: () => h(LsButton, { disabled: state === 'disabled' }, { default: () => '添加成员' }) })), { loading: '标题不负责页面加载。', error: '错误由页面内容区域表达。' })
+const adminPageHeader = story(
+  "AdminPageHeader",
+  interactive,
+  (state) =>
+    stage(
+      h(
+        AdminPageHeader,
+        {
+          title: "成员",
+          description: "查看团队成员、当前状态与可执行操作。",
+          backTo: "/",
+          backLabel: "返回工作台",
+        },
+        {
+          actions: () =>
+            h(
+              LsButton,
+              { disabled: state === "disabled" },
+              { default: () => "添加成员" },
+            ),
+        },
+      ),
+    ),
+  { loading: "标题不负责页面加载。", error: "错误由页面内容区域表达。" },
+);
 
 const fieldDefinitions = [
-  { id: 1, name: '公开称号', field_key: 'title', value_type: 'string', input_type: 'text', is_required: 1, is_editable: 1, can_edit: true },
-  { id: 2, name: '工作状态', field_key: 'status', value_type: 'select', input_type: 'select', options: [{ label: '可接单', value: 'available' }, { label: '忙碌', value: 'busy' }], is_editable: 1, can_edit: true },
-]
-const entityFieldsCard = story('EntityFieldsCard', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'error', 'mobile'], state => stage(h(EntityFieldsCard, {
-  fields: fieldDefinitions,
-  storedValues: [{ field_id: 1, value_string: '内容主理人' }, { field_id: 2, value_string: 'available' }],
-  mode: state === 'disabled' ? 'readonly' : 'manager', loading: state === 'loading', saving: false,
-  error: state === 'error' ? new Error('字段暂时无法读取') : undefined,
-})))
+  {
+    id: 1,
+    name: "公开称号",
+    field_key: "title",
+    value_type: "string",
+    input_type: "text",
+    is_required: 1,
+    is_editable: 1,
+    can_edit: true,
+  },
+  {
+    id: 2,
+    name: "工作状态",
+    field_key: "status",
+    value_type: "select",
+    input_type: "select",
+    options: [
+      { label: "可接单", value: "available" },
+      { label: "忙碌", value: "busy" },
+    ],
+    is_editable: 1,
+    can_edit: true,
+  },
+];
+const entityFieldsCard = story(
+  "EntityFieldsCard",
+  [
+    "default",
+    "hover",
+    "focus",
+    "active",
+    "disabled",
+    "loading",
+    "error",
+    "mobile",
+  ],
+  (state) =>
+    stage(
+      h(EntityFieldsCard, {
+        fields: fieldDefinitions,
+        storedValues: [
+          { field_id: 1, value_string: "内容主理人" },
+          { field_id: 2, value_string: "available" },
+        ],
+        mode: state === "disabled" ? "readonly" : "manager",
+        loading: state === "loading",
+        saving: false,
+        error: state === "error" ? new Error("字段暂时无法读取") : undefined,
+      }),
+    ),
+);
 
 const roles = [
-  { id: 1, name: '内容成员', role_key: 'content', description: '维护团队内容', permissions: [{ permission_key: 'team.document.read' }] },
-  { id: 2, name: '客户运营', role_key: 'customer', description: '维护客户资料', permissions: [{ permission_key: 'team.customer.read' }] },
-]
-const entityPermissionsCard = story('EntityPermissionsCard', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'error', 'mobile'], state => stage(h(EntityPermissionsCard, {
-  assignments: [{ role_id: 1, role: roles[0] }], roles,
-  effectivePermissions: [{ key: 'team.document.read', label: '查看文档', group: '内容' }],
-  catalog: [{ name: '内容', items: [{ key: 'team.document.read', label: '查看文档' }] }],
-  canEdit: state !== 'disabled', loading: state === 'loading', error: state === 'error' ? new Error('权限暂时无法读取') : undefined,
-})))
+  {
+    id: 1,
+    name: "内容成员",
+    role_key: "content",
+    description: "维护团队内容",
+    permissions: [{ permission_key: "team.document.read" }],
+  },
+  {
+    id: 2,
+    name: "客户运营",
+    role_key: "customer",
+    description: "维护客户资料",
+    permissions: [{ permission_key: "team.customer.read" }],
+  },
+];
+const entityPermissionsCard = story(
+  "EntityPermissionsCard",
+  [
+    "default",
+    "hover",
+    "focus",
+    "active",
+    "disabled",
+    "loading",
+    "error",
+    "mobile",
+  ],
+  (state) =>
+    stage(
+      h(EntityPermissionsCard, {
+        assignments: [{ role_id: 1, role: roles[0] }],
+        roles,
+        effectivePermissions: [
+          { key: "team.document.read", label: "查看文档", group: "内容" },
+        ],
+        catalog: [
+          {
+            name: "内容",
+            items: [{ key: "team.document.read", label: "查看文档" }],
+          },
+        ],
+        canEdit: state !== "disabled",
+        loading: state === "loading",
+        error: state === "error" ? new Error("权限暂时无法读取") : undefined,
+      }),
+    ),
+);
 
-const entitySelectOption = story('EntitySelectOption', layout, () => stage(h(EntitySelectOption, { entity: { type: 'teamVirtual', name: '协作助手', slug: 'helper' } })))
+const entitySelectOption = story("EntitySelectOption", layout, () =>
+  stage(
+    h(EntitySelectOption, {
+      entity: { type: "teamVirtual", name: "协作助手", slug: "helper" },
+    }),
+  ),
+);
 
-const memberProfile = { nickname: '青空成员', avatar: '', description: '负责内容维护与客户协作。', intro_image: '', intro_video: '', introduction_markdown: '## 自我介绍\n\n今天也在认真维护团队资料。' }
-const memberProfileFields = story('MemberProfileFields', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'mobile'], state => stage(h(MemberProfileFields, {
-  modelValue: { ...memberProfile }, draftKey: '', uploadDisabledReason: state === 'disabled' ? '当前团队未开通文件上传' : '', uploading: state === 'loading' ? 'avatar' : '', editorReady: true,
-}), 'story-stage--profile'), { error: '保存错误由所属成员表单表达。' })
+const memberProfile = {
+  nickname: "青空成员",
+  avatar: "",
+  description: "负责内容维护与客户协作。",
+  intro_image: "",
+  intro_video: "",
+  introduction_markdown: "## 自我介绍\n\n今天也在认真维护团队资料。",
+};
+const memberProfileFields = story(
+  "MemberProfileFields",
+  ["default", "hover", "focus", "active", "disabled", "loading", "mobile"],
+  (state) =>
+    stage(
+      h(MemberProfileFields, {
+        modelValue: { ...memberProfile },
+        draftKey: "",
+        uploadDisabledReason:
+          state === "disabled" ? "当前团队未开通文件上传" : "",
+        uploading: state === "loading" ? "avatar" : "",
+        editorReady: true,
+      }),
+      "story-stage--profile",
+    ),
+  { error: "保存错误由所属成员表单表达。" },
+);
 
-const teamShell = story('TeamShell', ['default', 'hover', 'focus', 'active', 'mobile'], () => h(TeamShell, null, {
-  default: () => h('section', { class: 'shell-content' }, [
-    h('h2', '团队概览'), h('p', '实体、成员、通知和文档集中在同一工作台。'),
-    h(LsButton, { 'data-preview-target': '' }, { default: () => '打开成员列表' }),
-  ]),
-}), { disabled: '工作台壳层没有整体禁用状态。', loading: '内部导航保持稳定，内容区域负责加载。', error: '内容错误不替换工作台壳层。' })
+const teamShell = story(
+  "TeamShell",
+  ["default", "hover", "focus", "active", "mobile"],
+  () =>
+    h(TeamShell, null, {
+      default: () =>
+        h("section", { class: "shell-content" }, [
+          h("h2", "团队概览"),
+          h("p", "实体、成员、通知和文档集中在同一工作台。"),
+          h(
+            LsButton,
+            { "data-preview-target": "" },
+            { default: () => "打开成员列表" },
+          ),
+        ]),
+    }),
+  {
+    disabled: "工作台壳层没有整体禁用状态。",
+    loading: "内部导航保持稳定，内容区域负责加载。",
+    error: "内容错误不替换工作台壳层。",
+  },
+);
 
-const transactionShell = story('TransactionShell', ['default', 'hover', 'focus', 'active', 'mobile'], () => h(TransactionShell, null, {
-  default: () => h('section', { class: 'shell-content' }, [h('h2', '流水'), h('p', '查看收入、支出和调整记录。')]),
-}), { disabled: '工作台壳层没有整体禁用状态。', loading: '内容区域负责加载。', error: '内容错误不替换工作台壳层。' })
+const transactionShell = story(
+  "TransactionShell",
+  ["default", "hover", "focus", "active", "mobile"],
+  () =>
+    h(TransactionShell, null, {
+      default: () =>
+        h("section", { class: "shell-content" }, [
+          h("h2", "流水"),
+          h("p", "查看收入、支出和调整记录。"),
+          h(LsButton, { "data-preview-target": "" }, { default: () => "登记流水" }),
+        ]),
+    }),
+  {
+    disabled: "工作台壳层没有整体禁用状态。",
+    loading: "内容区域负责加载。",
+    error: "内容错误不替换工作台壳层。",
+  },
+);
+
+const shopManageShell = story(
+  "ShopManageShell",
+  ["default", "hover", "focus", "active", "mobile"],
+  () =>
+    h(ShopManageShell, null, {
+      default: () =>
+        h("section", { class: "shell-content" }, [
+          h("h2", "商城商品"),
+          h("p", "管理商品、订单、服务、权益包和卡活动。"),
+          h(LsButton, { "data-preview-target": "" }, { default: () => "新建商品" }),
+        ]),
+    }),
+  {
+    disabled: "商城管理壳层没有整体禁用状态。",
+    loading: "内容区域负责表达加载状态。",
+    error: "内容错误不替换商城管理壳层。",
+  },
+);
 
 export const appStories: Record<string, StoryDefinition> = {
-  AuthShell: authShell, SmsCodeField: smsCodeField, AdminShell: adminShell, ReasonDialog: reasonDialog,
-  DocumentList: documentList, EntityList: entityList, ProductList: productList, ProfileMedia: profileMedia,
-  PublicDocumentSection: publicDocumentSection, PublicFields: publicFields, AdminPage: adminPage,
-  AdminPageHeader: adminPageHeader, EntityFieldsCard: entityFieldsCard,
-  EntityPermissionsCard: entityPermissionsCard, EntitySelectOption: entitySelectOption,
-  MemberProfileFields: memberProfileFields, TeamShell: teamShell, TransactionShell: transactionShell,
-}
+  AuthShell: authShell,
+  SmsCodeField: smsCodeField,
+  AdminShell: adminShell,
+  ReasonDialog: reasonDialog,
+  DocumentList: documentList,
+  EntityList: entityList,
+  ProductList: productList,
+  ProfileMedia: profileMedia,
+  PublicDocumentSection: publicDocumentSection,
+  PublicFields: publicFields,
+  AdminPage: adminPage,
+  AdminPageHeader: adminPageHeader,
+  EntityFieldsCard: entityFieldsCard,
+  EntityPermissionsCard: entityPermissionsCard,
+  EntitySelectOption: entitySelectOption,
+  MemberProfileFields: memberProfileFields,
+  TeamShell: teamShell,
+  TransactionShell: transactionShell,
+  ShopManageShell: shopManageShell,
+};

@@ -968,6 +968,75 @@ test('team document reader unwraps the API list response and keeps a readable re
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })
 
+test('team customer detail reports incomplete success responses instead of rendering a blank page', async ({ page }) => {
+  const pageErrors: string[] = []
+  page.on('pageerror', error => pageErrors.push(error.message))
+  await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
+  await page.route('http://demo.team.lostsky.work:5175/api/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    const data = path.endsWith('/access')
+      ? { permissions: ['team.customer.read'], abilities: {} }
+      : path.endsWith('/customer/518')
+        ? { id: 518, slug: 'broken-customer', name: '响应不完整的客户', can_manage: false }
+        : []
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 0, message: 'ok', data }),
+    })
+  })
+
+  await page.goto('http://demo.team.lostsky.work:5175/customers/518')
+
+  const errorState = page.locator('.ls-async-state')
+  await expect(errorState).toContainText('暂时无法读取客户详情')
+  await expect(errorState).toContainText('客户详情数据不完整，请刷新后重试')
+  expect(pageErrors).toEqual([])
+})
+
+test('team customer detail renders assignees as typed entity options', async ({ page }) => {
+  await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
+  await page.route('http://demo.team.lostsky.work:5175/api/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    const data = path.endsWith('/access')
+      ? { permissions: ['team.customer.manage'], abilities: {} }
+      : path.endsWith('/customer/assignees')
+        ? [
+            { entity_id: 1, slug: 'demo', type: 'team', name: 'test团队' },
+            { entity_id: 2, slug: 'member-1', type: 'teamMember', name: '测试的所有者' },
+            { entity_id: 3, slug: 'member-2', type: 'teamMember', name: 'member-2' },
+            { entity_id: 4, slug: 'virtual', type: 'teamVirtual', name: '1' },
+          ]
+        : path.endsWith('/customer/518')
+          ? {
+              id: 518,
+              slug: 'customer-518',
+              name: '测试客户',
+              avatar: null,
+              description: null,
+              is_blocked: false,
+              create_time: 1_782_633_600,
+              balance: { balance: '0.00', recharged: '0.00', spent: '0.00' },
+              assignee: null,
+              summary: { transaction_count: 0, transaction_total: '0.00', order_count: 0, order_total: '0.00' },
+              can_manage: true,
+            }
+          : []
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
+  })
+
+  await page.goto('http://demo.team.lostsky.work:5175/customers/518')
+  await page.locator('#customer-assignee').click()
+
+  const options = page.locator('.entity-select-menu .entity-select-option')
+  await expect(options).toHaveCount(4)
+  await expect(options.nth(0)).toContainText('test团队')
+  await expect(options.nth(0)).toContainText('团队')
+  await expect(options.nth(0)).toContainText('@demo')
+  await expect(options.nth(1)).toContainText('成员')
+  await expect(options.nth(3)).toContainText('虚拟实体')
+})
+
 test('team workspace routes remain responsive with the API boundary mocked', async ({ page }) => {
   test.setTimeout(240_000)
   const pageErrors: string[] = []
@@ -1226,6 +1295,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       const originalViewport = page.viewportSize()
       await page.setViewportSize({ width: 1000, height: 560 })
       const sidebarMenu = page.locator('.sidebar nav')
+      await expect(page.getByRole('button', { name: '退出登录' })).toHaveCSS('justify-content', 'flex-start')
       const moreMenu = page.getByRole('button', { name: '向下查看更多菜单' })
       await expect(moreMenu).toBeVisible()
       const initialScrollTop = await sidebarMenu.evaluate(element => element.scrollTop)

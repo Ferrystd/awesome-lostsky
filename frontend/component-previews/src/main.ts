@@ -10,7 +10,13 @@ import PreviewHost from './PreviewHost.vue'
 import { adminSession } from '../../apps/admin/src/session'
 
 const id = new URLSearchParams(location.search).get('id') || ''
-if (id.startsWith('display-')) await import('../../apps/display/src/app.css')
+if (id.startsWith('admin-')) await import('../../apps/admin/src/app.css')
+else if (id.startsWith('display-')) await import('../../apps/display/src/app.css')
+else if (id.startsWith('shop-')) {
+  document.documentElement.dataset.shopSurface = 'manage'
+  await import('../../apps/shop/src/app.css')
+}
+else if (id.startsWith('transaction-')) await import('../../apps/transaction/src/app.css')
 
 adminSession.data = {
   user: {

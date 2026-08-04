@@ -13,6 +13,14 @@ Route::post('transaction', 'Transaction/create');
 Route::post('transaction/<id>', 'Transaction/edit');
 Route::post('transaction/<id>/delete', 'Transaction/delete');
 
+Route::get('service', 'Service/index')->completeMatch();
+Route::get('service/<id>', 'Service/get')->completeMatch();
+Route::get('service/<id>/handlers', 'Service/handlers')->completeMatch();
+Route::post('service/<id>/reassign', 'Service/reassign')->completeMatch();
+Route::post('service/<id>/cancel/approve', 'Service/approveCancel')->completeMatch();
+Route::post('service/<id>/cancel/reject', 'Service/rejectCancel')->completeMatch();
+Route::post('service/<id>/complete', 'Service/complete')->completeMatch();
+
 // sender
 Route::get('transaction/sender', 'Sender/index');
 Route::get('transaction/sender/all', 'Sender/all');

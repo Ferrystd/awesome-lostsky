@@ -21,6 +21,9 @@ class Product extends Validate
         'entity_id'   => 'integer',
         'entity_ids'  => 'require|array',
         'is_active'   => 'in:0,1',
+        'kind'        => 'in:1,2,3',
+        'benefit_package_id' => 'integer',
+        'redemption_campaign_id' => 'integer',
     ];
 
     protected $message = [
@@ -50,7 +53,7 @@ class Product extends Validate
     ];
 
     protected $scene = [
-        'create'      => ['name', 'price', 'description', 'cover_image', 'introduction_markdown', 'cost', 'entity_id', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut'],
+        'create'      => ['name', 'price', 'description', 'cover_image', 'introduction_markdown', 'cost', 'entity_id', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'kind', 'benefit_package_id', 'redemption_campaign_id'],
         'setHandlers' => ['entity_ids'],
     ];
 
@@ -59,6 +62,7 @@ class Product extends Validate
         return $this->only([
             'name', 'price', 'description', 'cover_image', 'introduction_markdown',
             'cost', 'is_active', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut',
+            'kind', 'benefit_package_id', 'redemption_campaign_id',
         ])->remove('name', 'require')
             ->remove('price', 'require')
             ->remove('cover_image', 'require');
