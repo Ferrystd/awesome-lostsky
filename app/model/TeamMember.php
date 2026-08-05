@@ -20,11 +20,12 @@ class TeamMember extends Base
 
         'team_id' => 'integer',
         'user_id' => 'integer',
-        'status' => 'integer',
-        'is_blocked' => 'integer',
+        'status' => TeamMemberStatus::class,
     ];
 
     protected $json = [];
+
+    protected $hidden = ['delete_time', 'status'];
 
     protected $append = [
         'entity_id',
@@ -46,7 +47,7 @@ class TeamMember extends Base
             return false;
         }
 
-        if ($this->statusCase() === TeamMemberStatus::Active) {
+        if ($this->enumCase('status') === TeamMemberStatus::Active) {
             return true;
         }
 
@@ -56,29 +57,17 @@ class TeamMember extends Base
 
     public function getStatusCodeAttr(): string
     {
-        return $this->statusCase()->code();
+        return $this->enumCase('status')->code();
     }
 
     public function getStatusLabelAttr(): string
     {
-        return $this->statusCase()->value();
-    }
-
-    public function statusCase(): TeamMemberStatus
-    {
-        if (!array_key_exists('status', $this->getData())) {
-            return (int) ($this->getData('is_blocked') ?? 0) === 1
-                ? TeamMemberStatus::Blocked
-                : TeamMemberStatus::Active;
-        }
-
-        return TeamMemberStatus::tryFrom((int) $this->getData('status'))
-            ?? TeamMemberStatus::Active;
+        return $this->enumCase('status')->value();
     }
 
     public function canDirectReceive(): bool
     {
-        return $this->statusCase() === TeamMemberStatus::Active
+        return $this->enumCase('status') === TeamMemberStatus::Active
             && (bool) ($this->team?->is_valid ?? false);
     }
 

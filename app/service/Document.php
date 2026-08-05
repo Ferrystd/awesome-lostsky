@@ -36,10 +36,14 @@ class Document
         }
 
         $query->visibleTo((int) $actingEntity['entity_id'], $isTeamManager || $canReadAll, $isSubject);
-        $total = $query->count();
+        $paginator = $query->order('sort', 'asc')->order('id', 'desc')
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
         $list = array_map(
             fn (DocumentModel $document): array => $this->data($document),
-            $query->order('sort', 'asc')->order('id', 'desc')->page($page, $limit)->select()->all()
+            $paginator->getCollection()->all()
         );
 
         return compact('total', 'list', 'page', 'limit');

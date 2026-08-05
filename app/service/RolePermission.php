@@ -162,11 +162,11 @@ class RolePermission
 
     private function assertDynamicEntityKey(int $teamId, string $key): void
     {
-        if (in_array($key, PermissionDictionary::keys(), true)) {
+        if (PermissionDictionary::isFixedKeyOrParent($key)) {
             return;
         }
 
-        $dynamic = PermissionDictionary::dynamic($key);
+        $dynamic = PermissionDictionary::dynamic($key) ?? PermissionDictionary::dynamicDescendant($key);
         if (!$dynamic) {
             throw new HttpException(422, '权限不在可用目录中');
         }

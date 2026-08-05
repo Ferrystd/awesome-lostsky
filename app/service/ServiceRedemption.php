@@ -25,8 +25,12 @@ class ServiceRedemption
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
         $query = TeamServiceInstance::where('team_id', $teamId)->where('customer_id', $customerId);
         if (!empty($filters['status'])) $query->where('status', (int) $filters['status']);
-        $total = $query->count();
-        $list = $query->with(['service'])->order('id', 'desc')->page($page, $limit)->select()->toArray();
+        $paginator = $query->with(['service'])->order('id', 'desc')
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $list = $paginator->getCollection()->toArray();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
         $this->attachEntities($list, ['handler' => 'handler_entity_id']);
         return compact('total', 'list', 'page', 'limit');
     }
@@ -110,9 +114,12 @@ class ServiceRedemption
         if (!$this->canReadAll($teamId, $subject)) $query->where('handler_entity_id', $actorEntityId);
         if (!empty($filters['status'])) $query->where('status', (int) $filters['status']);
         if (!empty($filters['handler_entity_id'])) $query->where('handler_entity_id', (int) $filters['handler_entity_id']);
-        $total = $query->count();
-        $list = $query->with(['service', 'customer.profile'])
-            ->order('id', 'desc')->page($page, $limit)->select()->toArray();
+        $paginator = $query->with(['service', 'customer.profile'])
+            ->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $list = $paginator->getCollection()->toArray();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
         $this->attachEntities($list, ['handler' => 'handler_entity_id']);
         return compact('total', 'list', 'page', 'limit') + [
             'capabilities' => [

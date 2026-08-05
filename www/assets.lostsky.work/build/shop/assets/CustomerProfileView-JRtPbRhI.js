@@ -1,0 +1,58 @@
+import{c as I,E as U,G as N,H as X,I as j,d as F,J as k,N as G,T as J,K as Y,L as Q,M as Z,O as ee,i as z,p as h,P as se,Q as te,S as ie,U as ne,V as oe,w as ae,a as f,b as s,e as u,t as R,f as o,u as i,W as le,v as q,j as P,R as K,B as L,m as re,y as ue,g as A,o as y,l as de,s as E,C as pe,X as B,_ as ce}from"./index-z4gED4Ng.js";import{a as ve,u as O}from"./useQuery-DAth-tfo.js";import{u as me}from"./useMutation-CMO1t7-F.js";import{A as fe}from"./arrow-right-CMIy2W7U.js";import{N as $}from"./Input-DS75s4UV.js";import{N as ye}from"./Select-DY71mami.js";import"./use-locale-Bkn3T_zn.js";import"./Tag-DalS3HPr.js";import"./Empty-CQ_gd8at.js";/**
+ * @license @lucide/vue v1.24.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const ge=[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["line",{x1:"12",x2:"12",y1:"8",y2:"12",key:"1pkeuh"}],["line",{x1:"12",x2:"12.01",y1:"16",y2:"16",key:"4dfq90"}]],W=I("circle-alert",ge);/**
+ * @license @lucide/vue v1.24.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const he=[["path",{d:"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8",key:"1357e3"}],["path",{d:"M3 3v5h5",key:"1xhq8a"}]],be=I("rotate-ccw",he);/**
+ * @license @lucide/vue v1.24.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const ke=[["path",{d:"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",key:"oel41y"}],["path",{d:"m9 12 2 2 4-4",key:"dzmm74"}]],ze=I("shield-check",ke),Ce=U([U("@keyframes spin-rotate",`
+ from {
+ transform: rotate(0);
+ }
+ to {
+ transform: rotate(360deg);
+ }
+ `),N("spin-container",`
+ position: relative;
+ `,[N("spin-body",`
+ position: absolute;
+ top: 50%;
+ left: 50%;
+ transform: translateX(-50%) translateY(-50%);
+ `,[X()])]),N("spin-body",`
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ flex-direction: column;
+ `),N("spin",`
+ display: inline-flex;
+ height: var(--n-size);
+ width: var(--n-size);
+ font-size: var(--n-size);
+ color: var(--n-color);
+ `,[j("rotate",`
+ animation: spin-rotate 2s linear infinite;
+ `)]),N("spin-description",`
+ display: inline-block;
+ font-size: var(--n-font-size);
+ color: var(--n-text-color);
+ transition: color .3s var(--n-bezier);
+ margin-top: 8px;
+ `),N("spin-content",`
+ opacity: 1;
+ transition: opacity .3s var(--n-bezier);
+ pointer-events: all;
+ `,[j("spinning",`
+ user-select: none;
+ -webkit-user-select: none;
+ pointer-events: none;
+ opacity: var(--n-opacity-spinning);
+ `)])]),we={small:20,medium:18,large:16},xe=Object.assign(Object.assign(Object.assign({},Q.props),{contentClass:String,contentStyle:[Object,String],description:String,size:{type:[String,Number],default:"medium"},show:{type:Boolean,default:!0},rotate:{type:Boolean,default:!0},spinning:{type:Boolean,validator:()=>!0,default:void 0},delay:Number}),se),Se=F({name:"Spin",props:xe,slots:Object,setup(r){const{mergedClsPrefixRef:g,inlineThemeDisabled:l}=Y(r),n=Q("Spin","-spin",Ce,te,r,g),C=z(()=>{const{size:a}=r,{common:{cubicBezierEaseInOut:c},self:b}=n.value,{opacitySpinning:w,color:x,textColor:S}=b,T=typeof a=="number"?ie(a):b[ne("size",a)];return{"--n-bezier":c,"--n-opacity-spinning":w,"--n-size":T,"--n-color":x,"--n-text-color":S}}),d=l?Z("spin",z(()=>{const{size:a}=r;return typeof a=="number"?String(a):a[0]}),C,r):void 0,m=oe(r,["spinning","show"]),p=h(!1);return ee(a=>{let c;if(m.value){const{delay:b}=r;if(b){c=window.setTimeout(()=>{p.value=!0},b),a(()=>{clearTimeout(c)});return}}p.value=m.value}),{mergedClsPrefix:g,active:p,mergedStrokeWidth:z(()=>{const{strokeWidth:a}=r;if(a!==void 0)return a;const{size:c}=r;return we[typeof c=="number"?"medium":c]}),cssVars:l?void 0:C,themeClass:d==null?void 0:d.themeClass,onRender:d==null?void 0:d.onRender}},render(){var r,g;const{$slots:l,mergedClsPrefix:n,description:C}=this,d=l.icon&&this.rotate,m=(C||l.description)&&k("div",{class:`${n}-spin-description`},C||((r=l.description)===null||r===void 0?void 0:r.call(l))),p=l.icon?k("div",{class:[`${n}-spin-body`,this.themeClass]},k("div",{class:[`${n}-spin`,d&&`${n}-spin--rotate`],style:l.default?"":this.cssVars},l.icon()),m):k("div",{class:[`${n}-spin-body`,this.themeClass]},k(G,{clsPrefix:n,style:l.default?"":this.cssVars,stroke:this.stroke,"stroke-width":this.mergedStrokeWidth,radius:this.radius,scale:this.scale,class:`${n}-spin`}),m);return(g=this.onRender)===null||g===void 0||g.call(this),l.default?k("div",{class:[`${n}-spin-container`,this.themeClass],style:this.cssVars},k("div",{class:[`${n}-spin-content`,this.active&&`${n}-spin-content--spinning`,this.contentClass],style:this.contentStyle},l),k(J,{name:"fade-in-transition"},{default:()=>this.active?p:null})):p}}),Ne={class:"customer-profile-page"},Re={class:"profile-heading"},Ee={class:"profile-mark","aria-hidden":"true"},$e={key:0,class:"profile-state","aria-live":"polite"},Te={key:1,class:"profile-state profile-state-danger",role:"alert"},_e={key:2,class:"profile-state",role:"alert"},qe={key:3,class:"profile-state",role:"alert"},Pe={class:"profile-section","aria-labelledby":"identity-heading"},Ve={class:"profile-fields"},Be={for:"customer-nickname"},Oe={for:"customer-avatar"},Ie={for:"customer-description"},Me={class:"profile-section","aria-labelledby":"slug-heading"},Ue={class:"profile-fields"},je={key:0,for:"customer-slug"},Ke={key:1,for:"customer-new-slug"},Le={class:"profile-section","aria-labelledby":"assignee-heading"},Ae={class:"profile-fields"},We={for:"customer-assignee"},Fe={class:"profile-actions"},Qe={"aria-live":"polite"},De={key:0,class:"save-success",role:"status"},He={key:1,class:"save-error",role:"alert"},Xe=F({__name:"CustomerProfileView",setup(r){const g=de(),l=ve(),n=O({queryKey:["shop-customer"],queryFn:E.me,retry:!1}),C=O({queryKey:["shop-storefront"],queryFn:E.storefront}),d=O({queryKey:["shop-customer-assignees"],queryFn:E.assignees}),m=h(""),p=h(""),a=h(""),c=h(""),b=h(""),w=h(null),x=h(""),S=h("");ae(()=>n.data.value,t=>{var e;t&&(pe(t.id),m.value=t.profile.name,p.value=t.profile.avatar||"",a.value=t.profile.description||"",w.value=((e=t.assignee)==null?void 0:e.entity_id)??null)},{immediate:!0});const T=z(()=>{var t;return((t=C.data.value)==null?void 0:t.profile.name)||"当前商家"}),V=z(()=>{var t;return((t=n.data.value)==null?void 0:t.identity.slug)||b.value}),_=z(()=>{if(n.isPending.value)return"loading";if(!n.error.value)return"ready";const t=n.error.value;return t instanceof B&&t.status===403&&t.message.includes("封禁")?"blocked":t instanceof B&&[403,404].includes(t.status)?"mismatch":"error"}),D=z(()=>typeof g.query.redirect=="string"?g.query.redirect:"/customer/profile"),H=z(()=>(d.data.value??[]).map(t=>({label:`${t.name} · @${t.slug}`,value:t.entity_id}))),M=me({mutationFn:async()=>{const t=m.value.trim();if(!t)throw new Error("团队内昵称不能为空");if(!V.value){const e=c.value.trim();if(!e)throw new Error("请先领取客户标识");b.value=(await E.claimSlug(e)).slug}await E.updateProfile({nickname:t,avatar:p.value.trim()||null,description:a.value.trim()||null,assignee_entity_id:w.value})},onMutate:()=>{x.value="",S.value=""},onSuccess:async()=>{await l.invalidateQueries({queryKey:["shop-customer"]}),x.value="资料已保存，仅在当前商家的团队内使用。"},onError:t=>{S.value=t instanceof B?q(t):t instanceof Error?t.message:q(t)}});return(t,e)=>(y(),f("section",Ne,[s("header",Re,[s("div",null,[e[9]||(e[9]=s("p",{class:"section-label"},"CUSTOMER CENTER",-1)),e[10]||(e[10]=s("h1",{tabindex:"-1"},"我的资料",-1)),s("p",null,[e[7]||(e[7]=u("维护你在 ",-1)),s("strong",null,R(T.value),1),e[8]||(e[8]=u(" 的团队内身份。这些内容不会出现在公开客户目录。",-1))])]),s("div",Ee,[o(i(le),{size:34})])]),_.value==="loading"?(y(),f("div",$e,[o(i(Se),{size:"large"}),e[11]||(e[11]=s("strong",null,"正在验证当前客户身份",-1)),e[12]||(e[12]=s("p",null,"我们正在读取你在此商家的资料。",-1))])):_.value==="blocked"?(y(),f("div",Te,[o(i(W),{size:38,"aria-hidden":"true"}),e[14]||(e[14]=s("strong",null,"当前客户身份已被商家封禁",-1)),s("p",null,R(i(q)(i(n).error.value)),1),o(i(K),{to:"/"},{default:P(()=>[...e[13]||(e[13]=[u("返回商城",-1)])]),_:1})])):_.value==="mismatch"?(y(),f("div",_e,[o(i(ze),{size:38,"aria-hidden":"true"}),e[16]||(e[16]=s("strong",null,"当前身份不属于这家商店",-1)),s("p",null,"你可以为 "+R(T.value)+" 建立独立的客户身份，完成后会回到本页。",1),o(i(K),{class:"primary-link",to:{path:"/customer/bind",query:{redirect:D.value}}},{default:P(()=>[e[15]||(e[15]=u(" 建立客户身份",-1)),o(i(fe),{size:18,"aria-hidden":"true"})]),_:1},8,["to"])])):_.value==="error"?(y(),f("div",qe,[o(i(W),{size:38,"aria-hidden":"true"}),e[18]||(e[18]=s("strong",null,"暂时无法读取客户资料",-1)),s("p",null,R(i(q)(i(n).error.value)),1),o(i(L),{secondary:"",size:"large",onClick:e[0]||(e[0]=v=>i(n).refetch())},{default:P(()=>[o(i(be),{size:17}),e[17]||(e[17]=u("重新加载",-1))]),_:1})])):(y(),f("form",{key:4,class:"profile-form",onSubmit:e[6]||(e[6]=re(v=>i(M).mutate(),["prevent"]))},[s("section",Pe,[e[22]||(e[22]=s("div",{class:"section-copy"},[s("span",null,"01"),s("div",null,[s("h2",{id:"identity-heading"},"团队内身份"),s("p",null,"昵称和简介仅供当前商家的业务、订单与会话识别。")])],-1)),s("div",Ve,[s("label",Be,[e[19]||(e[19]=u(" 团队内昵称 ",-1)),o(i($),{value:m.value,"onUpdate:value":e[1]||(e[1]=v=>m.value=v),maxlength:"50",size:"large","input-props":{id:"customer-nickname","aria-label":"团队内昵称"},placeholder:"你希望商家如何称呼你"},null,8,["value"])]),s("label",Oe,[e[20]||(e[20]=u(" 头像地址 ",-1)),o(i($),{value:p.value,"onUpdate:value":e[2]||(e[2]=v=>p.value=v),maxlength:"500",size:"large","input-props":{id:"customer-avatar","aria-label":"头像地址"},placeholder:"https://…"},null,8,["value"])]),s("label",Ie,[e[21]||(e[21]=u(" 团队内简介 ",-1)),o(i($),{value:a.value,"onUpdate:value":e[3]||(e[3]=v=>a.value=v),type:"textarea",maxlength:"500","show-count":"",autosize:{minRows:4,maxRows:8},"input-props":{id:"customer-description","aria-label":"团队内简介"},placeholder:"可选，补充便于商家服务你的信息"},null,8,["value"])])])]),s("section",Me,[e[26]||(e[26]=s("div",{class:"section-copy"},[s("span",null,"02"),s("div",null,[s("h2",{id:"slug-heading"},"客户标识"),s("p",null,"标识用于身份签发和内部引用，不代表公开主页；领取后不可修改。")])],-1)),s("div",Ue,[V.value?(y(),f("label",je,[e[23]||(e[23]=u(" 只读 slug ",-1)),o(i($),{value:V.value,readonly:"",size:"large","input-props":{id:"customer-slug","aria-label":"只读 slug"}},null,8,["value"])])):(y(),f("label",Ke,[e[24]||(e[24]=u(" 首次领取 slug ",-1)),o(i($),{value:c.value,"onUpdate:value":e[4]||(e[4]=v=>c.value=v),maxlength:"50",size:"large","input-props":{id:"customer-new-slug","aria-label":"首次领取 slug"},placeholder:"例如 sky-friend"},null,8,["value"]),e[25]||(e[25]=s("small",null,"仅历史上尚未生成标识的客户需要填写。",-1))]))])]),s("section",Le,[e[29]||(e[29]=s("div",{class:"section-copy"},[s("span",null,"03"),s("div",null,[s("h2",{id:"assignee-heading"},"服务归属"),s("p",null,"归属人会成为之后订单和流水的发单人；变更不会修改已经产生的历史记录。")])],-1)),s("div",Ae,[s("label",We,[e[27]||(e[27]=u(" 当前归属实体 ",-1)),o(i(ye),{value:w.value,"onUpdate:value":e[5]||(e[5]=v=>w.value=v),options:H.value,loading:i(d).isPending.value,clearable:"",filterable:"",size:"large",placeholder:"未归属","aria-label":"当前归属实体"},null,8,["value","options","loading"]),e[28]||(e[28]=s("small",null,"可以选择当前团队的 Team、成员或虚拟实体，Customer 不能成为归属人。",-1))])])]),s("div",Fe,[s("div",Qe,[x.value?(y(),f("p",De,[o(i(ue),{size:18}),u(R(x.value),1)])):A("",!0),S.value?(y(),f("p",He,R(S.value),1)):A("",!0)]),o(i(L),{"attr-type":"submit",type:"primary",size:"large",loading:i(M).isPending.value},{default:P(()=>[...e[30]||(e[30]=[u("保存资料",-1)])]),_:1},8,["loading"])])],32))]))}}),os=ce(Xe,[["__scopeId","data-v-1e2dbfbc"]]);export{os as default};

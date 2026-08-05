@@ -232,6 +232,17 @@
 | `save` | `int $teamId`、`string $slug`、`array $roleIds` | `void` |
 | `describe` | `int $teamId`、`string $slug` | `array` |
 
+## EntitySelfManagement
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `current` | `?array $actingEntity` | `array` |
+| `updateProfile` | `array $actingEntity`、`int $expectedEntityId`、`array $data` | `void` |
+| `claimSlug` | `array $actingEntity`、`int $expectedEntityId`、`string $slug` | `array` |
+| `saveFields` | `array $actingEntity`、`int $expectedEntityId`、`array $values` | `void` |
+| `customerAssignees` | `array $actingEntity` | `array` |
+| `upload` | `array $actingEntity`、`int $expectedEntityId`、`think\file\UploadedFile $file` | `array` |
+
 ## File
 
 | 方法 | 参数 | 返回 |
@@ -347,9 +358,11 @@
 | `groups` | — | `array` |
 | `keys` | — | `array` |
 | `contains` | `string $key` | `bool` |
+| `isFixedKeyOrParent` | `string $key` | `bool` |
 | `adminGroups` | — | `array` |
 | `adminKeys` | — | `array` |
 | `dynamic` | `string $key` | `?array` |
+| `dynamicDescendant` | `string $key` | `?array` |
 | `virtual` | `string $slug`、`string $action` | `string` |
 | `assume` | `string $type`、`string $slug = '*'` | `string` |
 | `entityField` | `string $type` | `string` |
@@ -623,7 +636,7 @@
 | `get` | `int $teamId`、`int $id` | `array` |
 | `mine` | `int $teamId`、`int $memberId` | `array` |
 | `apply` | `int $teamId`、`int $memberId`、`int $requesterEntityId` | `array` |
-| `create` | `int $teamId`、`int $memberId`、`int $requesterEntityId` | `int` |
+| `depart` | `int $teamId`、`int $memberId`、`int $decisionEntityId` | `int` |
 | `cancel` | `int $teamId`、`int $memberId`、`int $id`、`int $decisionEntityId` | `void` |
 | `approve` | `int $teamId`、`int $id`、`int $decisionEntityId` | `int` |
 | `reject` | `int $teamId`、`int $id`、`int $decisionEntityId` | `void` |

@@ -4,6 +4,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\enum\ManageScope;
+use app\enum\TeamMemberStatus;
 use app\enum\Visibility;
 use app\middleware\Ability;
 use app\model\Document;
@@ -47,7 +48,7 @@ $member = new TeamMember;
 $member->save([
     'team_id' => $team->id,
     'user_id' => $memberUser->id,
-    'is_blocked' => 0,
+    'status' => TeamMemberStatus::Active,
 ]);
 $teamEntity = app(EntityService::class)->claimTeam($team);
 $memberEntity = app(EntityService::class)->claimMember(

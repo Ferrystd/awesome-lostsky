@@ -1,0 +1,1 @@
+import{l as r}from"./index-DlzBCCfC.js";import{u as t}from"./Empty-C7b9O8XF.js";const e=["account-current-entity"];function y(){return t({queryKey:e,queryFn:()=>r.get("/identity/current")})}export{y as u};

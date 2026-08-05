@@ -18,12 +18,13 @@ class Balance
             throw new HttpException(404, '客户不存在');
         }
 
-        $total = TeamCustomerBalanceLog::where('customer_id', $customerId)->count();
-        $list  = TeamCustomerBalanceLog::where('customer_id', $customerId)
+        $paginator = TeamCustomerBalanceLog::where('customer_id', $customerId)
             ->order('id', 'desc')
-            ->page($page, $limit)
-            ->select()
-            ->toArray();
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $list  = $paginator->getCollection()->toArray();
+        $page  = $paginator->currentPage();
+        $limit = $paginator->listRows();
 
         return compact('total', 'list', 'page', 'limit');
     }

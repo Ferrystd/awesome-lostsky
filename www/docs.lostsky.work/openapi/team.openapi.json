@@ -577,6 +577,7 @@
           },
           {
             "type": "object",
+            "required": ["status_code", "status_label"],
             "properties": {
               "data": {
                 "$ref": "#/components/schemas/LoginResult"
@@ -670,6 +671,7 @@
         "allOf": [
           {
             "type": "object",
+            "required": ["status_code", "status_label"],
             "properties": {
               "id": {
                 "type": "integer",
@@ -682,19 +684,6 @@
               "user_id": {
                 "type": "integer",
                 "format": "int64"
-              },
-              "is_blocked": {
-                "type": "integer",
-                "enum": [
-                  0,
-                  1
-                ],
-                "description": "0=false, 1=true"
-              },
-              "status": {
-                "type": "integer",
-                "enum": [1, 2, 3],
-                "description": "成员生命周期状态：1=正常，2=已封禁，3=已离队"
               },
               "status_code": {
                 "type": "string",
@@ -4974,15 +4963,16 @@
         "responses": { "200": { "description": "申请已创建或已自动批准", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/SuccessEnvelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/MemberDeparture" } } }] } } } } }
       }
     },
-    "/memberDeparture/create": {
+    "/memberDeparture/depart": {
       "post": {
         "tags": ["MemberDeparture"],
-        "summary": "管理员代为发起离队申请",
-        "operationId": "teamMemberDepartureCreate",
+        "summary": "管理员直接办理成员离职",
+        "description": "要求 team.member.remove。成员立即进入已离队状态并撤销现有会话；资料、角色、Entity 和业务关系保留。如已有待审自助申请，则直接将该记录办结为已批准。",
+        "operationId": "teamMemberDepartureDepart",
         "security": [{ "bearerAuth": [] }],
         "parameters": [{ "$ref": "#/components/parameters/PageId" }],
         "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["member_id"], "properties": { "member_id": { "type": "integer", "format": "int64" } } } } } },
-        "responses": { "200": { "description": "申请已创建", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/SuccessEnvelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/IdResult" } } }] } } } } }
+        "responses": { "200": { "description": "成员已离职", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/SuccessEnvelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/IdResult" } } }] } } } } }
       }
     },
     "/memberDeparture/cancel": {

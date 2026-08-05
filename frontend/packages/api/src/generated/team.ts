@@ -525,7 +525,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/memberDeparture/create": {
+    "/memberDeparture/depart": {
         parameters: {
             query?: never;
             header?: never;
@@ -534,8 +534,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 管理员代为发起离队申请 */
-        post: operations["teamMemberDepartureCreate"];
+        /**
+         * 管理员直接办理成员离职
+         * @description 要求 team.member.remove。成员立即进入已离队状态并撤销现有会话；资料、角色、Entity 和业务关系保留。如已有待审自助申请，则直接将该记录办结为已批准。
+         */
+        post: operations["teamMemberDepartureDepart"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1958,19 +1961,9 @@ export interface components {
             team_id?: number;
             /** Format: int64 */
             user_id?: number;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_blocked?: 0 | 1;
-            /**
-             * @description 成员生命周期状态：1=正常，2=已封禁，3=已离队
-             * @enum {integer}
-             */
-            status?: 1 | 2 | 3;
             /** @enum {string} */
-            status_code?: "active" | "blocked" | "departed";
-            status_label?: string;
+            status_code: "active" | "blocked" | "departed";
+            status_label: string;
             /** @description 实体当前是否可执行业务；封禁和离队成员由 member.inactive_entity_available 决定 */
             is_valid?: boolean;
             /**
@@ -4250,7 +4243,7 @@ export interface operations {
             };
         };
     };
-    teamMemberDepartureCreate: {
+    teamMemberDepartureDepart: {
         parameters: {
             query?: never;
             header?: {
@@ -4269,7 +4262,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 申请已创建 */
+            /** @description 成员已离职 */
             200: {
                 headers: {
                     [name: string]: unknown;

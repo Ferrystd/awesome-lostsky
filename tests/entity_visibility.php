@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use app\enum\TeamMemberStatus;
 use app\model\Entity;
 use app\model\Team;
 use app\model\TeamCustomer;
@@ -73,7 +74,7 @@ try {
     $member->save([
         'team_id' => (int) $team->id,
         'user_id' => (int) $users[1]->id,
-        'is_blocked' => 0,
+        'status' => TeamMemberStatus::Active,
     ]);
     $memberEntity = app(EntityService::class)->claimMember(
         (int) $team->id,

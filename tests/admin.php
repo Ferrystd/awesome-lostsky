@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use app\enum\TeamMemberStatus;
 use app\middleware\JwtAuth;
 use app\model\BusinessAuditEvent;
 use app\model\PlatformAdminRole;
 use app\model\PlatformAdminUserRole;
 use app\model\Team;
+use app\model\TeamMember;
 use app\model\User;
 use app\model\UserDevice;
 use app\model\UserRefreshToken;
@@ -215,6 +217,38 @@ try {
         fn () => $access->assertAnotherActiveSuperAdmin((int) $actor->id),
         409,
         'the last active super administrator is protected'
+    );
+
+    foreach (['a', 'b'] as $index) {
+        $countTeam = new Team;
+        $countTeam->save([
+            'slug' => "admin-count-{$index}-{$suffix}",
+            'user_id' => (int) $outsider->id,
+            'is_banned' => 0,
+            'is_cancelled' => 0,
+        ]);
+        (new TeamMember)->save([
+            'team_id' => (int) $countTeam->id,
+            'user_id' => (int) $target->id,
+            'status' => TeamMemberStatus::Active,
+        ]);
+    }
+    $newDevice($target, 'Count Device A');
+    $newDevice($target, 'Count Device B');
+    $countPage = $admin->users([
+        'q' => (string) $target->username,
+        'page' => 1,
+        'limit' => 1,
+    ]);
+    $countRow = $countPage['list'][0] ?? [];
+    $assert(
+        $countPage['total'] === 1
+            && $countPage['page'] === 1
+            && $countPage['limit'] === 1
+            && ($countRow['team_count'] ?? null) === 2
+            && ($countRow['device_count'] ?? null) === 2
+            && !array_key_exists('profile', $countRow),
+        'user listing uses relation counts without exposing the profile relation'
     );
 
     $masked = $admin->user((int) $target->id);

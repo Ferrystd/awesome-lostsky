@@ -47,6 +47,20 @@ $assertSame(
     'static permission remains exact'
 );
 $assertSame(
+    [true, true, false],
+    [
+        PermissionDictionary::isFixedKeyOrParent('team'),
+        PermissionDictionary::isFixedKeyOrParent('team.ability'),
+        PermissionDictionary::isFixedKeyOrParent('team.unknown'),
+    ],
+    'only known fixed permission parents can be assigned'
+);
+$assertSame(
+    ['kind' => 'virtual', 'slug' => 'support_bot', 'action' => 'field.manage'],
+    PermissionDictionary::dynamicDescendant('chat.virtual.support_bot.field'),
+    'dynamic permission parents resolve to their leaf permission'
+);
+$assertSame(
     ['chat.group.manage', 'chat.message.moderate'],
     $gate->candidates(new Request, 'chat.group.manage,chat.message.moderate'),
     'comma-separated permission arguments form an OR candidate set'

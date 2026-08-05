@@ -3,7 +3,7 @@
   "info": {
     "title": "LostSky Account API",
     "version": "0.0.9",
-    "description": "认证、设备和用户团队入口。登录和注册接口无 JWT；设备和团队接口使用 Bearer JWT 中的真实用户 ID，不限制当前实体类型。"
+    "description": "认证、设备、用户团队、身份切换与当前叶子 Entity 自我管理入口。登录和注册接口无 JWT；设备和团队接口使用 Bearer JWT 中的真实用户 ID；当前实体写入只使用最终叶子 Entity。"
   },
   "x-entity-auth": {
     "authenticated_default": [
@@ -333,6 +333,7 @@
           },
           {
             "type": "object",
+            "required": ["status_code", "status_label"],
             "properties": {
               "data": {
                 "$ref": "#/components/schemas/LoginResult"
@@ -434,6 +435,87 @@
           }
         }
       },
+      "CurrentIdentitySummary": {
+        "type": "object",
+        "required": ["entity_id", "type", "id", "slug", "name", "avatar", "team"],
+        "properties": {
+          "entity_id": { "type": "integer", "format": "int64" },
+          "type": {
+            "type": "string",
+            "enum": ["team", "teamMember", "teamCustomer", "teamVirtual"]
+          },
+          "id": { "type": "integer", "format": "int64" },
+          "slug": { "type": "string", "nullable": true },
+          "name": { "type": "string" },
+          "avatar": { "type": "string", "nullable": true },
+          "status_code": { "type": "string", "nullable": true },
+          "status_label": { "type": "string", "nullable": true },
+          "team": { "$ref": "#/components/schemas/IdentityTeamSummary" }
+        }
+      },
+      "CurrentEntityProfile": {
+        "type": "object",
+        "required": ["name", "avatar", "description"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 50 },
+          "avatar": { "type": "string", "nullable": true, "maxLength": 255 },
+          "description": { "type": "string", "nullable": true, "maxLength": 500 },
+          "intro_image": { "type": "string", "nullable": true, "maxLength": 255 },
+          "intro_video": { "type": "string", "nullable": true, "maxLength": 255 },
+          "introduction_markdown": { "type": "string", "nullable": true, "maxLength": 65535 }
+        }
+      },
+      "CurrentIdentityResult": {
+        "type": "object",
+        "required": ["identity", "supported"],
+        "properties": {
+          "identity": {
+            "allOf": [{ "$ref": "#/components/schemas/CurrentIdentitySummary" }],
+            "nullable": true
+          },
+          "supported": { "type": "boolean" },
+          "unsupported_reason": { "type": "string" },
+          "profile": { "$ref": "#/components/schemas/CurrentEntityProfile" },
+          "custom_fields": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/EntityField" }
+          },
+          "custom_field_values": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/EntityFieldValue" }
+          },
+          "role_assignments": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AnyObject" }
+          },
+          "effective_permissions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["key", "label", "group"],
+              "properties": {
+                "key": { "type": "string" },
+                "label": { "type": "string" },
+                "group": { "type": "string" }
+              }
+            }
+          },
+          "customer": {
+            "type": "object",
+            "properties": {
+              "assignee_entity_id": { "type": "integer", "format": "int64", "nullable": true }
+            }
+          },
+          "upload": {
+            "type": "object",
+            "required": ["enabled", "reason"],
+            "properties": {
+              "enabled": { "type": "boolean" },
+              "reason": { "type": "string", "nullable": true }
+            }
+          }
+        }
+      },
       "TeamProfile": {
         "type": "object",
         "properties": {
@@ -501,6 +583,7 @@
         "allOf": [
           {
             "type": "object",
+            "required": ["status_code", "status_label"],
             "properties": {
               "id": {
                 "type": "integer",
@@ -514,13 +597,12 @@
                 "type": "integer",
                 "format": "int64"
               },
-              "is_blocked": {
-                "type": "integer",
-                "enum": [
-                  0,
-                  1
-                ],
-                "description": "0=false, 1=true"
+              "status_code": {
+                "type": "string",
+                "enum": ["active", "blocked", "departed"]
+              },
+              "status_label": {
+                "type": "string"
               },
               "create_time": {
                 "type": "integer",
@@ -1570,6 +1652,161 @@
               }
             }
           }
+        }
+      }
+    },
+    "/identity/current": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "读取当前叶子实体的自我管理摘要",
+        "description": "只读取当前 JWT 对应的叶子 Entity。无实体身份返回 identity=null；Team 返回 supported=false。",
+        "operationId": "accountIdentityCurrent",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "当前实体摘要、自管资料、对象字段以及只读角色权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/SuccessEnvelope" },
+                    {
+                      "type": "object",
+                      "properties": { "data": { "$ref": "#/components/schemas/CurrentIdentityResult" } }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/current/profile": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "保存当前叶子实体允许自管的资料",
+        "operationId": "accountIdentityCurrentProfile",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/CurrentEntityProfile" },
+                  {
+                    "type": "object",
+                    "required": ["expected_entity_id"],
+                    "properties": {
+                      "expected_entity_id": { "type": "integer", "format": "int64" },
+                      "assignee_entity_id": { "type": "integer", "format": "int64", "nullable": true }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "已保存", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } },
+          "409": { "description": "当前身份与预期实体不一致", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } }
+        }
+      }
+    },
+    "/identity/current/slug": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "为缺少 slug 的当前成员或客户补全标识",
+        "operationId": "accountIdentityCurrentSlug",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["expected_entity_id", "slug"],
+            "properties": {
+              "expected_entity_id": { "type": "integer", "format": "int64" },
+              "slug": { "type": "string", "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{1,49}$" }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "标识已确定", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SuccessEnvelope" } } } },
+          "409": { "description": "身份已变化或标识已确定", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } }
+        }
+      }
+    },
+    "/identity/current/fields": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "保存当前叶子实体允许本人编辑的对象字段",
+        "operationId": "accountIdentityCurrentFields",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["expected_entity_id", "values"],
+            "properties": {
+              "expected_entity_id": { "type": "integer", "format": "int64" },
+              "values": { "type": "object", "additionalProperties": true }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "已保存", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } } },
+          "409": { "description": "当前身份与预期实体不一致", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } }
+        }
+      }
+    },
+    "/identity/current/customer-assignees": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "读取当前客户身份的有效服务归属候选",
+        "operationId": "accountIdentityCurrentCustomerAssignees",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "归属候选",
+            "content": { "application/json": { "schema": {
+              "allOf": [
+                { "$ref": "#/components/schemas/SuccessEnvelope" },
+                { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/AnyObject" } } } }
+              ]
+            } } }
+          },
+          "403": { "description": "当前身份不是客户", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } }
+        }
+      }
+    },
+    "/identity/current/upload": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "为当前实体上传资料媒体",
+        "description": "继续校验 File Ability、file.upload Permission 和既有文件规则。",
+        "operationId": "accountIdentityCurrentUpload",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "multipart/form-data": { "schema": {
+            "type": "object",
+            "required": ["expected_entity_id", "file"],
+            "properties": {
+              "expected_entity_id": { "type": "integer", "format": "int64" },
+              "file": { "type": "string", "format": "binary" }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "上传成功", "content": { "application/json": { "schema": {
+            "allOf": [
+              { "$ref": "#/components/schemas/SuccessEnvelope" },
+              { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/FileUploadResult" } } }
+            ]
+          } } } },
+          "403": { "description": "缺少上传权限或能力", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } },
+          "409": { "description": "当前身份与预期实体不一致", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } }
         }
       }
     },

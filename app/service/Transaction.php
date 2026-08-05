@@ -71,12 +71,13 @@ class Transaction
             });
         }
 
-        $total = $query->count();
-        $list  = $query->order('trans_at', 'desc')
+        $paginator = $query->order('trans_at', 'desc')
             ->order('id', 'desc')
-            ->page($page, $limit)
-            ->select()
-            ->toArray();
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $list  = $paginator->getCollection()->toArray();
+        $page  = $paginator->currentPage();
+        $limit = $paginator->listRows();
         $this->attachRelations($list);
 
         return compact('total', 'list', 'page', 'limit');

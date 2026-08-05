@@ -5,7 +5,7 @@ description: 查询 LostSky 当前全部团队 Permission、动态权限和平�
 
 # 权限目录
 
-本页列出用户界面和错误提示中可能出现的 Permission。团队 Permission 通过团队角色授予 Entity；平台 Permission 通过平台角色授予管理员账号，两套角色完全隔离。
+本页列出用户界面和错误提示中可能出现的 Permission。团队 Permission 通过团队角色授予 Entity；平台 Permission 通过平台角色授予管理员账号，两套角色完全隔离。为一个角色授予父级 Permission 时，会同时授权其下的所有子项：例如 `team` 或 `team.ability` 都包含 `team.ability.redeem`。
 
 ## 团队成员与实体
 

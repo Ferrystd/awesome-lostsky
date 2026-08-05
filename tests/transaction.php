@@ -4,6 +4,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\enum\LogType;
+use app\enum\TeamMemberStatus;
 use app\enum\TransactionType;
 use app\model\Team;
 use app\model\TeamCustomer;
@@ -159,17 +160,17 @@ $createFixture = static function (string $suffix): array {
     $foreignTeamEntity = app(EntityService::class)->claimTeam($foreignTeam);
 
     $member = new TeamMember;
-    $member->save(['team_id' => $team->id, 'user_id' => $users[2]->id, 'is_blocked' => 0]);
+    $member->save(['team_id' => $team->id, 'user_id' => $users[2]->id, 'status' => TeamMemberStatus::Active]);
     $memberEntity = app(EntityService::class)->claimMember((int) $team->id, (int) $member->id, "transaction-member-{$suffix}");
     app(EntityProfile::class)->update((int) $team->id, (int) $memberEntity->id, ['name' => 'Alice Handler', 'avatar' => '']);
 
     $secondMember = new TeamMember;
-    $secondMember->save(['team_id' => $team->id, 'user_id' => $users[3]->id, 'is_blocked' => 0]);
+    $secondMember->save(['team_id' => $team->id, 'user_id' => $users[3]->id, 'status' => TeamMemberStatus::Active]);
     $secondMemberEntity = app(EntityService::class)->claimMember((int) $team->id, (int) $secondMember->id, "transaction-sender-{$suffix}");
     app(EntityProfile::class)->update((int) $team->id, (int) $secondMemberEntity->id, ['name' => 'Bob Sender', 'avatar' => '']);
 
     $foreignMember = new TeamMember;
-    $foreignMember->save(['team_id' => $foreignTeam->id, 'user_id' => $users[4]->id, 'is_blocked' => 0]);
+    $foreignMember->save(['team_id' => $foreignTeam->id, 'user_id' => $users[4]->id, 'status' => TeamMemberStatus::Active]);
     $foreignMemberEntity = app(EntityService::class)->claimMember((int) $foreignTeam->id, (int) $foreignMember->id, "transaction-foreign-member-{$suffix}");
 
     $customer = new TeamCustomer;

@@ -107,8 +107,11 @@ class Display
             });
         }
 
-        $total = $query->count();
-        $rows = $query->order('id', 'asc')->page($page, $limit)->select();
+        $paginator = $query->order('id', 'asc')->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $rows = $paginator->getCollection();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
         $roleMap = $this->publicRolesForEntities($teamId, array_map(
             static fn (EntityModel $entity): int => (int) $entity->id,
             $rows->all()
@@ -151,9 +154,12 @@ class Display
 
         $query = DocumentModel::where('entity_id', (int) $entity->id)
             ->where('visibility', Visibility::Public->value);
-        $total = $query->count();
-        $rows = $query->order('sort', 'asc')->order('id', 'desc')
-            ->page($page, $limit)->select();
+        $paginator = $query->order('sort', 'asc')->order('id', 'desc')
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $rows = $paginator->getCollection();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
         $subject = $this->summary(
             $entity,
             $this->publicRoles($teamId, (int) $entity->id)

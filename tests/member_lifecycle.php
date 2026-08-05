@@ -60,8 +60,7 @@ try {
     $ownerMember->save([
         'team_id' => (int) $team->id,
         'user_id' => (int) $owner->id,
-        'status' => TeamMemberStatus::Active->value,
-        'is_blocked' => 0,
+        'status' => TeamMemberStatus::Active,
     ]);
     $ownerEntity = app(\app\service\Entity::class)->claimMember(
         (int) $team->id,
@@ -73,8 +72,7 @@ try {
     $member->save([
         'team_id' => (int) $team->id,
         'user_id' => (int) $user->id,
-        'status' => TeamMemberStatus::Active->value,
-        'is_blocked' => 0,
+        'status' => TeamMemberStatus::Active,
     ]);
     $entity = app(\app\service\Entity::class)->claimMember(
         (int) $team->id,
@@ -111,24 +109,32 @@ try {
     $assert(($departures->get((int) $team->id, (int) $review['id'])['status_code'] ?? '') === 'cancelled', 'target member can cancel a pending departure');
 
     $throwsStatus(
-        fn () => $departures->create((int) $team->id, (int) $ownerMember->id, (int) $ownerEntity->id),
+        fn () => $departures->depart((int) $team->id, (int) $ownerMember->id, (int) $ownerEntity->id),
         409,
         'team owner cannot enter departure flow'
     );
 
     $members->block((int) $team->id, (int) $member->id);
     $blocked = TeamMember::with(['team'])->find((int) $member->id);
-    $assert($blocked?->statusCase() === TeamMemberStatus::Blocked, 'blocking uses lifecycle status');
+    $assert($blocked?->enumCase('status') === TeamMemberStatus::Blocked, 'blocking uses lifecycle status');
+    $blockedData = $blocked?->toArray() ?? [];
+    $assert(
+        ($blockedData['status_code'] ?? null) === 'blocked'
+            && ($blockedData['status_label'] ?? null) === '已封禁'
+            && !array_key_exists('status', $blockedData)
+            && !array_key_exists('is_blocked', $blockedData),
+        'member responses expose only stable status code and label'
+    );
     $assert($blocked?->canDirectReceive() === false && $blocked?->is_valid === false, 'blocked member cannot directly receive and is unavailable by default');
     $settings->set((int) $team->id, 'member', 'inactive_entity_available', true);
     $blocked = TeamMember::with(['team'])->find((int) $member->id);
     $assert($blocked?->is_valid === true && $blocked?->canDirectReceive() === false, 'setting restores business availability without restoring direct receipt');
 
-    $departureId = $departures->create((int) $team->id, (int) $member->id, (int) $ownerEntity->id);
-    $departures->approve((int) $team->id, $departureId, (int) $ownerEntity->id);
+    $departureId = $departures->depart((int) $team->id, (int) $member->id, (int) $ownerEntity->id);
     $departed = TeamMember::with(['team'])->find((int) $member->id);
     $sameEntity = Entity::member()->where('entityable_id', (int) $member->id)->find();
-    $assert($departed?->statusCase() === TeamMemberStatus::Departed, 'approval moves blocked or active member to departed');
+    $assert($departed?->enumCase('status') === TeamMemberStatus::Departed, 'administrator departure immediately moves blocked or active member to departed');
+    $assert(($departures->get((int) $team->id, $departureId)['status_code'] ?? '') === 'approved', 'administrator departure records an approved departure without review');
     $assert((int) $sameEntity?->id === (int) $entity->id && (string) $sameEntity?->slug === (string) $entity->slug, 'departure keeps the same entity and slug');
     $assert($departed?->is_valid === true && $departed?->canDirectReceive() === false, 'available departed entity still cannot be directly received');
     $assert((int) TeamMemberTenure::where('member_id', (int) $member->id)->whereNotNull('departed_at')->count() === 1, 'departure closes the current tenure');
@@ -139,10 +145,18 @@ try {
     $approvedMemberId = $join->approve((int) $team->id, $applicationId);
     $reinstated = TeamMember::with(['team'])->find((int) $member->id);
     $reinstatedEntity = Entity::member()->where('entityable_id', (int) $member->id)->find();
-    $assert($approvedMemberId === (int) $member->id && $reinstated?->statusCase() === TeamMemberStatus::Active, 'reinstate reactivates the original member');
+    $assert($approvedMemberId === (int) $member->id && $reinstated?->enumCase('status') === TeamMemberStatus::Active, 'reinstate reactivates the original member');
     $assert((int) $reinstatedEntity?->id === (int) $entity->id && (string) $reinstatedEntity?->slug === (string) $entity->slug, 'reinstate reuses entity and slug');
     $assert((int) TeamMemberTenure::where('member_id', (int) $member->id)->count() === 2, 'reinstate opens a new tenure');
     $assert((string) TeamEntityProfile::where('entity_id', (int) $entity->id)->value('name') === '保留资料成员', 'profile data survives departure and reinstate');
+
+    $settings->set((int) $team->id, 'member', 'departure_mode', 'review');
+    $pending = $departures->apply((int) $team->id, (int) $member->id, (int) $entity->id);
+    $managedDepartureId = $departures->depart((int) $team->id, (int) $member->id, (int) $ownerEntity->id);
+    $assert($managedDepartureId === (int) $pending['id'], 'administrator departure completes the existing self-service application');
+    $assert(($departures->get((int) $team->id, $managedDepartureId)['status_code'] ?? '') === 'approved', 'completed self-service application is approved immediately');
+    $applicationId = $join->apply((int) $team->id, (int) $user->id, ['values' => []]);
+    $join->approve((int) $team->id, $applicationId);
 
     $settings->set((int) $team->id, 'member', 'departure_mode', 'auto');
     $auto = $departures->apply((int) $team->id, (int) $member->id, (int) $entity->id);

@@ -831,6 +831,17 @@
   <a href="#team_1" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
+        Team 成员离职
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#team_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
         Team 申请字段管理
       </span>
     </span>
@@ -2936,6 +2947,17 @@
   <a href="#team_1" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
+        Team 成员离职
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#team_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
         Team 申请字段管理
       </span>
     </span>
@@ -3117,16 +3139,26 @@
 <li>Team 侧栏底部“退出登录”必须保持 44px 以上触控高度，并与同栏导航图标、文字左对齐；桌面固定侧栏与移动抽屉使用同一结构，键盘焦点和退出行为沿用 <code>NButton</code>，不得因组件库默认居中样式改变位置。加载、空、错误、权限和 Ability 均不影响该全局会话操作；无例外。验收时以源码契约检查 <code>.logout</code> 的左对齐，并在 TeamShell 组件预览及桌面、移动端 E2E 中确认位置和可操作性。</li>
 <li>实体、成员、客户及所有候选项统一使用 <code>LsEntityIdentity</code>；媒体为圆角方形，真实头像优先。此前实体与成员分别使用圆形和方形不是巧思，而是没有语义依据、会破坏主体识别的一致性问题，不得恢复。</li>
 <li>实体、成员、客户、文件、文档、角色、虚拟实体、申请字段、通知、加入审核是集合页，必须有 <code>LsListToolbar</code>。</li>
-<li>成员移动端以“管理/查看”为主操作，对话、预览、封禁、移出进入更多；危险操作不得成为主操作。</li>
+<li>成员移动端以“管理/查看”为主操作，对话、预览、封禁、离职进入更多；危险操作不得成为主操作。</li>
 <li>客户列表不得再嵌套第二个 <code>LsPage</code>；通知和审核使用连续列表。</li>
 <li>实体、成员、客户、文件、文档、角色、虚拟实体、对象字段、申请字段、通知、加入审核、资源页和团队设置的页面级无数据统一使用 <code>LsEmptyState</code>；创建入口仍位于页面标题，不进入空状态组件。</li>
 <li>上传缺少 Ability 时只禁用文件选择，不显示常驻错误。加入申请的动态文件字段统一使用 <code>LsUploadField</code>，其余动态字段使用对应 Naive UI 控件；缺失必填项时阻止提交并在字段区域说明，不得让协议字段回退到页面级原生控件。</li>
 <li>加入申请页仅在链接包含有效邀请参数时，以非输入控件只读确认当前邀请人，不允许申请人改写链接带入的来源；没有邀请参数时不得渲染邀请人区域，页面结构与引入该功能前保持一致。成员详情将加入时间与邀请人放在独立的成员信息区，邀请人必须按全局 Entity 展示并明确标注其他团队来源。</li>
-<li>成员资料编辑与“我的资料”共享 Team 专属 <code>MemberProfileFields</code> 和 <code>useMemberProfileUpload</code> 上传逻辑；前者统一昵称、头像、简介媒体和 Markdown，后者统一上传状态、错误与媒体字段回填。身份领取、管理权限等页面专属字段留在各自页面，不进入共享资料组件。文档、文件和资源目录的行内动作统一使用 <code>LsResponsiveActions</code>；文件与文档分页统一使用 <code>NPagination</code>。</li>
+<li>Team 成员管理仍可复用 <code>MemberProfileFields</code> 和 <code>useMemberProfileUpload</code>；实体本人编辑已迁入 Account 当前实体中心，并复用公共字段、上传与 Markdown 控件。身份领取、管理权限等页面专属字段留在各自页面，不进入共享资料组件。文档、文件和资源目录的行内动作统一使用 <code>LsResponsiveActions</code>；文件与文档分页统一使用 <code>NPagination</code>。</li>
 <li>文档编辑页的 <code>LsMarkdownEditor</code> 是第三方编辑器实现级例外：保留其原有的模式切换、候选项与工具栏视觉结构，不将 <code>NRadioGroup</code>、<code>NButton</code> 或 <code>NInput</code> 的通用皮肤套入编辑器内部。页面其余字段仍使用标准 Naive UI；验收时确认编辑器模式、源码与对象候选项和统一化前版本一致。</li>
 <li>文档创建/编辑页的文档标签与实体资料管理页的公开文档分组统一使用 <code>LsFormList</code>。两处都允许添加、删除、拖拽及按钮排序，并按顺序提交；标签错误必须就近阻止保存。公开文档分组只出现在 Team、Member 和 Virtual 实体，Customer 不显示；缺少 <code>team.entity.profile.manage</code> 时展示只读内容并禁用列表变更，不发写请求。</li>
 </ul>
-<h3 id="team_1">Team 申请字段管理<a class="headerlink" href="#team_1" title="Permanent link">&para;</a></h3>
+<h3 id="team_1">Team 成员离职<a class="headerlink" href="#team_1" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>范围</strong>：Team 的 <code>/members</code> 与 <code>/member-edit</code>，用于具有 <code>team.member.remove</code> 的管理员办理成员离职；成员本人的自助离队申请不在此规则范围。</li>
+<li><strong>行为</strong>：管理员操作必须显示为“离职”，确认后直接把成员设为已离队并使现有会话失效，不得为管理员创建待审离队申请。资料、角色、对象标识、业务关系与任期历史必须保留，Team owner 不得离职。</li>
+<li><strong>实现</strong>：列表使用 <code>LsResponsiveActions</code> 的危险操作，详情管理区使用 <code>LsButton variant="danger"</code>；两处统一调用 <code>POST /memberDeparture/depart</code>，成功后刷新成员列表和详情并通过全局反馈显示“成员已离职”。</li>
+<li><strong>适配</strong>：桌面端显示图标与“离职”文字；移动端收入更多操作，不取代“管理/查看”主操作。键盘、触控、读屏和文本放大沿用公共按钮与响应式操作组；确认文案必须同时说明会话失效与历史保留，不依赖颜色传达风险。该操作不包含动效，减少动态不需要额外例外。</li>
+<li><strong>状态</strong>：请求期间按钮显示加载并阻止重复提交；成功后成员显示“已离队”且不再显示离职入口；失败时保留当前页并显示服务端原因。缺少 <code>team.member.remove</code> 时列表入口保持禁用并说明 Permission，详情不显示危险区；加载与空数据不产生该操作。</li>
+<li><strong>例外</strong>：成员本人仍按 <code>member.departure_mode</code> 使用自助申请、取消和审核流程；这是成员主动离队与管理员办理离职的责任边界，不允许扩展到其他危险操作。</li>
+<li><strong>验收</strong>：Vitest 锁定两个管理员入口的“离职”文案、<code>/memberDeparture/depart</code> 请求与旧“发起离队申请”文案移除；后端成员生命周期测试确认一次操作直接生成已批准记录、关闭任期且保留 Entity。发布前运行 <code>npm test</code>、<code>npm run typecheck</code>、Team E2E、完整静态构建与文档构建。</li>
+</ol>
+<h3 id="team_2">Team 申请字段管理<a class="headerlink" href="#team_2" title="Permanent link">&para;</a></h3>
 <ol>
 <li><strong>范围</strong>：Team 的 <code>/join-fields</code>、<code>/join-fields/new</code>、<code>/join-fields/:id</code>，用于团队管理员维护加入申请表结构和审批后转存规则。</li>
 <li><strong>行为</strong>：列表必须同时展示启用和停用字段，并支持按名称/标识搜索及按启用状态筛选；创建、查看和编辑使用独立路由。字段标识创建后只读；删除已有提交记录的字段必须失败并提示改为停用。禁止在列表中常驻编辑器、隐藏停用字段或把字段排序改为仅支持拖拽。</li>
@@ -3155,6 +3187,9 @@
 <h2 id="account">Account<a class="headerlink" href="#account" title="Permanent link">&para;</a></h2>
 <ul>
 <li>保留认证与团队选择专属布局，不套用管理侧栏；根部必须使用统一主题。</li>
+<li><code>/identity/current</code> 使用独立“当前实体中心”壳层，不复刻 Team 工作台：桌面采用轻量顶栏、固定身份摘要栏和单任务内容区；移动端把身份摘要放在内容顶部，并使用三等分的“资料 / 对象字段 / 角色权限”路由导航。表单保存栏固定在安全区上方。</li>
+<li>身份摘要始终展示类型、名称、<code>@slug</code>、所属团队和“切换身份”，不展示父会话或真实账号带来的管理暗示。Team 身份和基础账号使用解释性空状态，不伪装成可编辑表单。</li>
+<li>资料页按当前类型切换字段，客户附带服务归属；对象字段即使为空也保留稳定入口并解释由团队配置；角色权限全部只读。草稿键必须包含全局 <code>entity_id</code>，身份变化时冻结旧草稿和保存动作。</li>
 <li>团队和身份候选复用 <code>LsEntityIdentity</code>。认证失败允许“重新登录”；提交身份切换失败允许再次提交，这是用户任务恢复，不是数据刷新。</li>
 <li>团队目录和身份候选没有数据时使用 <code>LsEmptyState</code>；认证表单内的字段反馈不是页面空状态。</li>
 <li>团队选择使用 <code>NModal</code>、<code>NButton</code> 和有细分隔线的连续列表；加载、空和错误留在弹层内容区，关闭弹层后焦点回到触发入口。</li>

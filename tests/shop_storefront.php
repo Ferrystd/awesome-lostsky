@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use app\enum\TeamMemberStatus;
 use app\model\EntitySession;
 use app\model\Entity;
 use app\model\Team;
@@ -301,12 +302,10 @@ try {
         (int) $boundDecoded->act->id
     );
     $assert($boundSession() instanceof EntitySession, 'bound customer session validates through its source entity');
-    $sourceMember->status = 2;
-    $sourceMember->is_blocked = 1;
+    $sourceMember->status = TeamMemberStatus::Blocked;
     $sourceMember->save();
     $assertThrows($boundSession, 401, 'invalid source entity revokes downstream customer session');
-    $sourceMember->status = 1;
-    $sourceMember->is_blocked = 0;
+    $sourceMember->status = TeamMemberStatus::Active;
     $sourceMember->save();
     $entityCustomer->is_blocked = 1;
     $entityCustomer->save();

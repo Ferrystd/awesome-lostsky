@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use app\enum\TeamMemberStatus;
 use app\model\Team;
 use app\model\TeamCustomer;
 use app\model\TeamEntityRole;
@@ -344,8 +345,7 @@ try {
         'an inactive target entity is rejected'
     );
 
-    $memberA->status = 2;
-    $memberA->is_blocked = 1;
+    $memberA->status = TeamMemberStatus::Blocked;
     $memberA->save();
     $assertThrows(
         fn () => $identity->session(

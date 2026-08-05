@@ -117,9 +117,9 @@ https://{team}.shop.lostsky.work/
 
 来源 Entity 派生的客户会话会持续验证整条证明链。来源失效、父会话撤销、Customer 封禁或团队封禁后，旧会话不能继续使用。
 
-## 维护“我的资料”
+## 在 Account 维护当前实体
 
-商家 Customer 可以维护：
+Shop 的“当前实体”和旧 `/customer/profile` 会安全进入 Account 当前实体中心，并保留返回商家首页的地址。当前商家 Customer 可以维护：
 
 - 当前商家内的昵称（必填）、头像地址和简介；
 - 只读的全局客户 slug；
@@ -129,7 +129,7 @@ https://{team}.shop.lostsky.work/
 
 服务归属候选只包括当前团队有效 Team、成员和虚拟实体，Customer 不能成为归属人。可以选择一个，也可以清空。修改只影响后续订单和流水的发单归属，不改写历史业绩。
 
-团队后台具有 `team.customer.manage` 的 Entity 也可以修改客户资料、归属和封禁状态。封禁后 Shop 会显示明确状态，客户不能继续购买或访问受保护客户内容。
+保存时 Account 只以当前 JWT 的叶子 Customer 为目标，并携带 `expected_entity_id` 防止身份切换后误改。团队后台具有 `team.customer.manage` 的 Entity 仍可以通过原管理接口修改客户资料、归属和封禁状态。封禁后 Shop 会显示明确状态，客户不能继续购买或访问受保护客户内容。
 
 ## 使用预存余额购买
 

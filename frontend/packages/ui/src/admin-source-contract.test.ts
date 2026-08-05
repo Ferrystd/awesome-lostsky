@@ -151,4 +151,9 @@ describe('后台源码设计契约', () => {
     expect(source).toContain('<NButton class="logout"')
     expect(source).toMatch(/\.logout\{[^}]*justify-content:flex-start/)
   })
+
+  it('Team 侧栏禁用入口保持与链接一致的三列布局', () => {
+    const source = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'components', 'TeamShell.vue'), 'utf8')
+    expect(source).toMatch(/\.sidebar nav \.nav-disabled :deep\(\.n-button__content\)\{[^}]*grid-column:1\/-1;[^}]*width:100%;[^}]*display:grid;[^}]*grid-template-columns:24px minmax\(0,1fr\) auto/)
+  })
 })

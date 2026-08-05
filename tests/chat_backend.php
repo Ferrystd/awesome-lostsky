@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use app\enum\TeamMemberStatus;
 use app\middleware\TeamBelongs;
 use app\model\ChatEventOutbox;
 use app\model\ChatMessage;
@@ -23,6 +24,7 @@ use app\service\ChatVirtual;
 use app\service\Entity as EntityService;
 use app\service\EntityProfile;
 use app\service\IdentitySession;
+use app\service\PermissionDictionary;
 use app\service\PermissionGate;
 use app\service\RolePermission;
 use think\App;
@@ -190,7 +192,7 @@ try {
     $member->save([
         'team_id' => $team->id,
         'user_id' => $team->user_id,
-        'is_blocked' => 0,
+        'status' => TeamMemberStatus::Active,
     ]);
     $memberSlug = "chat-member-{$suffix}";
     $memberEntity = app(EntityService::class)->claimMember((int) $team->id, (int) $member->id, $memberSlug);
@@ -204,7 +206,7 @@ try {
     $hiddenMember->save([
         'team_id' => $team->id,
         'user_id' => (int) $hiddenUser->id,
-        'is_blocked' => 0,
+        'status' => TeamMemberStatus::Active,
     ]);
     $hiddenMemberSlug = "chat-hidden-{$suffix}";
     $hiddenMemberEntity = app(EntityService::class)->claimMember(
@@ -325,6 +327,29 @@ try {
         'member capability response matches the permissions enforced by write endpoints'
     );
 
+    $parentRole = new TeamRole;
+    $parentRole->save([
+        'team_id' => $team->id,
+        'role_key' => "ability-parent-{$suffix}",
+        'name' => 'Ability Parent Role',
+        'sort' => 20,
+    ]);
+    $parentEntityRole = new TeamEntityRole;
+    $parentEntityRole->save([
+        'team_id' => $team->id,
+        'entity_id' => $memberEntity->id,
+        'role_id' => $parentRole->id,
+    ]);
+    $permissions->save((int) $team->id, (int) $parentRole->id, ['team.ability']);
+    $assert(
+        $gate->allows((int) $team->id, (int) $member->id, [PermissionDictionary::TEAM_ABILITY_REDEEM]),
+        'a parent role permission satisfies its child permission'
+    );
+    $assert(
+        !$gate->allows((int) $team->id, (int) $member->id, ['team.notice.read']),
+        'a parent role permission does not match a sibling permission'
+    );
+
     $teamRoot = $identitySessions->receive(
         (int) $member->user_id,
         'chat-team-device',
@@ -425,7 +450,7 @@ try {
     $deletedMember->save([
         'team_id' => $team->id,
         'user_id' => (int) $foreignUser->id,
-        'is_blocked' => 0,
+        'status' => TeamMemberStatus::Active,
     ]);
     $deletedMemberId = (int) $deletedMember->id;
     $deletedMember->delete();

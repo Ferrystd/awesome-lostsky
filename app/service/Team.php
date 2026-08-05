@@ -64,8 +64,7 @@ class Team
             $member->save([
                 'team_id' => $team->id,
                 'user_id' => $userId,
-                'status' => TeamMemberStatus::Active->value,
-                'is_blocked' => 0,
+                'status' => TeamMemberStatus::Active,
             ]);
             app(\app\service\Entity::class)->claimMember(
                 (int) $team->id,

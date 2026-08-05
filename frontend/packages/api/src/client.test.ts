@@ -156,6 +156,26 @@ describe('team identity and common uploads', () => {
     expect(fetch).toHaveBeenCalledOnce()
   })
 
+  it('uploads to the current Account route without forcing the common app header', async () => {
+    const fetch = vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+      const headers = new Headers(init.headers)
+      expect(headers.has('X-LostSky-App')).toBe(false)
+      expect(init.body).toBeInstanceOf(FormData)
+      expect((init.body as FormData).get('expected_entity_id')).toBe('42')
+      return Promise.resolve(new Response(JSON.stringify({ code: 0, message: 'ok', data: { url: '/avatar.png' } }), {
+        headers: { 'Content-Type': 'application/json' },
+      }))
+    })
+    vi.stubGlobal('location', { hostname: '127.0.0.1', protocol: 'http:' })
+    vi.stubGlobal('document', { cookie: '' })
+    vi.stubGlobal('localStorage', storage())
+    vi.stubGlobal('sessionStorage', storage())
+    vi.stubGlobal('fetch', fetch)
+
+    await expect(api.uploadTo(new Blob(['fixture']) as File, '/identity/current/upload', { expected_entity_id: 42 }))
+      .resolves.toEqual({ url: '/avatar.png' })
+  })
+
   it.each([
     [42801, 'missing'],
     [40301, 'team_mismatch'],

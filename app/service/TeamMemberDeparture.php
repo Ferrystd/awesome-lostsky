@@ -26,7 +26,7 @@ class TeamMemberDeparture
             ? TeamMember::where('team_id', $teamId)->find((int) ($actingEntity['id'] ?? 0))
             : null;
         if (!$member
-            || $member->statusCase() !== TeamMemberStatus::Active
+            || $member->enumCase('status') !== TeamMemberStatus::Active
             || (int) $member->user_id !== $authenticatedUserId
             || !$session
             || (int) ($session->parent_session_id ?? 0) > 0) {
@@ -50,11 +50,13 @@ class TeamMemberDeparture
             $query->where('member_id', (int) $filters['member_id']);
         }
 
-        $total = $query->count();
-        $rows = $query->with(['member.profile', 'member.identity'])
+        $paginator = $query->with(['member.profile', 'member.identity'])
             ->order('id', 'desc')
-            ->page($page, $limit)
-            ->select();
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $rows = $paginator->getCollection();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
 
         return [
             'total' => $total,
@@ -97,7 +99,7 @@ class TeamMemberDeparture
 
         $result = Db::transaction(function () use ($teamId, $memberId, $requesterEntityId, $mode): array {
             $member = $this->lockedMember($teamId, $memberId);
-            if ($member->statusCase() !== TeamMemberStatus::Active) {
+            if ($member->enumCase('status') !== TeamMemberStatus::Active) {
                 throw new HttpException(409, '只有正常成员可以自助申请离队');
             }
             $this->assertNotOwner($teamId, $member);
@@ -120,17 +122,29 @@ class TeamMemberDeparture
         return $this->get($teamId, (int) $result['id']);
     }
 
-    public function create(int $teamId, int $memberId, int $requesterEntityId): int
+    public function depart(int $teamId, int $memberId, int $decisionEntityId): int
     {
-        return Db::transaction(function () use ($teamId, $memberId, $requesterEntityId): int {
+        $result = Db::transaction(function () use ($teamId, $memberId, $decisionEntityId): array {
             $member = $this->lockedMember($teamId, $memberId);
-            if (!in_array($member->statusCase(), [TeamMemberStatus::Active, TeamMemberStatus::Blocked], true)) {
-                throw new HttpException(409, '已离队成员不能再发起离队申请');
+            if (!in_array($member->enumCase('status'), [TeamMemberStatus::Active, TeamMemberStatus::Blocked], true)) {
+                throw new HttpException(409, '成员已经离队');
             }
             $this->assertNotOwner($teamId, $member);
-            $this->assertNoPending($memberId);
-            return (int) $this->createApplication($teamId, $memberId, $requesterEntityId)->id;
+
+            $departure = DepartureModel::where('team_id', $teamId)
+                ->where('member_id', $memberId)
+                ->where('status', TeamMemberDepartureStatus::Applied->value)
+                ->lock(true)
+                ->find();
+            if (!$departure) {
+                $departure = $this->createApplication($teamId, $memberId, $decisionEntityId);
+            }
+            $this->completeDeparture($departure, $member, $decisionEntityId);
+
+            return ['id' => (int) $departure->id, 'member_id' => (int) $member->id];
         });
+        $this->revokeMemberSessions($result['member_id']);
+        return $result['id'];
     }
 
     public function cancel(int $teamId, int $memberId, int $id, int $decisionEntityId): void
@@ -155,7 +169,7 @@ class TeamMemberDeparture
             $departure = $this->lockedApplication($teamId, $id);
             $this->assertPending($departure);
             $member = $this->lockedMember($teamId, (int) $departure->member_id);
-            if (!in_array($member->statusCase(), [TeamMemberStatus::Active, TeamMemberStatus::Blocked], true)) {
+            if (!in_array($member->enumCase('status'), [TeamMemberStatus::Active, TeamMemberStatus::Blocked], true)) {
                 throw new HttpException(409, '成员当前状态不能批准离队');
             }
             $this->assertNotOwner($teamId, $member);
@@ -218,8 +232,7 @@ class TeamMemberDeparture
         }
 
         $member->save([
-            'status' => TeamMemberStatus::Departed->value,
-            'is_blocked' => 0,
+            'status' => TeamMemberStatus::Departed,
         ]);
         $departure->save([
             'status' => TeamMemberDepartureStatus::Approved,

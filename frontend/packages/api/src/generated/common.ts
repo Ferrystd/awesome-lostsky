@@ -136,11 +136,9 @@ export interface components {
             team_id?: number;
             /** Format: int64 */
             user_id?: number;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_blocked?: 0 | 1;
+            /** @enum {string} */
+            status_code: "active" | "blocked" | "departed";
+            status_label: string;
             /**
              * Format: int64
              * @description Unix timestamp, seconds

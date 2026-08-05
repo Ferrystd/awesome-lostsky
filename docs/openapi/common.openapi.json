@@ -368,6 +368,7 @@
           },
           {
             "type": "object",
+            "required": ["status_code", "status_label"],
             "properties": {
               "data": {
                 "$ref": "#/components/schemas/LoginResult"
@@ -461,6 +462,7 @@
         "allOf": [
           {
             "type": "object",
+            "required": ["status_code", "status_label"],
             "properties": {
               "id": {
                 "type": "integer",
@@ -474,13 +476,12 @@
                 "type": "integer",
                 "format": "int64"
               },
-              "is_blocked": {
-                "type": "integer",
-                "enum": [
-                  0,
-                  1
-                ],
-                "description": "0=false, 1=true"
+              "status_code": {
+                "type": "string",
+                "enum": ["active", "blocked", "departed"]
+              },
+              "status_label": {
+                "type": "string"
               },
               "create_time": {
                 "type": "integer",

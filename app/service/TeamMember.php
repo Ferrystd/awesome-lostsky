@@ -50,10 +50,8 @@ class TeamMember
                 'team_id',
                 'user_id',
                 'entity_id',
-                'status',
                 'status_code',
                 'status_label',
-                'is_blocked',
                 'slug',
                 'search_override',
                 'is_valid',
@@ -110,7 +108,7 @@ class TeamMember
             ? \app\model\Entity::member()->where('entityable_id', $memberId)->find()
             : null;
         if (!$member || !$identity || (!$canReadAll
-            && ($member->statusCase() !== TeamMemberStatus::Active
+            && ($member->enumCase('status') !== TeamMemberStatus::Active
                 || (int) $identity->is_internal_visible !== 1))) {
             throw new HttpException(404, '成员不存在');
         }
@@ -169,7 +167,7 @@ class TeamMember
         if ($existing) {
             throw new HttpException(
                 409,
-                $existing->statusCase() === TeamMemberStatus::Departed
+                $existing->enumCase('status') === TeamMemberStatus::Departed
                     ? '该用户已离队，请由其提交复职申请'
                     : '该用户已是本团队成员'
             );
@@ -180,8 +178,7 @@ class TeamMember
             $member->save([
                 'team_id' => $teamId,
                 'user_id' => $userId,
-                'status' => TeamMemberStatus::Active->value,
-                'is_blocked' => 0,
+                'status' => TeamMemberStatus::Active,
             ]);
             $entity = app(\app\service\Entity::class)->claimMember(
                 $teamId,
@@ -247,11 +244,11 @@ class TeamMember
             throw new HttpException(404, '成员不存在');
         }
 
-        if ($member->statusCase() !== TeamMemberStatus::Active) {
+        if ($member->enumCase('status') !== TeamMemberStatus::Active) {
             throw new HttpException(409, '只有正常成员可以被封禁');
         }
 
-        $member->save(['status' => TeamMemberStatus::Blocked->value, 'is_blocked' => 1]);
+        $member->save(['status' => TeamMemberStatus::Blocked]);
         $this->revokeMemberSessions($memberId);
     }
 
@@ -265,11 +262,11 @@ class TeamMember
             throw new HttpException(404, '成员不存在');
         }
 
-        if ($member->statusCase() !== TeamMemberStatus::Blocked) {
+        if ($member->enumCase('status') !== TeamMemberStatus::Blocked) {
             throw new HttpException(409, '只有已封禁成员可以解封');
         }
 
-        $member->save(['status' => TeamMemberStatus::Active->value, 'is_blocked' => 0]);
+        $member->save(['status' => TeamMemberStatus::Active]);
     }
 
     private function revokeMemberSessions(int $memberId): void

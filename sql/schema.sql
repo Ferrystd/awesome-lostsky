@@ -168,14 +168,14 @@ CREATE TABLE `team_member` (
     `user_id`      INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '用户ID',
     `inviter_entity_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '邀请人实体ID，可来自其他团队',
     `status`       TINYINT      NOT NULL DEFAULT 1 COMMENT '成员状态 1-正常 2-封禁 3-已离队',
-    `is_blocked`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否被封禁 0-正常 1-封禁',
     `create_time`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time`  INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_team_user` (`team_id`, `user_id`),
     KEY `idx_user_id` (`user_id`),
-    KEY `idx_inviter_entity_id` (`inviter_entity_id`)
+    KEY `idx_inviter_entity_id` (`inviter_entity_id`),
+    CONSTRAINT `chk_team_member_status` CHECK (`status` IN (1, 2, 3))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队成员表';
 
 -- ----------------------------

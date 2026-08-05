@@ -5491,24 +5491,25 @@
 <h2 id="v015">未发布（目标 v0.1.5）<a class="headerlink" href="#v015" title="Permanent link">&para;</a></h2>
 <h3 id="_1">新增<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Shop 新增商家后台，统一管理商品、订单、服务权益、卡密和核销配置。</li>
-<li>Shop 新增实体服务套餐与三类卡密，支持交付、改派、取消审批和核销。</li>
+<li>Account 新增“当前实体中心”，统一支持成员、虚拟实体和客户维护有限资料、本人对象字段，并只读查看角色与有效权限。</li>
+<li>Shop 新增商家后台，统一管理商品、订单、服务权益、三类卡密及核销交付流程。</li>
 <li>Transaction 支持服务收款与核销流水，并提供分阶段核销自定义字段。</li>
 <li>Team 与 Admin 新增 Ability 权益、体验活动以及卡密预检和兑换管理。</li>
 <li>Display 支持配置主页文案，并新增可搜索、筛选和分页的公开实体目录。</li>
 </ul>
 <h3 id="_2">变更<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <ul>
-<li>成员生命周期统一为正常、封禁和离队，并支持离队审核及原身份复职。</li>
-<li>团队申请支持自定义字段、邀请来源确认以及审批后转存人员资料。</li>
+<li>Team“我的资料”、Shop 客户资料和 Chat 资料入口统一迁移到 Account；所有当前实体写入使用 <code>expected_entity_id</code> 阻断身份切换后的旧表单。</li>
+<li>成员入离职流程支持申请字段、邀请来源、资料转存、自助离队、管理员办理离职及原身份复职。</li>
 <li>公开文档支持自定义标签，并可在团队和实体主页分组展示。</li>
 <li>后台统一表单、列表、状态反馈和响应式交互，实体选择器可区分同名对象。</li>
 <li>经营统计停止提供客户邀请链接，客户空状态不再依赖该入口。</li>
 <li>发布交付改用不可变标签，并可由标签和提交共同定位。</li>
+<li>团队角色支持授予父级 Permission，自动覆盖其下的业务权限。</li>
 </ul>
 <h3 id="_3">修复<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <ul>
-<li>修复 Team 客户详情路由误匹配及数据异常时整页空白的问题。</li>
+<li>修复 Team 禁用入口错位、客户详情路由误匹配及异常数据导致整页空白的问题。</li>
 <li>权限不足或选项缺失时，表单保留可用操作并明确提示原因。</li>
 <li>修复登录、侧栏、文档编辑器及后台控件的样式退化。</li>
 </ul>

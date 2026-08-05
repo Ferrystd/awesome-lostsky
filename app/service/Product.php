@@ -28,11 +28,11 @@ class Product
             $query->where('name', 'like', "%{$keyword}%");
         }
 
-        $total = $query->count();
-        $list  = $query->order('id', 'desc')
-            ->page($page, $limit)
-            ->select()
-            ->toArray();
+        $paginator = $query->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $list  = $paginator->getCollection()->toArray();
+        $page  = $paginator->currentPage();
+        $limit = $paginator->listRows();
         $this->attachRelations($list, false);
 
         return compact('total', 'list', 'page', 'limit');

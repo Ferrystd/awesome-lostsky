@@ -162,12 +162,13 @@ class Notice
             });
         }
 
-        $total = (clone $query)->count();
-        $list = $query->order('is_pinned', 'desc')
+        $paginator = $query->order('is_pinned', 'desc')
             ->order('id', 'desc')
-            ->page($page, $limit)
-            ->select()
-            ->toArray();
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $list = $paginator->getCollection()->toArray();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
 
         return ['list' => $list, 'total' => $total, 'page' => $page, 'limit' => $limit];
     }

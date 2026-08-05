@@ -191,6 +191,17 @@ final class PermissionDictionary
         return in_array($key, self::keys(), true) || self::dynamic($key) !== null;
     }
 
+    public static function isFixedKeyOrParent(string $key): bool
+    {
+        foreach (self::keys() as $candidate) {
+            if ($candidate === $key || str_starts_with($candidate, "{$key}.")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function adminGroups(): array
     {
         return self::ADMIN_GROUPS;
@@ -225,6 +236,23 @@ final class PermissionDictionary
             $match
         )) {
             return ['kind' => 'assume', 'type' => $match[1], 'slug' => $match[2]];
+        }
+
+        return null;
+    }
+
+    /**
+     * 返回动态权限的直接或间接父键所对应的一个叶子权限。
+     *
+     * @return array{kind: 'virtual', slug: string, action: string}|array{kind: 'assume', type: string, slug: string}|null
+     */
+    public static function dynamicDescendant(string $key): ?array
+    {
+        foreach (['.manage', '.operate', '.field.manage', '.assume'] as $suffix) {
+            $dynamic = self::dynamic($key . $suffix);
+            if ($dynamic !== null) {
+                return $dynamic;
+            }
         }
 
         return null;

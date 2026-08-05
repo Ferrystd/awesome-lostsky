@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   chatWorkspaceUrl,
+  currentEntityUrl,
   loginUrl,
   memberIdentityCallbackUrl,
   redirectToLogin,
@@ -166,5 +167,23 @@ describe('workspace destinations', () => {
       .toBe('http://demo.shop.lostsky.work:5179/customer/profile')
     expect(teamWorkspaceUrl('/me'))
       .toBe('http://demo.team.lostsky.work:5175/me')
+  })
+
+  it('opens the Account current entity center and keeps only a validated return address', () => {
+    vi.stubEnv('DEV', false)
+    vi.stubGlobal('location', {
+      href: 'https://demo.chat.lostsky.work/?conversation=7',
+      hostname: 'demo.chat.lostsky.work',
+      port: '',
+      protocol: 'https:',
+    })
+
+    const target = new URL(currentEntityUrl('https://demo.team.lostsky.work/members', 'fields'))
+    expect(target.origin).toBe('https://account.lostsky.work')
+    expect(target.pathname).toBe('/identity/current/fields')
+    expect(target.searchParams.get('redirect')).toBe('https://demo.team.lostsky.work/members')
+
+    const rejected = new URL(currentEntityUrl('https://example.com/private'))
+    expect(rejected.searchParams.has('redirect')).toBe(false)
   })
 })

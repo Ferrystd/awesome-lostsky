@@ -12,10 +12,10 @@ class MemberDeparture
     protected $middleware = [
         'JwtAuth' => ['except' => []],
         'Context' => ['except' => []],
-        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'create', 'approve', 'reject']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'depart', 'approve', 'reject']],
         'EntityType:teamMember' => ['only' => ['mine', 'apply', 'cancel']],
         'TeamAuth' => ['except' => []],
-        'Permission:' . Permissions::TEAM_MEMBER_REMOVE => ['only' => ['index', 'get', 'create', 'approve', 'reject']],
+        'Permission:' . Permissions::TEAM_MEMBER_REMOVE => ['only' => ['index', 'get', 'depart', 'approve', 'reject']],
     ];
 
     public function index(Request $request)
@@ -63,15 +63,23 @@ class MemberDeparture
         return success($result, $result['status_code'] === 'approved' ? '已完成离队' : '离队申请已提交');
     }
 
-    public function create(Request $request)
+    public function depart(Request $request)
     {
-        $id = app(DepartureService::class)->create(
+        $memberId = $request->post('member_id/d', 0);
+        $id = app(DepartureService::class)->depart(
             $request->team_id,
-            $request->post('member_id/d', 0),
+            $memberId,
             $request->entity_id
         );
-        app(\app\service\BusinessAudit::class)->record($request, 'team', 'create', 'memberDeparture', $id);
-        return success(['id' => $id], '离队申请已创建');
+        app(\app\service\BusinessAudit::class)->record(
+            $request,
+            'team',
+            'depart',
+            'memberDeparture',
+            $id,
+            ['member_id' => $memberId]
+        );
+        return success(['id' => $id], '成员已离职');
     }
 
     public function cancel(Request $request)

@@ -1015,7 +1015,7 @@
                   
 
 <h1 id="_1">权限目录<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
-<p>本页列出用户界面和错误提示中可能出现的 Permission。团队 Permission 通过团队角色授予 Entity；平台 Permission 通过平台角色授予管理员账号，两套角色完全隔离。</p>
+<p>本页列出用户界面和错误提示中可能出现的 Permission。团队 Permission 通过团队角色授予 Entity；平台 Permission 通过平台角色授予管理员账号，两套角色完全隔离。为一个角色授予父级 Permission 时，会同时授权其下的所有子项：例如 <code>team</code> 或 <code>team.ability</code> 都包含 <code>team.ability.redeem</code>。</p>
 <h2 id="_2">团队成员与实体<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

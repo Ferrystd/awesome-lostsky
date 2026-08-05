@@ -56,10 +56,13 @@ class EntityProfile
             });
         }
         if ($type !== null) $query->where('entityable_type', $type);
-        $total = $query->count();
+        $paginator = $query->order('id', 'asc')->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
         $list = array_map(
             fn (\app\model\Entity $entity): array => $this->data($entity),
-            $query->order('id', 'asc')->page($page, $limit)->select()->all()
+            $paginator->getCollection()->all()
         );
         return compact('total', 'list', 'page', 'limit');
     }

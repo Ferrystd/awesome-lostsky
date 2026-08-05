@@ -12,8 +12,8 @@ describe('成员生命周期状态', () => {
     expect(memberStatusType(member)).toBe(type)
   })
 
-  it('兼容旧 is_blocked 响应', () => {
-    expect(memberStatusCode({ is_blocked: 1 })).toBe('blocked')
-    expect(memberStatusCode({ is_blocked: 0 })).toBe('active')
+  it('拒绝缺失或未知的状态代码', () => {
+    expect(() => memberStatusCode({})).toThrow('成员状态代码不正确')
+    expect(() => memberStatusCode({ status_code: 'unknown' })).toThrow('成员状态代码不正确')
   })
 })

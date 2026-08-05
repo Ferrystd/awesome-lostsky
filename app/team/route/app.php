@@ -30,7 +30,7 @@ Route::get('memberDeparture/index', 'memberDeparture/index');
 Route::get('memberDeparture/get', 'memberDeparture/get');
 Route::get('memberDeparture/mine', 'memberDeparture/mine');
 Route::post('memberDeparture/apply', 'memberDeparture/apply');
-Route::post('memberDeparture/create', 'memberDeparture/create');
+Route::post('memberDeparture/depart', 'memberDeparture/depart');
 Route::post('memberDeparture/cancel', 'memberDeparture/cancel');
 Route::post('memberDeparture/approve', 'memberDeparture/approve');
 Route::post('memberDeparture/reject', 'memberDeparture/reject');

@@ -12,6 +12,7 @@ Account 是不依赖团队上下文的账户入口，负责统一账号、设备
 - 退出当前设备、指定设备或全部设备的登录态。
 - 查询用户加入或创建的团队，以及创建团队。
 - 统一列出、领取和放弃实体身份；基础 user 可直接领取本人关联的有效成员或客户，entity 可按目标团队授予的角色跨团队继续委托。
+- 提供当前叶子 Entity 自我管理：成员、客户和虚拟实体维护有限资料与本人可编辑对象字段，并只读查看角色和有效 Permission；Team 只返回不支持摘要。
 - 维护可撤销的父子实体会话证明链；每次切换 supersede 旧 JWT、继承根到期时间，并在每次请求重验整条授权链。
 
 账号是跨团队共享的，不为每个团队建立独立登录体系。账号不会自动生成“个人空间”；个人有工作空间需求时自行创建普通团队，单人团队与多人团队使用相同模型、权限与生命周期。
@@ -28,6 +29,7 @@ Account 是不依赖团队上下文的账户入口，负责统一账号、设备
 - `/identity/receive` 以全局 slug 解析目标。entity 委托只检查实体有效性及目标团队授予来源实体的精确或通配 assume Permission，不限制团队、目标类型、深度或重复实体。
 - `/identity/member` 同时接受基础用户或已有实体 JWT，并以 JWT 中的真实用户 ID 重置到 `team_slug` 对应的本人有效成员；`/identity/drop` 回到基础 user JWT。
 - Account 前端 `/identity` 提供通用身份选择与放弃，`/identity/member-callback` 处理业务应用缺少身份或团队不匹配后的成员领取。团队不匹配时必须由用户确认，取消和领取失败都不撤销原身份。
+- Account 前端 `/identity/current/profile|fields|access` 是唯一的当前实体自管入口。服务端只使用 `Context` 给出的最终叶子 Entity；所有写请求必须携带 `expected_entity_id`，不一致返回 `409`。真实用户、根身份和父会话都不授予隐式自管权。
 
 实体会话和跨团队授权链的完整约束见[《Entity 身份与跨团队委托》](../architecture/entity-authorization.md)。
 
@@ -41,3 +43,10 @@ Account 是不依赖团队上下文的账户入口，负责统一账号、设备
 - `POST /register/sms`：短信验证码注册并设置密码；`/register/phone` 保留为兼容别名。
 - `POST /login/sms`：短信验证码登录。
 - `POST /login/password`：手机号、用户名或邮箱加密码登录；`/login/phone` 保留为手机号密码兼容入口。
+
+当前实体入口：
+
+- `GET /identity/current`：当前 Entity 摘要、自管资料、本人字段、角色与有效权限；无身份和 Team 使用显式不支持状态。
+- `POST /identity/current/profile|slug|fields`：分别保存类型白名单资料、补全历史成员/客户 slug 和本人可编辑字段。
+- `GET /identity/current/customer-assignees`：仅当前客户读取同团队有效归属候选。
+- `POST /identity/current/upload`：在 Account 域按当前 Entity 所属团队继续校验 File Ability、`file.upload` 和文件规则。

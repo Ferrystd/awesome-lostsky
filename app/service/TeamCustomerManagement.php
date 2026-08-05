@@ -46,14 +46,17 @@ class TeamCustomerManagement
             $query->where('c.is_blocked', (int) ((bool) $filters['blocked']));
         }
 
-        $total = (clone $query)->count();
-        $rows = $query->field([
+        $paginator = $query->field([
             'c.id', 'c.assignee_entity_id', 'c.is_blocked', 'c.create_time', 'c.update_time',
             'ce.id as entity_id', 'ce.slug', 'cp.name', 'cp.avatar', 'cp.description',
             'b.balance', 'b.recharged', 'b.spent',
             'ae.slug as assignee_slug', 'ae.entityable_type as assignee_type',
             'ap.name as assignee_name', 'ap.avatar as assignee_avatar',
-        ])->order('c.id', 'desc')->page($page, $limit)->select()->toArray();
+        ])->order('c.id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $rows = $paginator->getCollection()->toArray();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
 
         $list = array_map(fn (array $row): array => $this->row($row), $rows);
         return [

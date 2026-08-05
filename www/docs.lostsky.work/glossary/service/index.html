@@ -1807,6 +1807,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#entityselfmanagement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        EntitySelfManagement
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#file" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3751,6 +3762,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#entityselfmanagement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        EntitySelfManagement
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#file" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -5093,6 +5115,48 @@
 </tr>
 </tbody>
 </table>
+<h2 id="entityselfmanagement">EntitySelfManagement<a class="headerlink" href="#entityselfmanagement" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>参数</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>current</code></td>
+<td><code>?array $actingEntity</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>updateProfile</code></td>
+<td><code>array $actingEntity</code>、<code>int $expectedEntityId</code>、<code>array $data</code></td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td><code>claimSlug</code></td>
+<td><code>array $actingEntity</code>、<code>int $expectedEntityId</code>、<code>string $slug</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>saveFields</code></td>
+<td><code>array $actingEntity</code>、<code>int $expectedEntityId</code>、<code>array $values</code></td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td><code>customerAssignees</code></td>
+<td><code>array $actingEntity</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>upload</code></td>
+<td><code>array $actingEntity</code>、<code>int $expectedEntityId</code>、<code>think\file\UploadedFile $file</code></td>
+<td><code>array</code></td>
+</tr>
+</tbody>
+</table>
 <h2 id="file">File<a class="headerlink" href="#file" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -5529,6 +5593,11 @@
 <td><code>bool</code></td>
 </tr>
 <tr>
+<td><code>isFixedKeyOrParent</code></td>
+<td><code>string $key</code></td>
+<td><code>bool</code></td>
+</tr>
+<tr>
 <td><code>adminGroups</code></td>
 <td>—</td>
 <td><code>array</code></td>
@@ -5540,6 +5609,11 @@
 </tr>
 <tr>
 <td><code>dynamic</code></td>
+<td><code>string $key</code></td>
+<td><code>?array</code></td>
+</tr>
+<tr>
+<td><code>dynamicDescendant</code></td>
 <td><code>string $key</code></td>
 <td><code>?array</code></td>
 </tr>
@@ -6597,8 +6671,8 @@
 <td><code>array</code></td>
 </tr>
 <tr>
-<td><code>create</code></td>
-<td><code>int $teamId</code>、<code>int $memberId</code>、<code>int $requesterEntityId</code></td>
+<td><code>depart</code></td>
+<td><code>int $teamId</code>、<code>int $memberId</code>、<code>int $decisionEntityId</code></td>
 <td><code>int</code></td>
 </tr>
 <tr>

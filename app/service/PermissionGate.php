@@ -134,8 +134,25 @@ class PermissionGate
 
         return (bool) TeamRolePermission::where('team_id', $teamId)
             ->whereIn('role_id', $roleIds)
-            ->whereIn('permission_key', $keys)
+            ->whereIn('permission_key', $this->matchingKeys($keys))
             ->find();
+    }
+
+    /**
+     * 返回可满足所需权限的键，包含每个键的所有父级。
+     */
+    private function matchingKeys(array $permissionKeys): array
+    {
+        $matching = [];
+        foreach ($permissionKeys as $key) {
+            $segments = explode('.', (string) $key);
+            while ($segments) {
+                $matching[] = implode('.', $segments);
+                array_pop($segments);
+            }
+        }
+
+        return array_values(array_unique($matching));
     }
 
     public function candidates(Request $request, string ...$templates): array

@@ -725,10 +725,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_7" class="md-nav__link">
+  <a href="#account" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        维护“我的资料”
+        在 Account 维护当前实体
       </span>
     </span>
   </a>
@@ -736,7 +736,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_8" class="md-nav__link">
+  <a href="#_7" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         使用预存余额购买
@@ -747,7 +747,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_9" class="md-nav__link">
+  <a href="#_8" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         订单状态与取消
@@ -758,7 +758,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_10" class="md-nav__link">
+  <a href="#_9" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         商城管理后台
@@ -780,7 +780,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_11" class="md-nav__link">
+  <a href="#_10" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         常见失败与恢复
@@ -791,7 +791,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_12" class="md-nav__link">
+  <a href="#_11" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         当前边界
@@ -961,10 +961,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_7" class="md-nav__link">
+  <a href="#account" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        维护“我的资料”
+        在 Account 维护当前实体
       </span>
     </span>
   </a>
@@ -972,7 +972,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_8" class="md-nav__link">
+  <a href="#_7" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         使用预存余额购买
@@ -983,7 +983,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_9" class="md-nav__link">
+  <a href="#_8" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         订单状态与取消
@@ -994,7 +994,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_10" class="md-nav__link">
+  <a href="#_9" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         商城管理后台
@@ -1016,7 +1016,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_11" class="md-nav__link">
+  <a href="#_10" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         常见失败与恢复
@@ -1027,7 +1027,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_12" class="md-nav__link">
+  <a href="#_11" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
         当前边界
@@ -1212,8 +1212,8 @@
 <p>“领取客户身份”表单仅在当前链接带有有效邀请参数时只读显示邀请人，供提交前确认；页面不提供修改入口。未带邀请参数时不显示邀请人区域，表单与普通领取流程保持一致。这里仍沿用既有客户归属规则：只有当前商家同 Team 的有效 Team、成员或虚拟实体会成为初始归属，其他值会被忽略。</p>
 <p>同一来源在同一商家只能绑定一个 Customer，绑定后不可转移到另一个账号或来源 Entity。不同商家拥有彼此隔离的客户资料、余额和订单。</p>
 <p>来源 Entity 派生的客户会话会持续验证整条证明链。来源失效、父会话撤销、Customer 封禁或团队封禁后，旧会话不能继续使用。</p>
-<h2 id="_7">维护“我的资料”<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
-<p>商家 Customer 可以维护：</p>
+<h2 id="account">在 Account 维护当前实体<a class="headerlink" href="#account" title="Permanent link">&para;</a></h2>
+<p>Shop 的“当前实体”和旧 <code>/customer/profile</code> 会安全进入 Account 当前实体中心，并保留返回商家首页的地址。当前商家 Customer 可以维护：</p>
 <ul>
 <li>当前商家内的昵称（必填）、头像地址和简介；</li>
 <li>只读的全局客户 slug；</li>
@@ -1221,8 +1221,8 @@
 </ul>
 <p>新绑定客户会自动得到 slug。只有历史上缺失 slug 的客户需要首次填写，领取后不可修改。客户昵称和简介只用于该商家的订单、会话和内部识别，不进入公开目录，也不产生公开客户主页。</p>
 <p>服务归属候选只包括当前团队有效 Team、成员和虚拟实体，Customer 不能成为归属人。可以选择一个，也可以清空。修改只影响后续订单和流水的发单归属，不改写历史业绩。</p>
-<p>团队后台具有 <code>team.customer.manage</code> 的 Entity 也可以修改客户资料、归属和封禁状态。封禁后 Shop 会显示明确状态，客户不能继续购买或访问受保护客户内容。</p>
-<h2 id="_8">使用预存余额购买<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
+<p>保存时 Account 只以当前 JWT 的叶子 Customer 为目标，并携带 <code>expected_entity_id</code> 防止身份切换后误改。团队后台具有 <code>team.customer.manage</code> 的 Entity 仍可以通过原管理接口修改客户资料、归属和封禁状态。封禁后 Shop 会显示明确状态，客户不能继续购买或访问受保护客户内容。</p>
+<h2 id="_7">使用预存余额购买<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
 <p>选择商品后进入“确认购买”：</p>
 <ol>
 <li>选择 1–999 的数量。</li>
@@ -1233,7 +1233,7 @@
 <p>提交时服务端重新读取商品、接单人、数量和余额，并自行计算单价、总价、成本与各方分配。浏览器不能指定最终价格或内部金额。</p>
 <p>余额不足时不能提交；当前版本没有在线充值，应联系商家由 Transaction 授权人员充值。订单、余额扣减和消费日志在同一事务中完成，失败不会只扣余额而没有订单。</p>
 <p>订单保存商品名称、封面、单价和数量快照。商品后来改名或换图不会改写已经生成的订单记录。</p>
-<h2 id="_9">订单状态与取消<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h2>
+<h2 id="_8">订单状态与取消<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -1270,14 +1270,14 @@
 <li>对重复请求不再第二次退款。</li>
 </ul>
 <p>客户不能把订单标记完成；完成状态由商家业务流程处理。</p>
-<h2 id="_10">商城管理后台<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h2>
+<h2 id="_9">商城管理后台<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h2>
 <p>具有 Shop Permission 的团队 Entity 可访问 <code>https://{team}.shop.lostsky.work/manage</code>。管理后台与深色商城前台使用不同界面：前台用于浏览与购买，管理后台用于连续完成商品、订单和履约配置。团队工作台的“商城管理”入口会跨域进入该页面，并保留当前登录与 Entity 会话。</p>
 <p>推荐配置顺序为：创建服务定义及接单池；把服务数量与有效天数组合成权益包；服务套餐商品直接绑定权益包，服务卡商品先创建卡活动再绑定；按需要配置核销字段并上架；最后在订单页处理手工订单、取消与完成。</p>
 <p>卡密列表只显示脱敏片段。完整卡密仅在发行结果或用户主动点击“查看”时出现；停用卡密不会撤销已经领取的权益。</p>
 <h2 id="transaction-ability">Transaction Ability 缺失时<a class="headerlink" href="#transaction-ability" title="Permanent link">&para;</a></h2>
 <p>商城“自动同步记账流水”只有在团队设置开启且 Transaction Ability 等级至少为 1、未过期时生效。</p>
 <p>Ability 缺失、过期或同步设置关闭时，购买和取消仍完整工作：订单创建、余额消费、余额日志和退款不受影响，只是不生成 Transaction 流水。因此 Transaction 报表中不会出现该订单，但这不代表客户支付失败。</p>
-<h2 id="_11">常见失败与恢复<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
+<h2 id="_10">常见失败与恢复<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -1329,7 +1329,7 @@
 </tr>
 </tbody>
 </table>
-<h2 id="_12">当前边界<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
+<h2 id="_11">当前边界<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
 <ul>
 <li>首版没有购物车、优惠券、在线充值、第三方支付、提现或客户间转账。</li>
 <li>Display 首版只读，不提供加入申请、聊天动作、自定义域名、团队主题、SSR 或预渲染。</li>

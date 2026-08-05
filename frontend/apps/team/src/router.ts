@@ -1,5 +1,5 @@
 import { api, auth } from '@lostsky/api/client'
-import { redirectToLogin } from '@lostsky/shared/navigation'
+import { currentEntityUrl, redirectToLogin, teamWorkspaceUrl } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteLocationGeneric } from 'vue-router'
@@ -156,6 +156,10 @@ router.beforeEach(async (to) => {
   document.title = `${String(to.meta.title ?? '工作台')} · LostSky`
   if (!to.meta.public && !auth.token()) {
     redirectToLogin()
+    return false
+  }
+  if (to.path === '/me') {
+    location.replace(currentEntityUrl(teamWorkspaceUrl('/')))
     return false
   }
   if (to.meta.ability === 'doc') {

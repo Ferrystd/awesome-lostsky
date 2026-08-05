@@ -22,8 +22,11 @@ class Storefront
     {
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
         $query = TeamProduct::where('team_id', $teamId)->where('is_active', 1);
-        $total = $query->count();
-        $rows = $query->order('id', 'desc')->page($page, $limit)->select();
+        $paginator = $query->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $rows = $paginator->getCollection();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
         $list = array_map(fn (TeamProduct $product): array => $this->productData($product, false), $rows->all());
 
         return compact('total', 'list', 'page', 'limit');

@@ -276,6 +276,12 @@ export const api = {
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   delete: <T>(path: string, body?: unknown) => request<T>('DELETE', path, body),
   upload: <T>(file: File, path = '/upload') => { const body = new FormData(); body.append('file', file); return request<T>('POST', path, body, { timeout: 60000, app: 'common' }) },
+  uploadTo: <T>(file: File, path: string, fields: Record<string, string | number> = {}) => {
+    const body = new FormData()
+    body.append('file', file)
+    Object.entries(fields).forEach(([key, value]) => body.append(key, String(value)))
+    return request<T>('POST', path, body, { timeout: 60000 })
+  },
 }
 
 export function friendlyError(error: unknown) {

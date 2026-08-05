@@ -30,6 +30,10 @@ function accountIdentityUrl() {
   return accountDevelopmentUrl('/identity') || '//account.lostsky.work/identity'
 }
 
+function accountCurrentEntityUrl(path: string) {
+  return accountDevelopmentUrl(path) || `//account.lostsky.work${path}`
+}
+
 export interface LoginRedirectOptions {
   redirect?: string
   expired?: boolean
@@ -120,6 +124,16 @@ export function identityUrl(redirect = location.href, targetSlug = '') {
   if (/^[a-z0-9][a-z0-9_-]{0,49}$/.test(targetSlug)) query.set('target', targetSlug)
   const base = accountIdentityUrl()
   return query.size ? `${base}?${query}` : base
+}
+
+export function currentEntityUrl(
+  redirect = location.href,
+  section: 'profile' | 'fields' | 'access' = 'profile',
+) {
+  const target = new URL(accountCurrentEntityUrl(`/identity/current/${section}`), location.href)
+  const returnTo = safeRedirect(redirect, '')
+  if (returnTo) target.searchParams.set('redirect', returnTo)
+  return target.href
 }
 
 export function memberIdentityCallbackUrl(teamSlug: string, reason: EntityCallbackReason) {

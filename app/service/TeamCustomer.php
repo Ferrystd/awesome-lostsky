@@ -65,10 +65,11 @@ class TeamCustomer
             $query->where('create_time', '<', (int) $filters['end_time']);
         }
 
-        $total = $query->count();
-        $rows = $query->order('id', 'desc')
-            ->page($page, $limit)
-            ->select();
+        $paginator = $query->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $rows = $paginator->getCollection();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
         $list = array_map(fn ($order): array => $this->orderData($order), $rows->all());
 
         return compact('total', 'list', 'page', 'limit');
@@ -102,13 +103,14 @@ class TeamCustomer
         $customer = $this->customer($teamId, $customerId);
         $query    = $customer->balanceLogs();
 
-        $total = $query->count();
-        $list  = $query
+        $paginator = $query
             ->with(['transaction'])
             ->order('id', 'desc')
-            ->page($page, $limit)
-            ->select()
-            ->toArray();
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $list  = $paginator->getCollection()->toArray();
+        $page  = $paginator->currentPage();
+        $limit = $paginator->listRows();
 
         return compact('total', 'list', 'page', 'limit');
     }

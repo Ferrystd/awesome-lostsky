@@ -44,6 +44,114 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/identity/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取当前叶子实体的自我管理摘要
+         * @description 只读取当前 JWT 对应的叶子 Entity。无实体身份返回 identity=null；Team 返回 supported=false。
+         */
+        get: operations["accountIdentityCurrent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/current/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存当前叶子实体允许自管的资料 */
+        post: operations["accountIdentityCurrentProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/current/slug": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 为缺少 slug 的当前成员或客户补全标识 */
+        post: operations["accountIdentityCurrentSlug"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/current/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存当前叶子实体允许本人编辑的对象字段 */
+        post: operations["accountIdentityCurrentFields"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/current/customer-assignees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取当前客户身份的有效服务归属候选 */
+        get: operations["accountIdentityCurrentCustomerAssignees"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/current/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 为当前实体上传资料媒体
+         * @description 继续校验 File Ability、file.upload Permission 和既有文件规则。
+         */
+        post: operations["accountIdentityCurrentUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/identity/drop": {
         parameters: {
             query?: never;
@@ -367,6 +475,50 @@ export interface components {
             token: string;
             identity: components["schemas"]["IdentitySummary"];
         };
+        CurrentIdentitySummary: {
+            /** Format: int64 */
+            entity_id: number;
+            /** @enum {string} */
+            type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
+            /** Format: int64 */
+            id: number;
+            slug: string | null;
+            name: string;
+            avatar: string | null;
+            status_code?: string | null;
+            status_label?: string | null;
+            team: components["schemas"]["IdentityTeamSummary"];
+        };
+        CurrentEntityProfile: {
+            name: string;
+            avatar: string | null;
+            description: string | null;
+            intro_image?: string | null;
+            intro_video?: string | null;
+            introduction_markdown?: string | null;
+        };
+        CurrentIdentityResult: {
+            identity: components["schemas"]["CurrentIdentitySummary"] | null;
+            supported: boolean;
+            unsupported_reason?: string;
+            profile?: components["schemas"]["CurrentEntityProfile"];
+            custom_fields?: components["schemas"]["EntityField"][];
+            custom_field_values?: components["schemas"]["EntityFieldValue"][];
+            role_assignments?: components["schemas"]["AnyObject"][];
+            effective_permissions?: {
+                key: string;
+                label: string;
+                group: string;
+            }[];
+            customer?: {
+                /** Format: int64 */
+                assignee_entity_id?: number | null;
+            };
+            upload?: {
+                enabled: boolean;
+                reason: string | null;
+            };
+        };
         TeamProfile: {
             /** Format: int64 */
             id?: number;
@@ -396,11 +548,9 @@ export interface components {
             team_id?: number;
             /** Format: int64 */
             user_id?: number;
-            /**
-             * @description 0=false, 1=true
-             * @enum {integer}
-             */
-            is_blocked?: 0 | 1;
+            /** @enum {string} */
+            status_code: "active" | "blocked" | "departed";
+            status_label: string;
             /**
              * Format: int64
              * @description Unix timestamp, seconds
@@ -895,6 +1045,222 @@ export interface operations {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
                         data?: components["schemas"]["IdentityIssue"];
                     };
+                };
+            };
+        };
+    };
+    accountIdentityCurrent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 当前实体摘要、自管资料、对象字段以及只读角色权限 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["CurrentIdentityResult"];
+                    };
+                };
+            };
+        };
+    };
+    accountIdentityCurrentProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CurrentEntityProfile"] & {
+                    /** Format: int64 */
+                    expected_entity_id: number;
+                    /** Format: int64 */
+                    assignee_entity_id?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+            /** @description 当前身份与预期实体不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    accountIdentityCurrentSlug: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    expected_entity_id: number;
+                    slug: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 标识已确定 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"];
+                };
+            };
+            /** @description 身份已变化或标识已确定 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    accountIdentityCurrentFields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    expected_entity_id: number;
+                    values: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageEnvelope"];
+                };
+            };
+            /** @description 当前身份与预期实体不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    accountIdentityCurrentCustomerAssignees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 归属候选 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["AnyObject"][];
+                    };
+                };
+            };
+            /** @description 当前身份不是客户 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    accountIdentityCurrentUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: int64 */
+                    expected_entity_id: number;
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 上传成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["FileUploadResult"];
+                    };
+                };
+            };
+            /** @description 缺少上传权限或能力 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 当前身份与预期实体不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

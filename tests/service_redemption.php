@@ -4,6 +4,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\enum\ServiceStatus;
+use app\enum\TeamMemberStatus;
 use app\enum\TransactionType;
 use app\enum\RedemptionMode;
 use app\model\BenefitPackage;
@@ -55,7 +56,7 @@ try {
     $workerUser = new User; $workerUser->save(['phone' => '17' . random_int(100000000, 999999999), 'username' => "service-worker-{$suffix}", 'password' => 'x']);
     $team = new Team; $team->save(['slug' => "service-{$suffix}", 'user_id' => $owner->id, 'is_banned' => 0, 'is_cancelled' => 0]);
     $teamEntity = app(EntityService::class)->claimTeam($team);
-    $member = new TeamMember; $member->save(['team_id' => $team->id, 'user_id' => $workerUser->id, 'status' => 1]);
+    $member = new TeamMember; $member->save(['team_id' => $team->id, 'user_id' => $workerUser->id, 'status' => TeamMemberStatus::Active]);
     $handlerEntity = app(EntityService::class)->claimMember((int) $team->id, (int) $member->id, "service-handler-{$suffix}");
 
     // Customer 是由任意 Entity 派生的子实体，资产不归属 User。

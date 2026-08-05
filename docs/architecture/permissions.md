@@ -67,13 +67,13 @@
 | `identity.virtual.<slug>.assume` | 领取当前团队指定有效虚拟实体 |
 
 动态权限保存时会校验目标实体属于当前授权团队。`*` 权限只覆盖当前团队，不扩散到其他团队；
-Permission 不支持 deny，多个候选权限按 OR 判断。
+Permission 不支持 deny，多个候选权限按 OR 判断。父键自动覆盖其下所有子键，例如 `team` 和 `team.ability` 都可满足 `team.ability.redeem`；父键仍须是权限目录中已有键的前缀，动态键父级继续校验对应实体属于当前团队。
 
 `team.entity.read`、`team.member.read`、`team.document.read` 和 `team.customer.read` 表示“全量读取”，不是基础入口许可。没有客户全量读取权限时，当前归属实体仍可查看自己的客户；Customer 在通用实体目录中始终需要 `team.entity.read`，对无权 Customer 与团队内隐藏实体的直接访问返回 404；文档继续按自身可见性返回。`team.customer.manage` 同时授予客户全量读取，并控制资料、归属与封禁更新；客户本人在 Shop 只可修改自己的资料和归属，不因此获得后台管理权限。
 
 权限拒绝使用结构化错误：`data.kind=permission` 且 `data.required_any` 列出任一可满足的 Permission；用户界面显示 `缺少权限(Permission): <key>`。能力拒绝使用 `data.kind=ability` 并返回能力键、标签、最低等级和缺失原因。
 
-`team.member.remove` 保护独立的离队申请流，管理员代提也必须先创建待审申请；成员自助离队不依赖该 Permission，但只允许正常成员本人使用直接领取的根身份会话。复职继续复用 `team.join_review.read/write`，不新增独立复职 Permission。非正常成员 Entity 是否具备业务可用性由 `member.inactive_entity_available` 动态决定，assume Permission 只决定谁可以代入，不覆盖 Entity 可用性。
+`team.member.remove` 允许管理员直接办理成员离职，不创建待审申请；成员自助离队不依赖该 Permission，但只允许正常成员本人使用直接领取的根身份会话。自助申请仍受 `member.departure_mode` 控制并可进入审核；复职继续复用 `team.join_review.read/write`，不新增独立复职 Permission。非正常成员 Entity 是否具备业务可用性由 `member.inactive_entity_available` 动态决定，assume Permission 只决定谁可以代入，不覆盖 Entity 可用性。
 
 ## 平台权限
 

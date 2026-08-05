@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use app\enum\TeamMemberStatus;
 use app\middleware\AppResolver;
 use app\middleware\Context;
 use app\middleware\EntityRequired;
@@ -232,8 +233,7 @@ try {
         HttpException::class,
         'Account member receipt rejects an invalid team slug without changing the active identity'
     );
-    $member->status = 2;
-    $member->is_blocked = 1;
+    $member->status = TeamMemberStatus::Blocked;
     $member->save();
     $assertThrows(
         fn () => app(\app\service\IdentitySession::class)->receiveMember(
@@ -244,8 +244,7 @@ try {
         HttpException::class,
         'Account member receipt rejects a blocked member'
     );
-    $member->status = 1;
-    $member->is_blocked = 0;
+    $member->status = TeamMemberStatus::Active;
     $member->save();
 
     $otherUser = new User;

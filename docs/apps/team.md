@@ -6,7 +6,7 @@ Team 是团队工作台的核心应用，负责成员资料、角色权限、团
 
 ## 业务领域
 
-- 当前成员：查看和编辑自己的团队资料，以及本人可见且可编辑的对象字段；成员在创建或加入时即取得稳定的全局实体标识。
+- 当前实体入口：Team 导航和旧 `/me` 跳转 Account 当前实体中心；成员在创建或加入时仍取得稳定的全局实体标识。
 - 成员管理：正常、封禁、离队三态，成员资料、任期留存、封禁、离队申请、复职和搜索。
 - 扩展资料：成员自定义字段、字段值和岗位类型。
 - RBAC：角色、角色权限和成员角色绑定。
@@ -38,18 +38,18 @@ Team 应用按操作组合以下中间件：
 
 团队业务要求 `team`、`teamMember`、`teamCustomer`、`teamVirtual` 四种实体 JWT，不再从基础 JWT 静默领取成员，也不通过响应头换发令牌。
 缺少实体由前端进入 Account 成员回调；实体不属于当前团队时返回 HTTP 403、`code=40301` 和当前 `team_slug`。
-允许跨团队实体的少数接口只声明 `EntityRequired`，要求当前团队归属的接口使用 `TeamAuth`。当前成员资料与成员上传最终只接受
+允许跨团队实体的少数接口只声明 `EntityRequired`，要求当前团队归属的接口使用 `TeamAuth`。旧当前成员资料与成员上传兼容接口仍只接受
 `teamMember`；加入申请人的动作只接受基础用户 JWT，且不经过 `TeamAuth`。
 
-当前成员通过 `POST /me/fields` 保存对象字段值。该入口不接受目标对象标识，只使用当前成员上下文，并且只允许写入本人可见且可编辑的人员实体字段；隐藏、只读或其他实体类型字段会被拒绝。成员必须先确认全局 slug 才能保存字段；`GET /me/get` 同时返回本人角色、各角色权限以及去重后的有效权限并集，不要求本人拥有角色管理权限。
+`GET /me/get`、`POST /me/edit|slug|fields` 作为兼容 API 保留，前端不再维护独立表单。新的 Account 当前实体接口覆盖成员、客户和虚拟实体；旧入口仍不接受目标对象标识，只使用当前成员上下文，并且只允许写入本人可见且可编辑的人员实体字段。
 
 `GET /access` 是当前 Entity 的通用访问快照，不依赖成员专属 `/me/get`。`GET /dashboard` 独立计算实体、成员、文档和通知：实体、成员与文档只有在具备相应全量读取 Permission 时返回计数，否则返回 `count=null`；Doc Ability 缺失时只把文档指标标记为不可用；任一指标异常不会把其余指标变成 `0`。
 
 `GET /entity/index|get` 与 `GET /member/index|get` 不把 `team.entity.read` 或 `team.member.read` 作为页面门票。缺少实体全量读取权限时只返回有效、非 Customer 且团队内可见的实体；Customer 与隐藏实体统一返回 404。具有权限时读取完整集合。`team.entity.profile.manage` 控制资料、内部可见和公开 Display 写入，读取基础详情本身不要求该权限。
 
-`GET /member/get` 在成员资料之外返回当前操作者对该任务页的能力集合，包括成员编辑、字段管理、角色读取/编辑、封禁、搜索设置、slug 补全、发起离队申请和身份切换。前端据此裁剪整张卡片和操作入口；所有写接口仍各自执行服务端权限校验。
+`GET /member/get` 在成员资料之外返回当前操作者对该任务页的能力集合，包括成员编辑、字段管理、角色读取/编辑、封禁、搜索设置、slug 补全、办理离职和身份切换。前端据此裁剪整张卡片和操作入口；所有写接口仍各自执行服务端权限校验。
 
-成员生命周期不再使用软删除：`team_member.status` 保存正常、封禁和已离队状态，`is_blocked` 仅保留为弃用兼容字段。离队通过 `/memberDeparture/index|get|mine|apply|create|cancel|approve|reject` 完成；任期写入 `team_member_tenure`，第一版只后端留存。复职是 `team_join_application.purpose=reinstate`，服务端按成员状态推断目的，批准时复用原 Member 与 Entity。
+成员生命周期不再使用软删除：`team_member.status` 保存正常、封禁和已离队状态，`is_blocked` 仅保留为弃用兼容字段。离队通过 `/memberDeparture/index|get|mine|apply|depart|cancel|approve|reject` 完成；`depart` 仅供有 `team.member.remove` 的管理员一次办结离职，其他申请类接口保留成员自助流程。任期写入 `team_member_tenure`，第一版只后端留存。复职是 `team_join_application.purpose=reinstate`，服务端按成员状态推断目的，批准时复用原 Member 与 Entity。
 
 ## 角色与权限
 
@@ -66,7 +66,7 @@ Team 应用按操作组合以下中间件：
 
 身份委托使用 `identity.team.assume`，以及 `identity.member|customer|virtual.*.assume` 或对应精确 slug 权限。通配只覆盖当前授权团队；精确目标保存时必须是当前团队的有效实体。委托成功后，普通业务请求仍必须以目标实体通过 `TeamBelongs`，外部来源实体不能直接跨过团队归属边界。详细会话链与失效规则见[《Entity 身份与跨团队委托》](../architecture/entity-authorization.md)。
 
-普通业务接口通过 `Permission:{permission_key}` 检查角色权限。动态参数使用 `<slug>` 形式，例如 `chat.virtual.<slug>.manage`。一个 `Permission` 可以用逗号接收多个权限参数，控制器字符串简写为 `Permission:key-a,key-b`；数组写法 `['Permission', ['key-a', 'key-b']]` 具有相同语义，多个参数按 OR 处理。
+普通业务接口通过 `Permission:{permission_key}` 检查角色权限。角色已授予的父键同样可满足子键，例如 `team` 或 `team.ability` 可满足 `team.ability.redeem`。动态参数使用 `<slug>` 形式，例如 `chat.virtual.<slug>.manage`。一个 `Permission` 可以用逗号接收多个权限参数，控制器字符串简写为 `Permission:key-a,key-b`；数组写法 `['Permission', ['key-a', 'key-b']]` 具有相同语义，多个参数按 OR 处理。
 
 Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `scope=team|entity` 显式选择 Team 共享站内通知或当前 Entity 收件箱，省略 scope 时保持旧版身份默认行为。`GET /notice/capabilities` 为前端返回共享站内通知查看、通知发送和默认收件箱能力。
 

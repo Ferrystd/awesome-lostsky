@@ -17,7 +17,7 @@ import { adminStatusLabel, adminStatusType, type AdminStatus } from '../status'
 import type { AuditEvent, UserSummary } from '../types'
 import { formatTime } from '../utils'
 
-interface TeamLink { id: number; slug: string; is_banned: number; is_cancelled: number; is_blocked: number; create_time: number }
+interface TeamLink { id: number; slug: string; is_banned: number; is_cancelled: number; create_time: number }
 interface UserDetail extends UserSummary {
   teams: TeamLink[]
   devices: Array<{ id: number; device_name: string; ua: string; last_active_time: number; create_time: number }>

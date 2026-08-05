@@ -2953,7 +2953,7 @@
 <p>本目录按 ThinkPHP 多应用拆分 OpenAPI 文件。项目通过域名或 Origin 解析 app，同一路径在不同 app 下可能表示不同接口，因此不合并为单个 <code>paths</code> 文件。</p>
 <h2 id="_1">文件<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="account.openapi.json"><code>account.openapi.json</code></a>：注册、登录、设备、用户团队入口</li>
+<li><a href="account.openapi.json"><code>account.openapi.json</code></a>：注册、登录、设备、用户团队、身份切换与当前叶子 Entity 自我管理入口</li>
 <li><a href="admin.openapi.json"><code>admin.openapi.json</code></a>：平台管理员、用户与团队治理、审计和系统状态</li>
 <li><a href="display.openapi.json"><code>display.openapi.json</code></a>：团队主页、公开实体、公开文档与 Markdown 实体解析接口</li>
 <li><a href="team.openapi.json"><code>team.openapi.json</code></a>：团队成员、成员/实体字段、岗位、设置、文件、虚拟实体与 Webhook 集成管理</li>
@@ -2976,6 +2976,7 @@
 <li>登录态：<code>Authorization: Bearer {token}</code></li>
 <li>防重复提交：写请求优先使用每次操作唯一的 <code>X-Request-Id</code>；<code>X-Page-Id + 请求内容</code> 用于兼容页面重复提交；两个请求头都缺省时服务端仍按登录主体、请求路径和请求内容生成短期防重键。有效期内重复请求返回 429。</li>
 <li>公共上传：<code>common</code> 不能由 Origin 自动选择，调用 <code>/upload</code> 时必须显式发送 <code>X-LostSky-App: common</code>；团队仍由 Host 或 Origin 解析。</li>
+<li>当前实体写入：Account <code>/identity/current/*</code> 写请求必须携带 <code>expected_entity_id</code>；与当前 JWT 叶子 Entity 不一致时返回 <code>409</code>，不得回退到真实账号或父级会话。</li>
 <li>分页：<code>page &gt;= 1</code>，<code>limit</code> 范围为 <code>1..100</code>。</li>
 <li>金额：DECIMAL 金额统一返回和提交精确十进制字符串，最多两位小数；前端展示时可以格式化，但不得先转成浮点数再参与业务计算。</li>
 </ul>

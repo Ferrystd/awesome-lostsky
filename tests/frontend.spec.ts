@@ -423,29 +423,14 @@ test('shop storefront supports public display, customer binding, balance purchas
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 
   await page.goto('http://demo.shop.lostsky.work:5179/customer/profile')
-  await expect(page.getByRole('heading', { name: '我的资料', level: 1 })).toBeVisible()
-  await expect(page.getByRole('link', { name: '我的资料' })).toBeVisible()
-  await expect(page.getByLabel('团队内昵称')).toHaveValue('晚风客户')
-  await expect(page.getByLabel('只读 slug')).toHaveValue('evening-sky')
-  await expect(page.getByLabel('只读 slug')).toHaveAttribute('readonly')
-  await page.getByLabel('团队内昵称').fill('晚风来客')
-  await page.getByLabel('团队内简介').fill('仅供当前商家识别')
-  await page.getByRole('button', { name: '保存资料' }).click()
-  await expect(page.getByRole('status')).toContainText('资料已保存')
-  expect(profilePayload).toEqual({
-    nickname: '晚风来客',
-    avatar: null,
-    description: '仅供当前商家识别',
-    assignee_entity_id: null,
-  })
-  await page.setViewportSize({ width: 375, height: 812 })
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  await expect(page).toHaveURL(url => url.origin === 'http://account.lostsky.work:5174'
+    && url.pathname === '/identity/current/profile'
+    && url.searchParams.get('redirect') === 'http://demo.shop.lostsky.work:5179/')
 })
 
-test('shop customer profile deep link verifies identity and distinguishes mismatch from blocking', async ({ page }) => {
+test('shop customer profile deep link delegates verification to Account current entity center', async ({ page }) => {
   const customerToken = `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type: 'teamCustomer', id: 31 } })).toString('base64url')}.x`
   await page.context().addCookies([{ name: 'lostsky_token', value: customerToken, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
-  let mode: 'ready' | 'mismatch' | 'blocked' = 'ready'
   let meCalls = 0
   await page.route('http://demo.shop.lostsky.work:5179/api/**', async route => {
     const path = new URL(route.request().url()).pathname
@@ -459,18 +444,6 @@ test('shop customer profile deep link verifies identity and distinguishes mismat
     }
     if (path.endsWith('/customer/me')) {
       meCalls++
-      if (mode !== 'ready') {
-        await route.fulfill({
-          status: 403,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            code: 403,
-            message: mode === 'blocked' ? '你已被该团队封禁' : '你不是该团队的顾客',
-            data: null,
-          }),
-        })
-        return
-      }
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -493,19 +466,9 @@ test('shop customer profile deep link verifies identity and distinguishes mismat
   })
 
   await page.goto('http://demo.shop.lostsky.work:5179/customer/profile')
-  await expect(page).toHaveURL(/\/customer\/profile$/)
-  await expect(page.getByLabel('团队内昵称')).toHaveValue('深链接客户')
-  expect(meCalls).toBe(1)
-
-  mode = 'mismatch'
-  await page.reload()
-  await expect(page.getByRole('alert')).toContainText('当前身份不属于这家商店')
-  await expect(page.getByRole('link', { name: /建立客户身份/ })).toHaveAttribute('href', '/customer/bind?redirect=/customer/profile')
-
-  mode = 'blocked'
-  await page.reload()
-  await expect(page.getByRole('alert')).toContainText('当前客户身份已被商家封禁')
-  await expect(page.getByRole('link', { name: '返回商城', exact: true })).toBeVisible()
+  await expect(page).toHaveURL(url => url.origin === 'http://account.lostsky.work:5174'
+    && url.pathname === '/identity/current/profile')
+  expect(meCalls).toBe(0)
 })
 
 test('shop storefront keeps an empty merchant visible and useful', async ({ page }) => {
@@ -1110,6 +1073,8 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       user_id: 1,
       nickname: '测试成员',
       slug: 'alice',
+      status_code: 'active',
+      status_label: '正常',
       search_override: null,
       posts: [],
       capabilities: {
@@ -1124,7 +1089,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         identity_assume: true,
       },
     }
-    else if (url.pathname.endsWith('/member/index')) data = [{ id: 1, user_id: 1, nickname: '测试成员', slug: 'alice', is_blocked: 0 }]
+    else if (url.pathname.endsWith('/member/index')) data = [{ id: 1, user_id: 1, nickname: '测试成员', slug: 'alice', status_code: 'active', status_label: '正常' }]
     else if (url.pathname.endsWith('/customer/assignees')) data = [{ entity_id: 2, slug: 'alice', type: 'teamMember', name: '测试成员', avatar: null }]
     else if (url.pathname.endsWith('/customer')) {
       const list = url.searchParams.get('keyword')
@@ -1232,6 +1197,8 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       user_id: 1,
       nickname: '测试成员',
       slug: 'alice',
+      status_code: 'active',
+      status_label: '正常',
       custom_fields: [],
       custom_field_values: [],
       role_assignments: [],
@@ -1241,7 +1208,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
   const collectionPaths = new Set(['/entities', '/members', '/customers', '/roles', '/fields', '/join-fields', '/chat-virtuals', '/notices/entity', '/notices/team', '/files', '/docs', '/join-review'])
-  for (const path of ['/', '/entities', '/members', '/customers', '/member-detail?id=1', '/member-add', '/member-edit?id=1', '/roles', '/roles/new', '/fields', '/field-new?type=entity', '/join-fields', '/join-fields/new', '/join-fields/42', '/chat-virtuals', '/chat-virtual-new', '/chat-virtual?slug=sales-assistant', '/chat-integration-new?slug=sales-assistant', '/chat-integration?slug=sales-assistant&id=1', '/notices/entity', '/notices/entity/detail?id=21', '/notices/team', '/notices/team/detail?id=21', '/notices/send', '/files', '/docs', '/doc-create', '/doc-edit?id=11', '/doc?id=11', '/settings', '/join-review', '/join-review/review?id=1', '/me']) {
+  for (const path of ['/', '/entities', '/members', '/customers', '/member-detail?id=1', '/member-add', '/member-edit?id=1', '/roles', '/roles/new', '/fields', '/field-new?type=entity', '/join-fields', '/join-fields/new', '/join-fields/42', '/chat-virtuals', '/chat-virtual-new', '/chat-virtual?slug=sales-assistant', '/chat-integration-new?slug=sales-assistant', '/notices/entity', '/notices/entity/detail?id=21', '/notices/team', '/notices/team/detail?id=21', '/notices/send', '/files', '/docs', '/doc-create', '/doc-edit?id=11', '/doc?id=11', '/settings', '/join-review', '/join-review/review?id=1']) {
     await page.goto(`http://demo.team.lostsky.work:5175${path}`)
     expect(page.url(), `unexpected navigation at ${path}; errors: ${pageErrors.join(' | ')}`).toContain('demo.team.lostsky.work:5175')
     if (!await page.locator('#workspace').count()) throw new Error(`workspace missing at ${path}; url=${page.url()}; authenticated=${Boolean(await page.evaluate(() => localStorage.getItem('lostsky_token')))}; errors=${pageErrors.join(' | ')}; body=${(await page.locator('body').innerText()).slice(0, 400)}`)
@@ -1296,6 +1263,17 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await page.setViewportSize({ width: 1000, height: 560 })
       const sidebarMenu = page.locator('.sidebar nav')
       await expect(page.getByRole('button', { name: '退出登录' })).toHaveCSS('justify-content', 'flex-start')
+      const disabledAbility = page.locator('.sidebar .nav-disabled').filter({ hasText: '团队能力' })
+      await expect(disabledAbility).toBeVisible()
+      const disabledAbilityContent = disabledAbility.locator('.n-button__content')
+      await expect(disabledAbilityContent).toHaveCSS('display', 'grid')
+      expect(await disabledAbilityContent.evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(' '))).toHaveLength(3)
+      expect(await disabledAbilityContent.locator(':scope > *').evaluateAll((elements) => (
+        new Set(elements.map((element) => {
+          const bounds = element.getBoundingClientRect()
+          return Math.round(bounds.top + bounds.height / 2)
+        })).size
+      ))).toBe(1)
       const moreMenu = page.getByRole('button', { name: '向下查看更多菜单' })
       await expect(moreMenu).toBeVisible()
       const initialScrollTop = await sidebarMenu.evaluate(element => element.scrollTop)
@@ -1789,60 +1767,6 @@ test('access snapshot failure does not fabricate permission denials', async ({ p
   await expect(page.getByRole('link', { name: '添加成员' })).toBeVisible()
 })
 
-test('member saves only their editable visible entity fields', async ({ page }) => {
-  let savedValues: Record<string, unknown> | null = null
-  await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
-  await page.route('http://demo.team.lostsky.work:5175/api/**', async route => {
-    const path = new URL(route.request().url()).pathname
-    let data: unknown = []
-    if (path.endsWith('/me/get')) {
-      data = {
-        id: 1,
-        user_id: 1,
-        nickname: '测试成员',
-        slug: 'alice',
-        custom_fields: [
-          { id: 101, name: '公开称号', value_type: 'string', input_type: 'text', is_editable: 1, can_edit: true },
-          { id: 102, name: '只读编号', value_type: 'string', input_type: 'text', is_editable: 0, can_edit: false },
-        ],
-        custom_field_values: [{ field_id: 102, value_string: 'LS-102' }],
-        role_assignments: [{
-          role_id: 8,
-          role: {
-            id: 8,
-            name: '内容成员',
-            role_key: 'content-member',
-            permissions: [{ permission_key: 'file.read' }],
-          },
-        }],
-        effective_permissions: [{ key: 'file.read', label: '查看文件', group: '文件与设置' }],
-      }
-    } else if (path.endsWith('/me/fields')) {
-      savedValues = route.request().postDataJSON().values
-      data = null
-    }
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
-  })
-
-  await page.goto('http://demo.team.lostsky.work:5175/me')
-  const saveButton = page.getByRole('button', { name: '保存字段' })
-  const editableField = page.getByRole('textbox', { name: '公开称号' })
-  await expect(saveButton).toBeDisabled()
-  await editableField.fill('夜航员')
-  await expect(saveButton).toBeEnabled()
-  await expect(page.locator('.readonly-value').filter({ hasText: 'LS-102' })).toBeVisible()
-  await expect(page.getByPlaceholder('填写只读编号')).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: '角色与权限' })).toBeVisible()
-  await expect(page.getByText('内容成员')).toBeVisible()
-  await page.getByText('文件与设置').click()
-  await expect(page.getByText('查看文件')).toBeVisible()
-  await saveButton.click()
-  await expect.poll(() => savedValues).toEqual({ 101: '夜航员' })
-
-  await page.setViewportSize({ width: 768, height: 1024 })
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
-})
-
 test('entity field form saves unified access rules and custom targets', async ({ page }) => {
   let savedPayload: Record<string, unknown> | null = null
   await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
@@ -1888,7 +1812,7 @@ test('entity field form saves unified access rules and custom targets', async ({
   expect(savedPayload).not.toHaveProperty('is_searchable')
 })
 
-test('member task hides unauthorized controls and me explains the slug prerequisite', async ({ page }) => {
+test('member task hides unauthorized management controls', async ({ page }) => {
   await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
   await page.route('http://demo.team.lostsky.work:5175/api/**', async route => {
     const path = new URL(route.request().url()).pathname
@@ -1899,6 +1823,8 @@ test('member task hides unauthorized controls and me explains the slug prerequis
           nickname: '只读成员',
           description: '只能查看这份成员资料',
           slug: 'readonly-member',
+          status_code: 'active',
+          status_label: '正常',
           posts: [],
           capabilities: {
             member_edit: false,
@@ -1912,18 +1838,7 @@ test('member task hides unauthorized controls and me explains the slug prerequis
             identity_assume: false,
           },
         }
-      : path.endsWith('/me/get')
-        ? {
-            id: 4,
-            user_id: 4,
-            nickname: '待领取成员',
-            slug: '',
-            custom_fields: [],
-            custom_field_values: [],
-            role_assignments: [],
-            effective_permissions: [],
-          }
-        : []
+      : []
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
 
@@ -1934,10 +1849,6 @@ test('member task hides unauthorized controls and me explains the slug prerequis
   await expect(page.getByRole('heading', { name: '角色与权限' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: '管理操作' })).toHaveCount(0)
   await expect(page.getByRole('textbox', { name: '团队昵称' })).toHaveCount(0)
-
-  await page.goto('http://demo.team.lostsky.work:5175/me')
-  await expect(page.getByText('请先领取 slug', { exact: true })).toBeVisible()
-  await expect(page.getByText('确认对象标识后，才能保存对象字段并查看当前角色权限。')).toBeVisible()
 })
 
 test('team role tasks use independent routes for entity assignment and permission editing', async ({ page }) => {
@@ -2034,7 +1945,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
   let optionsMode: 'full' | 'missing' | 'empty' | 'error' = 'full'
   await page.route('http://demo.transaction.lostsky.work:5177/api/**', async (route) => {
     const url = new URL(route.request().url())
-    const entity = { id: 11, entity_id: 11, entityable_type: 'teamMember', entityable_id: 1, type: 'member', slug: 'handler', name: 'Handler', profile: { nickname: 'Handler' }, nickname: '青空接单人', avatar: null, is_blocked: 0 }
+    const entity = { id: 11, entity_id: 11, entityable_type: 'teamMember', entityable_id: 1, type: 'member', slug: 'handler', name: 'Handler', profile: { nickname: 'Handler' }, nickname: '青空接单人', avatar: null, status_code: 'active', status_label: '正常' }
     const customer = { id: 8, nickname: '晚风客户', avatar: null, description: '长期客户', is_blocked: 0, balance: { balance: 880, recharged: 1200, spent: 320 } }
     const transaction = {
       id: 21, handler_entity_id: 11, sender_entity_id: null, cs_entity_id: null, customer_id: 8, type: 2,

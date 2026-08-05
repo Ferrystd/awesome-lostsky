@@ -72,9 +72,9 @@ final class PlatformAdmin
             (int) ($filters['page'] ?? 1),
             (int) ($filters['limit'] ?? Pagination::DEFAULT_LIMIT)
         );
-        $query = Db::name('user')->alias('user')
-            ->leftJoin('user_profile profile', 'profile.user_id = user.id AND profile.delete_time IS NULL')
-            ->whereNull('user.delete_time');
+        $query = User::alias('user')
+            ->withJoin(['profile' => ['nickname', 'avatar']], 'LEFT')
+            ->withCount(['members' => 'team_count', 'devices' => 'device_count']);
         $keyword = trim((string) ($filters['q'] ?? ''));
         if ($keyword !== '') {
             $pattern = "%{$keyword}%";
@@ -95,16 +95,13 @@ final class PlatformAdmin
         if ($status === 'active' || $status === 'banned') {
             $query->where('user.is_banned', $status === 'banned' ? 1 : 0);
         }
-        $total = (clone $query)->count('user.id');
-        $rows = $query
-            ->field([
-                'user.id', 'user.username', 'user.phone', 'user.email', 'user.is_banned',
-                'user.create_time', 'user.update_time', 'profile.nickname', 'profile.avatar',
-            ])
+        $paginator = $query
             ->order('user.id', 'desc')
-            ->page($page, $limit)
-            ->select()
-            ->toArray();
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $rows = $paginator->getCollection()->toArray();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
         foreach ($rows as &$row) {
             $phone = (string) ($row['phone'] ?? '');
             $email = (string) ($row['email'] ?? '');
@@ -113,9 +110,8 @@ final class PlatformAdmin
             if (!$includeSensitive) {
                 unset($row['phone'], $row['email']);
             }
-            $row['team_count'] = Db::name('team_member')
-                ->where('user_id', $row['id'])->whereNull('delete_time')->count();
-            $row['device_count'] = UserDevice::where('user_id', $row['id'])->count();
+            $row['team_count'] = (int) ($row['team_count'] ?? 0);
+            $row['device_count'] = (int) ($row['device_count'] ?? 0);
         }
 
         return ['total' => $total, 'list' => $rows, 'page' => $page, 'limit' => $limit];
@@ -139,7 +135,7 @@ final class PlatformAdmin
             ->join('team team', 'team.id = member.team_id')
             ->where('member.user_id', $id)
             ->whereNull('member.delete_time')
-            ->field('team.id,team.slug,team.is_banned,team.is_cancelled,member.status,member.is_blocked,member.create_time')
+            ->field('team.id,team.slug,team.is_banned,team.is_cancelled,member.create_time')
             ->order('member.id', 'desc')
             ->select()
             ->toArray();
@@ -255,12 +251,15 @@ final class PlatformAdmin
                 $query->where('team.is_cancelled', 1);
             }
         }
-        $total = (clone $query)->count('team.id');
-        $rows = $query->field([
+        $paginator = $query->field([
             'team.id', 'team.slug', 'team.user_id', 'team.is_banned', 'team.is_cancelled',
             'team.create_time', 'team.update_time', 'profile.name', 'profile.avatar',
             'owner.username owner_username',
-        ])->order('team.id', 'desc')->page($page, $limit)->select()->toArray();
+        ])->order('team.id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $rows = $paginator->getCollection()->toArray();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
         foreach ($rows as &$row) {
             $row['member_count'] = Db::name('team_member')
                 ->where('team_id', $row['id'])->whereNull('delete_time')->count();
@@ -352,12 +351,15 @@ final class PlatformAdmin
         if ((int) ($filters['actor_user_id'] ?? 0) > 0) {
             $query->where('event.authenticated_user_id', (int) $filters['actor_user_id']);
         }
-        $total = (clone $query)->count('event.id');
-        $rows = $query->field([
+        $paginator = $query->field([
             'event.id', 'event.team_id', 'event.entity_id', 'event.authenticated_user_id',
             'event.application', 'event.action', 'event.resource_type', 'event.resource_id',
             'event.request_id', 'event.context', 'event.create_time', 'actor.username actor_username',
-        ])->order('event.id', 'desc')->page($page, $limit)->select()->toArray();
+        ])->order('event.id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $rows = $paginator->getCollection()->toArray();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
         foreach ($rows as &$row) {
             if (is_string($row['context'] ?? null)) {
                 $row['context'] = json_decode($row['context'], true);

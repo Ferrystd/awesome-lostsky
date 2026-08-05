@@ -281,8 +281,14 @@ final class EntitlementManagement
     private function page($query, int $page, int $limit, array $with = []): array
     {
         $page = max(1, $page); $limit = min(100, max(1, $limit));
-        $total = (int) (clone $query)->count();
         if ($with) $query->with($with);
-        return ['total' => $total, 'list' => $query->order('id', 'desc')->page($page, $limit)->select()->toArray(), 'page' => $page, 'limit' => $limit];
+        $paginator = $query->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
+
+        return [
+            'total' => $paginator->total(),
+            'list' => $paginator->getCollection()->toArray(),
+            'page' => $paginator->currentPage(),
+            'limit' => $paginator->listRows(),
+        ];
     }
 }

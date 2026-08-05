@@ -40,7 +40,7 @@ function statusType(code: unknown): 'success' | 'error' | 'warning' | 'info' {
 
 <template>
   <div class="departure-list">
-    <AdminPageHeader title="离队审核" description="处理成员自助或管理员代为发起的离队申请；离队不会删除资料与业务关系。" />
+    <AdminPageHeader title="离队审核" description="处理成员自助提交的离队申请；管理员办理离职时不再进入审核。" />
     <LsListToolbar v-model="search" placeholder="搜索成员或申请编号" aria-label="搜索离队申请" :count-label="`${visible.length} 条申请`">
       <template #filters><NSelect v-model:value="status" class="status-filter" :options="statusOptions" aria-label="筛选申请状态" /></template>
     </LsListToolbar>

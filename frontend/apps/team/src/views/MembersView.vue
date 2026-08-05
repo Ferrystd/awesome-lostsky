@@ -71,7 +71,7 @@ function memberActions(item: Record<string, unknown>) {
     { key: 'preview', label: '预览', icon: FileText },
     { key: 'manage', label: canUpdate.value ? '管理' : '查看', icon: Pencil },
     ...(status === 'departed' ? [] : [{ key: status === 'blocked' ? 'unblock' : 'block', label: status === 'blocked' ? '解封' : '封禁', icon: status === 'blocked' ? ShieldCheck : ShieldBan, disabled: !canUpdate.value, reason: canUpdate.value ? '' : permissionReason('team.member.update') }]),
-    ...(status === 'departed' ? [] : [{ key: 'departure', label: '发起离队申请', icon: UserX, danger: true, disabled: !canRemove.value, reason: canRemove.value ? '' : permissionReason('team.member.remove') }]),
+    ...(status === 'departed' ? [] : [{ key: 'departure', label: '离职', icon: UserX, danger: true, disabled: !canRemove.value, reason: canRemove.value ? '' : permissionReason('team.member.remove') }]),
   ]
 }
 function handleAction(key: string, item: Record<string, unknown>) {
@@ -80,7 +80,7 @@ function handleAction(key: string, item: Record<string, unknown>) {
   else if (key === 'manage') void router.push(`/member-edit?id=${item.id}`)
   else if (key === 'block') mutate('/member/block', item, '确认封禁该成员？其身份与旧引用会保留，但暂时不可用。', '成员已封禁')
   else if (key === 'unblock') mutate('/member/unblock', item, '确认解除该成员的封禁？', '成员已解除封禁')
-  else if (key === 'departure') mutate('/memberDeparture/create', item, '确认发起该成员的离队申请？资料、角色和业务关系都会保留，申请仍需审核。', '离队申请已创建')
+  else if (key === 'departure') mutate('/memberDeparture/depart', item, '确认将该成员设为已离职？操作后该成员的现有会话会立即失效；资料、角色、对象标识和业务关系都会保留。', '成员已离职')
 }
 </script>
 

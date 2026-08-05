@@ -89,12 +89,13 @@ class File
             $query->where('create_time', '<=', (int) $filters['end_time']);
         }
 
-        $total = $query->count();
-        $list  = $query->with(['subject'])
+        $paginator = $query->with(['subject'])
             ->order('id', 'desc')
-            ->page($page, $limit)
-            ->select()
-            ->toArray();
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $list  = $paginator->getCollection()->toArray();
+        $page  = $paginator->currentPage();
+        $limit = $paginator->listRows();
 
         foreach ($list as &$item) {
             $item = $this->format($item);

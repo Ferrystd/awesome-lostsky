@@ -26,7 +26,7 @@ class TeamJoin
         $member = \app\model\TeamMember::where('team_id', $teamId)
             ->where('user_id', $userId)
             ->find();
-        if ($member && $member->statusCase() !== TeamMemberStatus::Departed) {
+        if ($member && $member->enumCase('status') !== TeamMemberStatus::Departed) {
             throw new HttpException(409, '你已经是本团队成员');
         }
 
@@ -142,7 +142,7 @@ class TeamJoin
             throw new HttpException(422, $validator->getError());
         }
         $member = \app\model\TeamMember::where('team_id', $teamId)->where('user_id', $userId)->find();
-        if ($member && $member->statusCase() !== TeamMemberStatus::Departed) {
+        if ($member && $member->enumCase('status') !== TeamMemberStatus::Departed) {
             throw new HttpException(409, '你已经是本团队成员');
         }
         if (TeamJoinApplication::where('team_id', $teamId)->where('user_id', $userId)->whereIn('status', self::ACTIVE_STATUSES)->find()) {
@@ -221,11 +221,13 @@ class TeamJoin
             $query->where('user_id', (int) $filters['user_id']);
         }
 
-        $total = $query->count();
-        $applications = $query->with(['user.profile', 'values.field', 'tasks'])
+        $paginator = $query->with(['user.profile', 'values.field', 'tasks'])
             ->order('id', 'desc')
-            ->page($page, $limit)
-            ->select();
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
+        $total = $paginator->total();
+        $applications = $paginator->getCollection();
+        $page = $paginator->currentPage();
+        $limit = $paginator->listRows();
 
         $list = array_map(
             fn (TeamJoinApplication $application): array => $this->applicationData($application, $teamId),
@@ -302,7 +304,7 @@ class TeamJoin
                 throw new HttpException(409, '申请人已经是团队成员');
             }
             if ($purpose === TeamJoinPurpose::Reinstate
-                && (!$member || $member->statusCase() !== TeamMemberStatus::Departed)) {
+                && (!$member || $member->enumCase('status') !== TeamMemberStatus::Departed)) {
                 throw new HttpException(409, '成员当前状态不能复职');
             }
 
@@ -312,8 +314,7 @@ class TeamJoin
                     'team_id' => $teamId,
                     'user_id' => (int) $application->user_id,
                     'inviter_entity_id' => $application->inviter_entity_id,
-                    'status' => TeamMemberStatus::Active->value,
-                    'is_blocked' => 0,
+                    'status' => TeamMemberStatus::Active,
                 ]);
                 $entity = app(\app\service\Entity::class)->claimMember(
                     $teamId,
@@ -322,8 +323,7 @@ class TeamJoin
                 );
             } else {
                 $member->save([
-                    'status' => TeamMemberStatus::Active->value,
-                    'is_blocked' => 0,
+                    'status' => TeamMemberStatus::Active,
                 ]);
             }
 

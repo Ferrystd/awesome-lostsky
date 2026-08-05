@@ -65,7 +65,7 @@ const detail = useQuery({
   enabled: editing,
 })
 const memberSlug = computed(() => String(detail.data.value?.slug ?? ''))
-const lifecycleStatus = computed(() => memberStatusCode(detail.data.value ?? {}))
+const lifecycleStatus = computed(() => detail.data.value ? memberStatusCode(detail.data.value) : 'active')
 const capabilities = computed<MemberCapabilities>(() => ({
   member_edit: Boolean((detail.data.value?.capabilities as Partial<MemberCapabilities> | undefined)?.member_edit),
   field_manage: Boolean((detail.data.value?.capabilities as Partial<MemberCapabilities> | undefined)?.field_manage),
@@ -195,8 +195,8 @@ const memberAction = useMutation({
   onSuccess: async (_, endpoint) => {
     await queryClient.invalidateQueries({ queryKey: ['members'] })
     await detail.refetch()
-    feedback.success(endpoint === '/memberDeparture/create'
-      ? '离队申请已创建，等待审核'
+    feedback.success(endpoint === '/memberDeparture/depart'
+      ? '成员已离职'
       : endpoint === '/member/block' ? '成员已封禁' : '成员封禁已解除')
   },
   onError: error => feedback.error(friendlyError(error)),
@@ -374,14 +374,14 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       </div>
 
       <div v-if="capabilities.member_remove && lifecycleStatus !== 'departed'" class="danger-zone">
-        <div><strong>发起离队申请</strong><p>申请获批后成员进入已离队状态；资料、角色、对象标识和全部业务关系都会保留。</p></div>
+        <div><strong>离职</strong><p>确认后成员立即进入已离队状态，现有会话失效；资料、角色、对象标识和全部业务关系都会保留。</p></div>
         <LsButton
           type="button"
           variant="danger"
           :loading="memberAction.isPending.value"
-          @click="confirmAction('/memberDeparture/create', '确认发起该成员的离队申请？申请创建后仍需审核。')"
+          @click="confirmAction('/memberDeparture/depart', '确认将该成员设为已离职？操作后该成员的现有会话会立即失效，且不再等待审核。')"
         >
-          发起离队申请
+          离职
         </LsButton>
       </div>
       </section>

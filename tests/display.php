@@ -5,6 +5,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\enum\ManageScope;
 use app\enum\TeamEntityType;
+use app\enum\TeamMemberStatus;
 use app\enum\Visibility;
 use app\model\Document;
 use app\model\Entity;
@@ -65,7 +66,7 @@ $member = static function (Team $team, User $user, string $slug) use ($suffix): 
     $record->save([
         'team_id' => (int) $team->id,
         'user_id' => (int) $user->id,
-        'is_blocked' => 0,
+        'status' => TeamMemberStatus::Active,
     ]);
     $entity = app(EntityService::class)->claimMember(
         (int) $team->id,
@@ -214,7 +215,7 @@ foreach ([$publicEntity, $blockedEntity, $deletedEntity, $virtualEntity, $inacti
     $teamId = $entity === $foreignEntity ? (int) $foreignTeam->id : (int) $team->id;
     $entities->setDisplay($teamId, (int) $entity->id, 1);
 }
-$blockedMember->save(['status' => 2, 'is_blocked' => 1]);
+$blockedMember->save(['status' => TeamMemberStatus::Blocked]);
 $deletedMember->delete();
 $inactiveVirtual->save(['is_active' => 0]);
 $customerEntity->save(['is_displayed' => 1]);
@@ -423,6 +424,15 @@ $assertSame(2, $display->entities((int) $team->id, null, 1, 20, '   ')['total'],
 $searchPage = $display->entities((int) $team->id, null, 1, 1, 'display');
 $assertSame(2, $searchPage['total'], 'search total is calculated before pagination');
 $assertSame(1, count($searchPage['list']), 'search result respects pagination');
+$secondSearchPage = $display->entities((int) $team->id, null, 2, 1, 'display');
+$assertSame(2, $secondSearchPage['total'], 'second page preserves the filtered total');
+$assertSame(2, $secondSearchPage['page'], 'second page uses the requested page number');
+$assertSame(1, $secondSearchPage['limit'], 'second page preserves the requested limit');
+$assertSame(1, count($secondSearchPage['list']), 'second page returns one filtered entity');
+$assert(
+    $searchPage['list'][0]['slug'] !== $secondSearchPage['list'][0]['slug'],
+    'second page returns the next filtered entity'
+);
 foreach ([$hiddenEntity, $blockedEntity, $inactiveVirtualEntity, $customerEntity, $foreignEntity] as $excluded) {
     $assertSame(
         0,

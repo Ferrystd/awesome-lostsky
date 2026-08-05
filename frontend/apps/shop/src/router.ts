@@ -1,5 +1,5 @@
 import { auth } from '@lostsky/api/client'
-import { redirectToLogin } from '@lostsky/shared/navigation'
+import { currentEntityUrl, redirectToLogin, shopWorkspaceUrl } from '@lostsky/shared/navigation'
 import { syncReferral } from '@lostsky/shared/referral'
 import { createRouter, createWebHistory } from 'vue-router'
 import { isCustomerReady, loadManageAccess, verifyCustomer } from './lib'
@@ -43,6 +43,10 @@ export const router = createRouter({
 let initialNavigation = true
 
 router.beforeEach(async (to) => {
+  if (to.path === '/customer/profile' && auth.token()) {
+    location.replace(currentEntityUrl(shopWorkspaceUrl('/')))
+    return false
+  }
   if (to.meta.manage) {
     if (!auth.token()) { redirectToLogin({ redirect: location.href }); return false }
     if (!['team', 'teamMember', 'teamVirtual'].includes(String(auth.entity()?.type ?? ''))) { redirectToLogin({ redirect: location.href }); return false }
@@ -71,12 +75,12 @@ router.beforeEach(async (to) => {
   if (auth.entity()?.type !== 'teamCustomer') {
     return { path: '/customer/bind', query: { redirect: to.fullPath } }
   }
-  if (to.path === '/customer/profile') return true
   if (!isCustomerReady()) {
     try {
       await verifyCustomer()
     } catch {
-      return { path: '/customer/profile', query: { redirect: to.fullPath } }
+      location.replace(currentEntityUrl(shopWorkspaceUrl('/')))
+      return false
     }
   }
   return true
