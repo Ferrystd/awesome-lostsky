@@ -1,3 +1,5 @@
+import { formatAbilityDenied, formatPermissionDenied } from '@lostsky/api/error-format'
+
 export interface AccessSnapshotLike {
   permissions?: string[]
   abilities?: Record<string, {
@@ -18,11 +20,11 @@ export function hasPermissionMatching(
 }
 
 export function permissionReason(permission: string) {
-  return `缺少权限(Permission): ${permission}`
+  return formatPermissionDenied([permission])
 }
 
 export function abilityReason(key: string, label: string) {
-  return `当前团队缺失能力(Ability): ${label}(${key.charAt(0).toUpperCase()}${key.slice(1)})`
+  return formatAbilityDenied(key, label)
 }
 
 export function fileUploadReason(snapshot: AccessSnapshotLike | undefined) {

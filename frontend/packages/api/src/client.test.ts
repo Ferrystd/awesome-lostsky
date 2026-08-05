@@ -223,8 +223,32 @@ describe('write request deduplication', () => {
 })
 
 describe('friendlyError', () => {
-  it('maps common statuses', () => {
-    expect(friendlyError(new ApiError('x', { status: 429 }))).toContain('频繁')
-    expect(friendlyError(new ApiError('x', { status: 500 }))).toContain('暂时')
+  it('maps common errors to stable messages', () => {
+    expect(friendlyError(new Error('x'))).toBe('发生未知错误，请稍后再试')
+    expect(friendlyError(new ApiError('x', { status: 429 }))).toBe('操作太频繁，请稍后再试')
+    expect(friendlyError(new ApiError('x', { status: 500 }))).toBe('服务暂时不可用，请稍后再试')
+    expect(friendlyError(new ApiError('x', { network: true }))).toBe('网络连接失败，请检查网络后重试')
+    expect(friendlyError(new ApiError(''))).toBe('请求失败')
+  })
+
+  it('formats structured access errors before using the server message', () => {
+    expect(friendlyError(new ApiError('server permission message', {
+      status: 403,
+      code: 40302,
+      data: { kind: 'permission', required_any: ['file.upload'] },
+    }))).toBe('您缺少权限(Permission): file.upload,请联系团队管理员开通。')
+    expect(friendlyError(new ApiError('server ability message', {
+      status: 403,
+      code: 40303,
+      data: { kind: 'ability', key: 'file', label: '文件上传', reason: 'missing' },
+    }))).toBe('团队能力(Ability)缺失: 文件上传(File),管理员可按需购买。')
+  })
+
+  it('keeps the server message when structured access details are incomplete', () => {
+    expect(friendlyError(new ApiError('服务端具体原因', {
+      status: 403,
+      code: 40302,
+      data: { kind: 'permission', required_any: [] },
+    }))).toBe('服务端具体原因')
   })
 })

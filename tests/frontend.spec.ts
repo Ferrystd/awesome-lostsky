@@ -773,7 +773,7 @@ test('team explains read-only permissions and missing upload ability without blo
   await expect(page.locator('.stats a[href="/docs"] strong svg')).toBeVisible()
 
   await page.goto('http://demo.team.lostsky.work:5175/entity?id=2')
-  await expect(page.getByText(/当前为只读模式。缺少权限\(Permission\): team\.entity\.profile\.manage/)).toBeVisible()
+  await expect(page.getByText(/当前为只读模式。您缺少权限\(Permission\): team\.entity\.profile\.manage,请联系团队管理员开通。/)).toBeVisible()
   await expect(page.getByRole('button', { name: '保存资料' })).toBeDisabled()
   await expect(page.getByRole('button', { name: '添加展示标签' })).toBeDisabled()
   await expect(page.getByRole('button', { name: '删除展示标签 1' })).toBeDisabled()
@@ -782,10 +782,10 @@ test('team explains read-only permissions and missing upload ability without blo
   const uploadButton = page.getByRole('button', { name: '上传文件' })
   await expect(uploadButton).toBeDisabled()
   await expect(page.locator('.ls-upload-field__reason')).toHaveCount(0)
-  await expect(page.getByText('当前团队缺失能力(Ability): 文件上传(File)', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('团队能力(Ability)缺失: 文件上传(File),管理员可按需购买。', { exact: true })).toHaveCount(0)
   await uploadButton.focus()
   await uploadButton.press('Enter')
-  await expect(page.getByText('当前团队缺失能力(Ability): 文件上传(File)', { exact: true })).toBeVisible()
+  await expect(page.getByText('团队能力(Ability)缺失: 文件上传(File),管理员可按需购买。', { exact: true })).toBeVisible()
 })
 
 test('account login remains usable at mobile and desktop widths', async ({ page }) => {

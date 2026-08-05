@@ -1,4 +1,6 @@
 import { redirectToLogin, redirectToMemberIdentity } from '@lostsky/shared/navigation'
+import { formatStructuredAccessError } from './error-format'
+import { ERROR_MESSAGES } from './error-messages'
 
 const API_BASE = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE || '//api.lostsky.work')
 const TOKEN_KEY = 'lostsky_token'
@@ -247,7 +249,7 @@ async function request<T>(method: string, path: string, body?: unknown, options:
           }
         }
         if (!response.ok || envelope.code !== 0) {
-          throw new ApiError(envelope.message || response.statusText || '请求失败', {
+          throw new ApiError(envelope.message || response.statusText || ERROR_MESSAGES.request.failed, {
             status: response.status, code: envelope.code, method, path, data: envelope.data, response: envelope,
           })
         }
@@ -256,7 +258,7 @@ async function request<T>(method: string, path: string, body?: unknown, options:
     } catch (error) {
       if (error instanceof ApiError) throw error
       const aborted = error instanceof DOMException && error.name === 'AbortError'
-      throw new ApiError(aborted ? '请求超时或已取消' : '网络请求失败', { method, path, cause: error, network: !aborted })
+      throw new ApiError(aborted ? ERROR_MESSAGES.request.timeoutOrCancelled : ERROR_MESSAGES.request.networkFailure, { method, path, cause: error, network: !aborted })
     } finally { clearTimeout(timeout) }
   })()
 
@@ -285,9 +287,11 @@ export const api = {
 }
 
 export function friendlyError(error: unknown) {
-  if (!(error instanceof ApiError)) return '发生未知错误，请稍后再试'
-  if (error.status === 429) return '操作太频繁，请稍后再试'
-  if (error.status >= 500) return '服务暂时不可用，请稍后再试'
-  if (error.network) return '网络连接失败，请检查网络后重试'
-  return error.message || '请求失败'
+  if (!(error instanceof ApiError)) return ERROR_MESSAGES.friendly.unknown
+  const accessMessage = formatStructuredAccessError(error.data)
+  if (accessMessage) return accessMessage
+  if (error.status === 429) return ERROR_MESSAGES.friendly.tooManyRequests
+  if (error.status >= 500) return ERROR_MESSAGES.friendly.serviceUnavailable
+  if (error.network) return ERROR_MESSAGES.friendly.networkConnectionFailed
+  return error.message || ERROR_MESSAGES.request.failed
 }
