@@ -12,8 +12,9 @@ class Sender
     protected $middleware = [
         'JwtAuth'      => ['except' => []],
         'Context'      => ['except' => []],
-        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'EntityType:team,teamMember,teamVirtual' => ['except' => []],
         'TeamAuth'     => ['except' => []],
+        'Ability:transaction' => ['except' => []],
         'Permission:' . Permissions::TRANSACTION_READ => ['only' => ['index', 'all']],
         'Permission:' . Permissions::TRANSACTION_WRITE => ['only' => ['bind', 'unbind']],
     ];

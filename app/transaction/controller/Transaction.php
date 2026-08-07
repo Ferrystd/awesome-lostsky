@@ -12,9 +12,9 @@ class Transaction
     protected $middleware = [
         'JwtAuth'            => ['except' => []],
         'Context'            => ['except' => []],
-        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'EntityType:team,teamMember,teamVirtual' => ['except' => []],
         'TeamAuth'           => ['except' => []],
-        'Ability:transaction' => ['only' => ['create', 'edit', 'delete', 'stats']],
+        'Ability:transaction' => ['except' => []],
         'Permission:' . Permissions::TRANSACTION_READ => ['only' => ['index', 'get']],
         'Permission:' . Permissions::TRANSACTION_WRITE => ['only' => ['create', 'edit']],
         'Permission:' . Permissions::TRANSACTION_DELETE => ['only' => ['delete']],

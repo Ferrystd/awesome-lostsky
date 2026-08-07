@@ -2981,17 +2981,21 @@
 <li>按汇总、角色实体、时间或客户生成统计结果。</li>
 <li>查询当前实体或全团队的客户绑定关系，并由管理员维护绑定。</li>
 <li>查询顾客余额日志并执行充值。</li>
+<li>个人工作台按当前 Entity 强制筛选相关流水、个人业绩、本人核销与客户协作/发单绑定。</li>
+<li>团队工作台基础概览始终展示团队摘要；具体流水、统计、核销、绑定与余额操作按 Permission 禁用并说明原因。</li>
+<li>顶栏直显团队、商品、记账和聊天四入口，不使用应用下拉或个人/团队分段控件；团队概览和流水主页面进入个人模式，个人模式从顶栏“记账”返回。</li>
 </ul>
 <p>流水编辑不允许更换 <code>handler_entity_id</code>；涉及余额和多模型变更的操作由服务层事务保证一致性。
 预存款支付必须关联本团队客户，接单、发单和客服主体必须是本团队有效实体；所有金额均为非负有限数值。</p>
 <h2 id="_2">鉴权边界<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
-<p>所有接口都经过 <code>JwtAuth</code>、<code>Context</code>、允许四种团队实体的 <code>EntityType</code> 和 <code>TeamAuth</code>；基础 JWT 不再静默领取成员，已有实体先验证当前团队归属，再按当前实体校验业务权限。</p>
+<p>除 <code>GET /workspace/access</code> 外，所有接口都经过 <code>JwtAuth</code>、<code>Context</code>、允许 Team、成员和虚拟实体的 <code>EntityType</code>、<code>TeamAuth</code> 与 <code>Ability:transaction</code>；客户不进入后台记账工作台。Ability 缺失时前端只读取访问快照，不请求任何业务接口。</p>
 <ul>
-<li>流水查询、创建/编辑、删除分别要求 <code>transaction.read</code>、<code>transaction.write</code>、<code>transaction.delete</code>，写操作继续叠加 <code>Ability:transaction</code> 与 <code>TransactionVerify</code>。</li>
-<li>统计要求 <code>Ability:transaction</code> 与 <code>transaction.report.read</code>。</li>
+<li>流水查询、创建/编辑、删除分别要求 <code>transaction.read</code>、<code>transaction.write</code>、<code>transaction.delete</code>，写操作继续叠加 <code>TransactionVerify</code>。</li>
+<li>统计要求 <code>transaction.report.read</code>。</li>
 <li>绑定查询要求 <code>transaction.read</code>；绑定和解绑要求 <code>transaction.write</code>。</li>
-<li>余额日志要求 <code>transaction.read</code>；充值要求 <code>Ability:transaction</code> 与 <code>transaction.write</code>。</li>
+<li>余额日志要求 <code>transaction.read</code>；充值要求 <code>transaction.write</code>。</li>
 </ul>
+<p>个人接口不接收 Entity ID：<code>/personal/transactions*</code>、<code>/personal/stats</code>、<code>/personal/services*</code> 与 <code>/personal/bindings</code> 只从当前 <code>acting_entity</code> 取得范围，即使当前角色拥有团队全量读取 Permission 也不会扩大结果。</p>
 <h2 id="_3">接口契约<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <p>具体路径、筛选参数、统计类型和响应结构见 <a href="../../openapi/transaction.openapi.json"><code>transaction.openapi.json</code></a>。</p>
 <p>后端回归测试使用项目 <code>.env</code> 指向的 MySQL 数据库，并自动回滚或清理隔离测试数据：</p>
@@ -2999,7 +3003,7 @@
 </span></code></pre></div>
 <h2 id="_4">服务核销与统计口径<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>Transaction 将“服务包收款”和“服务核销”作为独立流水类型。收款流水只进入现金或预存款口径；核销流水使用 <code>service_credit</code>，进入履约、接单与分成口径而不重复形成现金收入。每个服务实例最多关联一条核销流水。</p>
-<p><code>service.redemption.read</code> 允许读取核销任务；<code>service.redemption.manage</code> 允许管理 Entity 改派、处理取消申请和确认完成。完成动作与流水创建在同一事务中；团队缺少有效 Transaction Ability 时只完成服务，不创建或后补流水。</p>
+<p>当前接单 Entity 可读取自己的核销任务；<code>service.redemption.read</code> 或 <code>service.redemption.manage</code> 扩大为全量读取，<code>service.redemption.manage</code> 允许改派、处理取消申请和确认完成。Transaction API 整体要求有效 Transaction Ability；Ability 缺失时访问快照仍可解释原因，但核销接口不会执行。底层履约服务保留非 Transaction 调用的无流水降级语义。</p>
 
 
 

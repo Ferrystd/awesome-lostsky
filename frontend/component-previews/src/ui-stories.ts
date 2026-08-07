@@ -1,6 +1,6 @@
 import { defineComponent, h } from 'vue'
 import { NInput, NSelect, NTag } from 'naive-ui'
-import { Pencil, Save, Trash2 } from '@lucide/vue'
+import { House, Pencil, ReceiptText, Save, ShoppingBag, Trash2, UserRound } from '@lucide/vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -24,6 +24,7 @@ import LsSearchInput from '@lostsky/ui/components/LsSearchInput.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
+import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
 import { previewStates, type PreviewState, type StoryDefinition } from './story-types'
 
@@ -186,11 +187,31 @@ const uploadField = story('LsUploadField', allInteractive, state => stage(h(LsUp
 })))
 
 const workspaceHeader = story('LsWorkspaceHeader', interactive, state => stage(h(LsWorkspaceHeader, {
-  contextLabel: 'TEAM WORKSPACE', title: '对象字段', actions: [
-    { key: 'display', label: '查看公开主页' },
-    { key: 'notice', label: '通知', disabled: state === 'disabled', reason: '当前身份无权查看' },
+  contextLabel: 'TEAM WORKSPACE', title: '对象字段',
+  actions: [
+    { key: 'team', label: '团队' },
+    { key: 'shop', label: '商品' },
+    { key: 'transaction', label: '记账', disabled: state === 'disabled', reason: '当前团队未启用 transaction Ability' },
+    { key: 'chat', label: '聊天' },
   ],
+}, {
+  actions: () => ['团队', '商品', '记账', '聊天'].map(label => h('a', { href: '#', onClick: (event: Event) => event.preventDefault() }, label)),
 })))
+
+const workspaceOverview = story('LsWorkspaceOverview', allInteractive, state => stage(h(LsWorkspaceOverview, {
+  eyebrow: '商品团队工作台',
+  title: state === 'loading' ? '正在读取当前团队…' : state === 'error' ? '团队摘要暂时不可用' : '青空协作组',
+  description: state === 'error' ? '摘要暂时无法读取，工作台切换与业务入口仍保持可用。' : '集中维护商品、订单与履约配置；不可用入口会直接说明原因。',
+  actions: [
+    { key: 'personal', label: '进入个人工作台', to: '/manage/personal', icon: UserRound, primary: true },
+    { key: 'team', label: '进入团队工作台', to: '/manage', icon: House },
+  ],
+  entries: [
+    { key: 'products', label: '商品', description: '维护可售商品、处理人和核销字段。', to: '/manage/products', icon: ShoppingBag },
+    { key: 'orders', label: '订单', description: '查看团队订单并持续推进履约状态。', to: '/manage/orders', icon: ReceiptText, disabled: state === 'disabled', reason: state === 'disabled' ? '缺少 shop.order.read Permission' : '' },
+  ],
+  scopeNotes: ['概览只读取访问快照，不请求商品或订单数据。', '具体管理操作继续执行 Permission 校验。'],
+}), state === 'mobile' ? 'story-stage--mobile' : ''))
 
 export const uiStories: Record<string, StoryDefinition> = {
   LsAsyncState: asyncState, LsButton: button, LsEmptyState: emptyState, LsEntityCard: entityCard,
@@ -199,5 +220,5 @@ export const uiStories: Record<string, StoryDefinition> = {
   LsMarkdownRenderer: markdownRenderer, LsPage: page, LsPageHeader: pageHeader, LsPanel: panel,
   LsResponsiveActions: responsiveActions, LsResponsiveDataTable: responsiveDataTable,
   LsRouteErrorBoundary: routeBoundary, LsSearchInput: searchInput, LsStatusTag: statusTag,
-  LsUploadField: uploadField, LsWorkspaceHeader: workspaceHeader,
+  LsUploadField: uploadField, LsWorkspaceHeader: workspaceHeader, LsWorkspaceOverview: workspaceOverview,
 }

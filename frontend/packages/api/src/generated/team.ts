@@ -75,6 +75,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/personal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取当前 Team、成员或虚拟实体个人工作台
+         * @description 只读取当前 JWT 最终叶子 Entity 的资料、本人字段及只读角色权限。
+         */
+        get: operations["teamPersonalCurrent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存当前 Entity 资料 */
+        post: operations["teamPersonalProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/slug": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 补全当前成员 Entity 标识 */
+        post: operations["teamPersonalSlug"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 保存当前 Entity 本人字段 */
+        post: operations["teamPersonalFields"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 上传当前 Entity 资料媒体 */
+        post: operations["teamPersonalUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dashboard": {
         parameters: {
             query?: never;
@@ -226,7 +314,7 @@ export interface paths {
         put?: never;
         /**
          * 全量同步角色权限
-         * @description 要求 team.role.write 权限；空 permission_keys 清空角色权限。
+         * @description 要求 team.role.write 权限；空 permission_keys 清空角色权限。服务端保存所有不同且合法的权限键，不折叠父子或通配符与指定 slug 的覆盖冗余；官方前端在提交前生成最小集合。
          */
         post: operations["teamRolePermissionSave"];
         delete?: never;
@@ -1620,8 +1708,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 加载固定权限、当前团队通配委托权限及具体虚拟实体权限目录
-         * @description 要求 team.role.read 权限。委托权限包括 identity.team.assume 以及 member/customer/virtual 的当前团队通配权限；当前团队有效实体还可通过精确 slug 保存对应 assume 权限。
+         * 加载固定权限、父级范围权限及当前团队动态权限目录
+         * @description 要求 team.role.read 权限。实体创建、维护和字段管理归入实体管理组；身份领取与跨应用代执行归入实体委托组；Chat 组仅包含聊天能力。advanced_items 从固定权限和当前团队动态权限生成合法父级，并列出当前覆盖的叶子权限。当前团队有效实体必须通过真实 slug 保存对应叶子或父级权限，不接受旧权限别名。
          */
         get: operations["teamRolePermissionCatalog"];
         put?: never;
@@ -1863,11 +1951,23 @@ export interface components {
             reason: "missing" | "level" | "expired" | null;
             label: string;
         };
+        WorkspaceTeamSummary: {
+            /** Format: int64 */
+            id: number;
+            slug: string;
+            name: string;
+        };
         TeamAccessSnapshot: {
+            team: components["schemas"]["WorkspaceTeamSummary"];
             permissions: string[];
             abilities: {
                 file: components["schemas"]["TeamAbilityState"];
                 doc: components["schemas"]["TeamAbilityState"];
+                transaction: components["schemas"]["TeamAbilityState"];
+            };
+            identity: {
+                /** @enum {string} */
+                type: "team" | "teamMember" | "teamVirtual";
             };
         };
         DashboardMetric: {
@@ -1986,7 +2086,7 @@ export interface components {
             custom_field_values?: components["schemas"]["EntityFieldValue"][];
             /** @description Only returned by /me/get. Roles assigned to the current entity, including each role's permissions. */
             role_assignments?: components["schemas"]["TeamEntityRole"][];
-            /** @description Only returned by /me/get. Deduplicated permission union from the current entity's roles. */
+            /** @description Only returned by /me/get. Active permission rows from all roles assigned to the current entity; duplicate and parent/child rows are preserved for display. */
             effective_permissions?: components["schemas"]["EffectivePermission"][];
             /** @description Only returned by /member/get. Operations the current acting entity may perform on the member task page. */
             capabilities?: components["schemas"]["MemberCapabilities"];
@@ -2565,8 +2665,14 @@ export interface components {
             name: string;
             items: components["schemas"]["PermissionCatalogItem"][];
         };
+        AdvancedPermissionCatalogItem: {
+            key: string;
+            label: string;
+            covered_keys: string[];
+        };
         PermissionCatalog: {
             groups: components["schemas"]["PermissionCatalogGroup"][];
+            advanced_items: components["schemas"]["AdvancedPermissionCatalogItem"][];
         };
         TeamEntityRole: {
             /** Format: int64 */
@@ -2991,6 +3097,173 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
+            };
+        };
+    };
+    teamPersonalCurrent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"];
+                };
+            };
+        };
+    };
+    teamPersonalProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    expected_entity_id: number;
+                    name: string;
+                    avatar?: string | null;
+                    description?: string | null;
+                    intro_image?: string | null;
+                    intro_video?: string | null;
+                    introduction_markdown?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    teamPersonalSlug: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    expected_entity_id: number;
+                    slug: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份已变化或标识已确定 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    teamPersonalFields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    expected_entity_id: number;
+                    values: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    teamPersonalUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: int64 */
+                    expected_entity_id: number;
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 上传成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 缺少 File Ability 或 file.upload Permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

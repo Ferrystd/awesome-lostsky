@@ -3204,7 +3204,7 @@
                   
 
 <h1 id="_1">聊天<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
-<p>Chat 以当前 Entity 参与团队会话。账号登录、团队入口和 Entity 领取由 Account 负责；成员与客户资料、虚拟实体、Webhook 和聊天策略由 Team 或 Shop 负责。</p>
+<p>Chat 以当前 Entity 参与团队会话。账号登录、团队入口和 Entity 领取由 Account 负责；Team、成员与虚拟实体资料进入 Team 个人工作台，客户资料进入商城客户中心。Chat 保持单一消息工作台，不提供个人/团队模式切换。</p>
 <h2 id="_2">功能基线<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -3260,9 +3260,9 @@
 <p>进入团队 Chat 后还有“以此身份发送”选择。候选包括：</p>
 <ul>
 <li>当前有效 Team、成员或客户 Entity；</li>
-<li>当前 Entity 通过具体或通配 <code>chat.virtual.*.operate</code> Permission 可以操作的虚拟实体。</li>
+<li>当前 Entity 通过具体或通配 <code>identity.virtual.&lt;slug&gt;.act</code> Permission 可以代表执行操作的虚拟实体。</li>
 </ul>
-<p>消息编辑器中临时选择的发送 Entity 只影响本次会话行为，不替换登录 JWT 中的当前身份。顶栏“当前实体”始终进入 Account 当前实体中心；页面以当前 JWT 的最终叶子 Entity 决定可管理类型，不使用会话内临时发送者。</p>
+<p>消息编辑器中临时选择的发送 Entity 只影响本次会话行为，不替换登录 JWT 中的当前身份。顶栏资料动作按 JWT 最终叶子 Entity 进入 Team 个人工作台或商城客户中心；Team Entity 与成员、虚拟实体使用同一 Team 个人入口，不使用会话内临时发送者。同一顶栏固定提供团队、商品、记账和聊天应用切换：桌面四项直接显示，移动端与 Team 一致收进“操作”菜单，不显示“切换应用”下拉按钮。Customer 仍能看到四项，其中“商品”进入商城客户中心，“团队”和“记账”因客户不进入后台双工作台而禁用并说明原因。</p>
 <h2 id="_4">查看已有会话<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>“消息”只列出当前 Entity 直接参与，或当前 Entity 有权操作的虚拟实体参与的会话。知道会话 UUID 也不能读取未参与的会话。</p>
 <p>会话详情显示参与者、当前发送身份、临时会话到期时间和连接状态：</p>
@@ -3399,7 +3399,7 @@
 <li>登录账号本身不是聊天参与者，团队会话必须使用有效 Entity。</li>
 <li>切换团队不会携带另一团队的会话、参与关系或 Permission。</li>
 <li>当前界面以文本消息为主，不提供文件附件、反应、消息搜索、会话导出或重新开启关闭会话。</li>
-<li>Chat 不保存或修改实体资料；旧 <code>/profile</code> 统一跳转到 Account 当前实体中心。</li>
+<li>Chat 不保存或修改实体资料；旧 <code>/profile</code> 按身份跳转到 Team 个人工作台或商城客户中心。</li>
 <li>页面当前不提供完整群参与者增删控件；服务端能力不等于界面已经交付。</li>
 <li>详细身份、Permission 和错误恢复见<a href="../concepts/">核心概念</a>、<a href="../permissions/">权限目录</a>和<a href="../troubleshooting/">问题排查</a>。</li>
 </ul>

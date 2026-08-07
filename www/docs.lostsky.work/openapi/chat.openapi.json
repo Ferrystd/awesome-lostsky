@@ -12,24 +12,9 @@
       "teamCustomer",
       "teamVirtual"
     ],
-    "base_login_auto_member": true,
+    "base_login_auto_member": false,
     "team_belongs": true,
     "exceptions": {
-      "identity_candidates_receive": {
-        "types": [
-          "teamless"
-        ],
-        "team_belongs": false
-      },
-      "identity_drop": {
-        "types": [
-          "team",
-          "teamMember",
-          "teamCustomer",
-          "teamVirtual"
-        ],
-        "team_belongs": false
-      },
       "team_list": {
         "types": [
           "teamless",
@@ -39,12 +24,6 @@
           "teamVirtual"
         ],
         "team_belongs": false
-      },
-      "customer_self": {
-        "types": [
-          "teamCustomer"
-        ],
-        "team_belongs": true
       },
       "integration_send": {
         "types": [
@@ -76,9 +55,6 @@
   "tags": [
     {
       "name": "Team"
-    },
-    {
-      "name": "Identity"
     },
     {
       "name": "Actor"
@@ -153,6 +129,28 @@
             }
           }
         ]
+      },
+      "WorkspaceAccessSnapshot": {
+        "type": "object",
+        "required": ["team", "permissions", "abilities", "identity"],
+        "properties": {
+          "team": {
+            "type": "object",
+            "required": ["id", "slug", "name"],
+            "properties": {
+              "id": {"type": "integer", "format": "int64"},
+              "slug": {"type": "string"},
+              "name": {"type": "string"}
+            }
+          },
+          "permissions": {"type": "array", "items": {"type": "string"}},
+          "abilities": {"type": "object", "additionalProperties": true},
+          "identity": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["team", "teamMember", "teamVirtual"]}}
+          }
+        }
       },
       "Actor": {
         "type": "object",
@@ -1023,6 +1021,7 @@
         }
       }
     },
+    "/workspace/access": {"get":{"tags":["Workspace"],"operationId":"chatWorkspaceAccess","summary":"读取应用切换所需团队摘要与 Ability 快照","responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/Envelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/WorkspaceAccessSnapshot"}}}]}}}}}}},
     "/conversation": {
       "get": {
         "tags": [

@@ -10,6 +10,7 @@ use app\model\TeamCustomer;
 use app\model\TeamVirtual;
 use app\model\User;
 use app\service\EntitySelfManagement;
+use app\service\IdentitySession;
 use think\App;
 use think\exception\HttpException;
 
@@ -71,12 +72,12 @@ try {
     $customerActing = ['entity_id' => (int) $customerEntity->id, 'type' => 'teamCustomer', 'id' => (int) $customer->id];
     $teamActing = ['entity_id' => (int) $teamEntity->id, 'type' => 'team', 'id' => (int) $team->id];
     $service = app(EntitySelfManagement::class);
+    $identitySession = app(IdentitySession::class);
 
     $assert($service->current(null) === ['identity' => null, 'supported' => false], 'teamless current state is explicit');
     foreach ([
         'teamMember' => $memberActing,
         'teamVirtual' => $virtualActing,
-        'teamCustomer' => $customerActing,
     ] as $type => $acting) {
         $current = $service->current($acting);
         $assert(
@@ -86,12 +87,19 @@ try {
             "{$type} can manage only the current leaf entity"
         );
     }
+    $customerCurrent = $service->current($customerActing);
+    $assert(
+        ($customerCurrent['supported'] ?? true) === false,
+        'customer self-management stays in the Shop customer center'
+    );
     $teamCurrent = $service->current($teamActing);
     $assert(
-        ($teamCurrent['supported'] ?? true) === false
+        ($teamCurrent['supported'] ?? false) === true
             && ($teamCurrent['identity']['type'] ?? '') === 'team',
-        'team identity is summarized but unsupported'
+        'team entity can enter the personal workspace with type-specific limits'
     );
+    $assert(($identitySession->currentTarget($teamActing)['kind'] ?? '') === 'team-personal', 'legacy Team deep link targets Team personal workspace');
+    $assert(($identitySession->currentTarget($customerActing)['kind'] ?? '') === 'shop-customer', 'legacy customer deep link targets Shop customer center');
 
     $fieldService = app(\app\service\TeamEntityField::class);
     $fieldService->create((int) $team->id, [
@@ -114,6 +122,33 @@ try {
         ->find();
     $assert((string) ($stored?->value_string ?? '') === 'leaf-only', 'editable SubjectTeam field is saved for current entity');
 
+    $fieldService->create((int) $team->id, [
+        'entity_type' => 'entity',
+        'field_key' => "team_self_note_{$suffix}",
+        'name' => 'Team 本人备注',
+        'value_type' => 'string',
+        'input_type' => 'text',
+        'manager_scope' => ManageScope::SubjectTeam->value,
+        'visibility' => Visibility::SubjectTeam->value,
+        'is_editable' => 1,
+        'is_required' => 0,
+    ]);
+    $teamField = \app\model\TeamEntityField::where('team_id', $team->id)
+        ->where('field_key', "team_self_note_{$suffix}")
+        ->find();
+    $service->saveFields($teamActing, (int) $teamEntity->id, [(int) $teamField->id => 'team-self']);
+    $assert(
+        (string) \app\model\TeamEntityFieldValue::where('entity_id', $teamEntity->id)
+            ->where('field_id', $teamField->id)
+            ->value('value_string') === 'team-self',
+        'Team Entity can save its own editable entity field'
+    );
+    $service->updateProfile($teamActing, (int) $teamEntity->id, ['name' => 'Updated Team Entity']);
+    $assert(
+        (string) \app\model\TeamEntityProfile::where('entity_id', $teamEntity->id)->value('name') === 'Updated Team Entity',
+        'Team Entity can update its personal-workspace profile'
+    );
+
     $service->updateProfile($virtualActing, (int) $virtualEntity->id, [
         'name' => 'Updated Bot',
         'description' => 'virtual profile',
@@ -127,27 +162,11 @@ try {
         'profile whitelist does not alter display or status controls'
     );
 
-    $service->updateProfile($customerActing, (int) $customerEntity->id, [
-        'name' => 'Current Customer',
-        'avatar' => null,
-        'description' => 'customer profile',
-        'assignee_entity_id' => (int) $memberEntity->id,
-        'intro_image' => 'forbidden',
-    ]);
-    $customer->refresh();
-    $customerProfile = \app\model\TeamEntityProfile::where('entity_id', $customerEntity->id)->find();
-    $assert(
-        (int) $customer->assignee_entity_id === (int) $memberEntity->id
-            && (string) $customerProfile->name === 'Current Customer'
-            && empty($customerProfile->intro_image),
-        'customer manages team profile and current service assignee without public media'
+    $assertStatus(
+        fn () => $service->updateProfile($customerActing, (int) $customerEntity->id, ['name' => 'Wrong workspace']),
+        403,
+        'customer cannot write through Team personal self-management'
     );
-    $assignees = $service->customerAssignees($customerActing);
-    $assert(
-        in_array((int) $memberEntity->id, array_map(static fn (array $item): int => (int) $item['entity_id'], $assignees), true),
-        'customer assignee candidates include active team entities'
-    );
-    $assertStatus(fn () => $service->customerAssignees($memberActing), 403, 'non-customer cannot read customer assignees');
 
     $memberBefore = \app\model\TeamEntityProfile::where('entity_id', $memberEntity->id)->value('name');
     $virtualBefore = (string) $virtualProfile->name;
@@ -163,9 +182,9 @@ try {
     );
 
     $assertStatus(
-        fn () => $service->upload($customerActing, (int) $customerEntity->id, new \think\file\UploadedFile(__FILE__, 'test.php', 'text/plain', null, true)),
+        fn () => $service->upload($virtualActing, (int) $virtualEntity->id, new \think\file\UploadedFile(__FILE__, 'test.php', 'text/plain', null, true)),
         403,
-        'account upload keeps file.upload permission enforcement'
+        'team personal upload keeps file.upload permission enforcement'
     );
 } finally {
     $db->rollback();

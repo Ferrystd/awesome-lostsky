@@ -293,16 +293,16 @@ try {
         'chat.conversation.create',
         'team.member.update',
         'team.member.remove',
-        'team.entity_field.manage',
+        'team.entity.field.manage',
         'team.role.read',
         "identity.member.{$memberSlug}.assume",
     ]);
     $roleSummary = app(\app\service\EntityRole::class)->summary((int) $team->id, $memberSlug);
     $effectiveKeys = array_column($roleSummary['effective_permissions'], 'key');
     $assertSame(
-        1,
+        2,
         count(array_filter($effectiveKeys, static fn (string $key): bool => $key === 'chat.conversation.create')),
-        'member effective permissions are deduplicated across assigned roles'
+        'member permission summary displays every active role permission row'
     );
     $assert(
         count($roleSummary['role_assignments']) === 2
@@ -340,7 +340,25 @@ try {
         'entity_id' => $memberEntity->id,
         'role_id' => $parentRole->id,
     ]);
-    $permissions->save((int) $team->id, (int) $parentRole->id, ['team.ability']);
+    $dynamicMemberParent = "identity.member.{$memberSlug}";
+    $permissions->save((int) $team->id, (int) $parentRole->id, [
+        'team.ability',
+        PermissionDictionary::TEAM_ABILITY_REDEEM,
+        PermissionDictionary::IDENTITY_MEMBER_ALL_ASSUME,
+        $dynamicMemberParent,
+        "{$dynamicMemberParent}.assume",
+    ]);
+    $assertSame(
+        [
+            'team.ability',
+            PermissionDictionary::TEAM_ABILITY_REDEEM,
+            PermissionDictionary::IDENTITY_MEMBER_ALL_ASSUME,
+            $dynamicMemberParent,
+            "{$dynamicMemberParent}.assume",
+        ],
+        array_column($permissions->list((int) $team->id, (int) $parentRole->id), 'permission_key'),
+        'role permission save preserves distinct parent and descendant grants for compatibility'
+    );
     $assert(
         $gate->allows((int) $team->id, (int) $member->id, [PermissionDictionary::TEAM_ABILITY_REDEEM]),
         'a parent role permission satisfies its child permission'
@@ -348,6 +366,43 @@ try {
     $assert(
         !$gate->allows((int) $team->id, (int) $member->id, ['team.notice.read']),
         'a parent role permission does not match a sibling permission'
+    );
+    $parentSummary = app(\app\service\EntityRole::class)->summary((int) $team->id, $memberSlug);
+    $parentEffective = array_values(array_filter(
+        $parentSummary['effective_permissions'],
+        static fn (array $item): bool => $item['key'] === 'team.ability'
+    ));
+    $assert(
+        count($parentEffective) === 1
+            && $parentEffective[0]['label'] === '覆盖 team.ability 下全部权限'
+            && $parentEffective[0]['group'] === '文件与设置',
+        'member permission summary keeps parent scopes in their business group'
+    );
+    $dynamicParentEffective = array_values(array_filter(
+        $parentSummary['effective_permissions'],
+        static fn (array $item): bool => $item['key'] === $dynamicMemberParent
+    ));
+    $assert(
+        count($dynamicParentEffective) === 1
+            && $dynamicParentEffective[0]['label'] === "覆盖 {$dynamicMemberParent} 下全部权限"
+            && $dynamicParentEffective[0]['group'] === '实体委托',
+        'member permission summary keeps exact dynamic parent scopes in entity delegation'
+    );
+    $assertSame(
+        2,
+        count(array_filter(
+            $parentSummary['effective_permissions'],
+            static fn (array $item): bool => $item['key'] === "{$dynamicMemberParent}.assume"
+        )),
+        'member permission summary keeps duplicate and redundant child rows already present in storage'
+    );
+    $assert(
+        count(array_filter(
+            $parentSummary['effective_permissions'],
+            static fn (array $item): bool => $item['key'] === "{$dynamicMemberParent}.assume"
+                && $item['group'] === '实体委托'
+        )) === 2,
+        'member permission summary groups every exact delegation row as entity delegation'
     );
 
     $teamRoot = $identitySessions->receive(
@@ -388,8 +443,8 @@ try {
         'name' => 'Chat Virtual',
     ]);
     $virtualCandidates = [
-        "chat.virtual.{$virtualSlug}.operate",
-        'chat.virtual.*.operate',
+        "identity.virtual.{$virtualSlug}.act",
+        'identity.virtual.*.act',
     ];
     $virtualIdentity = Entity::where('slug', $virtualSlug)->find();
     $virtualModel = $virtualIdentity
@@ -409,6 +464,57 @@ try {
                 . '; returned_slug=' . json_encode($virtualCreated['slug'] ?? null)
         );
     }
+    $virtualCatalog = $permissions->catalog((int) $team->id);
+    $virtualGroupNames = array_column($virtualCatalog['groups'], 'name');
+    $assertSame(1, count(array_filter($virtualGroupNames, static fn (string $name): bool => $name === '实体委托')), 'permission catalog exposes one entity delegation group');
+    $assert(!in_array('身份委托', $virtualGroupNames, true) && !in_array('指定虚拟实体', $virtualGroupNames, true), 'permission catalog removes legacy delegation groups');
+    $virtualItems = [];
+    foreach ($virtualCatalog['groups'] as $group) {
+        if (in_array($group['name'], ['实体管理', '实体委托'], true)) {
+            $virtualItems += array_column($group['items'], null, 'key');
+        }
+    }
+    foreach ([
+        "team.entity.virtual.{$virtualSlug}.manage" => '管理 · Chat Virtual',
+        "identity.virtual.{$virtualSlug}.act" => '代表 · Chat Virtual 执行操作',
+        "team.entity.virtual.{$virtualSlug}.field.manage" => '管理字段 · Chat Virtual',
+        "identity.virtual.{$virtualSlug}.assume" => '领取 · Chat Virtual 身份',
+    ] as $key => $label) {
+        $assert(
+            isset($virtualItems[$key])
+                && $virtualItems[$key]['label'] === $label
+                && $virtualItems[$key]['resource_slug'] === $virtualSlug,
+            "permission catalog uses the canonical entity slug for {$key}"
+        );
+    }
+    $virtualAdvanced = array_column(
+        $virtualCatalog['advanced_items'],
+        null,
+        'key'
+    );
+    $assert(
+        isset($virtualAdvanced["team.entity.virtual.{$virtualSlug}"])
+            && in_array(
+                "team.entity.virtual.{$virtualSlug}.manage",
+                $virtualAdvanced["team.entity.virtual.{$virtualSlug}"]['covered_keys'],
+                true
+            ),
+        'permission catalog exposes parent scopes for current team dynamic virtual permissions'
+    );
+    $foreignVirtualSlug = "chat-foreign-virtual-{$suffix}";
+    app(ChatVirtual::class)->create((int) $foreignTeam->id, [
+        'slug' => $foreignVirtualSlug,
+        'name' => 'Foreign Chat Virtual',
+    ]);
+    $assertThrows(
+        fn () => $permissions->save(
+            (int) $team->id,
+            (int) $role->id,
+            ["team.entity.virtual.{$foreignVirtualSlug}"]
+        ),
+        422,
+        'dynamic parent permission for another team virtual is rejected'
+    );
 
     $belongs = new TeamBelongs;
     $belongsRequest = static function (int $teamId, string $type, int $id): Request {
@@ -471,7 +577,7 @@ try {
     $permissions->save((int) $team->id, (int) $role->id, [
         'chat.conversation.create',
         'chat.temporary.create',
-        "chat.virtual.{$virtualSlug}.operate",
+        "identity.virtual.{$virtualSlug}.act",
     ]);
     $assert(
         $gate->allows((int) $team->id, (int) $member->id, $virtualCandidates),
@@ -516,7 +622,7 @@ try {
     $permissions->save((int) $team->id, (int) $role->id, [
         'chat.conversation.create',
         'chat.temporary.create',
-        'chat.virtual.*.operate',
+        'identity.virtual.*.act',
     ]);
     $assert(
         $gate->allows((int) $team->id, (int) $member->id, $virtualCandidates),
@@ -526,8 +632,8 @@ try {
     $permissions->save((int) $team->id, (int) $role->id, [
         'chat.conversation.create',
         'chat.temporary.create',
-        'chat.virtual.*.operate',
-        "chat.virtual.{$virtualSlug}.operate",
+        'identity.virtual.*.act',
+        "identity.virtual.{$virtualSlug}.act",
     ]);
     $assert(
         $gate->allows((int) $team->id, (int) $member->id, $virtualCandidates),
@@ -541,8 +647,8 @@ try {
     ]);
     $assert(
         $gate->allows((int) $team->id, (int) $member->id, [
-            "chat.virtual.{$newVirtualSlug}.operate",
-            'chat.virtual.*.operate',
+            "identity.virtual.{$newVirtualSlug}.act",
+            'identity.virtual.*.act',
         ]),
         'new virtual entity inherits existing wildcard permission'
     );
@@ -559,19 +665,24 @@ try {
         'webhook endpoint cannot target a private or reserved address'
     );
     $assertThrows(
-        fn () => $permissions->save((int) $team->id, (int) $role->id, ['chat.virtual.foo*.operate']),
+        fn () => $permissions->save((int) $team->id, (int) $role->id, ['identity.virtual.foo*.act']),
         422,
         'partial wildcard permission is rejected'
     );
     $assertThrows(
-        fn () => $permissions->save((int) $team->id, (int) $role->id, ['chat.virtual.{slug}.operate']),
+        fn () => $permissions->save((int) $team->id, (int) $role->id, ['identity.virtual.{slug}.act']),
         422,
         'permission templates cannot be persisted'
     );
     $assertThrows(
-        fn () => $permissions->save((int) $team->id, (int) $role->id, ['chat.virtual.missing.operate']),
+        fn () => $permissions->save((int) $team->id, (int) $role->id, ['identity.virtual.missing.act']),
         422,
         'permission for a missing team virtual is rejected'
+    );
+    $assertThrows(
+        fn () => $permissions->save((int) $team->id, (int) $role->id, ["chat.virtual.{$virtualSlug}.operate"]),
+        422,
+        'legacy virtual permission keys are rejected instead of treated as aliases'
     );
 
     $entityFields = app(\app\service\TeamEntityField::class);
@@ -922,20 +1033,20 @@ try {
     $permissions->save((int) $team->id, (int) $role->id, [
         'chat.conversation.create',
         'chat.temporary.create',
-        'chat.virtual.*.operate',
-        "chat.virtual.{$virtualSlug}.operate",
+        'identity.virtual.*.act',
+        "identity.virtual.{$virtualSlug}.act",
     ]);
     app(ChatVirtual::class)->delete((int) $team->id, $virtualSlug);
     $assertSame(
         0,
         TeamRolePermission::where('team_id', $team->id)
-            ->where('permission_key', "chat.virtual.{$virtualSlug}.operate")->count(),
+            ->where('permission_key', "identity.virtual.{$virtualSlug}.act")->count(),
         'deleting virtual entity removes its specific permission'
     );
     $assertSame(
         1,
         TeamRolePermission::where('team_id', $team->id)
-            ->where('permission_key', 'chat.virtual.*.operate')->count(),
+            ->where('permission_key', 'identity.virtual.*.act')->count(),
         'deleting virtual entity preserves wildcard permission'
     );
     $assert(
@@ -960,7 +1071,7 @@ try {
         'chat.conversation.create',
         'chat.temporary.create',
         'chat.group.manage',
-        'chat.virtual.*.operate',
+        'identity.virtual.*.act',
     ]);
     $conversations = app(ChatConversation::class);
     $memberActing = ['entity_id' => (int) $memberEntity->id, 'type' => 'teamMember', 'id' => (int) $member->id];

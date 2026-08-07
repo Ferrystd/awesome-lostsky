@@ -68,7 +68,10 @@ export async function loadManageAccess(force = false) {
   if (!manageAccess || force) manageAccess = await api.get<ManageAccess>('/manage/access')
   return manageAccess
 }
-export function canManage(permission: string) { return Boolean(manageAccess?.permissions.includes(permission)) }
+export function hasManagePermission(permissions: string[], required: string) {
+  return permissions.some(granted => required === granted || required.startsWith(`${granted}.`))
+}
+export function canManage(permission: string) { return Boolean(manageAccess && hasManagePermission(manageAccess.permissions, permission)) }
 
 export const manageApi = {
   access: loadManageAccess,
@@ -83,6 +86,8 @@ export const manageApi = {
   deleteProductField: (productId: number, fieldId: number) => api.post(`/product/${productId}/redemption-fields/${fieldId}/delete`, {}),
   orders: (params: Record<string, unknown>) => pageRequest<any>('/order', params, '订单列表'),
   order: (id: number) => api.get<any>(`/order/${id}`),
+  personalOrders: (params: Record<string, unknown>) => pageRequest<any>('/personal/orders', params, '我的业务订单'),
+  personalOrder: (id: number) => api.get<any>(`/personal/orders/${id}`),
   createOrder: (body: Record<string, unknown>) => api.post<{id:number}>('/order', body),
   orderAction: (id: number, action: 'cancel'|'complete') => api.post(`/order/${id}/${action}`, {}),
   services: (params: Record<string, unknown>) => pageRequest<ManageService>('/manage/services', params, '服务列表'),

@@ -59,7 +59,7 @@
 }
 
 * { box-sizing: border-box; }
-html { min-width: 320px; background: var(--cloud); scroll-behavior: smooth; }
+html { min-width: 320px; overflow-y: scroll; background: var(--cloud); scroll-behavior: smooth; }
 body {
   margin: 0;
   min-width: 320px;

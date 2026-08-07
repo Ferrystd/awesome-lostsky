@@ -530,6 +530,18 @@ try {
     $assertSame(1, (int) $assigneeStats[0]['customer_count'], 'assignee stats count distinct customers');
     $assertSame(2, (int) $assigneeStats[0]['transaction_count'], 'assignee stats count transactions');
     $assertFloat(200, $assigneeStats[0]['total_price'], 'assignee stats total transaction price');
+    $personalTransactions = $transactionService->personal($teamId, $memberId, [], 1, 20);
+    $foreignPersonalTransactions = $transactionService->personal($teamId, (int) $fixture['foreignMemberEntity']->id, [], 1, 20);
+    $personalStats = $statsService->personal($teamId, $memberId, 1_719_999_999, 1_720_200_000);
+    $assertSame(2, $personalTransactions['total'], 'personal transaction scope includes current entity participation');
+    $assertSame(0, $foreignPersonalTransactions['total'], 'personal transaction scope cannot be expanded with an unrelated entity');
+    $assertSame(2, (int) $personalStats['total_count'], 'personal stats use the same current entity scope');
+    $assertSame($cashId, (int) $transactionService->getPersonal($teamId, $memberId, $cashId)['id'], 'personal transaction detail checks participation');
+    $assertThrows(
+        fn () => $transactionService->getPersonal($teamId, (int) $fixture['foreignMemberEntity']->id, $cashId),
+        404,
+        'personal transaction detail hides unrelated records'
+    );
 
     $fixture['customer']->assignee_entity_id = $secondMemberId;
     $fixture['customer']->save();

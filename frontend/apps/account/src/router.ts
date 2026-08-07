@@ -6,10 +6,7 @@ const RegisterView = () => import('./views/RegisterView.vue')
 const TeamsView = () => import('./views/TeamsView.vue')
 const IdentityView = () => import('./views/IdentityView.vue')
 const MemberIdentityCallbackView = () => import('./views/MemberIdentityCallbackView.vue')
-const CurrentEntityShell = () => import('./views/CurrentEntityShell.vue')
-const CurrentEntityProfileView = () => import('./views/CurrentEntityProfileView.vue')
-const CurrentEntityFieldsView = () => import('./views/CurrentEntityFieldsView.vue')
-const CurrentEntityAccessView = () => import('./views/CurrentEntityAccessView.vue')
+const CurrentEntityRedirectView = () => import('./views/CurrentEntityRedirectView.vue')
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -20,16 +17,7 @@ export const router = createRouter({
     { path: '/teams', component: TeamsView, meta: { title: '我的团队' } },
     { path: '/identity', component: IdentityView, meta: { title: '选择身份' } },
     { path: '/identity/member-callback', component: MemberIdentityCallbackView, meta: { title: '领取成员身份' } },
-    {
-      path: '/identity/current',
-      component: CurrentEntityShell,
-      children: [
-        { path: '', redirect: to => ({ path: '/identity/current/profile', query: to.query }) },
-        { path: 'profile', component: CurrentEntityProfileView, meta: { title: '当前实体资料' } },
-        { path: 'fields', component: CurrentEntityFieldsView, meta: { title: '当前实体对象字段' } },
-        { path: 'access', component: CurrentEntityAccessView, meta: { title: '当前实体角色权限' } },
-      ],
-    },
+    { path: '/identity/current/:section?', component: CurrentEntityRedirectView, meta: { title: '正在打开工作台' } },
   ],
   scrollBehavior: () => ({ top: 0 }),
 })

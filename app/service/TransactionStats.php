@@ -8,6 +8,32 @@ use app\enum\TransactionType;
 
 class TransactionStats
 {
+    public function personal(int $teamId, int $actorEntityId, int $startTime, int $endTime): array
+    {
+        $base = TeamTransaction::where('team_id', $teamId)
+            ->where('trans_at', '>=', $startTime)
+            ->where('trans_at', '<', $endTime)
+            ->where(function ($scope) use ($actorEntityId) {
+                $scope->where('handler_entity_id', $actorEntityId)
+                    ->whereOr('sender_entity_id', $actorEntityId)
+                    ->whereOr('cs_entity_id', $actorEntityId);
+            });
+        $row = $base->field([
+            'COUNT(*) as total_count',
+            "COALESCE(SUM(CASE WHEN handler_entity_id = {$actorEntityId} THEN handler_cut ELSE 0 END), 0) as handler_cut",
+            "COALESCE(SUM(CASE WHEN sender_entity_id = {$actorEntityId} THEN sender_cut ELSE 0 END), 0) as sender_cut",
+            "COALESCE(SUM(CASE WHEN cs_entity_id = {$actorEntityId} THEN cs_cut ELSE 0 END), 0) as cs_cut",
+            "SUM(CASE WHEN handler_entity_id = {$actorEntityId} AND type = 4 THEN 1 ELSE 0 END) as redemption_count",
+        ])->find();
+        $result = $row?->toArray() ?? [];
+        $result['performance_total'] = bcadd(bcadd(
+            (string) ($result['handler_cut'] ?? '0'),
+            (string) ($result['sender_cut'] ?? '0'),
+            2
+        ), (string) ($result['cs_cut'] ?? '0'), 2);
+        return $result;
+    }
+
     public function summary(int $teamId, int $startTime, int $endTime): array
     {
         $row = TeamTransaction::where('team_id', $teamId)

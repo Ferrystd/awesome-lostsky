@@ -36,11 +36,18 @@ import LsResponsiveActions from './components/LsResponsiveActions.vue'
 import LsResponsiveDataTable from './components/LsResponsiveDataTable.vue'
 import LsUploadField from './components/LsUploadField.vue'
 import LsWorkspaceHeader from './components/LsWorkspaceHeader.vue'
+import LsWorkspaceOverview from './components/LsWorkspaceOverview.vue'
+import { House, ReceiptText, UserRound } from '@lucide/vue'
 import { lostskyNaiveTheme } from './naive-theme'
 
 async function render(component: Parameters<typeof h>[0], props: Record<string, unknown> = {}, slots: Record<string, () => ReturnType<typeof h>> = {}) {
   const app = createSSRApp({ render: () => h(component, props, slots) })
-  app.component('RouterLink', defineComponent({ setup(_props, { slots: linkSlots }) { return () => h('a', linkSlots.default?.()) } }))
+  app.component('RouterLink', defineComponent({
+    props: { to: { type: [String, Object], required: true } },
+    setup(linkProps, { slots: linkSlots }) {
+      return () => h('a', { 'data-to': typeof linkProps.to === 'string' ? linkProps.to : JSON.stringify(linkProps.to) }, linkSlots.default?.())
+    },
+  }))
   return renderToString(app)
 }
 
@@ -150,6 +157,33 @@ describe('后台设计系统组件契约', () => {
     expect(actions).toContain('--n-color:#0000')
     expect(actions).toContain('--n-border:none')
     expect(actions).not.toContain('n-button--primary-type')
+  })
+
+  it('LsWorkspaceOverview 保留双向操作、入口顺序、禁用原因与区域语义', async () => {
+    const html = await render(LsWorkspaceOverview, {
+      eyebrow: '商品个人工作台',
+      title: '只查看与你相关的业务订单',
+      description: '当前范围固定为已领取的 Entity。',
+      actions: [
+        { key: 'team', label: '进入团队工作台', to: '/manage', icon: House, primary: true },
+        { key: 'identity', label: '切换身份', href: 'https://account.lostsky.work/identity', icon: UserRound },
+      ],
+      entries: [
+        { key: 'orders', label: '我的业务订单', description: '查看关联订单。', to: '/manage/personal/orders', icon: ReceiptText },
+        { key: 'disabled', label: '团队订单', description: '查看全部订单。', to: '/manage/orders', icon: ReceiptText, disabled: true, reason: '缺少 shop.order.read Permission' },
+      ],
+      scopeNotes: ['服务端按 acting_entity 强制过滤。'],
+    })
+    expect(html).toContain('aria-label="工作台切换"')
+    expect(html).toContain('aria-label="工作入口"')
+    expect(html).toContain('data-to="/manage"')
+    expect(html).toContain('href="https://account.lostsky.work/identity"')
+    expect(html).toMatch(/primary[^]*进入团队工作台/)
+    expect(html).toMatch(/secondary[^]*切换身份/)
+    expect(html.indexOf('我的业务订单')).toBeLessThan(html.indexOf('团队订单'))
+    expect(html).toContain('aria-disabled="true"')
+    expect(html).toContain('缺少 shop.order.read Permission')
+    expect(html).toContain('aria-labelledby="workspace-scope-title"')
   })
 
   it('响应式数据表在移动端切换为同一份数据的记录结构', () => {

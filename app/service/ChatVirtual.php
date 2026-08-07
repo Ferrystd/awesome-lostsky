@@ -14,7 +14,7 @@ class ChatVirtual
 {
     public function list(int $teamId, array $actingEntity, string $mode = 'manage'): array
     {
-        $mode = $mode === 'operate' ? 'operate' : 'manage';
+        $mode = $mode === 'operate' ? 'act' : 'manage';
         $gate = app(PermissionGate::class);
         $items = TeamVirtualModel::where('team_id', $teamId)
             ->with(['identity', 'profile', 'integrations'])
@@ -90,7 +90,7 @@ class ChatVirtual
             foreach (TeamRolePermission::where('team_id', $teamId)
                 ->whereIn('permission_key', [
                     PermissionDictionary::virtual($slug, 'manage'),
-                    PermissionDictionary::virtual($slug, 'operate'),
+                    PermissionDictionary::virtual($slug, 'act'),
                     PermissionDictionary::virtual($slug, 'field.manage'),
                 ])->select() as $permission) {
                 $permission->delete();

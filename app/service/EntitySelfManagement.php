@@ -4,14 +4,13 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\model\Entity as EntityModel;
-use app\model\TeamCustomer;
 use think\exception\HttpException;
 use think\facade\Db;
 use think\file\UploadedFile;
 
 class EntitySelfManagement
 {
-    private const SUPPORTED_TYPES = ['teamMember', 'teamCustomer', 'teamVirtual'];
+    private const SUPPORTED_TYPES = ['team', 'teamMember', 'teamVirtual'];
     private const PUBLIC_PROFILE_FIELDS = [
         'name', 'avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown',
     ];
@@ -29,7 +28,7 @@ class EntitySelfManagement
             return [
                 'identity' => $identity,
                 'supported' => false,
-                'unsupported_reason' => 'Team 身份暂不支持在当前实体中心自我管理，请切换身份或进入 Team 管理流程。',
+                'unsupported_reason' => '当前实体类型不进入后台个人工作台，请使用对应的业务中心。',
             ];
         }
 
@@ -55,22 +54,13 @@ class EntitySelfManagement
         $result = [
             'identity' => $identity,
             'supported' => true,
-            'profile' => $this->profileData($profile->toArray(), $context['type']),
+            'profile' => $this->profileData($profile->toArray()),
             'custom_fields' => $fields,
             'custom_field_values' => $values,
             'role_assignments' => $roles['role_assignments'],
             'effective_permissions' => $roles['effective_permissions'],
             'upload' => $this->uploadCapability($context['team_id'], $actingEntity),
         ];
-
-        if ($context['type'] === 'teamCustomer') {
-            $customer = TeamCustomer::find($context['id']);
-            $result['customer'] = [
-                'assignee_entity_id' => $customer?->assignee_entity_id === null
-                    ? null
-                    : (int) $customer->assignee_entity_id,
-            ];
-        }
 
         return $result;
     }
@@ -79,23 +69,8 @@ class EntitySelfManagement
     {
         $context = $this->writableContext($actingEntity, $expectedEntityId);
         $type = $context['type'];
-        $allowed = $type === 'teamCustomer'
-            ? ['name', 'avatar', 'description', 'assignee_entity_id']
-            : self::PUBLIC_PROFILE_FIELDS;
+        $allowed = self::PUBLIC_PROFILE_FIELDS;
         $data = array_intersect_key($data, array_flip($allowed));
-
-        if ($type === 'teamCustomer') {
-            $customerData = [
-                'nickname' => (string) ($data['name'] ?? ''),
-                'avatar' => $data['avatar'] ?? null,
-                'description' => $data['description'] ?? null,
-            ];
-            if (array_key_exists('assignee_entity_id', $data)) {
-                $customerData['assignee_entity_id'] = $data['assignee_entity_id'];
-            }
-            app(CustomerProfile::class)->update($context['team_id'], $context['id'], $customerData);
-            return;
-        }
 
         $validation = ['nickname' => (string) ($data['name'] ?? '')] + array_intersect_key(
             $data,
@@ -111,7 +86,7 @@ class EntitySelfManagement
     public function claimSlug(array $actingEntity, int $expectedEntityId, string $slug): array
     {
         $context = $this->writableContext($actingEntity, $expectedEntityId);
-        if (!in_array($context['type'], ['teamMember', 'teamCustomer'], true)) {
+        if ($context['type'] !== 'teamMember') {
             throw new HttpException(422, '当前实体类型不支持补全标识');
         }
         $entity = $context['entity'];
@@ -146,15 +121,6 @@ class EntitySelfManagement
             throw new HttpException(422, '请先确定对象标识');
         }
         app(TeamEntityField::class)->saveOwnValues($context['team_id'], $slug, $values);
-    }
-
-    public function customerAssignees(array $actingEntity): array
-    {
-        $context = $this->context($actingEntity, true);
-        if ($context['type'] !== 'teamCustomer') {
-            throw new HttpException(403, '仅当前客户身份可以读取服务归属候选');
-        }
-        return app(CustomerAssignment::class)->options($context['team_id']);
     }
 
     public function upload(
@@ -220,13 +186,10 @@ class EntitySelfManagement
         ];
     }
 
-    private function profileData(array $profile, string $type): array
+    private function profileData(array $profile): array
     {
-        $fields = $type === 'teamCustomer'
-            ? ['name', 'avatar', 'description']
-            : self::PUBLIC_PROFILE_FIELDS;
         $result = [];
-        foreach ($fields as $field) {
+        foreach (self::PUBLIC_PROFILE_FIELDS as $field) {
             $result[$field] = $profile[$field] ?? null;
         }
         return $result;
@@ -235,8 +198,8 @@ class EntitySelfManagement
     private function fieldType(string $type): string
     {
         return match ($type) {
+            'team' => 'entity',
             'teamMember' => 'entity',
-            'teamCustomer' => 'customer',
             'teamVirtual' => 'virtual',
             default => throw new HttpException(422, '当前实体类型不支持对象字段'),
         };

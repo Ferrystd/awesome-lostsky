@@ -3029,9 +3029,15 @@
 </tr>
 <tr>
 <td><code>LsWorkspaceHeader</code></td>
-<td><code>contextLabel/title</code> 必填，<code>actions=[]</code>、<code>showMenu=true</code>；<code>actions</code> 插槽用于桌面图标加文字，<code>action</code> 事件承接移动菜单，<code>menu</code> 事件打开导航</td>
-<td>移动端保留一排无文字图标；页面自行实现第二套顶栏；把响应式类直接传给无根 <code>NDropdown</code></td>
-<td>桌面图标+文字且统一为 <code>--font-ui</code>、14px/600；移动端只显示带文字“操作”菜单；禁用原因随菜单项保留；顶栏结构稳定</td>
+<td><code>contextLabel/title</code> 必填，<code>actions=[]</code>、<code>showMenu=true</code>；桌面应用入口由 <code>actions</code> 插槽承载，移动端按 <code>actions</code> 数据触发 <code>action</code> 事件</td>
+<td>在组件内部增加应用下拉或个人/团队分段控件；移动端复制第二套顶栏；把响应式类直接传给无根 <code>NDropdown</code></td>
+<td>桌面动作使用图标加文字；移动端进入“操作”菜单；禁用原因随菜单项保留；应用壳层负责保持当前团队与 Entity</td>
+</tr>
+<tr>
+<td><code>LsWorkspaceOverview</code></td>
+<td><code>eyebrow/title/description/actions/entries</code> 必填，<code>scopeNotes</code> 可选；动作支持内部路由、外部地址和主次层级；入口包含图标、标题、说明、目标与可选禁用原因</td>
+<td>用无业务意义的指标填充概览；页面私有复制主视觉或入口卡片；隐藏无 Permission 入口；把应用切换或分段控件塞入概览</td>
+<td>深色主视觉、主入口 <code>--afterglow</code>、白色细边界入口；禁用原因直接可见；桌面多列、移动单列且动作满宽；所有链接至少 44px，范围说明为连续紧凑区域</td>
 </tr>
 <tr>
 <td><code>LsListToolbar</code></td>

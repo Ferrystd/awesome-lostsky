@@ -334,5 +334,13 @@
     "story": "frontend/component-previews/src/story-registry.ts#LsWorkspaceHeader",
     "category": "ui",
     "aliases": ["工作区标题", "顶栏"]
+  },
+  {
+    "id": "ui-ls-workspace-overview",
+    "name": "LsWorkspaceOverview",
+    "source": "frontend/packages/ui/src/components/LsWorkspaceOverview.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsWorkspaceOverview",
+    "category": "ui",
+    "aliases": ["工作台概览", "概览主视觉", "业务入口概览"]
   }
 ]

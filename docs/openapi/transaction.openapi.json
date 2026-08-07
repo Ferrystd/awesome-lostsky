@@ -9,10 +9,9 @@
     "authenticated_default": [
       "team",
       "teamMember",
-      "teamCustomer",
       "teamVirtual"
     ],
-    "base_login_auto_member": true,
+    "base_login_auto_member": false,
     "team_belongs": true
   },
   "servers": [
@@ -128,6 +127,41 @@
       "AnyObject": {
         "type": "object",
         "additionalProperties": true
+      },
+      "WorkspaceAccessSnapshot": {
+        "type": "object",
+        "required": ["team", "permissions", "abilities", "identity"],
+        "properties": {
+          "team": {
+            "type": "object",
+            "required": ["id", "slug", "name"],
+            "properties": {
+              "id": {"type": "integer", "format": "int64"},
+              "slug": {"type": "string"},
+              "name": {"type": "string"}
+            }
+          },
+          "permissions": {"type": "array", "items": {"type": "string"}},
+          "abilities": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["enabled", "level", "expire_time", "reason", "label"],
+              "properties": {
+                "enabled": {"type": "boolean"},
+                "level": {"type": "integer"},
+                "expire_time": {"type": "integer", "format": "int64"},
+                "reason": {"type": "string", "nullable": true, "enum": ["missing", "level", "expired"]},
+                "label": {"type": "string"}
+              }
+            }
+          },
+          "identity": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["team", "teamMember", "teamVirtual"]}}
+          }
+        }
       },
       "AnyValue": {
         "nullable": true,
@@ -1730,6 +1764,13 @@
     "/service/{id}/cancel/approve": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"approveServiceCancellation","summary":"同意取消核销","responses":{"200":{"description":"成功"}}}},
     "/service/{id}/cancel/reject": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"rejectServiceCancellation","summary":"拒绝取消核销","responses":{"200":{"description":"成功"}}}},
     "/service/{id}/complete": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"completeServiceRedemption","summary":"确认已核销","responses":{"200":{"description":"成功"}}}},
+    "/workspace/access": {"get":{"tags":["Workspace"],"operationId":"transactionWorkspaceAccess","summary":"读取团队摘要、Permission 与 transaction Ability 快照","description":"这是 transaction Ability 缺失时唯一仍可访问的记账接口。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/WorkspaceAccessSnapshot"}}}]}}}}}}},
+    "/personal/transactions": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransactions","summary":"读取当前 Entity 参与的流水","description":"服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}},{"name":"type","in":"query","schema":{"type":"integer"}},{"name":"keyword","in":"query","schema":{"type":"string"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/transactions/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransaction","summary":"读取当前 Entity 参与的流水详情","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"流水不存在或不属于当前个人范围"}}}},
+    "/personal/stats": {"get":{"tags":["Personal"],"operationId":"transactionPersonalStats","summary":"读取当前 Entity 个人业绩","description":"只汇总当前 acting_entity 作为接单人、发单人或客服取得的分配。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/services": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServices","summary":"读取当前 Entity 处理的核销","description":"只返回 handler_entity_id 等于当前 acting_entity 的核销任务。","security":[{"bearerAuth":[]}],"parameters":[{"name":"status","in":"query","schema":{"type":"integer"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/services/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalService","summary":"读取当前 Entity 处理的核销详情","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"核销不存在或不属于当前个人范围"}}}},
+    "/personal/bindings": {"get":{"tags":["Personal"],"operationId":"transactionPersonalBindings","summary":"读取当前 Entity 的客户协作与发单绑定","description":"只使用当前 acting_entity 查询绑定，不接受 Entity ID。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
     "/transaction": {
       "get": {
         "tags": [

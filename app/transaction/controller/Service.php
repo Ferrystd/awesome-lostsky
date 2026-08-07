@@ -11,8 +11,9 @@ class Service
     protected $middleware = [
         'JwtAuth' => ['except' => []],
         'Context' => ['except' => []],
-        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'EntityType:team,teamMember,teamVirtual' => ['except' => []],
         'TeamAuth' => ['except' => []],
+        'Ability:transaction' => ['except' => []],
     ];
 
     public function index(Request $request)

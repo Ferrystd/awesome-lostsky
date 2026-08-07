@@ -30,10 +30,6 @@ function accountIdentityUrl() {
   return accountDevelopmentUrl('/identity') || '//account.lostsky.work/identity'
 }
 
-function accountCurrentEntityUrl(path: string) {
-  return accountDevelopmentUrl(path) || `//account.lostsky.work${path}`
-}
-
 export interface LoginRedirectOptions {
   redirect?: string
   expired?: boolean
@@ -83,7 +79,7 @@ export function redirectToLogin(options: LoginRedirectOptions = {}) {
 }
 
 function workspaceUrl(
-  app: 'chat' | 'shop' | 'team',
+  app: 'chat' | 'shop' | 'team' | 'transaction',
   developmentPort: number,
   path = '/',
   params: Record<string, string | number | boolean | null | undefined> = {},
@@ -115,6 +111,20 @@ export function teamWorkspaceUrl(path = '/') {
   return workspaceUrl('team', 5175, path)
 }
 
+export function transactionWorkspaceUrl(path = '/') {
+  return workspaceUrl('transaction', 5177, path)
+}
+
+export function teamScopedAppUrl(
+  teamSlug: string,
+  app: 'chat' | 'shop' | 'team' | 'transaction',
+  path = '/',
+) {
+  const port = import.meta.env.DEV ? `:${({ team: 5175, chat: 5176, transaction: 5177, shop: 5179 })[app]}` : ''
+  const host = isLocalDevelopmentHost(location.hostname) ? location.hostname : `${teamSlug}.${app}.lostsky.work`
+  return new URL(path, `${location.protocol}//${host}${port}`).href
+}
+
 export type EntityCallbackReason = 'missing' | 'team_mismatch'
 
 export function identityUrl(redirect = location.href, targetSlug = '') {
@@ -124,16 +134,6 @@ export function identityUrl(redirect = location.href, targetSlug = '') {
   if (/^[a-z0-9][a-z0-9_-]{0,49}$/.test(targetSlug)) query.set('target', targetSlug)
   const base = accountIdentityUrl()
   return query.size ? `${base}?${query}` : base
-}
-
-export function currentEntityUrl(
-  redirect = location.href,
-  section: 'profile' | 'fields' | 'access' = 'profile',
-) {
-  const target = new URL(accountCurrentEntityUrl(`/identity/current/${section}`), location.href)
-  const returnTo = safeRedirect(redirect, '')
-  if (returnTo) target.searchParams.set('redirect', returnTo)
-  return target.href
 }
 
 export function memberIdentityCallbackUrl(teamSlug: string, reason: EntityCallbackReason) {

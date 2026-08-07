@@ -1,6 +1,8 @@
 import { h } from "vue";
 import { NInput } from "naive-ui";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
+import LsWorkspaceOverview from "@lostsky/ui/components/LsWorkspaceOverview.vue";
+import { BadgeCheck, BarChart3, House, ReceiptText, ShoppingBag, UserRound } from "@lucide/vue";
 import AuthShell from "../../apps/account/src/components/AuthShell.vue";
 import SmsCodeField from "../../apps/account/src/components/SmsCodeField.vue";
 import AdminShell from "../../apps/admin/src/components/AdminShell.vue";
@@ -383,14 +385,26 @@ const roles = [
     name: "内容成员",
     role_key: "content",
     description: "维护团队内容",
-    permissions: [{ permission_key: "team.document.read" }],
+    permissions: [
+      { permission_key: "team.document.read" },
+      { permission_key: "team.document.write" },
+      { permission_key: "team.customer.read" },
+      { permission_key: "chat.conversation.create" },
+      { permission_key: "identity.virtual.*.act" },
+      { permission_key: "identity.member.*.assume" },
+      { permission_key: "identity.member.member-2.assume" },
+      { permission_key: "identity.member.member-2" },
+    ],
   },
   {
     id: 2,
     name: "客户运营",
     role_key: "customer",
     description: "维护客户资料",
-    permissions: [{ permission_key: "team.customer.read" }],
+    permissions: [
+      { permission_key: "team.customer.read" },
+      { permission_key: "identity.member.member-2.assume" },
+    ],
   },
 ];
 const entityPermissionsCard = story(
@@ -408,16 +422,51 @@ const entityPermissionsCard = story(
   (state) =>
     stage(
       h(EntityPermissionsCard, {
-        assignments: [{ role_id: 1, role: roles[0] }],
+        assignments: [
+          { role_id: 1, role: roles[0] },
+          { role_id: 2, role: roles[1] },
+        ],
         roles,
         effectivePermissions: [
           { key: "team.document.read", label: "查看文档", group: "内容" },
+          { key: "team.document.write", label: "维护文档", group: "内容" },
+          { key: "team.customer.read", label: "查看客户", group: "客户" },
+          { key: "team.customer.read", label: "查看客户", group: "客户" },
+          { key: "chat.conversation.create", label: "创建会话", group: "聊天" },
+          { key: "identity.virtual.*.act", label: "代表全部虚拟实体执行操作", group: "实体委托" },
+          { key: "identity.member.*.assume", label: "领取全部成员身份", group: "实体委托" },
+          { key: "identity.member.member-2.assume", label: "领取成员二号身份", group: "实体委托" },
+          { key: "identity.member.member-2.assume", label: "领取成员二号身份", group: "实体委托" },
+          { key: "identity.member.member-2", label: "覆盖 identity.member.member-2 下全部权限", group: "实体委托" },
+          { key: "team.ability", label: "覆盖 team.ability 下全部权限", group: "高级范围" },
         ],
         catalog: [
           {
             name: "内容",
-            items: [{ key: "team.document.read", label: "查看文档" }],
+            items: [
+              { key: "team.document.read", label: "查看文档" },
+              { key: "team.document.write", label: "维护文档" },
+            ],
           },
+          { name: "客户", items: [{ key: "team.customer.read", label: "查看客户" }] },
+          {
+            name: "聊天",
+            items: [
+              { key: "chat.conversation.create", label: "创建会话" },
+            ],
+          },
+          {
+            name: "实体委托",
+            items: [
+              { key: "identity.member.*.assume", label: "领取全部成员身份" },
+              { key: "identity.member.member-2.assume", label: "领取成员二号身份" },
+              { key: "identity.virtual.*.act", label: "代表全部虚拟实体执行操作" },
+            ],
+          },
+        ],
+        advancedCatalog: [
+          { key: "identity.member.member-2", label: "覆盖 identity.member.member-2 下全部权限", covered_keys: ["identity.member.member-2.assume"] },
+          { key: "team.ability", label: "覆盖 team.ability 下全部权限", covered_keys: ["team.ability.redeem"] },
         ],
         canEdit: state !== "disabled",
         loading: state === "loading",
@@ -485,15 +534,22 @@ const teamShell = story(
 
 const transactionShell = story(
   "TransactionShell",
-  ["default", "hover", "focus", "active", "mobile"],
+  layout,
   () =>
     h(TransactionShell, null, {
       default: () =>
-        h("section", { class: "shell-content" }, [
-          h("h2", "流水"),
-          h("p", "查看收入、支出和调整记录。"),
-          h(LsButton, { "data-preview-target": "" }, { default: () => "登记流水" }),
-        ]),
+        h(LsWorkspaceOverview, {
+          eyebrow: "记账团队工作台",
+          title: "青空协作组",
+          description: "从流水到核销和客户协作，按经营任务进入对应区域。",
+          actions: [{ key: "personal", label: "进入个人工作台", to: "/personal", icon: UserRound, primary: true }],
+          entries: [
+            { key: "transactions", label: "流水", description: "查看团队收入、支出与调整记录。", to: "/", icon: ReceiptText },
+            { key: "stats", label: "经营统计", description: "查看团队收入结构与业绩汇总。", to: "/stats", icon: BarChart3 },
+            { key: "services", label: "服务核销", description: "处理服务实例并记录核销过程。", to: "/services", icon: BadgeCheck },
+          ],
+          scopeNotes: ["概览不请求流水或统计数据。"],
+        }),
     }),
   {
     disabled: "工作台壳层没有整体禁用状态。",
@@ -504,15 +560,22 @@ const transactionShell = story(
 
 const shopManageShell = story(
   "ShopManageShell",
-  ["default", "hover", "focus", "active", "mobile"],
+  layout,
   () =>
     h(ShopManageShell, null, {
       default: () =>
-        h("section", { class: "shell-content" }, [
-          h("h2", "商城商品"),
-          h("p", "管理商品、订单、服务、权益包和卡活动。"),
-          h(LsButton, { "data-preview-target": "" }, { default: () => "新建商品" }),
-        ]),
+        h(LsWorkspaceOverview, {
+          eyebrow: "商品团队工作台",
+          title: "青空协作组",
+          description: "集中维护商品、订单与履约配置。",
+          actions: [{ key: "personal", label: "进入个人工作台", to: "/manage/personal", icon: UserRound, primary: true }],
+          entries: [
+            { key: "products", label: "商品", description: "维护可售商品、处理人和核销字段。", to: "/manage/products", icon: ShoppingBag },
+            { key: "orders", label: "订单", description: "查看团队订单并持续推进履约状态。", to: "/manage/orders", icon: ReceiptText },
+            { key: "team", label: "团队模式", description: "返回团队经营配置。", to: "/manage", icon: House },
+          ],
+          scopeNotes: ["概览不请求商品或订单数据。"],
+        }),
     }),
   {
     disabled: "商城管理壳层没有整体禁用状态。",

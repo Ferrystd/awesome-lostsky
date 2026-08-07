@@ -63,7 +63,7 @@ const server = await createServer({
 
 const apiData = (pathname) => {
   if (pathname.endsWith('/access')) return {
-    permissions: ['file.read', 'file.upload', 'team.entity_field.manage', 'team.role.read', 'team.join_field.read', 'team.join_review.read', 'team.notice.read', 'team.notice.send', 'team.setting.read', 'chat.virtual.*.manage'],
+    permissions: ['file.read', 'file.upload', 'team.entity.field.manage', 'team.role.read', 'team.join_field.read', 'team.join_review.read', 'team.notice.read', 'team.notice.send', 'team.setting.read', 'team.entity.virtual.*.manage'],
     abilities: { doc: { enabled: true, level: 1, expire_time: 0, reason: null, label: '文档' } },
   }
   if (pathname.endsWith('/session')) return { id: 1, user_id: 1, name: '预览管理员', is_super_admin: true, permissions: ['*'] }

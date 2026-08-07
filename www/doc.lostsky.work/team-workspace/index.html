@@ -535,7 +535,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        当前实体
+        个人工作台
       </span>
     </span>
   </a>
@@ -1015,7 +1015,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        当前实体
+        个人工作台
       </span>
     </span>
   </a>
@@ -1271,7 +1271,7 @@
                   
 
 <h1 id="_1">团队工作台<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
-<p>Team 是团队日常协作和配置入口。<code>工作空间</code>提供概览、实体、成员、客户、通知、文档、文件和个人资料；<code>管理</code>提供对象字段、虚拟实体、角色权限、申请字段、加入审核、站内通知、发送通知和团队设置。</p>
+<p>Team 是团队日常协作和配置入口。团队工作台保留既有概览、实体、成员、客户、通知、文档、文件、管理结构与页面排版；仅把概览主操作“进入消息”替换为“进入个人工作台”，并把原顶栏动作替换为“团队、商品、记账、聊天”四入口。个人工作台提供当前 Entity 的资料、对象字段、角色与有效权限；不在 Team 顶栏新增分段式工作台切换。</p>
 <p>进入前应确认地址中的团队与当前 Entity 一致。不了解 Entity、Ability 或 Permission 时，先读<a href="../concepts/">核心概念</a>和<a href="../access-and-abilities/">能力、权限与功能降级</a>。</p>
 <h2 id="_2">功能基线<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <table>
@@ -1367,9 +1367,9 @@
 <h2 id="_3">概览和导航怎样降级<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
 <p>概览固定显示实体、成员、文档和通知。具备实体、成员或文档全量读取 Permission 时显示具体数字，否则显示进入箭头；Doc Ability 缺失时文档指标标记不可用。任一摘要接口失败只影响对应卡片，不会把失败伪装为 <code>0</code>。</p>
 <p><code>工作空间</code>内的基础阅读入口不会把“读取全部数据”当作页面门票。<code>管理</code>入口保持固定位置：已知缺少 Permission 或 Ability 时显示禁用原因，加载页面本身不会先发起受保护请求再弹错误。所有服务端操作仍会重新鉴权。</p>
-<h2 id="_4">当前实体<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
-<p>Team 导航中的“当前实体”进入 Account 当前实体中心，不再维护成员专属表单。旧 <code>/me</code> 会安全跳转到 Account，并保留返回当前 Team 工作台的地址。</p>
-<p>成员、虚拟实体和客户在同一入口按类型看到允许自管的资料；对象字段和角色权限按任务分开。Team 工作台继续承担角色分配、状态、团队内可见性、全局搜索、公开 Display、文档分组、虚拟实体集成和 Webhook 等管理任务。真实账号、根身份和父级委托链不会因为进入旧 <code>/me</code> 而取得当前实体的编辑权。</p>
+<h2 id="_4">个人工作台<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>Team、成员与虚拟实体都可从固定“个人工作台”入口进入个人概览；旧 <code>/me</code> 仍会跳转到 <code>/personal/profile</code>。个人工作台把“概览”固定为首个导航入口，并继续提供“资料”“对象字段”“角色与权限”。个人概览主视觉的“进入团队工作台”返回团队概览，“切换身份”前往 Account 身份页并在完成后安全返回当前页面；侧栏不提供身份切换。当前数据按 JWT 的最终叶子 Entity 读取。Team Entity 也会受字段类型、Permission 和实际业务参与关系限制。</p>
+<p>Customer 不进入后台个人工作台，继续使用商城客户中心。Team 团队工作台继续承担角色分配、状态、团队内可见性、全局搜索、公开 Display、文档分组、虚拟实体集成和 Webhook 等管理任务。真实账号、根身份和父级委托链不会取得当前实体的编辑权。</p>
 <h2 id="_5">实体目录与实体资料<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
 <p>“实体”统一浏览 Team、成员、客户和虚拟实体；“成员”和“客户”则处理对应类型的专属任务。四类 Entity 和示例见<a href="../concepts/">核心概念</a>。</p>
 <p>基础可见范围如下：</p>
@@ -1464,13 +1464,17 @@
 <p>建议按以下顺序配置：</p>
 <ol>
 <li>创建职责清楚的角色，确定不可变的角色标识、名称、说明和排序。</li>
-<li>进入角色详情，保存该角色的<strong>完整 Permission 集合</strong>；空集合表示清空。</li>
+<li>进入角色详情，保存该角色的<strong>完整 Permission 集合</strong>；空集合表示清空。普通权限用于精确授权；需要负责整个业务范围时，展开默认折叠的“高级范围权限”，搜索并选择父级 Permission。</li>
 <li>在“实体角色分配”中按名称或全局 slug 找到 Entity，并保存其<strong>完整角色集合</strong>。</li>
 <li>用目标 Entity 重新进入相关页面验证。</li>
 </ol>
+<p>高级范围会显示当前覆盖的叶子数量和清单。选择父键会移除草稿中已被覆盖的子键，被覆盖项随即禁用；取消父键不会自动恢复此前子项。保存本次新增的父键前必须再次确认范围。父键会自动包含未来新增的同前缀权限，因此只应授予确实负责整段业务的角色；界面不允许手输目录外键。“高级范围权限”内部的“实体委托”小节用于配置委托相关父键。</p>
+<p>身份委托、指定虚拟实体和相关动态权限统一在“实体委托”中配置。展开后可直接勾选通用委托；需要指定目标时，先按名称或 slug 选择当前团队实体，再勾选适用于该实体的权限，最后点击“委托到 @slug”把具体 key 加入角色草稿。选择实体本身不会自动授予权限。具体 key 的目标段始终使用所选 Entity 的全局 slug，不会用 <code>virtual</code> 等类型名称代替。虚拟实体支持管理、操作、字段管理和领取身份 4 项，成员与客户只支持领取对应身份。</p>
+<p>打开角色或权限摘要只会读取现有记录，不会清理数据。点击“保存权限”时，官方前端才会移除被父键或 <code>*</code> 权限覆盖的子键和指定 slug；服务端为兼容旧客户端与第三方调用，会保存所有不同且合法的键。</p>
+<p>拥有 <code>team.role.write</code> 的管理员可以授予当前团队目录中的任意高级范围，即使自己没有对应业务 Permission；成员编辑页仍只分配角色，不提供成员直授。</p>
 <p>角色可以分配给任意团队的有效 Entity，但 Permission 始终属于当前目标团队。外部来源 Entity 不能直接越过 Team 归属边界；它只能按 assume Permission 领取目标身份后再操作。</p>
 <p>角色的“公开展示”只让已公开 Entity 在 Display 展示角色名称和说明，不公开角色标识、Permission 或绑定记录，也不会增加或减少授权。</p>
-<p>删除角色会使对应 Permission 和绑定失效。修改 owner 或恢复角色前，应确保至少还有一个 Entity 能管理角色。完整键和用途见<a href="../permissions/">权限目录</a>。</p>
+<p>删除角色会使对应 Permission 和绑定失效。修改 owner 或恢复角色前，应确保至少还有一个 Entity 能管理角色。角色摘要中的“实体委托”与其他权限组平级，相关父键仍标记为“高级范围”；同一键来自多个角色，或父级/通配权限与其覆盖的子权限同时存在时，都会按存储记录完整显示。完整键和用途见<a href="../permissions/">权限目录</a>。</p>
 <h2 id="_8">对象字段<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
 <p>对象字段为团队定义结构化扩展资料，分为人员、客户和虚拟实体三类。创建后，对象类型和字段标识不可随意改变。</p>
 <h3 id="_9">值类型与输入控件<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
@@ -1549,7 +1553,7 @@
 </tbody>
 </table>
 <p>可见范围只过滤已经有权打开的资料，不额外授予页面或接口访问权；可见也不等于可编辑。“允许修改字段值”关闭后，字段管理员和对象本人都只能查看。删除字段会同步删除该字段在全部对象上的值，应先确认数据不再需要。</p>
-<p>当前实体本人在 Account“对象字段”维护允许本人编辑的字段，团队管理员继续在成员/实体管理流程维护管理范围内字段。字段值搜索尚未开放，“允许搜索”类历史配置不参与当前可见性判断。</p>
+<p>Team、成员或虚拟实体本人在 Team 个人工作台“对象字段”维护允许本人编辑的字段，团队管理员继续在成员/实体管理流程维护管理范围内字段。Customer 在商城客户中心维护客户资料，不进入该入口。字段值搜索尚未开放，“允许搜索”类历史配置不参与当前可见性判断。</p>
 <h2 id="_11">文件<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
 <p>“文件”页用于查看、搜索、上传和按 Permission 删除团队空间文件。文件以当前团队为边界，并记录上传 Entity。</p>
 <p>上传同时要求：</p>
@@ -1654,7 +1658,7 @@
 <p>选项字段分别保存给申请人看的“显示名称”和实际提交的“提交值”。审批后转存可以选择当前团队的人员对象字段，不要求操作者同时取得对象字段管理 Permission；目标字段的名称、标识和值类型会在选择时显示，保存时服务端仍重新确认团队归属。</p>
 <p>具备 <code>team.join_review.read</code> 的 Entity 可以查看申请，具备 <code>team.join_review.write</code> 的 Entity 可以开始审核、维护任务、标记任务完成、同意或拒绝。审批通过时系统创建成员及默认 slug，并把申请时确认的邀请人写入成员；配置为“审批后转存”的申请字段会写入对应 Entity 字段。申请阶段上传文件仍要求 File Ability 和文件规则。</p>
 <h2 id="webhook">虚拟实体与 Webhook<a class="headerlink" href="#webhook" title="Permanent link">&para;</a></h2>
-<p>虚拟实体用于人工代操作、Webhook、机器人和外部工作流。创建需要 <code>chat.virtual.create</code>；编辑、删除和集成管理需要目标虚拟实体的具体或通配 manage Permission。</p>
+<p>虚拟实体用于人工代操作、Webhook、机器人和外部工作流。创建需要 <code>team.entity.virtual.create</code>；编辑、删除和集成管理需要 <code>team.entity.virtual.&lt;slug&gt;.manage</code> 或通配权限。代表虚拟实体执行受支持操作使用跨应用的 <code>identity.virtual.&lt;slug&gt;.act</code>，不再归入 Chat 权限域。</p>
 <p>创建虚拟实体时设置稳定 slug、名称和资料。之后可添加多个 Webhook 集成，配置名称、有效 HTTPS 地址、订阅事件和启用状态。Webhook 地址不能指向内网或保留地址。</p>
 <p>集成创建或轮换后会显示 API Token 和签名密钥，明文只出现一次：</p>
 <ol>

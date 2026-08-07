@@ -12,9 +12,9 @@ class Virtual
         'Context',
         'EntityType:team,teamMember,teamCustomer,teamVirtual',
         'TeamAuth',
-        'Permission:' . Permissions::CHAT_VIRTUAL_CREATE => ['only' => ['create']],
+        'Permission:' . Permissions::TEAM_ENTITY_VIRTUAL_CREATE => ['only' => ['create']],
         [
-            'middleware' => ['Permission', [Permissions::CHAT_VIRTUAL_MANAGE_TEMPLATE]],
+            'middleware' => ['Permission', [Permissions::TEAM_ENTITY_VIRTUAL_MANAGE_TEMPLATE]],
             'options' => ['only' => ['get', 'update', 'delete']],
         ],
     ];

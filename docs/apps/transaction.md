@@ -11,18 +11,23 @@ Transaction 负责团队记账流水、客户与发单人的绑定关系，以�
 - 按汇总、角色实体、时间或客户生成统计结果。
 - 查询当前实体或全团队的客户绑定关系，并由管理员维护绑定。
 - 查询顾客余额日志并执行充值。
+- 个人工作台按当前 Entity 强制筛选相关流水、个人业绩、本人核销与客户协作/发单绑定。
+- 团队工作台基础概览始终展示团队摘要；具体流水、统计、核销、绑定与余额操作按 Permission 禁用并说明原因。
+- 顶栏直显团队、商品、记账和聊天四入口，不使用应用下拉或个人/团队分段控件；团队概览和流水主页面进入个人模式，个人模式从顶栏“记账”返回。
 
 流水编辑不允许更换 `handler_entity_id`；涉及余额和多模型变更的操作由服务层事务保证一致性。
 预存款支付必须关联本团队客户，接单、发单和客服主体必须是本团队有效实体；所有金额均为非负有限数值。
 
 ## 鉴权边界
 
-所有接口都经过 `JwtAuth`、`Context`、允许四种团队实体的 `EntityType` 和 `TeamAuth`；基础 JWT 不再静默领取成员，已有实体先验证当前团队归属，再按当前实体校验业务权限。
+除 `GET /workspace/access` 外，所有接口都经过 `JwtAuth`、`Context`、允许 Team、成员和虚拟实体的 `EntityType`、`TeamAuth` 与 `Ability:transaction`；客户不进入后台记账工作台。Ability 缺失时前端只读取访问快照，不请求任何业务接口。
 
-- 流水查询、创建/编辑、删除分别要求 `transaction.read`、`transaction.write`、`transaction.delete`，写操作继续叠加 `Ability:transaction` 与 `TransactionVerify`。
-- 统计要求 `Ability:transaction` 与 `transaction.report.read`。
+- 流水查询、创建/编辑、删除分别要求 `transaction.read`、`transaction.write`、`transaction.delete`，写操作继续叠加 `TransactionVerify`。
+- 统计要求 `transaction.report.read`。
 - 绑定查询要求 `transaction.read`；绑定和解绑要求 `transaction.write`。
-- 余额日志要求 `transaction.read`；充值要求 `Ability:transaction` 与 `transaction.write`。
+- 余额日志要求 `transaction.read`；充值要求 `transaction.write`。
+
+个人接口不接收 Entity ID：`/personal/transactions*`、`/personal/stats`、`/personal/services*` 与 `/personal/bindings` 只从当前 `acting_entity` 取得范围，即使当前角色拥有团队全量读取 Permission 也不会扩大结果。
 
 ## 接口契约
 
@@ -38,4 +43,4 @@ npm run test:backend
 
 Transaction 将“服务包收款”和“服务核销”作为独立流水类型。收款流水只进入现金或预存款口径；核销流水使用 `service_credit`，进入履约、接单与分成口径而不重复形成现金收入。每个服务实例最多关联一条核销流水。
 
-`service.redemption.read` 允许读取核销任务；`service.redemption.manage` 允许管理 Entity 改派、处理取消申请和确认完成。完成动作与流水创建在同一事务中；团队缺少有效 Transaction Ability 时只完成服务，不创建或后补流水。
+当前接单 Entity 可读取自己的核销任务；`service.redemption.read` 或 `service.redemption.manage` 扩大为全量读取，`service.redemption.manage` 允许改派、处理取消申请和确认完成。Transaction API 整体要求有效 Transaction Ability；Ability 缺失时访问快照仍可解释原因，但核销接口不会执行。底层履约服务保留非 Transaction 调用的无流水降级语义。

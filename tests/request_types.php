@@ -121,7 +121,7 @@ try {
 try {
     (new PermissionGate)->candidates(
         (new Request)->withGet(['slug' => 'query'])->withPost(['slug' => 'body']),
-        'chat.virtual.<slug>.manage'
+        'team.entity.virtual.<slug>.manage'
     );
     $failures[] = 'generic multi-source readers must reject conflicting values';
 } catch (HttpException $exception) {

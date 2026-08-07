@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { api } from '@lostsky/api/client'
-import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import { useQuery } from '@tanstack/vue-query'
-import { ArrowRight, Bell, BookOpen, Boxes, MessageCircleMore, Users } from '@lucide/vue'
+import { ArrowRight, Bell, BookOpen, Boxes, UserRound, Users } from '@lucide/vue'
 import { computed } from 'vue'
 import { abilityReason } from '../lib/teamAccess'
 
@@ -32,8 +31,6 @@ const stats = computed(() => [
   { key: 'notices', label: '通知', icon: Bell, to: '/notices/entity', metric: query.data.value?.notices },
 ])
 const documents = computed(() => query.data.value?.documents)
-const chatUrl = chatWorkspaceUrl()
-
 function reason(metric: DashboardMetric | undefined) {
   if (metric?.reason?.kind !== 'ability') return ''
   return abilityReason(metric.reason.key, metric.reason.label)
@@ -49,7 +46,7 @@ function reason(metric: DashboardMetric | undefined) {
         <span>先看状态，再进入具体工作。</span>
       </div>
       <div class="welcome-actions">
-        <a class="welcome-chat" :href="chatUrl"><MessageCircleMore :size="18" />进入消息 <ArrowRight :size="18" /></a>
+        <RouterLink class="welcome-chat" to="/personal"><UserRound :size="18" />进入个人工作台 <ArrowRight :size="18" /></RouterLink>
         <div class="welcome-document">
           <div
             v-if="documents && !documents.available"

@@ -11,7 +11,7 @@ class Identity
     protected $middleware = [
         'JwtAuth',
         'Context',
-        'EntityType:teamless,team,teamMember,teamCustomer,teamVirtual' => ['only' => ['candidates', 'receive']],
+        'EntityType:teamless,team,teamMember,teamCustomer,teamVirtual' => ['only' => ['candidates', 'receive', 'target']],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['drop']],
     ];
 
@@ -40,6 +40,11 @@ class Identity
             (string) ($request->jwt->dvt ?? ''),
             (string) ($request->jwt->jti ?? '')
         ), 'Identity dropped');
+    }
+
+    public function target(Request $request)
+    {
+        return success(app(IdentitySession::class)->currentTarget($request->acting_entity ?? null));
     }
 
     public function member(Request $request)

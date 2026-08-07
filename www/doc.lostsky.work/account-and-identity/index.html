@@ -563,7 +563,7 @@
   <a href="#_9" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        当前实体中心
+        实体资料入口迁移
       </span>
     </span>
   </a>
@@ -931,7 +931,7 @@
   <a href="#_9" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        当前实体中心
+        实体资料入口迁移
       </span>
     </span>
   </a>
@@ -1062,8 +1062,8 @@
 <tr>
 <td>ID-05</td>
 <td>管理当前实体</td>
-<td>当前使用有效成员、客户或虚拟实体</td>
-<td>只维护最终 JWT 对应 Entity 的有限资料、本人对象字段，并只读查看角色权限</td>
+<td>当前使用有效 Team、成员或虚拟实体</td>
+<td>在 Team 个人工作台只维护最终 JWT 对应 Entity 的有限资料、本人对象字段，并只读查看角色权限；Customer 使用商城客户中心</td>
 </tr>
 </tbody>
 </table>
@@ -1130,17 +1130,22 @@
 <p>Team 和虚拟实体没有可直接登录的账号。当前 Entity 只有获得目标团队授予的 <code>identity.*.assume</code> Permission 后，才会在候选中看到相应 Team、成员、客户或虚拟实体。
 成员本人直接领取团队身份只允许正常成员。已封禁或已离队成员即使因团队设置而保持 Entity 业务可用，也不会出现在本人的直接领取候选中；有 assume Permission 的其他 Entity（包括同一真实用户合法取得的其他 Entity）仍可代入。封禁、离队或团队关闭非正常成员可用性时会立即撤销既有身份链，之后重新开启设置、解封或复职都必须重新领取或代入。</p>
 <p>通配 Permission 可以覆盖目标团队同类型全部有效实体，精确 Permission 只覆盖指定 slug。切换到委托身份后，普通业务仍按目标实体所属团队和目标实体自身角色重新鉴权，不会沿用来源身份的业务 Permission。完整权限键见<a href="../permissions/">权限目录</a>。</p>
-<h2 id="_9">当前实体中心<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h2>
-<p><code>account.lostsky.work/identity/current</code> 是唯一的实体自我管理入口。“切换身份”和“管理当前实体”是两个任务：身份选择页决定接下来使用哪个 Entity，当前实体中心只处理已经生效的最终叶子 Entity。</p>
-<p>当前实体中心按任务分为“资料”“对象字段”“角色权限”，不会把成员、虚拟实体和客户拆成三个平级页面：</p>
+<h2 id="_9">实体资料入口迁移<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h2>
+<p>Account 只负责登录、注册、团队选择、身份领取/切换、成员身份回调与退出。旧 <code>account.lostsky.work/identity/current/*</code> 地址会依据当前身份安全跳转，不再读取或保存实体资料：</p>
 <ul>
-<li>成员和虚拟实体可维护名称、头像、简介、介绍图片、介绍视频和 Markdown 介绍；公开 Display 开关、搜索和团队内可见性仍由团队管理。</li>
-<li>客户可维护当前团队内的名称、头像、简介和服务归属；客户没有公开介绍媒体或 Display 能力。</li>
-<li>三类都只能编辑团队配置为“主体本人和团队管理”且允许编辑的对应对象字段，并只读查看角色与有效 Permission。</li>
-<li>历史上缺少 slug 的成员或客户可以首次补全；已有 slug 不可修改。</li>
-<li>Team 身份只显示摘要，并引导切换身份或进入 Team 管理流程；基础账号则先领取身份。</li>
+<li>Team、成员与虚拟实体进入 Team 个人工作台；</li>
+<li>Customer 进入对应商城客户中心；</li>
+<li>没有 Entity 时进入身份选择页。</li>
 </ul>
-<p>桌面端左侧和移动端内容顶部始终显示类型、名称、<code>@slug</code>、所属团队与“切换身份”。页面不会显示父会话，也不会暗示真实账号或委托来源可以编辑当前资料。</p>
+<p>Team 个人工作台按任务分为“资料”“对象字段”“角色权限”：</p>
+<ul>
+<li>Team、成员和虚拟实体可维护当前 Entity 类型允许的名称、头像、简介、介绍图片、介绍视频和 Markdown 介绍；公开 Display 开关、搜索和团队内可见性仍由团队管理。</li>
+<li>Customer 不进入后台双工作台，在商城客户中心维护资料、订单、服务与卡密。</li>
+<li>Team、成员与虚拟实体只能编辑团队配置为允许本人维护的对应对象字段，并只读查看角色与有效 Permission。</li>
+<li>历史上缺少 slug 的成员可以首次补全；已有 slug 不可修改。</li>
+<li>Team Entity 在个人工作台同样按类型与 Permission 受限；基础账号先领取身份。</li>
+</ul>
+<p>个人工作台显示当前 Entity 的类型、名称和所属团队；桌面端侧栏与移动端均不提供“切换身份”入口，但个人概览提供“切换身份”链接，前往 Account 身份页后会安全返回。页面不会显示父会话，也不会暗示真实账号或委托来源可以编辑当前资料。</p>
 <p>草稿按全局 <code>entity.id</code> 隔离。离开页面、刷新或切换身份前，浏览器会提示未保存修改；页面重新获得焦点时会核对当前 Entity。没有修改时自动刷新，存在修改且身份已变化时冻结保存并显示“身份已切换，未保存内容没有提交”，需要用户重新加载。服务端同时使用 <code>expected_entity_id</code> 拒绝旧表单，返回 <code>409</code> 时不会修改新旧任一实体。</p>
 <h2 id="_10">团队身份回调<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h2>
 <p>Team、Chat、Transaction 或 Shop 发现没有 Entity，或当前 Entity 不属于地址对应团队时，会前往 Account 回调：</p>
@@ -1191,7 +1196,7 @@
 <p>更多错误含义见<a href="../troubleshooting/">问题排查</a>。</p>
 <h2 id="_12">当前边界<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Account 当前提供注册、登录、团队入口、退出当前设备、身份选择和当前实体中心；没有密码重置、完整设备列表或全部设备管理页面。</li>
+<li>Account 当前提供注册、登录、团队入口、退出当前设备、身份选择、成员身份回调与旧深链跳转；没有实体资料管理、密码重置、完整设备列表或全部设备管理页面。</li>
 <li>创建团队不会自动开通 <code>doc</code>、<code>file</code> 或 <code>transaction</code> Ability。</li>
 <li>身份切换不会绕过目标团队的 Ability、角色 Permission、可见范围或资源状态。</li>
 <li>团队不匹配、身份失效、Permission 不足和 Ability 缺失是不同问题，恢复责任人也不同。</li>

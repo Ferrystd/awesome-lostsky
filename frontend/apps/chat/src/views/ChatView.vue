@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { api, friendlyError } from '@lostsky/api/client'
+import { api, auth, friendlyError } from '@lostsky/api/client'
+import { chatWorkspaceUrl, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
+import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ArrowLeft, Bot, Building2, CheckCheck, CircleX, MessageCircleMore, Plus, Reply, Send, Settings2, UserRound, Users } from '@lucide/vue'
-import { NButton, NInput, NSelect } from 'naive-ui'
+import { ArrowLeft, Bot, Building2, CheckCheck, CircleX, House, MessageCircleMore, MoreHorizontal, Plus, ReceiptText, Reply, Send, Settings2, Store, UserRound, Users } from '@lucide/vue'
+import { NButton, NDropdown, NInput, NSelect } from 'naive-ui'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { loadCentrifuge, type CentrifugeClient, type Subscription } from '../lib/centrifuge'
 import { identityManagementLink } from '../lib/profile-navigation'
@@ -15,7 +17,62 @@ interface Actor {
   can_act: boolean
 }
 
+interface AppOption {
+  key: string
+  label: string
+  href?: string
+  disabled?: boolean
+  reason?: string
+}
+
 const identityManagement = identityManagementLink()
+const identityType = computed(() => String(auth.entity()?.type ?? ''))
+const backendWorkspace = computed(() => ['team', 'teamMember', 'teamVirtual'].includes(identityType.value))
+const customerWorkspace = computed(() => identityType.value === 'teamCustomer')
+const workspaceAccess = useQuery({
+  queryKey: ['chat-workspace-access'],
+  queryFn: () => api.get<{ abilities?: { transaction?: { enabled: boolean; label: string } } }>('/workspace/access'),
+  enabled: backendWorkspace,
+})
+const appOptions = computed<AppOption[]>(() => {
+  const transaction = workspaceAccess.data.value?.abilities?.transaction
+  if (customerWorkspace.value) return [
+    { key: 'team', label: '团队', disabled: true, reason: '客户不进入后台工作台' },
+    { key: 'shop', label: '商品', href: shopWorkspaceUrl('/customer/profile') },
+    { key: 'transaction', label: '记账', disabled: true, reason: '客户不进入后台工作台' },
+    { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
+  ]
+  if (!backendWorkspace.value) return [
+    { key: 'team', label: '团队', disabled: true, reason: '请先领取团队身份' },
+    { key: 'shop', label: '商品', disabled: true, reason: '请先领取团队身份' },
+    { key: 'transaction', label: '记账', disabled: true, reason: '请先领取团队身份' },
+    { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
+  ]
+  return [
+    { key: 'team', label: '团队', href: teamWorkspaceUrl('/') },
+    { key: 'shop', label: '商品', href: shopWorkspaceUrl('/manage') },
+    { key: 'transaction', label: '记账', href: transactionWorkspaceUrl('/'), disabled: !transaction?.enabled, reason: transaction ? '当前团队未启用 transaction Ability' : '正在核对 transaction Ability' },
+    { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
+  ]
+})
+const appDropdownOptions = computed(() => appOptions.value.map(({ key, label, disabled, reason }) => ({
+  key,
+  label: disabled && reason ? `${label}（${reason}）` : label,
+  disabled,
+})))
+function switchApp(key: string) {
+  const item = appOptions.value.find(option => option.key === key)
+  if (item?.href && !item.disabled) location.href = item.href
+}
+function explainApp(item: AppOption) {
+  feedback.info(item.reason || `${item.label}暂不可用`)
+}
+function appIcon(key: string) {
+  if (key === 'team') return House
+  if (key === 'shop') return Store
+  if (key === 'transaction') return ReceiptText
+  return MessageCircleMore
+}
 interface Participant extends Actor {
   joined_at: number
   left_at: number | null
@@ -233,8 +290,24 @@ onUnmounted(() => {
     <main class="chat-app">
       <header class="topbar">
         <a class="brand" href="//chat.lostsky.work"><MessageCircleMore :size="22" /><strong>LostSky Chat</strong></a>
+        <nav class="app-links" aria-label="应用切换">
+          <template v-for="item in appOptions" :key="item.key">
+            <NButton
+              v-if="item.disabled"
+              quaternary
+              class="app-link app-link--disabled"
+              :title="item.reason"
+              :aria-label="`${item.label}不可用：${item.reason}`"
+              @click="explainApp(item)"
+            ><component :is="appIcon(item.key)" :size="17" /><span>{{ item.label }}</span></NButton>
+            <a v-else class="app-link" :class="{ active: item.key === 'chat' }" :href="item.href" :aria-current="item.key === 'chat' ? 'page' : undefined"><component :is="appIcon(item.key)" :size="17" /><span>{{ item.label }}</span></a>
+          </template>
+        </nav>
+        <div class="app-menu">
+          <NDropdown trigger="click" :options="appDropdownOptions" @select="switchApp(String($event))"><NButton quaternary class="app-switch"><template #icon><MoreHorizontal :size="18" /></template>操作</NButton></NDropdown>
+        </div>
         <span class="team">@{{ teamSlug }}</span>
-        <nav>
+        <nav class="account-links">
           <a :href="identityManagement.href"><UserRound :size="18" />{{ identityManagement.label }}</a>
           <a class="new-chat" href="/new"><Plus :size="18" />新会话</a>
         </nav>
@@ -322,11 +395,13 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.chat-app{min-height:100dvh;background:var(--cloud)}.topbar{height:64px;display:flex;align-items:center;gap:1rem;padding:0 1rem;color:white;background:var(--sky-night);border-bottom:1px solid color-mix(in oklch,var(--sky-lost),transparent 75%)}.brand{display:flex;align-items:center;gap:.55rem}.brand strong{font-family:'Barlow Condensed',sans-serif;font-size:1.15rem;letter-spacing:.02em}.team{color:oklch(.72 .02 210);font-size:.78rem}.topbar nav{display:flex;align-items:center;gap:.35rem;margin-left:auto}.topbar nav a{min-height:40px;display:flex;align-items:center;gap:.35rem;padding:0 .65rem;color:oklch(.86 .012 210);border-radius:8px;font-size:.8rem}.topbar nav a:hover{background:color-mix(in oklch,var(--sky-lost),transparent 78%)}.topbar .new-chat{color:var(--sky-night);background:var(--afterglow);font-weight:700}.workspace{height:calc(100dvh - 64px);display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr) minmax(230px,280px);overflow:hidden}.conversation-pane,.detail-pane,.message-pane{min-width:0;background:white}.conversation-pane{border-right:1px solid var(--line);overflow:auto}.pane-heading,.message-pane>header{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem;border-bottom:1px solid var(--line)}.pane-heading p,.pane-heading h1,.message-pane h2,.message-pane header p{margin:0}.pane-heading p{color:var(--sky-lost-strong);font:700 .67rem/1 'Barlow Condensed',sans-serif;letter-spacing:.1em}.pane-heading h1{font-size:1.35rem}.pane-heading>a,.message-pane>header>button{width:42px;height:42px;display:grid;place-items:center;color:var(--sky-lost-strong);background:var(--cloud);border:0;border-radius:10px}.conversation-list{padding:.55rem}.conversation-list button{width:100%;min-height:76px;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:.65rem;padding:.65rem;text-align:left;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:10px}.conversation-list button:hover{background:var(--cloud)}.conversation-list button.active{background:color-mix(in oklch,var(--sky-lost),white 91%);border-color:color-mix(in oklch,var(--sky-lost),white 62%)}.avatar,.sender-avatar,.mini-avatar{display:grid;place-items:center;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 87%);border-radius:10px}.avatar{width:42px;height:42px}.conversation-list strong,.conversation-list small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.conversation-list small{color:var(--muted-ink);font-size:.73rem}.conversation-list time{align-self:start;color:var(--muted-ink);font-size:.68rem}.message-pane{display:grid;grid-template-rows:auto minmax(0,1fr) auto}.message-pane>header{padding-inline:1.1rem}.message-pane>header>div{min-width:0;flex:1}.message-pane h2{font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.message-pane header p{color:var(--muted-ink);font-size:.72rem}.message-pane header .live{color:var(--success)}.message-pane header .polling{color:var(--warning)}.mobile-back{display:none!important}.messages{overflow:auto;padding:1.25rem clamp(.75rem,3vw,2.5rem);scrollbar-gutter:stable}.messages article{display:grid;grid-template-columns:34px minmax(0,34rem);gap:.55rem;margin-bottom:1rem}.messages article.own{grid-template-columns:minmax(0,34rem);justify-content:end}.messages article.own>.sender-avatar{display:none}.sender-avatar{width:34px;height:34px;border-radius:9px}.messages article header{display:flex;align-items:baseline;gap:.5rem}.messages article header strong{font-size:.78rem}.messages article header time,.messages article>div>small{color:var(--muted-ink);font-size:.65rem}.bubble{width:fit-content;margin:.25rem 0 0;padding:.55rem .75rem;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--cloud);border-radius:4px 12px 12px 12px}.own .bubble{margin-left:auto;color:white;background:var(--sky-lost-strong);border-radius:12px 4px 12px 12px}.revoked .bubble{color:var(--muted-ink);background:transparent;border:1px dashed var(--line);font-style:italic}.messages footer{display:flex;gap:.55rem;margin-top:.25rem;opacity:0}.messages article:hover footer,.messages article:focus-within footer{opacity:1}.messages footer button{padding:0;color:var(--muted-ink);background:transparent;border:0;font-size:.68rem}.messages footer button:first-child{display:flex;align-items:center;gap:.2rem}.composer{padding:.75rem 1rem 1rem;border-top:1px solid var(--line);background:white}.identity-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.45rem}.identity-row label{color:var(--muted-ink);font-size:.7rem}.identity-row select{max-width:15rem;color:var(--sky-lost-strong);background:transparent;border:0;font-size:.72rem;font-weight:650}.compose-row{display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:end;gap:.55rem}.compose-row>button{width:44px;height:44px;display:grid;place-items:center;color:white;background:var(--sky-lost-strong);border:0;border-radius:10px}.compose-row>button:disabled{opacity:.45}.replying{display:flex;justify-content:space-between;gap:.5rem;padding:.4rem .55rem;margin-bottom:.45rem;color:var(--muted-ink);background:var(--cloud);border-radius:7px;font-size:.72rem}.replying span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.replying button{color:var(--sky-lost-strong);background:transparent;border:0}.detail-pane{border-left:1px solid var(--line);overflow:auto}.detail-heading{height:76px;display:flex;align-items:center;gap:.45rem;padding:1rem;border-bottom:1px solid var(--line)}.detail-pane section{padding:1rem;border-bottom:1px solid var(--line)}.detail-pane h3{margin:0 0 .65rem;color:var(--muted-ink);font-size:.72rem;text-transform:uppercase;letter-spacing:.07em}.identity-card,.detail-pane li{display:flex;align-items:center;gap:.55rem}.identity-card>svg{width:36px;height:36px;padding:8px;color:var(--sky-lost-strong);background:var(--cloud);border-radius:9px}.identity-card span,.detail-pane li>span:nth-child(2){min-width:0;flex:1}.identity-card strong,.identity-card small,.detail-pane li strong,.detail-pane li small{display:block;overflow:hidden;text-overflow:ellipsis}.identity-card small,.detail-pane li small{color:var(--muted-ink);font-size:.7rem}.detail-pane ul{display:grid;gap:.7rem;margin:0;padding:0;list-style:none}.mini-avatar{width:30px;height:30px;border-radius:8px}.detail-pane li>svg{color:var(--sky-lost)}.empty,.timeline-state{padding:2rem;text-align:center;color:var(--muted-ink)}.empty{min-height:240px;display:grid;place-items:center;align-content:center;gap:.45rem}.empty strong{color:var(--ink)}.empty p{max-width:16rem;margin:0}.empty a{margin-top:.4rem;padding:.55rem .8rem;color:white;background:var(--sky-lost-strong);border-radius:8px}.center-empty{height:100%}.error{color:var(--danger)}.muted{margin:0;color:var(--muted-ink);font-size:.8rem}
+.app-menu{display:none}.app-switch{min-height:44px;color:oklch(.86 .012 210)}.app-links{display:flex;align-items:center;gap:.1rem}.app-link{min-height:44px;display:inline-flex;align-items:center;gap:.35rem;padding:0 .6rem;color:oklch(.86 .012 210);border-radius:8px;font-size:.8rem;font-weight:650}.app-link:hover,.app-link.active{color:white;background:color-mix(in oklch,var(--sky-lost),transparent 78%)}.app-link--disabled{color:oklch(.56 .012 210);cursor:not-allowed}.app-link--disabled :deep(.n-button__content){display:flex;align-items:center;gap:.35rem}
+.chat-app{min-height:100dvh;background:var(--cloud)}.topbar{height:64px;display:flex;align-items:center;gap:1rem;padding:0 1rem;color:white;background:var(--sky-night);border-bottom:1px solid color-mix(in oklch,var(--sky-lost),transparent 75%)}.brand{display:flex;align-items:center;gap:.55rem}.brand strong{font-family:'Barlow Condensed',sans-serif;font-size:1.15rem;letter-spacing:.02em}.team{color:oklch(.72 .02 210);font-size:.78rem}.account-links{display:flex;align-items:center;gap:.35rem;margin-left:auto}.account-links a{min-height:40px;display:flex;align-items:center;gap:.35rem;padding:0 .65rem;color:oklch(.86 .012 210);border-radius:8px;font-size:.8rem}.account-links a:hover{background:color-mix(in oklch,var(--sky-lost),transparent 78%)}.topbar .new-chat{color:var(--sky-night);background:var(--afterglow);font-weight:700}.workspace{height:calc(100dvh - 64px);display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr) minmax(230px,280px);overflow:hidden}.conversation-pane,.detail-pane,.message-pane{min-width:0;background:white}.conversation-pane{border-right:1px solid var(--line);overflow:auto}.pane-heading,.message-pane>header{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem;border-bottom:1px solid var(--line)}.pane-heading p,.pane-heading h1,.message-pane h2,.message-pane header p{margin:0}.pane-heading p{color:var(--sky-lost-strong);font:700 .67rem/1 'Barlow Condensed',sans-serif;letter-spacing:.1em}.pane-heading h1{font-size:1.35rem}.pane-heading>a,.message-pane>header>button{width:42px;height:42px;display:grid;place-items:center;color:var(--sky-lost-strong);background:var(--cloud);border:0;border-radius:10px}.conversation-list{padding:.55rem}.conversation-list button{width:100%;min-height:76px;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:.65rem;padding:.65rem;text-align:left;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:10px}.conversation-list button:hover{background:var(--cloud)}.conversation-list button.active{background:color-mix(in oklch,var(--sky-lost),white 91%);border-color:color-mix(in oklch,var(--sky-lost),white 62%)}.avatar,.sender-avatar,.mini-avatar{display:grid;place-items:center;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 87%);border-radius:10px}.avatar{width:42px;height:42px}.conversation-list strong,.conversation-list small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.conversation-list small{color:var(--muted-ink);font-size:.73rem}.conversation-list time{align-self:start;color:var(--muted-ink);font-size:.68rem}.message-pane{display:grid;grid-template-rows:auto minmax(0,1fr) auto}.message-pane>header{padding-inline:1.1rem}.message-pane>header>div{min-width:0;flex:1}.message-pane h2{font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.message-pane header p{color:var(--muted-ink);font-size:.72rem}.message-pane header .live{color:var(--success)}.message-pane header .polling{color:var(--warning)}.mobile-back{display:none!important}.messages{overflow:auto;padding:1.25rem clamp(.75rem,3vw,2.5rem);scrollbar-gutter:stable}.messages article{display:grid;grid-template-columns:34px minmax(0,34rem);gap:.55rem;margin-bottom:1rem}.messages article.own{grid-template-columns:minmax(0,34rem);justify-content:end}.messages article.own>.sender-avatar{display:none}.sender-avatar{width:34px;height:34px;border-radius:9px}.messages article header{display:flex;align-items:baseline;gap:.5rem}.messages article header strong{font-size:.78rem}.messages article header time,.messages article>div>small{color:var(--muted-ink);font-size:.65rem}.bubble{width:fit-content;margin:.25rem 0 0;padding:.55rem .75rem;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--cloud);border-radius:4px 12px 12px 12px}.own .bubble{margin-left:auto;color:white;background:var(--sky-lost-strong);border-radius:12px 4px 12px 12px}.revoked .bubble{color:var(--muted-ink);background:transparent;border:1px dashed var(--line);font-style:italic}.messages footer{display:flex;gap:.55rem;margin-top:.25rem;opacity:0}.messages article:hover footer,.messages article:focus-within footer{opacity:1}.messages footer button{padding:0;color:var(--muted-ink);background:transparent;border:0;font-size:.68rem}.messages footer button:first-child{display:flex;align-items:center;gap:.2rem}.composer{padding:.75rem 1rem 1rem;border-top:1px solid var(--line);background:white}.identity-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.45rem}.identity-row label{color:var(--muted-ink);font-size:.7rem}.identity-row select{max-width:15rem;color:var(--sky-lost-strong);background:transparent;border:0;font-size:.72rem;font-weight:650}.compose-row{display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:end;gap:.55rem}.compose-row>button{width:44px;height:44px;display:grid;place-items:center;color:white;background:var(--sky-lost-strong);border:0;border-radius:10px}.compose-row>button:disabled{opacity:.45}.replying{display:flex;justify-content:space-between;gap:.5rem;padding:.4rem .55rem;margin-bottom:.45rem;color:var(--muted-ink);background:var(--cloud);border-radius:7px;font-size:.72rem}.replying span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.replying button{color:var(--sky-lost-strong);background:transparent;border:0}.detail-pane{border-left:1px solid var(--line);overflow:auto}.detail-heading{height:76px;display:flex;align-items:center;gap:.45rem;padding:1rem;border-bottom:1px solid var(--line)}.detail-pane section{padding:1rem;border-bottom:1px solid var(--line)}.detail-pane h3{margin:0 0 .65rem;color:var(--muted-ink);font-size:.72rem;text-transform:uppercase;letter-spacing:.07em}.identity-card,.detail-pane li{display:flex;align-items:center;gap:.55rem}.identity-card>svg{width:36px;height:36px;padding:8px;color:var(--sky-lost-strong);background:var(--cloud);border-radius:9px}.identity-card span,.detail-pane li>span:nth-child(2){min-width:0;flex:1}.identity-card strong,.identity-card small,.detail-pane li strong,.detail-pane li small{display:block;overflow:hidden;text-overflow:ellipsis}.identity-card small,.detail-pane li small{color:var(--muted-ink);font-size:.7rem}.detail-pane ul{display:grid;gap:.7rem;margin:0;padding:0;list-style:none}.mini-avatar{width:30px;height:30px;border-radius:8px}.detail-pane li>svg{color:var(--sky-lost)}.empty,.timeline-state{padding:2rem;text-align:center;color:var(--muted-ink)}.empty{min-height:240px;display:grid;place-items:center;align-content:center;gap:.45rem}.empty strong{color:var(--ink)}.empty p{max-width:16rem;margin:0}.empty a{margin-top:.4rem;padding:.55rem .8rem;color:white;background:var(--sky-lost-strong);border-radius:8px}.center-empty{height:100%}.error{color:var(--danger)}.muted{margin:0;color:var(--muted-ink);font-size:.8rem}
 .identity-row :deep(.n-select){width:15rem;max-width:100%}
 .conversation-list :deep(.n-button){justify-content:stretch}
 .conversation-list :deep(.n-button__content){width:100%;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:.65rem}
 .closed-state{padding:1rem;text-align:center;color:var(--muted-ink);background:var(--cloud);border-top:1px solid var(--line);font-size:.8rem}
 @media(max-width:1050px){.workspace{grid-template-columns:minmax(250px,310px) minmax(0,1fr)}.detail-pane{display:none}}
-@media(max-width:720px){.topbar{height:58px}.team{display:none}.topbar nav a:first-child{font-size:0}.workspace{height:calc(100dvh - 58px);display:block}.conversation-pane,.message-pane{height:100%}.conversation-pane.hidden{display:none}.message-pane{display:none}.message-pane.visible{display:grid}.mobile-back{display:grid!important}.messages footer{opacity:1}.pane-heading,.message-pane>header{min-height:68px}.composer{padding-bottom:max(1rem,env(safe-area-inset-bottom))}}
+@media(max-width:900px){.app-links{display:none}.app-menu{display:block}}
+@media(max-width:720px){.topbar{height:58px;gap:.5rem}.brand strong,.team{display:none}.account-links{gap:.15rem}.account-links a{min-height:44px}.account-links a:first-child{font-size:0}.workspace{height:calc(100dvh - 58px);display:block}.conversation-pane,.message-pane{height:100%}.conversation-pane.hidden{display:none}.message-pane{display:none}.message-pane.visible{display:grid}.mobile-back{display:grid!important}.messages footer{opacity:1}.pane-heading,.message-pane>header{min-height:68px}.composer{padding-bottom:max(1rem,env(safe-area-inset-bottom))}}
 </style>

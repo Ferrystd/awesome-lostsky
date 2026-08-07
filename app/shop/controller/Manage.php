@@ -20,10 +20,12 @@ final class Manage
     public function access(Request $request)
     {
         $permissions = app(PermissionGate::class)->effective($request->team_id, $request->acting_entity);
-        return success(['permissions' => array_values(array_intersect($permissions, [
-            Permissions::SHOP_PRODUCT_READ, Permissions::SHOP_PRODUCT_WRITE, Permissions::SHOP_PRODUCT_DELETE,
-            Permissions::SHOP_ORDER_READ, Permissions::SHOP_ORDER_WRITE,
-        ]))]);
+        return success([
+            'team' => app(\app\service\IdentitySession::class)->teamSummary($request->team_id),
+            'identity' => ['type' => $request->acting_entity['type']],
+            'abilities' => ['transaction' => app(\app\service\TeamAccess::class)->ability($request->team_id, 'transaction', '记账')],
+            'permissions' => array_values($permissions),
+        ]);
     }
 
     public function options(Request $request) { return success(app(EntitlementManagement::class)->teamOptions($request->team_id)); }

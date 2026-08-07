@@ -1,0 +1,1 @@
+import{N as t}from"./Tag-D7Ys28OW.js";import{d as a,h as s,u as l,i as o,e as r,t as n,o as p}from"./index-6SfR24zy.js";const d=a({__name:"LsStatusTag",props:{label:{},type:{default:"default"}},setup(e){return(c,u)=>(p(),s(l(t),{class:"ls-status-tag",size:"small",bordered:!1,type:e.type},{default:o(()=>[r(n(e.label),1)]),_:1},8,["type"]))}});export{d as _};

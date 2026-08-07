@@ -208,6 +208,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspace/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取应用切换所需团队摘要与 Ability 快照 */
+        get: operations["chatWorkspaceAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/conversation": {
         parameters: {
             query?: never;
@@ -494,6 +511,22 @@ export interface components {
         };
         MessageEnvelope: components["schemas"]["Envelope"] & {
             data?: unknown;
+        };
+        WorkspaceAccessSnapshot: {
+            team: {
+                /** Format: int64 */
+                id: number;
+                slug: string;
+                name: string;
+            };
+            permissions: string[];
+            abilities: {
+                [key: string]: unknown;
+            };
+            identity: {
+                /** @enum {string} */
+                type: "team" | "teamMember" | "teamVirtual";
+            };
         };
         Actor: {
             /** @enum {string} */
@@ -932,6 +965,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Envelope"];
+                };
+            };
+        };
+    };
+    chatWorkspaceAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"] & {
+                        data?: components["schemas"]["WorkspaceAccessSnapshot"];
+                    };
                 };
             };
         };

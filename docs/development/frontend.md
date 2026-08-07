@@ -10,7 +10,7 @@
 
 - 标准控件只使用 Naive UI 2.44.1 和 `@lostsky/ui`；不得引入 PrimeVue 或复制 shadcn-vue 组件。完整边界见[公共组件](../design/admin/components.md)。
 - API、鉴权与错误归入 `@lostsky/api`；通用 UI 归入 `@lostsky/ui`；导航与无界面工具归入 `@lostsky/shared`。
-- 跨应用报错文案统一维护在 `@lostsky/api/error-messages`。网络、超时、限流、服务异常和未知错误直接修改 `ERROR_MESSAGES`；Permission 与 Ability 使用默认模板和按键覆盖表，不得在页面重复拼接同类文案。Permission 模板可使用 `{permission}`、`{permissions}`，Ability 模板可使用 `{key}`、`{keyTitle}`、`{label}`。
+- 跨应用报错文案统一维护在 `@lostsky/api/error-messages`。网络、超时、限流、服务异常和未知错误直接修改 `ERROR_MESSAGES`；Permission、Ability 与 TeamSetting 入口条件使用默认模板和按键覆盖表，不得在页面重复拼接同类文案。Permission 模板可使用 `{permission}`、`{permissions}`，Ability 模板可使用 `{key}`、`{keyTitle}`、`{label}`；TeamSetting 覆盖键使用 `app_name.key`，模板可使用 `{app}`、`{key}`、`{setting}`、`{label}`、`{required}`、`{current}`。TeamSetting 条件支持指定值以及包含边界的最小值、最大值或闭区间，条件满足时不生成禁用原因。
 - 列表搜索与筛选优先复用 `LsSearchInput.vue` 和 `LsListToolbar.vue`，同一对象的选择搜索应展示名称、Slug、类型和全局标识，不退化为要求精确输入 Slug 的普通文本框。
 - 保存、删除、权限/能力原因等短时操作反馈统一通过 `@lostsky/ui/feedback`；默认自动消失并抑制短时间重复消息。字段校验和可恢复的加载错误仍靠近问题展示，不以全局提示替代。
 - 请求通过 `@lostsky/api/client`，登录回跳使用 `@lostsky/shared/navigation`。

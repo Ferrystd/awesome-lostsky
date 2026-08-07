@@ -6,6 +6,7 @@ namespace app\service;
 use app\model\Entity;
 use app\model\TeamEntityRole;
 use app\model\TeamRole;
+use app\model\TeamRolePermission;
 use think\exception\HttpException;
 
 class EntityRole
@@ -34,24 +35,54 @@ class EntityRole
                 ];
             }
         }
-
-        $keys = [];
-        foreach ($assignments as $assignment) {
-            foreach (($assignment['role']['permissions'] ?? []) as $permission) {
-                $key = (string) ($permission['permission_key'] ?? '');
-                if ($key !== '') {
-                    $keys[$key] = true;
+        foreach ($catalog['advanced_items'] as $item) {
+            $coveredGroups = [];
+            foreach ($item['covered_keys'] as $coveredKey) {
+                if (isset($labels[$coveredKey]['group'])) {
+                    $coveredGroups[$labels[$coveredKey]['group']] = true;
                 }
             }
+            $labels[$item['key']] = [
+                'label' => $item['label'],
+                'group' => count($coveredGroups) === 1 ? array_key_first($coveredGroups) : '高级范围',
+            ];
         }
-        ksort($keys);
+
+        $roleIds = array_values(array_filter(array_map(
+            static fn (array $assignment): int => (int) ($assignment['role_id'] ?? 0),
+            $assignments
+        )));
+        $permissions = $roleIds === []
+            ? []
+            : TeamRolePermission::where('team_id', $teamId)
+                ->whereIn('role_id', $roleIds)
+                ->order('id', 'asc')
+                ->select()
+                ->toArray();
 
         $effective = [];
-        foreach (array_keys($keys) as $key) {
+        foreach ($permissions as $permission) {
+            $key = (string) ($permission['permission_key'] ?? '');
+            if ($key === '') {
+                continue;
+            }
+            $metadata = $labels[$key] ?? null;
+            $dynamic = PermissionDictionary::dynamic($key);
+            if ($metadata === null && $dynamic !== null) {
+                $metadata = [
+                    'label' => $key,
+                    'group' => $dynamic['kind'] === 'virtual' ? '实体管理' : '实体委托',
+                ];
+            } elseif ($metadata === null && ($descendant = PermissionDictionary::dynamicDescendant($key)) !== null) {
+                $metadata = [
+                    'label' => "覆盖 {$key} 下全部权限",
+                    'group' => $descendant['kind'] === 'virtual' ? '实体管理' : '实体委托',
+                ];
+            }
             $effective[] = [
                 'key' => $key,
-                'label' => $labels[$key]['label'] ?? $key,
-                'group' => $labels[$key]['group'] ?? '动态权限',
+                'label' => $metadata['label'] ?? $key,
+                'group' => $metadata['group'] ?? '动态权限',
             ];
         }
 

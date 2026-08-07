@@ -3,9 +3,11 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\model\Entity as EntityModel;
 use app\model\TeamRole;
 use app\model\TeamEntityRole;
 use app\model\TeamRolePermission;
+use app\model\TeamVirtual;
 use think\exception\HttpException;
 
 class RolePermission
@@ -28,38 +30,52 @@ class RolePermission
             $groups[] = ['name' => $name, 'items' => $this->items($items)];
         }
 
-        $virtualItems = [];
-        $virtuals = \app\model\TeamVirtual::where('team_id', $teamId)
-            ->with(['identity', 'profile'])
+        $virtualManagementItems = [];
+        $virtualDelegationItems = [];
+        $virtuals = EntityModel::with(['profile'])
+            ->where('entityable_type', 'teamVirtual')
+            ->whereIn('entityable_id', TeamVirtual::where('team_id', $teamId)->column('id'))
             ->select()
             ->all();
-        usort($virtuals, static fn ($left, $right): int =>
-            strcasecmp((string) $left->name, (string) $right->name)
+        usort($virtuals, static fn (EntityModel $left, EntityModel $right): int =>
+            strcasecmp((string) ($left->profile?->name ?? ''), (string) ($right->profile?->name ?? ''))
         );
         foreach ($virtuals as $virtual) {
-            $slug = (string) ($virtual->slug ?? '');
+            $slug = (string) $virtual->slug;
             if ($slug === '') {
                 continue;
             }
-            $label = (string) ($virtual->name ?: $slug);
-            foreach (['manage' => '管理', 'operate' => '操作', 'field.manage' => '管理字段'] as $action => $actionLabel) {
-                $virtualItems[] = [
+            $label = (string) ($virtual->profile?->name ?: $slug);
+            foreach (['manage' => '管理', 'field.manage' => '管理字段'] as $action => $actionLabel) {
+                $virtualManagementItems[] = [
                     'key' => PermissionDictionary::virtual($slug, $action),
                     'label' => "{$actionLabel} · {$label}",
                     'resource_slug' => $slug,
                 ];
             }
-            $virtualItems[] = [
+            $virtualDelegationItems[] = [
+                'key' => PermissionDictionary::virtual($slug, 'act'),
+                'label' => "代表 · {$label} 执行操作",
+                'resource_slug' => $slug,
+            ];
+            $virtualDelegationItems[] = [
                 'key' => PermissionDictionary::assume('virtual', $slug),
                 'label' => "领取 · {$label} 身份",
                 'resource_slug' => $slug,
             ];
         }
-        if ($virtualItems) {
-            $groups[] = ['name' => '指定虚拟实体', 'items' => $virtualItems];
+        foreach ($groups as $index => $group) {
+            if ($group['name'] === '实体管理') {
+                $groups[$index]['items'] = array_merge($group['items'], $virtualManagementItems);
+            } elseif ($group['name'] === '实体委托') {
+                $groups[$index]['items'] = array_merge($group['items'], $virtualDelegationItems);
+            }
         }
 
-        return ['groups' => $groups];
+        return [
+            'groups' => $groups,
+            'advanced_items' => $this->advancedItems($groups),
+        ];
     }
 
     public function bootstrapOwner(int $teamId, int $memberId): void
@@ -208,6 +224,37 @@ class RolePermission
             $result[] = compact('key', 'label');
         }
         return $result;
+    }
+
+    private function advancedItems(array $groups): array
+    {
+        $covered = [];
+        foreach ($groups as $group) {
+            foreach ($group['items'] as $item) {
+                $key = (string) $item['key'];
+                $segments = explode('.', $key);
+                array_pop($segments);
+                while ($segments) {
+                    $parent = implode('.', $segments);
+                    $covered[$parent][$key] = true;
+                    array_pop($segments);
+                }
+            }
+        }
+        ksort($covered);
+
+        $items = [];
+        foreach ($covered as $key => $keys) {
+            $coveredKeys = array_keys($keys);
+            sort($coveredKeys);
+            $items[] = [
+                'key' => $key,
+                'label' => "覆盖 {$key} 下全部权限",
+                'covered_keys' => $coveredKeys,
+            ];
+        }
+
+        return $items;
     }
 
     private function validate(array $data): void

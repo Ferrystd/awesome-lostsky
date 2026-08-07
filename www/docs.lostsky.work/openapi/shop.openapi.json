@@ -3,16 +3,15 @@
   "info": {
     "title": "LostSky Shop API",
     "version": "0.0.10",
-    "description": "???????????????????????????????? Storefront ???????????????????? teamCustomer ???"
+    "description": "团队公开商城、商品与订单管理、商城客户中心及服务权益履约。管理后台只接受 Team、成员与虚拟实体；客户使用 teamCustomer 进入商城客户中心。"
   },
   "x-entity-auth": {
     "team_business_default": [
       "team",
       "teamMember",
-      "teamCustomer",
       "teamVirtual"
     ],
-    "base_login_auto_member": true,
+    "base_login_auto_member": false,
     "team_belongs": true,
     "exceptions": {
       "customer_self": {
@@ -141,6 +140,41 @@
       "AnyObject": {
         "type": "object",
         "additionalProperties": true
+      },
+      "WorkspaceAccessSnapshot": {
+        "type": "object",
+        "required": ["team", "permissions", "abilities", "identity"],
+        "properties": {
+          "team": {
+            "type": "object",
+            "required": ["id", "slug", "name"],
+            "properties": {
+              "id": {"type": "integer", "format": "int64"},
+              "slug": {"type": "string"},
+              "name": {"type": "string"}
+            }
+          },
+          "permissions": {"type": "array", "items": {"type": "string"}},
+          "abilities": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["enabled", "level", "expire_time", "reason", "label"],
+              "properties": {
+                "enabled": {"type": "boolean"},
+                "level": {"type": "integer"},
+                "expire_time": {"type": "integer", "format": "int64"},
+                "reason": {"type": "string", "nullable": true, "enum": ["missing", "level", "expired"]},
+                "label": {"type": "string"}
+              }
+            }
+          },
+          "identity": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {"type": {"type": "string", "enum": ["team", "teamMember", "teamVirtual"]}}
+          }
+        }
       },
       "AnyValue": {
         "nullable": true,
@@ -1777,7 +1811,9 @@
     }
   },
   "paths": {
-    "/manage/access": {"get":{"tags":["Product"],"operationId":"shopManageAccess","summary":"商城管理权限快照","responses":{"200":{"description":"成功"}}}},
+    "/manage/access": {"get":{"tags":["Product"],"operationId":"shopManageAccess","summary":"商城工作台团队摘要、Permission 与 Ability 快照","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/WorkspaceAccessSnapshot"}}}]}}}}}}},
+    "/personal/orders": {"get":{"tags":["Order"],"operationId":"shopPersonalOrders","summary":"读取当前 Entity 作为接单人或发单人的订单","description":"服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数。","security":[{"bearerAuth":[]}],"parameters":[{"name":"status","in":"query","schema":{"type":"integer","enum":[1,2,3]}},{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/orders/{id}": {"get":{"tags":["Order"],"operationId":"shopPersonalOrder","summary":"读取当前 Entity 参与的订单详情","description":"订单必须由当前 acting_entity 接单或发单。","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"订单不存在或不属于当前个人范围"}}}},
     "/manage/options": {"get":{"tags":["Product"],"operationId":"shopManageOptions","summary":"商城管理候选项","responses":{"200":{"description":"成功"}}}},
     "/manage/services": {"get":{"tags":["Product"],"operationId":"shopManageServices","summary":"服务定义列表","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopCreateService","summary":"创建服务定义","responses":{"200":{"description":"成功"}}}},
     "/manage/services/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManageService","summary":"服务定义详情","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopUpdateService","summary":"更新服务定义","responses":{"200":{"description":"成功"}}}},

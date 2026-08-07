@@ -135,6 +135,140 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspace/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取团队摘要、Permission 与 transaction Ability 快照
+         * @description 这是 transaction Ability 缺失时唯一仍可访问的记账接口。
+         */
+        get: operations["transactionWorkspaceAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取当前 Entity 参与的流水
+         * @description 服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数。
+         */
+        get: operations["transactionPersonalTransactions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/transactions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取当前 Entity 参与的流水详情 */
+        get: operations["transactionPersonalTransaction"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取当前 Entity 个人业绩
+         * @description 只汇总当前 acting_entity 作为接单人、发单人或客服取得的分配。
+         */
+        get: operations["transactionPersonalStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取当前 Entity 处理的核销
+         * @description 只返回 handler_entity_id 等于当前 acting_entity 的核销任务。
+         */
+        get: operations["transactionPersonalServices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/services/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取当前 Entity 处理的核销详情 */
+        get: operations["transactionPersonalService"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/bindings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取当前 Entity 的客户协作与发单绑定
+         * @description 只使用当前 acting_entity 查询绑定，不接受 Entity ID。
+         */
+        get: operations["transactionPersonalBindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/transaction": {
         parameters: {
             query?: never;
@@ -353,6 +487,30 @@ export interface components {
     schemas: {
         AnyObject: {
             [key: string]: unknown;
+        };
+        WorkspaceAccessSnapshot: {
+            team: {
+                /** Format: int64 */
+                id: number;
+                slug: string;
+                name: string;
+            };
+            permissions: string[];
+            abilities: {
+                [key: string]: {
+                    enabled: boolean;
+                    level: number;
+                    /** Format: int64 */
+                    expire_time: number;
+                    /** @enum {string|null} */
+                    reason: "missing" | "level" | "expired" | null;
+                    label: string;
+                };
+            };
+            identity: {
+                /** @enum {string} */
+                type: "team" | "teamMember" | "teamVirtual";
+            };
         };
         AnyValue: (string | number | boolean | unknown[] | {
             [key: string]: unknown;
@@ -1109,6 +1267,168 @@ export interface operations {
             path: {
                 id: number;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    transactionWorkspaceAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["WorkspaceAccessSnapshot"];
+                    };
+                };
+            };
+        };
+    };
+    transactionPersonalTransactions: {
+        parameters: {
+            query?: {
+                start_time?: number;
+                end_time?: number;
+                type?: number;
+                keyword?: string;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    transactionPersonalTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 流水不存在或不属于当前个人范围 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    transactionPersonalStats: {
+        parameters: {
+            query?: {
+                start_time?: number;
+                end_time?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    transactionPersonalServices: {
+        parameters: {
+            query?: {
+                status?: number;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    transactionPersonalService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 核销不存在或不属于当前个人范围 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    transactionPersonalBindings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;

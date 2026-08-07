@@ -292,6 +292,28 @@ class IdentitySession
         ];
     }
 
+    public function currentTarget(?array $actingEntity): array
+    {
+        if (!$actingEntity) {
+            return ['kind' => 'identity', 'team' => null];
+        }
+
+        $type = (string) ($actingEntity['type'] ?? '');
+        $teamId = $this->entityTeamId($type, (int) ($actingEntity['id'] ?? 0));
+        if ($teamId < 1) {
+            throw new HttpException(401, '当前实体所属团队不可用');
+        }
+
+        return [
+            'kind' => match ($type) {
+                'team', 'teamMember', 'teamVirtual' => 'team-personal',
+                'teamCustomer' => 'shop-customer',
+                default => 'identity',
+            },
+            'team' => $this->teamSummary($teamId),
+        ];
+    }
+
     private function rootCandidates(int $userId): array
     {
         $items = [];

@@ -957,15 +957,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v015" class="md-nav__link">
+  <a href="#v015-2026-08-07" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        未发布（目标 v0.1.5）
+        v0.1.5 (2026-08-07)
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="未发布（目标 v0.1.5）">
+    <nav class="md-nav" aria-label="v0.1.5 (2026-08-07)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -4118,15 +4118,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v015" class="md-nav__link">
+  <a href="#v015-2026-08-07" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        未发布（目标 v0.1.5）
+        v0.1.5 (2026-08-07)
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="未发布（目标 v0.1.5）">
+    <nav class="md-nav" aria-label="v0.1.5 (2026-08-07)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -5488,30 +5488,30 @@
 <blockquote>
 <p><strong>注意</strong>：v0.1.4 的变更日志由 GitHub Copilot（DeepSeek V4 Pro）辅助编写，人工审核并确认。</p>
 </blockquote>
-<h2 id="v015">未发布（目标 v0.1.5）<a class="headerlink" href="#v015" title="Permanent link">&para;</a></h2>
+<h2 id="v015-2026-08-07">v0.1.5 (2026-08-07)<a class="headerlink" href="#v015-2026-08-07" title="Permanent link">&para;</a></h2>
 <h3 id="_1">新增<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Account 新增“当前实体中心”，统一支持成员、虚拟实体和客户维护有限资料、本人对象字段，并只读查看角色与有效权限。</li>
-<li>Shop 新增商家后台，统一管理商品、订单、服务权益、三类卡密及核销交付流程。</li>
-<li>Transaction 支持服务收款与核销流水，并提供分阶段核销自定义字段。</li>
-<li>Team 与 Admin 新增 Ability 权益、体验活动以及卡密预检和兑换管理。</li>
-<li>Display 支持配置主页文案，并新增可搜索、筛选和分页的公开实体目录。</li>
+<li>权限域完成开发期硬切换：实体创建、维护和字段管理使用 <code>team.entity.*</code>，跨应用代执行使用 <code>identity.virtual.*.act</code>，Chat 权限目录仅保留聊天能力；升级补丁迁移并删除旧权限键，不提供别名兼容。</li>
+<li>Team、Shop 与 Transaction 新增个人/团队工作台，六个工作台固定以概览为首项并支持双向切换。</li>
+<li>Team 个人工作台支持 Team、成员与虚拟实体维护资料和本人对象字段，并查看角色与有效权限。</li>
+<li>Shop 新增商家后台，统一管理商品、订单、服务权益、三类卡密及核销交付。</li>
+<li>Transaction 支持服务收款、分阶段核销及核销自定义字段。</li>
+<li>Team 与 Admin 新增 Ability 权益、体验活动及卡密预检和兑换管理。</li>
 </ul>
 <h3 id="_2">变更<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Team“我的资料”、Shop 客户资料和 Chat 资料入口统一迁移到 Account；所有当前实体写入使用 <code>expected_entity_id</code> 阻断身份切换后的旧表单。</li>
-<li>成员入离职流程支持申请字段、邀请来源、资料转存、自助离队、管理员办理离职及原身份复职。</li>
-<li>公开文档支持自定义标签，并可在团队和实体主页分组展示。</li>
-<li>后台统一表单、列表、状态反馈和响应式交互，实体选择器可区分同名对象。</li>
-<li>经营统计停止提供客户邀请链接，客户空状态不再依赖该入口。</li>
-<li>发布交付改用不可变标签，并可由标签和提交共同定位。</li>
-<li>团队角色支持授予父级 Permission，自动覆盖其下的业务权限。</li>
+<li>保留 Team 团队概览，重做其余五个概览并统一四应用导航、业务卡片、范围说明和双向切换。</li>
+<li>Account 实体自管迁入 Team 个人工作台，客户回归商城客户中心，旧深链按身份安全跳转。</li>
+<li>Shop 与 Transaction 个人查询强制按当前 <code>acting_entity</code> 隔离；能力缺失时入口保留且不发业务请求。</li>
+<li>成员入离职支持申请字段、邀请来源、资料转存、自助离队、管理员离职及原身份复职。</li>
+<li>Display 新增主页文案与公开实体目录；公开文档支持标签和主页分组，后台统一响应式交互。</li>
+<li>团队角色新增高级范围权限；父级 Permission 自动覆盖当前及未来的同前缀业务权限。</li>
 </ul>
 <h3 id="_3">修复<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
 <ul>
-<li>修复 Team 禁用入口错位、客户详情路由误匹配及异常数据导致整页空白的问题。</li>
-<li>权限不足或选项缺失时保留可用操作，并统一给出可配置的权限与能力提示。</li>
-<li>修复登录、侧栏、文档编辑器及后台控件的样式退化。</li>
+<li>修复实体委托、动态 Permission 来源和角色实体选择不一致，并保留有效权限的真实记录语义。</li>
+<li>修复工作台导航跳动、间距与禁用入口错位，权限、Ability 和 TeamSetting 原因统一可见。</li>
+<li>修复 Shop 父级 Permission、个人核销权限、客户深链及迁移后文档契约不一致。</li>
 </ul>
 <h2 id="v014">v0.1.4<a class="headerlink" href="#v014" title="Permanent link">&para;</a></h2>
 <h3 id="_4">新增<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>

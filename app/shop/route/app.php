@@ -24,6 +24,8 @@ Route::post('product/<id>/redemption-fields/<field_id>/delete', 'Product/deleteF
 
 // merchant management
 Route::get('manage/access', 'Manage/access')->completeMatch();
+Route::get('personal/orders', 'Personal/orders')->completeMatch();
+Route::get('personal/orders/<id>', 'Personal/order')->completeMatch();
 Route::get('manage/options', 'Manage/options')->completeMatch();
 Route::get('manage/services', 'Manage/services')->completeMatch();
 Route::get('manage/services/<id>', 'Manage/service')->completeMatch();

@@ -60,11 +60,34 @@ describe('后台源码设计契约', () => {
 
   it('公共组件和 Wiki 板块保持可定位', () => {
     const componentRules = readFileSync(join(repository, 'docs', 'design', 'admin', 'components.md'), 'utf8')
-    for (const name of ['LsButton', 'LsInlineError', 'LsPanel', 'LsStatusTag', 'LsPage', 'LsPageHeader', 'LsWorkspaceHeader', 'LsListToolbar', 'LsFormList', 'LsEntityIdentity', 'LsEntityCard', 'LsEntityInput', 'LsResponsiveActions', 'LsResponsiveDataTable', 'LsUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
+    for (const name of ['LsButton', 'LsInlineError', 'LsPanel', 'LsStatusTag', 'LsPage', 'LsPageHeader', 'LsWorkspaceHeader', 'LsWorkspaceOverview', 'LsListToolbar', 'LsFormList', 'LsEntityIdentity', 'LsEntityCard', 'LsEntityInput', 'LsResponsiveActions', 'LsResponsiveDataTable', 'LsUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
       expect(componentRules, `${name} 缺少 Wiki 契约`).toContain(`\`${name}\``)
     }
     for (const page of ['index.md', 'foundations.md', 'components.md', 'patterns.md', 'states-and-access.md', 'responsive-accessibility.md', 'applications.md', 'checklist.md']) {
       expect(() => readFileSync(join(repository, 'docs', 'design', 'admin', page), 'utf8')).not.toThrow()
+    }
+  })
+
+  it('后台页面始终显示真实纵向滚动条，避免空白槽位和跨路由顶栏横向跳动', () => {
+    const styles = readFileSync(join(repository, 'frontend', 'packages', 'ui', 'src', 'styles.css'), 'utf8')
+    expect(styles).toMatch(/html\s*\{[^}]*overflow-y:\s*scroll;/)
+    expect(styles).not.toMatch(/html\s*\{[^}]*scrollbar-gutter:/)
+  })
+
+  it('三个业务工作台统一使用共享四等宽应用导航', () => {
+    const header = readFileSync(join(repository, 'frontend', 'packages', 'ui', 'src', 'components', 'LsWorkspaceHeader.vue'), 'utf8')
+    expect(header).toContain('ls-workspace-header--app-nav')
+    expect(header).toMatch(/ls-workspace-header__desktop\{grid-column:3;/)
+    expect(header).toMatch(/grid-template-columns:repeat\(4,5\.5rem\)/)
+    expect(header).toMatch(/width:23\.5rem/)
+    expect(header).toMatch(/color:var\(--ink\);font-size:\.82rem/)
+    for (const source of [
+      ['team', 'TeamShell.vue'],
+      ['shop', 'ShopManageShell.vue'],
+      ['transaction', 'TransactionShell.vue'],
+    ] as const) {
+      const shell = readFileSync(join(repository, 'frontend', 'apps', source[0], 'src', 'components', source[1]), 'utf8')
+      expect(shell, `${source[0]} 未启用共享应用导航`).toMatch(/<LsWorkspaceHeader[^>]*app-navigation/)
     }
   })
 
@@ -150,6 +173,15 @@ describe('后台源码设计契约', () => {
     const source = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'components', 'TeamShell.vue'), 'utf8')
     expect(source).toContain('<NButton class="logout"')
     expect(source).toMatch(/\.logout\{[^}]*justify-content:flex-start/)
+    expect(source).not.toContain('切换身份')
+  })
+
+  it('Team 个人概览的身份入口前往 Account 身份页', () => {
+    const source = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'views', 'PersonalView.vue'), 'utf8')
+    expect(source).toContain("import { identityUrl } from '@lostsky/shared/navigation'")
+    expect(source).toContain("{ key: 'identity', label: '切换身份', href: identityUrl()")
+    expect(source).toContain("{ key: 'team', label: '进入团队工作台', to: '/'")
+    expect(source).not.toContain('to="/personal/profile">切换身份')
   })
 
   it('Team 侧栏禁用入口保持与链接一致的三列布局', () => {

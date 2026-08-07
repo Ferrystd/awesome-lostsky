@@ -3,6 +3,14 @@ use think\facade\Route;
 
 Route::pattern(['id' => 'int']);
 
+Route::get('workspace/access', 'Workspace/access')->completeMatch();
+Route::get('personal/transactions', 'Personal/transactions')->completeMatch();
+Route::get('personal/transactions/<id>', 'Personal/transaction')->completeMatch();
+Route::get('personal/stats', 'Personal/stats')->completeMatch();
+Route::get('personal/services', 'Personal/services')->completeMatch();
+Route::get('personal/services/<id>', 'Personal/service')->completeMatch();
+Route::get('personal/bindings', 'Personal/bindings')->completeMatch();
+
 // transaction
 Route::get('transaction', 'Transaction/index');
 Route::get('transaction/stats', 'Transaction/stats');

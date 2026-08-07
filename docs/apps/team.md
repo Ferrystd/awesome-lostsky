@@ -6,7 +6,7 @@ Team 是团队工作台的核心应用，负责成员资料、角色权限、团
 
 ## 业务领域
 
-- 当前实体入口：Team 导航和旧 `/me` 跳转 Account 当前实体中心；成员在创建或加入时仍取得稳定的全局实体标识。
+- 个人工作台：Team、成员和虚拟实体维护当前 Entity 的资料、对象字段，并只读查看角色与有效 Permission；侧栏不提供身份切换，内容按实体类型受限。
 - 成员管理：正常、封禁、离队三态，成员资料、任期留存、封禁、离队申请、复职和搜索。
 - 扩展资料：成员自定义字段、字段值和岗位类型。
 - RBAC：角色、角色权限和成员角色绑定。
@@ -41,7 +41,7 @@ Team 应用按操作组合以下中间件：
 允许跨团队实体的少数接口只声明 `EntityRequired`，要求当前团队归属的接口使用 `TeamAuth`。旧当前成员资料与成员上传兼容接口仍只接受
 `teamMember`；加入申请人的动作只接受基础用户 JWT，且不经过 `TeamAuth`。
 
-`GET /me/get`、`POST /me/edit|slug|fields` 作为兼容 API 保留，前端不再维护独立表单。新的 Account 当前实体接口覆盖成员、客户和虚拟实体；旧入口仍不接受目标对象标识，只使用当前成员上下文，并且只允许写入本人可见且可编辑的人员实体字段。
+`GET /personal`、`POST /personal/profile|slug|fields|upload` 只接受当前团队的 Team、成员或虚拟实体，并只使用 JWT 的最终叶子 Entity。写请求携带 `expected_entity_id`，身份已切换时返回 `409`。旧 `/me` 页面路由跳转 `/personal/profile`；成员专属 `/me/*` API 暂作兼容，不作为新前端入口。
 
 `GET /access` 是当前 Entity 的通用访问快照，不依赖成员专属 `/me/get`。`GET /dashboard` 独立计算实体、成员、文档和通知：实体、成员与文档只有在具备相应全量读取 Permission 时返回计数，否则返回 `count=null`；Doc Ability 缺失时只把文档指标标记为不可用；任一指标异常不会把其余指标变成 `0`。
 
@@ -59,20 +59,22 @@ Team 应用按操作组合以下中间件：
 - 角色以 `role_key` 作为稳定标识；编辑时只允许修改名称、说明、排序和是否在 Display 展示。
 - `is_displayed` 默认关闭，只控制角色名称与说明是否出现在已公开实体资料中，不改变任何授权行为。
 - 删除角色时，服务层同步软删除角色权限和成员角色绑定。
-- 保存角色权限使用完整的 `permission_keys` 集合，空数组表示清空；目录外静态 key 和不属于当前团队的动态实体 key 会被拒绝。
+- 权限目录必返普通 `groups` 与高级 `advanced_items`；身份委托、指定实体与相关动态项统一为“实体委托”，后者由固定权限和当前团队动态权限的合法前缀生成，每项包含可保存父键、范围文案和当前覆盖叶子键。
+- 保存角色权限使用完整的 `permission_keys` 集合，空数组表示清空；服务端保留所有不同且合法的父子、通配符和指定 slug 键，官方前端在提交前清理覆盖冗余。目录外静态 key、未知前缀和不属于当前团队的动态实体 key 仍会被拒绝。
 - 保存成员角色使用完整的 `role_ids` 集合，空数组表示清空。
 - 保存实体角色以全局 slug 指定来源主体。角色始终属于当前目标团队，来源实体可以属于任意团队，也无需公开可搜索。
 - 成员拥有多个角色时，业务权限取并集；实体角色关联响应会携带每个角色的权限，供本人资料页和管理员资料页展示有效权限。
+- 角色权限摘要直接读取当前已分配角色的有效权限记录，不在展示时合并重复键或折叠父子键；进入查看页面不会改写数据，只有官方角色编辑器提交时生成最小权限集合。
 
-身份委托使用 `identity.team.assume`，以及 `identity.member|customer|virtual.*.assume` 或对应精确 slug 权限。通配只覆盖当前授权团队；精确目标保存时必须是当前团队的有效实体。委托成功后，普通业务请求仍必须以目标实体通过 `TeamBelongs`，外部来源实体不能直接跨过团队归属边界。详细会话链与失效规则见[《Entity 身份与跨团队委托》](../architecture/entity-authorization.md)。
+实体委托使用 `identity.team.assume`，以及 `identity.member|customer|virtual.*.assume`、对应精确 slug 权限和指定虚拟实体管理权限。通配只覆盖当前授权团队；精确目标保存时必须是当前团队的有效实体。委托成功后，普通业务请求仍必须以目标实体通过 `TeamBelongs`，外部来源实体不能直接跨过团队归属边界。详细会话链与失效规则见[《Entity 身份与跨团队委托》](../architecture/entity-authorization.md)。
 
-普通业务接口通过 `Permission:{permission_key}` 检查角色权限。角色已授予的父键同样可满足子键，例如 `team` 或 `team.ability` 可满足 `team.ability.redeem`。动态参数使用 `<slug>` 形式，例如 `chat.virtual.<slug>.manage`。一个 `Permission` 可以用逗号接收多个权限参数，控制器字符串简写为 `Permission:key-a,key-b`；数组写法 `['Permission', ['key-a', 'key-b']]` 具有相同语义，多个参数按 OR 处理。
+普通业务接口通过 `Permission:{permission_key}` 检查角色权限。角色已授予的父键同样可满足子键，例如 `team` 或 `team.ability` 可满足 `team.ability.redeem`，并自动覆盖未来新增的同前缀权限，但不覆盖兄弟键。动态参数使用 `<slug>` 形式，例如 `team.entity.virtual.<slug>.manage`。一个 `Permission` 可以用逗号接收多个权限参数，控制器字符串简写为 `Permission:key-a,key-b`；数组写法 `['Permission', ['key-a', 'key-b']]` 具有相同语义，多个参数按 OR 处理。Team 前端访问快照保留实际父键，并使用同一分段前缀与 `*` 动态段规则判断导航和动作。
 
 Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `scope=team|entity` 显式选择 Team 共享站内通知或当前 Entity 收件箱，省略 scope 时保持旧版身份默认行为。`GET /notice/capabilities` 为前端返回共享站内通知查看、通知发送和默认收件箱能力。
 
 发送通知要求 `team.notice.send`。该权限本身定义本通知模型中的上级资格，具备权限的任意当前 Entity 可以向同 Team 任意 Entity 发送，不使用角色排序建立层级。通知始终以当前 Team 名义显示，集中业务审计保留实际 acting Entity 与认证用户。通知是单向通道，不支持回复、抄送、会话、跨 Team 投递或 LostSky 直发 Entity。
 
-加入字段读取和管理分别要求 `team.join_field.read`、`team.join_field.write`；加入申请查看和审核分别要求 `team.join_review.read`、`team.join_review.write`。人员实体字段定义和岗位类型的写操作分别要求 `team.entity_field.manage`、`team.post_type.write`。
+加入字段读取和管理分别要求 `team.join_field.read`、`team.join_field.write`；加入申请查看和审核分别要求 `team.join_review.read`、`team.join_review.write`。人员实体字段定义和岗位类型的写操作分别要求 `team.entity.field.manage`、`team.post_type.write`。
 
 ## 加入申请与审核
 

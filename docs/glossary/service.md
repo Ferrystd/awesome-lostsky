@@ -240,7 +240,6 @@
 | `updateProfile` | `array $actingEntity`、`int $expectedEntityId`、`array $data` | `void` |
 | `claimSlug` | `array $actingEntity`、`int $expectedEntityId`、`string $slug` | `array` |
 | `saveFields` | `array $actingEntity`、`int $expectedEntityId`、`array $values` | `void` |
-| `customerAssignees` | `array $actingEntity` | `array` |
 | `upload` | `array $actingEntity`、`int $expectedEntityId`、`think\file\UploadedFile $file` | `array` |
 
 ## File
@@ -277,6 +276,7 @@
 | `assumePermissionKeys` | `model\Entity $target` | `array` |
 | `entityName` | `string $type`、`int $id` | `string` |
 | `teamSummary` | `int $teamId` | `?array` |
+| `currentTarget` | `?array $actingEntity` | `array` |
 
 ## Inviter
 
@@ -340,6 +340,8 @@
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `list` | `int $teamId`、`array $filters`、`int $page = 1`、`int $limit = 20` | `array` |
+| `personal` | `int $teamId`、`int $actorEntityId`、`array $filters`、`int $page = 1`、`int $limit = 20` | `array` |
+| `getPersonal` | `int $teamId`、`int $actorEntityId`、`int $id` | `array` |
 | `get` | `int $teamId`、`int $id` | `array` |
 | `create` | `int $teamId`、`array $data` | `int` |
 | `cancel` | `int $teamId`、`int $id` | `void` |
@@ -510,8 +512,8 @@
 | `handlers` | `int $teamId`、`int $customerId`、`int $id` | `array` |
 | `start` | `int $teamId`、`int $customerId`、`int $id`、`int $handlerEntityId`、`string $memo`、`array $fieldValues`、`int $actorEntityId` | `void` |
 | `requestCancel` | `int $teamId`、`int $customerId`、`int $id`、`string $reason`、`int $actorEntityId` | `int` |
-| `list` | `int $teamId`、`array $subject`、`int $actorEntityId`、`array $filters`、`int $page = 1`、`int $limit = 20` | `array` |
-| `get` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id` | `array` |
+| `list` | `int $teamId`、`array $subject`、`int $actorEntityId`、`array $filters`、`int $page = 1`、`int $limit = 20`、`bool $forcePersonal = false` | `array` |
+| `get` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`bool $forcePersonal = false` | `array` |
 | `availableHandlers` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id` | `array` |
 | `approveCancel` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id` | `void` |
 | `rejectCancel` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`string $reason` | `void` |
@@ -658,6 +660,8 @@
 | --- | --- | --- |
 | `options` | `int $teamId` | `array` |
 | `list` | `int $teamId`、`array $filters`、`int $page = 1`、`int $limit = 20` | `array` |
+| `personal` | `int $teamId`、`int $actorEntityId`、`array $filters`、`int $page = 1`、`int $limit = 20` | `array` |
+| `getPersonal` | `int $teamId`、`int $actorEntityId`、`int $id` | `array` |
 | `get` | `int $teamId`、`int $id` | `array` |
 | `create` | `int $teamId`、`array $data` | `int` |
 | `createServiceRedemption` | `int $teamId`、`array $data` | `int` |
@@ -668,6 +672,7 @@
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
+| `personal` | `int $teamId`、`int $actorEntityId`、`int $startTime`、`int $endTime` | `array` |
 | `summary` | `int $teamId`、`int $startTime`、`int $endTime` | `array` |
 | `byRole` | `int $teamId`、`int $startTime`、`int $endTime` | `array` |
 | `byEntity` | `int $teamId`、`int $startTime`、`int $endTime`、`string $role` | `array` |

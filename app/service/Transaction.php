@@ -40,6 +40,15 @@ class Transaction
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
         $query = TeamTransaction::where('team_id', $teamId);
 
+        if (!empty($filters['personal_entity_id'])) {
+            $actorEntityId = (int) $filters['personal_entity_id'];
+            $query->where(function ($scope) use ($actorEntityId) {
+                $scope->where('handler_entity_id', $actorEntityId)
+                    ->whereOr('sender_entity_id', $actorEntityId)
+                    ->whereOr('cs_entity_id', $actorEntityId);
+            });
+        }
+
         if (!empty($filters['start_time'])) {
             $query->where('trans_at', '>=', (int) $filters['start_time']);
         }
@@ -81,6 +90,29 @@ class Transaction
         $this->attachRelations($list);
 
         return compact('total', 'list', 'page', 'limit');
+    }
+
+    public function personal(int $teamId, int $actorEntityId, array $filters, int $page = 1, int $limit = 20): array
+    {
+        $filters['personal_entity_id'] = $actorEntityId;
+        return $this->list($teamId, $filters, $page, $limit);
+    }
+
+    public function getPersonal(int $teamId, int $actorEntityId, int $id): array
+    {
+        $transaction = TeamTransaction::where('team_id', $teamId)
+            ->where('id', $id)
+            ->where(function ($scope) use ($actorEntityId) {
+                $scope->where('handler_entity_id', $actorEntityId)
+                    ->whereOr('sender_entity_id', $actorEntityId)
+                    ->whereOr('cs_entity_id', $actorEntityId);
+            })
+            ->find();
+        if (!$transaction) throw new HttpException(404, '流水不存在');
+        $result = $transaction->toArray();
+        $rows = [&$result];
+        $this->attachRelations($rows);
+        return $result;
     }
 
     public function get(int $teamId, int $id): array

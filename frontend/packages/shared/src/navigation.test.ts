@@ -1,13 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   chatWorkspaceUrl,
-  currentEntityUrl,
   loginUrl,
   memberIdentityCallbackUrl,
   redirectToLogin,
   safeRedirect,
   shopWorkspaceUrl,
   teamWorkspaceUrl,
+  teamScopedAppUrl,
+  transactionWorkspaceUrl,
 } from './navigation'
 
 afterEach(() => {
@@ -165,25 +166,20 @@ describe('workspace destinations', () => {
 
     expect(shopWorkspaceUrl('/customer/profile'))
       .toBe('http://demo.shop.lostsky.work:5179/customer/profile')
-    expect(teamWorkspaceUrl('/me'))
-      .toBe('http://demo.team.lostsky.work:5175/me')
+    expect(teamWorkspaceUrl('/personal/profile'))
+      .toBe('http://demo.team.lostsky.work:5175/personal/profile')
+    expect(transactionWorkspaceUrl('/personal'))
+      .toBe('http://demo.transaction.lostsky.work:5177/personal')
   })
 
-  it('opens the Account current entity center and keeps only a validated return address', () => {
-    vi.stubEnv('DEV', false)
+  it('builds an explicit team-scoped destination from the Account host', () => {
+    vi.stubEnv('DEV', true)
     vi.stubGlobal('location', {
-      href: 'https://demo.chat.lostsky.work/?conversation=7',
-      hostname: 'demo.chat.lostsky.work',
-      port: '',
-      protocol: 'https:',
+      hostname: 'localhost',
+      port: '5174',
+      protocol: 'http:',
     })
-
-    const target = new URL(currentEntityUrl('https://demo.team.lostsky.work/members', 'fields'))
-    expect(target.origin).toBe('https://account.lostsky.work')
-    expect(target.pathname).toBe('/identity/current/fields')
-    expect(target.searchParams.get('redirect')).toBe('https://demo.team.lostsky.work/members')
-
-    const rejected = new URL(currentEntityUrl('https://example.com/private'))
-    expect(rejected.searchParams.has('redirect')).toBe(false)
+    expect(teamScopedAppUrl('demo', 'shop', '/customer/profile'))
+      .toBe('http://localhost:5179/customer/profile')
   })
 })

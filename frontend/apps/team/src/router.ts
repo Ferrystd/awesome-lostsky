@@ -1,5 +1,5 @@
 import { api, auth } from '@lostsky/api/client'
-import { currentEntityUrl, redirectToLogin, teamWorkspaceUrl } from '@lostsky/shared/navigation'
+import { redirectToLogin, shopWorkspaceUrl } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteLocationGeneric } from 'vue-router'
@@ -23,7 +23,6 @@ const FilesView = () => import('./views/FilesView.vue')
 const NoticeDetailView = () => import('./views/NoticeDetailView.vue')
 const NoticesView = () => import('./views/NoticesView.vue')
 const NoticeSendView = () => import('./views/NoticeSendView.vue')
-const ProfileView = () => import('./views/ProfileView.vue')
 const ResourceView = () => import('./views/ResourceView.vue')
 const EntityRolesView = () => import('./views/EntityRolesView.vue')
 const RoleDetailView = () => import('./views/RoleDetailView.vue')
@@ -40,6 +39,7 @@ const EntityDetailView = () => import('./views/EntityDetailView.vue')
 const CustomersView = () => import('./views/CustomersView.vue')
 const CustomerDetailView = () => import('./views/CustomerDetailView.vue')
 const AbilitiesView = () => import('./views/AbilitiesView.vue')
+const PersonalView = () => import('./views/PersonalView.vue')
 
 export interface ResourceFormField {
   key: string
@@ -146,7 +146,11 @@ const routes = [
   ...Object.entries(resources).filter(([path]) => !['notice', 'files', 'roles', 'join-review', 'members', 'fields', 'docs'].includes(path)).map(([path, resource]) => ({ path: `/${path}`, component: ResourceView, props: { resource }, meta: { title: resource.title } })),
   { path: '/member-detail', component: MemberDetailView, meta: { title: '成员详情', pageWidth: 'content' } },
   { path: '/doc', component: DocumentView, meta: { title: '文档', ability: 'doc' } },
-  { path: '/me', component: ProfileView, meta: { title: '我的资料', pageWidth: 'content' } },
+  { path: '/personal', component: PersonalView, meta: { title: '概览', pageWidth: 'wide', workspace: 'personal', personalSection: 'overview' } },
+  { path: '/personal/profile', component: PersonalView, meta: { title: '资料', pageWidth: 'content', workspace: 'personal', personalSection: 'profile' } },
+  { path: '/personal/fields', component: PersonalView, meta: { title: '对象字段', pageWidth: 'content', workspace: 'personal', personalSection: 'fields' } },
+  { path: '/personal/access', component: PersonalView, meta: { title: '角色与有效权限', pageWidth: 'content', workspace: 'personal', personalSection: 'access' } },
+  { path: '/me', redirect: '/personal/profile' },
   { path: '/join', component: JoinView, meta: { public: true, title: '申请加入' } },
 ]
 
@@ -158,10 +162,11 @@ router.beforeEach(async (to) => {
     redirectToLogin()
     return false
   }
-  if (to.path === '/me') {
-    location.replace(currentEntityUrl(teamWorkspaceUrl('/')))
+  if (!to.meta.public && auth.entity()?.type === 'teamCustomer') {
+    location.replace(shopWorkspaceUrl('/customer/profile'))
     return false
   }
+  if (to.meta.workspace === 'personal' && !['team', 'teamMember', 'teamVirtual'].includes(String(auth.entity()?.type ?? ''))) return '/'
   if (to.meta.ability === 'doc') {
     try {
       if (!routeAccess || routeAccess.expiresAt < Date.now()) {

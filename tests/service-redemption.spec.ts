@@ -51,7 +51,8 @@ test('shop customer can view, start and cancel a service at desktop and 390px', 
 })
 
 test('transaction service redemption supports management and fixed 390px navigation', async ({ page }) => {
-  await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
+  const actorToken = `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type: 'teamMember', id: 11 } })).toString('base64url')}.x`
+  await page.context().addCookies([{ name: 'lostsky_token', value: actorToken, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
   let completed = false
   let completePayload: Record<string, unknown> | null = null
   const entity = { id: 11, entityable_type: 'teamMember', entityable_id: 1, type: 'member', slug: 'handler', name: '青空接单人', profile: { name: '青空接单人' } }
@@ -66,7 +67,13 @@ test('transaction service redemption supports management and fixed 390px navigat
     const request = route.request()
     const path = new URL(request.url()).pathname
     let data: unknown = null
-    if (path.endsWith('/service/101/handlers')) data = [{ entity_id: 11, subject: entity }]
+    if (path.endsWith('/workspace/access')) data = {
+      team: { id: 1, slug: 'demo', name: '青空团队' },
+      permissions: ['transaction.read', 'transaction.write', 'transaction.report.read'],
+      abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: '记账' } },
+      identity: { type: 'teamMember' },
+    }
+    else if (path.endsWith('/service/101/handlers')) data = [{ entity_id: 11, subject: entity }]
     else if (path.endsWith('/service/101/complete')) { completePayload = request.postDataJSON(); completed = true }
     else if (path.endsWith('/service/101')) data = service()
     else if (path.endsWith('/service')) data = { total: 1, page: 1, limit: 20, list: [service()] }
@@ -86,9 +93,9 @@ test('transaction service redemption supports management and fixed 390px navigat
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('http://demo.transaction.lostsky.work:5177/services')
   const mobileNav = page.getByRole('navigation', { name: '移动端导航' })
+  await expect(mobileNav.getByText('概览', { exact: true })).toBeVisible()
   await expect(mobileNav.getByText('流水', { exact: true })).toBeVisible()
   await expect(mobileNav.getByText('服务核销', { exact: true })).toBeVisible()
-  await expect(mobileNav.getByText('统计', { exact: true })).toBeVisible()
   await expect(mobileNav.getByText('更多', { exact: true })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })

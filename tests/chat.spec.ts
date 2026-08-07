@@ -53,7 +53,7 @@ test('chat workspace renders conversations and sends through the API boundary', 
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })
 
-test('Chat identity entry always opens the Account current entity center', async ({ page }) => {
+test('Chat identity entry opens the workspace that owns current-entity self management', async ({ page }) => {
   await page.route('http://demo.chat.lostsky.work:5176/api/**', async route => {
     const path = new URL(route.request().url()).pathname
     const data = path.endsWith('/actor') || path.endsWith('/conversation') ? [] : null
@@ -68,31 +68,31 @@ test('Chat identity entry always opens the Account current entity center', async
 
   await setToken(page, identityToken('teamCustomer', 31))
   await page.goto('http://demo.chat.lostsky.work:5176/')
-  await expect(page.getByRole('link', { name: '当前实体' }))
-    .toHaveAttribute('href', /account\.lostsky\.work:5174\/identity\/current\/profile\?redirect=/)
+  await expect(page.getByRole('link', { name: '客户中心' }))
+    .toHaveAttribute('href', 'http://demo.shop.lostsky.work:5179/customer/profile')
 
   await setToken(page, identityToken('teamMember', 11))
   await page.reload()
-  await expect(page.getByRole('link', { name: '当前实体' }))
-    .toHaveAttribute('href', /account\.lostsky\.work:5174\/identity\/current\/profile\?redirect=/)
+  await expect(page.getByRole('link', { name: '个人工作台' }))
+    .toHaveAttribute('href', 'http://demo.team.lostsky.work:5175/personal')
 
   await setToken(page, identityToken('teamVirtual', 9))
   await page.reload()
-  await expect(page.getByRole('link', { name: '当前实体' }))
-    .toHaveAttribute('href', /account\.lostsky\.work:5174\/identity\/current\/profile\?redirect=/)
+  await expect(page.getByRole('link', { name: '个人工作台' }))
+    .toHaveAttribute('href', 'http://demo.team.lostsky.work:5175/personal')
 
   await setToken(page, identityToken('team', 1))
   await page.reload()
-  await expect(page.getByRole('link', { name: '当前实体' }))
-    .toHaveAttribute('href', /account\.lostsky\.work:5174\/identity\/current\/profile\?redirect=/)
+  await expect(page.getByRole('link', { name: '个人工作台' }))
+    .toHaveAttribute('href', 'http://demo.team.lostsky.work:5175/personal')
 
   await setToken(page, identityToken('teamMember', 11))
   await page.goto('http://demo.chat.lostsky.work:5176/profile')
-  await expect(page).toHaveURL(/account\.lostsky\.work:5174\/identity\/current\/profile/)
+  await expect(page).toHaveURL('http://demo.team.lostsky.work:5175/personal')
 
   await setToken(page, identityToken('teamCustomer', 31))
   await page.goto('http://demo.chat.lostsky.work:5176/profile')
-  await expect(page).toHaveURL(/account\.lostsky\.work:5174\/identity\/current\/profile/)
+  await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/customer/profile')
 })
 
 test('direct conversation submits a single selected participant as an array', async ({ page }) => {

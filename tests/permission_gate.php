@@ -29,21 +29,21 @@ $assertThrows = static function (callable $callback, int $status, string $case) 
 };
 
 $assertSame(
-    ['chat.virtual.sales-assistant.manage', 'chat.virtual.*.manage'],
+    ['team.entity.virtual.sales-assistant.manage', 'team.entity.virtual.*.manage'],
     $gate->candidates(
         (new Request)->withPost(['slug' => 'Sales-Assistant']),
-        PermissionDictionary::CHAT_VIRTUAL_MANAGE_TEMPLATE
+        PermissionDictionary::TEAM_ENTITY_VIRTUAL_MANAGE_TEMPLATE
     ),
     'request body slug and wildcard union'
 );
 $assertSame(
-    ['chat.virtual.support_bot.operate', 'chat.virtual.*.operate'],
-    $gate->candidates((new Request)->withRoute(['slug' => 'support_bot']), 'chat.virtual.<slug>.operate'),
+    ['identity.virtual.support_bot.act', 'identity.virtual.*.act'],
+    $gate->candidates((new Request)->withRoute(['slug' => 'support_bot']), 'identity.virtual.<slug>.act'),
     'route slug and wildcard union'
 );
 $assertSame(
-    ['chat.virtual.create'],
-    $gate->candidates(new Request, 'chat.virtual.create'),
+    ['team.entity.virtual.create'],
+    $gate->candidates(new Request, 'team.entity.virtual.create'),
     'static permission remains exact'
 );
 $assertSame(
@@ -57,7 +57,7 @@ $assertSame(
 );
 $assertSame(
     ['kind' => 'virtual', 'slug' => 'support_bot', 'action' => 'field.manage'],
-    PermissionDictionary::dynamicDescendant('chat.virtual.support_bot.field'),
+    PermissionDictionary::dynamicDescendant('team.entity.virtual.support_bot.field'),
     'dynamic permission parents resolve to their leaf permission'
 );
 $assertSame(
@@ -66,10 +66,10 @@ $assertSame(
     'comma-separated permission arguments form an OR candidate set'
 );
 $assertSame(
-    ['chat.virtual.sales-assistant.manage', 'chat.virtual.*.manage', 'chat.group.manage'],
+    ['team.entity.virtual.sales-assistant.manage', 'team.entity.virtual.*.manage', 'chat.group.manage'],
     $gate->candidates(
         (new Request)->withPost(['slug' => 'Sales-Assistant']),
-        'chat.virtual.<slug>.manage',
+        'team.entity.virtual.<slug>.manage',
         'chat.group.manage'
     ),
     'dynamic and static permission arguments share an OR candidate set'
@@ -80,20 +80,20 @@ $assertSame(
     'array middleware arguments form the same OR candidate set'
 );
 $assertThrows(
-    fn () => $gate->candidates(new Request, 'chat.virtual.<slug>.manage'),
+    fn () => $gate->candidates(new Request, 'team.entity.virtual.<slug>.manage'),
     422,
     'missing dynamic parameter'
 );
 $assertThrows(
     fn () => $gate->candidates(
         (new Request)->withGet(['slug' => 'one'])->withPost(['slug' => 'two']),
-        'chat.virtual.<slug>.manage'
+        'team.entity.virtual.<slug>.manage'
     ),
     422,
     'conflicting parameter sources'
 );
 $assertThrows(
-    fn () => $gate->candidates((new Request)->withPost(['slug' => '*']), 'chat.virtual.<slug>.manage'),
+    fn () => $gate->candidates((new Request)->withPost(['slug' => '*']), 'team.entity.virtual.<slug>.manage'),
     422,
     'wildcard cannot be submitted as slug'
 );
@@ -108,7 +108,7 @@ $assertThrows(
     'empty comma-separated permission argument is rejected'
 );
 $assertThrows(
-    fn () => $gate->assertKey('chat.virtual.foo*.manage'),
+    fn () => $gate->assertKey('team.entity.virtual.foo*.manage'),
     500,
     'partial wildcard is rejected'
 );
@@ -121,6 +121,16 @@ $assertThrows(
     fn () => $gate->assertKey('team.unknown.read'),
     500,
     'syntactically valid keys outside the dictionary are rejected'
+);
+$assertThrows(
+    fn () => $gate->assertKey('chat.virtual.create'),
+    500,
+    'legacy chat virtual keys are not authorization aliases'
+);
+$assertThrows(
+    fn () => $gate->assertKey('team.entity_field.manage'),
+    500,
+    'legacy entity field keys are not authorization aliases'
 );
 $assertSame(
     PermissionDictionary::keys(),
@@ -138,9 +148,9 @@ $assertSame(
     'platform administrator permissions are not exposed to team roles'
 );
 $assertSame(
-    ['chat.virtual.support_bot.operate'],
-    [PermissionDictionary::virtual('support_bot', 'operate')],
-    'dynamic virtual keys are built by the dictionary'
+    ['identity.virtual.support_bot.act'],
+    [PermissionDictionary::virtual('support_bot', 'act')],
+    'cross-application virtual act keys are built by the dictionary'
 );
 $assertSame(
     [PermissionDictionary::TEAM_ENTITY_FIELD_MANAGE],

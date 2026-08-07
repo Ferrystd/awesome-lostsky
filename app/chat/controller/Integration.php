@@ -13,7 +13,7 @@ class Integration
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => ['send']],
         'TeamAuth' => ['except' => ['send']],
         [
-            'middleware' => ['Permission', [Permissions::CHAT_VIRTUAL_MANAGE_TEMPLATE]],
+            'middleware' => ['Permission', [Permissions::TEAM_ENTITY_VIRTUAL_MANAGE_TEMPLATE]],
             'options' => ['except' => ['send']],
         ],
     ];

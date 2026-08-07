@@ -589,6 +589,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        后台工作台入口
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#positioning" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -2962,6 +2973,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        后台工作台入口
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#positioning" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -3093,6 +3115,9 @@
 <p>LostSky 的主要用户是陪玩与数字服务工作室的运营者、团队管理员和成员。他们在手机与桌面浏览器中完成团队、成员、岗位、文档、文件和业务资料管理。官网面向希望了解 LostSky 与进入工作台的访客；团队 Display 主页面向查看团队公开资料、可展示成员、虚拟实体和公开文档的外部访客；团队 Shop 面向浏览商品、维护当前商家客户资料并使用商家预存余额购买的客户。</p>
 <h2 id="product-purpose">Product Purpose<a class="headerlink" href="#product-purpose" title="Permanent link">&para;</a></h2>
 <p>把分散的工作室运营资料和协作流程收进一个可追踪、可授权、可持续扩展的工作台，并通过官网、团队公开主页与展示型商城建立 LostSky「失落青空」及其团队的可信公开形象。</p>
+<h2 id="_1">后台工作台入口<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>团队域后台顶栏固定提供黑色的“团队、商品、记账、聊天”四个直达入口，并保持当前团队与当前 Entity；Team、Shop、Transaction 共用四等宽入口导航，不允许各应用分别定义颜色、字号、宽度、内边距或项间距。Team、Shop 与 Transaction 的团队工作台和个人工作台都把“概览”固定为首个导航入口，概览不因业务 Permission 消失或改绑。Team 团队概览保持既有指标与任务分组；其余五个概览统一使用深色主视觉、明确的对向工作台操作、白色业务入口卡片和紧凑范围说明，不新增业务统计请求。三者都不显示应用下拉或“个人工作台 / 团队工作台”分段控件；移动端四应用入口统一收进“操作”菜单。Chat 保持单一消息工作台。个人工作台以当前已领取的 Team、成员或虚拟 Entity 为主体，并按类型受到资料与业务关系限制；Customer 继续使用商城客户中心。</p>
+<p>工作台入口不会因 Permission 消失；缺少 Permission 时仍可进入基础概览，具体动作禁用并说明原因。后台统一始终显示真实纵向滚动条，长短页面之间切换时不得推动顶栏标题或应用导航横向跳动，也不得在右侧留下空白占位槽。应用入口不新增 Ability：只有既有 <code>transaction</code> Ability 控制整个记账应用，缺失时“记账”仍显示为禁用项，前端除访问快照外不得请求流水、统计、核销或绑定接口。</p>
 <h2 id="positioning">Positioning<a class="headerlink" href="#positioning" title="Permanent link">&para;</a></h2>
 <p>面向小型数字工作室的清晰运营底座：不把复杂度转嫁给使用者。</p>
 <p>成员生命周期遵循“状态变化不抹去业务历史”：封禁和离队只改变登录与实体可用性，成员资料、对象标识、角色和客户、订单、聊天、文档等关系持续保留；复职继续使用原实体。界面必须始终显示成员状态与不可用原因。</p>

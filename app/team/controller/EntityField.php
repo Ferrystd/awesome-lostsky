@@ -81,7 +81,7 @@ class EntityField
     {
         $key = match ($type) {
             'customer' => Permissions::TEAM_ENTITY_FIELD_CUSTOMER_MANAGE,
-            'virtual' => Permissions::CHAT_VIRTUAL_ALL_FIELD_MANAGE,
+            'virtual' => Permissions::TEAM_ENTITY_VIRTUAL_ALL_FIELD_MANAGE,
             default => Permissions::TEAM_ENTITY_FIELD_MANAGE,
         };
         app(\app\service\PermissionGate::class)->assert(
@@ -96,7 +96,7 @@ class EntityField
         $actor = app(\app\service\ChatActor::class)->resolve($request->team_id, $slug);
         $keys = $actor['type'] === \app\enum\ChatActorType::Virtual
             ? [
-                Permissions::CHAT_VIRTUAL_ALL_FIELD_MANAGE,
+                Permissions::TEAM_ENTITY_VIRTUAL_ALL_FIELD_MANAGE,
                 Permissions::virtual((string) $actor['slug'], 'field.manage'),
             ]
             : [Permissions::entityField($actor['type']->value)];

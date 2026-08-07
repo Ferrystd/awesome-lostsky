@@ -1,4 +1,13 @@
-import { formatAbilityDenied, formatPermissionDenied } from '@lostsky/api/error-format'
+import {
+  formatAbilityDenied,
+  formatPermissionDenied,
+  formatSettingDenied,
+  type SettingRequirement,
+  type SettingValue,
+} from '@lostsky/api/error-format'
+import { permissionCovers } from './permissionHierarchy'
+
+export type { SettingRequirement, SettingValue } from '@lostsky/api/error-format'
 
 export interface AccessSnapshotLike {
   permissions?: string[]
@@ -9,14 +18,7 @@ export interface AccessSnapshotLike {
 }
 
 export function hasPermission(snapshot: AccessSnapshotLike | undefined, permission: string) {
-  return Boolean(snapshot?.permissions?.includes(permission))
-}
-
-export function hasPermissionMatching(
-  snapshot: AccessSnapshotLike | undefined,
-  pattern: RegExp,
-) {
-  return Boolean(snapshot?.permissions?.some(permission => pattern.test(permission)))
+  return Boolean(snapshot?.permissions?.some(granted => permissionCovers(granted, permission)))
 }
 
 export function permissionReason(permission: string) {
@@ -25,6 +27,16 @@ export function permissionReason(permission: string) {
 
 export function abilityReason(key: string, label: string) {
   return formatAbilityDenied(key, label)
+}
+
+export function settingReason(
+  appName: string,
+  key: string,
+  label: string,
+  current: SettingValue,
+  requirement: SettingRequirement,
+) {
+  return formatSettingDenied(appName, key, label, current, requirement)
 }
 
 export function fileUploadReason(snapshot: AccessSnapshotLike | undefined) {

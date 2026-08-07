@@ -103,7 +103,12 @@ export interface RedemptionCard {
   campaign: { name: string }
 }
 
-export interface ManageAccess { permissions: string[] }
+export interface ManageAccess {
+  permissions: string[]
+  team?: { id: number; slug: string; name: string } | null
+  identity?: { type: string }
+  abilities?: { transaction?: { enabled: boolean; reason: string | null; label: string } }
+}
 export interface ManageEntityOption { id?: number; entity_id?: number; slug: string; type?: string; name: string; avatar?: string | null }
 export interface ManageService {
   id: number; team_id: number; name: string; description?: string | null; is_active: 0 | 1

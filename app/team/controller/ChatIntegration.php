@@ -13,7 +13,7 @@ class ChatIntegration
         'EntityType:team,teamMember,teamCustomer,teamVirtual',
         'TeamAuth',
         [
-            'middleware' => ['Permission', [Permissions::CHAT_VIRTUAL_MANAGE_TEMPLATE]],
+            'middleware' => ['Permission', [Permissions::TEAM_ENTITY_VIRTUAL_MANAGE_TEMPLATE]],
         ],
     ];
 

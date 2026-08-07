@@ -1,29 +1,40 @@
 <script setup lang="ts">
 import { auth } from "@lostsky/api/client";
-import { redirectToLogin } from "@lostsky/shared/navigation";
+import { chatWorkspaceUrl, redirectToLogin, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from "@lostsky/shared/navigation";
 import LsPage from "@lostsky/ui/components/LsPage.vue";
 import LsWorkspaceHeader from "@lostsky/ui/components/LsWorkspaceHeader.vue";
+import { feedback } from "@lostsky/ui/feedback";
 import {
   Boxes,
   ChevronRight,
-  ExternalLink,
+  House,
   KeyRound,
   LogOut,
+  MessageCircleMore,
   PackageOpen,
   ReceiptText,
-  ShoppingBag,
+  ShoppingBag, UserRound,
+  Store,
   X,
 } from "@lucide/vue";
 import { NButton } from "naive-ui";
 import { computed, ref } from "vue";
-import { useRoute } from "vue-router";
-import { canManage } from "../lib";
+import { useRoute, useRouter } from "vue-router";
+import { hasManagePermission, loadManageAccess } from "../lib";
+import type { ManageAccess } from "../types";
 
 const route = useRoute();
+const router = useRouter();
 const drawer = ref(false);
-const slug = window.location.hostname.split(".")[0] || "";
-const storefront = `//${slug}.shop.lostsky.work/`;
+const access = ref<ManageAccess | null>(null);
+void loadManageAccess().then(value => { access.value = value }).catch(() => undefined);
 const nav = [
+  {
+    to: "/manage",
+    label: "概览",
+    icon: House,
+    permission: null,
+  },
   {
     to: "/manage/products",
     label: "商品",
@@ -55,9 +66,25 @@ const nav = [
     permission: "shop.product.read",
   },
 ];
-const visibleNav = computed(() =>
-  nav.filter((item) => canManage(item.permission)),
-);
+const activeWorkspace = computed(() => route.meta.workspace === 'personal' ? 'personal' : 'team');
+const currentNav = computed(() => activeWorkspace.value === 'personal'
+  ? [
+      { to: '/manage/personal', label: '概览', icon: House, permission: null },
+      { to: '/manage/personal/orders', label: '我的业务订单', icon: UserRound, permission: 'shop.order.read' },
+    ]
+  : nav);
+const appEntries = computed(() => {
+  const personal = activeWorkspace.value === 'personal';
+  const transaction = access.value?.abilities?.transaction;
+  return [
+    { key: 'team', label: '团队', href: teamWorkspaceUrl(personal ? '/personal' : '/') },
+    { key: 'shop', label: '商品', href: shopWorkspaceUrl('/manage') },
+    { key: 'transaction', label: '记账', href: transactionWorkspaceUrl(personal ? '/personal' : '/'), disabled: !transaction?.enabled, reason: transaction ? '当前团队未启用 transaction Ability' : '正在核对 transaction Ability' },
+    { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
+  ];
+});
+const headerActions = computed(() => appEntries.value.map(({ key, label, disabled, reason }) => ({ key, label, disabled, reason })));
+const transactionEntry = computed(() => appEntries.value.find(item => item.key === 'transaction'));
 const title = computed(() => String(route.meta.title ?? "商城管理"));
 const width = computed<"wide" | "content" | "form">(() =>
   ["content", "form"].includes(String(route.meta.width))
@@ -68,8 +95,19 @@ function logout() {
   auth.clear();
   redirectToLogin({ redirect: location.href });
 }
-function openStorefront() {
-  window.open(storefront, "_blank", "noopener,noreferrer");
+function handleHeaderAction(key: string) {
+  const entry = appEntries.value.find(item => item.key === key);
+  if (!entry || entry.disabled) return;
+  if (entry.key === 'shop') void router.push('/manage');
+  else window.location.href = entry.href;
+}
+function disabledReason(permission: string | null) {
+  if (!permission) return '';
+  if (!access.value) return '正在核对 Permission';
+  return hasManagePermission(access.value.permissions, permission) ? '' : `缺少 ${permission} Permission`;
+}
+function explainPermission(permission: string | null) {
+  feedback.info(disabledReason(permission));
 }
 </script>
 
@@ -81,22 +119,32 @@ function openStorefront() {
       aria-label="商城管理导航"
     >
       <div class="manage-brand">
-        <RouterLink to="/manage/products" @click="drawer = false"
+        <RouterLink to="/manage" @click="drawer = false"
           ><strong>LostSky</strong><span>商城管理</span></RouterLink
         ><NButton quaternary aria-label="关闭导航" @click="drawer = false"
           ><template #icon><X /></template
         ></NButton>
       </div>
       <nav>
-        <p>销售与履约</p>
-        <RouterLink
-          v-for="item in visibleNav"
+        <p>{{ activeWorkspace === 'personal' ? '当前 Entity' : '销售与履约' }}</p>
+        <template v-for="item in currentNav" :key="item.to">
+          <NButton
+            v-if="disabledReason(item.permission)"
+            quaternary
+            class="manage-nav-disabled"
+            :aria-label="`${item.label}不可用：${disabledReason(item.permission)}`"
+            :title="disabledReason(item.permission)"
+            @click="explainPermission(item.permission)"
+          ><component :is="item.icon" :size="19" /><span>{{ item.label }}</span><ChevronRight :size="15" /></NButton>
+          <RouterLink
+          v-else
           :key="item.to"
           :to="item.to"
           @click="drawer = false"
           ><component :is="item.icon" :size="19" /><span>{{ item.label }}</span
           ><ChevronRight :size="15"
         /></RouterLink>
+        </template>
       </nav>
       <div class="manage-side-actions">
         <NButton quaternary @click="logout"
@@ -113,21 +161,27 @@ function openStorefront() {
     /></Transition>
     <section class="manage-workspace">
       <LsWorkspaceHeader
-        context-label="SHOP MANAGER"
+        context-label="SHOP WORKSPACE"
         :title="title"
-        :actions="[{ key: 'storefront', label: '查看商城前台' }]"
+        :actions="headerActions"
+        app-navigation
         @menu="drawer = true"
-        @action="openStorefront"
+        @action="handleHeaderAction"
       >
-        <template #actions
-          ><a
-            class="manage-storefront-link"
-            :href="storefront"
-            target="_blank"
-            rel="noopener noreferrer"
-            ><ExternalLink :size="17" />查看商城前台</a
-          ></template
-        >
+        <template #actions>
+          <a class="manage-app-link" :href="appEntries[0]?.href"><House :size="17" /><span>团队</span></a>
+          <RouterLink class="manage-app-link" to="/manage"><Store :size="17" /><span>商品</span></RouterLink>
+          <NButton
+            v-if="transactionEntry?.disabled"
+            class="manage-app-link manage-app-disabled"
+            quaternary
+            :title="transactionEntry.reason"
+            :aria-label="`记账不可用：${transactionEntry.reason}`"
+            @click="feedback.info(transactionEntry.reason || '当前团队未启用 transaction Ability')"
+          ><template #icon><ReceiptText :size="17" /></template><span>记账</span></NButton>
+          <a v-else class="manage-app-link" :href="transactionEntry?.href"><ReceiptText :size="17" /><span>记账</span></a>
+          <a class="manage-app-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>
+        </template>
       </LsWorkspaceHeader>
       <LsPage id="shop-manage-main" as="main" :width="width"><slot /></LsPage>
     </section>
@@ -205,7 +259,8 @@ function openStorefront() {
   font-weight: 750;
   letter-spacing: 0.06em;
 }
-.manage-sidebar nav a {
+.manage-sidebar nav a,
+.manage-sidebar nav .manage-nav-disabled {
   width: 100%;
   min-height: 44px;
   display: grid;
@@ -217,6 +272,8 @@ function openStorefront() {
   border-radius: 8px;
   font-size: 0.9rem;
 }
+.manage-sidebar nav .manage-nav-disabled { color:oklch(.52 .012 210);cursor:not-allowed }
+.manage-sidebar nav .manage-nav-disabled :deep(.n-button__content){grid-column:1/-1;width:100%;display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:.55rem}
 .manage-sidebar nav a:hover,
 .manage-sidebar nav a.router-link-active {
   color: white;
@@ -254,16 +311,10 @@ function openStorefront() {
   align-content: start;
   padding: 1rem;
 }
-.manage-storefront-link {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0 0.75rem;
+.manage-app-link {
   color: var(--muted-ink);
-  font-size: 0.82rem;
-  font-weight: 650;
 }
+.manage-app-disabled { opacity: .48; cursor: not-allowed; }
 @media (min-width: 900px) {
   .manage-shell {
     grid-template-columns: 248px minmax(0, 1fr);

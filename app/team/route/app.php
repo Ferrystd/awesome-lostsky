@@ -5,6 +5,11 @@ Route::pattern(['id' => 'int']);
 
 Route::get('access', 'Access/index');
 Route::get('dashboard', 'Dashboard/index');
+Route::get('personal', 'Personal/current')->completeMatch();
+Route::post('personal/profile', 'Personal/profile')->completeMatch();
+Route::post('personal/slug', 'Personal/slug')->completeMatch();
+Route::post('personal/fields', 'Personal/fields')->completeMatch();
+Route::post('personal/upload', 'Personal/upload')->completeMatch();
 Route::get('ability', 'AbilityCard/index');
 Route::post('ability/card/inspect', 'AbilityCard/inspect');
 Route::post('ability/card/redeem', 'AbilityCard/redeem');

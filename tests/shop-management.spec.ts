@@ -121,7 +121,7 @@ test("shop manager exposes the complete catalog workflow at desktop and 390px", 
   );
 
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("http://demo.shop.lostsky.work:5179/manage");
+  await page.goto("http://demo.shop.lostsky.work:5179/manage/products");
   await expect(
     page
       .locator("#shop-manage-main")

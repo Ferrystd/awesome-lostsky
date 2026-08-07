@@ -1,8 +1,8 @@
 import { auth } from '@lostsky/api/client'
-import { currentEntityUrl, redirectToLogin, shopWorkspaceUrl } from '@lostsky/shared/navigation'
+import { identityUrl, redirectToLogin } from '@lostsky/shared/navigation'
 import { syncReferral } from '@lostsky/shared/referral'
 import { createRouter, createWebHistory } from 'vue-router'
-import { isCustomerReady, loadManageAccess, verifyCustomer } from './lib'
+import { hasManagePermission, isCustomerReady, loadManageAccess, verifyCustomer } from './lib'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -18,7 +18,9 @@ export const router = createRouter({
     { path: '/services', component: () => import('./views/ServicesView.vue'), meta: { title: '我的服务', customer: true } },
     { path: '/services/:id(\\d+)', component: () => import('./views/ServiceView.vue'), meta: { title: '服务核销', customer: true } },
     { path: '/cards', component: () => import('./views/CardsView.vue'), meta: { title: '我的卡密', customer: true } },
-    { path: '/manage', redirect: '/manage/products', meta: { manage: true } },
+    { path: '/manage', component: () => import('./views/manage/ManageOverviewView.vue'), meta: { title: '概览', manage: true, managePublic: true, width: 'wide' } },
+    { path: '/manage/personal', component: () => import('./views/manage/PersonalOverviewView.vue'), meta: { title: '概览', manage: true, managePublic: true, workspace: 'personal', width: 'wide' } },
+    { path: '/manage/personal/orders', component: () => import('./views/manage/PersonalOrdersView.vue'), meta: { title: '我的业务订单', manage: true, workspace: 'personal', permission: 'shop.order.read' } },
     { path: '/manage/products', component: () => import('./views/manage/ProductsView.vue'), meta: { title: '商品', manage: true, permission: 'shop.product.read' } },
     { path: '/manage/products/new', component: () => import('./views/manage/ProductFormView.vue'), meta: { title: '新建商品', manage: true, permission: 'shop.product.write', width: 'form' } },
     { path: '/manage/products/:id(\\d+)', component: () => import('./views/manage/ProductFormView.vue'), meta: { title: '编辑商品', manage: true, permission: 'shop.product.read', width: 'form' } },
@@ -43,18 +45,19 @@ export const router = createRouter({
 let initialNavigation = true
 
 router.beforeEach(async (to) => {
-  if (to.path === '/customer/profile' && auth.token()) {
-    location.replace(currentEntityUrl(shopWorkspaceUrl('/')))
-    return false
-  }
   if (to.meta.manage) {
     if (!auth.token()) { redirectToLogin({ redirect: location.href }); return false }
-    if (!['team', 'teamMember', 'teamVirtual'].includes(String(auth.entity()?.type ?? ''))) { redirectToLogin({ redirect: location.href }); return false }
+    const entityType = String(auth.entity()?.type ?? '')
+    if (!['team', 'teamMember', 'teamVirtual'].includes(entityType)) {
+      if (entityType === 'teamCustomer') return '/customer/profile'
+      location.replace(identityUrl(location.href))
+      return false
+    }
     if (to.meta.managePublic) return true
     try {
       const access = await loadManageAccess()
       const permission = String(to.meta.permission ?? '')
-      if (permission && !access.permissions.includes(permission)) return '/manage/forbidden'
+      if (permission && !hasManagePermission(access.permissions, permission)) return '/manage/forbidden'
     } catch { return '/manage/forbidden' }
     return true
   }
@@ -79,8 +82,7 @@ router.beforeEach(async (to) => {
     try {
       await verifyCustomer()
     } catch {
-      location.replace(currentEntityUrl(shopWorkspaceUrl('/')))
-      return false
+      return { path: '/customer/bind', query: { redirect: to.fullPath } }
     }
   }
   return true

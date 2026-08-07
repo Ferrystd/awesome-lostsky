@@ -2982,7 +2982,9 @@
 <li>商品：列表、详情、创建、编辑、删除和接单人配置。</li>
 <li>订单：列表、详情、创建、取消和完成，并由服务层处理相关交易与余额联动。</li>
 <li>Storefront：公开团队资料、上架商品列表和脱敏后的商品详情。</li>
-<li>顾客业务：绑定当前商家的稳定客户身份，查询余额、订单和交易，并购买或取消自己的订单；昵称、头像、简介、只读 slug 与服务归属的自我管理统一进入 Account 当前实体中心。</li>
+<li>顾客业务：绑定当前商家的稳定客户身份，在商城客户中心维护资料、查询余额、订单、服务与卡密，并购买或取消自己的订单。</li>
+<li>个人工作台：Team、成员和虚拟实体查看当前 Entity 作为接单人或发单人参与的业务订单，不引入商品所有权模型。</li>
+<li>团队工作台：所有后台 Entity 都可进入基础团队概览；商品、订单、服务、权益包和卡活动按 Permission 禁用并说明原因。顶栏直显四应用入口，个人模式由概览“进入个人工作台”进入并从顶栏“商品”返回。</li>
 </ul>
 <h2 id="_2">鉴权边界<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p><code>GET /storefront*</code> 无需登录，团队由 <code>{slug}.shop.lostsky.work</code> 的请求上下文确定。商品与商家订单入口要求四种团队实体 JWT，并经过
@@ -3030,7 +3032,7 @@
 <p>客户绑定同时创建零余额记录和不可搜索的 <code>teamCustomer</code> Entity。基础用户绑定保存在
 <code>user_id</code>，外部 Entity 绑定保存在 <code>owner_entity_id</code>，两者严格二选一。派生客户会话沿来源
 Entity 的证明链实时重验；来源失效、会话撤销或客户封禁后立即失效。</p>
-<p><code>GET /customer/me</code>、<code>POST /customer/me</code> 与 <code>POST /customer/slug</code> 作为兼容 API 保留。前端旧 <code>/customer/profile</code> 安全跳转 Account <code>/identity/current/profile</code>，并携带返回当前商家首页的受信地址。客户资料仍按团队隔离，昵称和简介不进入公开目录；新绑定客户自动得到 slug，只有历史缺失标识的客户可在 Account 首次补全。</p>
+<p><code>GET /customer/me</code>、<code>POST /customer/me</code> 与 <code>POST /customer/slug</code> 是商城客户中心的正式资料接口。Account 旧客户自管深链会安全跳转 <code>/customer/profile</code>。客户资料仍按团队隔离，昵称和简介不进入公开目录；新绑定客户自动得到 slug，历史缺失标识可在商城客户中心首次补全。</p>
 <p>客户下单在事务中锁定并复核商品、接单人和余额，金额全部由服务端计算。取消只允许订单所属
 客户操作处理中的订单；订单保留为“已取消”，关联交易被排除，预存余额和退款日志只写一次。</p>
 <h2 id="_3">接口契约<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>

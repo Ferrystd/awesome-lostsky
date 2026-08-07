@@ -14,6 +14,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import EntityFieldsCard, { type EntityFieldDefinition } from '../components/EntityFieldsCard.vue'
 import EntityPermissionsCard, {
+  type AdvancedPermissionItem,
   type PermissionGroup,
   type RoleAssignment,
   type RoleRecord,
@@ -107,7 +108,7 @@ const roleAssignments = useQuery({
 })
 const permissionCatalog = useQuery({
   queryKey: ['permission-catalog'],
-  queryFn: () => api.get<{ groups: PermissionGroup[] }>('/rolePermission/catalog'),
+  queryFn: () => api.get<{ groups: PermissionGroup[]; advanced_items: AdvancedPermissionItem[] }>('/rolePermission/catalog'),
   enabled: computed(() => editing.value && capabilities.value.role_read),
 })
 const rolesWithPermissions = useQuery({
@@ -311,6 +312,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       :assignments="roleAssignments.data.value ?? []"
       :roles="rolesWithPermissions.data.value ?? roles.data.value ?? []"
       :catalog="permissionCatalog.data.value?.groups ?? []"
+      :advanced-catalog="permissionCatalog.data.value?.advanced_items ?? []"
       :can-edit="capabilities.role_write"
       :loading="roles.isPending.value || (Boolean(roles.data.value?.length) && rolesWithPermissions.isPending.value) || roleAssignments.isPending.value || permissionCatalog.isPending.value"
       :saving="saveRoles.isPending.value"

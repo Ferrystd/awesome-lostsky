@@ -11,16 +11,23 @@ Transaction 用于团队经营记录。所有金额、客户、参与 Entity、�
 
 | 编号 | 用户目标 | 典型前置条件 | 应有结果 |
 | --- | --- | --- | --- |
-| TRANS-01 | 查询流水 | `transaction.read` | 可筛选列表并查看当前团队流水详情 |
+| TRANS-01 | 查询流水 | Transaction Ability、`transaction.read` | 可筛选列表并查看当前团队流水详情 |
 | TRANS-02 | 新建或编辑流水 | Transaction Ability、`transaction.write`，且满足记账主体范围 | 平衡金额、参与方和余额变动在同一操作中保存 |
 | TRANS-03 | 删除手工流水 | Transaction Ability、`transaction.delete` | 流水删除，已消费预存余额安全退回 |
 | TRANS-04 | 查看经营统计 | Transaction Ability、`transaction.report.read` | 按时间得到摘要、趋势、接单人、客户和归属业绩 |
-| TRANS-05 | 维护发单绑定 | 查看需 `transaction.read`；写入需 `transaction.write` | 客户与额外发单 Entity 的关系被保存或解除 |
-| TRANS-06 | 查询客户余额 | `transaction.read` | 查看可用余额、累计充值/消费及完整变动日志 |
+| TRANS-05 | 维护发单绑定 | Transaction Ability；查看需 `transaction.read`，写入需 `transaction.write` | 客户与额外发单 Entity 的关系被保存或解除 |
+| TRANS-06 | 查询客户余额 | Transaction Ability、`transaction.read` | 查看可用余额、累计充值/消费及完整变动日志 |
 | TRANS-07 | 为客户充值 | Transaction Ability、`transaction.write` | 余额与充值日志在同一操作中更新 |
 | TRANS-09 | 查看归属业绩 | Transaction Ability、`transaction.report.read` | 按流水创建时的归属快照统计客户数、流水数和金额 |
+| TRANS-10 | 使用个人记账工作台 | 当前 Team、成员或虚拟 Entity，Transaction Ability 与对应 Permission | 流水、业绩、核销和绑定只按当前 Entity 的业务关系显示 |
 
-Ability 缺失时哪些功能仍可使用，见[能力、权限与功能降级](access-and-abilities.md)。
+Transaction Ability 缺失时“记账”应用入口仍可见但禁用。直接打开记账地址只读取访问快照并显示不可用说明，不请求流水、统计、核销、绑定或余额接口。其他 Ability 降级见[能力、权限与功能降级](access-and-abilities.md)。
+
+个人工作台把“概览”固定为首个导航入口；相关流水、我的业绩、我的核销和客户协作保持为独立业务入口。个人工作台不提供 Entity 选择器，也不会把 Entity ID 发送给个人范围接口。服务端始终从当前 `acting_entity` 派生范围；即使拥有团队全量 Permission，个人模式也不会显示其他 Entity 的数据。
+
+团队和个人工作台的基础概览不要求业务 Permission；两者都把“概览”固定为首个导航入口。流水、经营统计、服务核销、发单绑定、余额和登记动作的入口仍会显示；缺少所需 Permission 时入口禁用并给出原因。缺少 Transaction Ability 时仅保留不可用说明与应用切换，不发起记账业务请求。
+
+记账顶栏与 Team 工作台一致：桌面直接显示团队、商品、记账和聊天，移动端收进“操作”菜单，不显示应用下拉或个人/团队分段控件。团队概览以“进入个人工作台”进入个人概览；个人概览以“进入团队工作台”返回团队概览。两边概览只读取访问快照，不请求流水、统计、核销、绑定或余额数据。
 
 ## 流水类型
 
@@ -116,7 +123,7 @@ Team、成员、客户和虚拟实体可以作为业务参与 Entity，但具体
 
 发单绑定不会替代客户当前归属。新增绑定时同一 Entity 与客户的重复组合会被拒绝；解除绑定不修改历史流水，也不清空客户当前归属。
 
-查看绑定需要 `transaction.read`，新增和解除需要 `transaction.write`。绑定写入当前不要求 Transaction Ability，因此 Ability 缺失时仍可维护协作关系。
+查看绑定需要 Transaction Ability 和 `transaction.read`，新增和解除需要 Transaction Ability 和 `transaction.write`。Ability 缺失时绑定入口保留为禁用态，记账前端不会请求绑定接口。
 
 ## 客户余额与充值
 
@@ -156,7 +163,8 @@ Shop 的“自动同步记账流水”设置默认开启，但只有 Transaction
 
 | 现象 | 原因 | 恢复 |
 | --- | --- | --- |
-| 只能查看，不能登记/编辑/删除 | Transaction Ability 或写/删 Permission 缺失 | 核对错误中的 Ability/Permission |
+| 记账整体显示不可用 | Transaction Ability 缺失、等级不足或过期 | 联系平台管理员恢复 Ability；期间不会读取流水、核销、绑定或余额 |
+| 只能查看，不能登记/编辑/删除 | 写/删 Permission 缺失 | 核对错误中的 Permission |
 | 表单提示金额未平衡 | 两条金额等式至少一条不成立 | 重新核对支付和分配合计 |
 | 预存款字段不可用 | 客户选项缺失，或尚未选择客户 | 等待选项恢复并选择客户 |
 | 余额不足 | 客户余额小于预存款金额 | 先由授权 Entity 充值或改用现款 |

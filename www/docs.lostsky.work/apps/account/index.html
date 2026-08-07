@@ -2960,7 +2960,7 @@
 <li>退出当前设备、指定设备或全部设备的登录态。</li>
 <li>查询用户加入或创建的团队，以及创建团队。</li>
 <li>统一列出、领取和放弃实体身份；基础 user 可直接领取本人关联的有效成员或客户，entity 可按目标团队授予的角色跨团队继续委托。</li>
-<li>提供当前叶子 Entity 自我管理：成员、客户和虚拟实体维护有限资料与本人可编辑对象字段，并只读查看角色和有效 Permission；Team 只返回不支持摘要。</li>
+<li>解析旧当前实体深链的安全去向：Team、成员与虚拟实体进入 Team 个人工作台，客户进入对应商城客户中心。</li>
 <li>维护可撤销的父子实体会话证明链；每次切换 supersede 旧 JWT、继承根到期时间，并在每次请求重验整条授权链。</li>
 </ul>
 <p>账号是跨团队共享的，不为每个团队建立独立登录体系。账号不会自动生成“个人空间”；个人有工作空间需求时自行创建普通团队，单人团队与多人团队使用相同模型、权限与生命周期。</p>
@@ -2976,7 +2976,7 @@
 <li><code>/identity/receive</code> 以全局 slug 解析目标。entity 委托只检查实体有效性及目标团队授予来源实体的精确或通配 assume Permission，不限制团队、目标类型、深度或重复实体。</li>
 <li><code>/identity/member</code> 同时接受基础用户或已有实体 JWT，并以 JWT 中的真实用户 ID 重置到 <code>team_slug</code> 对应的本人有效成员；<code>/identity/drop</code> 回到基础 user JWT。</li>
 <li>Account 前端 <code>/identity</code> 提供通用身份选择与放弃，<code>/identity/member-callback</code> 处理业务应用缺少身份或团队不匹配后的成员领取。团队不匹配时必须由用户确认，取消和领取失败都不撤销原身份。</li>
-<li>Account 前端 <code>/identity/current/profile|fields|access</code> 是唯一的当前实体自管入口。服务端只使用 <code>Context</code> 给出的最终叶子 Entity；所有写请求必须携带 <code>expected_entity_id</code>，不一致返回 <code>409</code>。真实用户、根身份和父会话都不授予隐式自管权。</li>
+<li>Account 前端 <code>/identity/current/*</code> 仅为旧深链兼容跳转，不再读取或保存实体资料。<code>GET /identity/target</code> 只返回当前身份对应的目标类型和团队摘要。</li>
 </ul>
 <p>实体会话和跨团队授权链的完整约束见<a href="../../architecture/entity-authorization/">《Entity 身份与跨团队委托》</a>。</p>
 <h2 id="_3">接口契约<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
@@ -2988,12 +2988,9 @@
 <li><code>POST /login/sms</code>：短信验证码登录。</li>
 <li><code>POST /login/password</code>：手机号、用户名或邮箱加密码登录；<code>/login/phone</code> 保留为手机号密码兼容入口。</li>
 </ul>
-<p>当前实体入口：</p>
+<p>身份导航入口：</p>
 <ul>
-<li><code>GET /identity/current</code>：当前 Entity 摘要、自管资料、本人字段、角色与有效权限；无身份和 Team 使用显式不支持状态。</li>
-<li><code>POST /identity/current/profile|slug|fields</code>：分别保存类型白名单资料、补全历史成员/客户 slug 和本人可编辑字段。</li>
-<li><code>GET /identity/current/customer-assignees</code>：仅当前客户读取同团队有效归属候选。</li>
-<li><code>POST /identity/current/upload</code>：在 Account 域按当前 Entity 所属团队继续校验 File Ability、<code>file.upload</code> 和文件规则。</li>
+<li><code>GET /identity/target</code>：解析当前身份应进入的 Team 个人工作台、商城客户中心或身份选择页；Team Entity 与成员、虚拟实体使用同一 Team 个人入口，不返回业务资料。</li>
 </ul>
 
 

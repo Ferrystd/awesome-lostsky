@@ -107,11 +107,11 @@ class ServiceRedemption
         });
     }
 
-    public function list(int $teamId, array $subject, int $actorEntityId, array $filters, int $page = 1, int $limit = 20): array
+    public function list(int $teamId, array $subject, int $actorEntityId, array $filters, int $page = 1, int $limit = 20, bool $forcePersonal = false): array
     {
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
         $query = TeamServiceInstance::where('team_id', $teamId);
-        if (!$this->canReadAll($teamId, $subject)) $query->where('handler_entity_id', $actorEntityId);
+        if ($forcePersonal || !$this->canReadAll($teamId, $subject)) $query->where('handler_entity_id', $actorEntityId);
         if (!empty($filters['status'])) $query->where('status', (int) $filters['status']);
         if (!empty($filters['handler_entity_id'])) $query->where('handler_entity_id', (int) $filters['handler_entity_id']);
         $paginator = $query->with(['service', 'customer.profile'])
@@ -129,11 +129,11 @@ class ServiceRedemption
         ];
     }
 
-    public function get(int $teamId, array $subject, int $actorEntityId, int $id): array
+    public function get(int $teamId, array $subject, int $actorEntityId, int $id, bool $forcePersonal = false): array
     {
         $instance = TeamServiceInstance::where('team_id', $teamId)->with(self::RELATIONS)->find($id);
         if (!$instance) throw new HttpException(404, '服务不存在');
-        if (!$this->canReadAll($teamId, $subject) && (int) $instance->handler_entity_id !== $actorEntityId) {
+        if (($forcePersonal || !$this->canReadAll($teamId, $subject)) && (int) $instance->handler_entity_id !== $actorEntityId) {
             throw new HttpException(403, '无权查看该核销');
         }
         $result = $instance->toArray();

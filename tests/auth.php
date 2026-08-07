@@ -128,12 +128,20 @@ try {
     $ownerPermissions = $ownerRole
         ? TeamRolePermission::where('team_id', $team->id)->where('role_id', $ownerRole->id)->column('permission_key')
         : [];
+    $permissionCatalog = app(\app\service\RolePermission::class)->catalog((int) $team->id);
     $catalogKeys = [];
-    foreach (app(\app\service\RolePermission::class)->catalog((int) $team->id)['groups'] as $group) {
+    foreach ($permissionCatalog['groups'] as $group) {
         foreach ($group['items'] as $item) {
             $catalogKeys[] = $item['key'];
         }
     }
+    $advancedByKey = array_column($permissionCatalog['advanced_items'], null, 'key');
+    $assert(
+        isset($advancedByKey['team'], $advancedByKey['team.ability'])
+            && in_array('team.ability.redeem', $advancedByKey['team']['covered_keys'], true)
+            && $advancedByKey['team.ability']['covered_keys'] === ['team.ability.redeem'],
+        'permission catalog exposes fixed parent scopes and their current descendants'
+    );
     $migratedPermissions = [
         'team.join_field.read',
         'team.join_field.write',

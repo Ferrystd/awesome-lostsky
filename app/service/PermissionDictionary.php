@@ -46,19 +46,19 @@ final class PermissionDictionary
     public const IDENTITY_MEMBER_ALL_ASSUME = 'identity.member.*.assume';
     public const IDENTITY_CUSTOMER_ALL_ASSUME = 'identity.customer.*.assume';
     public const IDENTITY_VIRTUAL_ALL_ASSUME = 'identity.virtual.*.assume';
+    public const IDENTITY_VIRTUAL_ALL_ACT = 'identity.virtual.*.act';
 
     public const CHAT_CONVERSATION_CREATE = 'chat.conversation.create';
     public const CHAT_GROUP_MANAGE = 'chat.group.manage';
     public const CHAT_TEMPORARY_CREATE = 'chat.temporary.create';
     public const CHAT_MESSAGE_MODERATE = 'chat.message.moderate';
-    public const CHAT_VIRTUAL_CREATE = 'chat.virtual.create';
-    public const CHAT_VIRTUAL_ALL_MANAGE = 'chat.virtual.*.manage';
-    public const CHAT_VIRTUAL_ALL_OPERATE = 'chat.virtual.*.operate';
-    public const CHAT_VIRTUAL_ALL_FIELD_MANAGE = 'chat.virtual.*.field.manage';
-    public const TEAM_ENTITY_FIELD_MANAGE = 'team.entity_field.manage';
+    public const TEAM_ENTITY_VIRTUAL_CREATE = 'team.entity.virtual.create';
+    public const TEAM_ENTITY_VIRTUAL_ALL_MANAGE = 'team.entity.virtual.*.manage';
+    public const TEAM_ENTITY_VIRTUAL_ALL_FIELD_MANAGE = 'team.entity.virtual.*.field.manage';
+    public const TEAM_ENTITY_FIELD_MANAGE = 'team.entity.field.manage';
+    public const TEAM_ENTITY_FIELD_CUSTOMER_MANAGE = 'team.entity.field.customer.manage';
     public const TEAM_ENTITY_READ = 'team.entity.read';
     public const TEAM_ENTITY_PROFILE_MANAGE = 'team.entity.profile.manage';
-    public const TEAM_ENTITY_FIELD_CUSTOMER_MANAGE = 'team.entity_field.customer.manage';
 
     public const ADMIN_DASHBOARD_READ = 'admin.dashboard.read';
     public const ADMIN_USER_READ = 'admin.user.read';
@@ -74,12 +74,10 @@ final class PermissionDictionary
     public const ADMIN_ENTITLEMENT_READ = 'admin.entitlement.read';
     public const ADMIN_ENTITLEMENT_WRITE = 'admin.entitlement.write';
 
-    public const CHAT_VIRTUAL_MANAGE_TEMPLATE = 'chat.virtual.<slug>.manage';
+    public const TEAM_ENTITY_VIRTUAL_MANAGE_TEMPLATE = 'team.entity.virtual.<slug>.manage';
 
     private const GROUPS = [
         '团队成员' => [
-            self::TEAM_ENTITY_READ => '查看全部实体（含团队内隐藏）',
-            self::TEAM_ENTITY_PROFILE_MANAGE => '管理实体资料与展示状态',
             self::TEAM_MEMBER_READ => '查看全部成员（含团队内隐藏）',
             self::TEAM_MEMBER_INVITE => '邀请成员',
             self::TEAM_MEMBER_UPDATE => '编辑成员',
@@ -125,23 +123,27 @@ final class PermissionDictionary
             self::TEAM_NOTICE_READ => '查看团队站内通知',
             self::TEAM_NOTICE_SEND => '发送通知',
         ],
-        '身份委托' => [
+        '实体管理' => [
+            self::TEAM_ENTITY_READ => '查看全部实体（含团队内隐藏）',
+            self::TEAM_ENTITY_PROFILE_MANAGE => '管理实体资料与展示状态',
+            self::TEAM_ENTITY_VIRTUAL_CREATE => '创建虚拟实体',
+            self::TEAM_ENTITY_VIRTUAL_ALL_MANAGE => '管理全部虚拟实体',
+            self::TEAM_ENTITY_VIRTUAL_ALL_FIELD_MANAGE => '管理全部虚拟实体字段',
+            self::TEAM_ENTITY_FIELD_MANAGE => '管理团队与成员字段',
+            self::TEAM_ENTITY_FIELD_CUSTOMER_MANAGE => '管理客户字段',
+        ],
+        '实体委托' => [
             self::IDENTITY_TEAM_ASSUME => '领取团队身份',
             self::IDENTITY_MEMBER_ALL_ASSUME => '领取全部成员身份',
             self::IDENTITY_CUSTOMER_ALL_ASSUME => '领取全部客户身份',
             self::IDENTITY_VIRTUAL_ALL_ASSUME => '领取全部虚拟实体身份',
+            self::IDENTITY_VIRTUAL_ALL_ACT => '代表全部虚拟实体执行受支持操作',
         ],
         '聊天' => [
             self::CHAT_CONVERSATION_CREATE => '创建会话',
             self::CHAT_GROUP_MANAGE => '管理群聊',
             self::CHAT_TEMPORARY_CREATE => '创建临时会话',
             self::CHAT_MESSAGE_MODERATE => '审核与撤回消息',
-            self::CHAT_VIRTUAL_CREATE => '创建虚拟实体',
-            self::CHAT_VIRTUAL_ALL_MANAGE => '管理全部虚拟实体',
-            self::CHAT_VIRTUAL_ALL_OPERATE => '操作全部虚拟实体',
-            self::CHAT_VIRTUAL_ALL_FIELD_MANAGE => '管理全部虚拟实体字段',
-            self::TEAM_ENTITY_FIELD_MANAGE => '管理人员字段',
-            self::TEAM_ENTITY_FIELD_CUSTOMER_MANAGE => '管理客户字段',
         ],
     ];
 
@@ -188,7 +190,8 @@ final class PermissionDictionary
 
     public static function contains(string $key): bool
     {
-        return in_array($key, self::keys(), true) || self::dynamic($key) !== null;
+        return in_array($key, self::keys(), true)
+            || self::dynamic($key) !== null;
     }
 
     public static function isFixedKeyOrParent(string $key): bool
@@ -218,16 +221,24 @@ final class PermissionDictionary
     }
 
     /**
-     * @return array{kind: 'virtual', slug: string, action: string}|array{kind: 'assume', type: string, slug: string}|null
+     * @return array{kind: 'virtual', slug: string, action: string}|array{kind: 'act', slug: string}|array{kind: 'assume', type: string, slug: string}|null
      */
     public static function dynamic(string $key): ?array
     {
         if (preg_match(
-            '/^chat\.virtual\.([a-z0-9][a-z0-9_-]{0,49})\.(manage|operate|field\.manage)$/',
+            '/^team\.entity\.virtual\.([a-z0-9][a-z0-9_-]{0,49})\.(manage|field\.manage)$/',
             $key,
             $match
         )) {
             return ['kind' => 'virtual', 'slug' => $match[1], 'action' => $match[2]];
+        }
+
+        if (preg_match(
+            '/^identity\.virtual\.([a-z0-9][a-z0-9_-]{0,49})\.act$/',
+            $key,
+            $match
+        )) {
+            return ['kind' => 'act', 'slug' => $match[1]];
         }
 
         if (preg_match(
@@ -244,11 +255,11 @@ final class PermissionDictionary
     /**
      * 返回动态权限的直接或间接父键所对应的一个叶子权限。
      *
-     * @return array{kind: 'virtual', slug: string, action: string}|array{kind: 'assume', type: string, slug: string}|null
+     * @return array{kind: 'virtual', slug: string, action: string}|array{kind: 'act', slug: string}|array{kind: 'assume', type: string, slug: string}|null
      */
     public static function dynamicDescendant(string $key): ?array
     {
-        foreach (['.manage', '.operate', '.field.manage', '.assume'] as $suffix) {
+        foreach (['.manage', '.field.manage', '.act', '.assume'] as $suffix) {
             $dynamic = self::dynamic($key . $suffix);
             if ($dynamic !== null) {
                 return $dynamic;
@@ -260,7 +271,11 @@ final class PermissionDictionary
 
     public static function virtual(string $slug, string $action): string
     {
-        return "chat.virtual.{$slug}.{$action}";
+        return match ($action) {
+            'manage', 'field.manage' => "team.entity.virtual.{$slug}.{$action}",
+            'act' => "identity.virtual.{$slug}.act",
+            default => throw new \InvalidArgumentException("Unsupported virtual permission action: {$action}"),
+        };
     }
 
     public static function assume(string $type, string $slug = '*'): string

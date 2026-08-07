@@ -312,7 +312,7 @@ class TeamEntityField
     private function actorFieldType(array $actor): TeamEntityType
     {
         return match ($actor['type']) {
-            \app\enum\ChatActorType::Entity => TeamEntityType::Entity,
+            \app\enum\ChatActorType::Entity, \app\enum\ChatActorType::Team => TeamEntityType::Entity,
             \app\enum\ChatActorType::Customer => TeamEntityType::Customer,
             \app\enum\ChatActorType::Virtual => TeamEntityType::Virtual,
             default => throw new HttpException(422, '该实体类型不支持自定义字段'),

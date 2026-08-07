@@ -2,6 +2,7 @@
 use think\facade\Route;
 
 Route::get('team', 'Team/index');
+Route::get('workspace/access', 'Workspace/access')->completeMatch();
 Route::get('actor', 'Actor/index');
 
 Route::get('virtual', 'Virtual/index');

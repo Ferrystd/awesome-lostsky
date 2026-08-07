@@ -215,6 +215,11 @@ try {
         'product_id' => $productId,
     ]));
     $assert($missingAbilityOrder->trans_id === null, 'missing transaction ability skips ledger sync');
+
+    $teamPersonal = app(Order::class)->personal((int) $team->id, (int) $teamEntity->id, [], 1, 100);
+    $customerPersonal = app(Order::class)->personal((int) $team->id, (int) $customerEntity->id, [], 1, 100);
+    $assert($teamPersonal['total'] > 0, 'personal order scope includes orders handled by the current entity');
+    $assert($customerPersonal['total'] === 0, 'personal order scope does not expand to unrelated same-team entities');
 } finally {
     $db->rollback();
 }

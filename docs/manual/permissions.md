@@ -5,7 +5,7 @@ description: 查询 LostSky 当前全部团队 Permission、动态权限和平�
 
 # 权限目录
 
-本页列出用户界面和错误提示中可能出现的 Permission。团队 Permission 通过团队角色授予 Entity；平台 Permission 通过平台角色授予管理员账号，两套角色完全隔离。为一个角色授予父级 Permission 时，会同时授权其下的所有子项：例如 `team` 或 `team.ability` 都包含 `team.ability.redeem`。
+本页列出用户界面和错误提示中可能出现的 Permission。团队 Permission 通过团队角色授予 Entity；平台 Permission 通过平台角色授予管理员账号，两套角色完全隔离。为一个角色授予父级 Permission 时，会同时授权其下的所有子项：例如 `team` 或 `team.ability` 都包含 `team.ability.redeem`，但不包含兄弟权限。父键还会自动覆盖未来新增的同前缀权限，属于需要二次确认的“高级范围”；只能从后端目录选择，不能手输未知键。成员仍只通过角色取得权限。
 
 ## 团队成员与实体
 
@@ -57,7 +57,7 @@ description: 查询 LostSky 当前全部团队 Permission、动态权限和平�
 | `transaction.delete` | 删除流水 |
 | `transaction.report.read` | 查看经营统计 |
 
-写入、删除、统计和充值中的部分动作还要求 `transaction` Ability，见[能力、权限与功能降级](access-and-abilities.md)。
+进入 Transaction 的流水、统计、核销、绑定、余额和充值接口还要求 `transaction` Ability；Ability 缺失时只保留访问快照和不可用说明。当前接单 Entity 可在个人工作台读取自己的核销任务，`service.redemption.read/manage` 决定全量读取与管理范围。见[能力、权限与功能降级](access-and-abilities.md)。
 
 ## 文件、文档与团队设置
 
@@ -76,8 +76,8 @@ description: 查询 LostSky 当前全部团队 Permission、动态权限和平�
 
 | Permission | 允许的操作 |
 | --- | --- |
-| `team.entity_field.manage` | 管理人员对象字段及相应字段值 |
-| `team.entity_field.customer.manage` | 管理客户对象字段及相应字段值 |
+| `team.entity.field.manage` | 管理人员对象字段及相应字段值 |
+| `team.entity.field.customer.manage` | 管理客户对象字段及相应字段值 |
 
 虚拟实体字段还可通过对应虚拟实体的 `field.manage` 动态权限控制。字段“可见范围”“值维护范围”和“允许修改字段值”继续限制最终读写。
 
@@ -90,19 +90,35 @@ description: 查询 LostSky 当前全部团队 Permission、动态权限和平�
 
 查看当前 Entity 自己的“通知”收件箱不要求额外 Permission。
 
-## 身份委托
+## 实体委托
 
-| Permission | 允许领取的目标 |
+| Permission | 能力 |
 | --- | --- |
 | `identity.team.assume` | 当前授权团队的 Team 实体 |
 | `identity.member.*.assume` | 当前授权团队任意有效成员 |
 | `identity.customer.*.assume` | 当前授权团队任意有效客户 |
 | `identity.virtual.*.assume` | 当前授权团队任意有效虚拟实体 |
+| `identity.virtual.*.act` | 代表当前团队全部虚拟实体执行受支持的跨应用操作 |
+| `identity.virtual.<slug>.act` | 代表指定虚拟实体执行受支持的跨应用操作 |
 | `identity.member.<slug>.assume` | 当前授权团队指定有效成员 |
 | `identity.customer.<slug>.assume` | 当前授权团队指定有效客户 |
 | `identity.virtual.<slug>.assume` | 当前授权团队指定有效虚拟实体 |
 
+指定成员、客户或虚拟实体的精确 slug 委托，以及 `identity.virtual.<slug>.act`，统一显示在“实体委托”中；虚拟实体维护权限显示在独立的“实体管理”中。角色编辑器只在保存时清理被父键或 `*` 覆盖的精确权限；有效权限页面逐条显示服务端记录。
+
 精确权限中的 `<slug>` 要替换为真实全局 slug，例如 `identity.member.alice.assume`。保存时目标必须属于当前授权团队；`*` 也只覆盖该团队。
+
+## 实体管理
+
+| Permission | 允许的操作 |
+| --- | --- |
+| `team.entity.virtual.create` | 创建虚拟实体 |
+| `team.entity.virtual.*.manage` | 管理当前团队全部虚拟实体及集成 |
+| `team.entity.virtual.*.field.manage` | 管理当前团队全部虚拟实体字段 |
+| `team.entity.virtual.<slug>.manage` | 管理指定虚拟实体及集成 |
+| `team.entity.virtual.<slug>.field.manage` | 管理指定虚拟实体字段 |
+
+Team 界面中的“虚拟实体”入口会识别通配或任一具体 manage 权限。具体操作仍按目标 slug 重新校验。开发期升级补丁会一次性迁移并删除旧权限键，应用不提供旧键别名。
 
 ## Chat
 
@@ -112,15 +128,6 @@ description: 查询 LostSky 当前全部团队 Permission、动态权限和平�
 | `chat.group.manage` | 管理群聊参与者 |
 | `chat.temporary.create` | 创建临时会话 |
 | `chat.message.moderate` | 审核或撤回他人消息 |
-| `chat.virtual.create` | 创建虚拟实体 |
-| `chat.virtual.*.manage` | 管理当前团队全部虚拟实体及集成 |
-| `chat.virtual.*.operate` | 代表当前团队全部虚拟实体参与 Chat |
-| `chat.virtual.*.field.manage` | 管理当前团队全部虚拟实体字段 |
-| `chat.virtual.<slug>.manage` | 管理指定虚拟实体及集成 |
-| `chat.virtual.<slug>.operate` | 代表指定虚拟实体参与 Chat |
-| `chat.virtual.<slug>.field.manage` | 管理指定虚拟实体字段 |
-
-Team 界面中的“虚拟实体”入口会识别通配或任一具体 manage 权限。具体操作仍按目标 slug 重新校验。
 
 ## 平台管理权限
 

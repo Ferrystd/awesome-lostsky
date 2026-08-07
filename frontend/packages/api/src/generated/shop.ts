@@ -11,8 +11,48 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 商城管理权限快照 */
+        /** 商城工作台团队摘要、Permission 与 Ability 快照 */
         get: operations["shopManageAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取当前 Entity 作为接单人或发单人的订单
+         * @description 服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数。
+         */
+        get: operations["shopPersonalOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取当前 Entity 参与的订单详情
+         * @description 订单必须由当前 acting_entity 接单或发单。
+         */
+        get: operations["shopPersonalOrder"];
         put?: never;
         post?: never;
         delete?: never;
@@ -844,6 +884,30 @@ export interface components {
         AnyObject: {
             [key: string]: unknown;
         };
+        WorkspaceAccessSnapshot: {
+            team: {
+                /** Format: int64 */
+                id: number;
+                slug: string;
+                name: string;
+            };
+            permissions: string[];
+            abilities: {
+                [key: string]: {
+                    enabled: boolean;
+                    level: number;
+                    /** Format: int64 */
+                    expire_time: number;
+                    /** @enum {string|null} */
+                    reason: "missing" | "level" | "expired" | null;
+                    label: string;
+                };
+            };
+            identity: {
+                /** @enum {string} */
+                type: "team" | "teamMember" | "teamVirtual";
+            };
+        };
         AnyValue: (string | number | boolean | unknown[] | {
             [key: string]: unknown;
         }) | null;
@@ -1514,6 +1578,61 @@ export interface operations {
         responses: {
             /** @description 成功 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["WorkspaceAccessSnapshot"];
+                    };
+                };
+            };
+        };
+    };
+    shopPersonalOrders: {
+        parameters: {
+            query?: {
+                status?: 1 | 2 | 3;
+                start_time?: number;
+                end_time?: number;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 订单不存在或不属于当前个人范围 */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

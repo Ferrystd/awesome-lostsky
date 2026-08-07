@@ -69,12 +69,13 @@ LostSky 的访问结果不是由单一“管理员”开关决定。系统会依
 | --- | --- | --- |
 | `doc` | Team 文档导航禁用；文档列表、详情、创建、编辑和删除不能进入 | 文件、实体资料、通知等其他 Team 功能；已经公开的文档不会因能力失效而自动撤下 Display |
 | `file` | 新文件上传；文件页、Markdown 编辑器和资料表单中的本地上传不可用；加入申请上传也会失败 | 按 Permission 查看或删除已有文件；文档编辑和外部图片 URL；已经上传的公开资源不会自动删除 |
-| `transaction` | 新建、编辑、删除流水；经营统计；客户充值；商城订单自动生成关联流水 | 按 Permission 查看已有流水和余额日志；维护发单绑定；客户继续用既有预存余额下单、取消和退款，订单与余额结果不受影响 |
+| `transaction` | Transaction 个人/团队工作台中的流水、统计、核销、绑定、余额与充值业务请求；商城订单自动生成关联流水 | 记账访问快照与不可用说明；Team、Shop、Chat 其他功能；客户继续用既有预存余额下单、取消和退款，订单与余额结果不受影响 |
 
 更具体的行为：
 
 - `doc` 不依赖 `file`。有 Doc Ability、没有 File Ability 时仍可写 Markdown、保存文档和使用外部图片地址。
 - `file` 不依赖 `doc`。有 File Ability、没有 Doc Ability 时仍可在文件页管理上传内容。
+- Transaction Ability 缺失时，记账入口保持可见但禁用；直接地址只读取访问快照，不读取历史流水、余额或绑定，也不处理服务核销。
 - 商城设置“自动同步记账流水”只有在设置开启且 `transaction` Ability 有效时生效。条件不满足时，订单照常创建并扣减余额，只是不生成关联流水。
 - Ability 到期不会自动删除历史数据，也不会回滚已经完成的订单、流水、文件或公开内容。
 
@@ -86,8 +87,8 @@ Permission 来自当前 Entity 在目标团队中获得的全部角色，多个�
 
 - `identity.member.*.assume`：可领取当前授权团队任意有效成员；
 - `identity.member.alice.assume`：只可领取当前团队的 `@alice`；
-- `chat.virtual.*.operate`：可操作当前团队全部虚拟实体；
-- `chat.virtual.support-bot.operate`：只可操作 `@support-bot`。
+- `identity.virtual.*.act`：可代表当前团队全部虚拟实体执行受支持操作；
+- `identity.virtual.support-bot.act`：只可代表 `@support-bot` 执行受支持操作。
 
 通配权限只覆盖授予它的团队，不会扩散到其他团队。所有固定键和动态模式见[权限目录](permissions.md)。
 

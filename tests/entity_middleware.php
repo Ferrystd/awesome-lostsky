@@ -190,6 +190,7 @@ $has = static function (array $middleware, string $name): bool {
     return false;
 };
 $generic = 'EntityType:team,teamMember,teamCustomer,teamVirtual';
+$backendEntities = 'EntityType:team,teamMember,teamVirtual';
 $assert(
     !$has($middleware(\app\account\controller\Team::class), 'EntityType:teamless')
         && $has($middleware(\app\account\controller\Team::class), 'JwtAuth'),
@@ -210,16 +211,42 @@ $assert(
     'customer self endpoints require a customer belonging to the team'
 );
 $assert(
-    $has($middleware(\app\transaction\controller\Transaction::class), $generic)
+    $has($middleware(\app\transaction\controller\Transaction::class), $backendEntities)
         && $has($middleware(\app\transaction\controller\Transaction::class), 'TeamAuth'),
-    'generic team business accepts all team entity types and checks belonging'
+    'transaction backend accepts Team, member and virtual identities while customers stay in Shop'
+);
+$transactionBusinessControllers = [
+    \app\transaction\controller\Transaction::class,
+    \app\transaction\controller\Options::class,
+    \app\transaction\controller\Service::class,
+    \app\transaction\controller\Sender::class,
+    \app\transaction\controller\Balance::class,
+    \app\transaction\controller\Personal::class,
+];
+foreach ($transactionBusinessControllers as $controller) {
+    $assert(
+        $has($middleware($controller), $backendEntities)
+            && $has($middleware($controller), 'TeamAuth')
+            && $has($middleware($controller), 'Ability:transaction'),
+        "{$controller} requires a backend Entity, current team and transaction Ability"
+    );
+}
+$assert(
+    !$has($middleware(\app\transaction\controller\Workspace::class), 'Ability:transaction'),
+    'transaction workspace access remains available to explain a missing Ability'
+);
+$personalTransactionMiddleware = $middleware(\app\transaction\controller\Personal::class);
+$assertSame(
+    ['transactions', 'transaction', 'bindings'],
+    $personalTransactionMiddleware['Permission:' . \app\service\PermissionDictionary::TRANSACTION_READ]['only'] ?? null,
+    'personal service tasks keep their handler scope instead of borrowing transaction.read'
 );
 $identityMiddleware = $middleware(\app\account\controller\Identity::class);
 $assert(
     isset($identityMiddleware['EntityType:teamless,team,teamMember,teamCustomer,teamVirtual'])
-        && ($identityMiddleware['EntityType:teamless,team,teamMember,teamCustomer,teamVirtual']['only'] ?? null) === ['candidates', 'receive']
+        && ($identityMiddleware['EntityType:teamless,team,teamMember,teamCustomer,teamVirtual']['only'] ?? null) === ['candidates', 'receive', 'target']
         && ($identityMiddleware[$generic]['only'] ?? null) === ['drop'],
-    'Account identity candidates and receive accept roots or entities while drop requires an entity'
+    'Account identity candidates, receive and migration target accept roots or entities while drop requires an entity'
 );
 $integrationMiddleware = $middleware(\app\chat\controller\Integration::class);
 $assert(
