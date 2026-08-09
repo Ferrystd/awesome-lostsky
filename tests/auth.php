@@ -173,6 +173,38 @@ try {
         HttpException::class,
         'permissions outside the catalog are rejected'
     );
+    $ownerSubject = ['type' => 'teamMember', 'id' => (int) $member->id];
+    app(\app\service\RolePermission::class)->save(
+        (int) $team->id,
+        (int) $ownerRole->id,
+        ['shop.product']
+    );
+    $assert(
+        app(\app\service\PermissionGate::class)->allows(
+            (int) $team->id,
+            $ownerSubject,
+            [\app\service\PermissionDictionary::SHOP_PRODUCT_SELF_MANAGE]
+        ),
+        'shop.product parent permission grants self product management'
+    );
+    app(\app\service\RolePermission::class)->save(
+        (int) $team->id,
+        (int) $ownerRole->id,
+        [\app\service\PermissionDictionary::SHOP_PRODUCT_READ]
+    );
+    $assert(
+        !app(\app\service\PermissionGate::class)->allows(
+            (int) $team->id,
+            $ownerSubject,
+            [\app\service\PermissionDictionary::SHOP_PRODUCT_SELF_MANAGE]
+        ),
+        'an exact sibling product permission does not expand to self management'
+    );
+    app(\app\service\RolePermission::class)->save(
+        (int) $team->id,
+        (int) $ownerRole->id,
+        $catalogKeys
+    );
 
     $token = app(Jwt::class)->createToken((int) $user->id, $deviceToken);
     $request = (new Request)->withHeader(['Authorization' => "Bearer {$token}"]);

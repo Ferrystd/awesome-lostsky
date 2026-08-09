@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { auth } from "@lostsky/api/client";
+import { formatAbilityDenied, formatPermissionDenied } from "@lostsky/api/error-format";
 import { chatWorkspaceUrl, redirectToLogin, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from "@lostsky/shared/navigation";
 import LsPage from "@lostsky/ui/components/LsPage.vue";
 import LsWorkspaceHeader from "@lostsky/ui/components/LsWorkspaceHeader.vue";
@@ -70,6 +71,7 @@ const activeWorkspace = computed(() => route.meta.workspace === 'personal' ? 'pe
 const currentNav = computed(() => activeWorkspace.value === 'personal'
   ? [
       { to: '/manage/personal', label: '概览', icon: House, permission: null },
+      { to: '/manage/personal/products', label: '我的商品', icon: ShoppingBag, permission: 'shop.product.self.manage' },
       { to: '/manage/personal/orders', label: '我的业务订单', icon: UserRound, permission: 'shop.order.read' },
     ]
   : nav);
@@ -79,7 +81,7 @@ const appEntries = computed(() => {
   return [
     { key: 'team', label: '团队', href: teamWorkspaceUrl(personal ? '/personal' : '/') },
     { key: 'shop', label: '商品', href: shopWorkspaceUrl('/manage') },
-    { key: 'transaction', label: '记账', href: transactionWorkspaceUrl(personal ? '/personal' : '/'), disabled: !transaction?.enabled, reason: transaction ? '当前团队未启用 transaction Ability' : '正在核对 transaction Ability' },
+    { key: 'transaction', label: '记账', href: transactionWorkspaceUrl(personal ? '/personal' : '/'), disabled: !transaction?.enabled, reason: transaction ? formatAbilityDenied('transaction', transaction.label ?? '记账') : '正在核对 transaction Ability' },
     { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
   ];
 });
@@ -104,7 +106,7 @@ function handleHeaderAction(key: string) {
 function disabledReason(permission: string | null) {
   if (!permission) return '';
   if (!access.value) return '正在核对 Permission';
-  return hasManagePermission(access.value.permissions, permission) ? '' : `缺少 ${permission} Permission`;
+  return hasManagePermission(access.value.permissions, permission) ? '' : formatPermissionDenied([permission]);
 }
 function explainPermission(permission: string | null) {
   feedback.info(disabledReason(permission));
@@ -177,7 +179,7 @@ function explainPermission(permission: string | null) {
             quaternary
             :title="transactionEntry.reason"
             :aria-label="`记账不可用：${transactionEntry.reason}`"
-            @click="feedback.info(transactionEntry.reason || '当前团队未启用 transaction Ability')"
+            @click="feedback.info(transactionEntry.reason || formatAbilityDenied('transaction', '记账'))"
           ><template #icon><ReceiptText :size="17" /></template><span>记账</span></NButton>
           <a v-else class="manage-app-link" :href="transactionEntry?.href"><ReceiptText :size="17" /><span>记账</span></a>
           <a class="manage-app-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>

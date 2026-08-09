@@ -541,7 +541,7 @@
         "tags": [
           "Actor"
         ],
-        "summary": "列出当前团队可见聊天身份及本人可操作身份",
+        "summary": "列出当前团队可见聊天身份及通过 chat.virtual.*.act 可操作的虚拟实体",
         "operationId": "chatActorList",
         "responses": {
           "200": {
@@ -562,7 +562,7 @@
         "tags": [
           "Virtual"
         ],
-        "summary": "按当前成员权限列出虚拟实体",
+        "summary": "按管理权限或 chat.virtual.*.act 列出虚拟实体",
         "operationId": "chatVirtualList",
         "parameters": [
           {
@@ -1323,7 +1323,7 @@
         "tags": [
           "Message"
         ],
-        "summary": "使用成员、客户或已授权虚拟实体身份发送文本",
+        "summary": "使用当前身份或通过 chat.virtual.*.act 授权的虚拟实体发送文本",
         "operationId": "chatMessageSend",
         "requestBody": {
           "required": true,
@@ -1527,7 +1527,7 @@
         "tags": [
           "Realtime"
         ],
-        "summary": "验证参与者或虚拟实体操作权限后签发频道令牌",
+        "summary": "验证参与者或 chat.virtual.*.act 权限后签发频道令牌",
         "operationId": "chatRealtimeSubscribe",
         "requestBody": {
           "required": true,

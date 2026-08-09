@@ -1,1 +1,0 @@
-import{d as s,o as r,a as o,t as a,_ as n}from"./index-Cpytb7lv.js";const t={class:"ls-inline-error",role:"alert"},c=s({__name:"LsInlineError",props:{message:{}},setup(e){return(_,l)=>(r(),o("p",t,a(e.message),1))}}),i=n(c,[["__scopeId","data-v-afe60983"]]);export{i as L};

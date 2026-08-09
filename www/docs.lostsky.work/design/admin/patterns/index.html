@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://docs.lostsky.work/design/admin/patterns/">
       
       
-        <link rel="prev" href="../components/">
+        <link rel="prev" href="../componentization/">
       
       
         <link rel="next" href="../states-and-access/">
@@ -657,6 +657,33 @@
     
   
   后台公共组件
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../componentization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台页面组件化方法
 
     
   </span>
@@ -3021,6 +3048,7 @@
                   
 
 <h1 id="_1">后台页面模式<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>页面结构的抽象阈值、职责边界和迁移流程统一见<a href="../componentization/">后台页面组件化方法</a>。本页只定义已经成立的页面模式。</p>
 <h2 id="_2">顶栏与页面标题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p><code>team</code>、<code>shop manage</code>、<code>transaction</code>、<code>admin</code> 使用同一 <code>LsWorkspaceHeader</code>。Team、Shop 与 Transaction 的应用壳层在 <code>actions</code> 插槽直显团队、商品、记账和聊天四入口；禁止使用应用下拉或个人/团队分段控件。团队模式从既有概览或主页面进入个人工作台，个人模式由顶栏当前应用返回团队模式。桌面动作必须为图标加文字，移动端统一进入带文字的“操作”菜单。认证和会话应用可保留专属壳层，Chat 只提供相同的应用切换、不提供模式切换。页面内容使用 <code>LsPage</code> 和 <code>LsPageHeader</code>，不得复制不同高度、字号或返回样式。</p>
 <h2 id="_3">搜索、筛选与集合页<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
@@ -3036,7 +3064,7 @@
 <h2 id="_4">主体、状态与动作<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>主体统一用 <code>LsEntityIdentity</code>：真实头像优先；无图时按类型图标或首字回退；媒体位始终是圆角方形，同时显示类型、名称和 slug。直接描述该主体的状态使用组件 <code>status</code> 插槽紧随名称，不能作为独立网格列漂到整行末端；表格中用于跨行比较的状态才保留独立状态列。状态统一用 <code>NTag</code>，不得用页面私有胶囊。</p>
 <p>列表行和主体卡片的桌面入口使用透明、无边框的图标加文字，不使用主色填充、浅色底或圆角按钮气泡；hover/pressed 只改变文字或图标状态，不形成新的胶囊轮廓。移动端仍采用“一个安全主操作 + 更多”，两者同样保持图标加文字的轻量入口外观和至少 44px 触控区。查看/管理通常是主操作，封禁、移出、删除不得成为移动端主操作。入口因权限或能力禁用时仍保持位置，并显示原因。表单提交、创建、确认和破坏性确认属于命令按钮，不受本条“入口”外观约束。</p>
-<p>角色权限中的实体选择只提供 Permission 目标上下文，必须放在“实体委托”折叠组内、位于指定实体项之前，选择实体本身不得直接增删 Permission。通用委托和指定实体 Permission 使用同一级折叠分组与相同复选框样式；指定实体项必须先选择当前团队实体、勾选适用项，再通过“委托到实体”把具体 key 加入草稿。当前团队目标使用团队实体选项接口，不得复用会受全局搜索可见性限制的跨团队搜索接口；覆盖冗余仅在前端提交时清理。</p>
+<p>角色权限中的实体选择只提供实体管理或身份委托 Permission 的目标上下文，必须放在对应折叠组内、位于指定实体项之前，选择实体本身不得直接增删 Permission。通用权限和指定实体 Permission 使用同一级折叠分组与相同复选框样式；指定实体项必须先选择当前团队实体，再勾选适用项。当前团队目标使用团队实体选项接口，不得复用会受全局搜索可见性限制的跨团队搜索接口；<code>chat.virtual.&lt;slug&gt;.act</code> 按真实 slug 直接列在“聊天”组，覆盖冗余仅在前端提交时清理。</p>
 <p>页面主内容或主集合的空数据和筛选无结果必须使用 <code>LsEmptyState</code>，且只传 <code>title</code> 与 <code>description</code>：标题说明当前没有什么，说明文本给出来源、边界或下一步；不得直接拼装裸图标、标题和段落，不得为单页扩展图标、动作、尺寸或样式参数。组件固定为白色有边界面板、Naive <code>NEmpty</code> 图标与居中排版，标准最小高度为 <code>12rem</code>、上下内边距为 <code>2rem</code>；禁止用 <code>vw</code> 或页面私有样式随桌面宽度继续拉高，仅在文案换行或文本放大确实需要时自然增高。桌面和移动端均须自然换行且不得横向溢出。创建等主操作保留在页面标题，不塞入空状态。消息时间线、详情卡片、表单候选区和统计小卡等局部区域不是“页面无数据”，继续使用与所在区域密度一致的紧凑说明；如需偏离，必须在应用规则登记原因。</p>
 <p>同一顶栏中的链接、路由入口和 Naive UI 按钮使用完全相同的 <code>--font-ui</code>、14px 字号和 600 字重。<code>NDropdown</code> 等无根组件必须由真实 DOM 容器承担响应式显示类；验收时桌面不得同时出现完整动作和移动端“操作”按钮。</p>
 <h2 id="_5">表单、上传与分页<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>

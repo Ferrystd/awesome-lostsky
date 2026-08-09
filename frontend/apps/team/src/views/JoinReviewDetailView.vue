@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Check, Plus, X } from '@lucide/vue'
@@ -46,9 +48,9 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
       <LsAsyncState v-else-if="detailQuery.isPending.value" state="loading" :rows="6" />
       <template v-else-if="detail">
         <LsPanel><section class="summary"><div><small>申请人</small><h3>{{ (detail.user as Record<string, unknown> | undefined)?.name || `用户 #${detail.user_id}` }}</h3><p>{{ detail.memo || '没有补充说明' }}</p></div></section></LsPanel>
-        <LsPanel><section><h3>申请资料</h3><dl><template v-for="value in (detail.values as Record<string, unknown>[] ?? [])" :key="String(value.id)"><dt>{{ (value.field as Record<string, unknown> | undefined)?.name || `字段 #${value.field_id}` }}</dt><dd>{{ valueText(value) }}</dd></template></dl><NEmpty v-if="!(detail.values as unknown[] | undefined)?.length" description="没有申请字段值" size="small" /></section></LsPanel>
+        <LsPanel><section><LsSectionHeader title="申请资料" :heading-level="3" /><LsDescriptionList v-if="(detail.values as unknown[] | undefined)?.length"><template v-for="value in (detail.values as Record<string, unknown>[] ?? [])" :key="String(value.id)"><dt>{{ (value.field as Record<string, unknown> | undefined)?.name || `字段 #${value.field_id}` }}</dt><dd>{{ valueText(value) }}</dd></template></LsDescriptionList><NEmpty v-else description="没有申请字段值" size="small" /></section></LsPanel>
         <LsPanel><section class="task-section">
-          <div class="section-title"><div><h3>审核任务</h3><p>记录加入前需要完成的事项。</p></div><LsButton variant="secondary" @click="addTask"><template #icon><Plus :size="16" /></template>添加任务</LsButton></div>
+          <LsSectionHeader title="审核任务" description="记录加入前需要完成的事项。" :heading-level="3"><template #aside><LsButton variant="secondary" @click="addTask"><template #icon><Plus :size="16" /></template>添加任务</LsButton></template></LsSectionHeader>
           <div v-if="tasks.length" class="tasks">
             <article v-for="(task, index) in tasks" :key="task.id ?? index">
               <span class="task-index">任务 {{ String(index + 1).padStart(2, '0') }}</span>
@@ -60,7 +62,7 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
           </div>
           <NEmpty v-else description="暂无审核任务，按需添加" size="small" />
         </section></LsPanel>
-        <LsPanel v-if="['applied', 'reviewing', '已申请', '审核中'].includes(String(detail.status_code || detail.status))"><section class="decision"><div><h3>审核决定</h3><p>确认资料与任务后处理本次申请。</p></div><div class="decision-actions"><LsButton v-if="['applied', '已申请'].includes(String(detail.status_code || detail.status))" variant="secondary" :loading="action.isPending.value" @click="run('/joinReview/review')">进入审核</LsButton><LsButton :loading="action.isPending.value" @click="run('/joinReview/approve')"><template #icon><Check :size="17" /></template>同意{{ detail.purpose_label || '加入' }}</LsButton><LsButton variant="danger" :loading="action.isPending.value" @click="reject">拒绝申请</LsButton></div></section></LsPanel>
+        <LsPanel v-if="['applied', 'reviewing', '已申请', '审核中'].includes(String(detail.status_code || detail.status))"><section><LsSectionHeader title="审核决定" description="确认资料与任务后处理本次申请。" :heading-level="3"><template #aside><div class="decision-actions"><LsButton v-if="['applied', '已申请'].includes(String(detail.status_code || detail.status))" variant="secondary" :loading="action.isPending.value" @click="run('/joinReview/review')">进入审核</LsButton><LsButton :loading="action.isPending.value" @click="run('/joinReview/approve')"><template #icon><Check :size="17" /></template>同意{{ detail.purpose_label || '加入' }}</LsButton><LsButton variant="danger" :loading="action.isPending.value" @click="reject">拒绝申请</LsButton></div></template></LsSectionHeader></section></LsPanel>
       </template>
       <LsInlineError v-if="action.isError.value" :message="friendlyError(action.error.value)" />
       <NModal v-model:show="rejectOpen" preset="card" title="拒绝加入申请" :style="{ width: 'min(92vw, 30rem)' }">
@@ -72,6 +74,6 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
 </template>
 
 <style scoped>
-.join-review-detail-page{display:grid;gap:1.5rem}.join-review-detail-page section h3,.join-review-detail-page section p{margin:0}.summary small{color:var(--muted-ink);font-size:.75rem}.summary h3{margin-top:.25rem;font-size:1.25rem}.summary p,.section-title p,.decision p,.modal-copy{margin-top:.375rem;color:var(--muted-ink);font-size:.875rem;line-height:1.6}dl{display:grid;grid-template-columns:minmax(7rem,.45fr) minmax(0,1.55fr);margin:1rem 0 0}dt,dd{margin:0;padding:.75rem 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}dt{color:var(--muted-ink);font-size:.8rem}.section-title,.decision{display:flex;align-items:center;justify-content:space-between;gap:1rem}.tasks{display:grid;gap:1rem;margin-top:1rem}.tasks article{display:grid;gap:.75rem;padding:1rem;background:var(--cloud);border-radius:10px}.task-index{color:var(--sky-lost-strong);font-size:.75rem;font-weight:750}.tasks label{display:grid;gap:.5rem}.tasks label>span{color:var(--muted-ink);font-size:.8rem;font-weight:650}.task-actions,.save-row,.decision-actions,.modal-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:.75rem}.save-row{padding-top:.25rem}.modal-actions{width:100%}
-@media(max-width:639px){dl{grid-template-columns:1fr}dt{padding-bottom:.25rem;border:0}dd{padding-top:0}.section-title,.decision{align-items:stretch;flex-direction:column}.section-title :deep(.n-button),.decision-actions :deep(.n-button),.save-row :deep(.n-button){width:100%}.decision-actions,.save-row{display:grid;grid-template-columns:1fr;width:100%}}
+.join-review-detail-page{display:grid;gap:1.5rem}.join-review-detail-page section h3,.join-review-detail-page section p{margin:0}.summary small{color:var(--muted-ink);font-size:.75rem}.summary h3{margin-top:.25rem;font-size:1.25rem}.summary p,.modal-copy{margin-top:.375rem;color:var(--muted-ink);font-size:.875rem;line-height:1.6}.tasks{display:grid;gap:1rem;margin-top:1rem}.tasks article{display:grid;gap:.75rem;padding:1rem;background:var(--cloud);border-radius:10px}.task-index{color:var(--sky-lost-strong);font-size:.75rem;font-weight:750}.tasks label{display:grid;gap:.5rem}.tasks label>span{color:var(--muted-ink);font-size:.8rem;font-weight:650}.task-actions,.save-row,.decision-actions,.modal-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:.75rem}.save-row{padding-top:.25rem}.modal-actions{width:100%}
+@media(max-width:639px){.decision-actions :deep(.n-button),.save-row :deep(.n-button){width:100%}.decision-actions,.save-row{display:grid;grid-template-columns:1fr;width:100%}}
 </style>

@@ -43,10 +43,11 @@ description: 查询 LostSky 当前全部团队 Permission、动态权限和平�
 | `shop.product.read` | 查看商家内部商品资料 |
 | `shop.product.write` | 创建、编辑商品和配置处理实体 |
 | `shop.product.delete` | 删除商品 |
+| `shop.product.self.manage` | 管理归属当前 Entity 的本人商品，包括创建、编辑、上下架、接单人和核销字段 |
 | `shop.order.read` | 查看商家订单 |
 | `shop.order.write` | 创建、取消和完成商家订单 |
 
-当前 Shop 前台只向访客和客户提供浏览、购买及“我的订单”；商家商品和订单管理尚未提供完整用户界面。上述 Permission 已用于既有业务接口，不表示普通客户可以管理商家数据。
+Shop 团队工作台使用商品与订单的团队级 Permission；Team、成员和虚拟 Entity 还可通过 `shop.product.self.manage` 在个人工作台管理本人商品。Customer 只使用商城客户中心，不能通过该 Permission 管理商家数据。
 
 ## 交易与余额
 
@@ -64,7 +65,7 @@ description: 查询 LostSky 当前全部团队 Permission、动态权限和平�
 | Permission | 允许的操作 |
 | --- | --- |
 | `file.read` | 查看团队文件和空间用量 |
-| `file.upload` | 上传团队文件；同时要求 File Ability 和配额可用 |
+| `file.upload` | 通过“文件”页上传团队文件库；同时要求 File Ability 和配额可用。资料、商品和 Markdown 等资源附件不要求此键 |
 | `file.delete` | 删除团队文件 |
 | `team.document.read` | 查看当前团队全部文档；缺少时仍可按文档可见范围读取 |
 | `team.setting.read` | 查看团队设置和设置结构 |
@@ -98,13 +99,11 @@ description: 查询 LostSky 当前全部团队 Permission、动态权限和平�
 | `identity.member.*.assume` | 当前授权团队任意有效成员 |
 | `identity.customer.*.assume` | 当前授权团队任意有效客户 |
 | `identity.virtual.*.assume` | 当前授权团队任意有效虚拟实体 |
-| `identity.virtual.*.act` | 代表当前团队全部虚拟实体执行受支持的跨应用操作 |
-| `identity.virtual.<slug>.act` | 代表指定虚拟实体执行受支持的跨应用操作 |
 | `identity.member.<slug>.assume` | 当前授权团队指定有效成员 |
 | `identity.customer.<slug>.assume` | 当前授权团队指定有效客户 |
 | `identity.virtual.<slug>.assume` | 当前授权团队指定有效虚拟实体 |
 
-指定成员、客户或虚拟实体的精确 slug 委托，以及 `identity.virtual.<slug>.act`，统一显示在“实体委托”中；虚拟实体维护权限显示在独立的“实体管理”中。角色编辑器只在保存时清理被父键或 `*` 覆盖的精确权限；有效权限页面逐条显示服务端记录。
+指定成员、客户或虚拟实体的精确 slug 委托统一显示在“实体委托”中；虚拟实体维护权限显示在“实体管理”中，仅限聊天的代操作显示在“聊天”中。角色编辑器只在保存时清理被父键或 `*` 覆盖的精确权限；有效权限页面逐条显示服务端记录。
 
 精确权限中的 `<slug>` 要替换为真实全局 slug，例如 `identity.member.alice.assume`。保存时目标必须属于当前授权团队；`*` 也只覆盖该团队。
 
@@ -128,6 +127,10 @@ Team 界面中的“虚拟实体”入口会识别通配或任一具体 manage �
 | `chat.group.manage` | 管理群聊参与者 |
 | `chat.temporary.create` | 创建临时会话 |
 | `chat.message.moderate` | 审核或撤回他人消息 |
+| `chat.virtual.*.act` | 代表当前团队全部虚拟实体参与聊天 |
+| `chat.virtual.<slug>.act` | 代表指定虚拟实体参与聊天 |
+
+`chat.virtual.*.act` 只影响 Chat 中的会话可见性和受支持操作，不切换当前身份，也不能用于其他应用。开发期升级补丁会迁移并删除 `identity.virtual.*.act`，应用不提供旧键别名。
 
 ## 平台管理权限
 

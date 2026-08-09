@@ -2,9 +2,11 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
@@ -42,8 +44,8 @@ const domainColumns: DataTableColumns<Domain> = [
   <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取团队详情" :description="friendlyError(query.error.value)" />
   <template v-else-if="query.data.value">
     <LsPanel>
-      <template #header><div class="panel-heading"><div><h2>{{ query.data.value.name || query.data.value.slug }}</h2><p>#{{ query.data.value.id }} · {{ query.data.value.slug }}</p></div><LsStatusTag :label="adminStatusLabel(teamStatus)" :type="adminStatusType(teamStatus)" /></div></template>
-      <dl class="definition-list"><dt>所有者</dt><dd>{{ query.data.value.owner_username || `用户 #${query.data.value.user_id}` }}</dd><dt>成员数量</dt><dd>{{ query.data.value.member_count }}</dd><dt>创建时间</dt><dd>{{ formatTime(query.data.value.create_time) }}</dd><dt>最近更新</dt><dd>{{ formatTime(query.data.value.update_time) }}</dd></dl>
+      <template #header><LsSectionHeader :title="query.data.value.name || query.data.value.slug" :description="`#${query.data.value.id} · ${query.data.value.slug}`"><template #aside><LsStatusTag :label="adminStatusLabel(teamStatus)" :type="adminStatusType(teamStatus)" /></template></LsSectionHeader></template>
+      <LsDescriptionList><dt>所有者</dt><dd>{{ query.data.value.owner_username || `用户 #${query.data.value.user_id}` }}</dd><dt>成员数量</dt><dd>{{ query.data.value.member_count }}</dd><dt>创建时间</dt><dd>{{ formatTime(query.data.value.create_time) }}</dd><dt>最近更新</dt><dd>{{ formatTime(query.data.value.update_time) }}</dd></LsDescriptionList>
     </LsPanel>
     <LsPanel>
       <template #header><div><h2>域名绑定</h2><p>只读平台配置</p></div></template>
@@ -59,4 +61,4 @@ const domainColumns: DataTableColumns<Domain> = [
   <ReasonDialog v-model:show="dialog" :title="action === 'ban' ? '封禁这个团队？' : '解封这个团队？'" :consequence="action === 'ban' ? '团队全部业务入口会立即不可用；成员账号及其他团队不受影响。' : '团队业务入口将重新开放。'" :action-label="action === 'ban' ? '封禁团队' : '解封团队'" :danger="action === 'ban'" :loading="mutation.isPending.value" @confirm="mutation.mutate" />
 </template>
 
-<style scoped>.panel-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.panel-heading h2,.panel-heading p,:deep(.ls-panel__header h2),:deep(.ls-panel__header p){margin:0}.panel-heading p,:deep(.ls-panel__header p){color:var(--muted-ink)}.ability-list{display:grid}.ability-list>div{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.ability-list>div:last-child{border-bottom:0}.ability-list span{color:var(--muted-ink);font-size:.8rem}</style>
+<style scoped>.ability-list{display:grid}.ability-list>div{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.ability-list>div:last-child{border-bottom:0}.ability-list span{color:var(--muted-ink);font-size:.8rem}</style>

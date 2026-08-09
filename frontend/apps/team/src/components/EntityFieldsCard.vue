@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { api, friendlyError } from '@lostsky/api/client'
+import { friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
+import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import { NCheckbox, NDatePicker, NInput, NInputNumber, NSelect, NSwitch } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 
@@ -31,12 +31,14 @@ const props = withDefaults(defineProps<{
   saving?: boolean
   error?: unknown
   success?: boolean
+  uploadDisabledReason?: string
 }>(), {
   storedValues: () => [],
   mode: 'readonly',
   loading: false,
   saving: false,
   success: false,
+  uploadDisabledReason: '',
 })
 
 const emit = defineEmits<{
@@ -47,7 +49,6 @@ const emit = defineEmits<{
 const values = reactive<Record<number, FieldValue>>({})
 const snapshot = ref('')
 const uploading = ref<number | null>(null)
-const uploadError = ref<unknown>(null)
 const isDirty = computed(() => JSON.stringify(values) !== snapshot.value)
 
 function storedValue(item: StoredValue): FieldValue {
@@ -117,23 +118,6 @@ function displayValue(field: EntityFieldDefinition) {
   const options = normalizedOptions(field)
   if (Array.isArray(value)) return value.map(item => options.find(option => option.value === String(item))?.label ?? item).join('、')
   return options.find(option => option.value === String(value))?.label ?? String(value)
-}
-
-async function upload(field: EntityFieldDefinition, event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-  uploading.value = field.id
-  uploadError.value = null
-  try {
-    const result = await api.upload<Record<string, unknown>>(file)
-    values[field.id] = String(result.url ?? result.path ?? result.id ?? '')
-  } catch (error) {
-    uploadError.value = error
-  } finally {
-    uploading.value = null
-    input.value = ''
-  }
 }
 
 function submit() {
@@ -242,14 +226,15 @@ function submit() {
           :precision="field.value_type === 'int' ? 0 : undefined"
           class="number-input"
         />
-        <LsUploadField
+        <LsMediaUploadField
           v-else-if="field.input_type === 'upload'"
           :model-value="String(values[field.id] ?? '')"
+          :upload="uploadFileUrl"
           :placeholder="`文件地址或上传${field.name}`"
-          :loading="uploading === field.id"
-          :disabled="Boolean(uploading)"
+          :disabled="Boolean(uploading) || Boolean(uploadDisabledReason)"
+          :disabled-reason="uploadDisabledReason"
           @update:model-value="value => values[field.id] = value"
-          @change="upload(field, $event)"
+          @uploading="value => uploading = value ? field.id : null"
         />
         <NDatePicker
           v-else-if="field.value_type === 'date' || field.value_type === 'datetime'"
@@ -271,7 +256,7 @@ function submit() {
       </div>
     </div>
 
-    <LsInlineError v-if="error || uploadError" :message="friendlyError(error || uploadError)" />
+    <LsInlineError v-if="error" :message="friendlyError(error)" />
   </section></LsPanel>
 </template>
 

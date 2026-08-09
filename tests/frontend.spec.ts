@@ -431,6 +431,7 @@ test('shop customer profile deep link stays in the Shop customer center', async 
   const customerToken = `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type: 'teamCustomer', id: 31 } })).toString('base64url')}.x`
   await page.context().addCookies([{ name: 'lostsky_token', value: customerToken, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
   let meCalls = 0
+  let uploadCalls = 0
   await page.route('http://demo.shop.lostsky.work:5179/api/**', async route => {
     const path = new URL(route.request().url()).pathname
     if (path.endsWith('/storefront')) {
@@ -461,6 +462,15 @@ test('shop customer profile deep link stays in the Shop customer center', async 
       })
       return
     }
+    if (path.endsWith('/customer/upload')) {
+      uploadCalls++
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 0, message: 'ok', data: { id: 8, url: '/uploads/avatar.png', path: 'uploads/avatar.png' } }),
+      })
+      return
+    }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data: null }) })
   })
 
@@ -468,7 +478,11 @@ test('shop customer profile deep link stays in the Shop customer center', async 
   await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/customer/profile')
   await expect(page.getByRole('heading', { name: '我的资料', level: 1 })).toBeVisible()
   await expect(page.getByLabel('团队内昵称')).toHaveValue('深链接客户')
+  await expect(page.getByRole('button', { name: '上传头像' })).toBeVisible()
+  await page.locator('.ls-media-upload-field input[type="file"]').setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: Buffer.from('avatar') })
+  await expect(page.locator('.ls-media-upload-field .n-input input')).toHaveValue('/uploads/avatar.png')
   expect(meCalls).toBeGreaterThan(0)
+  expect(uploadCalls).toBe(1)
 })
 
 test('shop storefront keeps an empty merchant visible and useful', async ({ page }) => {
@@ -1888,8 +1902,10 @@ test('team role tasks use independent routes for entity assignment and permissio
           { name: '实体委托', items: [
             { key: 'identity.team.assume', label: '领取团队身份' },
             { key: 'identity.member.*.assume', label: '领取全部成员身份' },
-            { key: 'identity.virtual.helper.act', label: '代表 · 协作助手执行操作' },
             { key: 'identity.virtual.helper.assume', label: '领取 · 协作助手身份' },
+          ] },
+          { name: '聊天', items: [
+            { key: 'chat.virtual.helper.act', label: '代表 · 协作助手参与聊天' },
           ] },
         ],
         advanced_items: [
@@ -1992,17 +2008,18 @@ test('team role tasks use independent routes for entity assignment and permissio
   await expect(page.getByText('指定虚拟实体', { exact: true })).toHaveCount(0)
   await expect(page.getByText('动态权限', { exact: true })).toHaveCount(0)
   await expect(page.getByLabel('选择权限目标')).toHaveCount(0)
+  await page.getByText('聊天 · 已选择 0/1', { exact: true }).click()
+  await page.getByRole('checkbox', { name: /代表 · 协作助手参与聊天.*chat\.virtual\.helper\.act/ }).check()
   await page.getByText('实体委托 · 已配置 1 项', { exact: true }).click()
   await expect(page.getByLabel('选择权限目标')).toBeVisible()
   let dynamicPermissions = page.locator('.dynamic-permission-list:visible')
-  await expect(dynamicPermissions.getByRole('checkbox')).toHaveCount(2)
+  await expect(dynamicPermissions.getByRole('checkbox')).toHaveCount(1)
   for (const checkbox of await dynamicPermissions.getByRole('checkbox').all()) await expect(checkbox).toBeDisabled()
   await page.getByLabel('选择权限目标').fill('helper')
   await page.getByRole('option', { name: /协作助手.*helper/ }).click()
   expect(teamEntityOptionLoads).toBe(1)
-  await dynamicPermissions.getByRole('checkbox', { name: /代表指定虚拟实体执行操作.*identity\.virtual\.helper\.act/ }).check()
   await dynamicPermissions.getByRole('checkbox', { name: /领取指定实体身份.*identity\.virtual\.helper\.assume/ }).check()
-  await expect(page.getByText('实体委托 · 已配置 3 项', { exact: true })).toBeVisible()
+  await expect(page.getByText('实体委托 · 已配置 2 项', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: '已进入角色草稿' })).toBeVisible()
   await page.getByText('实体管理 · 已配置 0 项', { exact: true }).click()
   dynamicPermissions = page.locator('.dynamic-permission-list:visible')
@@ -2010,7 +2027,7 @@ test('team role tasks use independent routes for entity assignment and permissio
   await expect(page.getByText('实体管理 · 已配置 1 项', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '保存权限' }).click()
   await expect.poll(() => savedPermissions).toContain('team.entity.virtual.helper.manage')
-  expect(savedPermissions).toContain('identity.virtual.helper.act')
+  expect(savedPermissions).toContain('chat.virtual.helper.act')
   expect(savedPermissions).toContain('identity.virtual.helper.assume')
 
   await page.goto('http://demo.team.lostsky.work:5175/roles/entities?slug=bob')

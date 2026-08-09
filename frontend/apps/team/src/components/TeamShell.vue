@@ -215,7 +215,7 @@ watch(
             quaternary
             :title="transactionEntry.reason"
             :aria-label="`记账不可用：${transactionEntry.reason}`"
-            @click="explain(transactionEntry.reason || '当前团队未启用 transaction Ability')"
+            @click="explain(transactionEntry.reason || abilityReason('transaction', '记账'))"
           ><template #icon><ReceiptText :size="17" /></template><span>记账</span></NButton>
           <a v-else class="display-link" :href="transactionEntry?.href"><ReceiptText :size="17" /><span>记账</span></a>
           <a class="chat-link" :href="chatUrl"><MessageCircleMore :size="19" /><span>聊天</span></a>

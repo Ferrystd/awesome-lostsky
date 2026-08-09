@@ -30,12 +30,18 @@ final class EntitlementManagement
 
     public function teamOptions(int $teamId): array
     {
+        return $this->productOptions($teamId) + [
+            'services' => TeamService::where('team_id', $teamId)->where('is_active', 1)->order('id', 'desc')->select()->toArray(),
+            'customers' => TeamCustomer::where('team_id', $teamId)->where('is_blocked', 0)->with(['profile', 'balance'])->order('id', 'desc')->select()->toArray(),
+        ];
+    }
+
+    public function productOptions(int $teamId): array
+    {
         return [
             'entities' => app(Entity::class)->optionsForTeam($teamId, true),
-            'services' => TeamService::where('team_id', $teamId)->where('is_active', 1)->order('id', 'desc')->select()->toArray(),
             'packages' => BenefitPackage::where('issuer_team_id', $teamId)->where('is_active', 1)->order('id', 'desc')->select()->toArray(),
             'campaigns' => RedemptionCampaign::where('issuer_team_id', $teamId)->where('is_active', 1)->order('id', 'desc')->select()->toArray(),
-            'customers' => TeamCustomer::where('team_id', $teamId)->where('is_blocked', 0)->with(['profile', 'balance'])->order('id', 'desc')->select()->toArray(),
         ];
     }
 

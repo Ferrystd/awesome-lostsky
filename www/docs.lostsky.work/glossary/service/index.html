@@ -666,6 +666,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../design/admin/componentization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台页面组件化方法
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../design/admin/patterns/" class="md-nav__link">
         
   
@@ -1987,6 +2014,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         ProductRedemptionField
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#productselfmanagement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ProductSelfManagement
       </span>
     </span>
   </a>
@@ -3949,6 +3987,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#productselfmanagement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ProductSelfManagement
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#redemption" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -4884,6 +4933,11 @@
 </tr>
 <tr>
 <td><code>teamOptions</code></td>
+<td><code>int $teamId</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>productOptions</code></td>
 <td><code>int $teamId</code></td>
 <td><code>array</code></td>
 </tr>
@@ -5925,6 +5979,68 @@
 <tr>
 <td><code>saveForStage</code></td>
 <td><code>model\TeamServiceInstance $instance</code>、<code>string $stage</code>、<code>array $values</code></td>
+<td><code>void</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="productselfmanagement">ProductSelfManagement<a class="headerlink" href="#productselfmanagement" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>参数</th>
+<th>返回</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>list</code></td>
+<td><code>int $teamId</code>、<code>array $actingEntity</code>、<code>array $filters</code>、<code>int $page</code>、<code>int $limit</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>options</code></td>
+<td><code>int $teamId</code>、<code>array $actingEntity</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>get</code></td>
+<td><code>int $teamId</code>、<code>array $actingEntity</code>、<code>int $id</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>create</code></td>
+<td><code>int $teamId</code>、<code>array $actingEntity</code>、<code>int $expectedEntityId</code>、<code>array $data</code></td>
+<td><code>int</code></td>
+</tr>
+<tr>
+<td><code>edit</code></td>
+<td><code>int $teamId</code>、<code>array $actingEntity</code>、<code>int $expectedEntityId</code>、<code>int $id</code>、<code>array $data</code></td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td><code>setHandlers</code></td>
+<td><code>int $teamId</code>、<code>array $actingEntity</code>、<code>int $expectedEntityId</code>、<code>int $id</code>、<code>array $entityIds</code></td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td><code>fields</code></td>
+<td><code>int $teamId</code>、<code>array $actingEntity</code>、<code>int $id</code></td>
+<td><code>array</code></td>
+</tr>
+<tr>
+<td><code>createField</code></td>
+<td><code>int $teamId</code>、<code>array $actingEntity</code>、<code>int $expectedEntityId</code>、<code>int $id</code>、<code>array $data</code></td>
+<td><code>int</code></td>
+</tr>
+<tr>
+<td><code>updateField</code></td>
+<td><code>int $teamId</code>、<code>array $actingEntity</code>、<code>int $expectedEntityId</code>、<code>int $id</code>、<code>int $fieldId</code>、<code>array $data</code></td>
+<td><code>void</code></td>
+</tr>
+<tr>
+<td><code>deleteField</code></td>
+<td><code>int $teamId</code>、<code>array $actingEntity</code>、<code>int $expectedEntityId</code>、<code>int $id</code>、<code>int $fieldId</code></td>
 <td><code>void</code></td>
 </tr>
 </tbody>

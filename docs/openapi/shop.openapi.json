@@ -171,10 +171,45 @@
           },
           "identity": {
             "type": "object",
-            "required": ["type"],
-            "properties": {"type": {"type": "string", "enum": ["team", "teamMember", "teamVirtual"]}}
+            "required": ["type", "entity_id"],
+            "properties": {
+              "type": {"type": "string", "enum": ["team", "teamMember", "teamVirtual"]},
+              "entity_id": {"type": "integer", "format": "int64"}
+            }
           }
         }
+      },
+      "PersonalProductWriteInput": {
+        "type": "object",
+        "required": ["expected_entity_id"],
+        "properties": {
+          "expected_entity_id": {"type": "integer", "format": "int64"},
+          "name": {"type": "string", "maxLength": 100},
+          "description": {"type": "string", "nullable": true, "maxLength": 500},
+          "cover_image": {"type": "string", "maxLength": 500},
+          "introduction_markdown": {"type": "string", "nullable": true, "maxLength": 65535},
+          "price": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$"},
+          "cost": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$"},
+          "handler_cut": {"type": "string", "nullable": true},
+          "sender_cut": {"type": "string", "nullable": true},
+          "cs_cut": {"type": "string", "nullable": true},
+          "team_cut": {"type": "string", "nullable": true},
+          "kind": {"type": "integer", "enum": [1, 2, 3]},
+          "benefit_package_id": {"type": "integer", "nullable": true},
+          "redemption_campaign_id": {"type": "integer", "nullable": true},
+          "is_active": {"type": "integer", "enum": [0, 1]}
+        }
+      },
+      "PersonalProductCreateInput": {
+        "allOf": [
+          {"$ref": "#/components/schemas/PersonalProductWriteInput"},
+          {"type": "object", "required": ["name", "cover_image", "price"]}
+        ]
+      },
+      "ExpectedEntityInput": {
+        "type": "object",
+        "required": ["expected_entity_id"],
+        "properties": {"expected_entity_id": {"type": "integer", "format": "int64"}}
       },
       "AnyValue": {
         "nullable": true,
@@ -1811,9 +1846,27 @@
     }
   },
   "paths": {
-    "/manage/access": {"get":{"tags":["Product"],"operationId":"shopManageAccess","summary":"商城工作台团队摘要、Permission 与 Ability 快照","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/WorkspaceAccessSnapshot"}}}]}}}}}}},
+    "/manage/access": {"get":{"tags":["Product"],"operationId":"shopManageAccess","summary":"商城工作台团队摘要、Permission 与 File/Transaction Ability 快照","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/WorkspaceAccessSnapshot"}}}]}}}}}}},
     "/personal/orders": {"get":{"tags":["Order"],"operationId":"shopPersonalOrders","summary":"读取当前 Entity 作为接单人或发单人的订单","description":"服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数。","security":[{"bearerAuth":[]}],"parameters":[{"name":"status","in":"query","schema":{"type":"integer","enum":[1,2,3]}},{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
     "/personal/orders/{id}": {"get":{"tags":["Order"],"operationId":"shopPersonalOrder","summary":"读取当前 Entity 参与的订单详情","description":"订单必须由当前 acting_entity 接单或发单。","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"订单不存在或不属于当前个人范围"}}}},
+    "/personal/products": {
+      "get": {"tags":["Product"],"operationId":"shopPersonalProducts","summary":"读取当前 Entity 的本人商品","description":"只返回 entity_id 等于当前 acting_entity 的商品，不接受 Entity ID 范围参数。","security":[{"bearerAuth":[]}],"parameters":[{"name":"keyword","in":"query","schema":{"type":"string"}},{"name":"is_active","in":"query","schema":{"type":"integer","enum":[0,1]}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"},"403":{"description":"缺少 shop.product.self.manage"}}},
+      "post": {"tags":["Product"],"operationId":"shopPersonalProductCreate","summary":"为当前 Entity 创建本人商品","description":"服务端强制使用当前 acting_entity 作为专属 Entity，不接受 entity_id。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PersonalProductCreateInput"}}}},"responses":{"200":{"description":"创建成功"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
+    },
+    "/personal/products/options": {"get":{"tags":["Product"],"operationId":"shopPersonalProductOptions","summary":"读取本人商品表单候选项","description":"仅返回当前团队有效 Entity、启用的权益包与卡活动，不返回客户集合。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/products/{id}": {
+      "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
+      "get":{"tags":["Product"],"operationId":"shopPersonalProductGet","summary":"读取本人商品详情","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"404":{"description":"商品不存在或不属于当前 Entity"}}},
+      "post":{"tags":["Product"],"operationId":"shopPersonalProductEdit","summary":"编辑或上下架本人商品","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PersonalProductWriteInput"}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"商品不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
+    },
+    "/personal/products/{id}/handlers": {"post":{"tags":["Product"],"operationId":"shopPersonalProductSetHandlers","summary":"设置本人商品接单人","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ExpectedEntityInput"},{"type":"object","required":["entity_ids"],"properties":{"entity_ids":{"type":"array","items":{"type":"integer"},"uniqueItems":true}}}]}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"商品不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
+    "/personal/products/{id}/redemption-fields": {
+      "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
+      "get":{"tags":["Product"],"operationId":"shopPersonalProductFields","summary":"读取本人商品核销字段","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"404":{"description":"商品不存在或不属于当前 Entity"}}},
+      "post":{"tags":["Product"],"operationId":"shopPersonalProductCreateField","summary":"创建本人商品核销字段","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ExpectedEntityInput"},{"type":"object","additionalProperties":true}]}}}},"responses":{"200":{"description":"创建成功"},"404":{"description":"商品不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
+    },
+    "/personal/products/{id}/redemption-fields/{field_id}": {"post":{"tags":["Product"],"operationId":"shopPersonalProductUpdateField","summary":"更新本人商品核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"field_id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ExpectedEntityInput"},{"type":"object","additionalProperties":true}]}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"商品或字段不存在"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
+    "/personal/products/{id}/redemption-fields/{field_id}/delete": {"post":{"tags":["Product"],"operationId":"shopPersonalProductDeleteField","summary":"删除或停用本人商品核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"field_id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ExpectedEntityInput"}}}},"responses":{"200":{"description":"已处理"},"404":{"description":"商品或字段不存在"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
     "/manage/options": {"get":{"tags":["Product"],"operationId":"shopManageOptions","summary":"商城管理候选项","responses":{"200":{"description":"成功"}}}},
     "/manage/services": {"get":{"tags":["Product"],"operationId":"shopManageServices","summary":"服务定义列表","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopCreateService","summary":"创建服务定义","responses":{"200":{"description":"成功"}}}},
     "/manage/services/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManageService","summary":"服务定义详情","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopUpdateService","summary":"更新服务定义","responses":{"200":{"description":"成功"}}}},
@@ -3674,6 +3727,99 @@
           },
           "403": {
             "description": "当前身份不是有效客户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customer/upload": {
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "summary": "为当前客户资料上传文件",
+        "description": "仅允许当前商家的有效 Customer 身份调用；受当前团队 file Ability、文件类型和容量限制约束，不要求后台 file.upload 角色权限。",
+        "operationId": "shopCustomerUpload",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "上传成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/FileUploadResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或客户身份已失效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "当前身份不是有效客户、客户已被封禁，或团队未启用文件能力",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "未选择文件或文件格式、大小不符合要求",
             "content": {
               "application/json": {
                 "schema": {

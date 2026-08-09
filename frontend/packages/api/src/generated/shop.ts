@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 商城工作台团队摘要、Permission 与 Ability 快照 */
+        /** 商城工作台团队摘要、Permission 与 File/Transaction Ability 快照 */
         get: operations["shopManageAccess"];
         put?: never;
         post?: never;
@@ -55,6 +55,141 @@ export interface paths {
         get: operations["shopPersonalOrder"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取当前 Entity 的本人商品
+         * @description 只返回 entity_id 等于当前 acting_entity 的商品，不接受 Entity ID 范围参数。
+         */
+        get: operations["shopPersonalProducts"];
+        put?: never;
+        /**
+         * 为当前 Entity 创建本人商品
+         * @description 服务端强制使用当前 acting_entity 作为专属 Entity，不接受 entity_id。
+         */
+        post: operations["shopPersonalProductCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/products/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取本人商品表单候选项
+         * @description 仅返回当前团队有效 Entity、启用的权益包与卡活动，不返回客户集合。
+         */
+        get: operations["shopPersonalProductOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** 读取本人商品详情 */
+        get: operations["shopPersonalProductGet"];
+        put?: never;
+        /** 编辑或上下架本人商品 */
+        post: operations["shopPersonalProductEdit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/products/{id}/handlers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 设置本人商品接单人 */
+        post: operations["shopPersonalProductSetHandlers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/products/{id}/redemption-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** 读取本人商品核销字段 */
+        get: operations["shopPersonalProductFields"];
+        put?: never;
+        /** 创建本人商品核销字段 */
+        post: operations["shopPersonalProductCreateField"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/products/{id}/redemption-fields/{field_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 更新本人商品核销字段 */
+        post: operations["shopPersonalProductUpdateField"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/products/{id}/redemption-fields/{field_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 删除或停用本人商品核销字段 */
+        post: operations["shopPersonalProductDeleteField"];
         delete?: never;
         options?: never;
         head?: never;
@@ -689,6 +824,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/customer/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 为当前客户资料上传文件
+         * @description 仅允许当前商家的有效 Customer 身份调用；受当前团队 file Ability、文件类型和容量限制约束，不要求后台 file.upload 角色权限。
+         */
+        post: operations["shopCustomerUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/customer/slug": {
         parameters: {
             query?: never;
@@ -906,7 +1061,34 @@ export interface components {
             identity: {
                 /** @enum {string} */
                 type: "team" | "teamMember" | "teamVirtual";
+                /** Format: int64 */
+                entity_id: number;
             };
+        };
+        PersonalProductWriteInput: {
+            /** Format: int64 */
+            expected_entity_id: number;
+            name?: string;
+            description?: string | null;
+            cover_image?: string;
+            introduction_markdown?: string | null;
+            price?: string;
+            cost?: string;
+            handler_cut?: string | null;
+            sender_cut?: string | null;
+            cs_cut?: string | null;
+            team_cut?: string | null;
+            /** @enum {integer} */
+            kind?: 1 | 2 | 3;
+            benefit_package_id?: number | null;
+            redemption_campaign_id?: number | null;
+            /** @enum {integer} */
+            is_active?: 0 | 1;
+        };
+        PersonalProductCreateInput: components["schemas"]["PersonalProductWriteInput"] & Record<string, never>;
+        ExpectedEntityInput: {
+            /** Format: int64 */
+            expected_entity_id: number;
         };
         AnyValue: (string | number | boolean | unknown[] | {
             [key: string]: unknown;
@@ -1633,6 +1815,335 @@ export interface operations {
             };
             /** @description 订单不存在或不属于当前个人范围 */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalProducts: {
+        parameters: {
+            query?: {
+                keyword?: string;
+                is_active?: 0 | 1;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 缺少 shop.product.self.manage */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalProductCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonalProductCreateInput"];
+            };
+        };
+        responses: {
+            /** @description 创建成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalProductOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalProductGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 商品不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalProductEdit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonalProductWriteInput"];
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 商品不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalProductSetHandlers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedEntityInput"] & {
+                    entity_ids: number[];
+                };
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 商品不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalProductFields: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 商品不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalProductCreateField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedEntityInput"] & {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description 创建成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 商品不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalProductUpdateField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                field_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedEntityInput"] & {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 商品或字段不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalProductDeleteField: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                field_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 已处理 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 商品或字段不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3529,6 +4040,65 @@ export interface operations {
             };
             /** @description 当前身份不是有效客户 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    shopCustomerUpload: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 上传成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["FileUploadResult"];
+                    };
+                };
+            };
+            /** @description 未登录或客户身份已失效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 当前身份不是有效客户、客户已被封禁，或团队未启用文件能力 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 未选择文件或文件格式、大小不符合要求 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1,21 +1,27 @@
 <script setup lang="ts">
-import { api, friendlyError } from '@lostsky/api/client'
+import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Plus, Trash2, Webhook } from '@lucide/vue'
-import { NInput, NSwitch } from 'naive-ui'
-import { computed, reactive, watch } from 'vue'
+import { NInput } from 'naive-ui'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 interface Integration { id: number; name: string; endpoint_url: string; events: string[]; is_active: number }
 interface VirtualEntity { slug: string; name: string; avatar: string | null; description: string | null; is_active: number; integrations?: Integration[] }
 const route = useRoute()
 const router = useRouter()
 const client = useQueryClient()
+const access = useTeamAccess()
+const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
+const avatarUploading = ref(false)
 const slug = computed(() => String(route.query.slug ?? ''))
 const editing = computed(() => Boolean(slug.value))
 const form = reactive({ slug: '', name: '', avatar: '', description: '', is_active: true })
@@ -60,11 +66,11 @@ function deleteVirtual() {
         <h3>基本信息</h3>
         <LsField label="永久 slug" for-id="virtual-slug" required><NInput id="virtual-slug" v-model:value="form.slug" :disabled="editing" maxlength="50" placeholder="sales-assistant" /></LsField>
         <LsField label="显示名称" for-id="virtual-name" required><NInput id="virtual-name" v-model:value="form.name" maxlength="50" placeholder="销售助手" /></LsField>
-        <LsField label="头像地址" for-id="virtual-avatar"><NInput id="virtual-avatar" v-model:value="form.avatar" maxlength="500" placeholder="https://…" /></LsField>
+        <LsField label="头像" for-id="virtual-avatar"><LsMediaUploadField id="virtual-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
         <LsField label="简介" for-id="virtual-description"><NInput id="virtual-description" v-model:value="form.description" type="textarea" maxlength="500" :autosize="{ minRows: 3, maxRows: 7 }" /></LsField>
-        <label v-if="editing" class="switch-row"><span><strong>启用实体</strong><small>停用后不能参与新操作。</small></span><NSwitch v-model:value="form.is_active" /></label>
+        <LsSwitchField v-if="editing" v-model="form.is_active" label="启用实体" description="停用后不能参与新操作。" />
         <LsInlineError v-if="save.isError.value || remove.isError.value" :message="friendlyError(save.error.value || remove.error.value)" />
-        <LsButton type="submit" :loading="save.isPending.value">保存实体</LsButton>
+        <LsButton type="submit" :loading="save.isPending.value" :disabled="avatarUploading">保存实体</LsButton>
       </div></LsPanel></form>
 
       <template v-if="editing">
@@ -92,8 +98,7 @@ function deleteVirtual() {
 <style scoped>
 .virtual-form-page{max-width:60rem;display:grid;gap:1rem}
 .virtual-fields{display:grid;gap:1rem}.virtual-fields h3,.virtual-fields p{margin:0}
-.switch-row{display:flex!important;align-items:center;justify-content:space-between;padding:.8rem;background:var(--cloud);border-radius:9px}
-.switch-row strong,.switch-row small{display:block}.switch-row small,header p{color:var(--muted-ink);font-size:.75rem;font-weight:400}
+header p{color:var(--muted-ink);font-size:.75rem;font-weight:400}
 .virtual-fields>.ls-button{width:fit-content}header{display:flex;align-items:center;justify-content:space-between;gap:1rem}header h3,header p{margin:0}
 .integration-list{display:grid;gap:.5rem}
 .integration-list article{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;align-items:center;gap:.65rem;padding:.65rem;background:var(--cloud);border-radius:9px}

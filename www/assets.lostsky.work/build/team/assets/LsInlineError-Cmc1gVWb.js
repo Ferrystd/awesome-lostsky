@@ -1,1 +1,0 @@
-import{d as s,c as r,t as o,o as n,_ as t}from"./index-Dqog-9fj.js";const a={class:"ls-inline-error",role:"alert"},c=s({__name:"LsInlineError",props:{message:{}},setup(e){return(_,l)=>(n(),r("p",a,o(e.message),1))}}),i=t(c,[["__scopeId","data-v-afe60983"]]);export{i as L};

@@ -286,6 +286,22 @@ export const api = {
   },
 }
 
+/**
+ * Upload one file through the common file service and return the persisted URL.
+ * Keeping this contract here prevents every form from interpreting upload
+ * responses differently.
+ */
+export async function uploadFileUrl(file: File): Promise<string> {
+  try {
+    const result = await api.upload<Record<string, unknown>>(file)
+    const url = String(result.url ?? result.path ?? '')
+    if (!url) throw new ApiError('上传结果缺少文件地址', { method: 'POST', path: '/upload', data: result })
+    return url
+  } catch (error) {
+    throw new Error(friendlyError(error), { cause: error })
+  }
+}
+
 export function friendlyError(error: unknown) {
   if (!(error instanceof ApiError)) return ERROR_MESSAGES.friendly.unknown
   const accessMessage = formatStructuredAccessError(error.data)

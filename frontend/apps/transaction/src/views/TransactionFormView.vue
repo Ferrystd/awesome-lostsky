@@ -2,9 +2,10 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
+import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
-import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
@@ -112,8 +113,7 @@ const save = useMutation({
     <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
     <form v-else class="transaction-form" @submit.prevent="save.mutate()">
       <LsInlineError v-if="optionsQuery.isError.value" message="参与方选项暂时无法读取；表单仍可查看，但相关字段已禁用。" />
-      <LsPanel><div class="form-panel">
-        <div class="section-title"><div><h3>参与方</h3><p>选择接单人、发单人、客服与客户；客户为空时不能使用预存款。</p></div></div>
+      <LsFormSection title="参与方" description="选择接单人、发单人、客服与客户；客户为空时不能使用预存款。" :heading-level="3">
         <p v-if="optionsQuery.data.value && !hasEntityOptions" class="hint">当前响应未提供主体选项，主体字段已禁用，其他金额与备注仍可填写。</p>
         <p v-if="optionsQuery.data.value && !hasCustomerOptions" class="hint">当前响应未提供客户选项，客户与预存款暂不可用。</p>
         <LsField label="接单人" for-id="transaction-handler" required><NSelect id="transaction-handler" v-model:value="form.handler_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable :disabled="editing || !hasEntityOptions" placeholder="选择接单人" /></LsField>
@@ -121,38 +121,35 @@ const save = useMutation({
         <LsField label="客服" for-id="transaction-cs"><NSelect id="transaction-cs" v-model:value="form.cs_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable :disabled="!hasEntityOptions" placeholder="可选" /></LsField>
         <LsField label="客户" for-id="transaction-customer"><NSelect id="transaction-customer" v-model:value="form.customer_id" :options="customerOptions(optionsQuery.data.value)" filterable clearable :disabled="!hasCustomerOptions" placeholder="可选；使用预存款时必填" /></LsField>
         <p v-if="selectedCustomer" class="balance-hint">当前客户余额 <strong class="ls-tabular">{{ money(balance) }}</strong></p>
-      </div></LsPanel>
-      <LsPanel><div class="form-panel">
-        <div class="section-title"><div><h3>金额与支付</h3><p>现款 + 预存款必须等于总价。</p></div><strong :class="balanced ? 'ok' : 'warn'">{{ balanced ? '金额平衡' : '金额未平衡' }}</strong></div>
+      </LsFormSection>
+      <LsFormSection title="金额与支付" description="现款 + 预存款必须等于总价。" :heading-level="3"><template #aside><strong :class="balanced ? 'ok' : 'warn'">{{ balanced ? '金额平衡' : '金额未平衡' }}</strong></template>
         <LsField label="总价" for-id="transaction-total" required><NInputNumber id="transaction-total" v-model:value="form.total_price" v-bind="amountProps" /></LsField>
         <LsField label="现款" for-id="transaction-cash"><NInputNumber id="transaction-cash" v-model:value="form.cash" v-bind="amountProps" /></LsField>
         <LsField label="预存款" for-id="transaction-prepaid"><NInputNumber id="transaction-prepaid" v-model:value="form.prepaid" v-bind="amountProps" :disabled="!hasCustomerOptions" /></LsField>
         <p class="equation ls-tabular">支付合计 {{ money(paymentTotal) }} / 总价 {{ money(form.total_price) }}</p>
-      </div></LsPanel>
-      <LsPanel><div class="form-panel">
-        <div class="section-title"><div><h3>成本与分配</h3><p>成本 + 四类分配必须等于总价。</p></div></div>
+      </LsFormSection>
+      <LsFormSection title="成本与分配" description="成本 + 四类分配必须等于总价。" :heading-level="3">
         <LsField label="成本" for-id="transaction-cost"><NInputNumber id="transaction-cost" v-model:value="form.cost" v-bind="amountProps" /></LsField>
         <LsField label="接单人分配" for-id="transaction-handler-cut"><NInputNumber id="transaction-handler-cut" v-model:value="form.handler_cut" v-bind="amountProps" /></LsField>
         <LsField label="发单人分配" for-id="transaction-sender-cut"><NInputNumber id="transaction-sender-cut" v-model:value="form.sender_cut" v-bind="amountProps" /></LsField>
         <LsField label="客服分配" for-id="transaction-cs-cut"><NInputNumber id="transaction-cs-cut" v-model:value="form.cs_cut" v-bind="amountProps" /></LsField>
         <LsField label="团队分配" for-id="transaction-team-cut"><NInputNumber id="transaction-team-cut" v-model:value="form.team_cut" v-bind="amountProps" /></LsField>
         <p class="equation ls-tabular">成本与分配合计 {{ money(allocationTotal) }} / 总价 {{ money(form.total_price) }}</p>
-      </div></LsPanel>
-      <LsPanel><div class="form-panel">
-        <div class="section-title"><div><h3>交易信息</h3><p>时间用于列表排序和统计归属。</p></div></div>
+      </LsFormSection>
+      <LsFormSection title="交易信息" description="时间用于列表排序和统计归属。" :heading-level="3">
         <LsField label="交易时间" for-id="transaction-time" required><NDatePicker id="transaction-time" v-model:value="form.trans_at" type="datetime" clearable /></LsField>
         <LsField label="备注" for-id="transaction-memo"><NInput id="transaction-memo" v-model:value="form.memo" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" maxlength="500" show-count placeholder="可记录订单来源、异常说明或结算信息" /></LsField>
-      </div></LsPanel>
+      </LsFormSection>
       <LsInlineError v-if="form.prepaid > balance && selectedCustomer" message="预存款金额超过当前客户余额。" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
-      <div class="form-actions">
+      <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
         <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="!canSubmit || form.prepaid > balance">保存流水</LsButton>
-      </div>
+      </LsFormActions>
     </form>
   </div>
 </template>
 
 <style scoped>
-.transaction-form-view,.transaction-form{display:grid;gap:1.25rem}.section-title>strong{font-size:.78rem}.ok{color:var(--success)}.warn{color:var(--warning)}.balance-hint,.equation{margin:0;padding:.7rem .8rem;border-radius:8px;background:var(--cloud);color:var(--muted-ink);font-size:.82rem}.balance-hint strong{color:var(--ink)}
+.transaction-form-view,.transaction-form{display:grid;gap:1.25rem}.ok,.warn{font-size:.78rem}.ok{color:var(--success)}.warn{color:var(--warning)}.balance-hint,.equation{margin:0;padding:.7rem .8rem;border-radius:8px;background:var(--cloud);color:var(--muted-ink);font-size:.82rem}.balance-hint strong{color:var(--ink)}
 </style>

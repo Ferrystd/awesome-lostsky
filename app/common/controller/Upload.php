@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace app\common\controller;
 
 use app\service\File;
-use app\service\PermissionDictionary as Permissions;
 use think\Request;
 
 class Upload
@@ -14,7 +13,6 @@ class Upload
         'Context'      => ['except' => []],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
         'TeamAuth'     => ['except' => []],
-        'Permission:' . Permissions::FILE_UPLOAD => ['except' => []],
     ];
 
     public function upload(Request $request)

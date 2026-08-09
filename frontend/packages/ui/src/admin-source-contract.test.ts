@@ -60,11 +60,90 @@ describe('后台源码设计契约', () => {
 
   it('公共组件和 Wiki 板块保持可定位', () => {
     const componentRules = readFileSync(join(repository, 'docs', 'design', 'admin', 'components.md'), 'utf8')
-    for (const name of ['LsButton', 'LsInlineError', 'LsPanel', 'LsStatusTag', 'LsPage', 'LsPageHeader', 'LsWorkspaceHeader', 'LsWorkspaceOverview', 'LsListToolbar', 'LsFormList', 'LsEntityIdentity', 'LsEntityCard', 'LsEntityInput', 'LsResponsiveActions', 'LsResponsiveDataTable', 'LsUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
+    for (const name of ['LsButton', 'LsInlineError', 'LsPanel', 'LsSectionHeader', 'LsFormSection', 'LsFormActions', 'LsDescriptionList', 'LsStatusTag', 'LsPage', 'LsPageHeader', 'LsWorkspaceHeader', 'LsWorkspaceOverview', 'LsListToolbar', 'LsFormList', 'LsEntityIdentity', 'LsEntityCard', 'LsEntityInput', 'LsResponsiveActions', 'LsResponsiveDataTable', 'LsUploadField', 'LsMediaUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsCheckboxGroupField', 'LsSwitchField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
       expect(componentRules, `${name} 缺少 Wiki 契约`).toContain(`\`${name}\``)
     }
-    for (const page of ['index.md', 'foundations.md', 'components.md', 'patterns.md', 'states-and-access.md', 'responsive-accessibility.md', 'applications.md', 'checklist.md']) {
+    for (const page of ['index.md', 'foundations.md', 'components.md', 'componentization.md', 'patterns.md', 'states-and-access.md', 'responsive-accessibility.md', 'applications.md', 'checklist.md']) {
       expect(() => readFileSync(join(repository, 'docs', 'design', 'admin', page), 'utf8')).not.toThrow()
+    }
+  })
+
+  it('Markdown 与媒体资料字段不能退化成普通输入框', () => {
+    const roots = ['team', 'shop']
+      .map(name => join(repository, 'frontend', 'apps', name, 'src'))
+    const pages = roots.flatMap(filesUnder).filter(path => path.endsWith('.vue'))
+    for (const path of pages) {
+      const source = readFileSync(path, 'utf8')
+      const file = relative(repository, path).replaceAll('\\', '/')
+      expect(source, `${file} 的 Markdown 字段退化成了 NInput`).not.toMatch(/<NInput\b[^>]*(?:introduction_markdown|markdown)[^>]*>/i)
+      expect(source, `${file} 的媒体字段只剩 URL 输入`).not.toMatch(/<NInput\b[^>]*(?:avatar|intro_image|intro_video|cover_image)[^>]*>/i)
+      for (const editor of source.matchAll(/<LsMarkdownEditor\b[^>]*>/gi)) {
+        expect(editor[0], `${file} 的 Markdown 编辑器缺少强制图片上传接口`).toContain(':upload-image=')
+      }
+    }
+
+    const editor = readFileSync(join(repository, 'frontend', 'packages', 'ui', 'src', 'components', 'LsMarkdownEditor.vue'), 'utf8')
+    expect(editor).toContain('uploadImage: MarkdownImageUpload')
+    expect(editor).toContain('[Crepe.Feature.ImageBlock]: true')
+    expect(editor).not.toContain('Boolean(props.uploadImage)')
+  })
+
+  it('后台组件化方法由规则入口共同触发', () => {
+    const references = [
+      'AGENTS.md',
+      'docs/design/admin/index.md',
+      'docs/development/frontend.md',
+      'docs/design/admin/checklist.md',
+      'docs/development/checklist.md',
+    ]
+    for (const file of references) {
+      const source = readFileSync(join(repository, ...file.split('/')), 'utf8')
+      expect(source, `${file} 未引用组件化方法`).toContain('componentization.md')
+    }
+    const method = readFileSync(join(repository, 'docs', 'design', 'admin', 'componentization.md'), 'utf8')
+    for (const phrase of ['同意图', '三次及以上', '出现两次且包含状态', '组件化盘点', '迁移全部同义用法', '删除旧 CSS']) {
+      expect(method).toContain(phrase)
+    }
+  })
+
+  it('后台业务页面不恢复已淘汰的结构类名', () => {
+    const roots = ['admin', 'team', 'transaction', 'shop']
+      .map(name => join(repository, 'frontend', 'apps', name, 'src'))
+    const forbidden = /\b(?:form-panel|form-actions|section-heading|panel-heading|section-title)\b/
+    for (const path of roots.flatMap(filesUnder).filter(path => /\.(?:vue|css)$/.test(path))) {
+      const file = relative(repository, path).replaceAll('\\', '/')
+      expect(readFileSync(path, 'utf8'), `${file} 恢复了旧结构`).not.toMatch(forbidden)
+    }
+  })
+
+  it('普通复选组统一复用 LsCheckboxGroupField', () => {
+    const allowed = [
+      'frontend/apps/admin/src/views/RoleFormView.vue',
+      'frontend/apps/team/src/views/JoinView.vue',
+      'frontend/packages/ui/src/components/LsCheckboxGroupField.vue',
+    ]
+    const roots = ['admin', 'team', 'transaction', 'shop']
+      .map(name => join(repository, 'frontend', 'apps', name, 'src'))
+      .concat(join(repository, 'frontend', 'packages', 'ui', 'src'))
+    const files = roots.flatMap(filesUnder)
+      .filter(path => path.endsWith('.vue') && readFileSync(path, 'utf8').includes('NCheckboxGroup'))
+      .map(path => relative(repository, path).replaceAll('\\', '/'))
+      .sort()
+    expect(files).toEqual(allowed.sort())
+  })
+
+  it('标准详情页面复用 LsDescriptionList', () => {
+    const required = [
+      'frontend/apps/admin/src/views/UserDetailView.vue',
+      'frontend/apps/admin/src/views/TeamDetailView.vue',
+      'frontend/apps/admin/src/views/SystemView.vue',
+      'frontend/apps/team/src/views/DetailView.vue',
+      'frontend/apps/team/src/views/JoinReviewDetailView.vue',
+      'frontend/apps/team/src/views/ResourceView.vue',
+      'frontend/apps/team/src/views/AbilitiesView.vue',
+    ]
+    for (const file of required) {
+      expect(readFileSync(join(repository, ...file.split('/')), 'utf8'), `${file} 未复用标准详情列表`).toContain('LsDescriptionList')
     }
   })
 
@@ -96,6 +175,26 @@ describe('后台源码设计契约', () => {
       .filter(path => readFileSync(path, 'utf8').includes("from 'vue-draggable-plus'"))
       .map(path => relative(repository, path).replaceAll('\\', '/'))
     expect(imports).toEqual(['frontend/packages/ui/src/components/LsFormList.vue'])
+  })
+
+  it('普通布尔设置统一复用 LsSwitchField', () => {
+    const allowed = [
+      'frontend/apps/shop/src/views/manage/ProductFieldsView.vue',
+      'frontend/apps/team/src/components/EntityFieldsCard.vue',
+      'frontend/apps/team/src/views/SettingsView.vue',
+    ]
+    const switchFiles = ['admin', 'shop', 'team']
+      .flatMap(name => filesUnder(join(repository, 'frontend', 'apps', name, 'src')))
+      .filter(path => path.endsWith('.vue') && readFileSync(path, 'utf8').includes('<NSwitch'))
+      .map(path => relative(repository, path).replaceAll('\\', '/'))
+      .sort()
+    expect(switchFiles).toEqual(allowed.sort())
+    const applicationSource = ['admin', 'shop', 'team']
+      .flatMap(name => filesUnder(join(repository, 'frontend', 'apps', name, 'src')))
+      .filter(path => path.endsWith('.vue'))
+      .map(path => readFileSync(path, 'utf8'))
+      .join('\n')
+    expect(applicationSource).not.toMatch(/class=["'][^"']*\bswitch-(?:row|field)\b/)
   })
 
   it('页面级空数据状态统一复用 LsEmptyState', () => {

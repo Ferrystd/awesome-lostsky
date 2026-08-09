@@ -210,6 +210,13 @@ $assert(
         && $has($middleware(\app\shop\controller\Customer::class), 'TeamAuth'),
     'customer self endpoints require a customer belonging to the team'
 );
+$personalProductMiddleware = $middleware(\app\shop\controller\PersonalProduct::class);
+$assert(
+    $has($personalProductMiddleware, $backendEntities)
+        && $has($personalProductMiddleware, 'TeamAuth')
+        && $has($personalProductMiddleware, 'Permission:' . \app\service\PermissionDictionary::SHOP_PRODUCT_SELF_MANAGE),
+    'personal products require a backend Entity, current team and self management permission'
+);
 $assert(
     $has($middleware(\app\transaction\controller\Transaction::class), $backendEntities)
         && $has($middleware(\app\transaction\controller\Transaction::class), 'TeamAuth'),

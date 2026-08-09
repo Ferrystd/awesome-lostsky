@@ -71,12 +71,10 @@
   border-color: var(--primary);
   background: var(--surface-subtle);
 }
-:root[data-shop-surface="manage"] .form-panel,
 :root[data-shop-surface="manage"] .manage-detail {
   display: grid;
   gap: 1rem;
 }
-:root[data-shop-surface="manage"] .form-panel > h2,
 :root[data-shop-surface="manage"] .manage-detail > h2 {
   margin: 0;
   font-size: 1rem;
@@ -95,13 +93,13 @@
   display: grid;
   gap: 0.85rem;
 }
-:root[data-shop-surface="manage"] .switch-row {
+:root[data-shop-surface="manage"] .boolean-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem 1rem;
 }
-:root[data-shop-surface="manage"] .switch-row label {
+:root[data-shop-surface="manage"] .boolean-controls label {
   min-height: 44px;
   display: flex;
   align-items: center;

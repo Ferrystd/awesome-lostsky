@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { api, friendlyError } from '@lostsky/api/client'
+import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { identityUrl } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
@@ -19,10 +20,9 @@ import EntityPermissionsCard, {
   type RoleAssignment,
   type RoleRecord,
 } from '../components/EntityPermissionsCard.vue'
-import MemberProfileFields from '../components/MemberProfileFields.vue'
-import { useMemberProfileUpload } from '../composables/useMemberProfileUpload'
+import EntityProfileFields from '../components/EntityProfileFields.vue'
 import { memberStatusCode, memberStatusLabel } from '../lib/memberStatus'
-import { fileUploadReason, useTeamAccess } from '../lib/teamAccess'
+import { resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 interface MemberCapabilities {
   member_edit: boolean
@@ -39,9 +39,9 @@ interface MemberCapabilities {
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
-const editor = ref<InstanceType<typeof MemberProfileFields> | null>(null)
+const editor = ref<InstanceType<typeof EntityProfileFields> | null>(null)
 const access = useTeamAccess()
-const uploadDisabledReason = computed(() => fileUploadReason(access.data.value))
+const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
 const id = computed(() => Number(route.query.id || 0))
 const editing = computed(() => id.value > 0)
 const form = reactive({
@@ -54,7 +54,7 @@ const form = reactive({
   introduction_markdown: '',
 })
 const profileModel = computed({ get: () => form, set: value => Object.assign(form, value) })
-const { uploading, uploadError, upload } = useMemberProfileUpload(form, uploadDisabledReason)
+const uploading = ref(false)
 const identityForm = reactive({ slug: '', search_override: 'inherit' as 'inherit' | '0' | '1' })
 const profileSnapshot = ref('')
 const fieldsDirty = ref(false)
@@ -265,22 +265,22 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
     <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
     <form v-else id="member-profile-form" class="member-form" @submit.prevent="save.mutate()">
       <LsPanel><section class="member-profile-section">
-        <div class="section-heading">
-          <div><h2>成员公开资料</h2><p>展示在当前团队中的名称、头像和介绍。</p></div>
-          <span v-if="editing">成员 #{{ id }}</span>
-        </div>
+        <LsSectionHeader title="成员公开资料" description="展示在当前团队中的名称、头像和介绍。"><template v-if="editing" #aside><span class="section-state">成员 #{{ id }}</span></template></LsSectionHeader>
 
         <template v-if="canEditProfile">
           <LsField v-if="!editing" label="用户 ID" for-id="member-user-id" required><NInputNumber id="member-user-id" v-model:value="form.user_id" :min="1" :precision="0" class="control" placeholder="输入 LostSky 用户 ID" /></LsField>
-          <MemberProfileFields
+          <EntityProfileFields
             ref="editor"
             v-model="profileModel"
+            v-model:uploading="uploading"
             :draft-key="`member-profile:${editing ? id : 'new'}`"
+            id-prefix="member-profile"
+            name-key="nickname"
+            name-label="团队昵称"
+            :upload-file="uploadFileUrl"
             :upload-disabled-reason="uploadDisabledReason"
-            :uploading="uploading"
             :editor-ready="!editing || detail.isSuccess.value"
-            @upload="upload"
-          ><template #error><LsInlineError v-if="uploadError" :message="uploadError" /></template></MemberProfileFields>
+          />
         </template>
         <dl v-else class="readonly-profile">
           <div><dt>团队昵称</dt><dd>{{ form.nickname || '未填写' }}</dd></div>
@@ -301,6 +301,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       mode="manager"
       :loading="fields.isPending.value || fieldValues.isPending.value"
       :saving="saveFields.isPending.value"
+      :upload-disabled-reason="uploadDisabledReason"
       :error="fields.error.value || fieldValues.error.value"
       :success="saveFields.isSuccess.value"
       @save="saveFields.mutate"
@@ -336,10 +337,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       aria-labelledby="member-management-title"
     >
       <section class="management">
-      <div class="section-heading">
-        <div><h2 id="member-management-title">管理操作</h2><p>成员状态、搜索范围与实体身份操作。</p></div>
-        <span>{{ memberStatusLabel(detail.data.value) }}</span>
-      </div>
+      <LsSectionHeader id="member-management-title" title="管理操作" description="成员状态、搜索范围与实体身份操作。"><template #aside><span class="section-state">{{ memberStatusLabel(detail.data.value) }}</span></template></LsSectionHeader>
       <form v-if="!detail.data.value.slug && capabilities.member_slug" class="inline-form" @submit.prevent="claim.mutate()">
         <LsField label="补全对象标识" for-id="member-slug"><NInput id="member-slug" v-model:value="identityForm.slug" placeholder="例如 zhang-san" autocapitalize="none" /></LsField>
         <LsButton type="submit" variant="secondary" :loading="claim.isPending.value" :disabled="!identityForm.slug.trim()">确认标识</LsButton>
@@ -395,10 +393,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
 .member-form-view, .member-form { min-width: 0; display: grid; gap: 22px; }
 .member-primary-actions { display: flex; gap: 10px; }
 .member-profile-section, .management { display: grid; gap: 18px; }
-.section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.section-heading p { max-width: 65ch; margin: 5px 0 0; color: var(--text-secondary); font-size: .82rem; line-height: 1.55; }
-.section-heading h2 { margin: 0; font-size: 1.05rem; }
-.section-heading > span { color: var(--text-tertiary); font-size: .8rem; }
+.section-state { color: var(--text-tertiary); font-size: .8rem; }
 .control { width: 100%; }
 .media-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .upload-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }

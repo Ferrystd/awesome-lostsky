@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { useMutation } from '@tanstack/vue-query'
 import { Check } from '@lucide/vue'
-import { NForm, NFormItem, NInput, NInputNumber, NSwitch } from 'naive-ui'
+import { NForm, NFormItem, NInput, NInputNumber } from 'naive-ui'
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -45,13 +46,7 @@ function submit() {
           <NInputNumber v-model:value="form.sort" aria-label="显示顺序" :min="0" :show-button="false" />
           <template #feedback>数字越小越靠前。</template>
         </NFormItem>
-        <NFormItem label="公开主页展示">
-          <NSwitch v-model:value="form.is_displayed" aria-label="在公开实体资料中展示此角色">
-            <template #checked>公开</template>
-            <template #unchecked>隐藏</template>
-          </NSwitch>
-          <template #feedback>开启后，获得此角色的公开成员或虚拟实体会展示角色名称和说明；角色权限不会公开。</template>
-        </NFormItem>
+        <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开实体资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟实体会展示角色名称和说明；角色权限不会公开。" checked-text="公开" unchecked-text="隐藏" />
         <p v-if="save.isError.value" class="error" role="alert">{{ friendlyError(save.error.value) }}</p>
         <footer>
           <LsButton variant="secondary" @click="router.push('/roles')">取消</LsButton>

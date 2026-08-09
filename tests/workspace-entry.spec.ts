@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { formatPermissionDenied } from '../frontend/packages/api/src/error-format'
 
 const identityToken = (type: string, id: number) =>
   `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type, id } })).toString('base64url')}.x`
@@ -101,7 +102,7 @@ function personalResult(type: 'team' | 'teamMember' | 'teamVirtual' = 'team') {
       { key: 'chat.conversation.create', label: '创建会话', group: '聊天' },
       { key: 'chat.group.manage', label: '管理群聊', group: '聊天' },
       { key: 'chat.message.moderate', label: '审核与撤回消息', group: '聊天' },
-      { key: 'identity.virtual.*.act', label: '代表全部虚拟实体执行操作', group: '实体委托' },
+      { key: 'chat.virtual.*.act', label: '代表全部虚拟实体参与聊天', group: '聊天' },
       { key: 'team.document.read', label: '查看文档', group: '内容' },
       { key: 'team.document.write', label: '维护文档', group: '内容' },
       { key: 'team.customer.read', label: '查看客户', group: '客户' },
@@ -200,10 +201,11 @@ test('Team personal access keeps expanded permission groups in one vertical colu
 
   const collapse = page.locator('.effective .n-collapse')
   const items = collapse.locator('.n-collapse-item')
-  await expect(items).toHaveCount(5)
+  await expect(items).toHaveCount(4)
   await expect(page.getByText('9 项', { exact: true })).toBeVisible()
   await items.first().locator('.n-collapse-item__header').click()
   await expect(page.locator('.effective code').filter({ hasText: /^chat\.conversation\.create$/ })).toHaveCount(2)
+  await expect(page.locator('.effective code').filter({ hasText: /^chat\.virtual\.\*\.act$/ })).toHaveCount(1)
 
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: width < 768 ? 812 : 900 })
@@ -258,7 +260,7 @@ test('team workspaces keep a readable overview and disabled Permission entries',
       team: { id: 1, slug: 'demo', name: '青空协作组' },
       permissions: [],
       abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: '记账' } },
-      identity: { type: 'team' },
+      identity: { type: 'team', entity_id: 1 },
     }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
@@ -266,7 +268,8 @@ test('team workspaces keep a readable overview and disabled Permission entries',
   await page.goto('http://demo.shop.lostsky.work:5179/manage')
   await expect(page.getByRole('heading', { name: '概览', level: 1 })).toBeVisible()
   await expect(page.locator('#shop-manage-main').getByText('青空协作组')).toBeVisible()
-  await expect(page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '商品' })).toContainText('缺少 shop.product.read Permission')
+  await expect(page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '商品' }))
+    .toContainText(formatPermissionDenied(['shop.product.read']))
   await expect(page.getByRole('link', { name: '进入个人工作台' })).toHaveAttribute('href', '/manage/personal')
   await expect(page.getByRole('button', { name: '个人工作台' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '团队工作台' })).toHaveCount(0)
@@ -276,11 +279,19 @@ test('team workspaces keep a readable overview and disabled Permission entries',
 
   await page.getByRole('link', { name: '进入个人工作台' }).click()
   await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/manage/personal')
-  await expect(page.locator('#shop-manage-main').getByRole('heading', { name: '只查看与你相关的业务订单', level: 2 })).toBeVisible()
+  await expect(page.locator('#shop-manage-main').getByRole('heading', { name: '管理自己的商品与业务订单', level: 2 })).toBeVisible()
   await expect(page.locator('.manage-sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
+  await expect(page.locator('.manage-nav-disabled').filter({ hasText: '我的商品' }))
+    .toHaveAttribute('title', formatPermissionDenied(['shop.product.self.manage']))
+  await expect(page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '我的商品' }))
+    .toContainText(formatPermissionDenied(['shop.product.self.manage']))
   await expect(page.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/manage')
   await expectOverviewLayout(page, 'Shop personal overview')
   expect(businessRequests).toBe(0)
+  await page.goto('http://demo.shop.lostsky.work:5179/manage/personal/products')
+  await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/manage/forbidden')
+  expect(businessRequests).toBe(0)
+  await page.goto('http://demo.shop.lostsky.work:5179/manage/personal')
   await page.getByRole('link', { name: /进入团队工作台/ }).click()
   await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/manage')
 })

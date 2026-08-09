@@ -666,6 +666,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../design/admin/componentization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台页面组件化方法
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../design/admin/patterns/" class="md-nav__link">
         
   
@@ -3085,14 +3112,14 @@
 <li>角色以 <code>role_key</code> 作为稳定标识；编辑时只允许修改名称、说明、排序和是否在 Display 展示。</li>
 <li><code>is_displayed</code> 默认关闭，只控制角色名称与说明是否出现在已公开实体资料中，不改变任何授权行为。</li>
 <li>删除角色时，服务层同步软删除角色权限和成员角色绑定。</li>
-<li>权限目录必返普通 <code>groups</code> 与高级 <code>advanced_items</code>；身份委托、指定实体与相关动态项统一为“实体委托”，后者由固定权限和当前团队动态权限的合法前缀生成，每项包含可保存父键、范围文案和当前覆盖叶子键。</li>
+<li>权限目录必返普通 <code>groups</code> 与高级 <code>advanced_items</code>；身份领取归入“实体委托”，虚拟实体维护归入“实体管理”，<code>chat.virtual.&lt;slug&gt;.act</code> 归入“聊天”。高级目录由固定权限和当前团队动态权限的合法前缀生成，每项包含可保存父键、范围文案和当前覆盖叶子键。</li>
 <li>保存角色权限使用完整的 <code>permission_keys</code> 集合，空数组表示清空；服务端保留所有不同且合法的父子、通配符和指定 slug 键，官方前端在提交前清理覆盖冗余。目录外静态 key、未知前缀和不属于当前团队的动态实体 key 仍会被拒绝。</li>
 <li>保存成员角色使用完整的 <code>role_ids</code> 集合，空数组表示清空。</li>
 <li>保存实体角色以全局 slug 指定来源主体。角色始终属于当前目标团队，来源实体可以属于任意团队，也无需公开可搜索。</li>
 <li>成员拥有多个角色时，业务权限取并集；实体角色关联响应会携带每个角色的权限，供本人资料页和管理员资料页展示有效权限。</li>
 <li>角色权限摘要直接读取当前已分配角色的有效权限记录，不在展示时合并重复键或折叠父子键；进入查看页面不会改写数据，只有官方角色编辑器提交时生成最小权限集合。</li>
 </ul>
-<p>实体委托使用 <code>identity.team.assume</code>，以及 <code>identity.member|customer|virtual.*.assume</code>、对应精确 slug 权限和指定虚拟实体管理权限。通配只覆盖当前授权团队；精确目标保存时必须是当前团队的有效实体。委托成功后，普通业务请求仍必须以目标实体通过 <code>TeamBelongs</code>，外部来源实体不能直接跨过团队归属边界。详细会话链与失效规则见<a href="../../architecture/entity-authorization/">《Entity 身份与跨团队委托》</a>。</p>
+<p>实体委托使用 <code>identity.team.assume</code>，以及 <code>identity.member|customer|virtual.*.assume</code> 和对应精确 slug 权限。通配只覆盖当前授权团队；精确目标保存时必须是当前团队的有效实体。委托成功后，普通业务请求仍必须以目标实体通过 <code>TeamBelongs</code>，外部来源实体不能直接跨过团队归属边界。仅限 Chat 的虚拟实体代操作使用 <code>chat.virtual.*.act</code> 或精确 slug 权限，不创建身份会话。详细会话链与失效规则见<a href="../../architecture/entity-authorization/">《Entity 身份与跨团队委托》</a>。</p>
 <p>普通业务接口通过 <code>Permission:{permission_key}</code> 检查角色权限。角色已授予的父键同样可满足子键，例如 <code>team</code> 或 <code>team.ability</code> 可满足 <code>team.ability.redeem</code>，并自动覆盖未来新增的同前缀权限，但不覆盖兄弟键。动态参数使用 <code>&lt;slug&gt;</code> 形式，例如 <code>team.entity.virtual.&lt;slug&gt;.manage</code>。一个 <code>Permission</code> 可以用逗号接收多个权限参数，控制器字符串简写为 <code>Permission:key-a,key-b</code>；数组写法 <code>['Permission', ['key-a', 'key-b']]</code> 具有相同语义，多个参数按 OR 处理。Team 前端访问快照保留实际父键，并使用同一分段前缀与 <code>*</code> 动态段规则判断导航和动作。</p>
 <p>Team 共享站内通知读取要求 <code>team.notice.read</code>；通知接口通过 <code>scope=team|entity</code> 显式选择 Team 共享站内通知或当前 Entity 收件箱，省略 scope 时保持旧版身份默认行为。<code>GET /notice/capabilities</code> 为前端返回共享站内通知查看、通知发送和默认收件箱能力。</p>
 <p>发送通知要求 <code>team.notice.send</code>。该权限本身定义本通知模型中的上级资格，具备权限的任意当前 Entity 可以向同 Team 任意 Entity 发送，不使用角色排序建立层级。通知始终以当前 Team 名义显示，集中业务审计保留实际 acting Entity 与认证用户。通知是单向通道，不支持回复、抄送、会话、跨 Team 投递或 LostSky 直发 Entity。</p>

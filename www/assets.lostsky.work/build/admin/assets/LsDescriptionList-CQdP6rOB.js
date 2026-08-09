@@ -1,0 +1,1 @@
+import{m as s,o as t,a as o,x as c}from"./index-Dt3fUKCm.js";const n={},r={class:"ls-description-list"};function a(e,d){return t(),o("dl",r,[c(e.$slots,"default",{},void 0,!0)])}const _=s(n,[["render",a],["__scopeId","data-v-d0d81b22"]]);export{_ as L};

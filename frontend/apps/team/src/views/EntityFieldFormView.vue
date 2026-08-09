@@ -2,11 +2,13 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NInput, NInputNumber, NSelect, NSwitch } from 'naive-ui'
+import { NInput, NInputNumber, NSelect } from 'naive-ui'
 import type { SelectOption, SelectRenderLabel } from 'naive-ui'
 import { computed, h, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import EntitySelectOption from '../components/EntitySelectOption.vue'
 
@@ -144,10 +146,7 @@ function deleteField() {
         <label>输入控件<NSelect v-model:value="form.input_type" :options="inputOptions" /></label>
         <label v-if="['select','multi_select'].includes(form.value_type)">选项<NInput v-model:value="form.optionsText" type="textarea" :autosize="{ minRows: 3, maxRows: 8 }" placeholder="每行一个选项" /></label>
         <section class="access-policy" aria-labelledby="field-access-title">
-          <div class="section-heading">
-            <h2 id="field-access-title">访问与维护规则</h2>
-            <p>可见范围不会授予页面访问权；能看见字段值的实体也不会因此自动获得编辑权。</p>
-          </div>
+          <LsSectionHeader id="field-access-title" title="访问与维护规则" description="可见范围不会授予页面访问权；能看见字段值的实体也不会因此自动获得编辑权。" />
           <label>值维护范围<NSelect v-model:value="form.manager_scope" :options="managerScopeOptions" /></label>
           <label>值可见范围<NSelect v-model:value="form.visibility" :options="visibilityOptions" /></label>
           <label v-if="form.visibility === 6">
@@ -168,15 +167,9 @@ function deleteField() {
             <small>所选对象可在其原本有权打开的所有对象资料中查看该字段。</small>
           </label>
           <p v-if="form.visibility === 5" class="policy-note">公开字段只有在所属实体有效且已开启公开主页展示时，才会向未登录访客显示。</p>
-          <div class="switch-row">
-            <div><strong>允许修改字段值</strong><small>关闭后，字段管理员和对象本人都只能查看，不能手动修改。</small></div>
-            <NSwitch v-model:value="form.is_editable" aria-label="允许修改字段值" />
-          </div>
+          <LsSwitchField v-model="form.is_editable" label="允许修改字段值" description="关闭后，字段管理员和对象本人都只能查看，不能手动修改。" />
         </section>
-        <div class="switch-row">
-          <div><strong>必填</strong><small>在允许编辑该字段的资料保存时校验不能为空。</small></div>
-          <NSwitch v-model:value="form.is_required" aria-label="必填" />
-        </div>
+        <LsSwitchField v-model="form.is_required" label="必填" description="在允许编辑该字段的资料保存时校验不能为空。" />
         <label>排序<NInputNumber v-model:value="form.sort" :precision="0" /></label>
         <p v-if="save.isError.value || remove.isError.value" class="error" role="alert">{{ friendlyError(save.error.value || remove.error.value) }}</p>
         <div class="actions"><LsButton type="submit" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton></div>
@@ -185,5 +178,5 @@ function deleteField() {
 </template>
 
 <style scoped>
-.field-form-page{display:grid;gap:1rem}form{max-width:42rem;display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}form>label,.access-policy>label{display:grid;gap:.4rem;font-size:.82rem;font-weight:650}.access-policy{display:grid;gap:1rem;padding:1.25rem 0 0;border-top:1px solid var(--line)}.section-heading h2,.section-heading p{margin:0}.section-heading h2{font-size:1rem}.section-heading p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.8rem;line-height:1.55}.access-policy label small,.switch-row small{color:var(--muted-ink);font-size:.76rem;font-weight:500;line-height:1.5}.policy-note{margin:0;padding:.75rem;color:var(--ink);background:var(--cloud);border-radius:9px;font-size:.8rem;line-height:1.55}.switch-row{min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem;background:var(--cloud);border-radius:9px}.switch-row>div{display:grid;gap:.2rem}.switch-row strong{font-size:.82rem}.actions{display:flex;gap:.6rem}.error{margin:0;color:var(--danger)}@media(max-width:520px){.actions{display:grid}.actions>*{width:100%}.switch-row{align-items:flex-start}}
+.field-form-page{display:grid;gap:1rem}form{max-width:42rem;display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}form>label,.access-policy>label{display:grid;gap:.4rem;font-size:.82rem;font-weight:650}.access-policy{display:grid;gap:1rem;padding:1.25rem 0 0;border-top:1px solid var(--line)}.access-policy label small{color:var(--muted-ink);font-size:.76rem;font-weight:500;line-height:1.5}.policy-note{margin:0;padding:.75rem;color:var(--ink);background:var(--cloud);border-radius:9px;font-size:.8rem;line-height:1.55}.actions{display:flex;gap:.6rem}.error{margin:0;color:var(--danger)}@media(max-width:520px){.actions{display:grid}.actions>*{width:100%}}
 </style>

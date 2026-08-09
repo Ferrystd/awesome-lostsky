@@ -22,8 +22,14 @@ final class Manage
         $permissions = app(PermissionGate::class)->effective($request->team_id, $request->acting_entity);
         return success([
             'team' => app(\app\service\IdentitySession::class)->teamSummary($request->team_id),
-            'identity' => ['type' => $request->acting_entity['type']],
-            'abilities' => ['transaction' => app(\app\service\TeamAccess::class)->ability($request->team_id, 'transaction', '记账')],
+            'identity' => [
+                'type' => $request->acting_entity['type'],
+                'entity_id' => $request->entity_id,
+            ],
+            'abilities' => [
+                'file' => app(\app\service\TeamAccess::class)->ability($request->team_id, 'file', '文件上传'),
+                'transaction' => app(\app\service\TeamAccess::class)->ability($request->team_id, 'transaction', '记账'),
+            ],
             'permissions' => array_values($permissions),
         ]);
     }

@@ -1144,8 +1144,8 @@
 <ul>
 <li><code>identity.member.*.assume</code>：可领取当前授权团队任意有效成员；</li>
 <li><code>identity.member.alice.assume</code>：只可领取当前团队的 <code>@alice</code>；</li>
-<li><code>identity.virtual.*.act</code>：可代表当前团队全部虚拟实体执行受支持操作；</li>
-<li><code>identity.virtual.support-bot.act</code>：只可代表 <code>@support-bot</code> 执行受支持操作。</li>
+<li><code>chat.virtual.*.act</code>：可代表当前团队全部虚拟实体参与聊天；</li>
+<li><code>chat.virtual.support-bot.act</code>：只可在 Chat 中代表 <code>@support-bot</code>。</li>
 </ul>
 <p>通配权限只覆盖授予它的团队，不会扩散到其他团队。所有固定键和动态模式见<a href="../permissions/">权限目录</a>。</p>
 <h2 id="_2">全量读取不是页面门票<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
@@ -1201,7 +1201,7 @@
 <tbody>
 <tr>
 <td>内容维护</td>
-<td><code>team.entity.profile.manage</code>、<code>team.document.read</code>、<code>file.read</code>、<code>file.upload</code></td>
+<td><code>team.entity.profile.manage</code>、<code>team.document.read</code>、<code>file.read</code>；如需直接维护团队文件库，再授予 <code>file.upload</code></td>
 </tr>
 <tr>
 <td>成员管理员</td>
@@ -1217,7 +1217,7 @@
 </tr>
 <tr>
 <td>Chat 运营</td>
-<td><code>chat.conversation.create</code>、<code>chat.group.manage</code>，以及所需虚拟实体的 operate 权限</td>
+<td><code>chat.conversation.create</code>、<code>chat.group.manage</code>，以及所需虚拟实体的 <code>chat.virtual.&lt;slug&gt;.act</code> 权限</td>
 </tr>
 </tbody>
 </table>

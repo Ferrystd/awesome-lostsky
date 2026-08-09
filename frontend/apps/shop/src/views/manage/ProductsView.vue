@@ -12,8 +12,8 @@ import { Plus } from "@lucide/vue";
 import { NPagination, NSelect } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { computed, h, reactive } from "vue";
-import { RouterLink } from "vue-router";
-import { canManage, formatMoney, manageApi } from "../../lib";
+import { RouterLink, useRoute } from "vue-router";
+import { canManage, formatMoney, productManagement } from "../../lib";
 type Row = {
   id: number;
   name: string;
@@ -22,6 +22,10 @@ type Row = {
   is_active: number;
   handlers?: unknown[];
 };
+const route = useRoute();
+const scope = computed(() => route.meta.workspace === "personal" ? "personal" : "team");
+const management = computed(() => productManagement(scope.value));
+const personal = computed(() => management.value.personal);
 const filters = reactive({
   keyword: "",
   is_active: null as number | null,
@@ -34,8 +38,8 @@ const params = computed(() => ({
   is_active: filters.is_active ?? undefined,
 }));
 const query = useQuery({
-  queryKey: computed(() => ["manage-products", params.value]),
-  queryFn: () => manageApi.products(params.value),
+  queryKey: computed(() => ["manage-products", scope.value, params.value]),
+  queryFn: () => management.value.products(params.value),
 });
 const rows = computed(() => (query.data.value?.list ?? []) as Row[]);
 const pages = computed(() =>
@@ -68,7 +72,7 @@ const columns: DataTableColumns<Row> = [
     render: (r) =>
       h(
         RouterLink,
-        { to: `/manage/products/${r.id}` },
+        { to: `${management.value.routeBase}/${r.id}` },
         { default: () => "编辑" },
       ),
   },
@@ -77,14 +81,14 @@ const columns: DataTableColumns<Row> = [
 <template>
   <div class="manage-page">
     <LsPageHeader
-      title="商品"
-      description="维护公开售卖内容、价格、履约方式与接单配置。"
+      :title="personal ? '我的商品' : '商品'"
+      :description="personal ? '只管理专属 Entity 为当前身份的商品、履约方式与接单配置。' : '维护公开售卖内容、价格、履约方式与接单配置。'"
       ><template #actions>
         <RouterLink
-          v-if="canManage('shop.product.write')"
+          v-if="canManage(management.permission)"
           v-slot="{ navigate }"
           custom
-          to="/manage/products/new"
+          :to="`${management.routeBase}/new`"
         >
           <LsButton @click="navigate">
             <template #icon><Plus :size="18" /></template>新建商品
@@ -118,8 +122,8 @@ const columns: DataTableColumns<Row> = [
       :description="friendlyError(query.error.value)"
     /><LsEmptyState
       v-else-if="!rows.length"
-      title="还没有匹配的商品"
-      description="新建商品后可在这里配置销售与履约方式。"
+      :title="personal ? '还没有匹配的本人商品' : '还没有匹配的商品'"
+      :description="personal ? '新建商品后会自动归属当前 Entity，并可在这里配置销售与履约方式。' : '新建商品后可在这里配置销售与履约方式。'"
     /><LsResponsiveDataTable
       v-else
       :columns="columns"
@@ -141,7 +145,7 @@ const columns: DataTableColumns<Row> = [
           <dd>{{ row.handlers?.length ?? 0 }} 位</dd>
           <dt>操作</dt>
           <dd>
-            <RouterLink :to="`/manage/products/${row.id}`">编辑</RouterLink>
+            <RouterLink :to="`${management.routeBase}/${row.id}`">编辑</RouterLink>
           </dd>
         </dl></template
       ></LsResponsiveDataTable

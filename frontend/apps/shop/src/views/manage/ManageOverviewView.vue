@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { friendlyError } from '@lostsky/api/client'
+import { formatPermissionDenied } from '@lostsky/api/error-format'
 import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
 import { Boxes, KeyRound, PackageOpen, ReceiptText, ShoppingBag, UserRound } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
@@ -9,8 +11,8 @@ const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadM
 
 function permissionReason(permission: string) {
   if (access.isPending.value) return `正在核对 ${permission} Permission`
-  if (access.isError.value) return `暂时无法核对 ${permission} Permission`
-  return hasManagePermission(access.data.value?.permissions ?? [], permission) ? '' : `缺少 ${permission} Permission`
+  if (access.isError.value) return friendlyError(access.error.value)
+  return hasManagePermission(access.data.value?.permissions ?? [], permission) ? '' : formatPermissionDenied([permission])
 }
 
 const entries = computed(() => [

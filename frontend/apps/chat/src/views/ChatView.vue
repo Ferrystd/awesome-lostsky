@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { api, auth, friendlyError } from '@lostsky/api/client'
+import { formatAbilityDenied } from '@lostsky/api/error-format'
 import { chatWorkspaceUrl, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -51,7 +52,7 @@ const appOptions = computed<AppOption[]>(() => {
   return [
     { key: 'team', label: '团队', href: teamWorkspaceUrl('/') },
     { key: 'shop', label: '商品', href: shopWorkspaceUrl('/manage') },
-    { key: 'transaction', label: '记账', href: transactionWorkspaceUrl('/'), disabled: !transaction?.enabled, reason: transaction ? '当前团队未启用 transaction Ability' : '正在核对 transaction Ability' },
+    { key: 'transaction', label: '记账', href: transactionWorkspaceUrl('/'), disabled: !transaction?.enabled, reason: transaction ? formatAbilityDenied('transaction', transaction.label ?? '记账') : '正在核对 transaction Ability' },
     { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
   ]
 })

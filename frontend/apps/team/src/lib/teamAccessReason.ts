@@ -40,9 +40,15 @@ export function settingReason(
 }
 
 export function fileUploadReason(snapshot: AccessSnapshotLike | undefined) {
+  const resourceReason = resourceUploadReason(snapshot)
+  if (resourceReason) return resourceReason
+  if (snapshot?.permissions && !hasPermission(snapshot, 'file.upload')) return permissionReason('file.upload')
+  return ''
+}
+
+export function resourceUploadReason(snapshot: AccessSnapshotLike | undefined) {
   if (!snapshot) return ''
   const ability = snapshot.abilities?.file
   if (ability && !ability.enabled) return abilityReason('file', ability.label ?? '文件上传')
-  if (snapshot.permissions && !hasPermission(snapshot, 'file.upload')) return permissionReason('file.upload')
   return ''
 }

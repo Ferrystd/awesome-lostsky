@@ -31,6 +31,7 @@
 
 - [基础令牌](foundations.md)
 - [公共组件](components.md)
+- [页面组件化方法](componentization.md)
 - [页面模式](patterns.md)
 - [状态、权限与能力](states-and-access.md)
 - [响应式与无障碍](responsive-accessibility.md)

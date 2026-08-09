@@ -5,6 +5,7 @@ import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Pencil, Trash2 } from '@lucide/vue'
 import { computed } from 'vue'
@@ -57,8 +58,8 @@ function confirmDelete() {
         <div><span>客户</span><strong>{{ customerName(query.data.value.customer, query.data.value.customer_id) }}</strong></div>
       </div></LsPanel>
       <section class="breakdown">
-        <LsPanel><article><div class="section-title"><div><h3>支付构成</h3><p>客户本次实际支付方式</p></div></div><dl><div><dt>现款</dt><dd>{{ money(query.data.value.cash) }}</dd></div><div><dt>预存款</dt><dd>{{ money(query.data.value.prepaid) }}</dd></div><div class="total"><dt>合计</dt><dd>{{ money(Number(query.data.value.cash) + Number(query.data.value.prepaid)) }}</dd></div></dl></article></LsPanel>
-        <LsPanel><article><div class="section-title"><div><h3>成本与分配</h3><p>本笔流水的归属结果</p></div></div><dl><div><dt>成本</dt><dd>{{ money(query.data.value.cost) }}</dd></div><div><dt>接单人</dt><dd>{{ money(query.data.value.handler_cut) }}</dd></div><div><dt>发单人</dt><dd>{{ money(query.data.value.sender_cut) }}</dd></div><div><dt>客服</dt><dd>{{ money(query.data.value.cs_cut) }}</dd></div><div><dt>团队</dt><dd>{{ money(query.data.value.team_cut) }}</dd></div></dl></article></LsPanel>
+        <LsPanel><article><LsSectionHeader title="支付构成" description="客户本次实际支付方式" :heading-level="3" /><dl><div><dt>现款</dt><dd>{{ money(query.data.value.cash) }}</dd></div><div><dt>预存款</dt><dd>{{ money(query.data.value.prepaid) }}</dd></div><div class="total"><dt>合计</dt><dd>{{ money(Number(query.data.value.cash) + Number(query.data.value.prepaid)) }}</dd></div></dl></article></LsPanel>
+        <LsPanel><article><LsSectionHeader title="成本与分配" description="本笔流水的归属结果" :heading-level="3" /><dl><div><dt>成本</dt><dd>{{ money(query.data.value.cost) }}</dd></div><div><dt>接单人</dt><dd>{{ money(query.data.value.handler_cut) }}</dd></div><div><dt>发单人</dt><dd>{{ money(query.data.value.sender_cut) }}</dd></div><div><dt>客服</dt><dd>{{ money(query.data.value.cs_cut) }}</dd></div><div><dt>团队</dt><dd>{{ money(query.data.value.team_cut) }}</dd></div></dl></article></LsPanel>
       </section>
     </template>
   </div>

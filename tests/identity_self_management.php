@@ -181,10 +181,10 @@ try {
         'stale write changes neither previous nor current entity'
     );
 
-    $assertStatus(
-        fn () => $service->upload($virtualActing, (int) $virtualEntity->id, new \think\file\UploadedFile(__FILE__, 'test.php', 'text/plain', null, true)),
-        403,
-        'team personal upload keeps file.upload permission enforcement'
+    $uploadCapability = $service->current($virtualActing)['capabilities']['upload'] ?? [];
+    $assert(
+        !str_contains((string) ($uploadCapability['reason'] ?? ''), 'file.upload'),
+        'team personal resource upload no longer requires file.upload permission'
     );
 } finally {
     $db->rollback();

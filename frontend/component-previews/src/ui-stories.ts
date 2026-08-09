@@ -3,17 +3,22 @@ import { NInput, NSelect, NTag } from 'naive-ui'
 import { House, Pencil, ReceiptText, Save, ShoppingBag, Trash2, UserRound } from '@lucide/vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsCheckboxGroupField from '@lostsky/ui/components/LsCheckboxGroupField.vue'
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityCard from '@lostsky/ui/components/LsEntityCard.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormList from '@lostsky/ui/components/LsFormList.vue'
+import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
+import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import LsPage from '@lostsky/ui/components/LsPage.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
@@ -21,7 +26,9 @@ import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import LsRouteErrorBoundary from '@lostsky/ui/components/LsRouteErrorBoundary.vue'
 import LsSearchInput from '@lostsky/ui/components/LsSearchInput.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
@@ -70,6 +77,39 @@ const button = story('LsButton', allInteractive, state => stage(h(LsButton, {
   disabled: state === 'disabled',
   loading: state === 'loading',
 }, { icon: () => h(Save, { size: 17 }), default: () => state === 'error' ? '删除记录' : '保存修改' })))
+
+const checkboxGroupField = story('LsCheckboxGroupField', ['default', 'hover', 'focus', 'active', 'disabled', 'error', 'mobile'], state => stage(h(LsCheckboxGroupField, {
+  modelValue: state === 'active' ? [1, 2] : [1],
+  label: '可分配角色',
+  hint: state === 'default' ? '保存后立即应用到当前实体。' : undefined,
+  error: state === 'error' ? '请至少选择一个角色。' : undefined,
+  disabled: state === 'disabled',
+  options: [
+    { value: 1, label: '商品经理', meta: 'shop-manager', description: '维护商品、接单人与核销字段。' },
+    { value: 2, label: '订单协作者', meta: 'order-helper', description: '查看并推进团队订单。', disabled: state === 'disabled', disabledReason: state === 'disabled' ? '当前身份不能分配此角色' : undefined },
+  ],
+})), { loading: '复选组字段不负责异步加载。' })
+
+const descriptionList = story('LsDescriptionList', passive, () => stage(h(LsDescriptionList, null, {
+  default: () => [h('dt', '所属团队'), h('dd', '青空协作组'), h('dt', '说明'), h('dd', '这是一段用于验证长内容自然换行且不会横向溢出的详情说明。')],
+})))
+
+const formActions = story('LsFormActions', interactive, state => stage(h(LsFormActions, null, {
+  default: () => [
+    h(LsButton, { variant: 'secondary', disabled: state === 'disabled' }, { default: () => '取消' }),
+    h(LsButton, { disabled: state === 'disabled' }, { default: () => '保存修改' }),
+  ],
+})), { loading: '动作容器不管理按钮加载状态。', error: '动作容器不负责错误状态。' })
+
+const sectionHeader = story('LsSectionHeader', ['default', 'hover', 'focus', 'active', 'disabled', 'mobile'], state => stage(h(LsSectionHeader, {
+  eyebrow: 'PRODUCT', title: '基本信息', description: '维护商品名称、价格与公开说明。', headingLevel: 3,
+}, { aside: () => h(LsButton, { variant: 'secondary', disabled: state === 'disabled' }, { default: () => '查看说明' }) })), { loading: '区块标题不负责加载状态。', error: '区块错误由内容区域表达。' })
+
+const formSection = story('LsFormSection', ['default', 'hover', 'focus', 'active', 'disabled', 'mobile'], state => stage(h(LsFormSection, {
+  title: '基本信息', description: '字段保持单列，保存逻辑仍由页面表单负责。',
+}, {
+  default: () => h(LsField, { label: '商品名称', forId: `form-section-${state}` }, { default: () => h(NInput, { id: `form-section-${state}`, value: '会员服务', disabled: state === 'disabled' }) }),
+})), { loading: '表单区块不负责加载状态。', error: '校验错误由内部字段表达。' })
 
 const asyncState = story('LsAsyncState', ['default', 'loading', 'error', 'mobile'], state => stage(h(LsAsyncState, state === 'error'
   ? { state: 'error', title: '暂时无法读取', description: '网络连接失败，请稍后重新进入。' }
@@ -130,8 +170,19 @@ const markdownEditor = story('LsMarkdownEditor', ['default', 'hover', 'focus', '
   draftKey: '',
   searchEntities: searchMarkdownEntities,
   resolveEntities,
+  uploadImage: async () => '//assets.lostsky.work/markdown-image.png',
   uploadDisabledReason: state === 'disabled' ? '当前团队未开通文件上传' : '',
 }), 'story-stage--editor'), { loading: '编辑器没有整体加载状态。', error: '保存错误由所属表单表达。' })
+
+const mediaUploadField = story('LsMediaUploadField', ['default', 'hover', 'focus', 'active', 'disabled', 'error', 'mobile'], state => stage(h(LsMediaUploadField, {
+  modelValue: state === 'error' ? '' : '//assets.lostsky.work/avatar.png',
+  upload: async () => '//assets.lostsky.work/avatar.png',
+  accept: 'image/*',
+  buttonLabel: '上传头像',
+  disabled: state === 'disabled' || state === 'error',
+  disabledReason: state === 'error' ? '当前团队未开通文件上传' : '',
+  showReason: state === 'error',
+})), { loading: '加载状态由选择真实文件后自动表达。' })
 
 const markdownRenderer = story('LsMarkdownRenderer', ['default', 'hover', 'focus', 'active', 'mobile'], () => stage(h(LsMarkdownRenderer, { content: markdown, resolveEntities, chatEnabled: true }), 'story-stage--markdown'), { disabled: '只读渲染器没有禁用状态。', loading: '实体解析在内容内渐进完成。', error: '无效 Markdown 会安全降级为可读内容。' })
 
@@ -178,6 +229,17 @@ const statusTag = story('LsStatusTag', ['default', 'active', 'error', 'mobile'],
   ? [h(LsStatusTag, { label: '待处理' }), h(LsStatusTag, { label: '正常', type: 'success' }), h(LsStatusTag, { label: '需关注', type: 'warning' })]
   : [h(LsStatusTag, { label: state === 'error' ? '已失败' : '处理中', type: state === 'error' ? 'error' : 'info' })])))
 
+const switchField = story('LsSwitchField', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'mobile'], state => stage(h(LsSwitchField, {
+  modelValue: state === 'active',
+  label: '上架状态',
+  description: '关闭后商品不会在商城展示，历史订单不受影响。',
+  disabled: state === 'disabled',
+  disabledReason: state === 'disabled' ? '当前身份缺少商品管理权限' : '',
+  loading: state === 'loading',
+  checkedText: '上架',
+  uncheckedText: '下架',
+})), { error: '布尔设置的校验错误由所属表单区域表达。' })
+
 const uploadField = story('LsUploadField', allInteractive, state => stage(h(LsUploadField, {
   modelValue: state === 'error' ? '' : '//assets.lostsky.work/avatar.png',
   disabled: state === 'disabled' || state === 'error',
@@ -214,11 +276,12 @@ const workspaceOverview = story('LsWorkspaceOverview', allInteractive, state => 
 }), state === 'mobile' ? 'story-stage--mobile' : ''))
 
 export const uiStories: Record<string, StoryDefinition> = {
-  LsAsyncState: asyncState, LsButton: button, LsEmptyState: emptyState, LsEntityCard: entityCard,
+  LsAsyncState: asyncState, LsButton: button, LsCheckboxGroupField: checkboxGroupField, LsDescriptionList: descriptionList,
+  LsEmptyState: emptyState, LsEntityCard: entityCard,
   LsEntityIdentity: entityIdentity, LsEntityInput: entityInput, LsField: field, LsFormList: formList,
-  LsInlineError: inlineError, LsInput: input, LsListToolbar: listToolbar, LsMarkdownEditor: markdownEditor,
+  LsFormActions: formActions, LsFormSection: formSection, LsInlineError: inlineError, LsInput: input, LsListToolbar: listToolbar, LsMarkdownEditor: markdownEditor, LsMediaUploadField: mediaUploadField,
   LsMarkdownRenderer: markdownRenderer, LsPage: page, LsPageHeader: pageHeader, LsPanel: panel,
   LsResponsiveActions: responsiveActions, LsResponsiveDataTable: responsiveDataTable,
-  LsRouteErrorBoundary: routeBoundary, LsSearchInput: searchInput, LsStatusTag: statusTag,
-  LsUploadField: uploadField, LsWorkspaceHeader: workspaceHeader, LsWorkspaceOverview: workspaceOverview,
+  LsRouteErrorBoundary: routeBoundary, LsSearchInput: searchInput, LsSectionHeader: sectionHeader, LsStatusTag: statusTag,
+  LsSwitchField: switchField, LsUploadField: uploadField, LsWorkspaceHeader: workspaceHeader, LsWorkspaceOverview: workspaceOverview,
 }

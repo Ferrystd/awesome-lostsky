@@ -3,16 +3,17 @@ import { friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsField from "@lostsky/ui/components/LsField.vue";
+import LsFormActions from "@lostsky/ui/components/LsFormActions.vue";
 import LsFormList from "@lostsky/ui/components/LsFormList.vue";
+import LsFormSection from "@lostsky/ui/components/LsFormSection.vue";
 import LsInlineError from "@lostsky/ui/components/LsInlineError.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
-import LsPanel from "@lostsky/ui/components/LsPanel.vue";
 import { feedback } from "@lostsky/ui/feedback";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { NInput, NSelect, NSwitch } from "naive-ui";
 import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { canManage, manageApi } from "../../lib";
+import { canManage, loadManageAccess, productManagement } from "../../lib";
 type Field = {
   key: string;
   id?: number;
@@ -43,12 +44,17 @@ const make = (): Field => ({
 });
 const route = useRoute();
 const id = computed(() => Number(route.params.id));
+const scope = computed(() => route.meta.workspace === "personal" ? "personal" : "team");
+const management = computed(() => productManagement(scope.value));
+const personal = computed(() => management.value.personal);
+const access = useQuery({ queryKey: ["shop-manage-access"], queryFn: () => loadManageAccess() });
+const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?? 0);
 const client = useQueryClient();
 const fields = ref<Field[]>([]);
 const savedIds = ref<number[]>([]);
 const query = useQuery({
-  queryKey: computed(() => ["product-fields", id.value]),
-  queryFn: () => manageApi.productFields(id.value),
+  queryKey: computed(() => ["product-fields", scope.value, id.value]),
+  queryFn: () => management.value.productFields(id.value),
 });
 watch(
   () => query.data.value,
@@ -80,12 +86,12 @@ const save = useMutation({
     );
     for (const fieldId of savedIds.value) {
       if (!currentIds.has(fieldId)) {
-        await manageApi.deleteProductField(id.value, fieldId);
+        await management.value.deleteProductField(id.value, fieldId, expectedEntityId.value);
       }
     }
     for (let index = 0; index < fields.value.length; index++) {
       const f = fields.value[index];
-      await manageApi.saveProductField(id.value, f.id ?? null, {
+      await management.value.saveProductField(id.value, f.id ?? null, {
         field_key: f.field_key,
         name: f.name,
         value_type: f.value_type,
@@ -99,12 +105,12 @@ const save = useMutation({
         is_required: f.is_required,
         is_active: f.is_active,
         sort: index,
-      });
+      }, expectedEntityId.value);
     }
   },
   onSuccess: async () => {
     feedback.success("核销字段已保存");
-    await client.invalidateQueries({ queryKey: ["product-fields", id.value] });
+    await client.invalidateQueries({ queryKey: ["product-fields", scope.value, id.value] });
   },
 });
 const valueTypes = [
@@ -131,8 +137,8 @@ const inputTypes = [
     <LsPageHeader
       title="核销字段"
       description="客户字段在发起时填写，管理字段在确认完成时填写；停用不会删除历史值。"
-      :back-to="`/manage/products/${id}`"
-      back-label="返回商品"
+      :back-to="`${management.routeBase}/${id}`"
+      :back-label="personal ? '返回本人商品' : '返回商品'"
     /><LsAsyncState
       v-if="query.isPending.value"
       state="loading"
@@ -144,8 +150,8 @@ const inputTypes = [
       :description="friendlyError(query.error.value)"
     />
     <form v-else class="manage-form" @submit.prevent="save.mutate()">
-      <LsPanel
-        ><div class="form-panel">
+      <LsFormSection title="字段配置" description="按核销流程定义填写阶段、可见范围与取值方式。"
+        >
           <LsFormList
             v-model="fields"
             :item-key="(f) => f.key"
@@ -204,7 +210,7 @@ const inputTypes = [
                     v-model:value="item.options_text"
                     type="textarea"
                 /></LsField>
-                <div class="switch-row">
+                <div class="boolean-controls">
                   <label
                     ><NSwitch
                       :value="item.is_required === 1"
@@ -227,19 +233,19 @@ const inputTypes = [
               </div></template
             ></LsFormList
           >
-        </div></LsPanel
+        </LsFormSection
       ><LsInlineError
         v-if="save.isError.value"
         :message="friendlyError(save.error.value)"
       />
-      <div class="form-actions">
+      <LsFormActions>
         <LsButton
           type="submit"
-          :disabled="!canManage('shop.product.write')"
+          :disabled="!canManage(management.permission) || (personal && !expectedEntityId)"
           :loading="save.isPending.value"
           >保存全部字段</LsButton
         >
-      </div>
+      </LsFormActions>
     </form>
   </div>
 </template>

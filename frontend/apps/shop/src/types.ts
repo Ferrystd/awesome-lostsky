@@ -106,8 +106,11 @@ export interface RedemptionCard {
 export interface ManageAccess {
   permissions: string[]
   team?: { id: number; slug: string; name: string } | null
-  identity?: { type: string }
-  abilities?: { transaction?: { enabled: boolean; reason: string | null; label: string } }
+  identity?: { type: string; entity_id: number }
+  abilities?: {
+    file?: { enabled: boolean; reason: string | null; label: string }
+    transaction?: { enabled: boolean; reason: string | null; label: string }
+  }
 }
 export interface ManageEntityOption { id?: number; entity_id?: number; slug: string; type?: string; name: string; avatar?: string | null }
 export interface ManageService {
@@ -121,4 +124,5 @@ export interface ManagePackage { id: number; name: string; is_active: 0 | 1; ser
 export interface ManageCampaign { id: number; package_id: number; name: string; claim_group: string; mode: 1 | 2 | 3; total_limit?: number | null; per_target_limit: number; redeem_starts_at: number; redeem_ends_at: number; is_active: 0 | 1; package?: ManagePackage | null }
 export interface ManageCode { id: number; campaign_id: number; code_hint: string; use_count: number; max_uses?: number | null; expire_time: number; is_active: 0 | 1; create_time: number }
 export interface ManageCustomerOption { id: number; nickname?: string; name?: string; is_blocked: 0 | 1; balance?: Balance | null }
-export interface ManageOptions { entities: ManageEntityOption[]; customers: ManageCustomerOption[]; services: ManageService[]; packages: ManagePackage[]; campaigns: ManageCampaign[] }
+export interface ProductManageOptions { entities: ManageEntityOption[]; packages: ManagePackage[]; campaigns: ManageCampaign[] }
+export interface ManageOptions extends ProductManageOptions { customers: ManageCustomerOption[]; services: ManageService[] }

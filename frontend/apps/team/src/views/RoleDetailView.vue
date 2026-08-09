@@ -5,6 +5,7 @@ import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -18,7 +19,6 @@ import {
   NInput,
   NInputNumber,
   NModal,
-  NSwitch,
 } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -40,7 +40,7 @@ interface TeamEntityOption {
   avatar?: string | null
 }
 type SpecialPermissionGroup = '实体管理' | '实体委托'
-type DynamicPermissionId = 'manage' | 'act' | 'field-manage' | 'assume'
+type DynamicPermissionId = 'manage' | 'field-manage' | 'assume'
 interface DynamicPermissionDefinition {
   id: DynamicPermissionId
   label: string
@@ -52,7 +52,6 @@ interface DynamicPermissionDefinition {
 const dynamicPermissionDefinitions: DynamicPermissionDefinition[] = [
   { id: 'manage', label: '管理指定虚拟实体', template: 'team.entity.virtual.<slug>.manage', virtualOnly: true, group: '实体管理' },
   { id: 'field-manage', label: '管理指定虚拟实体字段', template: 'team.entity.virtual.<slug>.field.manage', virtualOnly: true, group: '实体管理' },
-  { id: 'act', label: '代表指定虚拟实体执行操作', template: 'identity.virtual.<slug>.act', virtualOnly: true, group: '实体委托' },
   { id: 'assume', label: '领取指定实体身份', template: 'identity.<type>.<slug>.assume', virtualOnly: false, group: '实体委托' },
 ]
 const entityDelegationGroupName = '实体委托'
@@ -87,6 +86,7 @@ const catalogQuery = useQuery({
   queryFn: () => api.get<PermissionCatalog>('/rolePermission/catalog'),
 })
 const groups = computed(() => Array.isArray(catalogQuery.data.value?.groups) ? catalogQuery.data.value.groups : [])
+const catalogGroupNames = computed(() => new Set(groups.value.map(group => group.name)))
 const staticGroups = computed(() => groups.value.map(group => ({
   ...group,
   items: group.items.filter(item => !isDynamicLeafPermission(item.key)),
@@ -259,7 +259,6 @@ function selectTargetEntities(entities: EntityDisplay[]) {
 }
 function isDynamicLeafPermission(key: string) {
   return /^team\.entity\.virtual\.[a-z0-9][a-z0-9_-]{0,49}\.(?:manage|field\.manage)$/.test(key)
-    || /^identity\.virtual\.[a-z0-9][a-z0-9_-]{0,49}\.act$/.test(key)
     || /^identity\.(?:member|customer|virtual)\.[a-z0-9][a-z0-9_-]{0,49}\.assume$/.test(key)
 }
 function dynamicPermissionGroup(key: string): SpecialPermissionGroup | null {
@@ -277,9 +276,7 @@ function dynamicPermissionKey(definition: DynamicPermissionDefinition, entity: E
   if (definition.virtualOnly) {
     if (entity.type !== 'teamVirtual') return null
     const action = definition.id === 'field-manage' ? 'field.manage' : definition.id
-    return definition.group === entityManagementGroupName
-      ? `team.entity.virtual.${entity.slug}.${action}`
-      : `identity.virtual.${entity.slug}.act`
+    return `team.entity.virtual.${entity.slug}.${action}`
   }
   const type = ({ teamMember: 'member', teamCustomer: 'customer', teamVirtual: 'virtual' } as const)[entity.type as Exclude<EntityType, 'team'>]
   return type ? `identity.${type}.${entity.slug}.assume` : null
@@ -297,9 +294,8 @@ function toggleDynamicPermission(key: string | null, checked: boolean) {
 function dynamicPermissionLabel(key: string) {
   return leafLabels.value.get(key)
     || (key.endsWith('.field.manage') ? '管理指定虚拟实体字段'
-      : key.endsWith('.act') ? '代表指定虚拟实体执行操作'
-        : key.endsWith('.manage') ? '管理指定虚拟实体'
-          : '领取指定实体身份')
+      : key.endsWith('.manage') ? '管理指定虚拟实体'
+        : '领取指定实体身份')
 }
 </script>
 
@@ -331,16 +327,7 @@ function dynamicPermissionLabel(key: string) {
               <NInputNumber v-model:value="form.sort" aria-label="显示顺序" :min="0" :show-button="false" />
               <template #feedback>数字越小越靠前。</template>
             </NFormItem>
-            <NFormItem label="公开主页展示">
-              <NSwitch
-                v-model:value="form.is_displayed"
-                aria-label="在公开实体资料中展示此角色"
-              >
-                <template #checked>公开</template>
-                <template #unchecked>隐藏</template>
-              </NSwitch>
-              <template #feedback>开启后，获得此角色的公开成员或虚拟实体会展示角色名称和说明；角色权限不会公开。</template>
-            </NFormItem>
+            <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开实体资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟实体会展示角色名称和说明；角色权限不会公开。" checked-text="公开" unchecked-text="隐藏" />
             <footer>
               <LsButton variant="danger" :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</LsButton>
               <LsButton type="submit" :loading="saveInfo.isPending.value" :disabled="!form.name.trim()"><template #icon><Save :size="17" /></template>保存资料</LsButton>
@@ -483,7 +470,7 @@ function dynamicPermissionLabel(key: string) {
                 <template v-else>
                   <section v-for="advancedGroup in advancedGroups" :key="advancedGroup.name" class="advanced-group">
                     <header>
-                      <strong v-if="advancedGroup.name === entityManagementGroupName || advancedGroup.name === entityDelegationGroupName">{{ advancedGroup.name }}</strong>
+                      <strong v-if="catalogGroupNames.has(advancedGroup.name)">{{ advancedGroup.name }}</strong>
                       <code v-else>{{ advancedGroup.name }}</code>
                       <span>{{ advancedGroup.items.length }} 项</span>
                     </header>

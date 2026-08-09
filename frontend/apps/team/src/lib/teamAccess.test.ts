@@ -5,6 +5,7 @@ import {
   fileUploadReason,
   hasPermission,
   permissionReason,
+  resourceUploadReason,
   settingReason,
   type AccessSnapshotLike,
 } from './teamAccessReason'
@@ -46,12 +47,20 @@ describe('team access helpers', () => {
     expect(hasPermission(value, 'file.upload')).toBe(true)
   })
 
+  it('resource uploads depend on File Ability but not file.upload', () => {
+    const value = snapshot()
+    expect(resourceUploadReason(value)).toContain('File')
+    value.abilities!.file!.enabled = true
+    expect(resourceUploadReason(value)).toBe('')
+    expect(value.permissions).not.toContain('file.upload')
+  })
+
   it('treats parent and wildcard Permission scopes like the backend gate', () => {
     expect(hasPermission(snapshot({ permissions: ['team'] }), 'team.ability.redeem')).toBe(true)
     expect(hasPermission(snapshot({ permissions: ['team.ability'] }), 'team.ability.redeem')).toBe(true)
     expect(hasPermission(snapshot({ permissions: ['team.ability'] }), 'team.notice.read')).toBe(false)
     expect(hasPermission(snapshot({ permissions: ['team.entity.virtual.*'] }), 'team.entity.virtual.support.manage')).toBe(true)
-    expect(hasPermission(snapshot({ permissions: ['identity.virtual.*.act'] }), 'identity.virtual.support.act')).toBe(true)
+    expect(hasPermission(snapshot({ permissions: ['chat.virtual.*.act'] }), 'chat.virtual.support.act')).toBe(true)
     expect(hasPermission(snapshot({ permissions: ['team.entity.virtual.support'] }), 'team.entity.virtual.*.manage')).toBe(false)
   })
 

@@ -3,6 +3,7 @@ import { api, friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
 import LsPanel from "@lostsky/ui/components/LsPanel.vue";
+import LsSectionHeader from "@lostsky/ui/components/LsSectionHeader.vue";
 import { useQueries } from "@tanstack/vue-query";
 import { BarChart3 } from "@lucide/vue";
 import { NDataTable, NDatePicker } from "naive-ui";
@@ -191,12 +192,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
       >
       <LsPanel
         ><section class="chart">
-          <div class="section-title">
-            <div>
-              <h3>每日成交</h3>
-              <p>柱长表示当天成交金额，数字保留精确值。</p>
-            </div>
-          </div>
+          <LsSectionHeader title="每日成交" description="柱长表示当天成交金额，数字保留精确值。" :heading-level="3" />
           <div
             v-if="timeline.length"
             class="bars"
@@ -222,12 +218,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
       <section class="rankings">
         <LsPanel
           ><article>
-            <div class="section-title">
-              <div>
-                <h3>接单人分配</h3>
-                <p>按分配金额从高到低</p>
-              </div>
-            </div>
+            <LsSectionHeader title="接单人分配" description="按分配金额从高到低" :heading-level="3" />
             <ol v-if="entities.length">
               <li v-for="item in entities" :key="String(item.entity_id)">
                 <span
@@ -241,12 +232,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
         >
         <LsPanel
           ><article>
-            <div class="section-title">
-              <div>
-                <h3>客户贡献</h3>
-                <p>按成交金额从高到低</p>
-              </div>
-            </div>
+            <LsSectionHeader title="客户贡献" description="按成交金额从高到低" :heading-level="3" />
             <ol v-if="customers.length">
               <li v-for="item in customers" :key="String(item.customer_id)">
                 <span
@@ -261,12 +247,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
       </section>
       <LsPanel
         ><section class="assignee-performance">
-          <div class="section-title">
-            <div>
-              <h3>归属业绩</h3>
-              <p>按交易发生时写入的发单归属统计，之后改归属不会改变历史。</p>
-            </div>
-          </div>
+          <LsSectionHeader title="归属业绩" description="按交易发生时写入的发单归属统计，之后改归属不会改变历史。" :heading-level="3" />
           <NDataTable
             v-if="assignees.length"
             :columns="assigneeColumns"

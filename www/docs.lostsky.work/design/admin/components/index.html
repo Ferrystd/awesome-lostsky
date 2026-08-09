@@ -18,7 +18,7 @@
         <link rel="prev" href="../foundations/">
       
       
-        <link rel="next" href="../patterns/">
+        <link rel="next" href="../componentization/">
       
       
         
@@ -744,6 +744,33 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../componentization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台页面组件化方法
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -3010,6 +3037,30 @@
 <td>桌面 20px、移动端 16px 内边距；插槽边界使用细分隔线；加载、空、错误由内容区对应状态组件表达</td>
 </tr>
 <tr>
+<td><code>LsSectionHeader</code></td>
+<td><code>title</code> 必填；<code>description/eyebrow/id</code> 可选，<code>headingLevel=2/3/4</code>；<code>aside</code> 插槽承载状态、统计或区块动作</td>
+<td>页面手写 <code>section-heading/panel-heading/section-title</code>；在页面重复标题间距和移动端堆叠</td>
+<td>标题层级与 ID 保留；说明宽度统一；右侧内容桌面靠右、移动端堆叠，命令按钮满宽</td>
+</tr>
+<tr>
+<td><code>LsFormSection</code></td>
+<td><code>title</code> 必填，标题参数与 <code>LsSectionHeader</code> 相同；内部固定复用 <code>LsPanel</code> 与 <code>LsSectionHeader</code>，默认插槽承载单列表单字段</td>
+<td>接管 <code>&lt;form&gt;</code>、校验、提交或业务数据；页面重建 <code>form-panel</code></td>
+<td>通过标题 ID 标记面板；字段单列且长文案不溢出；状态由字段或表单区域表达</td>
+</tr>
+<tr>
+<td><code>LsFormActions</code></td>
+<td>无 props、默认插槽承载保存、取消等命令</td>
+<td>视觉参数、业务顺序判断、页面重建 <code>form-actions</code></td>
+<td>桌面右对齐并换行；小于 640px 单列，<code>LsButton</code> 满宽；不改变按钮本身状态</td>
+</tr>
+<tr>
+<td><code>LsDescriptionList</code></td>
+<td>无 props；根节点固定为 <code>&lt;dl&gt;</code>，默认插槽只提供成对 <code>&lt;dt&gt;/&lt;dd&gt;</code></td>
+<td>指标网格、金额分解、移动表格记录或卡片式业务摘要</td>
+<td>桌面双列、移动上下排列；统一分隔线和长内容换行；调用端保留术语和值的语义</td>
+</tr>
+<tr>
 <td><code>LsStatusTag</code></td>
 <td><code>label</code> 必填，<code>type=default/success/warning/error/info</code>；统一状态标签</td>
 <td>调用端重复 <code>size=small</code>、<code>bordered=false</code>，或按页面自建 StatusBadge</td>
@@ -3088,6 +3139,12 @@
 <td>无能力时保持禁用外观与 <code>aria-disabled</code>，点击或键盘触发后以全局提示说明原因且不发请求；进度为区域状态；移动端纵向；禁用原因进入标题，可按需启用局部说明</td>
 </tr>
 <tr>
+<td><code>LsMediaUploadField</code></td>
+<td><code>upload(file)</code> 必填；其余 URL、文件类型、按钮和禁用参数沿用 <code>LsUploadField</code>；自动回填单个文件 URL，并发出 <code>uploading/uploaded</code></td>
+<td>页面重复解析文件事件、上传响应和错误；图片、视频字段只提供 URL 输入</td>
+<td>选择文件后立即显示加载；失败在字段内可见；上传期间父表单可阻止保存；仍允许粘贴已登记 URL</td>
+</tr>
+<tr>
 <td><code>LsEmptyState</code></td>
 <td>只允许两个必填参数：<code>title</code> 为上方无数据文案，<code>description</code> 为下方提示文案；用于页面主内容或主集合没有数据、筛选无结果</td>
 <td>新增图标、动作、尺寸、样式或插槽参数；页面用裸图标、标题和段落重新拼装；把加载或错误交给本组件；按视口宽度放大垂直留白</td>
@@ -3118,6 +3175,18 @@
 <td><code>forId</code> 必须指向控件；错误与说明不重复；必填状态可被辅助技术识别</td>
 </tr>
 <tr>
+<td><code>LsCheckboxGroupField</code></td>
+<td><code>v-model</code> 接受字符串或数字数组，<code>label/options</code> 必填；option 支持 <code>value/label/description/meta/disabled/disabledReason</code>；可传 <code>id/hint/error/required/disabled</code></td>
+<td>页面直接组合无分组语义的 <code>NCheckboxGroup</code>；用于分组权限编辑器或动态加入字段</td>
+<td>固定 <code>fieldset/legend</code> 与提示/错误关联；禁用原因可见；选项触控区至少 44px；长文案与移动端自然换行</td>
+</tr>
+<tr>
+<td><code>LsSwitchField</code></td>
+<td><code>v-model</code> 接受布尔值，<code>label</code> 必填；<code>description/id/ariaLabel/headingLevel/disabled/readOnly/loading/disabledReason/checkedText/uncheckedText</code> 可选；承载完整布尔设置行</td>
+<td>在 <code>LsField</code>、<code>NFormItem</code> 或页面私有 <code>switch-row/switch-field</code> 中直接放置 <code>NSwitch</code></td>
+<td>默认以可见标签作为无障碍名称；需要保留业务专用名称时使用 <code>ariaLabel</code>，设置页分区标题可用 <code>headingLevel</code> 保留标题语义；开关触控区域至少 44px；禁用与只读原因可见；长文案和移动端不溢出</td>
+</tr>
+<tr>
 <td><code>LsInput</code></td>
 <td><code>v-model</code> 接受字符串或数字，<code>invalid/type</code> 可选；其余原生输入属性传给 <code>NInput.inputProps</code></td>
 <td>页面直接写原生文本输入；用私有边框表示错误</td>
@@ -3125,9 +3194,9 @@
 </tr>
 <tr>
 <td><code>LsMarkdownEditor</code></td>
-<td><code>modelValue</code> 必填；可传 <code>placeholder/draftKey/searchEntities/resolveEntities/uploadImage/uploadDisabledReason</code>；模式固定为可视化/源码/预览</td>
-<td>页面复制编辑器工具栏；缺上传能力仍调用上传</td>
-<td>外层模式、搜索与操作使用 Naive UI；草稿键有值时本地保存；@ 搜索、上传和预览错误局部呈现；减少动态时关闭非必要过渡</td>
+<td><code>modelValue</code> 与 <code>uploadImage(file)</code> 必填；可传 <code>placeholder/draftKey/searchEntities/resolveEntities/uploadDisabledReason</code>；模式固定为可视化/源码/预览</td>
+<td>页面复制编辑器工具栏；省略上传回调导致图片入口消失；缺上传能力仍调用上传</td>
+<td>图片入口始终存在；无权时以 <code>uploadDisabledReason</code> 保持可解释禁用；草稿键有值时本地保存；@ 搜索、上传和预览错误局部呈现</td>
 </tr>
 <tr>
 <td><code>LsMarkdownRenderer</code></td>
@@ -3138,11 +3207,14 @@
 </tbody>
 </table>
 <p>新增 props、插槽、默认值或允许组合前必须先更新本表，组件测试覆盖默认、禁用、加载和移动端行为。</p>
+<p>普通后台布尔设置统一使用 <code>LsSwitchField</code>。动态设置渲染器、对象自定义布尔值编辑器，以及 <code>LsFormList</code> 中同一记录的紧凑多开关组可以直接使用 <code>NSwitch</code>；这些例外必须保持可访问名称，并由源码契约测试固定允许文件。业务页面不得重新定义 <code>switch-row</code> 或 <code>switch-field</code>。</p>
+<p>普通、未分组的多选字段统一使用 <code>LsCheckboxGroupField</code>。Admin 分组权限编辑器和 Team 动态加入字段需要业务分组或运行时控件分派，可直接使用 <code>NCheckboxGroup</code>；允许文件由源码契约精确锁定，不得扩散。</p>
 <p>页面的创建、保存、取消、删除、确认等命令必须使用 <code>LsButton</code>。直接 <code>NButton</code> 只允许用于应用壳层导航、Admin 平台命令搜索结果和确实没有可见文案的 44×44px 微操作；新增例外必须先在应用规则登记，并同步源码契约白名单。导航链接继续使用 <code>RouterLink</code> 或安全的 <code>&lt;a&gt;</code>，不得为了复用按钮外观把链接伪装成提交命令。</p>
 <h2 id="_4">实现级例外<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
 <p>例外只能解决浏览器或第三方编辑器的实现边界，不能改变用户可见的设计语言：</p>
 <ul>
 <li><code>LsUploadField</code> 内部保留一个 <code>display:none</code> 的原生 <code>input[type=file]</code>。适用范围仅为该公共组件，因为浏览器安全模型要求由文件输入取得本地文件；页面不得直接引用或设计它。桌面和移动端都由 44px 以上的 <code>NButton</code> 触发；存在禁用原因时按钮以 <code>aria-disabled</code> 保留可触发说明的语义，点击或键盘触发只显示短时全局提示，不点击隐藏输入、不发请求。检查方法：源码扫描中只允许 <code>LsUploadField.vue</code> 出现这一原生文件输入，并用组件测试断言 disabled 不触发 <code>change/choose</code> 后续请求。</li>
+<li>单文件资料字段默认使用 <code>LsMediaUploadField</code>，由组件处理文件选择、上传状态、URL 回填和局部错误。只有文件库的多文件/进度上传、加入申请的专用上传流程可以直接组合 <code>LsUploadField</code>；页面不得为头像、封面、介绍图片或视频重新实现一套上传事件。</li>
 <li><code>LsMarkdownRenderer</code> 的清洗结果内允许生成主体引用 <code>button</code>。适用范围仅为 DOMPurify 清洗后的 <code>lostsky://entity/</code> 引用，因为字符串渲染结果不能直接挂载 Vue/Naive 组件；它必须使用公共按钮令牌、提供主体名称、键盘触发与焦点恢复，不得生成其他原生控件。解析、权限或主体解析失败时退化为普通安全文本，不弹全局错误。检查方法：源码允许清单只包含该生成语句，并测试清洗、键盘和关闭后焦点。</li>
 <li>Milkdown/Crepe 可管理其编辑区内部语义和必要工具栏 DOM。适用范围仅为 <code>LsMarkdownEditor</code> 的第三方编辑区；LostSky 仍负责外层模式、搜索、上传、错误、尺寸、焦点和减少动态效果，不得复制一套页面级编辑器控件。检查方法：组件测试三个模式和禁用上传，静态检查禁止其他页面直接引入 Crepe。</li>
 <li><code>LsFormList</code> 内部使用 <code>vue-draggable-plus</code> 同步单列表拖拽排序。适用范围仅为该公共组件；业务页面只能使用 <code>v-model</code>、项目工厂和项目插槽，不得直接导入拖拽库或依赖其事件结构。拖拽是指针与触控增强，上移/下移按钮始终提供等价键盘路径；组件卸载时由 Vue 封装销毁实例。检查方法：静态测试只允许 <code>LsFormList.vue</code> 导入 <code>vue-draggable-plus</code>，组件与 E2E 分别覆盖按钮和拖拽排序。</li>

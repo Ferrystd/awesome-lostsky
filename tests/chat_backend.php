@@ -443,8 +443,8 @@ try {
         'name' => 'Chat Virtual',
     ]);
     $virtualCandidates = [
-        "identity.virtual.{$virtualSlug}.act",
-        'identity.virtual.*.act',
+        "chat.virtual.{$virtualSlug}.act",
+        'chat.virtual.*.act',
     ];
     $virtualIdentity = Entity::where('slug', $virtualSlug)->find();
     $virtualModel = $virtualIdentity
@@ -470,13 +470,13 @@ try {
     $assert(!in_array('身份委托', $virtualGroupNames, true) && !in_array('指定虚拟实体', $virtualGroupNames, true), 'permission catalog removes legacy delegation groups');
     $virtualItems = [];
     foreach ($virtualCatalog['groups'] as $group) {
-        if (in_array($group['name'], ['实体管理', '实体委托'], true)) {
+        if (in_array($group['name'], ['实体管理', '实体委托', '聊天'], true)) {
             $virtualItems += array_column($group['items'], null, 'key');
         }
     }
     foreach ([
         "team.entity.virtual.{$virtualSlug}.manage" => '管理 · Chat Virtual',
-        "identity.virtual.{$virtualSlug}.act" => '代表 · Chat Virtual 执行操作',
+        "chat.virtual.{$virtualSlug}.act" => '代表 · Chat Virtual 参与聊天',
         "team.entity.virtual.{$virtualSlug}.field.manage" => '管理字段 · Chat Virtual',
         "identity.virtual.{$virtualSlug}.assume" => '领取 · Chat Virtual 身份',
     ] as $key => $label) {
@@ -487,6 +487,19 @@ try {
             "permission catalog uses the canonical entity slug for {$key}"
         );
     }
+    $chatGroup = array_values(array_filter(
+        $virtualCatalog['groups'],
+        static fn (array $group): bool => $group['name'] === '聊天'
+    ));
+    $assert(
+        count($chatGroup) === 1
+            && in_array(
+                "chat.virtual.{$virtualSlug}.act",
+                array_column($chatGroup[0]['items'], 'key'),
+                true
+            ),
+        'permission catalog groups virtual act permissions under chat'
+    );
     $virtualAdvanced = array_column(
         $virtualCatalog['advanced_items'],
         null,
@@ -577,7 +590,7 @@ try {
     $permissions->save((int) $team->id, (int) $role->id, [
         'chat.conversation.create',
         'chat.temporary.create',
-        "identity.virtual.{$virtualSlug}.act",
+        "chat.virtual.{$virtualSlug}.act",
     ]);
     $assert(
         $gate->allows((int) $team->id, (int) $member->id, $virtualCandidates),
@@ -622,7 +635,7 @@ try {
     $permissions->save((int) $team->id, (int) $role->id, [
         'chat.conversation.create',
         'chat.temporary.create',
-        'identity.virtual.*.act',
+        'chat.virtual.*.act',
     ]);
     $assert(
         $gate->allows((int) $team->id, (int) $member->id, $virtualCandidates),
@@ -632,8 +645,8 @@ try {
     $permissions->save((int) $team->id, (int) $role->id, [
         'chat.conversation.create',
         'chat.temporary.create',
-        'identity.virtual.*.act',
-        "identity.virtual.{$virtualSlug}.act",
+        'chat.virtual.*.act',
+        "chat.virtual.{$virtualSlug}.act",
     ]);
     $assert(
         $gate->allows((int) $team->id, (int) $member->id, $virtualCandidates),
@@ -647,8 +660,8 @@ try {
     ]);
     $assert(
         $gate->allows((int) $team->id, (int) $member->id, [
-            "identity.virtual.{$newVirtualSlug}.act",
-            'identity.virtual.*.act',
+            "chat.virtual.{$newVirtualSlug}.act",
+            'chat.virtual.*.act',
         ]),
         'new virtual entity inherits existing wildcard permission'
     );
@@ -665,17 +678,17 @@ try {
         'webhook endpoint cannot target a private or reserved address'
     );
     $assertThrows(
-        fn () => $permissions->save((int) $team->id, (int) $role->id, ['identity.virtual.foo*.act']),
+        fn () => $permissions->save((int) $team->id, (int) $role->id, ['chat.virtual.foo*.act']),
         422,
         'partial wildcard permission is rejected'
     );
     $assertThrows(
-        fn () => $permissions->save((int) $team->id, (int) $role->id, ['identity.virtual.{slug}.act']),
+        fn () => $permissions->save((int) $team->id, (int) $role->id, ['chat.virtual.{slug}.act']),
         422,
         'permission templates cannot be persisted'
     );
     $assertThrows(
-        fn () => $permissions->save((int) $team->id, (int) $role->id, ['identity.virtual.missing.act']),
+        fn () => $permissions->save((int) $team->id, (int) $role->id, ['chat.virtual.missing.act']),
         422,
         'permission for a missing team virtual is rejected'
     );
@@ -683,6 +696,11 @@ try {
         fn () => $permissions->save((int) $team->id, (int) $role->id, ["chat.virtual.{$virtualSlug}.operate"]),
         422,
         'legacy virtual permission keys are rejected instead of treated as aliases'
+    );
+    $assertThrows(
+        fn () => $permissions->save((int) $team->id, (int) $role->id, ["identity.virtual.{$virtualSlug}.act"]),
+        422,
+        'identity virtual act keys are rejected instead of treated as aliases'
     );
 
     $entityFields = app(\app\service\TeamEntityField::class);
@@ -1033,20 +1051,20 @@ try {
     $permissions->save((int) $team->id, (int) $role->id, [
         'chat.conversation.create',
         'chat.temporary.create',
-        'identity.virtual.*.act',
-        "identity.virtual.{$virtualSlug}.act",
+        'chat.virtual.*.act',
+        "chat.virtual.{$virtualSlug}.act",
     ]);
     app(ChatVirtual::class)->delete((int) $team->id, $virtualSlug);
     $assertSame(
         0,
         TeamRolePermission::where('team_id', $team->id)
-            ->where('permission_key', "identity.virtual.{$virtualSlug}.act")->count(),
+            ->where('permission_key', "chat.virtual.{$virtualSlug}.act")->count(),
         'deleting virtual entity removes its specific permission'
     );
     $assertSame(
         1,
         TeamRolePermission::where('team_id', $team->id)
-            ->where('permission_key', 'identity.virtual.*.act')->count(),
+            ->where('permission_key', 'chat.virtual.*.act')->count(),
         'deleting virtual entity preserves wildcard permission'
     );
     $assert(
@@ -1071,7 +1089,7 @@ try {
         'chat.conversation.create',
         'chat.temporary.create',
         'chat.group.manage',
-        'identity.virtual.*.act',
+        'chat.virtual.*.act',
     ]);
     $conversations = app(ChatConversation::class);
     $memberActing = ['entity_id' => (int) $memberEntity->id, 'type' => 'teamMember', 'id' => (int) $member->id];

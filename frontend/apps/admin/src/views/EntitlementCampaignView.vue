@@ -4,9 +4,11 @@ import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
 import LsField from "@lostsky/ui/components/LsField.vue";
+import LsFormActions from "@lostsky/ui/components/LsFormActions.vue";
+import LsFormSection from "@lostsky/ui/components/LsFormSection.vue";
 import LsInlineError from "@lostsky/ui/components/LsInlineError.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
-import LsPanel from "@lostsky/ui/components/LsPanel.vue";
+import LsSwitchField from "@lostsky/ui/components/LsSwitchField.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
 import { feedback } from "@lostsky/ui/feedback";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
@@ -16,7 +18,6 @@ import {
   NInputNumber,
   NPagination,
   NSelect,
-  NSwitch,
 } from "naive-ui";
 import { computed, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -159,9 +160,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
       back-label="返回活动"
     />
     <form class="campaign-form" @submit.prevent="save.mutate()">
-      <LsPanel
-        ><div class="form-panel">
-          <h2>活动配置</h2>
+      <LsFormSection title="活动配置">
           <LsField label="活动名称" for-id="admin-campaign-name" required
             ><NInput
               id="admin-campaign-name"
@@ -206,12 +205,13 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
               v-model:value="form.total_limit"
               :min="1"
               clearable /></LsField
-          ><LsField label="启用状态" for-id="admin-campaign-active"
-            ><NSwitch
-              id="admin-campaign-active"
-              :value="form.is_active === 1"
-              @update:value="(v) => (form.is_active = v ? 1 : 0)"
-          /></LsField></div></LsPanel
+          ><LsSwitchField
+            id="admin-campaign-active"
+            :model-value="form.is_active === 1"
+            label="启用状态"
+            description="停用后不能继续发放新的权益。"
+            @update:model-value="(v) => (form.is_active = v ? 1 : 0)"
+          /></LsFormSection
       ><LsInlineError
         v-if="detail.isError.value"
         :message="friendlyError(detail.error.value)"
@@ -219,7 +219,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
         v-if="save.isError.value"
         :message="friendlyError(save.error.value)"
       />
-      <div class="form-actions">
+      <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()"
           >取消</LsButton
         ><LsButton
@@ -228,12 +228,10 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
           :loading="save.isPending.value"
           >保存活动</LsButton
         >
-      </div>
+      </LsFormActions>
     </form>
     <template v-if="editing"
-      ><LsPanel v-if="can('admin.entitlement.write')"
-        ><div class="form-panel">
-          <h2>发行体验码</h2>
+      ><LsFormSection v-if="can('admin.entitlement.write')" title="发行体验码">
           <div class="issue-row">
             <NInputNumber
               v-model:value="quantity"
@@ -267,7 +265,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
               ><span>复制</span>
             </LsButton>
           </div>
-        </div></LsPanel
+        </LsFormSection
       ><LsAsyncState
         v-if="codes.isPending.value"
         state="loading"
@@ -320,14 +318,9 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
 </template>
 <style scoped>
 .campaign-view,
-.campaign-form,
-.form-panel {
+.campaign-form {
   display: grid;
   gap: 1.25rem;
-}
-.form-panel h2 {
-  margin: 0;
-  font-size: 1rem;
 }
 .issue-row {
   display: flex;

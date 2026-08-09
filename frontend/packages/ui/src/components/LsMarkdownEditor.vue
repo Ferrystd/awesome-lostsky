@@ -18,7 +18,7 @@ const props = withDefaults(defineProps<{
   draftKey?: string
   searchEntities?: EntitySearch
   resolveEntities?: (slugs: string[]) => Promise<EntitySummary[]>
-  uploadImage?: MarkdownImageUpload
+  uploadImage: MarkdownImageUpload
   uploadDisabledReason?: string
 }>(), { placeholder: '开始编写内容，输入 @ 可引用团队或成员…', draftKey: '' })
 
@@ -190,7 +190,6 @@ async function uploadImage(file: File): Promise<string> {
     uploadError.value = props.uploadDisabledReason
     throw new Error(props.uploadDisabledReason)
   }
-  if (!props.uploadImage) throw new Error('当前编辑器未配置图片上传')
   try {
     return await props.uploadImage(file)
   } catch (error) {
@@ -253,7 +252,7 @@ onMounted(async () => {
     features: {
       [Crepe.Feature.TopBar]: true,
       [Crepe.Feature.AI]: false,
-      [Crepe.Feature.ImageBlock]: Boolean(props.uploadImage),
+      [Crepe.Feature.ImageBlock]: true,
     },
     featureConfigs: {
       [Crepe.Feature.TopBar]: {
@@ -281,14 +280,14 @@ onMounted(async () => {
         },
       },
       [Crepe.Feature.Placeholder]: { text: props.placeholder, mode: 'doc' },
-      [Crepe.Feature.ImageBlock]: props.uploadImage ? {
+      [Crepe.Feature.ImageBlock]: {
         onUpload: uploadImage,
         inlineUploadButton: '上传图片',
         blockUploadButton: '上传图片',
         inlineUploadPlaceholderText: '或粘贴图片地址',
         blockUploadPlaceholderText: '或粘贴图片地址',
         blockCaptionPlaceholderText: '图片说明',
-      } : undefined,
+      },
     },
   })
   crepe.on((listener) => listener.markdownUpdated((_ctx, markdown) => {

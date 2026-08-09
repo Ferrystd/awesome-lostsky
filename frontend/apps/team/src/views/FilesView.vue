@@ -67,7 +67,7 @@ async function upload(event: Event) {
   uploading.value = true
   uploadError.value = ''
   try {
-    for (const file of list) await api.upload(file)
+    for (const file of list) await api.uploadTo(file, '/file/upload')
     await Promise.all([
       client.invalidateQueries({ queryKey: ['files'] }),
       client.invalidateQueries({ queryKey: ['file-usage'] }),

@@ -6,6 +6,7 @@ import { feedback } from '../feedback'
 
 const props = withDefaults(defineProps<{
   modelValue?: string
+  id?: string
   placeholder?: string
   buttonLabel?: string
   disabled?: boolean
@@ -33,9 +34,9 @@ function choose() {
 <template>
   <div class="ls-upload-field">
     <div class="ls-upload-field__controls">
-      <NInput v-if="showUrl" :value="modelValue" :placeholder="placeholder" @update:value="emit('update:modelValue', $event)" />
+      <NInput v-if="showUrl" :value="modelValue" :placeholder="placeholder" :input-props="id ? { id } : undefined" @update:value="emit('update:modelValue', $event)" />
       <NButton :disabled="disabled && !explainableDisabled" :aria-disabled="disabled || undefined" :class="{ 'ls-upload-field__button--disabled': explainableDisabled }" :loading="loading" :title="disabledReason || undefined" @click="choose"><template #icon><Upload :size="18" /></template>{{ buttonLabel }}</NButton>
-      <input ref="input" class="ls-upload-field__input" type="file" :accept="accept" :multiple="multiple" :disabled="disabled" @change="emit('change', $event)">
+      <input ref="input" :id="id ? `${id}-file` : undefined" class="ls-upload-field__input" type="file" :accept="accept" :multiple="multiple" :disabled="disabled" @change="emit('change', $event)">
     </div>
     <NProgress v-if="progress !== null" type="line" :percentage="progress" :show-indicator="true" />
     <small v-if="showReason && disabled && disabledReason" class="ls-upload-field__reason">{{ disabledReason }}</small>

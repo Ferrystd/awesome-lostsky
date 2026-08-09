@@ -135,7 +135,11 @@ class Product
         } catch (\InvalidArgumentException) {
             throw new HttpException(422, '商品金额格式不正确');
         }
-        $this->assertBenefitConfiguration($teamId, array_merge($product->toArray(), $update));
+        $configuration = array_merge($product->toArray(), $update);
+        if (!array_key_exists('kind', $update)) {
+            $configuration['kind'] = $product->enumCase('kind')->value;
+        }
+        $this->assertBenefitConfiguration($teamId, $configuration);
 
         if ($update) {
             \think\facade\Db::transaction(function () use ($product, $update) {
@@ -180,10 +184,28 @@ class Product
             app(Entity::class)->assertInTeam((int) $entityId, $teamId);
         }
 
+        $entityIds = array_values(array_unique(array_map('intval', $entityIds)));
         \think\facade\Db::transaction(function () use ($productId, $entityIds) {
-            TeamProductHandler::where('product_id', $productId)->delete();
+            $records = TeamProductHandler::withTrashed()
+                ->where('product_id', $productId)
+                ->lock(true)
+                ->select();
+            $existing = [];
+            foreach ($records as $record) {
+                $entityId = (int) $record->entity_id;
+                $existing[$entityId] = $record;
+                if (!in_array($entityId, $entityIds, true) && !$record->trashed()) {
+                    $record->delete();
+                }
+            }
 
             foreach ($entityIds as $entityId) {
+                if (isset($existing[$entityId])) {
+                    if ($existing[$entityId]->trashed()) {
+                        $existing[$entityId]->restore();
+                    }
+                    continue;
+                }
                 $handler = new TeamProductHandler;
                 $handler->product_id = $productId;
                 $handler->entity_id  = $entityId;

@@ -15,6 +15,7 @@ nav = [
       "design/admin/index.md",
       "design/admin/foundations.md",
       "design/admin/components.md",
+      "design/admin/componentization.md",
       "design/admin/patterns.md",
       "design/admin/states-and-access.md",
       "design/admin/responsive-accessibility.md",

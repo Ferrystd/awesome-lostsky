@@ -308,9 +308,7 @@ test("shop manager publishes a service package product through the shared forms"
 
   await page.goto("http://demo.shop.lostsky.work:5179/manage/products/new");
   await page.locator("#product-name input").fill("咨询套餐");
-  await page
-    .locator("#product-cover .n-input input")
-    .fill("/media/consulting.webp");
+  await page.locator("input#product-cover").fill("/media/consulting.webp");
   await page.locator("#product-kind").click();
   await page.getByText("服务套餐", { exact: true }).last().click();
   await page.locator("#product-package").click();
@@ -324,6 +322,143 @@ test("shop manager publishes a service package product through the shared forms"
     cover_image: "/media/consulting.webp",
   });
   expect(payloads.handlers).toEqual({ entity_ids: [] });
+});
+
+test("Shop personal workspace creates an immutable self-owned product through personal APIs", async ({
+  page,
+}) => {
+  const token = `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type: "teamMember", id: 11 } })).toString("base64url")}.x`;
+  await page.context().addCookies([{
+    name: "lostsky_token",
+    value: token,
+    domain: ".lostsky.work",
+    path: "/",
+    sameSite: "Lax",
+  }]);
+
+  const payloads: Record<string, Record<string, unknown>> = {};
+  await page.route("http://demo.shop.lostsky.work:5179/api/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    const method = request.method();
+    let data: unknown = null;
+    if (path.endsWith("/manage/access")) {
+      data = {
+        team: { id: 1, slug: "demo", name: "青空协作组" },
+        identity: { type: "teamMember", entity_id: 71 },
+        permissions: ["shop.product.self.manage"],
+        abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: "记账" } },
+      };
+    } else if (path.endsWith("/personal/products/options")) {
+      data = {
+        entities: [{ entity_id: 71, name: "当前成员" }],
+        packages: [],
+        campaigns: [],
+      };
+    } else if (path.endsWith("/personal/products") && method === "POST") {
+      payloads.product = request.postDataJSON();
+      data = { id: 204 };
+    } else if (path.endsWith("/personal/products/204/handlers") && method === "POST") {
+      payloads.handlers = request.postDataJSON();
+    } else if (path.endsWith("/personal/products/204/redemption-fields") && method === "GET") {
+      data = [];
+    } else if (path.endsWith("/personal/products/204/redemption-fields") && method === "POST") {
+      payloads.field = request.postDataJSON();
+      data = { id: 301 };
+    } else if (path.endsWith("/personal/products/204")) {
+      data = { id: 204, ...payloads.product, entity_id: 71, handlers: [] };
+    } else if (path.endsWith("/personal/products")) {
+      data = { total: 1, page: 1, limit: 20, list: [{ id: 204, name: "本人咨询", price: "66.00", is_active: 1, handlers: [] }] };
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: json(data) });
+  });
+
+  await page.goto("http://demo.shop.lostsky.work:5179/manage/personal/products/new");
+  await expect(page.locator("#shop-manage-main").getByRole("heading", { name: "新建本人商品", level: 1 })).toBeVisible();
+  await expect(page.getByText("此商品自动归属当前已领取的 Entity，个人工作台不能转移归属。", { exact: true })).toBeVisible();
+  await expect(page.locator("#product-owner")).toHaveCount(0);
+  const activeLayout = await page.locator("#product-active").evaluate((control) => {
+    const field = control.closest(".ls-switch-field");
+    const controlRect = control.getBoundingClientRect();
+    const fieldRect = field?.getBoundingClientRect();
+    return {
+      controlHeight: Math.round(controlRect.height),
+      controlWidth: Math.round(controlRect.width),
+      fieldWidth: fieldRect ? Math.round(fieldRect.width) : null,
+      rightInset: fieldRect ? Math.round(fieldRect.right - controlRect.right) : null,
+    };
+  });
+  expect(activeLayout.controlHeight).toBeGreaterThanOrEqual(44);
+  expect(activeLayout.controlWidth).toBeLessThan(100);
+  expect(activeLayout.fieldWidth).toBeGreaterThan(activeLayout.controlWidth * 2);
+  expect(activeLayout.rightInset).toBe(12);
+  await expect(page.locator("#product-active")).toHaveAttribute("aria-labelledby", "product-active-label");
+  await page.locator("#product-name input").fill("本人咨询");
+  await page.locator("input#product-cover").fill("/media/self-consulting.webp");
+  await page.getByRole("button", { name: "保存商品" }).click();
+  await expect(page).toHaveURL(/\/manage\/personal\/products\/204$/);
+  expect(payloads.product).toMatchObject({
+    name: "本人咨询",
+    cover_image: "/media/self-consulting.webp",
+    expected_entity_id: 71,
+  });
+  expect(payloads.product).not.toHaveProperty("entity_id");
+  expect(payloads.handlers).toEqual({ entity_ids: [], expected_entity_id: 71 });
+
+  await page.goto("http://demo.shop.lostsky.work:5179/manage/personal/products/204/fields");
+  await page.getByRole("button", { name: "添加核销字段" }).click();
+  await page.locator('[id^="field-key-"] input').fill("appointment_note");
+  await page.locator('[id^="field-name-"] input').fill("预约说明");
+  await page.getByRole("button", { name: "保存全部字段" }).click();
+  await expect.poll(() => payloads.field).toMatchObject({
+    field_key: "appointment_note",
+    name: "预约说明",
+    expected_entity_id: 71,
+  });
+
+  await page.setViewportSize({ width: 320, height: 780 });
+  await page.goto("http://demo.shop.lostsky.work:5179/manage/personal/products");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+});
+
+test("Shop product forms upload cover images without file.upload permission", async ({ page }) => {
+  const token = `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type: "team", id: 1 } })).toString("base64url")}.x`;
+  await page.context().addCookies([{
+    name: "lostsky_token",
+    value: token,
+    domain: ".lostsky.work",
+    path: "/",
+    sameSite: "Lax",
+  }]);
+
+  let uploadApp = "";
+  await page.route("http://demo.shop.lostsky.work:5179/api/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    let data: unknown = null;
+    if (path.endsWith("/manage/access")) {
+      data = {
+        permissions: ["shop.product.write"],
+        abilities: {
+          file: { enabled: true, level: 1, expire_time: 0, reason: null, label: "文件上传" },
+        },
+      };
+    } else if (path.endsWith("/manage/options")) {
+      data = { entities: [], packages: [], campaigns: [], customers: [], services: [] };
+    } else if (path.endsWith("/upload")) {
+      uploadApp = request.headers()["x-lostsky-app"] ?? "";
+      data = { id: 88, url: "//assets.lostsky.work/products/uploaded-cover.webp" };
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: json(data) });
+  });
+
+  await page.goto("http://demo.shop.lostsky.work:5179/manage/products/new");
+  const coverInput = page.locator("#product-cover-file");
+  await expect(page.getByRole("button", { name: "上传封面" })).toBeEnabled();
+  await coverInput.setInputFiles({ name: "cover.webp", mimeType: "image/webp", buffer: Buffer.from("cover") });
+  await expect(page.locator("input#product-cover")).toHaveValue("//assets.lostsky.work/products/uploaded-cover.webp");
+  await expect(page.locator("button:has(svg[data-lostsky-image-upload])")).toBeEnabled();
+  expect(uploadApp).toBe("common");
 });
 
 test("team can inspect and redeem an Ability card then refresh current state", async ({

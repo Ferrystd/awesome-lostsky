@@ -68,6 +68,29 @@ class Customer
         return message('客户资料已更新');
     }
 
+    public function upload(Request $request)
+    {
+        $file = $request->file('file');
+        if (!$file) {
+            return error('请选择文件', 1, 422);
+        }
+
+        $result = app(\app\service\File::class)->upload(
+            $file,
+            $request->team_id,
+            $request->acting_entity
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request,
+            'shop',
+            'upload',
+            'customer_file',
+            (int) ($result['id'] ?? 0)
+        );
+
+        return success($result, '上传成功');
+    }
+
     public function assignees(Request $request)
     {
         return success(app(CustomerProfile::class)->assignees($request->team_id));

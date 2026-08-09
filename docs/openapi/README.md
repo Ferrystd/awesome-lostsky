@@ -28,6 +28,6 @@
 - 登录态：`Authorization: Bearer {token}`
 - 防重复提交：写请求优先使用每次操作唯一的 `X-Request-Id`；`X-Page-Id + 请求内容` 用于兼容页面重复提交；两个请求头都缺省时服务端仍按登录主体、请求路径和请求内容生成短期防重键。有效期内重复请求返回 429。
 - 公共上传：`common` 不能由 Origin 自动选择，调用 `/upload` 时必须显式发送 `X-LostSky-App: common`；团队仍由 Host 或 Origin 解析。
-- 当前实体写入：Team `/personal/*` 写请求必须携带 `expected_entity_id`；与当前 JWT 叶子 Entity 不一致时返回 `409`，不得回退到真实账号或父级会话。Shop Customer 使用客户中心专用接口。
+- 当前实体写入：Team `/personal/*` 与 Shop `/personal/products*` 写请求必须携带 `expected_entity_id`；与当前 JWT 叶子 Entity 不一致时返回 `409`，不得回退到真实账号或父级会话。Shop Customer 使用客户中心专用接口。
 - 分页：`page >= 1`，`limit` 范围为 `1..100`。
 - 金额：DECIMAL 金额统一返回和提交精确十进制字符串，最多两位小数；前端展示时可以格式化，但不得先转成浮点数再参与业务计算。

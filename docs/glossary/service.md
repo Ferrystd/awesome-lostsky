@@ -178,6 +178,7 @@
 | --- | --- | --- |
 | `abilityCatalog` | — | `array` |
 | `teamOptions` | `int $teamId` | `array` |
+| `productOptions` | `int $teamId` | `array` |
 | `services` | `int $teamId`、`int $page`、`int $limit`、`string $keyword = ''` | `array` |
 | `service` | `int $teamId`、`int $id` | `array` |
 | `saveService` | `int $teamId`、`?int $id`、`array $data` | `int` |
@@ -438,6 +439,21 @@
 | `delete` | `int $teamId`、`int $productId`、`int $id` | `void` |
 | `fieldsForInstance` | `model\TeamServiceInstance $instance`、`bool $customer` | `array` |
 | `saveForStage` | `model\TeamServiceInstance $instance`、`string $stage`、`array $values` | `void` |
+
+## ProductSelfManagement
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `list` | `int $teamId`、`array $actingEntity`、`array $filters`、`int $page`、`int $limit` | `array` |
+| `options` | `int $teamId`、`array $actingEntity` | `array` |
+| `get` | `int $teamId`、`array $actingEntity`、`int $id` | `array` |
+| `create` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`array $data` | `int` |
+| `edit` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id`、`array $data` | `void` |
+| `setHandlers` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id`、`array $entityIds` | `void` |
+| `fields` | `int $teamId`、`array $actingEntity`、`int $id` | `array` |
+| `createField` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id`、`array $data` | `int` |
+| `updateField` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id`、`int $fieldId`、`array $data` | `void` |
+| `deleteField` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id`、`int $fieldId` | `void` |
 
 ## Redemption
 

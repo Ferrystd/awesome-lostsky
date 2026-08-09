@@ -5,9 +5,11 @@ import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormList from '@lostsky/ui/components/LsFormList.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NAlert, NFormItem, NInput, NInputNumber, NSelect, NSwitch } from 'naive-ui'
+import { NAlert, NFormItem, NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -212,15 +214,15 @@ function deleteField() {
       </LsField>
 
       <section class="settings" aria-labelledby="application-settings-title">
-        <div class="section-heading"><h2 id="application-settings-title">申请表规则</h2><p>这些设置只影响新的加入申请，不改写历史提交。</p></div>
-        <div class="switch-row"><div><strong>允许申请人填写</strong><small>关闭后字段不会出现在申请表，也不会保存新的字段值。</small></div><NSwitch v-model:value="form.is_apply_fillable" :disabled="!canWrite" aria-label="允许申请人填写" /></div>
-        <div class="switch-row"><div><strong>申请时必填</strong><small>提交申请前必须填写；只有允许填写时才能开启。</small></div><NSwitch v-model:value="form.is_apply_required" :disabled="!canWrite || !form.is_apply_fillable" aria-label="申请时必填" /></div>
-        <div class="switch-row"><div><strong>启用字段</strong><small>停用后从申请表隐藏，但仍保留历史数据并可重新启用。</small></div><NSwitch v-model:value="form.is_active" :disabled="!canWrite" aria-label="启用字段" /></div>
+        <LsSectionHeader id="application-settings-title" title="申请表规则" description="这些设置只影响新的加入申请，不改写历史提交。" />
+        <LsSwitchField v-model="form.is_apply_fillable" label="允许申请人填写" description="关闭后字段不会出现在申请表，也不会保存新的字段值。" :disabled="!canWrite" />
+        <LsSwitchField v-model="form.is_apply_required" label="申请时必填" description="提交申请前必须填写；只有允许填写时才能开启。" :disabled="!canWrite || !form.is_apply_fillable" />
+        <LsSwitchField v-model="form.is_active" label="启用字段" description="停用后从申请表隐藏，但仍保留历史数据并可重新启用。" :disabled="!canWrite" />
       </section>
 
       <section class="settings" aria-labelledby="transfer-settings-title">
-        <div class="section-heading"><h2 id="transfer-settings-title">审批后转存</h2><p>申请通过并创建成员后，可把该值写入一个人员对象字段。</p></div>
-        <div class="switch-row"><div><strong>自动转存</strong><small>目标必须是当前团队的人员对象字段。</small></div><NSwitch v-model:value="form.is_transfer_entity_field" :disabled="!canWrite" aria-label="审批通过后自动转存" /></div>
+        <LsSectionHeader id="transfer-settings-title" title="审批后转存" description="申请通过并创建成员后，可把该值写入一个人员对象字段。" />
+        <LsSwitchField v-model="form.is_transfer_entity_field" label="自动转存" description="目标必须是当前团队的人员对象字段。" :disabled="!canWrite" />
         <LsField v-if="form.is_transfer_entity_field" label="转存目标" for-id="join-field-transfer" required :error="errors.entity_field_id">
           <NSelect id="join-field-transfer" v-model:value="form.entity_field_id" :disabled="!canWrite || transferQuery.isError.value" :loading="transferQuery.isPending.value" :options="transferSelectOptions" filterable placeholder="选择人员对象字段" aria-label="转存目标" />
         </LsField>
@@ -240,5 +242,5 @@ function deleteField() {
 </template>
 
 <style scoped>
-.join-field-form-page{display:grid;gap:1.5rem}form{display:grid;gap:1.25rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.settings{display:grid;gap:1rem;padding-top:1.25rem;border-top:1px solid var(--line)}.section-heading h2,.section-heading p{margin:0}.section-heading h2{font-size:1rem}.section-heading p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.8rem;line-height:1.55}.switch-row{min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem;background:var(--cloud);border-radius:9px}.switch-row>div{display:grid;gap:.2rem}.switch-row strong{font-size:.875rem}.switch-row small{color:var(--muted-ink);font-size:.76rem;line-height:1.5}.option-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.75rem}.option-grid label{display:grid;gap:.35rem}.option-grid label span{color:var(--muted-ink);font-size:.76rem}.actions{display:flex;flex-wrap:wrap;gap:.75rem;padding-top:.25rem}@media(max-width:639px){.join-field-form-page{gap:1rem}form{padding:1rem}.option-grid{grid-template-columns:1fr}.switch-row{align-items:flex-start}.actions{display:grid}.actions>*{width:100%}}
+.join-field-form-page{display:grid;gap:1.5rem}form{display:grid;gap:1.25rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.settings{display:grid;gap:1rem;padding-top:1.25rem;border-top:1px solid var(--line)}.option-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.75rem}.option-grid label{display:grid;gap:.35rem}.option-grid label span{color:var(--muted-ink);font-size:.76rem}.actions{display:flex;flex-wrap:wrap;gap:.75rem;padding-top:.25rem}@media(max-width:639px){.join-field-form-page{gap:1rem}form{padding:1rem}.option-grid{grid-template-columns:1fr}.actions{display:grid}.actions>*{width:100%}}
 </style>

@@ -2,7 +2,7 @@
 
 团队权限以 [`PermissionDictionary`](../../app/service/PermissionDictionary.php) 为唯一代码事实源。
 角色权限保存为 `team_role_permission.permission_key`，同一实体绑定多个角色时取权限并集。服务端保存所有不同且合法的键，不折叠父子或通配符与指定 slug；官方角色编辑器只在提交权限时生成最小集合，权限摘要则逐条展示存储记录。
-`GET /rolePermission/catalog` 向管理端返回同一字典及当前团队的动态虚拟实体项，并通过必返的 `advanced_items` 列出所有可保存父键、当前覆盖的叶子键和范围文案。身份委托、指定实体和相关动态项统一归入“实体委托”；高级目录由固定权限与当前团队动态权限的所有合法前缀生成并去重。
+`GET /rolePermission/catalog` 向管理端返回同一字典及当前团队的动态虚拟实体项，并通过必返的 `advanced_items` 列出所有可保存父键、当前覆盖的叶子键和范围文案。身份领取归入“实体委托”，虚拟实体维护归入“实体管理”，仅限聊天的代操作归入“聊天”；高级目录由固定权限与当前团队动态权限的所有合法前缀生成并去重。
 
 ## 固定权限
 
@@ -26,6 +26,7 @@
 | 商店 | `shop.product.read` | 查看商品 |
 | 商店 | `shop.product.write` | 创建、编辑商品和配置处理人 |
 | 商店 | `shop.product.delete` | 删除商品 |
+| 商店 | `shop.product.self.manage` | 管理当前 Entity 本人商品 |
 | 商店 | `shop.order.read` | 查看订单 |
 | 商店 | `shop.order.write` | 创建、取消和完成订单 |
 | 交易 | `transaction.read` | 查看流水、余额日志、发单人和交易选项 |
@@ -33,7 +34,7 @@
 | 交易 | `transaction.delete` | 删除流水 |
 | 交易 | `transaction.report.read` | 查看交易统计报表 |
 | 文件与设置 | `file.read` | 查看团队文件与用量 |
-| 文件与设置 | `file.upload` | 上传团队文件 |
+| 文件与设置 | `file.upload` | 通过团队文件库上传团队文件；资源附件上传只受 File Ability 与所属资源编辑鉴权控制 |
 | 文件与设置 | `file.delete` | 删除团队文件 |
 | 文件与设置 | `team.document.read` | 查看团队全部文档，包括当前 Entity 按可见性无法读取的文档；基础文档入口不要求此权限 |
 | 文件与设置 | `team.setting.read` | 查看团队设置及设置结构 |
@@ -44,7 +45,6 @@
 | 实体委托 | `identity.member.*.assume` | 领取当前授权团队的任意有效成员 |
 | 实体委托 | `identity.customer.*.assume` | 领取当前授权团队的任意有效客户 |
 | 实体委托 | `identity.virtual.*.assume` | 领取当前授权团队的任意有效虚拟实体 |
-| 实体委托 | `identity.virtual.*.act` | 代表当前授权团队的任意虚拟实体执行受支持的跨应用操作 |
 | 实体管理 | `team.entity.read` | 查看当前团队全部实体 |
 | 实体管理 | `team.entity.profile.manage` | 管理实体资料与展示状态 |
 | 实体管理 | `team.entity.virtual.create` | 创建虚拟实体 |
@@ -56,14 +56,15 @@
 | 聊天 | `chat.group.manage` | 管理群聊 |
 | 聊天 | `chat.temporary.create` | 创建临时会话 |
 | 聊天 | `chat.message.moderate` | 审核或撤回他人消息 |
+| 聊天 | `chat.virtual.*.act` | 代表当前授权团队的任意虚拟实体参与聊天 |
 
-## 实体委托动态权限
+## 动态权限
 
 | 模式 | 能力与约束 |
 | --- | --- |
 | `team.entity.virtual.<slug>.manage` | 管理当前团队指定虚拟实体 |
 | `team.entity.virtual.<slug>.field.manage` | 管理当前团队指定虚拟实体字段 |
-| `identity.virtual.<slug>.act` | 代表当前团队指定虚拟实体执行受支持的跨应用操作 |
+| `chat.virtual.<slug>.act` | 代表当前团队指定虚拟实体参与聊天；不切换当前身份，也不授权其他应用 |
 | `identity.member.<slug>.assume` | 领取当前团队指定有效成员 |
 | `identity.customer.<slug>.assume` | 领取当前团队指定有效客户 |
 | `identity.virtual.<slug>.assume` | 领取当前团队指定有效虚拟实体 |
@@ -72,7 +73,7 @@
 
 服务端兼容父键与子键、`*` 与指定 slug 同时存储，不在写入或读取时清理这些覆盖冗余。官方前端在用户保存角色权限时统一移除已被更宽权限覆盖的键；仅查看角色或有效权限不会触发清理。
 
-开发期升级补丁会把 `chat.virtual.*` 与 `team.entity_field.*` 一次性迁移到新命名并删除旧键。新的 `chat` 父权限只覆盖聊天能力，不提供旧键别名。
+开发期升级补丁会把旧虚拟实体、字段和 `identity.virtual.*.act` 键迁移到当前命名并删除旧键。新的 `chat` 父权限只覆盖聊天能力；`identity.virtual.*.act` 不作为运行时别名。
 
 `team.entity.read`、`team.member.read`、`team.document.read` 和 `team.customer.read` 表示“全量读取”，不是基础入口许可。没有客户全量读取权限时，当前归属实体仍可查看自己的客户；Customer 在通用实体目录中始终需要 `team.entity.read`，对无权 Customer 与团队内隐藏实体的直接访问返回 404；文档继续按自身可见性返回。`team.customer.manage` 同时授予客户全量读取，并控制资料、归属与封禁更新；客户本人在 Shop 只可修改自己的资料和归属，不因此获得后台管理权限。
 

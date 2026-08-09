@@ -1155,6 +1155,12 @@
 <td>当前 Team、成员或虚拟 Entity，且有订单读取 Permission</td>
 <td>只看到自己作为接单人或发单人参与的订单</td>
 </tr>
+<tr>
+<td>SHOP-11</td>
+<td>管理我的商品</td>
+<td>当前 Team、成员或虚拟 Entity，且有 <code>shop.product.self.manage</code></td>
+<td>创建并管理自动归属当前 Entity、不可转移的本人商品</td>
+</tr>
 </tbody>
 </table>
 <h2 id="display">Display 地址和公开范围<a class="headerlink" href="#display" title="Permanent link">&para;</a></h2>
@@ -1221,13 +1227,13 @@
 <h2 id="_7">商城客户中心<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
 <p>Shop 的 <code>/customer/profile</code> 是当前商家 Customer 的资料入口。Account 旧客户自管深链会安全跳转到这里。当前商家 Customer 可以维护：</p>
 <ul>
-<li>当前商家内的昵称（必填）、头像地址和简介；</li>
+<li>当前商家内的昵称（必填）、头像和简介；头像既可粘贴已登记 URL，也可直接选择本地图片；</li>
 <li>只读的全局客户 slug；</li>
 <li>当前服务归属。</li>
 </ul>
 <p>新绑定客户会自动得到 slug。只有历史上缺失 slug 的客户需要首次填写，领取后不可修改。客户昵称和简介只用于该商家的订单、会话和内部识别，不进入公开目录，也不产生公开客户主页。</p>
 <p>服务归属候选只包括当前团队有效 Team、成员和虚拟实体，Customer 不能成为归属人。可以选择一个，也可以清空。修改只影响后续订单和流水的发单归属，不改写历史业绩。</p>
-<p>保存时 Shop 只以当前 JWT 的叶子 Customer 为目标，不接受其他客户 ID。团队后台具有 <code>team.customer.manage</code> 的 Entity 仍可以通过原管理接口修改客户资料、归属和封禁状态。封禁后 Shop 会显示明确状态，客户不能继续购买或访问受保护客户内容。</p>
+<p>保存时 Shop 只以当前 JWT 的叶子 Customer 为目标，不接受其他客户 ID。客户头像上传使用同一身份约束的 <code>/customer/upload</code>，受商家团队 File Ability、文件类型和容量限制，但不要求客户拥有后台 <code>file.upload</code> 角色权限；上传成功后自动回填 URL，仍需保存资料才会生效。团队后台具有 <code>team.customer.manage</code> 的 Entity 仍可以通过原管理接口修改客户资料、归属和封禁状态。封禁后 Shop 会显示明确状态，客户不能继续购买或访问受保护客户内容。</p>
 <h2 id="_8">使用预存余额购买<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
 <p>选择商品后进入“确认购买”：</p>
 <ol>
@@ -1277,7 +1283,9 @@
 </ul>
 <p>客户不能把订单标记完成；完成状态由商家业务流程处理。</p>
 <h2 id="_10">商城管理后台<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h2>
-<p>Team、成员与虚拟 Entity 都可访问 <code>https://{team}.shop.lostsky.work/manage</code> 的基础团队概览；团队和个人工作台都把“概览”固定为首个导航入口。商品、订单、服务、权益包与卡活动入口始终保留，缺少对应 Shop Permission 时禁用并直接说明原因。管理后台与深色商城前台使用不同界面：前台用于浏览与购买，管理后台用于连续完成商品、订单和履约配置。顶栏与 Team 工作台一致，桌面直接显示团队、商品、记账和聊天，移动端收进“操作”菜单，不显示应用下拉或个人/团队分段控件；团队概览以“进入个人工作台”进入个人概览，个人概览以“进入团队工作台”返回团队概览，再从“我的业务订单”查看当前 Entity 作为接单人或发单人参与的订单。跨应用切换会保留当前登录与 Entity 会话。</p>
+<p>Team、成员与虚拟 Entity 都可访问 <code>https://{team}.shop.lostsky.work/manage</code> 的基础团队概览；团队和个人工作台都把“概览”固定为首个导航入口。商品、订单、服务、权益包与卡活动入口始终保留，缺少对应 Shop Permission 时禁用并直接说明原因。管理后台与深色商城前台使用不同界面：前台用于浏览与购买，管理后台用于连续完成商品、订单和履约配置。顶栏与 Team 工作台一致，桌面直接显示团队、商品、记账和聊天，移动端收进“操作”菜单，不显示应用下拉或个人/团队分段控件；团队概览以“进入个人工作台”进入个人概览，个人概览以“进入团队工作台”返回团队概览，再从“我的商品”管理当前 Entity 的专属商品，或从“我的业务订单”查看当前 Entity 作为接单人或发单人参与的订单。跨应用切换会保留当前登录与 Entity 会话。</p>
+<p>“我的商品”要求 <code>shop.product.self.manage</code>，列表、详情和所有写操作都只作用于 <code>team_product.entity_id = 当前 Entity</code> 的商品。新建商品自动归属当前 Entity 且不可转移；可编辑内容、上下架、接单人和核销字段，但不能硬删除商品，也不能在此维护团队级服务、权益包或卡活动定义。访问团队公用或他人商品会按不存在处理；保存前若已切换身份，页面会拒绝本次写入并要求重新进入当前身份的商品。</p>
+<p>团队商品与“我的商品”表单都可直接选择本地图片作为商品封面，也可在详情编辑器中上传图片；上传成功后系统自动回填已登记媒体 URL。直接上传要求团队已开通 File Ability；商品保存继续按对应商品管理权限校验，不额外要求 <code>file.upload</code>。能力不足时本地上传入口会说明具体原因，但仍可粘贴已有媒体 URL，不影响其他商品字段的编辑与保存。</p>
 <p>推荐配置顺序为：创建服务定义及接单池；把服务数量与有效天数组合成权益包；服务套餐商品直接绑定权益包，服务卡商品先创建卡活动再绑定；按需要配置核销字段并上架；最后在订单页处理手工订单、取消与完成。</p>
 <p>卡密列表只显示脱敏片段。完整卡密仅在发行结果或用户主动点击“查看”时出现；停用卡密不会撤销已经领取的权益。</p>
 <h2 id="transaction-ability">Transaction Ability 缺失时<a class="headerlink" href="#transaction-ability" title="Permanent link">&para;</a></h2>

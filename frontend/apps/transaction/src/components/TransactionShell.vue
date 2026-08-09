@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { auth } from '@lostsky/api/client'
+import { formatAbilityDenied, formatPermissionDenied } from '@lostsky/api/error-format'
 import { chatWorkspaceUrl, redirectToLogin, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
@@ -35,12 +36,13 @@ const mobileNav = computed(() => nav.value.slice(0, 3))
 const title = computed(() => String(route.meta.title ?? '记账工作台'))
 const transactionReason = computed(() => {
   if (!access.value) return '正在核对 transaction Ability'
-  return access.value.abilities?.transaction?.enabled ? '' : '当前团队未启用 transaction Ability'
+  const transaction = access.value.abilities?.transaction
+  return transaction?.enabled ? '' : formatAbilityDenied('transaction', transaction?.label ?? '记账')
 })
 const newReason = computed(() => {
   if (!access.value) return '正在核对 Permission'
   if (transactionReason.value) return transactionReason.value
-  return hasWorkspacePermission(access.value.permissions, 'transaction.write') ? '' : '缺少 transaction.write Permission'
+  return hasWorkspacePermission(access.value.permissions, 'transaction.write') ? '' : formatPermissionDenied(['transaction.write'])
 })
 const appEntries = computed(() => {
   const personal = activeWorkspace.value === 'personal'
@@ -63,7 +65,7 @@ function disabledReason(permission: string | null) {
   if (!permission) return ''
   if (!access.value) return '正在核对 Permission'
   if (transactionReason.value) return transactionReason.value
-  return hasWorkspacePermission(access.value.permissions, permission) ? '' : `缺少 ${permission} Permission`
+  return hasWorkspacePermission(access.value.permissions, permission) ? '' : formatPermissionDenied([permission])
 }
 function explain(reason: string) { feedback.info(reason) }
 function logout() {
@@ -105,7 +107,7 @@ function logout() {
             quaternary
             :title="transactionEntry.reason"
             :aria-label="`记账不可用：${transactionEntry.reason}`"
-            @click="explain(transactionEntry.reason || '当前团队未启用 transaction Ability')"
+            @click="explain(transactionEntry.reason || formatAbilityDenied('transaction', '记账'))"
           ><template #icon><ReceiptText :size="17" /></template><span>记账</span></NButton>
           <RouterLink v-else class="app-link" to="/"><ReceiptText :size="17" /><span>记账</span></RouterLink>
           <a class="app-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>

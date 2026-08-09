@@ -37,8 +37,8 @@ $assertSame(
     'request body slug and wildcard union'
 );
 $assertSame(
-    ['identity.virtual.support_bot.act', 'identity.virtual.*.act'],
-    $gate->candidates((new Request)->withRoute(['slug' => 'support_bot']), 'identity.virtual.<slug>.act'),
+    ['chat.virtual.support_bot.act', 'chat.virtual.*.act'],
+    $gate->candidates((new Request)->withRoute(['slug' => 'support_bot']), 'chat.virtual.<slug>.act'),
     'route slug and wildcard union'
 );
 $assertSame(
@@ -128,6 +128,11 @@ $assertThrows(
     'legacy chat virtual keys are not authorization aliases'
 );
 $assertThrows(
+    fn () => $gate->assertKey('identity.virtual.support_bot.act'),
+    500,
+    'legacy identity virtual act keys are not authorization aliases'
+);
+$assertThrows(
     fn () => $gate->assertKey('team.entity_field.manage'),
     500,
     'legacy entity field keys are not authorization aliases'
@@ -148,9 +153,9 @@ $assertSame(
     'platform administrator permissions are not exposed to team roles'
 );
 $assertSame(
-    ['identity.virtual.support_bot.act'],
+    ['chat.virtual.support_bot.act'],
     [PermissionDictionary::virtual('support_bot', 'act')],
-    'cross-application virtual act keys are built by the dictionary'
+    'chat-only virtual act keys are built by the dictionary'
 );
 $assertSame(
     [PermissionDictionary::TEAM_ENTITY_FIELD_MANAGE],
@@ -199,6 +204,20 @@ $assertSame(
     ['team.customer.read', 'team.customer.manage'],
     [PermissionDictionary::TEAM_CUSTOMER_READ, PermissionDictionary::TEAM_CUSTOMER_MANAGE],
     'customer read and manage permissions use documented dotted keys'
+);
+$assertSame(
+    ['shop.product.self.manage'],
+    [PermissionDictionary::SHOP_PRODUCT_SELF_MANAGE],
+    'self product management uses the documented dotted key'
+);
+$assertSame(
+    [true, true, true],
+    [
+        PermissionDictionary::isFixedKeyOrParent('shop'),
+        PermissionDictionary::isFixedKeyOrParent('shop.product'),
+        PermissionDictionary::isFixedKeyOrParent('shop.product.self'),
+    ],
+    'shop parent segments are recognized for hierarchical self-management grants'
 );
 $abilityError = AccessDeniedException::ability('file', '文件上传');
 $assertSame(

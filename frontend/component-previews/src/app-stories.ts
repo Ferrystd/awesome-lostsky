@@ -18,7 +18,7 @@ import AdminPageHeader from "../../apps/team/src/components/AdminPageHeader.vue"
 import EntityFieldsCard from "../../apps/team/src/components/EntityFieldsCard.vue";
 import EntityPermissionsCard from "../../apps/team/src/components/EntityPermissionsCard.vue";
 import EntitySelectOption from "../../apps/team/src/components/EntitySelectOption.vue";
-import MemberProfileFields from "../../apps/team/src/components/MemberProfileFields.vue";
+import EntityProfileFields from "../../apps/team/src/components/EntityProfileFields.vue";
 import TeamShell from "../../apps/team/src/components/TeamShell.vue";
 import TransactionShell from "../../apps/transaction/src/components/TransactionShell.vue";
 import ShopManageShell from "../../apps/shop/src/components/ShopManageShell.vue";
@@ -390,7 +390,7 @@ const roles = [
       { permission_key: "team.document.write" },
       { permission_key: "team.customer.read" },
       { permission_key: "chat.conversation.create" },
-      { permission_key: "identity.virtual.*.act" },
+      { permission_key: "chat.virtual.*.act" },
       { permission_key: "identity.member.*.assume" },
       { permission_key: "identity.member.member-2.assume" },
       { permission_key: "identity.member.member-2" },
@@ -433,7 +433,7 @@ const entityPermissionsCard = story(
           { key: "team.customer.read", label: "查看客户", group: "客户" },
           { key: "team.customer.read", label: "查看客户", group: "客户" },
           { key: "chat.conversation.create", label: "创建会话", group: "聊天" },
-          { key: "identity.virtual.*.act", label: "代表全部虚拟实体执行操作", group: "实体委托" },
+          { key: "chat.virtual.*.act", label: "代表全部虚拟实体参与聊天", group: "聊天" },
           { key: "identity.member.*.assume", label: "领取全部成员身份", group: "实体委托" },
           { key: "identity.member.member-2.assume", label: "领取成员二号身份", group: "实体委托" },
           { key: "identity.member.member-2.assume", label: "领取成员二号身份", group: "实体委托" },
@@ -453,6 +453,7 @@ const entityPermissionsCard = story(
             name: "聊天",
             items: [
               { key: "chat.conversation.create", label: "创建会话" },
+              { key: "chat.virtual.*.act", label: "代表全部虚拟实体参与聊天" },
             ],
           },
           {
@@ -460,7 +461,6 @@ const entityPermissionsCard = story(
             items: [
               { key: "identity.member.*.assume", label: "领取全部成员身份" },
               { key: "identity.member.member-2.assume", label: "领取成员二号身份" },
-              { key: "identity.virtual.*.act", label: "代表全部虚拟实体执行操作" },
             ],
           },
         ],
@@ -491,17 +491,21 @@ const memberProfile = {
   intro_video: "",
   introduction_markdown: "## 自我介绍\n\n今天也在认真维护团队资料。",
 };
-const memberProfileFields = story(
-  "MemberProfileFields",
+const entityProfileFields = story(
+  "EntityProfileFields",
   ["default", "hover", "focus", "active", "disabled", "loading", "mobile"],
   (state) =>
     stage(
-      h(MemberProfileFields, {
+      h(EntityProfileFields, {
         modelValue: { ...memberProfile },
         draftKey: "",
+        idPrefix: "preview-profile",
+        nameKey: "nickname",
+        nameLabel: "团队昵称",
+        uploadFile: async () => "//assets.lostsky.work/avatar.png",
         uploadDisabledReason:
           state === "disabled" ? "当前团队未开通文件上传" : "",
-        uploading: state === "loading" ? "avatar" : "",
+        uploading: state === "loading",
         editorReady: true,
       }),
       "story-stage--profile",
@@ -600,7 +604,7 @@ export const appStories: Record<string, StoryDefinition> = {
   EntityFieldsCard: entityFieldsCard,
   EntityPermissionsCard: entityPermissionsCard,
   EntitySelectOption: entitySelectOption,
-  MemberProfileFields: memberProfileFields,
+  EntityProfileFields: entityProfileFields,
   TeamShell: teamShell,
   TransactionShell: transactionShell,
   ShopManageShell: shopManageShell,

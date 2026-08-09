@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { api, friendlyError } from '@lostsky/api/client'
+import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
-import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput } from 'naive-ui'
@@ -16,19 +16,18 @@ import EntityPermissionsCard, {
   type RoleAssignment,
   type RoleRecord,
 } from '../components/EntityPermissionsCard.vue'
-import MemberProfileFields from '../components/MemberProfileFields.vue'
-import { useMemberProfileUpload } from '../composables/useMemberProfileUpload'
-import { fileUploadReason, useTeamAccess } from '../lib/teamAccess'
+import EntityProfileFields from '../components/EntityProfileFields.vue'
+import { resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 const client = useQueryClient()
-const editor = ref<InstanceType<typeof MemberProfileFields> | null>(null)
+const editor = ref<InstanceType<typeof EntityProfileFields> | null>(null)
 const access = useTeamAccess()
-const uploadDisabledReason = computed(() => fileUploadReason(access.data.value))
+const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
 const query = useQuery({ queryKey: ['me'], queryFn: () => api.get<Record<string, unknown>>('/me/get') })
 const form = reactive({ nickname: '', avatar: '', description: '', intro_image: '', intro_video: '', introduction_markdown: '' })
 const profileModel = computed({ get: () => form, set: value => Object.assign(form, value) })
 const slug = ref('')
-const { uploading, uploadError, upload } = useMemberProfileUpload(form, uploadDisabledReason)
+const uploading = ref(false)
 const profileSnapshot = ref('')
 const fieldsDirty = ref(false)
 
@@ -131,7 +130,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
     </section>
 
     <LsPanel><section class="self-identity" aria-labelledby="self-identity-title">
-      <div class="section-heading"><div><h2 id="self-identity-title">我的对象标识</h2><p>用于对象引用和实体身份切换。</p></div><span>本人可见</span></div>
+      <LsSectionHeader id="self-identity-title" title="我的对象标识" description="用于对象引用和实体身份切换。"><template #aside><span class="section-state">本人可见</span></template></LsSectionHeader>
       <p class="muted">设置后，其他成员可以在 Markdown 中通过 @slug 引用你。标识首次确认后永久不变。</p>
       <div v-if="query.data.value?.slug" class="claimed"><span>已认领</span><strong>@{{ query.data.value.slug }}</strong><small>不可修改或释放</small></div>
       <form v-else class="claim-form" @submit.prevent="claim.mutate()">
@@ -141,10 +140,8 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
     </section></LsPanel>
 
     <form id="my-profile-form" @submit.prevent="save.mutate()"><LsPanel><div class="profile-form">
-      <div class="section-heading">
-        <div><h2>公开资料</h2><p>展示在当前团队中的名称、头像和介绍。</p></div>
-      </div>
-      <MemberProfileFields ref="editor" v-model="profileModel" draft-key="my-profile" :upload-disabled-reason="uploadDisabledReason" :uploading="uploading" :editor-ready="query.isSuccess.value" @upload="upload"><template #error><LsInlineError v-if="uploadError" :message="uploadError" /></template></MemberProfileFields>
+      <LsSectionHeader title="公开资料" description="展示在当前团队中的名称、头像和介绍。" />
+      <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" draft-key="my-profile" id-prefix="my-profile" name-key="nickname" name-label="团队昵称" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" :editor-ready="query.isSuccess.value" />
     </div></LsPanel></form>
 
     <EntityFieldsCard
@@ -155,6 +152,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
       :loading="query.isPending.value"
       :saving="saveFields.isPending.value"
       :success="saveFields.isSuccess.value"
+      :upload-disabled-reason="uploadDisabledReason"
       @save="saveFields.mutate"
       @dirty="setFieldsDirty"
     />
@@ -184,10 +182,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
 .identity-card h1 { margin: 0 0 4px; font-size: 1.45rem; }
 .identity-card span { color: var(--text-secondary); font-size: .82rem; }
 .self-identity, .profile-form { display: grid; gap: 18px; }
-.section-heading { display: flex; justify-content: space-between; gap: 16px; }
-.section-heading p { max-width: 65ch; margin: 5px 0 0; color: var(--text-secondary); font-size: .82rem; line-height: 1.55; }
-.section-heading h2 { margin: 0; font-size: 1.05rem; }
-.section-heading > span { color: var(--text-tertiary); font-size: .8rem; }
+.section-state { color: var(--text-tertiary); font-size: .8rem; }
 .claim-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; }
 .claimed { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--radius-md); background: var(--surface-subtle); }
 .claimed strong { color: var(--primary); }

@@ -22,6 +22,7 @@ final class PermissionDictionary
     public const SHOP_PRODUCT_READ = 'shop.product.read';
     public const SHOP_PRODUCT_WRITE = 'shop.product.write';
     public const SHOP_PRODUCT_DELETE = 'shop.product.delete';
+    public const SHOP_PRODUCT_SELF_MANAGE = 'shop.product.self.manage';
     public const SHOP_ORDER_READ = 'shop.order.read';
     public const SHOP_ORDER_WRITE = 'shop.order.write';
     public const SERVICE_REDEMPTION_READ = 'service.redemption.read';
@@ -46,12 +47,12 @@ final class PermissionDictionary
     public const IDENTITY_MEMBER_ALL_ASSUME = 'identity.member.*.assume';
     public const IDENTITY_CUSTOMER_ALL_ASSUME = 'identity.customer.*.assume';
     public const IDENTITY_VIRTUAL_ALL_ASSUME = 'identity.virtual.*.assume';
-    public const IDENTITY_VIRTUAL_ALL_ACT = 'identity.virtual.*.act';
 
     public const CHAT_CONVERSATION_CREATE = 'chat.conversation.create';
     public const CHAT_GROUP_MANAGE = 'chat.group.manage';
     public const CHAT_TEMPORARY_CREATE = 'chat.temporary.create';
     public const CHAT_MESSAGE_MODERATE = 'chat.message.moderate';
+    public const CHAT_VIRTUAL_ALL_ACT = 'chat.virtual.*.act';
     public const TEAM_ENTITY_VIRTUAL_CREATE = 'team.entity.virtual.create';
     public const TEAM_ENTITY_VIRTUAL_ALL_MANAGE = 'team.entity.virtual.*.manage';
     public const TEAM_ENTITY_VIRTUAL_ALL_FIELD_MANAGE = 'team.entity.virtual.*.field.manage';
@@ -99,6 +100,7 @@ final class PermissionDictionary
             self::SHOP_PRODUCT_READ => '查看商品',
             self::SHOP_PRODUCT_WRITE => '编辑商品',
             self::SHOP_PRODUCT_DELETE => '删除商品',
+            self::SHOP_PRODUCT_SELF_MANAGE => '管理本人商品',
             self::SHOP_ORDER_READ => '查看订单',
             self::SHOP_ORDER_WRITE => '处理订单',
         ],
@@ -137,13 +139,13 @@ final class PermissionDictionary
             self::IDENTITY_MEMBER_ALL_ASSUME => '领取全部成员身份',
             self::IDENTITY_CUSTOMER_ALL_ASSUME => '领取全部客户身份',
             self::IDENTITY_VIRTUAL_ALL_ASSUME => '领取全部虚拟实体身份',
-            self::IDENTITY_VIRTUAL_ALL_ACT => '代表全部虚拟实体执行受支持操作',
         ],
         '聊天' => [
             self::CHAT_CONVERSATION_CREATE => '创建会话',
             self::CHAT_GROUP_MANAGE => '管理群聊',
             self::CHAT_TEMPORARY_CREATE => '创建临时会话',
             self::CHAT_MESSAGE_MODERATE => '审核与撤回消息',
+            self::CHAT_VIRTUAL_ALL_ACT => '代表全部虚拟实体参与聊天',
         ],
     ];
 
@@ -234,7 +236,7 @@ final class PermissionDictionary
         }
 
         if (preg_match(
-            '/^identity\.virtual\.([a-z0-9][a-z0-9_-]{0,49})\.act$/',
+            '/^chat\.virtual\.([a-z0-9][a-z0-9_-]{0,49})\.act$/',
             $key,
             $match
         )) {
@@ -273,7 +275,7 @@ final class PermissionDictionary
     {
         return match ($action) {
             'manage', 'field.manage' => "team.entity.virtual.{$slug}.{$action}",
-            'act' => "identity.virtual.{$slug}.act",
+            'act' => "chat.virtual.{$slug}.act",
             default => throw new \InvalidArgumentException("Unsupported virtual permission action: {$action}"),
         };
     }

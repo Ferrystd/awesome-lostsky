@@ -2,12 +2,13 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsCheckboxGroupField from '@lostsky/ui/components/LsCheckboxGroupField.vue'
 import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { ExternalLink, Search, ShieldCheck } from '@lucide/vue'
-import { NCheckbox, NEmpty, NSkeleton, NTag } from 'naive-ui'
+import { NEmpty, NSkeleton, NTag } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -44,6 +45,12 @@ const rolesQuery = useQuery({
   queryFn: () => api.get<RoleRecord[]>('/role/index'),
 })
 const roles = computed(() => rolesQuery.data.value ?? [])
+const roleOptions = computed(() => roles.value.map(role => ({
+  value: Number(role.id),
+  label: role.name || `角色 #${role.id}`,
+  meta: role.role_key,
+  description: role.description || undefined,
+})))
 const resolveEntity = useMutation({
   mutationFn: async (slug: string) => {
     const [entity, assignments] = await Promise.all([
@@ -112,11 +119,6 @@ function openProfile(entity: EntityDisplay) {
   const href = profileLinks.get(entity.slug)
   if (href) location.assign(href)
 }
-function toggleRole(id: number, checked: boolean) {
-  roleIds.value = checked
-    ? [...new Set([...roleIds.value, id])]
-    : roleIds.value.filter(item => item !== id)
-}
 function entityTypeLabel(type: EntityType) {
   return ({ team: '团队', teamMember: '成员', teamCustomer: '客户', teamVirtual: '虚拟实体' })[type]
 }
@@ -173,16 +175,7 @@ function entityTypeLabel(type: EntityType) {
           <div><h3>当前团队角色</h3><p>勾选后保存完整角色集合；未勾选表示撤销该角色。</p></div>
           <LsButton :loading="save.isPending.value" :disabled="!roles.length" @click="save.mutate()">保存分配</LsButton>
         </div>
-        <div v-if="roles.length" class="role-options">
-          <NCheckbox
-            v-for="role in roles"
-            :key="role.id"
-            :checked="roleIds.includes(Number(role.id))"
-            @update:checked="toggleRole(Number(role.id), $event)"
-          >
-            <span><strong>{{ role.name }}</strong><code>{{ role.role_key }}</code><small>{{ role.description || '暂无说明' }}</small></span>
-          </NCheckbox>
-        </div>
+        <LsCheckboxGroupField v-if="roles.length" v-model="roleIds" label="当前团队角色" :options="roleOptions" />
         <NEmpty v-else description="还没有可分配的角色">
           <template #extra><RouterLink to="/roles/new">新建角色</RouterLink></template>
         </NEmpty>
@@ -194,6 +187,6 @@ function entityTypeLabel(type: EntityType) {
 </template>
 
 <style scoped>
-.entity-roles{display:grid;gap:1.5rem}.lookup,.assignment,.empty,.loading{padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.lookup{display:grid;gap:.4rem}.lookup label{font-size:.9rem;font-weight:700}.lookup p{margin:0;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.lookup-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.75rem;margin-top:.45rem}.assignment{display:grid;gap:1.25rem}.assignment>header{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:start;gap:.75rem;padding-bottom:1.1rem;border-bottom:1px solid var(--line)}.assignment>header>svg{color:var(--sky-lost-strong)}.assignment h3,.assignment p,.assignment small{margin:0}.assignment>header h3{font-size:1rem}.assignment>header p,.assignment>header small{display:block;margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.assignment-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.assignment-heading h3{font-size:1rem}.assignment-heading p{max-width:60ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.role-options{display:grid;gap:1px;overflow:hidden;background:var(--line);border:1px solid var(--line);border-radius:8px}.role-options :deep(.n-checkbox){min-height:64px;align-items:center;padding:.65rem .75rem;background:white}.role-options :deep(.n-checkbox:hover){background:var(--cloud)}.role-options span{display:grid;grid-template-columns:auto 1fr;gap:.15rem .6rem}.role-options strong{font-size:.875rem}.role-options code{align-self:center;color:var(--muted-ink);font-size:.72rem}.role-options small{grid-column:1/-1;color:var(--muted-ink);font-size:.75rem}.empty{padding-block:3.5rem}.loading{display:grid;gap:1rem}.error{margin:0;padding:1rem;color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%);border-radius:8px}
+.entity-roles{display:grid;gap:1.5rem}.lookup,.assignment,.empty,.loading{padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.lookup{display:grid;gap:.4rem}.lookup label{font-size:.9rem;font-weight:700}.lookup p{margin:0;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.lookup-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.75rem;margin-top:.45rem}.assignment{display:grid;gap:1.25rem}.assignment>header{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:start;gap:.75rem;padding-bottom:1.1rem;border-bottom:1px solid var(--line)}.assignment>header>svg{color:var(--sky-lost-strong)}.assignment h3,.assignment p,.assignment small{margin:0}.assignment>header h3{font-size:1rem}.assignment>header p,.assignment>header small{display:block;margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.assignment-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.assignment-heading h3{font-size:1rem}.assignment-heading p{max-width:60ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.empty{padding-block:3.5rem}.loading{display:grid;gap:1rem}.error{margin:0;padding:1rem;color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%);border-radius:8px}
 @media(max-width:639px){.lookup-control{grid-template-columns:1fr}.assignment>header{grid-template-columns:24px minmax(0,1fr)}.assignment>header :deep(.n-tag){grid-column:2;justify-self:start}.assignment-heading{align-items:stretch;flex-direction:column}.assignment-heading :deep(.n-button){width:100%}}
 </style>

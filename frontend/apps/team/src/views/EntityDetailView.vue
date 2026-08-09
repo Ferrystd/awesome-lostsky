@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import { api, friendlyError } from '@lostsky/api/client'
+import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormList from '@lostsky/ui/components/LsFormList.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ExternalLink, MessageCircleMore } from '@lucide/vue'
-import { NInput, NSwitch } from 'naive-ui'
+import { NInput } from 'naive-ui'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import EntityProfileFields from '../components/EntityProfileFields.vue'
 import {
   createDocumentTagGroupDraft,
   documentTagDescriptionError,
@@ -22,7 +25,7 @@ import {
   hasDocumentTagGroupErrors,
   type DocumentTagGroupDraft,
 } from '../lib/documentTags'
-import { permissionReason } from '../lib/teamAccess'
+import { permissionReason, resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 type EntityDetail = {
   id: number
@@ -44,6 +47,7 @@ type EntityDetail = {
 
 const route = useRoute()
 const client = useQueryClient()
+const access = useTeamAccess()
 const id = computed(() => Number(route.query.id || 0))
 const detail = useQuery({
   queryKey: computed(() => ['entity', id.value]),
@@ -58,6 +62,10 @@ const form = reactive({
   introduction_markdown: '',
   document_tags: [] as DocumentTagGroupDraft[],
 })
+const profileModel = computed({ get: () => form, set: value => Object.assign(form, value) })
+const editor = ref<InstanceType<typeof EntityProfileFields> | null>(null)
+const uploading = ref(false)
+const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
 const tagValidationSubmitted = ref(false)
 const isDisplayed = ref(false)
 const isInternalVisible = ref(true)
@@ -103,6 +111,7 @@ const profileSave = useMutation({
     return api.post('/entity/profile', payload)
   },
   onSuccess: () => {
+    editor.value?.clearDraft()
     feedback.success('实体资料已保存')
     return client.invalidateQueries({ queryKey: ['entity', id.value] })
   },
@@ -185,22 +194,19 @@ async function submitProfile() {
       </p>
 
       <form @submit.prevent="submitProfile"><LsPanel><div class="profile-panel">
-        <div class="panel-heading">
-          <div>
-            <h2>{{ detail.data.value.entityable_type }} · @{{ detail.data.value.slug }}</h2>
-            <p>这些资料用于实体详情；公开页面仍受“公开主页展示”控制。</p>
-          </div>
-          <a v-if="displayUrl" :href="displayUrl" target="_blank" rel="noopener noreferrer">
-            查看公开主页<ExternalLink :size="16" />
-          </a>
-        </div>
-        <label>名称<NInput v-model:value="form.name" :disabled="!canManage" /></label>
-        <label>头像 URL<NInput v-model:value="form.avatar" :disabled="!canManage" /></label>
-        <label>展示图片（人物图）URL
-          <NInput v-model:value="form.intro_image" :disabled="!canManage" placeholder="用于公开主页 Hero 的人物图" />
-        </label>
-        <p class="field-help">建议使用透明背景或竖版人物图；未设置时使用名称占位。</p>
-        <label>简介<NInput v-model:value="form.description" type="textarea" :disabled="!canManage" /></label>
+        <LsSectionHeader :title="`${detail.data.value.entityable_type} · @${detail.data.value.slug}`" description="这些资料用于实体详情；公开页面仍受“公开主页展示”控制。">
+          <template v-if="displayUrl" #aside><a class="public-link" :href="displayUrl" target="_blank" rel="noopener noreferrer">查看公开主页<ExternalLink :size="16" /></a></template>
+        </LsSectionHeader>
+        <EntityProfileFields
+          ref="editor"
+          v-model="profileModel"
+          v-model:uploading="uploading"
+          :draft-key="`entity-profile:${id}`"
+          id-prefix="entity-profile"
+          :upload-file="uploadFileUrl"
+          :upload-disabled-reason="uploadDisabledReason"
+          :disabled="!canManage"
+        />
         <section v-if="supportsPublicDocuments" class="document-tag-groups" aria-labelledby="document-tag-groups-title">
           <div>
             <h3 id="document-tag-groups-title">公开文档分组</h3>
@@ -254,38 +260,48 @@ async function submitProfile() {
           </LsFormList>
         </section>
         <span :tabindex="canManage ? -1 : 0" :aria-describedby="canManage ? undefined : 'entity-manage-reason'">
-          <LsButton type="submit" :disabled="!canManage" :loading="profileSave.isPending.value">保存资料</LsButton>
+          <LsButton type="submit" :disabled="!canManage || uploading" :loading="profileSave.isPending.value">保存资料</LsButton>
         </span>
       </div></LsPanel></form>
 
       <LsPanel><section class="setting">
-        <div>
+        <LsSwitchField
+          v-if="canToggleInternal"
+          v-model="isInternalVisible"
+          label="团队内可见"
+          aria-label="在团队工作空间内可见"
+          :heading-level="2"
+          description="控制普通成员是否能在当前团队工作空间发现该实体；具有 team.entity.read 的角色仍可查看。它不影响全局搜索或公开主页。"
+          :disabled="!canManage"
+          checked-text="可见"
+          unchecked-text="隐藏"
+        />
+        <div v-else>
           <h2>团队内可见</h2>
           <p>控制普通成员是否能在当前团队工作空间发现该实体；具有 <code>team.entity.read</code> 的角色仍可查看。它不影响全局搜索或公开主页。</p>
+          <p class="fixed-state">{{ internalFixedMessage }}</p>
         </div>
-        <NSwitch
-          v-if="canToggleInternal"
-          v-model:value="isInternalVisible"
-          :disabled="!canManage"
-          aria-label="在团队工作空间内可见"
-        >
-          <template #checked>可见</template><template #unchecked>隐藏</template>
-        </NSwitch>
-        <p v-else class="fixed-state">{{ internalFixedMessage }}</p>
         <span v-if="canToggleInternal" :tabindex="canManage ? -1 : 0" :aria-describedby="canManage ? undefined : 'entity-manage-reason'">
           <LsButton variant="secondary" :disabled="!canManage" :loading="visibilitySave.isPending.value" @click="visibilitySave.mutate()">保存团队内可见设置</LsButton>
         </span>
       </section></LsPanel>
 
       <LsPanel><section class="setting">
-        <div>
+        <LsSwitchField
+          v-if="canDisplay"
+          v-model="isDisplayed"
+          label="公开主页展示"
+          aria-label="在公开主页展示"
+          :heading-level="2"
+          description="控制互联网访客能否在 Display 公开主页浏览该实体。它不影响团队内目录或全局搜索。"
+          :disabled="!canManage"
+          checked-text="公开"
+          unchecked-text="隐藏"
+        />
+        <div v-else>
           <h2>公开主页展示</h2>
-          <p v-if="canDisplay">控制互联网访客能否在 Display 公开主页浏览该实体。它不影响团队内目录或全局搜索。</p>
-          <p v-else>Team 主页始终公开；客户实体为保护隐私不支持公开展示。</p>
+          <p>Team 主页始终公开；客户实体为保护隐私不支持公开展示。</p>
         </div>
-        <NSwitch v-if="canDisplay" v-model:value="isDisplayed" :disabled="!canManage" aria-label="在公开主页展示">
-          <template #checked>公开</template><template #unchecked>隐藏</template>
-        </NSwitch>
         <span v-if="canDisplay" :tabindex="canManage ? -1 : 0" :aria-describedby="canManage ? undefined : 'entity-manage-reason'">
           <LsButton variant="secondary" :disabled="!canManage" :loading="displaySave.isPending.value" @click="displaySave.mutate()">保存公开设置</LsButton>
         </span>
@@ -295,6 +311,6 @@ async function submitProfile() {
 </template>
 
 <style scoped>
-.entity-detail{display:grid;gap:22px}.chat-action{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .875rem;color:white;background:var(--sky-lost-strong);border-radius:8px;font-size:.875rem;font-weight:650}.profile-panel,.setting{display:grid;gap:16px}.profile-panel h2,.profile-panel p,.setting h2,.setting p,.document-tag-groups h3,.document-tag-groups p{margin:0}.profile-panel h2,.setting h2{font-size:1.05rem}.profile-panel label{display:grid;gap:7px;color:var(--text-secondary);font-weight:650}.panel-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}.panel-heading p,.setting>div p{max-width:68ch;margin-top:.4rem;color:var(--text-secondary);font-size:.84rem;line-height:1.6}.panel-heading a{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;color:var(--primary);font-size:.82rem;font-weight:650;white-space:nowrap}.field-help{margin-top:-10px!important;color:var(--text-secondary);font-size:.8rem;line-height:1.55}.document-tag-groups{display:grid;gap:16px;padding-top:4px}.document-tag-groups h3{font-size:1rem}.document-tag-groups>div>p{max-width:68ch;margin-top:5px;color:var(--text-secondary);font-size:.84rem;line-height:1.55}.document-tag-group-fields{min-width:0;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);align-items:start;gap:12px}.setting :deep(.n-switch){min-height:44px;justify-self:start}.profile-panel>span{justify-self:start}.profile-panel>span:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 65%);outline-offset:3px;border-radius:8px}.permission-note{margin:0;padding:.8rem 1rem;color:var(--muted-ink);background:color-mix(in oklch,var(--sky-lost),white 92%);border:1px solid color-mix(in oklch,var(--sky-lost),white 65%);border-radius:8px;font-size:.84rem}.fixed-state{color:var(--muted-ink);font-size:.84rem}.feedback{padding:.75rem;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}code{font-size:.8em}
-@media(max-width:639px){.panel-heading{display:grid}.document-tag-group-fields{grid-template-columns:1fr}.profile-panel>span,.profile-panel :deep(.ls-button){width:100%}}
+.entity-detail{display:grid;gap:22px}.chat-action{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .875rem;color:white;background:var(--sky-lost-strong);border-radius:8px;font-size:.875rem;font-weight:650}.profile-panel,.setting{display:grid;gap:16px}.profile-panel h2,.profile-panel p,.setting h2,.setting p,.document-tag-groups h3,.document-tag-groups p{margin:0}.profile-panel h2,.setting h2{font-size:1.05rem}.profile-panel label{display:grid;gap:7px;color:var(--text-secondary);font-weight:650}.setting>div p{max-width:68ch;margin-top:.4rem;color:var(--text-secondary);font-size:.84rem;line-height:1.6}.public-link{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;color:var(--primary);font-size:.82rem;font-weight:650;white-space:nowrap}.document-tag-groups{display:grid;gap:16px;padding-top:4px}.document-tag-groups h3{font-size:1rem}.document-tag-groups>div>p{max-width:68ch;margin-top:5px;color:var(--text-secondary);font-size:.84rem;line-height:1.55}.document-tag-group-fields{min-width:0;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);align-items:start;gap:12px}.profile-panel>span{justify-self:start}.profile-panel>span:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 65%);outline-offset:3px;border-radius:8px}.permission-note{margin:0;padding:.8rem 1rem;color:var(--muted-ink);background:color-mix(in oklch,var(--sky-lost),white 92%);border:1px solid color-mix(in oklch,var(--sky-lost),white 65%);border-radius:8px;font-size:.84rem}.fixed-state{color:var(--muted-ink);font-size:.84rem}.feedback{padding:.75rem;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}code{font-size:.8em}
+@media(max-width:639px){.document-tag-group-fields{grid-template-columns:1fr}.profile-panel>span,.profile-panel :deep(.ls-button){width:100%}}
 </style>

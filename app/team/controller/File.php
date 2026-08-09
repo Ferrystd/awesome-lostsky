@@ -9,11 +9,12 @@ use think\Request;
 class File
 {
     protected $middleware = [
-        'JwtAuth'      => ['only' => ['index', 'get', 'delete', 'usage']],
-        'Context'      => ['only' => ['index', 'get', 'delete', 'usage']],
-        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'delete', 'usage']],
-        'TeamAuth'     => ['only' => ['index', 'get', 'delete', 'usage']],
+        'JwtAuth'      => ['only' => ['index', 'get', 'upload', 'delete', 'usage']],
+        'Context'      => ['only' => ['index', 'get', 'upload', 'delete', 'usage']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'upload', 'delete', 'usage']],
+        'TeamAuth'     => ['only' => ['index', 'get', 'upload', 'delete', 'usage']],
         'Permission:' . Permissions::FILE_READ => ['only' => ['index', 'get', 'usage']],
+        'Permission:' . Permissions::FILE_UPLOAD => ['only' => ['upload']],
         'Permission:' . Permissions::FILE_DELETE => ['only' => ['delete']],
     ];
 
@@ -39,6 +40,29 @@ class File
         $result  = $service->get($request->team_id, $id);
 
         return success($result);
+    }
+
+    public function upload(Request $request)
+    {
+        $file = $request->file('file');
+        if (!$file) {
+            return error('请选择文件', 1, 422);
+        }
+
+        $result = app(\app\service\File::class)->upload(
+            $file,
+            $request->team_id,
+            $request->acting_entity
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request,
+            'team',
+            'upload',
+            'file',
+            (int) ($result['id'] ?? 0)
+        );
+
+        return success($result, '上传成功');
     }
 
     public function delete(Request $request)

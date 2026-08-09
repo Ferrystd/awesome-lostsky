@@ -7,7 +7,7 @@ describe('permission hierarchy', () => {
     expect(permissionCovers('team.ability', 'team.ability.redeem')).toBe(true)
     expect(permissionCovers('team', 'team.ability.redeem')).toBe(true)
     expect(permissionCovers('team.entity.virtual.*', 'team.entity.virtual.bot.manage')).toBe(true)
-    expect(permissionCovers('identity.virtual.*.act', 'identity.virtual.bot.act')).toBe(true)
+    expect(permissionCovers('chat.virtual.*.act', 'chat.virtual.bot.act')).toBe(true)
     expect(permissionCovers('team.entity.virtual.bot', 'team.entity.virtual.*.manage')).toBe(false)
     expect(permissionCovers('team.ability', 'team.notice.read')).toBe(false)
   })
@@ -42,23 +42,23 @@ describe('permission hierarchy', () => {
   it('keeps unrelated sibling scopes', () => {
     expect(minimalPermissions([
       'team.entity.virtual.helper.manage',
-      'identity.virtual.helper.act',
+      'chat.virtual.helper.act',
       'team.entity.virtual.other.manage',
     ])).toEqual([
-      'identity.virtual.helper.act',
+      'chat.virtual.helper.act',
       'team.entity.virtual.helper.manage',
       'team.entity.virtual.other.manage',
     ])
   })
 
-  it('minimizes the new cross-application namespaces before saving', () => {
+  it('minimizes entity management and chat virtual scopes before saving', () => {
     expect(permissionsForSave([
       'team.entity.virtual.*.manage',
       'team.entity.virtual.helper.manage',
-      'identity.virtual.*.act',
-      'identity.virtual.helper.act',
+      'chat.virtual.*.act',
+      'chat.virtual.helper.act',
     ])).toEqual([
-      'identity.virtual.*.act',
+      'chat.virtual.*.act',
       'team.entity.virtual.*.manage',
     ])
   })

@@ -87,8 +87,8 @@ Permission 来自当前 Entity 在目标团队中获得的全部角色，多个�
 
 - `identity.member.*.assume`：可领取当前授权团队任意有效成员；
 - `identity.member.alice.assume`：只可领取当前团队的 `@alice`；
-- `identity.virtual.*.act`：可代表当前团队全部虚拟实体执行受支持操作；
-- `identity.virtual.support-bot.act`：只可代表 `@support-bot` 执行受支持操作。
+- `chat.virtual.*.act`：可代表当前团队全部虚拟实体参与聊天；
+- `chat.virtual.support-bot.act`：只可在 Chat 中代表 `@support-bot`。
 
 通配权限只覆盖授予它的团队，不会扩散到其他团队。所有固定键和动态模式见[权限目录](permissions.md)。
 
@@ -117,11 +117,11 @@ Permission 来自当前 Entity 在目标团队中获得的全部角色，多个�
 
 | 角色示例 | 常见 Permission |
 | --- | --- |
-| 内容维护 | `team.entity.profile.manage`、`team.document.read`、`file.read`、`file.upload` |
+| 内容维护 | `team.entity.profile.manage`、`team.document.read`、`file.read`；如需直接维护团队文件库，再授予 `file.upload` |
 | 成员管理员 | `team.member.read`、`team.member.invite`、`team.member.update`、`team.member.remove` |
 | 财务 | `transaction.read`、`transaction.write`、`transaction.report.read` |
 | 客户运营 | `team.customer.read`、`team.customer.manage`、`team.notice.send` |
-| Chat 运营 | `chat.conversation.create`、`chat.group.manage`，以及所需虚拟实体的 operate 权限 |
+| Chat 运营 | `chat.conversation.create`、`chat.group.manage`，以及所需虚拟实体的 `chat.virtual.<slug>.act` 权限 |
 
 新团队会自动创建 owner 角色并给创建者取得管理所需权限。后续修改 owner 或其他高权限角色前，应先确保至少还有一个实体能够恢复角色配置。
 

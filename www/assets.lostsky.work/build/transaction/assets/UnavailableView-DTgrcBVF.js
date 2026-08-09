@@ -1,0 +1,1 @@
+import{L as t}from"./LsEmptyState-QrQciX4P.js";import{d as e,o as a,g as o}from"./index-Cc2RDGAd.js";import"./Empty-CYjIe5RW.js";const m=e({__name:"UnavailableView",setup(r){return(i,n)=>(a(),o(t,{title:"记账暂不可用",description:"当前团队尚未启用 transaction Ability。入口会保留，但不会发起流水、统计、核销或绑定请求。"}))}});export{m as default};

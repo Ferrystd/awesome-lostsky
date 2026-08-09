@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, readdirSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { hasManagePermission } from './apps/shop/src/lib'
 import { hasWorkspacePermission } from './apps/transaction/src/lib/workspace-access'
@@ -7,7 +7,24 @@ import { hasWorkspacePermission } from './apps/transaction/src/lib/workspace-acc
 const root = resolve(import.meta.dirname, '..')
 const source = (path: string) => readFileSync(resolve(root, path), 'utf8')
 
+function filesUnder(directory: string): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const path = resolve(directory, entry.name)
+    return entry.isDirectory() ? filesUnder(path) : [path]
+  })
+}
+
 describe('后台工作台入口架构', () => {
+  it('Permission 与 Ability 禁用原因统一由错误格式化器生成', () => {
+    const hardcodedAccessReason = /(?:缺少|当前团队未启用|暂时无法核对)[^\n]{0,120}(?:Permission|Ability)/
+    const offenders = filesUnder(resolve(root, 'frontend/apps'))
+      .filter(path => /\.(?:ts|vue)$/.test(path) && !path.endsWith('.test.ts'))
+      .filter(path => hardcodedAccessReason.test(readFileSync(path, 'utf8')))
+      .map(path => relative(root, path).replaceAll('\\', '/'))
+
+    expect(offenders).toEqual([])
+  })
+
   it('Team、商品与记账统一直显四应用入口，并从团队概览进入个人工作台', () => {
     for (const path of [
       'frontend/apps/team/src/components/TeamShell.vue',
@@ -72,6 +89,8 @@ describe('后台工作台入口架构', () => {
     const shop = source('frontend/apps/shop/src/components/ShopManageShell.vue')
     expect(shop).toMatch(/const nav = \[\s*\{\s*to: "\/manage",\s*label: "概览",\s*icon: House,\s*permission: null,/)
     expect(shop).toContain("{ to: '/manage/personal', label: '概览', icon: House, permission: null }")
+    expect(shop.indexOf("label: '概览'")).toBeLessThan(shop.indexOf("label: '我的商品'"))
+    expect(shop).toContain("permission: 'shop.product.self.manage'")
 
     const transaction = source('frontend/apps/transaction/src/components/TransactionShell.vue')
     expect(transaction).toContain("const teamNav = [\n  ['/overview', '概览', House, null]")
@@ -115,8 +134,11 @@ describe('后台工作台入口架构', () => {
     for (const path of ['app/shop/controller/Personal.php', 'app/transaction/controller/Personal.php']) {
       const controller = source(path)
       expect(controller).toContain('$request->entity_id')
-      expect(controller).not.toMatch(/(?:get|post)\(['"]entity_id/)
+      expect(controller).not.toMatch(/(?:get|post)\(['"]entity_id(?:\/|['"])/)
     }
+    const personalProducts = source('app/shop/controller/PersonalProduct.php')
+    expect(personalProducts).toContain('$request->acting_entity')
+    expect(personalProducts).not.toMatch(/(?:get|post)\(['"]entity_id(?:\/|['"])/)
   })
 
   it('Team Entity 与成员、虚拟实体使用同一套个人工作台准入', () => {
@@ -139,6 +161,41 @@ describe('后台工作台入口架构', () => {
     expect(hasWorkspacePermission(['transaction.read'], 'transaction.write')).toBe(false)
   })
 
+  it('Shop 商品表单通过统一上传接口处理封面与详情图片', () => {
+    const form = source('frontend/apps/shop/src/views/manage/ProductFormView.vue')
+    const access = source('app/shop/controller/Manage.php')
+    expect(form).toContain('LsMediaUploadField')
+    expect(form).toContain(':upload="uploadFileUrl"')
+    expect(form).toContain(':upload-image="uploadMarkdownImage"')
+    expect(form).not.toContain("formatPermissionDenied(['file.upload'])")
+    expect(form).not.toContain('商城暂未配置直接上传入口')
+    expect(access).toContain("'file' => app(\\app\\service\\TeamAccess::class)->ability($request->team_id, 'file', '文件上传')")
+  })
+
+  it('file.upload 只保护文件库上传，资源附件只受 File Ability 与资源保存鉴权', () => {
+    const commonUpload = source('app/common/controller/Upload.php')
+    const fileController = source('app/team/controller/File.php')
+    const filesView = source('frontend/apps/team/src/views/FilesView.vue')
+    expect(commonUpload).not.toContain('Permissions::FILE_UPLOAD')
+    expect(fileController).toContain("'Permission:' . Permissions::FILE_UPLOAD => ['only' => ['upload']]")
+    expect(filesView).toContain("api.uploadTo(file, '/file/upload')")
+    expect(source('frontend/apps/team/src/lib/teamAccessReason.ts')).toContain('export function resourceUploadReason')
+  })
+
+  it('商城客户头像通过客户自助上传端点保存，不借用后台角色权限', () => {
+    const controller = source('app/shop/controller/Customer.php')
+    const route = source('app/shop/route/app.php')
+    const form = source('frontend/apps/shop/src/views/CustomerProfileView.vue')
+    expect(route).toContain("Route::post('customer/upload', 'Customer/upload')")
+    expect(controller).toContain('public function upload(Request $request)')
+    expect(controller).toContain('app(\\app\\service\\File::class)->upload(')
+    expect(form).toContain(':upload="shopApi.uploadCustomerFile"')
+    expect(form).not.toMatch(/<NInput\b[^>]*avatar[^>]*>/i)
+    const contract = JSON.parse(source('docs/openapi/shop.openapi.json'))
+    expect(contract.paths['/customer/upload'].post.security).toEqual([{ bearerAuth: [] }])
+    expect(contract.paths['/customer/upload'].post.requestBody.content['multipart/form-data']).toBeDefined()
+  })
+
   it('Customer 不进入后台双工作台，核销个人任务不误用流水读取权限', () => {
     expect(source('frontend/apps/team/src/router.ts')).toContain("auth.entity()?.type === 'teamCustomer'")
     expect(source('frontend/apps/shop/src/router.ts')).toContain("entityType === 'teamCustomer'")
@@ -152,7 +209,11 @@ describe('后台工作台入口架构', () => {
   it('新增工作台接口均声明认证，个人查询不接受 Entity 范围参数', () => {
     const contracts = [
       ['docs/openapi/team.openapi.json', ['/personal', '/personal/profile', '/personal/fields']],
-      ['docs/openapi/shop.openapi.json', ['/manage/access', '/personal/orders', '/personal/orders/{id}']],
+      ['docs/openapi/shop.openapi.json', [
+        '/manage/access', '/personal/orders', '/personal/orders/{id}', '/personal/products',
+        '/personal/products/{id}', '/personal/products/{id}/handlers',
+        '/personal/products/{id}/redemption-fields',
+      ]],
       ['docs/openapi/transaction.openapi.json', [
         '/workspace/access', '/personal/transactions', '/personal/transactions/{id}', '/personal/stats',
         '/personal/services', '/personal/services/{id}', '/personal/bindings',

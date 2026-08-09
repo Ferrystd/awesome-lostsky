@@ -120,12 +120,12 @@
     "aliases": ["实体选择项", "对象选项"]
   },
   {
-    "id": "team-member-profile-fields",
-    "name": "MemberProfileFields",
-    "source": "frontend/apps/team/src/components/MemberProfileFields.vue",
-    "story": "frontend/component-previews/src/story-registry.ts#MemberProfileFields",
+    "id": "team-entity-profile-fields",
+    "name": "EntityProfileFields",
+    "source": "frontend/apps/team/src/components/EntityProfileFields.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#EntityProfileFields",
     "category": "team",
-    "aliases": ["成员资料字段", "成员资料表单"]
+    "aliases": ["实体资料字段", "成员资料表单", "个人资料表单"]
   },
   {
     "id": "team-team-shell",
@@ -240,6 +240,14 @@
     "aliases": ["列表工具栏", "搜索筛选栏"]
   },
   {
+    "id": "ui-ls-media-upload-field",
+    "name": "LsMediaUploadField",
+    "source": "frontend/packages/ui/src/components/LsMediaUploadField.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsMediaUploadField",
+    "category": "ui",
+    "aliases": ["媒体上传字段", "单文件上传", "图片上传"]
+  },
+  {
     "id": "ui-ls-markdown-editor",
     "name": "LsMarkdownEditor",
     "source": "frontend/packages/ui/src/components/LsMarkdownEditor.vue",
@@ -320,6 +328,14 @@
     "aliases": ["状态标签", "状态徽标"]
   },
   {
+    "id": "ui-ls-switch-field",
+    "name": "LsSwitchField",
+    "source": "frontend/packages/ui/src/components/LsSwitchField.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsSwitchField",
+    "category": "ui",
+    "aliases": ["布尔设置字段", "开关设置行"]
+  },
+  {
     "id": "ui-ls-upload-field",
     "name": "LsUploadField",
     "source": "frontend/packages/ui/src/components/LsUploadField.vue",
@@ -342,5 +358,45 @@
     "story": "frontend/component-previews/src/story-registry.ts#LsWorkspaceOverview",
     "category": "ui",
     "aliases": ["工作台概览", "概览主视觉", "业务入口概览"]
+  },
+  {
+    "id": "ui-ls-checkbox-group-field",
+    "name": "LsCheckboxGroupField",
+    "source": "frontend/packages/ui/src/components/LsCheckboxGroupField.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsCheckboxGroupField",
+    "category": "ui",
+    "aliases": ["复选组字段", "多选字段"]
+  },
+  {
+    "id": "ui-ls-description-list",
+    "name": "LsDescriptionList",
+    "source": "frontend/packages/ui/src/components/LsDescriptionList.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsDescriptionList",
+    "category": "ui",
+    "aliases": ["详情键值列表", "说明列表"]
+  },
+  {
+    "id": "ui-ls-form-actions",
+    "name": "LsFormActions",
+    "source": "frontend/packages/ui/src/components/LsFormActions.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsFormActions",
+    "category": "ui",
+    "aliases": ["表单命令区", "表单动作"]
+  },
+  {
+    "id": "ui-ls-form-section",
+    "name": "LsFormSection",
+    "source": "frontend/packages/ui/src/components/LsFormSection.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsFormSection",
+    "category": "ui",
+    "aliases": ["表单区块", "表单面板"]
+  },
+  {
+    "id": "ui-ls-section-header",
+    "name": "LsSectionHeader",
+    "source": "frontend/packages/ui/src/components/LsSectionHeader.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsSectionHeader",
+    "category": "ui",
+    "aliases": ["区块标题", "卡片标题"]
   }
 ]

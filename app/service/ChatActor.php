@@ -70,7 +70,7 @@ class ChatActor
             $summary = $this->summary(ChatActorType::Virtual, (int) $virtual->id);
             $summary['can_act'] = (int) $virtual->identity->id === (int) ($actingEntity['entity_id'] ?? 0)
                 || app(PermissionGate::class)->allows($teamId, $actingEntity, [
-                PermissionDictionary::IDENTITY_VIRTUAL_ALL_ACT,
+                PermissionDictionary::CHAT_VIRTUAL_ALL_ACT,
                 PermissionDictionary::virtual((string) $virtual->slug, 'act'),
             ]);
             $items[$summary['slug']] = $summary;
@@ -118,7 +118,7 @@ class ChatActor
         }
         $allowed = $actor['type'] === ChatActorType::Virtual
             && app(PermissionGate::class)->allows($teamId, $actingEntity, [
-                PermissionDictionary::IDENTITY_VIRTUAL_ALL_ACT,
+                PermissionDictionary::CHAT_VIRTUAL_ALL_ACT,
                 PermissionDictionary::virtual((string) $actor['slug'], 'act'),
             ]);
         if (!$allowed) {

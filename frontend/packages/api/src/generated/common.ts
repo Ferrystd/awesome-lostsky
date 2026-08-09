@@ -15,7 +15,7 @@ export interface paths {
         put?: never;
         /**
          * 上传文件
-         * @description 响应正文始终为合法 JSON。缺少 file.upload 时返回 Permission 原因；File Ability 缺失、等级不足或过期时返回 Ability 原因。
+         * @description 用于头像、封面、Markdown 图片等资源附件。资源保存接口继续校验对应资源的编辑 Permission；上传本身只要求有效团队 Entity 与 File Ability，不要求 file.upload。响应正文始终为合法 JSON。
          */
         post: operations["commonUpload"];
         delete?: never;
@@ -642,7 +642,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description 缺少 file.upload Permission 或 File Ability；data.kind 标识具体原因。 */
+            /** @description 缺少 File Ability、能力等级不足或已过期；data.kind 标识具体原因。 */
             403: {
                 headers: {
                     [name: string]: unknown;

@@ -27,7 +27,7 @@ Chat 团队选择页汇总真实账号作为成员或客户加入的团队。没
 进入团队 Chat 后还有“以此身份发送”选择。候选包括：
 
 - 当前有效 Team、成员或客户 Entity；
-- 当前 Entity 通过具体或通配 `identity.virtual.<slug>.act` Permission 可以代表执行操作的虚拟实体。
+- 当前 Entity 通过具体或通配 `chat.virtual.<slug>.act` Permission 可以代表参与聊天的虚拟实体。
 
 消息编辑器中临时选择的发送 Entity 只影响本次会话行为，不替换登录 JWT 中的当前身份。顶栏资料动作按 JWT 最终叶子 Entity 进入 Team 个人工作台或商城客户中心；Team Entity 与成员、虚拟实体使用同一 Team 个人入口，不使用会话内临时发送者。同一顶栏固定提供团队、商品、记账和聊天应用切换：桌面四项直接显示，移动端与 Team 一致收进“操作”菜单，不显示“切换应用”下拉按钮。Customer 仍能看到四项，其中“商品”进入商城客户中心，“团队”和“记账”因客户不进入后台双工作台而禁用并说明原因。
 
@@ -105,7 +105,7 @@ Chat 团队选择页汇总真实账号作为成员或客户加入的团队。没
 
 ## 虚拟实体与 Webhook
 
-虚拟实体是否可参与、可由谁操作，取决于 Team 中的实体状态和具体/通配 manage、operate Permission。当前操作者失去 operate Permission 后，依赖该虚拟实体访问的会话会立即从可用范围消失。
+虚拟实体是否可参与、可由谁操作，取决于 Team 中的实体状态和具体/通配 `chat.virtual.<slug>.act` Permission。当前操作者失去该 Permission 后，依赖该虚拟实体访问的会话会立即从可用范围消失。
 
 Webhook 使用独立 API Token 代表所属虚拟实体发送消息，只能进入该虚拟实体已参与的会话。凭据不是共享登录密码，创建或轮换后明文只显示一次，管理方法见[团队工作台](team-workspace.md)。
 
@@ -121,9 +121,9 @@ Webhook 使用独立 API Token 代表所属虚拟实体发送消息，只能进�
 | 新会话候选为空 | 当前 Entity 没有可联系对象，或对象无效/不可见 | 核对团队、对象状态和 Chat 设置 |
 | 不能创建普通会话 | 缺少 `chat.conversation.create`，或客户策略关闭 | 联系角色管理员或团队设置管理员 |
 | 不能创建临时会话 | 缺少 `chat.temporary.create`，或发送 Entity 是 Customer | 改为普通会话或使用合适身份 |
-| 不能代表虚拟实体发送 | 缺少目标 `operate` Permission | 申请具体 slug 或通配权限 |
+| 不能代表虚拟实体发送 | 缺少目标 `chat.virtual.<slug>.act` Permission | 申请具体 slug 或通配权限 |
 | 编辑/撤回失败 | 时间窗口已结束、消息已撤回或没有操作资格 | 保留消息状态，必要时联系消息审核者 |
-| 会话突然不可见 | 当前身份、参与关系、虚拟实体或 operate Permission 失效 | 回到 Account/Team 核对身份与授权 |
+| 会话突然不可见 | 当前身份、参与关系、虚拟实体或 `chat.virtual.<slug>.act` Permission 失效 | 回到 Account/Team 核对身份与授权 |
 
 ## 当前边界
 

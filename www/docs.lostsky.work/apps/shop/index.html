@@ -666,6 +666,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../design/admin/componentization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台页面组件化方法
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../design/admin/patterns/" class="md-nav__link">
         
   
@@ -2979,11 +3006,11 @@
 <p>管理接口统一位于 <code>/manage/*</code>，使用 TeamAuth，并复用 <code>shop.product.read/write/delete</code> 与 <code>shop.order.read/write</code>。服务、权益包和活动按当前团队隔离；兑换码列表不输出哈希、密文或明文，明文只能通过发行结果或显式查看接口获得。</p>
 <h2 id="_1">业务职责<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
 <ul>
-<li>商品：列表、详情、创建、编辑、删除和接单人配置。</li>
+<li>商品：列表、详情、创建、编辑、删除和接单人配置；商品封面与详情图片复用 Common 文件上传。</li>
 <li>订单：列表、详情、创建、取消和完成，并由服务层处理相关交易与余额联动。</li>
 <li>Storefront：公开团队资料、上架商品列表和脱敏后的商品详情。</li>
 <li>顾客业务：绑定当前商家的稳定客户身份，在商城客户中心维护资料、查询余额、订单、服务与卡密，并购买或取消自己的订单。</li>
-<li>个人工作台：Team、成员和虚拟实体查看当前 Entity 作为接单人或发单人参与的业务订单，不引入商品所有权模型。</li>
+<li>个人工作台：Team、成员和虚拟实体管理 <code>team_product.entity_id</code> 归属当前 Entity 的本人商品，并查看当前 Entity 作为接单人或发单人参与的业务订单；不引入新的商品归属字段。</li>
 <li>团队工作台：所有后台 Entity 都可进入基础团队概览；商品、订单、服务、权益包和卡活动按 Permission 禁用并说明原因。顶栏直显四应用入口，个人模式由概览“进入个人工作台”进入并从顶栏“商品”返回。</li>
 </ul>
 <h2 id="_2">鉴权边界<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
@@ -3000,9 +3027,14 @@
 </thead>
 <tbody>
 <tr>
-<td>商品</td>
+<td>团队商品</td>
 <td>四类团队实体</td>
 <td>读取、写入和删除分别使用 <code>shop.product.read</code>、<code>shop.product.write</code>、<code>shop.product.delete</code> 权限</td>
+</tr>
+<tr>
+<td>本人商品</td>
+<td>Team、成员或虚拟实体</td>
+<td><code>shop.product.self.manage</code>；所有读取和写入同时按团队与当前 <code>acting_entity.entity_id</code> 隔离</td>
 </tr>
 <tr>
 <td>订单</td>
@@ -3027,8 +3059,10 @@
 </tbody>
 </table>
 <p>跨模型的订单、流水和余额变更由服务层在事务中完成，控制器不负责数据联动。
+本人商品接口统一位于 <code>/personal/products*</code>。创建时服务端强制写入当前 Entity，编辑、上下架、接单人和核销字段操作不允许转移归属，也不提供本人商品硬删除；访问团队公用或他人商品统一返回 <code>404</code>。每个写请求都必须提交 <code>expected_entity_id</code>，身份切换导致预期 Entity 与 JWT 叶子 Entity 不一致时返回 <code>409</code> 且不修改数据。候选接口只提供商品表单所需的有效人员 Entity、启用权益包和卡活动，本人商品管理不能维护这些团队级定义。
 团队设置 <code>shop.sync_transaction</code> 默认开启；只有设置开启且团队具有等级不低于 1、未过期的 <code>transaction</code> Ability 时，新订单才自动生成关联流水。未同步流水不阻止订单创建，预存款扣减、余额日志与取消退款照常执行，订单和余额日志的 <code>trans_id</code> 保持 <code>null</code>。
 有 <code>customer_id</code> 的订单使用客户预存款支付；无客户订单使用现金支付。商品默认分成是单件值并随数量缩放，显式订单分成是整单值；未显式给出团队分成时由总价减成本和其他分成后的余额补齐。</p>
+<p>团队商品和本人商品表单都允许直接上传封面与 Markdown 详情图片。资源附件统一调用 Common <code>/upload</code>，只要求团队 File Ability；商品保存继续由对应商品管理 Permission 校验，不额外要求 <code>file.upload</code>。缺少能力时保留 URL 输入，只禁用本地文件选择并说明具体原因。</p>
 <p>客户绑定同时创建零余额记录和不可搜索的 <code>teamCustomer</code> Entity。基础用户绑定保存在
 <code>user_id</code>，外部 Entity 绑定保存在 <code>owner_entity_id</code>，两者严格二选一。派生客户会话沿来源
 Entity 的证明链实时重验；来源失效、会话撤销或客户封禁后立即失效。</p>

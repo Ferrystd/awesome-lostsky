@@ -24,20 +24,27 @@ vi.mock('naive-ui', async () => {
 })
 import LsAsyncState from './components/LsAsyncState.vue'
 import LsButton from './components/LsButton.vue'
+import LsCheckboxGroupField from './components/LsCheckboxGroupField.vue'
+import LsDescriptionList from './components/LsDescriptionList.vue'
+import LsFormActions from './components/LsFormActions.vue'
+import LsFormSection from './components/LsFormSection.vue'
 import LsInlineError from './components/LsInlineError.vue'
 import LsPanel from './components/LsPanel.vue'
 import LsStatusTag from './components/LsStatusTag.vue'
+import LsSectionHeader from './components/LsSectionHeader.vue'
+import LsSwitchField from './components/LsSwitchField.vue'
 import LsEmptyState from './components/LsEmptyState.vue'
 import LsEntityIdentity from './components/LsEntityIdentity.vue'
 import LsFormList from './components/LsFormList.vue'
 import LsListToolbar from './components/LsListToolbar.vue'
+import LsMediaUploadField from './components/LsMediaUploadField.vue'
 import LsPageHeader from './components/LsPageHeader.vue'
 import LsResponsiveActions from './components/LsResponsiveActions.vue'
 import LsResponsiveDataTable from './components/LsResponsiveDataTable.vue'
 import LsUploadField from './components/LsUploadField.vue'
 import LsWorkspaceHeader from './components/LsWorkspaceHeader.vue'
 import LsWorkspaceOverview from './components/LsWorkspaceOverview.vue'
-import { House, ReceiptText, UserRound } from '@lucide/vue'
+import { House, ReceiptText, ShoppingBag, UserRound } from '@lucide/vue'
 import { lostskyNaiveTheme } from './naive-theme'
 
 async function render(component: Parameters<typeof h>[0], props: Record<string, unknown> = {}, slots: Record<string, () => ReturnType<typeof h>> = {}) {
@@ -78,6 +85,18 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('保存失败')
   })
 
+  it('LsMediaUploadField 强制接收真实上传函数并保留 URL 回填', async () => {
+    expect((LsMediaUploadField as any).props.upload.required).toBe(true)
+    const html = await render(LsMediaUploadField, {
+      modelValue: '/avatar.png',
+      upload: async () => '/uploaded.png',
+      accept: 'image/*',
+      buttonLabel: '上传头像',
+    })
+    expect(html).toContain('/avatar.png')
+    expect(html).toContain('上传头像')
+  })
+
   it('LsPanel 只提供结构插槽，不暴露视觉参数', async () => {
     expect((LsPanel as any).props).toBeUndefined()
     const html = await render(LsPanel, {}, {
@@ -88,6 +107,62 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('ls-panel__header')
     expect(html).toContain('ls-panel__body')
     expect(html).toContain('ls-panel__footer')
+  })
+
+  it('LsSectionHeader 统一标题层级、说明和末端内容', async () => {
+    const html = await render(LsSectionHeader, {
+      id: 'profile-section',
+      title: '公开资料',
+      description: '展示在当前团队中的名称和介绍。',
+      eyebrow: 'ENTITY',
+      headingLevel: 3,
+    }, { aside: () => h('span', '本人可见') })
+    expect(html).toContain('<h3 id="profile-section"')
+    expect(html).toContain('展示在当前团队中的名称和介绍。')
+    expect(html).toContain('本人可见')
+  })
+
+  it('LsFormSection 组合面板和区块标题但不接管表单', async () => {
+    const html = await render(LsFormSection, { id: 'product-basic', title: '基本信息', description: '填写商品资料。' }, {
+      default: () => h('label', '商品名称'),
+    })
+    expect(html).toContain('ls-panel')
+    expect(html).toContain('aria-labelledby="product-basic"')
+    expect(html).toContain('ls-form-section')
+    expect(html).toContain('商品名称')
+    expect(html).not.toContain('<form')
+  })
+
+  it('LsFormActions 和 LsDescriptionList 只提供稳定结构', async () => {
+    expect((LsFormActions as any).props).toBeUndefined()
+    expect((LsDescriptionList as any).props).toBeUndefined()
+    const actions = await render(LsFormActions, {}, { default: () => h(LsButton, {}, { default: () => '保存' }) })
+    const details = await render(LsDescriptionList, {}, { default: () => [h('dt', '状态'), h('dd', '正常')] as any })
+    expect(actions).toContain('ls-form-actions')
+    expect(details).toContain('<dl class="ls-description-list"')
+    expect(details).toContain('<dt>状态</dt><dd>正常</dd>')
+  })
+
+  it('LsCheckboxGroupField 关联字段提示并显示禁用原因', async () => {
+    const html = await render(LsCheckboxGroupField, {
+      id: 'role-options',
+      modelValue: [1],
+      label: '团队角色',
+      required: true,
+      hint: '选择一个或多个角色。',
+      options: [
+        { value: 1, label: '运营', meta: 'operator', description: '维护日常业务。' },
+        { value: 2, label: '财务', disabled: true, disabledReason: '当前角色不可分配' },
+      ],
+    })
+    expect(html).toContain('<fieldset')
+    expect(html).toContain('<legend id="role-options-label"')
+    expect(html).toContain('aria-describedby="role-options-hint"')
+    expect(html).toContain('维护日常业务。')
+    expect(html).toContain('当前角色不可分配')
+    const source = readFileSync(new URL('./components/LsCheckboxGroupField.vue', import.meta.url), 'utf8')
+    expect(source).toContain('min-height: 60px')
+    expect(source).toContain('@media (max-width: 639px)')
   })
 
   it('LsStatusTag 固定 small 和无边框外观', async () => {
@@ -162,13 +237,14 @@ describe('后台设计系统组件契约', () => {
   it('LsWorkspaceOverview 保留双向操作、入口顺序、禁用原因与区域语义', async () => {
     const html = await render(LsWorkspaceOverview, {
       eyebrow: '商品个人工作台',
-      title: '只查看与你相关的业务订单',
+      title: '管理自己的商品与业务订单',
       description: '当前范围固定为已领取的 Entity。',
       actions: [
         { key: 'team', label: '进入团队工作台', to: '/manage', icon: House, primary: true },
         { key: 'identity', label: '切换身份', href: 'https://account.lostsky.work/identity', icon: UserRound },
       ],
       entries: [
+        { key: 'products', label: '我的商品', description: '管理本人商品。', to: '/manage/personal/products', icon: ShoppingBag },
         { key: 'orders', label: '我的业务订单', description: '查看关联订单。', to: '/manage/personal/orders', icon: ReceiptText },
         { key: 'disabled', label: '团队订单', description: '查看全部订单。', to: '/manage/orders', icon: ReceiptText, disabled: true, reason: '缺少 shop.order.read Permission' },
       ],
@@ -180,6 +256,7 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('href="https://account.lostsky.work/identity"')
     expect(html).toMatch(/primary[^]*进入团队工作台/)
     expect(html).toMatch(/secondary[^]*切换身份/)
+    expect(html.indexOf('我的商品')).toBeLessThan(html.indexOf('我的业务订单'))
     expect(html.indexOf('我的业务订单')).toBeLessThan(html.indexOf('团队订单'))
     expect(html).toContain('aria-disabled="true"')
     expect(html).toContain('缺少 shop.order.read Permission')
@@ -238,5 +315,30 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain('@media (max-width: 639px)')
     expect(source).toContain('@media (prefers-reduced-motion: reduce)')
     expect(source).toContain(':animation="animation"')
+  })
+
+  it('LsSwitchField 统一标签关联、禁用原因和触控尺寸', async () => {
+    const html = await render(LsSwitchField, {
+      id: 'product-active',
+      modelValue: true,
+      label: '上架状态',
+      ariaLabel: '设置商品上架状态',
+      headingLevel: 2,
+      description: '关闭后商品不会在商城展示。',
+      disabled: true,
+      disabledReason: '缺少商品管理权限',
+      checkedText: '上架',
+      uncheckedText: '下架',
+    })
+    expect(html).toContain('id="product-active-label"')
+    expect(html).toContain('<h2 id="product-active-label"')
+    expect(html).toContain('aria-label="设置商品上架状态"')
+    expect(html).not.toContain('aria-labelledby="product-active-label"')
+    expect(html).toContain('aria-describedby="product-active-description product-active-reason"')
+    expect(html).toContain('缺少商品管理权限')
+    const source = readFileSync(new URL('./components/LsSwitchField.vue', import.meta.url), 'utf8')
+    expect(source).toContain('min-height:56px')
+    expect(source).toContain('min-height:44px')
+    expect(source).toContain('@media(max-width:639px)')
   })
 })

@@ -237,28 +237,6 @@ kbd {
   display: grid;
   gap: 16px;
 }
-.definition-list {
-  display: grid;
-  grid-template-columns: minmax(110px, 0.35fr) 1fr;
-  margin: 0;
-}
-.definition-list dt,
-.definition-list dd {
-  margin: 0;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--line);
-}
-.definition-list dt {
-  color: var(--muted-ink);
-}
-.definition-list dd {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.definition-list dt:last-of-type,
-.definition-list dd:last-of-type {
-  border-bottom: 0;
-}
 .reason-dialog,
 .command-palette {
   width: min(92vw, 640px);
@@ -355,19 +333,6 @@ kbd {
 .dashboard-grid {
   display: grid;
   gap: 16px;
-}
-@media (max-width: 719px) {
-  .definition-list {
-    grid-template-columns: 1fr;
-  }
-  .definition-list dt {
-    padding-bottom: 2px;
-    border-bottom: 0;
-    font-size: 0.78rem;
-  }
-  .definition-list dd {
-    padding-top: 2px;
-  }
 }
 @media (min-width: 720px) {
   .summary-strip {

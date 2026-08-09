@@ -136,6 +136,7 @@ Route::post('setting', 'Setting/save');
 // file
 Route::get('file/index', 'file/index');
 Route::get('file/get', 'file/get');
+Route::post('file/upload', 'file/upload');
 Route::post('file/delete', 'file/delete');
 Route::get('file/usage', 'file/usage');
 

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/vue-query'
 export {
   abilityReason,
   fileUploadReason,
+  resourceUploadReason,
   hasPermission,
   permissionReason,
   settingReason,

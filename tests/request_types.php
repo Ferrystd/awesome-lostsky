@@ -68,6 +68,7 @@ $routeIdControllers = [
     'app/admin/controller/Users.php',
     'app/shop/controller/Storefront.php',
     'app/shop/controller/Product.php',
+    'app/shop/controller/PersonalProduct.php',
     'app/shop/controller/Order.php',
     'app/shop/controller/Customer.php',
     'app/transaction/controller/Transaction.php',

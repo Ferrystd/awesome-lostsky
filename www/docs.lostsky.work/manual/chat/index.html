@@ -666,6 +666,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../design/admin/componentization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  后台页面组件化方法
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../design/admin/patterns/" class="md-nav__link">
         
   
@@ -3260,7 +3287,7 @@
 <p>进入团队 Chat 后还有“以此身份发送”选择。候选包括：</p>
 <ul>
 <li>当前有效 Team、成员或客户 Entity；</li>
-<li>当前 Entity 通过具体或通配 <code>identity.virtual.&lt;slug&gt;.act</code> Permission 可以代表执行操作的虚拟实体。</li>
+<li>当前 Entity 通过具体或通配 <code>chat.virtual.&lt;slug&gt;.act</code> Permission 可以代表参与聊天的虚拟实体。</li>
 </ul>
 <p>消息编辑器中临时选择的发送 Entity 只影响本次会话行为，不替换登录 JWT 中的当前身份。顶栏资料动作按 JWT 最终叶子 Entity 进入 Team 个人工作台或商城客户中心；Team Entity 与成员、虚拟实体使用同一 Team 个人入口，不使用会话内临时发送者。同一顶栏固定提供团队、商品、记账和聊天应用切换：桌面四项直接显示，移动端与 Team 一致收进“操作”菜单，不显示“切换应用”下拉按钮。Customer 仍能看到四项，其中“商品”进入商城客户中心，“团队”和“记账”因客户不进入后台双工作台而禁用并说明原因。</p>
 <h2 id="_4">查看已有会话<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
@@ -3343,7 +3370,7 @@
 <p>会话创建 Entity 的当前合法操作者，或具有 <code>chat.group.manage</code> 的当前 Entity，可以关闭会话。关闭是幂等操作：重复点击不会产生第二次关闭；关闭后只能查看历史，不能继续发送。</p>
 <p>临时会话到期也会进入关闭状态。当前版本不提供重新开启、导出或复制整段会话的功能。</p>
 <h2 id="webhook">虚拟实体与 Webhook<a class="headerlink" href="#webhook" title="Permanent link">&para;</a></h2>
-<p>虚拟实体是否可参与、可由谁操作，取决于 Team 中的实体状态和具体/通配 manage、operate Permission。当前操作者失去 operate Permission 后，依赖该虚拟实体访问的会话会立即从可用范围消失。</p>
+<p>虚拟实体是否可参与、可由谁操作，取决于 Team 中的实体状态和具体/通配 <code>chat.virtual.&lt;slug&gt;.act</code> Permission。当前操作者失去该 Permission 后，依赖该虚拟实体访问的会话会立即从可用范围消失。</p>
 <p>Webhook 使用独立 API Token 代表所属虚拟实体发送消息，只能进入该虚拟实体已参与的会话。凭据不是共享登录密码，创建或轮换后明文只显示一次，管理方法见<a href="../team-workspace/">团队工作台</a>。</p>
 <h2 id="_12">消息保留<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
 <p>团队可以把消息保留天数设为 0–3650 天。0 表示永久保存；正数表示清理任务会删除超过期限的消息内容。保留策略作用于整个团队，不因单个参与者离开而停止，也不是用户自行删除历史的入口。</p>
@@ -3379,7 +3406,7 @@
 </tr>
 <tr>
 <td>不能代表虚拟实体发送</td>
-<td>缺少目标 <code>operate</code> Permission</td>
+<td>缺少目标 <code>chat.virtual.&lt;slug&gt;.act</code> Permission</td>
 <td>申请具体 slug 或通配权限</td>
 </tr>
 <tr>
@@ -3389,7 +3416,7 @@
 </tr>
 <tr>
 <td>会话突然不可见</td>
-<td>当前身份、参与关系、虚拟实体或 operate Permission 失效</td>
+<td>当前身份、参与关系、虚拟实体或 <code>chat.virtual.&lt;slug&gt;.act</code> Permission 失效</td>
 <td>回到 Account/Team 核对身份与授权</td>
 </tr>
 </tbody>

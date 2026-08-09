@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { api, friendlyError } from '@lostsky/api/client'
+import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { identityUrl } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
@@ -9,11 +9,13 @@ import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { FileText, House, RefreshCw, ShieldCheck, UserRound } from '@lucide/vue'
 import { NInput } from 'naive-ui'
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import EntityProfileFields from '../components/EntityProfileFields.vue'
 import EntityFieldsCard, { type EntityFieldDefinition } from '../components/EntityFieldsCard.vue'
 import EntityPermissionsCard, { type EffectivePermission, type RoleAssignment, type RoleRecord } from '../components/EntityPermissionsCard.vue'
+import { resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 interface PersonalResult {
   identity: { entity_id: number; type: 'team' | 'teamMember' | 'teamVirtual'; slug: string | null; name: string; team: { name: string } }
@@ -28,6 +30,11 @@ const route = useRoute()
 const section = computed(() => String(route.meta.personalSection ?? 'profile'))
 const query = useQuery({ queryKey: ['team-personal'], queryFn: () => api.get<PersonalResult>('/personal') })
 const form = reactive({ name: '', avatar: '', description: '', intro_image: '', intro_video: '', introduction_markdown: '', slug: '' })
+const profileModel = computed({ get: () => form, set: value => Object.assign(form, value) })
+const editor = ref<InstanceType<typeof EntityProfileFields> | null>(null)
+const uploading = ref(false)
+const access = useTeamAccess()
+const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
 watch(() => query.data.value, data => {
   if (!data) return
   Object.assign(form, data.profile, { slug: data.identity.slug || '' })
@@ -60,7 +67,7 @@ const saveProfile = useMutation({
       introduction_markdown: form.introduction_markdown || null,
     })
   },
-  onSuccess: async () => { await query.refetch(); feedback.success('个人资料已保存') },
+  onSuccess: async () => { editor.value?.clearDraft(); await query.refetch(); feedback.success('个人资料已保存') },
 })
 const saveFields = useMutation({
   mutationFn: (values: Record<number, unknown>) => api.post('/personal/fields', { expected_entity_id: expectedEntityId.value, values }),
@@ -90,20 +97,13 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
       <form v-if="section === 'profile'" class="profile-form" @submit.prevent="saveProfile.mutate()">
         <LsPanel>
           <div class="identity-summary"><span>{{ query.data.value.identity.type === 'team' ? 'Team Entity' : query.data.value.identity.type === 'teamVirtual' ? '虚拟实体' : '团队成员' }}</span><strong>{{ query.data.value.identity.name }}</strong><small>{{ query.data.value.identity.team.name }}</small></div>
-          <div class="form-grid">
-            <label>名称<NInput v-model:value="form.name" maxlength="50" /></label>
-            <label v-if="!query.data.value.identity.slug">对象标识<NInput v-model:value="form.slug" placeholder="首次确认后不可修改" /></label>
-            <label>头像地址<NInput v-model:value="form.avatar" /></label>
-            <label>简介<NInput v-model:value="form.description" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" /></label>
-            <label>介绍图片地址<NInput v-model:value="form.intro_image" /></label>
-            <label>介绍视频地址<NInput v-model:value="form.intro_video" /></label>
-            <label>详细介绍（Markdown）<NInput v-model:value="form.introduction_markdown" type="textarea" :autosize="{ minRows: 6, maxRows: 16 }" /></label>
-          </div>
+          <div v-if="!query.data.value.identity.slug" class="slug-field"><label>对象标识<NInput v-model:value="form.slug" placeholder="首次确认后不可修改" /></label></div>
+          <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" draft-key="personal-profile" id-prefix="personal-profile" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" />
         </LsPanel>
         <LsInlineError v-if="saveProfile.isError.value" :message="friendlyError(saveProfile.error.value)" />
-        <div class="actions"><LsButton type="submit" :loading="saveProfile.isPending.value" :disabled="!form.name.trim() || (!query.data.value.identity.slug && !form.slug.trim())">保存资料</LsButton></div>
+        <div class="actions"><LsButton type="submit" :loading="saveProfile.isPending.value" :disabled="uploading || !form.name.trim() || (!query.data.value.identity.slug && !form.slug.trim())">保存资料</LsButton></div>
       </form>
-      <EntityFieldsCard v-else-if="section === 'fields'" :fields="query.data.value.custom_fields" :stored-values="query.data.value.custom_field_values" mode="self" :saving="saveFields.isPending.value" :error="saveFields.error.value" @save="saveFields.mutate" />
+      <EntityFieldsCard v-else-if="section === 'fields'" :fields="query.data.value.custom_fields" :stored-values="query.data.value.custom_field_values" mode="self" :saving="saveFields.isPending.value" :error="saveFields.error.value" :upload-disabled-reason="uploadDisabledReason" @save="saveFields.mutate" />
       <EntityPermissionsCard v-else-if="section === 'access'" :assignments="query.data.value.role_assignments" :roles="roles" :effective-permissions="query.data.value.effective_permissions" />
       </template>
     </template>
@@ -111,5 +111,5 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
 </template>
 
 <style scoped>
-.personal-view,.profile-form,.form-grid{display:grid;gap:1rem}.state{margin:0;color:var(--muted-ink)}.identity-summary{display:grid;gap:.15rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}.identity-summary span,.identity-summary small{color:var(--muted-ink);font-size:.78rem}.identity-summary strong{font-size:1.2rem}.form-grid label{display:grid;gap:.4rem;color:var(--ink);font-size:.82rem;font-weight:650}.actions{display:flex;justify-content:flex-end}@media(min-width:760px){.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.form-grid label:nth-child(n+4){grid-column:1/-1}}
+.personal-view,.profile-form{display:grid;gap:1rem}.state{margin:0;color:var(--muted-ink)}.identity-summary{display:grid;gap:.15rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}.identity-summary span,.identity-summary small{color:var(--muted-ink);font-size:.78rem}.identity-summary strong{font-size:1.2rem}.slug-field{margin-bottom:1rem}.slug-field label{display:grid;gap:.4rem;color:var(--ink);font-size:.82rem;font-weight:650}.actions{display:flex;justify-content:flex-end}
 </style>

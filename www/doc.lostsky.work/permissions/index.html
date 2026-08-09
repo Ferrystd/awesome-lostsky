@@ -1149,6 +1149,10 @@
 <td>删除商品</td>
 </tr>
 <tr>
+<td><code>shop.product.self.manage</code></td>
+<td>管理归属当前 Entity 的本人商品，包括创建、编辑、上下架、接单人和核销字段</td>
+</tr>
+<tr>
 <td><code>shop.order.read</code></td>
 <td>查看商家订单</td>
 </tr>
@@ -1158,7 +1162,7 @@
 </tr>
 </tbody>
 </table>
-<p>当前 Shop 前台只向访客和客户提供浏览、购买及“我的订单”；商家商品和订单管理尚未提供完整用户界面。上述 Permission 已用于既有业务接口，不表示普通客户可以管理商家数据。</p>
+<p>Shop 团队工作台使用商品与订单的团队级 Permission；Team、成员和虚拟 Entity 还可通过 <code>shop.product.self.manage</code> 在个人工作台管理本人商品。Customer 只使用商城客户中心，不能通过该 Permission 管理商家数据。</p>
 <h2 id="_6">交易与余额<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1202,7 +1206,7 @@
 </tr>
 <tr>
 <td><code>file.upload</code></td>
-<td>上传团队文件；同时要求 File Ability 和配额可用</td>
+<td>通过“文件”页上传团队文件库；同时要求 File Ability 和配额可用。资料、商品和 Markdown 等资源附件不要求此键</td>
 </tr>
 <tr>
 <td><code>file.delete</code></td>
@@ -1289,14 +1293,6 @@
 <td>当前授权团队任意有效虚拟实体</td>
 </tr>
 <tr>
-<td><code>identity.virtual.*.act</code></td>
-<td>代表当前团队全部虚拟实体执行受支持的跨应用操作</td>
-</tr>
-<tr>
-<td><code>identity.virtual.&lt;slug&gt;.act</code></td>
-<td>代表指定虚拟实体执行受支持的跨应用操作</td>
-</tr>
-<tr>
 <td><code>identity.member.&lt;slug&gt;.assume</code></td>
 <td>当前授权团队指定有效成员</td>
 </tr>
@@ -1310,7 +1306,7 @@
 </tr>
 </tbody>
 </table>
-<p>指定成员、客户或虚拟实体的精确 slug 委托，以及 <code>identity.virtual.&lt;slug&gt;.act</code>，统一显示在“实体委托”中；虚拟实体维护权限显示在独立的“实体管理”中。角色编辑器只在保存时清理被父键或 <code>*</code> 覆盖的精确权限；有效权限页面逐条显示服务端记录。</p>
+<p>指定成员、客户或虚拟实体的精确 slug 委托统一显示在“实体委托”中；虚拟实体维护权限显示在“实体管理”中，仅限聊天的代操作显示在“聊天”中。角色编辑器只在保存时清理被父键或 <code>*</code> 覆盖的精确权限；有效权限页面逐条显示服务端记录。</p>
 <p>精确权限中的 <code>&lt;slug&gt;</code> 要替换为真实全局 slug，例如 <code>identity.member.alice.assume</code>。保存时目标必须属于当前授权团队；<code>*</code> 也只覆盖该团队。</p>
 <h2 id="_11">实体管理<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h2>
 <table>
@@ -1369,8 +1365,17 @@
 <td><code>chat.message.moderate</code></td>
 <td>审核或撤回他人消息</td>
 </tr>
+<tr>
+<td><code>chat.virtual.*.act</code></td>
+<td>代表当前团队全部虚拟实体参与聊天</td>
+</tr>
+<tr>
+<td><code>chat.virtual.&lt;slug&gt;.act</code></td>
+<td>代表指定虚拟实体参与聊天</td>
+</tr>
 </tbody>
 </table>
+<p><code>chat.virtual.*.act</code> 只影响 Chat 中的会话可见性和受支持操作，不切换当前身份，也不能用于其他应用。开发期升级补丁会迁移并删除 <code>identity.virtual.*.act</code>，应用不提供旧键别名。</p>
 <h2 id="_12">平台管理权限<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

@@ -4,7 +4,7 @@
 
 ## 范围与目录
 
-- `frontend/component-previews/catalog.json` 是预览目录，当前登记全部 41 个 `components/` 目录中的 Vue 组件：23 个 `@lostsky/ui` 公共组件和 18 个应用组件。
+- `frontend/component-previews/catalog.json` 是预览目录，当前登记全部 49 个 `components/` 目录中的 Vue 组件：31 个 `@lostsky/ui` 公共组件和 18 个应用组件。
 - `frontend/component-previews/src/story-registry.ts` 聚合 Story；`ui-stories.ts` 和 `app-stories.ts` 提供确定性场景。
 - `frontend/component-previews/src/PreviewHost.vue` 注入 LostSky 主题、中文 locale、Router、Pinia、Vue Query、消息与对话框 Provider。
 - `frontend/component-previews/scripts/capture.mjs` 启动隔离的 Vite 宿主，以 Playwright 驱动交互并截图。
@@ -64,4 +64,4 @@ git check-ignore frontend/component-previews/generated/LsButton.png
 git diff --check
 ```
 
-全量预览应生成 41 张非空 PNG 和一份无失败项的报告。
+全量预览应生成 44 张非空 PNG 和一份无失败项的报告。

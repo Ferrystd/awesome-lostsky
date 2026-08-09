@@ -12,7 +12,7 @@ import type { SelectOption, SelectRenderLabel } from 'naive-ui'
 import { computed, h, reactive, ref } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
-import { fileUploadReason, useTeamAccess } from '../lib/teamAccess'
+import { resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 interface EntityOption {
   entity_id: number
@@ -43,7 +43,7 @@ const recipientMenuProps = { class: 'recipient-select-menu' }
 const client = useQueryClient()
 const editor = ref<InstanceType<typeof LsMarkdownEditor> | null>(null)
 const access = useTeamAccess()
-const uploadDisabledReason = computed(() => fileUploadReason(access.data.value))
+const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
 const success = ref('')
 const form = reactive({
   entity_id: 0,

@@ -2,9 +2,11 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
@@ -48,8 +50,8 @@ function open(next: typeof action.value) { action.value = next; dialog.value = t
   <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取用户详情" :description="friendlyError(query.error.value)" />
   <template v-else-if="query.data.value">
     <LsPanel>
-      <template #header><div class="panel-heading"><div><h2>{{ query.data.value.nickname || query.data.value.username }}</h2><p>#{{ query.data.value.id }} · @{{ query.data.value.username }}</p></div><LsStatusTag :label="adminStatusLabel(query.data.value.is_banned ? 'banned' : 'active')" :type="adminStatusType(query.data.value.is_banned ? 'banned' : 'active')" /></div></template>
-      <dl class="definition-list"><dt>手机</dt><dd>{{ query.data.value.phone || query.data.value.phone_masked || '—' }}</dd><dt>邮箱</dt><dd>{{ query.data.value.email || query.data.value.email_masked || '—' }}</dd><dt>平台角色</dt><dd><NTag v-for="role in query.data.value.roles" :key="role.id" size="small">{{ role.name }}</NTag><span v-if="!query.data.value.roles.length">非平台管理员</span></dd><dt>注册时间</dt><dd>{{ formatTime(query.data.value.create_time) }}</dd></dl>
+      <template #header><LsSectionHeader :title="query.data.value.nickname || query.data.value.username" :description="`#${query.data.value.id} · @${query.data.value.username}`"><template #aside><LsStatusTag :label="adminStatusLabel(query.data.value.is_banned ? 'banned' : 'active')" :type="adminStatusType(query.data.value.is_banned ? 'banned' : 'active')" /></template></LsSectionHeader></template>
+      <LsDescriptionList><dt>手机</dt><dd>{{ query.data.value.phone || query.data.value.phone_masked || '—' }}</dd><dt>邮箱</dt><dd>{{ query.data.value.email || query.data.value.email_masked || '—' }}</dd><dt>平台角色</dt><dd class="role-tags"><NTag v-for="role in query.data.value.roles" :key="role.id" size="small">{{ role.name }}</NTag><span v-if="!query.data.value.roles.length">非平台管理员</span></dd><dt>注册时间</dt><dd>{{ formatTime(query.data.value.create_time) }}</dd></LsDescriptionList>
     </LsPanel>
     <div class="detail-grid detail-grid--two">
       <LsPanel><template #header><div><h2>所属团队</h2><p>{{ query.data.value.teams.length }} 个团队关系</p></div></template><LsEmptyState v-if="!query.data.value.teams.length" title="尚未加入团队" description="该用户当前没有任何团队关系。" /><div v-else class="simple-list"><RouterLink v-for="team in query.data.value.teams" :key="team.id" :to="`/teams/${team.id}`"><span><strong>{{ team.slug }}</strong><small>#{{ team.id }} · {{ formatTime(team.create_time) }}</small></span><LsStatusTag :label="adminStatusLabel(teamStatus(team))" :type="adminStatusType(teamStatus(team))" /></RouterLink></div></LsPanel>
@@ -59,4 +61,4 @@ function open(next: typeof action.value) { action.value = next; dialog.value = t
   <ReasonDialog v-model:show="dialog" :title="dialogTitle" :consequence="consequence" :action-label="actionLabel" :danger="action === 'ban' || action === 'revoke-sessions'" :loading="mutation.isPending.value" @confirm="mutation.mutate" />
 </template>
 
-<style scoped>.panel-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.panel-heading h2,.panel-heading p,:deep(.ls-panel__header h2),:deep(.ls-panel__header p){margin:0}.panel-heading p,:deep(.ls-panel__header p){color:var(--muted-ink)}.definition-list .n-tag{margin:0 6px 4px 0}.simple-list{display:grid}.simple-list>a,.simple-list>div{min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.simple-list>*:last-child{border-bottom:0}.simple-list strong,.simple-list small{display:block}.simple-list small,.simple-list time{max-width:42ch;color:var(--muted-ink);font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(min-width:800px){.detail-grid--two{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>
+<style scoped>.role-tags .n-tag{margin:0 6px 4px 0}.simple-list{display:grid}.simple-list>a,.simple-list>div{min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.simple-list>*:last-child{border-bottom:0}.simple-list strong,.simple-list small{display:block}.simple-list small,.simple-list time{max-width:42ch;color:var(--muted-ink);font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(min-width:800px){.detail-grid--two{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>

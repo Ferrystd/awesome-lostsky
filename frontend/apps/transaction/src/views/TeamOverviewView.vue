@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { friendlyError } from '@lostsky/api/client'
+import { formatPermissionDenied } from '@lostsky/api/error-format'
 import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
 import { BadgeCheck, BarChart3, CircleDollarSign, Handshake, ListChecks, UserRound } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
@@ -10,8 +12,8 @@ const access = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: (
 function permissionReason(permission: string | null) {
   if (!permission) return ''
   if (access.isPending.value) return `正在核对 ${permission} Permission`
-  if (access.isError.value) return `暂时无法核对 ${permission} Permission`
-  return hasWorkspacePermission(access.data.value?.permissions ?? [], permission) ? '' : `缺少 ${permission} Permission`
+  if (access.isError.value) return friendlyError(access.error.value)
+  return hasWorkspacePermission(access.data.value?.permissions ?? [], permission) ? '' : formatPermissionDenied([permission])
 }
 
 const entries = computed(() => [

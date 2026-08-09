@@ -28,7 +28,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 列出当前团队可见聊天身份及本人可操作身份 */
+        /** 列出当前团队可见聊天身份及通过 chat.virtual.*.act 可操作的虚拟实体 */
         get: operations["chatActorList"];
         put?: never;
         post?: never;
@@ -45,7 +45,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 按当前成员权限列出虚拟实体 */
+        /** 按管理权限或 chat.virtual.*.act 列出虚拟实体 */
         get: operations["chatVirtualList"];
         put?: never;
         post?: never;
@@ -353,7 +353,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 使用成员、客户或已授权虚拟实体身份发送文本 */
+        /** 使用当前身份或通过 chat.virtual.*.act 授权的虚拟实体发送文本 */
         post: operations["chatMessageSend"];
         delete?: never;
         options?: never;
@@ -438,7 +438,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 验证参与者或虚拟实体操作权限后签发频道令牌 */
+        /** 验证参与者或 chat.virtual.*.act 权限后签发频道令牌 */
         post: operations["chatRealtimeSubscribe"];
         delete?: never;
         options?: never;

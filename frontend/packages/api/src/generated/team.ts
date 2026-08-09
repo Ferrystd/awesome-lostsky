@@ -155,7 +155,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 上传当前 Entity 资料媒体 */
+        /**
+         * 上传当前 Entity 资料媒体
+         * @description 受当前 Entity 和 expected_entity_id 一致性、File Ability 与文件规则约束；不额外要求 file.upload。
+         */
         post: operations["teamPersonalUpload"];
         delete?: never;
         options?: never;
@@ -886,6 +889,26 @@ export interface paths {
         get: operations["teamFileGet"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/file/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 上传文件到团队文件库
+         * @description 文件库后台操作；同时要求 file.upload Permission 与 File Ability。资源表单中的头像、封面和 Markdown 图片使用公共资源附件上传，不受此 Permission 限制。
+         */
+        post: operations["teamFileUpload"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1709,7 +1732,7 @@ export interface paths {
         };
         /**
          * 加载固定权限、父级范围权限及当前团队动态权限目录
-         * @description 要求 team.role.read 权限。实体创建、维护和字段管理归入实体管理组；身份领取与跨应用代执行归入实体委托组；Chat 组仅包含聊天能力。advanced_items 从固定权限和当前团队动态权限生成合法父级，并列出当前覆盖的叶子权限。当前团队有效实体必须通过真实 slug 保存对应叶子或父级权限，不接受旧权限别名。
+         * @description 要求 team.role.read 权限。实体创建、维护和字段管理归入实体管理组；身份领取归入实体委托组；仅限聊天的虚拟实体代操作归入聊天组。advanced_items 从固定权限和当前团队动态权限生成合法父级，并列出当前覆盖的叶子权限。当前团队有效实体必须通过真实 slug 保存对应叶子或父级权限，不接受旧权限别名。
          */
         get: operations["teamRolePermissionCatalog"];
         put?: never;
@@ -3251,7 +3274,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description 缺少 File Ability 或 file.upload Permission */
+            /** @description 缺少 File Ability 或当前 Entity 无法自管资料 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5622,6 +5645,65 @@ export interface operations {
             };
             /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamFileUpload: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 上传成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["FileUploadResult"];
+                    };
+                };
+            };
+            /** @description 未登录或身份已失效 */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 缺少 file.upload Permission 或 File Ability */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 未选择文件或文件格式、大小不符合要求 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

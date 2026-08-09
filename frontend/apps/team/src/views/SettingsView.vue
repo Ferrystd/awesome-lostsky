@@ -4,6 +4,7 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NRadio, NRadioGroup, NSelect, NSwitch } from 'naive-ui'
 import type { SelectOption } from 'naive-ui'
@@ -114,15 +115,10 @@ function settingId(appName: string, key: string): string {
         class="settings-panel"
         @submit.prevent="save.mutate(app)"
       >
-      <header class="panel-heading">
-        <div>
-          <p>{{ app.app_name.toUpperCase() }}</p>
-          <h2>{{ app.label }}</h2>
-          <span>{{ app.description }}</span>
-        </div>
-        <LsButton type="submit" :loading="isSaving(app.app_name)" :disabled="save.isPending.value">
-          保存{{ app.label }}设置
-        </LsButton>
+      <header class="settings-header">
+        <LsSectionHeader :eyebrow="app.app_name.toUpperCase()" :title="app.label" :description="app.description">
+          <template #aside><LsButton type="submit" :loading="isSaving(app.app_name)" :disabled="save.isPending.value">保存{{ app.label }}设置</LsButton></template>
+        </LsSectionHeader>
       </header>
 
       <section
@@ -211,12 +207,9 @@ function settingId(appName: string, key: string): string {
 
 <style scoped>
 .settings-view{display:grid;gap:1.5rem}.settings-panel,.loading-panel,.empty-panel{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);overflow:hidden}
-.panel-heading{display:flex;align-items:flex-start;flex-direction:column;gap:1rem;padding:1rem;border-bottom:1px solid var(--border)}
-.panel-heading :deep(button){width:100%}
-.panel-heading p,.panel-heading h2,.panel-heading span,.setting-copy h3,.setting-copy p{margin:0}
-.panel-heading p{margin-bottom:.25rem;color:var(--primary);font-size:.7rem;font-weight:800;letter-spacing:.13em}
-.panel-heading h2{font-size:1.08rem}
-.panel-heading span{display:block;max-width:38rem;margin-top:.35rem;color:var(--text-secondary);font-size:.82rem;line-height:1.55}
+.settings-header{padding:1rem;border-bottom:1px solid var(--border)}
+.settings-header :deep(button){width:100%}
+.setting-copy h3,.setting-copy p{margin:0}
 .setting-row{min-height:96px;display:grid;grid-template-columns:1fr;align-items:center;gap:.9rem;padding:1rem;border-bottom:1px solid var(--border)}
 .setting-row:last-of-type{border-bottom:0}.setting-row--choices{align-items:start;gap:1rem}
 .setting-copy h3{font-size:.92rem}.setting-copy p{margin-top:.3rem;color:var(--text-secondary);font-size:.8rem;line-height:1.55}
@@ -232,6 +225,6 @@ function settingId(appName: string, key: string): string {
 .error{color:var(--danger);background:color-mix(in srgb,var(--danger) 9%,transparent)}
 .success{color:var(--success);background:color-mix(in srgb,var(--success) 9%,transparent)}
 .loading-panel,.empty-panel{padding:2rem;color:var(--text-secondary)}.empty-panel h2{margin:0;color:var(--text);font-size:1rem}.empty-panel p{margin:.4rem 0 0}
-@media(min-width:641px){.panel-heading{align-items:center;flex-direction:row;justify-content:space-between;gap:1.5rem;padding:1.5rem}.panel-heading :deep(button){width:auto}.setting-row{grid-template-columns:minmax(0,1fr) minmax(220px,320px);gap:1.5rem;padding:1.25rem 1.5rem}.setting-row--choices{grid-template-columns:1fr}.setting-control{justify-content:flex-end}.radio-options{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
+@media(min-width:641px){.settings-header{padding:1.5rem}.settings-header :deep(button){width:auto}.setting-row{grid-template-columns:minmax(0,1fr) minmax(220px,320px);gap:1.5rem;padding:1.25rem 1.5rem}.setting-row--choices{grid-template-columns:1fr}.setting-control{justify-content:flex-end}.radio-options{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
 @media(prefers-reduced-motion:reduce){.radio-options :deep(.n-radio){transition:none}}
 </style>

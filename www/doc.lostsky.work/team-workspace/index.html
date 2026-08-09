@@ -1396,7 +1396,7 @@
 </tbody>
 </table>
 <p><code>team.entity.profile.manage</code> 控制实体资料、团队内可见状态和公开 Display 状态。缺少该权限时，同一详情页以只读方式打开，入口显示“查看”。</p>
-<p>实体资料包括名称、头像、简介、介绍媒体、Markdown 介绍和公开文档分组。Team、成员和虚拟实体可以配置公开资料；Customer 没有公开主页，也不提供公开文档分组。</p>
+<p>实体资料包括名称、头像、简介、介绍图片、介绍视频、Markdown 介绍和公开文档分组。Team、成员和虚拟实体在个人资料、成员管理和实体详情中使用同一套资料字段：媒体既可粘贴已登记 URL，也可选择本地文件；Markdown 始终使用可视化/源码/预览编辑器，并保留图片上传入口。Customer 没有公开主页，也不提供公开文档分组。</p>
 <p>“团队内可见”“全局可搜索”“公开 Display”是三套独立范围：</p>
 <ul>
 <li>团队内可见只决定普通团队 Entity 能否在工作空间目录发现对象；</li>
@@ -1455,7 +1455,7 @@
 <li><code>team.customer.read</code> 可查看全团队客户；</li>
 <li><code>team.customer.manage</code> 同时包含全量读取，并允许修改资料、归属和封禁状态。</li>
 </ul>
-<p>客户详情显示当前商家内的昵称、头像、说明、只读 slug、余额、订单和流水摘要。管理者可以把客户归属设为本团队有效 Team、成员或虚拟实体，也可以清空；归属候选项同时显示类型图标、类型标签和 slug，便于区分同名实体。变更只影响以后创建的订单和流水，不追溯修改历史归属业绩。</p>
+<p>客户详情显示当前商家内的昵称、头像、说明、只读 slug、余额、订单和流水摘要。具有客户管理权限且满足 File Ability 的管理者可直接上传头像，也可粘贴已登记 URL；不额外要求 <code>file.upload</code>。管理者可以把客户归属设为本团队有效 Team、成员或虚拟实体，也可以清空；归属候选项同时显示类型图标、类型标签和 slug，便于区分同名实体。变更只影响以后创建的订单和流水，不追溯修改历史归属业绩。</p>
 <p>客户详情响应暂时不完整时，页面会显示可恢复的读取错误并提示刷新，不会用缺失数据展示错误余额或保留空白页面。</p>
 <p>封禁客户后，已有客户身份会话不能继续使用。客户仍不会进入公开实体目录，页面也不会暴露用户手机号、邮箱或底层 user ID。</p>
 <p>客户详情可在 Chat 条件满足时发起对话；该入口不会绕过客户状态、对象可见性或会话策略。</p>
@@ -1469,7 +1469,7 @@
 <li>用目标 Entity 重新进入相关页面验证。</li>
 </ol>
 <p>高级范围会显示当前覆盖的叶子数量和清单。选择父键会移除草稿中已被覆盖的子键，被覆盖项随即禁用；取消父键不会自动恢复此前子项。保存本次新增的父键前必须再次确认范围。父键会自动包含未来新增的同前缀权限，因此只应授予确实负责整段业务的角色；界面不允许手输目录外键。“高级范围权限”内部的“实体委托”小节用于配置委托相关父键。</p>
-<p>身份委托、指定虚拟实体和相关动态权限统一在“实体委托”中配置。展开后可直接勾选通用委托；需要指定目标时，先按名称或 slug 选择当前团队实体，再勾选适用于该实体的权限，最后点击“委托到 @slug”把具体 key 加入角色草稿。选择实体本身不会自动授予权限。具体 key 的目标段始终使用所选 Entity 的全局 slug，不会用 <code>virtual</code> 等类型名称代替。虚拟实体支持管理、操作、字段管理和领取身份 4 项，成员与客户只支持领取对应身份。</p>
+<p>身份领取与指定实体 assume Permission 统一在“实体委托”中配置；虚拟实体维护位于“实体管理”，代表虚拟实体参与聊天位于“聊天”。配置实体管理或委托时，先按名称或 slug 选择当前团队实体，再勾选适用权限；选择实体本身不会自动授予权限。Chat 组会按真实 slug 列出当前团队虚拟实体的代聊天权限。具体 key 的目标段始终使用所选 Entity 的全局 slug，不会用 <code>virtual</code> 等类型名称代替。</p>
 <p>打开角色或权限摘要只会读取现有记录，不会清理数据。点击“保存权限”时，官方前端才会移除被父键或 <code>*</code> 权限覆盖的子键和指定 slug；服务端为兼容旧客户端与第三方调用，会保存所有不同且合法的键。</p>
 <p>拥有 <code>team.role.write</code> 的管理员可以授予当前团队目录中的任意高级范围，即使自己没有对应业务 Permission；成员编辑页仍只分配角色，不提供成员直授。</p>
 <p>角色可以分配给任意团队的有效 Entity，但 Permission 始终属于当前目标团队。外部来源 Entity 不能直接越过 Team 归属边界；它只能按 assume Permission 领取目标身份后再操作。</p>
@@ -1571,7 +1571,7 @@
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>zip 7z rar
 </span></code></pre></div>
 <p><code>file.read</code> 控制文件列表和用量，<code>file.delete</code> 控制删除。文件数量和总容量按 File Ability &frac12;/3 级计算，见<a href="../access-and-abilities/">能力、权限与功能降级</a>。</p>
-<p>缺少 File Ability 时，上传按钮和 Markdown 编辑器原有的本地图片上传图标保持可见但不可上传；主动点击或用键盘触发时会短时提示具体原因，不在按钮下方常驻显示。外部图片 URL、已有文件读取和文档编辑仍可使用。缺少 <code>file.upload</code> 时则提示具体 Permission 键。</p>
+<p><code>file.upload</code> 只控制“文件”页上传到团队文件库。资料头像、商品封面、介绍媒体、对象字段文件和 Markdown 图片属于各自资源附件：上传只要求 File Ability，最终保存仍由资料、商品、文档、通知或对象字段的既有编辑权限校验。缺少 File Ability 时，所有资料上传按钮和 Markdown 编辑器原有的本地图片上传图标保持可见但不可上传；主动点击或用键盘触发时会短时提示具体原因，不在按钮下方常驻显示。外部图片 URL、已有文件读取和文档编辑仍可使用。</p>
 <h2 id="_12">文档<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
 <p>文档功能整体要求 Doc Ability。文档可以归属于当前团队任意有效 Entity，并包含标题、Markdown 正文、管理范围、可见范围、指定对象、排序和标签。</p>
 <p>没有 <code>team.document.read</code> 时仍可进入文档页，但只看到当前 Entity 按可见范围可读的文档；具备该 Permission 后可读取全团队文档。创建、编辑和删除由 Doc Ability、文档管理范围、归属主体和当前 Entity 共同判断，不存在统一的 <code>team.document.write</code> Permission。</p>
@@ -1658,7 +1658,7 @@
 <p>选项字段分别保存给申请人看的“显示名称”和实际提交的“提交值”。审批后转存可以选择当前团队的人员对象字段，不要求操作者同时取得对象字段管理 Permission；目标字段的名称、标识和值类型会在选择时显示，保存时服务端仍重新确认团队归属。</p>
 <p>具备 <code>team.join_review.read</code> 的 Entity 可以查看申请，具备 <code>team.join_review.write</code> 的 Entity 可以开始审核、维护任务、标记任务完成、同意或拒绝。审批通过时系统创建成员及默认 slug，并把申请时确认的邀请人写入成员；配置为“审批后转存”的申请字段会写入对应 Entity 字段。申请阶段上传文件仍要求 File Ability 和文件规则。</p>
 <h2 id="webhook">虚拟实体与 Webhook<a class="headerlink" href="#webhook" title="Permanent link">&para;</a></h2>
-<p>虚拟实体用于人工代操作、Webhook、机器人和外部工作流。创建需要 <code>team.entity.virtual.create</code>；编辑、删除和集成管理需要 <code>team.entity.virtual.&lt;slug&gt;.manage</code> 或通配权限。代表虚拟实体执行受支持操作使用跨应用的 <code>identity.virtual.&lt;slug&gt;.act</code>，不再归入 Chat 权限域。</p>
+<p>虚拟实体用于人工代操作、Webhook、机器人和外部工作流。创建需要 <code>team.entity.virtual.create</code>；编辑、删除和集成管理需要 <code>team.entity.virtual.&lt;slug&gt;.manage</code> 或通配权限。仅在 Chat 中代表虚拟实体参与会话使用 <code>chat.virtual.&lt;slug&gt;.act</code> 或通配权限；它不会切换身份，也不能授权其他应用。</p>
 <p>创建虚拟实体时设置稳定 slug、名称和资料。之后可添加多个 Webhook 集成，配置名称、有效 HTTPS 地址、订阅事件和启用状态。Webhook 地址不能指向内网或保留地址。</p>
 <p>集成创建或轮换后会显示 API Token 和签名密钥，明文只出现一次：</p>
 <ol>

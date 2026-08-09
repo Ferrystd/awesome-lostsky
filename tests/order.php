@@ -10,6 +10,9 @@ use app\model\TeamCustomer;
 use app\model\TeamCustomerBalance;
 use app\model\TeamCustomerBalanceLog;
 use app\model\TeamOrder;
+use app\model\TeamProduct;
+use app\model\TeamProductHandler;
+use app\model\TeamProductRedemptionField;
 use app\model\TeamTransaction;
 use app\model\User;
 use app\service\Balance;
@@ -17,6 +20,7 @@ use app\service\Entity as EntityService;
 use app\service\EntityProfile;
 use app\service\Order;
 use app\service\Product;
+use app\service\ProductSelfManagement;
 use app\service\TeamSetting;
 use think\App;
 use think\exception\HttpException;
@@ -220,6 +224,97 @@ try {
     $customerPersonal = app(Order::class)->personal((int) $team->id, (int) $customerEntity->id, [], 1, 100);
     $assert($teamPersonal['total'] > 0, 'personal order scope includes orders handled by the current entity');
     $assert($customerPersonal['total'] === 0, 'personal order scope does not expand to unrelated same-team entities');
+
+    $selfProducts = app(ProductSelfManagement::class);
+    $actingTeam = ['entity_id' => (int) $teamEntity->id, 'type' => 'team', 'id' => (int) $team->id];
+    $selfProductId = $selfProducts->create(
+        (int) $team->id,
+        $actingTeam,
+        (int) $teamEntity->id,
+        [
+            'name' => 'Self-managed Product',
+            'cover_image' => 'https://assets.lostsky.work/media/self-product.webp',
+            'price' => 88,
+            'entity_id' => (int) $customerEntity->id,
+        ]
+    );
+    $selfProduct = TeamProduct::find($selfProductId);
+    $assert(
+        (int) $selfProduct->entity_id === (int) $teamEntity->id,
+        'personal product creation forces the acting Entity even when another owner is submitted'
+    );
+    $selfList = $selfProducts->list((int) $team->id, $actingTeam, ['entity_id' => (int) $customerEntity->id], 1, 100);
+    $assert(
+        $selfList['total'] === 1 && (int) $selfList['list'][0]['id'] === $selfProductId,
+        'personal product list ignores client scope and returns only products owned by the acting Entity'
+    );
+    $assertThrows(
+        fn () => $selfProducts->get((int) $team->id, $actingTeam, $productId),
+        404,
+        'personal product details hide team-common products'
+    );
+    $assertThrows(
+        fn () => $selfProducts->edit(
+            (int) $team->id,
+            $actingTeam,
+            (int) $customerEntity->id,
+            $selfProductId,
+            ['name' => 'Must not change']
+        ),
+        409,
+        'personal product writes reject an Entity switch'
+    );
+    $assert(TeamProduct::find($selfProductId)->name === 'Self-managed Product', 'Entity mismatch leaves the product unchanged');
+    $selfProducts->edit(
+        (int) $team->id,
+        $actingTeam,
+        (int) $teamEntity->id,
+        $selfProductId,
+        ['name' => 'Updated Self Product', 'is_active' => 1]
+    );
+    $assert(
+        TeamProduct::find($selfProductId)->name === 'Updated Self Product'
+            && (int) TeamProduct::find($selfProductId)->is_active === 1,
+        'personal product edit supports ordinary content and shelf status'
+    );
+    $selfProducts->setHandlers(
+        (int) $team->id,
+        $actingTeam,
+        (int) $teamEntity->id,
+        $selfProductId,
+        [(int) $teamEntity->id]
+    );
+    $assert(
+        TeamProductHandler::where('product_id', $selfProductId)->count() === 1,
+        'personal product management updates handlers inside the owned product scope'
+    );
+    $fieldId = $selfProducts->createField(
+        (int) $team->id,
+        $actingTeam,
+        (int) $teamEntity->id,
+        $selfProductId,
+        ['field_key' => 'appointment_note', 'name' => '预约说明', 'value_type' => 'string']
+    );
+    $selfProducts->updateField(
+        (int) $team->id,
+        $actingTeam,
+        (int) $teamEntity->id,
+        $selfProductId,
+        $fieldId,
+        ['name' => '更新后的预约说明']
+    );
+    $assert(
+        TeamProductRedemptionField::find($fieldId)->name === '更新后的预约说明',
+        'personal product management updates redemption fields'
+    );
+    $selfProducts->deleteField(
+        (int) $team->id,
+        $actingTeam,
+        (int) $teamEntity->id,
+        $selfProductId,
+        $fieldId
+    );
+    $assert(TeamProductRedemptionField::find($fieldId) === null, 'personal product management removes unused redemption fields');
 } finally {
     $db->rollback();
 }

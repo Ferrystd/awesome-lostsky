@@ -2,10 +2,12 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { KeyRound, RotateCw, Trash2 } from '@lucide/vue'
-import { NCheckbox, NCheckboxGroup, NInput, NSwitch } from 'naive-ui'
+import { NInput } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsCheckboxGroupField from '@lostsky/ui/components/LsCheckboxGroupField.vue'
+import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
 interface Integration {
@@ -94,14 +96,14 @@ const remove = useMutation({
 })
 
 const eventOptions = [
-  ['conversation.created', '会话创建'],
-  ['conversation.closed', '会话关闭'],
-  ['conversation.participants.added', '参与者加入'],
-  ['conversation.participant.removed', '参与者移出'],
-  ['message.created', '新消息'],
-  ['message.updated', '消息编辑'],
-  ['message.revoked', '消息撤回'],
-] as const
+  { value: 'conversation.created', label: '会话创建' },
+  { value: 'conversation.closed', label: '会话关闭' },
+  { value: 'conversation.participants.added', label: '参与者加入' },
+  { value: 'conversation.participant.removed', label: '参与者移出' },
+  { value: 'message.created', label: '新消息' },
+  { value: 'message.updated', label: '消息编辑' },
+  { value: 'message.revoked', label: '消息撤回' },
+]
 
 function deleteIntegration() {
   if (confirm('确认删除这个 Webhook 集成？')) remove.mutate()
@@ -127,16 +129,8 @@ function deleteIntegration() {
       <form v-else @submit.prevent="save.mutate()">
         <label>集成名称<NInput v-model:value="form.name" maxlength="50" placeholder="CRM 工作流" /></label>
         <label>HTTPS Webhook 地址<NInput v-model:value="form.endpoint_url" maxlength="1000" placeholder="https://example.com/lostsky/events" /></label>
-        <fieldset>
-          <legend>订阅事件</legend>
-          <NCheckboxGroup v-model:value="form.events">
-            <NCheckbox v-for="option in eventOptions" :key="option[0]" :value="option[0]">{{ option[1] }}</NCheckbox>
-          </NCheckboxGroup>
-        </fieldset>
-        <label v-if="editing" class="switch-row">
-          <span><strong>启用集成</strong><small>停用后不再接收事件，也不能使用 API Token 发送消息。</small></span>
-          <NSwitch v-model:value="form.is_active" aria-label="启用集成" />
-        </label>
+        <LsCheckboxGroupField v-model="form.events" label="订阅事件" :options="eventOptions" />
+        <LsSwitchField v-if="editing" v-model="form.is_active" label="启用集成" description="停用后不再接收事件，也不能使用 API Token 发送消息。" />
         <p v-if="save.isError.value || rotate.isError.value || remove.isError.value" class="error" role="alert">
           {{ friendlyError(save.error.value || rotate.error.value || remove.error.value) }}
         </p>
@@ -164,11 +158,6 @@ function deleteIntegration() {
 .integration-form-page{display:grid;gap:1rem}
 form{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}
 form>label{display:grid;gap:.4rem;font-size:.82rem;font-weight:650}
-fieldset{display:grid;gap:.65rem;padding:1rem;border:1px solid var(--line);border-radius:9px}
-fieldset :deep(.n-checkbox-group){display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:.65rem}
-legend{padding:0 .35rem;font-size:.82rem;font-weight:650}
-.switch-row{display:flex!important;align-items:center;justify-content:space-between;padding:.8rem;background:var(--cloud);border-radius:9px}
-.switch-row strong,.switch-row small{display:block}.switch-row small{color:var(--muted-ink);font-weight:400}
 .actions{display:flex;flex-wrap:wrap;gap:.6rem}
 .credentials{display:grid;grid-template-columns:28px minmax(0,1fr);gap:.65rem;padding:1rem;color:oklch(.28 .07 150);background:oklch(.95 .04 150);border:1px solid oklch(.8 .08 150);border-radius:12px}
 .credentials h3,.credentials p{margin:0}.credentials code{display:block;overflow-wrap:anywhere;color:var(--ink);user-select:all}.credentials small{color:var(--muted-ink)}

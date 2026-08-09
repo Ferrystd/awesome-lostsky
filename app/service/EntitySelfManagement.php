@@ -129,11 +129,6 @@ class EntitySelfManagement
         UploadedFile $file
     ): array {
         $context = $this->writableContext($actingEntity, $expectedEntityId);
-        app(PermissionGate::class)->assert(
-            $context['team_id'],
-            $actingEntity,
-            [PermissionDictionary::FILE_UPLOAD]
-        );
         return app(File::class)->upload($file, $context['team_id'], $actingEntity);
     }
 
@@ -208,14 +203,9 @@ class EntitySelfManagement
     private function uploadCapability(int $teamId, array $actingEntity): array
     {
         $ability = app(TeamAccess::class)->ability($teamId, 'file', '文件上传');
-        $hasPermission = app(PermissionGate::class)->allows(
-            $teamId,
-            $actingEntity,
-            [PermissionDictionary::FILE_UPLOAD]
-        );
         return [
-            'enabled' => $hasPermission && (bool) $ability['enabled'],
-            'reason' => !$hasPermission ? '当前实体没有 file.upload 权限' : $ability['reason'],
+            'enabled' => (bool) $ability['enabled'],
+            'reason' => $ability['reason'],
         ];
     }
 }

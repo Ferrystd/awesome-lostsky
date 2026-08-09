@@ -23,14 +23,14 @@ import {
   type DocumentTagDraft,
 } from '../lib/documentTags'
 import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
-import { fileUploadReason, useTeamAccess } from '../lib/teamAccess'
+import { resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const editor = ref<InstanceType<typeof LsMarkdownEditor> | null>(null)
 const access = useTeamAccess()
-const uploadDisabledReason = computed(() => fileUploadReason(access.data.value))
+const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
 const id = computed(() => Number(route.query.id || 0))
 const editing = computed(() => id.value > 0)
 const form = reactive({

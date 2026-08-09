@@ -198,7 +198,7 @@ class ChatMessage
         $summary = app(ChatActor::class)->summary(ChatActorType::Virtual, $virtualId);
         $slug = (string) ($summary['slug'] ?? '');
         return $slug !== '' && app(PermissionGate::class)->allows($teamId, $actingEntity, [
-            PermissionDictionary::IDENTITY_VIRTUAL_ALL_ACT,
+            PermissionDictionary::CHAT_VIRTUAL_ALL_ACT,
             PermissionDictionary::virtual($slug, 'act'),
         ]);
     }

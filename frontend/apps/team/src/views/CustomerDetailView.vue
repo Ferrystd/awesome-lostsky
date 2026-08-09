@@ -1,22 +1,24 @@
 <script setup lang="ts">
-import { ApiError, api, friendlyError } from '@lostsky/api/client'
+import { ApiError, api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import type { EntityType } from '@lostsky/ui/entity'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { MessageCircleMore, Save } from '@lucide/vue'
-import { NFormItem, NInput, NSelect, NSwitch } from 'naive-ui'
+import { NInput, NSelect } from 'naive-ui'
 import type { SelectOption, SelectRenderLabel } from 'naive-ui'
-import { computed, h, reactive, watch } from 'vue'
+import { computed, h, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPage from '../components/AdminPage.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import EntitySelectOption from '../components/EntitySelectOption.vue'
-import { abilityReason, hasPermission, permissionReason, useTeamAccess } from '../lib/teamAccess'
+import { abilityReason, hasPermission, permissionReason, resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 interface EntitySummary {
   entity_id: number
@@ -81,6 +83,10 @@ const query = useQuery({
   queryFn: loadCustomerDetail,
 })
 const canManage = computed(() => Boolean(query.data.value?.can_manage))
+const avatarUploading = ref(false)
+const avatarUploadDisabledReason = computed(() => !canManage.value
+  ? permissionReason('team.customer.manage')
+  : resourceUploadReason(access.data.value))
 const assignees = useQuery({
   queryKey: ['team-customer-assignees'],
   queryFn: () => api.get<EntitySummary[]>('/customer/assignees'),
@@ -170,7 +176,7 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
         <template #header><header class="detail-heading"><div><h3>客户资料</h3><p>@{{ query.data.value.slug }}</p></div><span>{{ canManage ? '可维护' : '只读' }}</span></header></template>
         <form @submit.prevent="save.mutate()">
           <LsField label="客户昵称" for-id="customer-name"><NInput v-model:value="form.name" :input-props="{ id: 'customer-name' }" :disabled="!canManage" maxlength="50" /></LsField>
-          <LsField label="头像地址" for-id="customer-avatar"><NInput v-model:value="form.avatar" :input-props="{ id: 'customer-avatar' }" :disabled="!canManage" placeholder="可选" /></LsField>
+          <LsField label="头像" for-id="customer-avatar"><LsMediaUploadField id="customer-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(avatarUploadDisabledReason)" :disabled-reason="avatarUploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
           <LsField label="说明" for-id="customer-description"><NInput v-model:value="form.description" :input-props="{ id: 'customer-description' }" :disabled="!canManage" type="textarea" maxlength="500" /></LsField>
           <LsField label="当前归属人" for-id="customer-assignee" hint="变更只影响之后创建的订单和流水，不修改历史发单人。">
             <NSelect
@@ -187,8 +193,8 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
               placeholder="未归属"
             />
           </LsField>
-          <NFormItem label="客户状态"><div class="switch-field"><span><strong>封禁客户</strong><small>封禁后客户现有身份会话不能继续使用。</small></span><NSwitch v-model:value="form.is_blocked" :disabled="!canManage" /></div></NFormItem>
-          <LsButton v-if="canManage" type="submit" :loading="save.isPending.value"><template #icon><Save :size="18" /></template>保存客户资料</LsButton>
+          <LsSwitchField v-model="form.is_blocked" label="封禁客户" description="封禁后客户现有身份会话不能继续使用。" :disabled="!canManage" />
+          <LsButton v-if="canManage" type="submit" :loading="save.isPending.value" :disabled="avatarUploading"><template #icon><Save :size="18" /></template>保存客户资料</LsButton>
         </form>
       </LsPanel>
     </template>
@@ -196,6 +202,6 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
 </template>
 
 <style scoped>
-.chat-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .9rem;border:0;border-radius:9px;color:white;background:var(--sky-lost-strong);font-size:.875rem;font-weight:700}.chat-link.disabled{color:var(--muted-ink);background:var(--cloud);cursor:not-allowed}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden;background:white;border:1px solid var(--line);border-radius:12px}.summary-grid article{display:grid;gap:.25rem;padding:1.1rem;border-right:1px solid var(--line)}.summary-grid article:last-child{border-right:0}.summary-grid span,.summary-grid small{color:var(--muted-ink);font-size:.76rem}.summary-grid strong{font-size:1.1rem;font-variant-numeric:tabular-nums}.detail-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}.detail-heading h3,.detail-heading p{margin:0}.detail-heading p{margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.detail-heading>span{padding:.2rem .5rem;border-radius:999px;background:var(--cloud);font-size:.72rem;font-weight:700}.ls-panel form{max-width:42rem;display:grid;gap:1rem}.switch-field{width:100%;display:grid;grid-template-columns:1fr auto;align-items:center;padding:.85rem;background:var(--cloud);border-radius:10px}.switch-field span,.switch-field strong,.switch-field small{display:block}.switch-field small{color:var(--muted-ink);font-weight:400;line-height:1.5}
+.chat-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .9rem;border:0;border-radius:9px;color:white;background:var(--sky-lost-strong);font-size:.875rem;font-weight:700}.chat-link.disabled{color:var(--muted-ink);background:var(--cloud);cursor:not-allowed}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden;background:white;border:1px solid var(--line);border-radius:12px}.summary-grid article{display:grid;gap:.25rem;padding:1.1rem;border-right:1px solid var(--line)}.summary-grid article:last-child{border-right:0}.summary-grid span,.summary-grid small{color:var(--muted-ink);font-size:.76rem}.summary-grid strong{font-size:1.1rem;font-variant-numeric:tabular-nums}.detail-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}.detail-heading h3,.detail-heading p{margin:0}.detail-heading p{margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.detail-heading>span{padding:.2rem .5rem;border-radius:999px;background:var(--cloud);font-size:.72rem;font-weight:700}.ls-panel form{max-width:42rem;display:grid;gap:1rem}
 @media(max-width:640px){.summary-grid{grid-template-columns:1fr}.summary-grid article{border-right:0;border-bottom:1px solid var(--line)}.summary-grid article:last-child{border-bottom:0}}
 </style>

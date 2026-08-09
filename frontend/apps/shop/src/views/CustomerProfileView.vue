@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ApiError, friendlyError } from '@lostsky/api/client'
+import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ArrowRight, BadgeCheck, CircleAlert, RotateCcw, ShieldCheck, UserRound } from '@lucide/vue'
 import { NButton, NInput, NSelect, NSpin } from 'naive-ui'
@@ -14,6 +15,7 @@ const storefront = useQuery({ queryKey: ['shop-storefront'], queryFn: shopApi.st
 const assignees = useQuery({ queryKey: ['shop-customer-assignees'], queryFn: shopApi.assignees })
 const nickname = ref('')
 const avatar = ref('')
+const avatarUploading = ref(false)
 const description = ref('')
 const newSlug = ref('')
 const claimedSlug = ref('')
@@ -135,8 +137,8 @@ const save = useMutation({
             <NInput v-model:value="nickname" maxlength="50" size="large" :input-props="{ id: 'customer-nickname', 'aria-label': '团队内昵称' }" placeholder="你希望商家如何称呼你" />
           </label>
           <label for="customer-avatar">
-            头像地址
-            <NInput v-model:value="avatar" maxlength="500" size="large" :input-props="{ id: 'customer-avatar', 'aria-label': '头像地址' }" placeholder="https://…" />
+            头像
+            <LsMediaUploadField id="customer-avatar" v-model="avatar" :upload="shopApi.uploadCustomerFile" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" @uploading="avatarUploading = $event" />
           </label>
           <label for="customer-description">
             团队内简介
@@ -197,7 +199,7 @@ const save = useMutation({
           <p v-if="success" class="save-success" role="status"><BadgeCheck :size="18" />{{ success }}</p>
           <p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
         </div>
-        <NButton attr-type="submit" type="primary" size="large" :loading="save.isPending.value">保存资料</NButton>
+        <NButton attr-type="submit" type="primary" size="large" :loading="save.isPending.value" :disabled="avatarUploading">保存资料</NButton>
       </div>
     </form>
   </section>

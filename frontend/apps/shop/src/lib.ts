@@ -1,6 +1,6 @@
-import { api, auth } from '@lostsky/api/client'
+import { ApiError, api, auth, friendlyError } from '@lostsky/api/client'
 import { storedReferral } from '@lostsky/shared/referral'
-import type { Balance, BindResult, Customer, ManageAccess, ManageCampaign, ManageCode, ManageOptions, ManagePackage, ManageService, Order, Page, ProductDetail, ProductSummary, RedemptionCard, ServiceInstance, StoreProfile } from './types'
+import type { Balance, BindResult, Customer, ManageAccess, ManageCampaign, ManageCode, ManageOptions, ManagePackage, ManageService, Order, Page, ProductDetail, ProductManageOptions, ProductSummary, RedemptionCard, ServiceInstance, StoreProfile } from './types'
 
 const readyKey = () => `lostsky_shop_customer:${location.host}`
 
@@ -45,6 +45,16 @@ export const shopApi = {
   me: () => api.get<Customer>('/customer/me'),
   updateProfile: (body: { nickname: string; avatar?: string | null; description?: string | null; assignee_entity_id?: number | null }) =>
     api.post<void>('/customer/me', body),
+  uploadCustomerFile: async (file: File) => {
+    try {
+      const result = await api.uploadTo<Record<string, unknown>>(file, '/customer/upload')
+      const url = String(result.url ?? result.path ?? '')
+      if (!url) throw new ApiError('上传结果缺少文件地址', { method: 'POST', path: '/customer/upload', data: result })
+      return url
+    } catch (error) {
+      throw new Error(friendlyError(error), { cause: error })
+    }
+  },
   assignees: () => api.get<Array<{ entity_id: number; slug: string; type: string; name: string; avatar?: string | null }>>('/customer/assignees'),
   claimSlug: (slug: string) => api.post<{ slug: string }>('/customer/slug', { slug }),
   balance: () => api.get<Balance>('/customer/balance'),
@@ -72,6 +82,36 @@ export function hasManagePermission(permissions: string[], required: string) {
   return permissions.some(granted => required === granted || required.startsWith(`${granted}.`))
 }
 export function canManage(permission: string) { return Boolean(manageAccess && hasManagePermission(manageAccess.permissions, permission)) }
+
+export type ProductManagementScope = 'team' | 'personal'
+export function productManagement(scope: ProductManagementScope) {
+  const personal = scope === 'personal'
+  const apiBase = personal ? '/personal/products' : '/product'
+  const routeBase = personal ? '/manage/personal/products' : '/manage/products'
+  const permission = personal ? 'shop.product.self.manage' : 'shop.product.write'
+  const payload = (body: Record<string, unknown>, expectedEntityId?: number) => personal
+    ? { ...body, expected_entity_id: expectedEntityId ?? 0 }
+    : body
+
+  return {
+    personal,
+    permission,
+    routeBase,
+    options: () => api.get<ProductManageOptions>(personal ? `${apiBase}/options` : '/manage/options'),
+    products: (params: Record<string, unknown>) => pageRequest<any>(apiBase, params, personal ? '我的商品列表' : '商品列表'),
+    product: (id: number) => api.get<any>(`${apiBase}/${id}`),
+    saveProduct: (id: number | null, body: Record<string, unknown>, expectedEntityId?: number) =>
+      api.post<{id:number}>(id ? `${apiBase}/${id}` : apiBase, payload(body, expectedEntityId)),
+    disableProduct: (id: number, expectedEntityId?: number) => api.post(`${apiBase}/${id}`, payload({ is_active: 0 }, expectedEntityId)),
+    setProductHandlers: (id: number, entityIds: number[], expectedEntityId?: number) =>
+      api.post(`${apiBase}/${id}/handlers`, payload({ entity_ids: entityIds }, expectedEntityId)),
+    productFields: (id: number) => api.get<any[]>(`${apiBase}/${id}/redemption-fields`),
+    saveProductField: (productId: number, fieldId: number | null, body: Record<string, unknown>, expectedEntityId?: number) =>
+      api.post(`${apiBase}/${productId}/redemption-fields${fieldId ? `/${fieldId}` : ''}`, payload(body, expectedEntityId)),
+    deleteProductField: (productId: number, fieldId: number, expectedEntityId?: number) =>
+      api.post(`${apiBase}/${productId}/redemption-fields/${fieldId}/delete`, payload({}, expectedEntityId)),
+  }
+}
 
 export const manageApi = {
   access: loadManageAccess,
