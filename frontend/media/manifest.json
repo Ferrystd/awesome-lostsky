@@ -7,6 +7,13 @@
       "source": "project-owned",
       "rights": "Existing LostSky repository asset",
       "alt": "深色蓝紫色的 LostSky 抽象背景纹理"
+    },
+    {
+      "path": "deploy/oss/system/image-not-found.png",
+      "purpose": "Protected OSS fallback for missing image objects",
+      "source": "user-provided",
+      "rights": "Provided by project owner",
+      "alt": "404 Not Found 缺图占位图"
     }
   ]
 }

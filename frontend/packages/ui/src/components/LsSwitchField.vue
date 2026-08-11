@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { NSwitch } from 'naive-ui'
 import { computed, useId } from 'vue'
+import LsSwitch from './LsSwitch.vue'
 
 const props = withDefaults(defineProps<{
   modelValue: boolean
@@ -13,15 +13,11 @@ const props = withDefaults(defineProps<{
   readOnly?: boolean
   loading?: boolean
   disabledReason?: string
-  checkedText?: string
-  uncheckedText?: string
 }>(), {
   description: '',
   id: '',
   ariaLabel: '',
   disabledReason: '',
-  checkedText: '',
-  uncheckedText: '',
 })
 
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -47,21 +43,18 @@ const describedBy = computed(() => {
       <span v-if="description" :id="descriptionId" class="ls-switch-field__description">{{ description }}</span>
       <span v-if="unavailable && disabledReason" :id="reasonId" class="ls-switch-field__reason">{{ disabledReason }}</span>
     </span>
-    <NSwitch
+    <LsSwitch
       :id="controlId"
       class="ls-switch-field__control"
-      :value="modelValue"
-      :disabled="unavailable"
+      :model-value="modelValue"
+      :disabled="disabled"
+      :read-only="readOnly"
       :loading="loading"
       :aria-label="ariaLabel || undefined"
       :aria-labelledby="ariaLabel ? undefined : labelId"
       :aria-describedby="describedBy"
-      :aria-readonly="readOnly || undefined"
-      @update:value="emit('update:modelValue', $event)"
-    >
-      <template v-if="checkedText" #checked>{{ checkedText }}</template>
-      <template v-if="uncheckedText" #unchecked>{{ uncheckedText }}</template>
-    </NSwitch>
+      @update:model-value="emit('update:modelValue', $event)"
+    />
   </div>
 </template>
 

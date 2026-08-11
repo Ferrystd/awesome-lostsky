@@ -139,6 +139,11 @@ class TeamSetting
         $preparedVisibility = $this->visibility($visibility);
         $this->assertVisibility($preparedVisibility);
         $normalized = $this->normalize($appName, $key, $value);
+        if ($appName === 'service') {
+            $next = $this->internal($teamId, 'service');
+            $next[$key] = $normalized;
+            $this->assertServiceDefaults($next);
+        }
 
         \think\facade\Db::transaction(function () use ($teamId, $appName, $key, $normalized, $preparedVisibility, $targets) {
             $this->persist($teamId, $appName, $key, $normalized, $preparedVisibility, $targets);
@@ -158,6 +163,11 @@ class TeamSetting
             $setting['visibility'] = $this->visibility($setting['visibility']);
             $this->assertVisibility($setting['visibility']);
             $prepared[$key] = $setting;
+        }
+        if ($appName === 'service') {
+            $next = $this->internal($teamId, 'service');
+            foreach ($prepared as $key => $setting) $next[$key] = $setting['value'];
+            $this->assertServiceDefaults($next);
         }
 
         \think\facade\Db::transaction(function () use ($teamId, $appName, $prepared) {
@@ -185,6 +195,22 @@ class TeamSetting
         if (!(bool) ($after['inactive_entity_available'] ?? false)) {
             app(IdentitySession::class)->revokeInactiveMembers($teamId);
         }
+    }
+
+    private function assertServiceDefaults(array $settings): void
+    {
+        foreach ([
+            ['default_handler_rate_percent', 'default_sender_rate_percent', 'default_cs_rate_percent'],
+            ['default_adjustment_handler_rate_percent', 'default_adjustment_sender_rate_percent', 'default_adjustment_cs_rate_percent'],
+        ] as $keys) {
+            $total = array_sum(array_map(static fn (string $key): int => (int) ($settings[$key] ?? 0), $keys));
+            if ($total > 100) throw new HttpException(422, '接单、发单与客服默认分成比例合计不能超过 100%');
+        }
+        app(ServiceQuantity::class)->normalize(
+            $settings['default_quantity_step'] ?? 1,
+            (int) ($settings['default_quantity_scale'] ?? 0),
+            $settings['default_quantity_step'] ?? 1
+        );
     }
 
     private function persist(

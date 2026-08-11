@@ -169,7 +169,7 @@ describe('后台工作台入口架构', () => {
     expect(form).toContain(':upload-image="uploadMarkdownImage"')
     expect(form).not.toContain("formatPermissionDenied(['file.upload'])")
     expect(form).not.toContain('商城暂未配置直接上传入口')
-    expect(access).toContain("'file' => app(\\app\\service\\TeamAccess::class)->ability($request->team_id, 'file', '文件上传')")
+    expect(access).toContain('TeamAccess::class)->snapshot(')
   })
 
   it('file.upload 只保护文件库上传，资源附件只受 File Ability 与资源保存鉴权', () => {
@@ -231,5 +231,22 @@ describe('后台工作台入口架构', () => {
     const team = JSON.parse(source('docs/openapi/team.openapi.json'))
     expect(team.paths['/personal/profile'].post.requestBody.content['application/json'].schema.required)
       .toContain('expected_entity_id')
+  })
+
+  it('权益包与履约费用防止可空数字崩溃，并明确区分查询失败和空结果', () => {
+    const packageForm = source('frontend/apps/shop/src/views/manage/PackageFormView.vue')
+    expect(packageForm).toContain('quantity: number | null')
+    expect(packageForm).toContain('const finite = (value: number | null)')
+    expect(packageForm).not.toMatch(/item\.(?:quantity|valid_days|unit_price|unit_cost|unit_handler_cut|unit_sender_cut|unit_cs_cut)\.toFixed/)
+
+    const serviceDetail = source('frontend/apps/transaction/src/views/ServiceDetailView.vue')
+    expect(serviceDetail).toContain('quantity: number | null')
+    expect(serviceDetail).toContain('const feeValid = computed')
+    expect(serviceDetail).toContain('handlers.isError.value')
+    expect(serviceDetail).not.toMatch(/fee\.(?:quantity|unit_price|cost)\.toFixed/)
+
+    const storefrontService = source('frontend/apps/shop/src/views/ServiceView.vue')
+    expect(storefrontService).toContain('query.isError.value')
+    expect(storefrontService).toContain('handlers.isError.value')
   })
 })

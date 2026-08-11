@@ -28,9 +28,9 @@ const columns: DataTableColumns<HealthCheck> = [
   <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取系统状态" :description="friendlyError(query.error.value)" />
   <template v-else-if="query.data.value">
     <LsPanel><section class="system-status"><LsStatusTag :label="adminStatusLabel(query.data.value.status)" :type="adminStatusType(query.data.value.status)" /><h2>{{ query.data.value.status === 'healthy' ? '核心服务运行正常' : '有服务需要关注' }}</h2><p>检查时间 {{ formatTime(query.data.value.checked_at) }}</p></section></LsPanel>
-    <LsPanel><template #header><div><h2>核心依赖</h2><p>检查结果不包含连接密钥和服务器路径</p></div></template><NDataTable :columns="columns" :data="query.data.value.checks" :row-key="row => row.key" /></LsPanel>
-    <LsPanel><template #header><div><h2>后台积压</h2><p>仅用于判断是否需要进入运维流程</p></div></template><LsDescriptionList><template v-for="(count, key) in query.data.value.backlogs" :key="key"><dt>{{ key }}</dt><dd class="ls-tabular">{{ count }}</dd></template></LsDescriptionList></LsPanel>
+    <LsPanel><template #header><div class="system-panel-header"><h2>核心依赖</h2><p>检查结果不包含连接密钥和服务器路径</p></div></template><NDataTable :columns="columns" :data="query.data.value.checks" :row-key="row => row.key" /></LsPanel>
+    <LsPanel><template #header><div class="system-panel-header"><h2>后台积压</h2><p>仅用于判断是否需要进入运维流程</p></div></template><LsDescriptionList><template v-for="(count, key) in query.data.value.backlogs" :key="key"><dt>{{ key }}</dt><dd class="ls-tabular">{{ count }}</dd></template></LsDescriptionList></LsPanel>
   </template>
 </template>
 
-<style scoped>.system-status h2{margin:10px 0 4px;font-size:1.25rem}.system-status p,:deep(.ls-panel__header p){margin:0;color:var(--muted-ink)}:deep(.ls-panel__header h2){margin:0}</style>
+<style scoped>.system-status h2{margin:10px 0 4px;font-size:1.25rem}.system-status p,.system-panel-header p{margin:0;color:var(--muted-ink)}.system-panel-header h2{margin:0}</style>

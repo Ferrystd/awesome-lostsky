@@ -5,8 +5,9 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NInput, NInputNumber, NRadio, NRadioGroup, NSelect, NSwitch } from 'naive-ui'
+import { NInput, NInputNumber, NRadio, NRadioGroup, NSelect } from 'naive-ui'
 import type { SelectOption } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -133,12 +134,12 @@ function settingId(appName: string, key: string): string {
         </div>
 
         <div :class="['setting-control', { 'setting-control--choices': setting.control === 'radio' }]">
-          <NSwitch
+          <LsSwitch
             v-if="setting.control === 'switch'"
-            :value="Boolean(settingValue(app.app_name, setting))"
+            :model-value="Boolean(settingValue(app.app_name, setting))"
             :aria-labelledby="`${settingId(app.app_name, setting.key)}-label`"
             :aria-describedby="`${settingId(app.app_name, setting.key)}-description`"
-            @update:value="setSettingValue(app.app_name, setting.key, $event)"
+            @update:model-value="setSettingValue(app.app_name, setting.key, $event)"
           />
 
           <NRadioGroup

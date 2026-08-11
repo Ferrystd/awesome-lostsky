@@ -25,7 +25,9 @@ class TeamServiceInstance extends Base
         'service_id' => 'integer',
         'customer_id' => 'integer',
         'holder_entity_id' => 'integer',
+        'entitlement_id' => 'integer',
         'ordinal' => 'integer',
+        'quantity' => 'string',
         'status' => ServiceStatus::class,
         'total_price' => 'string',
         'cost' => 'string',
@@ -48,9 +50,9 @@ class TeamServiceInstance extends Base
 
     /** 只读字段 */
     protected $readonly = [
-        'team_id', 'service_id', 'customer_id', 'holder_entity_id', 'source_product_id', 'source_order_id',
-        'source_claim_id', 'ordinal', 'sender_entity_id', 'cs_entity_id', 'total_price',
-        'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'expire_time',
+        'team_id', 'service_id', 'customer_id', 'holder_entity_id', 'entitlement_id',
+        'source_product_id', 'source_order_id', 'source_claim_id', 'ordinal', 'quantity',
+        'sender_entity_id', 'cs_entity_id', 'expire_time',
     ];
 
     public function getIsExpiredAttr(): bool
@@ -62,6 +64,7 @@ class TeamServiceInstance extends Base
 
     public function team() { return $this->belongsTo(Team::class, 'team_id'); }
     public function service() { return $this->belongsTo(TeamService::class, 'service_id'); }
+    public function entitlement() { return $this->belongsTo(TeamServiceEntitlement::class, 'entitlement_id'); }
     public function sourceProduct() { return $this->belongsTo(TeamProduct::class, 'source_product_id'); }
     public function customer() { return $this->belongsTo(TeamCustomer::class, 'customer_id'); }
     public function holder() { return $this->belongsTo(Entity::class, 'holder_entity_id'); }
@@ -71,4 +74,5 @@ class TeamServiceInstance extends Base
     public function cancelRequests() { return $this->hasMany(TeamServiceCancelRequest::class, 'service_instance_id'); }
     public function events() { return $this->hasMany(TeamServiceEvent::class, 'service_instance_id'); }
     public function fieldValues() { return $this->hasMany(TeamServiceFieldValue::class, 'service_instance_id'); }
+    public function adjustments() { return $this->hasMany(TeamServiceAdjustment::class, 'service_instance_id'); }
 }

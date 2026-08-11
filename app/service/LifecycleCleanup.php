@@ -19,7 +19,6 @@ class LifecycleCleanup
         $sessionsBefore = $now - $this->days('entity_session_retention_days') * 86400;
         $devicesBefore = $now - $this->days('device_retention_days') * 86400;
         $refreshBefore = $now - $this->days('refresh_token_retention_days') * 86400;
-        $filesBefore = $now - $this->days('file_retention_days') * 86400;
         $auditBefore = $now - $this->days('business_audit_retention_days') * 86400;
 
         $sessions = 0;
@@ -71,7 +70,7 @@ class LifecycleCleanup
         }
 
         $files = 0;
-        foreach (FileModel::onlyTrashed()->where('delete_time', '<=', $filesBefore)->select() as $file) {
+        foreach (FileModel::onlyTrashed()->select() as $file) {
             app(File::class)->purgeObject((string) $file->path);
             $file->force(true)->delete();
             $files++;

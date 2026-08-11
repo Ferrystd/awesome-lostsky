@@ -54,6 +54,16 @@ test('chat workspace renders conversations and sends through the API boundary', 
 })
 
 test('Chat identity entry opens the workspace that owns current-entity self management', async ({ page }) => {
+  for (const target of [
+    'http://demo.team.lostsky.work:5175/personal',
+    'http://demo.shop.lostsky.work:5179/customer/profile',
+  ]) {
+    await page.route(target, route => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!doctype html><title>Redirect target</title>',
+    }))
+  }
   await page.route('http://demo.chat.lostsky.work:5176/api/**', async route => {
     const path = new URL(route.request().url()).pathname
     const data = path.endsWith('/actor') || path.endsWith('/conversation') ? [] : null
@@ -65,6 +75,11 @@ test('Chat identity entry opens the workspace that owns current-entity self mana
   })
   const identityToken = (type: string, id: number) =>
     `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type, id } })).toString('base64url')}.x`
+  const openRedirect = async (url: string) => {
+    await page.goto(url).catch((error: unknown) => {
+      if (!String(error).includes('ERR_ABORTED')) throw error
+    })
+  }
 
   await setToken(page, identityToken('teamCustomer', 31))
   await page.goto('http://demo.chat.lostsky.work:5176/')
@@ -87,11 +102,11 @@ test('Chat identity entry opens the workspace that owns current-entity self mana
     .toHaveAttribute('href', 'http://demo.team.lostsky.work:5175/personal')
 
   await setToken(page, identityToken('teamMember', 11))
-  await page.goto('http://demo.chat.lostsky.work:5176/profile')
+  await openRedirect('http://demo.chat.lostsky.work:5176/profile')
   await expect(page).toHaveURL('http://demo.team.lostsky.work:5175/personal')
 
   await setToken(page, identityToken('teamCustomer', 31))
-  await page.goto('http://demo.chat.lostsky.work:5176/profile')
+  await openRedirect('http://demo.chat.lostsky.work:5176/profile')
   await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/customer/profile')
 })
 

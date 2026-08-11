@@ -120,7 +120,15 @@ try {
     foreach ($settingSchema['apps'] as $settingApp) {
         $settingApps[$settingApp['app_name']] = $settingApp;
     }
-    $assertSame(['entity', 'member', 'chat', 'shop', 'display'], array_keys($settingApps), 'team setting apps keep their configured order');
+    $assertSame(['entity', 'member', 'chat', 'shop', 'service', 'display'], array_keys($settingApps), 'team setting apps keep their configured order');
+    $serviceSettingFields = [];
+    foreach ($settingApps['service']['settings'] ?? [] as $settingField) {
+        $serviceSettingFields[$settingField['key']] = $settingField;
+    }
+    $assertSame(80, $serviceSettingFields['default_handler_rate_percent']['value'] ?? null, 'service settings default handler share to eighty percent');
+    $assertSame(15, $serviceSettingFields['default_sender_rate_percent']['value'] ?? null, 'service settings default sender share to fifteen percent');
+    $assertSame(30, $serviceSettingFields['default_valid_days']['value'] ?? null, 'service settings expose the default entitlement expiry');
+    $assertSame(true, $serviceSettingFields['allow_customer_open_dispatch']['value'] ?? null, 'service settings allow open dispatch by default');
     $chatSettingFields = [];
     foreach ($settingApps['chat']['settings'] ?? [] as $settingField) {
         $chatSettingFields[$settingField['key']] = $settingField;

@@ -16,6 +16,7 @@ Team 是团队工作台的核心应用，负责成员资料、角色权限、团
 - 加入团队：申请表单、可选的全局邀请来源、申请记录、审核任务和审批；仅在链接带有邀请参数时显示只读邀请人，审批通过后把有效申请邀请人写入成员关系。
 - 实体引用：为 Markdown 等场景搜索和解析可引用对象。
 - 访问快照与概览：向四类 Team Entity 返回有效 Permission、Ability 状态，以及互不连带失败的实体、成员、文档、通知指标。
+- 安全与审计：具备 `team.audit.read` 的当前 Team Entity 可以筛选并读取本团队成功业务写入的审计摘要与安全详情；平台事件和其他 Team 事件不可见。
 
 具体接口路径和数据结构见 [`team.openapi.json`](../openapi/team.openapi.json)。
 
@@ -71,6 +72,10 @@ Team 应用按操作组合以下中间件：
 普通业务接口通过 `Permission:{permission_key}` 检查角色权限。角色已授予的父键同样可满足子键，例如 `team` 或 `team.ability` 可满足 `team.ability.redeem`，并自动覆盖未来新增的同前缀权限，但不覆盖兄弟键。动态参数使用 `<slug>` 形式，例如 `team.entity.virtual.<slug>.manage`。一个 `Permission` 可以用逗号接收多个权限参数，控制器字符串简写为 `Permission:key-a,key-b`；数组写法 `['Permission', ['key-a', 'key-b']]` 具有相同语义，多个参数按 OR 处理。Team 前端访问快照保留实际父键，并使用同一分段前缀与 `*` 动态段规则判断导航和动作。
 
 Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `scope=team|entity` 显式选择 Team 共享站内通知或当前 Entity 收件箱，省略 scope 时保持旧版身份默认行为。`GET /notice/capabilities` 为前端返回共享站内通知查看、通知发送和默认收件箱能力。
+
+团队审计读取要求 `team.audit.read`。新团队 owner 会随权限目录自动获得该权限，升级 SQL 补丁为现存有效 owner 角色补授；其他角色必须由管理员显式授权。`GET /audit/index` 和 `GET /audit/get` 只使用请求上下文中的 `team_id`，不接受外部团队参数。列表首屏只放关键词与应用，动作、资源和时间进入“更多筛选”；服务端目录必须覆盖所有实际写入的动作与资源类型，并由契约测试锁定。列表不返回 `context`，详情只返回经统一安全规范化后的上下文，并同时保留认证账号与 acting Entity；没有 acting Entity 的加入申请或首次客户绑定只保留认证账号归因。
+
+成功且产生状态变化的写请求必须记录；成功幂等命令同样记录并标记 `changed=false`。失败请求、读取、预检、通知已读、普通聊天消息和实时连接不写业务审计，由运行日志按 `request_id` 留痕。Team、Shop、Transaction 与 Chat 的全部 POST 路由分类由 `tests/audit_route_classification.php` 作为可执行清单维护。
 
 发送通知要求 `team.notice.send`。该权限本身定义本通知模型中的上级资格，具备权限的任意当前 Entity 可以向同 Team 任意 Entity 发送，不使用角色排序建立层级。通知始终以当前 Team 名义显示，集中业务审计保留实际 acting Entity 与认证用户。通知是单向通道，不支持回复、抄送、会话、跨 Team 投递或 LostSky 直发 Entity。
 

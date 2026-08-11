@@ -10,9 +10,10 @@ import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { computed, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import EntityFieldsCard, { type EntityFieldDefinition } from '../components/EntityFieldsCard.vue'
 import EntityPermissionsCard, {
   type AdvancedPermissionItem,
@@ -228,15 +229,7 @@ function setRolesDirty(value: boolean) {
   if (value) saveRoles.reset()
 }
 
-function beforeUnload(event: BeforeUnloadEvent) {
-  if (!hasUnsavedChanges.value) return
-  event.preventDefault()
-  event.returnValue = ''
-}
-
-onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
-onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未保存的修改，确认离开？'))
+useUnsavedChangesGuard(hasUnsavedChanges)
 </script>
 
 <template>
@@ -378,6 +371,7 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
         <LsButton
           type="button"
           variant="danger"
+          class="member-depart-action"
           :loading="memberAction.isPending.value"
           @click="confirmAction('/memberDeparture/depart', '确认将该成员设为已离职？操作后该成员的现有会话会立即失效，且不再等待审核。')"
         >
@@ -430,6 +424,6 @@ onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未
   .identity-status { align-items: flex-start; grid-template-columns: 1fr; }
   .management-actions { display: grid; }
   .danger-zone { align-items: stretch; flex-direction: column; }
-  .danger-zone :deep(.ls-button) { width: 100%; }
+  .member-depart-action { width: 100%; }
 }
 </style>

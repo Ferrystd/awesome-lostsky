@@ -8,6 +8,7 @@ import { computed } from 'vue'
 import { hasWorkspacePermission, loadWorkspaceAccess } from '../lib/workspace-access'
 
 const access = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: () => loadWorkspaceAccess() })
+const identityType = computed(() => ({ team: 'Team Entity', teamMember: '团队成员', teamVirtual: '虚拟实体' })[access.data.value?.identity?.type ?? ''] || '当前 Entity')
 
 function permissionReason(permission: string | null) {
   if (!permission) return ''
@@ -29,9 +30,9 @@ const entries = computed(() => [
 
 <template>
   <LsWorkspaceOverview
-    :eyebrow="`${access.data.value?.team?.name || '当前团队'} · 记账个人工作台`"
-    title="聚焦当前 Entity 的经营参与"
-    description="流水、业绩、核销和客户协作都只按当前 Entity 的参与、归属、绑定或处理关系展示。"
+    :eyebrow="`${identityType} · ${access.data.value?.team?.name || '当前团队'}`"
+    :title="access.data.value?.identity?.name || '正在读取当前 Entity'"
+    :description="`记账个人工作台固定服务于当前身份${access.data.value?.identity?.slug ? ` @${access.data.value.identity.slug}` : ''}；流水、业绩、核销和客户协作只按其参与关系展示。`"
     :actions="[{ key: 'team', label: '进入团队工作台', to: '/overview', icon: House, primary: true }]"
     :entries="entries"
     :scope-notes="['个人范围由 JWT 中的 acting_entity 决定，页面不提供 Entity 筛选器。', '团队管理 Permission 不会扩大个人数据范围。', '概览本身不请求流水、统计、核销或绑定数据。']"

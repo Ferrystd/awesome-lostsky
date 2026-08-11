@@ -10,6 +10,7 @@ import { ArrowLeft } from '@lucide/vue'
 import { NCheckbox, NCheckboxGroup, NDatePicker, NFormItem, NInput, NRadioButton, NRadioGroup, NSelect } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { fileAvailabilityReason, type FileUploadAvailability } from '../lib/teamAccess'
 
 interface JoinField {
   id?: number
@@ -26,6 +27,7 @@ interface JoinForm {
   purpose_label: string
   refill_required: boolean
   fields: JoinField[]
+  file_upload: FileUploadAvailability
 }
 
 const route = useRoute()
@@ -38,6 +40,7 @@ const uploading = ref<string | null>(null)
 const purpose = computed(() => form.data.value?.purpose_code ?? 'join')
 const isReinstate = computed(() => purpose.value === 'reinstate')
 const fields = computed(() => form.data.value?.fields ?? [])
+const uploadDisabledReason = computed(() => fileAvailabilityReason(form.data.value?.file_upload))
 const missingRequired = computed(() => fields.value.some((field) => {
   if (!field.is_apply_required) return false
   const value = values[keyOf(field)]
@@ -60,10 +63,15 @@ function choices(field: JoinField): Array<{ label: string; value: string }> {
   return []
 }
 async function upload(field: JoinField, event: Event) {
+  if (uploadDisabledReason.value) return
   const file = (event.target as HTMLInputElement).files?.[0]; if (!file) return
   const key = keyOf(field); const body = new FormData(); body.append('file', file); body.append('field_id', String(field.id ?? ''))
   uploading.value = key
-  try { const result = await api.post<Record<string, unknown>>('/join/upload', body); values[key] = String(result.id ?? result.file_id ?? result.url ?? '') } finally { uploading.value = null }
+  try {
+    const result = await api.post<Record<string, unknown>>('/join/upload', body)
+    values[key] = String(result.id ?? result.file_id ?? result.url ?? '')
+    await form.refetch()
+  } finally { uploading.value = null }
 }
 </script>
 
@@ -85,7 +93,7 @@ async function upload(field: JoinField, event: Event) {
         <NSelect v-else-if="field.input_type === 'select'" :value="String(values[keyOf(field)] ?? '') || null" :options="choices(field)" placeholder="请选择" @update:value="value => values[keyOf(field)] = value" />
         <NRadioGroup v-else-if="field.input_type === 'radio'" :value="String(values[keyOf(field)] ?? '')" class="choices" :name="keyOf(field)" @update:value="value => values[keyOf(field)] = value"><NRadioButton v-for="option in choices(field)" :key="option.value" :value="option.value">{{ option.label }}</NRadioButton></NRadioGroup>
         <NCheckboxGroup v-else-if="field.input_type === 'checkbox'" :value="Array.isArray(values[keyOf(field)]) ? values[keyOf(field)] as string[] : []" class="choices" @update:value="value => values[keyOf(field)] = value as string[]"><NCheckbox v-for="option in choices(field)" :key="option.value" :value="option.value">{{ option.label }}</NCheckbox></NCheckboxGroup>
-        <LsUploadField v-else-if="field.input_type === 'upload'" :show-url="false" :button-label="values[keyOf(field)] ? '重新选择文件' : '选择文件'" :loading="uploading === keyOf(field)" :disabled="Boolean(uploading)" @change="upload(field, $event)" />
+        <LsUploadField v-else-if="field.input_type === 'upload'" :show-url="false" :button-label="values[keyOf(field)] ? '重新选择文件' : '选择文件'" :loading="uploading === keyOf(field)" :disabled="Boolean(uploading || uploadDisabledReason)" :disabled-reason="uploadDisabledReason" @change="upload(field, $event)" />
         <NDatePicker v-else-if="field.input_type === 'date' || field.input_type === 'datetime'" :formatted-value="String(values[keyOf(field)] ?? '') || null" :type="field.input_type === 'date' ? 'date' : 'datetime'" :value-format="field.input_type === 'date' ? 'yyyy-MM-dd' : 'yyyy-MM-dd HH:mm:ss'" clearable @update:formatted-value="value => values[keyOf(field)] = value ?? ''" />
         <NInput v-else :value="String(values[keyOf(field)] ?? '')" :placeholder="field.default_value || ''" @update:value="value => values[keyOf(field)] = value" />
       </NFormItem>

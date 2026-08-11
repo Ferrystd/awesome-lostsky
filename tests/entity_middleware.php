@@ -266,7 +266,7 @@ $memberMiddleware = $middleware(\app\team\controller\Member::class);
 $assert(
     !isset($entityMiddleware['Permission:' . \app\service\PermissionDictionary::TEAM_ENTITY_READ])
         && ($entityMiddleware['Permission:' . \app\service\PermissionDictionary::TEAM_ENTITY_PROFILE_MANAGE]['only'] ?? null)
-            === ['profile', 'display', 'visibility'],
+            === ['profile', 'display', 'visibility', 'presentation'],
     'entity directory is a base read surface while profile and visibility writes require manage permission'
 );
 $assert(

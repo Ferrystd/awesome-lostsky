@@ -1,1 +1,0 @@
-function r(e){const t=String(e.status_code??"").toLowerCase();if(t==="active"||t==="blocked"||t==="departed")return t;throw new TypeError("成员状态代码不正确")}function a(e){return String(e.status_label||{active:"正常",blocked:"已封禁",departed:"已离队"}[r(e)])}function o(e){return{active:"success",blocked:"error",departed:"warning"}[r(e)]}export{a,r as b,o as m};

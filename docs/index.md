@@ -40,6 +40,7 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 ## 运维
 
 - [生产与宝塔部署](operations/deployment.md)
+- [系统运行日志](operations/logging.md)
 - [静态资源 CORS](operations/assets-cors.md)
 - [控制台命令](operations/console.md)
 
@@ -48,4 +49,5 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 - [当前待办](TODO.md)
 - [Markdown 编辑器 AI 能力](plans/markdown-ai.md)
 - [卡密、订阅与资产交易](plans/trade.md)
+- [混合服务分项计价与独立加价核销](plans/service-fulfillment-expansion.md)
 - [微博机器人](plans/weibo-bot.md)

@@ -91,6 +91,11 @@ const columns: DataTableColumns<ServiceRedemption> = [
     render: (r) => dateTime(r.started_at),
   },
   {
+    title: "履约数量",
+    key: "quantity",
+    render: (r) => `${Number(r.quantity).toFixed(r.entitlement?.quantity_scale ?? 0)} ${r.entitlement?.unit_name || '单位'}`,
+  },
+  {
     title: "状态",
     key: "status",
     render: (r) =>
@@ -151,7 +156,7 @@ const columns: DataTableColumns<ServiceRedemption> = [
       :columns="columns"
       :data="rows"
       :row-key="(r) => r.id"
-      :scroll-x="900"
+      :scroll-x="1020"
       ><template #mobile-title="{ row }"
         ><RouterLink :to="`/services/${row.id}`"
           >{{ row.service.name }} · #{{ row.id }}</RouterLink
@@ -168,6 +173,8 @@ const columns: DataTableColumns<ServiceRedemption> = [
           <dd>{{ entityName(row.handler, row.handler_entity_id) }}</dd>
           <dt>发起时间</dt>
           <dd>{{ dateTime(row.started_at) }}</dd>
+          <dt>履约数量</dt>
+          <dd>{{ Number(row.quantity).toFixed(row.entitlement?.quantity_scale ?? 0) }} {{ row.entitlement?.unit_name || '单位' }}</dd>
           <dt>操作</dt>
           <dd><RouterLink :to="`/services/${row.id}`">查看任务</RouterLink></dd>
         </dl></template

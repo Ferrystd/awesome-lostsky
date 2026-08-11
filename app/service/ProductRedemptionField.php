@@ -51,12 +51,24 @@ class ProductRedemptionField
 
     public function fieldsForInstance(TeamServiceInstance $instance, bool $customer): array
     {
-        if (!$instance->source_product_id) return [];
-        $query = TeamProductRedemptionField::where('team_id', $instance->team_id)
-            ->where('product_id', $instance->source_product_id)->where('is_active', 1);
+        return $this->fieldsForProduct(
+            (int) $instance->team_id,
+            (int) ($instance->source_product_id ?: $instance->entitlement?->source_product_id),
+            $customer,
+            (int) $instance->id
+        );
+    }
+
+    public function fieldsForProduct(int $teamId, int $productId, bool $customer, ?int $instanceId = null): array
+    {
+        if ($productId < 1) return [];
+        $query = TeamProductRedemptionField::where('team_id', $teamId)
+            ->where('product_id', $productId)->where('is_active', 1);
         if ($customer) $query->where('is_customer_visible', 1);
         $fields = $query->order('sort', 'asc')->order('id', 'asc')->select()->toArray();
-        $values = TeamServiceFieldValue::where('service_instance_id', $instance->id)->select()->toArray();
+        $values = $instanceId
+            ? TeamServiceFieldValue::where('service_instance_id', $instanceId)->select()->toArray()
+            : [];
         $valueMap = [];
         foreach ($values as $value) $valueMap[(int) $value['field_id']] = $value;
         foreach ($fields as &$field) $field['value'] = $valueMap[(int) $field['id']] ?? null;
@@ -96,6 +108,39 @@ class ProductRedemptionField
                 $value->save($data + ['service_instance_id' => $instance->id, 'field_id' => $fieldId]);
             }
         });
+    }
+
+    public function validateForProduct(int $teamId, int $productId, string $stage, array $values): array
+    {
+        if (!in_array($stage, ['customer', 'manager'], true)) throw new HttpException(500, '核销字段阶段无效');
+        if ($productId < 1) return [];
+        $fields = TeamProductRedemptionField::where('team_id', $teamId)
+            ->where('product_id', $productId)->where('fill_stage', $stage)
+            ->where('is_active', 1)->order('sort', 'asc')->select();
+        $provided = [];
+        foreach ($values as $fieldId => $raw) $provided[(int) $fieldId] = $raw;
+        $known = [];
+        foreach ($fields as $field) $known[(int) $field->id] = $field;
+        if (array_diff(array_keys($provided), array_keys($known))) throw new HttpException(422, '核销字段与商品或填写阶段不匹配');
+
+        $normalizer = app(TeamEntityField::class);
+        $result = [];
+        foreach ($fields as $field) {
+            $fieldId = (int) $field->id;
+            $raw = array_key_exists($fieldId, $provided) ? $provided[$fieldId] : $field->default_value;
+            if ($field->is_required && $normalizer->emptyValue($raw)) throw new HttpException(422, "字段 {$field->name} 不能为空");
+            if ($normalizer->emptyValue($raw)) continue;
+            $normalizer->normalizeValue((string) $field->value_type, $raw, is_array($field->options) ? $field->options : []);
+            $result[$fieldId] = $raw;
+        }
+        return $result;
+    }
+
+    public function fieldsForValues(int $teamId, int $productId, array $values): array
+    {
+        $fields = $this->fieldsForProduct($teamId, $productId, false);
+        foreach ($fields as &$field) $field['value'] = $values[(int) $field['id']] ?? null;
+        return $fields;
     }
 
     private function raw(TeamServiceFieldValue $value): mixed

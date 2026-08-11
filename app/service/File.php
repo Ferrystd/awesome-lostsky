@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace app\service;
 
-use app\exception\AccessDeniedException;
 use app\model\ExternalCompensation;
 use app\model\Entity;
 use OSS\OssClient;
@@ -15,6 +14,8 @@ use think\file\UploadedFile;
 
 class File
 {
+    private const QUOTA_MESSAGE = '该团队文件已达到上限，请联系团队管理员。';
+
     public function upload(UploadedFile $file, int $teamId, array $actor): array
     {
         $identity = $this->identityForActor($actor, $teamId);
@@ -127,7 +128,8 @@ class File
         if ((int) $file->entity_id !== $entityId) {
             throw new HttpException(403, '无权删除此文件');
         }
-        $file->delete();
+        $this->purgeObject((string) $file->path);
+        $file->force(true)->delete();
     }
 
     public function deleteByTeam(int $teamId, int $id): void
@@ -137,36 +139,77 @@ class File
             throw new HttpException(404, '文件不存在');
         }
 
-        $file->delete();
+        $this->purgeObject((string) $file->path);
+        $file->force(true)->delete();
     }
 
     public function checkAbility(int $teamId, int $newSize): void
     {
-        $ability = app(AbilityResolver::class)->resolve($teamId, 'file');
+        $ability = $this->capacityAbility($teamId);
         $level = (int) $ability['level'];
         $tiers = Config::get('file.tiers');
         $tier  = $tiers[$level] ?? $tiers[0];
 
-        if ($tier['count'] === 0 && $tier['size'] === 0 && $level !== 3) {
-            throw AccessDeniedException::ability('file', '文件上传');
-        }
-
-        if ($level === 3) {
+        $sizeLimit = (int) $tier['size'];
+        if ($sizeLimit < 0) {
             return;
         }
 
-        $usage = $this->usage($teamId);
-
-        if ($tier['count'] > 0 && $usage['count'] >= $tier['count']) {
-            throw new HttpException(422, '文件数量已达上限(' . $tier['count'] . '个)');
-        }
-
-        if ($usage['totalSize'] + $newSize > $tier['size']) {
-            throw new HttpException(422, '存储空间已达上限');
+        $usage = $this->measure($teamId);
+        if ($usage['total_size'] >= $sizeLimit || $usage['total_size'] + $newSize > $sizeLimit) {
+            throw new HttpException(422, self::QUOTA_MESSAGE);
         }
     }
 
     public function usage(int $teamId): array
+    {
+        return $this->uploadAvailability($teamId);
+    }
+
+    public function uploadAvailability(int $teamId): array
+    {
+        $usage = $this->measure($teamId);
+        $ability = $this->capacityAbility($teamId);
+        $tiers = Config::get('file.tiers');
+        $tier = $tiers[(int) $ability['level']] ?? $tiers[0];
+        $sizeLimit = (int) $tier['size'];
+
+        if ($sizeLimit < 0) {
+            return array_merge($usage, [
+                'size_limit' => null,
+                'remaining_size' => null,
+                'available' => true,
+                'reason' => null,
+            ]);
+        }
+
+        $remainingSize = max(0, $sizeLimit - $usage['total_size']);
+
+        return array_merge($usage, [
+            'size_limit' => $sizeLimit,
+            'remaining_size' => $remainingSize,
+            'available' => $remainingSize > 0,
+            'reason' => $remainingSize > 0 ? null : 'quota',
+        ]);
+    }
+
+    public function capacityAbility(int $teamId): array
+    {
+        $ability = app(AbilityResolver::class)->resolve($teamId, 'file');
+        if ($ability['enabled']) {
+            return $ability;
+        }
+
+        return [
+            'enabled' => true,
+            'level' => 0,
+            'expire_time' => 0,
+            'reason' => null,
+            'source' => 'base',
+        ];
+    }
+
+    private function measure(int $teamId): array
     {
         $result = \app\model\File::where('team_id', $teamId)
             ->fieldRaw('COUNT(id) as count, COALESCE(SUM(size), 0) as total_size')
@@ -174,7 +217,7 @@ class File
 
         return [
             'count'     => (int) $result->count,
-            'totalSize' => (int) $result->total_size,
+            'total_size' => (int) $result->total_size,
         ];
     }
 
@@ -194,21 +237,32 @@ class File
             throw new HttpException(422, $validator->getError());
         }
 
-        if ($checkAbility && $teamId !== null) {
-            $this->checkAbility($teamId, (int) $file->getSize());
-        }
-
         $hash = hash_file('sha256', $file->getPathname());
         $path = $this->buildPath($teamId, $hash, $file->getOriginalExtension());
 
         if ($dedupe && $teamId !== null) {
+            $active = \app\model\File::where('team_id', $teamId)
+                ->where('hash', $hash)
+                ->find();
+            if ($active) {
+                return $this->storedResult($active);
+            }
+        }
+
+        if ($checkAbility && $teamId !== null) {
+            $this->checkAbility($teamId, (int) $file->getSize());
+        }
+
+        if ($dedupe && $teamId !== null) {
             $existing = Db::transaction(function () use ($teamId, $hash) {
+                $this->lockTeam($teamId);
                 $existing = \app\model\File::withTrashed()
                     ->where('team_id', $teamId)
                     ->where('hash', $hash)
                     ->lock(true)
                     ->find();
                 if ($existing?->trashed()) {
+                    $this->checkAbility($teamId, (int) $existing->size);
                     $existing->restore();
                     return \app\model\File::where('team_id', $teamId)
                         ->where('hash', $hash)
@@ -225,7 +279,10 @@ class File
         $this->putOss($path, $file->getPathname());
 
         try {
-            return Db::transaction(function () use ($file, $hash, $path, $teamId, $entityId, $dedupe) {
+            return Db::transaction(function () use ($file, $hash, $path, $teamId, $entityId, $dedupe, $checkAbility) {
+                if ($teamId !== null) {
+                    $this->lockTeam($teamId);
+                }
                 if ($dedupe && $teamId !== null) {
                     $exist = \app\model\File::withTrashed()
                         ->where('team_id', $teamId)
@@ -234,6 +291,9 @@ class File
                         ->find();
                     if ($exist) {
                         if ($exist->trashed()) {
+                            if ($checkAbility) {
+                                $this->checkAbility($teamId, (int) $exist->size);
+                            }
                             $exist->restore();
                             $exist = \app\model\File::where('team_id', $teamId)
                                 ->where('hash', $hash)
@@ -242,6 +302,10 @@ class File
 
                         return $this->storedResult($exist);
                     }
+                }
+
+                if ($checkAbility && $teamId !== null) {
+                    $this->checkAbility($teamId, (int) $file->getSize());
                 }
 
                 $record = new \app\model\File;
@@ -282,6 +346,13 @@ class File
             'team_id'   => $file->team_id === null ? null : (int) $file->team_id,
             'entity_id' => $file->entity_id === null ? null : (int) $file->entity_id,
         ];
+    }
+
+    private function lockTeam(int $teamId): void
+    {
+        if (!\app\model\Team::where('id', $teamId)->lock(true)->find()) {
+            throw new HttpException(404, '团队不存在');
+        }
     }
 
     private function identityForActor(array $actor, int $teamId): Entity

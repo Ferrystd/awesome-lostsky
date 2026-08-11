@@ -15,7 +15,7 @@ use app\model\User;
 use app\validate\SmsVerification as SmsVerificationValidator;
 use think\exception\HttpException;
 use think\facade\Cache;
-use think\facade\Log;
+use app\support\SystemLog;
 
 class SmsVerification
 {
@@ -274,17 +274,17 @@ class SmsVerification
 
     private function cloudFailure(SmsType $type, string $code, string $requestId): never
     {
-        Log::warning('短信验证码云服务返回失败', [
+        app(SystemLog::class)->write('warning', 'sms.cloud_failure', [
             'type' => $type->value,
             'code' => $code,
-            'requestId' => $requestId,
+            'provider_request_id' => $requestId,
         ]);
         throw new HttpException(503, '验证码发送或核验失败，请稍后再试');
     }
 
     private function cloudException(SmsType $type, \Throwable $exception): never
     {
-        Log::error('短信验证码云服务异常', [
+        app(SystemLog::class)->write('error', 'sms.cloud_exception', [
             'type' => $type->value,
             'exception' => $exception::class,
             'message' => $exception->getMessage(),

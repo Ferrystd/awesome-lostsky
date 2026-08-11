@@ -13,7 +13,8 @@ const props = withDefaults(defineProps<{
   content?: string | null
   resolveEntities?: EntityResolve
   chatEnabled?: boolean
-}>(), { chatEnabled: true })
+  context?: 'inline' | 'document'
+}>(), { chatEnabled: true, context: 'inline' })
 const entities = ref<Record<string, EntitySummary>>({})
 const selected = ref<EntitySummary | null>(null)
 const markdownRoot = ref<HTMLElement | null>(null)
@@ -107,7 +108,7 @@ function startChat() {
 </script>
 
 <template>
-  <div class="ls-markdown-renderer">
+  <div :class="['ls-markdown-renderer', `ls-markdown-renderer--${context}`]">
     <div ref="markdownRoot" class="markdown" @click="selectEntity" v-html="html" />
     <LsEntityCard
       v-if="selected && selected.available"
@@ -127,6 +128,7 @@ function startChat() {
 
 <style scoped>
 .ls-markdown-renderer{display:grid;gap:.75rem}
+.ls-markdown-renderer--document{--markdown-h1-size:2rem;--markdown-h2-size:1.55rem;--markdown-h3-size:1.25rem;--markdown-h4-size:1.05rem;--markdown-body-size:1rem;--markdown-line-height:1.85}
 .markdown{min-width:0;color:inherit;font-size:var(--markdown-body-size,1rem);line-height:var(--markdown-line-height,1.8);overflow-wrap:anywhere}
 .markdown :deep(> :first-child){margin-top:0}
 .markdown :deep(> :last-child){margin-bottom:0}

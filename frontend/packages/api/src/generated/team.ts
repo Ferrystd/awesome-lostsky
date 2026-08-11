@@ -4,6 +4,57 @@
  */
 
 export interface paths {
+    "/audit/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取审计筛选目录 */
+        get: operations["teamAuditCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 分页查询当前 Team 的审计日志 */
+        get: operations["teamAuditIndex"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取当前 Team 的单条审计详情 */
+        get: operations["teamAuditGet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/ability": {
         parameters: {
             query?: never;
@@ -157,7 +208,7 @@ export interface paths {
         put?: never;
         /**
          * 上传当前 Entity 资料媒体
-         * @description 受当前 Entity 和 expected_entity_id 一致性、File Ability 与文件规则约束；不额外要求 file.upload。
+         * @description 受当前 Entity 和 expected_entity_id 一致性、File 等级容量与文件规则约束；未购买时使用 0 级 128 MiB，不额外要求 file.upload。
          */
         post: operations["teamPersonalUpload"];
         delete?: never;
@@ -906,7 +957,7 @@ export interface paths {
         put?: never;
         /**
          * 上传文件到团队文件库
-         * @description 文件库后台操作；同时要求 file.upload Permission 与 File Ability。资源表单中的头像、封面和 Markdown 图片使用公共资源附件上传，不受此 Permission 限制。
+         * @description 文件库后台操作；上传同时要求 file.upload Permission 与当前 File 等级仍有剩余容量，未购买时使用 0 级 128 MiB。资源表单中的头像、封面和 Markdown 图片使用公共资源附件上传，不受此 Permission 限制。
          */
         post: operations["teamFileUpload"];
         delete?: never;
@@ -1886,6 +1937,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/entity/presentation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 原子更新实体可见性设置
+         * @description 需要 team.entity.profile.manage。成员与虚拟实体的团队内可见和公开主页展示属于同一业务分组，必须在一次请求中完整提交并原子保存。
+         */
+        post: operations["teamEntityPresentationUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/entity/visibility": {
         parameters: {
             query?: never;
@@ -1988,10 +2059,62 @@ export interface components {
                 doc: components["schemas"]["TeamAbilityState"];
                 transaction: components["schemas"]["TeamAbilityState"];
             };
+            file_upload: components["schemas"]["FileUsage"];
             identity: {
                 /** @enum {string} */
                 type: "team" | "teamMember" | "teamVirtual";
+                /** Format: int64 */
+                entity_id: number;
+                name: string;
+                slug?: string | null;
+                avatar?: string | null;
             };
+        };
+        AuditOption: {
+            value: string;
+            label: string;
+        };
+        AuditFilterCatalog: {
+            applications: components["schemas"]["AuditOption"][];
+            actions: components["schemas"]["AuditOption"][];
+            resource_types: components["schemas"]["AuditOption"][];
+        };
+        AuditActor: {
+            /** Format: int64 */
+            authenticated_user_id: number;
+            username?: string | null;
+            /** Format: int64 */
+            entity_id: number | null;
+            entity_type?: string | null;
+            entity_name?: string | null;
+            entity_slug?: string | null;
+        };
+        AuditEventSummary: {
+            /** Format: int64 */
+            id: number;
+            application: string;
+            application_label: string;
+            action: string;
+            action_label: string;
+            resource_type: string;
+            resource_label: string;
+            /** Format: int64 */
+            resource_id?: number | null;
+            actor: components["schemas"]["AuditActor"];
+            request_id?: string | null;
+            /** Format: int64 */
+            create_time: number;
+        };
+        AuditEventDetail: components["schemas"]["AuditEventSummary"] & {
+            context: {
+                [key: string]: unknown;
+            };
+        };
+        AuditPage: {
+            total: number;
+            list: components["schemas"]["AuditEventSummary"][];
+            page: number;
+            limit: number;
         };
         DashboardMetric: {
             available: boolean;
@@ -2469,8 +2592,16 @@ export interface components {
             size?: number;
         };
         FileUsage: {
-            count?: number;
-            totalSize?: number;
+            count: number;
+            /** Format: int64 */
+            total_size: number;
+            /** Format: int64 */
+            size_limit: number | null;
+            /** Format: int64 */
+            remaining_size: number | null;
+            available: boolean;
+            /** @enum {string|null} */
+            reason: "quota" | null;
         };
         Document: {
             /** Format: int64 */
@@ -2803,6 +2934,7 @@ export interface components {
             purpose_label: string;
             refill_required: boolean;
             fields: components["schemas"]["JoinField"][];
+            file_upload: components["schemas"]["FileUsage"];
         };
         EntityTeamSummary: {
             slug: string;
@@ -3029,6 +3161,120 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    teamAuditCatalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 审计筛选目录 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["AuditFilterCatalog"];
+                    };
+                };
+            };
+            /** @description 缺少 team.audit.read 权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamAuditIndex: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                limit?: components["parameters"]["Limit"];
+                q?: string;
+                application?: string;
+                action?: string;
+                resource_type?: string;
+                actor_entity_id?: number;
+                start_time?: number;
+                end_time?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 当前 Team 的审计事件 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["AuditPage"];
+                    };
+                };
+            };
+            /** @description 缺少 team.audit.read 权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamAuditGet: {
+        parameters: {
+            query: {
+                id: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 安全规范化后的审计详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["AuditEventDetail"];
+                    };
+                };
+            };
+            /** @description 缺少 team.audit.read 权限 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 事件不存在或不属于当前 Team */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     teamAbilities: {
         parameters: {
             query?: never;
@@ -3274,7 +3520,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description 缺少 File Ability 或当前 Entity 无法自管资料 */
+            /** @description 当前 Entity 无法自管资料 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -5693,7 +5939,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description 缺少 file.upload Permission 或 File Ability */
+            /** @description 缺少 file.upload Permission */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -7807,6 +8053,71 @@ export interface operations {
                 };
             };
             /** @description 归属实体或资料不合法 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamEntityPresentationUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: int64 */
+                    entity_id: number;
+                    /** @enum {integer} */
+                    is_internal_visible: 0 | 1;
+                    /** @enum {integer} */
+                    is_displayed: 0 | 1;
+                };
+            };
+        };
+        responses: {
+            /** @description 可见性设置已更新 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: {
+                            /** @enum {integer} */
+                            is_internal_visible: 0 | 1;
+                            /** @enum {integer} */
+                            is_displayed: 0 | 1;
+                        };
+                    };
+                };
+            };
+            /** @description 缺少 team.entity.profile.manage */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 实体不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 实体类型或任一可见性值不合法；请求不会部分保存 */
             422: {
                 headers: {
                     [name: string]: unknown;

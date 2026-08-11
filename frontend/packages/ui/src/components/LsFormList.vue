@@ -113,10 +113,7 @@ function finishDrag(event: DraggableEvent<T>) {
         <span class="ls-form-list__handle" :class="{ 'ls-form-list__handle--disabled': disabled }" aria-hidden="true">
           <GripVertical :size="18" />
         </span>
-        <div class="ls-form-list__content">
-          <strong class="ls-form-list__label">{{ itemLabel }} {{ index + 1 }}</strong>
-          <slot name="item" :item="item" :index="index" />
-        </div>
+        <strong class="ls-form-list__label">{{ itemLabel }} {{ index + 1 }}</strong>
         <div class="ls-form-list__actions" :aria-label="`${itemLabel} ${index + 1} 操作`">
           <NButton
             quaternary
@@ -144,6 +141,9 @@ function finishDrag(event: DraggableEvent<T>) {
             @click="removeItem(index)"
           ><template #icon><Trash2 :size="18" /></template></NButton>
         </div>
+        <div class="ls-form-list__content">
+          <slot name="item" :item="item" :index="index" />
+        </div>
       </li>
     </VueDraggable>
     <div class="ls-form-list__add">
@@ -159,22 +159,24 @@ function finishDrag(event: DraggableEvent<T>) {
 .ls-form-list__status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .ls-form-list__empty { min-height: 4rem; display: grid; place-items: center; margin: 0; padding: 1rem; color: var(--muted-ink); background: var(--cloud); border: 1px solid var(--line); border-radius: 10px; font-size: .8125rem; }
 .ls-form-list__items { min-width: 0; display: grid; margin: 0; padding: 0; overflow: hidden; background: white; border: 1px solid var(--line); border-radius: 12px; list-style: none; }
-.ls-form-list__item { min-width: 0; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; align-items: start; gap: .75rem; padding: .75rem; background: white; border-bottom: 1px solid var(--line); transition: background-color var(--motion-fast) var(--ease-standard), opacity var(--motion-fast) var(--ease-standard); }
+.ls-form-list__item { min-width: 0; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; align-items: start; gap: .625rem .75rem; padding: .75rem; background: white; border-bottom: 1px solid var(--line); transition: background-color var(--motion-fast) var(--ease-standard), opacity var(--motion-fast) var(--ease-standard); }
 .ls-form-list__item:last-child { border-bottom: 0; }
 .ls-form-list__item--chosen { background: var(--cloud); }
 .ls-form-list__item--ghost { opacity: .45; }
 .ls-form-list__handle { width: 2rem; min-height: 44px; display: grid; place-items: center; color: var(--muted-ink); cursor: grab; touch-action: none; }
 .ls-form-list__handle:active { cursor: grabbing; }
 .ls-form-list__handle--disabled { opacity: .45; cursor: default; }
-.ls-form-list__content { min-width: 0; display: grid; gap: .625rem; }
-.ls-form-list__label { color: var(--muted-ink); font-size: .75rem; font-weight: 650; }
-.ls-form-list__actions { display: flex; align-items: center; justify-content: flex-end; gap: .125rem; }
+.ls-form-list__content { min-width: 0; grid-column: 2 / -1; display: grid; gap: .625rem; }
+.ls-form-list__label { align-self: center; color: var(--muted-ink); font-size: .75rem; font-weight: 650; }
+.ls-form-list__actions { grid-column: 3; display: flex; align-items: center; justify-content: flex-end; gap: .125rem; }
 .ls-form-list__actions :deep(.n-button) { width: 44px; height: 44px; }
-.ls-form-list__add { display: flex; justify-content: flex-start; }
+.ls-form-list__add { justify-self: start; }
+.ls-form-list__add :deep(.ls-button) { min-width: 7rem; }
 @media (max-width: 639px) {
-  .ls-form-list__item { grid-template-columns: 1.75rem minmax(0, 1fr); gap: .625rem; padding: .75rem .625rem; }
+  .ls-form-list__item { grid-template-columns: 1.75rem minmax(0, 1fr) auto; gap: .625rem; padding: .75rem .625rem; }
   .ls-form-list__handle { width: 1.75rem; }
-  .ls-form-list__actions { grid-column: 2; justify-content: flex-end; }
+  .ls-form-list__add { width: 100%; }
+  .ls-form-list__add :deep(.ls-button) { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ls-form-list__item { transition-duration: 1ms; }

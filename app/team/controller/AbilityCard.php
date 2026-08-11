@@ -24,7 +24,12 @@ class AbilityCard
         $resolver = app(\app\service\AbilityResolver::class);
         $labels = ['doc' => '文档', 'file' => '文件', 'transaction' => '流水'];
         $result = [];
-        foreach ($labels as $key => $label) $result[] = ['key' => $key, 'label' => $label] + $resolver->resolve($request->team_id, $key);
+        foreach ($labels as $key => $label) {
+            $ability = $key === 'file'
+                ? app(\app\service\File::class)->capacityAbility($request->team_id)
+                : $resolver->resolve($request->team_id, $key);
+            $result[] = ['key' => $key, 'label' => $label] + $ability;
+        }
         return success($result);
     }
 

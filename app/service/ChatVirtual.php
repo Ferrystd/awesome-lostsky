@@ -55,34 +55,35 @@ class ChatVirtual
                 'description' => $data['description'] ?? null,
             ]);
 
-            return ['slug' => $identity->slug];
+            return ['id' => (int) $identity->id, 'slug' => $identity->slug];
         });
     }
 
-    public function update(int $teamId, string $slug, array $data): void
+    public function update(int $teamId, string $slug, array $data): int
     {
         $this->validate('update', $data);
         $virtual = $this->virtual($teamId, $slug);
+        $entityId = (int) app(\app\service\Entity::class)
+            ->requireBySubject('teamVirtual', (int) $virtual->id)->id;
         if (array_key_exists('is_active', $data)) {
             $virtual->save(['is_active' => $data['is_active']]);
         }
         $profile = array_intersect_key($data, array_flip(['name', 'avatar', 'description']));
         if ($profile) {
-            $entityId = (int) app(\app\service\Entity::class)
-                ->requireBySubject('teamVirtual', (int) $virtual->id)->id;
             app(EntityProfile::class)->update($teamId, $entityId, $profile);
         }
+        return $entityId;
     }
 
-    public function delete(int $teamId, string $slug): void
+    public function delete(int $teamId, string $slug): int
     {
         $virtual = $this->virtual($teamId, $slug);
-        \think\facade\Db::transaction(function () use ($teamId, $slug, $virtual) {
+        $entityId = (int) app(\app\service\Entity::class)
+            ->requireBySubject('teamVirtual', (int) $virtual->id)->id;
+        \think\facade\Db::transaction(function () use ($teamId, $slug, $virtual, $entityId) {
             foreach (TeamVirtualIntegration::where('virtual_id', $virtual->id)->select() as $integration) {
                 $integration->delete();
             }
-            $entityId = (int) app(\app\service\Entity::class)
-                ->requireBySubject('teamVirtual', (int) $virtual->id)->id;
             foreach (TeamEntityFieldValue::where('team_id', $teamId)
                 ->where('entity_id', $entityId)->select() as $value) {
                 $value->delete();
@@ -101,6 +102,7 @@ class ChatVirtual
             }
             TeamVirtualModel::destroy((int) $virtual->id);
         });
+        return $entityId;
     }
 
     public function model(int $teamId, string $slug): TeamVirtualModel

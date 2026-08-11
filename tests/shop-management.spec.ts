@@ -129,6 +129,7 @@ test("shop manager exposes the complete catalog workflow at desktop and 390px", 
   ).toBeVisible();
   const desktopLayout = await page.evaluate(() => {
     const main = document.querySelector<HTMLElement>("#shop-manage-main")!;
+    const content = main.querySelector<HTMLElement>(".manage-page-content")!;
     const page = document.querySelector<HTMLElement>(".manage-page")!;
     const create = main.querySelector<HTMLElement>("button")!;
     const heading = main.querySelector<HTMLElement>("h1")!;
@@ -143,6 +144,7 @@ test("shop manager exposes the complete catalog workflow at desktop and 390px", 
       mainLeft: Math.round(main.getBoundingClientRect().left),
       headingLeft: Math.round(heading.getBoundingClientRect().left),
       mainPaddingLeft: mainStyle.paddingLeft,
+      contentPaddingLeft: getComputedStyle(content).paddingLeft,
       pageGap: pageStyle.rowGap,
       buttonHeight: Math.round(create.getBoundingClientRect().height),
       buttonBackgroundImage: buttonStyle.backgroundImage,
@@ -164,7 +166,8 @@ test("shop manager exposes the complete catalog workflow at desktop and 390px", 
   expect(desktopLayout).toMatchObject({
     mainLeft: 248,
     headingLeft: 276,
-    mainPaddingLeft: "28px",
+    mainPaddingLeft: "0px",
+    contentPaddingLeft: "28px",
     pageGap: "24px",
     buttonBackgroundImage: "none",
     headerToolbarGap: 24,
@@ -205,6 +208,8 @@ test("shop manager exposes the complete catalog workflow at desktop and 390px", 
 test("shop manager publishes a service package product through the shared forms", async ({
   page,
 }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
   const token = `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type: "team", id: 1 } })).toString("base64url")}.x`;
   await page.context().addCookies([
     {
@@ -227,8 +232,8 @@ test("shop manager publishes a service package product through the shared forms"
   const options = {
     entities: [],
     services: [] as Array<{ id: number; name: string; is_active: number }>,
-    packages: [] as Array<{ id: number; name: string; is_active: number }>,
-    campaigns: [] as Array<{ id: number; name: string; is_active: number }>,
+    packages: [] as Array<Record<string, unknown>>,
+    campaigns: [] as Array<Record<string, unknown>>,
     customers: [],
   };
 
@@ -250,13 +255,19 @@ test("shop manager publishes a service package product through the shared forms"
         data = { id: 101, ...payloads.service, handlers: [] };
       else if (path.endsWith("/manage/packages") && method === "POST") {
         payloads.package = request.postDataJSON();
-        options.packages = [{ id: 102, name: "十次咨询", is_active: 1 }];
+        options.packages = [{
+          id: 102, name: "十次咨询", pricing_mode: 2, is_active: 1,
+          pricing_summary: {
+            price: "120.00", cost: "20.00", handler_cut: "30.00",
+            sender_cut: "0.00", cs_cut: "0.00", team_cut: "70.00",
+          },
+        }];
         data = { id: 102 };
       } else if (path.endsWith("/manage/packages/102"))
-        data = { id: 102, ...payloads.package };
+        data = { id: 102, ...payloads.package, is_pricing_locked: Boolean(payloads.product) };
       else if (path.endsWith("/manage/campaigns") && method === "POST") {
         payloads.campaign = request.postDataJSON();
-        options.campaigns = [{ id: 103, name: "咨询体验卡", is_active: 1 }];
+        options.campaigns = [{ id: 103, name: "咨询体验卡", is_active: 1, package: options.packages[0] }];
         data = { id: 103 };
       } else if (path.endsWith("/manage/campaigns/103/codes"))
         data = { total: 0, page: 1, limit: 20, list: [] };
@@ -285,14 +296,72 @@ test("shop manager publishes a service package product through the shared forms"
   expect(payloads.service).toMatchObject({ name: "咨询服务" });
 
   await page.goto("http://demo.shop.lostsky.work:5179/manage/packages/new");
+  const itemSummary = page.locator(".package-item-summary").first();
+  await expect(itemSummary).toHaveAttribute("aria-expanded", "true");
+  const packageGeometry = await page.locator(".ls-form-list__item").first().evaluate((item) => {
+    const content = item.querySelector<HTMLElement>(".ls-form-list__content")!;
+    const actions = item.querySelector<HTMLElement>(".ls-form-list__actions")!;
+    const groups = [...item.querySelectorAll<HTMLElement>(".package-field-group")].map((group) => {
+      const fields = [...group.querySelectorAll<HTMLElement>(".ls-field")];
+      return {
+        columns: getComputedStyle(group).gridTemplateColumns.split(" ").length,
+        fieldWidths: fields.map((field) => Math.round(field.getBoundingClientRect().width)),
+        controlTops: fields.map((field) => Math.round(field.querySelector<HTMLElement>(".ls-field__control")!.getBoundingClientRect().top)),
+        controlWidths: fields.map((field) => Math.round(field.querySelector<HTMLElement>(".ls-field__control")!.getBoundingClientRect().width)),
+      };
+    });
+    return {
+      contentRight: Math.round(content.getBoundingClientRect().right),
+      actionsRight: Math.round(actions.getBoundingClientRect().right),
+      groups,
+    };
+  });
+  expect(packageGeometry.contentRight).toBeGreaterThanOrEqual(packageGeometry.actionsRight - 1);
+  expect(packageGeometry.groups).toHaveLength(3);
+  for (const group of packageGeometry.groups) {
+    expect(group.columns).toBe(1);
+    expect(Math.max(...group.fieldWidths) - Math.min(...group.fieldWidths)).toBeLessThanOrEqual(1);
+    expect(Math.max(...group.controlWidths) - Math.min(...group.controlWidths)).toBeLessThanOrEqual(1);
+    for (let index = 1; index < group.controlTops.length; index += 1) {
+      expect(group.controlTops[index]).toBeGreaterThan(group.controlTops[index - 1]);
+    }
+  }
+  await itemSummary.click();
+  await expect(itemSummary).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator('[id^="package-service-"]')).toHaveCount(0);
+  await itemSummary.click();
+  const priceControl = page.locator('[id^="package-price-"]').first();
+  await priceControl.evaluate((control) => control.scrollIntoView({ block: "start" }));
+  expect(await priceControl.evaluate((control) => {
+    const rect = control.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + Math.min(rect.height / 2, 20));
+    return hit !== null && control.contains(hit);
+  })).toBe(true);
   await page.locator("#package-name input").fill("十次咨询");
   await page.locator('[id^="package-service-"]').click();
-  await page.getByText("咨询服务", { exact: true }).last().click();
-  await page.getByRole("button", { name: "保存权益包" }).click();
+  await page.getByText("咨询服务（次）", { exact: true }).last().click();
+  const savePackage = page.getByRole("button", { name: "保存权益包" });
+  const packagePrice = page.locator('[id^="package-price-"] input');
+  await packagePrice.fill("");
+  await packagePrice.press("Tab");
+  await expect(savePackage).toBeDisabled();
+  expect(pageErrors).toEqual([]);
+  await packagePrice.fill("120");
+  await page.locator('[id^="package-cost-"] input').fill("20");
+  await page.locator('[id^="package-distribution-"]').click();
+  await page.getByText("固定金额", { exact: true }).last().click();
+  await page.locator('[id^="package-handler-cut-"] input').fill("30");
+  await savePackage.click();
   await expect(page).toHaveURL(/\/manage\/packages\/102$/);
+  expect(pageErrors).toEqual([]);
   expect(payloads.package).toMatchObject({
     name: "十次咨询",
-    services: [{ service_id: 101, quantity: 1, valid_days: 30 }],
+    pricing_mode: 2,
+    services: [{
+      service_id: 101, quantity: "1", valid_days: 30,
+      unit_price: "120.00", unit_cost: "20.00", distribution_mode: 1,
+      unit_handler_cut: "30.00",
+    }],
   });
 
   await page.goto("http://demo.shop.lostsky.work:5179/manage/campaigns/new");
@@ -313,6 +382,8 @@ test("shop manager publishes a service package product through the shared forms"
   await page.getByText("服务套餐", { exact: true }).last().click();
   await page.locator("#product-package").click();
   await page.getByText("十次咨询", { exact: true }).last().click();
+  await expect(page.locator("#product-price input")).toHaveValue("120.00");
+  await expect(page.locator("#product-price input")).toBeDisabled();
   await page.getByRole("button", { name: "保存商品" }).click();
   await expect(page).toHaveURL(/\/manage\/products\/104$/);
   expect(payloads.product).toMatchObject({
@@ -320,8 +391,31 @@ test("shop manager publishes a service package product through the shared forms"
     kind: 2,
     benefit_package_id: 102,
     cover_image: "/media/consulting.webp",
+    price: 120,
+    cost: 20,
+    handler_cut: 30,
+    team_cut: 70,
   });
   expect(payloads.handlers).toEqual({ entity_ids: [] });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("http://demo.shop.lostsky.work:5179/manage/packages/102");
+  await expect(page.locator("#shop-manage-main").getByRole("heading", { name: "编辑权益包", level: 1 })).toBeVisible();
+  await expect(page.locator('[id^="package-price-"] input')).toHaveValue("120.00");
+  await expect(page.locator('[id^="package-price-"] input')).toBeDisabled();
+  await page.getByRole("button", { name: "复制为新权益包" }).click();
+  await expect(page).toHaveURL(/\/manage\/packages\/new\?copy=102$/);
+  await expect(page.locator("#shop-manage-main").getByRole("heading", { name: "复制权益包", level: 1 })).toBeVisible();
+  await expect(page.locator('[id^="package-price-"] input')).toBeEnabled();
+  await expect(page.locator('[id^="package-price-"] input')).toHaveValue("120.00");
+  const mobilePackageGeometry = await page.locator(".package-item-fields").first().evaluate((item) => ({
+    columns: [...item.querySelectorAll<HTMLElement>(".package-field-group")].map((group) => getComputedStyle(group).gridTemplateColumns.split(" ").length),
+    itemWidth: Math.round(item.getBoundingClientRect().width),
+    fieldWidths: [...item.querySelectorAll<HTMLElement>(".ls-field")].map((field) => Math.round(field.getBoundingClientRect().width)),
+  }));
+  expect(mobilePackageGeometry.columns).toEqual([1, 1, 1]);
+  expect(mobilePackageGeometry.fieldWidths.every((width) => Math.abs(width - mobilePackageGeometry.itemWidth) <= 1)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 
 test("Shop personal workspace creates an immutable self-owned product through personal APIs", async ({
@@ -345,7 +439,7 @@ test("Shop personal workspace creates an immutable self-owned product through pe
     if (path.endsWith("/manage/access")) {
       data = {
         team: { id: 1, slug: "demo", name: "青空协作组" },
-        identity: { type: "teamMember", entity_id: 71 },
+        identity: { type: "teamMember", entity_id: 71, name: "青空接单人", slug: "handler", avatar: "" },
         permissions: ["shop.product.self.manage"],
         abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: "记账" } },
       };

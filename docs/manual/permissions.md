@@ -65,11 +65,19 @@ Shop 团队工作台使用商品与订单的团队级 Permission；Team、成员
 | Permission | 允许的操作 |
 | --- | --- |
 | `file.read` | 查看团队文件和空间用量 |
-| `file.upload` | 通过“文件”页上传团队文件库；同时要求 File Ability 和配额可用。资料、商品和 Markdown 等资源附件不要求此键 |
+| `file.upload` | 通过“文件”页上传团队文件库；同时要求当前 File 等级仍有剩余容量。未购买时使用 0 级 128 MiB，资料、商品和 Markdown 等资源附件不要求此键 |
 | `file.delete` | 删除团队文件 |
 | `team.document.read` | 查看当前团队全部文档；缺少时仍可按文档可见范围读取 |
 | `team.setting.read` | 查看团队设置和设置结构 |
 | `team.setting.update` | 修改团队设置 |
+
+## 安全与审计
+
+| Permission | 允许的操作 |
+| --- | --- |
+| `team.audit.read` | 查看当前团队的审计日志列表、安全详情、筛选目录及请求 ID |
+
+新团队 owner 默认具有此权限；现存团队升级后，所有有效 owner 角色会由数据库补丁自动取得。其他角色不会自动获得，需在“角色权限”中由管理员授权。该权限只允许读取当前域名解析出的 Team，不允许通过查询参数切换团队。
 
 文档的创建、编辑和删除不使用统一的 `team.document.write` 键，而是由 Doc Ability、文档管理范围、归属主体和当前 Entity 共同判断。
 

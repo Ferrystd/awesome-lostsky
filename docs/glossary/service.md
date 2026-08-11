@@ -26,12 +26,26 @@
 | `fulfillOrder` | `model\TeamOrder $order` | `array` |
 | `servicesFromClaim` | `model\RedemptionClaim $claim`、`int $teamId`、`int $customerId`、`int $holderEntityId` | `array` |
 
+## BenefitPackagePricing
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `normalizeItem` | `array $item`、`int $sort` | `array` |
+| `isItemized` | `model\BenefitPackage $package` | `bool` |
+| `itemMoney` | `model\BenefitPackageService $item` | `array` |
+| `summary` | `model\BenefitPackage $package` | `array` |
+| `configuration` | `model\BenefitPackage $package` | `array` |
+| `toCents` | `string $amount` | `int` |
+| `fromCents` | `int $cents` | `string` |
+| `itemTotalMoney` | `model\BenefitPackageService $item` | `array` |
+
 ## BusinessAudit
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `record` | `think\Request $request`、`string $application`、`string $action`、`string $resourceType`、`?int $resourceId = null`、`array $context = []` | `int` |
 | `recordPlatform` | `?int $authenticatedUserId`、`string $action`、`string $resourceType`、`?int $resourceId = null`、`array $context = []`、`?think\Request $request = null` | `int` |
+| `sanitizeContext` | `array $context` | `array` |
 
 ## ChatActor
 
@@ -115,8 +129,8 @@
 | `list` | `int $teamId`、`array $actingEntity`、`string $mode = 'manage'` | `array` |
 | `get` | `int $teamId`、`string $slug` | `array` |
 | `create` | `int $teamId`、`array $data` | `array` |
-| `update` | `int $teamId`、`string $slug`、`array $data` | `void` |
-| `delete` | `int $teamId`、`string $slug` | `void` |
+| `update` | `int $teamId`、`string $slug`、`array $data` | `int` |
+| `delete` | `int $teamId`、`string $slug` | `int` |
 | `model` | `int $teamId`、`string $slug` | `model\TeamVirtual` |
 
 ## CustomerAssignment
@@ -182,6 +196,8 @@
 | `services` | `int $teamId`、`int $page`、`int $limit`、`string $keyword = ''` | `array` |
 | `service` | `int $teamId`、`int $id` | `array` |
 | `saveService` | `int $teamId`、`?int $id`、`array $data` | `int` |
+| `serviceHandlers` | `int $teamId`、`int $serviceId` | `array` |
+| `saveServiceHandlers` | `int $teamId`、`int $serviceId`、`array $entityIds` | `array` |
 | `disableService` | `int $teamId`、`int $id` | `void` |
 | `packages` | `?int $issuerTeamId`、`int $page`、`int $limit`、`string $keyword = ''` | `array` |
 | `package` | `?int $issuerTeamId`、`int $id` | `array` |
@@ -212,6 +228,8 @@
 | `setMemberSearch` | `int $teamId`、`int $memberId`、`mixed $override` | `void` |
 | `setDisplay` | `int $teamId`、`int $entityId`、`mixed $isDisplayed` | `void` |
 | `setInternalVisibility` | `int $teamId`、`int $entityId`、`mixed $isInternalVisible` | `void` |
+| `setPresentation` | `int $teamId`、`int $entityId`、`mixed $isInternalVisible`、`mixed $isDisplayed` | `array` |
+| `updatePresentation` | `think\Request $request`、`int $teamId`、`int $entityId`、`mixed $isInternalVisible`、`mixed $isDisplayed` | `array` |
 | `search` | `string $keyword`、`int $limit`、`int $userId` | `array` |
 | `resolve` | `array $slugs`、`int $userId`、`int $teamId = 0` | `array` |
 
@@ -230,7 +248,7 @@
 | --- | --- | --- |
 | `list` | `int $teamId`、`string $slug` | `array` |
 | `summary` | `int $teamId`、`string $slug` | `array` |
-| `save` | `int $teamId`、`string $slug`、`array $roleIds` | `void` |
+| `save` | `int $teamId`、`string $slug`、`array $roleIds` | `int` |
 | `describe` | `int $teamId`、`string $slug` | `array` |
 
 ## EntitySelfManagement
@@ -257,6 +275,8 @@
 | `deleteByTeam` | `int $teamId`、`int $id` | `void` |
 | `checkAbility` | `int $teamId`、`int $newSize` | `void` |
 | `usage` | `int $teamId` | `array` |
+| `uploadAvailability` | `int $teamId` | `array` |
+| `capacityAbility` | `int $teamId` | `array` |
 | `purgeObject` | `string $path` | `void` |
 
 ## IdentitySession
@@ -438,7 +458,10 @@
 | `update` | `int $teamId`、`int $productId`、`int $id`、`array $data` | `void` |
 | `delete` | `int $teamId`、`int $productId`、`int $id` | `void` |
 | `fieldsForInstance` | `model\TeamServiceInstance $instance`、`bool $customer` | `array` |
+| `fieldsForProduct` | `int $teamId`、`int $productId`、`bool $customer`、`?int $instanceId = null` | `array` |
 | `saveForStage` | `model\TeamServiceInstance $instance`、`string $stage`、`array $values` | `void` |
+| `validateForProduct` | `int $teamId`、`int $productId`、`string $stage`、`array $values` | `array` |
+| `fieldsForValues` | `int $teamId`、`int $productId`、`array $values` | `array` |
 
 ## ProductSelfManagement
 
@@ -519,6 +542,25 @@
 | `bind` | `int $teamId`、`int $entityId`、`int $customerId` | `void` |
 | `unbind` | `int $teamId`、`int $id` | `void` |
 
+## ServiceAdjustment
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `create` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $instanceId`、`array $data` | `int` |
+| `accept` | `int $teamId`、`int $customerId`、`int $actorEntityId`、`int $instanceId`、`int $adjustmentId` | `void` |
+| `reject` | `int $teamId`、`int $customerId`、`int $actorEntityId`、`int $instanceId`、`int $adjustmentId` | `void` |
+| `cancel` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $instanceId`、`int $adjustmentId` | `void` |
+| `createPerformancesForInstance` | `model\TeamServiceInstance $instance` | `void` |
+
+## ServiceQuantity
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `normalize` | `mixed $value`、`int $scale`、`mixed $step` | `string` |
+| `toMinor` | `mixed $value` | `int` |
+| `fromMinor` | `int $minor` | `string` |
+| `display` | `mixed $value`、`int $scale` | `string` |
+
 ## ServiceRedemption
 
 | 方法 | 参数 | 返回 |
@@ -526,11 +568,23 @@
 | `customerList` | `int $teamId`、`int $customerId`、`array $filters`、`int $page = 1`、`int $limit = 20` | `array` |
 | `customerGet` | `int $teamId`、`int $customerId`、`int $id` | `array` |
 | `handlers` | `int $teamId`、`int $customerId`、`int $id` | `array` |
-| `start` | `int $teamId`、`int $customerId`、`int $id`、`int $handlerEntityId`、`string $memo`、`array $fieldValues`、`int $actorEntityId` | `void` |
+| `createOffer` | `int $teamId`、`int $customerId`、`int $entitlementId`、`mixed $quantity`、`int $handlerEntityId`、`string $memo`、`array $fieldValues`、`int $actorEntityId`、`string $idempotencyKey = ''` | `int` |
+| `withdrawOffer` | `int $teamId`、`int $customerId`、`int $actorEntityId`、`int $id`、`string $reason = ''` | `void` |
+| `assignmentOffers` | `int $teamId`、`int $actorEntityId`、`int $page = 1`、`int $limit = 20` | `array` |
+| `assignmentOffer` | `int $teamId`、`int $actorEntityId`、`int $id` | `array` |
+| `acceptOffer` | `int $teamId`、`int $actorEntityId`、`int $id` | `int` |
+| `rejectOffer` | `int $teamId`、`int $actorEntityId`、`int $id`、`string $reason = ''` | `void` |
+| `start` | `int $teamId`、`int $customerId`、`int $entitlementId`、`mixed $quantity`、`int $handlerEntityId`、`string $memo`、`array $fieldValues`、`int $actorEntityId` | `int` |
+| `restart` | `int $teamId`、`int $customerId`、`int $id`、`int $handlerEntityId`、`string $memo`、`array $fieldValues`、`int $actorEntityId` | `void` |
 | `requestCancel` | `int $teamId`、`int $customerId`、`int $id`、`string $reason`、`int $actorEntityId` | `int` |
 | `list` | `int $teamId`、`array $subject`、`int $actorEntityId`、`array $filters`、`int $page = 1`、`int $limit = 20`、`bool $forcePersonal = false` | `array` |
 | `get` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`bool $forcePersonal = false` | `array` |
 | `availableHandlers` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id` | `array` |
+| `claimable` | `int $teamId`、`int $actorEntityId`、`int $page = 1`、`int $limit = 20` | `array` |
+| `claimableGet` | `int $teamId`、`int $actorEntityId`、`int $id` | `array` |
+| `claim` | `int $teamId`、`int $actorEntityId`、`int $id` | `void` |
+| `returnToPool` | `int $teamId`、`int $actorEntityId`、`int $id`、`string $reason` | `void` |
+| `invalidateOffersForHandlers` | `int $teamId`、`int $serviceId`、`array $entityIds` | `void` |
 | `approveCancel` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id` | `void` |
 | `rejectCancel` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`string $reason` | `void` |
 | `reassign` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`int $handlerEntityId`、`string $reason` | `void` |
@@ -564,6 +618,15 @@
 | --- | --- | --- |
 | `snapshot` | `int $teamId`、`array $actingEntity` | `array` |
 | `ability` | `int $teamId`、`string $key`、`string $label`、`int $minimumLevel = 1` | `array` |
+| `fileAbility` | `int $teamId` | `array` |
+
+## TeamAudit
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `catalog` | — | `array` |
+| `list` | `int $teamId`、`array $filters` | `array` |
+| `get` | `int $teamId`、`int $id` | `array` |
 
 ## TeamCustomer
 
@@ -601,14 +664,14 @@
 | `emptyValue` | `mixed $value` | `bool` |
 | `list` | `int $teamId`、`string $entityType` | `array` |
 | `get` | `int $teamId`、`int $id` | `array` |
-| `create` | `int $teamId`、`array $data` | `void` |
+| `create` | `int $teamId`、`array $data` | `int` |
 | `update` | `int $teamId`、`int $id`、`array $data` | `void` |
 | `delete` | `int $teamId`、`int $id` | `void` |
 | `typeFor` | `int $teamId`、`int $id` | `string` |
 | `values` | `int $teamId`、`string $entitySlug` | `array` |
 | `visibleFields` | `int $teamId`、`string $entityType`、`int $subjectEntityId`、`array $actingEntity`、`bool $isFieldManager = false` | `array` |
 | `visibleValues` | `int $teamId`、`int $subjectEntityId`、`string $entityType`、`array $actingEntity`、`bool $isFieldManager = false` | `array` |
-| `saveValues` | `int $teamId`、`string $entitySlug`、`array $values` | `void` |
+| `saveValues` | `int $teamId`、`string $entitySlug`、`array $values` | `int` |
 | `saveOwnValues` | `int $teamId`、`string $entitySlug`、`array $values` | `void` |
 
 ## TeamJoin
@@ -640,7 +703,7 @@
 | `list` | `int $teamId`、`array $actingEntity`、`?string $statusCode = null` | `array` |
 | `get` | `int $teamId`、`int $memberId`、`array $actingEntity` | `array` |
 | `capabilities` | `int $teamId`、`array $subject`、`array $member` | `array` |
-| `add` | `int $teamId`、`int $userId`、`array $data` | `void` |
+| `add` | `int $teamId`、`int $userId`、`array $data` | `int` |
 | `edit` | `int $teamId`、`int $memberId`、`array $data` | `void` |
 | `block` | `int $teamId`、`int $memberId` | `void` |
 | `unblock` | `int $teamId`、`int $memberId` | `void` |
@@ -681,6 +744,8 @@
 | `get` | `int $teamId`、`int $id` | `array` |
 | `create` | `int $teamId`、`array $data` | `int` |
 | `createServiceRedemption` | `int $teamId`、`array $data` | `int` |
+| `createServiceAdjustmentReceipt` | `int $teamId`、`array $data` | `int` |
+| `createServiceAdjustmentPerformance` | `int $teamId`、`array $data` | `int` |
 | `edit` | `int $teamId`、`int $id`、`array $data` | `void` |
 | `delete` | `int $teamId`、`int $id` | `void` |
 

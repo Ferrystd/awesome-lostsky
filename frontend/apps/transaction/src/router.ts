@@ -15,6 +15,7 @@ const RechargeView = () => import('./views/RechargeView.vue')
 const ServicesView = () => import('./views/ServicesView.vue')
 const ServiceDetailView = () => import('./views/ServiceDetailView.vue')
 const PersonalWorkspaceView = () => import('./views/PersonalWorkspaceView.vue')
+const PersonalServiceTaskView = () => import('./views/PersonalServiceTaskView.vue')
 const PersonalOverviewView = () => import('./views/PersonalOverviewView.vue')
 const UnavailableView = () => import('./views/UnavailableView.vue')
 const TeamOverviewView = () => import('./views/TeamOverviewView.vue')
@@ -30,6 +31,9 @@ export const router = createRouter({
     { path: '/personal/transactions', component: PersonalWorkspaceView, meta: { title: '与我相关的流水', pageWidth: 'wide', workspace: 'personal', personalSection: 'transactions', permission: 'transaction.read' } },
     { path: '/personal/stats', component: PersonalWorkspaceView, meta: { title: '我的业绩', pageWidth: 'wide', workspace: 'personal', personalSection: 'stats', permission: 'transaction.report.read' } },
     { path: '/personal/services', component: PersonalWorkspaceView, meta: { title: '我的核销', pageWidth: 'wide', workspace: 'personal', personalSection: 'services' } },
+    { path: '/personal/service-offers/:id(\\d+)', component: PersonalServiceTaskView, meta: { title: '接单邀请', pageWidth: 'content', workspace: 'personal', personalTask: 'offer' } },
+    { path: '/personal/services/available/:id(\\d+)', component: PersonalServiceTaskView, meta: { title: '公开任务', pageWidth: 'content', workspace: 'personal', personalTask: 'available' } },
+    { path: '/personal/services/:id(\\d+)', component: PersonalServiceTaskView, meta: { title: '我的核销任务', pageWidth: 'content', workspace: 'personal', personalTask: 'assigned' } },
     { path: '/personal/bindings', component: PersonalWorkspaceView, meta: { title: '我的客户协作', pageWidth: 'wide', workspace: 'personal', personalSection: 'bindings', permission: 'transaction.read' } },
     { path: '/new', component: TransactionFormView, meta: { title: '新建流水', pageWidth: 'form', permission: 'transaction.write' } },
     { path: '/detail', component: TransactionDetailView, meta: { title: '流水详情', pageWidth: 'content', permission: 'transaction.read' } },

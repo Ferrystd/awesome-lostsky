@@ -1,6 +1,7 @@
 import { ApiError, api, auth, friendlyError } from '@lostsky/api/client'
+import { ERROR_MESSAGES } from '@lostsky/api/error-messages'
 import { storedReferral } from '@lostsky/shared/referral'
-import type { Balance, BindResult, Customer, ManageAccess, ManageCampaign, ManageCode, ManageOptions, ManagePackage, ManageService, Order, Page, ProductDetail, ProductManageOptions, ProductSummary, RedemptionCard, ServiceInstance, StoreProfile } from './types'
+import type { Balance, BindResult, Customer, FileUploadAvailability, ManageAccess, ManageCampaign, ManageCode, ManageEntityOption, ManageOptions, ManagePackage, ManageService, Order, Page, ProductDetail, ProductManageOptions, ProductSummary, RedemptionCard, ServiceEntitlement, ServiceInstance, StoreProfile } from './types'
 
 const readyKey = () => `lostsky_shop_customer:${location.host}`
 
@@ -63,11 +64,16 @@ export const shopApi = {
   purchase: (body: { product_id: number; quantity: number; handler_entity_id?: number; memo?: string }) =>
     api.post<{ id: number }>('/customer/orders', body),
   cancel: (id: number) => api.post<void>(`/customer/orders/${id}/cancel`, {}),
-  services: (page = 1, limit = 20) => pageRequest<ServiceInstance>('/customer/services', { page, limit }, '服务列表'),
-  service: (id: number) => api.get<ServiceInstance>(`/customer/services/${id}`),
+  services: (page = 1, limit = 20) => pageRequest<ServiceEntitlement>('/customer/services', { page, limit }, '服务权益列表'),
+  service: (id: number) => api.get<ServiceEntitlement>(`/customer/services/${id}`),
   serviceHandlers: (id: number) => api.get<Array<{ entity_id: number; subject: { id: number; name: string } }>>(`/customer/services/${id}/handlers`),
-  startService: (id: number, body: { handler_entity_id: number; memo?: string; field_values?: Record<number, unknown> }) => api.post(`/customer/services/${id}/start`, body),
-  cancelService: (id: number, reason: string) => api.post(`/customer/services/${id}/cancel`, { reason }),
+  startService: (id: number, body: { quantity: string; handler_entity_id: 0; memo?: string; field_values?: Record<number, unknown> }) => api.post<{id:number}>(`/customer/services/${id}/start`, body),
+  createServiceOffer: (id: number, body: { quantity: string; handler_entity_id: number; memo?: string; field_values?: Record<number, unknown> }) => api.post<{id:number}>(`/customer/services/${id}/offers`, body),
+  withdrawServiceOffer: (id: number, reason = '') => api.post(`/customer/service-offers/${id}/withdraw`, { reason }),
+  restartService: (id: number, body: { handler_entity_id: number; memo?: string; field_values?: Record<number, unknown> }) => api.post(`/customer/service-redemptions/${id}/start`, body),
+  cancelService: (id: number, reason: string) => api.post(`/customer/service-redemptions/${id}/cancel`, { reason }),
+  acceptServiceAdjustment: (instanceId: number, adjustmentId: number) => api.post(`/customer/service-redemptions/${instanceId}/adjustments/${adjustmentId}/accept`, {}),
+  rejectServiceAdjustment: (instanceId: number, adjustmentId: number) => api.post(`/customer/service-redemptions/${instanceId}/adjustments/${adjustmentId}/reject`, {}),
   cards: () => api.get<RedemptionCard[]>('/customer/cards'),
   claimCard: (code: string) => api.post<{ id: number }>('/customer/cards/claim', { code }),
   revealCard: (id: number) => api.post<{ id: number; code: string }>(`/customer/cards/${id}/reveal`, {}),
@@ -82,6 +88,12 @@ export function hasManagePermission(permissions: string[], required: string) {
   return permissions.some(granted => required === granted || required.startsWith(`${granted}.`))
 }
 export function canManage(permission: string) { return Boolean(manageAccess && hasManagePermission(manageAccess.permissions, permission)) }
+export function fileUploadReason(
+  state: FileUploadAvailability | undefined,
+) {
+  if (state?.available === false && state.reason === 'quota') return ERROR_MESSAGES.file.quota
+  return ''
+}
 
 export type ProductManagementScope = 'team' | 'personal'
 export function productManagement(scope: ProductManagementScope) {
@@ -132,6 +144,8 @@ export const manageApi = {
   orderAction: (id: number, action: 'cancel'|'complete') => api.post(`/order/${id}/${action}`, {}),
   services: (params: Record<string, unknown>) => pageRequest<ManageService>('/manage/services', params, '服务列表'),
   service: (id: number) => api.get<ManageService>(`/manage/services/${id}`),
+  serviceHandlers: (id: number) => api.get<Array<{entity_id:number;subject?:ManageEntityOption|null}>>(`/manage/services/${id}/handlers`),
+  saveServiceHandlers: (id: number, entity_ids: number[]) => api.post(`/manage/services/${id}/handlers`, { entity_ids }),
   saveService: (id: number | null, body: Record<string, unknown>) => api.post<{id:number}>(id ? `/manage/services/${id}` : '/manage/services', body),
   disableService: (id: number) => api.post(`/manage/services/${id}/disable`, {}),
   packages: (params: Record<string, unknown>) => pageRequest<ManagePackage>('/manage/packages', params, '权益包列表'),

@@ -119,6 +119,7 @@
   min-height: 44px;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.55rem;
   margin-top: auto;
   padding: 0 0.65rem;

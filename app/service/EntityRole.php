@@ -100,7 +100,7 @@ class EntityRole
         ];
     }
 
-    public function save(int $teamId, string $slug, array $roleIds): void
+    public function save(int $teamId, string $slug, array $roleIds): int
     {
         $entity = $this->entity($slug);
         $ids = array_values(array_unique(array_map(static fn ($id): int => filter_var($id, FILTER_VALIDATE_INT) !== false ? (int) $id : 0, $roleIds)));
@@ -122,6 +122,7 @@ class EntityRole
                 $record->save(['team_id' => $teamId, 'entity_id' => $entity['entity_id'], 'role_id' => $roleId]);
             }
         });
+        return (int) $entity['entity_id'];
     }
 
     public function describe(int $teamId, string $slug): array

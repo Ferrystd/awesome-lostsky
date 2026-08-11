@@ -129,6 +129,11 @@ class Team extends Base
         return $this->hasMany(TeamService::class, 'team_id');
     }
 
+    public function serviceEntitlements()
+    {
+        return $this->hasMany(TeamServiceEntitlement::class, 'team_id');
+    }
+
     public function sentNotices()
     {
         return $this->hasMany(TeamNotice::class, 'sender_team_id');

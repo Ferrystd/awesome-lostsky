@@ -40,6 +40,7 @@ class TeamJoin
             'purpose_label' => $purpose->value(),
             'refill_required' => $refill,
             'fields' => $refill ? $this->fields($teamId, true) : [],
+            'file_upload' => app(File::class)->uploadAvailability($teamId),
         ];
     }
 

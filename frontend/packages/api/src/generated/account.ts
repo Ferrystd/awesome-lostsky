@@ -759,8 +759,16 @@ export interface components {
             size?: number;
         };
         FileUsage: {
-            count?: number;
-            totalSize?: number;
+            count: number;
+            /** Format: int64 */
+            total_size: number;
+            /** Format: int64 */
+            size_limit: number | null;
+            /** Format: int64 */
+            remaining_size: number | null;
+            available: boolean;
+            /** @enum {string|null} */
+            reason: "quota" | null;
         };
         Document: {
             /** Format: int64 */

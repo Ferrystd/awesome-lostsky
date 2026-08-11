@@ -29,7 +29,7 @@
 - 预发布须从最新稳定产品标签推导目标版本，确认完整预发布标签未被使用，并保持版本文件与 `vX.Y.Z-stage.N` 标签一致。
 - 构建发布须保留“未发布”日志，确认对应产品标签存在、发布提交是其后代，且 `build-YYYYMMDD.N` 在本地与远端均未被使用。
 - 数据变化同时更新 `sql/schema.sql` 和日期补丁。
-- OpenAPI、生成类型、调用方、测试、文档和 `www/` 产物一致；涉及前端或文档源文件时必须运行生成命令。保留已有构建差异是指合并保留，不是跳过 `npm run build` 或 `npm run build:docs`。
+- OpenAPI、生成类型、调用方、测试和文档一致；涉及前端或文档源文件时必须运行生成命令。`www/` 可再生产物不纳入 Git，但发布前必须完成 `npm run build` 与 `npm run build:docs` 并确认入口和资源目录存在。
 - 运行并记录实际结果：
 
 ```bash
@@ -47,10 +47,10 @@ git diff --check
 
 ## 发布
 
-1. 审查并提交完整发布内容。
+1. 审查并提交完整发布源码、文档和受跟踪生成物；不提交 `www/` 可再生产物。
 2. 产品版本发布创建 `git tag -a vX.Y.Z -m "LostSky vX.Y.Z"`；预发布创建 `git tag -a vX.Y.Z-stage.N -m "LostSky vX.Y.Z-stage.N"`；构建发布创建 `git tag -a build-YYYYMMDD.N -m "LostSky build YYYYMMDD.N (product vX.Y.Z)"`。
 3. 推送提交和本次唯一标签，核对远端标签的 peeled commit 与分支目标。
-4. 备份数据库，应用补丁，使用 `composer install` 部署该不可变标签的锁定依赖与构建产物。
+4. 发布机检出该不可变标签，依次执行 `npm ci`、`npm run docs:setup`、`npm run build`、`npm run build:docs`，确认完整 `www/` 后再备份数据库、应用补丁并使用 `composer install` 安装锁定依赖。
 5. 记录标签、commit SHA、环境、时间、执行人和结果，再检查 API、登录、团队解析、前端资源、数据库结构和后台任务。
 
 Git 推送只同步版本，不代替服务器部署。宝塔/Nginx、CDN 缓存和静态资源响应头按运维文档单独应用并验证。

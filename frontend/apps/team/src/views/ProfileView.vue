@@ -7,9 +7,9 @@ import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput } from 'naive-ui'
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
+import { computed, reactive, ref, watch } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import EntityFieldsCard, { type EntityFieldDefinition } from '../components/EntityFieldsCard.vue'
 import EntityPermissionsCard, {
   type EffectivePermission,
@@ -97,15 +97,7 @@ function setFieldsDirty(value: boolean) {
   if (value) saveFields.reset()
 }
 
-function beforeUnload(event: BeforeUnloadEvent) {
-  if (!hasUnsavedChanges.value) return
-  event.preventDefault()
-  event.returnValue = ''
-}
-
-onMounted(() => window.addEventListener('beforeunload', beforeUnload))
-onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
-onBeforeRouteLeave(() => !hasUnsavedChanges.value || confirm('页面上还有未保存的修改，确认离开？'))
+useUnsavedChangesGuard(hasUnsavedChanges)
 </script>
 
 <template>

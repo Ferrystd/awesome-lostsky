@@ -17,5 +17,8 @@ return [
         'admin:revoke' => \app\command\AdminRevoke::class,
         'team:grant-ability' => \app\command\TeamGrantAbility::class,
         'certificate:update' => \app\command\UpdateCertificates::class,
+        'oss:fallback:deploy' => \app\command\DeployOssFallback::class,
+        'oss:fallback:configure' => \app\command\ConfigureOssFallback::class,
+        'oss:fallback:publish' => \app\command\PublishOssFallback::class,
     ],
 ];

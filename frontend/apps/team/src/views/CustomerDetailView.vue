@@ -4,6 +4,7 @@ import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
+import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
@@ -149,7 +150,7 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
 </script>
 
 <template>
-  <AdminPage width="content">
+  <AdminPage width="form">
     <AdminPageHeader
       :title="query.data.value?.name || '客户详情'"
       description="查看客户归属、余额和经营摘要；历史订单与流水保留创建时的发单归属。"
@@ -194,7 +195,7 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
             />
           </LsField>
           <LsSwitchField v-model="form.is_blocked" label="封禁客户" description="封禁后客户现有身份会话不能继续使用。" :disabled="!canManage" />
-          <LsButton v-if="canManage" type="submit" :loading="save.isPending.value" :disabled="avatarUploading"><template #icon><Save :size="18" /></template>保存客户资料</LsButton>
+          <LsFormActions v-if="canManage"><LsButton type="submit" :loading="save.isPending.value" :disabled="avatarUploading"><template #icon><Save :size="18" /></template>保存客户资料</LsButton></LsFormActions>
         </form>
       </LsPanel>
     </template>

@@ -3,6 +3,7 @@ import { ERROR_MESSAGES } from '@lostsky/api/error-messages'
 import {
   abilityReason,
   fileUploadReason,
+  fileAvailabilityReason,
   hasPermission,
   permissionReason,
   resourceUploadReason,
@@ -31,15 +32,12 @@ describe('team access helpers', () => {
     )
   })
 
-  it('prioritizes missing File Ability over upload Permission', () => {
-    expect(fileUploadReason(snapshot())).toBe(
-      '该团队能力(Ability)缺失: 文件上传(File),管理员可按需购买。',
-    )
+  it('does not block resource uploads when File is at the implicit level 0', () => {
+    expect(resourceUploadReason(snapshot())).toBe('')
   })
 
-  it('reports upload Permission only after File Ability is available', () => {
+  it('reports the file library upload Permission independently from File level', () => {
     const value = snapshot()
-    value.abilities!.file!.enabled = true
     expect(fileUploadReason(value)).toBe('您缺少该团队权限(Permission): file.upload,请联系团队管理员开通。')
 
     value.permissions!.push('file.upload')
@@ -47,12 +45,29 @@ describe('team access helpers', () => {
     expect(hasPermission(value, 'file.upload')).toBe(true)
   })
 
-  it('resource uploads depend on File Ability but not file.upload', () => {
+  it('resource uploads depend on capacity but not file.upload', () => {
     const value = snapshot()
-    expect(resourceUploadReason(value)).toContain('File')
-    value.abilities!.file!.enabled = true
     expect(resourceUploadReason(value)).toBe('')
     expect(value.permissions).not.toContain('file.upload')
+  })
+
+  it('uses the shared quota message for file and resource uploads', () => {
+    const fileUpload = {
+      count: 99,
+      total_size: 524288000,
+      size_limit: 524288000,
+      remaining_size: 0,
+      available: false,
+      reason: 'quota' as const,
+    }
+    const value = snapshot({
+      permissions: ['file.upload'],
+      abilities: { file: { enabled: true, label: '文件上传' } },
+      file_upload: fileUpload,
+    })
+    expect(fileAvailabilityReason(fileUpload)).toBe(ERROR_MESSAGES.file.quota)
+    expect(resourceUploadReason(value)).toBe(ERROR_MESSAGES.file.quota)
+    expect(fileUploadReason(value)).toBe(ERROR_MESSAGES.file.quota)
   })
 
   it('treats parent and wildcard Permission scopes like the backend gate', () => {

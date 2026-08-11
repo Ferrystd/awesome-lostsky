@@ -44,7 +44,7 @@ class TeamEntityField
         return $result;
     }
 
-    public function create(int $teamId, array $data): void
+    public function create(int $teamId, array $data): int
     {
         $this->validate('create', $this->validationData($data));
         $type = $this->type((string) $data['entity_type']);
@@ -54,7 +54,7 @@ class TeamEntityField
         }
         $visibility = Visibility::from((int) ($data['visibility'] ?? Visibility::Team->value));
         $visibilityTargets = $this->visibilityTargetsInput($data);
-        \think\facade\Db::transaction(function () use (
+        return \think\facade\Db::transaction(function () use (
             $teamId,
             $type,
             $data,
@@ -80,6 +80,7 @@ class TeamEntityField
                 $visibility === Visibility::Custom ? $visibilityTargets : [],
                 $teamId
             );
+            return (int) $field->id;
         });
     }
 
@@ -215,9 +216,9 @@ class TeamEntityField
         return $result;
     }
 
-    public function saveValues(int $teamId, string $entitySlug, array $values): void
+    public function saveValues(int $teamId, string $entitySlug, array $values): int
     {
-        $this->persistValues($teamId, $entitySlug, $values, false);
+        return $this->persistValues($teamId, $entitySlug, $values, false);
     }
 
     public function saveOwnValues(int $teamId, string $entitySlug, array $values): void
@@ -225,7 +226,7 @@ class TeamEntityField
         $this->persistValues($teamId, $entitySlug, $values, true);
     }
 
-    private function persistValues(int $teamId, string $entitySlug, array $values, bool $ownOnly): void
+    private function persistValues(int $teamId, string $entitySlug, array $values, bool $ownOnly): int
     {
         $actor = app(ChatActor::class)->resolve($teamId, $entitySlug);
         $normalizedValues = [];
@@ -278,6 +279,7 @@ class TeamEntityField
                 ]));
             }
         });
+        return (int) $actor['entity_id'];
     }
 
     private function assertRequiredValues(int $teamId, array $actor, array $values, bool $ownOnly): void

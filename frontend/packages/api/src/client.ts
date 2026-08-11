@@ -230,7 +230,11 @@ async function request<T>(method: string, path: string, body?: unknown, options:
 
         const response = await fetch(`${API_BASE}${path}`, { method, headers, body: payload, signal: controller.signal })
         let envelope: Partial<ApiEnvelope<T>> = {}
-        try { envelope = await response.json() as ApiEnvelope<T> } catch { /* handled below */ }
+        let parsed = false
+        try {
+          envelope = await response.json() as ApiEnvelope<T>
+          parsed = true
+        } catch { /* handled below */ }
         if (token && (response.status === 401 || envelope.code === 401)) {
           if (!refreshAttempted && path !== '/login/refresh' && auth.refreshToken()) {
             refreshAttempted = true
@@ -241,6 +245,11 @@ async function request<T>(method: string, path: string, body?: unknown, options:
           }
           auth.clear()
           redirectToLogin({ expired: true })
+        }
+        if (!parsed) {
+          throw new ApiError(ERROR_MESSAGES.request.invalidResponse, {
+            status: response.status, method, path,
+          })
         }
         if ((envelope.code === 42801 || envelope.code === 40301) && envelope.data && typeof envelope.data === 'object') {
           const teamSlug = Reflect.get(envelope.data, 'team_slug')

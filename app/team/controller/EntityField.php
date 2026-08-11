@@ -32,7 +32,11 @@ class EntityField
         $data = $request->post();
         $type = (string) ($data['entity_type'] ?? 'entity');
         $this->assertTypePermission($request, $type);
-        app(\app\service\TeamEntityField::class)->create($request->team_id, $data);
+        $id = app(\app\service\TeamEntityField::class)->create($request->team_id, $data);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'create', 'entityField', $id,
+            ['changed_fields' => array_keys($data)]
+        );
         return message('对象字段已创建');
     }
 
@@ -41,10 +45,15 @@ class EntityField
         $id = $request->post('id/d', 0);
         $type = app(\app\service\TeamEntityField::class)->typeFor($request->team_id, $id);
         $this->assertTypePermission($request, $type);
+        $data = $request->except(['id'], 'post');
         app(\app\service\TeamEntityField::class)->update(
             $request->team_id,
             $id,
-            $request->except(['id'], 'post')
+            $data
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'update', 'entityField', $id,
+            ['changed_fields' => array_keys($data), 'changed' => $data !== []]
         );
         return message('对象字段已更新');
     }
@@ -55,6 +64,7 @@ class EntityField
         $type = app(\app\service\TeamEntityField::class)->typeFor($request->team_id, $id);
         $this->assertTypePermission($request, $type);
         app(\app\service\TeamEntityField::class)->delete($request->team_id, $id);
+        app(\app\service\BusinessAudit::class)->record($request, 'team', 'delete', 'entityField', $id);
         return message('对象字段已删除');
     }
 
@@ -69,10 +79,15 @@ class EntityField
     {
         $slug = $request->post('slug/s', '');
         $this->assertEntityPermission($request, $slug);
-        app(\app\service\TeamEntityField::class)->saveValues(
+        $values = $request->post('values/a', []);
+        $entityId = app(\app\service\TeamEntityField::class)->saveValues(
             $request->team_id,
             $slug,
-            $request->post('values/a', [])
+            $values
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'save', 'entityFieldValues', $entityId,
+            ['changed_fields' => array_map('strval', array_keys($values)), 'changed' => $values !== []]
         );
         return message('字段值已保存');
     }

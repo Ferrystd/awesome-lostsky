@@ -1,1 +1,0 @@
-import{_ as s,c as t,aE as o,o as c}from"./index-C4UaCn-9.js";const n={},r={class:"ls-description-list"};function a(e,d){return c(),t("dl",r,[o(e.$slots,"default",{},void 0,!0)])}const i=s(n,[["render",a],["__scopeId","data-v-d0d81b22"]]);export{i as L};

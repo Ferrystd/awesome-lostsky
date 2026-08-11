@@ -106,7 +106,7 @@ async function submit() {
           </div>
         </LsField>
       </template>
-      <LsButton type="submit" size="lg" :loading="loading">
+      <LsButton class="auth-submit" type="submit" size="lg" :loading="loading">
         {{ mode === 'sms' ? '验证码登录' : '密码登录' }}
       </LsButton>
     </form>
@@ -119,7 +119,7 @@ async function submit() {
 .mode button { min-height: 44px; border: 0; border-radius: 8px; color: var(--muted-ink); background: transparent; cursor: pointer; }
 .mode button[aria-selected='true'] { color: var(--ink); background: white; box-shadow: 0 2px 7px color-mix(in oklch, var(--ink), transparent 92%); }
 .form { display: grid; gap: 1.25rem; }
-.form :deep(.ls-button) { width: 100%; margin-top: .25rem; }
+.auth-submit { width: 100%; margin-top: .25rem; }
 .password { position: relative; }
 .password :deep(input) { padding-right: 3rem; }
 .password button { position: absolute; right: .2rem; top: .1rem; width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted-ink); background: transparent; border: 0; cursor: pointer; }

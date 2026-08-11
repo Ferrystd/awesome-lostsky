@@ -108,6 +108,11 @@ class TeamOrder extends Base
         return $this->hasMany(TeamServiceInstance::class, 'source_order_id');
     }
 
+    public function serviceEntitlements()
+    {
+        return $this->hasMany(TeamServiceEntitlement::class, 'source_order_id');
+    }
+
     public function quote(TeamProduct $product, int $quantity, array $overrides, bool $usesPrepaid): array
     {
         $bind = [

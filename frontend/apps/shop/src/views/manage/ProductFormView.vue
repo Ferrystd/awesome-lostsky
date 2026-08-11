@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
-import { formatAbilityDenied } from '@lostsky/api/error-format'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
@@ -15,7 +14,8 @@ import { useMutation, useQuery } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NSelect, useDialog } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { canManage, loadManageAccess, productManagement } from '../../lib'
+import { canManage, fileUploadReason, loadManageAccess, productManagement } from '../../lib'
+import type { ManagePricingSummary } from '../../types'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,15 +25,13 @@ const editing = computed(() => id.value > 0)
 const scope = computed(() => route.meta.workspace === 'personal' ? 'personal' : 'team')
 const management = computed(() => productManagement(scope.value))
 const personal = computed(() => management.value.personal)
-const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess() })
+const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess(true) })
 const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?? 0)
 const uploading = ref<'cover' | 'markdown' | ''>('')
 const uploadDisabledReason = computed(() => {
   if (access.isPending.value) return '正在核对文件上传能力'
   if (access.isError.value) return friendlyError(access.error.value)
-  const fileAbility = access.data.value?.abilities?.file
-  if (fileAbility && !fileAbility.enabled) return formatAbilityDenied('file', fileAbility.label ?? '文件上传')
-  return ''
+  return fileUploadReason(access.data.value?.file_upload)
 })
 const form = reactive({
   name: '', description: '', cover_image: '', introduction_markdown: '', price: 0, cost: 0,
@@ -76,6 +74,25 @@ const entities = computed(() => (options.data.value?.entities ?? []).map(entity 
 })))
 const packages = computed(() => (options.data.value?.packages ?? []).map(item => ({ label: item.name, value: item.id })))
 const campaigns = computed(() => (options.data.value?.campaigns ?? []).map(item => ({ label: item.name, value: item.id })))
+const benefitPricingSummary = computed<ManagePricingSummary | null>(() => {
+  if (form.kind === 2) {
+    return options.data.value?.packages.find(item => item.id === form.benefit_package_id)?.pricing_summary ?? null
+  }
+  if (form.kind === 3) {
+    return options.data.value?.campaigns.find(item => item.id === form.redemption_campaign_id)?.package?.pricing_summary ?? null
+  }
+  return null
+})
+const pricingLocked = computed(() => benefitPricingSummary.value !== null)
+watch(benefitPricingSummary, summary => {
+  if (!summary) return
+  form.price = Number(summary.price)
+  form.cost = Number(summary.cost)
+  form.handler_cut = Number(summary.handler_cut)
+  form.sender_cut = Number(summary.sender_cut)
+  form.cs_cut = Number(summary.cs_cut)
+  form.team_cut = Number(summary.team_cut)
+}, { immediate: true })
 watch(() => form.kind, value => {
   if (value !== 2) form.benefit_package_id = null
   if (value !== 3) form.redemption_campaign_id = null
@@ -84,7 +101,9 @@ async function uploadMarkdownImage(file: File) {
   if (uploadDisabledReason.value) throw new Error(uploadDisabledReason.value)
   uploading.value = 'markdown'
   try {
-    return await uploadFileUrl(file)
+    const url = await uploadFileUrl(file)
+    await access.refetch()
+    return url
   } finally {
     uploading.value = ''
   }
@@ -160,7 +179,7 @@ const valid = computed(() => Boolean(
       <LsFormSection title="基本信息">
           <LsField label="商品名称" for-id="product-name" required><NInput id="product-name" v-model:value="form.name" maxlength="100" /></LsField>
           <LsField label="简短说明" for-id="product-description"><NInput id="product-description" v-model:value="form.description" type="textarea" maxlength="500" show-count /></LsField>
-          <LsField label="封面" for-id="product-cover" required hint="可粘贴已登记媒体 URL，或从本地上传图片。"><LsMediaUploadField id="product-cover" v-model="form.cover_image" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传封面" :disabled="Boolean(uploading || uploadDisabledReason)" :disabled-reason="uploading ? '正在上传图片，请稍候' : uploadDisabledReason" @uploading="uploading = $event ? 'cover' : ''" @uploaded="feedback.success('商品封面已上传')" /></LsField>
+          <LsField label="封面" for-id="product-cover" required hint="可粘贴已登记媒体 URL，或从本地上传图片。"><LsMediaUploadField id="product-cover" v-model="form.cover_image" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传封面" :disabled="Boolean(uploading || uploadDisabledReason)" :disabled-reason="uploading ? '正在上传图片，请稍候' : uploadDisabledReason" @uploading="uploading = $event ? 'cover' : ''" @uploaded="access.refetch(); feedback.success('商品封面已上传')" /></LsField>
           <LsField label="详情" for-id="product-markdown"><LsMarkdownEditor id="product-markdown" v-model="form.introduction_markdown" :draft-key="`shop-product-${scope}-${id || 'new'}`" :upload-image="uploadMarkdownImage" :upload-disabled-reason="uploading ? '正在上传图片，请稍候' : uploadDisabledReason" /></LsField>
           <LsSwitchField id="product-active" :model-value="form.is_active === 1" label="上架状态" description="关闭后商品不会在商城展示。" @update:model-value="value => form.is_active = value ? 1 : 0" />
       </LsFormSection>
@@ -169,12 +188,21 @@ const valid = computed(() => Boolean(
           <LsField label="商品类型" for-id="product-kind" required><NSelect id="product-kind" v-model:value="form.kind" :options="[{ label: '普通商品', value: 1 }, { label: '服务套餐', value: 2 }, { label: '权益卡密', value: 3 }]" /></LsField>
           <LsField v-if="form.kind === 2" label="服务权益包" for-id="product-package" required><NSelect id="product-package" v-model:value="form.benefit_package_id" :options="packages" filterable /></LsField>
           <LsField v-if="form.kind === 3" label="卡密活动" for-id="product-campaign" required><NSelect id="product-campaign" v-model:value="form.redemption_campaign_id" :options="campaigns" filterable /></LsField>
-          <LsField label="售价" for-id="product-price" required><NInputNumber id="product-price" v-model:value="form.price" :min="0" :precision="2" /></LsField>
-          <LsField label="成本" for-id="product-cost"><NInputNumber id="product-cost" v-model:value="form.cost" :min="0" :precision="2" /></LsField>
+          <p v-if="pricingLocked" class="form-intro" role="note">售价、成本和分成由所选权益包的服务项目自动汇总。若要调整，请新建或修改尚未被引用的权益包。</p>
+          <LsField label="售价" for-id="product-price" required :hint="pricingLocked ? '由权益包自动汇总' : undefined"><NInputNumber id="product-price" v-model:value="form.price" :min="0" :precision="2" :disabled="pricingLocked" /></LsField>
+          <LsField label="成本" for-id="product-cost" :hint="pricingLocked ? '由权益包自动汇总' : undefined"><NInputNumber id="product-cost" v-model:value="form.cost" :min="0" :precision="2" :disabled="pricingLocked" /></LsField>
           <LsField v-if="!personal" label="专属 Entity" for-id="product-owner"><NSelect id="product-owner" v-model:value="form.entity_id" :options="entities" filterable clearable placeholder="留空表示团队公用商品" /></LsField>
           <LsField label="可选接单人" for-id="product-handlers" hint="普通商品用于下单选择；服务商品的核销接单池由服务定义控制。"><NSelect id="product-handlers" v-model:value="form.handler_entity_ids" :options="entities" multiple filterable clearable /></LsField>
       </LsFormSection>
-      <LsFormSection title="默认分配" description="留空时由服务端按商品规则补齐；填写的金额由订单创建时冻结。">
+      <LsFormSection v-if="pricingLocked" title="权益包分配汇总" description="订单创建后，实际金额继续按每个服务项冻结，不会平均分摊。">
+          <dl class="pricing-breakdown">
+            <div><dt>接单分成</dt><dd>¥{{ benefitPricingSummary?.handler_cut }}</dd></div>
+            <div><dt>发单分成</dt><dd>¥{{ benefitPricingSummary?.sender_cut }}</dd></div>
+            <div><dt>客服分成</dt><dd>¥{{ benefitPricingSummary?.cs_cut }}</dd></div>
+            <div><dt>团队分成</dt><dd>¥{{ benefitPricingSummary?.team_cut }}</dd></div>
+          </dl>
+      </LsFormSection>
+      <LsFormSection v-else title="默认分配" description="留空时由服务端按商品规则补齐；填写的金额由订单创建时冻结。">
           <LsField label="接单分配" for-id="product-handler-cut"><NInputNumber id="product-handler-cut" v-model:value="form.handler_cut" :min="0" :precision="2" clearable /></LsField>
           <LsField label="发单分配" for-id="product-sender-cut"><NInputNumber id="product-sender-cut" v-model:value="form.sender_cut" :min="0" :precision="2" clearable /></LsField>
           <LsField label="客服分配" for-id="product-cs-cut"><NInputNumber id="product-cs-cut" v-model:value="form.cs_cut" :min="0" :precision="2" clearable /></LsField>
@@ -190,3 +218,12 @@ const valid = computed(() => Boolean(
     </form>
   </div>
 </template>
+
+<style scoped>
+.pricing-breakdown { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin: 0; }
+.pricing-breakdown div { padding: .8rem; background: var(--cloud); border-radius: 10px; }
+.pricing-breakdown dt { color: var(--muted-ink); font-size: .75rem; }
+.pricing-breakdown dd { margin: .2rem 0 0; color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 767px) { .pricing-breakdown { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 479px) { .pricing-breakdown { grid-template-columns: 1fr; } }
+</style>

@@ -543,13 +543,14 @@ test('shop storefront stays visible when the product endpoint returns an invalid
   await expect(page.locator('.collection-message button')).toBeVisible()
 })
 
-test('team entity detail saves display visibility only for supported entities', async ({ page }) => {
+test('team entity detail atomically saves one visibility group for supported entities', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
   let displayed = false
+  let internalVisible = true
   let entityType = 'teamMember'
-  let displayPayload: unknown = null
+  let visibilityPayload: unknown = null
   await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
   await page.route('http://demo.team.lostsky.work:5175/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname
@@ -560,7 +561,7 @@ test('team entity detail saves display visibility only for supported entities', 
         slug: 'alice',
         entityable_type: entityType,
         is_displayed: displayed ? 1 : 0,
-        is_internal_visible: 1,
+        is_internal_visible: internalVisible ? 1 : 0,
         capabilities: { read_all: true, manage_profile: true },
         profile: {
           name: '测试成员',
@@ -569,10 +570,14 @@ test('team entity detail saves display visibility only for supported entities', 
           document_tags: [{ tag: '精选', description: '优先阅读' }],
         },
       }
-    } else if (path.endsWith('/entity/display')) {
-      displayPayload = route.request().postDataJSON()
-      displayed = true
-      data = null
+    } else if (path.endsWith('/entity/presentation')) {
+      visibilityPayload = route.request().postDataJSON()
+      displayed = Boolean((visibilityPayload as any).is_displayed)
+      internalVisible = Boolean((visibilityPayload as any).is_internal_visible)
+      data = {
+        is_displayed: displayed ? 1 : 0,
+        is_internal_visible: internalVisible ? 1 : 0,
+      }
     }
     await route.fulfill({
       status: 200,
@@ -583,19 +588,53 @@ test('team entity detail saves display visibility only for supported entities', 
 
   await page.goto('http://demo.team.lostsky.work:5175/entity?id=1')
   await expect(page.getByRole('heading', { name: '公开主页展示' }), `entity detail did not render; ${errors.join(' | ')}`).toBeVisible()
+  await expect(page.getByRole('heading', { name: '可见性设置' })).toHaveCount(1)
+  await expect(page.getByRole('button', { name: /^保存/ })).toHaveCount(2)
+  for (const label of ['头像', '介绍图片', '介绍视频']) {
+    await expect(page.getByLabel(label, { exact: true })).toBeVisible()
+  }
+  const uploadButtonBoxes = await Promise.all([
+    page.getByRole('button', { name: '上传头像' }).boundingBox(),
+    page.getByRole('button', { name: '上传介绍图片' }).boundingBox(),
+    page.getByRole('button', { name: '上传介绍视频' }).boundingBox(),
+  ])
+  if ((page.viewportSize()?.width ?? 0) < 640) {
+    for (const box of uploadButtonBoxes) expect(box?.width).toBeGreaterThan(160)
+  } else {
+    expect(new Set(uploadButtonBoxes.map(box => Math.round(box?.width ?? -1))).size).toBe(1)
+    expect(uploadButtonBoxes[0]?.width).toBeLessThanOrEqual(140)
+  }
+  const mediaFields = page.locator('.entity-profile-fields > .ls-field')
+  const [avatarField, introImageField, introVideoField] = await Promise.all([
+    mediaFields.nth(1).boundingBox(),
+    mediaFields.nth(3).boundingBox(),
+    mediaFields.nth(4).boundingBox(),
+  ])
+  expect(Math.round(avatarField?.x ?? -1)).toBe(Math.round(introImageField?.x ?? -2))
+  expect(Math.round(introImageField?.x ?? -1)).toBe(Math.round(introVideoField?.x ?? -2))
+  expect(Math.round(avatarField?.width ?? -1)).toBe(Math.round(introImageField?.width ?? -2))
+  expect(Math.round(introImageField?.width ?? -1)).toBe(Math.round(introVideoField?.width ?? -2))
+  expect((introImageField?.y ?? 0) + (introImageField?.height ?? 0)).toBeLessThanOrEqual(introVideoField?.y ?? -1)
   await expect(page.getByRole('link', { name: '发起对话' }))
     .toHaveAttribute('href', 'http://demo.chat.lostsky.work:5176/new?participant=alice')
-  const displaySwitch = page.getByRole('switch', { name: '在公开主页展示' })
+  const displaySwitch = page.getByRole('switch', { name: '公开主页展示' })
+  const internalSwitch = page.getByRole('switch', { name: '团队内可见' })
+  await expect(displaySwitch).toHaveText('')
+  await expect(internalSwitch).toHaveText('')
   await expect(displaySwitch).not.toBeChecked()
+  await expect(page.getByRole('button', { name: '保存可见性' })).toBeDisabled()
   await displaySwitch.click()
-  await page.getByRole('button', { name: '保存公开设置' }).click()
-  await expect(page.locator('.n-message').filter({ hasText: '公开展示设置已保存' })).toBeVisible()
-  expect(displayPayload).toEqual({ entity_id: 1, is_displayed: 1 })
+  await internalSwitch.click()
+  await page.getByRole('button', { name: '保存可见性' }).click()
+  await expect(page.locator('.n-message').filter({ hasText: '可见性设置已保存' })).toBeVisible()
+  expect(visibilityPayload).toEqual({ entity_id: 1, is_internal_visible: 0, is_displayed: 1 })
 
   entityType = 'teamCustomer'
   await page.goto('http://demo.team.lostsky.work:5175/entity?id=2')
   await expect(page.getByText('Customer 属于敏感目录，始终需要 team.entity.read 才能查看。')).toBeVisible()
-  await expect(page.getByRole('switch', { name: '在团队工作空间内可见' })).toHaveCount(0)
+  await expect(page.getByRole('switch', { name: '团队内可见' })).toBeDisabled()
+  await expect(page.getByRole('switch', { name: '公开主页展示' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '保存可见性' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: '公开文档分组' })).toHaveCount(0)
 })
 
@@ -692,6 +731,22 @@ test('team document and entity tag editors validate, reorder and preserve API or
   await page.goto('http://demo.team.lostsky.work:5175/entity?id=1')
   const groupRows = page.locator('.document-tag-group-fields')
   await expect(groupRows).toHaveCount(2)
+  const addDisplayTag = page.getByRole('button', { name: '添加展示标签' })
+  const saveProfile = page.getByRole('button', { name: '保存资料' })
+  const [addDisplayTagBox, saveProfileBox] = await Promise.all([
+    addDisplayTag.boundingBox(),
+    saveProfile.boundingBox(),
+  ])
+  if (testInfo.project.name.includes('mobile')) {
+    expect(addDisplayTagBox?.width).toBeGreaterThan(160)
+    expect(Math.round(addDisplayTagBox?.width ?? -1)).toBe(Math.round(saveProfileBox?.width ?? -2))
+    expect(Math.round(addDisplayTagBox?.x ?? -1)).toBe(Math.round(saveProfileBox?.x ?? -2))
+  } else {
+    expect(addDisplayTagBox?.width).toBeGreaterThanOrEqual(112)
+    expect(saveProfileBox?.width).toBeGreaterThanOrEqual(112)
+    expect(addDisplayTagBox?.width).toBeLessThanOrEqual(160)
+    expect(saveProfileBox?.width).toBeLessThanOrEqual(160)
+  }
   const firstGroupInputs = groupRows.nth(0).locator('input')
   await expect(firstGroupInputs.nth(0)).toHaveValue('精选')
   await expect(firstGroupInputs.nth(1)).toHaveValue('优先阅读')
@@ -734,7 +789,7 @@ test('team document and entity tag editors validate, reorder and preserve API or
   expect(actionTarget?.height).toBeGreaterThanOrEqual(44)
 })
 
-test('team explains read-only permissions and missing upload ability without blocking base reads', async ({ page }) => {
+test('team keeps level 0 upload capacity while explaining read-only permissions', async ({ page }, testInfo) => {
   await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
   await page.route('http://demo.team.lostsky.work:5175/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname
@@ -743,9 +798,10 @@ test('team explains read-only permissions and missing upload ability without blo
       data = {
         permissions: ['file.read'],
         abilities: {
-          file: { enabled: false, level: 0, expire_time: 0, reason: 'missing', label: '文件上传' },
+          file: { enabled: true, level: 0, expire_time: 0, reason: null, label: '文件上传' },
           doc: { enabled: true, level: 1, expire_time: 0, reason: null, label: '文档' },
         },
+        file_upload: { count: 0, total_size: 0, size_limit: 134217728, remaining_size: 134217728, available: true, reason: null },
       }
     } else if (path.endsWith('/dashboard')) {
       data = {
@@ -770,7 +826,7 @@ test('team explains read-only permissions and missing upload ability without blo
         },
       }
     } else if (path.endsWith('/file/usage')) {
-      data = { total_size: 0, count: 0 }
+      data = { count: 0, total_size: 0, size_limit: 134217728, remaining_size: 134217728, available: true, reason: null }
     } else if (path.endsWith('/file/index')) {
       data = { list: [], total: 0 }
     }
@@ -788,17 +844,60 @@ test('team explains read-only permissions and missing upload ability without blo
 
   await page.goto('http://demo.team.lostsky.work:5175/entity?id=2')
   await expect(page.getByText(/当前为只读模式。您缺少该团队权限\(Permission\): team\.entity\.profile\.manage,请联系团队管理员开通。/)).toBeVisible()
-  await expect(page.getByRole('button', { name: '保存资料' })).toBeDisabled()
-  await expect(page.getByRole('button', { name: '添加展示标签' })).toBeDisabled()
+  const disabledSaveProfile = page.getByRole('button', { name: '保存资料' })
+  const disabledAddDisplayTag = page.getByRole('button', { name: '添加展示标签' })
+  await expect(disabledSaveProfile).toBeDisabled()
+  await expect(disabledAddDisplayTag).toBeDisabled()
   await expect(page.getByRole('button', { name: '删除展示标签 1' })).toBeDisabled()
+  const [disabledSaveProfileBox, disabledAddDisplayTagBox] = await Promise.all([
+    disabledSaveProfile.boundingBox(),
+    disabledAddDisplayTag.boundingBox(),
+  ])
+  if (testInfo.project.name.includes('mobile')) {
+    expect(disabledAddDisplayTagBox?.width).toBeGreaterThan(160)
+    expect(Math.round(disabledAddDisplayTagBox?.width ?? -1)).toBe(Math.round(disabledSaveProfileBox?.width ?? -2))
+  } else {
+    expect(disabledAddDisplayTagBox?.width).toBeGreaterThanOrEqual(112)
+    expect(disabledSaveProfileBox?.width).toBeGreaterThanOrEqual(112)
+    expect(disabledAddDisplayTagBox?.width).toBeLessThanOrEqual(160)
+    expect(disabledSaveProfileBox?.width).toBeLessThanOrEqual(160)
+  }
 
   await page.goto('http://demo.team.lostsky.work:5175/files')
   const uploadButton = page.getByRole('button', { name: '上传文件' })
   await expect(uploadButton).toBeDisabled()
   await expect(page.locator('.ls-upload-field__reason')).toHaveCount(0)
-  await expect(page.getByText('该团队能力(Ability)缺失: 文件上传(File),管理员可按需购买。', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('您缺少该团队权限(Permission): file.upload,请联系团队管理员开通。', { exact: true })).toHaveCount(0)
   await uploadButton.click({ force: true })
-  await expect(page.getByText('该团队能力(Ability)缺失: 文件上传(File),管理员可按需购买。', { exact: true })).toBeVisible()
+  await expect(page.getByText('您缺少该团队权限(Permission): file.upload,请联系团队管理员开通。', { exact: true })).toBeVisible()
+})
+
+test('team disables uploads by byte capacity and offers upgrades only to ability managers', async ({ page }) => {
+  await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
+  const quota = { count: 240, total_size: 524_288_000, size_limit: 524_288_000, remaining_size: 0, available: false, reason: 'quota' }
+  await page.route('http://demo.team.lostsky.work:5175/api/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    const data = path.endsWith('/access')
+      ? {
+          permissions: ['file.read', 'file.upload', 'team.ability.redeem'],
+          abilities: { file: { enabled: true, level: 1, expire_time: 0, reason: null, label: '文件上传' } },
+          file_upload: quota,
+        }
+      : path.endsWith('/file/usage')
+        ? quota
+        : path.endsWith('/file/index')
+          ? { list: [], total: 0 }
+          : []
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
+  })
+
+  await page.goto('http://demo.team.lostsky.work:5175/files')
+  const uploadButton = page.getByRole('button', { name: '上传文件' })
+  await expect(uploadButton).toBeDisabled()
+  await expect(page.getByText('已使用 500.0 MB / 容量 500.0 MB · 240 个文件')).toBeVisible()
+  await expect(page.getByRole('link', { name: '升级团队能力' })).toHaveAttribute('href', '/abilities')
+  await uploadButton.click({ force: true })
+  await expect(page.getByText('该团队文件已达到上限，请联系团队管理员。', { exact: true })).toBeVisible()
 })
 
 test('account login remains usable at mobile and desktop widths', async ({ page }) => {
@@ -970,7 +1069,7 @@ test('team customer detail reports incomplete success responses instead of rende
   expect(pageErrors).toEqual([])
 })
 
-test('team customer detail renders assignees as typed entity options', async ({ page }) => {
+test('team customer detail renders assignees as typed entity options', async ({ page }, testInfo) => {
   await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
   await page.route('http://demo.team.lostsky.work:5175/api/**', async route => {
     const path = new URL(route.request().url()).pathname
@@ -1002,6 +1101,14 @@ test('team customer detail renders assignees as typed entity options', async ({ 
   })
 
   await page.goto('http://demo.team.lostsky.work:5175/customers/518')
+  const saveCustomerProfile = page.getByRole('button', { name: '保存客户资料' })
+  await expect(saveCustomerProfile).toBeVisible()
+  const saveCustomerProfileBox = await saveCustomerProfile.boundingBox()
+  if (testInfo.project.name.includes('mobile')) expect(saveCustomerProfileBox?.width).toBeGreaterThan(160)
+  else {
+    expect(saveCustomerProfileBox?.width).toBeGreaterThanOrEqual(112)
+    expect(saveCustomerProfileBox?.width).toBeLessThanOrEqual(180)
+  }
   await page.locator('#customer-assignee').click()
 
   const options = page.locator('.entity-select-menu .entity-select-option')
@@ -1059,6 +1166,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         file: { enabled: true, level: 1, expire_time: 0, reason: null, label: '文件上传' },
         doc: { enabled: true, level: 1, expire_time: 0, reason: null, label: '文档' },
       },
+      file_upload: { count: 6, total_size: 17_825_792, size_limit: 524_288_000, remaining_size: 506_462_208, available: true, reason: null },
     }
     else if (url.pathname.endsWith('/dashboard')) data = {
       entities: { available: true, count: 3, error: null, reason: null },
@@ -1071,7 +1179,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       { id: 2, slug: 'alice', entityable_type: 'teamMember' },
       { id: 3, slug: 'helper', entityable_type: 'teamVirtual' },
     ], total: 3 }
-    else if (url.pathname.endsWith('/file/usage')) data = { total_size: 17_825_792, count: 6 }
+    else if (url.pathname.endsWith('/file/usage')) data = { count: 6, total_size: 17_825_792, size_limit: 524_288_000, remaining_size: 506_462_208, available: true, reason: null }
     else if (url.pathname.endsWith('/joinReview/index')) data = { list: [{ id: 1, user_id: 6, status: '审核中', name: '青空成员' }], total: 1 }
     else if (url.pathname.endsWith('/joinReview/get')) data = { id: 1, user_id: 6, status: '审核中', memo: '希望参与工作室协作', values: [], tasks: [{ id: 8, title: '确认协作约定', description: '阅读并确认团队协作方式', is_passed: 0 }] }
     else if (url.pathname.endsWith('/joinField/index')) data = [
@@ -1217,7 +1325,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       role_assignments: [],
       effective_permissions: [],
     }
-    else if (url.pathname.endsWith('/join/form')) data = { purpose_code: 'join', purpose_label: '加入', refill_required: true, fields: [] }
+    else if (url.pathname.endsWith('/join/form')) data = { purpose_code: 'join', purpose_label: '加入', refill_required: true, fields: [], file_upload: { count: 6, total_size: 17_825_792, size_limit: 524_288_000, remaining_size: 506_462_208, available: true, reason: null } }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
   const collectionPaths = new Set(['/entities', '/members', '/customers', '/roles', '/fields', '/join-fields', '/chat-virtuals', '/notices/entity', '/notices/team', '/files', '/docs', '/join-review'])
@@ -1268,6 +1376,12 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       }
       await expect(page.getByRole('link', { name: '进入个人工作台' })).toHaveAttribute('href', '/personal')
       await expect(page.getByRole('link', { name: '使用文档' })).toHaveAttribute('href', '/docs')
+      const overviewActions = page.locator('.welcome-actions > :is(a, .welcome-document)')
+      const overviewActionBoxes = await Promise.all((await overviewActions.all()).map(action => action.boundingBox()))
+      expect(overviewActionBoxes).toHaveLength(2)
+      expect(Math.abs((overviewActionBoxes[0]?.width ?? 0) - (overviewActionBoxes[1]?.width ?? 0))).toBeLessThan(1)
+      await expect(overviewActions.nth(0).locator('svg')).toHaveCount(2)
+      await expect(overviewActions.nth(1).locator('svg')).toHaveCount(2)
       await expect(page.getByRole('link', { name: /实体 3/ })).toBeVisible()
       await expect(page.getByRole('link', { name: /成员 1/ })).toBeVisible()
       await expect(page.getByRole('link', { name: /文档 2/ })).toHaveAttribute('href', '/docs')
@@ -1693,7 +1807,7 @@ test('team join fields support management, validation and read-only permission d
   expect(indexRequests).toBe(indexRequestsBeforeDenied)
 })
 
-test('document and file abilities gate the correct controls with transient feedback', async ({ page }) => {
+test('document Ability gates its route while level 0 file uploads remain usable', async ({ page }) => {
   let docEnabled = true
   await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
   await page.route('http://demo.team.lostsky.work:5175/api/**', async route => {
@@ -1738,13 +1852,10 @@ test('document and file abilities gate the correct controls with transient feedb
   await expect(visualEditor).toBeFocused()
   const imageUpload = page.locator('button:has(svg[data-lostsky-image-upload])')
   await expect(imageUpload).toBeVisible()
-  await expect(imageUpload).toBeDisabled()
-  await expect(imageUpload).toHaveAttribute('aria-disabled', 'true')
-  await expect(imageUpload).toHaveAttribute('aria-label', /文件上传/)
-  await imageUpload.dispatchEvent('pointerdown', { button: 0 })
-  await imageUpload.dispatchEvent('pointerdown', { button: 0 })
+  await expect(imageUpload).toBeEnabled()
+  await expect(imageUpload).not.toHaveAttribute('aria-disabled', 'true')
+  await expect(imageUpload).toHaveAttribute('aria-label', '插入图片')
   await expect(page.locator('.milkdown-image-block')).toHaveCount(0)
-  await expect(page.locator('.n-message').filter({ hasText: '文件上传' })).toBeVisible()
   await expect(page.getByText('上传本地图片', { exact: true })).toHaveCount(0)
   await expect(page.locator('#workspace').getByRole('heading', { name: '新建文档', level: 1 })).toBeVisible()
 
@@ -2069,7 +2180,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
         team: { id: 1, slug: 'demo', name: '青空团队' },
         permissions: ['transaction.read', 'transaction.write', 'transaction.report.read'],
         abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: '记账' } },
-        identity: { type: 'teamMember' },
+        identity: { type: 'teamMember', entity_id: 11, name: '青空接单人', slug: 'handler', avatar: '' },
       }
     } else if (url.pathname.endsWith('/transaction/options')) {
       if (optionsMode === 'error') {

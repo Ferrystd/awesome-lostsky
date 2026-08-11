@@ -132,7 +132,10 @@ class Transaction
     public function create(int $teamId, array $data): int
     {
         $data['type'] = $this->normalizeType($data['type'] ?? TransactionType::LedgerEntry);
-        $data = array_merge($data, $data['type'] === TransactionType::ServicePackageReceipt
+        $data = array_merge($data, in_array($data['type'], [
+            TransactionType::ServicePackageReceipt,
+            TransactionType::ServiceAdjustmentReceipt,
+        ], true)
             ? $this->validateReceipt($data)
             : $this->validateMath($data));
 
@@ -140,7 +143,7 @@ class Transaction
             $teamId,
             $data['handler_entity_id'] ?? null,
             '接单人',
-            $data['type'] !== TransactionType::ServicePackageReceipt
+            !in_array($data['type'], [TransactionType::ServicePackageReceipt, TransactionType::ServiceAdjustmentReceipt], true)
         );
         $this->assertEntity($teamId, $data['sender_entity_id'] ?? null, '发单人');
         $this->assertEntity($teamId, $data['cs_entity_id'] ?? null, '客服');
@@ -205,6 +208,27 @@ class Transaction
         $this->assertEntity($teamId, $data['sender_entity_id'] ?? null, '发单人');
         $this->assertEntity($teamId, $data['cs_entity_id'] ?? null, '客服');
 
+        return $this->saveTransaction($teamId, $data);
+    }
+
+    public function createServiceAdjustmentReceipt(int $teamId, array $data): int
+    {
+        $data['type'] = TransactionType::ServiceAdjustmentReceipt;
+        $data['cash'] = '0.00';
+        $data['prepaid'] = $data['total_price'] ?? '0.00';
+        return $this->create($teamId, $data);
+    }
+
+    public function createServiceAdjustmentPerformance(int $teamId, array $data): int
+    {
+        $data['type'] = TransactionType::ServiceAdjustmentPerformance;
+        $data['cash'] = '0.00';
+        $data['prepaid'] = '0.00';
+        $data['service_credit'] = $data['total_price'] ?? '0.00';
+        $data = array_merge($data, $this->validateMath($data));
+        $this->assertEntity($teamId, $data['handler_entity_id'] ?? null, '接单人', true);
+        $this->assertEntity($teamId, $data['sender_entity_id'] ?? null, '发单人');
+        $this->assertEntity($teamId, $data['cs_entity_id'] ?? null, '客服');
         return $this->saveTransaction($teamId, $data);
     }
 
@@ -425,6 +449,7 @@ class Transaction
         $trans->cs_cut      = $data['cs_cut'] ?? 0;
         $trans->team_cut    = $data['team_cut'] ?? 0;
         $trans->service_instance_id = $data['service_instance_id'] ?? null;
+        $trans->service_adjustment_id = $data['service_adjustment_id'] ?? null;
         $trans->trans_at    = $data['trans_at'] ?? time();
         $trans->memo        = $data['memo'] ?? null;
         $trans->save();
@@ -451,6 +476,8 @@ class Transaction
             TransactionType::ShopOrder,
             TransactionType::ServicePackageReceipt,
             TransactionType::ServiceRedemption,
+            TransactionType::ServiceAdjustmentReceipt,
+            TransactionType::ServiceAdjustmentPerformance,
         ], true);
     }
 

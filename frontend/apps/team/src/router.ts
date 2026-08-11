@@ -40,6 +40,8 @@ const CustomersView = () => import('./views/CustomersView.vue')
 const CustomerDetailView = () => import('./views/CustomerDetailView.vue')
 const AbilitiesView = () => import('./views/AbilitiesView.vue')
 const PersonalView = () => import('./views/PersonalView.vue')
+const AuditView = () => import('./views/AuditView.vue')
+const AuditDetailView = () => import('./views/AuditDetailView.vue')
 
 export interface ResourceFormField {
   key: string
@@ -114,6 +116,8 @@ const routes = [
   { path: '/files', component: FilesView, meta: { title: '文件' } },
   { path: '/settings', component: SettingsView, meta: { title: '团队设置', pageWidth: 'content' } },
   { path: '/abilities', component: AbilitiesView, meta: { title: '团队能力', pageWidth: 'content' } },
+  { path: '/audit', component: AuditView, meta: { title: '审计日志', pageWidth: 'wide' } },
+  { path: '/audit/:id(\\d+)', component: AuditDetailView, meta: { title: '审计事件', pageWidth: 'content' } },
   { path: '/chat-virtuals', component: ChatVirtualsView, meta: { title: '虚拟实体' } },
   { path: '/chat-virtual-new', component: ChatVirtualFormView, meta: { title: '创建虚拟实体', pageWidth: 'content' } },
   { path: '/chat-virtual', component: ChatVirtualFormView, meta: { title: '编辑虚拟实体', pageWidth: 'content' } },
@@ -121,7 +125,7 @@ const routes = [
   { path: '/chat-integration', component: ChatIntegrationFormView, meta: { title: '编辑 Webhook 集成', pageWidth: 'form' } },
   { path: '/fields', component: EntityFieldsView, meta: { title: '对象字段' } },
   { path: '/entities', component: EntitiesView, meta: { title: '实体' } },
-  { path: '/entity', component: EntityDetailView, meta: { title: '实体资料', pageWidth: 'content' } },
+  { path: '/entity', component: EntityDetailView, meta: { title: '实体资料', pageWidth: 'form' } },
   { path: '/field-new', component: EntityFieldFormView, meta: { title: '创建对象字段', pageWidth: 'form' } },
   { path: '/field-edit', component: EntityFieldFormView, meta: { title: '编辑对象字段', pageWidth: 'form' } },
   { path: '/roles/new', component: RoleFormView, meta: { title: '新建角色', pageWidth: 'form' } },
@@ -147,7 +151,7 @@ const routes = [
   { path: '/member-detail', component: MemberDetailView, meta: { title: '成员详情', pageWidth: 'content' } },
   { path: '/doc', component: DocumentView, meta: { title: '文档', ability: 'doc' } },
   { path: '/personal', component: PersonalView, meta: { title: '概览', pageWidth: 'wide', workspace: 'personal', personalSection: 'overview' } },
-  { path: '/personal/profile', component: PersonalView, meta: { title: '资料', pageWidth: 'content', workspace: 'personal', personalSection: 'profile' } },
+  { path: '/personal/profile', component: PersonalView, meta: { title: '资料', pageWidth: 'form', workspace: 'personal', personalSection: 'profile' } },
   { path: '/personal/fields', component: PersonalView, meta: { title: '对象字段', pageWidth: 'content', workspace: 'personal', personalSection: 'fields' } },
   { path: '/personal/access', component: PersonalView, meta: { title: '角色与有效权限', pageWidth: 'content', workspace: 'personal', personalSection: 'access' } },
   { path: '/me', redirect: '/personal/profile' },

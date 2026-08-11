@@ -152,6 +152,14 @@
     "aliases": ["记账工作台壳层", "交易壳层"]
   },
   {
+    "id": "transaction-personal-service-lists",
+    "name": "PersonalServiceLists",
+    "source": "frontend/apps/transaction/src/components/PersonalServiceLists.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#PersonalServiceLists",
+    "category": "transaction",
+    "aliases": ["个人核销列表", "公开任务列表", "履约记录列表"]
+  },
+  {
     "id": "ui-ls-async-state",
     "name": "LsAsyncState",
     "source": "frontend/packages/ui/src/components/LsAsyncState.vue",
@@ -326,6 +334,14 @@
     "story": "frontend/component-previews/src/story-registry.ts#LsStatusTag",
     "category": "ui",
     "aliases": ["状态标签", "状态徽标"]
+  },
+  {
+    "id": "ui-ls-switch",
+    "name": "LsSwitch",
+    "source": "frontend/packages/ui/src/components/LsSwitch.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsSwitch",
+    "category": "ui",
+    "aliases": ["开关", "布尔控件", "开关原语"]
   },
   {
     "id": "ui-ls-switch-field",

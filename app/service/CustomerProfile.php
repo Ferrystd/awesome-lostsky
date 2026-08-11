@@ -45,6 +45,7 @@ class CustomerProfile
                 'name' => (string) ($assignee->profile?->name ?: $assignee->slug),
                 'avatar' => $assignee->profile?->avatar ?: null,
             ] : null,
+            'file_upload' => app(File::class)->uploadAvailability($teamId),
             'create_time' => (int) $customer->create_time,
             'update_time' => (int) $customer->update_time,
         ];

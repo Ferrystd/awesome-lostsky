@@ -67,6 +67,14 @@ class Me
 
         $service = app(TeamMemberService::class);
         $service->edit($request->team_id, $request->member_id, $data);
+        app(\app\service\BusinessAudit::class)->record(
+            $request,
+            'team',
+            'update',
+            'member',
+            $request->member_id,
+            ['changed_fields' => array_keys($data), 'changed' => $data !== []]
+        );
 
         return message('资料已更新');
     }
@@ -77,6 +85,14 @@ class Me
             $request->team_id,
             $request->member_id,
             $request->post('slug/s', '')
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request,
+            'team',
+            'setSlug',
+            'member',
+            $request->member_id,
+            ['changed_fields' => ['slug']]
         );
 
         return success(['slug' => $identity->slug], '成员标识已确定');
@@ -94,10 +110,19 @@ class Me
             throw new \think\exception\HttpException(422, '请先确定对象标识');
         }
 
+        $values = $request->post('values/a', []);
         app(\app\service\TeamEntityField::class)->saveOwnValues(
             $request->team_id,
             $slug,
-            $request->post('values/a', [])
+            $values
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request,
+            'team',
+            'save',
+            'entityFieldValues',
+            $request->entity_id,
+            ['changed_fields' => array_map('strval', array_keys($values)), 'changed' => $values !== []]
         );
 
         return message('字段值已保存');

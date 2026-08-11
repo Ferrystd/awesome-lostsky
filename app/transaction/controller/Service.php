@@ -13,7 +13,9 @@ class Service
         'Context' => ['except' => []],
         'EntityType:team,teamMember,teamVirtual' => ['except' => []],
         'TeamAuth' => ['except' => []],
-        'Ability:transaction' => ['except' => []],
+        // 已经开始的履约属于待完成义务。Transaction Ability 失效时仍允许
+        // complete 收口；ServiceRedemption 会跳过流水与加价业绩写入。
+        'Ability:transaction' => ['except' => ['complete']],
     ];
 
     public function index(Request $request)
@@ -55,6 +57,34 @@ class Service
     public function rejectCancel(Request $request) { return $this->run($request, 'rejectCancel', '已拒绝取消核销', $request->post('reason/s', '')); }
     public function reassign(Request $request) { return $this->run($request, 'reassign', '已改派接单人', $request->post('handler_entity_id/d', 0), $request->post('reason/s', '')); }
     public function complete(Request $request) { return $this->run($request, 'complete', '服务已核销', $request->post('field_values/a', [])); }
+
+    public function createAdjustment(Request $request)
+    {
+        $instanceId = $request->route('id/d', 0);
+        $id = app(\app\service\ServiceAdjustment::class)->create(
+            $request->team_id,
+            $request->acting_entity,
+            $request->entity_id,
+            $instanceId,
+            $request->post()
+        );
+        app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'create', 'serviceAdjustment', $id);
+        return success(['id' => $id], '加价费用已提交客户确认');
+    }
+
+    public function cancelAdjustment(Request $request)
+    {
+        $id = $request->route('adjustment_id/d', 0);
+        app(\app\service\ServiceAdjustment::class)->cancel(
+            $request->team_id,
+            $request->acting_entity,
+            $request->entity_id,
+            $request->route('id/d', 0),
+            $id
+        );
+        app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'cancel', 'serviceAdjustment', $id);
+        return message('加价费用已取消');
+    }
 
     private function run(Request $request, string $method, string $message, mixed ...$arguments)
     {

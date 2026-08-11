@@ -260,13 +260,14 @@ test('team workspaces keep a readable overview and disabled Permission entries',
       team: { id: 1, slug: 'demo', name: '青空协作组' },
       permissions: [],
       abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: '记账' } },
-      identity: { type: 'team', entity_id: 1 },
+      identity: { type: 'team', entity_id: 1, name: '青空协作组', slug: 'demo', avatar: '' },
     }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
 
   await page.goto('http://demo.shop.lostsky.work:5179/manage')
   await expect(page.getByRole('heading', { name: '概览', level: 1 })).toBeVisible()
+  await expect(page.locator('.manage-sidebar').getByRole('button', { name: '退出登录' })).toHaveCSS('justify-content', 'flex-start')
   await expect(page.locator('#shop-manage-main').getByText('青空协作组')).toBeVisible()
   await expect(page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '商品' }))
     .toContainText(formatPermissionDenied(['shop.product.read']))
@@ -279,7 +280,7 @@ test('team workspaces keep a readable overview and disabled Permission entries',
 
   await page.getByRole('link', { name: '进入个人工作台' }).click()
   await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/manage/personal')
-  await expect(page.locator('#shop-manage-main').getByRole('heading', { name: '管理自己的商品与业务订单', level: 2 })).toBeVisible()
+  await expect(page.locator('#shop-manage-main').getByRole('heading', { name: '青空协作组', level: 2 })).toBeVisible()
   await expect(page.locator('.manage-sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   await expect(page.locator('.manage-nav-disabled').filter({ hasText: '我的商品' }))
     .toHaveAttribute('title', formatPermissionDenied(['shop.product.self.manage']))
@@ -306,13 +307,14 @@ test('Transaction binds overview first in both team and personal workspaces', as
       team: { id: 1, slug: 'demo', name: '青空协作组' },
       permissions: [],
       abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: '记账' } },
-      identity: { type: 'teamMember' },
+      identity: { type: 'teamMember', entity_id: 11, name: '青空接单人', slug: 'handler', avatar: '' },
     }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
 
   await page.goto('http://demo.transaction.lostsky.work:5177/overview')
   await expect(page.getByRole('heading', { name: '概览', level: 1 })).toBeVisible()
+  await expect(page.locator('.sidebar').getByRole('button', { name: '退出登录' })).toHaveCSS('justify-content', 'flex-start')
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: '进入个人工作台' })).toHaveAttribute('href', '/personal')
   await expectOverviewLayout(page, 'Transaction team overview')
@@ -320,7 +322,8 @@ test('Transaction binds overview first in both team and personal workspaces', as
 
   await page.getByRole('link', { name: '进入个人工作台' }).click()
   await expect(page).toHaveURL('http://demo.transaction.lostsky.work:5177/personal')
-  await expect(page.locator('#workspace').getByRole('heading', { name: '聚焦当前 Entity 的经营参与', level: 2 })).toBeVisible()
+  await expect(page.locator('#workspace').getByRole('heading', { name: '青空接单人', level: 2 })).toBeVisible()
+  await expect(page.locator('#workspace')).toContainText('@handler')
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/overview')
   await expectOverviewLayout(page, 'Transaction personal overview')
@@ -339,7 +342,7 @@ test('missing transaction Ability keeps the app disabled and sends zero business
       team: { id: 1, slug: 'demo', name: '青空协作组' },
       permissions: ['transaction'],
       abilities: { transaction: { enabled: false, level: 0, expire_time: 0, reason: 'missing', label: '记账' } },
-      identity: { type: 'team' },
+      identity: { type: 'team', entity_id: 1, name: '青空协作组', slug: 'demo', avatar: '' },
     }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })

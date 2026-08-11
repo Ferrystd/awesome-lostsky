@@ -28,6 +28,7 @@ import LsRouteErrorBoundary from '@lostsky/ui/components/LsRouteErrorBoundary.vu
 import LsSearchInput from '@lostsky/ui/components/LsSearchInput.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
@@ -229,6 +230,13 @@ const statusTag = story('LsStatusTag', ['default', 'active', 'error', 'mobile'],
   ? [h(LsStatusTag, { label: '待处理' }), h(LsStatusTag, { label: '正常', type: 'success' }), h(LsStatusTag, { label: '需关注', type: 'warning' })]
   : [h(LsStatusTag, { label: state === 'error' ? '已失败' : '处理中', type: state === 'error' ? 'error' : 'info' })])))
 
+const switchControl = story('LsSwitch', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'mobile'], state => stage(h(LsSwitch, {
+  modelValue: state === 'active',
+  disabled: state === 'disabled',
+  loading: state === 'loading',
+  'aria-label': '启用公开展示',
+})), { error: '开关原语不负责表达表单错误。' })
+
 const switchField = story('LsSwitchField', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'mobile'], state => stage(h(LsSwitchField, {
   modelValue: state === 'active',
   label: '上架状态',
@@ -236,8 +244,6 @@ const switchField = story('LsSwitchField', ['default', 'hover', 'focus', 'active
   disabled: state === 'disabled',
   disabledReason: state === 'disabled' ? '当前身份缺少商品管理权限' : '',
   loading: state === 'loading',
-  checkedText: '上架',
-  uncheckedText: '下架',
 })), { error: '布尔设置的校验错误由所属表单区域表达。' })
 
 const uploadField = story('LsUploadField', allInteractive, state => stage(h(LsUploadField, {
@@ -283,5 +289,5 @@ export const uiStories: Record<string, StoryDefinition> = {
   LsMarkdownRenderer: markdownRenderer, LsPage: page, LsPageHeader: pageHeader, LsPanel: panel,
   LsResponsiveActions: responsiveActions, LsResponsiveDataTable: responsiveDataTable,
   LsRouteErrorBoundary: routeBoundary, LsSearchInput: searchInput, LsSectionHeader: sectionHeader, LsStatusTag: statusTag,
-  LsSwitchField: switchField, LsUploadField: uploadField, LsWorkspaceHeader: workspaceHeader, LsWorkspaceOverview: workspaceOverview,
+  LsSwitch: switchControl, LsSwitchField: switchField, LsUploadField: uploadField, LsWorkspaceHeader: workspaceHeader, LsWorkspaceOverview: workspaceOverview,
 }

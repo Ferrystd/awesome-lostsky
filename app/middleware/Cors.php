@@ -20,7 +20,9 @@ class Cors
                 $response = $next($request);
             }
         } catch (Throwable $e) {
-            $response = app(Handle::class)->render($request, $e);
+            $handler = app(Handle::class);
+            $handler->report($e);
+            $response = $handler->render($request, $e);
         }
 
         return $this->withHeaders($request, $response);

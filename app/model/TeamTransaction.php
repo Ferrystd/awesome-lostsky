@@ -89,6 +89,11 @@ class TeamTransaction extends Base
         return $this->belongsTo(TeamServiceInstance::class, 'service_instance_id');
     }
 
+    public function serviceAdjustment()
+    {
+        return $this->belongsTo(TeamServiceAdjustment::class, 'service_adjustment_id');
+    }
+
     public function normalizeMoney(array $values): array
     {
         $bind = [];

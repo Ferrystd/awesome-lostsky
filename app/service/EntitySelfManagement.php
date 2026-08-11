@@ -202,7 +202,7 @@ class EntitySelfManagement
 
     private function uploadCapability(int $teamId, array $actingEntity): array
     {
-        $ability = app(TeamAccess::class)->ability($teamId, 'file', '文件上传');
+        $ability = app(TeamAccess::class)->fileAbility($teamId);
         return [
             'enabled' => (bool) $ability['enabled'],
             'reason' => $ability['reason'],

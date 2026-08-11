@@ -15,7 +15,7 @@ export interface paths {
         put?: never;
         /**
          * 上传文件
-         * @description 用于头像、封面、Markdown 图片等资源附件。资源保存接口继续校验对应资源的编辑 Permission；上传本身只要求有效团队 Entity 与 File Ability，不要求 file.upload。响应正文始终为合法 JSON。
+         * @description 用于头像、封面、Markdown 图片等资源附件。资源保存接口继续校验对应资源的编辑 Permission；上传使用团队 File 等级容量，未购买时为 0 级 128 MiB，不要求 file.upload。响应正文始终为合法 JSON。
          */
         post: operations["commonUpload"];
         delete?: never;
@@ -474,8 +474,16 @@ export interface components {
             size?: number;
         };
         FileUsage: {
-            count?: number;
-            totalSize?: number;
+            count: number;
+            /** Format: int64 */
+            total_size: number;
+            /** Format: int64 */
+            size_limit: number | null;
+            /** Format: int64 */
+            remaining_size: number | null;
+            available: boolean;
+            /** @enum {string|null} */
+            reason: "quota" | null;
         };
         Document: {
             /** Format: int64 */
@@ -642,7 +650,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description 缺少 File Ability、能力等级不足或已过期；data.kind 标识具体原因。 */
+            /** @description 当前团队或 Entity 无法使用上传入口；File 未购买时仍使用 0 级 128 MiB。 */
             403: {
                 headers: {
                     [name: string]: unknown;

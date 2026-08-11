@@ -156,7 +156,7 @@ class TeamMember
     /**
      * 添加成员
      */
-    public function add(int $teamId, int $userId, array $data): void
+    public function add(int $teamId, int $userId, array $data): int
     {
         $validator = new MemberValidator;
         if (!$validator->scene('add')->check($data)) {
@@ -173,7 +173,7 @@ class TeamMember
             );
         }
 
-        \think\facade\Db::transaction(function () use ($teamId, $userId, $data) {
+        return \think\facade\Db::transaction(function () use ($teamId, $userId, $data) {
             $member = new \app\model\TeamMember;
             $member->save([
                 'team_id' => $teamId,
@@ -211,7 +211,7 @@ class TeamMember
                 'joined_at' => time(),
                 'departed_at' => null,
             ]);
-
+            return (int) $member->id;
         });
     }
 

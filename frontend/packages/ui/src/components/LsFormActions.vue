@@ -4,6 +4,7 @@
 
 <style scoped>
 .ls-form-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .75rem; }
+.ls-form-actions :deep(.ls-button) { min-width: 7rem; }
 @media (max-width: 639px) {
   .ls-form-actions { display: grid; grid-template-columns: 1fr; }
   .ls-form-actions :deep(.ls-button) { width: 100%; }

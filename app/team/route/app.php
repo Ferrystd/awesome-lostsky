@@ -5,6 +5,9 @@ Route::pattern(['id' => 'int']);
 
 Route::get('access', 'Access/index');
 Route::get('dashboard', 'Dashboard/index');
+Route::get('audit/catalog', 'Audit/catalog');
+Route::get('audit/index', 'Audit/index');
+Route::get('audit/get', 'Audit/get');
 Route::get('personal', 'Personal/current')->completeMatch();
 Route::post('personal/profile', 'Personal/profile')->completeMatch();
 Route::post('personal/slug', 'Personal/slug')->completeMatch();
@@ -49,6 +52,7 @@ Route::get('entity/get', 'entity/get');
 Route::post('entity/profile', 'entity/profile');
 Route::post('entity/display', 'entity/display');
 Route::post('entity/visibility', 'entity/visibility');
+Route::post('entity/presentation', 'entity/presentation');
 
 // customer
 Route::get('customer', 'Customer/index')->completeMatch();

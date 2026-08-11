@@ -24,10 +24,16 @@ class RolePermission
 
     public function save(Request $request)
     {
+        $roleId = $request->post('role_id/d', 0);
+        $permissionKeys = $request->post('permission_keys');
         app(\app\service\RolePermission::class)->save(
             $request->team_id,
-            $request->post('role_id/d', 0),
-            $request->post('permission_keys')
+            $roleId,
+            $permissionKeys
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'setPermissions', 'rolePermission', $roleId,
+            ['changed_fields' => ['permission_keys'], 'changes' => [['field' => 'permission_keys', 'after' => is_array($permissionKeys) ? array_values($permissionKeys) : []]]]
         );
 
         return message('角色权限已更新');

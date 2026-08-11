@@ -7,6 +7,8 @@
 - PHP 8.1+
 - MySQL 5.7+ 或 MariaDB 10.3+
 - Composer 2
+- Node.js LTS 与 npm
+- Python 3.10+（构建文档站）
 
 ## 交付物身份
 
@@ -55,6 +57,15 @@ composer --version
    cp .env.example .env
    ```
 
+   为应用运行日志配置 PHP-FPM 可写且不对外公开的目录；完整字段、结构和查询方法见[系统运行日志](logging.md)：
+
+   ```ini
+   LOG_PATH=/var/log/lostsky
+   LOG_MAX_FILES=30
+   LOG_FILE_SIZE=10485760
+   LOG_CLOSE=false
+   ```
+
 3. 在 `.env` 中配置阿里云 AccessKey：
 
    ```ini
@@ -79,6 +90,35 @@ composer --version
    ```
 
    RAM 身份至少需要 `oss:PutCname` 以及证书托管所需的 `yundun-cert:DescribeSSLCertificatePrivateKey`、`yundun-cert:DescribeSSLCertificatePublicKeyDetail`、`yundun-cert:CreateSSLCertificate`。首次配置并确认域名已经绑定到 Bucket 后，执行 `php think certificate:update`；完整 SAN 清单和 Certbot deploy hook 见[控制台命令](console.md)。
+
+### OSS 统一缺图
+
+原始占位图保存在 `deploy/oss/system/image-not-found.png`，固定对象键为 `system/image-not-found.png`。`system/` 是系统保留前缀：不得通过团队文件上传、删除或清理流程管理，也不写入 `file` 表或团队配额。部署并回读校验原始字节：
+
+```bash
+php think oss:fallback:deploy
+```
+
+命令锁定 SHA-256 `c7867513080c061235f9be90bab875c19883a0fe268b8fa7e937ed3c6d325f31`，并设置 `Content-Type: image/png` 与一年缓存。占位对象必须能通过 `https://oss.lostsky.work/system/image-not-found.png` 匿名读取。
+
+若已确认当前 Bucket 不含需要保持私有的数据，可显式关闭该 Bucket 的阻止公共访问并设为公共读；匿名用户仍不能写入：
+
+```bash
+php think oss:fallback:publish --confirm-public-read
+```
+
+该命令只修改 `ALIYUN_OSS_BUCKET` 指定的 Bucket，不修改账号级公共访问策略，并在写入后回读确认 `block_public_access=false`、`acl=public-read`。
+
+先只读检查现有网站规则，再配置 `.jpg`、`.jpeg`、`.png`、`.gif`、`.webp`、`.avif` 六个大小写敏感后缀的 `404 → 302 → https://oss.lostsky.work/system/image-not-found.png`：
+
+```bash
+php think oss:fallback:configure --dry-run
+php think oss:fallback:configure
+```
+
+命令保留现有 IndexDocument、ErrorDocument 和非缺图规则，并在超过 OSS 每 Bucket 20 条规则上限前拒绝写入。规则只对已绑定的自定义域名生效，非图片缺失对象保持 OSS 原错误响应。私有 Bucket 的不存在对象可能返回 `403` 而不是 `404`；本项目的固定规则不把所有 `403` 视为缺图，避免把真实授权失败伪装成文件不存在。控制台手工路径与限制见[阿里云官方配置说明](https://help.aliyun.com/zh/oss/user-guide/redirection)。
+
+上线后用 GET 而不是仅用 HEAD 验收：占位图返回 `200 image/png`，六种图片后缀的随机不存在路径返回 `302` 且 `Location` 为固定对象，随机 `.pdf` 不返回 `3xx`。
 
    短信类型、验证码策略、签名和模板统一写在 `config/auth.php`，不通过环境变量选择。默认使用阿里云短信服务：
 
@@ -142,6 +182,18 @@ location / {
 ## 宝塔静态前端部署
 
 宝塔添加站点时会在根目录生成默认 `index.html` 和 `404.html`。LostSky 前端是单入口 SPA，每个业务域名目录只保留 `index.html`，前端路径统一回退到该文件，因此不要直接在已经发布的 `www/{domain}` 目录上添加站点。
+
+Git 标签只包含源码和无法由构建命令再生的原始静态资源，不包含应用与文档站产物。发布机必须在独立发布目录检出不可变标签并生成完整 `www/`：
+
+```bash
+git checkout <不可变标签>
+npm ci
+npm run docs:setup
+npm run build
+npm run build:docs
+```
+
+所有命令成功且应用、资源与文档入口存在后，才能把整个 `www/` 原子替换到站点目录；不要在当前线上目录直接构建。旧标签仍包含当时提交的产物，新规则只适用于完成本次迁移后的标签。
 
 推荐流程：
 

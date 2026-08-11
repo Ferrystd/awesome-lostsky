@@ -140,7 +140,9 @@ try {
     $initialProfile = $customerProfile->get((int) $team->id, $customerId);
     $assert(
         ($initialProfile['profile']['name'] ?? '') !== ''
-            && ($initialProfile['identity']['slug'] ?? '') === "buyer-{$suffix}",
+            && ($initialProfile['identity']['slug'] ?? '') === "buyer-{$suffix}"
+            && isset($initialProfile['file_upload']['count'], $initialProfile['file_upload']['total_size'])
+            && array_key_exists('available', $initialProfile['file_upload']),
         'shop customer profile returns normalized team profile and identity data'
     );
     $customerProfile->update((int) $team->id, $customerId, [

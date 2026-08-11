@@ -3,13 +3,16 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\enum\BenefitPricingMode;
 use app\enum\RedemptionMode;
+use app\enum\ServiceDistributionMode;
 use app\model\BenefitPackage;
 use app\model\BenefitPackageAbility;
 use app\model\BenefitPackageService;
 use app\model\RedemptionCampaign;
 use app\model\RedemptionCode;
 use app\model\TeamCustomer;
+use app\model\TeamProduct;
 use app\model\TeamService;
 use app\model\TeamServiceHandler;
 use think\exception\HttpException;
@@ -33,15 +36,27 @@ final class EntitlementManagement
         return $this->productOptions($teamId) + [
             'services' => TeamService::where('team_id', $teamId)->where('is_active', 1)->order('id', 'desc')->select()->toArray(),
             'customers' => TeamCustomer::where('team_id', $teamId)->where('is_blocked', 0)->with(['profile', 'balance'])->order('id', 'desc')->select()->toArray(),
+            'service_defaults' => app(TeamSetting::class)->internal($teamId, 'service'),
         ];
     }
 
     public function productOptions(int $teamId): array
     {
+        $packages = BenefitPackage::where('issuer_team_id', $teamId)
+            ->where('is_active', 1)->with(['services'])->order('id', 'desc')->select()->toArray();
+        $campaigns = RedemptionCampaign::where('issuer_team_id', $teamId)
+            ->where('is_active', 1)->with(['package.services'])->order('id', 'desc')->select()->toArray();
+        $this->attachPricingSummaries($packages);
+        foreach ($campaigns as &$campaign) {
+            if (is_array($campaign['package'] ?? null)) {
+                $rows = [&$campaign['package']];
+                $this->attachPricingSummaries($rows);
+            }
+        }
         return [
             'entities' => app(Entity::class)->optionsForTeam($teamId, true),
-            'packages' => BenefitPackage::where('issuer_team_id', $teamId)->where('is_active', 1)->order('id', 'desc')->select()->toArray(),
-            'campaigns' => RedemptionCampaign::where('issuer_team_id', $teamId)->where('is_active', 1)->order('id', 'desc')->select()->toArray(),
+            'packages' => $packages,
+            'campaigns' => $campaigns,
         ];
     }
 
@@ -63,35 +78,78 @@ final class EntitlementManagement
     {
         $name = trim((string) ($data['name'] ?? ''));
         if ($name === '' || mb_strlen($name) > 100) throw new HttpException(422, '服务名称长度应为 1–100 个字符');
+        $defaults = app(TeamSetting::class)->internal($teamId, 'service');
+        $unitName = trim((string) ($data['unit_name'] ?? $defaults['default_unit_name']));
+        $quantityScale = (int) ($data['quantity_scale'] ?? $defaults['default_quantity_scale']);
+        if ($unitName === '' || mb_strlen($unitName) > 20) throw new HttpException(422, '服务单位长度应为 1–20 个字符');
+        $quantityStep = app(ServiceQuantity::class)->normalize(
+            $data['quantity_step'] ?? $defaults['default_quantity_step'],
+            $quantityScale,
+            $data['quantity_step'] ?? $defaults['default_quantity_step']
+        );
         $money = [];
         foreach (['default_total_price', 'default_cost', 'default_handler_cut', 'default_sender_cut', 'default_cs_cut', 'default_team_cut'] as $field) {
             $value = $data[$field] ?? 0;
             if (!is_numeric($value) || (float) $value < 0) throw new HttpException(422, '服务金额不能为负数');
             $money[$field] = number_format((float) $value, 2, '.', '');
         }
+        $hasHandlers = array_key_exists('handler_entity_ids', $data);
         $handlerIds = array_values(array_unique(array_map('intval', is_array($data['handler_entity_ids'] ?? null) ? $data['handler_entity_ids'] : [])));
-        foreach ($handlerIds as $entityId) app(Entity::class)->assertInTeam($entityId, $teamId);
+        if ($hasHandlers) foreach ($handlerIds as $entityId) $this->assertServiceHandler($teamId, $entityId);
 
-        return Db::transaction(function () use ($teamId, $id, $data, $name, $money, $handlerIds) {
+        return Db::transaction(function () use ($teamId, $id, $data, $name, $unitName, $quantityScale, $quantityStep, $money, $handlerIds, $hasHandlers) {
             $service = $id ? TeamService::where('team_id', $teamId)->find($id) : new TeamService;
             if (!$service) throw new HttpException(404, '服务不存在');
             $service->save(array_merge($money, [
                 'team_id' => $teamId,
                 'name' => $name,
                 'description' => trim((string) ($data['description'] ?? '')) ?: null,
+                'unit_name' => $unitName,
+                'quantity_scale' => $quantityScale,
+                'quantity_step' => $quantityStep,
                 'is_active' => (int) ($data['is_active'] ?? 1) === 1 ? 1 : 0,
             ]));
-            TeamServiceHandler::where('service_id', $service->id)->delete();
-            foreach ($handlerIds as $entityId) {
-                $handler = TeamServiceHandler::withTrashed()
-                    ->where('service_id', $service->id)
-                    ->where('entity_id', $entityId)
-                    ->find();
-                if ($handler) $handler->restore();
-                else (new TeamServiceHandler)->save(['service_id' => $service->id, 'entity_id' => $entityId]);
-            }
+            if ($hasHandlers) $this->syncServiceHandlers($teamId, (int) $service->id, $handlerIds);
             return (int) $service->id;
         });
+    }
+
+    public function serviceHandlers(int $teamId, int $serviceId): array
+    {
+        if (!TeamService::where('team_id', $teamId)->find($serviceId)) throw new HttpException(404, '服务不存在');
+        return TeamServiceHandler::where('service_id', $serviceId)
+            ->with(['subject.profile'])->order('id', 'asc')->select()->toArray();
+    }
+
+    public function saveServiceHandlers(int $teamId, int $serviceId, array $entityIds): array
+    {
+        if (!TeamService::where('team_id', $teamId)->find($serviceId)) throw new HttpException(404, '服务不存在');
+        $ids = array_values(array_unique(array_filter(array_map('intval', $entityIds))));
+        foreach ($ids as $entityId) $this->assertServiceHandler($teamId, $entityId);
+        Db::transaction(fn () => $this->syncServiceHandlers($teamId, $serviceId, $ids));
+        return $this->serviceHandlers($teamId, $serviceId);
+    }
+
+    private function syncServiceHandlers(int $teamId, int $serviceId, array $handlerIds): void
+    {
+        $current = array_map('intval', TeamServiceHandler::where('service_id', $serviceId)->column('entity_id'));
+        $removed = array_values(array_diff($current, $handlerIds));
+        TeamServiceHandler::where('service_id', $serviceId)->delete();
+        foreach ($handlerIds as $entityId) {
+            $handler = TeamServiceHandler::withTrashed()->where('service_id', $serviceId)->where('entity_id', $entityId)->find();
+            if ($handler) $handler->restore();
+            else (new TeamServiceHandler)->save(['service_id' => $serviceId, 'entity_id' => $entityId]);
+        }
+        app(ServiceRedemption::class)->invalidateOffersForHandlers($teamId, $serviceId, $removed);
+    }
+
+    private function assertServiceHandler(int $teamId, int $entityId): void
+    {
+        app(Entity::class)->assertInTeam($entityId, $teamId);
+        $entity = \app\model\Entity::find($entityId);
+        if (!$entity || !$entity->is_valid || !in_array((string) $entity->entityable_type, ['team', 'teamMember', 'teamVirtual'], true)) {
+            throw new HttpException(422, '接单池只允许当前团队内有效的 Team、Member 或 Virtual Entity');
+        }
     }
 
     public function disableService(int $teamId, int $id): void
@@ -105,14 +163,19 @@ final class EntitlementManagement
     {
         $query = $issuerTeamId === null ? BenefitPackage::whereNull('issuer_team_id') : BenefitPackage::where('issuer_team_id', $issuerTeamId);
         if ($keyword !== '') $query->whereLike('name', '%' . addcslashes($keyword, '%_') . '%');
-        return $this->page($query, $page, $limit, ['services.service', 'abilities']);
+        $result = $this->page($query, $page, $limit, ['services.service', 'abilities']);
+        $this->attachPricingSummaries($result['list']);
+        return $result;
     }
 
     public function package(?int $issuerTeamId, int $id): array
     {
         $package = $this->packageQuery($issuerTeamId)->with(['services.service', 'abilities'])->find($id);
         if (!$package) throw new HttpException(404, '权益包不存在');
-        return $package->toArray();
+        $result = $package->toArray();
+        $rows = [&$result];
+        $this->attachPricingSummaries($rows);
+        return $result;
     }
 
     public function savePackage(?int $issuerTeamId, ?int $id, array $data): int
@@ -124,13 +187,59 @@ final class EntitlementManagement
         if ($issuerTeamId === null && (!$abilityItems || $serviceItems)) throw new HttpException(422, '平台权益包必须且只能包含 Ability');
         if ($issuerTeamId !== null && (!$serviceItems || $abilityItems)) throw new HttpException(422, '商家权益包必须且只能包含服务');
 
+        $existingPackage = $id ? $this->packageQuery($issuerTeamId)->find($id) : null;
+        if ($id && !$existingPackage) throw new HttpException(404, '权益包不存在');
+        $pricingModeValue = $issuerTeamId === null
+            ? BenefitPricingMode::LegacyEqualSplit->value
+            : (int) ($data['pricing_mode'] ?? ($existingPackage
+                ? $existingPackage->enumCase('pricing_mode')->value
+                : BenefitPricingMode::Itemized->value));
+        try {
+            $pricingMode = BenefitPricingMode::from($pricingModeValue);
+        } catch (\ValueError) {
+            throw new HttpException(422, '权益包计价方式不正确');
+        }
+
         $normalizedServices = [];
-        foreach ($serviceItems as $item) {
+        $seenServiceIds = [];
+        $serviceDefaults = $issuerTeamId === null ? [] : app(TeamSetting::class)->internal((int) $issuerTeamId, 'service');
+        foreach ($serviceItems as $sort => $item) {
             $serviceId = (int) ($item['service_id'] ?? 0);
-            if (!$issuerTeamId || !TeamService::where('team_id', $issuerTeamId)->find($serviceId)) throw new HttpException(422, '服务不属于当前团队');
-            $quantity = (int) ($item['quantity'] ?? 0); $days = (int) ($item['valid_days'] ?? 0);
-            if ($quantity < 1 || $quantity > 999 || $days < 0) throw new HttpException(422, '服务数量或有效天数不正确');
-            $normalizedServices[$serviceId] = compact('serviceId', 'quantity', 'days');
+            $service = $issuerTeamId ? TeamService::where('team_id', $issuerTeamId)->find($serviceId) : null;
+            if (!$service) throw new HttpException(422, '服务不属于当前团队');
+            if (isset($seenServiceIds[$serviceId])) throw new HttpException(422, '同一服务不能在权益包中重复配置');
+            $seenServiceIds[$serviceId] = true;
+            $item['quantity'] = app(ServiceQuantity::class)->normalize(
+                $item['quantity'] ?? 0,
+                (int) $service->quantity_scale,
+                (string) $service->quantity_step
+            );
+            if (!array_key_exists('valid_days', $item)) {
+                $item['valid_days'] = $serviceDefaults['default_valid_days'];
+            }
+            if ($pricingMode === BenefitPricingMode::Itemized) {
+                if (!array_key_exists('distribution_mode', $item)) {
+                    $item['distribution_mode'] = ServiceDistributionMode::Rate->value;
+                }
+                if ((int) $item['distribution_mode'] === ServiceDistributionMode::Rate->value) {
+                    foreach ([
+                        'handler_rate_bp' => 'default_handler_rate_percent',
+                        'sender_rate_bp' => 'default_sender_rate_percent',
+                        'cs_rate_bp' => 'default_cs_rate_percent',
+                    ] as $field => $setting) {
+                        if (!array_key_exists($field, $item)) $item[$field] = (int) $serviceDefaults[$setting] * 100;
+                    }
+                }
+                $normalizedServices[] = app(BenefitPackagePricing::class)->normalizeItem($item, (int) $sort);
+            } else {
+                $quantity = $item['quantity']; $days = (int) $item['valid_days'];
+                if ($days < 0) throw new HttpException(422, '服务数量或有效天数不正确');
+                $normalizedServices[] = app(BenefitPackagePricing::class)->normalizeItem([
+                    'service_id' => $serviceId,
+                    'quantity' => $quantity,
+                    'valid_days' => $days,
+                ], (int) $sort);
+            }
         }
         $catalog = [];
         foreach (self::ABILITIES as $ability) $catalog[$ability['key']] = $ability['levels'];
@@ -141,19 +250,31 @@ final class EntitlementManagement
             $normalizedAbilities[$key] = compact('key', 'level', 'days');
         }
 
-        return Db::transaction(function () use ($issuerTeamId, $id, $data, $name, $normalizedServices, $normalizedAbilities) {
+        return Db::transaction(function () use ($issuerTeamId, $id, $data, $name, $pricingMode, $normalizedServices, $normalizedAbilities) {
             $package = $id ? $this->packageQuery($issuerTeamId)->find($id) : new BenefitPackage;
             if (!$package) throw new HttpException(404, '权益包不存在');
-            $package->save(['issuer_team_id' => $issuerTeamId, 'name' => $name, 'is_active' => (int) ($data['is_active'] ?? 1) === 1 ? 1 : 0]);
+            if ($id && $this->packageReferenced((int) $package->id)) {
+                $sameMode = $package->enumCase('pricing_mode') === $pricingMode;
+                $sameItems = app(BenefitPackagePricing::class)->configuration($package) === $normalizedServices;
+                if (!$sameMode || !$sameItems) {
+                    throw new HttpException(422, '已被商品或兑换活动引用的权益包不能修改计价项目，请新建权益包');
+                }
+            }
+            $package->save([
+                'issuer_team_id' => $issuerTeamId,
+                'name' => $name,
+                'pricing_mode' => $pricingMode,
+                'is_active' => (int) ($data['is_active'] ?? 1) === 1 ? 1 : 0,
+            ]);
             BenefitPackageService::where('package_id', $package->id)->delete();
             BenefitPackageAbility::where('package_id', $package->id)->delete();
             foreach ($normalizedServices as $item) {
-                $relation = BenefitPackageService::withTrashed()->where('package_id', $package->id)->where('service_id', $item['serviceId'])->find();
+                $relation = BenefitPackageService::withTrashed()->where('package_id', $package->id)->where('service_id', $item['service_id'])->find();
                 if ($relation) {
                     $relation->restore();
-                    $relation->save(['quantity' => $item['quantity'], 'valid_days' => $item['days']]);
+                    $relation->save($item);
                 } else {
-                    (new BenefitPackageService)->save(['package_id' => $package->id, 'service_id' => $item['serviceId'], 'quantity' => $item['quantity'], 'valid_days' => $item['days']]);
+                    (new BenefitPackageService)->save(['package_id' => $package->id] + $item);
                 }
             }
             foreach ($normalizedAbilities as $item) {
@@ -282,6 +403,31 @@ final class EntitlementManagement
     private function campaignQuery(?int $issuerTeamId)
     {
         return $issuerTeamId === null ? RedemptionCampaign::whereNull('issuer_team_id') : RedemptionCampaign::where('issuer_team_id', $issuerTeamId);
+    }
+
+    private function packageReferenced(int $packageId): bool
+    {
+        return TeamProduct::where('benefit_package_id', $packageId)->find() !== null
+            || RedemptionCampaign::where('package_id', $packageId)->find() !== null;
+    }
+
+    private function attachPricingSummaries(array &$packages): void
+    {
+        foreach ($packages as &$package) {
+            $package['is_pricing_locked'] = $this->packageReferenced((int) $package['id']);
+            $mode = $package['pricing_mode'] ?? BenefitPricingMode::LegacyEqualSplit->value();
+            if (!in_array($mode, [
+                BenefitPricingMode::Itemized->value,
+                (string) BenefitPricingMode::Itemized->value,
+                BenefitPricingMode::Itemized->value(),
+                BenefitPricingMode::Itemized->name,
+            ], true)) {
+                $package['pricing_summary'] = null;
+                continue;
+            }
+            $model = BenefitPackage::find((int) $package['id']);
+            $package['pricing_summary'] = $model ? app(BenefitPackagePricing::class)->summary($model) : null;
+        }
     }
 
     private function page($query, int $page, int $limit, array $with = []): array

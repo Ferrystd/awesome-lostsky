@@ -3,6 +3,7 @@ declare (strict_types = 1);
 
 namespace app\model;
 
+use app\enum\BenefitPricingMode;
 use app\model\Base;
 
 /**
@@ -21,6 +22,7 @@ class BenefitPackage extends Base
         'update_time' => 'integer',
         'delete_time' => 'integer',
         'name' => 'string',
+        'pricing_mode' => BenefitPricingMode::class,
         'is_active' => 'integer',
     ];
 

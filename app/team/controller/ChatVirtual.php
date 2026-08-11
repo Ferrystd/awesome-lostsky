@@ -37,12 +37,17 @@ class ChatVirtual
 
     public function create(\think\Request $request)
     {
-        return success(app(\app\service\ChatVirtual::class)->create($request->team_id, [
+        $result = app(\app\service\ChatVirtual::class)->create($request->team_id, [
             'slug' => $request->post('slug', ''),
             'name' => $request->post('name', ''),
             'avatar' => $request->post('avatar'),
             'description' => $request->post('description'),
-        ]), '虚拟实体已创建');
+        ]);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'create', 'virtualEntity', (int) ($result['id'] ?? 0),
+            ['changed_fields' => ['slug', 'name', 'avatar', 'description']]
+        );
+        return success($result, '虚拟实体已创建');
     }
 
     public function update(\think\Request $request)
@@ -53,20 +58,26 @@ class ChatVirtual
                 $data[$field] = $request->post($field);
             }
         }
-        app(\app\service\ChatVirtual::class)->update(
+        $entityId = app(\app\service\ChatVirtual::class)->update(
             $request->team_id,
             $request->post('slug/s', ''),
             $data
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'update', 'virtualEntity', $entityId,
+            ['changed_fields' => array_keys($data), 'changed' => $data !== []]
         );
         return message('虚拟实体已更新');
     }
 
     public function delete(\think\Request $request)
     {
-        app(\app\service\ChatVirtual::class)->delete(
+        $slug = $request->post('slug/s', '');
+        $entityId = app(\app\service\ChatVirtual::class)->delete(
             $request->team_id,
-            $request->post('slug/s', '')
+            $slug
         );
+        app(\app\service\BusinessAudit::class)->record($request, 'team', 'delete', 'virtualEntity', $entityId);
         return message('虚拟实体已删除');
     }
 }

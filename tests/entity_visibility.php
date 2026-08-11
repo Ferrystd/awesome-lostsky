@@ -4,6 +4,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\enum\TeamMemberStatus;
+use app\model\BusinessAuditEvent;
 use app\model\Entity;
 use app\model\Team;
 use app\model\TeamCustomer;
@@ -14,6 +15,7 @@ use app\service\Entity as EntityService;
 use app\service\EntityProfile;
 use think\App;
 use think\exception\HttpException;
+use think\Request;
 
 (new App(dirname(__DIR__)))->initialize();
 
@@ -144,7 +146,41 @@ try {
     $full = app(EntityProfile::class)->listing((int) $team->id, null, 1, 100, true);
     $assertSame(4, $full['total'], 'team.entity.read exposes the complete entity collection');
 
-    $virtualEntity->save(['is_internal_visible' => 1]);
+    $auditRequest = new Request;
+    $auditRequest->authenticated_user_id = (int) $users[0]->id;
+    $auditRequest->entity_id = (int) $teamEntity->id;
+    $auditRequest->team_id = (int) $team->id;
+    $auditRequest->request_id = "entity-visibility-{$suffix}";
+    $presentation = app(EntityService::class)->updatePresentation(
+        $auditRequest,
+        (int) $team->id,
+        (int) $virtualEntity->id,
+        1,
+        1
+    );
+    $assertSame(
+        ['is_internal_visible' => 1, 'is_displayed' => 1],
+        $presentation,
+        'presentation settings are saved together'
+    );
+    $auditEvents = BusinessAuditEvent::where('request_id', "entity-visibility-{$suffix}")->select();
+    $assertSame(1, $auditEvents->count(), 'presentation settings create one atomic audit event');
+    $assertSame('entity_visibility', (string) $auditEvents[0]->resource_type, 'presentation audit covers the complete visibility group');
+    $auditEventIds = [(int) $auditEvents[0]->id];
+    $assertStatus(
+        fn () => app(EntityService::class)->setPresentation(
+            (int) $team->id,
+            (int) $virtualEntity->id,
+            0,
+            'invalid'
+        ),
+        422,
+        'invalid presentation input is rejected before saving'
+    );
+    $virtualEntity->refresh();
+    $assertSame(1, (int) $virtualEntity->is_internal_visible, 'invalid batch does not partially update internal visibility');
+    $assertSame(1, (int) $virtualEntity->is_displayed, 'invalid batch does not partially update public visibility');
+    $assertSame(1, BusinessAuditEvent::where('request_id', "entity-visibility-{$suffix}")->count(), 'invalid batch does not create an audit event');
     $base = app(EntityProfile::class)->listing((int) $team->id, null, 1, 100, false);
     $assertSame(
         [(int) $teamEntity->id, (int) $memberEntity->id, (int) $virtualEntity->id],
@@ -152,6 +188,7 @@ try {
         'an internally visible Virtual enters the base directory while Customer stays excluded'
     );
 } finally {
+    if (!empty($auditEventIds)) BusinessAuditEvent::destroy($auditEventIds, true);
     $entityIds = array_map(static fn (Entity $entity): int => (int) $entity->id, $entities);
     if ($entityIds) {
         app()->db->name('team_entity_profile')->whereIn('entity_id', $entityIds)->delete();

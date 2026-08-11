@@ -4,7 +4,8 @@ import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
-import { NCheckbox, NDatePicker, NInput, NInputNumber, NSelect, NSwitch } from 'naive-ui'
+import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
+import { NCheckbox, NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 
 export interface EntityFieldDefinition {
@@ -138,6 +139,7 @@ function submit() {
       </div>
       <LsButton
         v-if="mode !== 'readonly' && fields.some(editable)"
+        class="entity-fields-save"
         variant="secondary"
         :loading="saving"
         :disabled="loading || Boolean(uploading) || !isDirty"
@@ -208,16 +210,13 @@ function submit() {
             {{ option.label }}
           </NCheckbox>
         </div>
-        <NSwitch
+        <LsSwitch
           v-else-if="field.value_type === 'bool'"
-          :value="Boolean(Number(values[field.id]))"
+          :model-value="Boolean(Number(values[field.id]))"
           :aria-label="field.name"
           :aria-describedby="`entity-field-${field.id}-label`"
-          @update:value="value => values[field.id] = value ? 1 : 0"
-        >
-          <template #checked>是</template>
-          <template #unchecked>否</template>
-        </NSwitch>
+          @update:model-value="value => values[field.id] = value ? 1 : 0"
+        />
         <NInputNumber
           v-else-if="field.value_type === 'int' || field.value_type === 'decimal'"
           v-model:value="values[field.id] as number"
@@ -262,5 +261,5 @@ function submit() {
 
 <style scoped>
 .entity-fields-card{display:grid;gap:1rem}.entity-fields-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.entity-fields-card h2,.entity-fields-card p{margin:0}.entity-fields-card h2{font-size:1.05rem}.entity-fields-card header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.field-list{border-top:1px solid var(--line)}.field-row{display:grid;grid-template-columns:minmax(9rem,.36fr) minmax(0,1fr);align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}.field-label{display:grid;gap:.2rem}.field-label>span{font-size:.875rem;font-weight:680}.field-label b{color:var(--danger)}.field-label small,.readonly-value small{color:var(--muted-ink);font-size:.75rem}.readonly-value{min-width:0;display:grid;gap:.2rem;overflow-wrap:anywhere;color:var(--ink);line-height:1.55}.readonly-value small{font-weight:500}.number-input{width:100%}.choice-list{display:flex;flex-wrap:wrap;gap:.75rem 1rem}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}
-@media(max-width:639px){.entity-fields-card>header{align-items:stretch;flex-direction:column}.entity-fields-card>header :deep(.ls-button){width:100%}.field-row{grid-template-columns:1fr;gap:.65rem}.upload-control{grid-template-columns:1fr}.upload-control>label{justify-content:center}}
+@media(max-width:639px){.entity-fields-card>header{align-items:stretch;flex-direction:column}.entity-fields-save{width:100%}.field-row{grid-template-columns:1fr;gap:.65rem}.upload-control{grid-template-columns:1fr}.upload-control>label{justify-content:center}}
 </style>

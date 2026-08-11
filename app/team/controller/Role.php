@@ -36,6 +36,10 @@ class Role
             'sort'        => $request->post('sort/d', 0),
             'is_displayed'=> $request->post('is_displayed/d', 0),
         ]);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'create', 'role', $id,
+            ['changed_fields' => ['role_key', 'name', 'description', 'sort', 'is_displayed']]
+        );
 
         return success(['id' => $id], '角色已创建');
     }
@@ -53,16 +57,22 @@ class Role
         }
 
         app(\app\service\Role::class)->update($request->team_id, $id, $data);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'update', 'role', $id,
+            ['changed_fields' => array_keys($data), 'changed' => $data !== []]
+        );
 
         return message('角色已更新');
     }
 
     public function delete(Request $request)
     {
+        $id = $request->post('id/d', 0);
         app(\app\service\Role::class)->delete(
             $request->team_id,
-            $request->post('id/d', 0)
+            $id
         );
+        app(\app\service\BusinessAudit::class)->record($request, 'team', 'delete', 'role', $id);
 
         return message('角色已删除');
     }

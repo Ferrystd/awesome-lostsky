@@ -81,6 +81,7 @@ nav = [
   ]},
   {"运维" = [
     "operations/deployment.md",
+    "operations/logging.md",
     "operations/assets-cors.md",
     "operations/console.md"
   ]},
@@ -89,6 +90,7 @@ nav = [
     "TODO.md",
     "plans/markdown-ai.md",
     "plans/trade.md",
+    "plans/service-fulfillment-expansion.md",
     "plans/weibo-bot.md"
   ]}
 ]

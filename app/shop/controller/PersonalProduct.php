@@ -115,6 +115,10 @@ final class PersonalProduct
             $request->route('id/d', 0),
             $request->post()
         );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'shop', 'create', 'productRedemptionField', $id,
+            ['changed_fields' => array_keys($request->post())]
+        );
         return success(['id' => $id], '核销字段已创建');
     }
 
@@ -128,6 +132,10 @@ final class PersonalProduct
             $request->route('field_id/d', 0),
             $request->post()
         );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'shop', 'update', 'productRedemptionField', $request->route('field_id/d', 0),
+            ['changed_fields' => array_keys($request->post())]
+        );
         return message('核销字段已更新');
     }
 
@@ -139,6 +147,9 @@ final class PersonalProduct
             $request->post('expected_entity_id/d', 0),
             $request->route('id/d', 0),
             $request->route('field_id/d', 0)
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'shop', 'delete', 'productRedemptionField', $request->route('field_id/d', 0)
         );
         return message('核销字段已删除');
     }

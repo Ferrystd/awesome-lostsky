@@ -30,6 +30,10 @@ class Join
             'memo' => $request->post('memo'),
             'inviter_slug' => $request->post('inviter_slug/s', ''),
         ]);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'apply', 'joinApplication', $id,
+            ['changed_fields' => ['values', 'memo', 'inviter_slug']]
+        );
 
         return success(['id' => $id], '申请已提交');
     }
@@ -56,6 +60,9 @@ class Join
 
         $service = app(TeamJoin::class);
         $service->cancel($request->team_id, $request->user_id, $id);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'cancel', 'joinApplication', $id
+        );
 
         return message('申请已取消');
     }
@@ -69,6 +76,11 @@ class Join
 
         $service = app(TeamJoin::class);
 
-        return success($service->upload($file, $request->team_id), '上传成功');
+        $result = $service->upload($file, $request->team_id);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'upload', 'joinApplicationFile',
+            isset($result['id']) ? (int) $result['id'] : null
+        );
+        return success($result, '上传成功');
     }
 }

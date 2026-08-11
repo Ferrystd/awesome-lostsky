@@ -149,7 +149,7 @@ const groupedPermissions = computed(() => {
         <h2 id="entity-permissions-title">角色与权限</h2>
         <p>{{ canEdit ? '角色决定该实体在当前团队能够执行的操作。' : '以下按当前团队分配角色中的权限记录逐条展示。' }}</p>
       </div>
-      <LsButton v-if="canEdit" variant="secondary" :loading="saving" :disabled="loading || !isDirty" @click="emit('save', selected)">
+      <LsButton v-if="canEdit" class="permissions-save" variant="secondary" :loading="saving" :disabled="loading || !isDirty" @click="emit('save', selected)">
         保存角色
       </LsButton>
     </header>
@@ -198,5 +198,5 @@ const groupedPermissions = computed(() => {
 
 <style scoped>
 .permissions-card{min-width:0;display:grid;gap:1rem}.permissions-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.permissions-card h2,.permissions-card h3,.permissions-card p{margin:0}.permissions-card h2{font-size:1.05rem}.permissions-card header p{max-width:65ch;margin-top:.25rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.role-summary{display:flex;flex-wrap:wrap;gap:.5rem}.role-summary>span{min-width:10rem;display:grid;gap:.25rem;padding:.75rem;background:var(--cloud);border-radius:8px}.role-summary small{color:var(--muted-ink);font-size:.75rem}.effective{min-width:0;display:grid;gap:.75rem;padding-top:.25rem;border-top:1px solid var(--line)}.effective-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding-top:.75rem}.effective h3{font-size:.92rem}.effective-heading>span{color:var(--muted-ink);font-size:.78rem}.permission-groups{min-width:0}.effective :deep(.n-collapse-item){min-width:0}.effective :deep(.n-collapse-item__header){min-height:48px}.effective ul{display:grid;gap:.5rem;margin:0 0 1rem;padding:0;list-style:none}.effective li{display:grid;grid-template-columns:minmax(8rem,.35fr) minmax(0,1fr);gap:1rem;padding:.5rem 0;border-bottom:1px solid var(--line);font-size:.82rem}.permission-label{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}.permission-label small{padding:.15rem .4rem;color:color-mix(in oklch,var(--warning),black 35%);background:color-mix(in oklch,var(--warning),white 90%);border-radius:999px;font-size:.68rem;font-weight:700}.effective code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.75rem}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}
-@media(max-width:639px){.permissions-card>header{align-items:stretch;flex-direction:column}.permissions-card>header :deep(.ls-button){width:100%}.effective li{grid-template-columns:1fr;gap:.25rem}}
+@media(max-width:639px){.permissions-card>header{align-items:stretch;flex-direction:column}.permissions-save{width:100%}.effective li{grid-template-columns:1fr;gap:.25rem}}
 </style>

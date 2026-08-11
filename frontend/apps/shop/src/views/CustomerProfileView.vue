@@ -6,7 +6,7 @@ import { ArrowRight, BadgeCheck, CircleAlert, RotateCcw, ShieldCheck, UserRound 
 import { NButton, NInput, NSelect, NSpin } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { rememberCustomer, shopApi } from '../lib'
+import { fileUploadReason, rememberCustomer, shopApi } from '../lib'
 
 const route = useRoute()
 const queryClient = useQueryClient()
@@ -16,6 +16,7 @@ const assignees = useQuery({ queryKey: ['shop-customer-assignees'], queryFn: sho
 const nickname = ref('')
 const avatar = ref('')
 const avatarUploading = ref(false)
+const avatarUploadReason = computed(() => fileUploadReason(customer.data.value?.file_upload))
 const description = ref('')
 const newSlug = ref('')
 const claimedSlug = ref('')
@@ -138,7 +139,7 @@ const save = useMutation({
           </label>
           <label for="customer-avatar">
             头像
-            <LsMediaUploadField id="customer-avatar" v-model="avatar" :upload="shopApi.uploadCustomerFile" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" @uploading="avatarUploading = $event" />
+            <LsMediaUploadField id="customer-avatar" v-model="avatar" :upload="shopApi.uploadCustomerFile" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="Boolean(avatarUploadReason)" :disabled-reason="avatarUploadReason" @uploading="avatarUploading = $event" @uploaded="customer.refetch()" />
           </label>
           <label for="customer-description">
             团队内简介

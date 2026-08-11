@@ -135,6 +135,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/service/{id}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建待客户确认的履约加价费用 */
+        post: operations["createServiceAdjustment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service/{id}/adjustments/{adjustment_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                adjustment_id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 取消待确认的履约加价费用 */
+        post: operations["cancelServiceAdjustment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspace/access": {
         parameters: {
             query?: never;
@@ -220,12 +259,80 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 读取当前 Entity 处理的核销
-         * @description 只返回 handler_entity_id 等于当前 acting_entity 的核销任务。
+         * 读取接单人三组工作台
+         * @description offers 为待确认指定邀请，available 为接单池公开任务，list 为当前 Entity 已接取的核销。领取前返回完整 Customer 核销字段。
          */
         get: operations["transactionPersonalServices"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/services/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 分页读取当前 Entity 可以领取的公开任务 */
+        get: operations["transactionPersonalAvailableServices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/services/available/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取公开任务及完整核销字段 */
+        get: operations["transactionPersonalAvailableService"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/services/{id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 领取接单池中的公开履约任务 */
+        post: operations["claimPersonalService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/services/{id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 主动退回自己未完成的任务至公开接单池 */
+        post: operations["returnPersonalService"];
         delete?: never;
         options?: never;
         head?: never;
@@ -243,6 +350,74 @@ export interface paths {
         get: operations["transactionPersonalService"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/service-offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 分页读取待当前 Entity 确认的指定邀请 */
+        get: operations["transactionPersonalServiceOffers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/service-offers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取指定邀请及完整核销字段 */
+        get: operations["transactionPersonalServiceOffer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/service-offers/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 接受邀请并原子创建已分配核销中切片 */
+        post: operations["acceptPersonalServiceOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/service-offers/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 拒绝邀请并释放预占 */
+        post: operations["rejectPersonalServiceOffer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -510,6 +685,11 @@ export interface components {
             identity: {
                 /** @enum {string} */
                 type: "team" | "teamMember" | "teamVirtual";
+                /** Format: int64 */
+                entity_id: number;
+                name: string;
+                slug?: string | null;
+                avatar?: string | null;
             };
         };
         AnyValue: (string | number | boolean | unknown[] | {
@@ -815,7 +995,7 @@ export interface components {
              * @description 1=充值, 2=消费, 3=退款, 4=手动调整
              * @enum {integer}
              */
-            type?: 1 | 2 | 3 | 4;
+            type?: 1 | 2 | 3 | 4 | 5 | 6;
             /** @description Exact decimal string. */
             amount?: string;
             /** @description Exact decimal string. */
@@ -849,7 +1029,7 @@ export interface components {
             /** Format: int64 */
             customer_id?: number | null;
             /**
-             * @description 1=商城下单, 2=记账登记, 3=服务包收款, 4=服务核销
+             * @description 1=商城下单, 2=记账登记, 3=服务包收款, 4=服务核销, 5=履约加价收款, 6=履约加价业绩
              * @enum {integer}
              */
             type?: 1 | 2 | 3 | 4;
@@ -925,10 +1105,12 @@ export interface components {
             prepaid_total: number;
             /** @description 现金与预存款的实际收款口径。 */
             receipt_total: number;
-            /** @description 排除服务包收款后的履约业绩口径。 */
+            /** @description 排除服务包与履约加价收款后的履约业绩口径。 */
             performance_total: number;
             service_receipt_count: number;
             service_redemption_count: number;
+            service_adjustment_receipt_count: number;
+            service_adjustment_performance_count: number;
             avg_price: number;
         };
         TransactionEntityStat: {
@@ -1018,8 +1200,16 @@ export interface components {
             size?: number;
         };
         FileUsage: {
-            count?: number;
-            totalSize?: number;
+            count: number;
+            /** Format: int64 */
+            total_size: number;
+            /** Format: int64 */
+            size_limit: number | null;
+            /** Format: int64 */
+            remaining_size: number | null;
+            available: boolean;
+            /** @enum {string|null} */
+            reason: "quota" | null;
         };
         Document: {
             /** Format: int64 */
@@ -1280,6 +1470,60 @@ export interface operations {
             };
         };
     };
+    createServiceAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    quantity: string;
+                    unit_price: string;
+                    cost?: string;
+                    handler_cut?: string;
+                    sender_cut?: string;
+                    cs_cut?: string;
+                    memo?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancelServiceAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                adjustment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     transactionWorkspaceAccess: {
         parameters: {
             query?: never;
@@ -1397,6 +1641,113 @@ export interface operations {
             };
         };
     };
+    transactionPersonalAvailableServices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    transactionPersonalAvailableService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 任务不存在或已被领取 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    claimPersonalService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 任务已被领取或正在取消 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    returnPersonalService: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已退回 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 存在待处理取消申请或任务状态已改变 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     transactionPersonalService: {
         parameters: {
             query?: never;
@@ -1417,6 +1768,102 @@ export interface operations {
             };
             /** @description 核销不存在或不属于当前个人范围 */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    transactionPersonalServiceOffers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    transactionPersonalServiceOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    acceptPersonalServiceOffer: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已接受 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 邀请已处理或已过期 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 接单资格已失效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rejectPersonalServiceOffer: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已拒绝 */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

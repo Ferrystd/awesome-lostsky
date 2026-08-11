@@ -20,12 +20,17 @@ class Integration
 
     public function create(\think\Request $request)
     {
-        return success(app(\app\service\ChatIntegration::class)->create(
+        $result = app(\app\service\ChatIntegration::class)->create(
             $request->team_id,
             $request->post('slug/s', ''),
             ['name' => $request->post('name', ''), 'endpoint_url' => $request->post('endpoint_url', ''),
                 'events' => $request->post('events', [])]
-        ), '集成已创建，请立即保存凭据');
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'chat', 'create', 'chatIntegration', (int) $result['id'],
+            ['changed_fields' => ['name', 'endpoint_url', 'events']]
+        );
+        return success($result, '集成已创建，请立即保存凭据');
     }
 
     public function update(\think\Request $request)
@@ -42,16 +47,25 @@ class Integration
             $request->post('id/d', 0),
             $data
         );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'chat', 'update', 'chatIntegration', $request->post('id/d', 0),
+            ['changed_fields' => array_keys($data), 'changed' => $data !== []]
+        );
         return message('集成已更新');
     }
 
     public function rotate(\think\Request $request)
     {
-        return success(app(\app\service\ChatIntegration::class)->rotate(
+        $result = app(\app\service\ChatIntegration::class)->rotate(
             $request->team_id,
             $request->post('slug/s', ''),
             $request->post('id/d', 0)
-        ), '凭据已轮换，请立即保存');
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'chat', 'rotate', 'chatIntegration', $request->post('id/d', 0),
+            ['changed_fields' => ['token', 'signing_secret']]
+        );
+        return success($result, '凭据已轮换，请立即保存');
     }
 
     public function delete(\think\Request $request)
@@ -60,6 +74,9 @@ class Integration
             $request->team_id,
             $request->post('slug/s', ''),
             $request->post('id/d', 0)
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'chat', 'delete', 'chatIntegration', $request->post('id/d', 0)
         );
         return message('集成已删除');
     }

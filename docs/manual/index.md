@@ -29,6 +29,7 @@ description: 从用户任务出发了解 LostSky 已提供的功能、操作结�
 | 记录流水、查看统计、维护客户余额 | [记账与客户余额](transactions.md) |
 | 展示团队、浏览商品、维护商家客户资料或以客户身份购买 | [公开主页与商城](public-pages-and-shop.md) |
 | 领取卡密、查看服务权益、发起或管理服务核销 | [卡密、Ability 与服务核销](service-redemption.md) |
+| 使用代招、按时长服务、公开召唤或履约加价 | [代招、按时长服务与履约加价](service-business-solutions.md) |
 | 治理整个平台 | [平台管理](platform-admin.md) |
 | 处理登录跳转、身份不匹配、403、404、余额或配额问题 | [问题排查](troubleshooting.md) |
 

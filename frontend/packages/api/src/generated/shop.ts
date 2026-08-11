@@ -251,6 +251,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/manage/services/{id}/handlers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** 读取服务显式接单池 */
+        get: operations["shopManageServiceHandlers"];
+        put?: never;
+        /**
+         * 原子替换服务显式接单池
+         * @description 仅接受当前团队内有效的 Team、TeamMember 或 TeamVirtual Entity；移除成员会让其待确认邀请失效，历史已接任务不变。
+         */
+        post: operations["shopSaveServiceHandlers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/manage/services/{id}/disable": {
         parameters: {
             query?: never;
@@ -280,7 +303,7 @@ export interface paths {
         /** 服务权益包列表 */
         get: operations["shopManagePackages"];
         put?: never;
-        /** 创建服务权益包 */
+        /** 创建分项计价服务权益包 */
         post: operations["shopCreatePackage"];
         delete?: never;
         options?: never;
@@ -297,10 +320,13 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** 服务权益包详情 */
+        /** 服务权益包详情与计价汇总 */
         get: operations["shopManagePackage"];
         put?: never;
-        /** 更新服务权益包 */
+        /**
+         * 更新尚未被引用的服务权益包
+         * @description 权益包被商品或兑换活动引用后，服务项目与计价方式冻结；需要调整时应新建权益包。
+         */
         post: operations["shopUpdatePackage"];
         delete?: never;
         options?: never;
@@ -511,7 +537,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 我的服务 */
+        /** 查询持有的计量服务权益 */
         get: operations["customerServices"];
         put?: never;
         post?: never;
@@ -530,7 +556,7 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** 服务详情 */
+        /** 查询服务权益及履约切片 */
         get: operations["customerService"];
         put?: never;
         post?: never;
@@ -549,7 +575,7 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** 可选接单 Entity */
+        /** 查询权益对应的可选接单 Entity */
         get: operations["customerServiceHandlers"];
         put?: never;
         post?: never;
@@ -570,7 +596,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 发起核销 */
+        /**
+         * 公开召唤并立即创建未分配的核销中切片
+         * @description 完整 Customer 核销字段在领取前向对应服务接单池公开。团队缺少有效 Transaction Ability 时拒绝创建。
+         */
         post: operations["startCustomerService"];
         delete?: never;
         options?: never;
@@ -578,7 +607,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/customer/services/{id}/cancel": {
+    "/customer/services/{id}/offers": {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 创建指定接单邀请并限时预占额度 */
+        post: operations["createCustomerServiceOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/service-offers/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 撤回待确认指定邀请并释放预占 */
+        post: operations["withdrawCustomerServiceOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/service-redemptions/{id}/start": {
         parameters: {
             query?: never;
             header?: never;
@@ -589,8 +660,67 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 申请取消核销 */
+        /** 重新发起已取消的履约切片 */
+        post: operations["restartCustomerServiceRedemption"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/service-redemptions/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 申请取消履约切片 */
         post: operations["cancelCustomerService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/service-redemptions/{id}/adjustments/{adjustment_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                adjustment_id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 确认并支付履约加价费用 */
+        post: operations["acceptServiceAdjustment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/service-redemptions/{id}/adjustments/{adjustment_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                adjustment_id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 拒绝履约加价费用 */
+        post: operations["rejectServiceAdjustment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1058,11 +1188,15 @@ export interface components {
                     label: string;
                 };
             };
+            file_upload: components["schemas"]["FileUsage"];
             identity: {
                 /** @enum {string} */
                 type: "team" | "teamMember" | "teamVirtual";
                 /** Format: int64 */
                 entity_id: number;
+                name: string;
+                slug?: string | null;
+                avatar?: string | null;
             };
         };
         PersonalProductWriteInput: {
@@ -1223,6 +1357,70 @@ export interface components {
              */
             update_time?: number;
         };
+        BenefitPricingSummary: {
+            price: string;
+            cost: string;
+            handler_cut: string;
+            sender_cut: string;
+            cs_cut: string;
+            team_cut: string;
+        };
+        BenefitPackageServiceInput: {
+            /** Format: int64 */
+            service_id: number;
+            quantity: number;
+            valid_days: number;
+            unit_price: string;
+            unit_cost: string;
+            /**
+             * @description 1=固定金额，2=按可分配金额比例
+             * @enum {integer}
+             */
+            distribution_mode: 1 | 2;
+            /** @default 0.00 */
+            unit_handler_cut: string;
+            /** @default 0.00 */
+            unit_sender_cut: string;
+            /** @default 0.00 */
+            unit_cs_cut: string;
+            /** @default 0 */
+            handler_rate_bp: number;
+            /** @default 0 */
+            sender_rate_bp: number;
+            /** @default 0 */
+            cs_rate_bp: number;
+            /** @default 0 */
+            sort: number;
+        };
+        BenefitPackageInput: {
+            name: string;
+            /**
+             * @description 1=历史均摊，2=分项计价；团队新建权益包使用 2
+             * @enum {integer}
+             */
+            pricing_mode: 1 | 2;
+            /**
+             * @default 1
+             * @enum {integer}
+             */
+            is_active: 0 | 1;
+            services: components["schemas"]["BenefitPackageServiceInput"][];
+        };
+        BenefitPackage: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            pricing_mode: (1 | 2) | ("历史均摊" | "分项计价");
+            /** @enum {integer} */
+            is_active: 0 | 1;
+            /** @description 已被商品或兑换活动引用时为 true，服务项目与计价方式只读 */
+            is_pricing_locked?: boolean;
+            pricing_summary?: components["schemas"]["BenefitPricingSummary"] | null;
+            services?: (components["schemas"]["BenefitPackageServiceInput"] & {
+                /** Format: int64 */
+                id?: number;
+            })[];
+        };
         Product: {
             /** Format: int64 */
             id?: number;
@@ -1374,6 +1572,7 @@ export interface components {
             team_id: number;
             /** @enum {integer} */
             is_blocked: 0 | 1;
+            file_upload: components["schemas"]["FileUsage"];
             profile: {
                 /** @description 当前商家团队内使用的昵称 */
                 name: string;
@@ -1561,8 +1760,16 @@ export interface components {
             size?: number;
         };
         FileUsage: {
-            count?: number;
-            totalSize?: number;
+            count: number;
+            /** Format: int64 */
+            total_size: number;
+            /** Format: int64 */
+            size_limit: number | null;
+            /** Format: int64 */
+            remaining_size: number | null;
+            available: boolean;
+            /** @enum {string|null} */
+            reason: "quota" | null;
         };
         Document: {
             /** Format: int64 */
@@ -2245,6 +2452,59 @@ export interface operations {
             };
         };
     };
+    shopManageServiceHandlers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopSaveServiceHandlers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    entity_ids: number[];
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 接单 Entity 无效或不属于当前团队 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     shopDisableService: {
         parameters: {
             query?: never;
@@ -2290,10 +2550,21 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenefitPackageInput"];
+            };
+        };
         responses: {
             /** @description 成功 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 服务项价格、成本或分成不平衡 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2317,7 +2588,11 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["BenefitPackage"];
+                    };
+                };
             };
         };
     };
@@ -2330,10 +2605,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenefitPackageInput"];
+            };
+        };
         responses: {
             /** @description 成功 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 计价不平衡或权益包已冻结 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2692,7 +2978,144 @@ export interface operations {
             };
             cookie?: never;
         };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 符合权益精度和最小步长的履约数量 */
+                    quantity: string;
+                    /**
+                     * @description 兼容字段，只允许 0
+                     * @enum {integer}
+                     */
+                    handler_entity_id?: 0;
+                    memo?: string;
+                    field_values?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 可用额度不足 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 字段、数量或 Ability 无效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createCustomerServiceOffer: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    quantity: string;
+                    handler_entity_id: number;
+                    memo?: string;
+                    field_values?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description 邀请已创建 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 可用额度不足 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 接单资格、字段、数量或 Ability 无效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    withdrawCustomerServiceOffer: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
         requestBody?: never;
+        responses: {
+            /** @description 已撤回 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 邀请已处理 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    restartCustomerServiceRedemption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 重新指定的接单 Entity */
+                    handler_entity_id: number;
+                    memo?: string;
+                    field_values?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
         responses: {
             /** @description 成功 */
             200: {
@@ -2709,6 +3132,48 @@ export interface operations {
             header?: never;
             path: {
                 id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    acceptServiceAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                adjustment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rejectServiceAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                adjustment_id: number;
             };
             cookie?: never;
         };

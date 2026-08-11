@@ -46,6 +46,10 @@ class Setting
 
         $service = app(TeamSetting::class);
         $service->batch($request->team_id, $appName, $settings);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'save', 'teamSetting', null,
+            ['application_group' => $appName, 'changed_fields' => array_map('strval', array_keys($settings))]
+        );
 
         return message('设置已保存');
     }

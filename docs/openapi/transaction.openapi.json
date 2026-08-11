@@ -158,8 +158,14 @@
           },
           "identity": {
             "type": "object",
-            "required": ["type"],
-            "properties": {"type": {"type": "string", "enum": ["team", "teamMember", "teamVirtual"]}}
+            "required": ["type", "entity_id", "name"],
+            "properties": {
+              "type": {"type": "string", "enum": ["team", "teamMember", "teamVirtual"]},
+              "entity_id": {"type": "integer", "format": "int64"},
+              "name": {"type": "string"},
+              "slug": {"type": "string", "nullable": true},
+              "avatar": {"type": "string", "nullable": true}
+            }
           }
         }
       },
@@ -884,7 +890,9 @@
               1,
               2,
               3,
-              4
+              4,
+              5,
+              6
             ],
             "description": "1=充值, 2=消费, 3=退款, 4=手动调整"
           },
@@ -961,7 +969,7 @@
               3,
               4
             ],
-            "description": "1=商城下单, 2=记账登记, 3=服务包收款, 4=服务核销"
+            "description": "1=商城下单, 2=记账登记, 3=服务包收款, 4=服务核销, 5=履约加价收款, 6=履约加价业绩"
           },
           "total_price": {
             "type": "string",
@@ -1112,6 +1120,8 @@
           "performance_total",
           "service_receipt_count",
           "service_redemption_count",
+          "service_adjustment_receipt_count",
+          "service_adjustment_performance_count",
           "avg_price"
         ],
         "properties": {
@@ -1141,12 +1151,18 @@
           },
           "performance_total": {
             "type": "number",
-            "description": "排除服务包收款后的履约业绩口径。"
+            "description": "排除服务包与履约加价收款后的履约业绩口径。"
           },
           "service_receipt_count": {
             "type": "integer"
           },
           "service_redemption_count": {
+            "type": "integer"
+          },
+          "service_adjustment_receipt_count": {
+            "type": "integer"
+          },
+          "service_adjustment_performance_count": {
             "type": "integer"
           },
           "avg_price": {
@@ -1453,13 +1469,14 @@
       },
       "FileUsage": {
         "type": "object",
+        "required": ["count", "total_size", "size_limit", "remaining_size", "available", "reason"],
         "properties": {
-          "count": {
-            "type": "integer"
-          },
-          "totalSize": {
-            "type": "integer"
-          }
+          "count": {"type": "integer", "minimum": 0},
+          "total_size": {"type": "integer", "format": "int64", "minimum": 0},
+          "size_limit": {"type": "integer", "format": "int64", "minimum": 0, "nullable": true},
+          "remaining_size": {"type": "integer", "format": "int64", "minimum": 0, "nullable": true},
+          "available": {"type": "boolean"},
+          "reason": {"type": "string", "nullable": true, "enum": ["quota"]}
         }
       },
       "Document": {
@@ -1764,12 +1781,22 @@
     "/service/{id}/cancel/approve": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"approveServiceCancellation","summary":"同意取消核销","responses":{"200":{"description":"成功"}}}},
     "/service/{id}/cancel/reject": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"rejectServiceCancellation","summary":"拒绝取消核销","responses":{"200":{"description":"成功"}}}},
     "/service/{id}/complete": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"completeServiceRedemption","summary":"确认已核销","responses":{"200":{"description":"成功"}}}},
+    "/service/{id}/adjustments": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"createServiceAdjustment","summary":"创建待客户确认的履约加价费用","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["name","quantity","unit_price"],"properties":{"name":{"type":"string"},"quantity":{"type":"string"},"unit_price":{"type":"string"},"cost":{"type":"string"},"handler_cut":{"type":"string"},"sender_cut":{"type":"string"},"cs_cut":{"type":"string"},"memo":{"type":"string"}}}}}},"responses":{"200":{"description":"成功"}}}},
+    "/service/{id}/adjustments/{adjustment_id}/cancel": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"adjustment_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"cancelServiceAdjustment","summary":"取消待确认的履约加价费用","responses":{"200":{"description":"成功"}}}},
     "/workspace/access": {"get":{"tags":["Workspace"],"operationId":"transactionWorkspaceAccess","summary":"读取团队摘要、Permission 与 transaction Ability 快照","description":"这是 transaction Ability 缺失时唯一仍可访问的记账接口。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/WorkspaceAccessSnapshot"}}}]}}}}}}},
     "/personal/transactions": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransactions","summary":"读取当前 Entity 参与的流水","description":"服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}},{"name":"type","in":"query","schema":{"type":"integer"}},{"name":"keyword","in":"query","schema":{"type":"string"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
     "/personal/transactions/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransaction","summary":"读取当前 Entity 参与的流水详情","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"流水不存在或不属于当前个人范围"}}}},
     "/personal/stats": {"get":{"tags":["Personal"],"operationId":"transactionPersonalStats","summary":"读取当前 Entity 个人业绩","description":"只汇总当前 acting_entity 作为接单人、发单人或客服取得的分配。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"}}}},
-    "/personal/services": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServices","summary":"读取当前 Entity 处理的核销","description":"只返回 handler_entity_id 等于当前 acting_entity 的核销任务。","security":[{"bearerAuth":[]}],"parameters":[{"name":"status","in":"query","schema":{"type":"integer"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/services": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServices","summary":"读取接单人三组工作台","description":"offers 为待确认指定邀请，available 为接单池公开任务，list 为当前 Entity 已接取的核销。领取前返回完整 Customer 核销字段。","security":[{"bearerAuth":[]}],"parameters":[{"name":"status","in":"query","schema":{"type":"integer"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/services/available": {"get":{"tags":["Personal"],"operationId":"transactionPersonalAvailableServices","summary":"分页读取当前 Entity 可以领取的公开任务","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/services/available/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalAvailableService","summary":"读取公开任务及完整核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"任务不存在或已被领取"}}}},
+    "/personal/services/{id}/claim": {"post":{"tags":["Personal"],"operationId":"claimPersonalService","summary":"领取接单池中的公开履约任务","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"409":{"description":"任务已被领取或正在取消"}}}},
+    "/personal/services/{id}/return": {"post":{"tags":["Personal"],"operationId":"returnPersonalService","summary":"主动退回自己未完成的任务至公开接单池","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["reason"],"properties":{"reason":{"type":"string","minLength":1,"maxLength":500}}}}}},"responses":{"200":{"description":"已退回"},"409":{"description":"存在待处理取消申请或任务状态已改变"}}}},
     "/personal/services/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalService","summary":"读取当前 Entity 处理的核销详情","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"核销不存在或不属于当前个人范围"}}}},
+    "/personal/service-offers": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServiceOffers","summary":"分页读取待当前 Entity 确认的指定邀请","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/service-offers/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServiceOffer","summary":"读取指定邀请及完整核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/service-offers/{id}/accept": {"post":{"tags":["Personal"],"operationId":"acceptPersonalServiceOffer","summary":"接受邀请并原子创建已分配核销中切片","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"responses":{"200":{"description":"已接受"},"409":{"description":"邀请已处理或已过期"},"422":{"description":"接单资格已失效"}}}},
+    "/personal/service-offers/{id}/reject": {"post":{"tags":["Personal"],"operationId":"rejectPersonalServiceOffer","summary":"拒绝邀请并释放预占","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"responses":{"200":{"description":"已拒绝"}}}},
     "/personal/bindings": {"get":{"tags":["Personal"],"operationId":"transactionPersonalBindings","summary":"读取当前 Entity 的客户协作与发单绑定","description":"只使用当前 acting_entity 查询绑定，不接受 Entity ID。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
     "/transaction": {
       "get": {

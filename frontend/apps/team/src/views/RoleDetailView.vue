@@ -327,7 +327,7 @@ function dynamicPermissionLabel(key: string) {
               <NInputNumber v-model:value="form.sort" aria-label="显示顺序" :min="0" :show-button="false" />
               <template #feedback>数字越小越靠前。</template>
             </NFormItem>
-            <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开实体资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟实体会展示角色名称和说明；角色权限不会公开。" checked-text="公开" unchecked-text="隐藏" />
+            <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开实体资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟实体会展示角色名称和说明；角色权限不会公开。" />
             <footer>
               <LsButton variant="danger" :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</LsButton>
               <LsButton type="submit" :loading="saveInfo.isPending.value" :disabled="!form.name.trim()"><template #icon><Save :size="17" /></template>保存资料</LsButton>

@@ -3,6 +3,7 @@ declare (strict_types = 1);
 
 namespace app\model;
 
+use app\enum\ServiceDistributionMode;
 use app\model\Base;
 
 /**
@@ -22,8 +23,18 @@ class BenefitPackageService extends Base
         'delete_time' => 'integer',
         'package_id' => 'integer',
         'service_id' => 'integer',
-        'quantity' => 'integer',
+        'quantity' => 'string',
         'valid_days' => 'integer',
+        'unit_price' => 'string',
+        'unit_cost' => 'string',
+        'distribution_mode' => ServiceDistributionMode::class,
+        'unit_handler_cut' => 'string',
+        'unit_sender_cut' => 'string',
+        'unit_cs_cut' => 'string',
+        'handler_rate_bp' => 'integer',
+        'sender_rate_bp' => 'integer',
+        'cs_rate_bp' => 'integer',
+        'sort' => 'integer',
     ];
 
     /** JSON 字段 */

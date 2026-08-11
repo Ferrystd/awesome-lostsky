@@ -95,6 +95,16 @@ class TeamCustomer extends Base
         return $this->hasMany(TeamServiceInstance::class, 'customer_id');
     }
 
+    public function serviceAssignmentOffers()
+    {
+        return $this->hasMany(TeamServiceAssignmentOffer::class, 'customer_id');
+    }
+
+    public function serviceEntitlements()
+    {
+        return $this->hasMany(TeamServiceEntitlement::class, 'customer_id');
+    }
+
     public function identity()
     {
         return $this->morphOne(Entity::class, 'entityable', 'teamCustomer')

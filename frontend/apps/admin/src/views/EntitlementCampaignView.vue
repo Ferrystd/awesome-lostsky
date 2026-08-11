@@ -257,6 +257,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
             <LsButton
               v-for="row in issued"
               :key="row.id"
+              class="issued-code"
               type="button"
               variant="secondary"
               @click="copy(row.code)"
@@ -334,7 +335,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
   background: var(--cloud);
   border-radius: 10px;
 }
-.issued :deep(.ls-button) {
+.issued-code {
   min-height: 44px;
   justify-content: space-between;
   gap: 1rem;

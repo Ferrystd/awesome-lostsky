@@ -93,7 +93,8 @@ class Notice
             'team',
             'create',
             'notice',
-            (int) $result['id']
+            (int) $result['id'],
+            ['changed_fields' => ['entity_id', 'title', 'content', 'is_pinned']]
         );
 
         return success($result, '通知已发送');

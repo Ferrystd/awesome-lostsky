@@ -67,8 +67,15 @@ try {
     $exceptionHandle = file_get_contents(dirname(__DIR__) . '/app/ExceptionHandle.php');
     $deployment = file_get_contents(dirname(__DIR__) . '/docs/operations/deployment.md');
     $productionIni = file_get_contents(dirname(__DIR__) . '/deploy/php/lostsky-production.ini');
+    $tiers = require dirname(__DIR__) . '/config/file.php';
+    $cleanup = require dirname(__DIR__) . '/config/cleanup.php';
+    $fallback = dirname(__DIR__) . '/deploy/oss/system/image-not-found.png';
+    $fallbackDeploy = file_get_contents(dirname(__DIR__) . '/app/command/DeployOssFallback.php');
+    $fallbackConfigure = file_get_contents(dirname(__DIR__) . '/app/command/ConfigureOssFallback.php');
+    $fallbackPublish = file_get_contents(dirname(__DIR__) . '/app/command/PublishOssFallback.php');
+    $mediaManifest = json_decode((string) file_get_contents(dirname(__DIR__) . '/frontend/media/manifest.json'), true, 512, JSON_THROW_ON_ERROR);
     $assert(
-        str_contains((string) $source, "AccessDeniedException::ability('file', '文件上传')")
+        str_contains((string) $source, "'source' => 'base'")
             && str_contains((string) $exceptionHandle, 'AccessDeniedException')
             && str_contains((string) $exceptionHandle, "'data'    => \$e->data()"),
         'file ability failures use the structured JSON error contract'
@@ -80,6 +87,57 @@ try {
             && str_contains((string) $productionIni, 'log_errors=On')
             && str_contains((string) $deployment, 'Content-Type'),
         'production upload runtime documents a writable temp directory and pure JSON smoke test'
+    );
+    $assert(
+        !array_key_exists('count', $tiers['tiers'][0])
+            && $tiers['tiers'][0]['size'] === 128 * 1024 * 1024
+            && $tiers['tiers'][1]['size'] === 500 * 1024 * 1024
+            && $tiers['tiers'][2]['size'] === 2 * 1024 * 1024 * 1024
+            && $tiers['tiers'][3]['size'] === -1,
+        'File Ability tiers start at 128 MiB for level 0 and level 3 is unlimited'
+    );
+    $assert(
+        str_contains((string) $source, "private const QUOTA_MESSAGE = '该团队文件已达到上限，请联系团队管理员。'")
+            && str_contains((string) $source, 'uploadAvailability')
+            && str_contains((string) $source, '$this->lockTeam($teamId);'),
+        'quota status, canonical error text, and serialized final validation are implemented'
+    );
+    $assert(
+        !array_key_exists('file_retention_days', $cleanup)
+            && str_contains((string) $source, '$this->purgeObject((string) $file->path);')
+            && str_contains((string) $source, '$file->force(true)->delete();'),
+        'file deletion purges OSS before permanently deleting the record'
+    );
+    $image = is_file($fallback) ? getimagesize($fallback) : false;
+    $assert(
+        is_file($fallback)
+            && hash_file('sha256', $fallback) === 'c7867513080c061235f9be90bab875c19883a0fe268b8fa7e937ed3c6d325f31'
+            && $image !== false
+            && $image[0] === 1568
+            && $image[1] === 1003
+            && $image['mime'] === 'image/png',
+        'the original protected OSS image fallback is preserved byte-for-byte'
+    );
+    $assert(
+        str_contains((string) $fallbackDeploy, "private const OBJECT_KEY = 'system/image-not-found.png'")
+            && str_contains((string) $fallbackDeploy, "OssClient::OSS_CONTENT_TYPE => 'image/png'")
+            && str_contains((string) $fallbackConfigure, "private const IMAGE_SUFFIXES = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif']")
+            && str_contains((string) $fallbackConfigure, 'httpErrorCodeReturnedEquals: 404')
+            && str_contains((string) $fallbackConfigure, 'httpRedirectCode: 302')
+            && str_contains((string) $fallbackConfigure, '$preserved')
+            && str_contains((string) $fallbackPublish, 'BucketACLType::PUBLIC_READ')
+            && str_contains((string) $fallbackPublish, 'new PublicAccessBlockConfiguration(false)')
+            && str_contains((string) $fallbackPublish, 'confirm-public-read'),
+        'OSS fallback deployment locks the system key and preserves unrelated routing rules'
+    );
+    $manifestPaths = array_column($mediaManifest['assets'] ?? [], 'path');
+    $assert(
+        in_array('deploy/oss/system/image-not-found.png', $manifestPaths, true)
+            && str_contains((string) $deployment, 'oss:fallback:deploy')
+            && str_contains((string) $deployment, 'oss:fallback:configure --dry-run')
+            && str_contains((string) $deployment, 'oss:fallback:publish --confirm-public-read')
+            && str_contains((string) $deployment, 'https://help.aliyun.com/zh/oss/user-guide/redirection'),
+        'the protected fallback is registered and its safe deployment workflow is documented'
     );
 } finally {
     @unlink($path);

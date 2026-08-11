@@ -36,7 +36,12 @@ class JoinField
     public function add(Request $request)
     {
         $service = app(TeamJoin::class);
-        $id = $service->createField($request->team_id, $this->data($request));
+        $data = $this->data($request);
+        $id = $service->createField($request->team_id, $data);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'create', 'joinField', $id,
+            ['changed_fields' => array_keys($data)]
+        );
 
         return success(['id' => $id], '申请字段已创建');
     }
@@ -46,7 +51,12 @@ class JoinField
         $id = $request->post('id/d', 0);
 
         $service = app(TeamJoin::class);
-        $service->updateField($request->team_id, $id, $this->data($request));
+        $data = $this->data($request);
+        $service->updateField($request->team_id, $id, $data);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'update', 'joinField', $id,
+            ['changed_fields' => array_keys($data), 'changed' => $data !== []]
+        );
 
         return message('申请字段已更新');
     }
@@ -57,6 +67,7 @@ class JoinField
 
         $service = app(TeamJoin::class);
         $service->deleteField($request->team_id, $id);
+        app(\app\service\BusinessAudit::class)->record($request, 'team', 'delete', 'joinField', $id);
 
         return message('申请字段已删除');
     }

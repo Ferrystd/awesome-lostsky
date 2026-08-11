@@ -77,6 +77,7 @@ onBeforeUnmount(() => {
         placeholder="请输入验证码"
       />
       <LsButton
+        class="code-submit"
         variant="secondary"
         :loading="sending"
         :disabled="!phoneValid || cooldown > 0"
@@ -93,12 +94,12 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-auto-rows: var(--control-md); align-items: center; gap: .65rem; }
-.code-row :deep(.ls-button) { min-width: 7.5rem; white-space: nowrap; }
+.code-submit { min-width: 7.5rem; white-space: nowrap; }
 .field-message, .field-error { margin: .5rem 0 0; font-size: .82rem; }
 .field-message { color: var(--sky-lost-strong); }
 .field-error { color: var(--danger); }
 @media (max-width: 360px) {
   .code-row { grid-template-columns: 1fr; }
-  .code-row :deep(.ls-button) { width: 100%; }
+  .code-submit { width: 100%; }
 }
 </style>

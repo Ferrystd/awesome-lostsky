@@ -49,17 +49,55 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
     - name: Install dependencies
-      run: npm ci
+      run: npm ci && npm run docs:setup
     - name: Unit tests
       run: npm test
     - name: Typecheck and regenerate API types
       run: npm run typecheck
     - name: Validate media and CORS contracts
       run: npm run check:media && npm run check:cors
-    - name: Production build
-      run: npm run build
-    - name: Verify generated and built artifacts are committed
+    - name: Production builds
+      run: npm run build && npm run build:docs
+    - name: Verify static outputs
+      shell: bash
+      run: |
+        for domain in www account admin team chat transaction display shop; do
+          test -s "www/${domain}.lostsky.work/index.html"
+          test -n "$(find "www/assets.lostsky.work/build/${domain}" -type f -print -quit)"
+        done
+        test -s www/docs.lostsky.work/index.html
+        test -s www/doc.lostsky.work/index.html
+        test -d www/assets.lostsky.work/media
+        git check-ignore -q www/account.lostsky.work/index.html
+        git check-ignore -q www/assets.lostsky.work/build/site/
+        git check-ignore -q www/assets.lostsky.work/media/
+        git check-ignore -q www/docs.lostsky.work/index.html
+        git check-ignore -q www/doc.lostsky.work/index.html
+        if git ls-files -- \
+          'www/www.lostsky.work/**' \
+          'www/account.lostsky.work/**' \
+          'www/admin.lostsky.work/**' \
+          'www/team.lostsky.work/**' \
+          'www/chat.lostsky.work/**' \
+          'www/transaction.lostsky.work/**' \
+          'www/display.lostsky.work/**' \
+          'www/shop.lostsky.work/**' \
+          'www/assets.lostsky.work/build/**' \
+          'www/assets.lostsky.work/media/**' \
+          'www/docs.lostsky.work/**' \
+          'www/doc.lostsky.work/**' | grep -q .; then
+          echo 'Reproducible static outputs must not be tracked.' >&2
+          exit 1
+        fi
+        git ls-files --error-unmatch \
+          www/assets.lostsky.work/css/base.css \
+          www/assets.lostsky.work/js/api.js \
+          www/assets.lostsky.work/images/site-bg.png >/dev/null
+    - name: Verify generated sources are committed
       run: git diff --exit-code
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps

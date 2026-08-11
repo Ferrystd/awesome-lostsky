@@ -4,6 +4,8 @@ declare (strict_types = 1);
 namespace app\service;
 
 use think\exception\HttpException;
+use think\facade\Db;
+use think\Request;
 
 class Entity
 {
@@ -230,6 +232,70 @@ class Entity
         }
 
         $entity->save(['is_internal_visible' => (int) (bool) $isInternalVisible]);
+    }
+
+    public function setPresentation(
+        int $teamId,
+        int $entityId,
+        mixed $isInternalVisible,
+        mixed $isDisplayed
+    ): array {
+        if (!in_array($isInternalVisible, [0, 1, '0', '1', false, true], true)) {
+            throw new HttpException(422, '团队内可见设置格式不正确');
+        }
+        if (!in_array($isDisplayed, [0, 1, '0', '1', false, true], true)) {
+            throw new HttpException(422, '公开展示设置格式不正确');
+        }
+
+        $entity = $this->assertInTeam($entityId, $teamId);
+        if (!in_array($entity->entityable_type, ['teamMember', 'teamVirtual'], true)) {
+            throw new HttpException(422, '该实体类型不支持调整可见性');
+        }
+
+        $result = [
+            'is_internal_visible' => (int) (bool) $isInternalVisible,
+            'is_displayed' => (int) (bool) $isDisplayed,
+        ];
+        $entity->save($result);
+        return $result;
+    }
+
+    public function updatePresentation(
+        Request $request,
+        int $teamId,
+        int $entityId,
+        mixed $isInternalVisible,
+        mixed $isDisplayed
+    ): array {
+        return Db::transaction(function () use (
+            $request,
+            $teamId,
+            $entityId,
+            $isInternalVisible,
+            $isDisplayed
+        ): array {
+            $result = $this->setPresentation(
+                $teamId,
+                $entityId,
+                $isInternalVisible,
+                $isDisplayed
+            );
+            app(BusinessAudit::class)->record(
+                $request,
+                'team',
+                'update',
+                'entity_visibility',
+                $entityId,
+                [
+                    'changed_fields' => ['is_internal_visible', 'is_displayed'],
+                    'changes' => [
+                        ['field' => 'is_internal_visible', 'after' => (bool) $result['is_internal_visible']],
+                        ['field' => 'is_displayed', 'after' => (bool) $result['is_displayed']],
+                    ],
+                ]
+            );
+            return $result;
+        });
     }
 
     public function search(string $keyword, int $limit, int $userId): array

@@ -25,10 +25,13 @@ Display 与 Shop 使用标准团队前端 Origin
 
 全局中间件优先级为：
 
-1. `Cors`：处理预检和 API 跨域响应头。
-2. `AppResolver`：从 Host 或 Origin 选择应用，并绑定可用的团队上下文。
-3. `MultiApp`：由 ThinkPHP 完成多应用分发。
-4. `Dedup`：优先按 `X-Request-Id`，兼容按 `X-Page-Id + 内容`，请求头缺省时按登录主体、路径和内容过滤短时间内的重复写请求。
+1. `RequestLog`：为请求建立或复用 `request_id`，并在完成后记录状态、耗时和安全上下文。
+2. `Cors`：处理预检和 API 跨域响应头，并把捕获的异常交给统一异常报告器。
+3. `AppResolver`：从 Host 或 Origin 选择应用，并绑定可用的团队上下文。
+4. `MultiApp`：由 ThinkPHP 完成多应用分发。
+5. `Dedup`：优先按 `X-Request-Id`，兼容按 `X-Page-Id + 内容`，请求头缺省时按登录主体、路径和内容过滤短时间内的重复写请求。
+
+`RequestLog` 不记录请求体、查询参数、Authorization 或 Cookie。合法的客户端 `X-Request-Id` 会同时进入运行日志和业务审计；缺省或不安全的值只在服务器内部替换为随机 ID。完整格式、保留和排查方法见[系统运行日志](../operations/logging.md)。
 
 `AppResolver` 通过 `Team::active()` 查询团队，并将 `team`、`team_id` 和 `slug` 写入请求。团队查询按 slug 或 ID 缓存 3600 秒。
 

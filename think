@@ -1,6 +1,7 @@
 #!/usr/bin/env php
 <?php
 
+use app\support\SystemLog;
 use think\App;
 
 // 命令行入口文件
@@ -8,4 +9,26 @@ use think\App;
 require __DIR__ . '/vendor/autoload.php';
 
 // 应用初始化
-(new App())->console->run();
+$app = new App();
+$console = $app->console;
+$console->setAutoExit(false);
+$startedAt = hrtime(true);
+$exitCode = 1;
+$command = $_SERVER['argv'][1] ?? 'list';
+$app->make(SystemLog::class)->write('info', 'console.command', [
+    'command' => $command,
+    'phase' => 'started',
+]);
+
+try {
+    $exitCode = $console->run();
+} finally {
+    $app->make(SystemLog::class)->write($exitCode === 0 ? 'info' : 'error', 'console.command', [
+        'command' => $command,
+        'phase' => 'finished',
+        'exit_code' => $exitCode,
+        'duration_ms' => round((hrtime(true) - $startedAt) / 1_000_000, 2),
+    ]);
+}
+
+exit(max(0, min(255, $exitCode)));

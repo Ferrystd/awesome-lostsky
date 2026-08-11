@@ -3,7 +3,7 @@ import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import LsPage from '@lostsky/ui/components/LsPage.vue'
 import LsRouteErrorBoundary from '@lostsky/ui/components/LsRouteErrorBoundary.vue'
 import { setLucideProps } from '@lucide/vue'
-import { NConfigProvider, zhCN } from 'naive-ui'
+import { NConfigProvider, NDialogProvider, NMessageProvider, zhCN } from 'naive-ui'
 import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import TransactionShell from './components/TransactionShell.vue'
@@ -15,8 +15,10 @@ const width = computed<'wide' | 'content' | 'form'>(() => ['content', 'form'].in
 
 <template>
   <NConfigProvider :theme-overrides="lostskyNaiveTheme" :locale="zhCN">
-    <TransactionShell>
-      <LsPage id="workspace" as="main" :width="width"><RouterView v-slot="{ Component }"><LsRouteErrorBoundary :reset-key="route.fullPath"><component :is="Component" /></LsRouteErrorBoundary></RouterView></LsPage>
-    </TransactionShell>
+    <NDialogProvider><NMessageProvider>
+      <TransactionShell>
+        <LsPage id="workspace" as="main" :width="width"><RouterView v-slot="{ Component }"><LsRouteErrorBoundary :reset-key="route.fullPath"><component :is="Component" /></LsRouteErrorBoundary></RouterView></LsPage>
+      </TransactionShell>
+    </NMessageProvider></NDialogProvider>
   </NConfigProvider>
 </template>

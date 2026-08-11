@@ -3,6 +3,7 @@ import { api, friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsField from "@lostsky/ui/components/LsField.vue";
+import LsFormActions from "@lostsky/ui/components/LsFormActions.vue";
 import LsInlineError from "@lostsky/ui/components/LsInlineError.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
 import LsPanel from "@lostsky/ui/components/LsPanel.vue";
@@ -14,6 +15,7 @@ import {
   NInput,
   NInputNumber,
   NSelect,
+  useDialog,
 } from "naive-ui";
 import { computed, reactive, ref } from "vue";
 import { useRoute } from "vue-router";
@@ -23,9 +25,11 @@ import type { ServiceField, ServiceRedemption } from "../types";
 const route = useRoute();
 const id = computed(() => Number(route.params.id));
 const client = useQueryClient();
+const dialog = useDialog();
 const reason = ref("");
 const handlerId = ref<number | null>(null);
 const values = reactive<Record<number, any>>({});
+const fee = reactive<{ name: string; quantity: number | null; unit_price: number | null; cost: number | null; memo: string }>({ name: '', quantity: 1, unit_price: 0, cost: 0, memo: '' })
 const query = useQuery({
   queryKey: computed(() => ["service-redemption", id.value]),
   queryFn: () => api.get<ServiceRedemption>(`/service/${id.value}`),
@@ -46,6 +50,17 @@ const handlerOptions = computed(() =>
 const pending = computed(() =>
   query.data.value?.cancel_requests?.find((item) => item.status === 1),
 );
+const pendingFee = computed(() => query.data.value?.adjustments?.some(item => item.status === 1) ?? false)
+const feeNumber = (value: number | null) => typeof value === 'number' && Number.isFinite(value) ? value : 0
+const feeTotal = computed(() => Math.round(feeNumber(fee.quantity) * feeNumber(fee.unit_price) * 100) / 100)
+const feeNet = computed(() => Math.round((feeTotal.value - feeNumber(fee.cost)) * 100) / 100)
+const feeValid = computed(() => Boolean(
+  fee.name.trim()
+    && typeof fee.quantity === 'number' && Number.isFinite(fee.quantity) && fee.quantity > 0
+    && typeof fee.unit_price === 'number' && Number.isFinite(fee.unit_price) && fee.unit_price > 0
+    && typeof fee.cost === 'number' && Number.isFinite(fee.cost) && fee.cost >= 0
+    && fee.cost <= feeTotal.value,
+))
 const managerFields = computed(() =>
   (query.data.value?.redemption_fields ?? []).filter(
     (item) => item.fill_stage === "manager",
@@ -64,9 +79,10 @@ const canApprove = computed(() =>
 const action = useMutation({
   mutationFn: (input: { path: string; body?: Record<string, unknown> }) =>
     api.post(`/service/${id.value}/${input.path}`, input.body ?? {}),
-  onSuccess: async () => {
+  onSuccess: async (_data, input) => {
     feedback.success("核销任务已更新");
     reason.value = "";
+    if (input.path === 'adjustments') Object.assign(fee, { name: '', quantity: 1, unit_price: 0, cost: 0, memo: '' })
     await Promise.all([
       client.invalidateQueries({ queryKey: ["service-redemption", id.value] }),
       client.invalidateQueries({ queryKey: ["service-redemptions"] }),
@@ -83,6 +99,27 @@ const fieldValue = (field: ServiceField) =>
         (value) => value !== null && value !== "",
       ) ?? "—")
     : "—";
+function confirmFee() {
+  if (!feeValid.value) return
+  const amount = feeTotal.value.toFixed(2)
+  const cost = feeNumber(fee.cost).toFixed(2)
+  dialog.warning({
+    title: '提交费用调整',
+    content: `客户需要另行确认并支付 ¥${amount}；内部成本 ¥${cost}，预计可分配 ¥${feeNet.value.toFixed(2)}。`,
+    positiveText: '提交客户确认',
+    negativeText: '返回核对',
+    onPositiveClick: () => action.mutate({
+      path: 'adjustments',
+      body: {
+        name: fee.name.trim(),
+        quantity: feeNumber(fee.quantity),
+        unit_price: feeNumber(fee.unit_price).toFixed(2),
+        cost,
+        memo: fee.memo.trim(),
+      },
+    }),
+  })
+}
 </script>
 <template>
   <div class="service-task">
@@ -130,6 +167,10 @@ const fieldValue = (field: ServiceField) =>
             <dt>完成时间</dt>
             <dd>{{ dateTime(query.data.value.completed_at) }}</dd>
           </div>
+          <div>
+            <dt>履约数量</dt>
+            <dd>{{ Number(query.data.value.quantity).toFixed(query.data.value.entitlement?.quantity_scale ?? 0) }} {{ query.data.value.entitlement?.unit_name || '单位' }}</dd>
+          </div>
         </dl></LsPanel
       ><LsPanel v-if="query.data.value.redemption_fields?.length"
         ><section class="task-section">
@@ -172,8 +213,28 @@ const fieldValue = (field: ServiceField) =>
         </section></LsPanel
       ><LsPanel v-if="query.data.value.status === 2 && !pending && canManage"
         ><section class="task-section">
+          <h2>费用调整</h2>
+          <p class="hint">额外费用由客户单独确认并支付；履约完成后再形成对应业绩，不与原服务重复收款。</p>
+          <div v-if="query.data.value.adjustments?.length" class="fee-list"><div v-for="item in query.data.value.adjustments" :key="item.id"><div><strong>{{ item.name }}</strong><small>{{ item.quantity }} × ¥{{ item.unit_price }} = ¥{{ item.total_price }} · {{ item.status===1?'待客户确认':item.status===2?'客户已确认':'已取消' }}</small></div><LsButton v-if="item.status===1" size="sm" variant="secondary" :loading="action.isPending.value" @click="action.mutate({path:`adjustments/${item.id}/cancel`})">取消费用</LsButton></div></div>
+          <form class="fee-form" @submit.prevent="confirmFee">
+            <LsField label="费用名称" for-id="fee-name" required><NInput id="fee-name" v-model:value="fee.name" placeholder="例如：额外时段费用" /></LsField>
+            <LsField label="计费数量" for-id="fee-quantity" required><NInputNumber id="fee-quantity" v-model:value="fee.quantity" :min="Number(query.data.value.entitlement?.quantity_step ?? 1)" :step="Number(query.data.value.entitlement?.quantity_step ?? 1)" :precision="query.data.value.entitlement?.quantity_scale ?? 0" /></LsField>
+            <LsField label="单位价格" for-id="fee-price" required><NInputNumber id="fee-price" v-model:value="fee.unit_price" :min="0" :precision="2" /></LsField>
+            <LsField label="总成本" for-id="fee-cost" required hint="填写本次费用调整的全部内部成本，不按数量再次相乘。"><NInputNumber id="fee-cost" v-model:value="fee.cost" :min="0" :precision="2" /></LsField>
+            <LsField label="说明" for-id="fee-memo"><NInput id="fee-memo" v-model:value="fee.memo" type="textarea" /></LsField>
+            <dl class="fee-preview" aria-live="polite">
+              <div><dt>客户需确认并支付</dt><dd>¥{{ feeTotal.toFixed(2) }}</dd></div>
+              <div><dt>内部成本</dt><dd>¥{{ feeNumber(fee.cost).toFixed(2) }}</dd></div>
+              <div><dt>预计可分配</dt><dd :class="{ invalid: feeNet < 0 }">¥{{ feeNet.toFixed(2) }}</dd></div>
+            </dl>
+            <LsFormActions><LsButton type="submit" variant="secondary" :disabled="!feeValid" :loading="action.isPending.value">提交客户确认</LsButton></LsFormActions>
+          </form>
+        </section></LsPanel
+      ><LsPanel v-if="query.data.value.status === 2 && !pending && canManage"
+        ><section class="task-section">
           <h2>改派接单人</h2>
-          <div class="actions">
+          <LsAsyncState v-if="handlers.isError.value" state="error" title="暂时无法读取接单人" :description="friendlyError(handlers.error.value)" />
+          <div v-else class="actions">
             <LsField label="新接单人" for-id="service-handler"
               ><NSelect
                 id="service-handler"
@@ -256,6 +317,7 @@ const fieldValue = (field: ServiceField) =>
             /></LsField>
           </div>
           <LsButton
+            :disabled="pendingFee"
             :loading="action.isPending.value"
             @click="
               action.mutate({
@@ -265,6 +327,7 @@ const fieldValue = (field: ServiceField) =>
             "
             >确认已核销</LsButton
           >
+          <p v-if="pendingFee" class="hint">请先等待客户确认或取消全部待确认费用。</p>
           <p class="hint">
             Transaction Ability 失效时服务仍可完成，但不会生成或后补核销流水。
           </p>
@@ -321,6 +384,7 @@ const fieldValue = (field: ServiceField) =>
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.85rem;
 }
+.fee-list{display:grid;gap:.65rem}.fee-list>div{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem;background:var(--cloud);border-radius:8px}.fee-list strong,.fee-list small{display:block}.fee-list small{margin-top:.2rem;color:var(--muted-ink)}.fee-form{display:grid;grid-template-columns:minmax(0,1fr);gap:.85rem;margin:0;padding-top:1rem;border-top:1px solid var(--border)}.fee-preview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin:0}.fee-preview div{padding:.75rem;background:var(--cloud);border-radius:8px}.fee-preview dt{color:var(--muted-ink);font-size:.75rem}.fee-preview dd{margin:.2rem 0 0;font-weight:750;font-variant-numeric:tabular-nums}.fee-preview dd.invalid{color:var(--danger)}
 .hint {
   color: var(--muted-ink);
   font-size: 0.8rem;
@@ -332,5 +396,6 @@ const fieldValue = (field: ServiceField) =>
   .actions {
     grid-template-columns: 1fr;
   }
+  .fee-preview{grid-template-columns:1fr}
 }
 </style>

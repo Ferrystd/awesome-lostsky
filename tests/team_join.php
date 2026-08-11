@@ -128,6 +128,14 @@ try {
 
     $managedFieldIds = array_map('intval', array_column($join->fields((int) $targetTeam->id), 'id'));
     $publicFieldIds = array_map('intval', array_column($join->fields((int) $targetTeam->id, true), 'id'));
+    $joinForm = $join->form((int) $targetTeam->id, (int) $applicant->id);
+    $assert(
+        isset($joinForm['file_upload']['count'], $joinForm['file_upload']['total_size'])
+            && array_key_exists('size_limit', $joinForm['file_upload'])
+            && array_key_exists('remaining_size', $joinForm['file_upload'])
+            && array_key_exists('available', $joinForm['file_upload']),
+        'join form exposes the read-only file upload capacity state'
+    );
     $assert(
         array_slice($managedFieldIds, 0, 4) === [$inactiveFieldId, $internalFieldId, $transferFieldId, $plainFieldId],
         'join field management lists active and inactive fields in configured order'

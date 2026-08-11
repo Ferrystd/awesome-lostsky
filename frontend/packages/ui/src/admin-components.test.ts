@@ -27,10 +27,12 @@ import LsButton from './components/LsButton.vue'
 import LsCheckboxGroupField from './components/LsCheckboxGroupField.vue'
 import LsDescriptionList from './components/LsDescriptionList.vue'
 import LsFormActions from './components/LsFormActions.vue'
+import LsField from './components/LsField.vue'
 import LsFormSection from './components/LsFormSection.vue'
 import LsInlineError from './components/LsInlineError.vue'
 import LsPanel from './components/LsPanel.vue'
 import LsStatusTag from './components/LsStatusTag.vue'
+import LsSwitch from './components/LsSwitch.vue'
 import LsSectionHeader from './components/LsSectionHeader.vue'
 import LsSwitchField from './components/LsSwitchField.vue'
 import LsEmptyState from './components/LsEmptyState.vue'
@@ -38,6 +40,7 @@ import LsEntityIdentity from './components/LsEntityIdentity.vue'
 import LsFormList from './components/LsFormList.vue'
 import LsListToolbar from './components/LsListToolbar.vue'
 import LsMediaUploadField from './components/LsMediaUploadField.vue'
+import LsMarkdownRenderer from './components/LsMarkdownRenderer.vue'
 import LsPageHeader from './components/LsPageHeader.vue'
 import LsResponsiveActions from './components/LsResponsiveActions.vue'
 import LsResponsiveDataTable from './components/LsResponsiveDataTable.vue'
@@ -72,6 +75,27 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('删除')
   })
 
+  it('LsButton 在公共层统一解释不可用原因', () => {
+    expect(Object.keys((LsButton as any).props).sort()).toEqual([
+      'disabled', 'disabledReason', 'loading', 'size', 'type', 'variant',
+    ])
+    const source = readFileSync(new URL('./components/LsButton.vue', import.meta.url), 'utf8')
+    expect(source).toContain('feedback.info(props.disabledReason.trim())')
+    expect(source).toContain('event.preventDefault()')
+  })
+
+  it('LsSwitch 是唯一 Naive UI 开关原语且不在轨道内放文字', async () => {
+    expect(Object.keys((LsSwitch as any).props).sort()).toEqual(['disabled', 'loading', 'modelValue', 'readOnly'])
+    const source = readFileSync(new URL('./components/LsSwitch.vue', import.meta.url), 'utf8')
+    expect(source).toContain('<NSwitch')
+    expect(source).not.toMatch(/#(?:checked|unchecked)/)
+    const html = await render(LsSwitch, { modelValue: true, 'aria-label': '公开展示' })
+    expect(html).toContain('n-switch')
+    const readOnlyHtml = await render(LsSwitch, { modelValue: false, readOnly: true, 'aria-label': '固定状态' })
+    expect(readOnlyHtml).toContain('aria-disabled="true"')
+    expect(readOnlyHtml).toContain('aria-readonly="true"')
+  })
+
   it('LsButton 将命令图标交给固定 icon 插槽', async () => {
     const html = await render(LsButton, {}, { icon: () => h('span', '图标'), default: () => h('span', '保存') })
     expect(html).toContain('图标')
@@ -95,6 +119,35 @@ describe('后台设计系统组件契约', () => {
     })
     expect(html).toContain('/avatar.png')
     expect(html).toContain('上传头像')
+  })
+
+  it('LsUploadField 仅在上传语义内固定紧凑宽度并在移动端铺满', () => {
+    const source = readFileSync(new URL('./components/LsUploadField.vue', import.meta.url), 'utf8')
+    expect(source).toContain('grid-template-columns:minmax(0,1fr) 8.5rem')
+    expect(source).toContain('grid-template-columns:8.5rem')
+    expect(source).toContain('<LsButton')
+    expect(source).toContain('@media(max-width:639px){.ls-upload-field__controls{grid-template-columns:1fr}')
+  })
+
+  it('不同命令按语义自主管理尺寸，不使用全局等宽参数', () => {
+    const styles = readFileSync(new URL('./styles.css', import.meta.url), 'utf8')
+    const upload = readFileSync(new URL('./components/LsUploadField.vue', import.meta.url), 'utf8')
+    const list = readFileSync(new URL('./components/LsFormList.vue', import.meta.url), 'utf8')
+    const actions = readFileSync(new URL('./components/LsFormActions.vue', import.meta.url), 'utf8')
+    expect(styles).not.toContain('--form-command-width')
+    expect(upload).not.toContain('var(--form-command-width)')
+    expect(list).toContain('.ls-form-list__add { justify-self: start;')
+    expect(list).toContain('min-width: 7rem;')
+    expect(list).toContain('.ls-form-list__add { width: 100%; }')
+    expect(actions).toContain('.ls-form-actions :deep(.ls-button) { min-width: 7rem; }')
+    expect(actions).toContain('.ls-form-actions :deep(.ls-button) { width: 100%; }')
+  })
+
+  it('LsMarkdownRenderer 只提供具名阅读上下文，不暴露视觉尺寸入口', () => {
+    expect(Object.keys((LsMarkdownRenderer as any).props).sort()).toEqual(['chatEnabled', 'content', 'context', 'resolveEntities'])
+    const source = readFileSync(new URL('./components/LsMarkdownRenderer.vue', import.meta.url), 'utf8')
+    expect(source).toContain("context?: 'inline' | 'document'")
+    expect(source).toContain('.ls-markdown-renderer--document')
   })
 
   it('LsPanel 只提供结构插槽，不暴露视觉参数', async () => {
@@ -131,6 +184,18 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('ls-form-section')
     expect(html).toContain('商品名称')
     expect(html).not.toContain('<form')
+  })
+
+  it('LsField 固定控件轨道并阻止提示文字拉开相邻控件', async () => {
+    expect(Object.keys((LsField as any).props).sort()).toEqual(['error', 'forId', 'hint', 'label', 'required'])
+    const html = await render(LsField, { label: '授予额度', forId: 'quantity', hint: '单位：次；最小步长 1' }, {
+      default: () => h('input', { id: 'quantity' }),
+    })
+    expect(html).toContain('ls-field__control')
+    expect(html).toContain('单位：次；最小步长 1')
+    const source = readFileSync(new URL('./components/LsField.vue', import.meta.url), 'utf8')
+    expect(source).toContain('min-width: 0; display: grid; align-content: start;')
+    expect(source).toContain('.ls-field__control :deep(> *) { min-width: 0; width: 100%; max-width: 100%; }')
   })
 
   it('LsFormActions 和 LsDescriptionList 只提供稳定结构', async () => {
@@ -207,6 +272,9 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('添加标签')
     expect(html).toContain('aria-live="polite"')
     expect(html).toContain('disabled')
+    expect(html).toMatch(/ls-form-list__label[^]*ls-form-list__actions[^]*ls-form-list__content/)
+    const source = readFileSync(new URL('./components/LsFormList.vue', import.meta.url), 'utf8')
+    expect(source).toContain('.ls-form-list__content { min-width: 0; grid-column: 2 / -1;')
   })
 
   it('主体身份优先真实头像，并保留类型、名称和 slug', async () => {
@@ -287,10 +355,11 @@ describe('后台设计系统组件契约', () => {
 
   it('LsUploadField 可说明的禁用入口只提示原因，不打开文件选择', () => {
     const source = readFileSync(new URL('./components/LsUploadField.vue', import.meta.url), 'utf8')
-    expect(source).toContain(':aria-disabled="disabled || undefined"')
+    expect(source).toContain(':disabled-reason="disabledReason"')
     expect(source).toContain('if (props.disabled)')
-    expect(source).toContain('feedback.info(props.disabledReason.trim())')
     expect(source).toMatch(/if \(props\.disabled\)[^]*return[^]*emit\('choose'\)[^]*input\.value\?\.click\(\)/)
+    const button = readFileSync(new URL('./components/LsButton.vue', import.meta.url), 'utf8')
+    expect(button).toContain('feedback.info(props.disabledReason.trim())')
   })
 
   it('LsEmptyState 只接收标题与提示文案并统一使用 Naive 空状态', async () => {
@@ -318,6 +387,9 @@ describe('后台设计系统组件契约', () => {
   })
 
   it('LsSwitchField 统一标签关联、禁用原因和触控尺寸', async () => {
+    expect(Object.keys((LsSwitchField as any).props).sort()).toEqual([
+      'ariaLabel', 'description', 'disabled', 'disabledReason', 'headingLevel', 'id', 'loading', 'modelValue', 'readOnly', 'label',
+    ].sort())
     const html = await render(LsSwitchField, {
       id: 'product-active',
       modelValue: true,
@@ -327,8 +399,6 @@ describe('后台设计系统组件契约', () => {
       description: '关闭后商品不会在商城展示。',
       disabled: true,
       disabledReason: '缺少商品管理权限',
-      checkedText: '上架',
-      uncheckedText: '下架',
     })
     expect(html).toContain('id="product-active-label"')
     expect(html).toContain('<h2 id="product-active-label"')
@@ -340,5 +410,7 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain('min-height:56px')
     expect(source).toContain('min-height:44px')
     expect(source).toContain('@media(max-width:639px)')
+    expect(source).not.toContain('checkedText')
+    expect(source).not.toContain('uncheckedText')
   })
 })

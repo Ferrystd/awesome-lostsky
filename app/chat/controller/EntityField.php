@@ -38,7 +38,11 @@ class EntityField
                 $data[$key] = $input[$key];
             }
         }
-        app(\app\service\TeamEntityField::class)->create($request->team_id, $data);
+        $id = app(\app\service\TeamEntityField::class)->create($request->team_id, $data);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'chat', 'create', 'entityField', $id,
+            ['changed_fields' => array_keys($data)]
+        );
         return message('对象字段已创建');
     }
 
@@ -53,8 +57,13 @@ class EntityField
     {
         $slug = $request->post('slug/s', '');
         $this->assertEntityPermission($request, $slug);
-        app(\app\service\TeamEntityField::class)->saveValues(
+        $values = $request->post('values/a', []);
+        $entityId = app(\app\service\TeamEntityField::class)->saveValues(
             $request->team_id, $slug, $request->post('values/a', [])
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'chat', 'save', 'entityFieldValues', $entityId,
+            ['changed_fields' => array_map('strval', array_keys($values)), 'changed' => $values !== []]
         );
         return message('字段值已保存');
     }

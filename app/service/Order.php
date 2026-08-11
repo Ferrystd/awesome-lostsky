@@ -133,6 +133,20 @@ class Order
             if (empty($data['cs_entity_id'])) {
                 $overrides['cs_cut'] = '0.00';
             }
+            if ($kind !== ProductKind::Standard && !array_key_exists('team_cut', $overrides)) {
+                $pricing = app(BenefitPackagePricing::class);
+                $price = $pricing->toCents((string) $product->price);
+                $cost = $pricing->toCents((string) ($product->cost ?? 0));
+                $handlerCut = $pricing->toCents((string) ($product->handler_cut ?? 0));
+                $senderCut = $pricing->toCents((string) ($product->sender_cut ?? 0));
+                $csCut = $pricing->toCents((string) ($product->cs_cut ?? 0));
+                $teamCut = $product->team_cut === null
+                    ? $price - $cost - $handlerCut - $senderCut - $csCut
+                    : $pricing->toCents((string) $product->team_cut);
+                if (empty($data['sender_entity_id'])) $teamCut += $senderCut;
+                if (empty($data['cs_entity_id'])) $teamCut += $csCut;
+                $overrides['team_cut'] = $pricing->fromCents($teamCut * $quantity);
+            }
             try {
                 $quote = (new TeamOrder)->quote($product, $quantity, $overrides, $customerId !== null);
             } catch (\InvalidArgumentException) {

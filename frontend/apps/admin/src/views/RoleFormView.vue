@@ -45,12 +45,12 @@ function confirmDelete() { dialog.warning({ title: '删除这个平台角色？'
   <LsAsyncState v-if="loading" state="loading" :rows="5" />
   <LsAsyncState v-else-if="loadError" state="error" title="暂时无法读取平台角色" :description="friendlyError(loadError)" />
   <form v-else class="role-form" @submit.prevent="save.mutate()">
-    <LsPanel><template #header><h2>角色资料</h2></template><div class="form-fields">
+    <LsPanel><template #header><div class="role-panel-header"><h2>角色资料</h2></div></template><div class="form-fields">
       <LsField label="角色标识" for-id="role-key" required><NInput v-model:value="key" :input-props="{ id: 'role-key' }" :disabled="Boolean(id)" placeholder="例如 support_operator" /></LsField>
       <LsField label="角色名称" for-id="role-name" required><NInput v-model:value="name" :input-props="{ id: 'role-name' }" :disabled="!writable && Boolean(id)" placeholder="例如 支持运营" maxlength="50" /></LsField>
       <LsField label="角色说明" for-id="role-description"><NInput v-model:value="description" :input-props="{ id: 'role-description' }" :disabled="!writable && Boolean(id)" type="textarea" maxlength="255" show-count /></LsField>
     </div></LsPanel>
-    <LsPanel><template #header><div><h2>权限</h2><p>同一管理员的多个角色按权限并集生效。</p></div></template>
+    <LsPanel><template #header><div class="role-panel-header"><h2>权限</h2><p>同一管理员的多个角色按权限并集生效。</p></div></template>
       <NFormItem label="平台权限"><NCheckboxGroup v-model:value="permissions" :disabled="!writable && Boolean(id)"><div v-for="group in queries[1].data?.groups" :key="group.name" class="permission-group"><h3>{{ group.name }}</h3><NCheckbox v-for="item in group.items" :key="item.key" :value="item.key"><span>{{ item.label }}</span><small>{{ item.key }}</small></NCheckbox></div></NCheckboxGroup></NFormItem>
     </LsPanel>
     <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
@@ -58,4 +58,4 @@ function confirmDelete() { dialog.warning({ title: '删除这个平台角色？'
   </form>
 </template>
 
-<style scoped>.role-form,.form-fields{display:grid;gap:16px}:deep(.ls-panel__header h2),:deep(.ls-panel__header p){margin:0}:deep(.ls-panel__header p){color:var(--muted-ink);font-size:.82rem}.permission-group{display:grid;gap:2px;padding:14px 0;border-bottom:1px solid var(--line)}.permission-group:last-child{border-bottom:0}.permission-group h3{margin:0 0 6px;font-size:.9rem}.permission-group .n-checkbox{min-height:44px;padding:6px}.permission-group span,.permission-group small{display:block}.permission-group small{color:var(--muted-ink);font-size:.72rem}</style>
+<style scoped>.role-form,.form-fields{display:grid;gap:16px}.role-panel-header h2,.role-panel-header p{margin:0}.role-panel-header p{color:var(--muted-ink);font-size:.82rem}.permission-group{display:grid;gap:2px;padding:14px 0;border-bottom:1px solid var(--line)}.permission-group:last-child{border-bottom:0}.permission-group h3{margin:0 0 6px;font-size:.9rem}.permission-group .n-checkbox{min-height:44px;padding:6px}.permission-group span,.permission-group small{display:block}.permission-group small{color:var(--muted-ink);font-size:.72rem}</style>

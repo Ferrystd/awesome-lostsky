@@ -6,6 +6,7 @@ namespace app;
 use app\exception\EntityContextException;
 use app\exception\AccessDeniedException;
 use app\middleware\Cors;
+use app\support\SystemLog;
 use think\exception\Handle;
 use think\exception\HttpException;
 use think\exception\ValidateException;
@@ -17,6 +18,41 @@ use Throwable;
  */
 class ExceptionHandle extends Handle
 {
+    public function report(Throwable $exception): void
+    {
+        if ($this->isIgnoreReport($exception)) {
+            return;
+        }
+
+        $context = [
+            'exception' => $exception::class,
+            'code' => $exception->getCode(),
+            'message' => $exception->getMessage(),
+            'file' => $exception->getFile(),
+            'line' => $exception->getLine(),
+        ];
+
+        if (!$this->app->runningInConsole()) {
+            $request = $this->app->request;
+            $context += [
+                'request_id' => $request->request_id ?? null,
+                'method' => $request->method(true),
+                'host' => $request->host(),
+                'path' => '/' . ltrim($request->pathinfo(), '/'),
+                'application' => $this->app->http->getName(),
+            ];
+        }
+        if ($this->app->isDebug()) {
+            $context['trace'] = $exception->getTraceAsString();
+        }
+
+        try {
+            $this->app->make(SystemLog::class)->write('error', 'exception.unhandled', $context);
+        } catch (Throwable) {
+            // 日志失败不能覆盖原始异常。
+        }
+    }
+
     public function render($request, Throwable $e): Response
     {
         if ($e instanceof ValidateException) {

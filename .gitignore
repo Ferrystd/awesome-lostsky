@@ -22,6 +22,20 @@ node_modules/
 /playwright/.cache/
 /playwright/.auth/
 
+# Reproducible static build outputs
+/www/www.lostsky.work/
+/www/account.lostsky.work/
+/www/admin.lostsky.work/
+/www/team.lostsky.work/
+/www/chat.lostsky.work/
+/www/transaction.lostsky.work/
+/www/display.lostsky.work/
+/www/shop.lostsky.work/
+/www/assets.lostsky.work/build/
+/www/assets.lostsky.work/media/
+/www/docs.lostsky.work/
+/www/doc.lostsky.work/
+
 # temporary files
 tmp/
 /.wiki-venv/

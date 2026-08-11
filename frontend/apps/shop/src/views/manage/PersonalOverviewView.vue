@@ -8,6 +8,7 @@ import { computed } from 'vue'
 import { hasManagePermission, loadManageAccess } from '../../lib'
 
 const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess() })
+const identityType = computed(() => ({ team: 'Team Entity', teamMember: '团队成员', teamVirtual: '虚拟实体' })[access.data.value?.identity?.type ?? ''] || '当前 Entity')
 const orderReason = computed(() => {
   if (access.isPending.value) return '正在核对 shop.order.read Permission'
   if (access.isError.value) return friendlyError(access.error.value)
@@ -42,9 +43,9 @@ const entries = computed(() => [
 
 <template>
   <LsWorkspaceOverview
-    :eyebrow="`${access.data.value?.team?.name || '当前团队'} · 商品个人工作台`"
-    title="管理自己的商品与业务订单"
-    description="个人范围固定为当前已领取的 Entity；商品按专属 Entity 归属，订单按接单或发单关系收口。"
+    :eyebrow="`${identityType} · ${access.data.value?.team?.name || '当前团队'}`"
+    :title="access.data.value?.identity?.name || '正在读取当前 Entity'"
+    :description="`商品个人工作台固定服务于当前身份${access.data.value?.identity?.slug ? ` @${access.data.value.identity.slug}` : ''}；商品按专属 Entity 归属，订单按接单或发单关系收口。`"
     :actions="[{ key: 'team', label: '进入团队工作台', to: '/manage', icon: House, primary: true }]"
     :entries="entries"
     :scope-notes="['我的商品只包含专属 Entity 为当前身份的商品，团队公用和其他 Entity 商品不会出现。', '新建商品自动归属当前 Entity，个人工作台不能转移归属或永久删除商品。', '服务端按 acting_entity 强制过滤，客户端不能传入其他 Entity ID 扩大范围。']"

@@ -147,8 +147,14 @@
           "abilities": {"type": "object", "additionalProperties": true},
           "identity": {
             "type": "object",
-            "required": ["type"],
-            "properties": {"type": {"type": "string", "enum": ["team", "teamMember", "teamVirtual"]}}
+            "required": ["type", "entity_id", "name"],
+            "properties": {
+              "type": {"type": "string", "enum": ["team", "teamMember", "teamVirtual"]},
+              "entity_id": {"type": "integer", "format": "int64"},
+              "name": {"type": "string"},
+              "slug": {"type": "string", "nullable": true},
+              "avatar": {"type": "string", "nullable": true}
+            }
           }
         }
       },

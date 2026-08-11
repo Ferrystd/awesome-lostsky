@@ -526,6 +526,11 @@ export interface components {
             identity: {
                 /** @enum {string} */
                 type: "team" | "teamMember" | "teamVirtual";
+                /** Format: int64 */
+                entity_id: number;
+                name: string;
+                slug?: string | null;
+                avatar?: string | null;
             };
         };
         Actor: {

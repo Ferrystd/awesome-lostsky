@@ -5,7 +5,7 @@ import { feedback } from '@lostsky/ui/feedback'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import {
   Bell, BookOpen, Bot, Boxes, ChevronDown, ChevronRight,
-  FileText, Files, House, ListPlus, LogOut, Menu, MessageCircleMore, ReceiptText, Send, Settings, ShieldCheck,
+  FileClock, FileText, Files, House, ListPlus, LogOut, Menu, MessageCircleMore, ReceiptText, Send, Settings, ShieldCheck,
   Contact, KeyRound, Store, UserRound, Users, X,
 } from '@lucide/vue'
 import { NButton } from 'naive-ui'
@@ -67,6 +67,7 @@ const secondary: NavItem[] = [
   { to: '/notices/send', label: '发送通知', icon: Send, permission: 'team.notice.send' },
   { to: '/settings', label: '团队设置', icon: Settings, permission: 'team.setting.read' },
   { to: '/abilities', label: '团队能力', icon: KeyRound, permission: 'team.ability.redeem' },
+  { to: '/audit', label: '审计日志', icon: FileClock, permission: 'team.audit.read' },
 ]
 
 const snapshot = computed(() => access.data.value)

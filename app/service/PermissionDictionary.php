@@ -42,6 +42,7 @@ final class PermissionDictionary
     public const TEAM_ABILITY_REDEEM = 'team.ability.redeem';
     public const TEAM_NOTICE_READ = 'team.notice.read';
     public const TEAM_NOTICE_SEND = 'team.notice.send';
+    public const TEAM_AUDIT_READ = 'team.audit.read';
 
     public const IDENTITY_TEAM_ASSUME = 'identity.team.assume';
     public const IDENTITY_MEMBER_ALL_ASSUME = 'identity.member.*.assume';
@@ -124,6 +125,9 @@ final class PermissionDictionary
         '通知' => [
             self::TEAM_NOTICE_READ => '查看团队站内通知',
             self::TEAM_NOTICE_SEND => '发送通知',
+        ],
+        '安全与审计' => [
+            self::TEAM_AUDIT_READ => '查看团队审计日志',
         ],
         '实体管理' => [
             self::TEAM_ENTITY_READ => '查看全部实体（含团队内隐藏）',

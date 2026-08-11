@@ -2,6 +2,7 @@ import { api } from '@lostsky/api/client'
 import { useQuery } from '@tanstack/vue-query'
 export {
   abilityReason,
+  fileAvailabilityReason,
   fileUploadReason,
   resourceUploadReason,
   hasPermission,
@@ -9,7 +10,9 @@ export {
   settingReason,
   type SettingRequirement,
   type SettingValue,
+  type FileUploadAvailability,
 } from './teamAccessReason'
+import type { FileUploadAvailability } from './teamAccessReason'
 
 export interface TeamAbilityState {
   enabled: boolean
@@ -24,6 +27,7 @@ export interface TeamAccessSnapshot {
   permissions?: string[]
   abilities?: Record<string, TeamAbilityState>
   identity?: { type: string }
+  file_upload?: FileUploadAvailability
 }
 
 export function useTeamAccess() {

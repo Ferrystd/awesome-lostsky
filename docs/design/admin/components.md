@@ -10,45 +10,53 @@
 
 | 组件 | 必须用途与参数 | 禁止组合 | 状态与响应式检查 |
 | --- | --- | --- | --- |
-| `LsButton` | `variant=primary/secondary/ghost/danger`、`size=sm/md/lg`、`loading`、`disabled`、`type=button/submit/reset`；`icon` 插槽承载命令图标；是 `NButton` 薄适配层 | 页面私有按钮皮肤、同组混合尺寸、在默认插槽中反复手排图标间距 | loading 保留尺寸；disabled 有原生语义；40/44/48px；图标不改变可读文案 |
+| `LsButton` | `variant=primary/secondary/ghost/danger`、`size=sm/md/lg`、`loading`、`disabled`、`disabledReason`、`type=button/submit/reset`；`icon` 插槽承载命令图标；是唯一可见命令按钮原语 | 页面私有按钮皮肤、同组混合尺寸、在默认插槽中反复手排图标间距、页面用外层 `span` 重做可解释禁用 | loading 保留尺寸；disabled 无原因时使用原生禁用，有原因时保留焦点并统一短时提示且绝不触发表单；40/44/48px；图标不改变可读文案 |
 | `LsInlineError` | 只接收必填 `message`；用于字段组、表单或局部操作的阻断错误 | 自定义颜色、图标、标题、动作、插槽或重复书写 `role=alert` | 固定区域 `alert`、危险色和紧凑内边距；长文案与 200% 文本自然换行；空状态和页面加载错误不得使用 |
 | `LsPanel` | 无 props；`header/default/footer` 三个插槽承载有边界的独立内容区 | 视觉变体、页面级 `.panel` 皮肤、嵌套面板、为连续列表逐项套面板 | 桌面 20px、移动端 16px 内边距；插槽边界使用细分隔线；加载、空、错误由内容区对应状态组件表达 |
 | `LsSectionHeader` | `title` 必填；`description/eyebrow/id` 可选，`headingLevel=2/3/4`；`aside` 插槽承载状态、统计或区块动作 | 页面手写 `section-heading/panel-heading/section-title`；在页面重复标题间距和移动端堆叠 | 标题层级与 ID 保留；说明宽度统一；右侧内容桌面靠右、移动端堆叠，命令按钮满宽 |
 | `LsFormSection` | `title` 必填，标题参数与 `LsSectionHeader` 相同；内部固定复用 `LsPanel` 与 `LsSectionHeader`，默认插槽承载单列表单字段 | 接管 `<form>`、校验、提交或业务数据；页面重建 `form-panel` | 通过标题 ID 标记面板；字段单列且长文案不溢出；状态由字段或表单区域表达 |
-| `LsFormActions` | 无 props、默认插槽承载保存、取消等命令 | 视觉参数、业务顺序判断、页面重建 `form-actions` | 桌面右对齐并换行；小于 640px 单列，`LsButton` 满宽；不改变按钮本身状态 |
+| `LsFormActions` | 无 props、默认插槽承载保存、取消等命令 | 视觉参数、业务顺序判断、页面重建 `form-actions` | 桌面右对齐并换行，命令按文案自适应且最小 7rem；小于 640px 单列，`LsButton` 满宽；不改变按钮本身状态 |
 | `LsDescriptionList` | 无 props；根节点固定为 `<dl>`，默认插槽只提供成对 `<dt>/<dd>` | 指标网格、金额分解、移动表格记录或卡片式业务摘要 | 桌面双列、移动上下排列；统一分隔线和长内容换行；调用端保留术语和值的语义 |
 | `LsStatusTag` | `label` 必填，`type=default/success/warning/error/info`；统一状态标签 | 调用端重复 `size=small`、`bordered=false`，或按页面自建 StatusBadge | 固定 small、无边框；颜色不能替代文案；移动端和文本放大时不裁切状态文案 |
 | `LsPage` | `as=main/section/div`（默认 `section`）、`width=wide/content/form`（默认 `wide`）、`id`；分别用于列表、详情、单列表单 | 页面再嵌套同类容器 | 320px 无横向溢出，桌面居中；页面只能有一个 `main` |
 | `LsPageHeader` | `title` 必填；`description`、`backTo`、`backLabel` 可选；`actions` 插槽只承载当前区域动作 | 页面自行复制标题栏；移动端堆叠孤立图标 | 标题层级唯一；返回区 44px；动作小屏单列；无返回目标时不渲染返回入口 |
-| `LsWorkspaceHeader` | `contextLabel/title` 必填，`actions=[]`、`showMenu=true`；桌面应用入口由 `actions` 插槽承载，移动端按 `actions` 数据触发 `action` 事件 | 在组件内部增加应用下拉或个人/团队分段控件；移动端复制第二套顶栏；把响应式类直接传给无根 `NDropdown` | 桌面动作使用图标加文字；移动端进入“操作”菜单；禁用原因随菜单项保留；应用壳层负责保持当前团队与 Entity |
+| `LsWorkspaceHeader` | `contextLabel/title` 必填，`actions=[]`、`showMenu=true`；桌面应用入口由 `actions` 插槽承载，移动端按 `actions` 数据触发 `action` 事件 | 在组件内部增加应用下拉或个人/团队分段控件；移动端复制第二套顶栏；把响应式类直接传给无根 `NDropdown`；把顶栏设为 `sticky/fixed` 后覆盖滚动中的表单控件 | 桌面动作使用图标加文字；移动端进入“操作”菜单；禁用原因随菜单项保留；应用壳层负责保持当前团队与 Entity；顶栏参与正常文档流，滚动、聚焦和错误定位后不得遮挡字段 |
 | `LsWorkspaceOverview` | `eyebrow/title/description/actions/entries` 必填，`scopeNotes` 可选；动作支持内部路由、外部地址和主次层级；入口包含图标、标题、说明、目标与可选禁用原因 | 用无业务意义的指标填充概览；页面私有复制主视觉或入口卡片；隐藏无 Permission 入口；把应用切换或分段控件塞入概览 | 深色主视觉、主入口 `--afterglow`、白色细边界入口；禁用原因直接可见；桌面多列、移动单列且动作满宽；所有链接至少 44px，范围说明为连续紧凑区域 |
 | `LsListToolbar` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索列表'`、`countLabel=''`；`filters/actions` 插槽分别承载筛选与主操作 | 搜索图标放在输入外；数量漂移到列表外；把普通说明塞入筛选插槽；让 `NSelect` 在无确定宽度的容器中折叠 | 桌面搜索→筛选→动作→数量，搜索不超过 28rem、筛选通常为 10rem、控件高 40px；移动端纵向且控件高 44px；数量使用 `aria-live=polite` |
-| `LsFormList` | `v-model`、`itemKey`、`createItem` 必填；`itemLabel='项目'`、`addLabel='添加一项'`、`emptyText='尚未添加项目'`、`disabled=false`；`item` 插槽接收当前项目与索引 | 页面自行实现重复字段的增删排序；业务页面直接导入拖拽库；只提供拖拽而没有键盘替代路径 | 连续有边界列表；拖拽手柄支持指针与触控，上移/下移为完整键盘路径；增删排序后维持焦点并礼貌播报；行操作至少 44px；移动端字段与操作自然换行；减少动态时取消排序动画 |
+| `LsFormList` | `v-model`、`itemKey`、`createItem` 必填；`itemLabel='项目'`、`addLabel='添加一项'`、`emptyText='尚未添加项目'`、`disabled=false`；`item` 插槽接收当前项目与索引 | 页面自行实现重复字段的增删排序；业务页面直接导入拖拽库；只提供拖拽而没有键盘替代路径；让行操作形成贯穿整项高度的侧栏并持续压缩业务字段 | 连续有边界列表；拖拽手柄、项目名称和行操作组成紧凑头部，`item` 内容在下一行占满名称至操作区的全部可用宽度；拖拽手柄支持指针与触控，上移/下移为完整键盘路径；增删排序后维持焦点并礼貌播报；行操作至少 44px；移动端字段与操作自然换行；减少动态时取消排序动画 |
 | `LsEntityIdentity` | `type/name/slug/imageUrl/fallback/size`；`status` 插槽只承载与当前主体直接相关的 `NTag`；真实头像优先，圆角方形回退 | 同一主体在列表和选择器使用圆形/不同信息结构；把主体状态推到列表行远端 | 类型、名称、slug 可辨；图片有替代文本；状态紧随名称且不挤压名称 |
 | `LsEntityCard` | `entity` 必填；`clearable=false`、`clearLabel=''`、`chatEnabled=true`、`profileEnabled=true`；发出 `chat/profile/clear` | 自行复制主体卡片；无名称的纯图标清除动作 | 身份信息复用 `LsEntityIdentity`；清除按钮有可读标签；小屏动作换行但不隐藏语义 |
 | `LsEntityInput` | `modelValue/query/recent/candidates` 默认空，`multiple=false`，可传 `searchEntities/inputId/placeholder`；发出模型、查询、聊天和简介事件 | 页面另写主体候选器；少于 2 个字符调用远端搜索 | 远端搜索防抖 220ms、最多 6 项；错误只在候选区域显示；键盘焦点和结果角色可识别 |
 | `LsResponsiveActions` | `actions` 必填；`primaryKey=''`、`moreLabel='更多'`；动作含 `key/label/disabled/reason/danger/icon`，选择后发出 `select`；行内入口统一为透明、无边框的图标加文字 | 手机端混排纯图标和文字；危险操作成为主操作；用主色填充、浅色底或圆角胶囊把行内入口伪装成一组按钮 | 禁用原因保留；危险项有文字；桌面显示完整动作；小于 640px 为一个主操作加菜单；触控区至少 44px；hover/focus 不改变布局边界 |
 | `LsResponsiveDataTable` | `columns/data/rowKey` 必填，`scrollX` 可选；只用于至少三个页面共享同一“桌面表格、移动记录”需求，移动结构通过 `mobile-title/mobile-status/mobile` 插槽表达 | 单页提前包装、复制两份数据请求或同时挂载两份重复语义 DOM；为不同业务语义增加视觉参数 | 桌面直接使用 `NDataTable`；小于 720px 只挂载由同一 `data` 渲染的连续记录，避免隐藏副本造成重复辅助语义；页面无横向溢出；移动记录保留标题、状态和字段名 |
-| `LsUploadField` | `modelValue=''`、`placeholder`、`buttonLabel='选择文件'`、`disabled/loading/progress/accept/multiple/showUrl`、`showReason=false`；发出模型、`choose/change` | 常驻“缺少能力”错误条；大号上传按钮；页面直接暴露原生文件输入 | 无能力时保持禁用外观与 `aria-disabled`，点击或键盘触发后以全局提示说明原因且不发请求；进度为区域状态；移动端纵向；禁用原因进入标题，可按需启用局部说明 |
+| `LsUploadField` | `modelValue=''`、`placeholder`、`buttonLabel='选择文件'`、`disabled/disabledReason/loading/progress/accept/multiple/showUrl`、`showReason=false`；发出模型、`choose/change`；内部命令必须复用 `LsButton` | 常驻“缺少能力”错误条；页面直接暴露原生文件输入；内部另用 `NButton` 形成第二套按钮 | 无能力时保持可解释禁用且不发请求；桌面上传命令在上传组件内固定 8.5rem，不把宽度下放或扩散为全局命令宽度；进度为区域状态；小于 640px 时纵向且按钮满宽 |
 | `LsMediaUploadField` | `upload(file)` 必填；其余 URL、文件类型、按钮和禁用参数沿用 `LsUploadField`；自动回填单个文件 URL，并发出 `uploading/uploaded` | 页面重复解析文件事件、上传响应和错误；图片、视频字段只提供 URL 输入 | 选择文件后立即显示加载；失败在字段内可见；上传期间父表单可阻止保存；仍允许粘贴已登记 URL |
 | `LsEmptyState` | 只允许两个必填参数：`title` 为上方无数据文案，`description` 为下方提示文案；用于页面主内容或主集合没有数据、筛选无结果 | 新增图标、动作、尺寸、样式或插槽参数；页面用裸图标、标题和段落重新拼装；把加载或错误交给本组件；按视口宽度放大垂直留白 | 固定使用 Naive `NEmpty`、白色有边界面板和居中排版；标准最小高度为 `12rem`（192px）、上下内边距固定 `2rem`，仅在文案换行或文本放大确实需要时自然增高；桌面与移动端自然换行且无横向溢出；组件测试锁定仅有两个 props 和紧凑高度 |
 | `LsAsyncState` | `state=loading/error` 必填；`title/description` 可选、`rows=3`；只负责加载骨架和真实错误 | 承担空数据状态；手动“重试”按钮；同一错误同时全局提示；加载时空白 | 骨架数量稳定；错误使用区域 `alert` 且只出现一次；壳层和其他区域保持可用 |
 | `LsRouteErrorBoundary` | 以路由地址为 `resetKey` 隔离异步路由渲染错误 | 让单页异常清空整个应用壳层 | 切换路由自动恢复；错误只占内容区 |
 | `LsSearchInput` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索'`、`autofocus=false`；搜索图标固定在输入内 | 页面手写图标+输入组合；显示选择器箭头 | 键盘、清除和焦点状态可用；输入类型为 search；桌面高度 40px、移动端 44px |
-| `LsField` | `label/forId` 必填，`error/hint/required` 可选；包装单个表单控件 | 标签、错误和说明与控件脱离；只用占位符代替标签 | `forId` 必须指向控件；错误与说明不重复；必填状态可被辅助技术识别 |
+| `LsField` | `label/forId` 必填，`error/hint/required` 可选；包装单个表单控件 | 标签、错误和说明与控件脱离；只用占位符代替标签；调用方传入宽度或用提示高度调整相邻字段位置 | `forId` 必须指向控件；内部控件轨道固定满宽且从顶部开始排列，提示或错误增高字段时不得拉开标签与控件；并列字段的控件顶部与宽度保持一致；错误与说明不重复；必填状态可被辅助技术识别 |
 | `LsCheckboxGroupField` | `v-model` 接受字符串或数字数组，`label/options` 必填；option 支持 `value/label/description/meta/disabled/disabledReason`；可传 `id/hint/error/required/disabled` | 页面直接组合无分组语义的 `NCheckboxGroup`；用于分组权限编辑器或动态加入字段 | 固定 `fieldset/legend` 与提示/错误关联；禁用原因可见；选项触控区至少 44px；长文案与移动端自然换行 |
-| `LsSwitchField` | `v-model` 接受布尔值，`label` 必填；`description/id/ariaLabel/headingLevel/disabled/readOnly/loading/disabledReason/checkedText/uncheckedText` 可选；承载完整布尔设置行 | 在 `LsField`、`NFormItem` 或页面私有 `switch-row/switch-field` 中直接放置 `NSwitch` | 默认以可见标签作为无障碍名称；需要保留业务专用名称时使用 `ariaLabel`，设置页分区标题可用 `headingLevel` 保留标题语义；开关触控区域至少 44px；禁用与只读原因可见；长文案和移动端不溢出 |
+| `LsSwitch` | `v-model` 接受布尔值；`disabled/readOnly/loading` 可选；是唯一 `NSwitch` 视觉原语，调用方通过普通无障碍属性命名 | 业务页面直接使用 `NSwitch`；轨道内显示状态文字；增加颜色、尺寸或文案视觉 props | 开关内部始终无文字；触控区域至少 44px；只读与禁用保持原生语义；所有应用内紧凑布尔控件也必须复用 |
+| `LsSwitchField` | `v-model` 接受布尔值，`label` 必填；`description/id/ariaLabel/headingLevel/disabled/readOnly/loading/disabledReason` 可选；内部只组合 `LsSwitch`，承载完整布尔设置行 | 在 `LsField`、`NFormItem` 或页面私有 `switch-row/switch-field` 中直接组合开关；在开关轨道内显示状态文字 | 默认以可见标签作为无障碍名称；设置页分区标题可用 `headingLevel`；固定、只读和可编辑状态保持同一结构；禁用与只读原因可见；长文案和移动端不溢出 |
 | `LsInput` | `v-model` 接受字符串或数字，`invalid/type` 可选；其余原生输入属性传给 `NInput.inputProps` | 页面直接写原生文本输入；用私有边框表示错误 | 密码类型保留；错误映射到 Naive `status=error` 和 `aria-invalid`；尺寸由主题控制 |
 | `LsMarkdownEditor` | `modelValue` 与 `uploadImage(file)` 必填；可传 `placeholder/draftKey/searchEntities/resolveEntities/uploadDisabledReason`；模式固定为可视化/源码/预览 | 页面复制编辑器工具栏；省略上传回调导致图片入口消失；缺上传能力仍调用上传 | 图片入口始终存在；无权时以 `uploadDisabledReason` 保持可解释禁用；草稿键有值时本地保存；@ 搜索、上传和预览错误局部呈现 |
 | `LsMarkdownRenderer` | `content`、`resolveEntities` 可选，`chatEnabled=true`；仅渲染清洗后的 Markdown 和受控 `lostsky://entity/` 引用 | 渲染任意未清洗 HTML；解析失败清空整页 | 解析失败退化为普通内容；主体详情可键盘关闭并恢复触发点焦点；移动端详情不溢出 |
 
 新增 props、插槽、默认值或允许组合前必须先更新本表，组件测试覆盖默认、禁用、加载和移动端行为。
 
-普通后台布尔设置统一使用 `LsSwitchField`。动态设置渲染器、对象自定义布尔值编辑器，以及 `LsFormList` 中同一记录的紧凑多开关组可以直接使用 `NSwitch`；这些例外必须保持可访问名称，并由源码契约测试固定允许文件。业务页面不得重新定义 `switch-row` 或 `switch-field`。
+完整布尔设置行统一使用 `LsSwitchField`；动态设置渲染器、对象自定义布尔值编辑器和紧凑多开关组使用 `LsSwitch`。`NSwitch` 只允许出现在 `LsSwitch.vue`，不设业务页面白名单。业务页面不得重新定义 `switch-row` 或 `switch-field`。
 
 普通、未分组的多选字段统一使用 `LsCheckboxGroupField`。Admin 分组权限编辑器和 Team 动态加入字段需要业务分组或运行时控件分派，可直接使用 `NCheckboxGroup`；允许文件由源码契约精确锁定，不得扩散。
 
 页面的创建、保存、取消、删除、确认等命令必须使用 `LsButton`。直接 `NButton` 只允许用于应用壳层导航、Admin 平台命令搜索结果和确实没有可见文案的 44×44px 微操作；新增例外必须先在应用规则登记，并同步源码契约白名单。导航链接继续使用 `RouterLink` 或安全的 `<a>`，不得为了复用按钮外观把链接伪装成提交命令。
+
+## 封闭契约补充
+
+- `LsFormActions` 负责表单命令组的排列：桌面端内容自适应、最小 7rem，小于 640px 满宽。`LsFormList` 的添加命令同样内容自适应、最小 7rem；上传命令只在 `LsUploadField` 内固定 8.5rem。不同任务不得为了视觉齐边共享一个全局宽度令牌，调用方也不得传递宽度、断点或视觉变体。
+- `LsPage.width` 是页面根容器的语义容量（`wide/content/form`），不是任意子控件的视觉微调入口；页面需要不同的内容容量时选用该枚举，不新增自由宽度参数。
+- `LsResponsiveDataTable.scrollX` 表示桌面数据列所需的最小可读容量，只能由列内容推导；它不是页面为对齐或留白而传递的视觉宽度参数。
+- `LsMarkdownRenderer.context` 仅表达 `inline/document` 两种阅读语境，并由组件内部调整排版令牌；调用方不得穿透 Markdown 生成节点来改标题、字号、行高或间距。
 
 ## 实现级例外
 

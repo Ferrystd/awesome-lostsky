@@ -11,9 +11,9 @@ class Entity
 {
     protected $middleware = [
         'JwtAuth', 'Context',
-        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['search', 'resolve', 'options', 'index', 'get', 'profile', 'display', 'visibility']],
-        'TeamAuth' => ['only' => ['search', 'resolve', 'options', 'index', 'get', 'profile', 'display', 'visibility']],
-        'Permission:' . Permissions::TEAM_ENTITY_PROFILE_MANAGE => ['only' => ['profile', 'display', 'visibility']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['search', 'resolve', 'options', 'index', 'get', 'profile', 'display', 'visibility', 'presentation']],
+        'TeamAuth' => ['only' => ['search', 'resolve', 'options', 'index', 'get', 'profile', 'display', 'visibility', 'presentation']],
+        'Permission:' . Permissions::TEAM_ENTITY_PROFILE_MANAGE => ['only' => ['profile', 'display', 'visibility', 'presentation']],
     ];
 
     public function search(Request $request)
@@ -79,7 +79,13 @@ class Entity
 
     public function profile(Request $request)
     {
-        app(EntityProfile::class)->update($request->team_id, $request->post('entity_id/d', 0), $request->only(EntityProfile::FIELDS, 'post'));
+        $entityId = $request->post('entity_id/d', 0);
+        $data = $request->only(EntityProfile::FIELDS, 'post');
+        app(EntityProfile::class)->update($request->team_id, $entityId, $data);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'update', 'entity', $entityId,
+            ['changed_fields' => array_keys($data), 'changed' => $data !== []]
+        );
         return message('实体资料已更新');
     }
 
@@ -101,7 +107,8 @@ class Entity
             'team',
             'update',
             'entity_display',
-            $entityId
+            $entityId,
+            ['changed_fields' => ['is_displayed'], 'changes' => [['field' => 'is_displayed', 'after' => (bool) $input['is_displayed']]]]
         );
 
         return message('公开展示设置已更新');
@@ -125,10 +132,30 @@ class Entity
             'team',
             'update',
             'entity_internal_visibility',
-            $entityId
+            $entityId,
+            ['changed_fields' => ['is_internal_visible'], 'changes' => [['field' => 'is_internal_visible', 'after' => (bool) $input['is_internal_visible']]]]
         );
 
         return message('团队内可见设置已更新');
+    }
+
+    public function presentation(Request $request)
+    {
+        $input = $request->post();
+        if (!array_key_exists('is_displayed', $input) || !array_key_exists('is_internal_visible', $input)) {
+            return error('请提供完整的可见性设置', 1, 422);
+        }
+
+        $entityId = $request->post('entity_id/d', 0);
+        $result = app(\app\service\Entity::class)->updatePresentation(
+            $request,
+            $request->team_id,
+            $entityId,
+            $input['is_internal_visible'],
+            $input['is_displayed']
+        );
+
+        return success($result, '可见性设置已更新');
     }
 
     private function canReadAll(Request $request): bool

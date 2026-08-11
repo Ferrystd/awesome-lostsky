@@ -29,6 +29,10 @@ class Customer
             $request->post('slug') === null ? null : $request->post('slug/s'),
             $request->post('inviter_slug') === null ? null : $request->post('inviter_slug/s')
         );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'shop', 'bind', 'customer', (int) ($result['customer']['id'] ?? 0),
+            ['changed' => (bool) ($result['created'] ?? false)]
+        );
 
         return success($result, $result['created'] ? '客户身份已建立' : '客户身份已领取');
     }
@@ -62,7 +66,7 @@ class Customer
             'update',
             'customer',
             $request->customer_id,
-            ['fields' => array_keys($data)]
+            ['changed_fields' => array_keys($data), 'changed' => $data !== []]
         );
 
         return message('客户资料已更新');
@@ -98,11 +102,16 @@ class Customer
 
     public function slug(Request $request)
     {
-        return success(app(CustomerProfile::class)->claimSlug(
+        $result = app(CustomerProfile::class)->claimSlug(
             $request->team_id,
             $request->customer_id,
             $request->post('slug/s', '')
-        ), '客户标识已确定');
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'shop', 'setSlug', 'customer', $request->customer_id,
+            ['changed_fields' => ['slug']]
+        );
+        return success($result, '客户标识已确定');
     }
 
     public function orders(Request $request)
@@ -220,8 +229,63 @@ class Customer
 
     public function startService(Request $request)
     {
+        $entitlementId = $request->route('id/d', 0);
+        $id = app(\app\service\ServiceRedemption::class)->start(
+            $request->team_id,
+            $request->customer_id,
+            $entitlementId,
+            $request->post('quantity', 1),
+            $request->post('handler_entity_id/d', 0),
+            $request->post('memo/s', ''),
+            $request->post('field_values/a', []),
+            $request->entity_id
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'shop', 'start', 'serviceInstance', $id,
+            ['entitlement_id' => $entitlementId, 'changed_fields' => ['quantity', 'handler_entity_id', 'memo', 'field_values']]
+        );
+        return success(['id' => $id], '已发起核销');
+    }
+
+    public function createServiceOffer(Request $request)
+    {
+        $entitlementId = $request->route('id/d', 0);
+        $id = app(\app\service\ServiceRedemption::class)->createOffer(
+            $request->team_id,
+            $request->customer_id,
+            $entitlementId,
+            $request->post('quantity', 1),
+            $request->post('handler_entity_id/d', 0),
+            $request->post('memo/s', ''),
+            $request->post('field_values/a', []),
+            $request->entity_id,
+            $request->header('Idempotency-Key', (string) ($request->request_id ?? ''))
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'shop', 'invite', 'serviceAssignmentOffer', $id,
+            ['entitlement_id' => $entitlementId, 'changed_fields' => ['quantity', 'handler_entity_id', 'memo', 'field_values']]
+        );
+        return success(['id' => $id], '接单邀请已发出');
+    }
+
+    public function withdrawServiceOffer(Request $request)
+    {
         $id = $request->route('id/d', 0);
-        app(\app\service\ServiceRedemption::class)->start(
+        app(\app\service\ServiceRedemption::class)->withdrawOffer(
+            $request->team_id,
+            $request->customer_id,
+            $request->entity_id,
+            $id,
+            $request->post('reason/s', '')
+        );
+        app(\app\service\BusinessAudit::class)->record($request, 'shop', 'withdraw', 'serviceAssignmentOffer', $id);
+        return message('接单邀请已撤回');
+    }
+
+    public function restartService(Request $request)
+    {
+        $id = $request->route('id/d', 0);
+        app(\app\service\ServiceRedemption::class)->restart(
             $request->team_id,
             $request->customer_id,
             $id,
@@ -230,7 +294,8 @@ class Customer
             $request->post('field_values/a', []),
             $request->entity_id
         );
-        return message('已发起核销');
+        app(\app\service\BusinessAudit::class)->record($request, 'shop', 'restart', 'serviceInstance', $id);
+        return message('已重新发起核销');
     }
 
     public function cancelService(Request $request)
@@ -242,7 +307,41 @@ class Customer
             $request->post('reason/s', ''),
             $request->entity_id
         );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'shop', 'requestCancel', 'serviceInstance', $request->route('id/d', 0),
+            ['cancel_request_id' => $id, 'changed_fields' => ['reason']]
+        );
         return success(['id' => $id], '取消申请已提交');
+    }
+
+    public function acceptServiceAdjustment(Request $request)
+    {
+        $instanceId = $request->route('id/d', 0);
+        $adjustmentId = $request->route('adjustment_id/d', 0);
+        app(\app\service\ServiceAdjustment::class)->accept(
+            $request->team_id,
+            $request->customer_id,
+            $request->entity_id,
+            $instanceId,
+            $adjustmentId
+        );
+        app(\app\service\BusinessAudit::class)->record($request, 'shop', 'accept', 'serviceAdjustment', $adjustmentId);
+        return message('加价费用已确认');
+    }
+
+    public function rejectServiceAdjustment(Request $request)
+    {
+        $instanceId = $request->route('id/d', 0);
+        $adjustmentId = $request->route('adjustment_id/d', 0);
+        app(\app\service\ServiceAdjustment::class)->reject(
+            $request->team_id,
+            $request->customer_id,
+            $request->entity_id,
+            $instanceId,
+            $adjustmentId
+        );
+        app(\app\service\BusinessAudit::class)->record($request, 'shop', 'reject', 'serviceAdjustment', $adjustmentId);
+        return message('加价费用已拒绝');
     }
 
     public function cards(Request $request)
@@ -265,6 +364,10 @@ class Customer
             $request->team_id,
             $request->customer_id,
             $request->entity_id
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'shop', 'claim', 'redemptionCode', $id,
+            ['changed_fields' => ['code']]
         );
         return success(['id' => $id], '卡密已领取');
     }

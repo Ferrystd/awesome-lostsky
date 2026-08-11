@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { identityUrl } from '@lostsky/shared/navigation'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
@@ -91,17 +94,17 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
     </template>
     <template v-else>
       <AdminPageHeader :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与有效权限'" description="所有内容均属于当前已领取的 Entity；切换身份后会自动重新核对。" />
-      <LsPanel v-if="query.isPending.value"><p class="state">正在读取当前实体…</p></LsPanel>
-      <LsInlineError v-else-if="query.isError.value" :message="friendlyError(query.error.value)" />
+      <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
+      <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取当前实体" :description="friendlyError(query.error.value)" />
       <template v-else-if="query.data.value">
       <form v-if="section === 'profile'" class="profile-form" @submit.prevent="saveProfile.mutate()">
         <LsPanel>
-          <div class="identity-summary"><span>{{ query.data.value.identity.type === 'team' ? 'Team Entity' : query.data.value.identity.type === 'teamVirtual' ? '虚拟实体' : '团队成员' }}</span><strong>{{ query.data.value.identity.name }}</strong><small>{{ query.data.value.identity.team.name }}</small></div>
+          <div class="identity-summary"><LsEntityIdentity :type="query.data.value.identity.type" :name="query.data.value.identity.name" :slug="query.data.value.identity.slug || ''" :image-url="query.data.value.profile.avatar" fallback="initial" /><small>所属团队：{{ query.data.value.identity.team.name }}</small></div>
           <div v-if="!query.data.value.identity.slug" class="slug-field"><label>对象标识<NInput v-model:value="form.slug" placeholder="首次确认后不可修改" /></label></div>
           <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" draft-key="personal-profile" id-prefix="personal-profile" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" />
         </LsPanel>
         <LsInlineError v-if="saveProfile.isError.value" :message="friendlyError(saveProfile.error.value)" />
-        <div class="actions"><LsButton type="submit" :loading="saveProfile.isPending.value" :disabled="uploading || !form.name.trim() || (!query.data.value.identity.slug && !form.slug.trim())">保存资料</LsButton></div>
+        <LsFormActions><LsButton type="submit" :loading="saveProfile.isPending.value" :disabled="uploading || !form.name.trim() || (!query.data.value.identity.slug && !form.slug.trim())">保存资料</LsButton></LsFormActions>
       </form>
       <EntityFieldsCard v-else-if="section === 'fields'" :fields="query.data.value.custom_fields" :stored-values="query.data.value.custom_field_values" mode="self" :saving="saveFields.isPending.value" :error="saveFields.error.value" :upload-disabled-reason="uploadDisabledReason" @save="saveFields.mutate" />
       <EntityPermissionsCard v-else-if="section === 'access'" :assignments="query.data.value.role_assignments" :roles="roles" :effective-permissions="query.data.value.effective_permissions" />
@@ -111,5 +114,5 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
 </template>
 
 <style scoped>
-.personal-view,.profile-form{display:grid;gap:1rem}.state{margin:0;color:var(--muted-ink)}.identity-summary{display:grid;gap:.15rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}.identity-summary span,.identity-summary small{color:var(--muted-ink);font-size:.78rem}.identity-summary strong{font-size:1.2rem}.slug-field{margin-bottom:1rem}.slug-field label{display:grid;gap:.4rem;color:var(--ink);font-size:.82rem;font-weight:650}.actions{display:flex;justify-content:flex-end}
+.personal-view,.profile-form{display:grid;gap:1rem}.identity-summary{display:grid;gap:.65rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}.identity-summary>small{color:var(--muted-ink);font-size:.78rem}.slug-field{margin-bottom:1rem}.slug-field label{display:grid;gap:.4rem;color:var(--ink);font-size:.82rem;font-weight:650}
 </style>

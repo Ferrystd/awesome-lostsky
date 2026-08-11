@@ -44,6 +44,10 @@ class JoinReview
 
         $service = app(TeamJoin::class);
         $service->startReview($request->team_id, $id);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'update', 'joinApplication', $id,
+            ['changed_fields' => ['status'], 'changes' => [['field' => 'status', 'after' => 'reviewing']]]
+        );
 
         return message('申请已进入审核中');
     }
@@ -54,6 +58,10 @@ class JoinReview
 
         $service = app(TeamJoin::class);
         $service->reject($request->team_id, $id, $request->post('memo/s', ''));
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'reject', 'joinApplication', $id,
+            ['changed_fields' => ['status', 'memo']]
+        );
 
         return message('申请已拒绝');
     }
@@ -64,6 +72,10 @@ class JoinReview
 
         $service = app(TeamJoin::class);
         $memberId = $service->approve($request->team_id, $id);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'approve', 'joinApplication', $id,
+            ['changed_fields' => ['status', 'member_id'], 'member_id' => $memberId]
+        );
 
         return success(['member_id' => $memberId], '申请已同意');
     }
@@ -73,7 +85,12 @@ class JoinReview
         $id = $request->post('id/d', 0);
 
         $service = app(TeamJoin::class);
-        $service->saveTasks($request->team_id, $id, $request->post('tasks', []));
+        $tasks = $request->post('tasks', []);
+        $service->saveTasks($request->team_id, $id, $tasks);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'setTasks', 'joinApplication', $id,
+            ['changed_fields' => ['tasks'], 'task_count' => is_array($tasks) ? count($tasks) : 0]
+        );
 
         return message('审核任务已保存');
     }
@@ -84,7 +101,12 @@ class JoinReview
         $taskId = $request->post('task_id/d', 0);
 
         $service = app(TeamJoin::class);
-        $service->setTaskPassed($request->team_id, $id, $taskId, $request->post('is_passed/b', false));
+        $isPassed = $request->post('is_passed/b', false);
+        $service->setTaskPassed($request->team_id, $id, $taskId, $isPassed);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'setTaskPassed', 'joinApplication', $id,
+            ['changed_fields' => ['is_passed'], 'task_id' => $taskId, 'is_passed' => $isPassed]
+        );
 
         return message('审核任务状态已更新');
     }

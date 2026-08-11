@@ -62,7 +62,7 @@ class Customer
             'update',
             'customer',
             $id,
-            ['fields' => array_keys($data)]
+            ['changed_fields' => array_keys($data), 'changed' => $data !== []]
         );
         return message('客户资料已更新');
     }

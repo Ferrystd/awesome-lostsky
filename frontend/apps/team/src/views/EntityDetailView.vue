@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
+import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormList from '@lostsky/ui/components/LsFormList.vue'
-import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
@@ -16,6 +17,7 @@ import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import EntityProfileFields from '../components/EntityProfileFields.vue'
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import {
   createDocumentTagGroupDraft,
   documentTagDescriptionError,
@@ -45,6 +47,13 @@ type EntityDetail = {
   }
 }
 
+type VisibilityState = {
+  is_internal_visible: number
+  is_displayed: number
+}
+
+type VisibilityPayload = VisibilityState & { entity_id: number }
+
 const route = useRoute()
 const client = useQueryClient()
 const access = useTeamAccess()
@@ -69,6 +78,9 @@ const uploadDisabledReason = computed(() => resourceUploadReason(access.data.val
 const tagValidationSubmitted = ref(false)
 const isDisplayed = ref(false)
 const isInternalVisible = ref(true)
+const profileSnapshot = ref('')
+const visibilitySnapshot = ref('')
+const hydratedEntityId = ref(0)
 const canManage = computed(() => Boolean(detail.data.value?.capabilities?.manage_profile))
 const manageReason = permissionReason('team.entity.profile.manage')
 const canDisplay = computed(() => (
@@ -85,6 +97,17 @@ const internalFixedMessage = computed(() =>
     ? 'Customer 属于敏感目录，始终需要 team.entity.read 才能查看。'
     : 'Team 实体始终在团队内部可见。'
 )
+const publicFixedMessage = computed(() =>
+  detail.data.value?.entityable_type === 'teamCustomer'
+    ? 'Customer 包含敏感资料，不支持互联网公开主页。'
+    : 'Team 主页由团队公开入口管理，此处不单独设置。'
+)
+const entityTypeLabel = computed(() => ({
+  team: '团队',
+  teamMember: '成员',
+  teamCustomer: '客户',
+  teamVirtual: '虚拟实体',
+} as Record<string, string>)[String(detail.data.value?.entityable_type ?? '')] ?? '实体')
 const displayUrl = computed(() => (
   detail.data.value?.is_displayed && canDisplay.value
     ? `//${window.location.hostname.split('.')[0]}.display.lostsky.work/entity/${detail.data.value.slug}`
@@ -96,45 +119,72 @@ const chatUrl = computed(() => (
     : ''
 ))
 
+function buildProfilePayload(): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    entity_id: id.value,
+    name: form.name,
+    avatar: form.avatar,
+    description: form.description,
+    intro_image: form.intro_image,
+    intro_video: form.intro_video,
+    introduction_markdown: form.introduction_markdown,
+  }
+  if (supportsPublicDocuments.value) payload.document_tags = documentTagGroupsPayload(form.document_tags)
+  return payload
+}
+
+function profileFingerprint(payload = buildProfilePayload()): string {
+  const profile = { ...payload }
+  delete profile.entity_id
+  return JSON.stringify(profile)
+}
+
+function buildVisibilityPayload(): VisibilityPayload {
+  return {
+    entity_id: id.value,
+    is_internal_visible: isInternalVisible.value ? 1 : 0,
+    is_displayed: isDisplayed.value ? 1 : 0,
+  }
+}
+
+function visibilityFingerprint(state: Pick<VisibilityState, 'is_internal_visible' | 'is_displayed'> = buildVisibilityPayload()): string {
+  return JSON.stringify({
+    is_internal_visible: Number(state.is_internal_visible) === 1 ? 1 : 0,
+    is_displayed: Number(state.is_displayed) === 1 ? 1 : 0,
+  })
+}
+
+const profileDirty = computed(() => Boolean(profileSnapshot.value) && profileFingerprint() !== profileSnapshot.value)
+const visibilityDirty = computed(() => Boolean(visibilitySnapshot.value) && visibilityFingerprint() !== visibilitySnapshot.value)
+const hasUnsavedChanges = computed(() => profileDirty.value || visibilityDirty.value)
+
+useUnsavedChangesGuard(hasUnsavedChanges)
+
 const profileSave = useMutation({
-  mutationFn: () => {
-    const payload: Record<string, unknown> = {
-      entity_id: id.value,
-      name: form.name,
-      avatar: form.avatar,
-      description: form.description,
-      intro_image: form.intro_image,
-      intro_video: form.intro_video,
-      introduction_markdown: form.introduction_markdown,
-    }
-    if (supportsPublicDocuments.value) payload.document_tags = documentTagGroupsPayload(form.document_tags)
-    return api.post('/entity/profile', payload)
-  },
-  onSuccess: () => {
-    editor.value?.clearDraft()
+  mutationFn: (payload: Record<string, unknown>) => api.post('/entity/profile', payload),
+  onSuccess: (_, payload) => {
+    profileSnapshot.value = profileFingerprint(payload)
+    if (!profileDirty.value) editor.value?.clearDraft()
     feedback.success('实体资料已保存')
     return client.invalidateQueries({ queryKey: ['entity', id.value] })
   },
   onError: error => feedback.error(friendlyError(error)),
 })
-const displaySave = useMutation({
-  mutationFn: () => api.post('/entity/display', {
-    entity_id: id.value,
-    is_displayed: isDisplayed.value ? 1 : 0,
-  }),
-  onSuccess: () => {
-    feedback.success('公开展示设置已保存')
-    return client.invalidateQueries({ queryKey: ['entity', id.value] })
-  },
-  onError: error => feedback.error(friendlyError(error)),
-})
 const visibilitySave = useMutation({
-  mutationFn: () => api.post('/entity/visibility', {
-    entity_id: id.value,
-    is_internal_visible: isInternalVisible.value ? 1 : 0,
-  }),
-  onSuccess: () => {
-    feedback.success('团队内可见设置已保存')
+  mutationFn: (payload: VisibilityPayload) => api.post<VisibilityState>('/entity/presentation', payload),
+  onSuccess: (saved, payload) => {
+    const submitted = visibilityFingerprint(payload)
+    visibilitySnapshot.value = visibilityFingerprint(saved)
+    if (visibilityFingerprint() === submitted) {
+      isInternalVisible.value = Number(saved.is_internal_visible) === 1
+      isDisplayed.value = Number(saved.is_displayed) === 1
+    }
+    client.setQueryData<EntityDetail>(['entity', id.value], current => current ? {
+      ...current,
+      is_internal_visible: saved.is_internal_visible,
+      is_displayed: saved.is_displayed,
+    } : current)
+    feedback.success('可见性设置已保存')
     return client.invalidateQueries({ queryKey: ['entity', id.value] })
   },
   onError: error => feedback.error(friendlyError(error)),
@@ -142,10 +192,14 @@ const visibilitySave = useMutation({
 
 watch(() => detail.data.value, (data) => {
   if (!data) return
-  isDisplayed.value = Number(data.is_displayed) === 1
-  isInternalVisible.value = data.entityable_type === 'team' || Number(data.is_internal_visible) === 1
-  const profile = data.profile
-  if (profile) {
+  const entityChanged = hydratedEntityId.value !== id.value
+  if (entityChanged || !visibilityDirty.value) {
+    isDisplayed.value = Number(data.is_displayed) === 1
+    isInternalVisible.value = data.entityable_type === 'team' || Number(data.is_internal_visible) === 1
+    visibilitySnapshot.value = visibilityFingerprint()
+  }
+  const profile: NonNullable<EntityDetail['profile']> = data.profile ?? {}
+  if (entityChanged || !profileDirty.value) {
     Object.assign(form, {
       name: profile.name || '',
       avatar: profile.avatar || '',
@@ -155,7 +209,9 @@ watch(() => detail.data.value, (data) => {
       introduction_markdown: profile.introduction_markdown || '',
       document_tags: documentTagGroupDrafts(profile.document_tags),
     })
+    profileSnapshot.value = profileFingerprint()
   }
+  hydratedEntityId.value = id.value
 }, { immediate: true })
 
 const tagKey = (item: DocumentTagGroupDraft) => item.key
@@ -171,7 +227,7 @@ async function submitProfile() {
     document.querySelector<HTMLElement>('.document-tag-groups [data-invalid="true"] input, .document-tag-groups [data-invalid="true"] textarea')?.focus()
     return
   }
-  profileSave.mutate()
+  profileSave.mutate(buildProfilePayload())
 }
 </script>
 
@@ -187,14 +243,20 @@ async function submitProfile() {
         <a v-if="chatUrl" class="chat-action" :href="chatUrl"><MessageCircleMore :size="17" />发起对话</a>
       </template>
     </AdminPageHeader>
-    <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
+    <LsAsyncState v-if="detail.isPending.value" state="loading" :rows="5" />
+    <LsAsyncState
+      v-else-if="detail.isError.value"
+      state="error"
+      title="暂时无法读取实体资料"
+      :description="friendlyError(detail.error.value)"
+    />
     <template v-else-if="detail.data.value">
       <p v-if="!canManage" id="entity-manage-reason" class="permission-note" role="note">
         当前为只读模式。{{ manageReason }}
       </p>
 
       <form @submit.prevent="submitProfile"><LsPanel><div class="profile-panel">
-        <LsSectionHeader :title="`${detail.data.value.entityable_type} · @${detail.data.value.slug}`" description="这些资料用于实体详情；公开页面仍受“公开主页展示”控制。">
+        <LsSectionHeader :title="`${entityTypeLabel} · @${detail.data.value.slug}`" description="这些资料用于实体详情；公开页面仍受“公开主页展示”控制。">
           <template v-if="displayUrl" #aside><a class="public-link" :href="displayUrl" target="_blank" rel="noopener noreferrer">查看公开主页<ExternalLink :size="16" /></a></template>
         </LsSectionHeader>
         <EntityProfileFields
@@ -259,58 +321,78 @@ async function submitProfile() {
             </template>
           </LsFormList>
         </section>
-        <span :tabindex="canManage ? -1 : 0" :aria-describedby="canManage ? undefined : 'entity-manage-reason'">
-          <LsButton type="submit" :disabled="!canManage || uploading" :loading="profileSave.isPending.value">保存资料</LsButton>
-        </span>
+        <LsFormActions>
+          <LsButton
+            type="submit"
+            :disabled="!canManage || uploading || !profileDirty"
+            :disabled-reason="!canManage ? manageReason : uploading ? '文件正在上传，请稍候' : ''"
+            :loading="profileSave.isPending.value"
+          >保存资料</LsButton>
+        </LsFormActions>
       </div></LsPanel></form>
 
-      <LsPanel><section class="setting">
-        <LsSwitchField
-          v-if="canToggleInternal"
-          v-model="isInternalVisible"
-          label="团队内可见"
-          aria-label="在团队工作空间内可见"
+      <LsPanel><section class="visibility-settings">
+        <LsSectionHeader
+          title="可见性设置"
+          description="分别控制团队工作空间与互联网公开主页中的发现范围。"
           :heading-level="2"
-          description="控制普通成员是否能在当前团队工作空间发现该实体；具有 team.entity.read 的角色仍可查看。它不影响全局搜索或公开主页。"
-          :disabled="!canManage"
-          checked-text="可见"
-          unchecked-text="隐藏"
         />
-        <div v-else>
-          <h2>团队内可见</h2>
-          <p>控制普通成员是否能在当前团队工作空间发现该实体；具有 <code>team.entity.read</code> 的角色仍可查看。它不影响全局搜索或公开主页。</p>
-          <p class="fixed-state">{{ internalFixedMessage }}</p>
-        </div>
-        <span v-if="canToggleInternal" :tabindex="canManage ? -1 : 0" :aria-describedby="canManage ? undefined : 'entity-manage-reason'">
-          <LsButton variant="secondary" :disabled="!canManage" :loading="visibilitySave.isPending.value" @click="visibilitySave.mutate()">保存团队内可见设置</LsButton>
-        </span>
-      </section></LsPanel>
+        <div class="visibility-list">
+          <LsSwitchField
+            v-if="canToggleInternal"
+            v-model="isInternalVisible"
+            label="团队内可见"
+            :heading-level="3"
+            description="控制普通成员是否能在当前团队工作空间发现该实体；具有 team.entity.read 的角色仍可查看。它不影响全局搜索或公开主页。"
+            :disabled="!canManage"
+            :loading="visibilitySave.isPending.value"
+            :disabled-reason="!canManage ? manageReason : ''"
+          />
+          <LsSwitchField
+            v-else
+            :model-value="detail.data.value.entityable_type === 'team'"
+            label="团队内可见"
+            :heading-level="3"
+            description="控制普通成员是否能在当前团队工作空间发现该实体；它不影响全局搜索或公开主页。"
+            read-only
+            :disabled-reason="internalFixedMessage"
+          />
 
-      <LsPanel><section class="setting">
-        <LsSwitchField
-          v-if="canDisplay"
-          v-model="isDisplayed"
-          label="公开主页展示"
-          aria-label="在公开主页展示"
-          :heading-level="2"
-          description="控制互联网访客能否在 Display 公开主页浏览该实体。它不影响团队内目录或全局搜索。"
-          :disabled="!canManage"
-          checked-text="公开"
-          unchecked-text="隐藏"
-        />
-        <div v-else>
-          <h2>公开主页展示</h2>
-          <p>Team 主页始终公开；客户实体为保护隐私不支持公开展示。</p>
+          <LsSwitchField
+            v-if="canDisplay"
+            v-model="isDisplayed"
+            label="公开主页展示"
+            :heading-level="3"
+            description="控制互联网访客能否在 Display 公开主页浏览该实体。它不影响团队内目录或全局搜索。"
+            :disabled="!canManage"
+            :loading="visibilitySave.isPending.value"
+            :disabled-reason="!canManage ? manageReason : ''"
+          />
+          <LsSwitchField
+            v-else
+            :model-value="detail.data.value.entityable_type === 'team'"
+            label="公开主页展示"
+            :heading-level="3"
+            description="控制互联网访客能否在 Display 公开主页浏览该实体。"
+            read-only
+            :disabled-reason="publicFixedMessage"
+          />
         </div>
-        <span v-if="canDisplay" :tabindex="canManage ? -1 : 0" :aria-describedby="canManage ? undefined : 'entity-manage-reason'">
-          <LsButton variant="secondary" :disabled="!canManage" :loading="displaySave.isPending.value" @click="displaySave.mutate()">保存公开设置</LsButton>
-        </span>
+        <LsFormActions v-if="canToggleInternal">
+          <LsButton
+            variant="secondary"
+            :disabled="!canManage || !visibilityDirty"
+            :disabled-reason="!canManage ? manageReason : ''"
+            :loading="visibilitySave.isPending.value"
+            @click="visibilitySave.mutate(buildVisibilityPayload())"
+          >保存可见性</LsButton>
+        </LsFormActions>
       </section></LsPanel>
     </template>
   </div>
 </template>
 
 <style scoped>
-.entity-detail{display:grid;gap:22px}.chat-action{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .875rem;color:white;background:var(--sky-lost-strong);border-radius:8px;font-size:.875rem;font-weight:650}.profile-panel,.setting{display:grid;gap:16px}.profile-panel h2,.profile-panel p,.setting h2,.setting p,.document-tag-groups h3,.document-tag-groups p{margin:0}.profile-panel h2,.setting h2{font-size:1.05rem}.profile-panel label{display:grid;gap:7px;color:var(--text-secondary);font-weight:650}.setting>div p{max-width:68ch;margin-top:.4rem;color:var(--text-secondary);font-size:.84rem;line-height:1.6}.public-link{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;color:var(--primary);font-size:.82rem;font-weight:650;white-space:nowrap}.document-tag-groups{display:grid;gap:16px;padding-top:4px}.document-tag-groups h3{font-size:1rem}.document-tag-groups>div>p{max-width:68ch;margin-top:5px;color:var(--text-secondary);font-size:.84rem;line-height:1.55}.document-tag-group-fields{min-width:0;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);align-items:start;gap:12px}.profile-panel>span{justify-self:start}.profile-panel>span:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost-strong),transparent 65%);outline-offset:3px;border-radius:8px}.permission-note{margin:0;padding:.8rem 1rem;color:var(--muted-ink);background:color-mix(in oklch,var(--sky-lost),white 92%);border:1px solid color-mix(in oklch,var(--sky-lost),white 65%);border-radius:8px;font-size:.84rem}.fixed-state{color:var(--muted-ink);font-size:.84rem}.feedback{padding:.75rem;border-radius:8px}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%)}code{font-size:.8em}
-@media(max-width:639px){.document-tag-group-fields{grid-template-columns:1fr}.profile-panel>span,.profile-panel :deep(.ls-button){width:100%}}
+.entity-detail{display:grid;gap:22px}.chat-action{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .875rem;color:white;background:var(--sky-lost-strong);border-radius:8px;font-size:.875rem;font-weight:650}.profile-panel,.visibility-settings,.visibility-list{display:grid;gap:16px}.profile-panel h2,.profile-panel p,.document-tag-groups h3,.document-tag-groups p{margin:0}.profile-panel h2{font-size:1.05rem}.profile-panel label{display:grid;gap:7px;color:var(--text-secondary);font-weight:650}.public-link{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;color:var(--primary);font-size:.82rem;font-weight:650;white-space:nowrap}.document-tag-groups{display:grid;gap:16px;padding-top:4px}.document-tag-groups h3{font-size:1rem}.document-tag-groups>div>p{max-width:68ch;margin-top:5px;color:var(--text-secondary);font-size:.84rem;line-height:1.55}.document-tag-group-fields{min-width:0;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);align-items:start;gap:12px}.permission-note{margin:0;padding:.8rem 1rem;color:var(--muted-ink);background:color-mix(in oklch,var(--sky-lost),white 92%);border:1px solid color-mix(in oklch,var(--sky-lost),white 65%);border-radius:8px;font-size:.84rem}code{font-size:.8em}
+@media(max-width:639px){.document-tag-group-fields{grid-template-columns:1fr}}
 </style>

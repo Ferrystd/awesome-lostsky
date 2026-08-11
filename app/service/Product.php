@@ -68,7 +68,10 @@ class Product
         if ($entityId) {
             app(Entity::class)->assertInTeam((int) $entityId, $teamId);
         }
-        $this->assertBenefitConfiguration($teamId, $data);
+        $benefitPackage = $this->assertBenefitConfiguration($teamId, $data);
+        if ($benefitPackage && app(BenefitPackagePricing::class)->isItemized($benefitPackage)) {
+            $money = app(BenefitPackagePricing::class)->summary($benefitPackage);
+        }
 
         return \think\facade\Db::transaction(function () use ($teamId, $data, $entityId, $money) {
             $product = new TeamProduct;
@@ -139,7 +142,10 @@ class Product
         if (!array_key_exists('kind', $update)) {
             $configuration['kind'] = $product->enumCase('kind')->value;
         }
-        $this->assertBenefitConfiguration($teamId, $configuration);
+        $benefitPackage = $this->assertBenefitConfiguration($teamId, $configuration);
+        if ($benefitPackage && app(BenefitPackagePricing::class)->isItemized($benefitPackage)) {
+            $update = array_merge($update, app(BenefitPackagePricing::class)->summary($benefitPackage));
+        }
 
         if ($update) {
             \think\facade\Db::transaction(function () use ($product, $update) {
@@ -214,17 +220,21 @@ class Product
         });
     }
 
-    private function assertBenefitConfiguration(int $teamId, array $data): void
+    private function assertBenefitConfiguration(int $teamId, array $data): ?BenefitPackage
     {
         $kind = ProductKind::from((int) ($data['kind'] ?? ProductKind::Standard->value));
         if ($kind === ProductKind::ServiceBundle) {
             $package = BenefitPackage::where('issuer_team_id', $teamId)->find((int) ($data['benefit_package_id'] ?? 0));
             if (!$package) throw new HttpException(422, '服务套餐必须关联当前团队的权益套餐');
+            return $package;
         }
         if ($kind === ProductKind::RedemptionCard) {
-            $campaign = RedemptionCampaign::where('issuer_team_id', $teamId)->find((int) ($data['redemption_campaign_id'] ?? 0));
+            $campaign = RedemptionCampaign::where('issuer_team_id', $teamId)
+                ->with(['package'])->find((int) ($data['redemption_campaign_id'] ?? 0));
             if (!$campaign) throw new HttpException(422, '卡密商品必须关联当前团队的卡密活动');
+            return $campaign->package;
         }
+        return null;
     }
 
     private function attachRelations(array &$rows, bool $detail): void

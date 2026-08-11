@@ -11,7 +11,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { File, Trash2 } from '@lucide/vue'
 import { NPagination } from 'naive-ui'
 import { computed, ref } from 'vue'
-import { abilityReason, hasPermission, permissionReason, useTeamAccess } from '../lib/teamAccess'
+import { RouterLink } from 'vue-router'
+import { fileUploadReason, hasPermission, permissionReason, useTeamAccess, type FileUploadAvailability } from '../lib/teamAccess'
 
 const client = useQueryClient()
 const access = useTeamAccess()
@@ -21,7 +22,7 @@ const uploading = ref(false)
 const uploadError = ref('')
 const usage = useQuery({
   queryKey: ['file-usage'],
-  queryFn: () => api.get<Record<string, unknown>>('/file/usage'),
+  queryFn: () => api.get<FileUploadAvailability>('/file/usage'),
 })
 const query = useQuery({
   queryKey: computed(() => ['files', page.value, keyword.value]),
@@ -36,12 +37,23 @@ const files = computed<Record<string, unknown>[]>(() => (
 ))
 const total = computed(() => Number(query.data.value?.total ?? files.value.length))
 const pages = computed(() => Math.max(1, Math.ceil(total.value / 18)))
-const fileAbility = computed(() => access.data.value?.abilities?.file)
 const uploadReason = computed(() => {
   if (access.isPending.value || access.isError.value) return ''
-  if (!fileAbility.value?.enabled) return abilityReason('file', fileAbility.value?.label ?? '文件上传')
-  if (!hasPermission(access.data.value, 'file.upload')) return permissionReason('file.upload')
-  return ''
+  return fileUploadReason({
+    ...access.data.value,
+    file_upload: usage.data.value ?? access.data.value?.file_upload,
+  })
+})
+const canUpgrade = computed(() => (
+  (usage.data.value ?? access.data.value?.file_upload)?.reason === 'quota'
+  && hasPermission(access.data.value, 'team.ability.redeem')
+))
+const usageSummary = computed(() => {
+  const state = usage.data.value
+  if (!state) return `正在读取容量 · ${total.value} 个文件`
+  const used = size(state?.total_size ?? 0)
+  const capacity = state?.size_limit == null ? '不限容量' : `容量 ${size(state.size_limit)}`
+  return `已使用 ${used} / ${capacity} · ${state?.count ?? total.value} 个文件`
 })
 const deleteReason = computed(() => (
   access.isPending.value || access.isError.value || hasPermission(access.data.value, 'file.delete')
@@ -56,6 +68,7 @@ const remove = useMutation({
     await Promise.all([
       client.invalidateQueries({ queryKey: ['files'] }),
       client.invalidateQueries({ queryKey: ['file-usage'] }),
+      client.invalidateQueries({ queryKey: ['team-access'] }),
     ])
   },
   onError: error => feedback.error(friendlyError(error)),
@@ -71,6 +84,7 @@ async function upload(event: Event) {
     await Promise.all([
       client.invalidateQueries({ queryKey: ['files'] }),
       client.invalidateQueries({ queryKey: ['file-usage'] }),
+      client.invalidateQueries({ queryKey: ['team-access'] }),
     ])
     feedback.success(list.length > 1 ? `${list.length} 个文件已上传` : '文件已上传')
   } catch (error) {
@@ -108,10 +122,13 @@ function runFileAction(key: string, item: Record<string, unknown>) {
   <div class="files">
     <header>
       <div>
-        <p>已使用 {{ size(usage.data.value?.total_size ?? usage.data.value?.totalSize) }} · {{ usage.data.value?.count ?? total }} 个文件</p>
+        <p>{{ usageSummary }}</p>
         <h2>团队文件</h2>
       </div>
-      <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload" />
+      <div class="header-actions">
+        <RouterLink v-if="canUpgrade" class="secondary-link" to="/abilities">升级团队能力</RouterLink>
+        <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload" />
+      </div>
     </header>
     <LsInlineError v-if="uploadError" :message="uploadError" />
 
@@ -147,5 +164,5 @@ function runFileAction(key: string, item: Record<string, unknown>) {
 </template>
 
 <style scoped>
-.files{display:grid;gap:1rem}header{display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap}header p,header h2{margin:0}header p{color:var(--muted-ink);font-size:.82rem}header h2{margin-top:.2rem}.file-list{display:grid;gap:0;overflow:hidden;background:white;border:1px solid var(--line);border-radius:10px}.file-list article{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:.75rem;padding:.85rem;border-bottom:1px solid var(--line);background:white;transition:background-color var(--motion-fast) var(--ease-standard),opacity var(--motion-base) var(--ease-out),transform var(--motion-base) var(--ease-out)}.file-list article:last-child{border-bottom:0}.file-list article:hover{background:var(--cloud)}.file-icon{width:44px;height:44px;display:grid;place-items:center;color:var(--sky-lost-strong);background:var(--cloud);border-radius:8px}.file-list strong,.file-list small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.file-list small{margin-top:.2rem;color:var(--muted-ink);font-size:.75rem}footer{display:flex;align-items:center;justify-content:center;gap:1rem;color:var(--muted-ink);font-size:.8rem}
+.files{display:grid;gap:1rem}header{display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap}header p,header h2{margin:0}header p{color:var(--muted-ink);font-size:.82rem}header h2{margin-top:.2rem}.header-actions{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}.secondary-link{min-height:40px;display:inline-flex;align-items:center;color:var(--sky-lost-strong);font-weight:650}.file-list{display:grid;gap:0;overflow:hidden;background:white;border:1px solid var(--line);border-radius:10px}.file-list article{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:.75rem;padding:.85rem;border-bottom:1px solid var(--line);background:white;transition:background-color var(--motion-fast) var(--ease-standard),opacity var(--motion-base) var(--ease-out),transform var(--motion-base) var(--ease-out)}.file-list article:last-child{border-bottom:0}.file-list article:hover{background:var(--cloud)}.file-icon{width:44px;height:44px;display:grid;place-items:center;color:var(--sky-lost-strong);background:var(--cloud);border-radius:8px}.file-list strong,.file-list small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.file-list small{margin-top:.2rem;color:var(--muted-ink);font-size:.75rem}footer{display:flex;align-items:center;justify-content:center;gap:1rem;color:var(--muted-ink);font-size:.8rem}
 </style>

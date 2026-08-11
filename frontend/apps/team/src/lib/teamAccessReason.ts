@@ -5,6 +5,7 @@ import {
   type SettingRequirement,
   type SettingValue,
 } from '@lostsky/api/error-format'
+import { ERROR_MESSAGES } from '@lostsky/api/error-messages'
 import { permissionCovers } from './permissionHierarchy'
 
 export type { SettingRequirement, SettingValue } from '@lostsky/api/error-format'
@@ -15,6 +16,16 @@ export interface AccessSnapshotLike {
     enabled: boolean
     label: string
   } | undefined>
+  file_upload?: FileUploadAvailability
+}
+
+export interface FileUploadAvailability {
+  count: number
+  total_size: number
+  size_limit: number | null
+  remaining_size: number | null
+  available: boolean
+  reason: 'quota' | null
 }
 
 export function hasPermission(snapshot: AccessSnapshotLike | undefined, permission: string) {
@@ -46,9 +57,13 @@ export function fileUploadReason(snapshot: AccessSnapshotLike | undefined) {
   return ''
 }
 
+export function fileAvailabilityReason(state: FileUploadAvailability | undefined) {
+  if (!state || state.available) return ''
+  if (state.reason === 'quota') return ERROR_MESSAGES.file.quota
+  return ''
+}
+
 export function resourceUploadReason(snapshot: AccessSnapshotLike | undefined) {
   if (!snapshot) return ''
-  const ability = snapshot.abilities?.file
-  if (ability && !ability.enabled) return abilityReason('file', ability.label ?? '文件上传')
-  return ''
+  return fileAvailabilityReason(snapshot.file_upload)
 }

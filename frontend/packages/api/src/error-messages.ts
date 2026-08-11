@@ -1,6 +1,7 @@
 export const ERROR_MESSAGES = {
   request: {
     failed: '请求失败',
+    invalidResponse: '服务响应格式异常，请稍后重试',
     timeoutOrCancelled: '请求超时或已取消',
     networkFailure: '网络请求失败',
   },
@@ -9,6 +10,9 @@ export const ERROR_MESSAGES = {
     tooManyRequests: '操作太频繁，请稍后再试',
     serviceUnavailable: '服务暂时不可用，请稍后再试',
     networkConnectionFailed: '网络连接失败，请检查网络后重试',
+  },
+  file: {
+    quota: '该团队文件已达到上限，请联系团队管理员。',
   },
   access: {
     permission: {

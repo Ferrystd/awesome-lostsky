@@ -62,7 +62,11 @@ class Member
         $data   = $request->only(self::PROFILE_FIELDS, 'post');
 
         $service = app(TeamMemberService::class);
-        $service->add($request->team_id, $userId, $data);
+        $memberId = $service->add($request->team_id, $userId, $data);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'create', 'member', $memberId,
+            ['changed_fields' => ['user_id']]
+        );
 
         return message('成员已添加');
     }
@@ -78,6 +82,10 @@ class Member
 
         $service = app(TeamMemberService::class);
         $service->edit($request->team_id, $memberId, $data);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'update', 'member', $memberId,
+            ['changed_fields' => array_keys($data), 'changed' => $data !== []]
+        );
 
         return message('成员已更新');
     }
@@ -91,6 +99,10 @@ class Member
 
         $service = app(TeamMemberService::class);
         $service->block($request->team_id, $memberId);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'block', 'member', $memberId,
+            ['changed_fields' => ['status'], 'changes' => [['field' => 'status', 'before' => 'active', 'after' => 'blocked']]]
+        );
 
         return message('成员已封禁');
     }
@@ -104,6 +116,10 @@ class Member
 
         $service = app(TeamMemberService::class);
         $service->unblock($request->team_id, $memberId);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'unblock', 'member', $memberId,
+            ['changed_fields' => ['status'], 'changes' => [['field' => 'status', 'before' => 'blocked', 'after' => 'active']]]
+        );
 
         return message('成员已解封');
     }
@@ -116,6 +132,10 @@ class Member
             $request->team_id,
             $memberId,
             $request->post('slug/s', '')
+        );
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'setSlug', 'member', $memberId,
+            ['changed_fields' => ['slug']]
         );
 
         return success(['slug' => $identity->slug], '成员标识已确定');
@@ -132,6 +152,11 @@ class Member
             $request->team_id,
             $request->post('member_id/d', 0),
             $input['search_override']
+        );
+        $memberId = $request->post('member_id/d', 0);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'setSearch', 'member', $memberId,
+            ['changed_fields' => ['search_override']]
         );
 
         return message('成员搜索设置已更新');

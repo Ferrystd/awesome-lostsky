@@ -62,6 +62,31 @@ foreach ($apps as $app) {
     }
 }
 
+$teamOpenApi = json_decode((string) file_get_contents("{$root}/docs/openapi/team.openapi.json"), true, 512, JSON_THROW_ON_ERROR);
+$shopOpenApi = json_decode((string) file_get_contents("{$root}/docs/openapi/shop.openapi.json"), true, 512, JSON_THROW_ON_ERROR);
+$requiredUsage = ['count', 'total_size', 'size_limit', 'remaining_size', 'available', 'reason'];
+foreach (['team' => $teamOpenApi, 'shop' => $shopOpenApi] as $app => $document) {
+    $required = $document['components']['schemas']['FileUsage']['required'] ?? [];
+    if (array_diff($requiredUsage, $required)) {
+        $errors[] = "{$app}: FileUsage must expose the complete byte-capacity status";
+    }
+}
+if (!in_array('file_upload', $teamOpenApi['components']['schemas']['TeamAccessSnapshot']['required'] ?? [], true)
+    || !in_array('file_upload', $teamOpenApi['components']['schemas']['JoinForm']['required'] ?? [], true)) {
+    $errors[] = 'team: access and join form contracts must expose file_upload';
+}
+if (!in_array('file_upload', $shopOpenApi['components']['schemas']['WorkspaceAccessSnapshot']['required'] ?? [], true)
+    || !in_array('file_upload', $shopOpenApi['components']['schemas']['CustomerSelfProfile']['required'] ?? [], true)) {
+    $errors[] = 'shop: manage access and customer profile contracts must expose file_upload';
+}
+$restartSchema = $shopOpenApi['paths']['/customer/service-redemptions/{id}/start']['post']
+    ['requestBody']['content']['application/json']['schema'] ?? [];
+if (($shopOpenApi['paths']['/customer/service-redemptions/{id}/start']['post']['requestBody']['required'] ?? false) !== true
+    || array_diff(['handler_entity_id'], $restartSchema['required'] ?? [])
+    || array_diff(['handler_entity_id', 'memo', 'field_values'], array_keys($restartSchema['properties'] ?? []))) {
+    $errors[] = 'shop: restart service redemption must document its required request body';
+}
+
 if ($errors) {
     fwrite(STDERR, implode(PHP_EOL, $errors) . PHP_EOL);
     exit(1);

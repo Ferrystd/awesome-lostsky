@@ -148,11 +148,9 @@ function explainPermission(permission: string | null) {
         /></RouterLink>
         </template>
       </nav>
-      <div class="manage-side-actions">
-        <NButton quaternary @click="logout"
-          ><template #icon><LogOut :size="17" /></template>退出登录</NButton
-        >
-      </div>
+      <NButton class="logout" quaternary @click="logout"
+        ><template #icon><LogOut :size="18" /></template>退出登录</NButton
+      >
     </aside>
     <Transition name="ls-backdrop"
       ><button
@@ -185,7 +183,7 @@ function explainPermission(permission: string | null) {
           <a class="manage-app-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>
         </template>
       </LsWorkspaceHeader>
-      <LsPage id="shop-manage-main" as="main" :width="width"><slot /></LsPage>
+      <LsPage id="shop-manage-main" as="main" :width="width"><div class="manage-page-content"><slot /></div></LsPage>
     </section>
   </div>
 </template>
@@ -284,18 +282,17 @@ function explainPermission(permission: string | null) {
 .manage-sidebar nav a.router-link-active svg:last-child {
   color: var(--afterglow);
 }
-.manage-side-actions {
-  display: grid;
-  gap: 0.25rem;
-}
-.manage-side-actions button {
+.logout {
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 0.55rem;
+  margin-top: auto;
   padding: 0 0.65rem;
   color: oklch(0.76 0.012 210);
+  background: transparent;
+  border: 0;
 }
 .manage-backdrop {
   position: fixed;
@@ -308,7 +305,7 @@ function explainPermission(permission: string | null) {
   min-width: 0;
   min-height: 100dvh;
 }
-.manage-workspace > :deep(.ls-page) {
+.manage-page-content {
   min-height: 0;
   align-content: start;
   padding: 1rem;
@@ -334,7 +331,7 @@ function explainPermission(permission: string | null) {
   .manage-workspace {
     grid-column: 2;
   }
-  .manage-workspace > :deep(.ls-page) {
+  .manage-page-content {
     padding: 1.75rem;
   }
 }

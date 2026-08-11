@@ -8,9 +8,10 @@ import LsFormList from "@lostsky/ui/components/LsFormList.vue";
 import LsFormSection from "@lostsky/ui/components/LsFormSection.vue";
 import LsInlineError from "@lostsky/ui/components/LsInlineError.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
+import LsSwitch from "@lostsky/ui/components/LsSwitch.vue";
 import { feedback } from "@lostsky/ui/feedback";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
-import { NInput, NSelect, NSwitch } from "naive-ui";
+import { NInput, NSelect } from "naive-ui";
 import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { canManage, loadManageAccess, productManagement } from "../../lib";
@@ -212,21 +213,21 @@ const inputTypes = [
                 /></LsField>
                 <div class="boolean-controls">
                   <label
-                    ><NSwitch
-                      :value="item.is_required === 1"
-                      @update:value="(v) => (item.is_required = v ? 1 : 0)"
+                    ><LsSwitch
+                      :model-value="item.is_required === 1"
+                      @update:model-value="(v) => (item.is_required = v ? 1 : 0)"
                     />必填</label
                   ><label
-                    ><NSwitch
-                      :value="item.is_customer_visible === 1"
-                      @update:value="
+                    ><LsSwitch
+                      :model-value="item.is_customer_visible === 1"
+                      @update:model-value="
                         (v) => (item.is_customer_visible = v ? 1 : 0)
                       "
                     />Customer 可见</label
                   ><label
-                    ><NSwitch
-                      :value="item.is_active === 1"
-                      @update:value="(v) => (item.is_active = v ? 1 : 0)"
+                    ><LsSwitch
+                      :model-value="item.is_active === 1"
+                      @update:model-value="(v) => (item.is_active = v ? 1 : 0)"
                     />启用</label
                   >
                 </div>

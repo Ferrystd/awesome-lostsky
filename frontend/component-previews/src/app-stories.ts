@@ -21,6 +21,7 @@ import EntitySelectOption from "../../apps/team/src/components/EntitySelectOptio
 import EntityProfileFields from "../../apps/team/src/components/EntityProfileFields.vue";
 import TeamShell from "../../apps/team/src/components/TeamShell.vue";
 import TransactionShell from "../../apps/transaction/src/components/TransactionShell.vue";
+import PersonalServiceLists from "../../apps/transaction/src/components/PersonalServiceLists.vue";
 import ShopManageShell from "../../apps/shop/src/components/ShopManageShell.vue";
 import {
   previewStates,
@@ -562,6 +563,18 @@ const transactionShell = story(
   },
 );
 
+const personalServiceLists = story(
+  "PersonalServiceLists",
+  ["default", "loading", "mobile"],
+  (state) => stage(h(PersonalServiceLists, {
+    offers: [{ id: 8, status: 1, quantity: "0.5", expire_time: 1893456000, create_time: 1786400000, total_price: "60.00", handler_cut: "48.00", service: { name: "候选人面试" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_scale: 1, unit_name: "人" }, redemption_fields: [{ id: 1, name: "微信号", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "candidate-a" }] }],
+    available: [{ id: 21, quantity: "1.0", status: 2, expire_time: 0, service: { name: "咨询服务" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_scale: 1, unit_name: "小时" }, redemption_fields: [{ id: 2, name: "预约说明", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "凌晨时段" }] }],
+    assigned: [{ id: 18, quantity: "2.0", status: 2, status_label: "核销中", expire_time: 0, service: { name: "方案复盘" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_scale: 1, unit_name: "小时" } }],
+    acting: state === "loading",
+  }), state === "mobile" ? "story-stage--mobile" : ""),
+  { disabled: "列表不提供整体禁用状态。", error: "读取错误由页面级异步状态表达。" },
+);
+
 const shopManageShell = story(
   "ShopManageShell",
   layout,
@@ -607,5 +620,6 @@ export const appStories: Record<string, StoryDefinition> = {
   EntityProfileFields: entityProfileFields,
   TeamShell: teamShell,
   TransactionShell: transactionShell,
+  PersonalServiceLists: personalServiceLists,
   ShopManageShell: shopManageShell,
 };

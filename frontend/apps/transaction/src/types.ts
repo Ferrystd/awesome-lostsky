@@ -34,12 +34,24 @@ export interface Pagination<T> {
 
 export interface ServiceField {
   id: number; name: string; value_type: string; input_type: string; options?: string[] | null
-  fill_stage: 'customer' | 'manager'; is_required: number; value?: Record<string, unknown> | null
+  fill_stage: 'customer' | 'manager'; is_required: number; value?: unknown
 }
+export type ServiceCustomer = Customer & { profile?: { name?: string | null } | null; name?: string | null }
 export interface ServiceRedemption {
   id: number; status: 1 | 2 | 3; expire_time: number; started_at?: number | null; completed_at?: number | null
-  service: { name: string; description?: string | null }; customer_id?: number | null; customer?: Customer | null
+  quantity: string; create_time?: number; status_label?: string; handler_cut?: string
+  entitlement?: { id?: number; unit_name?: string; quantity_scale?: number; quantity_step?: string } | null
+  service: { name: string; description?: string | null }; customer_id?: number | null; customer?: ServiceCustomer | null
   handler_entity_id?: number | null; handler?: Entity | null; sender?: Entity | null; cs?: Entity | null
   cancel_requests?: Array<{ id:number; status:1|2|3; reason:string }>; redemption_fields?: ServiceField[]
+  adjustments?: Array<{ id:number; name:string; quantity:string; unit_price:string; total_price:string; status:1|2|3; memo?:string|null }>
   capabilities?: { manage: boolean; approve_cancel: boolean }
+}
+
+export interface ServiceAssignmentOffer {
+  id: number; status: 1 | 2 | 3 | 4 | 5 | string; quantity: string; expire_time: number; create_time: number
+  total_price: string; handler_cut: string; memo?: string | null
+  service?: { name?: string | null } | null; customer?: ServiceCustomer | null
+  entitlement?: { unit_name?: string | null; quantity_scale?: number } | null
+  redemption_fields?: ServiceField[]
 }

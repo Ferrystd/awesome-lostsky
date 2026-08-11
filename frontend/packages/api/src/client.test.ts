@@ -127,6 +127,22 @@ describe('unauthorized responses', () => {
 })
 
 describe('team identity and common uploads', () => {
+  it('reports a malformed success response instead of the HTTP status text', async () => {
+    vi.stubGlobal('location', { hostname: '127.0.0.1', protocol: 'http:' })
+    vi.stubGlobal('document', { cookie: '' })
+    vi.stubGlobal('localStorage', storage())
+    vi.stubGlobal('sessionStorage', storage())
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      '<br><b>Notice</b>{"code":0,"message":"上传成功","data":{"url":"/uploaded.png"}}',
+      { status: 200, statusText: 'OK', headers: { 'Content-Type': 'application/json' } },
+    )))
+
+    await expect(api.upload(new Blob(['fixture']) as File)).rejects.toMatchObject({
+      message: '服务响应格式异常，请稍后重试',
+      status: 200,
+    })
+  })
+
   it('declares only the common app and does not consume response token headers', async () => {
     const local = storage({ lostsky_token: 'base-token' })
     const fetch = vi.fn().mockImplementation((_url: string, init: RequestInit) => {

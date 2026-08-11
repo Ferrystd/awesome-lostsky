@@ -3,7 +3,7 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
-import { NFormItem, NInput } from 'naive-ui'
+import { NInput } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { searchEntities } from '../lib/markdown'
 
@@ -72,51 +72,65 @@ defineExpose({ clearDraft: () => editor.value?.clearDraft() })
     <LsField :label="nameLabel" :for-id="`${idPrefix}-name`" required>
       <NInput :id="`${idPrefix}-name`" v-model:value="displayName" autocomplete="name" maxlength="80" show-count :disabled="disabled" />
     </LsField>
-    <NFormItem label="头像">
+    <LsField
+      label="头像"
+      :for-id="`${idPrefix}-avatar`"
+      hint="可粘贴已登记媒体 URL，或从本地上传图片。"
+    >
       <LsMediaUploadField
+        :id="`${idPrefix}-avatar`"
         v-model="profile.avatar"
         :upload="uploadFile"
         placeholder="图片 URL 或上传文件"
-        button-label="上传图片"
+        button-label="上传头像"
         accept="image/*"
         :disabled="uploadDisabled"
         :disabled-reason="disabledReason"
         @uploading="setUploading"
       />
-    </NFormItem>
+    </LsField>
     <LsField label="简短介绍" :for-id="`${idPrefix}-description`">
       <NInput :id="`${idPrefix}-description`" v-model:value="profile.description" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" maxlength="500" show-count :disabled="disabled" />
     </LsField>
-    <div class="entity-profile-fields__media">
-      <NFormItem label="介绍图片">
-        <LsMediaUploadField
-          v-model="profile.intro_image"
-          :upload="uploadFile"
-          placeholder="图片 URL 或上传文件"
-          button-label="上传图片"
-          accept="image/*"
-          :disabled="uploadDisabled"
-          :disabled-reason="disabledReason"
-          @uploading="setUploading"
-        />
-      </NFormItem>
-      <NFormItem label="介绍视频">
-        <LsMediaUploadField
-          v-model="profile.intro_video"
-          :upload="uploadFile"
-          placeholder="视频 URL 或上传文件"
-          button-label="上传视频"
-          accept="video/*"
-          :disabled="uploadDisabled"
-          :disabled-reason="disabledReason"
-          @uploading="setUploading"
-        />
-      </NFormItem>
-    </div>
-    <NFormItem label="详细介绍">
-      <LsMarkdownRenderer v-if="disabled" :content="profile.introduction_markdown || '未填写'" />
+    <LsField
+      label="介绍图片"
+      :for-id="`${idPrefix}-intro-image`"
+      hint="可粘贴已登记媒体 URL，或从本地上传图片。"
+    >
+      <LsMediaUploadField
+        :id="`${idPrefix}-intro-image`"
+        v-model="profile.intro_image"
+        :upload="uploadFile"
+        placeholder="图片 URL 或上传文件"
+        button-label="上传介绍图片"
+        accept="image/*"
+        :disabled="uploadDisabled"
+        :disabled-reason="disabledReason"
+        @uploading="setUploading"
+      />
+    </LsField>
+    <LsField
+      label="介绍视频"
+      :for-id="`${idPrefix}-intro-video`"
+      hint="可粘贴已登记媒体 URL，或从本地上传视频。"
+    >
+      <LsMediaUploadField
+        :id="`${idPrefix}-intro-video`"
+        v-model="profile.intro_video"
+        :upload="uploadFile"
+        placeholder="视频 URL 或上传文件"
+        button-label="上传介绍视频"
+        accept="video/*"
+        :disabled="uploadDisabled"
+        :disabled-reason="disabledReason"
+        @uploading="setUploading"
+      />
+    </LsField>
+    <LsField label="详细介绍" :for-id="`${idPrefix}-introduction`">
+      <LsMarkdownRenderer v-if="disabled" :id="`${idPrefix}-introduction`" :content="profile.introduction_markdown || '未填写'" />
       <LsMarkdownEditor
         v-else-if="editorReady"
+        :id="`${idPrefix}-introduction`"
         ref="editor"
         v-model="profile.introduction_markdown"
         :draft-key="draftKey"
@@ -125,12 +139,10 @@ defineExpose({ clearDraft: () => editor.value?.clearDraft() })
         :upload-disabled-reason="disabledReason"
         placeholder="写下详细介绍，输入 @ 可引用团队或其他成员…"
       />
-    </NFormItem>
+    </LsField>
   </div>
 </template>
 
 <style scoped>
 .entity-profile-fields { display: grid; gap: 1rem; }
-.entity-profile-fields__media { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-@media (max-width: 680px) { .entity-profile-fields__media { grid-template-columns: 1fr; } }
 </style>

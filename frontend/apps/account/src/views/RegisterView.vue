@@ -75,7 +75,7 @@ async function submit() {
       <LsField label="确认密码" for-id="register-confirm" required>
         <LsInput id="register-confirm" v-model="confirm" type="password" autocomplete="new-password" />
       </LsField>
-      <LsButton type="submit" size="lg" :loading="loading">验证并创建账号</LsButton>
+      <LsButton class="auth-submit" type="submit" size="lg" :loading="loading">验证并创建账号</LsButton>
     </form>
     <p class="switch">已有账号？<RouterLink :to="loginTarget">直接登录</RouterLink></p>
   </AuthShell>
@@ -83,7 +83,7 @@ async function submit() {
 
 <style scoped>
 .form { display: grid; gap: 1.25rem; }
-.form :deep(.ls-button) { width: 100%; margin-top: .25rem; }
+.auth-submit { width: 100%; margin-top: .25rem; }
 .error { padding: .75rem .85rem; color: var(--danger); background: color-mix(in oklch, var(--danger), white 93%); border-radius: 8px; font-size: .875rem; }
 .switch { margin: 1.5rem 0 0; text-align: center; color: var(--muted-ink); font-size: .9rem; }
 .switch a { color: var(--sky-lost-strong); font-weight: 700; }
