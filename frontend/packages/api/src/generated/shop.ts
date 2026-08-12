@@ -1001,7 +1001,7 @@ export interface paths {
         /** 当前顾客订单列表 */
         get: operations["shopCustomerOrders"];
         put?: never;
-        /** ?????????? */
+        /** 使用客户余额购买商品（商城关闭时拒绝） */
         post: operations["shopCustomerPurchase"];
         delete?: never;
         options?: never;
@@ -1067,7 +1067,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ?????? */
+        /** 公开商城资料（商城关闭时商品数量为 0） */
         get: operations["shopStorefront"];
         put?: never;
         post?: never;
@@ -1084,7 +1084,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ???????? */
+        /** 公开商品列表（商城关闭时返回合法空分页） */
         get: operations["shopStorefrontProducts"];
         put?: never;
         post?: never;
@@ -1101,7 +1101,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** ?????? */
+        /** 公开商品详情（商城关闭时返回“商品暂未开放”） */
         get: operations["shopStorefrontProduct"];
         put?: never;
         post?: never;

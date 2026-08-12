@@ -2058,6 +2058,7 @@ export interface components {
                 file: components["schemas"]["TeamAbilityState"];
                 doc: components["schemas"]["TeamAbilityState"];
                 transaction: components["schemas"]["TeamAbilityState"];
+                shop: components["schemas"]["TeamAbilityState"];
             };
             file_upload: components["schemas"]["FileUsage"];
             identity: {
@@ -2957,6 +2958,14 @@ export interface components {
             label: string;
             description?: string;
         };
+        TeamSettingAbilityRequirement: {
+            key: string;
+            label: string;
+            minimum_level: number;
+            satisfied: boolean;
+            /** @enum {string|null} */
+            reason: "missing" | "level" | "expired" | null;
+        };
         TeamSettingDefinition: {
             key: string;
             label: string;
@@ -2974,6 +2983,7 @@ export interface components {
             step?: number;
             min_length?: number;
             max_length?: number;
+            ability_requirement?: components["schemas"]["TeamSettingAbilityRequirement"];
         };
         TeamSettingApp: {
             app_name: string;

@@ -134,7 +134,7 @@ Team、Chat、Transaction 或 Shop 发现没有 Entity，或当前 Entity 不属
 ## 当前边界
 
 - Account 当前提供注册、登录、团队入口、退出当前设备、身份选择、成员身份回调与旧深链跳转；没有实体资料管理、密码重置、完整设备列表或全部设备管理页面。
-- 创建团队不会自动开通 `doc`、`file` 或 `transaction` Ability。
+- 创建团队不会自动开通 `doc`、`file`、`transaction` 或 `shop` Ability。
 - 身份切换不会绕过目标团队的 Ability、角色 Permission、可见范围或资源状态。
 - 团队不匹配、身份失效、Permission 不足和 Ability 缺失是不同问题，恢复责任人也不同。
 - Account 保留认证专属布局；没有团队或身份候选时会显示原因和下一步，而不是创建隐式个人空间。

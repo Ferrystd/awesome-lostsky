@@ -19,9 +19,9 @@ final class TeamGrantAbility extends Command
     protected function configure(): void
     {
         $this->setName('team:grant-ability')
-            ->setDescription('向团队授予能力（已有：doc 文档、file 文件上传、transaction 交易）')
+            ->setDescription('向团队授予能力（doc、file、transaction、shop）')
             ->addOption('team', null, Option::VALUE_REQUIRED, '团队 slug')
-            ->addOption('ability', null, Option::VALUE_REQUIRED, '能力标识：doc 文档、file 文件上传、transaction 交易')
+            ->addOption('ability', null, Option::VALUE_REQUIRED, '能力标识：doc、file、transaction、shop')
             ->addOption('level', null, Option::VALUE_OPTIONAL, '能力等级', '1')
             ->addOption('expire-time', null, Option::VALUE_OPTIONAL, '过期时间戳，0 表示永久', '0');
     }
@@ -68,6 +68,7 @@ final class TeamGrantAbility extends Command
                 'source_type' => 'manual',
             ]);
             app(AbilityResolver::class)->syncProjection($teamId, $abilityKey);
+            app(\app\service\AbilityExpirationScheduler::class)->schedule($grant);
             $ability = TeamAbility::where('team_id', $teamId)->where('ability_key', $abilityKey)->find();
 
             app(BusinessAudit::class)->recordPlatform(

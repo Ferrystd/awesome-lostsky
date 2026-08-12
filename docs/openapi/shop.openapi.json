@@ -4174,7 +4174,7 @@
         "tags": [
           "Customer"
         ],
-        "summary": "??????????",
+        "summary": "使用客户余额购买商品（商城关闭时拒绝）",
         "operationId": "shopCustomerPurchase",
         "security": [
           {
@@ -4735,7 +4735,7 @@
         "tags": [
           "Storefront"
         ],
-        "summary": "??????",
+        "summary": "公开商城资料（商城关闭时商品数量为 0）",
         "operationId": "shopStorefront",
         "security": [],
         "responses": {
@@ -4839,7 +4839,7 @@
         "tags": [
           "Storefront"
         ],
-        "summary": "????????",
+        "summary": "公开商品列表（商城关闭时返回合法空分页）",
         "operationId": "shopStorefrontProducts",
         "security": [],
         "parameters": [
@@ -4966,7 +4966,7 @@
         "tags": [
           "Storefront"
         ],
-        "summary": "??????",
+        "summary": "公开商品详情（商城关闭时返回“商品暂未开放”）",
         "operationId": "shopStorefrontProduct",
         "security": [],
         "parameters": [

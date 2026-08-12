@@ -55,11 +55,6 @@ class Ability
 
     private function label(string $abilityKey): string
     {
-        return match ($abilityKey) {
-            'file' => '文件上传',
-            'doc' => '文档',
-            'transaction' => '记账',
-            default => $abilityKey,
-        };
+        return \app\service\AbilityCatalog::label($abilityKey);
     }
 }

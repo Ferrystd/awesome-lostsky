@@ -31,6 +31,8 @@ class TeamNotice extends Base
      * @var array
      */
     protected $json = [];
+    protected $hidden = ['delete_time', 'dedup_key'];
+    protected $readonly = ['dedup_key'];
 
     public function team()
     {

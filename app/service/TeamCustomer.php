@@ -28,6 +28,7 @@ class TeamCustomer
     public function purchase(int $teamId, int $customerId, array $data): int
     {
         $this->customer($teamId, $customerId);
+        app(ShopAvailability::class)->assertOpen($teamId);
 
         return app(Order::class)->create($teamId, [
             'product_id' => $data['product_id'] ?? null,

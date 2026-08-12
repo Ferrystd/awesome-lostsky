@@ -18,6 +18,9 @@ return [
         'HttpEnd'  => [],
         'LogLevel' => [],
         'LogWrite' => [],
+        \app\event\TeamAbilityExpired::class => [
+            \app\listener\SendAbilityExpirationNotice::class,
+        ],
     ],
 
     'subscribe' => [

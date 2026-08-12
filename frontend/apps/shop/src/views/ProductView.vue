@@ -3,6 +3,7 @@ import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { ArrowLeft, ArrowRight } from '@lucide/vue'
 import { computed } from 'vue'
+import { friendlyError } from '@lostsky/api/client'
 import { RouterLink, useRoute } from 'vue-router'
 import { formatMoney, shopApi } from '../lib'
 
@@ -13,7 +14,7 @@ const product = useQuery({ queryKey: computed(() => ['shop-product', id.value]),
 
 <template>
   <div v-if="product.isPending.value" class="page-skeleton"><span /><span /><span /></div>
-  <section v-else-if="product.isError.value" class="state-page"><p>商品未抵达</p><h1 tabindex="-1">无法打开这个商品</h1><button type="button" @click="product.refetch()">重新加载</button></section>
+  <section v-else-if="product.isError.value" class="state-page"><p>商品未抵达</p><h1 tabindex="-1">{{ friendlyError(product.error.value) }}</h1><button type="button" @click="product.refetch()">重新加载</button></section>
   <article v-else-if="product.data.value" class="product-page">
     <RouterLink class="back-link" to="/"><ArrowLeft :size="18" aria-hidden="true" />返回陈列</RouterLink>
     <div class="product-hero">

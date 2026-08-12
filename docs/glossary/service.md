@@ -4,11 +4,25 @@
 
 列出 `app/service` 中各类直接声明的 public 方法。`?类型` 表示可空，`= 值` 表示默认值；类型名称省略 `app\` 前缀。
 
+## AbilityCatalog
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `all` | — | `array` |
+| `label` | `string $key` | `string` |
+
+## AbilityExpirationScheduler
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `schedule` | `model\TeamAbilityGrant $grant` | `?int` |
+
 ## AbilityResolver
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `resolve` | `int $teamId`、`string $key`、`int $minimumLevel = 1`、`?int $at = null` | `array` |
+| `resolveGrants` | `int $teamId`、`string $key`、`int $minimumLevel = 1`、`?int $at = null` | `array` |
 | `available` | `int $teamId`、`string $key`、`int $minimumLevel = 1` | `bool` |
 | `syncProjection` | `int $teamId`、`string $key` | `void` |
 
@@ -342,6 +356,7 @@
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `send` | `int $teamId`、`string $title`、`?string $content = null`、`bool $isPinned = false` | `array` |
+| `sendOnce` | `int $teamId`、`string $title`、`?string $content`、`string $dedupKey` | `array` |
 | `sendToEntity` | `int $senderTeamId`、`int $entityId`、`string $title`、`?string $content = null`、`bool $isPinned = false` | `array` |
 | `list` | `int $teamId`、`array $filters = []`、`int $page = 1`、`int $limit = 20` | `array` |
 | `listForEntity` | `int $entityId`、`array $filters = []`、`int $page = 1`、`int $limit = 20` | `array` |
@@ -590,6 +605,13 @@
 | `reassign` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`int $handlerEntityId`、`string $reason` | `void` |
 | `complete` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`array $fieldValues = []` | `void` |
 
+## ShopAvailability
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `open` | `int $teamId` | `bool` |
+| `assertOpen` | `int $teamId` | `void` |
+
 ## SmsVerification
 
 | 方法 | 参数 | 返回 |
@@ -732,6 +754,7 @@
 | `schema` | `int $teamId` | `array` |
 | `set` | `int $teamId`、`string $appName`、`string $key`、`mixed $value`、`int $visibility = 1`、`array $targets = []` | `void` |
 | `batch` | `int $teamId`、`string $appName`、`array $kv` | `void` |
+| `closeShop` | `int $teamId` | `bool` |
 
 ## Transaction
 

@@ -28,15 +28,23 @@ php think admin:revoke --user=123 --role=super_admin
 
 ```bash
 php think team:grant-ability --team=example-team --ability=doc
-php think team:grant-ability --team=example-team --ability=transaction --level=2 --expire-time=1798761599
+php think team:grant-ability --team=example-team --ability=shop --level=1 --expire-time=1798761599
 ```
 
 - `--team`：必填，现有团队 slug。
-- `--ability`：必填，已有能力标识：`doc`（文档）、`file`（文件上传）或 `transaction`（交易）。
+- `--ability`：必填，已有能力标识：`doc`（文档）、`file`（文件上传）、`transaction`（交易）或 `shop`（商城）。
 - `--level`：可选，正整数能力等级，默认 `1`。
 - `--expire-time`：可选，Unix 时间戳；默认 `0`，表示永久有效。
 
 同一团队与能力重复授予时会更新等级和有效期；已软删除的记录会恢复。命令变更写入 `business_audit_event`，来源为 `cli`，认证用户与实体为空。
+
+首次发布 Database Ability 到期队列前，在导入数据库补丁后为已有有限期 Grant 补投一次任务：
+
+```bash
+php think ability:expiration:backfill
+```
+
+日常新建有限期 Grant 会在授权事务内自动创建到期任务。
 
 ## 发送团队通知
 

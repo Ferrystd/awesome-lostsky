@@ -11,9 +11,11 @@ class Storefront
     public function home(int $teamId): array
     {
         $profile = app(Display::class)->profile($teamId);
-        $profile['product_count'] = TeamProduct::where('team_id', $teamId)
+        $profile['product_count'] = app(ShopAvailability::class)->open($teamId)
+            ? TeamProduct::where('team_id', $teamId)
             ->where('is_active', 1)
-            ->count();
+            ->count()
+            : 0;
 
         return $profile;
     }
@@ -21,6 +23,9 @@ class Storefront
     public function products(int $teamId, int $page = 1, int $limit = 20): array
     {
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
+        if (!app(ShopAvailability::class)->open($teamId)) {
+            return ['total' => 0, 'list' => [], 'page' => $page, 'limit' => $limit];
+        }
         $query = TeamProduct::where('team_id', $teamId)->where('is_active', 1);
         $paginator = $query->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
         $total = $paginator->total();
@@ -34,6 +39,7 @@ class Storefront
 
     public function product(int $teamId, int $id): array
     {
+        app(ShopAvailability::class)->assertOpen($teamId);
         $product = TeamProduct::where('team_id', $teamId)
             ->where('is_active', 1)
             ->with(['handlers.subject.profile'])

@@ -22,7 +22,7 @@ class AbilityCard
     public function index(Request $request)
     {
         $resolver = app(\app\service\AbilityResolver::class);
-        $labels = ['doc' => '文档', 'file' => '文件', 'transaction' => '流水'];
+        $labels = array_column(\app\service\AbilityCatalog::all(), 'label', 'key');
         $result = [];
         foreach ($labels as $key => $label) {
             $ability = $key === 'file'

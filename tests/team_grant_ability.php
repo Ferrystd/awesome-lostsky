@@ -8,6 +8,7 @@ use app\model\Team;
 use app\model\TeamAbility;
 use app\model\TeamAbilityGrant;
 use app\model\User;
+use think\facade\Db;
 use think\App;
 
 (new App(dirname(__DIR__)))->initialize();
@@ -60,6 +61,13 @@ try {
         throw new RuntimeException('Grant command did not persist the requested ability');
     }
     $abilityId = (int) $ability->id;
+    $jobScope = static fn () => Db::name('jobs')
+        ->where('queue', 'ability-expiration')
+        ->whereLike('payload', '%"team_id":' . (int) $team->id . '%');
+    $queued = $jobScope()->find();
+    if (!$queued || (int) $queued['available_time'] !== 2000000001) {
+        throw new RuntimeException('Finite grant did not enqueue its expiration check at expire_time + 1');
+    }
 
     [$exitCode] = $run([
         '--team=' . $team->slug,
@@ -73,6 +81,9 @@ try {
         || $ability->level !== 3
         || $ability->expire_time !== 0) {
         throw new RuntimeException('Repeated grant did not update the existing ability');
+    }
+    if ($jobScope()->count() !== 1) {
+        throw new RuntimeException('Permanent grant unexpectedly enqueued an expiration task');
     }
 
     $ability->delete();
@@ -113,11 +124,14 @@ try {
     if ($exitCode !== 0
         || !str_contains($stdout, 'doc')
         || !str_contains($stdout, 'file')
-        || !str_contains($stdout, 'transaction')) {
+        || !str_contains($stdout, 'transaction')
+        || !str_contains($stdout, 'shop')) {
         throw new RuntimeException('Grant command help does not describe existing abilities');
     }
 } finally {
     if (isset($abilityId)) {
+        Db::name('jobs')->where('queue', 'ability-expiration')
+            ->whereLike('payload', '%"team_id":' . (int) $team->id . '%')->delete();
         $auditIds = BusinessAuditEvent::withTrashed()
             ->where('application', 'admin')
             ->where('action', 'ability.grant')

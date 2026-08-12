@@ -121,6 +121,10 @@ try {
         $settingApps[$settingApp['app_name']] = $settingApp;
     }
     $assertSame(['entity', 'member', 'chat', 'shop', 'service', 'display'], array_keys($settingApps), 'team setting apps keep their configured order');
+    $assertSame('实体', $settingApps['entity']['label'] ?? null, 'entity settings use the concise visible group label');
+    $assertSame('成员', $settingApps['member']['label'] ?? null, 'member settings use the concise visible group label');
+    $assertSame('服务', $settingApps['service']['label'] ?? null, 'service settings use the concise visible group label');
+    $assertSame('展示', $settingApps['display']['label'] ?? null, 'display settings use the concise visible group label');
     $serviceSettingFields = [];
     foreach ($settingApps['service']['settings'] ?? [] as $settingField) {
         $serviceSettingFields[$settingField['key']] = $settingField;

@@ -414,7 +414,8 @@
             "required": [
               "file",
               "doc",
-              "transaction"
+              "transaction",
+              "shop"
             ],
             "properties": {
               "file": {
@@ -424,6 +425,9 @@
                 "$ref": "#/components/schemas/TeamAbilityState"
               },
               "transaction": {
+                "$ref": "#/components/schemas/TeamAbilityState"
+              },
+              "shop": {
                 "$ref": "#/components/schemas/TeamAbilityState"
               }
             }
@@ -2633,6 +2637,17 @@
           }
         }
       },
+      "TeamSettingAbilityRequirement": {
+        "type": "object",
+        "required": ["key", "label", "minimum_level", "satisfied", "reason"],
+        "properties": {
+          "key": {"type": "string"},
+          "label": {"type": "string"},
+          "minimum_level": {"type": "integer", "minimum": 1},
+          "satisfied": {"type": "boolean"},
+          "reason": {"type": "string", "nullable": true, "enum": ["missing", "level", "expired"]}
+        }
+      },
       "TeamSettingDefinition": {
         "type": "object",
         "required": [
@@ -2703,6 +2718,9 @@
           },
           "max_length": {
             "type": "integer"
+          },
+          "ability_requirement": {
+            "$ref": "#/components/schemas/TeamSettingAbilityRequirement"
           }
         }
       },

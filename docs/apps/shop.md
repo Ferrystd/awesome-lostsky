@@ -19,7 +19,7 @@ Shop 同时承载团队的展示型商城和既有商家管理接口。访客通
 
 ## 鉴权边界
 
-`GET /storefront*` 无需登录，团队由 `{slug}.shop.lostsky.work` 的请求上下文确定。商品与商家订单入口要求四种团队实体 JWT，并经过
+`GET /storefront*` 无需登录，团队由 `{slug}.shop.lostsky.work` 的请求上下文确定。公开商品必须同时满足 `shop.enabled=true` 与有效的 Shop Ability；关闭时列表为空，详情返回“商品暂未开放”。商品与商家订单入口要求四种团队实体 JWT，并经过
 `TeamAuth`。`POST /customer/bind` 接受基础 User JWT 或任意有效 acting Entity，不使用
 `TeamAuth`；其余客户接口只接受属于当前团队的 `teamCustomer`。
 

@@ -4,9 +4,11 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\enum\TeamMemberStatus;
+use app\exception\AccessDeniedException;
 use app\model\EntitySession;
 use app\model\Entity;
 use app\model\Team;
+use app\model\TeamAbility;
 use app\model\TeamCustomer;
 use app\model\TeamCustomerBalance;
 use app\model\TeamOrder;
@@ -21,6 +23,7 @@ use app\service\IdentitySession;
 use app\service\Jwt;
 use app\service\Product;
 use app\service\Storefront;
+use app\service\TeamSetting;
 use app\service\TeamCustomer as CustomerService;
 use think\App;
 use think\exception\HttpException;
@@ -90,6 +93,74 @@ try {
         'cost' => '1.00',
     ]);
     TeamProduct::where('id', $inactiveId)->update(['is_active' => 0]);
+
+    $closedHome = app(Storefront::class)->home((int) $team->id);
+    $closedPage = app(Storefront::class)->products((int) $team->id);
+    $assert((int) $closedHome['product_count'] === 0, 'storefront defaults to a closed product count');
+    $assert($closedPage['total'] === 0 && $closedPage['list'] === [], 'closed storefront returns a legal empty page');
+    $assertThrows(
+        fn () => app(Storefront::class)->product((int) $team->id, $activeId),
+        403,
+        'closed storefront product detail explains that products are unavailable'
+    );
+    $assertThrows(
+        fn () => app(TeamSetting::class)->batch((int) $team->id, 'shop', ['enabled' => true]),
+        403,
+        'shop setting cannot be enabled without Shop Ability'
+    );
+    try {
+        app(TeamSetting::class)->batch((int) $team->id, 'shop', ['enabled' => true]);
+    } catch (AccessDeniedException $exception) {
+        $assert(
+            $exception->data() === [
+                'kind' => 'ability',
+                'key' => 'shop',
+                'label' => '商城',
+                'minimum_level' => 1,
+                'reason' => 'missing',
+            ],
+            'shop setting denial returns the structured Ability requirement'
+        );
+    }
+    app(TeamSetting::class)->batch((int) $team->id, 'shop', ['enabled' => false]);
+    $shopAbility = new TeamAbility;
+    $shopAbility->save([
+        'team_id' => (int) $team->id,
+        'ability_key' => 'shop',
+        'level' => 1,
+        'expire_time' => time() - 1,
+    ]);
+    $assertThrows(
+        fn () => app(TeamSetting::class)->batch((int) $team->id, 'shop', ['enabled' => true]),
+        403,
+        'shop setting cannot be enabled with an expired Shop Ability'
+    );
+    $shopAbility->save(['expire_time' => 0]);
+    app(TeamSetting::class)->batch((int) $team->id, 'shop', ['enabled' => true]);
+    $shopSchema = app(TeamSetting::class)->schema((int) $team->id);
+    $shopFields = [];
+    foreach ($shopSchema['apps'] as $settingApp) {
+        if ($settingApp['app_name'] !== 'shop') continue;
+        foreach ($settingApp['settings'] as $field) $shopFields[$field['key']] = $field;
+    }
+    $assert(
+        ($shopFields['enabled']['value'] ?? false) === true
+            && ($shopFields['enabled']['ability_requirement']['satisfied'] ?? false) === true,
+        'shop setting schema exposes its satisfied Ability requirement'
+    );
+
+    $shopAbility->save(['expire_time' => time() - 1]);
+    $assert(
+        app(Storefront::class)->home((int) $team->id)['product_count'] === 0
+            && (bool) app(TeamSetting::class)->internal((int) $team->id, 'shop')['enabled'] === true,
+        'public storefront checks Ability in real time before the worker closes the persisted setting'
+    );
+    $assertThrows(
+        fn () => app(Storefront::class)->product((int) $team->id, $activeId),
+        403,
+        'product detail is gated while an expiration job is delayed'
+    );
+    $shopAbility->save(['expire_time' => 0]);
 
     $page = app(Storefront::class)->products((int) $team->id);
     $assert(count($page['list']) === 1 && (int) $page['list'][0]['id'] === $activeId, 'storefront only lists active products');
@@ -236,6 +307,16 @@ try {
         'legacy shop customer can claim their first slug and then maintain a profile'
     );
     $customerService = app(CustomerService::class);
+    app(TeamSetting::class)->batch((int) $team->id, 'shop', ['enabled' => false]);
+    $assertThrows(
+        fn () => $customerService->purchase((int) $team->id, $customerId, [
+            'product_id' => $activeId,
+            'quantity' => 1,
+        ]),
+        403,
+        'customer cannot forge a purchase while the shop is closed'
+    );
+    app(TeamSetting::class)->batch((int) $team->id, 'shop', ['enabled' => true]);
     $assertThrows(
         fn () => $customerService->purchase((int) $team->id, $customerId, [
             'product_id' => $activeId,

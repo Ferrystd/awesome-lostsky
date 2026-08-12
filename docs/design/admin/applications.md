@@ -28,6 +28,7 @@
 - Team 成员、个人资料与实体详情复用 `EntityProfileFields`；其中单文件资料上传统一交给 `LsMediaUploadField`。Team、成员与虚拟实体本人编辑位于 Team 个人工作台，并复用公共字段与权限卡片。Team Entity 的字段和业务内容按类型与参与关系受限；身份领取留在 Account，客户资料留在商城客户中心。文档、文件和资源目录的行内动作统一使用 `LsResponsiveActions`；文件与文档分页统一使用 `NPagination`。
 - 文档编辑页的 `LsMarkdownEditor` 是第三方编辑器实现级例外：保留其原有的模式切换、候选项与工具栏视觉结构，不将 `NRadioGroup`、`NButton` 或 `NInput` 的通用皮肤套入编辑器内部。页面其余字段仍使用标准 Naive UI；验收时确认编辑器模式、源码与对象候选项和统一化前版本一致。
 - 文档创建/编辑页的文档标签与实体资料管理页的公开文档分组统一使用 `LsFormList`。两处都允许添加、删除、拖拽及按钮排序，并按顺序提交；标签错误必须就近阻止保存。公开文档分组只出现在 Team、Member 和 Virtual 实体，Customer 不显示；缺少 `team.entity.profile.manage` 时展示只读内容并禁用列表变更，不发写请求。
+- 团队设置各应用分组的保存动作统一使用 `SettingsSaveButton`：桌面端固定为紧凑的 `9rem` 等宽按钮，小于 640px 时铺满标题动作区。宽度由该 Team 业务组件内部持有，不得由设置页面穿透、传参或复制 CSS；其他 `LsButton` 与 `LsSectionHeader` 动作不继承此等宽规则。
 
 ### Team 资料表单尺寸
 

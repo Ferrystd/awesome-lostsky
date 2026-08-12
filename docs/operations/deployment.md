@@ -45,6 +45,23 @@ composer --version
 
 ## 后端部署
 
+### Ability 到期 Database Worker
+
+导入 `sql/patches/20260812_shop_ability_expiration.sql` 后，执行一次 `php think ability:expiration:backfill`，再由 Supervisor 常驻消费独立队列：
+
+```ini
+[program:lostsky-ability-expiration]
+command=php /www/deploy/lostsky/think queue:work database --queue=ability-expiration --sleep=2 --tries=0 --timeout=110
+directory=/www/deploy/lostsky
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/lostsky/ability-expiration-worker.log
+stopwaitsecs=120
+```
+
+队列使用业务数据库的 `jobs` 表。部署新代码后执行 `php think queue:restart`，并确认 Supervisor 中进程为 `RUNNING`。公开商城接口始终实时校验 Shop Ability，因此 Worker 延迟不会继续展示或销售商品。
+
 1. 安装生产依赖：
 
    ```bash

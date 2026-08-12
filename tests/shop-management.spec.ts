@@ -654,6 +654,7 @@ test("platform admin creates an Ability package from the fixed catalog", async (
         { key: "doc", label: "文档", levels: [1] },
         { key: "file", label: "文件", levels: [1, 2, 3] },
         { key: "transaction", label: "流水", levels: [1] },
+        { key: "shop", label: "商城", levels: [1] },
       ];
     else if (path.endsWith("/entitlements/packages/9"))
       data = {

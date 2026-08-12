@@ -1264,7 +1264,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     else if (url.pathname.endsWith('/setting/schema')) data = {
       apps: [
         {
-          app_name: 'entity', label: '对象搜索', description: '控制团队和成员是否可以通过对象标识被搜索。', order: 10,
+          app_name: 'entity', label: '实体', description: '控制团队和成员是否可以通过对象标识被搜索。', order: 10,
           settings: [
             { key: 'team_searchable', label: '团队自身可搜索', description: '允许已登录用户通过 @slug 找到当前团队。', type: 'boolean', control: 'switch', order: 10, default: false, value: false },
             { key: 'member_searchable', label: '成员默认可搜索', description: '成员未设置个人覆盖值时采用此默认值。', type: 'boolean', control: 'switch', order: 20, default: false, value: false },
@@ -1272,6 +1272,12 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
               { value: 'team', label: '团队优先', description: '团队关闭搜索时，所有成员均不可被搜索。' },
               { value: 'member', label: '成员优先', description: '成员的显式设置可以覆盖团队默认值。' },
             ] },
+          ],
+        },
+        {
+          app_name: 'member', label: '成员', description: '配置成员离队、复职与非正常状态实体的处理方式。', order: 15,
+          settings: [
+            { key: 'inactive_entity_available', label: '封禁或离队后仍可代管实体', description: '开启后，有代入权限的实体仍可以进入并使用其完整业务能力。', type: 'boolean', control: 'switch', order: 20, default: false, value: false },
           ],
         },
         {
@@ -1294,11 +1300,12 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         {
           app_name: 'shop', label: '商城', description: '控制商城订单与其他应用之间的自动联动。', order: 30,
           settings: [
+            { key: 'enabled', label: '开放商城', description: '控制已上架商品是否向客户开放浏览和购买。', type: 'boolean', control: 'switch', order: 5, default: false, value: false, ability_requirement: { key: 'shop', label: '商城', minimum_level: 1, satisfied: false, reason: 'missing' } },
             { key: 'sync_transaction', label: '自动同步记账流水', description: '下单时自动生成关联流水；仅在团队已开通且未过期的 Transaction Ability 时生效。', type: 'boolean', control: 'switch', order: 10, default: true, value: true },
           ],
         },
         {
-          app_name: 'display', label: '公开主页', description: '配置团队公开主页的固定展示文案。', order: 40,
+          app_name: 'display', label: '展示', description: '配置团队公开主页的固定展示文案。', order: 40,
           settings: [
             { key: 'homepage_welcome', label: '主页欢迎语', description: '团队公开简介为空时显示在主页首屏。', type: 'string', control: 'input', order: 10, default: '欢迎来到我们的公开主页', value: '欢迎来到我们的公开主页', min_length: 1, max_length: 100 },
             { key: 'homepage_entities_link', label: '实体入口文案', description: '主页首屏中跳转到公开实体区域的链接文案。', type: 'string', control: 'input', order: 20, default: '浏览公开实体', value: '浏览公开实体', min_length: 1, max_length: 100 },
@@ -1597,10 +1604,22 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.locator('.ls-page-header .member-primary-actions')).toContainText('保存成员')
     }
     if (path === '/settings') {
-      await expect(page.getByRole('heading', { name: '对象搜索', level: 2 })).toBeVisible()
+      const saveButtons = page.locator('.settings-header .ls-button')
+      const saveButtonWidths = await saveButtons.evaluateAll((buttons) => buttons.map(button => Math.round(button.getBoundingClientRect().width)))
+      const clippedSaveLabels = await saveButtons.locator('.n-button__content').evaluateAll((labels) => labels.filter(label => label.scrollWidth > label.clientWidth).map(label => label.textContent))
+      expect(saveButtonWidths.length).toBeGreaterThan(1)
+      expect(clippedSaveLabels).toEqual([])
+      if ((page.viewportSize()?.width ?? 0) >= 641) {
+        expect(new Set(saveButtonWidths)).toEqual(new Set([144]))
+      } else {
+        expect(new Set(saveButtonWidths).size).toBe(1)
+        expect(saveButtonWidths[0]).toBeGreaterThan(144)
+      }
+      await expect(page.getByRole('heading', { name: '实体', level: 2 })).toBeVisible()
+      await expect(page.getByRole('button', { name: '保存成员设置' })).toBeVisible()
       await expect(page.getByRole('heading', { name: '聊天', level: 2 })).toBeVisible()
       await expect(page.getByRole('heading', { name: '商城', level: 2 })).toBeVisible()
-      await expect(page.getByRole('heading', { name: '公开主页', level: 2 })).toBeVisible()
+      await expect(page.getByRole('heading', { name: '展示', level: 2 })).toBeVisible()
       await expect(page.getByRole('switch', { name: '团队自身可搜索' })).toBeVisible()
       await expect(page.getByRole('switch', { name: '成员默认可搜索' })).toBeVisible()
       await expect(page.getByRole('switch', { name: '自动同步记账流水' })).toBeChecked()
@@ -1614,6 +1633,16 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.getByText('新参与者可以查看加入前的全部群聊消息。')).toBeVisible()
       await expect(page.getByText('InviteOnly', { exact: true })).toHaveCount(0)
       await expect(page.getByText('FromJoin', { exact: true })).toHaveCount(0)
+      const shopSwitch = page.locator('[aria-labelledby="setting-shop-enabled-label"]')
+      await expect(shopSwitch).toHaveAttribute('aria-disabled', 'true')
+      await expect(shopSwitch).toHaveAttribute('title', /商城/)
+      await expect(shopSwitch).toHaveCSS('cursor', 'not-allowed')
+      await expect(shopSwitch.locator('.n-switch__rail')).toHaveCSS('cursor', 'not-allowed')
+      await expect(shopSwitch.locator('.n-switch__button')).toHaveCSS('cursor', 'not-allowed')
+      await expect(shopSwitch.locator('.n-switch__button')).toHaveCSS('background-color', 'oklch(0.885 0.012 210)')
+      await expect(page.locator('.requirement-reason')).toHaveCount(0)
+      await shopSwitch.click({ force: true })
+      await expect(page.locator('.n-message').filter({ hasText: '商城' })).toBeVisible()
       await expect(page.locator('.settings-view .n-select')).toHaveCount(0)
       await expect(page.getByRole('textbox', { name: '消息编辑窗口' })).toHaveValue('15')
       await expect(page.getByRole('textbox', { name: '主页欢迎语' })).toHaveValue('欢迎来到我们的公开主页')
@@ -1623,7 +1652,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       const emptyCopy = page.getByRole('textbox', { name: '实体空状态文案' })
       await expect(emptyCopy).toHaveValue('团队暂时没有公开实体')
       await emptyCopy.fill('伙伴资料正在准备中')
-      await page.getByRole('button', { name: '保存公开主页设置' }).click()
+      await page.getByRole('button', { name: '保存展示设置' }).click()
       await expect.poll(() => settingPayload).toEqual({
         app_name: 'display',
         settings: {

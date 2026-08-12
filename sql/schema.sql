@@ -445,12 +445,14 @@ CREATE TABLE `team_notice` (
     `entity_id`   INT UNSIGNED NULL DEFAULT NULL COMMENT '通知的收件Entity ID（可为Team实体）',
     `title`       VARCHAR(200) NOT NULL DEFAULT '' COMMENT '通知标题',
     `content`     TEXT         NULL     COMMENT '通知正文(Markdown)',
+    `dedup_key`   VARCHAR(191) NULL DEFAULT NULL COMMENT '内部幂等键，不对 API 输出',
     `is_pinned`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否置顶 0-否 1-是',
     `is_read`     TINYINT      NOT NULL DEFAULT 0 COMMENT '收件Team或Entity共享已读 0-未读 1-已读',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_notice_dedup_key` (`dedup_key`),
     KEY `idx_notice_team_inbox` (`team_id`, `is_read`, `is_pinned`, `id`),
     KEY `idx_notice_sender_team` (`sender_team_id`, `id`),
     KEY `idx_notice_entity_inbox` (`entity_id`, `is_read`, `is_pinned`, `id`),
@@ -459,6 +461,22 @@ CREATE TABLE `team_notice` (
         OR (`team_id` IS NULL AND `entity_id` IS NOT NULL)
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='LostSky到Team的站内通知及Team到Entity的通知';
+
+-- ----------------------------
+-- Table: jobs
+-- think-queue Database driver
+-- ----------------------------
+CREATE TABLE `jobs` (
+    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `queue`          VARCHAR(255) NOT NULL,
+    `payload`        LONGTEXT NOT NULL,
+    `attempts`       TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    `reserve_time`   INT UNSIGNED NULL DEFAULT NULL,
+    `available_time` INT UNSIGNED NOT NULL,
+    `create_time`    INT UNSIGNED NOT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_jobs_queue` (`queue`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='think-queue数据库任务';
 
 -- ----------------------------
 -- Table: team_customer

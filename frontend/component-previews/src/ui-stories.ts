@@ -232,7 +232,7 @@ const statusTag = story('LsStatusTag', ['default', 'active', 'error', 'mobile'],
 
 const switchControl = story('LsSwitch', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'mobile'], state => stage(h(LsSwitch, {
   modelValue: state === 'active',
-  disabled: state === 'disabled',
+  disabled: state === 'disabled', disabledReason: state === 'disabled' ? '需要有效的商城 Ability' : '',
   loading: state === 'loading',
   'aria-label': '启用公开展示',
 })), { error: '开关原语不负责表达表单错误。' })

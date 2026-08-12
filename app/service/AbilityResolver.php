@@ -11,6 +11,38 @@ class AbilityResolver
     public function resolve(int $teamId, string $key, int $minimumLevel = 1, ?int $at = null): array
     {
         $at ??= time();
+        $resolved = $this->resolveGrants($teamId, $key, $minimumLevel, $at);
+        if ($resolved['source'] === 'grant') return $resolved;
+
+        $expiredGrant = TeamAbilityGrant::where('team_id', $teamId)
+            ->where('ability_key', $key)
+            ->where('starts_at', '<=', $at)
+            ->where('ends_at', '>', 0)
+            ->where('ends_at', '<', $at)
+            ->whereNull('revoked_at')
+            ->order('ends_at', 'desc')
+            ->find();
+        if ($expiredGrant) {
+            return $this->result(
+                (int) $expiredGrant->level,
+                (int) $expiredGrant->ends_at,
+                $minimumLevel,
+                $at,
+                'grant'
+            );
+        }
+
+        if (TeamAbilityGrant::where('team_id', $teamId)->where('ability_key', $key)->find()) return $resolved;
+
+        $legacy = TeamAbility::where('team_id', $teamId)->where('ability_key', $key)->find();
+        if (!$legacy) return $resolved;
+
+        return $this->result((int) $legacy->level, (int) $legacy->expire_time, $minimumLevel, $at, 'legacy');
+    }
+
+    public function resolveGrants(int $teamId, string $key, int $minimumLevel = 1, ?int $at = null): array
+    {
+        $at ??= time();
         $grants = TeamAbilityGrant::where('team_id', $teamId)
             ->where('ability_key', $key)
             ->where('starts_at', '<=', $at)
@@ -30,11 +62,7 @@ class AbilityResolver
             $expireTime = in_array(0, $expires, true) ? 0 : max($expires);
             return $this->result($level, $expireTime, $minimumLevel, $at, 'grant');
         }
-
-        $legacy = TeamAbility::where('team_id', $teamId)->where('ability_key', $key)->find();
-        if (!$legacy) return $this->result(0, 0, $minimumLevel, $at, 'missing');
-
-        return $this->result((int) $legacy->level, (int) $legacy->expire_time, $minimumLevel, $at, 'legacy');
+        return $this->result(0, 0, $minimumLevel, $at, 'missing');
     }
 
     public function available(int $teamId, string $key, int $minimumLevel = 1): bool

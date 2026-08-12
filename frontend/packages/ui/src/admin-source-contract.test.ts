@@ -329,4 +329,15 @@ describe('后台源码设计契约', () => {
     const source = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'components', 'TeamShell.vue'), 'utf8')
     expect(source).toMatch(/\.sidebar nav \.nav-disabled :deep\(\.n-button__content\)\{[^}]*grid-column:1\/-1;[^}]*width:100%;[^}]*display:grid;[^}]*grid-template-columns:24px minmax\(0,1fr\) auto/)
   })
+
+  it('Team 设置分组保存按钮由业务组件统一紧凑宽度', () => {
+    const page = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'views', 'SettingsView.vue'), 'utf8')
+    const button = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'views', 'settings', 'SettingsSaveButton.vue'), 'utf8')
+    expect(page).toContain('<SettingsSaveButton')
+    expect(page).not.toMatch(/settings-header[^}]*width:/)
+    expect(button).toContain("import LsButton from '@lostsky/ui/components/LsButton.vue'")
+    expect(button).toContain('.settings-save-button { width: 9rem; }')
+    expect(button).toContain('.settings-save-button { width: 100%; }')
+    expect(button).not.toContain('width?:')
+  })
 })

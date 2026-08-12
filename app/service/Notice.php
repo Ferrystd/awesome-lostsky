@@ -24,6 +24,26 @@ class Notice
         ], $title, $content, $isPinned);
     }
 
+    public function sendOnce(int $teamId, string $title, ?string $content, string $dedupKey): array
+    {
+        $this->assertTeam($teamId);
+        $dedupKey = trim($dedupKey);
+        if ($dedupKey === '' || strlen($dedupKey) > 191) {
+            throw new HttpException(422, '通知去重标识不合法');
+        }
+        $existing = TeamNotice::where('dedup_key', $dedupKey)->find();
+        if ($existing) {
+            return ['id' => (int) $existing->id, 'team_id' => (int) $existing->team_id];
+        }
+
+        return $this->create([
+            'team_id' => $teamId,
+            'sender_team_id' => null,
+            'entity_id' => null,
+            'dedup_key' => $dedupKey,
+        ], $title, $content, false);
+    }
+
     /**
      * Team -> Entity。执行者权限由 HTTP 中间件校验，通知以 Team 名义发送。
      */

@@ -167,6 +167,7 @@ class Redemption
                 'source_claim_id' => $claim->id,
             ]);
             app(AbilityResolver::class)->syncProjection($teamId, (string) $item->ability_key);
+            app(AbilityExpirationScheduler::class)->schedule($grant);
         }
     }
 

@@ -7,7 +7,7 @@ use app\enum\TeamMemberDepartureMode;
 
 return [
     'entity' => [
-        'label'       => '对象搜索',
+        'label'       => '实体',
         'description' => '控制团队和成员是否可以通过对象标识被搜索。',
         'order'       => 10,
         'settings'    => [
@@ -39,7 +39,7 @@ return [
         ],
     ],
     'member' => [
-        'label'       => '成员生命周期',
+        'label'       => '成员',
         'description' => '配置成员离队、复职与非正常状态实体的处理方式。',
         'order'       => 15,
         'settings'    => [
@@ -121,9 +121,18 @@ return [
     ],
     'shop' => [
         'label'       => '商城',
-        'description' => '控制商城订单与其他应用之间的自动联动。',
+        'description' => '控制公开商城开放状态，以及商城订单与其他应用之间的自动联动。',
         'order'       => 30,
         'settings'    => [
+            'enabled' => [
+                'label'       => '开放商城',
+                'description' => '开启后，客户可以浏览和购买已上架商品；关闭不影响后台与历史业务数据。',
+                'type'        => 'boolean',
+                'control'     => 'switch',
+                'default'     => false,
+                'ability'     => ['key' => 'shop', 'level' => 1],
+                'order'       => 5,
+            ],
             'sync_transaction' => [
                 'label'       => '自动同步记账流水',
                 'description' => '下单时自动生成关联流水；仅在团队已开通且未过期的 Transaction Ability 时生效。',
@@ -135,7 +144,7 @@ return [
         ],
     ],
     'service' => [
-        'label'       => '服务履约',
+        'label'       => '服务',
         'description' => '配置新服务、权益额度、公开接单与费用调整使用的团队默认值；单个服务或权益包可以覆盖。',
         'order'       => 35,
         'settings'    => [
@@ -190,7 +199,7 @@ return [
         ],
     ],
     'display' => [
-        'label'       => '公开主页',
+        'label'       => '展示',
         'description' => '配置团队公开主页的固定展示文案。',
         'order'       => 40,
         'settings'    => [

@@ -5,6 +5,7 @@ namespace app\service;
 
 use app\enum\Visibility as VisibilityEnum;
 use app\model\TeamSetting as TeamSettingModel;
+use app\exception\AccessDeniedException;
 use think\exception\HttpException;
 
 class TeamSetting
@@ -110,7 +111,7 @@ class TeamSetting
         foreach ($registry as $appName => $group) {
             $settings = [];
             foreach ($this->definitions($appName) as $key => $definition) {
-                $settings[] = $this->fieldSchema($appName, $key, $definition, $values[$appName][$key]);
+                $settings[] = $this->fieldSchema($teamId, $appName, $key, $definition, $values[$appName][$key]);
             }
             usort($settings, static fn (array $left, array $right): int => $left['order'] <=> $right['order']);
 
@@ -139,6 +140,9 @@ class TeamSetting
         $preparedVisibility = $this->visibility($visibility);
         $this->assertVisibility($preparedVisibility);
         $normalized = $this->normalize($appName, $key, $value);
+        $this->assertAbilityRequirements($teamId, $appName, [
+            $key => ['value' => $normalized],
+        ]);
         if ($appName === 'service') {
             $next = $this->internal($teamId, 'service');
             $next[$key] = $normalized;
@@ -164,6 +168,7 @@ class TeamSetting
             $this->assertVisibility($setting['visibility']);
             $prepared[$key] = $setting;
         }
+        $this->assertAbilityRequirements($teamId, $appName, $prepared);
         if ($appName === 'service') {
             $next = $this->internal($teamId, 'service');
             foreach ($prepared as $key => $setting) $next[$key] = $setting['value'];
@@ -194,6 +199,40 @@ class TeamSetting
         $after = $this->internal($teamId, 'member');
         if (!(bool) ($after['inactive_entity_available'] ?? false)) {
             app(IdentitySession::class)->revokeInactiveMembers($teamId);
+        }
+    }
+
+    public function closeShop(int $teamId): bool
+    {
+        if (!(bool) ($this->internal($teamId, 'shop')['enabled'] ?? false)) return false;
+        $this->persist(
+            $teamId,
+            'shop',
+            'enabled',
+            '0',
+            VisibilityEnum::Team,
+            []
+        );
+        return true;
+    }
+
+    private function assertAbilityRequirements(int $teamId, string $appName, array $prepared): void
+    {
+        $definitions = $this->definitions($appName);
+        foreach ($prepared as $key => $setting) {
+            $requirement = $definitions[$key]['ability'] ?? null;
+            if (!$requirement || $setting['value'] !== '1') continue;
+            $abilityKey = (string) ($requirement['key'] ?? '');
+            $minimumLevel = max(1, (int) ($requirement['level'] ?? 1));
+            $ability = app(AbilityResolver::class)->resolve($teamId, $abilityKey, $minimumLevel);
+            if (!$ability['enabled']) {
+                throw AccessDeniedException::ability(
+                    $abilityKey,
+                    AbilityCatalog::label($abilityKey),
+                    $minimumLevel,
+                    (string) $ability['reason']
+                );
+            }
         }
     }
 
@@ -392,7 +431,7 @@ class TeamSetting
         return $string;
     }
 
-    private function fieldSchema(string $appName, string $key, array $definition, string $value): array
+    private function fieldSchema(int $teamId, string $appName, string $key, array $definition, string $value): array
     {
         $type = (string) ($definition['type'] ?? 'string');
         $field = [
@@ -413,6 +452,18 @@ class TeamSetting
             if (array_key_exists($rule, $definition)) {
                 $field[$rule] = $definition[$rule];
             }
+        }
+        if (is_array($definition['ability'] ?? null)) {
+            $abilityKey = (string) ($definition['ability']['key'] ?? '');
+            $minimumLevel = max(1, (int) ($definition['ability']['level'] ?? 1));
+            $ability = app(AbilityResolver::class)->resolve($teamId, $abilityKey, $minimumLevel);
+            $field['ability_requirement'] = [
+                'key' => $abilityKey,
+                'label' => AbilityCatalog::label($abilityKey),
+                'minimum_level' => $minimumLevel,
+                'satisfied' => (bool) $ability['enabled'],
+                'reason' => $ability['reason'],
+            ];
         }
 
         return $field;

@@ -20,15 +20,9 @@ use think\facade\Db;
 
 final class EntitlementManagement
 {
-    private const ABILITIES = [
-        ['key' => 'doc', 'label' => '文档', 'levels' => [1]],
-        ['key' => 'file', 'label' => '文件', 'levels' => [1, 2, 3]],
-        ['key' => 'transaction', 'label' => '流水', 'levels' => [1]],
-    ];
-
     public function abilityCatalog(): array
     {
-        return self::ABILITIES;
+        return AbilityCatalog::all();
     }
 
     public function teamOptions(int $teamId): array
@@ -242,7 +236,7 @@ final class EntitlementManagement
             }
         }
         $catalog = [];
-        foreach (self::ABILITIES as $ability) $catalog[$ability['key']] = $ability['levels'];
+        foreach (AbilityCatalog::all() as $ability) $catalog[$ability['key']] = $ability['levels'];
         $normalizedAbilities = [];
         foreach ($abilityItems as $item) {
             $key = trim((string) ($item['ability_key'] ?? '')); $level = (int) ($item['level'] ?? 0); $days = (int) ($item['duration_days'] ?? 0);

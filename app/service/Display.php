@@ -394,6 +394,7 @@ class Display
 
     private function publicProducts(int $teamId, EntityModel $entity): array
     {
+        if (!app(ShopAvailability::class)->open($teamId)) return [];
         $team = $this->team($teamId);
         $products = $entity->products()
             ->where('team_id', $teamId)

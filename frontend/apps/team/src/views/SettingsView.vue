@@ -2,7 +2,6 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
@@ -11,6 +10,8 @@ import { NInput, NInputNumber, NRadio, NRadioGroup, NSelect } from 'naive-ui'
 import type { SelectOption } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { abilityReason } from '../lib/teamAccessReason'
+import SettingsSaveButton from './settings/SettingsSaveButton.vue'
 
 type SettingValue = string | number | boolean
 
@@ -34,6 +35,13 @@ interface SettingField {
   max?: number
   step?: number
   max_length?: number
+  ability_requirement?: {
+    key: string
+    label: string
+    minimum_level: number
+    satisfied: boolean
+    reason: 'missing' | 'level' | 'expired' | null
+  }
 }
 
 interface SettingApp {
@@ -96,6 +104,19 @@ function isSaving(appName: string): boolean {
 function settingId(appName: string, key: string): string {
   return `setting-${appName}-${key}`
 }
+
+function abilityDisabledReason(setting: SettingField): string {
+  const requirement = setting.ability_requirement
+  if (!requirement || requirement.satisfied) return ''
+  const base = abilityReason(requirement.key, requirement.label)
+  if (requirement.reason === 'expired') return `${base}（当前授权已过期）`
+  if (requirement.reason === 'level') return `${base}（需要等级 ${requirement.minimum_level}）`
+  return base
+}
+
+function switchDisabled(appName: string, setting: SettingField): boolean {
+  return Boolean(abilityDisabledReason(setting)) && !Boolean(settingValue(appName, setting))
+}
 </script>
 
 <template>
@@ -118,7 +139,7 @@ function settingId(appName: string, key: string): string {
       >
       <header class="settings-header">
         <LsSectionHeader :eyebrow="app.app_name.toUpperCase()" :title="app.label" :description="app.description">
-          <template #aside><LsButton type="submit" :loading="isSaving(app.app_name)" :disabled="save.isPending.value">保存{{ app.label }}设置</LsButton></template>
+          <template #aside><SettingsSaveButton :loading="isSaving(app.app_name)" :disabled="save.isPending.value">保存{{ app.label }}设置</SettingsSaveButton></template>
         </LsSectionHeader>
       </header>
 
@@ -139,6 +160,8 @@ function settingId(appName: string, key: string): string {
             :model-value="Boolean(settingValue(app.app_name, setting))"
             :aria-labelledby="`${settingId(app.app_name, setting.key)}-label`"
             :aria-describedby="`${settingId(app.app_name, setting.key)}-description`"
+            :disabled="switchDisabled(app.app_name, setting)"
+            :disabled-reason="abilityDisabledReason(setting)"
             @update:model-value="setSettingValue(app.app_name, setting.key, $event)"
           />
 
@@ -209,7 +232,6 @@ function settingId(appName: string, key: string): string {
 <style scoped>
 .settings-view{display:grid;gap:1.5rem}.settings-panel,.loading-panel,.empty-panel{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);overflow:hidden}
 .settings-header{padding:1rem;border-bottom:1px solid var(--border)}
-.settings-header :deep(button){width:100%}
 .setting-copy h3,.setting-copy p{margin:0}
 .setting-row{min-height:96px;display:grid;grid-template-columns:1fr;align-items:center;gap:.9rem;padding:1rem;border-bottom:1px solid var(--border)}
 .setting-row:last-of-type{border-bottom:0}.setting-row--choices{align-items:start;gap:1rem}
@@ -226,6 +248,6 @@ function settingId(appName: string, key: string): string {
 .error{color:var(--danger);background:color-mix(in srgb,var(--danger) 9%,transparent)}
 .success{color:var(--success);background:color-mix(in srgb,var(--success) 9%,transparent)}
 .loading-panel,.empty-panel{padding:2rem;color:var(--text-secondary)}.empty-panel h2{margin:0;color:var(--text);font-size:1rem}.empty-panel p{margin:.4rem 0 0}
-@media(min-width:641px){.settings-header{padding:1.5rem}.settings-header :deep(button){width:auto}.setting-row{grid-template-columns:minmax(0,1fr) minmax(220px,320px);gap:1.5rem;padding:1.25rem 1.5rem}.setting-row--choices{grid-template-columns:1fr}.setting-control{justify-content:flex-end}.radio-options{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
+@media(min-width:641px){.settings-header{padding:1.5rem}.setting-row{grid-template-columns:minmax(0,1fr) minmax(220px,320px);gap:1.5rem;padding:1.25rem 1.5rem}.setting-row--choices{grid-template-columns:1fr}.setting-control{justify-content:flex-end}.radio-options{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
 @media(prefers-reduced-motion:reduce){.radio-options :deep(.n-radio){transition:none}}
 </style>

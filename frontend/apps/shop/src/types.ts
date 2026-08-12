@@ -164,6 +164,7 @@ export interface ManageAccess {
   abilities?: {
     file?: { enabled: boolean; reason: string | null; label: string }
     transaction?: { enabled: boolean; reason: string | null; label: string }
+    shop?: { enabled: boolean; reason: string | null; label: string }
   }
   file_upload?: FileUploadAvailability
 }

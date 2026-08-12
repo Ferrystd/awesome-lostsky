@@ -85,10 +85,16 @@ describe('后台设计系统组件契约', () => {
   })
 
   it('LsSwitch 是唯一 Naive UI 开关原语且不在轨道内放文字', async () => {
-    expect(Object.keys((LsSwitch as any).props).sort()).toEqual(['disabled', 'loading', 'modelValue', 'readOnly'])
+    expect(Object.keys((LsSwitch as any).props).sort()).toEqual(['disabled', 'disabledReason', 'loading', 'modelValue', 'readOnly'])
     const source = readFileSync(new URL('./components/LsSwitch.vue', import.meta.url), 'utf8')
     expect(source).toContain('<NSwitch')
     expect(source).not.toMatch(/#(?:checked|unchecked)/)
+    expect(source).toContain('feedback.info(props.disabledReason.trim())')
+    expect(source).toContain("'ls-switch--explainable-disabled'")
+    expect(source).toContain(':disabled="(disabled && !explainableDisabled) || readOnly"')
+    expect(source).toContain(".ls-switch[aria-disabled='true'] :deep(.n-switch__rail)")
+    expect(source).toContain(".ls-switch[aria-disabled='true'] :deep(.n-switch__button)")
+    expect(source).toContain('background-color: var(--line)')
     const html = await render(LsSwitch, { modelValue: true, 'aria-label': '公开展示' })
     expect(html).toContain('n-switch')
     const readOnlyHtml = await render(LsSwitch, { modelValue: false, readOnly: true, 'aria-label': '固定状态' })

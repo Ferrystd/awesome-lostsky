@@ -10,6 +10,7 @@ use app\enum\Visibility;
 use app\model\Document;
 use app\model\Entity;
 use app\model\Team;
+use app\model\TeamAbility;
 use app\model\TeamCustomer;
 use app\model\TeamEntityField;
 use app\model\TeamEntityFieldValue;
@@ -23,6 +24,7 @@ use app\service\Display;
 use app\service\Entity as EntityService;
 use app\service\EntityProfile;
 use app\service\Role as RoleService;
+use app\service\TeamSetting;
 use think\App;
 use think\exception\HttpException;
 
@@ -451,6 +453,16 @@ $assertStatus(
     422,
     'entity search keyword is limited to 100 characters'
 );
+
+$closedDetail = $display->entity((int) $team->id, (string) $publicEntity->slug);
+$assertSame([], $closedDetail['products'], 'entity detail silently omits products while the shop is closed');
+TeamAbility::create([
+    'team_id' => (int) $team->id,
+    'ability_key' => 'shop',
+    'level' => 1,
+    'expire_time' => 0,
+]);
+app(TeamSetting::class)->batch((int) $team->id, 'shop', ['enabled' => true]);
 
 $detail = $display->entity((int) $team->id, (string) $publicEntity->slug);
 $assertSame('成员公开值', $detail['fields'][0]['value'] ?? null, 'member public value is returned');
