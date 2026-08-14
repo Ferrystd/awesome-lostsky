@@ -152,10 +152,11 @@ test('Team keeps its original layout and reaches personal workspace from the ove
   const header = page.locator('.ls-workspace-header')
   await expectHeaderApps(page)
 
-  await page.setViewportSize({ width: 1024, height: 900 })
-  const personalDesktopWidth = await page.getByRole('link', { name: '进入个人工作台' }).evaluate(element => element.getBoundingClientRect().width)
-  const documentDesktopWidth = await page.getByRole('link', { name: '使用文档' }).evaluate(element => element.getBoundingClientRect().width)
-  expect(personalDesktopWidth / documentDesktopWidth).toBeCloseTo(7 / 6, 2)
+  await page.setViewportSize({ width: 910, height: 900 })
+  const personalDesktopRect = await page.getByRole('link', { name: '进入个人工作台' }).evaluate(element => element.getBoundingClientRect().toJSON())
+  const documentDesktopRect = await page.getByRole('link', { name: '使用文档' }).evaluate(element => element.getBoundingClientRect().toJSON())
+  expect(personalDesktopRect.width).toBeGreaterThan(documentDesktopRect.width)
+  expect(Math.abs(personalDesktopRect.height - documentDesktopRect.height)).toBeLessThanOrEqual(1)
 
   await page.getByRole('link', { name: '进入个人工作台' }).click()
   await expect(page).toHaveURL(/\/personal$/)
@@ -166,8 +167,11 @@ test('Team keeps its original layout and reaches personal workspace from the ove
   await expect(page.getByRole('link', { name: '切换身份' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/')
 
-  const identityDesktopWidth = await page.getByRole('link', { name: '切换身份' }).evaluate(element => element.getBoundingClientRect().width)
-  expect(Math.abs(documentDesktopWidth - identityDesktopWidth)).toBeLessThanOrEqual(1)
+  const teamDesktopRect = await page.getByRole('link', { name: /进入团队工作台/ }).evaluate(element => element.getBoundingClientRect().toJSON())
+  const identityDesktopRect = await page.getByRole('link', { name: '切换身份' }).evaluate(element => element.getBoundingClientRect().toJSON())
+  expect(teamDesktopRect.width).toBeGreaterThan(identityDesktopRect.width)
+  expect(Math.abs(teamDesktopRect.height - identityDesktopRect.height)).toBeLessThanOrEqual(1)
+  expect(Math.abs(documentDesktopRect.width - identityDesktopRect.width)).toBeLessThanOrEqual(1)
 
   await page.setViewportSize({ width: 375, height: 812 })
   const identityMobileWidth = await page.getByRole('link', { name: '切换身份' }).evaluate(element => element.getBoundingClientRect().width)

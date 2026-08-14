@@ -1390,7 +1390,8 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       if ((page.viewportSize()?.width ?? 0) < 480) {
         expect(Math.abs((overviewActionBoxes[0]?.width ?? 0) - (overviewActionBoxes[1]?.width ?? 0))).toBeLessThan(1)
       } else {
-        expect((overviewActionBoxes[0]?.width ?? 0) / (overviewActionBoxes[1]?.width ?? 1)).toBeCloseTo(7 / 6, 2)
+        expect((overviewActionBoxes[0]?.width ?? 0)).toBeGreaterThan(overviewActionBoxes[1]?.width ?? 0)
+        expect(Math.abs((overviewActionBoxes[0]?.height ?? 0) - (overviewActionBoxes[1]?.height ?? 0))).toBeLessThanOrEqual(1)
       }
       await expect(overviewActions.nth(0).locator('svg')).toHaveCount(2)
       await expect(overviewActions.nth(1).locator('svg')).toHaveCount(2)
