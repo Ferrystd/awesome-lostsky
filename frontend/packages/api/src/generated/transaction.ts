@@ -11,7 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 服务核销列表 */
+        /**
+         * 服务核销列表
+         * @description 团队全量核销入口，要求 service.redemption.read 或 service.redemption.manage。
+         */
         get: operations["serviceRedemptions"];
         put?: never;
         post?: never;
@@ -30,7 +33,10 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** 服务核销详情 */
+        /**
+         * 服务核销详情
+         * @description 要求 service.redemption.read 或 service.redemption.manage。
+         */
         get: operations["serviceRedemption"];
         put?: never;
         post?: never;
@@ -49,7 +55,10 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** 核销接单池 */
+        /**
+         * 核销接单池
+         * @description 要求 service.redemption.read 或 service.redemption.manage。
+         */
         get: operations["serviceRedemptionHandlers"];
         put?: never;
         post?: never;
@@ -70,7 +79,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 改派接单人 */
+        /**
+         * 改派接单人
+         * @description 要求 service.redemption.manage。
+         */
         post: operations["reassignServiceRedemption"];
         delete?: never;
         options?: never;
@@ -89,7 +101,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 同意取消核销 */
+        /**
+         * 同意取消核销
+         * @description 要求 service.redemption.manage。
+         */
         post: operations["approveServiceCancellation"];
         delete?: never;
         options?: never;
@@ -108,7 +123,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 拒绝取消核销 */
+        /**
+         * 拒绝取消核销
+         * @description 要求 service.redemption.manage。
+         */
         post: operations["rejectServiceCancellation"];
         delete?: never;
         options?: never;
@@ -127,7 +145,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 确认已核销 */
+        /**
+         * 确认已核销
+         * @description 要求 service.redemption.manage；已开始履约时允许在 Transaction Ability 失效后收口。
+         */
         post: operations["completeServiceRedemption"];
         delete?: never;
         options?: never;
@@ -146,7 +167,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 创建待客户确认的履约加价费用 */
+        /**
+         * 创建待客户确认的履约加价费用
+         * @description 要求 service.redemption.manage。
+         */
         post: operations["createServiceAdjustment"];
         delete?: never;
         options?: never;
@@ -166,8 +190,111 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 取消待确认的履约加价费用 */
+        /**
+         * 取消待确认的履约加价费用
+         * @description 要求 service.redemption.manage。
+         */
         post: operations["cancelServiceAdjustment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entitlement-grant/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 手动赋予权益候选
+         * @description 返回当前团队启用的服务套餐商品、客户、业务 Entity，以及是否同步服务包收款流水。只要求 Transaction Ability 与 transaction.write，不要求 Shop Ability。
+         */
+        get: operations["manualEntitlementGrantOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/entitlement-grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 手动赋予客户独立服务权益
+         * @description 从 Shop 服务套餐商品读取冻结权益快照，直接归属 Customer 根 Entity，不创建 Shop 订单。shop.sync_manual_entitlement_transaction 开启且 Transaction Ability 有效时，原子生成服务包收款流水。
+         */
+        post: operations["manualEntitlementGrant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/entitlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 分页读取本人赠送的服务权益
+         * @description 只按当前 acting_entity 的发单身份返回直接赠送记录，不要求业务 Permission，也不接受 Entity ID 范围参数。商城订单与卡密产生的权益不进入该列表。
+         */
+        get: operations["personalEntitlementGrants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/entitlement-grant/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取本人客户权益赠送候选
+         * @description 要求 Transaction Ability 与 service.entitlement.grant，只返回当前 acting_entity 归属或发单绑定的有效客户，不接受 Entity ID 范围参数。
+         */
+        get: operations["personalEntitlementGrantOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/entitlement-grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 为本人接待客户赋予服务权益
+         * @description 要求 Transaction Ability 与 service.entitlement.grant。客户必须归属或发单绑定当前 acting_entity，发单人由服务端强制为当前 Entity；不创建 Shop 订单。
+         */
+        post: operations["personalEntitlementGrant"];
         delete?: never;
         options?: never;
         head?: never;
@@ -203,7 +330,7 @@ export interface paths {
         };
         /**
          * 读取当前 Entity 参与的流水
-         * @description 服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数。
+         * @description 服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数，也不要求 transaction.read。
          */
         get: operations["transactionPersonalTransactions"];
         put?: never;
@@ -221,7 +348,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 读取当前 Entity 参与的流水详情 */
+        /**
+         * 读取当前 Entity 参与的流水详情
+         * @description 只允许读取当前 acting_entity 参与的记录，不要求 transaction.read。
+         */
         get: operations["transactionPersonalTransaction"];
         put?: never;
         post?: never;
@@ -240,7 +370,7 @@ export interface paths {
         };
         /**
          * 读取当前 Entity 个人业绩
-         * @description 只汇总当前 acting_entity 作为接单人、发单人或客服取得的分配。
+         * @description 只汇总当前 acting_entity 作为接单人、发单人或客服取得的分配，不要求 transaction.report.read。
          */
         get: operations["transactionPersonalStats"];
         put?: never;
@@ -260,7 +390,7 @@ export interface paths {
         };
         /**
          * 读取接单人三组工作台
-         * @description offers 为待确认指定邀请，available 为接单池公开任务，list 为当前 Entity 已接取的核销。领取前返回完整 Customer 核销字段。
+         * @description offers 为待确认指定邀请，available 为当前 Entity 有资格领取的公开任务，list 为当前 Entity 已接取的核销。显式接单池按名单限制，空接单池向全部有效接单 Entity 开放；领取前返回完整 Customer 核销字段。
          */
         get: operations["transactionPersonalServices"];
         put?: never;
@@ -314,7 +444,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 领取接单池中的公开履约任务 */
+        /** 领取有资格接取的公开履约任务 */
         post: operations["claimPersonalService"];
         delete?: never;
         options?: never;
@@ -433,7 +563,7 @@ export interface paths {
         };
         /**
          * 读取当前 Entity 的客户协作与发单绑定
-         * @description 只使用当前 acting_entity 查询绑定，不接受 Entity ID。
+         * @description 只使用当前 acting_entity 查询绑定，不接受 Entity ID，也不要求 transaction.read。
          */
         get: operations["transactionPersonalBindings"];
         put?: never;
@@ -1095,6 +1225,75 @@ export interface components {
             entities: components["schemas"]["EntitySummary"][];
             customers: components["schemas"]["Customer"][];
         };
+        ManualEntitlementProduct: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            price: string;
+        };
+        ManualEntitlementGrantOptions: {
+            products: components["schemas"]["ManualEntitlementProduct"][];
+            customers: components["schemas"]["Customer"][];
+            entities: components["schemas"]["EntitySummary"][];
+            sync_transaction: boolean;
+        };
+        ManualEntitlementGrantRequest: {
+            /** Format: int64 */
+            product_id: number;
+            /** Format: int64 */
+            customer_id: number;
+            quantity: number;
+            /** Format: int64 */
+            sender_entity_id?: number | null;
+            /** Format: int64 */
+            cs_entity_id?: number | null;
+        };
+        ManualEntitlementGrantResult: {
+            entitlement_ids: number[];
+            entitlement_count: number;
+            /** Format: int64 */
+            transaction_id: number | null;
+            /**
+             * Format: int64
+             * @description 手动赋予固定不创建 Shop 订单，因此始终为 null。
+             */
+            order_id: number | null;
+        };
+        PersonalEntitlementGrantRecord: {
+            /** Format: int64 */
+            id: number;
+            create_time: number;
+            granted_quantity: string;
+            consumed_quantity: string;
+            available_quantity: string;
+            unit_name: string;
+            /** @description 0 表示永久有效。 */
+            expire_time: number;
+            is_expired: boolean;
+            is_exhausted: boolean;
+            customer: {
+                /** Format: int64 */
+                id: number;
+                name: string;
+                avatar: string | null;
+            };
+            service: {
+                /** Format: int64 */
+                id: number;
+                name: string;
+            };
+            product: {
+                /** Format: int64 */
+                id: number;
+                name: string;
+            };
+        };
+        PersonalEntitlementGrantPage: {
+            total: number;
+            list: components["schemas"]["PersonalEntitlementGrantRecord"][];
+            page: number;
+            limit: number;
+        };
         TransactionStatsSummary: {
             total_count: number;
             /** @description Exact decimal string. */
@@ -1348,6 +1547,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Ability 或 Permission 不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     serviceRedemption: {
@@ -1363,6 +1569,13 @@ export interface operations {
         responses: {
             /** @description 成功 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ability 或 Permission 不满足 */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1388,6 +1601,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Ability 或 Permission 不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     reassignServiceRedemption: {
@@ -1403,6 +1623,13 @@ export interface operations {
         responses: {
             /** @description 成功 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Permission 不满足 */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1428,6 +1655,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Permission 不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     rejectServiceCancellation: {
@@ -1448,6 +1682,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Permission 不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     completeServiceRedemption: {
@@ -1463,6 +1704,13 @@ export interface operations {
         responses: {
             /** @description 成功 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Permission 不满足 */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1501,6 +1749,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Ability 或 Permission 不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     cancelServiceAdjustment: {
@@ -1517,6 +1772,185 @@ export interface operations {
         responses: {
             /** @description 成功 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ability 或 Permission 不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    manualEntitlementGrantOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["ManualEntitlementGrantOptions"];
+                    };
+                };
+            };
+            /** @description Ability 或 Permission 不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    manualEntitlementGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualEntitlementGrantRequest"];
+            };
+        };
+        responses: {
+            /** @description 客户权益已赋予 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["ManualEntitlementGrantResult"];
+                    };
+                };
+            };
+            /** @description Ability 或 Permission 不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 商品、客户、份数或业务 Entity 无效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    personalEntitlementGrants: {
+        parameters: {
+            query?: {
+                /** @description 按权益、来源商品或客户名称搜索。 */
+                keyword?: string;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["PersonalEntitlementGrantPage"];
+                    };
+                };
+            };
+            /** @description Transaction Ability 不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    personalEntitlementGrantOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["ManualEntitlementGrantOptions"];
+                    };
+                };
+            };
+            /** @description Ability 或 service.entitlement.grant 不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    personalEntitlementGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualEntitlementGrantRequest"];
+            };
+        };
+        responses: {
+            /** @description 客户权益已赋予 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["ManualEntitlementGrantResult"];
+                    };
+                };
+            };
+            /** @description Ability、Permission 或客户范围不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 商品、客户、份数或业务 Entity 无效 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1711,6 +2145,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description 当前 Entity 不具备接单资格 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     returnPersonalService: {
@@ -1833,7 +2274,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description 邀请已处理或已过期 */
+            /** @description 邀请已处理 */
             409: {
                 headers: {
                     [name: string]: unknown;

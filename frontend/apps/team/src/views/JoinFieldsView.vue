@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { ChevronRight, ListPlus, Plus } from '@lucide/vue'
@@ -44,7 +44,7 @@ const statusOptions = [
   <div class="join-fields-page">
     <AdminPageHeader title="申请字段" description="配置申请人需要填写的资料，以及审批通过后需要转存的人员字段。">
       <template v-if="canWrite" #actions>
-        <RouterLink to="/join-fields/new"><LsButton><template #icon><Plus :size="17" /></template>创建字段</LsButton></RouterLink>
+        <LsPagePrimaryAction :icon="Plus" label="创建字段" to="/join-fields/new" />
       </template>
     </AdminPageHeader>
 

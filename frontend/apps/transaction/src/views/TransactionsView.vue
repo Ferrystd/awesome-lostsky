@@ -3,9 +3,11 @@ import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { CirclePlus, SlidersHorizontal } from '@lucide/vue'
@@ -13,7 +15,7 @@ import { NDatePicker, NPagination, NSelect } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { computed, h, reactive } from 'vue'
 import { RouterLink } from 'vue-router'
-import { customerName, customerOptions, dateTime, entityName, entityOptions, money, transactionType } from '../lib'
+import { customerName, customerOptions, dateTime, entityName, money, transactionType } from '../lib'
 import type { Pagination, TransactionOptions, TransactionRecord } from '../types'
 
 const filters = reactive({
@@ -65,7 +67,7 @@ const columns: DataTableColumns<TransactionRecord> = [
   <div class="transactions-view">
     <LsPageHeader title="流水" description="按时间查看收入构成与参与方；创建、查看和编辑均在独立任务页完成。">
       <template #actions>
-        <RouterLink class="primary-link" to="/new"><CirclePlus :size="18" />登记流水</RouterLink>
+        <LsPagePrimaryAction :icon="CirclePlus" label="登记流水" to="/new" />
       </template>
     </LsPageHeader>
 
@@ -73,7 +75,7 @@ const columns: DataTableColumns<TransactionRecord> = [
       <template #filters>
       <NDatePicker v-model:value="filters.range" type="daterange" clearable start-placeholder="开始日期" end-placeholder="结束日期" @update:value="filters.page = 1" />
       <NSelect v-model:value="filters.type" :options="typeOptions" clearable placeholder="全部类型" @update:value="filters.page = 1" />
-      <NSelect v-model:value="filters.handler_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable placeholder="全部接单人" @update:value="filters.page = 1" />
+      <LsEntitySelect v-model="filters.handler_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="optionsQuery.isPending.value" :disabled="optionsQuery.isError.value" clearable placeholder="全部接单人" @update:model-value="filters.page = 1" />
       <NSelect v-model:value="filters.customer_id" :options="customerOptions(optionsQuery.data.value)" filterable clearable placeholder="全部客户" @update:value="filters.page = 1" />
       </template>
       <template v-if="hasFilters" #actions><LsButton variant="secondary" size="sm" @click="reset"><template #icon><SlidersHorizontal :size="17" /></template>清除筛选</LsButton></template>

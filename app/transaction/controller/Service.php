@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\transaction\controller;
 
 use app\service\ServiceRedemption;
+use app\service\PermissionDictionary as Permissions;
 use think\Request;
 
 class Service
@@ -16,6 +17,8 @@ class Service
         // 已经开始的履约属于待完成义务。Transaction Ability 失效时仍允许
         // complete 收口；ServiceRedemption 会跳过流水与加价业绩写入。
         'Ability:transaction' => ['except' => ['complete']],
+        'Permission:' . Permissions::SERVICE_REDEMPTION_READ . ',' . Permissions::SERVICE_REDEMPTION_MANAGE => ['only' => ['index', 'get', 'handlers']],
+        'Permission:' . Permissions::SERVICE_REDEMPTION_MANAGE => ['only' => ['approveCancel', 'rejectCancel', 'reassign', 'complete', 'createAdjustment', 'cancelAdjustment']],
     ];
 
     public function index(Request $request)

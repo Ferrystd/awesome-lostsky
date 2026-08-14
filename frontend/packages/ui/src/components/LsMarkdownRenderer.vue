@@ -54,6 +54,7 @@ function attr(value: string) {
 const html = computed(() => {
   const renderer = new marked.Renderer()
   const defaultLink = renderer.link.bind(renderer)
+  const defaultImage = renderer.image.bind(renderer)
   renderer.link = function (token) {
     const match = token.href.match(/^lostsky:\/\/entity\/([a-zA-Z][a-zA-Z0-9_-]{1,49})$/)
     if (!match) return defaultLink(token)
@@ -64,6 +65,9 @@ const html = computed(() => {
     const state = entity?.available ? 'available' : 'unavailable'
     const tone = entity?.available ? entityTypeTone(entity.type) : 'unknown'
     return `<button type="button" class="ls-entity-chip ls-entity-chip--${state}" data-entity-slug="${attr(slug)}" data-entity-tone="${tone}" aria-label="${entity?.available ? '查看对象' : '对象不可用'} ${attr(slug)}" aria-expanded="false" aria-controls="${detailsId}">${label}</button>`
+  }
+  renderer.image = function (token) {
+    return token.href.trim() ? defaultImage(token) : ''
   }
   return DOMPurify.sanitize(marked.parse(props.content ?? '', { async: false, renderer }) as string, {
     USE_PROFILES: { html: true },

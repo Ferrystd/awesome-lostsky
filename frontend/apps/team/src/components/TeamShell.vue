@@ -47,7 +47,6 @@ const primary: NavItem[] = [
   { to: '/customers', label: '客户', icon: Contact },
   { to: '/notices/entity', label: '通知', icon: Bell },
   { to: '/docs', label: '文档', icon: BookOpen, ability: 'doc' },
-  { to: '/files', label: '文件', icon: Files, permission: 'file.read' },
   { to: '/me', label: '当前实体', icon: UserRound },
 ]
 const personalNav: NavItem[] = [
@@ -57,6 +56,7 @@ const personalNav: NavItem[] = [
   { to: '/personal/access', label: '角色与权限', icon: ShieldCheck },
 ]
 const secondary: NavItem[] = [
+  { to: '/files', label: '文件管理', icon: Files, permission: 'file.read' },
   { to: '/fields', label: '对象字段', icon: FileText, permission: 'team.entity.field.manage' },
   { to: '/chat-virtuals', label: '虚拟实体', icon: Bot, permission: 'team.entity.virtual.*.manage' },
   { to: '/roles', label: '角色权限', icon: ShieldCheck, permission: 'team.role.read' },

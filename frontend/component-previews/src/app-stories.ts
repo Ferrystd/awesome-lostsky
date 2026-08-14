@@ -1,5 +1,6 @@
-import { h } from "vue";
+import { defineComponent, h } from "vue";
 import { NInput } from "naive-ui";
+import { useQueryClient } from "@tanstack/vue-query";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsWorkspaceOverview from "@lostsky/ui/components/LsWorkspaceOverview.vue";
 import { BadgeCheck, BarChart3, House, ReceiptText, ShoppingBag, UserRound } from "@lucide/vue";
@@ -17,12 +18,13 @@ import AdminPage from "../../apps/team/src/components/AdminPage.vue";
 import AdminPageHeader from "../../apps/team/src/components/AdminPageHeader.vue";
 import EntityFieldsCard from "../../apps/team/src/components/EntityFieldsCard.vue";
 import EntityPermissionsCard from "../../apps/team/src/components/EntityPermissionsCard.vue";
-import EntitySelectOption from "../../apps/team/src/components/EntitySelectOption.vue";
 import EntityProfileFields from "../../apps/team/src/components/EntityProfileFields.vue";
 import TeamShell from "../../apps/team/src/components/TeamShell.vue";
 import TransactionShell from "../../apps/transaction/src/components/TransactionShell.vue";
 import PersonalServiceLists from "../../apps/transaction/src/components/PersonalServiceLists.vue";
 import ShopManageShell from "../../apps/shop/src/components/ShopManageShell.vue";
+import ProductFieldsEditor from "../../apps/shop/src/components/ProductFieldsEditor.vue";
+import ResourceOwnerTag from "../../apps/shop/src/components/ResourceOwnerTag.vue";
 import {
   previewStates,
   type PreviewState,
@@ -476,14 +478,6 @@ const entityPermissionsCard = story(
     ),
 );
 
-const entitySelectOption = story("EntitySelectOption", layout, () =>
-  stage(
-    h(EntitySelectOption, {
-      entity: { type: "teamVirtual", name: "协作助手", slug: "helper" },
-    }),
-  ),
-);
-
 const memberProfile = {
   nickname: "青空成员",
   avatar: "",
@@ -567,9 +561,9 @@ const personalServiceLists = story(
   "PersonalServiceLists",
   ["default", "loading", "mobile"],
   (state) => stage(h(PersonalServiceLists, {
-    offers: [{ id: 8, status: 1, quantity: "0.5", expire_time: 1893456000, create_time: 1786400000, total_price: "60.00", handler_cut: "48.00", service: { name: "候选人面试" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_scale: 1, unit_name: "人" }, redemption_fields: [{ id: 1, name: "微信号", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "candidate-a" }] }],
-    available: [{ id: 21, quantity: "1.0", status: 2, expire_time: 0, service: { name: "咨询服务" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_scale: 1, unit_name: "小时" }, redemption_fields: [{ id: 2, name: "预约说明", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "凌晨时段" }] }],
-    assigned: [{ id: 18, quantity: "2.0", status: 2, status_label: "核销中", expire_time: 0, service: { name: "方案复盘" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_scale: 1, unit_name: "小时" } }],
+    offers: [{ id: 8, status: 1, quantity: "0.5", create_time: 1786400000, total_price: "60.00", handler_cut: "48.00", service: { name: "候选人面试" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_step: "0.5000", unit_name: "人" }, redemption_fields: [{ id: 1, name: "微信号", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "candidate-a" }] }],
+    available: [{ id: 21, quantity: "1.0", status: 2, expire_time: 0, service: { name: "咨询服务" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_step: "0.5000", unit_name: "小时" }, redemption_fields: [{ id: 2, name: "预约说明", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "凌晨时段" }] }],
+    assigned: [{ id: 18, quantity: "2.0", status: 2, status_label: "核销中", expire_time: 0, service: { name: "方案复盘" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_step: "0.5000", unit_name: "小时" } }],
     acting: state === "loading",
   }), state === "mobile" ? "story-stage--mobile" : ""),
   { disabled: "列表不提供整体禁用状态。", error: "读取错误由页面级异步状态表达。" },
@@ -601,6 +595,54 @@ const shopManageShell = story(
   },
 );
 
+const resourceOwnerTag = story(
+  "ResourceOwnerTag",
+  layout,
+  state => stage(h("div", { style: "display:flex;align-items:center;gap:12px;flex-wrap:wrap" }, [
+    h(ResourceOwnerTag, { resource: { owner_entity_id: null, owner: null } }),
+    h(ResourceOwnerTag, { resource: { owner_entity_id: 71, owner: { name: "青空接单人", slug: "handler", type: "teamMember" } } }),
+    h(ResourceOwnerTag, { resource: { owner_entity_id: 88, owner: { name: "服务助手", slug: "service-bot", type: "teamVirtual" } } }),
+  ]), state === "mobile" ? "story-stage--mobile" : ""),
+  {
+    disabled: "归属标签不提供禁用交互。",
+    loading: "归属数据由所属列表负责加载。",
+    error: "缺失 Owner 摘要时组件使用 Entity ID 作为可识别回退。",
+  },
+);
+
+const ProductFieldsEditorHost = defineComponent({
+  setup() {
+    const client = useQueryClient();
+    const key = ["product-fields", "team", 901];
+    client.setQueryDefaults(key, { staleTime: Infinity });
+    client.setQueryData(key, [{
+      id: 31,
+      field_key: "appointment_note",
+      name: "预约说明",
+      value_type: "string",
+      input_type: "textarea",
+      options: [],
+      fill_stage: "customer",
+      is_customer_visible: 1,
+      is_required: 1,
+      is_active: 1,
+      sort: 0,
+    }]);
+    return () => h(ProductFieldsEditor, { productId: 901, scope: "team" });
+  },
+});
+
+const productFieldsEditor = story(
+  "ProductFieldsEditor",
+  ["default", "hover", "focus", "active", "mobile"],
+  state => stage(h(ProductFieldsEditorHost), state === "mobile" ? "story-stage--mobile" : ""),
+  {
+    disabled: "字段权限由所属商品编辑页控制。",
+    loading: "读取状态由组件内的查询骨架表达，不作为静态夹具。",
+    error: "读取失败由组件内的区域错误表达，不作为静态夹具。",
+  },
+);
+
 export const appStories: Record<string, StoryDefinition> = {
   AuthShell: authShell,
   SmsCodeField: smsCodeField,
@@ -616,10 +658,11 @@ export const appStories: Record<string, StoryDefinition> = {
   AdminPageHeader: adminPageHeader,
   EntityFieldsCard: entityFieldsCard,
   EntityPermissionsCard: entityPermissionsCard,
-  EntitySelectOption: entitySelectOption,
   EntityProfileFields: entityProfileFields,
   TeamShell: teamShell,
   TransactionShell: transactionShell,
   PersonalServiceLists: personalServiceLists,
+  ProductFieldsEditor: productFieldsEditor,
+  ResourceOwnerTag: resourceOwnerTag,
   ShopManageShell: shopManageShell,
 };

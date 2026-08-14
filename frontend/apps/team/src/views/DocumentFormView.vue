@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormList from '@lostsky/ui/components/LsFormList.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
@@ -8,11 +9,10 @@ import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NFormItem, NInput, NInputNumber, NSelect } from 'naive-ui'
-import type { SelectOption, SelectRenderLabel } from 'naive-ui'
-import { computed, h, nextTick, reactive, ref, watch } from 'vue'
+import type { SelectOption } from 'naive-ui'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
-import EntitySelectOption from '../components/EntitySelectOption.vue'
 import { managerScopeOptions, visibilityOptions } from '../lib/access'
 import {
   createDocumentTagDraft,
@@ -50,20 +50,10 @@ interface EntityOption {
   slug: string
   name: string
 }
-interface DocumentEntitySelectOption extends SelectOption, EntityOption {}
-const entitySelectMenuProps = { class: 'entity-select-menu' }
-
 const entities = useQuery({
   queryKey: ['entity-options'],
   queryFn: () => api.get<EntityOption[]>('/entity/options'),
 })
-const entityOptions = computed<DocumentEntitySelectOption[]>(() => (entities.data.value ?? []).map(entity => ({
-  label: `${entity.name} ${entity.slug ? `@${entity.slug}` : ''}`,
-  value: entity.entity_id,
-  ...entity,
-})))
-const renderEntityLabel: SelectRenderLabel = option => h(EntitySelectOption, { entity: option as DocumentEntitySelectOption })
-
 watch(() => entities.data.value, (items) => {
   if (!editing.value && !form.entity_id && items?.length) form.entity_id = items[0].entity_id
 }, { immediate: true })
@@ -136,7 +126,7 @@ async function submit() {
       <LsField label="标题" for-id="document-title" required><NInput id="document-title" v-model:value="form.title" placeholder="一句话说明这份文档解决什么问题" maxlength="120" show-count required /></LsField>
 
       <div v-if="!editing" class="field-row">
-        <LsField label="归属对象" for-id="document-entity"><NSelect id="document-entity" v-model:value="form.entity_id" :options="entityOptions" :render-label="renderEntityLabel" :menu-props="entitySelectMenuProps" :loading="entities.isPending.value" :disabled="entities.isError.value || !entityOptions.length" :virtual-scroll="false" filterable placeholder="选择归属对象" /></LsField>
+        <LsField label="归属对象" for-id="document-entity"><LsEntitySelect id="document-entity" v-model="form.entity_id" :entities="entities.data.value ?? []" :loading="entities.isPending.value" :disabled="entities.isError.value || !entities.data.value?.length" placeholder="选择归属对象" /></LsField>
       </div>
 
       <section class="document-tags" aria-labelledby="document-tags-title">

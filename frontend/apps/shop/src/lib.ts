@@ -1,7 +1,7 @@
 import { ApiError, api, auth, friendlyError } from '@lostsky/api/client'
 import { ERROR_MESSAGES } from '@lostsky/api/error-messages'
 import { storedReferral } from '@lostsky/shared/referral'
-import type { Balance, BindResult, Customer, FileUploadAvailability, ManageAccess, ManageCampaign, ManageCode, ManageEntityOption, ManageOptions, ManagePackage, ManageService, Order, Page, ProductDetail, ProductManageOptions, ProductSummary, RedemptionCard, ServiceEntitlement, ServiceInstance, StoreProfile } from './types'
+import type { Balance, BindResult, Customer, EntitlementManageOptions, FileUploadAvailability, ManageAccess, ManageCampaign, ManageCode, ManageEntityOption, ManageOptions, ManageOwnedResource, ManagePackage, ManageService, Order, Page, ProductDetail, ProductManageOptions, ProductSummary, RedemptionCard, ServiceEntitlement, ServiceInstance, StoreProfile } from './types'
 
 const readyKey = () => `lostsky_shop_customer:${location.host}`
 
@@ -66,7 +66,7 @@ export const shopApi = {
   cancel: (id: number) => api.post<void>(`/customer/orders/${id}/cancel`, {}),
   services: (page = 1, limit = 20) => pageRequest<ServiceEntitlement>('/customer/services', { page, limit }, '服务权益列表'),
   service: (id: number) => api.get<ServiceEntitlement>(`/customer/services/${id}`),
-  serviceHandlers: (id: number) => api.get<Array<{ entity_id: number; subject: { id: number; name: string } }>>(`/customer/services/${id}/handlers`),
+  serviceHandlers: (id: number) => api.get<Array<{ entity_id: number; subject: ManageEntityOption & { entityable_type?: string } }>>(`/customer/services/${id}/handlers`),
   startService: (id: number, body: { quantity: string; handler_entity_id: 0; memo?: string; field_values?: Record<number, unknown> }) => api.post<{id:number}>(`/customer/services/${id}/start`, body),
   createServiceOffer: (id: number, body: { quantity: string; handler_entity_id: number; memo?: string; field_values?: Record<number, unknown> }) => api.post<{id:number}>(`/customer/services/${id}/offers`, body),
   withdrawServiceOffer: (id: number, reason = '') => api.post(`/customer/service-offers/${id}/withdraw`, { reason }),
@@ -88,6 +88,11 @@ export function hasManagePermission(permissions: string[], required: string) {
   return permissions.some(granted => required === granted || required.startsWith(`${granted}.`))
 }
 export function canManage(permission: string) { return Boolean(manageAccess && hasManagePermission(manageAccess.permissions, permission)) }
+export function resourceOwnerLabel(resource: ManageOwnedResource, currentEntityId = 0) {
+  if (resource.owner_entity_id == null) return '团队公用'
+  if (currentEntityId > 0 && resource.owner_entity_id === currentEntityId) return '本人'
+  return resource.owner?.name || `Entity #${resource.owner_entity_id}`
+}
 export function fileUploadReason(
   state: FileUploadAvailability | undefined,
 ) {
@@ -122,6 +127,50 @@ export function productManagement(scope: ProductManagementScope) {
       api.post(`${apiBase}/${productId}/redemption-fields${fieldId ? `/${fieldId}` : ''}`, payload(body, expectedEntityId)),
     deleteProductField: (productId: number, fieldId: number, expectedEntityId?: number) =>
       api.post(`${apiBase}/${productId}/redemption-fields/${fieldId}/delete`, payload({}, expectedEntityId)),
+  }
+}
+
+export function entitlementManagement(scope: ProductManagementScope) {
+  const personal = scope === 'personal'
+  const apiPrefix = personal ? '/personal' : '/manage'
+  const routePrefix = personal ? '/manage/personal' : '/manage'
+  const permission = personal ? 'shop.product.self.manage' : 'shop.product.write'
+  const disablePermission = personal ? permission : 'shop.product.delete'
+  const payload = (body: Record<string, unknown>, expectedEntityId?: number) => personal
+    ? { ...body, expected_entity_id: expectedEntityId ?? 0 }
+    : body
+
+  return {
+    personal,
+    permission,
+    disablePermission,
+    routePrefix,
+    options: () => api.get<EntitlementManageOptions>(personal ? '/personal/products/options' : '/manage/options'),
+    services: (params: Record<string, unknown>) => pageRequest<ManageService>(`${apiPrefix}/services`, params, personal ? '我的服务列表' : '服务列表'),
+    service: (id: number) => api.get<ManageService>(`${apiPrefix}/services/${id}`),
+    saveService: (id: number | null, body: Record<string, unknown>, expectedEntityId?: number) =>
+      api.post<{id:number}>(id ? `${apiPrefix}/services/${id}` : `${apiPrefix}/services`, payload(body, expectedEntityId)),
+    disableService: (id: number, expectedEntityId?: number) =>
+      api.post(`${apiPrefix}/services/${id}/disable`, payload({}, expectedEntityId)),
+    packages: (params: Record<string, unknown>) => pageRequest<ManagePackage>(`${apiPrefix}/packages`, params, personal ? '我的权益包列表' : '权益包列表'),
+    package: (id: number) => api.get<ManagePackage>(`${apiPrefix}/packages/${id}`),
+    savePackage: (id: number | null, body: Record<string, unknown>, expectedEntityId?: number) =>
+      api.post<{id:number}>(id ? `${apiPrefix}/packages/${id}` : `${apiPrefix}/packages`, payload(body, expectedEntityId)),
+    disablePackage: (id: number, expectedEntityId?: number) =>
+      api.post(`${apiPrefix}/packages/${id}/disable`, payload({}, expectedEntityId)),
+    campaigns: (params: Record<string, unknown>) => pageRequest<ManageCampaign>(`${apiPrefix}/campaigns`, params, personal ? '我的卡活动列表' : '活动列表'),
+    campaign: (id: number) => api.get<ManageCampaign>(`${apiPrefix}/campaigns/${id}`),
+    saveCampaign: (id: number | null, body: Record<string, unknown>, expectedEntityId?: number) =>
+      api.post<{id:number}>(id ? `${apiPrefix}/campaigns/${id}` : `${apiPrefix}/campaigns`, payload(body, expectedEntityId)),
+    disableCampaign: (id: number, expectedEntityId?: number) =>
+      api.post(`${apiPrefix}/campaigns/${id}/disable`, payload({}, expectedEntityId)),
+    codes: (campaignId: number, params: Record<string, unknown>) => pageRequest<ManageCode>(`${apiPrefix}/campaigns/${campaignId}/codes`, params, '卡密列表'),
+    issueCodes: (campaignId: number, body: Record<string, unknown>, expectedEntityId?: number) =>
+      api.post<Array<ManageCode & {code:string}>>(`${apiPrefix}/campaigns/${campaignId}/codes`, payload(body, expectedEntityId)),
+    revealCode: (campaignId: number, codeId: number, expectedEntityId?: number) =>
+      api.post<{id:number;code:string}>(`${apiPrefix}/campaigns/${campaignId}/codes/${codeId}/reveal`, payload({}, expectedEntityId)),
+    disableCode: (campaignId: number, codeId: number, expectedEntityId?: number) =>
+      api.post(`${apiPrefix}/campaigns/${campaignId}/codes/${codeId}/disable`, payload({}, expectedEntityId)),
   }
 }
 

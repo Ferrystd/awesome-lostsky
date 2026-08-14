@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { api, friendlyError } from "@lostsky/api/client";
+import { quantityScaleForStep } from "@lostsky/shared/quantity";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsField from "@lostsky/ui/components/LsField.vue";
@@ -34,6 +35,7 @@ const query = useQuery({
   queryKey: computed(() => ["service-redemption", id.value]),
   queryFn: () => api.get<ServiceRedemption>(`/service/${id.value}`),
 });
+const quantityScale = computed(() => quantityScaleForStep(query.data.value?.entitlement?.quantity_step));
 const handlers = useQuery({
   queryKey: computed(() => ["service-redemption-handlers", id.value]),
   queryFn: () =>
@@ -169,7 +171,7 @@ function confirmFee() {
           </div>
           <div>
             <dt>履约数量</dt>
-            <dd>{{ Number(query.data.value.quantity).toFixed(query.data.value.entitlement?.quantity_scale ?? 0) }} {{ query.data.value.entitlement?.unit_name || '单位' }}</dd>
+            <dd>{{ Number(query.data.value.quantity).toFixed(quantityScale) }} {{ query.data.value.entitlement?.unit_name || '单位' }}</dd>
           </div>
         </dl></LsPanel
       ><LsPanel v-if="query.data.value.redemption_fields?.length"
@@ -218,7 +220,7 @@ function confirmFee() {
           <div v-if="query.data.value.adjustments?.length" class="fee-list"><div v-for="item in query.data.value.adjustments" :key="item.id"><div><strong>{{ item.name }}</strong><small>{{ item.quantity }} × ¥{{ item.unit_price }} = ¥{{ item.total_price }} · {{ item.status===1?'待客户确认':item.status===2?'客户已确认':'已取消' }}</small></div><LsButton v-if="item.status===1" size="sm" variant="secondary" :loading="action.isPending.value" @click="action.mutate({path:`adjustments/${item.id}/cancel`})">取消费用</LsButton></div></div>
           <form class="fee-form" @submit.prevent="confirmFee">
             <LsField label="费用名称" for-id="fee-name" required><NInput id="fee-name" v-model:value="fee.name" placeholder="例如：额外时段费用" /></LsField>
-            <LsField label="计费数量" for-id="fee-quantity" required><NInputNumber id="fee-quantity" v-model:value="fee.quantity" :min="Number(query.data.value.entitlement?.quantity_step ?? 1)" :step="Number(query.data.value.entitlement?.quantity_step ?? 1)" :precision="query.data.value.entitlement?.quantity_scale ?? 0" /></LsField>
+            <LsField label="计费数量" for-id="fee-quantity" required><NInputNumber id="fee-quantity" v-model:value="fee.quantity" :min="Number(query.data.value.entitlement?.quantity_step ?? 1)" :step="Number(query.data.value.entitlement?.quantity_step ?? 1)" :precision="quantityScale" /></LsField>
             <LsField label="单位价格" for-id="fee-price" required><NInputNumber id="fee-price" v-model:value="fee.unit_price" :min="0" :precision="2" /></LsField>
             <LsField label="总成本" for-id="fee-cost" required hint="填写本次费用调整的全部内部成本，不按数量再次相乘。"><NInputNumber id="fee-cost" v-model:value="fee.cost" :min="0" :precision="2" /></LsField>
             <LsField label="说明" for-id="fee-memo"><NInput id="fee-memo" v-model:value="fee.memo" type="textarea" /></LsField>

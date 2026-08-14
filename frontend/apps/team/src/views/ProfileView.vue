@@ -3,9 +3,11 @@ import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { Save } from '@lucide/vue'
 import { NInput } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -105,14 +107,14 @@ useUnsavedChangesGuard(hasUnsavedChanges)
     <AdminPageHeader title="我的资料" description="维护你在当前团队中的公开资料、对象字段，并查看当前角色权限。">
       <template #actions>
         <div class="profile-primary-actions">
-          <LsButton
+          <LsPagePrimaryAction
+            :icon="Save"
+            label="保存资料"
             type="submit"
             form="my-profile-form"
             :loading="save.isPending.value"
             :disabled="!form.nickname.trim() || Boolean(uploading)"
-          >
-            保存资料
-          </LsButton>
+          />
         </div>
       </template>
     </AdminPageHeader>

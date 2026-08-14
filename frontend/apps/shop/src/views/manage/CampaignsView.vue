@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
-import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
 import LsListToolbar from "@lostsky/ui/components/LsListToolbar.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
+import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
 import { useQuery } from "@tanstack/vue-query";
@@ -12,15 +12,20 @@ import { Plus } from "@lucide/vue";
 import { NPagination } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { computed, h, ref } from "vue";
-import { RouterLink } from "vue-router";
-import { canManage, manageApi } from "../../lib";
+import { RouterLink, useRoute } from "vue-router";
+import ResourceOwnerTag from "../../components/ResourceOwnerTag.vue";
+import { canManage, entitlementManagement } from "../../lib";
 import type { ManageCampaign } from "../../types";
 const keyword = ref("");
 const page = ref(1);
+const route = useRoute();
+const scope = computed(() => route.meta.workspace === "personal" ? "personal" : "team");
+const management = computed(() => entitlementManagement(scope.value));
+const personal = computed(() => management.value.personal);
 const query = useQuery({
-  queryKey: computed(() => ["manage-campaigns", keyword.value, page.value]),
+  queryKey: computed(() => [scope.value, "manage-campaigns", keyword.value, page.value]),
   queryFn: () =>
-    manageApi.campaigns({
+    management.value.campaigns({
       keyword: keyword.value || undefined,
       page: page.value,
       limit: 20,
@@ -32,8 +37,9 @@ const pages = computed(() =>
 );
 const mode = (v: number) =>
   ({ 1: "独立卡密", 2: "公共活动码", 3: "定向卡密" })[v] ?? "未知";
-const columns: DataTableColumns<ManageCampaign> = [
+const columns = computed<DataTableColumns<ManageCampaign>>(() => [
   { title: "活动", key: "name", render: (r) => h("strong", r.name) },
+  ...(!personal.value ? [{ title: "归属", key: "owner", render: (r: ManageCampaign) => h(ResourceOwnerTag, { resource: r }) }] : []),
   { title: "模式", key: "mode", render: (r) => mode(Number(r.mode)) },
   {
     title: "权益包",
@@ -56,35 +62,26 @@ const columns: DataTableColumns<ManageCampaign> = [
       h("span", { class: "row-actions" }, [
         h(
           RouterLink,
-          { to: `/manage/campaigns/${r.id}` },
+          { to: `${management.value.routePrefix}/campaigns/${r.id}` },
           { default: () => "编辑" },
         ),
         " · ",
         h(
           RouterLink,
-          { to: `/manage/campaigns/${r.id}/codes` },
+          { to: `${management.value.routePrefix}/campaigns/${r.id}/codes` },
           { default: () => "兑换码" },
         ),
       ]),
   },
-];
+]);
 </script>
 <template>
   <div class="manage-page">
     <LsPageHeader
-      title="卡活动"
-      description="配置服务权益卡的发行模式、领取窗口和兑换码。"
+      :title="personal ? '我的卡活动' : '卡活动'"
+      :description="personal ? '使用本人或团队公用权益包配置卡活动，并发行自己的服务卡密。' : '配置服务权益卡的发行模式、领取窗口和兑换码。'"
       ><template #actions>
-        <RouterLink
-          v-if="canManage('shop.product.write')"
-          v-slot="{ navigate }"
-          custom
-          to="/manage/campaigns/new"
-        >
-          <LsButton @click="navigate">
-            <template #icon><Plus :size="18" /></template>新建活动
-          </LsButton>
-        </RouterLink></template
+        <LsPagePrimaryAction v-if="canManage(management.permission)" :icon="Plus" label="新建活动" :to="`${management.routePrefix}/campaigns/new`" /></template
       ></LsPageHeader
     ><LsListToolbar
       v-model="keyword"
@@ -110,7 +107,7 @@ const columns: DataTableColumns<ManageCampaign> = [
       :columns="columns"
       :data="rows"
       :row-key="(r) => r.id"
-      :scroll-x="760"
+      :scroll-x="personal ? 760 : 880"
       ><template #mobile-title="{ row }">{{ row.name }}</template
       ><template #mobile-status="{ row }"
         ><LsStatusTag
@@ -118,14 +115,15 @@ const columns: DataTableColumns<ManageCampaign> = [
           :type="row.is_active ? 'success' : 'default'" /></template
       ><template #mobile="{ row }"
         ><dl>
+          <template v-if="!personal"><dt>归属</dt><dd><ResourceOwnerTag :resource="row" /></dd></template>
           <dt>模式</dt>
           <dd>{{ mode(Number(row.mode)) }}</dd>
           <dt>权益包</dt>
           <dd>{{ row.package?.name ?? `#${row.package_id}` }}</dd>
           <dt>操作</dt>
           <dd>
-            <RouterLink :to="`/manage/campaigns/${row.id}`">编辑</RouterLink> ·
-            <RouterLink :to="`/manage/campaigns/${row.id}/codes`"
+            <RouterLink :to="`${management.routePrefix}/campaigns/${row.id}`">编辑</RouterLink> ·
+            <RouterLink :to="`${management.routePrefix}/campaigns/${row.id}/codes`"
               >兑换码</RouterLink
             >
           </dd>

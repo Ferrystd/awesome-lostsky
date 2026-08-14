@@ -3,6 +3,7 @@ import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
@@ -67,12 +68,9 @@ const assignees = useQuery({
   queryFn: () => api.get<EntitySummary[]>('/customer/assignees'),
   enabled: canReadAll,
 })
-const assigneeOptions = computed(() => [
-  { label: '未归属', value: 0 },
-  ...(assignees.data.value ?? []).map(item => ({
-    label: `${item.name} · @${item.slug}`,
-    value: item.entity_id,
-  })),
+const assigneeEntities = computed(() => [
+  { entity_id: 0, type: 'entity', name: '未归属', slug: null },
+  ...(assignees.data.value ?? []),
 ])
 const blockedOptions = [
   { label: '正常客户', value: 0 },
@@ -107,14 +105,13 @@ const columns: DataTableColumns<CustomerRow> = [
 
     <LsListToolbar v-model="filters.keyword" placeholder="搜索客户昵称" aria-label="搜索客户" :count-label="`${query.data.value?.total ?? 0} 位客户`" @update:model-value="filters.page = 1">
       <template #filters>
-      <NSelect
+      <LsEntitySelect
         v-if="canReadAll"
-        v-model:value="filters.assignee_entity_id"
-        :options="assigneeOptions"
+        v-model="filters.assignee_entity_id"
+        :entities="assigneeEntities"
         clearable
-        filterable
         placeholder="全部归属人"
-        @update:value="filters.page = 1"
+        @update:model-value="filters.page = 1"
       />
       <NSelect
         v-model:value="filters.blocked"

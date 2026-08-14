@@ -1107,6 +1107,96 @@
           }
         }
       },
+      "ManualEntitlementProduct": {
+        "type": "object",
+        "required": ["id", "name", "price"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "name": {"type": "string"},
+          "price": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$"}
+        }
+      },
+      "ManualEntitlementGrantOptions": {
+        "type": "object",
+        "required": ["products", "customers", "entities", "sync_transaction"],
+        "properties": {
+          "products": {"type": "array", "items": {"$ref": "#/components/schemas/ManualEntitlementProduct"}},
+          "customers": {"type": "array", "items": {"$ref": "#/components/schemas/Customer"}},
+          "entities": {"type": "array", "items": {"$ref": "#/components/schemas/EntitySummary"}},
+          "sync_transaction": {"type": "boolean"}
+        }
+      },
+      "ManualEntitlementGrantRequest": {
+        "type": "object",
+        "required": ["product_id", "customer_id", "quantity"],
+        "properties": {
+          "product_id": {"type": "integer", "format": "int64"},
+          "customer_id": {"type": "integer", "format": "int64"},
+          "quantity": {"type": "integer", "minimum": 1, "maximum": 999},
+          "sender_entity_id": {"type": "integer", "format": "int64", "nullable": true},
+          "cs_entity_id": {"type": "integer", "format": "int64", "nullable": true}
+        }
+      },
+      "ManualEntitlementGrantResult": {
+        "type": "object",
+        "required": ["entitlement_ids", "entitlement_count", "transaction_id", "order_id"],
+        "properties": {
+          "entitlement_ids": {"type": "array", "items": {"type": "integer", "format": "int64"}},
+          "entitlement_count": {"type": "integer", "minimum": 1},
+          "transaction_id": {"type": "integer", "format": "int64", "nullable": true},
+          "order_id": {"type": "integer", "format": "int64", "nullable": true, "description": "手动赋予固定不创建 Shop 订单，因此始终为 null。"}
+        }
+      },
+      "PersonalEntitlementGrantRecord": {
+        "type": "object",
+        "required": ["id", "create_time", "granted_quantity", "consumed_quantity", "available_quantity", "unit_name", "expire_time", "is_expired", "is_exhausted", "customer", "service", "product"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "create_time": {"type": "integer"},
+          "granted_quantity": {"type": "string"},
+          "consumed_quantity": {"type": "string"},
+          "available_quantity": {"type": "string"},
+          "unit_name": {"type": "string"},
+          "expire_time": {"type": "integer", "description": "0 表示永久有效。"},
+          "is_expired": {"type": "boolean"},
+          "is_exhausted": {"type": "boolean"},
+          "customer": {
+            "type": "object",
+            "required": ["id", "name", "avatar"],
+            "properties": {
+              "id": {"type": "integer", "format": "int64"},
+              "name": {"type": "string"},
+              "avatar": {"type": "string", "nullable": true}
+            }
+          },
+          "service": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": {"type": "integer", "format": "int64"},
+              "name": {"type": "string"}
+            }
+          },
+          "product": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": {"type": "integer", "format": "int64"},
+              "name": {"type": "string"}
+            }
+          }
+        }
+      },
+      "PersonalEntitlementGrantPage": {
+        "type": "object",
+        "required": ["total", "list", "page", "limit"],
+        "properties": {
+          "total": {"type": "integer", "minimum": 0},
+          "list": {"type": "array", "items": {"$ref": "#/components/schemas/PersonalEntitlementGrantRecord"}},
+          "page": {"type": "integer", "minimum": 1},
+          "limit": {"type": "integer", "minimum": 1, "maximum": 100}
+        }
+      },
       "TransactionStatsSummary": {
         "type": "object",
         "required": [
@@ -1774,30 +1864,35 @@
     }
   },
   "paths": {
-    "/service": {"get":{"tags":["Transaction"],"operationId":"serviceRedemptions","summary":"服务核销列表","responses":{"200":{"description":"成功"}}}},
-    "/service/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Transaction"],"operationId":"serviceRedemption","summary":"服务核销详情","responses":{"200":{"description":"成功"}}}},
-    "/service/{id}/handlers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Transaction"],"operationId":"serviceRedemptionHandlers","summary":"核销接单池","responses":{"200":{"description":"成功"}}}},
-    "/service/{id}/reassign": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"reassignServiceRedemption","summary":"改派接单人","responses":{"200":{"description":"成功"}}}},
-    "/service/{id}/cancel/approve": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"approveServiceCancellation","summary":"同意取消核销","responses":{"200":{"description":"成功"}}}},
-    "/service/{id}/cancel/reject": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"rejectServiceCancellation","summary":"拒绝取消核销","responses":{"200":{"description":"成功"}}}},
-    "/service/{id}/complete": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"completeServiceRedemption","summary":"确认已核销","responses":{"200":{"description":"成功"}}}},
-    "/service/{id}/adjustments": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"createServiceAdjustment","summary":"创建待客户确认的履约加价费用","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["name","quantity","unit_price"],"properties":{"name":{"type":"string"},"quantity":{"type":"string"},"unit_price":{"type":"string"},"cost":{"type":"string"},"handler_cut":{"type":"string"},"sender_cut":{"type":"string"},"cs_cut":{"type":"string"},"memo":{"type":"string"}}}}}},"responses":{"200":{"description":"成功"}}}},
-    "/service/{id}/adjustments/{adjustment_id}/cancel": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"adjustment_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"cancelServiceAdjustment","summary":"取消待确认的履约加价费用","responses":{"200":{"description":"成功"}}}},
+    "/service": {"get":{"tags":["Transaction"],"operationId":"serviceRedemptions","summary":"服务核销列表","description":"团队全量核销入口，要求 service.redemption.read 或 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Ability 或 Permission 不满足"}}}},
+    "/service/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Transaction"],"operationId":"serviceRedemption","summary":"服务核销详情","description":"要求 service.redemption.read 或 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Ability 或 Permission 不满足"}}}},
+    "/service/{id}/handlers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Transaction"],"operationId":"serviceRedemptionHandlers","summary":"核销接单池","description":"要求 service.redemption.read 或 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Ability 或 Permission 不满足"}}}},
+    "/service/{id}/reassign": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"reassignServiceRedemption","summary":"改派接单人","description":"要求 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}/cancel/approve": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"approveServiceCancellation","summary":"同意取消核销","description":"要求 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}/cancel/reject": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"rejectServiceCancellation","summary":"拒绝取消核销","description":"要求 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}/complete": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"completeServiceRedemption","summary":"确认已核销","description":"要求 service.redemption.manage；已开始履约时允许在 Transaction Ability 失效后收口。","responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}/adjustments": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"createServiceAdjustment","summary":"创建待客户确认的履约加价费用","description":"要求 service.redemption.manage。","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["name","quantity","unit_price"],"properties":{"name":{"type":"string"},"quantity":{"type":"string"},"unit_price":{"type":"string"},"cost":{"type":"string"},"handler_cut":{"type":"string"},"sender_cut":{"type":"string"},"cs_cut":{"type":"string"},"memo":{"type":"string"}}}}}},"responses":{"200":{"description":"成功"},"403":{"description":"Ability 或 Permission 不满足"}}}},
+    "/service/{id}/adjustments/{adjustment_id}/cancel": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"adjustment_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"cancelServiceAdjustment","summary":"取消待确认的履约加价费用","description":"要求 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Ability 或 Permission 不满足"}}}},
+    "/entitlement-grant/options": {"get":{"tags":["Transaction"],"operationId":"manualEntitlementGrantOptions","summary":"手动赋予权益候选","description":"返回当前团队启用的服务套餐商品、客户、业务 Entity，以及是否同步服务包收款流水。只要求 Transaction Ability 与 transaction.write，不要求 Shop Ability。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/ManualEntitlementGrantOptions"}}}]}}}},"403":{"description":"Ability 或 Permission 不满足"}}}},
+    "/entitlement-grant": {"post":{"tags":["Transaction"],"operationId":"manualEntitlementGrant","summary":"手动赋予客户独立服务权益","description":"从 Shop 服务套餐商品读取冻结权益快照，直接归属 Customer 根 Entity，不创建 Shop 订单。shop.sync_manual_entitlement_transaction 开启且 Transaction Ability 有效时，原子生成服务包收款流水。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ManualEntitlementGrantRequest"}}}},"responses":{"200":{"description":"客户权益已赋予","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/ManualEntitlementGrantResult"}}}]}}}},"403":{"description":"Ability 或 Permission 不满足"},"422":{"description":"商品、客户、份数或业务 Entity 无效"}}}},
+    "/personal/entitlements": {"get":{"tags":["Personal"],"operationId":"personalEntitlementGrants","summary":"分页读取本人赠送的服务权益","description":"只按当前 acting_entity 的发单身份返回直接赠送记录，不要求业务 Permission，也不接受 Entity ID 范围参数。商城订单与卡密产生的权益不进入该列表。","security":[{"bearerAuth":[]}],"parameters":[{"name":"keyword","in":"query","schema":{"type":"string"},"description":"按权益、来源商品或客户名称搜索。"},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/PersonalEntitlementGrantPage"}}}]}}}},"403":{"description":"Transaction Ability 不满足"}}}},
+    "/personal/entitlement-grant/options": {"get":{"tags":["Personal"],"operationId":"personalEntitlementGrantOptions","summary":"读取本人客户权益赠送候选","description":"要求 Transaction Ability 与 service.entitlement.grant，只返回当前 acting_entity 归属或发单绑定的有效客户，不接受 Entity ID 范围参数。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/ManualEntitlementGrantOptions"}}}]}}}},"403":{"description":"Ability 或 service.entitlement.grant 不满足"}}}},
+    "/personal/entitlement-grant": {"post":{"tags":["Personal"],"operationId":"personalEntitlementGrant","summary":"为本人接待客户赋予服务权益","description":"要求 Transaction Ability 与 service.entitlement.grant。客户必须归属或发单绑定当前 acting_entity，发单人由服务端强制为当前 Entity；不创建 Shop 订单。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ManualEntitlementGrantRequest"}}}},"responses":{"200":{"description":"客户权益已赋予","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/ManualEntitlementGrantResult"}}}]}}}},"403":{"description":"Ability、Permission 或客户范围不满足"},"422":{"description":"商品、客户、份数或业务 Entity 无效"}}}},
     "/workspace/access": {"get":{"tags":["Workspace"],"operationId":"transactionWorkspaceAccess","summary":"读取团队摘要、Permission 与 transaction Ability 快照","description":"这是 transaction Ability 缺失时唯一仍可访问的记账接口。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/WorkspaceAccessSnapshot"}}}]}}}}}}},
-    "/personal/transactions": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransactions","summary":"读取当前 Entity 参与的流水","description":"服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}},{"name":"type","in":"query","schema":{"type":"integer"}},{"name":"keyword","in":"query","schema":{"type":"string"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
-    "/personal/transactions/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransaction","summary":"读取当前 Entity 参与的流水详情","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"流水不存在或不属于当前个人范围"}}}},
-    "/personal/stats": {"get":{"tags":["Personal"],"operationId":"transactionPersonalStats","summary":"读取当前 Entity 个人业绩","description":"只汇总当前 acting_entity 作为接单人、发单人或客服取得的分配。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"}}}},
-    "/personal/services": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServices","summary":"读取接单人三组工作台","description":"offers 为待确认指定邀请，available 为接单池公开任务，list 为当前 Entity 已接取的核销。领取前返回完整 Customer 核销字段。","security":[{"bearerAuth":[]}],"parameters":[{"name":"status","in":"query","schema":{"type":"integer"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/transactions": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransactions","summary":"读取当前 Entity 参与的流水","description":"服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数，也不要求 transaction.read。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}},{"name":"type","in":"query","schema":{"type":"integer"}},{"name":"keyword","in":"query","schema":{"type":"string"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/transactions/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransaction","summary":"读取当前 Entity 参与的流水详情","description":"只允许读取当前 acting_entity 参与的记录，不要求 transaction.read。","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"流水不存在或不属于当前个人范围"}}}},
+    "/personal/stats": {"get":{"tags":["Personal"],"operationId":"transactionPersonalStats","summary":"读取当前 Entity 个人业绩","description":"只汇总当前 acting_entity 作为接单人、发单人或客服取得的分配，不要求 transaction.report.read。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/services": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServices","summary":"读取接单人三组工作台","description":"offers 为待确认指定邀请，available 为当前 Entity 有资格领取的公开任务，list 为当前 Entity 已接取的核销。显式接单池按名单限制，空接单池向全部有效接单 Entity 开放；领取前返回完整 Customer 核销字段。","security":[{"bearerAuth":[]}],"parameters":[{"name":"status","in":"query","schema":{"type":"integer"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
     "/personal/services/available": {"get":{"tags":["Personal"],"operationId":"transactionPersonalAvailableServices","summary":"分页读取当前 Entity 可以领取的公开任务","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
     "/personal/services/available/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalAvailableService","summary":"读取公开任务及完整核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"任务不存在或已被领取"}}}},
-    "/personal/services/{id}/claim": {"post":{"tags":["Personal"],"operationId":"claimPersonalService","summary":"领取接单池中的公开履约任务","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"409":{"description":"任务已被领取或正在取消"}}}},
+    "/personal/services/{id}/claim": {"post":{"tags":["Personal"],"operationId":"claimPersonalService","summary":"领取有资格接取的公开履约任务","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"409":{"description":"任务已被领取或正在取消"},"422":{"description":"当前 Entity 不具备接单资格"}}}},
     "/personal/services/{id}/return": {"post":{"tags":["Personal"],"operationId":"returnPersonalService","summary":"主动退回自己未完成的任务至公开接单池","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["reason"],"properties":{"reason":{"type":"string","minLength":1,"maxLength":500}}}}}},"responses":{"200":{"description":"已退回"},"409":{"description":"存在待处理取消申请或任务状态已改变"}}}},
     "/personal/services/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalService","summary":"读取当前 Entity 处理的核销详情","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"核销不存在或不属于当前个人范围"}}}},
     "/personal/service-offers": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServiceOffers","summary":"分页读取待当前 Entity 确认的指定邀请","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
     "/personal/service-offers/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServiceOffer","summary":"读取指定邀请及完整核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"}}}},
-    "/personal/service-offers/{id}/accept": {"post":{"tags":["Personal"],"operationId":"acceptPersonalServiceOffer","summary":"接受邀请并原子创建已分配核销中切片","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"responses":{"200":{"description":"已接受"},"409":{"description":"邀请已处理或已过期"},"422":{"description":"接单资格已失效"}}}},
+    "/personal/service-offers/{id}/accept": {"post":{"tags":["Personal"],"operationId":"acceptPersonalServiceOffer","summary":"接受邀请并原子创建已分配核销中切片","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"responses":{"200":{"description":"已接受"},"409":{"description":"邀请已处理"},"422":{"description":"接单资格已失效"}}}},
     "/personal/service-offers/{id}/reject": {"post":{"tags":["Personal"],"operationId":"rejectPersonalServiceOffer","summary":"拒绝邀请并释放预占","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"responses":{"200":{"description":"已拒绝"}}}},
-    "/personal/bindings": {"get":{"tags":["Personal"],"operationId":"transactionPersonalBindings","summary":"读取当前 Entity 的客户协作与发单绑定","description":"只使用当前 acting_entity 查询绑定，不接受 Entity ID。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/bindings": {"get":{"tags":["Personal"],"operationId":"transactionPersonalBindings","summary":"读取当前 Entity 的客户协作与发单绑定","description":"只使用当前 acting_entity 查询绑定，不接受 Entity ID，也不要求 transaction.read。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
     "/transaction": {
       "get": {
         "tags": [

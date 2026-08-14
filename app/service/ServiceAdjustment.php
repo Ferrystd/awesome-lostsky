@@ -35,9 +35,9 @@ class ServiceAdjustment
             if ($name === '' || mb_strlen($name) > 100) throw new HttpException(422, '费用名称应为 1 至 100 个字符');
             $entitlement = $instance->entitlement;
             if (!$entitlement) throw new HttpException(409, '服务权益不存在');
-            $quantity = app(ServiceQuantity::class)->normalize(
+            $quantityRules = app(ServiceQuantity::class);
+            $quantity = $quantityRules->normalize(
                 $data['quantity'] ?? 1,
-                (int) $entitlement->quantity_scale,
                 $entitlement->quantity_step
             );
             $unitPrice = $this->money($data['unit_price'] ?? null, '单价');

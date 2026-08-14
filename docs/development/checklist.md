@@ -7,6 +7,7 @@
 - [ ] 按[Changelog 写法](releasing.md#changelog)更新 `docs/changelog.md` 的“未发布”区，不修改已经发布的版本章节。
 - [ ] 更新直接相关测试；输入、结构或示例变化时同步 fixture 和测试数据清理逻辑。
 - [ ] 运行直接相关检查和 `git diff --check`，只记录实际结果。
+- [ ] 长任务、上下文切换、委派或覆盖风险出现时，已按[工作区保护与阶段性暂存](contributing.md#staged-worktree-baseline)为通过直接验证的切片建立显式、可审查的暂存基线；未使用宽泛暂存，也未纳入或清空其他任务差异。
 - [ ] 不手改 `www/`、生成 API 类型或 Service 字典；涉及对应源文件时必须运行生成命令。生成 API 类型和 Service 字典的差异必须保留；`www/` 可再生产物只验证生成成功，不纳入 Git。这里的“保留现有改动”仅指不得丢弃、回退或覆盖用户已有差异，不表示跳过生成。
 - [ ] 新增或修改后台页面结构时已按[页面组件化方法](../design/admin/componentization.md)完成实施前盘点；达到阈值的模式已全量迁移并清理旧 CSS。
 - [ ] 已按[封闭组件契约](../design/admin/componentization.md#closed-component-contract)确认唯一视觉所有者；页面和上层组件未使用 `:deep(.ls-*)`、视觉参数或样式透传进入公共组件内部，新增参数已满足真实变体准入条件。

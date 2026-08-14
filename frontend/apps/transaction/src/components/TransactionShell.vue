@@ -4,11 +4,11 @@ import { formatAbilityDenied, formatPermissionDenied } from '@lostsky/api/error-
 import { chatWorkspaceUrl, redirectToLogin, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
-import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Handshake, House, ListChecks, LogOut, Menu, MessageCircleMore, Plus, ReceiptText, Store, X } from '@lucide/vue'
+import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Gift, Handshake, House, ListChecks, LogOut, Menu, MessageCircleMore, Plus, ReceiptText, Store, X } from '@lucide/vue'
 import { NButton } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { hasWorkspacePermission, loadWorkspaceAccess, type WorkspaceAccess } from '../lib/workspace-access'
+import { hasWorkspacePermission, loadWorkspaceAccess, serviceRedemptionReadPermissions, workspacePermissionKeys, type WorkspaceAccess, type WorkspacePermissionRequirement } from '../lib/workspace-access'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,17 +16,18 @@ const drawer = ref(false)
 const teamNav = [
   ['/overview', '概览', House, null],
   ['/', '流水', ListChecks, 'transaction.read'],
-  ['/services', '服务核销', BadgeCheck, null],
+  ['/services', '服务核销', BadgeCheck, serviceRedemptionReadPermissions],
   ['/stats', '统计', BarChart3, 'transaction.report.read'],
   ['/bindings', '发单绑定', Handshake, 'transaction.read'],
   ['/balances', '客户余额', CircleDollarSign, 'transaction.read'],
 ] as const
 const personalNav = [
   ['/personal', '概览', House, null],
-  ['/personal/transactions', '相关流水', ListChecks, 'transaction.read'],
-  ['/personal/stats', '我的业绩', BarChart3, 'transaction.report.read'],
+  ['/personal/transactions', '相关流水', ListChecks, null],
+  ['/personal/stats', '我的业绩', BarChart3, null],
   ['/personal/services', '我的核销', BadgeCheck, null],
-  ['/personal/bindings', '客户协作', Handshake, 'transaction.read'],
+  ['/personal/bindings', '客户协作', Handshake, null],
+  ['/personal/entitlements', '权益赠送', Gift, null],
 ] as const
 const access = ref<WorkspaceAccess | null>(null)
 void loadWorkspaceAccess().then(value => { access.value = value }).catch(() => undefined)
@@ -61,11 +62,11 @@ function handleHeaderAction(key: string) {
   if (entry.key === 'transaction') void router.push('/')
   else window.location.href = entry.href
 }
-function disabledReason(permission: string | null) {
+function disabledReason(permission: WorkspacePermissionRequirement | null) {
   if (!permission) return ''
   if (!access.value) return '正在核对 Permission'
   if (transactionReason.value) return transactionReason.value
-  return hasWorkspacePermission(access.value.permissions, permission) ? '' : formatPermissionDenied([permission])
+  return hasWorkspacePermission(access.value.permissions, permission) ? '' : formatPermissionDenied(workspacePermissionKeys(permission))
 }
 function explain(reason: string) { feedback.info(reason) }
 function logout() {

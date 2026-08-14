@@ -32,12 +32,9 @@ export const entityName = (entity?: EntityDisplay, id?: number | null) => {
 export const customerName = (customer?: Customer | null, id?: number | null) =>
   String(customer?.nickname || (id ? `客户 #${id}` : '未关联客户'))
 
-export const entityOptions = (data?: TransactionOptions) => (data?.entities ?? [])
-  .map((item) => ({ label: entityName(item, item.entity_id), value: Number(item.entity_id) }))
-
 export const customerOptions = (data?: TransactionOptions) => (data?.customers ?? [])
   .filter((item) => Number(item.is_blocked ?? 0) !== 1)
   .map((item) => ({ label: customerName(item, item.id), value: Number(item.id) }))
 
-export const transactionType = (value: unknown) => ({ 1: '商城订单', 2: '记账登记', 3: '服务包收款', 4: '服务核销' }[Number(value)] ?? '其他流水')
+export const transactionType = (value: unknown) => ({ 1: '商城订单', 2: '记账登记', 3: '服务包收款', 4: '服务核销', 5: '履约加价收款', 6: '履约加价业绩' }[Number(value)] ?? '其他流水')
 export const balanceLogType = (value: unknown) => ({ 1: '充值', 2: '消费', 3: '退款', 4: '调整' }[Number(value)] ?? '变动')

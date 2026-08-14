@@ -27,7 +27,6 @@ class TeamServiceEntitlement extends Base
         'holder_entity_id' => 'integer',
         'ordinal' => 'integer',
         'unit_name' => 'string',
-        'quantity_scale' => 'integer',
         'quantity_step' => 'string',
         'granted_quantity' => 'string',
         'reserved_quantity' => 'string',
@@ -54,7 +53,7 @@ class TeamServiceEntitlement extends Base
     protected $readonly = [
         'team_id', 'service_id', 'customer_id', 'holder_entity_id', 'sender_entity_id', 'cs_entity_id', 'source_product_id',
         'source_order_id', 'source_claim_id', 'source_package_item_id', 'ordinal',
-        'unit_name', 'quantity_scale', 'quantity_step', 'granted_quantity', 'total_price',
+        'unit_name', 'quantity_step', 'granted_quantity', 'total_price',
         'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'expire_time',
     ];
 

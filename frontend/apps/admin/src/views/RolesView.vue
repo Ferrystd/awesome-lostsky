@@ -4,6 +4,7 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { Plus } from '@lucide/vue'
 import { NTag } from 'naive-ui'
@@ -21,7 +22,7 @@ const rows = computed(() => {
 
 <template>
   <LsPageHeader title="平台角色" description="权限目录由代码维护；自定义角色组合固定权限后分配给平台管理员。">
-    <template #actions><RouterLink v-if="can('admin.access.write')" class="primary-link" to="/roles/new"><Plus />创建角色</RouterLink></template>
+    <template #actions><LsPagePrimaryAction v-if="can('admin.access.write')" :icon="Plus" label="创建角色" to="/roles/new" /></template>
   </LsPageHeader>
   <LsListToolbar v-model="search" placeholder="搜索角色名称或标识" aria-label="搜索平台角色" :count-label="`${rows.length} 个角色`" />
   <LsAsyncState v-if="query.isPending.value" state="loading" :rows="4" />

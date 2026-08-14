@@ -217,6 +217,25 @@ $assert(
         && $has($personalProductMiddleware, 'Permission:' . \app\service\PermissionDictionary::SHOP_PRODUCT_SELF_MANAGE),
     'personal products require a backend Entity, current team and self management permission'
 );
+$personalEntitlementMiddleware = $middleware(\app\shop\controller\PersonalEntitlement::class);
+$assert(
+    $has($personalEntitlementMiddleware, $backendEntities)
+        && $has($personalEntitlementMiddleware, 'TeamAuth')
+        && $has($personalEntitlementMiddleware, 'Permission:' . \app\service\PermissionDictionary::SHOP_PRODUCT_SELF_MANAGE),
+    'personal services, packages, campaigns and codes require the current Entity self management permission'
+);
+$shopBackendControllers = [
+    \app\shop\controller\Product::class,
+    \app\shop\controller\PersonalProduct::class,
+    \app\shop\controller\Order::class,
+    \app\shop\controller\Manage::class,
+];
+foreach ($shopBackendControllers as $controller) {
+    $assert(
+        !$has($middleware($controller), 'Ability:shop'),
+        "{$controller} keeps Shop Ability outside backend product and order management"
+    );
+}
 $assert(
     $has($middleware(\app\transaction\controller\Transaction::class), $backendEntities)
         && $has($middleware(\app\transaction\controller\Transaction::class), 'TeamAuth'),
@@ -229,6 +248,7 @@ $transactionBusinessControllers = [
     \app\transaction\controller\Sender::class,
     \app\transaction\controller\Balance::class,
     \app\transaction\controller\Personal::class,
+    \app\transaction\controller\EntitlementGrant::class,
 ];
 foreach ($transactionBusinessControllers as $controller) {
     $assert(
@@ -239,14 +259,56 @@ foreach ($transactionBusinessControllers as $controller) {
     );
 }
 $assert(
+    $has(
+        $middleware(\app\transaction\controller\EntitlementGrant::class),
+        'Permission:' . \app\service\PermissionDictionary::TRANSACTION_WRITE
+    )
+        && $has(
+            $middleware(\app\transaction\controller\EntitlementGrant::class),
+            'Permission:' . \app\service\PermissionDictionary::SERVICE_ENTITLEMENT_GRANT
+        )
+        && $has($middleware(\app\transaction\controller\EntitlementGrant::class), 'TransactionVerify'),
+    'team and personal entitlement grants use distinct permissions and customer scope checks'
+);
+$entitlementGrantMiddleware = $middleware(\app\transaction\controller\EntitlementGrant::class);
+$assertSame(
+    ['options', 'create'],
+    $entitlementGrantMiddleware['Permission:' . \app\service\PermissionDictionary::TRANSACTION_WRITE]['only'] ?? null,
+    'team entitlement grant actions retain transaction.write'
+);
+$assertSame(
+    ['personalOptions', 'personalCreate'],
+    $entitlementGrantMiddleware['Permission:' . \app\service\PermissionDictionary::SERVICE_ENTITLEMENT_GRANT]['only'] ?? null,
+    'personal entitlement grant actions require the dedicated permission'
+);
+$assert(
+    !in_array('personalHistory', $entitlementGrantMiddleware['Permission:' . \app\service\PermissionDictionary::SERVICE_ENTITLEMENT_GRANT]['only'] ?? [], true),
+    'personal entitlement history remains readable without the grant permission'
+);
+$assert(
     !$has($middleware(\app\transaction\controller\Workspace::class), 'Ability:transaction'),
     'transaction workspace access remains available to explain a missing Ability'
 );
 $personalTransactionMiddleware = $middleware(\app\transaction\controller\Personal::class);
+$assert(
+    !isset($personalTransactionMiddleware['Permission:' . \app\service\PermissionDictionary::TRANSACTION_READ])
+        && !isset($personalTransactionMiddleware['Permission:' . \app\service\PermissionDictionary::TRANSACTION_REPORT_READ]),
+    'personal transaction reads use acting Entity scope without Team-wide permissions'
+);
+$serviceRedemptionMiddleware = $middleware(\app\transaction\controller\Service::class);
+$serviceRedemptionReadGate = 'Permission:'
+    . \app\service\PermissionDictionary::SERVICE_REDEMPTION_READ
+    . ','
+    . \app\service\PermissionDictionary::SERVICE_REDEMPTION_MANAGE;
 $assertSame(
-    ['transactions', 'transaction', 'bindings'],
-    $personalTransactionMiddleware['Permission:' . \app\service\PermissionDictionary::TRANSACTION_READ]['only'] ?? null,
-    'personal service tasks keep their handler scope instead of borrowing transaction.read'
+    ['index', 'get', 'handlers'],
+    $serviceRedemptionMiddleware[$serviceRedemptionReadGate]['only'] ?? null,
+    'team service redemption reads require read or manage permission'
+);
+$assertSame(
+    ['approveCancel', 'rejectCancel', 'reassign', 'complete', 'createAdjustment', 'cancelAdjustment'],
+    $serviceRedemptionMiddleware['Permission:' . \app\service\PermissionDictionary::SERVICE_REDEMPTION_MANAGE]['only'] ?? null,
+    'team service redemption writes require manage permission'
 );
 $identityMiddleware = $middleware(\app\account\controller\Identity::class);
 $assert(

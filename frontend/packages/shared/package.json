@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     "./navigation": "./src/navigation.ts",
+    "./quantity": "./src/quantity.ts",
     "./referral": "./src/referral.ts"
   }
 }

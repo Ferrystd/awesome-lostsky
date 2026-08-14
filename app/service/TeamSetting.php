@@ -15,6 +15,11 @@ class TeamSetting
         return $this->internalMany([$teamId], $appName)[$teamId] ?? $this->defaults($appName);
     }
 
+    public function internalTyped(int $teamId, string $appName): array
+    {
+        return $this->typedSettings($this->internal($teamId, $appName), $this->definitions($appName));
+    }
+
     public function internalMany(array $teamIds, string $appName): array
     {
         $definitions = $this->definitions($appName);
@@ -245,11 +250,9 @@ class TeamSetting
             $total = array_sum(array_map(static fn (string $key): int => (int) ($settings[$key] ?? 0), $keys));
             if ($total > 100) throw new HttpException(422, '接单、发单与客服默认分成比例合计不能超过 100%');
         }
-        app(ServiceQuantity::class)->normalize(
-            $settings['default_quantity_step'] ?? 1,
-            (int) ($settings['default_quantity_scale'] ?? 0),
-            $settings['default_quantity_step'] ?? 1
-        );
+        $quantity = app(ServiceQuantity::class);
+        $step = $settings['default_quantity_step'] ?? 1;
+        $quantity->normalize($step, $step);
     }
 
     private function persist(

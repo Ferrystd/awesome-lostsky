@@ -120,7 +120,6 @@ export interface ServiceAdjustment {
 export interface ServiceEntitlement {
   id: number
   unit_name: string
-  quantity_scale: number
   quantity_step: string
   granted_quantity: string
   reserved_quantity: string
@@ -142,7 +141,6 @@ export interface ServiceAssignmentOffer {
   quantity: string
   status: number | string
   memo?: string | null
-  expire_time: number
   decision_reason?: string | null
   target_handler?: { id: number; name?: string; profile?: { name?: string } } | null
   service_instance_id?: number | null
@@ -168,31 +166,33 @@ export interface ManageAccess {
   }
   file_upload?: FileUploadAvailability
 }
-export interface ManageEntityOption { id?: number; entity_id?: number; slug: string; type?: string; name: string; avatar?: string | null }
-export interface ManageService {
+export interface ManageEntityOption { id?: number; entity_id?: number; slug: string; type?: string; entityable_type?: string; name: string; avatar?: string | null }
+export interface ManageOwnedResource { owner_entity_id?: number | null; owner?: ManageEntityOption | null }
+export interface ManageService extends ManageOwnedResource {
   id: number; team_id: number; name: string; description?: string | null; is_active: 0 | 1
-  unit_name: string; quantity_scale: number; quantity_step: string
+  unit_name: string; quantity_step: string
   default_total_price: string; default_cost: string; default_handler_cut: string; default_sender_cut: string; default_cs_cut: string; default_team_cut: string
   handlers?: Array<{ entity_id: number; subject?: ManageEntityOption | null }>
 }
 export interface ManagePackageService {
   id?: number; service_id: number; quantity: string | number; valid_days: number; service?: ManageService | null
-  unit_price: string; unit_cost: string; distribution_mode: 1 | 2 | '固定金额' | '按比例'
+  unit_price: string; unit_cost: string
   unit_handler_cut: string; unit_sender_cut: string; unit_cs_cut: string
-  handler_rate_bp: number; sender_rate_bp: number; cs_rate_bp: number; sort: number
+  sort: number
 }
 export interface ManageAbilityItem { ability_key: string; level: number; duration_days: number }
 export interface ManagePricingSummary { price: string; cost: string; handler_cut: string; sender_cut: string; cs_cut: string; team_cut: string }
-export interface ManagePackage {
+export interface ManagePackage extends ManageOwnedResource {
   id: number; name: string; pricing_mode: 1 | 2 | '历史均摊' | '分项计价'; is_active: 0 | 1
   is_pricing_locked?: boolean; pricing_summary?: ManagePricingSummary | null; services?: ManagePackageService[]; abilities?: ManageAbilityItem[]
 }
-export interface ManageCampaign { id: number; package_id: number; name: string; claim_group: string; mode: 1 | 2 | 3; total_limit?: number | null; per_target_limit: number; redeem_starts_at: number; redeem_ends_at: number; is_active: 0 | 1; package?: ManagePackage | null }
+export interface ManageCampaign extends ManageOwnedResource { id: number; package_id: number; name: string; claim_group: string; mode: 1 | 2 | 3; total_limit?: number | null; per_target_limit: number; redeem_starts_at: number; redeem_ends_at: number; is_active: 0 | 1; package?: ManagePackage | null }
 export interface ManageCode { id: number; campaign_id: number; code_hint: string; use_count: number; max_uses?: number | null; expire_time: number; is_active: 0 | 1; create_time: number }
 export interface ManageCustomerOption { id: number; nickname?: string; name?: string; is_blocked: 0 | 1; balance?: Balance | null }
-export interface ProductManageOptions { entities: ManageEntityOption[]; packages: ManagePackage[]; campaigns: ManageCampaign[] }
 export interface ManageServiceDefaults {
-  default_unit_name: string; default_quantity_scale: number; default_quantity_step: string; default_valid_days: number
-  allow_customer_open_dispatch: boolean; assignment_offer_timeout_minutes: number; default_handler_rate_percent: number; default_sender_rate_percent: number; default_cs_rate_percent: number
+  default_unit_name: string; default_quantity_step: string; default_valid_days: number
+  allow_customer_open_dispatch: boolean; default_handler_rate_percent: number; default_sender_rate_percent: number; default_cs_rate_percent: number
 }
-export interface ManageOptions extends ProductManageOptions { customers: ManageCustomerOption[]; services: ManageService[]; service_defaults: ManageServiceDefaults }
+export interface ProductManageOptions { entities: ManageEntityOption[]; packages: ManagePackage[]; campaigns: ManageCampaign[]; service_defaults: ManageServiceDefaults }
+export interface EntitlementManageOptions extends ProductManageOptions { services: ManageService[] }
+export interface ManageOptions extends EntitlementManageOptions { customers: ManageCustomerOption[] }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
@@ -10,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NSelect } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { customerOptions, entityOptions } from '../lib'
+import { customerOptions } from '../lib'
 import type { TransactionOptions } from '../types'
 
 const router = useRouter()
@@ -33,7 +34,7 @@ const valid = computed(() => Boolean(entityId.value && customerId.value))
     <LsPageHeader title="新增发单绑定" description="一个客户可以绑定给不同发单人；同一发单人与客户的重复绑定会被拒绝。" back-to="/bindings" back-label="返回发单绑定" />
     <form @submit.prevent="save.mutate()">
       <LsFormSection title="绑定关系">
-        <LsField label="发单人" for-id="binding-entity" required><NSelect id="binding-entity" v-model:value="entityId" :options="entityOptions(options.data.value)" filterable placeholder="选择发单人" /></LsField>
+        <LsField label="发单人" for-id="binding-entity" required><LsEntitySelect id="binding-entity" v-model="entityId" :entities="options.data.value?.entities ?? []" :loading="options.isPending.value" :disabled="options.isError.value" placeholder="选择发单人" /></LsField>
         <LsField label="客户" for-id="binding-customer" required><NSelect id="binding-customer" v-model:value="customerId" :options="customerOptions(options.data.value)" filterable placeholder="选择客户" /></LsField>
         <LsInlineError v-if="options.isError.value || save.isError.value" :message="friendlyError(options.error.value || save.error.value)" />
       </LsFormSection>

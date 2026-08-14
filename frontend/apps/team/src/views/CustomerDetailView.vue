@@ -3,22 +3,22 @@ import { ApiError, api, friendlyError, uploadFileUrl } from '@lostsky/api/client
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import type { EntityType } from '@lostsky/ui/entity'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { MessageCircleMore, Save } from '@lucide/vue'
-import { NInput, NSelect } from 'naive-ui'
-import type { SelectOption, SelectRenderLabel } from 'naive-ui'
-import { computed, h, reactive, ref, watch } from 'vue'
+import { NInput } from 'naive-ui'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPage from '../components/AdminPage.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
-import EntitySelectOption from '../components/EntitySelectOption.vue'
 import { abilityReason, hasPermission, permissionReason, resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 interface EntitySummary {
@@ -27,7 +27,6 @@ interface EntitySummary {
   type: EntityType
   name: string
 }
-interface AssigneeSelectOption extends SelectOption, EntitySummary {}
 interface CustomerDetail {
   id: number
   slug: string
@@ -125,13 +124,6 @@ const save = useMutation({
     ])
   },
 })
-const assigneeOptions = computed<AssigneeSelectOption[]>(() => (assignees.data.value ?? []).map(item => ({
-  ...item,
-  label: `${item.name} @${item.slug}`,
-  value: item.entity_id,
-})))
-const assigneeMenuProps = { class: 'entity-select-menu' }
-const renderAssigneeLabel: SelectRenderLabel = option => h(EntitySelectOption, { entity: option as AssigneeSelectOption })
 const chatReason = computed(() => {
   const snapshot = access.data.value
   if (!snapshot || !snapshot.permissions) return ''
@@ -158,8 +150,7 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
       back-label="返回客户列表"
     >
       <template #actions>
-        <a v-if="!chatReason && chatUrl" class="chat-link" :href="chatUrl"><MessageCircleMore :size="18" />发起对话</a>
-        <LsButton v-else variant="secondary" class="chat-link" :title="chatReason" disabled><template #icon><MessageCircleMore :size="18" /></template>发起对话</LsButton>
+        <LsPagePrimaryAction :icon="MessageCircleMore" label="发起对话" :href="chatUrl" :disabled="Boolean(chatReason || !chatUrl)" :disabled-reason="chatReason" />
       </template>
     </AdminPageHeader>
 
@@ -180,16 +171,12 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
           <LsField label="头像" for-id="customer-avatar"><LsMediaUploadField id="customer-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(avatarUploadDisabledReason)" :disabled-reason="avatarUploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
           <LsField label="说明" for-id="customer-description"><NInput v-model:value="form.description" :input-props="{ id: 'customer-description' }" :disabled="!canManage" type="textarea" maxlength="500" /></LsField>
           <LsField label="当前归属人" for-id="customer-assignee" hint="变更只影响之后创建的订单和流水，不修改历史发单人。">
-            <NSelect
+            <LsEntitySelect
               id="customer-assignee"
-              v-model:value="form.assignee_entity_id"
-              :options="assigneeOptions"
-              :render-label="renderAssigneeLabel"
-              :menu-props="assigneeMenuProps"
+              v-model="form.assignee_entity_id"
+              :entities="assignees.data.value ?? []"
               :loading="assignees.isPending.value"
               :disabled="!canManage"
-              :virtual-scroll="false"
-              filterable
               clearable
               placeholder="未归属"
             />
@@ -203,6 +190,6 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
 </template>
 
 <style scoped>
-.chat-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .9rem;border:0;border-radius:9px;color:white;background:var(--sky-lost-strong);font-size:.875rem;font-weight:700}.chat-link.disabled{color:var(--muted-ink);background:var(--cloud);cursor:not-allowed}.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden;background:white;border:1px solid var(--line);border-radius:12px}.summary-grid article{display:grid;gap:.25rem;padding:1.1rem;border-right:1px solid var(--line)}.summary-grid article:last-child{border-right:0}.summary-grid span,.summary-grid small{color:var(--muted-ink);font-size:.76rem}.summary-grid strong{font-size:1.1rem;font-variant-numeric:tabular-nums}.detail-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}.detail-heading h3,.detail-heading p{margin:0}.detail-heading p{margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.detail-heading>span{padding:.2rem .5rem;border-radius:999px;background:var(--cloud);font-size:.72rem;font-weight:700}.ls-panel form{max-width:42rem;display:grid;gap:1rem}
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden;background:white;border:1px solid var(--line);border-radius:12px}.summary-grid article{display:grid;gap:.25rem;padding:1.1rem;border-right:1px solid var(--line)}.summary-grid article:last-child{border-right:0}.summary-grid span,.summary-grid small{color:var(--muted-ink);font-size:.76rem}.summary-grid strong{font-size:1.1rem;font-variant-numeric:tabular-nums}.detail-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}.detail-heading h3,.detail-heading p{margin:0}.detail-heading p{margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.detail-heading>span{padding:.2rem .5rem;border-radius:999px;background:var(--cloud);font-size:.72rem;font-weight:700}.ls-panel form{max-width:42rem;display:grid;gap:1rem}
 @media(max-width:640px){.summary-grid{grid-template-columns:1fr}.summary-grid article{border-right:0;border-bottom:1px solid var(--line)}.summary-grid article:last-child{border-bottom:0}}
 </style>

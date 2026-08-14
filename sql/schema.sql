@@ -262,6 +262,7 @@ CREATE TABLE `team_ability_grant` (
 CREATE TABLE `benefit_package` (
     `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `issuer_team_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '发行团队ID NULL=平台',
+    `owner_entity_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '归属Entity ID NULL=团队公用或平台',
     `name`           VARCHAR(100) NOT NULL DEFAULT '' COMMENT '权益套餐名称',
     `pricing_mode`   TINYINT      NOT NULL DEFAULT 1 COMMENT '计价方式 1-历史均摊 2-分项计价',
     `is_active`      TINYINT      NOT NULL DEFAULT 1 COMMENT '是否启用',
@@ -269,7 +270,8 @@ CREATE TABLE `benefit_package` (
     `update_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time`    INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
-    KEY `idx_benefit_package_issuer` (`issuer_team_id`, `is_active`)
+    KEY `idx_benefit_package_issuer` (`issuer_team_id`, `is_active`),
+    KEY `idx_benefit_package_owner` (`issuer_team_id`, `owner_entity_id`, `is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='可复用权益套餐';
 
 -- ----------------------------
@@ -296,10 +298,10 @@ CREATE TABLE `benefit_package_ability` (
 CREATE TABLE `team_service` (
     `id`                  INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `team_id`             INT UNSIGNED NOT NULL COMMENT '服务提供团队ID',
+    `owner_entity_id`     INT UNSIGNED NULL DEFAULT NULL COMMENT '归属Entity ID NULL=团队公用',
     `name`                VARCHAR(100) NOT NULL DEFAULT '' COMMENT '服务名称',
     `description`         TEXT         NULL COMMENT '服务说明',
     `unit_name`           VARCHAR(20)  NOT NULL DEFAULT '次' COMMENT '计量单位名称',
-    `quantity_scale`      TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '数量小数位 0-4',
     `quantity_step`       DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '最小核销步长',
     `default_total_price` DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '卡密领取时单次默认价值',
     `default_cost`        DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '单次默认成本',
@@ -312,7 +314,8 @@ CREATE TABLE `team_service` (
     `update_time`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time`         INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
-    KEY `idx_team_service` (`team_id`, `is_active`)
+    KEY `idx_team_service` (`team_id`, `is_active`),
+    KEY `idx_team_service_owner` (`team_id`, `owner_entity_id`, `is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队可核销服务定义';
 
 -- ----------------------------
@@ -343,13 +346,9 @@ CREATE TABLE `benefit_package_service` (
     `valid_days`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '领取后有效天数 0=永久',
     `unit_price`  DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '单实例价格',
     `unit_cost`   DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '单实例成本',
-    `distribution_mode` TINYINT NOT NULL DEFAULT 1 COMMENT '分成方式 1-固定金额 2-按比例',
     `unit_handler_cut` DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '单实例接单固定分成',
     `unit_sender_cut`  DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '单实例发单固定分成',
     `unit_cs_cut`      DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '单实例客服固定分成',
-    `handler_rate_bp`  SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '接单分成基点 10000=100%',
-    `sender_rate_bp`   SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '发单分成基点 10000=100%',
-    `cs_rate_bp`       SMALLINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '客服分成基点 10000=100%',
     `sort`             INT NOT NULL DEFAULT 0 COMMENT '套餐内顺序',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
@@ -366,6 +365,7 @@ CREATE TABLE `redemption_campaign` (
     `id`               INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `package_id`       INT UNSIGNED NOT NULL COMMENT '权益套餐ID',
     `issuer_team_id`   INT UNSIGNED NULL DEFAULT NULL COMMENT '发行团队ID NULL=平台',
+    `owner_entity_id`  INT UNSIGNED NULL DEFAULT NULL COMMENT '归属Entity ID NULL=团队公用或平台',
     `name`             VARCHAR(100) NOT NULL DEFAULT '' COMMENT '活动名称',
     `claim_group`      VARCHAR(100) NOT NULL DEFAULT '' COMMENT '领取互斥组',
     `mode`             TINYINT      NOT NULL DEFAULT 1 COMMENT '1-独立卡 2-公共活动码 3-定向卡',
@@ -379,6 +379,7 @@ CREATE TABLE `redemption_campaign` (
     `delete_time`      INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
     KEY `idx_redemption_campaign` (`issuer_team_id`, `is_active`),
+    KEY `idx_redemption_campaign_owner` (`issuer_team_id`, `owner_entity_id`, `is_active`),
     KEY `idx_redemption_claim_group` (`claim_group`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='卡密领取活动';
 
@@ -726,7 +727,6 @@ CREATE TABLE `team_service_entitlement` (
     `source_package_item_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '来源权益服务项ID',
     `ordinal`                INT UNSIGNED NOT NULL COMMENT '来源内序号',
     `unit_name`              VARCHAR(20) NOT NULL DEFAULT '次' COMMENT '冻结计量单位',
-    `quantity_scale`         TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '冻结数量小数位',
     `quantity_step`          DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '冻结最小核销步长',
     `granted_quantity`       DECIMAL(18,4) NOT NULL DEFAULT 0.0000 COMMENT '授予额度',
     `reserved_quantity`      DECIMAL(18,4) NOT NULL DEFAULT 0.0000 COMMENT '待确认邀请与核销中实例预占额度',
@@ -762,7 +762,7 @@ CREATE TABLE `team_service_assignment_offer` (
     `entitlement_id`           INT UNSIGNED NOT NULL COMMENT '服务权益ID',
     `target_handler_entity_id` INT UNSIGNED NOT NULL COMMENT '被邀请接单Entity ID',
     `quantity`                 DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '邀请履约数量',
-    `status`                   TINYINT NOT NULL DEFAULT 1 COMMENT '1-待确认 2-已接受 3-已拒绝 4-已撤回 5-已过期',
+    `status`                   TINYINT NOT NULL DEFAULT 1 COMMENT '1-待确认 2-已接受 3-已拒绝 4-已取消 5-已失效',
     `memo`                     TEXT NULL COMMENT 'Customer备注',
     `field_values`             JSON NULL COMMENT 'Customer核销字段原始快照',
     `total_price`              DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '冻结履约价值',
@@ -771,7 +771,6 @@ CREATE TABLE `team_service_assignment_offer` (
     `sender_cut`               DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '冻结发单分成',
     `cs_cut`                   DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '冻结客服分成',
     `team_cut`                 DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '冻结团队分成',
-    `expire_time`              INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '邀请过期时间',
     `service_instance_id`      INT UNSIGNED NULL DEFAULT NULL COMMENT '接受后生成的履约切片ID',
     `decided_by_entity_id`     INT UNSIGNED NULL DEFAULT NULL COMMENT '处理邀请Entity ID',
     `decision_reason`          VARCHAR(500) NULL DEFAULT NULL COMMENT '拒绝或撤回原因',
@@ -783,7 +782,7 @@ CREATE TABLE `team_service_assignment_offer` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_assignment_offer_instance` (`service_instance_id`),
     UNIQUE KEY `uk_assignment_offer_idempotency` (`team_id`, `holder_entity_id`, `idempotency_key`),
-    KEY `idx_assignment_offer_target` (`team_id`, `target_handler_entity_id`, `status`, `expire_time`, `id`),
+    KEY `idx_assignment_offer_target` (`team_id`, `target_handler_entity_id`, `status`, `id`),
     KEY `idx_assignment_offer_customer` (`customer_id`, `entitlement_id`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Customer指定接单邀请';
 
@@ -1567,12 +1566,12 @@ ALTER TABLE `team_member` ADD CONSTRAINT `fk_team_member_team` FOREIGN KEY (`tea
 ALTER TABLE `team_entity_profile` ADD CONSTRAINT `fk_entity_profile_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_ability` ADD CONSTRAINT `fk_team_ability_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`);
 ALTER TABLE `team_ability_grant` ADD CONSTRAINT `fk_ability_grant_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_ability_grant_claim` FOREIGN KEY (`source_claim_id`) REFERENCES `redemption_claim` (`id`);
-ALTER TABLE `benefit_package` ADD CONSTRAINT `fk_benefit_package_issuer` FOREIGN KEY (`issuer_team_id`) REFERENCES `team` (`id`);
+ALTER TABLE `benefit_package` ADD CONSTRAINT `fk_benefit_package_issuer` FOREIGN KEY (`issuer_team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_benefit_package_owner` FOREIGN KEY (`owner_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `benefit_package_ability` ADD CONSTRAINT `fk_package_ability_package` FOREIGN KEY (`package_id`) REFERENCES `benefit_package` (`id`);
-ALTER TABLE `team_service` ADD CONSTRAINT `fk_team_service_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`);
+ALTER TABLE `team_service` ADD CONSTRAINT `fk_team_service_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_service_owner` FOREIGN KEY (`owner_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_service_handler` ADD CONSTRAINT `fk_service_handler_service` FOREIGN KEY (`service_id`) REFERENCES `team_service` (`id`), ADD CONSTRAINT `fk_service_handler_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `benefit_package_service` ADD CONSTRAINT `fk_package_service_package` FOREIGN KEY (`package_id`) REFERENCES `benefit_package` (`id`), ADD CONSTRAINT `fk_package_service_service` FOREIGN KEY (`service_id`) REFERENCES `team_service` (`id`);
-ALTER TABLE `redemption_campaign` ADD CONSTRAINT `fk_redemption_campaign_package` FOREIGN KEY (`package_id`) REFERENCES `benefit_package` (`id`), ADD CONSTRAINT `fk_redemption_campaign_issuer` FOREIGN KEY (`issuer_team_id`) REFERENCES `team` (`id`);
+ALTER TABLE `redemption_campaign` ADD CONSTRAINT `fk_redemption_campaign_package` FOREIGN KEY (`package_id`) REFERENCES `benefit_package` (`id`), ADD CONSTRAINT `fk_redemption_campaign_issuer` FOREIGN KEY (`issuer_team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_redemption_campaign_owner` FOREIGN KEY (`owner_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `redemption_code` ADD CONSTRAINT `fk_redemption_code_campaign` FOREIGN KEY (`campaign_id`) REFERENCES `redemption_campaign` (`id`), ADD CONSTRAINT `fk_redemption_code_order` FOREIGN KEY (`source_order_id`) REFERENCES `team_order` (`id`), ADD CONSTRAINT `fk_redemption_code_holder` FOREIGN KEY (`holder_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_redemption_code_target_team` FOREIGN KEY (`target_team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_redemption_code_target_entity` FOREIGN KEY (`target_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `redemption_claim` ADD CONSTRAINT `fk_redemption_claim_campaign` FOREIGN KEY (`campaign_id`) REFERENCES `redemption_campaign` (`id`), ADD CONSTRAINT `fk_redemption_claim_code` FOREIGN KEY (`code_id`) REFERENCES `redemption_code` (`id`), ADD CONSTRAINT `fk_redemption_claim_target_team` FOREIGN KEY (`target_team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_redemption_claim_target_entity` FOREIGN KEY (`target_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_redemption_claim_actor` FOREIGN KEY (`claimed_by_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_notice` ADD CONSTRAINT `fk_team_notice_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_notice_sender_team` FOREIGN KEY (`sender_team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_notice_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);

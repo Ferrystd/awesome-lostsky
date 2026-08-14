@@ -61,6 +61,269 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/personal/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取本人服务列表
+         * @description 只返回 owner_entity_id 等于当前 acting_entity 的服务；停用项仍保留在管理列表。
+         */
+        get: operations["shopPersonalServices"];
+        put?: never;
+        /**
+         * 创建本人服务
+         * @description 服务端强制写入当前 acting_entity 作为 Owner。
+         */
+        post: operations["shopPersonalServiceCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/services/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** 读取本人服务详情 */
+        get: operations["shopPersonalServiceGet"];
+        put?: never;
+        /** 更新本人服务 */
+        post: operations["shopPersonalServiceUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/services/{id}/handlers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * 读取本人服务接单池
+         * @description 空数组表示不限接单人。
+         */
+        get: operations["shopPersonalServiceHandlers"];
+        put?: never;
+        /** 更新本人服务接单池 */
+        post: operations["shopPersonalServiceHandlersUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/services/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 停用本人服务 */
+        post: operations["shopPersonalServiceDisable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取本人权益包列表
+         * @description 只返回 owner_entity_id 等于当前 acting_entity 的权益包；停用项仍保留在管理列表。
+         */
+        get: operations["shopPersonalPackages"];
+        put?: never;
+        /**
+         * 创建本人权益包
+         * @description 只能组合本人或团队公用服务。公用服务商业金额默认锁定；拥有 shop.product.self.package.reprice 时可调整。
+         */
+        post: operations["shopPersonalPackageCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/packages/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** 读取本人权益包详情 */
+        get: operations["shopPersonalPackageGet"];
+        put?: never;
+        /** 更新本人权益包 */
+        post: operations["shopPersonalPackageUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/packages/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 停用本人权益包 */
+        post: operations["shopPersonalPackageDisable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取本人卡活动列表
+         * @description 只返回 owner_entity_id 等于当前 acting_entity 的活动；停用项仍保留在管理列表。
+         */
+        get: operations["shopPersonalCampaigns"];
+        put?: never;
+        /**
+         * 创建本人卡活动
+         * @description 只能引用本人或团队公用权益包。
+         */
+        post: operations["shopPersonalCampaignCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/campaigns/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /** 读取本人卡活动详情 */
+        get: operations["shopPersonalCampaignGet"];
+        put?: never;
+        /** 更新本人卡活动 */
+        post: operations["shopPersonalCampaignUpdate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/campaigns/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 停用本人卡活动 */
+        post: operations["shopPersonalCampaignDisable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/campaigns/{id}/codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * 读取本人卡活动的卡密
+         * @description 列表不返回明文卡密。
+         */
+        get: operations["shopPersonalCampaignCodes"];
+        put?: never;
+        /** 为本人卡活动发行卡密 */
+        post: operations["shopPersonalCampaignCodesIssue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/campaigns/{id}/codes/{code_id}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 揭示本人卡活动卡密 */
+        post: operations["shopPersonalCampaignCodeReveal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/campaigns/{id}/codes/{code_id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 停用本人卡活动卡密 */
+        post: operations["shopPersonalCampaignCodeDisable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/personal/products": {
         parameters: {
             query?: never;
@@ -93,8 +356,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 读取本人商品表单候选项
-         * @description 仅返回当前团队有效 Entity、启用的权益包与卡活动，不返回客户集合。
+         * 读取个人资源与商品表单候选项
+         * @description 只返回当前 Entity 本人或团队公用的已启用服务、权益包和卡活动，并包含 owner_entity_id 与 Owner 摘要；不返回其他 Entity 资源或客户集合。
          */
         get: operations["shopPersonalProductOptions"];
         put?: never;
@@ -203,7 +466,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 商城管理候选项 */
+        /**
+         * 商城管理候选项
+         * @description 返回服务默认计量规则与金额分配比例；数量精度由最小核销步长推导。
+         */
         get: operations["shopManageOptions"];
         put?: never;
         post?: never;
@@ -223,7 +489,10 @@ export interface paths {
         /** 服务定义列表 */
         get: operations["shopManageServices"];
         put?: never;
-        /** 创建服务定义 */
+        /**
+         * 创建服务定义并保存接单池
+         * @description handler_entity_ids 与服务资料原子保存，空数组表示不限接单人；quantity_step 是唯一的数量精度来源，团队分配由服务价值减去成本及人员分配后的余额生成。
+         */
         post: operations["shopCreateService"];
         delete?: never;
         options?: never;
@@ -243,7 +512,10 @@ export interface paths {
         /** 服务定义详情 */
         get: operations["shopManageService"];
         put?: never;
-        /** 更新服务定义 */
+        /**
+         * 更新服务定义并保存接单池
+         * @description handler_entity_ids 与服务资料原子保存，空数组表示不限接单人；quantity_step 是唯一的数量精度来源，团队分配由服务价值减去成本及人员分配后的余额生成。
+         */
         post: operations["shopUpdateService"];
         delete?: never;
         options?: never;
@@ -260,12 +532,15 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** 读取服务显式接单池 */
+        /**
+         * 读取服务显式接单池
+         * @description 空数组表示不限接单人。
+         */
         get: operations["shopManageServiceHandlers"];
         put?: never;
         /**
-         * 原子替换服务显式接单池
-         * @description 仅接受当前团队内有效的 Team、TeamMember 或 TeamVirtual Entity；移除成员会让其待确认邀请失效，历史已接任务不变。
+         * 兼容接口：原子替换服务显式接单池
+         * @description 仅接受当前团队内有效的 Team、TeamMember 或 TeamVirtual Entity；空数组表示不限接单人。配置非空名单后，名单外待确认邀请失效，历史已接任务不变。
          */
         post: operations["shopSaveServiceHandlers"];
         delete?: never;
@@ -303,7 +578,10 @@ export interface paths {
         /** 服务权益包列表 */
         get: operations["shopManagePackages"];
         put?: never;
-        /** 创建分项计价服务权益包 */
+        /**
+         * 创建分项计价服务权益包
+         * @description 服务项默认继承服务价格、成本与固定分配；自定义价格或成本且未提交人员分配时，按团队默认比例重算固定金额，团队分配取余额。
+         */
         post: operations["shopCreatePackage"];
         delete?: never;
         options?: never;
@@ -325,7 +603,7 @@ export interface paths {
         put?: never;
         /**
          * 更新尚未被引用的服务权益包
-         * @description 权益包被商品或兑换活动引用后，服务项目与计价方式冻结；需要调整时应新建权益包。
+         * @description 权益包被商品或兑换活动引用后，服务项目与计价方式冻结；需要调整时应新建权益包。服务项只保存固定单位分配。
          */
         post: operations["shopUpdatePackage"];
         delete?: never;
@@ -598,7 +876,7 @@ export interface paths {
         put?: never;
         /**
          * 公开召唤并立即创建未分配的核销中切片
-         * @description 完整 Customer 核销字段在领取前向对应服务接单池公开。团队缺少有效 Transaction Ability 时拒绝创建。
+         * @description 完整 Customer 核销字段在领取前向显式接单池公开；接单池为空时向团队内全部有效接单 Entity 公开。团队缺少有效 Transaction Ability 时拒绝创建。
          */
         post: operations["startCustomerService"];
         delete?: never;
@@ -620,7 +898,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 创建指定接单邀请并限时预占额度 */
+        /** 创建持续等待的指定接单邀请并预占额度 */
         post: operations["createCustomerServiceOffer"];
         delete?: never;
         options?: never;
@@ -641,7 +919,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 撤回待确认指定邀请并释放预占 */
+        /** 取消待确认指定邀请并释放预占 */
         post: operations["withdrawCustomerServiceOffer"];
         delete?: never;
         options?: never;
@@ -1365,32 +1643,55 @@ export interface components {
             cs_cut: string;
             team_cut: string;
         };
+        EntitlementResourceOwner: {
+            /**
+             * Format: int64
+             * @description 为空表示团队公用；非空表示归属指定 Entity
+             */
+            owner_entity_id?: number | null;
+            owner?: components["schemas"]["Entity"] | null;
+        };
+        ServiceInput: {
+            name: string;
+            description?: string | null;
+            unit_name: string;
+            quantity_step: number | string;
+            default_total_price?: number;
+            default_cost?: number;
+            default_handler_cut?: number;
+            default_sender_cut?: number;
+            default_cs_cut?: number;
+            /**
+             * @default 1
+             * @enum {integer}
+             */
+            is_active: 0 | 1;
+            /** @description 显式接单池；空数组表示不限接单人 */
+            handler_entity_ids: number[];
+        };
         BenefitPackageServiceInput: {
             /** Format: int64 */
             service_id: number;
             quantity: number;
-            valid_days: number;
-            unit_price: string;
-            unit_cost: string;
-            /**
-             * @description 1=固定金额，2=按可分配金额比例
-             * @enum {integer}
-             */
-            distribution_mode: 1 | 2;
-            /** @default 0.00 */
-            unit_handler_cut: string;
-            /** @default 0.00 */
-            unit_sender_cut: string;
-            /** @default 0.00 */
-            unit_cs_cut: string;
-            /** @default 0 */
-            handler_rate_bp: number;
-            /** @default 0 */
-            sender_rate_bp: number;
-            /** @default 0 */
-            cs_rate_bp: number;
+            /** @description 省略时使用团队默认有效天数 */
+            valid_days?: number;
+            /** @description 省略时使用服务的单位服务价值 */
+            unit_price?: string;
+            /** @description 省略时使用服务的单位成本 */
+            unit_cost?: string;
+            /** @description 固定单位接单分配；自定义价格且省略全部人员分配时按团队默认比例计算 */
+            unit_handler_cut?: string;
+            /** @description 固定单位发单分配 */
+            unit_sender_cut?: string;
+            /** @description 固定单位客服分配 */
+            unit_cs_cut?: string;
             /** @default 0 */
             sort: number;
+        };
+        BenefitPackageService: components["schemas"]["BenefitPackageServiceInput"] & {
+            /** Format: int64 */
+            id: number;
+            sort?: number;
         };
         BenefitPackageInput: {
             name: string;
@@ -1410,16 +1711,36 @@ export interface components {
             /** Format: int64 */
             id: number;
             name: string;
+            /**
+             * Format: int64
+             * @description 为空表示团队公用；非空表示归属指定 Entity
+             */
+            owner_entity_id?: number | null;
+            owner?: components["schemas"]["Entity"] | null;
             pricing_mode: (1 | 2) | ("历史均摊" | "分项计价");
             /** @enum {integer} */
             is_active: 0 | 1;
             /** @description 已被商品或兑换活动引用时为 true，服务项目与计价方式只读 */
             is_pricing_locked?: boolean;
             pricing_summary?: components["schemas"]["BenefitPricingSummary"] | null;
-            services?: (components["schemas"]["BenefitPackageServiceInput"] & {
-                /** Format: int64 */
-                id?: number;
-            })[];
+            services?: components["schemas"]["BenefitPackageService"][];
+        };
+        CampaignInput: {
+            name: string;
+            /** Format: int64 */
+            package_id: number;
+            claim_group?: string;
+            /** @enum {integer} */
+            mode: 1 | 2 | 3;
+            total_limit?: number | null;
+            per_target_limit?: number;
+            redeem_starts_at?: number;
+            redeem_ends_at?: number;
+            /**
+             * @default 1
+             * @enum {integer}
+             */
+            is_active: 0 | 1;
         };
         Product: {
             /** Format: int64 */
@@ -2029,6 +2350,719 @@ export interface operations {
             };
         };
     };
+    shopPersonalServices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 缺少 shop.product.self.manage */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalServiceCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceInput"] & components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 创建成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalServiceGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 服务不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalServiceUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceInput"] & components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 服务不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalServiceHandlers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 服务不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalServiceHandlersUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedEntityInput"] & {
+                    entity_ids: number[];
+                };
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 服务不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalServiceDisable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 已停用 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 服务不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalPackages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalPackageCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenefitPackageInput"] & components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 创建成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 无权修改团队公用服务的商业金额 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Owner 不兼容或计价不平衡 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalPackageGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 权益包不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalPackageUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BenefitPackageInput"] & components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 无权修改团队公用服务的商业金额 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 权益包不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Owner 不兼容或计价不平衡 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalPackageDisable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 已停用 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 权益包不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalCampaigns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalCampaignCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignInput"] & components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 创建成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Owner 不兼容 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalCampaignGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 活动不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalCampaignUpdate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignInput"] & components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 已保存 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 活动不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Owner 不兼容 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalCampaignDisable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 已停用 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 活动不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalCampaignCodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 活动不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalCampaignCodesIssue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedEntityInput"] & {
+                    count: number;
+                    max_uses?: number;
+                    expire_time?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 发行成功，本次响应包含明文卡密 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 活动不存在或不属于当前 Entity */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalCampaignCodeReveal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                code_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 活动或卡密不存在于当前个人范围 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    shopPersonalCampaignCodeDisable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                code_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedEntityInput"];
+            };
+        };
+        responses: {
+            /** @description 已停用 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 活动或卡密不存在于当前个人范围 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 当前身份与 expected_entity_id 不一致 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     shopPersonalProducts: {
         parameters: {
             query?: {
@@ -2385,7 +3419,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功 */
+            /** @description 成功；handlers 为空表示不限接单人，数量精度由 quantity_step 推导 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2401,10 +3435,21 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceInput"];
+            };
+        };
         responses: {
             /** @description 成功 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 步长、服务金额、接单 Entity 无效或人员分配超过可分配金额 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2423,7 +3468,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功 */
+            /** @description 成功；handlers 为空表示不限接单人，数量精度由 quantity_step 推导 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2441,10 +3486,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceInput"];
+            };
+        };
         responses: {
             /** @description 成功 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 步长、服务金额、接单 Entity 无效或人员分配超过可分配金额 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2563,7 +3619,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description 服务项价格、成本或分成不平衡 */
+            /** @description 服务项价格、成本或分配不平衡 */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3079,7 +4135,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 已撤回 */
+            /** @description 已取消 */
             200: {
                 headers: {
                     [name: string]: unknown;

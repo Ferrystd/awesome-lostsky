@@ -1,19 +1,32 @@
 <script setup lang="ts">
 import { api, friendlyError } from "@lostsky/api/client";
+import { quantityScaleForStep } from "@lostsky/shared/quantity";
+import { formatPermissionDenied } from "@lostsky/api/error-format";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
 import LsEntityIdentity from "@lostsky/ui/components/LsEntityIdentity.vue";
 import LsListToolbar from "@lostsky/ui/components/LsListToolbar.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
+import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
 import { useQuery } from "@tanstack/vue-query";
+import { Gift } from "@lucide/vue";
 import { NPagination, NSelect } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { computed, h, reactive } from "vue";
 import { RouterLink } from "vue-router";
 import { customerName, dateTime, entityName } from "../lib";
 import type { Pagination, ServiceRedemption } from "../types";
+import { hasWorkspacePermission, loadWorkspaceAccess } from "../lib/workspace-access";
+
+const access = useQuery({ queryKey: ["transaction-workspace-access"], queryFn: () => loadWorkspaceAccess() });
+const grantReason = computed(() => {
+  if (!access.data.value) return "正在核对 Permission";
+  return hasWorkspacePermission(access.data.value.permissions, "transaction.write")
+    ? ""
+    : formatPermissionDenied(["transaction.write"]);
+});
 
 const filters = reactive({
   keyword: "",
@@ -93,7 +106,7 @@ const columns: DataTableColumns<ServiceRedemption> = [
   {
     title: "履约数量",
     key: "quantity",
-    render: (r) => `${Number(r.quantity).toFixed(r.entitlement?.quantity_scale ?? 0)} ${r.entitlement?.unit_name || '单位'}`,
+    render: (r) => `${Number(r.quantity).toFixed(quantityScaleForStep(r.entitlement?.quantity_step))} ${r.entitlement?.unit_name || '单位'}`,
   },
   {
     title: "状态",
@@ -117,7 +130,11 @@ const columns: DataTableColumns<ServiceRedemption> = [
     <LsPageHeader
       title="服务核销"
       description="接单 Entity 查看自己的任务；管理 Entity 处理改派、取消审批与确认完成。"
-    /><LsListToolbar
+    >
+      <template #actions>
+        <LsPagePrimaryAction :icon="Gift" label="赋予客户权益" to="/entitlements/new" :disabled="Boolean(grantReason)" :disabled-reason="grantReason" />
+      </template>
+    </LsPageHeader><LsListToolbar
       v-model="filters.keyword"
       placeholder="搜索服务或客户"
       aria-label="搜索服务核销"
@@ -174,7 +191,7 @@ const columns: DataTableColumns<ServiceRedemption> = [
           <dt>发起时间</dt>
           <dd>{{ dateTime(row.started_at) }}</dd>
           <dt>履约数量</dt>
-          <dd>{{ Number(row.quantity).toFixed(row.entitlement?.quantity_scale ?? 0) }} {{ row.entitlement?.unit_name || '单位' }}</dd>
+          <dd>{{ Number(row.quantity).toFixed(quantityScaleForStep(row.entitlement?.quantity_step)) }} {{ row.entitlement?.unit_name || '单位' }}</dd>
           <dt>操作</dt>
           <dd><RouterLink :to="`/services/${row.id}`">查看任务</RouterLink></dd>
         </dl></template

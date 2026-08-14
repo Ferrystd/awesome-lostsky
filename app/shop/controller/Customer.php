@@ -279,7 +279,7 @@ class Customer
             $request->post('reason/s', '')
         );
         app(\app\service\BusinessAudit::class)->record($request, 'shop', 'withdraw', 'serviceAssignmentOffer', $id);
-        return message('接单邀请已撤回');
+        return message('接单邀请已取消');
     }
 
     public function restartService(Request $request)

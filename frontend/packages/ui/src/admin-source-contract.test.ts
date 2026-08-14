@@ -58,7 +58,9 @@ describe('后台源码设计契约', () => {
       { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
       { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'textarea' },
       { file: 'frontend/packages/ui/src/components/LsMarkdownRenderer.vue', control: 'button' },
+      { file: 'frontend/packages/ui/src/components/LsPagePrimaryAction.vue', control: 'button' },
       { file: 'frontend/packages/ui/src/components/LsUploadField.vue', control: 'input' },
+      { file: 'frontend/packages/ui/src/components/LsWorkspaceOverview.vue', control: 'button' },
     ])
   })
 
@@ -70,13 +72,44 @@ describe('后台源码设计契约', () => {
     expect(offenders).toEqual([])
   })
 
+  it('Entity 候选统一使用公共富选择器', () => {
+    const pages = componentCallerRoots.flatMap(filesUnder).filter(path => path.endsWith('.vue'))
+    const legacy = pages.filter(path => {
+      const source = readFileSync(path, 'utf8')
+      return source.includes('EntitySelectOption') || source.includes('entity-select-menu')
+    }).map(path => relative(repository, path).replaceAll('\\', '/'))
+    expect(legacy).toEqual([])
+
+    const plainSelects = pages.flatMap(path => {
+      const source = readFileSync(path, 'utf8')
+      return [...source.matchAll(/<NSelect\b[^>]*>/gs)]
+        .map(match => match[0])
+        .filter(tag => /(?:handler_entity_id|sender_entity_id|cs_entity_id|assignee_entity_id|targetEntityId|visibility_target_ids)/.test(tag))
+        .map(tag => ({ file: relative(repository, path).replaceAll('\\', '/'), tag }))
+    })
+    expect(plainSelects).toEqual([])
+  })
+
   it('公共组件和 Wiki 板块保持可定位', () => {
     const componentRules = readFileSync(join(repository, 'docs', 'design', 'admin', 'components.md'), 'utf8')
-    for (const name of ['LsButton', 'LsInlineError', 'LsPanel', 'LsSectionHeader', 'LsFormSection', 'LsFormActions', 'LsDescriptionList', 'LsStatusTag', 'LsPage', 'LsPageHeader', 'LsWorkspaceHeader', 'LsWorkspaceOverview', 'LsListToolbar', 'LsFormList', 'LsEntityIdentity', 'LsEntityCard', 'LsEntityInput', 'LsResponsiveActions', 'LsResponsiveDataTable', 'LsUploadField', 'LsMediaUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsCheckboxGroupField', 'LsSwitch', 'LsSwitchField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
+    for (const name of ['LsButton', 'LsInlineError', 'LsPanel', 'LsSectionHeader', 'LsFormSection', 'LsFormActions', 'LsDescriptionList', 'LsStatusTag', 'LsPage', 'LsPageHeader', 'LsPagePrimaryAction', 'LsWorkspaceHeader', 'LsWorkspaceOverview', 'LsListToolbar', 'LsFormList', 'LsEntityIdentity', 'LsEntityTag', 'LsEntityCard', 'LsEntityInput', 'LsEntitySelect', 'LsResponsiveActions', 'LsResponsiveDataTable', 'LsUploadField', 'LsMediaUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsCheckboxGroupField', 'LsSwitch', 'LsSwitchField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
       expect(componentRules, `${name} 缺少 Wiki 契约`).toContain(`\`${name}\``)
     }
     for (const page of ['index.md', 'foundations.md', 'components.md', 'componentization.md', 'patterns.md', 'states-and-access.md', 'responsive-accessibility.md', 'applications.md', 'checklist.md']) {
       expect(() => readFileSync(join(repository, 'docs', 'design', 'admin', page), 'utf8')).not.toThrow()
+    }
+  })
+
+  it('页面标题区主操作全部复用强制图标的统一组件', () => {
+    const usages = componentCallerRoots.flatMap(filesUnder)
+      .filter(path => path.endsWith('.vue'))
+      .flatMap(path => [...readFileSync(path, 'utf8').matchAll(/<LsPagePrimaryAction\b[^>]*>/g)].map(match => ({ path, tag: match[0] })))
+    expect(usages).toHaveLength(31)
+    for (const usage of usages) {
+      const file = relative(repository, usage.path).replaceAll('\\', '/')
+      expect(usage.tag, `${file} 的页面主操作缺少强制 icon`).toMatch(/:icon=/)
+      expect(usage.tag, `${file} 的页面主操作缺少稳定 label`).toMatch(/(?::label|label)=/)
+      expect(usage.tag, `${file} 不得穿透页面主操作宽度`).not.toMatch(/(?:width|size|variant)=/)
     }
   })
 

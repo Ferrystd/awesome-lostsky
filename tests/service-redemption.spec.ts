@@ -12,7 +12,7 @@ test('shop customer can split an entitlement between a named handler and open di
   const entitlement = () => ({
     id: 101, granted_quantity: '3.0000', available_quantity: available.toFixed(4),
     reserved_quantity: (3 - available).toFixed(4), consumed_quantity: '0.0000',
-    unit_name: '小时', quantity_scale: 1, quantity_step: '0.5000',
+    unit_name: '小时', quantity_step: '0.5000',
     expire_time: 1_900_000_000, is_expired: false, is_exhausted: available === 0,
     allow_open_dispatch: true, dispatch_available: true,
     service: { id: 7, name: '三小时陪玩', description: '可按半小时切分给不同陪玩' },
@@ -33,8 +33,16 @@ test('shop customer can split an entitlement between a named handler and open di
       offerPayloads.push(payload)
       available -= Number(payload.quantity)
       const offerId = 301 + offers.length
-      offers.push({ id: offerId, status: 1, quantity: payload.quantity, expire_time: 1_900_000_000, target_handler: { id: 11, name: '青空接单人' } })
+      offers.push({ id: offerId, status: 1, quantity: payload.quantity, target_handler: { id: 11, name: '青空接单人' } })
       data = { id: offerId }
+    }
+    else if (/\/customer\/service-offers\/\d+\/withdraw$/.test(path)) {
+      const offerId = Number(path.split('/').at(-2))
+      const offer = offers.find(item => Number(item.id) === offerId)
+      if (offer) {
+        available += Number(offer.quantity)
+        offer.status = 4
+      }
     }
     else if (path.endsWith('/customer/services/101/start')) {
       const payload = request.postDataJSON() as Record<string, unknown>
@@ -71,6 +79,12 @@ test('shop customer can split an entitlement between a named handler and open di
   await expect.poll(() => offerPayloads.length).toBe(1)
   expect(offerPayloads[0]).toMatchObject({ quantity: '0.5', handler_entity_id: 11 })
   await expect(page.getByRole('heading', { name: '指定接单邀请' })).toBeVisible()
+  await expect(page.getByText('待确认邀请不会自动过期；对方处理前，你可以随时取消。')).toBeVisible()
+  await expect(page.getByText(/有效至/)).toHaveCount(0)
+  await page.getByRole('button', { name: '取消邀请' }).click()
+  await expect(page.getByText(/#301 · 已取消/)).toBeVisible()
+  await expect(page.getByRole('button', { name: '取消邀请' })).toHaveCount(0)
+  await expect(page.getByText('可用额度').locator('..')).toContainText('3.0 小时')
 
   await page.locator('.n-select').first().click()
   await page.getByText('公开召唤（立即进入核销中）', { exact: true }).last().click()
@@ -105,7 +119,7 @@ test('transaction service redemption supports management and fixed 390px navigat
   const service = () => ({
     id: 101, status: completed ? 3 : 2, expire_time: 1_900_000_000, started_at: 1_785_000_000,
     completed_at: completed ? 1_785_003_600 : null, quantity: '2.5000',
-    entitlement: { id: 91, unit_name: '小时', quantity_scale: 1, quantity_step: '0.5000' },
+    entitlement: { id: 91, unit_name: '小时', quantity_step: '0.5000' },
     service: { name: '三小时陪玩' }, customer,
     handler_entity_id: 11, handler: entity, cancel_requests: [],
     adjustments: [], capabilities: { manage: true, approve_cancel: true },
@@ -117,7 +131,7 @@ test('transaction service redemption supports management and fixed 390px navigat
     let data: unknown = null
     if (path.endsWith('/workspace/access')) data = {
       team: { id: 1, slug: 'demo', name: '青空团队' },
-      permissions: ['transaction.read', 'transaction.write', 'transaction.report.read'],
+      permissions: ['transaction.read', 'transaction.write', 'transaction.report.read', 'service.redemption.manage'],
       abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: '记账' } },
       identity: { type: 'teamMember', entity_id: 11, name: '青空接单人', slug: 'handler', avatar: '' },
     }
@@ -174,11 +188,11 @@ test('personal handler workspace confirms invitations, claims open tasks and ret
   const actorToken = `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type: 'teamMember', id: 11 } })).toString('base64url')}.x`
   await page.context().addCookies([{ name: 'lostsky_token', value: actorToken, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
   const customer = { id: 31, profile: { name: '晚风客户' } }
-  const entitlement = { id: 91, unit_name: '小时', quantity_scale: 1, quantity_step: '0.5000' }
+  const entitlement = { id: 91, unit_name: '小时', quantity_step: '0.5000' }
   const fields = [{ id: 5, name: '微信号', value_type: 'string', input_type: 'text', fill_stage: 'customer', is_required: 1, value: 'wx-candidate' }]
   const offers: Array<Record<string, unknown>> = [
-    { id: 71, status: 1, quantity: '0.5', create_time: 1_785_000_000, expire_time: 1_900_000_000, handler_cut: '40.00', total_price: '50.00', service: { name: '候选人面试' }, customer, entitlement, redemption_fields: fields },
-    { id: 72, status: 1, quantity: '1.0', create_time: 1_785_000_000, expire_time: 1_900_000_000, handler_cut: '80.00', total_price: '100.00', service: { name: '候选人面试' }, customer, entitlement, redemption_fields: fields },
+    { id: 71, status: 1, quantity: '0.5', create_time: 1_785_000_000, handler_cut: '40.00', total_price: '50.00', service: { name: '候选人面试' }, customer, entitlement, redemption_fields: fields },
+    { id: 72, status: 1, quantity: '1.0', create_time: 1_785_000_000, handler_cut: '80.00', total_price: '100.00', service: { name: '候选人面试' }, customer, entitlement, redemption_fields: fields },
   ]
   const available: Array<Record<string, unknown>> = [
     { id: 81, status: 2, quantity: '1.0', expire_time: 1_900_000_000, handler_cut: '80.00', service: { name: '公开陪玩' }, customer, entitlement, redemption_fields: fields },
@@ -220,6 +234,15 @@ test('personal handler workspace confirms invitations, claims open tasks and ret
   await expect(page.getByRole('heading', { name: '待我确认' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '我可以接' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '我的核销', level: 2 })).toBeVisible()
+  const taskPanels = page.locator('.personal-service-lists > .ls-panel')
+  await expect(taskPanels).toHaveCount(3)
+  const panelGeometry = await taskPanels.evaluateAll(elements => elements.map(element => {
+    const box = element.getBoundingClientRect()
+    const style = getComputedStyle(element)
+    return { width: Math.round(box.width), borderWidth: style.borderTopWidth, borderStyle: style.borderTopStyle }
+  }))
+  expect(new Set(panelGeometry.map(panel => panel.width)).size).toBe(1)
+  expect(panelGeometry.every(panel => panel.borderWidth === '1px' && panel.borderStyle === 'solid')).toBe(true)
   await expect(page.getByText('wx-candidate').first()).toBeVisible()
   await page.getByRole('button', { name: '接受邀请' }).first().click()
   await page.getByRole('button', { name: '拒绝' }).first().click()
@@ -232,5 +255,9 @@ test('personal handler workspace confirms invitations, claims open tasks and ret
   await page.setViewportSize({ width: 390, height: 844 })
   await page.reload()
   await expect(page.getByRole('heading', { name: '待我确认' })).toBeVisible()
+  await expect(taskPanels).toHaveCount(3)
+  for (const panel of await taskPanels.all()) {
+    expect(await panel.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(false)
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })

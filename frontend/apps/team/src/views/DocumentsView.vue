@@ -3,6 +3,7 @@ import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
@@ -91,7 +92,7 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
       title="文档"
       :description="entityId ? `查看对象 #${entityId} 的可见文档。` : '搜索、分类并维护团队知识文档。'"
     >
-      <template #actions><RouterLink class="primary-link" :to="createTo"><Plus :size="17" />新建文档</RouterLink></template>
+      <template #actions><LsPagePrimaryAction :icon="Plus" label="新建文档" :to="createTo" /></template>
     </AdminPageHeader>
 
     <LsListToolbar
@@ -138,8 +139,6 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
 
 <style scoped>
 .documents-view { display: grid; gap: 22px; }
-.primary-link { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 16px; border-radius: var(--radius-md); color: white; background: var(--primary); font-size: .88rem; font-weight: 700; text-decoration: none; }
-.primary-link:hover { background: var(--primary-hover); }
 .category-select { width: 12rem; }
 .document-list { display: grid; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
 .document-list article { display: grid; grid-template-columns:minmax(0,1fr) auto; min-height: 116px; border-bottom: 1px solid var(--border); background: var(--surface); transition: background-color var(--motion-fast) var(--ease-standard), opacity var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out); }
@@ -156,7 +155,6 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
 .icon-button.danger:hover { color: var(--danger); }
 .empty { display: grid; justify-items: center; gap: 8px; padding: 54px 20px; border: 1px dashed var(--border); border-radius: var(--radius-lg); color: var(--text-secondary); text-align: center; }
 .empty h2, .empty p { margin: 0; }
-.empty .primary-link { margin-top: 8px; }
 .loading { display: grid; gap: 1px; overflow:hidden; border-radius:var(--radius-lg); }
 .loading span { height: 116px; background: var(--surface-subtle); }
 .pager { display: flex; align-items: center; justify-content: center; gap: 14px; color: var(--text-secondary); }

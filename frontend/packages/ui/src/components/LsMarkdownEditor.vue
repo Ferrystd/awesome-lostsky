@@ -10,6 +10,7 @@ import { replaceAll } from '@milkdown/kit/utils'
 import { Code2, Eye, FileText, Search, Users } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { feedback } from '../feedback'
+import { removeUnresolvedMarkdownImages } from '../markdown'
 import LsMarkdownRenderer from './LsMarkdownRenderer.vue'
 
 const props = withDefaults(defineProps<{
@@ -26,7 +27,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const root = ref<HTMLElement | null>(null)
 const editorRoot = ref<HTMLElement | null>(null)
 const mode = ref<'visual' | 'source' | 'preview'>('visual')
-const current = ref(props.modelValue ?? '')
+const current = ref(removeUnresolvedMarkdownImages(props.modelValue ?? ''))
 const mentionQuery = ref('')
 const mentionRange = ref<{ from: number; to: number } | null>(null)
 const suggestions = ref<EntitySummary[]>([])
@@ -56,10 +57,11 @@ const imageUploadIcon = `
 const showSuggestions = computed(() => Boolean(mentionRange.value))
 
 function update(value: string) {
-  if (value === current.value) return
-  current.value = value
-  emit('update:modelValue', value)
-  if (props.draftKey) localStorage.setItem(`lostsky:markdown:${props.draftKey}`, value)
+  const next = removeUnresolvedMarkdownImages(value)
+  if (next === current.value && next === props.modelValue) return
+  current.value = next
+  if (next !== props.modelValue) emit('update:modelValue', next)
+  if (props.draftKey) localStorage.setItem(`lostsky:markdown:${props.draftKey}`, next)
 }
 
 function closeSuggestions() {
@@ -230,7 +232,8 @@ function syncUploadControls() {
 defineExpose({ clearDraft })
 
 watch(() => props.modelValue, (value) => {
-  const next = value ?? ''
+  const next = removeUnresolvedMarkdownImages(value ?? '')
+  if (next !== value) emit('update:modelValue', next)
   if (next === current.value) return
   current.value = next
   if (crepe && crepe.getMarkdown() !== next) crepe.editor.action(replaceAll(next))
@@ -241,6 +244,7 @@ watch(() => props.uploadDisabledReason, () => {
 })
 
 onMounted(async () => {
+  if (current.value !== props.modelValue) emit('update:modelValue', current.value)
   if (props.draftKey) {
     const draft = localStorage.getItem(`lostsky:markdown:${props.draftKey}`)
     if (draft !== null && draft !== current.value) update(draft)

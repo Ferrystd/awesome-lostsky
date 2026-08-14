@@ -29,9 +29,11 @@ function choose() {
 
 <template>
   <div class="ls-upload-field">
-    <div class="ls-upload-field__controls">
+    <div :class="['ls-upload-field__controls', { 'ls-upload-field__controls--custom-trigger': $slots.trigger, 'ls-upload-field__controls--without-url': !showUrl }]">
       <NInput v-if="showUrl" :value="modelValue" :placeholder="placeholder" :input-props="id ? { id } : undefined" @update:value="emit('update:modelValue', $event)" />
-      <LsButton variant="secondary" :disabled="disabled" :disabled-reason="disabledReason" :loading="loading" @click="choose"><template #icon><Upload :size="18" /></template>{{ buttonLabel }}</LsButton>
+      <slot name="trigger" :choose="choose" :disabled="disabled" :disabled-reason="disabledReason" :loading="loading">
+        <LsButton variant="secondary" :disabled="disabled" :disabled-reason="disabledReason" :loading="loading" @click="choose"><template #icon><Upload :size="18" /></template>{{ buttonLabel }}</LsButton>
+      </slot>
       <input ref="input" :id="id ? `${id}-file` : undefined" class="ls-upload-field__input" type="file" :accept="accept" :multiple="multiple" :disabled="disabled" @change="emit('change', $event)">
     </div>
     <NProgress v-if="progress !== null" type="line" :percentage="progress" :show-indicator="true" />
@@ -42,6 +44,8 @@ function choose() {
 <style scoped>
 .ls-upload-field{display:grid;gap:.5rem}.ls-upload-field__controls{display:grid;grid-template-columns:minmax(0,1fr) 8.5rem;gap:.75rem}.ls-upload-field__controls :deep(.ls-button){width:100%}.ls-upload-field__reason{color:var(--text-secondary)}
 .ls-upload-field__input{display:none}
-.ls-upload-field__controls:has(> .ls-button:first-child){grid-template-columns:8.5rem}
-@media(max-width:639px){.ls-upload-field__controls{grid-template-columns:1fr}.ls-upload-field__controls :deep(.ls-button){width:100%}}
+.ls-upload-field__controls--without-url{grid-template-columns:8.5rem}
+.ls-upload-field__controls--custom-trigger{grid-template-columns:minmax(0,1fr) max-content}
+.ls-upload-field__controls--custom-trigger.ls-upload-field__controls--without-url{grid-template-columns:max-content}
+@media(max-width:639px){.ls-upload-field__controls,.ls-upload-field__controls--without-url,.ls-upload-field__controls--custom-trigger,.ls-upload-field__controls--custom-trigger.ls-upload-field__controls--without-url{grid-template-columns:1fr}.ls-upload-field__controls :deep(.ls-button){width:100%}}
 </style>

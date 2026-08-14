@@ -1,7 +1,6 @@
 ALTER TABLE `team_service`
     ADD COLUMN `unit_name` VARCHAR(20) NOT NULL DEFAULT '次' COMMENT '计量单位名称' AFTER `description`,
-    ADD COLUMN `quantity_scale` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '数量小数位 0-4' AFTER `unit_name`,
-    ADD COLUMN `quantity_step` DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '最小核销步长' AFTER `quantity_scale`;
+    ADD COLUMN `quantity_step` DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '最小核销步长' AFTER `unit_name`;
 
 ALTER TABLE `benefit_package_service`
     MODIFY COLUMN `quantity` DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '授予服务额度';
@@ -20,7 +19,6 @@ CREATE TABLE `team_service_entitlement` (
     `source_package_item_id` INT UNSIGNED NULL,
     `ordinal` INT UNSIGNED NOT NULL,
     `unit_name` VARCHAR(20) NOT NULL DEFAULT '次',
-    `quantity_scale` TINYINT UNSIGNED NOT NULL DEFAULT 0,
     `quantity_step` DECIMAL(18,4) NOT NULL DEFAULT 1.0000,
     `granted_quantity` DECIMAL(18,4) NOT NULL DEFAULT 0.0000,
     `reserved_quantity` DECIMAL(18,4) NOT NULL DEFAULT 0.0000,
@@ -49,14 +47,14 @@ ALTER TABLE `team_service_instance`
 
 INSERT INTO `team_service_entitlement` (
     `id`,`team_id`,`service_id`,`customer_id`,`holder_entity_id`,`sender_entity_id`,`cs_entity_id`,`source_product_id`,`source_order_id`,
-    `source_claim_id`,`ordinal`,`unit_name`,`quantity_scale`,`quantity_step`,`granted_quantity`,
+    `source_claim_id`,`ordinal`,`unit_name`,`quantity_step`,`granted_quantity`,
     `reserved_quantity`,`consumed_quantity`,`total_price`,`cost`,`handler_cut`,`sender_cut`,`cs_cut`,
     `team_cut`,`expire_time`,`create_time`,`update_time`,`delete_time`
 )
 SELECT
     instance.`id`,instance.`team_id`,instance.`service_id`,instance.`customer_id`,instance.`holder_entity_id`,instance.`sender_entity_id`,instance.`cs_entity_id`,
     instance.`source_product_id`,instance.`source_order_id`,instance.`source_claim_id`,instance.`ordinal`,
-    service.`unit_name`,service.`quantity_scale`,service.`quantity_step`,1.0000,
+    service.`unit_name`,service.`quantity_step`,1.0000,
     IF(instance.`status` = 2,1.0000,0.0000),IF(instance.`status` = 3,1.0000,0.0000),
     instance.`total_price`,instance.`cost`,instance.`handler_cut`,instance.`sender_cut`,instance.`cs_cut`,
     instance.`team_cut`,instance.`expire_time`,instance.`create_time`,instance.`update_time`,instance.`delete_time`

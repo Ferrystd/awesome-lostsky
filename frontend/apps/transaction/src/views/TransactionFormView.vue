@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
@@ -10,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { customerOptions, entityOptions, money } from '../lib'
+import { customerOptions, money } from '../lib'
 import type { TransactionOptions, TransactionRecord } from '../types'
 
 const route = useRoute()
@@ -116,9 +117,9 @@ const save = useMutation({
       <LsFormSection title="参与方" description="选择接单人、发单人、客服与客户；客户为空时不能使用预存款。" :heading-level="3">
         <p v-if="optionsQuery.data.value && !hasEntityOptions" class="hint">当前响应未提供主体选项，主体字段已禁用，其他金额与备注仍可填写。</p>
         <p v-if="optionsQuery.data.value && !hasCustomerOptions" class="hint">当前响应未提供客户选项，客户与预存款暂不可用。</p>
-        <LsField label="接单人" for-id="transaction-handler" required><NSelect id="transaction-handler" v-model:value="form.handler_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable :disabled="editing || !hasEntityOptions" placeholder="选择接单人" /></LsField>
-        <LsField label="发单人" for-id="transaction-sender"><NSelect id="transaction-sender" v-model:value="form.sender_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable :disabled="!hasEntityOptions" placeholder="可选" /></LsField>
-        <LsField label="客服" for-id="transaction-cs"><NSelect id="transaction-cs" v-model:value="form.cs_entity_id" :options="entityOptions(optionsQuery.data.value)" filterable clearable :disabled="!hasEntityOptions" placeholder="可选" /></LsField>
+        <LsField label="接单人" for-id="transaction-handler" required><LsEntitySelect id="transaction-handler" v-model="form.handler_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="optionsQuery.isPending.value" :disabled="editing || !hasEntityOptions" placeholder="选择接单人" /></LsField>
+        <LsField label="发单人" for-id="transaction-sender"><LsEntitySelect id="transaction-sender" v-model="form.sender_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="optionsQuery.isPending.value" :disabled="!hasEntityOptions" clearable placeholder="可选" /></LsField>
+        <LsField label="客服" for-id="transaction-cs"><LsEntitySelect id="transaction-cs" v-model="form.cs_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="optionsQuery.isPending.value" :disabled="!hasEntityOptions" clearable placeholder="可选" /></LsField>
         <LsField label="客户" for-id="transaction-customer"><NSelect id="transaction-customer" v-model:value="form.customer_id" :options="customerOptions(optionsQuery.data.value)" filterable clearable :disabled="!hasCustomerOptions" placeholder="可选；使用预存款时必填" /></LsField>
         <p v-if="selectedCustomer" class="balance-hint">当前客户余额 <strong class="ls-tabular">{{ money(balance) }}</strong></p>
       </LsFormSection>

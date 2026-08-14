@@ -7,8 +7,18 @@ export interface WorkspaceAccess {
   identity?: { type: string; entity_id: number; name: string; slug?: string | null; avatar?: string | null }
 }
 
-export function hasWorkspacePermission(permissions: string[], required: string) {
-  return permissions.some(granted => required === granted || required.startsWith(`${granted}.`))
+export type WorkspacePermissionRequirement = string | readonly string[]
+
+export const serviceRedemptionReadPermissions = ['service.redemption.read', 'service.redemption.manage'] as const
+
+export function workspacePermissionKeys(required: WorkspacePermissionRequirement) {
+  return typeof required === 'string' ? [required] : [...required]
+}
+
+export function hasWorkspacePermission(permissions: string[], required: WorkspacePermissionRequirement) {
+  return workspacePermissionKeys(required).some(permission =>
+    permissions.some(granted => permission === granted || permission.startsWith(`${granted}.`)),
+  )
 }
 
 let cached: { value: WorkspaceAccess; expiresAt: number } | null = null

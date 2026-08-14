@@ -2,11 +2,11 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { ChevronRight, Plus, Webhook } from '@lucide/vue'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
 import { computed, ref } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
@@ -27,7 +27,7 @@ const rows = computed(() => { const keyword = search.value.trim().toLocaleLowerC
 <template>
   <div class="virtual-list-page">
     <AdminPageHeader title="虚拟实体" description="以同一套通用能力承载人工代操作、Webhook，以及未来的 LLM 或工作流。">
-      <template #actions><RouterLink to="/chat-virtual-new"><LsButton><Plus :size="17" />创建虚拟实体</LsButton></RouterLink></template>
+      <template #actions><LsPagePrimaryAction :icon="Plus" label="创建虚拟实体" to="/chat-virtual-new" /></template>
     </AdminPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索虚拟实体名称或 slug" aria-label="搜索虚拟实体" :count-label="`${rows.length} 个虚拟实体`" />
     <p v-if="virtuals.isError.value" class="state error" role="alert">{{ friendlyError(virtuals.error.value) }}</p>

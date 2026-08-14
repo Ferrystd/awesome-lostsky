@@ -23,10 +23,12 @@ final class PermissionDictionary
     public const SHOP_PRODUCT_WRITE = 'shop.product.write';
     public const SHOP_PRODUCT_DELETE = 'shop.product.delete';
     public const SHOP_PRODUCT_SELF_MANAGE = 'shop.product.self.manage';
+    public const SHOP_PRODUCT_SELF_PACKAGE_REPRICE = 'shop.product.self.package.reprice';
     public const SHOP_ORDER_READ = 'shop.order.read';
     public const SHOP_ORDER_WRITE = 'shop.order.write';
     public const SERVICE_REDEMPTION_READ = 'service.redemption.read';
     public const SERVICE_REDEMPTION_MANAGE = 'service.redemption.manage';
+    public const SERVICE_ENTITLEMENT_GRANT = 'service.entitlement.grant';
 
     public const TRANSACTION_READ = 'transaction.read';
     public const TRANSACTION_WRITE = 'transaction.write';
@@ -101,15 +103,17 @@ final class PermissionDictionary
             self::SHOP_PRODUCT_READ => '查看商品',
             self::SHOP_PRODUCT_WRITE => '编辑商品',
             self::SHOP_PRODUCT_DELETE => '删除商品',
-            self::SHOP_PRODUCT_SELF_MANAGE => '管理本人商品',
+            self::SHOP_PRODUCT_SELF_MANAGE => '管理本人商品与服务资源',
+            self::SHOP_PRODUCT_SELF_PACKAGE_REPRICE => '调整本人权益包中的团队公用服务计价',
             self::SHOP_ORDER_READ => '查看订单',
             self::SHOP_ORDER_WRITE => '处理订单',
         ],
         '交易' => [
-            self::TRANSACTION_READ => '查看交易',
+            self::TRANSACTION_READ => '查看团队全部交易',
             self::TRANSACTION_WRITE => '编辑交易',
             self::TRANSACTION_DELETE => '删除交易',
-            self::TRANSACTION_REPORT_READ => '查看报表',
+            self::TRANSACTION_REPORT_READ => '查看团队全部报表',
+            self::SERVICE_ENTITLEMENT_GRANT => '为本人接待客户赋予权益',
             self::SERVICE_REDEMPTION_READ => '查看全部服务核销',
             self::SERVICE_REDEMPTION_MANAGE => '管理服务核销',
         ],

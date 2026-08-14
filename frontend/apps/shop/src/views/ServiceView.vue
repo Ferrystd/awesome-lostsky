@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { friendlyError } from '@lostsky/api/client'
+import { quantityScaleForStep } from '@lostsky/shared/quantity'
+import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ArrowLeft } from '@lucide/vue'
 import { NButton, NCheckbox, NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
@@ -19,6 +21,7 @@ const error = ref('')
 const values = reactive<Record<number, any>>({})
 const cancelReasons = reactive<Record<number, string>>({})
 const query = useQuery({ queryKey: computed(() => ['shop-service', id.value]), queryFn: () => shopApi.service(id.value) })
+const quantityScale = computed(() => quantityScaleForStep(query.data.value?.quantity_step))
 const handlers = useQuery({
   queryKey: computed(() => ['shop-service-handlers', id.value]),
   queryFn: () => shopApi.serviceHandlers(id.value),
@@ -28,7 +31,13 @@ watch(() => query.data.value, data => {
   if (!data || quantity.value !== null || Number(data.available_quantity) <= 0) return
   quantity.value = Math.min(Number(data.available_quantity), Number(data.quantity_step))
 }, { immediate: true })
-const handlerOptions = computed(() => (handlers.data.value ?? []).map(item => ({ label: item.subject.name, value: item.entity_id })))
+const handlerEntities = computed(() => (handlers.data.value ?? []).map(item => ({
+  entity_id: item.entity_id,
+  type: item.subject.type ?? item.subject.entityable_type,
+  slug: item.subject.slug,
+  name: item.subject.name,
+  avatar: item.subject.avatar,
+})))
 const dispatchOptions = computed(() => [
   { label: '指定接单人（等待对方确认）', value: 'direct' },
   ...(query.data.value?.allow_open_dispatch ? [{ label: '公开召唤（立即进入核销中）', value: 'open' }] : []),
@@ -42,7 +51,7 @@ const start = useMutation({
   mutationFn: () => {
     const data = query.data.value
     if (!data || quantity.value === null) throw new Error('请填写履约数量')
-    const body = { quantity: quantity.value.toFixed(data.quantity_scale), memo: memo.value, field_values: values }
+    const body = { quantity: quantity.value.toFixed(quantityScale.value), memo: memo.value, field_values: values }
     return dispatchMode.value === 'direct'
       ? shopApi.createServiceOffer(id.value, { ...body, handler_entity_id: Number(handler.value) })
       : shopApi.startService(id.value, { ...body, handler_entity_id: 0 })
@@ -74,7 +83,7 @@ const adjustment = useMutation({
 const choices = (field: RedemptionField) => (field.options ?? []).map(value => ({ label: value, value }))
 const pendingCancel = (instance: ServiceInstance) =>
   (instance.cancel_requests ?? []).some(item => item.status === 1)
-const offerStatus = (status: number | string) => typeof status === 'string' ? status : ({ 1: '待确认', 2: '已接受', 3: '已拒绝', 4: '已撤回', 5: '已过期' }[status] ?? '未知')
+const offerStatus = (status: number | string) => typeof status === 'string' ? status : ({ 1: '待确认', 2: '已接受', 3: '已拒绝', 4: '已取消', 5: '已失效' }[status] ?? '未知')
 const offerPending = (status: number | string) => status === 1 || status === '待确认'
 </script>
 
@@ -86,19 +95,19 @@ const offerPending = (status: number | string) => status === 1 || status === '�
     <article v-else-if="query.data.value">
       <header><div><h1 tabindex="-1">{{ query.data.value.service.name }}</h1><p>{{ query.data.value.service.description || '该服务暂无补充说明。' }}</p></div><strong>{{ query.data.value.is_expired ? '已过期' : query.data.value.is_exhausted ? '已用完' : '可使用' }}</strong></header>
       <dl class="quota">
-        <div><dt>可用额度</dt><dd>{{ Number(query.data.value.available_quantity).toFixed(query.data.value.quantity_scale) }} {{ query.data.value.unit_name }}</dd></div>
-        <div><dt>已核销</dt><dd>{{ Number(query.data.value.consumed_quantity).toFixed(query.data.value.quantity_scale) }} {{ query.data.value.unit_name }}</dd></div>
-        <div><dt>核销中</dt><dd>{{ Number(query.data.value.reserved_quantity).toFixed(query.data.value.quantity_scale) }} {{ query.data.value.unit_name }}</dd></div>
+        <div><dt>可用额度</dt><dd>{{ Number(query.data.value.available_quantity).toFixed(quantityScale) }} {{ query.data.value.unit_name }}</dd></div>
+        <div><dt>已核销</dt><dd>{{ Number(query.data.value.consumed_quantity).toFixed(quantityScale) }} {{ query.data.value.unit_name }}</dd></div>
+        <div><dt>核销中</dt><dd>{{ Number(query.data.value.reserved_quantity).toFixed(quantityScale) }} {{ query.data.value.unit_name }}</dd></div>
         <div><dt>有效期</dt><dd>{{ query.data.value.expire_time ? formatDate(query.data.value.expire_time) : '长期有效' }}</dd></div>
       </dl>
 
       <form v-if="query.data.value.dispatch_available && !query.data.value.is_expired && Number(query.data.value.available_quantity) > 0" @submit.prevent="start.mutate()">
         <h2>发起一次履约</h2>
         <p class="form-hint">本次只占用填写的额度；其余额度可同时分给其他接单人。</p>
-        <label>履约数量（{{ query.data.value.unit_name }}）<NInputNumber v-model:value="quantity" :min="Number(query.data.value.quantity_step)" :max="Number(query.data.value.available_quantity)" :step="Number(query.data.value.quantity_step)" :precision="query.data.value.quantity_scale" /></label>
+        <label>履约数量（{{ query.data.value.unit_name }}）<NInputNumber v-model:value="quantity" :min="Number(query.data.value.quantity_step)" :max="Number(query.data.value.available_quantity)" :step="Number(query.data.value.quantity_step)" :precision="quantityScale" /></label>
         <label>接单方式<NSelect v-model:value="dispatchMode" :options="dispatchOptions" /></label>
-        <label v-if="dispatchMode==='direct'">指定接单 Entity<NSelect v-model:value="handler" :options="handlerOptions" filterable :disabled="handlers.isError.value" placeholder="选择接单 Entity" /></label>
-        <p v-else class="privacy-note">公开召唤提交后立即进入核销中；接单池内所有可接单 Entity 都能在领取前查看本次填写的完整核销字段。</p>
+        <label v-if="dispatchMode==='direct'">指定接单 Entity<LsEntitySelect v-model="handler" :entities="handlerEntities" :loading="handlers.isPending.value" :disabled="handlers.isError.value" placeholder="选择接单 Entity" /></label>
+        <p v-else class="privacy-note">公开召唤提交后立即进入核销中；配置接单池时向池内 Entity 开放，接单池留空时向团队内全部有效接单 Entity 开放，领取前均可查看本次填写的完整核销字段。</p>
         <p v-if="handlers.isError.value" class="error" role="alert">暂时无法读取可选接单人：{{ friendlyError(handlers.error.value) }} <NButton text @click="handlers.refetch()">重试</NButton></p>
         <label v-for="field in customerFields" :key="field.id">{{ field.name }} <b v-if="field.is_required">*</b><NInput v-if="field.input_type==='textarea'||field.value_type==='text'||field.value_type==='json'" v-model:value="values[field.id]" type="textarea" /><NSelect v-else-if="['select','radio'].includes(field.input_type)||field.value_type==='select'" v-model:value="values[field.id]" :options="choices(field)" clearable /><NSelect v-else-if="field.value_type==='multi_select'||field.input_type==='checkbox'" v-model:value="values[field.id]" :options="choices(field)" multiple clearable /><NCheckbox v-else-if="field.value_type==='bool'" :checked="Boolean(values[field.id])" @update:checked="value=>values[field.id]=value?1:0">是</NCheckbox><NInputNumber v-else-if="['int','decimal'].includes(field.value_type)" v-model:value="values[field.id]" :precision="field.value_type==='int'?0:2" /><NDatePicker v-else-if="['date','datetime'].includes(field.value_type)" v-model:value="values[field.id]" :type="field.value_type==='date'?'date':'datetime'" /><NInput v-else v-model:value="values[field.id]" /></label>
         <label>备注<NInput v-model:value="memo" type="textarea" /></label>
@@ -108,10 +117,11 @@ const offerPending = (status: number | string) => status === 1 || status === '�
 
       <section v-if="query.data.value.assignment_offers?.length" class="history offers">
         <h2>指定接单邀请</h2>
+        <p class="form-hint">待确认邀请不会自动过期；对方处理前，你可以随时取消。</p>
         <section v-for="offer in query.data.value.assignment_offers" :key="offer.id" class="history-row">
-          <div class="history-head"><div><strong>{{ Number(offer.quantity).toFixed(query.data.value.quantity_scale) }} {{ query.data.value.unit_name }}</strong><span>#{{ offer.id }} · {{ offerStatus(offer.status) }} · {{ offer.target_handler?.name || offer.target_handler?.profile?.name || '指定 Entity' }}</span></div><time v-if="offerPending(offer.status)">有效至 {{ formatDate(offer.expire_time) }}</time></div>
+          <div class="history-head"><div><strong>{{ Number(offer.quantity).toFixed(quantityScale) }} {{ query.data.value.unit_name }}</strong><span>#{{ offer.id }} · {{ offerStatus(offer.status) }} · {{ offer.target_handler?.name || offer.target_handler?.profile?.name || '指定 Entity' }}</span></div></div>
           <p v-if="offer.decision_reason" class="form-hint">{{ offer.decision_reason }}</p>
-          <NButton v-if="offerPending(offer.status)" secondary :loading="withdrawOffer.isPending.value" @click="withdrawOffer.mutate(offer.id)">撤回邀请</NButton>
+          <NButton v-if="offerPending(offer.status)" secondary :loading="withdrawOffer.isPending.value" @click="withdrawOffer.mutate(offer.id)">取消邀请</NButton>
         </section>
       </section>
 
@@ -119,7 +129,7 @@ const offerPending = (status: number | string) => status === 1 || status === '�
         <h2>履约记录</h2>
         <p v-if="!query.data.value.instances?.length" class="empty">尚未发起履约。</p>
         <section v-for="instance in query.data.value.instances" :key="instance.id" class="history-row">
-          <div class="history-head"><div><strong>{{ Number(instance.quantity).toFixed(query.data.value.quantity_scale) }} {{ query.data.value.unit_name }}</strong><span>#{{ instance.id }} · {{ serviceStatus(instance.status) }} · {{ instance.handler?.name || instance.handler?.profile?.name || '未分配接单人' }}</span></div><time v-if="instance.create_time">{{ formatDate(instance.create_time) }}</time></div>
+          <div class="history-head"><div><strong>{{ Number(instance.quantity).toFixed(quantityScale) }} {{ query.data.value.unit_name }}</strong><span>#{{ instance.id }} · {{ serviceStatus(instance.status) }} · {{ instance.handler?.name || instance.handler?.profile?.name || '未分配接单人' }}</span></div><time v-if="instance.create_time">{{ formatDate(instance.create_time) }}</time></div>
           <div v-if="instance.adjustments?.length" class="adjustments"><div v-for="fee in instance.adjustments" :key="fee.id"><span>{{ fee.name }} · ¥{{ fee.total_price }}</span><small>{{ fee.status===1?'待确认':fee.status===2?'已确认':'已取消' }}</small><div v-if="fee.status===1 && instance.status===2" class="fee-actions"><NButton size="small" type="primary" :loading="adjustment.isPending.value" @click="adjustment.mutate({instanceId:instance.id,adjustmentId:fee.id,accept:true})">确认并支付</NButton><NButton size="small" secondary :loading="adjustment.isPending.value" @click="adjustment.mutate({instanceId:instance.id,adjustmentId:fee.id,accept:false})">拒绝</NButton></div></div></div>
           <form v-if="instance.status===2 && !pendingCancel(instance)" class="inline-form" @submit.prevent="cancel.mutate(instance.id)"><label>取消原因<NInput v-model:value="cancelReasons[instance.id]" placeholder="例如：未通过、临时无法履约" /></label><NButton attr-type="submit" secondary type="warning" :loading="cancel.isPending.value">申请取消</NButton></form>
           <p v-else-if="instance.status===2" class="notice">取消申请正在等待处理，期间不会改派或完成履约。</p>

@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { hasManagePermission } from './apps/shop/src/lib'
-import { hasWorkspacePermission } from './apps/transaction/src/lib/workspace-access'
+import { hasWorkspacePermission, serviceRedemptionReadPermissions } from './apps/transaction/src/lib/workspace-access'
 
 const root = resolve(import.meta.dirname, '..')
 const source = (path: string) => readFileSync(resolve(root, path), 'utf8')
@@ -90,15 +90,33 @@ describe('后台工作台入口架构', () => {
     expect(shop).toMatch(/const nav = \[\s*\{\s*to: "\/manage",\s*label: "概览",\s*icon: House,\s*permission: null,/)
     expect(shop).toContain("{ to: '/manage/personal', label: '概览', icon: House, permission: null }")
     expect(shop.indexOf("label: '概览'")).toBeLessThan(shop.indexOf("label: '我的商品'"))
+    expect(shop).toContain("label: '我的服务'")
+    expect(shop).toContain("label: '我的权益包'")
+    expect(shop).toContain("label: '我的卡活动'")
     expect(shop).toContain("permission: 'shop.product.self.manage'")
 
     const transaction = source('frontend/apps/transaction/src/components/TransactionShell.vue')
     expect(transaction).toContain("const teamNav = [\n  ['/overview', '概览', House, null]")
     expect(transaction).toContain("const personalNav = [\n  ['/personal', '概览', House, null]")
+    expect(transaction).toContain("['/personal/transactions', '相关流水', ListChecks, null]")
+    expect(transaction).toContain("['/personal/stats', '我的业绩', BarChart3, null]")
+    expect(transaction).toContain("['/personal/services', '我的核销', BadgeCheck, null]")
+    expect(transaction).toContain("['/personal/bindings', '客户协作', Handshake, null]")
+    expect(transaction).toContain("['/personal/entitlements', '权益赠送', Gift, null]")
+
+    const personalEntitlements = source('frontend/apps/transaction/src/views/PersonalEntitlementsView.vue')
+    expect(personalEntitlements).toContain("api.get<Pagination<PersonalEntitlementGrantRecord>>('/personal/entitlements'")
+    expect(personalEntitlements).toContain("hasWorkspacePermission(access.data.value?.permissions ?? [], 'service.entitlement.grant')")
+    const transactionRouter = source('frontend/apps/transaction/src/router.ts')
+    expect(transactionRouter).toContain("path: '/personal/transactions', component: PersonalWorkspaceView, meta: { title: '与我相关的流水', pageWidth: 'wide', workspace: 'personal', personalSection: 'transactions' }")
+    expect(transactionRouter).toContain("path: '/personal/stats', component: PersonalWorkspaceView, meta: { title: '我的业绩', pageWidth: 'wide', workspace: 'personal', personalSection: 'stats' }")
+    expect(transactionRouter).toContain("path: '/personal/bindings', component: PersonalWorkspaceView, meta: { title: '我的客户协作', pageWidth: 'wide', workspace: 'personal', personalSection: 'bindings' }")
+    expect(transactionRouter).toContain("path: '/personal/entitlements', component: PersonalEntitlementsView, meta: { title: '权益赠送', pageWidth: 'wide', workspace: 'personal' }")
+    expect(transactionRouter).toContain("path: '/personal/entitlements/new', component: EntitlementGrantView, meta: { title: '赠送客户权益', pageWidth: 'form', workspace: 'personal', permission: 'service.entitlement.grant'")
 
     expect(source('frontend/apps/team/src/router.ts')).toContain("path: '/personal', component: PersonalView, meta: { title: '概览'")
     expect(source('frontend/apps/shop/src/router.ts')).toContain("path: '/manage/personal', component: () => import('./views/manage/PersonalOverviewView.vue'), meta: { title: '概览'")
-    expect(source('frontend/apps/transaction/src/router.ts')).toContain("path: '/personal', component: PersonalOverviewView, meta: { title: '概览'")
+    expect(transactionRouter).toContain("path: '/personal', component: PersonalOverviewView, meta: { title: '概览'")
   })
 
   it('共享顶栏只承载标题和响应式动作，不重新引入应用或工作台切换控件', () => {
@@ -115,6 +133,17 @@ describe('后台工作台入口架构', () => {
     expect(router).toContain('await loadWorkspaceAccess()')
     expect(router).toContain("return '/unavailable'")
     expect(source('frontend/apps/transaction/src/views/UnavailableView.vue')).not.toContain("api.")
+  })
+
+  it('个人核销始终使用三个具名边界面板承载分组和实时数量', () => {
+    const component = source('frontend/apps/transaction/src/components/PersonalServiceLists.vue')
+    expect(component).toContain("import LsPanel from '@lostsky/ui/components/LsPanel.vue'")
+    expect(component).toContain("import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'")
+    expect(component.match(/<LsPanel aria-labelledby=/g)).toHaveLength(3)
+    expect(component.match(/class="group-count" aria-live="polite"/g)).toHaveLength(3)
+    expect(component).not.toMatch(/\.task-list\{[^}]*border:/)
+    expect(component).not.toContain(':deep(.ls-')
+    expect(source('docs/design/admin/applications.md')).toContain('“待我确认”“我可以接”“我的核销”三个具名连续边界面板')
   })
 
   it('Account 只保留旧深链跳转，客户资料留在商城客户中心', () => {
@@ -159,6 +188,22 @@ describe('后台工作台入口架构', () => {
     expect(source('frontend/apps/shop/src/router.ts')).toContain('hasManagePermission(access.permissions, permission)')
     expect(hasWorkspacePermission(['transaction'], 'transaction.report.read')).toBe(true)
     expect(hasWorkspacePermission(['transaction.read'], 'transaction.write')).toBe(false)
+    expect(hasWorkspacePermission(['service.redemption.read'], serviceRedemptionReadPermissions)).toBe(true)
+    expect(hasWorkspacePermission(['service.redemption.manage'], serviceRedemptionReadPermissions)).toBe(true)
+    expect(hasWorkspacePermission([], serviceRedemptionReadPermissions)).toBe(false)
+  })
+
+  it('团队核销入口与路由要求读取或管理权限，个人核销保持本人范围开放', () => {
+    const shell = source('frontend/apps/transaction/src/components/TransactionShell.vue')
+    const overview = source('frontend/apps/transaction/src/views/TeamOverviewView.vue')
+    const router = source('frontend/apps/transaction/src/router.ts')
+
+    expect(shell).toContain("['/services', '服务核销', BadgeCheck, serviceRedemptionReadPermissions]")
+    expect(overview).toContain("to: '/services', icon: BadgeCheck, permission: serviceRedemptionReadPermissions")
+    expect(router).toMatch(/path: '\/services'[^\n]*permission: serviceRedemptionReadPermissions/)
+    expect(router).toMatch(/path: '\/services\/:id\(\\\\d\+\)'[^\n]*permission: serviceRedemptionReadPermissions/)
+    expect(shell).toContain("['/personal/services', '我的核销', BadgeCheck, null]")
+    expect(router).toMatch(/path: '\/personal\/services'[^\n]*workspace: 'personal'[^\n]*(?!permission:)/)
   })
 
   it('Shop 商品表单通过统一上传接口处理封面与详情图片', () => {
@@ -196,12 +241,12 @@ describe('后台工作台入口架构', () => {
     expect(contract.paths['/customer/upload'].post.requestBody.content['multipart/form-data']).toBeDefined()
   })
 
-  it('Customer 不进入后台双工作台，核销个人任务不误用流水读取权限', () => {
+  it('Customer 不进入后台双工作台，个人业务不借用 Team 全量读取权限', () => {
     expect(source('frontend/apps/team/src/router.ts')).toContain("auth.entity()?.type === 'teamCustomer'")
     expect(source('frontend/apps/shop/src/router.ts')).toContain("entityType === 'teamCustomer'")
     expect(source('frontend/apps/transaction/src/router.ts')).toContain("entityType === 'teamCustomer'")
     expect(source('app/transaction/controller/Personal.php'))
-      .toContain("['transactions', 'transaction', 'bindings']")
+      .not.toContain('Permission:')
     expect(source('frontend/apps/transaction/src/router.ts'))
       .toContain("personalSection: 'services' }")
   })
@@ -216,7 +261,8 @@ describe('后台工作台入口架构', () => {
       ]],
       ['docs/openapi/transaction.openapi.json', [
         '/workspace/access', '/personal/transactions', '/personal/transactions/{id}', '/personal/stats',
-        '/personal/services', '/personal/services/{id}', '/personal/bindings',
+        '/personal/services', '/personal/services/{id}', '/personal/bindings', '/personal/entitlements',
+        '/personal/entitlement-grant/options', '/personal/entitlement-grant',
       ]],
     ] as const
     for (const [file, paths] of contracts) {

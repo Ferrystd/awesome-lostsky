@@ -7,6 +7,7 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormList from '@lostsky/ui/components/LsFormList.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
@@ -240,7 +241,7 @@ async function submitProfile() {
       back-label="返回实体"
     >
       <template #actions>
-        <a v-if="chatUrl" class="chat-action" :href="chatUrl"><MessageCircleMore :size="17" />发起对话</a>
+        <LsPagePrimaryAction v-if="chatUrl" :icon="MessageCircleMore" label="发起对话" :href="chatUrl" />
       </template>
     </AdminPageHeader>
     <LsAsyncState v-if="detail.isPending.value" state="loading" :rows="5" />
@@ -393,6 +394,6 @@ async function submitProfile() {
 </template>
 
 <style scoped>
-.entity-detail{display:grid;gap:22px}.chat-action{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .875rem;color:white;background:var(--sky-lost-strong);border-radius:8px;font-size:.875rem;font-weight:650}.profile-panel,.visibility-settings,.visibility-list{display:grid;gap:16px}.profile-panel h2,.profile-panel p,.document-tag-groups h3,.document-tag-groups p{margin:0}.profile-panel h2{font-size:1.05rem}.profile-panel label{display:grid;gap:7px;color:var(--text-secondary);font-weight:650}.public-link{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;color:var(--primary);font-size:.82rem;font-weight:650;white-space:nowrap}.document-tag-groups{display:grid;gap:16px;padding-top:4px}.document-tag-groups h3{font-size:1rem}.document-tag-groups>div>p{max-width:68ch;margin-top:5px;color:var(--text-secondary);font-size:.84rem;line-height:1.55}.document-tag-group-fields{min-width:0;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);align-items:start;gap:12px}.permission-note{margin:0;padding:.8rem 1rem;color:var(--muted-ink);background:color-mix(in oklch,var(--sky-lost),white 92%);border:1px solid color-mix(in oklch,var(--sky-lost),white 65%);border-radius:8px;font-size:.84rem}code{font-size:.8em}
+.entity-detail{display:grid;gap:22px}.profile-panel,.visibility-settings,.visibility-list{display:grid;gap:16px}.profile-panel h2,.profile-panel p,.document-tag-groups h3,.document-tag-groups p{margin:0}.profile-panel h2{font-size:1.05rem}.profile-panel label{display:grid;gap:7px;color:var(--text-secondary);font-weight:650}.public-link{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;color:var(--primary);font-size:.82rem;font-weight:650;white-space:nowrap}.document-tag-groups{display:grid;gap:16px;padding-top:4px}.document-tag-groups h3{font-size:1rem}.document-tag-groups>div>p{max-width:68ch;margin-top:5px;color:var(--text-secondary);font-size:.84rem;line-height:1.55}.document-tag-group-fields{min-width:0;display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);align-items:start;gap:12px}.permission-note{margin:0;padding:.8rem 1rem;color:var(--muted-ink);background:color-mix(in oklch,var(--sky-lost),white 92%);border:1px solid color-mix(in oklch,var(--sky-lost),white 65%);border-radius:8px;font-size:.84rem}code{font-size:.8em}
 @media(max-width:639px){.document-tag-group-fields{grid-template-columns:1fr}}
 </style>

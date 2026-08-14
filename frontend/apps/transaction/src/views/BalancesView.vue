@@ -5,8 +5,10 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import { useQuery } from '@tanstack/vue-query'
+import { CircleDollarSign } from '@lucide/vue'
 import type { DataTableColumns } from 'naive-ui'
 import { computed, h, ref } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -31,7 +33,7 @@ const columns: DataTableColumns<Customer> = [
 <template>
   <div class="balances-view">
     <LsPageHeader title="客户余额" description="查看客户的可用预存款、累计充值与累计消费；充值和明细使用独立任务页。">
-      <template #actions><RouterLink class="primary-link" to="/recharge">客户充值</RouterLink></template>
+      <template #actions><LsPagePrimaryAction :icon="CircleDollarSign" label="客户充值" to="/recharge" /></template>
     </LsPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索客户昵称" aria-label="搜索客户余额" :count-label="`${customers.length} 位客户`" />
     <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取客户余额" :description="friendlyError(query.error.value)" />

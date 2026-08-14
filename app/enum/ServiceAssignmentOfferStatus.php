@@ -11,7 +11,7 @@ enum ServiceAssignmentOfferStatus: int implements EnumTransform
     case Accepted = 2;
     case Rejected = 3;
     case Withdrawn = 4;
-    case Expired = 5;
+    case Invalidated = 5;
 
     public function value(): string
     {
@@ -19,8 +19,8 @@ enum ServiceAssignmentOfferStatus: int implements EnumTransform
             self::Pending => '待确认',
             self::Accepted => '已接受',
             self::Rejected => '已拒绝',
-            self::Withdrawn => '已撤回',
-            self::Expired => '已过期',
+            self::Withdrawn => '已取消',
+            self::Invalidated => '已失效',
         };
     }
 }

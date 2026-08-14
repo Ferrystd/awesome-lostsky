@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { friendlyError } from '@lostsky/api/client'
+import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { NButton, NInput, NInputNumber, NSelect } from 'naive-ui'
+import { NButton, NInput, NInputNumber } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { formatMoney, shopApi } from '../lib'
@@ -12,8 +13,8 @@ const balance = useQuery({ queryKey: ['shop-balance'], queryFn: shopApi.balance 
 const quantity = ref(1); const handlerId = ref<number | null>(null); const memo = ref(''); const pending = ref(false); const error = ref('')
 const total = computed(() => Number(product.data.value?.price ?? 0) * quantity.value)
 const insufficient = computed(() => Number(balance.data.value?.balance ?? 0) < total.value)
-const handlerOptions = computed(() => (product.data.value?.handlers ?? []).map(item => ({ label: item.name, value: item.entity_id })))
-const needsHandler = computed(() => handlerOptions.value.length > 1)
+const handlers = computed(() => product.data.value?.handlers ?? [])
+const needsHandler = computed(() => handlers.value.length > 1)
 
 async function submit() {
   if (insufficient.value || (needsHandler.value && !handlerId.value)) return
@@ -34,7 +35,7 @@ async function submit() {
       <div class="checkout-product"><img v-if="product.data.value.cover_image" :src="product.data.value.cover_image" :alt="product.data.value.name"><span v-else class="type-cover"><strong>{{ product.data.value.name.slice(0, 1) }}</strong></span><div><h2>{{ product.data.value.name }}</h2><p>{{ formatMoney(product.data.value.price) }} / 件</p></div></div>
       <div class="checkout-fields">
         <label>数量<NInputNumber v-model:value="quantity" :min="1" :max="999" size="large" /></label>
-        <label v-if="handlerOptions.length">接单人<NSelect v-model:value="handlerId" :options="handlerOptions" :placeholder="needsHandler ? '请选择接单人' : '默认接单人'" size="large" clearable /></label>
+        <label v-if="handlers.length">接单人<LsEntitySelect v-model="handlerId" :entities="handlers" :placeholder="needsHandler ? '请选择接单人' : '默认接单人'" clearable /></label>
         <label>给商家的备注<NInput v-model:value="memo" type="textarea" maxlength="1000" show-count placeholder="可选" /></label>
       </div>
       <aside class="checkout-summary"><div><span>当前余额</span><strong>{{ formatMoney(balance.data.value.balance) }}</strong></div><div><span>应付总额</span><strong>{{ formatMoney(total) }}</strong></div><p v-if="insufficient" class="form-error" role="alert">余额不足，请联系商家充值后再购买。</p><p v-if="error" class="form-error" role="alert">{{ error }}</p><NButton attr-type="submit" type="primary" size="large" block :loading="pending" :disabled="insufficient || (needsHandler && !handlerId)">使用余额购买</NButton><RouterLink :to="`/product/${id}`">返回商品详情</RouterLink></aside>

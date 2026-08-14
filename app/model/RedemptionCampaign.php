@@ -41,10 +41,11 @@ class RedemptionCampaign extends Base
     protected $append = [];
 
     /** 只读字段 */
-    protected $readonly = ['package_id', 'issuer_team_id', 'claim_group', 'mode'];
+    protected $readonly = ['package_id', 'issuer_team_id', 'owner_entity_id', 'claim_group', 'mode'];
 
     public function package() { return $this->belongsTo(BenefitPackage::class, 'package_id'); }
     public function issuer() { return $this->belongsTo(Team::class, 'issuer_team_id'); }
+    public function owner() { return $this->belongsTo(Entity::class, 'owner_entity_id'); }
     public function codes() { return $this->hasMany(RedemptionCode::class, 'campaign_id'); }
     public function claims() { return $this->hasMany(RedemptionClaim::class, 'campaign_id'); }
 }

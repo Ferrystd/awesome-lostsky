@@ -15,6 +15,7 @@ use app\model\TeamServiceEntitlement;
 use app\model\TeamServiceEvent;
 use app\model\TeamServiceHandler;
 use app\model\TeamServiceInstance;
+use app\model\TeamService;
 use think\exception\HttpException;
 use think\facade\Db;
 
@@ -41,7 +42,6 @@ class ServiceRedemption
 
     public function customerGet(int $teamId, int $customerId, int $id): array
     {
-        $this->expireOffers($teamId, $id);
         $entitlement = TeamServiceEntitlement::where('team_id', $teamId)
             ->where('customer_id', $customerId)->with(['service'])->find($id);
         if (!$entitlement) throw new HttpException(404, '服务权益不存在');
@@ -85,7 +85,7 @@ class ServiceRedemption
     public function handlers(int $teamId, int $customerId, int $id): array
     {
         $entitlement = $this->customerEntitlement($teamId, $customerId, $id);
-        return $this->handlerRows((int) $entitlement->service_id);
+        return $this->handlerRows($teamId, (int) $entitlement->service_id);
     }
 
     public function createOffer(
@@ -109,8 +109,6 @@ class ServiceRedemption
                 ->where('holder_entity_id', $actorEntityId)->where('idempotency_key', $idempotencyKey)->find();
             if ($existing) return (int) $existing->id;
         }
-        $this->expireOffers($teamId, $entitlementId);
-
         return Db::transaction(function () use (
             $teamId, $customerId, $entitlementId, $quantity, $handlerEntityId,
             $memo, $fieldValues, $actorEntityId, $idempotencyKey
@@ -119,9 +117,9 @@ class ServiceRedemption
             $this->assertCustomerOwns($entitlement, $customerId, $actorEntityId);
             if ($entitlement->is_expired) throw new HttpException(422, '服务权益已过期');
             $this->assertHandler($teamId, (int) $entitlement->service_id, $handlerEntityId);
-            $normalized = app(ServiceQuantity::class)->normalize(
+            $quantityRules = app(ServiceQuantity::class);
+            $normalized = $quantityRules->normalize(
                 $quantity,
-                (int) $entitlement->quantity_scale,
                 $entitlement->quantity_step
             );
             $quantityMinor = app(ServiceQuantity::class)->toMinor($normalized);
@@ -135,7 +133,6 @@ class ServiceRedemption
                 $fieldValues
             );
             $money = $this->allocateMoney($entitlement, $quantityMinor);
-            $settings = app(TeamSetting::class)->internal($teamId, 'service');
             $offer = new TeamServiceAssignmentOffer;
             $offer->save([
                 'team_id' => $teamId,
@@ -148,7 +145,6 @@ class ServiceRedemption
                 'status' => ServiceAssignmentOfferStatus::Pending,
                 'memo' => trim($memo) ?: null,
                 'field_values' => $fields ?: null,
-                'expire_time' => time() + (int) $settings['assignment_offer_timeout_minutes'] * 60,
                 'idempotency_key' => $idempotencyKey !== '' ? $idempotencyKey : null,
             ] + $money);
             $this->reserve($entitlement, $quantityMinor);
@@ -158,14 +154,13 @@ class ServiceRedemption
 
     public function withdrawOffer(int $teamId, int $customerId, int $actorEntityId, int $id, string $reason = ''): void
     {
-        $this->expireOffers($teamId);
         Db::transaction(function () use ($teamId, $customerId, $actorEntityId, $id, $reason) {
             [$entitlement, $offer] = $this->lockedOffer($teamId, $id);
             if ((int) $offer->customer_id !== $customerId || (int) $offer->holder_entity_id !== $actorEntityId) {
-                throw new HttpException(403, '只能撤回当前 Customer Entity 发起的邀请');
+                throw new HttpException(403, '只能取消当前 Customer Entity 发起的邀请');
             }
             if ($offer->enumCase('status') === ServiceAssignmentOfferStatus::Withdrawn) return;
-            if ($offer->enumCase('status') !== ServiceAssignmentOfferStatus::Pending) throw new HttpException(409, '邀请已处理，不能撤回');
+            if ($offer->enumCase('status') !== ServiceAssignmentOfferStatus::Pending) throw new HttpException(409, '邀请已处理，不能取消');
             $offer->save([
                 'status' => ServiceAssignmentOfferStatus::Withdrawn,
                 'decided_by_entity_id' => $actorEntityId,
@@ -178,7 +173,6 @@ class ServiceRedemption
 
     public function assignmentOffers(int $teamId, int $actorEntityId, int $page = 1, int $limit = 20): array
     {
-        $this->expireOffers($teamId);
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
         $paginator = TeamServiceAssignmentOffer::where('team_id', $teamId)
             ->where('target_handler_entity_id', $actorEntityId)
@@ -192,7 +186,6 @@ class ServiceRedemption
 
     public function assignmentOffer(int $teamId, int $actorEntityId, int $id): array
     {
-        $this->expireOffers($teamId);
         $offer = TeamServiceAssignmentOffer::where('team_id', $teamId)
             ->where('target_handler_entity_id', $actorEntityId)
             ->with(['service', 'customer.profile', 'entitlement'])->find($id);
@@ -204,7 +197,6 @@ class ServiceRedemption
 
     public function acceptOffer(int $teamId, int $actorEntityId, int $id): int
     {
-        $this->expireOffers($teamId);
         return Db::transaction(function () use ($teamId, $actorEntityId, $id) {
             [$entitlement, $offer] = $this->lockedOffer($teamId, $id);
             if ((int) $offer->target_handler_entity_id !== $actorEntityId) throw new HttpException(403, '该邀请不属于当前 Entity');
@@ -256,7 +248,6 @@ class ServiceRedemption
 
     public function rejectOffer(int $teamId, int $actorEntityId, int $id, string $reason = ''): void
     {
-        $this->expireOffers($teamId);
         Db::transaction(function () use ($teamId, $actorEntityId, $id, $reason) {
             [$entitlement, $offer] = $this->lockedOffer($teamId, $id);
             if ((int) $offer->target_handler_entity_id !== $actorEntityId) throw new HttpException(403, '该邀请不属于当前 Entity');
@@ -299,9 +290,9 @@ class ServiceRedemption
             $entitlement = $this->lockedEntitlement($teamId, $entitlementId);
             $this->assertCustomerOwns($entitlement, $customerId, $actorEntityId);
             if ($entitlement->is_expired) throw new HttpException(422, '服务权益已过期');
-            $normalized = app(ServiceQuantity::class)->normalize(
+            $quantityRules = app(ServiceQuantity::class);
+            $normalized = $quantityRules->normalize(
                 $quantity,
-                (int) $entitlement->quantity_scale,
                 $entitlement->quantity_step
             );
             $quantityMinor = app(ServiceQuantity::class)->toMinor($normalized);
@@ -457,13 +448,27 @@ class ServiceRedemption
     {
         $this->get($teamId, $subject, $actorEntityId, $id);
         $instance = TeamServiceInstance::where('team_id', $teamId)->find($id);
-        return $this->handlerRows((int) $instance->service_id);
+        return $this->handlerRows($teamId, (int) $instance->service_id);
     }
 
     public function claimable(int $teamId, int $actorEntityId, int $page = 1, int $limit = 20): array
     {
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
-        $serviceIds = TeamServiceHandler::where('entity_id', $actorEntityId)->column('service_id');
+        $this->assertEligibleHandler($teamId, $actorEntityId);
+        $activeServiceIds = array_map('intval', TeamService::where('team_id', $teamId)
+            ->where('is_active', 1)->column('id'));
+        $restrictedServiceIds = $activeServiceIds
+            ? array_map('intval', TeamServiceHandler::whereIn('service_id', $activeServiceIds)
+                ->group('service_id')->column('service_id'))
+            : [];
+        $explicitServiceIds = $activeServiceIds
+            ? array_map('intval', TeamServiceHandler::where('entity_id', $actorEntityId)
+                ->whereIn('service_id', $activeServiceIds)->column('service_id'))
+            : [];
+        $serviceIds = array_values(array_unique(array_merge(
+            $explicitServiceIds,
+            array_diff($activeServiceIds, $restrictedServiceIds)
+        )));
         $query = TeamServiceInstance::where('team_id', $teamId)
             ->where('status', ServiceStatus::Processing->value)
             ->whereNull('handler_entity_id');
@@ -542,7 +547,7 @@ class ServiceRedemption
                 [$entitlement, $offer] = $this->lockedOffer($teamId, (int) $id);
                 if ($offer->enumCase('status') !== ServiceAssignmentOfferStatus::Pending) return;
                 $offer->save([
-                    'status' => ServiceAssignmentOfferStatus::Expired,
+                    'status' => ServiceAssignmentOfferStatus::Invalidated,
                     'decision_reason' => '接单资格已移除',
                     'decided_at' => time(),
                 ]);
@@ -697,22 +702,6 @@ class ServiceRedemption
         return [$entitlement, $offer];
     }
 
-    private function expireOffers(int $teamId, ?int $entitlementId = null): void
-    {
-        $query = TeamServiceAssignmentOffer::where('team_id', $teamId)
-            ->where('status', ServiceAssignmentOfferStatus::Pending->value)
-            ->where('expire_time', '<=', time());
-        if ($entitlementId !== null) $query->where('entitlement_id', $entitlementId);
-        foreach ($query->column('id') as $id) {
-            Db::transaction(function () use ($teamId, $id) {
-                [$entitlement, $offer] = $this->lockedOffer($teamId, (int) $id);
-                if ($offer->enumCase('status') !== ServiceAssignmentOfferStatus::Pending || (int) $offer->expire_time > time()) return;
-                $offer->save(['status' => ServiceAssignmentOfferStatus::Expired, 'decided_at' => time()]);
-                $this->release($entitlement, app(ServiceQuantity::class)->toMinor($offer->quantity));
-            });
-        }
-    }
-
     private function lockedPair(int $teamId, int $instanceId): array
     {
         $reference = TeamServiceInstance::where('team_id', $teamId)->find($instanceId);
@@ -739,14 +728,21 @@ class ServiceRedemption
 
     private function assertHandler(int $teamId, int $serviceId, int $entityId): void
     {
-        $handler = TeamServiceHandler::where('service_id', $serviceId)->where('entity_id', $entityId)->find();
-        $entity = Entity::find($entityId);
-        $service = \app\model\TeamService::where('team_id', $teamId)->find($serviceId);
-        if (!$handler || !$entity || !$entity->is_valid || !$service || !(bool) $service->is_active) {
+        $service = TeamService::where('team_id', $teamId)->find($serviceId);
+        if (!$service || !(bool) $service->is_active) throw new HttpException(422, '服务不存在或已停用');
+        $this->assertEligibleHandler($teamId, $entityId);
+        $restricted = TeamServiceHandler::where('service_id', $serviceId)->count() > 0;
+        if ($restricted && !TeamServiceHandler::where('service_id', $serviceId)->where('entity_id', $entityId)->find()) {
             throw new HttpException(422, '接单 Entity 不在当前有效接单池中');
         }
+    }
+
+    private function assertEligibleHandler(int $teamId, int $entityId): void
+    {
+        $entity = Entity::find($entityId);
+        if (!$entity || !$entity->is_valid) throw new HttpException(422, '接单 Entity 不可用');
         if (!in_array((string) $entity->entityable_type, ['team', 'teamMember', 'teamVirtual'], true)) {
-            throw new HttpException(422, '该 Entity 类型不能进入服务接单池');
+            throw new HttpException(422, '该 Entity 类型不能接单');
         }
         app(\app\service\Entity::class)->assertInTeam($entityId, $teamId);
     }
@@ -769,15 +765,31 @@ class ServiceRedemption
             ? app(ProductRedemptionField::class)->fieldsForInstance($model, false)
             : [];
         $instance['unit_name'] = $entitlement['unit_name'] ?? '单位';
-        $instance['quantity_scale'] = (int) ($entitlement['quantity_scale'] ?? 0);
     }
 
-    private function handlerRows(int $serviceId): array
+    private function handlerRows(int $teamId, int $serviceId): array
     {
-        return TeamServiceHandler::where('service_id', $serviceId)
-            ->with(['subject.profile'])->select()->filter(
+        $service = TeamService::where('team_id', $teamId)->where('is_active', 1)->find($serviceId);
+        if (!$service) return [];
+        $handlers = TeamServiceHandler::where('service_id', $serviceId)
+            ->with(['subject.profile'])->select();
+        if ($handlers->count() > 0) return $handlers->filter(
                 static fn ($handler): bool => (bool) $handler->subject?->is_valid
             )->toArray();
+        return array_values(array_map(
+            static fn (array $entity): array => [
+                'entity_id' => (int) $entity['entity_id'],
+                'subject' => $entity,
+            ],
+            array_filter(
+                app(\app\service\Entity::class)->optionsForTeam($teamId, true),
+                static fn (array $entity): bool => in_array(
+                    (string) ($entity['type'] ?? ''),
+                    ['team', 'teamMember', 'teamVirtual'],
+                    true
+                )
+            )
+        ));
     }
 
     private function reserve(TeamServiceEntitlement $entitlement, int $quantityMinor): void

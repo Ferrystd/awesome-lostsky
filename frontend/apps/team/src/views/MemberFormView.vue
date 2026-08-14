@@ -6,9 +6,11 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { Save, UserPlus } from '@lucide/vue'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -243,14 +245,14 @@ useUnsavedChangesGuard(hasUnsavedChanges)
       <template v-if="canEditProfile" #actions>
         <div class="member-primary-actions">
           <LsButton type="button" variant="secondary" @click="router.push('/members')">取消</LsButton>
-          <LsButton
+          <LsPagePrimaryAction
+            :icon="editing ? Save : UserPlus"
+            :label="editing ? '保存成员' : '添加成员'"
             type="submit"
             form="member-profile-form"
             :loading="save.isPending.value"
             :disabled="!form.nickname.trim() || (!editing && !form.user_id) || Boolean(uploading)"
-          >
-            {{ editing ? '保存成员' : '添加成员' }}
-          </LsButton>
+          />
         </div>
       </template>
     </AdminPageHeader>

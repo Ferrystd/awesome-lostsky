@@ -72,6 +72,9 @@ const currentNav = computed(() => activeWorkspace.value === 'personal'
   ? [
       { to: '/manage/personal', label: '概览', icon: House, permission: null },
       { to: '/manage/personal/products', label: '我的商品', icon: ShoppingBag, permission: 'shop.product.self.manage' },
+      { to: '/manage/personal/services', label: '我的服务', icon: Boxes, permission: 'shop.product.self.manage' },
+      { to: '/manage/personal/packages', label: '我的权益包', icon: PackageOpen, permission: 'shop.product.self.manage' },
+      { to: '/manage/personal/campaigns', label: '我的卡活动', icon: KeyRound, permission: 'shop.product.self.manage' },
       { to: '/manage/personal/orders', label: '我的业务订单', icon: UserRound, permission: 'shop.order.read' },
     ]
   : nav);
@@ -271,6 +274,7 @@ function explainPermission(permission: string | null) {
   color: oklch(0.76 0.012 210);
   border-radius: 8px;
   font-size: 0.9rem;
+  text-align: left;
 }
 .manage-sidebar nav .manage-nav-disabled { color:oklch(.52 .012 210);cursor:not-allowed }
 .manage-sidebar nav .manage-nav-disabled :deep(.n-button__content){grid-column:1/-1;width:100%;display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:.55rem}

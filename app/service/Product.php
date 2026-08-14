@@ -222,19 +222,30 @@ class Product
 
     private function assertBenefitConfiguration(int $teamId, array $data): ?BenefitPackage
     {
+        $ownerEntityId = (int) ($data['entity_id'] ?? 0) ?: null;
         $kind = ProductKind::from((int) ($data['kind'] ?? ProductKind::Standard->value));
         if ($kind === ProductKind::ServiceBundle) {
             $package = BenefitPackage::where('issuer_team_id', $teamId)->find((int) ($data['benefit_package_id'] ?? 0));
             if (!$package) throw new HttpException(422, '服务套餐必须关联当前团队的权益套餐');
+            $this->assertCompatibleBenefitOwner($ownerEntityId, $package->owner_entity_id);
             return $package;
         }
         if ($kind === ProductKind::RedemptionCard) {
             $campaign = RedemptionCampaign::where('issuer_team_id', $teamId)
                 ->with(['package'])->find((int) ($data['redemption_campaign_id'] ?? 0));
             if (!$campaign) throw new HttpException(422, '卡密商品必须关联当前团队的卡密活动');
+            $this->assertCompatibleBenefitOwner($ownerEntityId, $campaign->owner_entity_id);
             return $campaign->package;
         }
         return null;
+    }
+
+    private function assertCompatibleBenefitOwner(?int $ownerEntityId, mixed $candidateOwnerEntityId): void
+    {
+        $candidateOwnerEntityId = $candidateOwnerEntityId === null ? null : (int) $candidateOwnerEntityId;
+        if ($candidateOwnerEntityId !== null && $candidateOwnerEntityId !== $ownerEntityId) {
+            throw new HttpException(422, '商品不能引用其他 Entity 的权益资源');
+        }
     }
 
     private function attachRelations(array &$rows, bool $detail): void

@@ -16,8 +16,7 @@ final class ProductSelfManagement
 
     public function options(int $teamId, array $actingEntity): array
     {
-        $this->entityId($actingEntity);
-        return app(EntitlementManagement::class)->productOptions($teamId);
+        return app(EntitlementManagement::class)->personalOptions($teamId, $this->entityId($actingEntity));
     }
 
     public function get(int $teamId, array $actingEntity, int $id): array

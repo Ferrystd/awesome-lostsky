@@ -36,9 +36,10 @@ class BenefitPackage extends Base
     protected $append = [];
 
     /** 只读字段 */
-    protected $readonly = ['issuer_team_id'];
+    protected $readonly = ['issuer_team_id', 'owner_entity_id'];
 
     public function issuer() { return $this->belongsTo(Team::class, 'issuer_team_id'); }
+    public function owner() { return $this->belongsTo(Entity::class, 'owner_entity_id'); }
     public function abilities() { return $this->hasMany(BenefitPackageAbility::class, 'package_id'); }
     public function services() { return $this->hasMany(BenefitPackageService::class, 'package_id'); }
 }

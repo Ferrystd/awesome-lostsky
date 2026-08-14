@@ -4,6 +4,7 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useQuery } from '@tanstack/vue-query'
@@ -38,7 +39,7 @@ const columns: DataTableColumns<Administrator> = [
 <template>
   <LsPageHeader title="平台管理员" description="管理员权限来自平台角色并集；超级管理员拥有全部平台权限。">
     <template #actions>
-      <RouterLink v-if="can('admin.access.write')" class="primary-link" to="/administrators/new"><Plus />添加管理员</RouterLink>
+      <LsPagePrimaryAction v-if="can('admin.access.write')" :icon="Plus" label="添加管理员" to="/administrators/new" />
     </template>
   </LsPageHeader>
   <LsListToolbar v-model="search" placeholder="搜索管理员" aria-label="搜索平台管理员" :count-label="`${rows.length} 位管理员`" />

@@ -77,6 +77,68 @@ class BenefitFulfillment
         return $ids;
     }
 
+    public function grantProduct(
+        TeamProduct $product,
+        TeamCustomer $customer,
+        int $quantity,
+        ?int $senderEntityId,
+        ?int $csEntityId
+    ): array {
+        if ($product->enumCase('kind') !== ProductKind::ServiceBundle || !$product->benefit_package_id) {
+            throw new HttpException(422, '商品不是可直接赋予的服务套餐');
+        }
+        if ((int) $customer->team_id !== (int) $product->team_id || !$customer->root_entity_id) {
+            throw new HttpException(422, '客户权益主体无效');
+        }
+        if ($quantity < 1 || $quantity > 999) {
+            throw new HttpException(422, '赋予份数必须在 1 到 999 之间');
+        }
+
+        $package = BenefitPackage::find((int) $product->benefit_package_id);
+        if (!$package || !(bool) $package->is_active) {
+            throw new HttpException(422, '服务套餐权益包不可用');
+        }
+        $items = $this->packageItems((int) $product->benefit_package_id, (int) $product->team_id);
+        $specs = [];
+        for ($copy = 0; $copy < $quantity; $copy++) {
+            foreach ($items as $item) $specs[] = $item;
+        }
+
+        if (app(BenefitPackagePricing::class)->isItemized($package)) {
+            $moneyRows = array_map(
+                fn (BenefitPackageService $item): array => app(BenefitPackagePricing::class)->itemTotalMoney($item),
+                $specs
+            );
+        } else {
+            $totals = [];
+            foreach (self::MONEY_FIELDS as $field) {
+                $totals[$field] = $this->fromCents($this->toCents((string) ($product->{$field} ?? 0)) * $quantity);
+            }
+            $moneyRows = $this->allocateMoney(
+                $totals,
+                array_map(fn (BenefitPackageService $item): int => app(ServiceQuantity::class)->toMinor($item->quantity), $specs)
+            );
+        }
+
+        $ids = [];
+        foreach ($specs as $index => $item) {
+            $money = $this->applyRoleAvailability($moneyRows[$index], $senderEntityId !== null, $csEntityId !== null);
+            $ids[] = $this->createEntitlement([
+                'team_id' => $product->team_id,
+                'service_id' => $item->service_id,
+                'customer_id' => $customer->id,
+                'holder_entity_id' => $customer->root_entity_id,
+                'sender_entity_id' => $senderEntityId,
+                'cs_entity_id' => $csEntityId,
+                'source_product_id' => $product->id,
+                'source_package_item_id' => $item->id,
+                'ordinal' => $index + 1,
+                'expire_time' => (int) $item->valid_days > 0 ? time() + (int) $item->valid_days * 86400 : 0,
+            ], $item, $money);
+        }
+        return $ids;
+    }
+
     private function servicesFromOrder(TeamOrder $order, TeamProduct $product): array
     {
         $existing = TeamServiceEntitlement::where('source_order_id', $order->id)->column('id');
@@ -195,7 +257,6 @@ class BenefitFulfillment
         $entitlement = new TeamServiceEntitlement;
         $entitlement->save($data + $money + [
             'unit_name' => $service->unit_name ?: '次',
-            'quantity_scale' => (int) $service->quantity_scale,
             'quantity_step' => $service->quantity_step ?: '1.0000',
             'granted_quantity' => $item->quantity,
             'reserved_quantity' => '0.0000',

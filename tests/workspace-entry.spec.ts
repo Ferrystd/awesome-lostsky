@@ -152,6 +152,9 @@ test('Team keeps its original layout and reaches personal workspace from the ove
   const header = page.locator('.ls-workspace-header')
   await expectHeaderApps(page)
 
+  await page.setViewportSize({ width: 1024, height: 900 })
+  const documentDesktopWidth = await page.getByRole('link', { name: '使用文档' }).evaluate(element => element.getBoundingClientRect().width)
+
   await page.getByRole('link', { name: '进入个人工作台' }).click()
   await expect(page).toHaveURL(/\/personal$/)
   await expect.poll(() => pageErrors).toEqual([])
@@ -160,6 +163,17 @@ test('Team keeps its original layout and reaches personal workspace from the ove
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: '切换身份' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/')
+
+  const identityDesktopWidth = await page.getByRole('link', { name: '切换身份' }).evaluate(element => element.getBoundingClientRect().width)
+  expect(Math.abs(documentDesktopWidth - identityDesktopWidth)).toBeLessThanOrEqual(1)
+
+  await page.setViewportSize({ width: 375, height: 812 })
+  const identityMobileWidth = await page.getByRole('link', { name: '切换身份' }).evaluate(element => element.getBoundingClientRect().width)
+  await page.goto('http://demo.team.lostsky.work:5175/')
+  const documentMobileWidth = await page.getByRole('link', { name: '使用文档' }).evaluate(element => element.getBoundingClientRect().width)
+  expect(Math.abs(documentMobileWidth - identityMobileWidth)).toBeLessThanOrEqual(1)
+
+  await page.goto('http://demo.team.lostsky.work:5175/personal')
 
   await expectOverviewLayout(page, 'Team personal overview')
 
@@ -269,13 +283,25 @@ test('team workspaces keep a readable overview and disabled Permission entries',
   await expect(page.getByRole('heading', { name: '概览', level: 1 })).toBeVisible()
   await expect(page.locator('.manage-sidebar').getByRole('button', { name: '退出登录' })).toHaveCSS('justify-content', 'flex-start')
   await expect(page.locator('#shop-manage-main').getByText('青空协作组')).toBeVisible()
-  await expect(page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '商品' }))
-    .toContainText(formatPermissionDenied(['shop.product.read']))
+  const disabledProducts = page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '商品' })
+  await expect(disabledProducts).not.toContainText(formatPermissionDenied(['shop.product.read']))
+  await expect(disabledProducts.getByText('不可用')).toBeVisible()
+  await expect(disabledProducts).toHaveCSS('border-style', 'dashed')
+  await expect(disabledProducts.locator('.lucide-arrow-right')).toBeVisible()
+  await disabledProducts.click({ force: true })
+  await expect(page.locator('.n-message').filter({ hasText: formatPermissionDenied(['shop.product.read']) })).toBeVisible()
+  await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/manage')
   await expect(page.getByRole('link', { name: '进入个人工作台' })).toHaveAttribute('href', '/manage/personal')
   await expect(page.getByRole('button', { name: '个人工作台' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '团队工作台' })).toHaveCount(0)
   await expectHeaderApps(page)
   await expectOverviewLayout(page, 'Shop team overview')
+  const disabledLabelOffset = await page.locator('.manage-sidebar').evaluate(sidebar => {
+    const overview = sidebar.querySelector<HTMLElement>('nav a[href="/manage"] span')!
+    const disabledProduct = sidebar.querySelector<HTMLElement>('.manage-nav-disabled .n-button__content > span')!
+    return Math.abs(overview.getBoundingClientRect().x - disabledProduct.getBoundingClientRect().x)
+  })
+  expect(disabledLabelOffset).toBeLessThanOrEqual(1)
   expect(businessRequests).toBe(0)
 
   await page.getByRole('link', { name: '进入个人工作台' }).click()
@@ -284,8 +310,11 @@ test('team workspaces keep a readable overview and disabled Permission entries',
   await expect(page.locator('.manage-sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   await expect(page.locator('.manage-nav-disabled').filter({ hasText: '我的商品' }))
     .toHaveAttribute('title', formatPermissionDenied(['shop.product.self.manage']))
-  await expect(page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '我的商品' }))
-    .toContainText(formatPermissionDenied(['shop.product.self.manage']))
+  const disabledPersonalProducts = page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '我的商品' })
+  await expect(disabledPersonalProducts).not.toContainText(formatPermissionDenied(['shop.product.self.manage']))
+  await disabledPersonalProducts.click({ force: true })
+  await expect(page.locator('.n-message').filter({ hasText: formatPermissionDenied(['shop.product.self.manage']) })).toBeVisible()
+  await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/manage/personal')
   await expect(page.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/manage')
   await expectOverviewLayout(page, 'Shop personal overview')
   expect(businessRequests).toBe(0)
@@ -300,15 +329,23 @@ test('team workspaces keep a readable overview and disabled Permission entries',
 test('Transaction binds overview first in both team and personal workspaces', async ({ page }) => {
   await setToken(page, 'teamMember', 11)
   let businessRequests = 0
+  let grantOptionRequests = 0
   await page.route('http://demo.transaction.lostsky.work:5177/api/**', async route => {
     const path = new URL(route.request().url()).pathname
     if (!path.endsWith('/workspace/access')) businessRequests++
-    const data = {
+    if (path.endsWith('/personal/entitlement-grant/options')) grantOptionRequests++
+    const access = {
       team: { id: 1, slug: 'demo', name: '青空协作组' },
       permissions: [],
       abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: '记账' } },
       identity: { type: 'teamMember', entity_id: 11, name: '青空接单人', slug: 'handler', avatar: '' },
     }
+    let data: unknown = access
+    if (path.endsWith('/personal/entitlements')) data = { total: 0, list: [], page: 1, limit: 20 }
+    else if (path.endsWith('/personal/transactions')) data = { total: 0, list: [], page: 1, limit: 20 }
+    else if (path.endsWith('/personal/stats')) data = { total_count: 0, performance_total: 0, handler_cut: 0, sender_cut: 0, cs_cut: 0, redemption_count: 0 }
+    else if (path.endsWith('/personal/services')) data = { total: 0, list: [], offers: [], available: [], page: 1, limit: 20 }
+    else if (path.endsWith('/personal/bindings')) data = []
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
 
@@ -317,7 +354,19 @@ test('Transaction binds overview first in both team and personal workspaces', as
   await expect(page.locator('.sidebar').getByRole('button', { name: '退出登录' })).toHaveCSS('justify-content', 'flex-start')
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: '进入个人工作台' })).toHaveAttribute('href', '/personal')
+  const redemptionPermissions = ['service.redemption.read', 'service.redemption.manage']
+  await expect(page.locator('.sidebar').getByRole('button').filter({ hasText: '服务核销' }))
+    .toHaveAttribute('title', formatPermissionDenied(redemptionPermissions))
+  const disabledRedemption = page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '服务核销' })
+  await expect(disabledRedemption).not.toContainText(formatPermissionDenied(redemptionPermissions))
+  await disabledRedemption.click({ force: true })
+  await expect(page.locator('.n-message').filter({ hasText: formatPermissionDenied(redemptionPermissions) })).toBeVisible()
+  await expect(page).toHaveURL('http://demo.transaction.lostsky.work:5177/overview')
   await expectOverviewLayout(page, 'Transaction team overview')
+  expect(businessRequests).toBe(0)
+
+  await page.goto('http://demo.transaction.lostsky.work:5177/services')
+  await expect(page).toHaveURL('http://demo.transaction.lostsky.work:5177/overview')
   expect(businessRequests).toBe(0)
 
   await page.getByRole('link', { name: '进入个人工作台' }).click()
@@ -326,8 +375,42 @@ test('Transaction binds overview first in both team and personal workspaces', as
   await expect(page.locator('#workspace')).toContainText('@handler')
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/overview')
+  const personalEntries = [
+    ['相关流水', '/personal/transactions'],
+    ['我的业绩', '/personal/stats'],
+    ['我的核销', '/personal/services'],
+    ['客户协作', '/personal/bindings'],
+    ['权益赠送', '/personal/entitlements'],
+  ] as const
+  for (const [label, href] of personalEntries) {
+    await expect(page.locator('.sidebar').getByRole('link', { name: label })).toHaveAttribute('href', href)
+    await expect(page.locator('.ls-workspace-overview__entry').filter({ hasText: label })).toHaveAttribute('href', href)
+  }
   await expectOverviewLayout(page, 'Transaction personal overview')
   expect(businessRequests).toBe(0)
+
+  for (const [path, title] of [
+    ['/personal/transactions', '与我相关的流水'],
+    ['/personal/stats', '我的业绩'],
+    ['/personal/services', '我的核销'],
+    ['/personal/bindings', '我的客户协作 / 发单绑定'],
+  ] as const) {
+    await page.goto(`http://demo.transaction.lostsky.work:5177${path}`)
+    await expect(page).toHaveURL(`http://demo.transaction.lostsky.work:5177${path}`)
+    await expect(page.locator('#workspace').getByRole('heading', { name: title, level: 1 })).toBeVisible()
+  }
+
+  await page.goto('http://demo.transaction.lostsky.work:5177/personal')
+  await page.getByRole('link', { name: /权益赠送/ }).last().click()
+  await expect(page).toHaveURL('http://demo.transaction.lostsky.work:5177/personal/entitlements')
+  await expect(page.locator('#workspace').getByRole('heading', { name: '权益赠送', level: 1 })).toBeVisible()
+  await expect(page.getByRole('button', { name: '赠送权益' }))
+    .toHaveAttribute('title', formatPermissionDenied(['service.entitlement.grant']))
+  expect(businessRequests).toBe(5)
+  await page.goto('http://demo.transaction.lostsky.work:5177/personal/entitlements/new')
+  await expect(page).toHaveURL('http://demo.transaction.lostsky.work:5177/personal/entitlements')
+  expect(grantOptionRequests).toBe(0)
+  await page.locator('.sidebar').getByRole('link', { name: '概览' }).click()
   await page.getByRole('link', { name: /进入团队工作台/ }).click()
   await expect(page).toHaveURL('http://demo.transaction.lostsky.work:5177/overview')
 })

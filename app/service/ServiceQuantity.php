@@ -10,11 +10,19 @@ final class ServiceQuantity
     public const SCALE = 4;
     public const FACTOR = 10000;
 
-    public function normalize(mixed $value, int $scale, mixed $step): string
+    public function scaleForStep(mixed $step): int
     {
-        if ($scale < 0 || $scale > self::SCALE) {
-            throw new HttpException(422, '服务数量精度应在 0 到 4 位之间');
+        $minor = $this->toMinor($step);
+        if ($minor <= 0) throw new HttpException(422, '服务最小步长必须大于零');
+        for ($scale = 0; $scale <= self::SCALE; $scale++) {
+            if ($minor % (10 ** (self::SCALE - $scale)) === 0) return $scale;
         }
+        return self::SCALE;
+    }
+
+    public function normalize(mixed $value, mixed $step): string
+    {
+        $scale = $this->scaleForStep($step);
         $minor = $this->toMinor($value);
         if ($minor <= 0) throw new HttpException(422, '服务数量必须大于零');
         $precisionFactor = 10 ** (self::SCALE - $scale);
@@ -51,8 +59,9 @@ final class ServiceQuantity
             . str_pad((string) ($minor % self::FACTOR), self::SCALE, '0', STR_PAD_LEFT);
     }
 
-    public function display(mixed $value, int $scale): string
+    public function display(mixed $value, mixed $step): string
     {
+        $scale = $this->scaleForStep($step);
         $minor = $this->toMinor($value);
         if ($scale === 0) return (string) intdiv($minor, self::FACTOR);
         return number_format($minor / self::FACTOR, $scale, '.', '');

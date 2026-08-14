@@ -17,6 +17,7 @@ use app\model\TeamAbility;
 use app\model\TeamAbilityGrant;
 use app\model\TeamCustomer;
 use app\model\TeamCustomerBalance;
+use app\model\TeamCustomerSender;
 use app\model\TeamEntityRole;
 use app\model\TeamMember;
 use app\model\TeamRole;
@@ -28,10 +29,14 @@ use app\model\TeamServiceEntitlement;
 use app\model\TeamServiceHandler;
 use app\model\TeamServiceInstance;
 use app\model\TeamTransaction;
+use app\model\TeamOrder;
+use app\model\TeamProduct;
 use app\model\TeamVirtual;
 use app\model\User;
 use app\service\Entity as EntityService;
 use app\service\EntitlementManagement;
+use app\service\EntitlementSelfManagement;
+use app\service\ManualEntitlementGrant;
 use app\service\Order;
 use app\service\PermissionDictionary;
 use app\service\Product;
@@ -39,7 +44,9 @@ use app\service\ProductRedemptionField;
 use app\service\Redemption;
 use app\service\RedemptionCrypto;
 use app\service\ServiceAdjustment;
+use app\service\ServiceQuantity;
 use app\service\ServiceRedemption;
+use app\service\TeamSetting;
 use app\service\TransactionStats;
 use think\App;
 use think\exception\HttpException;
@@ -102,13 +109,209 @@ try {
     $subjectManager = ['type' => 'team', 'id' => (int) $team->id];
     $subjectHandlerA = ['type' => 'teamMember', 'id' => (int) $memberA->id];
 
+    $quantityRules = app(ServiceQuantity::class);
+    foreach (['1' => 0, '0.5' => 1, '0.25' => 2, '0.0001' => 4] as $step => $expectedScale) {
+        $assert(
+            $quantityRules->scaleForStep($step) === $expectedScale,
+            "service quantity scale is derived from step {$step}"
+        );
+    }
+    $assert(
+        $quantityRules->normalize('0.75', '0.25') === '0.7500',
+        'quarter-unit service quantity accepts exact step multiples'
+    );
+    foreach (['0', '-0.5', '0.00001'] as $invalidStep) {
+        $throws(
+            fn () => $quantityRules->scaleForStep($invalidStep),
+            422,
+            "service quantity rejects invalid derived step {$invalidStep}"
+        );
+    }
+    $throws(
+        fn () => $quantityRules->normalize('0.3', '0.25'),
+        422,
+        'service quantity still rejects values that are not step multiples'
+    );
+    $serviceDefaults = app(TeamSetting::class)->internal((int) $team->id, 'service');
+    $assert(
+        !array_key_exists('default_quantity_scale', $serviceDefaults)
+            && !array_key_exists('assignment_offer_timeout_minutes', $serviceDefaults),
+        'service settings no longer expose configurable quantity scale or assignment timeout'
+    );
+    $teamSettings = app(TeamSetting::class);
+    $teamSettings->batch((int) $team->id, 'service', [
+        'default_handler_rate_percent' => 60,
+        'default_sender_rate_percent' => 25,
+        'default_cs_rate_percent' => 5,
+    ]);
+    $serviceOptionDefaults = app(EntitlementManagement::class)->teamOptions((int) $team->id)['service_defaults'];
+    $productOptionDefaults = app(EntitlementManagement::class)->productOptions((int) $team->id)['service_defaults'];
+    $assert(
+        $serviceOptionDefaults['default_handler_rate_percent'] === 60
+            && $serviceOptionDefaults['default_sender_rate_percent'] === 25
+            && $serviceOptionDefaults['default_cs_rate_percent'] === 5
+            && $serviceOptionDefaults['allow_customer_open_dispatch'] === true,
+        'manage options expose configured service defaults using their declared API types'
+    );
+    $assert(
+        $productOptionDefaults['default_handler_rate_percent'] === 60
+            && $productOptionDefaults['default_sender_rate_percent'] === 25
+            && $productOptionDefaults['default_cs_rate_percent'] === 5,
+        'team and personal product options expose the same configured distribution defaults'
+    );
+    $teamSettings->batch((int) $team->id, 'service', [
+        'default_handler_rate_percent' => 80,
+        'default_sender_rate_percent' => 15,
+        'default_cs_rate_percent' => 0,
+    ]);
+
+    $selfRole = new TeamRole;
+    $selfRole->save(['team_id' => $team->id, 'role_key' => "self-product-{$suffix}", 'name' => '本人商品管理']);
+    (new TeamRolePermission)->save([
+        'team_id' => $team->id,
+        'role_id' => $selfRole->id,
+        'permission_key' => PermissionDictionary::SHOP_PRODUCT_SELF_MANAGE,
+    ]);
+    (new TeamEntityRole)->save([
+        'team_id' => $team->id,
+        'entity_id' => $handlerA->id,
+        'role_id' => $selfRole->id,
+    ]);
+    $selfManagement = app(EntitlementSelfManagement::class);
+    $sharedServiceId = app(EntitlementManagement::class)->saveService((int) $team->id, null, [
+        'name' => '团队公用咨询', 'unit_name' => '次', 'quantity_step' => '1',
+        'default_total_price' => 10, 'default_cost' => 2,
+        'default_handler_cut' => 4, 'default_sender_cut' => 2, 'default_cs_cut' => 1,
+    ]);
+    $ownServiceId = $selfManagement->saveService(
+        (int) $team->id,
+        $subjectHandlerA + ['entity_id' => (int) $handlerA->id],
+        (int) $handlerA->id,
+        null,
+        ['name' => '本人咨询', 'unit_name' => '次', 'quantity_step' => '1']
+    );
+    $otherServiceId = app(EntitlementManagement::class)->saveService((int) $team->id, null, [
+        'owner_entity_id' => (int) $handlerB->id,
+        'name' => '他人咨询', 'unit_name' => '次', 'quantity_step' => '1',
+    ]);
+    $personalServiceIds = array_map('intval', array_column(
+        $selfManagement->options((int) $team->id, $subjectHandlerA + ['entity_id' => (int) $handlerA->id])['services'],
+        'id'
+    ));
+    $assert(
+        in_array($sharedServiceId, $personalServiceIds, true)
+            && in_array($ownServiceId, $personalServiceIds, true)
+            && !in_array($otherServiceId, $personalServiceIds, true),
+        'personal entitlement options expose shared and own services but never another Entity service'
+    );
+    $personalPackageId = $selfManagement->savePackage(
+        (int) $team->id,
+        $subjectHandlerA + ['entity_id' => (int) $handlerA->id],
+        (int) $handlerA->id,
+        null,
+        ['name' => '本人组合包', 'pricing_mode' => 2, 'services' => [[
+            'service_id' => $sharedServiceId, 'quantity' => 1, 'valid_days' => 30,
+            'unit_price' => 10, 'unit_cost' => 2,
+            'unit_handler_cut' => 4, 'unit_sender_cut' => 2, 'unit_cs_cut' => 1,
+        ], [
+            'service_id' => $ownServiceId, 'quantity' => 1, 'valid_days' => 30,
+        ]]],
+    );
+    $throws(
+        fn () => $selfManagement->savePackage(
+            (int) $team->id,
+            $subjectHandlerA + ['entity_id' => (int) $handlerA->id],
+            (int) $handlerA->id,
+            $personalPackageId,
+            ['name' => '本人组合包', 'pricing_mode' => 2, 'services' => [[
+                'service_id' => $sharedServiceId, 'quantity' => 1, 'valid_days' => 30,
+                'unit_price' => 11, 'unit_cost' => 2,
+                'unit_handler_cut' => 4, 'unit_sender_cut' => 2, 'unit_cs_cut' => 1,
+            ]]]
+        ),
+        403,
+        'self management permission does not implicitly allow repricing a shared service'
+    );
+    $repriceRole = new TeamRole;
+    $repriceRole->save(['team_id' => $team->id, 'role_key' => "self-reprice-{$suffix}", 'name' => '本人权益调价']);
+    (new TeamRolePermission)->save([
+        'team_id' => $team->id,
+        'role_id' => $repriceRole->id,
+        'permission_key' => PermissionDictionary::SHOP_PRODUCT_SELF_PACKAGE_REPRICE,
+    ]);
+    (new TeamEntityRole)->save([
+        'team_id' => $team->id,
+        'entity_id' => $handlerA->id,
+        'role_id' => $repriceRole->id,
+    ]);
+    $selfManagement->savePackage(
+        (int) $team->id,
+        $subjectHandlerA + ['entity_id' => (int) $handlerA->id],
+        (int) $handlerA->id,
+        $personalPackageId,
+        ['name' => '本人组合包', 'pricing_mode' => 2, 'services' => [[
+            'service_id' => $sharedServiceId, 'quantity' => 1, 'valid_days' => 30,
+            'unit_price' => 11, 'unit_cost' => 2,
+            'unit_handler_cut' => 4, 'unit_sender_cut' => 2, 'unit_cs_cut' => 1,
+        ]]],
+    );
+    $assert(
+        (int) BenefitPackage::find($personalPackageId)->owner_entity_id === (int) $handlerA->id,
+        'personal package remains immutably owned by the acting Entity'
+    );
+    $throws(
+        fn () => app(EntitlementManagement::class)->savePackage((int) $team->id, null, [
+            'name' => '非法团队组合', 'pricing_mode' => 2,
+            'services' => [['service_id' => $ownServiceId, 'quantity' => 1, 'valid_days' => 30]],
+        ]),
+        422,
+        'shared packages cannot reference an Entity-owned service'
+    );
+    $personalCampaignId = $selfManagement->saveCampaign(
+        (int) $team->id,
+        $subjectHandlerA + ['entity_id' => (int) $handlerA->id],
+        (int) $handlerA->id,
+        null,
+        ['name' => '本人服务卡', 'package_id' => $personalPackageId, 'mode' => 1]
+    );
+    $issuedPersonalCodes = $selfManagement->issueCodes(
+        (int) $team->id,
+        $subjectHandlerA + ['entity_id' => (int) $handlerA->id],
+        (int) $handlerA->id,
+        $personalCampaignId,
+        ['quantity' => 1]
+    );
+    $assert(
+        count($issuedPersonalCodes) === 1 && (int) RedemptionCampaign::find($personalCampaignId)->owner_entity_id === (int) $handlerA->id,
+        'personal card campaign and issued code inherit the acting Entity ownership boundary'
+    );
+    $throws(
+        fn () => $selfManagement->service(
+            (int) $team->id,
+            $subjectHandlerA + ['entity_id' => (int) $handlerA->id],
+            $otherServiceId
+        ),
+        404,
+        'personal entitlement detail hides another Entity resource'
+    );
+    $throws(
+        fn () => $selfManagement->saveService(
+            (int) $team->id,
+            $subjectHandlerA + ['entity_id' => (int) $handlerA->id],
+            (int) $handlerB->id,
+            $ownServiceId,
+            ['name' => '身份切换写入']
+        ),
+        409,
+        'personal entitlement writes reject a stale expected Entity'
+    );
+
     // 一份 3 小时权益不预拆实例；客户可按 0.5 小时步长分给不同接单人。
     $service = new TeamService;
     $service->save([
         'team_id' => $team->id,
         'name' => '计时服务',
         'unit_name' => '小时',
-        'quantity_scale' => 1,
         'quantity_step' => '0.5000',
         'default_total_price' => '0.00',
         'default_cost' => '0.00',
@@ -122,6 +325,39 @@ try {
         $pool = new TeamServiceHandler;
         $pool->save(['service_id' => $service->id, 'entity_id' => $handler->id]);
     }
+
+    $balancedServiceId = app(EntitlementManagement::class)->saveService((int) $team->id, null, [
+        'name' => '自动团队余额',
+        'unit_name' => '次',
+        'quantity_step' => '0.25',
+        'default_total_price' => '12.00',
+        'default_cost' => '2.00',
+        'default_handler_cut' => '3.00',
+        'default_sender_cut' => '1.00',
+        'default_cs_cut' => '0.50',
+        'default_team_cut' => '99.00',
+    ]);
+    $balancedService = TeamService::find($balancedServiceId);
+    $assert(
+        (string) $balancedService->quantity_step === '0.2500'
+            && (string) $balancedService->default_team_cut === '5.50',
+        'service save persists the normalized step and derived team cut'
+    );
+    $throws(
+        fn () => app(EntitlementManagement::class)->saveService((int) $team->id, $balancedServiceId, [
+            'name' => '自动团队余额',
+            'unit_name' => '次',
+            'quantity_step' => 1,
+            'default_total_price' => '10.00',
+            'default_cost' => '2.00',
+            'default_handler_cut' => '8.00',
+            'default_sender_cut' => '1.00',
+            'default_cs_cut' => '0.00',
+        ]),
+        422,
+        'service save rejects personnel cuts that leave a negative team balance'
+    );
+
     $poolIds = array_map('intval', array_column(app(EntitlementManagement::class)->serviceHandlers((int) $team->id, (int) $service->id), 'entity_id'));
     $assert(in_array((int) $teamEntity->id, $poolIds, true) && in_array((int) $virtualEntity->id, $poolIds, true), 'team, team member and team virtual entities can enter the explicit handler pool');
     $defaultPackageId = app(EntitlementManagement::class)->savePackage((int) $team->id, null, [
@@ -137,10 +373,27 @@ try {
     $defaultItem = BenefitPackageService::where('package_id', $defaultPackageId)->find();
     $assert(
         (int) $defaultItem->valid_days === 30
-        && (int) $defaultItem->handler_rate_bp === 8000
-        && (int) $defaultItem->sender_rate_bp === 1500
-        && (int) $defaultItem->cs_rate_bp === 0,
-        'team defaults apply to API-created package items when no override is supplied'
+        && (string) $defaultItem->unit_handler_cut === '7.20'
+        && (string) $defaultItem->unit_sender_cut === '1.35'
+        && (string) $defaultItem->unit_cs_cut === '0.00',
+        'custom package prices use fixed personnel amounts calculated from team defaults'
+    );
+    $serviceDefaultPackageId = app(EntitlementManagement::class)->savePackage((int) $team->id, null, [
+        'name' => '服务金额默认值验证',
+        'pricing_mode' => 2,
+        'services' => [[
+            'service_id' => $balancedServiceId,
+            'quantity' => '1',
+        ]],
+    ]);
+    $serviceDefaultItem = BenefitPackageService::where('package_id', $serviceDefaultPackageId)->find();
+    $assert(
+        (string) $serviceDefaultItem->unit_price === '12.00'
+        && (string) $serviceDefaultItem->unit_cost === '2.00'
+        && (string) $serviceDefaultItem->unit_handler_cut === '3.00'
+        && (string) $serviceDefaultItem->unit_sender_cut === '1.00'
+        && (string) $serviceDefaultItem->unit_cs_cut === '0.50',
+        'package items inherit the selected service price, cost and fixed personnel allocations'
     );
     $packageId = app(EntitlementManagement::class)->savePackage((int) $team->id, null, [
         'name' => '三小时服务',
@@ -151,7 +404,6 @@ try {
             'valid_days' => 30,
             'unit_price' => '100.00',
             'unit_cost' => '20.00',
-            'distribution_mode' => 1,
             'unit_handler_cut' => '30.00',
             'unit_sender_cut' => '0.00',
             'unit_cs_cut' => '0.00',
@@ -212,12 +464,22 @@ try {
     $assert(TeamServiceAssignmentOffer::find($rejectedOfferId)->enumCase('status') === ServiceAssignmentOfferStatus::Rejected, 'rejected offer keeps history without a slice');
     $assert((string) TeamServiceEntitlement::find($entitlement->id)->reserved_quantity === '0.0000', 'rejecting an offer releases reserved quantity');
 
+    $withdrawnOfferId = app(ServiceRedemption::class)->createOffer(
+        (int) $team->id, (int) $customer->id, (int) $entitlement->id, '0.5',
+        (int) $handlerB->id, '', [$customerField => 'cancel-me'], (int) $customerEntity->id, 'offer-withdraw'
+    );
+    app(ServiceRedemption::class)->withdrawOffer(
+        (int) $team->id, (int) $customer->id, (int) $customerEntity->id, $withdrawnOfferId
+    );
+    $assert(TeamServiceAssignmentOffer::find($withdrawnOfferId)->enumCase('status') === ServiceAssignmentOfferStatus::Withdrawn, 'customer can cancel a pending assignment offer');
+    $assert((string) TeamServiceEntitlement::find($entitlement->id)->reserved_quantity === '0.0000', 'customer cancellation releases reserved quantity');
+
     $removedOfferId = app(ServiceRedemption::class)->createOffer(
         (int) $team->id, (int) $customer->id, (int) $entitlement->id, '0.5',
         (int) $handlerB->id, '', [$customerField => 'pool-change'], (int) $customerEntity->id, 'offer-pool-removal'
     );
     app(EntitlementManagement::class)->saveServiceHandlers((int) $team->id, (int) $service->id, [(int) $handlerA->id]);
-    $assert(TeamServiceAssignmentOffer::find($removedOfferId)->enumCase('status') === ServiceAssignmentOfferStatus::Expired, 'removing a handler invalidates its pending offers');
+    $assert(TeamServiceAssignmentOffer::find($removedOfferId)->enumCase('status') === ServiceAssignmentOfferStatus::Invalidated, 'removing a handler invalidates its pending offers');
     $assert((string) TeamServiceEntitlement::find($entitlement->id)->reserved_quantity === '0.0000', 'pool removal releases pending offer quantity');
     app(EntitlementManagement::class)->saveServiceHandlers((int) $team->id, (int) $service->id, [(int) $handlerA->id, (int) $handlerB->id, (int) $teamEntity->id, (int) $virtualEntity->id]);
 
@@ -257,6 +519,17 @@ try {
     $assert($sameOfferAId === $offerAId, 'assignment offer creation is idempotent');
     $assert(TeamServiceInstance::where('entitlement_id', $entitlement->id)->count() === 0, 'pending assignment offer does not create a redemption slice');
     $assert((string) TeamServiceEntitlement::find($entitlement->id)->reserved_quantity === '0.5000', 'pending assignment offer reserves requested quantity');
+    TeamServiceAssignmentOffer::where('id', $offerAId)->update(['create_time' => time() - 86400 * 30]);
+    $agedDetail = app(ServiceRedemption::class)->customerGet((int) $team->id, (int) $customer->id, (int) $entitlement->id);
+    $agedOffer = array_values(array_filter(
+        $agedDetail['assignment_offers'],
+        static fn (array $offer): bool => (int) $offer['id'] === $offerAId
+    ))[0] ?? [];
+    $assert(
+        TeamServiceAssignmentOffer::find($offerAId)->enumCase('status') === ServiceAssignmentOfferStatus::Pending
+            && !array_key_exists('expire_time', $agedOffer),
+        'pending assignment offer remains valid without exposing a timeout'
+    );
     $offerDetail = app(ServiceRedemption::class)->assignmentOffer((int) $team->id, (int) $handlerA->id, $offerAId);
     $assert(($offerDetail['redemption_fields'][0]['value'] ?? null) === 'wx-a', 'target handler sees full customer fields before accepting');
     $sliceAId = app(ServiceRedemption::class)->acceptOffer((int) $team->id, (int) $handlerA->id, $offerAId);
@@ -382,16 +655,136 @@ try {
     $assert((int) round((float) $stats['performance_total'] * 100) === 32000, 'base and adjustment performance exclude their receipt records');
     $assert((int) $stats['service_adjustment_receipt_count'] === 1 && (int) $stats['service_adjustment_performance_count'] === 1, 'adjustment receipt and performance counts stay separate');
 
+    // 发单人可从 Transaction 直接赋予商品权益，不创建 Shop 订单；流水由独立 TeamSetting 控制。
+    $manualOptions = app(ManualEntitlementGrant::class)->options((int) $team->id, $subjectManager, (int) $teamEntity->id);
+    $assert(
+        in_array($productId, array_map(static fn (array $row): int => (int) $row['id'], $manualOptions['products']), true)
+            && $manualOptions['sync_transaction'] === false,
+        'manual grant options expose active service products and the default-disabled ledger setting'
+    );
+    $orderCount = TeamOrder::where('team_id', $team->id)->count();
+    $transactionCount = TeamTransaction::where('team_id', $team->id)->count();
+    $manualGrant = app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerA->id, [
+        'product_id' => $productId,
+        'customer_id' => (int) $customer->id,
+        'quantity' => 2,
+        'sender_entity_id' => (int) $handlerA->id,
+    ]);
+    $manualRows = TeamServiceEntitlement::whereIn('id', $manualGrant['entitlement_ids'])->select()->all();
+    $assert(
+        count($manualRows) === 2
+            && $manualGrant['transaction_id'] === null
+            && TeamOrder::where('team_id', $team->id)->count() === $orderCount
+            && TeamTransaction::where('team_id', $team->id)->count() === $transactionCount,
+        'manual grant creates independent entitlements without an order or receipt while sync is disabled'
+    );
+    $assert(
+        array_reduce($manualRows, static fn (bool $carry, TeamServiceEntitlement $row): bool => $carry
+            && $row->source_order_id === null
+            && (int) $row->source_product_id === $productId
+            && (int) $row->holder_entity_id === (int) $customerEntity->id, true),
+        'manual entitlements retain product provenance and Customer root ownership without order provenance'
+    );
+
+    $senderBinding = new TeamCustomerSender;
+    $senderBinding->save([
+        'team_id' => (int) $team->id,
+        'customer_id' => (int) $customer->id,
+        'entity_id' => (int) $handlerA->id,
+    ]);
+    $personalOptions = app(ManualEntitlementGrant::class)->options(
+        (int) $team->id,
+        $subjectHandlerA,
+        (int) $handlerA->id,
+        true
+    );
+    $foreignOptions = app(ManualEntitlementGrant::class)->options(
+        (int) $team->id,
+        ['type' => 'teamMember', 'id' => (int) $memberB->id],
+        (int) $handlerB->id,
+        true
+    );
+    $assert(
+        in_array((int) $customer->id, array_map(static fn (array $row): int => (int) $row['id'], $personalOptions['customers']), true)
+            && !in_array((int) $customer->id, array_map(static fn (array $row): int => (int) $row['id'], $foreignOptions['customers']), true),
+        'personal grant options expose only customers served by the current sender entity'
+    );
+    $personalGrant = app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerA->id, [
+        'product_id' => $productId,
+        'customer_id' => (int) $customer->id,
+        'quantity' => 1,
+        'sender_entity_id' => (int) $handlerB->id,
+    ], true);
+    $personalRow = TeamServiceEntitlement::find((int) $personalGrant['entitlement_ids'][0]);
+    $assert(
+        (int) $personalRow->sender_entity_id === (int) $handlerA->id,
+        'personal grant forces the current entity as sender and ignores submitted sender overrides'
+    );
+    $personalHistory = app(ManualEntitlementGrant::class)->personalHistory(
+        (int) $team->id,
+        (int) $handlerA->id
+    );
+    $directGrantCount = TeamServiceEntitlement::where('team_id', $team->id)
+        ->where('sender_entity_id', $handlerA->id)
+        ->whereNotNull('source_product_id')
+        ->whereNull('source_order_id')
+        ->whereNull('source_claim_id')
+        ->count();
+    $assert(
+        (int) $personalHistory['total'] === $directGrantCount
+            && in_array((int) $personalRow->id, array_map(static fn (array $row): int => (int) $row['id'], $personalHistory['list']), true)
+            && (int) ($personalHistory['list'][0]['customer']['id'] ?? 0) === (int) $customer->id
+            && (int) ($personalHistory['list'][0]['product']['id'] ?? 0) === $productId,
+        'personal entitlement history returns only direct grants made by the current sender with readable relations'
+    );
+    $historySearch = app(ManualEntitlementGrant::class)->personalHistory(
+        (int) $team->id,
+        (int) $handlerA->id,
+        (string) TeamProduct::find($productId)?->name
+    );
+    $foreignHistory = app(ManualEntitlementGrant::class)->personalHistory(
+        (int) $team->id,
+        (int) $handlerB->id
+    );
+    $assert(
+        (int) $historySearch['total'] === $directGrantCount && (int) $foreignHistory['total'] === 0,
+        'personal entitlement history supports product search without exposing another sender records'
+    );
+    $throws(
+        fn () => app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerB->id, [
+            'product_id' => $productId,
+            'customer_id' => (int) $customer->id,
+            'quantity' => 1,
+        ], true),
+        403,
+        'personal grant rejects customers outside the current sender relationship'
+    );
+
+    app(TeamSetting::class)->set((int) $team->id, 'shop', 'sync_manual_entitlement_transaction', true);
+    $syncedGrant = app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerA->id, [
+        'product_id' => $productId,
+        'customer_id' => (int) $customer->id,
+        'quantity' => 1,
+        'sender_entity_id' => (int) $handlerA->id,
+    ]);
+    $manualReceipt = TeamTransaction::find((int) $syncedGrant['transaction_id']);
+    $assert(
+        $manualReceipt?->enumCase('type') === TransactionType::ServicePackageReceipt
+            && (int) $manualReceipt->customer_id === (int) $customer->id
+            && TeamOrder::where('team_id', $team->id)->count() === $orderCount,
+        'enabled manual grant sync creates a service-package receipt and still no Shop order'
+    );
+
     // 一个套餐可含两个计量权益，各自保留不同价格与分成规则。
     $recruitA = new TeamService;
     $recruitA->save([
-        'team_id' => $team->id, 'name' => 'A类服务', 'unit_name' => '人', 'quantity_scale' => 0, 'quantity_step' => '1.0000',
+        'team_id' => $team->id, 'name' => 'A类服务', 'unit_name' => '人', 'quantity_step' => '1.0000',
         'default_total_price' => '0.00', 'default_cost' => '0.00', 'default_handler_cut' => '0.00',
         'default_sender_cut' => '0.00', 'default_cs_cut' => '0.00', 'default_team_cut' => '0.00', 'is_active' => 1,
     ]);
     $recruitB = new TeamService;
     $recruitB->save([
-        'team_id' => $team->id, 'name' => 'B类服务', 'unit_name' => '人', 'quantity_scale' => 0, 'quantity_step' => '1.0000',
+        'team_id' => $team->id, 'name' => 'B类服务', 'unit_name' => '人', 'quantity_step' => '1.0000',
         'default_total_price' => '0.00', 'default_cost' => '0.00', 'default_handler_cut' => '0.00',
         'default_sender_cut' => '0.00', 'default_cs_cut' => '0.00', 'default_team_cut' => '0.00', 'is_active' => 1,
     ]);
@@ -401,13 +794,13 @@ try {
         'services' => [
             [
                 'service_id' => (int) $recruitA->id, 'quantity' => 20, 'valid_days' => 30,
-                'unit_price' => '5.00', 'unit_cost' => '1.00', 'distribution_mode' => 1,
+                'unit_price' => '5.00', 'unit_cost' => '1.00',
                 'unit_handler_cut' => '1.50', 'unit_sender_cut' => '0.25', 'unit_cs_cut' => '0.00',
             ],
             [
                 'service_id' => (int) $recruitB->id, 'quantity' => 10, 'valid_days' => 30,
-                'unit_price' => '8.00', 'unit_cost' => '2.00', 'distribution_mode' => 2,
-                'handler_rate_bp' => 2500, 'sender_rate_bp' => 1000, 'cs_rate_bp' => 0,
+                'unit_price' => '8.00', 'unit_cost' => '2.00',
+                'unit_handler_cut' => '1.50', 'unit_sender_cut' => '0.60', 'unit_cs_cut' => '0.00',
             ],
         ],
     ]);
@@ -427,7 +820,7 @@ try {
     $assert(count($mixed) === 2, 'mixed package delivers one entitlement per configured service row');
     $assert((string) $mixed[0]->granted_quantity === '20.0000' && (string) $mixed[1]->granted_quantity === '10.0000', 'mixed entitlements preserve independent quantities');
     $assert($sumCents([$mixed[0]], 'total_price') === 10000 && $sumCents([$mixed[1]], 'total_price') === 8000, 'mixed entitlements preserve independent pricing');
-    $assert($sumCents([$mixed[0]], 'handler_cut') === 3000 && $sumCents([$mixed[1]], 'handler_cut') === 1500, 'mixed entitlements preserve fixed and percentage distributions');
+    $assert($sumCents([$mixed[0]], 'handler_cut') === 3000 && $sumCents([$mixed[1]], 'handler_cut') === 1500, 'mixed entitlements preserve independent fixed distributions');
     $mixedSliceA = app(ServiceRedemption::class)->start(
         (int) $team->id, (int) $customer->id, (int) $mixed[0]->id, '1', 0, '', [], (int) $customerEntity->id
     );
@@ -517,6 +910,53 @@ try {
     app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerA->id, $noLedgerId);
     $assert((int) TeamServiceInstance::find($noLedgerId)->handler_entity_id === (int) $handlerA->id, 'eligible handler can atomically claim an open task');
     $throws(fn () => app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerB->id, $noLedgerId), 409, 'claimed task cannot be claimed twice');
+
+    $unrestrictedOfferId = app(ServiceRedemption::class)->createOffer(
+        (int) $team->id, (int) $customer->id, (int) $cardEntitlement->id,
+        '0.5', (int) $handlerB->id, '', [], (int) $customerEntity->id, 'unrestricted-pool-offer'
+    );
+    app(EntitlementManagement::class)->saveServiceHandlers((int) $team->id, (int) $service->id, []);
+    $savedUnrestrictedPool = app(EntitlementManagement::class)->serviceHandlers((int) $team->id, (int) $service->id);
+    $assert(
+        $savedUnrestrictedPool === [],
+        'an empty handler pool persists without explicit rows: ' . json_encode(array_column($savedUnrestrictedPool, 'entity_id'))
+    );
+    $assert(
+        TeamServiceAssignmentOffer::find($unrestrictedOfferId)->enumCase('status') === ServiceAssignmentOfferStatus::Pending,
+        'switching to an unrestricted handler pool keeps eligible pending offers valid'
+    );
+    $unrestrictedHandlers = app(ServiceRedemption::class)->handlers(
+        (int) $team->id, (int) $customer->id, (int) $cardEntitlement->id
+    );
+    $unrestrictedHandlerIds = array_map('intval', array_column($unrestrictedHandlers, 'entity_id'));
+    $assert(
+        in_array((int) $handlerA->id, $unrestrictedHandlerIds, true)
+            && in_array((int) $handlerB->id, $unrestrictedHandlerIds, true)
+            && in_array((int) $teamEntity->id, $unrestrictedHandlerIds, true)
+            && in_array((int) $virtualEntity->id, $unrestrictedHandlerIds, true)
+            && !in_array((int) $customerEntity->id, $unrestrictedHandlerIds, true),
+        'unrestricted services expose every valid team, member and virtual handler but not customers'
+    );
+    app(ServiceRedemption::class)->withdrawOffer(
+        (int) $team->id, (int) $customer->id, (int) $customerEntity->id, $unrestrictedOfferId
+    );
+    $unrestrictedOpenId = app(ServiceRedemption::class)->start(
+        (int) $team->id, (int) $customer->id, (int) $cardEntitlement->id,
+        '0.5', 0, '', [], (int) $customerEntity->id
+    );
+    $unrestrictedClaimable = app(ServiceRedemption::class)->claimable((int) $team->id, (int) $handlerB->id, 1, 20);
+    $assert(
+        in_array($unrestrictedOpenId, array_map(static fn (array $row): int => (int) $row['id'], $unrestrictedClaimable['list']), true),
+        'every eligible handler sees open tasks when the service pool is empty'
+    );
+    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerB->id, $unrestrictedOpenId);
+    $assert((int) TeamServiceInstance::find($unrestrictedOpenId)->handler_entity_id === (int) $handlerB->id, 'an eligible handler can claim from an unrestricted service');
+    $throws(
+        fn () => app(ServiceRedemption::class)->claimable((int) $team->id, (int) $customerEntity->id, 1, 20),
+        422,
+        'customer entities remain ineligible when the service pool is unrestricted'
+    );
+
     $ability->delete();
     $throws(fn () => app(ServiceRedemption::class)->start(
         (int) $team->id, (int) $customer->id, (int) $cardEntitlement->id,

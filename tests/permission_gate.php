@@ -206,9 +206,33 @@ $assertSame(
     'customer read and manage permissions use documented dotted keys'
 );
 $assertSame(
-    ['shop.product.self.manage'],
-    [PermissionDictionary::SHOP_PRODUCT_SELF_MANAGE],
-    'self product management uses the documented dotted key'
+    ['shop.product.self.manage', 'shop.product.self.package.reprice'],
+    [PermissionDictionary::SHOP_PRODUCT_SELF_MANAGE, PermissionDictionary::SHOP_PRODUCT_SELF_PACKAGE_REPRICE],
+    'self product resource management and shared service repricing use independent documented keys'
+);
+$assertSame(
+    ['service.entitlement.grant'],
+    [PermissionDictionary::SERVICE_ENTITLEMENT_GRANT],
+    'personal entitlement grants use the documented service permission key'
+);
+$assertSame(
+    [true, true],
+    [
+        PermissionDictionary::isFixedKeyOrParent('service'),
+        PermissionDictionary::isFixedKeyOrParent('service.entitlement'),
+    ],
+    'service parent segments cover the entitlement grant permission'
+);
+$entitlementGrantPatch = (string) file_get_contents(
+    dirname(__DIR__) . '/sql/patches/20260813_service_entitlement_grant_permission.sql'
+);
+$assertSame(
+    [true, true],
+    [
+        str_contains($entitlementGrantPatch, "'service.entitlement.grant'"),
+        str_contains($entitlementGrantPatch, "`role`.`role_key` = 'owner'"),
+    ],
+    'existing owner roles receive the personal entitlement grant permission'
 );
 $assertSame(
     [true, true, true],

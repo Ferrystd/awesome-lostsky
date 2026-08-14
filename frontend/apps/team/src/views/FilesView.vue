@@ -4,11 +4,12 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { File, Trash2 } from '@lucide/vue'
+import { File, Trash2, Upload } from '@lucide/vue'
 import { NPagination } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -127,7 +128,9 @@ function runFileAction(key: string, item: Record<string, unknown>) {
       </div>
       <div class="header-actions">
         <RouterLink v-if="canUpgrade" class="secondary-link" to="/abilities">升级团队能力</RouterLink>
-        <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload" />
+        <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload">
+          <template #trigger="{ choose }"><LsPagePrimaryAction :icon="Upload" label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @click="choose" /></template>
+        </LsUploadField>
       </div>
     </header>
     <LsInlineError v-if="uploadError" :message="uploadError" />

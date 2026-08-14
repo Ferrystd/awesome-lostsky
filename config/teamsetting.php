@@ -141,6 +141,14 @@ return [
                 'default'     => true,
                 'order'       => 10,
             ],
+            'sync_manual_entitlement_transaction' => [
+                'label'       => '手动赋予权益时同步流水',
+                'description' => '在记账工作台直接赋予客户权益时，按商品快照生成服务包收款；关闭时只赋予权益。',
+                'type'        => 'boolean',
+                'control'     => 'switch',
+                'default'     => false,
+                'order'       => 20,
+            ],
         ],
     ],
     'service' => [
@@ -152,12 +160,8 @@ return [
                 'label' => '默认计量单位', 'description' => '新建服务时默认使用的单位，例如次、人或小时。',
                 'type' => 'string', 'control' => 'input', 'default' => '次', 'min_length' => 1, 'max_length' => 20, 'order' => 10,
             ],
-            'default_quantity_scale' => [
-                'label' => '默认数量精度', 'description' => '新建服务默认允许的小数位数，0 表示只允许整数。',
-                'type' => 'integer', 'control' => 'number', 'default' => 0, 'min' => 0, 'max' => 4, 'order' => 20,
-            ],
             'default_quantity_step' => [
-                'label' => '默认最小核销步长', 'description' => '新建服务默认的最小履约单位，应与数量精度匹配。',
+                'label' => '默认最小核销步长', 'description' => '新建服务默认的最小履约单位，最多四位小数；数量精度由步长自动确定。',
                 'type' => 'string', 'control' => 'input', 'default' => '1', 'min_length' => 1, 'max_length' => 20, 'order' => 30,
             ],
             'default_valid_days' => [
@@ -168,20 +172,16 @@ return [
                 'label' => '允许 Customer 公开召唤接单人', 'description' => '开启后，Customer 可不指定具体接单人，把已填写完整的履约任务公开给该服务接单池。',
                 'type' => 'boolean', 'control' => 'switch', 'default' => true, 'order' => 50,
             ],
-            'assignment_offer_timeout_minutes' => [
-                'label' => '指定邀请有效分钟数', 'description' => 'Customer 指定接单 Entity 后，等待对方确认的最长时间。',
-                'type' => 'integer', 'control' => 'number', 'default' => 30, 'min' => 1, 'max' => 1440, 'order' => 55,
-            ],
             'default_handler_rate_percent' => [
-                'label' => '默认接单分成比例', 'description' => '新建权益项按比例分成时的默认百分比。',
+                'label' => '默认接单分配比例', 'description' => '服务或权益项价格、成本变化时，用于重算接单固定金额。',
                 'type' => 'integer', 'control' => 'number', 'default' => 80, 'min' => 0, 'max' => 100, 'order' => 60,
             ],
             'default_sender_rate_percent' => [
-                'label' => '默认发单分成比例', 'description' => '新建权益项按比例分成时的默认百分比。',
+                'label' => '默认发单分配比例', 'description' => '服务或权益项价格、成本变化时，用于重算发单固定金额。',
                 'type' => 'integer', 'control' => 'number', 'default' => 15, 'min' => 0, 'max' => 100, 'order' => 70,
             ],
             'default_cs_rate_percent' => [
-                'label' => '默认客服分成比例', 'description' => '新建权益项按比例分成时的默认百分比；剩余部分归团队。',
+                'label' => '默认客服分配比例', 'description' => '服务或权益项价格、成本变化时，用于重算客服固定金额；剩余部分归团队。',
                 'type' => 'integer', 'control' => 'number', 'default' => 0, 'min' => 0, 'max' => 100, 'order' => 80,
             ],
             'default_adjustment_handler_rate_percent' => [

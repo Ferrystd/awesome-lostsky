@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
-import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
 import LsListToolbar from "@lostsky/ui/components/LsListToolbar.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
+import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
 import { useQuery } from "@tanstack/vue-query";
@@ -12,15 +12,20 @@ import { Plus } from "@lucide/vue";
 import { NPagination } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { computed, h, ref } from "vue";
-import { RouterLink } from "vue-router";
-import { canManage, manageApi } from "../../lib";
+import { RouterLink, useRoute } from "vue-router";
+import ResourceOwnerTag from "../../components/ResourceOwnerTag.vue";
+import { canManage, entitlementManagement } from "../../lib";
 import type { ManagePackage } from "../../types";
 const keyword = ref("");
 const page = ref(1);
+const route = useRoute();
+const scope = computed(() => route.meta.workspace === "personal" ? "personal" : "team");
+const management = computed(() => entitlementManagement(scope.value));
+const personal = computed(() => management.value.personal);
 const query = useQuery({
-  queryKey: computed(() => ["manage-packages", keyword.value, page.value]),
+  queryKey: computed(() => [scope.value, "manage-packages", keyword.value, page.value]),
   queryFn: () =>
-    manageApi.packages({
+    management.value.packages({
       keyword: keyword.value || undefined,
       page: page.value,
       limit: 20,
@@ -30,8 +35,9 @@ const rows = computed(() => query.data.value?.list ?? []);
 const pages = computed(() =>
   Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / 20)),
 );
-const columns: DataTableColumns<ManagePackage> = [
+const columns = computed<DataTableColumns<ManagePackage>>(() => [
   { title: "权益包", key: "name", render: (r) => h("strong", r.name) },
+  ...(!personal.value ? [{ title: "归属", key: "owner", render: (r: ManagePackage) => h(ResourceOwnerTag, { resource: r }) }] : []),
   {
     title: "包含服务",
     key: "services",
@@ -58,28 +64,19 @@ const columns: DataTableColumns<ManagePackage> = [
     render: (r) =>
       h(
         RouterLink,
-        { to: `/manage/packages/${r.id}` },
+        { to: `${management.value.routePrefix}/packages/${r.id}` },
         { default: () => "编辑" },
       ),
   },
-];
+]);
 </script>
 <template>
   <div class="manage-page">
     <LsPageHeader
-      title="权益包"
-      description="把一个或多个服务组合成商品或卡密可交付的权益。"
+      :title="personal ? '我的权益包' : '权益包'"
+      :description="personal ? '组合本人服务与已启用的团队公用服务，形成可售卖或发卡的权益。' : '把一个或多个服务组合成商品或卡密可交付的权益。'"
       ><template #actions>
-        <RouterLink
-          v-if="canManage('shop.product.write')"
-          v-slot="{ navigate }"
-          custom
-          to="/manage/packages/new"
-        >
-          <LsButton @click="navigate">
-            <template #icon><Plus :size="18" /></template>新建权益包
-          </LsButton>
-        </RouterLink></template
+        <LsPagePrimaryAction v-if="canManage(management.permission)" :icon="Plus" label="新建权益包" :to="`${management.routePrefix}/packages/new`" /></template
       ></LsPageHeader
     ><LsListToolbar
       v-model="keyword"
@@ -105,7 +102,7 @@ const columns: DataTableColumns<ManagePackage> = [
       :columns="columns"
       :data="rows"
       :row-key="(r) => r.id"
-      :scroll-x="700"
+      :scroll-x="personal ? 700 : 820"
       ><template #mobile-title="{ row }">{{ row.name }}</template
       ><template #mobile-status="{ row }"
         ><LsStatusTag
@@ -113,6 +110,7 @@ const columns: DataTableColumns<ManagePackage> = [
           :type="row.is_active ? 'success' : 'default'" /></template
       ><template #mobile="{ row }"
         ><dl>
+          <template v-if="!personal"><dt>归属</dt><dd><ResourceOwnerTag :resource="row" /></dd></template>
           <dt>服务项目</dt>
           <dd>{{ row.services?.length ?? 0 }} 项</dd>
           <dt>总次数</dt>
@@ -124,7 +122,7 @@ const columns: DataTableColumns<ManagePackage> = [
           </dd>
           <dt>操作</dt>
           <dd>
-            <RouterLink :to="`/manage/packages/${row.id}`">编辑</RouterLink>
+            <RouterLink :to="`${management.routePrefix}/packages/${row.id}`">编辑</RouterLink>
           </dd>
         </dl></template
       ></LsResponsiveDataTable

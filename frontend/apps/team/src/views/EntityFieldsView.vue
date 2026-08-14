@@ -2,9 +2,9 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { ChevronRight, FileText, Plus } from '@lucide/vue'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
 import { NRadioButton, NRadioGroup, NTag } from 'naive-ui'
 import { computed, ref } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -32,7 +32,7 @@ const visibleFields = computed(() => { const keyword = search.value.trim().toLoc
 <template>
   <div class="fields-page">
     <AdminPageHeader title="对象字段" description="统一定义人员、客户和虚拟实体的团队内部业务资料；客户公开资料仍由客户本人维护。">
-      <template #actions><RouterLink :to="{ path: '/field-new', query: { type } }"><LsButton><Plus :size="16" />创建字段</LsButton></RouterLink></template>
+      <template #actions><LsPagePrimaryAction :icon="Plus" label="创建字段" :to="{ path: '/field-new', query: { type } }" /></template>
     </AdminPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索对象字段" :count-label="`${visibleFields.length} 个字段`"><template #filters><NRadioGroup v-model:value="type" class="tabs" name="entity-field-type" aria-label="对象类型"><NRadioButton v-for="item in (['entity','customer','virtual'] as EntityType[])" :key="item" :value="item">{{ labels[item] }}</NRadioButton></NRadioGroup></template></LsListToolbar>
     <p v-if="fields.isError.value" class="state error" role="alert">{{ friendlyError(fields.error.value) }}</p>

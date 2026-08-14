@@ -34,7 +34,6 @@ class TeamServiceAssignmentOffer extends Base
         'sender_cut' => 'string',
         'cs_cut' => 'string',
         'team_cut' => 'string',
-        'expire_time' => 'integer',
         'decided_at' => 'integer',
     ];
 
@@ -42,7 +41,7 @@ class TeamServiceAssignmentOffer extends Base
     protected $json = ['field_values'];
 
     /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
+    protected $hidden = ['delete_time', 'expire_time'];
 
     /** 计算属性 */
     protected $append = [];
@@ -51,7 +50,7 @@ class TeamServiceAssignmentOffer extends Base
     protected $readonly = [
         'team_id', 'service_id', 'customer_id', 'holder_entity_id', 'entitlement_id',
         'target_handler_entity_id', 'quantity', 'field_values', 'memo', 'total_price',
-        'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'expire_time', 'idempotency_key',
+        'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'idempotency_key',
     ];
 
     public function team() { return $this->belongsTo(Team::class, 'team_id'); }

@@ -5,6 +5,7 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ArrowRight, LogOut, Plus } from '@lucide/vue'
 import { NButton, NModal } from 'naive-ui'
@@ -45,7 +46,7 @@ function submit() { if (displayName.value.trim() && slug.value.trim()) createTea
     <section class="teams-main">
       <div class="title">
         <div><p>工作空间</p><h1>选择要进入的团队</h1></div>
-        <LsButton @click="dialog = true"><Plus :size="18" />新建团队</LsButton>
+        <LsPagePrimaryAction :icon="Plus" label="新建团队" @click="dialog = true" />
       </div>
       <p v-if="query.isError.value" class="state error" role="alert">{{ friendlyError(query.error.value) }}</p>
       <div v-else-if="query.isPending.value" class="team-list" aria-label="正在加载"><div v-for="i in 3" :key="i" class="skeleton" /></div>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { CheckCheck, Mail, MailOpen, Pin } from '@lucide/vue'
@@ -83,7 +83,7 @@ function summary(content: string | null | undefined) {
   <div class="notices-view">
     <AdminPageHeader :title="copy.title" :description="`${copy.description}。目前有 ${unreadCount} 条未读。`">
       <template #actions>
-        <LsButton size="sm" :loading="confirmAll.isPending.value" :disabled="unreadCount === 0" @click="confirmAll.mutate()"><CheckCheck :size="16" />全部标为已读</LsButton>
+        <LsPagePrimaryAction :icon="CheckCheck" label="全部标为已读" :loading="confirmAll.isPending.value" :disabled="unreadCount === 0" disabled-reason="当前没有未读消息" @click="confirmAll.mutate()" />
       </template>
     </AdminPageHeader>
 

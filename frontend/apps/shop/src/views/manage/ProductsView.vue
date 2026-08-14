@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
-import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
 import LsListToolbar from "@lostsky/ui/components/LsListToolbar.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
+import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
 import { useQuery } from "@tanstack/vue-query";
@@ -84,16 +84,7 @@ const columns: DataTableColumns<Row> = [
       :title="personal ? '我的商品' : '商品'"
       :description="personal ? '只管理专属 Entity 为当前身份的商品、履约方式与接单配置。' : '维护公开售卖内容、价格、履约方式与接单配置。'"
       ><template #actions>
-        <RouterLink
-          v-if="canManage(management.permission)"
-          v-slot="{ navigate }"
-          custom
-          :to="`${management.routeBase}/new`"
-        >
-          <LsButton @click="navigate">
-            <template #icon><Plus :size="18" /></template>新建商品
-          </LsButton>
-        </RouterLink></template
+        <LsPagePrimaryAction v-if="canManage(management.permission)" :icon="Plus" label="新建商品" :to="`${management.routeBase}/new`" /></template
       ></LsPageHeader
     ><LsListToolbar
       v-model="filters.keyword"

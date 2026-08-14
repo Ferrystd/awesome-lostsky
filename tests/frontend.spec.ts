@@ -1111,7 +1111,7 @@ test('team customer detail renders assignees as typed entity options', async ({ 
   }
   await page.locator('#customer-assignee').click()
 
-  const options = page.locator('.entity-select-menu .entity-select-option')
+  const options = page.locator('.ls-entity-select-menu .ls-entity-select-option')
   await expect(options).toHaveCount(4)
   await expect(options.nth(0)).toContainText('test团队')
   await expect(options.nth(0)).toContainText('团队')
@@ -1302,6 +1302,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
           settings: [
             { key: 'enabled', label: '开放商城', description: '控制已上架商品是否向客户开放浏览和购买。', type: 'boolean', control: 'switch', order: 5, default: false, value: false, ability_requirement: { key: 'shop', label: '商城', minimum_level: 1, satisfied: false, reason: 'missing' } },
             { key: 'sync_transaction', label: '自动同步记账流水', description: '下单时自动生成关联流水；仅在团队已开通且未过期的 Transaction Ability 时生效。', type: 'boolean', control: 'switch', order: 10, default: true, value: true },
+            { key: 'sync_manual_entitlement_transaction', label: '手动赋予权益时同步流水', description: '在记账工作台直接赋予客户权益时，按商品快照生成服务包收款；关闭时只赋予权益。', type: 'boolean', control: 'switch', order: 20, default: false, value: false },
           ],
         },
         {
@@ -1623,6 +1624,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.getByRole('switch', { name: '团队自身可搜索' })).toBeVisible()
       await expect(page.getByRole('switch', { name: '成员默认可搜索' })).toBeVisible()
       await expect(page.getByRole('switch', { name: '自动同步记账流水' })).toBeChecked()
+      await expect(page.getByRole('switch', { name: '手动赋予权益时同步流水' })).not.toBeChecked()
       await expect(page.getByRole('radio', { name: /团队优先/ })).toBeChecked()
       await expect(page.getByText('成员优先', { exact: true })).toBeVisible()
       await page.getByText('成员优先', { exact: true }).click()
@@ -2193,6 +2195,8 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
   const actorToken = `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type: 'teamMember', id: 11 } })).toString('base64url')}.x`
   await page.context().addCookies([{ name: 'lostsky_token', value: actorToken, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
   let optionsMode: 'full' | 'missing' | 'empty' | 'error' = 'full'
+  let manualGrantPayload: Record<string, unknown> | null = null
+  let personalGrantPayload: Record<string, unknown> | null = null
   await page.route('http://demo.transaction.lostsky.work:5177/api/**', async (route) => {
     const url = new URL(route.request().url())
     const entity = { id: 11, entity_id: 11, entityable_type: 'teamMember', entityable_id: 1, type: 'member', slug: 'handler', name: 'Handler', profile: { nickname: 'Handler' }, nickname: '青空接单人', avatar: null, status_code: 'active', status_label: '正常' }
@@ -2207,7 +2211,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
     if (url.pathname.endsWith('/workspace/access')) {
       data = {
         team: { id: 1, slug: 'demo', name: '青空团队' },
-        permissions: ['transaction.read', 'transaction.write', 'transaction.report.read'],
+        permissions: ['transaction.read', 'transaction.write', 'transaction.report.read', 'service.redemption.read', 'service.entitlement.grant'],
         abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: '记账' } },
         identity: { type: 'teamMember', entity_id: 11, name: '青空接单人', slug: 'handler', avatar: '' },
       }
@@ -2222,6 +2226,44 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
           ? { entities: [], customers: [] }
           : { entities: [entity], customers: [customer] }
     }
+    else if (url.pathname.endsWith('/entitlement-grant/options')) {
+      data = {
+        products: [{ id: 31, name: '三小时服务', price: '300.00' }],
+        entities: [entity],
+        customers: [customer],
+        sync_transaction: false,
+      }
+    }
+    else if (url.pathname.endsWith('/personal/entitlement-grant')) {
+      personalGrantPayload = route.request().postDataJSON() as Record<string, unknown>
+      data = { entitlement_ids: [102], entitlement_count: 1, transaction_id: null, order_id: null }
+    }
+    else if (url.pathname.endsWith('/personal/entitlements')) {
+      data = {
+        total: 1,
+        page: 1,
+        limit: 20,
+        list: [{
+          id: 102,
+          create_time: 1784563200,
+          granted_quantity: '3.0000',
+          consumed_quantity: '1.0000',
+          available_quantity: '2.0000',
+          unit_name: '小时',
+          expire_time: 0,
+          is_expired: false,
+          is_exhausted: false,
+          customer: { id: 8, name: '晚风客户', avatar: null },
+          service: { id: 6, name: '陪玩服务' },
+          product: { id: 31, name: '三小时服务' },
+        }],
+      }
+    }
+    else if (url.pathname.endsWith('/entitlement-grant')) {
+      manualGrantPayload = route.request().postDataJSON() as Record<string, unknown>
+      data = { entitlement_ids: [101], entitlement_count: 1, transaction_id: null, order_id: null }
+    }
+    else if (url.pathname.endsWith('/service')) data = { list: [], total: 0, page: 1, limit: 20 }
     else if (url.pathname.endsWith('/transaction/stats')) {
       const type = url.searchParams.get('type')
       if (type === 'timeline') data = [{ date: '2026-07-20', count: 1, amount: 320 }]
@@ -2235,7 +2277,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
 
-  const routes = ['/', '/new', '/detail?id=21', '/edit?id=21', '/stats', '/bindings', '/binding-new', '/balances', '/balance?customer_id=8', '/recharge?customer_id=8']
+  const routes = ['/', '/new', '/detail?id=21', '/edit?id=21', '/stats', '/services', '/entitlements/new', '/bindings', '/binding-new', '/balances', '/balance?customer_id=8', '/recharge?customer_id=8']
   for (const path of routes) {
     await page.goto(`http://demo.transaction.lostsky.work:5177${path}`)
     await expect(page.locator('#workspace'), `workspace missing at ${path}; ${pageErrors.join(' | ')}`).toBeVisible()
@@ -2266,6 +2308,48 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
   await expect(page.getByText('金额平衡')).toBeVisible()
   await expect(page.getByRole('button', { name: '保存流水' })).toBeDisabled()
   optionsMode = 'full'
+  await page.goto('http://demo.transaction.lostsky.work:5177/services')
+  await expect(page.getByRole('link', { name: '赋予客户权益' })).toHaveAttribute('href', '/entitlements/new')
+  await page.getByRole('link', { name: '赋予客户权益' }).click()
+  await expect(page.locator('#workspace').getByRole('heading', { name: '赋予客户权益', level: 1 })).toBeVisible()
+  await expect(page.getByText('当前设置只赋予权益，不同步流水。')).toBeVisible()
+  await page.locator('#grant-product').click()
+  await page.getByText('三小时服务 · ¥300.00', { exact: true }).click()
+  await page.locator('#grant-customer').click()
+  await page.getByText('晚风客户', { exact: true }).last().click()
+  await page.getByRole('button', { name: '确认赋予' }).click()
+  await expect.poll(() => manualGrantPayload).toEqual({
+    product_id: 31,
+    customer_id: 8,
+    quantity: 1,
+    sender_entity_id: 11,
+    cs_entity_id: null,
+  })
+  await expect(page.locator('.grant-result')).toContainText('未创建商城订单；未同步流水')
+  await page.goto('http://demo.transaction.lostsky.work:5177/personal')
+  await page.locator('.ls-workspace-overview__entry').filter({ hasText: '权益赠送' }).click()
+  await expect(page).toHaveURL(/\/personal\/entitlements$/)
+  await expect(page.locator('#workspace').getByRole('heading', { name: '权益赠送', level: 1 })).toBeVisible()
+  await expect(page.getByText('陪玩服务', { exact: true })).toBeVisible()
+  await expect(page.getByText('三小时服务', { exact: true })).toBeVisible()
+  await expect(page.locator('.ls-responsive-data-table')).toContainText('2 小时')
+  await page.getByRole('link', { name: '赠送权益' }).click()
+  await expect(page).toHaveURL(/\/personal\/entitlements\/new$/)
+  await expect(page.locator('#workspace').getByRole('heading', { name: '赠送客户权益', level: 1 })).toBeVisible()
+  await expect(page.locator('#grant-sender')).toHaveCount(0)
+  await expect(page.getByText('发单人固定为当前 Entity')).toBeVisible()
+  await page.locator('#grant-product').click()
+  await page.getByText('三小时服务 · ¥300.00', { exact: true }).click()
+  await page.locator('#grant-customer').click()
+  await page.getByText('晚风客户', { exact: true }).last().click()
+  await page.getByRole('button', { name: '确认赋予' }).click()
+  await expect.poll(() => personalGrantPayload).toEqual({
+    product_id: 31,
+    customer_id: 8,
+    quantity: 1,
+    cs_entity_id: null,
+  })
+  await expect(page.locator('.grant-result')).toContainText('未创建商城订单；未同步流水')
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: width < 768 ? 812 : 900 })
     await page.goto('http://demo.transaction.lostsky.work:5177/new')
@@ -2273,6 +2357,12 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `horizontal overflow at ${width}px`).toBe(false)
     if (width < 768) await expect(page.getByRole('button', { name: '操作' })).toBeVisible()
     else await expect(page.getByRole('link', { name: /登记流水/ }).last()).toBeVisible()
+    await page.goto('http://demo.transaction.lostsky.work:5177/entitlements/new')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `entitlement grant horizontal overflow at ${width}px`).toBe(false)
+    await page.goto('http://demo.transaction.lostsky.work:5177/personal/entitlements/new')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `personal entitlement grant horizontal overflow at ${width}px`).toBe(false)
+    await page.goto('http://demo.transaction.lostsky.work:5177/personal/entitlements')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `personal entitlement history horizontal overflow at ${width}px`).toBe(false)
   }
   await page.goto('http://demo.transaction.lostsky.work:5177/stats')
   await expect(page.getByText('成交金额', { exact: true })).toBeVisible()

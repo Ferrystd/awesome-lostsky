@@ -7,6 +7,7 @@ import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Plus, Unlink } from '@lucide/vue'
@@ -37,7 +38,7 @@ const columns: DataTableColumns<SenderBinding> = [
 <template>
   <div class="bindings-view">
     <LsPageHeader title="发单绑定" description="绑定后，发单人可以在自己的客户范围内查询和协作。此页需要团队管理权限。">
-      <template #actions><RouterLink class="primary-link" to="/binding-new"><Plus :size="18" />新增绑定</RouterLink></template>
+      <template #actions><LsPagePrimaryAction :icon="Plus" label="新增绑定" to="/binding-new" /></template>
     </LsPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索发单人或客户" aria-label="搜索发单绑定" :count-label="`${rows.length} 条绑定`" />
     <LsInlineError v-if="remove.isError.value" :message="friendlyError(remove.error.value)" />

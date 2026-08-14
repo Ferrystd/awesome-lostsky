@@ -4,6 +4,7 @@ import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
@@ -87,12 +88,7 @@ function handleAction(key: string, item: Record<string, unknown>) {
 <template>
   <div class="members-view">
     <AdminPageHeader title="成员" description="浏览团队内可见成员；具有全量读取权限时也会列出隐藏或封禁成员。">
-      <template #actions>
-        <RouterLink v-if="canInvite" class="primary-link" to="/member-add"><Plus :size="17" />添加成员</RouterLink>
-        <span v-else tabindex="0" :title="permissionReason('team.member.invite')">
-          <LsButton class="disabled" disabled :aria-label="`添加成员不可用：${permissionReason('team.member.invite')}`"><Plus :size="17" />添加成员</LsButton>
-        </span>
-      </template>
+      <template #actions><LsPagePrimaryAction :icon="Plus" label="添加成员" to="/member-add" :disabled="!canInvite" :disabled-reason="canInvite ? '' : permissionReason('team.member.invite')" /></template>
     </AdminPageHeader>
 
     <LsListToolbar
@@ -131,6 +127,6 @@ function handleAction(key: string, item: Record<string, unknown>) {
 </template>
 
 <style scoped>
-.members-view{display:grid;gap:22px}.primary-link{min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 16px;border:0;border-radius:var(--radius-md);color:white;background:var(--primary);font-size:.88rem;font-weight:700;text-decoration:none}.primary-link:hover{background:var(--primary-hover)}.primary-link.disabled{opacity:.45;cursor:not-allowed}.category-select{width:10rem}.member-list{display:grid;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface)}.member-list article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:15px;padding:15px 17px;border-bottom:1px solid var(--border);background:var(--surface);transition:background-color var(--motion-fast) var(--ease-standard),opacity var(--motion-base) var(--ease-out),transform var(--motion-base) var(--ease-out)}.member-list article:last-child{border-bottom:0}.member-list article:hover{background:var(--surface-subtle)}.identity{min-width:0;display:grid;gap:.25rem}.identity>small{margin-left:56px;overflow:hidden;color:var(--text-tertiary);font-size:.8rem;text-overflow:ellipsis;white-space:nowrap}.empty{display:grid;justify-items:center;gap:8px;padding:54px 20px;border:1px dashed var(--border);border-radius:var(--radius-lg);color:var(--text-secondary);text-align:center}.empty h2,.empty p{margin:0}.loading{display:grid;gap:10px}.loading span{height:82px;border-radius:var(--radius-lg);background:var(--surface-subtle)}.error{color:var(--danger)}
+.members-view{display:grid;gap:22px}.category-select{width:10rem}.member-list{display:grid;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface)}.member-list article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:15px;padding:15px 17px;border-bottom:1px solid var(--border);background:var(--surface);transition:background-color var(--motion-fast) var(--ease-standard),opacity var(--motion-base) var(--ease-out),transform var(--motion-base) var(--ease-out)}.member-list article:last-child{border-bottom:0}.member-list article:hover{background:var(--surface-subtle)}.identity{min-width:0;display:grid;gap:.25rem}.identity>small{margin-left:56px;overflow:hidden;color:var(--text-tertiary);font-size:.8rem;text-overflow:ellipsis;white-space:nowrap}.empty{display:grid;justify-items:center;gap:8px;padding:54px 20px;border:1px dashed var(--border);border-radius:var(--radius-lg);color:var(--text-secondary);text-align:center}.empty h2,.empty p{margin:0}.loading{display:grid;gap:10px}.loading span{height:82px;border-radius:var(--radius-lg);background:var(--surface-subtle)}.error{color:var(--danger)}
 @media(max-width:820px){.member-list article{grid-template-columns:minmax(0,1fr)}.identity>small{margin-left:0}}
 </style>

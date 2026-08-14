@@ -18,16 +18,22 @@ Route::get('personal/service-offers/<id>', 'Personal/serviceOffer')->completeMat
 Route::post('personal/service-offers/<id>/accept', 'Personal/acceptServiceOffer')->completeMatch();
 Route::post('personal/service-offers/<id>/reject', 'Personal/rejectServiceOffer')->completeMatch();
 Route::get('personal/bindings', 'Personal/bindings')->completeMatch();
+Route::get('personal/entitlements', 'EntitlementGrant/personalHistory')->completeMatch();
+Route::get('personal/entitlement-grant/options', 'EntitlementGrant/personalOptions')->completeMatch();
+Route::post('personal/entitlement-grant', 'EntitlementGrant/personalCreate')->completeMatch();
 
 // transaction
-Route::get('transaction', 'Transaction/index');
-Route::get('transaction/stats', 'Transaction/stats');
-Route::get('transaction/options', 'Options/index');
-Route::get('transaction/invite', 'Options/invite');
-Route::get('transaction/<id>', 'Transaction/get');
-Route::post('transaction', 'Transaction/create');
-Route::post('transaction/<id>', 'Transaction/edit');
-Route::post('transaction/<id>/delete', 'Transaction/delete');
+Route::get('transaction', 'Transaction/index')->completeMatch();
+Route::get('transaction/stats', 'Transaction/stats')->completeMatch();
+Route::get('transaction/options', 'Options/index')->completeMatch();
+Route::get('transaction/invite', 'Options/invite')->completeMatch();
+Route::get('transaction/<id>', 'Transaction/get')->completeMatch();
+Route::post('transaction', 'Transaction/create')->completeMatch();
+Route::post('transaction/<id>', 'Transaction/edit')->completeMatch();
+Route::post('transaction/<id>/delete', 'Transaction/delete')->completeMatch();
+
+Route::get('entitlement-grant/options', 'EntitlementGrant/options')->completeMatch();
+Route::post('entitlement-grant', 'EntitlementGrant/create')->completeMatch();
 
 Route::get('service', 'Service/index')->completeMatch();
 Route::get('service/<id>', 'Service/get')->completeMatch();
@@ -40,11 +46,11 @@ Route::post('service/<id>/adjustments', 'Service/createAdjustment')->completeMat
 Route::post('service/<id>/adjustments/<adjustment_id>/cancel', 'Service/cancelAdjustment')->completeMatch();
 
 // sender
-Route::get('transaction/sender', 'Sender/index');
-Route::get('transaction/sender/all', 'Sender/all');
-Route::post('transaction/sender/bind', 'Sender/bind');
-Route::post('transaction/sender/unbind', 'Sender/unbind');
+Route::get('transaction/sender', 'Sender/index')->completeMatch();
+Route::get('transaction/sender/all', 'Sender/all')->completeMatch();
+Route::post('transaction/sender/bind', 'Sender/bind')->completeMatch();
+Route::post('transaction/sender/unbind', 'Sender/unbind')->completeMatch();
 
 // balance
-Route::get('transaction/balance/logs', 'Balance/logs');
-Route::post('transaction/balance/recharge', 'Balance/recharge');
+Route::get('transaction/balance/logs', 'Balance/logs')->completeMatch();
+Route::post('transaction/balance/recharge', 'Balance/recharge')->completeMatch();

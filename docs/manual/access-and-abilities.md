@@ -44,7 +44,7 @@ LostSky 的访问结果不是由单一“管理员”开关决定。系统会依
 | --- | --- | ---: | --- |
 | `doc` | 文档 | 1 | Team 文档列表、详情、创建、编辑和删除 |
 | `file` | 文件上传 | 1 | 文件页、Markdown 编辑器、成员资料和加入申请等团队文件上传 |
-| `transaction` | 记账 | 1 | 流水写入与删除、经营统计、客户充值，以及商城自动生成关联流水 |
+| `transaction` | 记账 | 1 | 流水写入与删除、经营统计、客户充值、手动赋予客户权益，以及商城自动生成关联流水 |
 | `shop` | 商城 | 1 | 控制团队能否通过“开放商城”向客户展示和销售已上架商品 |
 
 当前没有 Chat 或 Display 独立 Ability。Shop 后台、客户中心与历史业务不受 Shop Ability 限制；该 Ability 只控制公开商品陈列与客户购买。
@@ -78,6 +78,7 @@ LostSky 的访问结果不是由单一“管理员”开关决定。系统会依
 - `file` 不依赖 `doc`。没有 Doc Ability 时仍可在 File 0 级或更高等级容量内管理上传内容。
 - Transaction Ability 缺失时，记账入口保持可见但禁用；直接地址只读取访问快照，不读取历史流水、余额或绑定，也不处理服务核销。
 - 商城设置“自动同步记账流水”只有在设置开启且 `transaction` Ability 有效时生效。条件不满足时，订单照常创建并扣减余额，只是不生成关联流水。
+- “手动赋予权益时同步流水”是独立 TeamSetting；手动赋予本身位于 Transaction 并要求 Transaction Ability，关闭设置时只生成权益且始终不创建 Shop 订单。
 - Ability 到期不会自动删除历史数据，也不会回滚已经完成的订单、流水、文件或公开内容。
 - 有限期 Ability 发生真实等级下降或完全失效时，团队共享收件箱会收到一条站内通知；同等级授权仍覆盖时不通知。
 
@@ -107,6 +108,8 @@ Permission 来自当前 Entity 在目标团队中获得的全部角色，多个�
 
 无权访问隐藏对象时，直接链接会返回“未找到”，而不是确认对象存在后再报无权。
 
+页面标题区的主操作不会因为暂时缺少 Permission 而变成另一种灰色按钮或移动位置：入口仍保留同一图标、文字和主色来源，以灰绿色降权表示不可用；存在具体原因时，触发该入口会显示需要补齐的 Permission、Ability 或业务条件。
+
 ## 推荐的授权顺序
 
 1. 先确认用户已经领取正确团队的实体身份。
@@ -123,6 +126,7 @@ Permission 来自当前 Entity 在目标团队中获得的全部角色，多个�
 | 成员管理员 | `team.member.read`、`team.member.invite`、`team.member.update`、`team.member.remove` |
 | 财务 | `transaction.read`、`transaction.write`、`transaction.report.read` |
 | 客户运营 | `team.customer.read`、`team.customer.manage`、`team.notice.send` |
+| 发单运营 | `service.entitlement.grant`；本人相关流水、业绩和客户协作无需 Team 全量读取 Permission |
 | Chat 运营 | `chat.conversation.create`、`chat.group.manage`，以及所需虚拟实体的 `chat.virtual.<slug>.act` 权限 |
 
 新团队会自动创建 owner 角色并给创建者取得管理所需权限。后续修改 owner 或其他高权限角色前，应先确保至少还有一个实体能够恢复角色配置。

@@ -43,22 +43,26 @@ description: 查询 LostSky 当前全部团队 Permission、动态权限和平�
 | `shop.product.read` | 查看商家内部商品资料 |
 | `shop.product.write` | 创建、编辑商品和配置处理实体 |
 | `shop.product.delete` | 删除商品 |
-| `shop.product.self.manage` | 管理归属当前 Entity 的本人商品，包括创建、编辑、上下架、接单人和核销字段 |
+| `shop.product.self.manage` | 管理归属当前 Entity 的本人服务、权益包、卡活动、卡密与商品，包括创建、编辑、停用、接单人和核销字段 |
+| `shop.product.self.package.reprice` | 调整本人权益包内团队公用服务的单位价格、成本与接单/发单/客服分配；独立授权，不由 `shop.product.self.manage` 自动包含 |
 | `shop.order.read` | 查看商家订单 |
 | `shop.order.write` | 创建、取消和完成商家订单 |
 
-Shop 团队工作台使用商品与订单的团队级 Permission；Team、成员和虚拟 Entity 还可通过 `shop.product.self.manage` 在个人工作台管理本人商品。Customer 只使用商城客户中心，不能通过该 Permission 管理商家数据。
+Shop 团队工作台使用商品与订单的团队级 Permission；Team、成员和虚拟 Entity 还可通过 `shop.product.self.manage` 在个人工作台管理本人商品与完整权益资源链路。本人服务在本人权益包内始终允许调价；团队公用服务只有在额外拥有 `shop.product.self.package.reprice` 时才可改变商业金额，额度和有效期不受该权限限制。Customer 只使用商城客户中心，不能通过这些 Permission 管理商家数据。
 
 ## 交易与余额
 
 | Permission | 允许的操作 |
 | --- | --- |
-| `transaction.read` | 查看流水、余额日志、发单绑定和交易选项 |
-| `transaction.write` | 创建或编辑流水、为客户充值、维护发单绑定 |
+| `transaction.read` | 查看 Team 全量流水、余额日志、发单绑定和交易选项；不控制个人工作台的本人相关读取 |
+| `transaction.write` | 创建或编辑流水、为客户充值、维护发单绑定，并在团队工作台从 Shop 服务套餐商品手动赋予客户权益 |
 | `transaction.delete` | 删除流水 |
-| `transaction.report.read` | 查看经营统计 |
+| `transaction.report.read` | 查看 Team 全量经营统计；不控制个人工作台的“我的业绩” |
+| `service.entitlement.grant` | 使用个人“权益赠送”页中的“赠送权益”动作，为当前 Entity 归属或发单绑定的客户赠送服务权益；不能选择其他发单人。查看本人赠送记录不要求此 Permission |
+| `service.redemption.read` | 进入团队“服务核销”并查看全量列表、详情和接单池；不控制个人工作台的“我的核销” |
+| `service.redemption.manage` | 同样可进入并查看团队全量核销，并允许改派、处理取消、确认完成和调整费用 |
 
-进入 Transaction 的流水、统计、核销、绑定、余额和充值接口还要求 `transaction` Ability；Ability 缺失时只保留访问快照和不可用说明。当前接单 Entity 可在个人工作台读取自己的核销任务，`service.redemption.read/manage` 决定全量读取与管理范围。见[能力、权限与功能降级](access-and-abilities.md)。
+进入 Transaction 的流水、统计、核销、绑定、余额、充值和权益赠送接口还要求 `transaction` Ability；Ability 缺失时只保留访问快照和不可用说明。个人工作台的相关流水、我的业绩、我的核销、客户协作和本人赠送记录均由服务端限定为当前 Entity，不额外要求 Team 全量读取 Permission。`service.entitlement.grant` 只开放向当前 Entity 客户范围赠送的新动作，不扩大为全团队客户；团队核销读取由 `service.redemption.read` 或 `service.redemption.manage` 开放，管理动作只接受 `service.redemption.manage`。见[能力、权限与功能降级](access-and-abilities.md)。
 
 ## 文件、文档与团队设置
 

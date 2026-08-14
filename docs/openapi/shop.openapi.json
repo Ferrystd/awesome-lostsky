@@ -599,24 +599,53 @@
           "team_cut": {"type":"string","pattern":"^\\d{1,10}(?:\\.\\d{1,2})?$"}
         }
       },
+      "EntitlementResourceOwner": {
+        "type": "object",
+        "properties": {
+          "owner_entity_id": {"type":"integer","format":"int64","nullable":true,"description":"为空表示团队公用；非空表示归属指定 Entity"},
+          "owner": {"allOf":[{"$ref":"#/components/schemas/Entity"}],"nullable":true}
+        }
+      },
+      "ServiceInput": {
+        "type": "object",
+        "required": ["name", "unit_name", "quantity_step", "handler_entity_ids"],
+        "properties": {
+          "name": {"type":"string","minLength":1,"maxLength":100},
+          "description": {"type":"string","maxLength":1000,"nullable":true},
+          "unit_name": {"type":"string","minLength":1,"maxLength":20},
+          "quantity_step": {"oneOf":[{"type":"number","minimum":0.0001},{"type":"string","pattern":"^\\d+(?:\\.\\d{1,4})?$"}]},
+          "default_total_price": {"type":"number","minimum":0},
+          "default_cost": {"type":"number","minimum":0},
+          "default_handler_cut": {"type":"number","minimum":0},
+          "default_sender_cut": {"type":"number","minimum":0},
+          "default_cs_cut": {"type":"number","minimum":0},
+          "is_active": {"type":"integer","enum":[0,1],"default":1},
+          "handler_entity_ids": {"type":"array","uniqueItems":true,"description":"显式接单池；空数组表示不限接单人","items":{"type":"integer","format":"int64"}}
+        }
+      },
       "BenefitPackageServiceInput": {
         "type": "object",
-        "required": ["service_id", "quantity", "valid_days", "unit_price", "unit_cost", "distribution_mode"],
+        "required": ["service_id", "quantity"],
         "properties": {
           "service_id": {"type":"integer","format":"int64"},
           "quantity": {"type":"integer","minimum":1,"maximum":999},
-          "valid_days": {"type":"integer","minimum":0},
-          "unit_price": {"type":"string","pattern":"^\\d{1,10}(?:\\.\\d{1,2})?$"},
-          "unit_cost": {"type":"string","pattern":"^\\d{1,10}(?:\\.\\d{1,2})?$"},
-          "distribution_mode": {"type":"integer","enum":[1,2],"description":"1=固定金额，2=按可分配金额比例"},
-          "unit_handler_cut": {"type":"string","pattern":"^\\d{1,10}(?:\\.\\d{1,2})?$","default":"0.00"},
-          "unit_sender_cut": {"type":"string","pattern":"^\\d{1,10}(?:\\.\\d{1,2})?$","default":"0.00"},
-          "unit_cs_cut": {"type":"string","pattern":"^\\d{1,10}(?:\\.\\d{1,2})?$","default":"0.00"},
-          "handler_rate_bp": {"type":"integer","minimum":0,"maximum":10000,"default":0},
-          "sender_rate_bp": {"type":"integer","minimum":0,"maximum":10000,"default":0},
-          "cs_rate_bp": {"type":"integer","minimum":0,"maximum":10000,"default":0},
+          "valid_days": {"type":"integer","minimum":0,"description":"省略时使用团队默认有效天数"},
+          "unit_price": {"type":"string","pattern":"^\\d{1,10}(?:\\.\\d{1,2})?$","description":"省略时使用服务的单位服务价值"},
+          "unit_cost": {"type":"string","pattern":"^\\d{1,10}(?:\\.\\d{1,2})?$","description":"省略时使用服务的单位成本"},
+          "unit_handler_cut": {"type":"string","pattern":"^\\d{1,10}(?:\\.\\d{1,2})?$","description":"固定单位接单分配；自定义价格且省略全部人员分配时按团队默认比例计算"},
+          "unit_sender_cut": {"type":"string","pattern":"^\\d{1,10}(?:\\.\\d{1,2})?$","description":"固定单位发单分配"},
+          "unit_cs_cut": {"type":"string","pattern":"^\\d{1,10}(?:\\.\\d{1,2})?$","description":"固定单位客服分配"},
           "sort": {"type":"integer","default":0}
         }
+      },
+      "BenefitPackageService": {
+        "allOf": [
+          {"$ref":"#/components/schemas/BenefitPackageServiceInput"},
+          {"type":"object","required":["id","unit_price","unit_cost","unit_handler_cut","unit_sender_cut","unit_cs_cut"],"properties":{
+            "id":{"type":"integer","format":"int64"},
+            "sort":{"type":"integer"}
+          }}
+        ]
       },
       "BenefitPackageInput": {
         "type": "object",
@@ -634,11 +663,28 @@
         "properties": {
           "id": {"type":"integer","format":"int64"},
           "name": {"type":"string"},
+          "owner_entity_id": {"type":"integer","format":"int64","nullable":true,"description":"为空表示团队公用；非空表示归属指定 Entity"},
+          "owner": {"allOf":[{"$ref":"#/components/schemas/Entity"}],"nullable":true},
           "pricing_mode": {"oneOf":[{"type":"integer","enum":[1,2]},{"type":"string","enum":["历史均摊","分项计价"]}]},
           "is_active": {"type":"integer","enum":[0,1]},
           "is_pricing_locked": {"type":"boolean","description":"已被商品或兑换活动引用时为 true，服务项目与计价方式只读"},
           "pricing_summary": {"allOf":[{"$ref":"#/components/schemas/BenefitPricingSummary"}],"nullable":true},
-          "services": {"type":"array","items":{"allOf":[{"$ref":"#/components/schemas/BenefitPackageServiceInput"},{"type":"object","properties":{"id":{"type":"integer","format":"int64"}}}]}}
+          "services": {"type":"array","items":{"$ref":"#/components/schemas/BenefitPackageService"}}
+        }
+      },
+      "CampaignInput": {
+        "type": "object",
+        "required": ["name", "package_id", "mode"],
+        "properties": {
+          "name": {"type":"string","minLength":1,"maxLength":100},
+          "package_id": {"type":"integer","format":"int64"},
+          "claim_group": {"type":"string","maxLength":100},
+          "mode": {"type":"integer","enum":[1,2,3]},
+          "total_limit": {"type":"integer","minimum":1,"nullable":true},
+          "per_target_limit": {"type":"integer","minimum":1},
+          "redeem_starts_at": {"type":"integer","minimum":0},
+          "redeem_ends_at": {"type":"integer","minimum":0},
+          "is_active": {"type":"integer","enum":[0,1],"default":1}
         }
       },
       "Product": {
@@ -1910,11 +1956,53 @@
     "/manage/access": {"get":{"tags":["Product"],"operationId":"shopManageAccess","summary":"商城工作台团队摘要、Permission 与 File/Transaction Ability 快照","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/WorkspaceAccessSnapshot"}}}]}}}}}}},
     "/personal/orders": {"get":{"tags":["Order"],"operationId":"shopPersonalOrders","summary":"读取当前 Entity 作为接单人或发单人的订单","description":"服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数。","security":[{"bearerAuth":[]}],"parameters":[{"name":"status","in":"query","schema":{"type":"integer","enum":[1,2,3]}},{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
     "/personal/orders/{id}": {"get":{"tags":["Order"],"operationId":"shopPersonalOrder","summary":"读取当前 Entity 参与的订单详情","description":"订单必须由当前 acting_entity 接单或发单。","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"订单不存在或不属于当前个人范围"}}}},
+    "/personal/services": {
+      "get":{"tags":["Product"],"operationId":"shopPersonalServices","summary":"读取本人服务列表","description":"只返回 owner_entity_id 等于当前 acting_entity 的服务；停用项仍保留在管理列表。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"403":{"description":"缺少 shop.product.self.manage"}}},
+      "post":{"tags":["Product"],"operationId":"shopPersonalServiceCreate","summary":"创建本人服务","description":"服务端强制写入当前 acting_entity 作为 Owner。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ServiceInput"},{"$ref":"#/components/schemas/ExpectedEntityInput"}]}}}},"responses":{"200":{"description":"创建成功"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
+    },
+    "/personal/services/{id}": {
+      "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
+      "get":{"tags":["Product"],"operationId":"shopPersonalServiceGet","summary":"读取本人服务详情","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"404":{"description":"服务不存在或不属于当前 Entity"}}},
+      "post":{"tags":["Product"],"operationId":"shopPersonalServiceUpdate","summary":"更新本人服务","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ServiceInput"},{"$ref":"#/components/schemas/ExpectedEntityInput"}]}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"服务不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
+    },
+    "/personal/services/{id}/handlers": {
+      "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
+      "get":{"tags":["Product"],"operationId":"shopPersonalServiceHandlers","summary":"读取本人服务接单池","description":"空数组表示不限接单人。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"404":{"description":"服务不存在或不属于当前 Entity"}}},
+      "post":{"tags":["Product"],"operationId":"shopPersonalServiceHandlersUpdate","summary":"更新本人服务接单池","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ExpectedEntityInput"},{"type":"object","required":["entity_ids"],"properties":{"entity_ids":{"type":"array","uniqueItems":true,"items":{"type":"integer","format":"int64"}}}}]}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"服务不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
+    },
+    "/personal/services/{id}/disable": {"post":{"tags":["Product"],"operationId":"shopPersonalServiceDisable","summary":"停用本人服务","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ExpectedEntityInput"}}}},"responses":{"200":{"description":"已停用"},"404":{"description":"服务不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
+    "/personal/packages": {
+      "get":{"tags":["Product"],"operationId":"shopPersonalPackages","summary":"读取本人权益包列表","description":"只返回 owner_entity_id 等于当前 acting_entity 的权益包；停用项仍保留在管理列表。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}},
+      "post":{"tags":["Product"],"operationId":"shopPersonalPackageCreate","summary":"创建本人权益包","description":"只能组合本人或团队公用服务。公用服务商业金额默认锁定；拥有 shop.product.self.package.reprice 时可调整。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/BenefitPackageInput"},{"$ref":"#/components/schemas/ExpectedEntityInput"}]}}}},"responses":{"200":{"description":"创建成功"},"403":{"description":"无权修改团队公用服务的商业金额"},"409":{"description":"当前身份与 expected_entity_id 不一致"},"422":{"description":"Owner 不兼容或计价不平衡"}}}
+    },
+    "/personal/packages/{id}": {
+      "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
+      "get":{"tags":["Product"],"operationId":"shopPersonalPackageGet","summary":"读取本人权益包详情","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"404":{"description":"权益包不存在或不属于当前 Entity"}}},
+      "post":{"tags":["Product"],"operationId":"shopPersonalPackageUpdate","summary":"更新本人权益包","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/BenefitPackageInput"},{"$ref":"#/components/schemas/ExpectedEntityInput"}]}}}},"responses":{"200":{"description":"已保存"},"403":{"description":"无权修改团队公用服务的商业金额"},"404":{"description":"权益包不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"},"422":{"description":"Owner 不兼容或计价不平衡"}}}
+    },
+    "/personal/packages/{id}/disable": {"post":{"tags":["Product"],"operationId":"shopPersonalPackageDisable","summary":"停用本人权益包","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ExpectedEntityInput"}}}},"responses":{"200":{"description":"已停用"},"404":{"description":"权益包不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
+    "/personal/campaigns": {
+      "get":{"tags":["Product"],"operationId":"shopPersonalCampaigns","summary":"读取本人卡活动列表","description":"只返回 owner_entity_id 等于当前 acting_entity 的活动；停用项仍保留在管理列表。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}},
+      "post":{"tags":["Product"],"operationId":"shopPersonalCampaignCreate","summary":"创建本人卡活动","description":"只能引用本人或团队公用权益包。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/CampaignInput"},{"$ref":"#/components/schemas/ExpectedEntityInput"}]}}}},"responses":{"200":{"description":"创建成功"},"409":{"description":"当前身份与 expected_entity_id 不一致"},"422":{"description":"Owner 不兼容"}}}
+    },
+    "/personal/campaigns/{id}": {
+      "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
+      "get":{"tags":["Product"],"operationId":"shopPersonalCampaignGet","summary":"读取本人卡活动详情","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"404":{"description":"活动不存在或不属于当前 Entity"}}},
+      "post":{"tags":["Product"],"operationId":"shopPersonalCampaignUpdate","summary":"更新本人卡活动","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/CampaignInput"},{"$ref":"#/components/schemas/ExpectedEntityInput"}]}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"活动不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"},"422":{"description":"Owner 不兼容"}}}
+    },
+    "/personal/campaigns/{id}/disable": {"post":{"tags":["Product"],"operationId":"shopPersonalCampaignDisable","summary":"停用本人卡活动","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ExpectedEntityInput"}}}},"responses":{"200":{"description":"已停用"},"404":{"description":"活动不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
+    "/personal/campaigns/{id}/codes": {
+      "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
+      "get":{"tags":["Product"],"operationId":"shopPersonalCampaignCodes","summary":"读取本人卡活动的卡密","description":"列表不返回明文卡密。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"404":{"description":"活动不存在或不属于当前 Entity"}}},
+      "post":{"tags":["Product"],"operationId":"shopPersonalCampaignCodesIssue","summary":"为本人卡活动发行卡密","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ExpectedEntityInput"},{"type":"object","required":["count"],"properties":{"count":{"type":"integer","minimum":1,"maximum":1000},"max_uses":{"type":"integer","minimum":1},"expire_time":{"type":"integer","minimum":0}}}]}}}},"responses":{"200":{"description":"发行成功，本次响应包含明文卡密"},"404":{"description":"活动不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
+    },
+    "/personal/campaigns/{id}/codes/{code_id}/reveal": {"post":{"tags":["Product"],"operationId":"shopPersonalCampaignCodeReveal","summary":"揭示本人卡活动卡密","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"code_id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ExpectedEntityInput"}}}},"responses":{"200":{"description":"成功"},"404":{"description":"活动或卡密不存在于当前个人范围"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
+    "/personal/campaigns/{id}/codes/{code_id}/disable": {"post":{"tags":["Product"],"operationId":"shopPersonalCampaignCodeDisable","summary":"停用本人卡活动卡密","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"code_id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ExpectedEntityInput"}}}},"responses":{"200":{"description":"已停用"},"404":{"description":"活动或卡密不存在于当前个人范围"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
     "/personal/products": {
       "get": {"tags":["Product"],"operationId":"shopPersonalProducts","summary":"读取当前 Entity 的本人商品","description":"只返回 entity_id 等于当前 acting_entity 的商品，不接受 Entity ID 范围参数。","security":[{"bearerAuth":[]}],"parameters":[{"name":"keyword","in":"query","schema":{"type":"string"}},{"name":"is_active","in":"query","schema":{"type":"integer","enum":[0,1]}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"},"403":{"description":"缺少 shop.product.self.manage"}}},
       "post": {"tags":["Product"],"operationId":"shopPersonalProductCreate","summary":"为当前 Entity 创建本人商品","description":"服务端强制使用当前 acting_entity 作为专属 Entity，不接受 entity_id。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PersonalProductCreateInput"}}}},"responses":{"200":{"description":"创建成功"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
     },
-    "/personal/products/options": {"get":{"tags":["Product"],"operationId":"shopPersonalProductOptions","summary":"读取本人商品表单候选项","description":"仅返回当前团队有效 Entity、启用的权益包与卡活动，不返回客户集合。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/products/options": {"get":{"tags":["Product"],"operationId":"shopPersonalProductOptions","summary":"读取个人资源与商品表单候选项","description":"只返回当前 Entity 本人或团队公用的已启用服务、权益包和卡活动，并包含 owner_entity_id 与 Owner 摘要；不返回其他 Entity 资源或客户集合。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
     "/personal/products/{id}": {
       "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
       "get":{"tags":["Product"],"operationId":"shopPersonalProductGet","summary":"读取本人商品详情","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"404":{"description":"商品不存在或不属于当前 Entity"}}},
@@ -1928,19 +2016,19 @@
     },
     "/personal/products/{id}/redemption-fields/{field_id}": {"post":{"tags":["Product"],"operationId":"shopPersonalProductUpdateField","summary":"更新本人商品核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"field_id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ExpectedEntityInput"},{"type":"object","additionalProperties":true}]}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"商品或字段不存在"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
     "/personal/products/{id}/redemption-fields/{field_id}/delete": {"post":{"tags":["Product"],"operationId":"shopPersonalProductDeleteField","summary":"删除或停用本人商品核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"field_id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ExpectedEntityInput"}}}},"responses":{"200":{"description":"已处理"},"404":{"description":"商品或字段不存在"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
-    "/manage/options": {"get":{"tags":["Product"],"operationId":"shopManageOptions","summary":"商城管理候选项","responses":{"200":{"description":"成功"}}}},
-    "/manage/services": {"get":{"tags":["Product"],"operationId":"shopManageServices","summary":"服务定义列表","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopCreateService","summary":"创建服务定义","responses":{"200":{"description":"成功"}}}},
-    "/manage/services/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManageService","summary":"服务定义详情","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopUpdateService","summary":"更新服务定义","responses":{"200":{"description":"成功"}}}},
-    "/manage/services/{id}/handlers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManageServiceHandlers","summary":"读取服务显式接单池","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopSaveServiceHandlers","summary":"原子替换服务显式接单池","description":"仅接受当前团队内有效的 Team、TeamMember 或 TeamVirtual Entity；移除成员会让其待确认邀请失效，历史已接任务不变。","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["entity_ids"],"properties":{"entity_ids":{"type":"array","items":{"type":"integer"}}}}}}},"responses":{"200":{"description":"成功"},"422":{"description":"接单 Entity 无效或不属于当前团队"}}}},
+    "/manage/options": {"get":{"tags":["Product"],"operationId":"shopManageOptions","summary":"商城管理候选项","description":"返回服务默认计量规则与金额分配比例；数量精度由最小核销步长推导。","responses":{"200":{"description":"成功"}}}},
+    "/manage/services": {"get":{"tags":["Product"],"operationId":"shopManageServices","summary":"服务定义列表","responses":{"200":{"description":"成功；handlers 为空表示不限接单人，数量精度由 quantity_step 推导"}}},"post":{"tags":["Product"],"operationId":"shopCreateService","summary":"创建服务定义并保存接单池","description":"handler_entity_ids 与服务资料原子保存，空数组表示不限接单人；quantity_step 是唯一的数量精度来源，团队分配由服务价值减去成本及人员分配后的余额生成。","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ServiceInput"}}}},"responses":{"200":{"description":"成功"},"422":{"description":"步长、服务金额、接单 Entity 无效或人员分配超过可分配金额"}}}},
+    "/manage/services/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManageService","summary":"服务定义详情","responses":{"200":{"description":"成功；handlers 为空表示不限接单人，数量精度由 quantity_step 推导"}}},"post":{"tags":["Product"],"operationId":"shopUpdateService","summary":"更新服务定义并保存接单池","description":"handler_entity_ids 与服务资料原子保存，空数组表示不限接单人；quantity_step 是唯一的数量精度来源，团队分配由服务价值减去成本及人员分配后的余额生成。","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ServiceInput"}}}},"responses":{"200":{"description":"成功"},"422":{"description":"步长、服务金额、接单 Entity 无效或人员分配超过可分配金额"}}}},
+    "/manage/services/{id}/handlers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManageServiceHandlers","summary":"读取服务显式接单池","description":"空数组表示不限接单人。","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopSaveServiceHandlers","summary":"兼容接口：原子替换服务显式接单池","description":"仅接受当前团队内有效的 Team、TeamMember 或 TeamVirtual Entity；空数组表示不限接单人。配置非空名单后，名单外待确认邀请失效，历史已接任务不变。","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["entity_ids"],"properties":{"entity_ids":{"type":"array","items":{"type":"integer"}}}}}}},"responses":{"200":{"description":"成功"},"422":{"description":"接单 Entity 无效或不属于当前团队"}}}},
     "/manage/services/{id}/disable": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Product"],"operationId":"shopDisableService","summary":"停用服务定义","responses":{"200":{"description":"成功"}}}},
     "/manage/packages": {
       "get":{"tags":["Product"],"operationId":"shopManagePackages","summary":"服务权益包列表","responses":{"200":{"description":"成功"}}},
-      "post":{"tags":["Product"],"operationId":"shopCreatePackage","summary":"创建分项计价服务权益包","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/BenefitPackageInput"}}}},"responses":{"200":{"description":"成功"},"422":{"description":"服务项价格、成本或分成不平衡"}}}
+      "post":{"tags":["Product"],"operationId":"shopCreatePackage","summary":"创建分项计价服务权益包","description":"服务项默认继承服务价格、成本与固定分配；自定义价格或成本且未提交人员分配时，按团队默认比例重算固定金额，团队分配取余额。","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/BenefitPackageInput"}}}},"responses":{"200":{"description":"成功"},"422":{"description":"服务项价格、成本或分配不平衡"}}}
     },
     "/manage/packages/{id}": {
       "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
       "get":{"tags":["Product"],"operationId":"shopManagePackage","summary":"服务权益包详情与计价汇总","responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/BenefitPackage"}}}]}}}}}},
-      "post":{"tags":["Product"],"operationId":"shopUpdatePackage","summary":"更新尚未被引用的服务权益包","description":"权益包被商品或兑换活动引用后，服务项目与计价方式冻结；需要调整时应新建权益包。","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/BenefitPackageInput"}}}},"responses":{"200":{"description":"成功"},"422":{"description":"计价不平衡或权益包已冻结"}}}
+      "post":{"tags":["Product"],"operationId":"shopUpdatePackage","summary":"更新尚未被引用的服务权益包","description":"权益包被商品或兑换活动引用后，服务项目与计价方式冻结；需要调整时应新建权益包。服务项只保存固定单位分配。","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/BenefitPackageInput"}}}},"responses":{"200":{"description":"成功"},"422":{"description":"计价不平衡或权益包已冻结"}}}
     },
     "/manage/packages/{id}/disable": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Product"],"operationId":"shopDisablePackage","summary":"停用服务权益包","responses":{"200":{"description":"成功"}}}},
     "/manage/campaigns": {"get":{"tags":["Product"],"operationId":"shopManageCampaigns","summary":"服务卡活动列表","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopCreateCampaign","summary":"创建服务卡活动","responses":{"200":{"description":"成功"}}}},
@@ -1965,9 +2053,9 @@
     "/customer/services": {"get":{"tags":["Customer"],"operationId":"customerServices","summary":"查询持有的计量服务权益","responses":{"200":{"description":"成功"}}}},
     "/customer/services/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Customer"],"operationId":"customerService","summary":"查询服务权益及履约切片","responses":{"200":{"description":"成功"}}}},
     "/customer/services/{id}/handlers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Customer"],"operationId":"customerServiceHandlers","summary":"查询权益对应的可选接单 Entity","responses":{"200":{"description":"成功"}}}},
-    "/customer/services/{id}/start": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"startCustomerService","summary":"公开召唤并立即创建未分配的核销中切片","description":"完整 Customer 核销字段在领取前向对应服务接单池公开。团队缺少有效 Transaction Ability 时拒绝创建。","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["quantity"],"properties":{"quantity":{"type":"string","description":"符合权益精度和最小步长的履约数量"},"handler_entity_id":{"type":"integer","enum":[0],"description":"兼容字段，只允许 0"},"memo":{"type":"string"},"field_values":{"type":"object","additionalProperties":true}}}}}},"responses":{"200":{"description":"成功"},"409":{"description":"可用额度不足"},"422":{"description":"字段、数量或 Ability 无效"}}}},
-    "/customer/services/{id}/offers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"post":{"tags":["Customer"],"operationId":"createCustomerServiceOffer","summary":"创建指定接单邀请并限时预占额度","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["quantity","handler_entity_id"],"properties":{"quantity":{"type":"string"},"handler_entity_id":{"type":"integer","minimum":1},"memo":{"type":"string"},"field_values":{"type":"object","additionalProperties":true}}}}}},"responses":{"200":{"description":"邀请已创建"},"409":{"description":"可用额度不足"},"422":{"description":"接单资格、字段、数量或 Ability 无效"}}}},
-    "/customer/service-offers/{id}/withdraw": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"post":{"tags":["Customer"],"operationId":"withdrawCustomerServiceOffer","summary":"撤回待确认指定邀请并释放预占","responses":{"200":{"description":"已撤回"},"409":{"description":"邀请已处理"}}}},
+    "/customer/services/{id}/start": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"startCustomerService","summary":"公开召唤并立即创建未分配的核销中切片","description":"完整 Customer 核销字段在领取前向显式接单池公开；接单池为空时向团队内全部有效接单 Entity 公开。团队缺少有效 Transaction Ability 时拒绝创建。","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["quantity"],"properties":{"quantity":{"type":"string","description":"符合权益精度和最小步长的履约数量"},"handler_entity_id":{"type":"integer","enum":[0],"description":"兼容字段，只允许 0"},"memo":{"type":"string"},"field_values":{"type":"object","additionalProperties":true}}}}}},"responses":{"200":{"description":"成功"},"409":{"description":"可用额度不足"},"422":{"description":"字段、数量或 Ability 无效"}}}},
+    "/customer/services/{id}/offers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"post":{"tags":["Customer"],"operationId":"createCustomerServiceOffer","summary":"创建持续等待的指定接单邀请并预占额度","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["quantity","handler_entity_id"],"properties":{"quantity":{"type":"string"},"handler_entity_id":{"type":"integer","minimum":1},"memo":{"type":"string"},"field_values":{"type":"object","additionalProperties":true}}}}}},"responses":{"200":{"description":"邀请已创建"},"409":{"description":"可用额度不足"},"422":{"description":"接单资格、字段、数量或 Ability 无效"}}}},
+    "/customer/service-offers/{id}/withdraw": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"post":{"tags":["Customer"],"operationId":"withdrawCustomerServiceOffer","summary":"取消待确认指定邀请并释放预占","responses":{"200":{"description":"已取消"},"409":{"description":"邀请已处理"}}}},
     "/customer/service-redemptions/{id}/start": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"restartCustomerServiceRedemption","summary":"重新发起已取消的履约切片","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["handler_entity_id"],"properties":{"handler_entity_id":{"type":"integer","minimum":1,"description":"重新指定的接单 Entity"},"memo":{"type":"string"},"field_values":{"type":"object","additionalProperties":true}}}}}},"responses":{"200":{"description":"成功"}}}},
     "/customer/service-redemptions/{id}/cancel": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"cancelCustomerService","summary":"申请取消履约切片","responses":{"200":{"description":"成功"}}}},
     "/customer/service-redemptions/{id}/adjustments/{adjustment_id}/accept": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"adjustment_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"acceptServiceAdjustment","summary":"确认并支付履约加价费用","responses":{"200":{"description":"成功"}}}},

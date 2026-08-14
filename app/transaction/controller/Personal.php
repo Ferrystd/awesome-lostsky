@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace app\transaction\controller;
 
-use app\service\PermissionDictionary as Permissions;
 use app\service\Sender;
 use app\service\ServiceRedemption;
 use app\service\Transaction as TransactionService;
@@ -14,8 +13,6 @@ final class Personal
 {
     protected $middleware = [
         'JwtAuth', 'Context', 'EntityType:team,teamMember,teamVirtual', 'TeamAuth', 'Ability:transaction',
-        'Permission:' . Permissions::TRANSACTION_READ => ['only' => ['transactions', 'transaction', 'bindings']],
-        'Permission:' . Permissions::TRANSACTION_REPORT_READ => ['only' => ['stats']],
     ];
 
     public function transactions(Request $request)

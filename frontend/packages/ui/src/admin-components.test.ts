@@ -37,17 +37,19 @@ import LsSectionHeader from './components/LsSectionHeader.vue'
 import LsSwitchField from './components/LsSwitchField.vue'
 import LsEmptyState from './components/LsEmptyState.vue'
 import LsEntityIdentity from './components/LsEntityIdentity.vue'
+import LsEntityTag from './components/LsEntityTag.vue'
 import LsFormList from './components/LsFormList.vue'
 import LsListToolbar from './components/LsListToolbar.vue'
 import LsMediaUploadField from './components/LsMediaUploadField.vue'
 import LsMarkdownRenderer from './components/LsMarkdownRenderer.vue'
 import LsPageHeader from './components/LsPageHeader.vue'
+import LsPagePrimaryAction from './components/LsPagePrimaryAction.vue'
 import LsResponsiveActions from './components/LsResponsiveActions.vue'
 import LsResponsiveDataTable from './components/LsResponsiveDataTable.vue'
 import LsUploadField from './components/LsUploadField.vue'
 import LsWorkspaceHeader from './components/LsWorkspaceHeader.vue'
 import LsWorkspaceOverview from './components/LsWorkspaceOverview.vue'
-import { House, ReceiptText, ShoppingBag, UserRound } from '@lucide/vue'
+import { House, ReceiptText, Save, ShoppingBag, UserRound } from '@lucide/vue'
 import { lostskyNaiveTheme } from './naive-theme'
 
 async function render(component: Parameters<typeof h>[0], props: Record<string, unknown> = {}, slots: Record<string, () => ReturnType<typeof h>> = {}) {
@@ -108,6 +110,25 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('保存')
   })
 
+  it('LsPagePrimaryAction 强制图标和标签并统一标题区主操作尺寸', async () => {
+    expect((LsPagePrimaryAction as any).props.icon.required).toBe(true)
+    expect((LsPagePrimaryAction as any).props.label.required).toBe(true)
+    const html = await render(LsPagePrimaryAction, { icon: Save, label: '保存资料', disabled: true, disabledReason: '当前资料不可保存' })
+    expect(html).toContain('ls-page-primary-action')
+    expect(html).toContain('保存资料')
+    expect(html).toContain('aria-disabled="true"')
+    const loadingHtml = await render(LsPagePrimaryAction, { icon: Save, label: '保存资料', loading: true })
+    expect(loadingHtml).toContain('disabled')
+    expect(loadingHtml).toContain('aria-busy="true"')
+    const source = readFileSync(new URL('./components/LsPagePrimaryAction.vue', import.meta.url), 'utf8')
+    expect(source).toContain('width: 8.5rem;')
+    expect(source).toContain('max-width: 100%;')
+    expect(source).toContain('height: var(--touch-target);')
+    expect(source).toContain('border-radius: var(--radius-sm);')
+    expect(source).not.toContain('.ls-page-primary-action { width: 100%;')
+    expect(source).toContain('<RouterLink v-if="to && !disabled && !loading"')
+  })
+
   it('LsInlineError 固定行内错误语义且仅接收 message', async () => {
     expect(Object.keys((LsInlineError as any).props)).toEqual(['message'])
     const html = await render(LsInlineError, { message: '保存失败' })
@@ -132,14 +153,17 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain('grid-template-columns:minmax(0,1fr) 8.5rem')
     expect(source).toContain('grid-template-columns:8.5rem')
     expect(source).toContain('<LsButton')
-    expect(source).toContain('@media(max-width:639px){.ls-upload-field__controls{grid-template-columns:1fr}')
+    expect(source).toContain('<slot name="trigger"')
+    expect(source).toContain('grid-template-columns:minmax(0,1fr) max-content')
+    expect(source).toContain('@media(max-width:639px){.ls-upload-field__controls,.ls-upload-field__controls--without-url')
   })
 
-  it('不同命令按语义自主管理尺寸，不使用全局等宽参数', () => {
+  it('不同命令按语义自主管理尺寸，页面主操作独立等宽', () => {
     const styles = readFileSync(new URL('./styles.css', import.meta.url), 'utf8')
     const upload = readFileSync(new URL('./components/LsUploadField.vue', import.meta.url), 'utf8')
     const list = readFileSync(new URL('./components/LsFormList.vue', import.meta.url), 'utf8')
     const actions = readFileSync(new URL('./components/LsFormActions.vue', import.meta.url), 'utf8')
+    const pageAction = readFileSync(new URL('./components/LsPagePrimaryAction.vue', import.meta.url), 'utf8')
     expect(styles).not.toContain('--form-command-width')
     expect(upload).not.toContain('var(--form-command-width)')
     expect(list).toContain('.ls-form-list__add { justify-self: start;')
@@ -147,6 +171,8 @@ describe('后台设计系统组件契约', () => {
     expect(list).toContain('.ls-form-list__add { width: 100%; }')
     expect(actions).toContain('.ls-form-actions :deep(.ls-button) { min-width: 7rem; }')
     expect(actions).toContain('.ls-form-actions :deep(.ls-button) { width: 100%; }')
+    expect(pageAction).toContain('width: 8.5rem;')
+    expect(pageAction).not.toContain('width?:')
   })
 
   it('LsMarkdownRenderer 只提供具名阅读上下文，不暴露视觉尺寸入口', () => {
@@ -292,6 +318,31 @@ describe('后台设计系统组件契约', () => {
     expect(html).toMatch(/ls-entity-identity__name-row[^]*青空[^]*正常/)
   })
 
+  it('Entity 胶囊统一显示类型图标、名称和完整身份提示', async () => {
+    const html = await render(LsEntityTag, { type: 'teamMember', name: '青空成员', slug: 'qingkong', closable: true })
+    const virtualHtml = await render(LsEntityTag, { type: 'teamVirtual', name: '协作助手', slug: 'helper' })
+    expect(html).toContain('ls-entity-tag')
+    expect(html).toContain('data-entity-tone="member"')
+    expect(html).toContain('青空成员 · 成员 · @qingkong')
+    expect(html).toContain('ls-entity-tag__name')
+    expect(html).toContain('n-tag__close')
+    expect(virtualHtml).toContain('data-entity-tone="virtual"')
+    expect(virtualHtml).toContain('协作助手 · 虚拟实体 · @helper')
+  })
+
+  it('Entity 下拉统一提供类型、slug 与多字段搜索', () => {
+    const source = readFileSync(new URL('./components/LsEntitySelect.vue', import.meta.url), 'utf8')
+    expect(source).toContain('class="ls-entity-select"')
+    expect(source).toContain('ls-entity-select-option__type')
+    expect(source).toContain('entityTypeLabel(entity.entityType)')
+    expect(source).toContain('[entity.name, entity.slug, entityTypeLabel(entity.entityType), entity.value]')
+    expect(source).toContain('h(LsEntityTag')
+    expect(source).toContain("class: 'ls-entity-select-value'")
+    expect(source).toContain(':render-tag="renderTag"')
+    expect(source).not.toContain('ls-entity-select-tag__name')
+    expect(source).toContain(":max-tag-count=\"multiple ? 'responsive' : undefined\"")
+  })
+
   it('页面标题、工作区标题和响应式动作始终保留可读文字', async () => {
     const pageHeader = await render(LsPageHeader, { title: '成员', description: '团队成员目录' })
     const workspaceHeader = await render(LsWorkspaceHeader, { contextLabel: 'TEAM WORKSPACE', title: '成员', actions: [{ key: 'notice', label: '通知' }] })
@@ -308,7 +359,7 @@ describe('后台设计系统组件契约', () => {
     expect(actions).not.toContain('n-button--primary-type')
   })
 
-  it('LsWorkspaceOverview 保留双向操作、入口顺序、禁用原因与区域语义', async () => {
+  it('LsWorkspaceOverview 保留双向操作、入口顺序、可解释禁用与区域语义', async () => {
     const html = await render(LsWorkspaceOverview, {
       eyebrow: '商品个人工作台',
       title: '管理自己的商品与业务订单',
@@ -334,7 +385,16 @@ describe('后台设计系统组件契约', () => {
     expect(html.indexOf('我的业务订单')).toBeLessThan(html.indexOf('团队订单'))
     expect(html).toContain('aria-disabled="true"')
     expect(html).toContain('缺少 shop.order.read Permission')
+    expect(html).toMatch(/<button[^>]*aria-disabled="true"/)
+    expect(html).toMatch(/<button[^>]*aria-disabled="true"[^]*lucide-arrow-right[^]*<\/button>/)
+    expect(html).toMatch(/lucide-lock-keyhole[^]*不可用/)
+    expect(html).not.toContain('<small')
     expect(html).toContain('aria-labelledby="workspace-scope-title"')
+    const source = readFileSync(new URL('./components/LsWorkspaceOverview.vue', import.meta.url), 'utf8')
+    expect(source).toContain('feedback.info(reason.trim())')
+    expect(source).toContain('background:color-mix(in oklch,white,var(--cloud) 34%)')
+    expect(source).toContain('border-style:dashed')
+    expect(source).toContain('opacity:.52')
   })
 
   it('响应式数据表在移动端切换为同一份数据的记录结构', () => {

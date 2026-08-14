@@ -26,13 +26,15 @@
 | 商店 | `shop.product.read` | 查看商品 |
 | 商店 | `shop.product.write` | 创建、编辑商品和配置处理人 |
 | 商店 | `shop.product.delete` | 删除商品 |
-| 商店 | `shop.product.self.manage` | 管理当前 Entity 本人商品 |
+| 商店 | `shop.product.self.manage` | 管理当前 Entity 本人服务、权益包、卡活动、卡密与商品 |
+| 商店 | `shop.product.self.package.reprice` | 调整本人权益包内团队公用服务的商业金额；不由本人资源管理权限隐式包含 |
 | 商店 | `shop.order.read` | 查看订单 |
 | 商店 | `shop.order.write` | 创建、取消和完成订单 |
-| 交易 | `transaction.read` | 查看流水、余额日志、发单人和交易选项 |
+| 交易 | `transaction.read` | 查看 Team 全量流水、余额日志、发单人和交易选项；本人相关读取不依赖此权限 |
 | 交易 | `transaction.write` | 创建或编辑流水、充值及维护发单人绑定 |
 | 交易 | `transaction.delete` | 删除流水 |
-| 交易 | `transaction.report.read` | 查看交易统计报表 |
+| 交易 | `transaction.report.read` | 查看 Team 全量交易统计报表；个人业绩不依赖此权限 |
+| 交易 | `service.entitlement.grant` | 在个人工作台为当前 Entity 接待的客户赋予服务权益 |
 | 文件与设置 | `file.read` | 查看团队文件与用量 |
 | 文件与设置 | `file.upload` | 通过团队文件库上传团队文件；资源附件上传只受 File Ability 与所属资源编辑鉴权控制 |
 | 文件与设置 | `file.delete` | 删除团队文件 |

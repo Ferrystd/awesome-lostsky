@@ -11,21 +11,24 @@ Transaction 用于团队经营记录。所有金额、客户、参与 Entity、�
 
 | 编号 | 用户目标 | 典型前置条件 | 应有结果 |
 | --- | --- | --- | --- |
-| TRANS-01 | 查询流水 | Transaction Ability、`transaction.read` | 可筛选列表并查看当前团队流水详情 |
+| TRANS-01 | 查询团队全部流水 | Transaction Ability、`transaction.read` | 可筛选列表并查看当前团队流水详情 |
 | TRANS-02 | 新建或编辑流水 | Transaction Ability、`transaction.write`，且满足记账主体范围 | 平衡金额、参与方和余额变动在同一操作中保存 |
 | TRANS-03 | 删除手工流水 | Transaction Ability、`transaction.delete` | 流水删除，已消费预存余额安全退回 |
-| TRANS-04 | 查看经营统计 | Transaction Ability、`transaction.report.read` | 按时间得到摘要、趋势、接单人、客户和归属业绩 |
+| TRANS-04 | 查看团队经营统计 | Transaction Ability、`transaction.report.read` | 按时间得到摘要、趋势、接单人、客户和归属业绩 |
 | TRANS-05 | 维护发单绑定 | Transaction Ability；查看需 `transaction.read`，写入需 `transaction.write` | 客户与额外发单 Entity 的关系被保存或解除 |
 | TRANS-06 | 查询客户余额 | Transaction Ability、`transaction.read` | 查看可用余额、累计充值/消费及完整变动日志 |
 | TRANS-07 | 为客户充值 | Transaction Ability、`transaction.write` | 余额与充值日志在同一操作中更新 |
-| TRANS-09 | 查看归属业绩 | Transaction Ability、`transaction.report.read` | 按流水创建时的归属快照统计客户数、流水数和金额 |
-| TRANS-10 | 使用个人记账工作台 | 当前 Team、成员或虚拟 Entity，Transaction Ability 与对应 Permission | 流水、业绩、核销和绑定只按当前 Entity 的业务关系显示 |
+| TRANS-08 | 手动赋予客户权益 | Transaction Ability、`transaction.write`，Shop 已有可用服务套餐商品 | 客户获得独立权益且不创建订单；团队设置决定是否同步收款流水 |
+| TRANS-09 | 查看团队归属业绩 | Transaction Ability、`transaction.report.read` | 按流水创建时的归属快照统计客户数、流水数和金额 |
+| TRANS-10 | 使用个人记账工作台 | 当前 Team、成员或虚拟 Entity，Transaction Ability | 流水、业绩、核销、绑定和赠送记录只按当前 Entity 的业务关系显示，不要求 Team 全量 Permission |
+| TRANS-11 | 查看本人权益赠送记录 | 当前 Team、成员或虚拟 Entity，Transaction Ability | 查看当前 Entity 直接赠送的全部权益，不显示其他发单人记录 |
+| TRANS-12 | 为本人接待客户赠送权益 | Transaction Ability、`service.entitlement.grant`，且客户归属或绑定当前 Entity | 从“权益赠送”页进入独立任务，发单人固定为当前 Entity，不创建订单 |
 
 Transaction Ability 缺失时“记账”应用入口仍可见但禁用。直接打开普通记账地址只读取访问快照并显示不可用说明，不请求流水、统计、核销列表、绑定或余额接口。唯一业务例外是收口已经开始的履约：具备 `service.redemption.manage` 的 Entity 仍可提交“确认已核销”，但不会生成或后补流水。其他 Ability 降级见[能力、权限与功能降级](access-and-abilities.md)。
 
-个人工作台把“概览”固定为首个导航入口；相关流水、我的业绩、我的核销和客户协作保持为独立业务入口。个人工作台不提供 Entity 选择器，也不会把 Entity ID 发送给个人范围接口。服务端始终从当前 `acting_entity` 派生范围；即使拥有团队全量 Permission，个人模式也不会显示其他 Entity 的数据。
+个人工作台把“概览”固定为首个导航入口；相关流水、我的业绩、我的核销、客户协作和权益赠送保持为独立业务入口。这些入口及本人范围读取都不做业务 Permission 鉴权；`transaction.read`、`transaction.report.read` 等读取 Permission 只控制 Team 全量资源。只有列表页中的“赠送权益”按钮及赠送任务要求 `service.entitlement.grant`。个人工作台不提供 Entity 选择器，也不会把 Entity ID 发送给个人范围接口。服务端始终从当前 `acting_entity` 派生范围；即使拥有团队全量 Permission，个人模式也不会显示其他 Entity 的数据。
 
-团队和个人工作台的基础概览不要求业务 Permission；两者都把“概览”固定为首个导航入口。个人概览以当前 Entity 名称为主标题，并同时说明类型与所属团队。流水、经营统计、服务核销、发单绑定、余额和登记动作的入口仍会显示；缺少所需 Permission 时入口禁用并给出原因。缺少 Transaction Ability 时仅保留不可用说明与应用切换；已开始履约的完成请求按上一段例外处理。
+团队和个人工作台的基础概览不要求业务 Permission；两者都把“概览”固定为首个导航入口。个人概览以当前 Entity 名称为主标题，并同时说明类型与所属团队；全部本人相关读取入口始终可进入。团队流水、经营统计、全量发单绑定、余额和登记等 Team 范围入口在缺少所需 Permission 时禁用并给出原因；其中“服务核销”入口、列表和详情要求 `service.redemption.read` 或 `service.redemption.manage`，核销管理动作只接受 `service.redemption.manage`。缺少 Transaction Ability 时仅保留不可用说明与应用切换；已开始履约的完成请求按上一段例外处理。
 
 记账顶栏与 Team 工作台一致：桌面直接显示团队、商品、记账和聊天，移动端收进“操作”菜单，不显示应用下拉或个人/团队分段控件。团队概览以“进入个人工作台”进入个人概览；个人概览以“进入团队工作台”返回团队概览。向下滚动时顶栏随文档离开，不覆盖表单控件。两边概览只读取访问快照，不请求流水、统计、核销、绑定或余额数据。
 
@@ -35,6 +38,10 @@ Transaction Ability 缺失时“记账”应用入口仍可见但禁用。直接
 | --- | ---: | --- |
 | 商城下单 | 1 | Shop 在联动条件满足时自动创建；不能在 Transaction 单独编辑或删除，应操作对应订单 |
 | 记账登记 | 2 | 用户从“登记流水”创建；可按 Permission 和 Ability 编辑或删除 |
+| 服务包收款 | 3 | 服务套餐订单或开启同步的手动权益赋予生成；不计为履约业绩 |
+| 服务核销 | 4 | 服务完成时生成，以服务权益而非现金表达履约与分成 |
+| 履约加价收款 | 5 | 客户确认加价时生成，单独计入收款 |
+| 履约加价业绩 | 6 | 主履约完成时生成，不重复计入现金收入 |
 
 类型用于区分来源，不等于支付方式。现款和预存款在同一条流水中分别记录。
 
@@ -42,7 +49,7 @@ Transaction Ability 缺失时“记账”应用入口仍可见但禁用。直接
 
 流水列表按交易时间倒序显示，可以按关键词、时间、类型、接单人、发单人、客服和客户筛选。关键词主要匹配客户资料。
 
-进入详情后可以查看参与 Entity、客户、总价、支付构成、成本与分配、交易时间和备注。`transaction.read` 同时允许读取流水表单的完整团队 Entity 和客户选项；选项出现不代表提交一定通过，服务端仍会检查对象状态和团队归属。
+进入详情后可以查看参与 Entity、客户、总价、支付构成、成本与分配、交易时间和备注。个人“相关流水”只显示当前 Entity 作为接单人、发单人或客服参与的记录，不要求 `transaction.read`；Team 全量流水与完整团队 Entity、客户选项仍要求 `transaction.read`。选项出现不代表提交一定通过，服务端仍会检查对象状态和团队归属。
 
 ## 登记一条平衡流水
 
@@ -125,6 +132,19 @@ Team、成员、客户和虚拟实体可以作为业务参与 Entity，但具体
 
 查看绑定需要 Transaction Ability 和 `transaction.read`，新增和解除需要 Transaction Ability 和 `transaction.write`。Ability 缺失时绑定入口保留为禁用态，记账前端不会请求绑定接口。
 
+## 权益赠送
+
+个人工作台的“权益赠送”入口先打开本人赠送记录，显示当前 Entity 作为发单人直接赠送的全部权益，包括客户、来源商品、服务权益、赠送与剩余额度、状态、赠送时间和有效期。商城订单或卡密发放的权益不属于本人直接赠送，不进入该列表。列表本身不要求业务 Permission；缺少 `service.entitlement.grant` 时仍能查看记录，但“赠送权益”按钮不可用并说明原因。
+
+团队管理者可在“服务核销”页选择“赋予客户权益”；具备 `service.entitlement.grant` 的发单人可在个人“权益赠送”页选择“赠送权益”。两种入口复用一个单列表单：
+
+1. 选择 Shop 中已启用的服务套餐商品；普通商品、权益卡密商品和停用商品不会出现在候选中。
+2. 选择客户和赋予份数。团队入口中 Team Entity 可选择全部有效客户，成员和虚拟 Entity 只看到当前归属或发单绑定的客户；个人入口始终只显示当前 Entity 归属或发单绑定的客户。每一份都会复制商品关联权益包内的全部服务权益。
+3. 团队入口核对发单人和可选客服，客户已有当前归属时优先使用该归属；个人入口不显示发单人选择，服务端固定写入当前 Entity，不能通过请求改成他人。
+4. 提交后查看结果提示中的权益项数和流水状态。
+
+这条路径不创建 Shop 订单，也不扣客户预存余额。权益直接归 Customer 根 Entity，并保留来源商品、发单人、客服、金额与分成快照。团队设置“手动赋予权益时同步流水”默认关闭：关闭时只生成权益；开启且 Transaction Ability 有效时，系统按商品价与份数同时生成一笔“服务包收款”。商品和权益包仍在 Shop 后台维护，Shop Ability 只决定公开商城是否开放，不阻止后台维护或本任务读取商品快照。
+
 ## 客户余额与充值
 
 “客户余额”展示：
@@ -149,6 +169,8 @@ Team、成员、客户和虚拟实体可以作为业务参与 Entity，但具体
 
 Shop 的“自动同步记账流水”设置默认开启，但只有 Transaction Ability 等级至少为 1 且未过期时，新订单才生成类型为“商城下单”的关联流水。
 
+“手动赋予权益时同步流水”是独立设置，默认关闭，不继承订单同步开关。它只控制直接赋予权益时是否生成“服务包收款”，不会让该动作产生 Shop 订单。
+
 联动不可用时：
 
 - 订单仍会创建；
@@ -169,6 +191,7 @@ Shop 的“自动同步记账流水”设置默认开启，但只有 Transaction
 | 预存款字段不可用 | 客户选项缺失，或尚未选择客户 | 等待选项恢复并选择客户 |
 | 余额不足 | 客户余额小于预存款金额 | 先由授权 Entity 充值或改用现款 |
 | 无权执行记账 | 当前 Entity 不是 Team、客户归属人或绑定发单人 | 调整归属/绑定，或切换合法身份 |
+| 个人工作台不能赋予权益 | 缺少 `service.entitlement.grant`，或客户不属于当前归属/发单绑定范围 | 授予专用 Permission，并核对客户归属或发单绑定 |
 | 商城流水无法编辑/删除 | 它由订单联动生成 | 回到订单流程操作 |
 | 报表空但存在订单 | 时间范围不匹配，或订单未同步为流水 | 核对日期和商城联动条件 |
 

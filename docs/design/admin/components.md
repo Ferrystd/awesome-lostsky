@@ -20,16 +20,19 @@
 | `LsStatusTag` | `label` 必填，`type=default/success/warning/error/info`；统一状态标签 | 调用端重复 `size=small`、`bordered=false`，或按页面自建 StatusBadge | 固定 small、无边框；颜色不能替代文案；移动端和文本放大时不裁切状态文案 |
 | `LsPage` | `as=main/section/div`（默认 `section`）、`width=wide/content/form`（默认 `wide`）、`id`；分别用于列表、详情、单列表单 | 页面再嵌套同类容器 | 320px 无横向溢出，桌面居中；页面只能有一个 `main` |
 | `LsPageHeader` | `title` 必填；`description`、`backTo`、`backLabel` 可选；`actions` 插槽只承载当前区域动作 | 页面自行复制标题栏；移动端堆叠孤立图标 | 标题层级唯一；返回区 44px；动作小屏单列；无返回目标时不渲染返回入口 |
+| `LsPagePrimaryAction` | `icon/label` 必填；`to`、`href`、`type`、`loading`、`disabled/disabledReason` 可选；只承载页面标题区唯一的主操作，发出 `click` | 页面手写 `primary-link`；把 `RouterLink` 套在按钮外；省略图标；把危险、次要、筛选、状态或表单底部命令并入；调用方传宽度、尺寸或视觉变体 | 始终为主色图标加文字；桌面与移动端统一为 8.5rem × 44px、10px 圆角，容器不足时才收缩且保持靠右；禁用态保留主色来源并以灰绿色降权，禁用原因可解释；内部路由渲染真实链接，命令由本组件的固定语义按钮执行 |
 | `LsWorkspaceHeader` | `contextLabel/title` 必填，`actions=[]`、`showMenu=true`；桌面应用入口由 `actions` 插槽承载，移动端按 `actions` 数据触发 `action` 事件 | 在组件内部增加应用下拉或个人/团队分段控件；移动端复制第二套顶栏；把响应式类直接传给无根 `NDropdown`；把顶栏设为 `sticky/fixed` 后覆盖滚动中的表单控件 | 桌面动作使用图标加文字；移动端进入“操作”菜单；禁用原因随菜单项保留；应用壳层负责保持当前团队与 Entity；顶栏参与正常文档流，滚动、聚焦和错误定位后不得遮挡字段 |
-| `LsWorkspaceOverview` | `eyebrow/title/description/actions/entries` 必填，`scopeNotes` 可选；动作支持内部路由、外部地址和主次层级；入口包含图标、标题、说明、目标与可选禁用原因 | 用无业务意义的指标填充概览；页面私有复制主视觉或入口卡片；隐藏无 Permission 入口；把应用切换或分段控件塞入概览 | 深色主视觉、主入口 `--afterglow`、白色细边界入口；禁用原因直接可见；桌面多列、移动单列且动作满宽；所有链接至少 44px，范围说明为连续紧凑区域 |
+| `LsWorkspaceOverview` | `eyebrow/title/description/actions/entries` 必填，`scopeNotes` 可选；动作支持内部路由、外部地址和主次层级；入口包含图标、标题、说明、目标与可选禁用原因 | 用无业务意义的指标填充概览；页面私有复制主视觉或入口卡片；隐藏无 Permission 入口；把应用切换或分段控件塞入概览 | 深色主视觉、主入口 `--afterglow`、白色细边界入口；无权限入口保留右侧箭头，以接近白色的禁用表面、弱虚线边界、降权前景和带锁图标的“不可用”标签共同表达状态，不在卡片内常驻错误，点击后由全局提示说明原因且不导航；桌面多列、移动单列且动作满宽；所有链接至少 44px，范围说明为连续紧凑区域 |
 | `LsListToolbar` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索列表'`、`countLabel=''`；`filters/actions` 插槽分别承载筛选与主操作 | 搜索图标放在输入外；数量漂移到列表外；把普通说明塞入筛选插槽；让 `NSelect` 在无确定宽度的容器中折叠 | 桌面搜索→筛选→动作→数量，搜索不超过 28rem、筛选通常为 10rem、控件高 40px；移动端纵向且控件高 44px；数量使用 `aria-live=polite` |
 | `LsFormList` | `v-model`、`itemKey`、`createItem` 必填；`itemLabel='项目'`、`addLabel='添加一项'`、`emptyText='尚未添加项目'`、`disabled=false`；`item` 插槽接收当前项目与索引 | 页面自行实现重复字段的增删排序；业务页面直接导入拖拽库；只提供拖拽而没有键盘替代路径；让行操作形成贯穿整项高度的侧栏并持续压缩业务字段 | 连续有边界列表；拖拽手柄、项目名称和行操作组成紧凑头部，`item` 内容在下一行占满名称至操作区的全部可用宽度；拖拽手柄支持指针与触控，上移/下移为完整键盘路径；增删排序后维持焦点并礼貌播报；行操作至少 44px；移动端字段与操作自然换行；减少动态时取消排序动画 |
 | `LsEntityIdentity` | `type/name/slug/imageUrl/fallback/size`；`status` 插槽只承载与当前主体直接相关的 `NTag`；真实头像优先，圆角方形回退 | 同一主体在列表和选择器使用圆形/不同信息结构；把主体状态推到列表行远端 | 类型、名称、slug 可辨；图片有替代文本；状态紧随名称且不挤压名称 |
+| `LsEntityTag` | `type/name` 必填；`slug` 可选，`closable/disabled=false`；发出 `close` | 页面把 Entity 退化为逗号拼接的纯文本；复制选择器内部标签样式；用状态标签冒充具体 Entity | 类型图标、语义色文字和同色浅底始终可辨，未知类型回退为品牌蓝而非灰色；名称单行省略并保留完整标题；胶囊可用于选择器已选值和紧凑只读列表，关闭目标不挤压名称 |
 | `LsEntityCard` | `entity` 必填；`clearable=false`、`clearLabel=''`、`chatEnabled=true`、`profileEnabled=true`；发出 `chat/profile/clear` | 自行复制主体卡片；无名称的纯图标清除动作 | 身份信息复用 `LsEntityIdentity`；清除按钮有可读标签；小屏动作换行但不隐藏语义 |
 | `LsEntityInput` | `modelValue/query/recent/candidates` 默认空，`multiple=false`，可传 `searchEntities/inputId/placeholder`；发出模型、查询、聊天和简介事件 | 页面另写主体候选器；少于 2 个字符调用远端搜索 | 远端搜索防抖 220ms、最多 6 项；错误只在候选区域显示；键盘焦点和结果角色可识别 |
+| `LsEntitySelect` | `modelValue/entities` 必填；`multiple/clearable/disabled/loading=false`，`placeholder="选择 Entity"`；发出 `update:modelValue` | 页面把 Entity 退化成纯名称下拉；自行复制类型、slug、图标或候选菜单样式；把候选的双层身份信息直接塞入已选标签 | 候选统一显示类型图标、名称、类型与 slug；名称、slug、类型和 ID 均可搜索；已选值只保留类型图标与单行名称，多选标签独立可删、长名称省略且不撑破容器 |
 | `LsResponsiveActions` | `actions` 必填；`primaryKey=''`、`moreLabel='更多'`；动作含 `key/label/disabled/reason/danger/icon`，选择后发出 `select`；行内入口统一为透明、无边框的图标加文字 | 手机端混排纯图标和文字；危险操作成为主操作；用主色填充、浅色底或圆角胶囊把行内入口伪装成一组按钮 | 禁用原因保留；危险项有文字；桌面显示完整动作；小于 640px 为一个主操作加菜单；触控区至少 44px；hover/focus 不改变布局边界 |
 | `LsResponsiveDataTable` | `columns/data/rowKey` 必填，`scrollX` 可选；只用于至少三个页面共享同一“桌面表格、移动记录”需求，移动结构通过 `mobile-title/mobile-status/mobile` 插槽表达 | 单页提前包装、复制两份数据请求或同时挂载两份重复语义 DOM；为不同业务语义增加视觉参数 | 桌面直接使用 `NDataTable`；小于 720px 只挂载由同一 `data` 渲染的连续记录，避免隐藏副本造成重复辅助语义；页面无横向溢出；移动记录保留标题、状态和字段名 |
-| `LsUploadField` | `modelValue=''`、`placeholder`、`buttonLabel='选择文件'`、`disabled/disabledReason/loading/progress/accept/multiple/showUrl`、`showReason=false`；发出模型、`choose/change`；内部命令必须复用 `LsButton` | 常驻“缺少能力”错误条；页面直接暴露原生文件输入；内部另用 `NButton` 形成第二套按钮 | 无能力时保持可解释禁用且不发请求；桌面上传命令在上传组件内固定 8.5rem，不把宽度下放或扩散为全局命令宽度；进度为区域状态；小于 640px 时纵向且按钮满宽 |
+| `LsUploadField` | `modelValue=''`、`placeholder`、`buttonLabel='选择文件'`、`disabled/disabledReason/loading/progress/accept/multiple/showUrl`、`showReason=false`；可选 `trigger` 插槽只接收 `choose/disabled/disabledReason/loading`；发出模型、`choose/change`；默认内部命令必须复用 `LsButton` | 常驻“缺少能力”错误条；页面直接暴露原生文件输入；内部另用 `NButton` 形成第二套按钮；触发插槽重新实现文件选择 | 无能力时保持可解释禁用且不发请求；默认桌面上传命令在上传组件内固定 8.5rem；只有页面标题区可用 `trigger` 组合 `LsPagePrimaryAction`，文件输入和选择逻辑仍由上传组件持有；进度为区域状态；小于 640px 时纵向且按钮满宽 |
 | `LsMediaUploadField` | `upload(file)` 必填；其余 URL、文件类型、按钮和禁用参数沿用 `LsUploadField`；自动回填单个文件 URL，并发出 `uploading/uploaded` | 页面重复解析文件事件、上传响应和错误；图片、视频字段只提供 URL 输入 | 选择文件后立即显示加载；失败在字段内可见；上传期间父表单可阻止保存；仍允许粘贴已登记 URL |
 | `LsEmptyState` | 只允许两个必填参数：`title` 为上方无数据文案，`description` 为下方提示文案；用于页面主内容或主集合没有数据、筛选无结果 | 新增图标、动作、尺寸、样式或插槽参数；页面用裸图标、标题和段落重新拼装；把加载或错误交给本组件；按视口宽度放大垂直留白 | 固定使用 Naive `NEmpty`、白色有边界面板和居中排版；标准最小高度为 `12rem`（192px）、上下内边距固定 `2rem`，仅在文案换行或文本放大确实需要时自然增高；桌面与移动端自然换行且无横向溢出；组件测试锁定仅有两个 props 和紧凑高度 |
 | `LsAsyncState` | `state=loading/error` 必填；`title/description` 可选、`rows=3`；只负责加载骨架和真实错误 | 承担空数据状态；手动“重试”按钮；同一错误同时全局提示；加载时空白 | 骨架数量稳定；错误使用区域 `alert` 且只出现一次；壳层和其他区域保持可用 |
@@ -49,11 +52,11 @@
 
 普通、未分组的多选字段统一使用 `LsCheckboxGroupField`。Admin 分组权限编辑器和 Team 动态加入字段需要业务分组或运行时控件分派，可直接使用 `NCheckboxGroup`；允许文件由源码契约精确锁定，不得扩散。
 
-页面的创建、保存、取消、删除、确认等命令必须使用 `LsButton`。直接 `NButton` 只允许用于应用壳层导航、Admin 平台命令搜索结果和确实没有可见文案的 44×44px 微操作；新增例外必须先在应用规则登记，并同步源码契约白名单。导航链接继续使用 `RouterLink` 或安全的 `<a>`，不得为了复用按钮外观把链接伪装成提交命令。
+普通页面的创建、保存、取消、删除、确认等命令必须使用 `LsButton`；页面标题区唯一主操作必须使用 `LsPagePrimaryAction`。直接 `NButton` 只允许用于应用壳层导航、Admin 平台命令搜索结果和确实没有可见文案的 44×44px 微操作；新增例外必须先在应用规则登记，并同步源码契约白名单。导航链接继续使用 `RouterLink` 或安全的 `<a>`，不得为了复用按钮外观把链接伪装成提交命令。
 
 ## 封闭契约补充
 
-- `LsFormActions` 负责表单命令组的排列：桌面端内容自适应、最小 7rem，小于 640px 满宽。`LsFormList` 的添加命令同样内容自适应、最小 7rem；上传命令只在 `LsUploadField` 内固定 8.5rem。不同任务不得为了视觉齐边共享一个全局宽度令牌，调用方也不得传递宽度、断点或视觉变体。
+- `LsPagePrimaryAction` 的等宽只属于“页面标题区唯一主操作”这一项完整语义，不是全局按钮令牌。`LsFormActions` 负责表单命令组的排列：桌面端内容自适应、最小 7rem，小于 640px 满宽；`LsFormList` 的添加命令同样内容自适应、最小 7rem；`LsUploadField` 的默认上传命令固定 8.5rem。其他不同任务不得为了视觉齐边共享宽度，调用方也不得传递宽度、断点或视觉变体。
 - `LsPage.width` 是页面根容器的语义容量（`wide/content/form`），不是任意子控件的视觉微调入口；页面需要不同的内容容量时选用该枚举，不新增自由宽度参数。
 - `LsResponsiveDataTable.scrollX` 表示桌面数据列所需的最小可读容量，只能由列内容推导；它不是页面为对齐或留白而传递的视觉宽度参数。
 - `LsMarkdownRenderer.context` 仅表达 `inline/document` 两种阅读语境，并由组件内部调整排版令牌；调用方不得穿透 Markdown 生成节点来改标题、字号、行高或间距。

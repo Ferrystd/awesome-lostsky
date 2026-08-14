@@ -1,6 +1,6 @@
 import { defineComponent, h } from 'vue'
 import { NInput, NSelect, NTag } from 'naive-ui'
-import { House, Pencil, ReceiptText, Save, ShoppingBag, Trash2, UserRound } from '@lucide/vue'
+import { House, Pencil, Plus, ReceiptText, Save, ShoppingBag, Trash2, UserRound } from '@lucide/vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsCheckboxGroupField from '@lostsky/ui/components/LsCheckboxGroupField.vue'
@@ -9,6 +9,8 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityCard from '@lostsky/ui/components/LsEntityCard.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
+import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
+import LsEntityTag from '@lostsky/ui/components/LsEntityTag.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormList from '@lostsky/ui/components/LsFormList.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
@@ -21,6 +23,7 @@ import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import LsPage from '@lostsky/ui/components/LsPage.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
@@ -54,6 +57,11 @@ const member: EntityDisplay = { type: 'teamMember', name: '青空成员', slug: 
 const customer: EntityDisplay = { type: 'teamCustomer', name: '长期客户', slug: 'customer-one' }
 const virtual: EntityDisplay = { type: 'teamVirtual', name: '协作助手', slug: 'helper' }
 const entities = [member, customer, virtual]
+const selectEntities = [
+  { entity_id: 1, type: 'team', name: '青空团队', slug: 'demo' },
+  { entity_id: 2, type: 'teamMember', name: '一个名称很长用于验证省略显示的协作成员', slug: 'qingkong' },
+  { entity_id: 3, type: 'teamVirtual', name: '协作助手', slug: 'helper' },
+]
 const markdown = '## 今日安排\n\n请联系 [@青空成员](lostsky://entity/qingkong) 确认任务。\n\n- 核对资料\n- 回复通知'
 const markdownEntities = entities.map(entity => ({
   slug: entity.slug,
@@ -78,6 +86,14 @@ const button = story('LsButton', allInteractive, state => stage(h(LsButton, {
   disabled: state === 'disabled',
   loading: state === 'loading',
 }, { icon: () => h(Save, { size: 17 }), default: () => state === 'error' ? '删除记录' : '保存修改' })))
+
+const pagePrimaryAction = story('LsPagePrimaryAction', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'mobile'], state => stage(h(LsPagePrimaryAction, {
+  icon: Plus,
+  label: '新建文档',
+  disabled: state === 'disabled',
+  disabledReason: state === 'disabled' ? '当前身份缺少文档创建权限' : '',
+  loading: state === 'loading',
+})), { error: '页面主操作不负责表达业务错误。' })
 
 const checkboxGroupField = story('LsCheckboxGroupField', ['default', 'hover', 'focus', 'active', 'disabled', 'error', 'mobile'], state => stage(h(LsCheckboxGroupField, {
   modelValue: state === 'active' ? [1, 2] : [1],
@@ -129,6 +145,24 @@ const entityCard = story('LsEntityCard', interactive, state => stage(h(LsEntityC
 const entityIdentity = story('LsEntityIdentity', passive, () => stage(h(LsEntityIdentity, {
   type: 'teamMember', name: '青空成员', slug: 'qingkong', fallback: 'initial', size: 'lg',
 }, { status: () => h(NTag, { size: 'small', type: 'success', bordered: false }, { default: () => '正常' }) })))
+
+const entityTag = story('LsEntityTag', ['default', 'disabled', 'mobile'], state => stage(h('div', { style: 'display:flex;flex-wrap:wrap;gap:8px' }, [
+  h(LsEntityTag, { type: 'team', name: '青空团队', slug: 'demo' }),
+  h(LsEntityTag, { type: 'teamMember', name: '一个名称很长用于验证省略显示的协作成员', slug: 'qingkong', closable: true, disabled: state === 'disabled' }),
+  h(LsEntityTag, { type: 'teamVirtual', name: '协作助手', slug: 'helper' }),
+])), { hover: '只读胶囊没有悬停动作。', focus: '只读胶囊不接收键盘焦点。', active: 'Entity 胶囊不表达选中状态。', loading: 'Entity 胶囊不负责加载状态。', error: 'Entity 胶囊不负责错误状态。' })
+
+const entitySelect = story('LsEntitySelect', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'mobile'], state => stage(h(LsEntitySelect, {
+  modelValue: [1, 2, 3],
+  entities: selectEntities,
+  multiple: true,
+  clearable: true,
+  placeholder: '选择接单 Entity',
+  disabled: state === 'disabled',
+  loading: state === 'loading',
+  show: state === 'active',
+  to: false,
+})), { error: '候选读取错误由页面附近的错误区域表达。' })
 
 const entityInput = story('LsEntityInput', ['default', 'hover', 'focus', 'active', 'error', 'mobile'], state => stage(h(LsEntityInput, {
   modelValue: state === 'active' ? [member] : [],
@@ -284,9 +318,9 @@ const workspaceOverview = story('LsWorkspaceOverview', allInteractive, state => 
 export const uiStories: Record<string, StoryDefinition> = {
   LsAsyncState: asyncState, LsButton: button, LsCheckboxGroupField: checkboxGroupField, LsDescriptionList: descriptionList,
   LsEmptyState: emptyState, LsEntityCard: entityCard,
-  LsEntityIdentity: entityIdentity, LsEntityInput: entityInput, LsField: field, LsFormList: formList,
+  LsEntityIdentity: entityIdentity, LsEntityInput: entityInput, LsEntitySelect: entitySelect, LsEntityTag: entityTag, LsField: field, LsFormList: formList,
   LsFormActions: formActions, LsFormSection: formSection, LsInlineError: inlineError, LsInput: input, LsListToolbar: listToolbar, LsMarkdownEditor: markdownEditor, LsMediaUploadField: mediaUploadField,
-  LsMarkdownRenderer: markdownRenderer, LsPage: page, LsPageHeader: pageHeader, LsPanel: panel,
+  LsMarkdownRenderer: markdownRenderer, LsPage: page, LsPageHeader: pageHeader, LsPagePrimaryAction: pagePrimaryAction, LsPanel: panel,
   LsResponsiveActions: responsiveActions, LsResponsiveDataTable: responsiveDataTable,
   LsRouteErrorBoundary: routeBoundary, LsSearchInput: searchInput, LsSectionHeader: sectionHeader, LsStatusTag: statusTag,
   LsSwitch: switchControl, LsSwitchField: switchField, LsUploadField: uploadField, LsWorkspaceHeader: workspaceHeader, LsWorkspaceOverview: workspaceOverview,

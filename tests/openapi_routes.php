@@ -29,7 +29,7 @@ foreach ($apps as $app) {
         ];
     }
 
-    if (in_array($app, ['shop', 'team'], true)) {
+    if (in_array($app, ['shop', 'team', 'transaction'], true)) {
         foreach ($definitions as $index => $definition) {
             if ($definition['complete']
                 || ($app === 'team' && !str_starts_with($definition['path'], 'customer'))) {

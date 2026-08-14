@@ -39,6 +39,7 @@
 | --- | --- | --- |
 | `fulfillOrder` | `model\TeamOrder $order` | `array` |
 | `servicesFromClaim` | `model\RedemptionClaim $claim`、`int $teamId`、`int $customerId`、`int $holderEntityId` | `array` |
+| `grantProduct` | `model\TeamProduct $product`、`model\TeamCustomer $customer`、`int $quantity`、`?int $senderEntityId`、`?int $csEntityId` | `array` |
 
 ## BenefitPackagePricing
 
@@ -206,25 +207,50 @@
 | --- | --- | --- |
 | `abilityCatalog` | — | `array` |
 | `teamOptions` | `int $teamId` | `array` |
-| `productOptions` | `int $teamId` | `array` |
-| `services` | `int $teamId`、`int $page`、`int $limit`、`string $keyword = ''` | `array` |
-| `service` | `int $teamId`、`int $id` | `array` |
+| `personalOptions` | `int $teamId`、`int $ownerEntityId` | `array` |
+| `productOptions` | `int $teamId`、`?int $ownerEntityId = null` | `array` |
+| `services` | `int $teamId`、`int $page`、`int $limit`、`string $keyword = ''`、`?int $ownerEntityId = null` | `array` |
+| `service` | `int $teamId`、`int $id`、`?int $ownerEntityId = null` | `array` |
 | `saveService` | `int $teamId`、`?int $id`、`array $data` | `int` |
 | `serviceHandlers` | `int $teamId`、`int $serviceId` | `array` |
 | `saveServiceHandlers` | `int $teamId`、`int $serviceId`、`array $entityIds` | `array` |
-| `disableService` | `int $teamId`、`int $id` | `void` |
-| `packages` | `?int $issuerTeamId`、`int $page`、`int $limit`、`string $keyword = ''` | `array` |
-| `package` | `?int $issuerTeamId`、`int $id` | `array` |
+| `disableService` | `int $teamId`、`int $id`、`?int $ownerEntityId = null` | `void` |
+| `packages` | `?int $issuerTeamId`、`int $page`、`int $limit`、`string $keyword = ''`、`?int $ownerEntityId = null` | `array` |
+| `package` | `?int $issuerTeamId`、`int $id`、`?int $ownerEntityId = null` | `array` |
 | `savePackage` | `?int $issuerTeamId`、`?int $id`、`array $data` | `int` |
-| `disablePackage` | `?int $issuerTeamId`、`int $id` | `void` |
-| `campaigns` | `?int $issuerTeamId`、`int $page`、`int $limit`、`string $keyword = ''` | `array` |
-| `campaign` | `?int $issuerTeamId`、`int $id` | `array` |
+| `disablePackage` | `?int $issuerTeamId`、`int $id`、`?int $ownerEntityId = null` | `void` |
+| `campaigns` | `?int $issuerTeamId`、`int $page`、`int $limit`、`string $keyword = ''`、`?int $ownerEntityId = null` | `array` |
+| `campaign` | `?int $issuerTeamId`、`int $id`、`?int $ownerEntityId = null` | `array` |
 | `saveCampaign` | `?int $issuerTeamId`、`?int $id`、`array $data` | `int` |
-| `disableCampaign` | `?int $issuerTeamId`、`int $id` | `void` |
-| `codes` | `?int $issuerTeamId`、`int $campaignId`、`int $page`、`int $limit` | `array` |
-| `issueCodes` | `?int $issuerTeamId`、`int $campaignId`、`array $data` | `array` |
-| `revealCode` | `?int $issuerTeamId`、`int $campaignId`、`int $codeId` | `array` |
-| `disableCode` | `?int $issuerTeamId`、`int $campaignId`、`int $codeId` | `void` |
+| `disableCampaign` | `?int $issuerTeamId`、`int $id`、`?int $ownerEntityId = null` | `void` |
+| `codes` | `?int $issuerTeamId`、`int $campaignId`、`int $page`、`int $limit`、`?int $ownerEntityId = null` | `array` |
+| `issueCodes` | `?int $issuerTeamId`、`int $campaignId`、`array $data`、`?int $ownerEntityId = null` | `array` |
+| `revealCode` | `?int $issuerTeamId`、`int $campaignId`、`int $codeId`、`?int $ownerEntityId = null` | `array` |
+| `disableCode` | `?int $issuerTeamId`、`int $campaignId`、`int $codeId`、`?int $ownerEntityId = null` | `void` |
+
+## EntitlementSelfManagement
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `options` | `int $teamId`、`array $actingEntity` | `array` |
+| `services` | `int $teamId`、`array $actingEntity`、`int $page`、`int $limit`、`string $keyword = ''` | `array` |
+| `service` | `int $teamId`、`array $actingEntity`、`int $id` | `array` |
+| `saveService` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`?int $id`、`array $data` | `int` |
+| `serviceHandlers` | `int $teamId`、`array $actingEntity`、`int $id` | `array` |
+| `saveServiceHandlers` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id`、`array $entityIds` | `array` |
+| `disableService` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id` | `void` |
+| `packages` | `int $teamId`、`array $actingEntity`、`int $page`、`int $limit`、`string $keyword = ''` | `array` |
+| `package` | `int $teamId`、`array $actingEntity`、`int $id` | `array` |
+| `savePackage` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`?int $id`、`array $data` | `int` |
+| `disablePackage` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id` | `void` |
+| `campaigns` | `int $teamId`、`array $actingEntity`、`int $page`、`int $limit`、`string $keyword = ''` | `array` |
+| `campaign` | `int $teamId`、`array $actingEntity`、`int $id` | `array` |
+| `saveCampaign` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`?int $id`、`array $data` | `int` |
+| `disableCampaign` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id` | `void` |
+| `codes` | `int $teamId`、`array $actingEntity`、`int $campaignId`、`int $page`、`int $limit` | `array` |
+| `issueCodes` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $campaignId`、`array $data` | `array` |
+| `revealCode` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $campaignId`、`int $codeId` | `array` |
+| `disableCode` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $campaignId`、`int $codeId` | `void` |
 
 ## Entity
 
@@ -343,6 +369,14 @@
 | `byAccount` | `string $account`、`string $password`、`array $deviceInfo = []` | `array` |
 | `loginSuccess` | `model\User $user`、`array $deviceInfo` | `array` |
 | `refresh` | `string $refreshToken` | `array` |
+
+## ManualEntitlementGrant
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `personalHistory` | `int $teamId`、`int $actorEntityId`、`string $keyword = ''`、`int $page = 1`、`int $limit = 20` | `array` |
+| `options` | `int $teamId`、`array $actingEntity`、`int $actorEntityId`、`bool $personal = false` | `array` |
+| `grant` | `int $teamId`、`int $actorEntityId`、`array $data`、`bool $personal = false` | `array` |
 
 ## Markdown
 
@@ -571,10 +605,11 @@
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `normalize` | `mixed $value`、`int $scale`、`mixed $step` | `string` |
+| `scaleForStep` | `mixed $step` | `int` |
+| `normalize` | `mixed $value`、`mixed $step` | `string` |
 | `toMinor` | `mixed $value` | `int` |
 | `fromMinor` | `int $minor` | `string` |
-| `display` | `mixed $value`、`int $scale` | `string` |
+| `display` | `mixed $value`、`mixed $step` | `string` |
 
 ## ServiceRedemption
 
@@ -749,6 +784,7 @@
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `internal` | `int $teamId`、`string $appName` | `array` |
+| `internalTyped` | `int $teamId`、`string $appName` | `array` |
 | `internalMany` | `array $teamIds`、`string $appName` | `array` |
 | `get` | `int $teamId`、`string $appName`、`array $actingEntity` | `array` |
 | `schema` | `int $teamId` | `array` |

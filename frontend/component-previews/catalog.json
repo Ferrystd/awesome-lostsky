@@ -112,14 +112,6 @@
     "aliases": ["实体权限卡片", "角色权限"]
   },
   {
-    "id": "team-entity-select-option",
-    "name": "EntitySelectOption",
-    "source": "frontend/apps/team/src/components/EntitySelectOption.vue",
-    "story": "frontend/component-previews/src/story-registry.ts#EntitySelectOption",
-    "category": "team",
-    "aliases": ["实体选择项", "对象选项"]
-  },
-  {
     "id": "team-entity-profile-fields",
     "name": "EntityProfileFields",
     "source": "frontend/apps/team/src/components/EntityProfileFields.vue",
@@ -142,6 +134,22 @@
     "story": "frontend/component-previews/src/story-registry.ts#ShopManageShell",
     "category": "shop",
     "aliases": ["商城管理壳层", "商家后台壳层"]
+  },
+  {
+    "id": "shop-resource-owner-tag",
+    "name": "ResourceOwnerTag",
+    "source": "frontend/apps/shop/src/components/ResourceOwnerTag.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#ResourceOwnerTag",
+    "category": "shop",
+    "aliases": ["资源归属标签", "团队公用标签"]
+  },
+  {
+    "id": "shop-product-fields-editor",
+    "name": "ProductFieldsEditor",
+    "source": "frontend/apps/shop/src/components/ProductFieldsEditor.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#ProductFieldsEditor",
+    "category": "shop",
+    "aliases": ["商品核销字段编辑器", "核销字段配置"]
   },
   {
     "id": "transaction-transaction-shell",
@@ -198,6 +206,22 @@
     "story": "frontend/component-previews/src/story-registry.ts#LsEntityIdentity",
     "category": "ui",
     "aliases": ["实体身份", "对象身份"]
+  },
+  {
+    "id": "ui-ls-entity-select",
+    "name": "LsEntitySelect",
+    "source": "frontend/packages/ui/src/components/LsEntitySelect.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsEntitySelect",
+    "category": "ui",
+    "aliases": ["实体选择器", "对象下拉列表", "接单人选择"]
+  },
+  {
+    "id": "ui-ls-entity-tag",
+    "name": "LsEntityTag",
+    "source": "frontend/packages/ui/src/components/LsEntityTag.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsEntityTag",
+    "category": "ui",
+    "aliases": ["实体胶囊", "实体标签", "对象胶囊"]
   },
   {
     "id": "ui-ls-entity-input",
@@ -286,6 +310,14 @@
     "story": "frontend/component-previews/src/story-registry.ts#LsPageHeader",
     "category": "ui",
     "aliases": ["公共页面标题", "标题栏"]
+  },
+  {
+    "id": "ui-ls-page-primary-action",
+    "name": "LsPagePrimaryAction",
+    "source": "frontend/packages/ui/src/components/LsPagePrimaryAction.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsPagePrimaryAction",
+    "category": "ui",
+    "aliases": ["页面主操作", "标题区主按钮", "右上角主按钮"]
   },
   {
     "id": "ui-ls-panel",

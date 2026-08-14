@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
-import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
+import LsEntitySelect from "@lostsky/ui/components/LsEntitySelect.vue";
 import LsListToolbar from "@lostsky/ui/components/LsListToolbar.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
+import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
 import { useQuery } from "@tanstack/vue-query";
@@ -59,12 +60,6 @@ const status = (v: number) =>
   ({ 1: "处理中", 2: "已完成", 3: "已取消" })[v] ?? "未知";
 const tone = (v: number) =>
   v === 2 ? "success" : v === 3 ? "default" : "warning";
-const entityOptions = computed(() =>
-  (options.data.value?.entities ?? []).map((e) => ({
-    label: e.name,
-    value: Number(e.entity_id ?? e.id),
-  })),
-);
 const customerOptions = computed(() =>
   (options.data.value?.customers ?? []).map((c) => ({
     label: c.nickname || c.name || `客户 #${c.id}`,
@@ -110,16 +105,7 @@ const columns: DataTableColumns<Row> = [
   <div class="manage-page">
     <LsPageHeader title="订单" description="查看销售记录并处理订单完成或取消。"
       ><template #actions>
-        <RouterLink
-          v-if="canManage('shop.order.write')"
-          v-slot="{ navigate }"
-          custom
-          to="/manage/orders/new"
-        >
-          <LsButton @click="navigate">
-            <template #icon><Plus :size="18" /></template>新建订单
-          </LsButton>
-        </RouterLink></template
+        <LsPagePrimaryAction v-if="canManage('shop.order.write')" :icon="Plus" label="新建订单" to="/manage/orders/new" /></template
       ></LsPageHeader
     ><LsListToolbar
       :searchable="false"
@@ -144,13 +130,14 @@ const columns: DataTableColumns<Row> = [
           filterable
           clearable
           placeholder="全部客户"
-          @update:value="filters.page = 1" /><NSelect
-          v-model:value="filters.handler_entity_id"
-          :options="entityOptions"
-          filterable
+          @update:value="filters.page = 1" /><LsEntitySelect
+          v-model="filters.handler_entity_id"
+          :entities="options.data.value?.entities ?? []"
+          :loading="options.isPending.value"
+          :disabled="options.isError.value"
           clearable
           placeholder="全部接单人"
-          @update:value="filters.page = 1" /></template></LsListToolbar
+          @update:model-value="filters.page = 1" /></template></LsListToolbar
     ><LsAsyncState
       v-if="query.isPending.value"
       state="loading"

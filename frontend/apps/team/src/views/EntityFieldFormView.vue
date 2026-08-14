@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
+import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
-import type { SelectOption, SelectRenderLabel } from 'naive-ui'
-import { computed, h, reactive, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
-import EntitySelectOption from '../components/EntitySelectOption.vue'
 
 type EntityType = 'entity' | 'customer' | 'virtual'
 interface EntityField {
@@ -54,19 +53,11 @@ interface EntityOption {
   name: string
   type: 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'
 }
-interface FieldEntitySelectOption extends SelectOption, EntityOption {}
-const entitySelectMenuProps = { class: 'entity-select-menu' }
 const entities = useQuery({
   queryKey: ['entity-options'],
   queryFn: () => api.get<EntityOption[]>('/entity/options'),
   enabled: computed(() => form.visibility === 6),
 })
-const entityOptions = computed<FieldEntitySelectOption[]>(() => (entities.data.value ?? []).map(entity => ({
-  label: `${entity.name} ${entity.slug ? `@${entity.slug}` : ''}`,
-  value: entity.entity_id,
-  ...entity,
-})))
-const renderEntityLabel: SelectRenderLabel = option => h(EntitySelectOption, { entity: option as FieldEntitySelectOption })
 const managerScopeOptions = [
   { label: '仅字段管理员', value: 1 },
   { label: '对象本人和字段管理员', value: 2 },
@@ -151,16 +142,12 @@ function deleteField() {
           <label>值可见范围<NSelect v-model:value="form.visibility" :options="visibilityOptions" /></label>
           <label v-if="form.visibility === 6">
             指定可见对象
-            <NSelect
-              v-model:value="form.visibility_target_ids"
-              :options="entityOptions"
-              :render-label="renderEntityLabel"
-              :menu-props="entitySelectMenuProps"
+            <LsEntitySelect
+              v-model="form.visibility_target_ids"
+              :entities="entities.data.value ?? []"
               :loading="entities.isPending.value"
-              :disabled="entities.isError.value || !entityOptions.length"
-              :virtual-scroll="false"
+              :disabled="entities.isError.value || !entities.data.value?.length"
               multiple
-              filterable
               clearable
               placeholder="选择可以查看此字段的对象"
             />

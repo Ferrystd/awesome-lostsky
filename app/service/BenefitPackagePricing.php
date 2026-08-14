@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\enum\BenefitPricingMode;
-use app\enum\ServiceDistributionMode;
 use app\model\BenefitPackage;
 use app\model\BenefitPackageService;
 use think\exception\HttpException;
@@ -29,48 +28,20 @@ final class BenefitPackagePricing
             'service_id' => (int) ($item['service_id'] ?? 0),
             'quantity' => $quantity,
             'valid_days' => $validDays,
-            'distribution_mode' => (int) ($item['distribution_mode'] ?? ServiceDistributionMode::Fixed->value),
-            'handler_rate_bp' => (int) ($item['handler_rate_bp'] ?? 0),
-            'sender_rate_bp' => (int) ($item['sender_rate_bp'] ?? 0),
-            'cs_rate_bp' => (int) ($item['cs_rate_bp'] ?? 0),
             'sort' => $sort,
         ];
         foreach (self::MONEY_FIELDS as $field) {
             $normalized[$field] = $this->money($item[$field] ?? 0);
         }
 
-        try {
-            $mode = ServiceDistributionMode::from($normalized['distribution_mode']);
-        } catch (\ValueError) {
-            throw new HttpException(422, '服务分成方式不正确');
-        }
-
         $price = $this->toCents($normalized['unit_price']);
         $cost = $this->toCents($normalized['unit_cost']);
         if ($cost > $price) throw new HttpException(422, '单项成本不能超过单项价格');
 
-        if ($mode === ServiceDistributionMode::Fixed) {
-            $fixed = $this->toCents($normalized['unit_handler_cut'])
-                + $this->toCents($normalized['unit_sender_cut'])
-                + $this->toCents($normalized['unit_cs_cut']);
-            if ($cost + $fixed > $price) throw new HttpException(422, '单项固定分成与成本之和不能超过单项价格');
-            $normalized['handler_rate_bp'] = 0;
-            $normalized['sender_rate_bp'] = 0;
-            $normalized['cs_rate_bp'] = 0;
-        } else {
-            foreach (['handler_rate_bp', 'sender_rate_bp', 'cs_rate_bp'] as $field) {
-                if ($normalized[$field] < 0 || $normalized[$field] > 10000) {
-                    throw new HttpException(422, '单项分成比例应在 0% 到 100% 之间');
-                }
-            }
-            if ($normalized['handler_rate_bp'] + $normalized['sender_rate_bp'] + $normalized['cs_rate_bp'] > 10000) {
-                throw new HttpException(422, '单项人员分成比例之和不能超过 100%');
-            }
-            $normalized['unit_handler_cut'] = '0.00';
-            $normalized['unit_sender_cut'] = '0.00';
-            $normalized['unit_cs_cut'] = '0.00';
-        }
-        $normalized['distribution_mode'] = $mode;
+        $fixed = $this->toCents($normalized['unit_handler_cut'])
+            + $this->toCents($normalized['unit_sender_cut'])
+            + $this->toCents($normalized['unit_cs_cut']);
+        if ($cost + $fixed > $price) throw new HttpException(422, '单项人员分配与成本之和不能超过单项价格');
 
         return $normalized;
     }
@@ -87,15 +58,9 @@ final class BenefitPackagePricing
         $available = $price - $cost;
         if ($available < 0) throw new HttpException(422, '权益包服务项成本超过价格');
 
-        if ($item->enumCase('distribution_mode') === ServiceDistributionMode::Rate) {
-            $handler = intdiv($available * (int) $item->handler_rate_bp, 10000);
-            $sender = intdiv($available * (int) $item->sender_rate_bp, 10000);
-            $cs = intdiv($available * (int) $item->cs_rate_bp, 10000);
-        } else {
-            $handler = $this->toCents((string) $item->unit_handler_cut);
-            $sender = $this->toCents((string) $item->unit_sender_cut);
-            $cs = $this->toCents((string) $item->unit_cs_cut);
-        }
+        $handler = $this->toCents((string) $item->unit_handler_cut);
+        $sender = $this->toCents((string) $item->unit_sender_cut);
+        $cs = $this->toCents((string) $item->unit_cs_cut);
         $team = $available - $handler - $sender - $cs;
         if ($team < 0) throw new HttpException(422, '权益包服务项分成不平衡');
 
@@ -141,13 +106,9 @@ final class BenefitPackagePricing
                 'valid_days' => $item->valid_days,
                 'unit_price' => $item->unit_price,
                 'unit_cost' => $item->unit_cost,
-                'distribution_mode' => $item->enumCase('distribution_mode')->value,
                 'unit_handler_cut' => $item->unit_handler_cut,
                 'unit_sender_cut' => $item->unit_sender_cut,
                 'unit_cs_cut' => $item->unit_cs_cut,
-                'handler_rate_bp' => $item->handler_rate_bp,
-                'sender_rate_bp' => $item->sender_rate_bp,
-                'cs_rate_bp' => $item->cs_rate_bp,
             ], $index);
         }
         return $result;

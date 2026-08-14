@@ -1,7 +1,7 @@
 import { auth } from '@lostsky/api/client'
 import { identityUrl, redirectToLogin, shopWorkspaceUrl } from '@lostsky/shared/navigation'
 import { createRouter, createWebHistory } from 'vue-router'
-import { hasWorkspacePermission, loadWorkspaceAccess } from './lib/workspace-access'
+import { hasWorkspacePermission, loadWorkspaceAccess, serviceRedemptionReadPermissions } from './lib/workspace-access'
 
 const TransactionsView = () => import('./views/TransactionsView.vue')
 const TransactionFormView = () => import('./views/TransactionFormView.vue')
@@ -19,6 +19,8 @@ const PersonalServiceTaskView = () => import('./views/PersonalServiceTaskView.vu
 const PersonalOverviewView = () => import('./views/PersonalOverviewView.vue')
 const UnavailableView = () => import('./views/UnavailableView.vue')
 const TeamOverviewView = () => import('./views/TeamOverviewView.vue')
+const EntitlementGrantView = () => import('./views/EntitlementGrantView.vue')
+const PersonalEntitlementsView = () => import('./views/PersonalEntitlementsView.vue')
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -28,19 +30,22 @@ export const router = createRouter({
     { path: '/overview', component: TeamOverviewView, meta: { title: '概览', pageWidth: 'wide', accessPublic: true } },
     { path: '/unavailable', component: UnavailableView, meta: { title: '记账暂不可用', pageWidth: 'content', accessPublic: true } },
     { path: '/personal', component: PersonalOverviewView, meta: { title: '概览', pageWidth: 'wide', workspace: 'personal', accessPublic: true } },
-    { path: '/personal/transactions', component: PersonalWorkspaceView, meta: { title: '与我相关的流水', pageWidth: 'wide', workspace: 'personal', personalSection: 'transactions', permission: 'transaction.read' } },
-    { path: '/personal/stats', component: PersonalWorkspaceView, meta: { title: '我的业绩', pageWidth: 'wide', workspace: 'personal', personalSection: 'stats', permission: 'transaction.report.read' } },
+    { path: '/personal/transactions', component: PersonalWorkspaceView, meta: { title: '与我相关的流水', pageWidth: 'wide', workspace: 'personal', personalSection: 'transactions' } },
+    { path: '/personal/stats', component: PersonalWorkspaceView, meta: { title: '我的业绩', pageWidth: 'wide', workspace: 'personal', personalSection: 'stats' } },
     { path: '/personal/services', component: PersonalWorkspaceView, meta: { title: '我的核销', pageWidth: 'wide', workspace: 'personal', personalSection: 'services' } },
     { path: '/personal/service-offers/:id(\\d+)', component: PersonalServiceTaskView, meta: { title: '接单邀请', pageWidth: 'content', workspace: 'personal', personalTask: 'offer' } },
     { path: '/personal/services/available/:id(\\d+)', component: PersonalServiceTaskView, meta: { title: '公开任务', pageWidth: 'content', workspace: 'personal', personalTask: 'available' } },
     { path: '/personal/services/:id(\\d+)', component: PersonalServiceTaskView, meta: { title: '我的核销任务', pageWidth: 'content', workspace: 'personal', personalTask: 'assigned' } },
-    { path: '/personal/bindings', component: PersonalWorkspaceView, meta: { title: '我的客户协作', pageWidth: 'wide', workspace: 'personal', personalSection: 'bindings', permission: 'transaction.read' } },
+    { path: '/personal/bindings', component: PersonalWorkspaceView, meta: { title: '我的客户协作', pageWidth: 'wide', workspace: 'personal', personalSection: 'bindings' } },
+    { path: '/personal/entitlements', component: PersonalEntitlementsView, meta: { title: '权益赠送', pageWidth: 'wide', workspace: 'personal' } },
+    { path: '/personal/entitlements/new', component: EntitlementGrantView, meta: { title: '赠送客户权益', pageWidth: 'form', workspace: 'personal', permission: 'service.entitlement.grant', permissionFallback: '/personal/entitlements' } },
     { path: '/new', component: TransactionFormView, meta: { title: '新建流水', pageWidth: 'form', permission: 'transaction.write' } },
     { path: '/detail', component: TransactionDetailView, meta: { title: '流水详情', pageWidth: 'content', permission: 'transaction.read' } },
     { path: '/edit', component: TransactionFormView, meta: { title: '编辑流水', pageWidth: 'form', permission: 'transaction.write' } },
     { path: '/stats', component: StatsView, meta: { title: '经营统计', pageWidth: 'wide', permission: 'transaction.report.read' } },
-    { path: '/services', component: ServicesView, meta: { title: '服务核销', pageWidth: 'wide' } },
-    { path: '/services/:id(\\d+)', component: ServiceDetailView, meta: { title: '核销详情', pageWidth: 'content' } },
+    { path: '/services', component: ServicesView, meta: { title: '服务核销', pageWidth: 'wide', permission: serviceRedemptionReadPermissions } },
+    { path: '/entitlements/new', component: EntitlementGrantView, meta: { title: '赋予客户权益', pageWidth: 'form', permission: 'transaction.write' } },
+    { path: '/services/:id(\\d+)', component: ServiceDetailView, meta: { title: '核销详情', pageWidth: 'content', permission: serviceRedemptionReadPermissions } },
     { path: '/bindings', component: BindingsView, meta: { title: '发单绑定', pageWidth: 'wide', permission: 'transaction.read' } },
     { path: '/binding-new', component: BindingFormView, meta: { title: '新增发单绑定', pageWidth: 'form', permission: 'transaction.write' } },
     { path: '/balances', component: BalancesView, meta: { title: '客户余额', pageWidth: 'wide', permission: 'transaction.read' } },
@@ -66,8 +71,10 @@ router.beforeEach(async (to) => {
     const access = await loadWorkspaceAccess()
     if (!access.abilities?.transaction?.enabled && to.path !== '/unavailable') return '/unavailable'
     if (access.abilities?.transaction?.enabled && to.path === '/unavailable') return '/'
-    const permission = String(to.meta.permission ?? '')
-    if (permission && !hasWorkspacePermission(access.permissions, permission)) return '/overview'
+    const permission = to.meta.permission
+    if (permission && !hasWorkspacePermission(access.permissions, permission as string | readonly string[])) {
+      return String(to.meta.permissionFallback ?? (to.meta.workspace === 'personal' ? '/personal' : '/overview'))
+    }
   } catch {
     if (to.path !== '/unavailable') return '/unavailable'
   }

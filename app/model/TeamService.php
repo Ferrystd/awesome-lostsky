@@ -24,7 +24,6 @@ class TeamService extends Base
         'name' => 'string',
         'description' => 'string',
         'unit_name' => 'string',
-        'quantity_scale' => 'integer',
         'quantity_step' => 'string',
         'default_total_price' => 'string',
         'default_cost' => 'string',
@@ -45,9 +44,10 @@ class TeamService extends Base
     protected $append = [];
 
     /** 只读字段 */
-    protected $readonly = ['team_id'];
+    protected $readonly = ['team_id', 'owner_entity_id'];
 
     public function team() { return $this->belongsTo(Team::class, 'team_id'); }
+    public function owner() { return $this->belongsTo(Entity::class, 'owner_entity_id'); }
     public function handlers() { return $this->hasMany(TeamServiceHandler::class, 'service_id'); }
     public function instances() { return $this->hasMany(TeamServiceInstance::class, 'service_id'); }
     public function entitlements() { return $this->hasMany(TeamServiceEntitlement::class, 'service_id'); }

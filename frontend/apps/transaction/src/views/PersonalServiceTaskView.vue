@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
+import { quantityScaleForStep } from '@lostsky/shared/quantity'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
@@ -31,7 +32,7 @@ const action = useMutation({
 })
 const row = computed(() => query.data.value as (ServiceAssignmentOffer & ServiceRedemption) | undefined)
 const customerName = computed(() => (row.value?.customer as any)?.profile?.name || (row.value?.customer as any)?.name || 'Customer')
-const quantityLabel = computed(() => `${Number(row.value?.quantity || 0).toFixed(Number(row.value?.entitlement?.quantity_scale ?? 0))} ${row.value?.entitlement?.unit_name || '单位'}`)
+const quantityLabel = computed(() => `${Number(row.value?.quantity || 0).toFixed(quantityScaleForStep(row.value?.entitlement?.quantity_step))} ${row.value?.entitlement?.unit_name || '单位'}`)
 const money = (value: unknown) => `¥${Number(value || 0).toFixed(2)}`
 const fieldValue = (field: ServiceField) => {
   if (field.value === null || field.value === undefined || field.value === '') return '—'

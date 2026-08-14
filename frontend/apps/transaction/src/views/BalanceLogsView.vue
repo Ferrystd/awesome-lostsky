@@ -4,9 +4,11 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import { useQuery } from '@tanstack/vue-query'
+import { CircleDollarSign } from '@lucide/vue'
 import { NPagination } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { computed, h, ref } from 'vue'
@@ -37,7 +39,7 @@ const columns: DataTableColumns<BalanceLog> = [
 <template>
   <div class="balance-logs-view">
     <LsPageHeader :title="`${customerName(customer, customerId)}的余额明细`" description="按发生时间查看充值、消费、退款和手动调整。" back-to="/balances" back-label="返回客户余额">
-      <template #actions><RouterLink class="primary-link" :to="`/recharge?customer_id=${customerId}`">为该客户充值</RouterLink></template>
+      <template #actions><LsPagePrimaryAction :icon="CircleDollarSign" label="为该客户充值" :to="`/recharge?customer_id=${customerId}`" /></template>
     </LsPageHeader>
     <LsPanel v-if="customer"><section class="balance-summary"><span>当前可用余额</span><strong class="ls-tabular">{{ money(customer.balance?.balance) }}</strong><small>累计充值 {{ money(customer.balance?.recharged) }} · 累计消费 {{ money(customer.balance?.spent) }}</small></section></LsPanel>
     <LsInlineError v-if="!customerId" message="缺少客户 ID。" />
