@@ -1387,7 +1387,11 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       const overviewActions = page.locator('.welcome-actions > :is(a, .welcome-document)')
       const overviewActionBoxes = await Promise.all((await overviewActions.all()).map(action => action.boundingBox()))
       expect(overviewActionBoxes).toHaveLength(2)
-      expect(Math.abs((overviewActionBoxes[0]?.width ?? 0) - (overviewActionBoxes[1]?.width ?? 0))).toBeLessThan(1)
+      if ((page.viewportSize()?.width ?? 0) < 480) {
+        expect(Math.abs((overviewActionBoxes[0]?.width ?? 0) - (overviewActionBoxes[1]?.width ?? 0))).toBeLessThan(1)
+      } else {
+        expect((overviewActionBoxes[0]?.width ?? 0) / (overviewActionBoxes[1]?.width ?? 1)).toBeCloseTo(7 / 6, 2)
+      }
       await expect(overviewActions.nth(0).locator('svg')).toHaveCount(2)
       await expect(overviewActions.nth(1).locator('svg')).toHaveCount(2)
       await expect(page.getByRole('link', { name: /实体 3/ })).toBeVisible()
