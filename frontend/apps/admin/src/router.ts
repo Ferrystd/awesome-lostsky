@@ -42,7 +42,7 @@ export const router = createRouter({
     { path: '/entitlements/campaigns', component: EntitlementCampaignsView, meta: { title: 'Ability 体验活动', permission: 'admin.entitlement.read' } },
     { path: '/entitlements/campaigns/new', component: EntitlementCampaignView, meta: { title: '创建 Ability 体验活动', permission: 'admin.entitlement.write', width: 'content' } },
     { path: '/entitlements/campaigns/:id(\\d+)', component: EntitlementCampaignView, meta: { title: 'Ability 体验活动', permission: 'admin.entitlement.read', width: 'content' } },
-    { path: '/forbidden', component: ForbiddenView, meta: { title: '没有访问权限', publicAdmin: true, width: 'content' } },
+    { path: '/forbidden', component: ForbiddenView, meta: { title: '没有访问权限（Permission）', publicAdmin: true, width: 'content' } },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
   scrollBehavior: () => ({ top: 0 }),

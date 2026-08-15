@@ -144,7 +144,7 @@ defineExpose({ save })
     :description="friendlyError(query.error.value)"
   />
   <template v-else>
-    <LsFormSection title="核销字段" description="客户字段在发起时填写，管理字段在确认完成时填写；停用不会删除历史值。">
+    <LsFormSection title="核销字段" description="顾客字段在发起时填写，管理字段在确认完成时填写；停用不会删除历史值。">
       <LsFormList v-model="fields" :item-key="field => field.key" :create-item="make" item-label="字段" add-label="添加核销字段">
         <template #item="{ item }">
           <div class="field-editor">
@@ -162,7 +162,7 @@ defineExpose({ save })
                 <NSelect :id="`field-input-${item.key}`" v-model:value="item.input_type" :options="inputTypes" />
               </LsField>
               <LsField label="填写阶段" :for-id="`field-stage-${item.key}`">
-                <NSelect :id="`field-stage-${item.key}`" v-model:value="item.fill_stage" :options="[{ label: '客户发起时', value: 'customer' }, { label: '管理确认时', value: 'manager' }]" />
+                <NSelect :id="`field-stage-${item.key}`" v-model:value="item.fill_stage" :options="[{ label: '顾客发起时', value: 'customer' }, { label: '管理确认时', value: 'manager' }]" />
               </LsField>
             </div>
             <LsField

@@ -37,7 +37,7 @@ const domainColumns: DataTableColumns<Domain> = [
 </script>
 
 <template>
-  <LsPageHeader title="团队详情" description="查看平台层面的团队状态、域名和能力，不进入团队内部修改内容。" back-to="/teams">
+  <LsPageHeader title="团队详情" description="查看平台层面的团队状态、域名和能力（Ability），不进入团队内部修改内容。" back-to="/teams">
     <template #actions><LsButton v-if="can('admin.team.moderate') && query.data.value && !query.data.value.is_cancelled" :variant="query.data.value.is_banned ? 'primary' : 'danger'" @click="dialog = true">{{ query.data.value.is_banned ? '解封团队' : '封禁团队' }}</LsButton></template>
   </LsPageHeader>
   <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
@@ -53,8 +53,8 @@ const domainColumns: DataTableColumns<Domain> = [
       <NDataTable v-else :columns="domainColumns" :data="query.data.value.domains" :row-key="row => row.id" />
     </LsPanel>
     <LsPanel>
-      <template #header><div><h2>已启用能力</h2><p>能力仅展示，不在 Admin 首版调整</p></div></template>
-      <LsEmptyState v-if="!query.data.value.abilities.length" title="没有额外能力" description="当前团队仅使用默认能力。" />
+      <template #header><div><h2>已启用能力（Ability）</h2><p>能力（Ability）仅展示，不在 Admin 首版调整</p></div></template>
+      <LsEmptyState v-if="!query.data.value.abilities.length" title="没有额外能力（Ability）" description="当前团队仅使用默认能力（Ability）。" />
       <div v-else class="ability-list"><div v-for="ability in query.data.value.abilities" :key="ability.id"><strong>{{ ability.ability_key }}</strong><span>等级 {{ ability.level }} · {{ ability.expire_time ? formatTime(ability.expire_time) : '永久' }}</span></div></div>
     </LsPanel>
   </template>

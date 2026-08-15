@@ -809,6 +809,12 @@
             ],
             "description": "0=false, 1=true"
           },
+          "assignee_entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "客户当前归属 Entity；为空表示未归属。"
+          },
           "nickname": {
             "type": "string"
           },
@@ -832,6 +838,91 @@
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp, seconds"
+          }
+        }
+      },
+      "PersonalCustomer": {
+        "type": "object",
+        "required": [
+          "id",
+          "entity_id",
+          "slug",
+          "name",
+          "is_blocked",
+          "balance",
+          "is_assignee",
+          "is_sender"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_blocked": {
+            "type": "boolean"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/Balance"
+          },
+          "assignee": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntitySummary"
+              }
+            ],
+            "nullable": true
+          },
+          "is_assignee": {
+            "type": "boolean",
+            "description": "当前 acting_entity 是否为客户当前归属。"
+          },
+          "is_sender": {
+            "type": "boolean",
+            "description": "当前 acting_entity 是否为客户协作发单人。"
+          }
+        }
+      },
+      "PersonalCustomerPage": {
+        "type": "object",
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalCustomer"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
           }
         }
       },
@@ -1054,38 +1145,6 @@
           }
         }
       },
-      "SenderBinding": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "team_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "customer_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "entity_id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "create_time": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Unix timestamp, seconds"
-          },
-          "customer": {
-            "$ref": "#/components/schemas/Customer"
-          },
-          "subject": {
-            "$ref": "#/components/schemas/Entity"
-          }
-        }
-      },
       "TransactionOptions": {
         "type": "object",
         "required": [
@@ -1195,6 +1254,18 @@
           "list": {"type": "array", "items": {"$ref": "#/components/schemas/PersonalEntitlementGrantRecord"}},
           "page": {"type": "integer", "minimum": 1},
           "limit": {"type": "integer", "minimum": 1, "maximum": 100}
+        }
+      },
+      "PersonalTransactionStats": {
+        "type": "object",
+        "required": ["handler_count", "sender_count", "cs_count", "monthly_performance_total", "monthly_flow_total", "performance_total"],
+        "properties": {
+          "handler_count": {"type": "integer", "minimum": 0, "description": "当前 Entity 作为接单人的非纯收款流水笔数。"},
+          "sender_count": {"type": "integer", "minimum": 0, "description": "当前 Entity 作为发单人的非纯收款流水笔数。"},
+          "cs_count": {"type": "integer", "minimum": 0, "description": "当前 Entity 作为客服的非纯收款流水笔数。"},
+          "monthly_performance_total": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$", "description": "当月当前 Entity 接单流水的业绩金额。"},
+          "monthly_flow_total": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$", "description": "当月当前 Entity 参与流水的现款与预存款收入。"},
+          "performance_total": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$", "description": "当前 Entity 接单流水的累计业绩金额。"}
         }
       },
       "TransactionStatsSummary": {
@@ -1881,7 +1952,7 @@
     "/workspace/access": {"get":{"tags":["Workspace"],"operationId":"transactionWorkspaceAccess","summary":"读取团队摘要、Permission 与 transaction Ability 快照","description":"这是 transaction Ability 缺失时唯一仍可访问的记账接口。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/WorkspaceAccessSnapshot"}}}]}}}}}}},
     "/personal/transactions": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransactions","summary":"读取当前 Entity 参与的流水","description":"服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数，也不要求 transaction.read。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}},{"name":"type","in":"query","schema":{"type":"integer"}},{"name":"keyword","in":"query","schema":{"type":"string"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
     "/personal/transactions/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransaction","summary":"读取当前 Entity 参与的流水详情","description":"只允许读取当前 acting_entity 参与的记录，不要求 transaction.read。","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"流水不存在或不属于当前个人范围"}}}},
-    "/personal/stats": {"get":{"tags":["Personal"],"operationId":"transactionPersonalStats","summary":"读取当前 Entity 个人业绩","description":"只汇总当前 acting_entity 作为接单人、发单人或客服取得的分配，不要求 transaction.report.read。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/stats": {"get":{"tags":["Personal"],"operationId":"transactionPersonalStats","summary":"读取当前 Entity 流水页个人统计","description":"返回接单、发单和客服累计笔数，以及月度业绩、月度流水和个人业绩。三类笔数与业绩排除纯收款流水；月度流水汇总本人参与流水的现款与预存款收入。不要求 transaction.report.read。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/PersonalTransactionStats"}}}]}}}}}}},
     "/personal/services": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServices","summary":"读取接单人三组工作台","description":"offers 为待确认指定邀请，available 为当前 Entity 有资格领取的公开任务，list 为当前 Entity 已接取的核销。显式接单池按名单限制，空接单池向全部有效接单 Entity 开放；领取前返回完整 Customer 核销字段。","security":[{"bearerAuth":[]}],"parameters":[{"name":"status","in":"query","schema":{"type":"integer"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
     "/personal/services/available": {"get":{"tags":["Personal"],"operationId":"transactionPersonalAvailableServices","summary":"分页读取当前 Entity 可以领取的公开任务","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
     "/personal/services/available/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalAvailableService","summary":"读取公开任务及完整核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"任务不存在或已被领取"}}}},
@@ -1892,7 +1963,8 @@
     "/personal/service-offers/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServiceOffer","summary":"读取指定邀请及完整核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"}}}},
     "/personal/service-offers/{id}/accept": {"post":{"tags":["Personal"],"operationId":"acceptPersonalServiceOffer","summary":"接受邀请并原子创建已分配核销中切片","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"responses":{"200":{"description":"已接受"},"409":{"description":"邀请已处理"},"422":{"description":"接单资格已失效"}}}},
     "/personal/service-offers/{id}/reject": {"post":{"tags":["Personal"],"operationId":"rejectPersonalServiceOffer","summary":"拒绝邀请并释放预占","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"responses":{"200":{"description":"已拒绝"}}}},
-    "/personal/bindings": {"get":{"tags":["Personal"],"operationId":"transactionPersonalBindings","summary":"读取当前 Entity 的客户协作与发单绑定","description":"只使用当前 acting_entity 查询绑定，不接受 Entity ID，也不要求 transaction.read。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/customers": {"get":{"tags":["Personal"],"operationId":"transactionPersonalCustomers","summary":"分页读取我的客户","description":"只使用当前 acting_entity，合并当前归属与协作发单客户并去重；同一客户分别返回 is_assignee 与 is_sender 关系标记，不接受 Entity ID，也不要求 Team 全量读取 Permission。","security":[{"bearerAuth":[]}],"parameters":[{"name":"keyword","in":"query","schema":{"type":"string"},"description":"按客户名称搜索。"},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/PersonalCustomerPage"}}}]}}}}}}},
+    "/personal/transaction-options": {"get":{"tags":["Personal"],"operationId":"transactionPersonalOptions","summary":"读取个人登记流水候选","description":"要求 transaction.write；Team Entity 返回团队全部候选，成员和虚拟 Entity 只返回当前归属或发单绑定客户。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/TransactionOptions"}}}]}}}},"403":{"description":"Transaction Ability 或 transaction.write 不满足"}}}},
     "/transaction": {
       "get": {
         "tags": [
@@ -2934,483 +3006,6 @@
             "$ref": "#/components/parameters/IdPath"
           }
         ],
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/transaction/sender": {
-      "get": {
-        "tags": [
-          "Sender"
-        ],
-        "summary": "当前成员绑定的客户列表",
-        "operationId": "transactionSenderIndex",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessEnvelope"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/SenderBinding"
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/transaction/sender/all": {
-      "get": {
-        "tags": [
-          "Sender"
-        ],
-        "summary": "全团队绑定关系列表",
-        "operationId": "transactionSenderAll",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessEnvelope"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/SenderBinding"
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/transaction/sender/bind": {
-      "post": {
-        "tags": [
-          "Sender"
-        ],
-        "summary": "绑定客户到发单人",
-        "operationId": "transactionSenderBind",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "entity_id",
-                  "customer_id"
-                ],
-                "properties": {
-                  "entity_id": {
-                    "type": "integer",
-                    "format": "int64"
-                  },
-                  "customer_id": {
-                    "type": "integer",
-                    "format": "int64"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/transaction/sender/unbind": {
-      "post": {
-        "tags": [
-          "Sender"
-        ],
-        "summary": "解绑发单人客户关系",
-        "operationId": "transactionSenderUnbind",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/PageId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "id"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "format": "int64"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "操作成功",

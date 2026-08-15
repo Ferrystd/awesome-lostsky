@@ -33,7 +33,7 @@ watch(shopName, (name) => { document.title = `${name} 商城 · LostSky` }, { im
       <img v-if="profile?.intro_image" :src="profile.intro_image" :alt="`${shopName} 商城视觉`" fetchpriority="high">
       <div v-else class="store-poster" aria-label="商城品牌海报">
         <div class="poster-orbit" aria-hidden="true" />
-        <div class="poster-top"><span>LOSTSKY</span><span>TEAM SHOP</span></div>
+        <div class="poster-top"><span>LostSky</span><span>团队商城</span></div>
         <div class="poster-center">
           <img v-if="profile?.avatar" :src="profile.avatar" alt="">
           <Sparkles v-else :size="34" :stroke-width="1.4" aria-hidden="true" />
@@ -75,7 +75,7 @@ watch(shopName, (name) => { document.title = `${name} 商城 · LostSky` }, { im
     </div>
     <div v-else class="collection-empty">
       <div class="empty-art" aria-hidden="true"><span /><span /><span /></div>
-      <div><p class="section-label">COMING SOON</p><h3>商品正在准备中</h3><p>{{ shopName }} 正在整理第一批陈列。这里不会用虚构商品填满页面，等团队准备好真实内容后再与你见面。</p></div>
+      <div><p class="section-label">即将上线</p><h3>商品正在准备中</h3><p>{{ shopName }} 正在整理第一批陈列。这里不会用虚构商品填满页面，等团队准备好真实内容后再与你见面。</p></div>
     </div>
   </section>
 </template>

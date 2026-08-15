@@ -41,7 +41,7 @@ final class BenefitPackagePricing
         $fixed = $this->toCents($normalized['unit_handler_cut'])
             + $this->toCents($normalized['unit_sender_cut'])
             + $this->toCents($normalized['unit_cs_cut']);
-        if ($cost + $fixed > $price) throw new HttpException(422, '单项人员分配与成本之和不能超过单项价格');
+        if ($cost + $fixed > $price) throw new HttpException(422, '单项人员分成与成本之和不能超过单项价格');
 
         return $normalized;
     }

@@ -54,7 +54,7 @@ const story = (name: string, supported: PreviewState[], render: StoryDefinition[
 })
 
 const member: EntityDisplay = { type: 'teamMember', name: '青空成员', slug: 'qingkong' }
-const customer: EntityDisplay = { type: 'teamCustomer', name: '长期客户', slug: 'customer-one' }
+const customer: EntityDisplay = { type: 'teamCustomer', name: '长期顾客', slug: 'customer-one' }
 const virtual: EntityDisplay = { type: 'teamVirtual', name: '协作助手', slug: 'helper' }
 const entities = [member, customer, virtual]
 const selectEntities = [
@@ -132,7 +132,7 @@ const asyncState = story('LsAsyncState', ['default', 'loading', 'error', 'mobile
   ? { state: 'error', title: '暂时无法读取', description: '网络连接失败，请稍后重新进入。' }
   : { state: 'loading', rows: state === 'mobile' ? 2 : 4 })))
 
-const emptyState = story('LsEmptyState', passive, () => stage(h(LsEmptyState, { title: '还没有客户', description: '客户领取团队身份后会出现在这里。' })))
+const emptyState = story('LsEmptyState', passive, () => stage(h(LsEmptyState, { title: '还没有顾客', description: '顾客领取团队身份后会出现在这里。' })))
 
 const entityCard = story('LsEntityCard', interactive, state => stage(h(LsEntityCard, {
   entity: member,
@@ -196,7 +196,7 @@ const input = story('LsInput', ['default', 'hover', 'focus', 'active', 'disabled
 const listToolbar = story('LsListToolbar', ['default', 'hover', 'focus', 'active', 'disabled', 'mobile'], state => stage(h(LsListToolbar, {
   modelValue: '', placeholder: '搜索字段名称或标识', ariaLabel: '搜索对象字段', countLabel: '12 个字段',
 }, {
-  filters: () => h(NSelect, { value: 'entity', disabled: state === 'disabled', options: [{ label: '人员', value: 'entity' }, { label: '客户', value: 'customer' }] }),
+  filters: () => h(NSelect, { value: 'entity', disabled: state === 'disabled', options: [{ label: '人员', value: 'entity' }, { label: '顾客', value: 'customer' }] }),
   actions: () => h(LsButton, { disabled: state === 'disabled' }, { default: () => '创建字段' }),
 })), { loading: '列表工具栏不负责加载状态。', error: '错误由列表内容区域表达。' })
 
@@ -224,11 +224,11 @@ const markdownRenderer = story('LsMarkdownRenderer', ['default', 'hover', 'focus
 const page = story('LsPage', passive, () => h(LsPage, { width: 'content' }, { default: () => stage([h('strong', '详情内容'), h('p', '页面容器控制内容宽度和纵向节奏。')]) }))
 
 const pageHeader = story('LsPageHeader', ['default', 'hover', 'focus', 'active', 'disabled', 'mobile'], state => stage(h(LsPageHeader, {
-  title: '对象字段', description: '统一定义人员、客户和虚拟实体的团队内部资料。', backTo: '/', backLabel: '返回工作台',
+  title: '对象字段', description: '统一定义人员、顾客和虚拟实体的团队内部资料。', backTo: '/', backLabel: '返回工作台',
 }, { actions: () => h(LsButton, { disabled: state === 'disabled' }, { default: () => '创建字段' }) })), { loading: '页面标题不负责加载状态。', error: '页面错误由内容区域表达。' })
 
 const panel = story('LsPanel', passive, () => stage(h(LsPanel, null, {
-  header: () => h('div', [h('strong', '客户资料'), h('p', '经营资料与当前状态')]),
+  header: () => h('div', [h('strong', '顾客资料'), h('p', '经营资料与当前状态')]),
   default: () => h('p', '当前归属：青空成员'),
   footer: () => h('small', '更新于今天 14:30'),
 })))

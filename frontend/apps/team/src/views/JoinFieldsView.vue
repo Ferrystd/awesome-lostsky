@@ -49,7 +49,7 @@ const statusOptions = [
     </AdminPageHeader>
 
     <LsAsyncState v-if="access.isPending.value" state="loading" :rows="3" />
-    <LsAsyncState v-else-if="access.isError.value" state="error" title="暂时无法确认申请字段权限" :description="friendlyError(access.error.value)" />
+    <LsAsyncState v-else-if="access.isError.value" state="error" title="暂时无法确认申请字段权限（Permission）" :description="friendlyError(access.error.value)" />
     <NAlert v-else-if="!canRead" type="warning" title="申请字段不可用">{{ permissionReason('team.join_field.read') }}</NAlert>
     <template v-else>
       <LsListToolbar v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索申请字段" :count-label="`${visibleRows.length} 个字段`">

@@ -141,7 +141,7 @@ final class ManualEntitlementGrant
         $customerId = (int) ($data['customer_id'] ?? 0);
         $quantity = (int) ($data['quantity'] ?? 1);
         if ($productId < 1 || $customerId < 1) {
-            throw new HttpException(422, '请选择服务套餐商品和客户');
+            throw new HttpException(422, '请选择服务套餐商品和顾客');
         }
         if ($quantity < 1 || $quantity > 999) {
             throw new HttpException(422, '赋予份数必须在 1 到 999 之间');
@@ -155,11 +155,11 @@ final class ManualEntitlementGrant
 
             $customer = app(CustomerAssignment::class)->customer($teamId, $customerId, true);
             if ((bool) $customer->is_blocked || !$customer->root_entity_id) {
-                throw new HttpException(422, '客户不可用');
+                throw new HttpException(422, '顾客不可用');
             }
 
             if ($personal && !$this->servesCustomer($teamId, $actorEntityId, $customer)) {
-                throw new HttpException(403, '只能为当前 Entity 接待的客户赋予权益');
+                throw new HttpException(403, '只能为当前 Entity 接待的顾客赋予权益');
             }
 
             $assignedSenderId = app(CustomerAssignment::class)->sender($customer, $teamId);

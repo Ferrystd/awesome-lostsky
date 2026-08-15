@@ -327,7 +327,7 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('ls-entity-tag__name')
     expect(html).toContain('n-tag__close')
     expect(virtualHtml).toContain('data-entity-tone="virtual"')
-    expect(virtualHtml).toContain('协作助手 · 虚拟实体 · @helper')
+    expect(virtualHtml).toContain('协作助手 · 虚拟实体（Virtual Entity） · @helper')
   })
 
   it('Entity 下拉统一提供类型、slug 与多字段搜索', () => {
@@ -409,14 +409,14 @@ describe('后台设计系统组件契约', () => {
   it('上传和错误状态提供禁用原因，且不渲染刷新或重试按钮', async () => {
     const upload = await render(LsUploadField, { disabled: true, disabledReason: '当前团队未开通文件上传', showUrl: false })
     const error = await render(LsAsyncState, { state: 'error', title: '暂时无法读取', description: '网络连接失败' })
-    const empty = await render(LsEmptyState, { title: '还没有客户', description: '客户领取身份后会出现在这里。' })
+    const empty = await render(LsEmptyState, { title: '还没有顾客', description: '顾客领取身份后会出现在这里。' })
     expect(upload).toContain('当前团队未开通文件上传')
     expect(upload).toContain('disabled')
     expect(upload).not.toContain('ls-upload-field__reason')
     expect(error).toContain('网络连接失败')
     expect(error).not.toMatch(/刷新|重试/)
-    expect(empty).toContain('还没有客户')
-    expect(empty).toContain('客户领取身份后会出现在这里。')
+    expect(empty).toContain('还没有顾客')
+    expect(empty).toContain('顾客领取身份后会出现在这里。')
   })
 
   it('LsUploadField 可说明的禁用入口只提示原因，不打开文件选择', () => {
@@ -464,14 +464,14 @@ describe('后台设计系统组件契约', () => {
       headingLevel: 2,
       description: '关闭后商品不会在商城展示。',
       disabled: true,
-      disabledReason: '缺少商品管理权限',
+      disabledReason: '缺少商品管理权限（Permission）',
     })
     expect(html).toContain('id="product-active-label"')
     expect(html).toContain('<h2 id="product-active-label"')
     expect(html).toContain('aria-label="设置商品上架状态"')
     expect(html).not.toContain('aria-labelledby="product-active-label"')
     expect(html).toContain('aria-describedby="product-active-description product-active-reason"')
-    expect(html).toContain('缺少商品管理权限')
+    expect(html).toContain('缺少商品管理权限（Permission）')
     const source = readFileSync(new URL('./components/LsSwitchField.vue', import.meta.url), 'utf8')
     expect(source).toContain('min-height:56px')
     expect(source).toContain('min-height:44px')

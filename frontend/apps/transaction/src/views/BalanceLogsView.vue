@@ -38,11 +38,11 @@ const columns: DataTableColumns<BalanceLog> = [
 
 <template>
   <div class="balance-logs-view">
-    <LsPageHeader :title="`${customerName(customer, customerId)}的余额明细`" description="按发生时间查看充值、消费、退款和手动调整。" back-to="/balances" back-label="返回客户余额">
-      <template #actions><LsPagePrimaryAction :icon="CircleDollarSign" label="为该客户充值" :to="`/recharge?customer_id=${customerId}`" /></template>
+    <LsPageHeader :title="`${customerName(customer, customerId)}的余额明细`" description="按发生时间查看充值、消费、退款和手动调整。" back-to="/balances" back-label="返回顾客余额">
+      <template #actions><LsPagePrimaryAction :icon="CircleDollarSign" label="为该顾客充值" :to="`/recharge?customer_id=${customerId}`" /></template>
     </LsPageHeader>
     <LsPanel v-if="customer"><section class="balance-summary"><span>当前可用余额</span><strong class="ls-tabular">{{ money(customer.balance?.balance) }}</strong><small>累计充值 {{ money(customer.balance?.recharged) }} · 累计消费 {{ money(customer.balance?.spent) }}</small></section></LsPanel>
-    <LsInlineError v-if="!customerId" message="缺少客户 ID。" />
+    <LsInlineError v-if="!customerId" message="缺少顾客 ID。" />
     <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取余额明细" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
     <LsEmptyState v-else-if="!query.data.value?.list.length" title="还没有余额变动" description="充值或使用预存款后，记录会出现在这里。" />

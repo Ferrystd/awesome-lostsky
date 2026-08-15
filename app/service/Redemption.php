@@ -23,9 +23,9 @@ class Redemption
         if ($product->enumCase('kind') !== ProductKind::RedemptionCard || !$product->redemption_campaign_id) {
             throw new HttpException(422, '商品未配置卡密活动');
         }
-        if (!$order->customer_id) throw new HttpException(422, '卡密订单必须关联客户');
+        if (!$order->customer_id) throw new HttpException(422, '卡密订单必须关联顾客');
         $holderId = (int) $order->customer?->root_entity_id;
-        if ($holderId < 1) throw new HttpException(422, '订单客户Entity不存在');
+        if ($holderId < 1) throw new HttpException(422, '订单顾客Entity不存在');
 
         $ids = [];
         for ($ordinal = 1; $ordinal <= (int) $order->quantity; $ordinal++) {

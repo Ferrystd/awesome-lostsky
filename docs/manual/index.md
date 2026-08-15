@@ -11,7 +11,7 @@ description: 从用户任务出发了解 LostSky 已提供的功能、操作结�
 
 1. 在 Account 注册或登录统一账号。
 2. 创建团队，或进入已经加入的团队。
-3. 领取当前团队的成员或客户 Entity，确认页面显示的当前身份。
+3. 领取当前团队的成员或顾客 Entity，确认页面显示的当前身份。
 4. 进入 Team、Chat、Transaction、Display 或 Shop 完成任务。
 
 如果“账号、Entity、当前身份、Ability、Permission”仍然陌生，请先读[核心概念](concepts.md)。遇到入口禁用、团队不匹配或无权提示时，直接查看[能力、权限与功能降级](access-and-abilities.md)和[问题排查](troubleshooting.md)。
@@ -26,8 +26,8 @@ description: 从用户任务出发了解 LostSky 已提供的功能、操作结�
 | 注册、登录、创建或进入团队 | [账号、团队与身份](account-and-identity.md) |
 | 管理团队资料、成员、权限、内容和加入申请 | [团队工作台](team-workspace.md) |
 | 选择团队并发起会话 | [聊天](chat.md) |
-| 记录流水、查看统计、维护客户余额 | [记账与客户余额](transactions.md) |
-| 展示团队、浏览商品、维护商家客户资料或以客户身份购买 | [公开主页与商城](public-pages-and-shop.md) |
+| 记录流水、查看统计、维护顾客余额 | [记账与顾客余额](transactions.md) |
+| 展示团队、浏览商品、维护商家顾客资料或以顾客身份购买 | [公开主页与商城](public-pages-and-shop.md) |
 | 领取卡密、查看服务权益、发起或管理服务核销 | [卡密、Ability 与服务核销](service-redemption.md) |
 | 使用代招、按时长服务、公开召唤或履约加价 | [代招、按时长服务与履约加价](service-business-solutions.md) |
 | 治理整个平台 | [平台管理](platform-admin.md) |
@@ -41,7 +41,7 @@ description: 从用户任务出发了解 LostSky 已提供的功能、操作结�
 | --- | --- |
 | 团队成员 | 账号与身份、团队工作台、聊天 |
 | 团队负责人或角色管理员 | 核心概念、能力与权限、权限目录、团队工作台、记账 |
-| 商家客户 | 账号与身份、聊天、公开主页与商城 |
+| 商家顾客 | 账号与身份、聊天、公开主页与商城 |
 | 外部访客 | 公开主页与商城 |
 | LostSky 平台管理员 | 能力与权限、权限目录、平台管理 |
 

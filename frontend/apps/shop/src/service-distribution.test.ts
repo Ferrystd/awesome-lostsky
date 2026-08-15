@@ -48,7 +48,7 @@ describe('service default distribution', () => {
     expect(packageFormSource).toMatch(/id="`package-cost-\$\{item\.key\}`"[^>]+:step="0\.01"[^>]+:precision="2"/)
     expect(productFormSource).toContain('() => [form.price, form.cost] as const')
     expect(productFormSource).toContain('calculateDefaultServiceDistribution(form.price, form.cost, distributionRates)')
-    expect(productFormSource).toMatch(/title="默认分配"[\s\S]+label="成本"[\s\S]+id="product-cost"[^>]+:step="0\.01"[^>]+:precision="2"/)
+    expect(productFormSource).toMatch(/title="默认分成"[\s\S]+label="成本"[\s\S]+id="product-cost"[^>]+:step="0\.01"[^>]+:precision="2"/)
     expect(productFormSource).toMatch(/id="product-team-cut" :value="teamCut" :precision="2" disabled/)
   })
 

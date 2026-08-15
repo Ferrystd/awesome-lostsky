@@ -4,7 +4,7 @@ import { formatAbilityDenied, formatPermissionDenied } from '@lostsky/api/error-
 import { chatWorkspaceUrl, redirectToLogin, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
-import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Gift, Handshake, House, ListChecks, LogOut, Menu, MessageCircleMore, Plus, ReceiptText, Store, X } from '@lucide/vue'
+import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Gift, Handshake, House, ListChecks, LogOut, Menu, MessageCircleMore, ReceiptText, Store, X } from '@lucide/vue'
 import { NButton } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -15,19 +15,17 @@ const router = useRouter()
 const drawer = ref(false)
 const teamNav = [
   ['/overview', '概览', House, null],
-  ['/', '流水', ListChecks, 'transaction.read'],
-  ['/services', '服务核销', BadgeCheck, serviceRedemptionReadPermissions],
-  ['/stats', '统计', BarChart3, 'transaction.report.read'],
-  ['/bindings', '发单绑定', Handshake, 'transaction.read'],
-  ['/balances', '客户余额', CircleDollarSign, 'transaction.read'],
+  ['/', '团队流水', ListChecks, 'transaction.read'],
+  ['/stats', '经营统计', BarChart3, 'transaction.report.read'],
+  ['/services', '权益核销', BadgeCheck, serviceRedemptionReadPermissions],
+  ['/balances', '顾客余额', CircleDollarSign, 'transaction.read'],
 ] as const
 const personalNav = [
   ['/personal', '概览', House, null],
-  ['/personal/transactions', '相关流水', ListChecks, null],
-  ['/personal/stats', '我的业绩', BarChart3, null],
-  ['/personal/services', '我的核销', BadgeCheck, null],
-  ['/personal/bindings', '客户协作', Handshake, null],
-  ['/personal/entitlements', '权益赠送', Gift, null],
+  ['/personal/transactions', '我的流水', ListChecks, null],
+  ['/personal/services', '我的接单', BadgeCheck, null],
+  ['/personal/customers', '我的顾客', Handshake, null],
+  ['/personal/entitlements', '权益下发', Gift, null],
 ] as const
 const access = ref<WorkspaceAccess | null>(null)
 void loadWorkspaceAccess().then(value => { access.value = value }).catch(() => undefined)
@@ -36,14 +34,9 @@ const nav = computed(() => activeWorkspace.value === 'personal' ? personalNav : 
 const mobileNav = computed(() => nav.value.slice(0, 3))
 const title = computed(() => String(route.meta.title ?? '记账工作台'))
 const transactionReason = computed(() => {
-  if (!access.value) return '正在核对 transaction Ability'
+  if (!access.value) return '正在核对记账能力（Ability）'
   const transaction = access.value.abilities?.transaction
   return transaction?.enabled ? '' : formatAbilityDenied('transaction', transaction?.label ?? '记账')
-})
-const newReason = computed(() => {
-  if (!access.value) return '正在核对 Permission'
-  if (transactionReason.value) return transactionReason.value
-  return hasWorkspacePermission(access.value.permissions, 'transaction.write') ? '' : formatPermissionDenied(['transaction.write'])
 })
 const appEntries = computed(() => {
   const personal = activeWorkspace.value === 'personal'
@@ -64,7 +57,7 @@ function handleHeaderAction(key: string) {
 }
 function disabledReason(permission: WorkspacePermissionRequirement | null) {
   if (!permission) return ''
-  if (!access.value) return '正在核对 Permission'
+  if (!access.value) return '正在核对权限（Permission）'
   if (transactionReason.value) return transactionReason.value
   return hasWorkspacePermission(access.value.permissions, permission) ? '' : formatPermissionDenied(workspacePermissionKeys(permission))
 }
@@ -84,21 +77,19 @@ function logout() {
         <NButton quaternary aria-label="关闭导航" @click="drawer = false"><template #icon><X /></template></NButton>
       </div>
       <nav>
-        <p>TRANSACTION</p>
+        <p>记账</p>
         <template v-for="item in nav" :key="item[0]">
           <NButton v-if="disabledReason(item[3])" quaternary class="nav-disabled" :aria-label="`${item[1]}不可用：${disabledReason(item[3])}`" :title="disabledReason(item[3])" @click="explain(disabledReason(item[3]))"><component :is="item[2]" :size="19" /><span>{{ item[1] }}</span><ChevronRight :size="15" /></NButton>
           <RouterLink v-else :to="item[0]" @click="drawer = false"><component :is="item[2]" :size="19" /><span>{{ item[1] }}</span><ChevronRight :size="15" /></RouterLink>
         </template>
       </nav>
-      <NButton v-if="activeWorkspace === 'team' && newReason" quaternary class="new-entry disabled" :title="newReason" @click="explain(newReason)"><Plus :size="18" />登记流水</NButton>
-      <RouterLink v-else-if="activeWorkspace === 'team'" class="new-entry" to="/new" @click="drawer = false"><Plus :size="18" />登记流水</RouterLink>
       <NButton class="logout" quaternary @click="logout"><template #icon><LogOut :size="18" /></template>退出登录</NButton>
     </aside>
     <Transition name="ls-backdrop">
       <div v-if="drawer" class="backdrop" aria-hidden="true" @click="drawer = false"></div>
     </Transition>
     <section class="workspace">
-      <LsWorkspaceHeader context-label="TRANSACTION WORKSPACE" :title="title" :actions="headerActions" app-navigation @menu="drawer = true" @action="handleHeaderAction">
+      <LsWorkspaceHeader context-label="记账工作台" :title="title" :actions="headerActions" app-navigation @menu="drawer = true" @action="handleHeaderAction">
         <template #actions>
           <a class="app-link" :href="appEntries[0]?.href"><House :size="17" /><span>团队</span></a>
           <a class="app-link" :href="appEntries[1]?.href"><Store :size="17" /><span>商品</span></a>

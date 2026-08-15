@@ -24,7 +24,7 @@ describe('display public fields', () => {
     })).toBe('主持人')
     expect(formatPublicField({
       key: 'skills',
-      name: '能力',
+      name: '能力（Ability）',
       value_type: 'multi_select',
       value: ['guide', 'support'],
       options: [
@@ -61,7 +61,7 @@ describe('display public fields', () => {
   it('covers every public entity label', () => {
     expect(entityTypeLabel('team')).toBe('团队')
     expect(entityTypeLabel('teamMember')).toBe('成员')
-    expect(entityTypeLabel('teamVirtual')).toBe('虚拟实体')
+    expect(entityTypeLabel('teamVirtual')).toBe('虚拟实体（Virtual Entity）')
   })
 
   it('formats public product prices consistently with the shop', () => {

@@ -11,27 +11,31 @@ class TransactionStats
 
     public function personal(int $teamId, int $actorEntityId, int $startTime, int $endTime): array
     {
-        $base = TeamTransaction::where('team_id', $teamId)
-            ->where('trans_at', '>=', $startTime)
-            ->where('trans_at', '<', $endTime)
+        $query = static fn(int $from, int $to) => TeamTransaction::where('team_id', $teamId)
+            ->where('trans_at', '>=', $from)
+            ->where('trans_at', '<', $to)
             ->where(function ($scope) use ($actorEntityId) {
                 $scope->where('handler_entity_id', $actorEntityId)
                     ->whereOr('sender_entity_id', $actorEntityId)
                     ->whereOr('cs_entity_id', $actorEntityId);
             });
-        $row = $base->field([
-            'COUNT(*) as total_count',
-            "COALESCE(SUM(CASE WHEN handler_entity_id = {$actorEntityId} THEN handler_cut ELSE 0 END), 0) as handler_cut",
-            "COALESCE(SUM(CASE WHEN sender_entity_id = {$actorEntityId} THEN sender_cut ELSE 0 END), 0) as sender_cut",
-            "COALESCE(SUM(CASE WHEN cs_entity_id = {$actorEntityId} THEN cs_cut ELSE 0 END), 0) as cs_cut",
-            "SUM(CASE WHEN handler_entity_id = {$actorEntityId} AND type = 4 THEN 1 ELSE 0 END) as redemption_count",
+        $row = $query($startTime, $endTime)->field([
+            "SUM(CASE WHEN handler_entity_id = {$actorEntityId} AND type NOT IN (3, 5) THEN 1 ELSE 0 END) as handler_count",
+            "SUM(CASE WHEN sender_entity_id = {$actorEntityId} AND type NOT IN (3, 5) THEN 1 ELSE 0 END) as sender_count",
+            "SUM(CASE WHEN cs_entity_id = {$actorEntityId} AND type NOT IN (3, 5) THEN 1 ELSE 0 END) as cs_count",
+            "COALESCE(SUM(CASE WHEN handler_entity_id = {$actorEntityId} AND type NOT IN (3, 5) THEN total_price ELSE 0 END), 0) as performance_total",
         ])->find();
         $result = $row?->toArray() ?? [];
-        $result['performance_total'] = bcadd(bcadd(
-            (string) ($result['handler_cut'] ?? '0'),
-            (string) ($result['sender_cut'] ?? '0'),
-            2
-        ), (string) ($result['cs_cut'] ?? '0'), 2);
+
+        $referenceTime = max(1, $endTime - 1);
+        $monthStart = strtotime(date('Y-m-01 00:00:00', $referenceTime));
+        $monthEnd = strtotime('+1 month', $monthStart);
+        $monthly = $query(max($startTime, $monthStart), min($endTime, $monthEnd))->field([
+            "COALESCE(SUM(CASE WHEN handler_entity_id = {$actorEntityId} AND type NOT IN (3, 5) THEN total_price ELSE 0 END), 0) as monthly_performance_total",
+            'COALESCE(SUM(cash + prepaid), 0) as monthly_flow_total',
+        ])->find();
+
+        $result = array_merge($result, $monthly?->toArray() ?? []);
         return $result;
     }
 

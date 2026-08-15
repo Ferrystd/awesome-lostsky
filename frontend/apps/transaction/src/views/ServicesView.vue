@@ -22,7 +22,7 @@ import { hasWorkspacePermission, loadWorkspaceAccess } from "../lib/workspace-ac
 
 const access = useQuery({ queryKey: ["transaction-workspace-access"], queryFn: () => loadWorkspaceAccess() });
 const grantReason = computed(() => {
-  if (!access.data.value) return "正在核对 Permission";
+  if (!access.data.value) return "正在核对权限（Permission）";
   return hasWorkspacePermission(access.data.value.permissions, "transaction.write")
     ? ""
     : formatPermissionDenied(["transaction.write"]);
@@ -75,7 +75,7 @@ const columns: DataTableColumns<ServiceRedemption> = [
       ),
   },
   {
-    title: "客户",
+    title: "顾客",
     key: "customer",
     render: (r) =>
       h(LsEntityIdentity, {
@@ -129,14 +129,14 @@ const columns: DataTableColumns<ServiceRedemption> = [
   <div class="redemptions-view">
     <LsPageHeader
       title="服务核销"
-      description="接单 Entity 查看自己的任务；管理 Entity 处理改派、取消审批与确认完成。"
+      description="接单实体（Entity）查看自己的任务；管理实体（Entity）处理改派、取消审批与确认完成。"
     >
       <template #actions>
-        <LsPagePrimaryAction :icon="Gift" label="赋予客户权益" to="/entitlements/new" :disabled="Boolean(grantReason)" :disabled-reason="grantReason" />
+        <LsPagePrimaryAction :icon="Gift" label="赋予顾客权益" to="/entitlements/new" :disabled="Boolean(grantReason)" :disabled-reason="grantReason" />
       </template>
     </LsPageHeader><LsListToolbar
       v-model="filters.keyword"
-      placeholder="搜索服务或客户"
+      placeholder="搜索服务或顾客"
       aria-label="搜索服务核销"
       :count-label="`${query.data.value?.total ?? 0} 个服务实例`"
       @update:model-value="filters.page = 1"
@@ -166,7 +166,7 @@ const columns: DataTableColumns<ServiceRedemption> = [
       :description="
         filters.keyword || filters.status
           ? '调整搜索或状态筛选后再试。'
-          : '客户发起核销后，任务会出现在这里。'
+          : '顾客发起核销后，任务会出现在这里。'
       "
     /><LsResponsiveDataTable
       v-else
@@ -184,7 +184,7 @@ const columns: DataTableColumns<ServiceRedemption> = [
           :type="statusType(row.status)" /></template
       ><template #mobile="{ row }"
         ><dl>
-          <dt>客户</dt>
+          <dt>顾客</dt>
           <dd>{{ customerName(row.customer, row.customer_id) }}</dd>
           <dt>接单人</dt>
           <dd>{{ entityName(row.handler, row.handler_entity_id) }}</dd>

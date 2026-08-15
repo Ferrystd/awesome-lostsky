@@ -20,7 +20,7 @@ class ChatRealtime
         ], $secret, 'HS256');
         $url = trim((string) config('centrifugo.client_url'));
         if ($url === '') {
-            throw new \RuntimeException('Centrifugo 客户端地址尚未配置');
+            throw new \RuntimeException('Centrifugo 顾客端地址尚未配置');
         }
         return ['token' => $token, 'url' => $url];
     }

@@ -47,7 +47,7 @@ const fieldValue = (field: ServiceField) => {
 
 <template>
   <div class="personal-task-page">
-    <LsPageHeader :title="row?.service?.name || '接单任务'" :description="kind==='offer'?'Customer 指定邀请':kind==='available'?'公开召唤任务':'我的核销任务'" back-to="/personal/services" back-label="返回接单工作台" />
+    <LsPageHeader :title="row?.service?.name || '接单任务'" :description="kind==='offer'?'Customer 指定邀请':kind==='available'?'公开召唤任务':'我的接单任务'" back-to="/personal/services" back-label="返回接单工作台" />
     <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
     <LsAsyncState v-else-if="query.isError.value" state="error" title="无法读取任务" :description="friendlyError(query.error.value)" />
     <LsPanel v-else-if="row" class="task-panel">

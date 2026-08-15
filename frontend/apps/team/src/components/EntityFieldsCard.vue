@@ -135,7 +135,7 @@ function submit() {
     <header>
       <div>
         <h2 id="entity-fields-title">对象字段</h2>
-        <p>{{ mode === 'manager' ? '维护团队为这个成员配置的字段。' : '团队为当前实体配置的补充资料。' }}</p>
+        <p>{{ mode === 'manager' ? '维护团队为这个成员配置的字段。' : '团队为当前实体（Entity）配置的补充资料。' }}</p>
       </div>
       <LsButton
         v-if="mode !== 'readonly' && fields.some(editable)"

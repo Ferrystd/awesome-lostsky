@@ -37,7 +37,7 @@ const columns: DataTableColumns<Administrator> = [
 </script>
 
 <template>
-  <LsPageHeader title="平台管理员" description="管理员权限来自平台角色并集；超级管理员拥有全部平台权限。">
+  <LsPageHeader title="平台管理员" description="管理员权限（Permission）来自平台角色并集；超级管理员拥有全部平台权限（Permission）。">
     <template #actions>
       <LsPagePrimaryAction v-if="can('admin.access.write')" :icon="Plus" label="添加管理员" to="/administrators/new" />
     </template>

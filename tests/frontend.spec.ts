@@ -202,7 +202,7 @@ test('display public pages cover profile, entities, documents, sanitization and 
 
   await page.goto('http://demo.display.lostsky.work:5178/entities')
   await expect(page.getByRole('heading', { name: '公开实体', level: 1 })).toBeVisible()
-  await expect(page.getByRole('searchbox', { name: '搜索实体名称或 Slug' })).toBeVisible()
+  await expect(page.getByRole('searchbox', { name: '搜索实体（Entity）名称或 Slug' })).toBeVisible()
   await expect(page.getByText('共 22 个公开实体')).toBeVisible()
   await expect(page.locator('.entity-list > a')).toHaveCount(20)
   await expect(page.getByText('第 1 / 2 页')).toBeVisible()
@@ -210,12 +210,12 @@ test('display public pages cover profile, entities, documents, sanitization and 
   await expect(page.getByText('第 2 / 2 页')).toBeVisible()
   await expect(page.locator('.entity-list > a')).toHaveCount(2)
 
-  const directorySearch = page.getByRole('searchbox', { name: '搜索实体名称或 Slug' })
+  const directorySearch = page.getByRole('searchbox', { name: '搜索实体（Entity）名称或 Slug' })
   await directorySearch.fill('PUBLIC-BOT')
   await expect(page.getByText('共 1 个公开实体')).toBeVisible()
   await expect(page.getByRole('link', { name: /青空助手/ })).toBeVisible()
   await page.getByRole('button', { name: '成员', exact: true }).click()
-  await expect(page.getByText('没有符合条件的公开实体。')).toBeVisible()
+  await expect(page.getByText('没有符合条件的公开实体（Entity）。')).toBeVisible()
   await directorySearch.fill('')
   await expect(page.getByText('共 21 个公开实体')).toBeVisible()
   await page.getByRole('button', { name: '全部', exact: true }).click()
@@ -223,10 +223,10 @@ test('display public pages cover profile, entities, documents, sanitization and 
 
   entityIndexMode = 'empty'
   await page.reload()
-  await expect(page.getByText('团队暂时没有公开实体。')).toBeVisible()
+  await expect(page.getByText('团队暂时没有公开实体（Entity）。')).toBeVisible()
   entityIndexMode = 'error'
   await page.reload()
-  await expect(page.getByRole('alert')).toContainText('实体列表加载失败')
+  await expect(page.getByRole('alert')).toContainText('实体（Entity）列表加载失败')
   entityIndexMode = 'full'
   await page.getByRole('button', { name: '重试' }).click()
   await expect(page.getByText('共 22 个公开实体')).toBeVisible()
@@ -283,7 +283,7 @@ test('display public pages cover profile, entities, documents, sanitization and 
   expect(markdownTitleSize).toBeLessThan(documentTitleSize)
 
   await page.goto('http://demo.display.lostsky.work:5178/entity/hidden')
-  await expect(page.getByRole('heading', { name: '该实体没有公开资料' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '该实体（Entity）没有公开资料' })).toBeVisible()
 
   await page.goto('http://demo.display.lostsky.work:5178/not-a-route')
   await expect(page.getByRole('heading', { name: '这里没有可公开查看的内容' })).toBeVisible()
@@ -317,7 +317,7 @@ test('shop storefront supports public display, customer binding, balance purchas
     id: 31,
     team_id: 1,
     is_blocked: 0 as const,
-    profile: { name: '晚风客户', avatar: null, description: '熟悉青空服务' },
+    profile: { name: '晚风顾客', avatar: null, description: '熟悉青空服务' },
     identity: { slug: 'evening-sky' },
     balance: { balance: '100.00', recharged: '100.00', spent: '0.00' },
   }
@@ -401,7 +401,7 @@ test('shop storefront supports public display, customer binding, balance purchas
 
   await page.goto('http://demo.shop.lostsky.work:5179/product/1/checkout')
   await expect(page).toHaveURL(/\/customer\/bind/)
-  await expect(page.getByRole('heading', { name: '在 青空选物 建立客户账户' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '在 青空选物 建立顾客账户' })).toBeVisible()
   await page.getByRole('button', { name: '建立账户并继续' }).click()
   await expect(page).toHaveURL(/\/product\/1\/checkout$/)
   await expect(page.getByText('当前余额')).toBeVisible()
@@ -454,7 +454,7 @@ test('shop customer profile deep link stays in the Shop customer center', async 
             id: 31,
             team_id: 1,
             is_blocked: 0,
-            profile: { name: '深链接客户', avatar: null, description: null },
+            profile: { name: '深链接顾客', avatar: null, description: null },
             identity: { slug: 'deep-link' },
             balance: null,
           },
@@ -477,7 +477,7 @@ test('shop customer profile deep link stays in the Shop customer center', async 
   await page.goto('http://demo.shop.lostsky.work:5179/customer/profile')
   await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/customer/profile')
   await expect(page.getByRole('heading', { name: '我的资料', level: 1 })).toBeVisible()
-  await expect(page.getByLabel('团队内昵称')).toHaveValue('深链接客户')
+  await expect(page.getByLabel('团队内昵称')).toHaveValue('深链接顾客')
   await expect(page.getByRole('button', { name: '上传头像' })).toBeVisible()
   await page.locator('.ls-media-upload-field input[type="file"]').setInputFiles({ name: 'avatar.png', mimeType: 'image/png', buffer: Buffer.from('avatar') })
   await expect(page.locator('.ls-media-upload-field .n-input input')).toHaveValue('/uploads/avatar.png')
@@ -843,7 +843,7 @@ test('team keeps level 0 upload capacity while explaining read-only permissions'
   await expect(page.locator('.stats a[href="/docs"] strong svg')).toBeVisible()
 
   await page.goto('http://demo.team.lostsky.work:5175/entity?id=2')
-  await expect(page.getByText(/当前为只读模式。您缺少该团队权限\(Permission\): team\.entity\.profile\.manage,请联系团队管理员开通。/)).toBeVisible()
+  await expect(page.getByText(/当前为只读模式。您缺少该团队权限（Permission）: team\.entity\.profile\.manage,请联系团队管理员开通。/)).toBeVisible()
   const disabledSaveProfile = page.getByRole('button', { name: '保存资料' })
   const disabledAddDisplayTag = page.getByRole('button', { name: '添加展示标签' })
   await expect(disabledSaveProfile).toBeDisabled()
@@ -867,9 +867,9 @@ test('team keeps level 0 upload capacity while explaining read-only permissions'
   const uploadButton = page.getByRole('button', { name: '上传文件' })
   await expect(uploadButton).toBeDisabled()
   await expect(page.locator('.ls-upload-field__reason')).toHaveCount(0)
-  await expect(page.getByText('您缺少该团队权限(Permission): file.upload,请联系团队管理员开通。', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('您缺少该团队权限（Permission）: file.upload,请联系团队管理员开通。', { exact: true })).toHaveCount(0)
   await uploadButton.click({ force: true })
-  await expect(page.getByText('您缺少该团队权限(Permission): file.upload,请联系团队管理员开通。', { exact: true })).toBeVisible()
+  await expect(page.getByText('您缺少该团队权限（Permission）: file.upload,请联系团队管理员开通。', { exact: true })).toBeVisible()
 })
 
 test('team disables uploads by byte capacity and offers upgrades only to ability managers', async ({ page }) => {
@@ -1052,7 +1052,7 @@ test('team customer detail reports incomplete success responses instead of rende
     const data = path.endsWith('/access')
       ? { permissions: ['team.customer.read'], abilities: {} }
       : path.endsWith('/customer/518')
-        ? { id: 518, slug: 'broken-customer', name: '响应不完整的客户', can_manage: false }
+        ? { id: 518, slug: 'broken-customer', name: '响应不完整的顾客', can_manage: false }
         : []
     await route.fulfill({
       status: 200,
@@ -1064,15 +1064,21 @@ test('team customer detail reports incomplete success responses instead of rende
   await page.goto('http://demo.team.lostsky.work:5175/customers/518')
 
   const errorState = page.locator('.ls-async-state')
-  await expect(errorState).toContainText('暂时无法读取客户详情')
-  await expect(errorState).toContainText('客户详情数据不完整，请刷新后重试')
+  await expect(errorState).toContainText('暂时无法读取顾客详情')
+  await expect(errorState).toContainText('顾客详情数据不完整，请刷新后重试')
   expect(pageErrors).toEqual([])
 })
 
-test('team customer detail renders assignees as typed entity options', async ({ page }, testInfo) => {
+test('team customer detail reuses typed entity options for assignment and sender collaboration', async ({ page }, testInfo) => {
   await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
+  let customerUpdatePayload: Record<string, unknown> | null = null
   await page.route('http://demo.team.lostsky.work:5175/api/**', async route => {
     const path = new URL(route.request().url()).pathname
+    if (route.request().method() === 'POST' && path.endsWith('/customer/518')) {
+      customerUpdatePayload = route.request().postDataJSON() as Record<string, unknown>
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: '顾客资料已更新', data: null }) })
+      return
+    }
     const data = path.endsWith('/access')
       ? { permissions: ['team.customer.manage'], abilities: {} }
       : path.endsWith('/customer/assignees')
@@ -1086,13 +1092,14 @@ test('team customer detail renders assignees as typed entity options', async ({ 
           ? {
               id: 518,
               slug: 'customer-518',
-              name: '测试客户',
+              name: '测试顾客',
               avatar: null,
               description: null,
               is_blocked: false,
               create_time: 1_782_633_600,
               balance: { balance: '0.00', recharged: '0.00', spent: '0.00' },
               assignee: null,
+              senders: [{ entity_id: 3, slug: 'member-2', type: 'teamMember', name: 'member-2' }],
               summary: { transaction_count: 0, transaction_total: '0.00', order_count: 0, order_total: '0.00' },
               can_manage: true,
             }
@@ -1101,7 +1108,7 @@ test('team customer detail renders assignees as typed entity options', async ({ 
   })
 
   await page.goto('http://demo.team.lostsky.work:5175/customers/518')
-  const saveCustomerProfile = page.getByRole('button', { name: '保存客户资料' })
+  const saveCustomerProfile = page.getByRole('button', { name: '保存顾客资料' })
   await expect(saveCustomerProfile).toBeVisible()
   const saveCustomerProfileBox = await saveCustomerProfile.boundingBox()
   if (testInfo.project.name.includes('mobile')) expect(saveCustomerProfileBox?.width).toBeGreaterThan(160)
@@ -1118,6 +1125,14 @@ test('team customer detail renders assignees as typed entity options', async ({ 
   await expect(options.nth(0)).toContainText('@demo')
   await expect(options.nth(1)).toContainText('成员')
   await expect(options.nth(3)).toContainText('虚拟实体')
+  await page.keyboard.press('Escape')
+
+  await page.locator('#customer-senders').click()
+  await expect(page.locator('#customer-senders')).toContainText('member-2')
+  await page.locator('.ls-entity-select-menu:visible .ls-entity-select-option').nth(3).click()
+  await saveCustomerProfile.click()
+  await expect.poll(() => customerUpdatePayload).not.toBeNull()
+  expect(customerUpdatePayload).toMatchObject({ sender_entity_ids: [3, 4] })
 })
 
 test('team workspace routes remain responsive with the API boundary mocked', async ({ page }) => {
@@ -1187,7 +1202,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       { id: 42, field_key: 'portfolio', name: '作品说明', value_type: 'text', input_type: 'textarea', options: null, default_value: null, is_apply_fillable: 1, is_apply_required: 0, is_transfer_entity_field: 0, entity_field_id: null, entity_field: null, is_active: 0, sort: 20 },
     ]
     else if (url.pathname.endsWith('/joinField/transferOptions')) data = [{ id: 7, field_key: 'member_experience', name: '成员经验', value_type: 'string', input_type: 'text', sort: 10 }]
-    else if (url.pathname.endsWith('/doc/get')) data = { id: 11, title: '第一份文档', content: '欢迎 [@测试成员](lostsky://entity/alice)\n\n关联 [@测试团队](lostsky://entity/demo)、[@协作助手](lostsky://entity/helper) 和 [@测试客户](lostsky://entity/customer-1)。\n\n<script>window.__lostskyXss = 1</script>', entity_id: 1, manager_scope: 1, visibility: 1, sort: 0 }
+    else if (url.pathname.endsWith('/doc/get')) data = { id: 11, title: '第一份文档', content: '欢迎 [@测试成员](lostsky://entity/alice)\n\n关联 [@测试团队](lostsky://entity/demo)、[@协作助手](lostsky://entity/helper) 和 [@测试顾客](lostsky://entity/customer-1)。\n\n<script>window.__lostskyXss = 1</script>', entity_id: 1, manager_scope: 1, visibility: 1, sort: 0 }
     else if (url.pathname.endsWith('/doc')) data = { list: [{ id: 11, title: '第一份文档', content: '', visibility: 1 }, { id: 12, title: '第二份文档', content: '这是一段长度不同的摘要，用来验证文档卡片底栏仍然共用同一条基线。', visibility: 1 }], total: 2 }
     else if (url.pathname.endsWith('/member/get')) data = {
       id: 1,
@@ -1215,7 +1230,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     else if (url.pathname.endsWith('/customer')) {
       const list = url.searchParams.get('keyword')
         ? []
-        : [{ id: 8, slug: 'customer-1', name: '测试客户', avatar: null, description: '长期客户', is_blocked: false, create_time: 1_782_633_600, balance: { balance: '880', recharged: '1200', spent: '320' }, assignee: null }]
+        : [{ id: 8, slug: 'customer-1', name: '测试顾客', avatar: null, description: '长期顾客', is_blocked: false, create_time: 1_782_633_600, balance: { balance: '880', recharged: '1200', spent: '320' }, assignee: null }]
       data = { list, total: list.length, page: 1, limit: 20, scope: 'all' }
     }
     else if (url.pathname.endsWith('/postType/index')) data = []
@@ -1235,7 +1250,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     }
     else if (url.pathname.endsWith('/entity/options')) data = [
       { id: 1, entity_id: 1, type: 'team', slug: 'demo', name: '测试团队', avatar: null },
-      { id: 2, entity_id: 2, type: 'teamCustomer', slug: 'customer-1', name: '测试客户', avatar: null },
+      { id: 2, entity_id: 2, type: 'teamCustomer', slug: 'customer-1', name: '测试顾客', avatar: null },
       { id: 3, entity_id: 3, type: 'teamMember', slug: 'member-1', name: '测试成员', avatar: null },
       { id: 4, entity_id: 4, type: 'teamVirtual', slug: 'helper', name: '协作助手', avatar: null },
     ]
@@ -1244,7 +1259,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       { slug: 'alice', type: 'teamMember', display_name: '测试成员', available: true, team: { slug: 'demo', display_name: '测试团队' }, href: '/member-detail?id=1' },
       { slug: 'demo', type: 'team', display_name: '测试团队', available: true, team: null, href: '/' },
       { slug: 'helper', type: 'teamVirtual', display_name: '协作助手', available: true, team: { slug: 'demo', display_name: '测试团队' }, href: null },
-      { slug: 'customer-1', type: 'teamCustomer', display_name: '测试客户', available: true, team: { slug: 'demo', display_name: '测试团队' }, href: null },
+      { slug: 'customer-1', type: 'teamCustomer', display_name: '测试顾客', available: true, team: { slug: 'demo', display_name: '测试团队' }, href: null },
     ]
     else if (url.pathname.endsWith('/notice/get')) data = { id: 21, title: '维护窗口提醒', content: '## 维护安排\n\n请提前保存正在处理的内容。\n\n- 保存草稿\n- 回复确认\n\n<script>window.__noticeXss = 1</script>', is_pinned: 1, is_read: 0, create_time: 1752883200 }
     else if (url.pathname.endsWith('/notice/index')) data = emptyNotices
@@ -1281,13 +1296,13 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
           ],
         },
         {
-          app_name: 'chat', label: '聊天', description: '控制客户会话、群历史、已读回执与消息保留策略。', order: 20,
+          app_name: 'chat', label: '聊天', description: '控制顾客会话、群历史、已读回执与消息保留策略。', order: 20,
           settings: [
-            { key: 'customer_direct_start', label: '客户可发起单聊', description: '允许客户主动联系团队公开的成员或虚拟实体。', type: 'boolean', control: 'switch', order: 10, default: true, value: true },
-            { key: 'customer_group_mode', label: '客户群聊权限', description: '决定客户是否可以加入或创建群聊。', type: 'enum', control: 'radio', order: 20, default: 'invite_only', value: 'invite_only', options: [
-              { value: 'disabled', label: '禁止客户加入', description: '客户不能创建群聊，也不能被邀请进入群聊。' },
-              { value: 'invite_only', label: '仅限团队邀请', description: '客户不能创建群聊，只能由团队成员邀请进入。' },
-              { value: 'create', label: '允许客户创建', description: '客户可以创建群聊，但不能主动邀请其他客户。' },
+            { key: 'customer_direct_start', label: '顾客可发起单聊', description: '允许顾客主动联系团队公开的成员或虚拟实体。', type: 'boolean', control: 'switch', order: 10, default: true, value: true },
+            { key: 'customer_group_mode', label: '顾客群聊权限', description: '决定顾客是否可以加入或创建群聊。', type: 'enum', control: 'radio', order: 20, default: 'invite_only', value: 'invite_only', options: [
+              { value: 'disabled', label: '禁止顾客加入', description: '顾客不能创建群聊，也不能被邀请进入群聊。' },
+              { value: 'invite_only', label: '仅限团队邀请', description: '顾客不能创建群聊，只能由团队成员邀请进入。' },
+              { value: 'create', label: '允许顾客创建', description: '顾客可以创建群聊，但不能主动邀请其他顾客。' },
             ] },
             { key: 'group_history', label: '新成员可见群历史', description: '决定新参与者看到全部历史，还是仅看到加入后的消息。', type: 'enum', control: 'radio', order: 30, default: 'from_join', value: 'from_join', options: [
               { value: 'from_join', label: '仅加入后消息', description: '新参与者只能查看加入群聊之后的消息。' },
@@ -1300,9 +1315,9 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         {
           app_name: 'shop', label: '商城', description: '控制商城订单与其他应用之间的自动联动。', order: 30,
           settings: [
-            { key: 'enabled', label: '开放商城', description: '控制已上架商品是否向客户开放浏览和购买。', type: 'boolean', control: 'switch', order: 5, default: false, value: false, ability_requirement: { key: 'shop', label: '商城', minimum_level: 1, satisfied: false, reason: 'missing' } },
+            { key: 'enabled', label: '开放商城', description: '控制已上架商品是否向顾客开放浏览和购买。', type: 'boolean', control: 'switch', order: 5, default: false, value: false, ability_requirement: { key: 'shop', label: '商城', minimum_level: 1, satisfied: false, reason: 'missing' } },
             { key: 'sync_transaction', label: '自动同步记账流水', description: '下单时自动生成关联流水；仅在团队已开通且未过期的 Transaction Ability 时生效。', type: 'boolean', control: 'switch', order: 10, default: true, value: true },
-            { key: 'sync_manual_entitlement_transaction', label: '手动赋予权益时同步流水', description: '在记账工作台直接赋予客户权益时，按商品快照生成服务包收款；关闭时只赋予权益。', type: 'boolean', control: 'switch', order: 20, default: false, value: false },
+            { key: 'sync_manual_entitlement_transaction', label: '手动赋予权益时同步流水', description: '在记账工作台直接赋予顾客权益时，按商品快照生成服务包收款；关闭时只赋予权益。', type: 'boolean', control: 'switch', order: 20, default: false, value: false },
           ],
         },
         {
@@ -1395,7 +1410,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       }
       await expect(overviewActions.nth(0).locator('svg')).toHaveCount(2)
       await expect(overviewActions.nth(1).locator('svg')).toHaveCount(2)
-      await expect(page.getByRole('link', { name: /实体 3/ })).toBeVisible()
+      await expect(page.getByRole('link', { name: /实体（Entity） 3/ })).toBeVisible()
       await expect(page.getByRole('link', { name: /成员 1/ })).toBeVisible()
       await expect(page.getByRole('link', { name: /文档 2/ })).toHaveAttribute('href', '/docs')
       await expect(page.getByRole('link', { name: /通知 1/ })).toHaveAttribute('href', '/notices/entity')
@@ -1451,11 +1466,11 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       } else await expect(row.getByRole('button', { name: '对话' })).toBeVisible()
     }
     if (path === '/customers') {
-      const customerSearch = page.getByRole('searchbox', { name: '搜索客户' })
-      await customerSearch.fill('不存在的客户')
+      const customerSearch = page.getByRole('searchbox', { name: '搜索顾客' })
+      await customerSearch.fill('不存在的顾客')
       const empty = page.locator('.ls-empty-state')
-      await expect(empty).toContainText('没有匹配的客户')
-      await expect(empty).toContainText('客户领取团队商店身份后会进入客户目录。')
+      await expect(empty).toContainText('没有匹配的顾客')
+      await expect(empty).toContainText('顾客领取团队商店身份后会进入顾客目录。')
       await customerSearch.fill('')
     }
     if (path === '/member-detail?id=1') {
@@ -1518,7 +1533,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     }
     if (path === '/notices/send') {
       await expect(page.locator('#workspace').getByRole('heading', { name: '发送通知', level: 1 })).toBeVisible()
-      await expect(page.getByText('通知只进入所选实体的收件箱，不支持回复、抄送或会话；发送方统一显示为当前 Team。')).toBeVisible()
+      await expect(page.getByText('通知只进入所选实体（Entity）的收件箱，不支持回复、抄送或会话；发送方统一显示为当前 Team。')).toBeVisible()
       await expect(page.getByRole('tab', { name: '可视化' })).toBeVisible()
       await expect(page.getByRole('tab', { name: '源码' })).toBeVisible()
       await expect(page.getByRole('tab', { name: '预览' })).toBeVisible()
@@ -1529,16 +1544,16 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       const recipientMenu = page.locator('.recipient-select-menu')
       await expect(recipientMenu.locator('.recipient-option')).toHaveCount(4)
       await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '测试团队' })).toContainText('团队@demo')
-      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '测试客户' })).toContainText('客户@customer-1')
+      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '测试顾客' })).toContainText('顾客@customer-1')
       await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '测试成员' })).toContainText('成员@member-1')
-      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '协作助手' })).toContainText('虚拟实体@helper')
-      await recipientMenu.locator('.n-base-select-option').filter({ hasText: '测试客户' }).click()
-      await page.getByLabel('标题 *').fill('客户专属通知')
+      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '协作助手' })).toContainText('虚拟实体（Virtual Entity）@helper')
+      await recipientMenu.locator('.n-base-select-option').filter({ hasText: '测试顾客' }).click()
+      await page.getByLabel('标题 *').fill('顾客专属通知')
       await page.getByRole('tab', { name: '源码' }).click()
       await page.getByRole('textbox', { name: 'Markdown 源码' }).fill('## 行动\n\n- 保存工作\n- 回复确认')
       await page.getByRole('button', { name: '发送通知' }).click()
-      await expect(page.getByRole('status')).toContainText('通知已发送给 测试客户')
-      expect(noticeSendPayload).toMatchObject({ entity_id: 2, title: '客户专属通知', content: '## 行动\n\n- 保存工作\n- 回复确认', is_pinned: false })
+      await expect(page.getByRole('status')).toContainText('通知已发送给 测试顾客')
+      expect(noticeSendPayload).toMatchObject({ entity_id: 2, title: '顾客专属通知', content: '## 行动\n\n- 保存工作\n- 回复确认', is_pinned: false })
     }
     if (path === '/doc-create') {
       await expect(page.locator('#workspace').getByRole('heading', { name: '新建文档', level: 1 })).toBeVisible()
@@ -1636,7 +1651,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.getByRole('radio', { name: /成员优先/ })).toBeChecked()
       await expect(page.getByRole('radio', { name: /仅限团队邀请/ })).toBeChecked()
       await expect(page.getByRole('radio', { name: /仅加入后消息/ })).toBeChecked()
-      await expect(page.getByText('客户不能创建群聊，只能由团队成员邀请进入。')).toBeVisible()
+      await expect(page.getByText('顾客不能创建群聊，只能由团队成员邀请进入。')).toBeVisible()
       await expect(page.getByText('新参与者可以查看加入前的全部群聊消息。')).toBeVisible()
       await expect(page.getByText('InviteOnly', { exact: true })).toHaveCount(0)
       await expect(page.getByText('FromJoin', { exact: true })).toHaveCount(0)
@@ -1694,8 +1709,8 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
 
       for (const entity of [
         { slug: 'demo', type: '团队' },
-        { slug: 'helper', type: '虚拟实体' },
-        { slug: 'customer-1', type: '客户' },
+        { slug: 'helper', type: '虚拟实体（Virtual Entity）' },
+        { slug: 'customer-1', type: '顾客' },
       ]) {
         const chip = page.locator(`[data-entity-slug="${entity.slug}"]`)
         await chip.click()
@@ -1951,7 +1966,7 @@ test('entity field form saves unified access rules and custom targets', async ({
   const visibilitySelect = page.locator('.access-policy > label').filter({ hasText: '值可见范围' }).locator('.n-select')
   await visibilitySelect.click()
   await page.locator('.n-base-select-option').filter({ hasText: '公开可见' }).click()
-  await expect(page.getByText('公开字段只有在所属实体有效且已开启公开主页展示时')).toBeVisible()
+  await expect(page.getByText('公开字段只有在所属实体（Entity）有效且已开启公开主页展示时')).toBeVisible()
   await visibilitySelect.click()
   await page.locator('.n-base-select-option').filter({ hasText: '指定对象可见' }).click()
   const targets = page.locator('.access-policy > label').filter({ hasText: '指定可见对象' }).locator('.n-select')
@@ -2042,11 +2057,11 @@ test('team role tasks use independent routes for entity assignment and permissio
       data = {
         groups: [
           { name: '团队能力', items: [{ key: 'team.ability.redeem', label: '兑换团队能力' }] },
-          { name: '实体管理', items: [
+          { name: '实体（Entity）管理', items: [
             { key: 'team.entity.virtual.helper.manage', label: '管理 · 协作助手' },
             { key: 'team.entity.virtual.helper.field.manage', label: '管理字段 · 协作助手' },
           ] },
-          { name: '实体委托', items: [
+          { name: '实体（Entity）委托', items: [
             { key: 'identity.team.assume', label: '领取团队身份' },
             { key: 'identity.member.*.assume', label: '领取全部成员身份' },
             { key: 'identity.virtual.helper.assume', label: '领取 · 协作助手身份' },
@@ -2074,10 +2089,10 @@ test('team role tasks use independent routes for entity assignment and permissio
         custom_field_values: [],
         role_assignments: [{ role_id: 1, role: { id: 1, name: '自动化操作员', role_key: 'operator' } }],
         effective_permissions: [
-          { key: 'identity.member.*.assume', label: '领取全部成员身份', group: '实体委托' },
-          { key: 'identity.member.member-2.assume', label: '领取成员二号身份', group: '实体委托' },
-          { key: 'identity.member.member-2.assume', label: '领取成员二号身份', group: '实体委托' },
-          { key: 'identity.member.member-2', label: '覆盖 identity.member.member-2 下全部权限', group: '实体委托' },
+          { key: 'identity.member.*.assume', label: '领取全部成员身份', group: '实体（Entity）委托' },
+          { key: 'identity.member.member-2.assume', label: '领取成员二号身份', group: '实体（Entity）委托' },
+          { key: 'identity.member.member-2.assume', label: '领取成员二号身份', group: '实体（Entity）委托' },
+          { key: 'identity.member.member-2', label: '覆盖 identity.member.member-2 下全部权限', group: '实体（Entity）委托' },
         ],
       }
     } else if (path.endsWith('/entity/options')) {
@@ -2133,12 +2148,12 @@ test('team role tasks use independent routes for entity assignment and permissio
 
   await page.goto('http://demo.team.lostsky.work:5175/roles/1')
   await expect(page.getByRole('link', { name: '返回角色列表' })).toBeVisible()
-  await page.getByRole('switch', { name: '在公开实体资料中展示此角色' }).click()
+  await page.getByRole('switch', { name: '在公开实体（Entity）资料中展示此角色' }).click()
   await page.getByRole('button', { name: '保存资料' }).click()
   await expect.poll(() => savedRole).toMatchObject({ id: 1, is_displayed: 1 })
-  await page.getByText('高级范围权限', { exact: true }).click()
-  await expect(page.getByText('实体委托', { exact: true })).toBeVisible()
-  await page.getByLabel('搜索高级范围权限').fill('team.ability')
+  await page.getByText('高级范围权限（Permission）', { exact: true }).click()
+  await expect(page.getByText('实体（Entity）委托', { exact: true })).toBeVisible()
+  await page.getByLabel('搜索高级范围权限（Permission）').fill('team.ability')
   await page.getByRole('checkbox', { name: /覆盖 team\.ability 下全部权限/ }).check()
   await page.getByText('团队能力 · 已选择 1/1', { exact: true }).click()
   await expect(page.getByRole('checkbox', { name: /兑换团队能力/ })).toBeDisabled()
@@ -2149,29 +2164,29 @@ test('team role tasks use independent routes for entity assignment and permissio
   expect(savedPermissions).not.toContain('team.ability.redeem')
   expect(savedPermissions).toContain('identity.member.*.assume')
   expect(savedPermissions).not.toContain('identity.member.member-2.assume')
-  await expect(page.getByText('实体委托 · 已配置 1 项', { exact: true })).toBeVisible()
-  await expect(page.getByText('实体管理 · 已配置 0 项', { exact: true })).toBeVisible()
+  await expect(page.getByText('实体（Entity）委托 · 已配置 1 项', { exact: true })).toBeVisible()
+  await expect(page.getByText('实体（Entity）管理 · 已配置 0 项', { exact: true })).toBeVisible()
   await expect(page.getByText('身份委托', { exact: true })).toHaveCount(0)
   await expect(page.getByText('指定虚拟实体', { exact: true })).toHaveCount(0)
   await expect(page.getByText('动态权限', { exact: true })).toHaveCount(0)
-  await expect(page.getByLabel('选择权限目标')).toHaveCount(0)
+  await expect(page.getByLabel('选择权限（Permission）目标')).toHaveCount(0)
   await page.getByText('聊天 · 已选择 0/1', { exact: true }).click()
   await page.getByRole('checkbox', { name: /代表 · 协作助手参与聊天.*chat\.virtual\.helper\.act/ }).check()
-  await page.getByText('实体委托 · 已配置 1 项', { exact: true }).click()
-  await expect(page.getByLabel('选择权限目标')).toBeVisible()
+  await page.getByText('实体（Entity）委托 · 已配置 1 项', { exact: true }).click()
+  await expect(page.getByLabel('选择权限（Permission）目标')).toBeVisible()
   let dynamicPermissions = page.locator('.dynamic-permission-list:visible')
   await expect(dynamicPermissions.getByRole('checkbox')).toHaveCount(1)
   for (const checkbox of await dynamicPermissions.getByRole('checkbox').all()) await expect(checkbox).toBeDisabled()
-  await page.getByLabel('选择权限目标').fill('helper')
+  await page.getByLabel('选择权限（Permission）目标').fill('helper')
   await page.getByRole('option', { name: /协作助手.*helper/ }).click()
   expect(teamEntityOptionLoads).toBe(1)
-  await dynamicPermissions.getByRole('checkbox', { name: /领取指定实体身份.*identity\.virtual\.helper\.assume/ }).check()
-  await expect(page.getByText('实体委托 · 已配置 2 项', { exact: true })).toBeVisible()
+  await dynamicPermissions.getByRole('checkbox', { name: /领取指定实体（Entity）身份.*identity\.virtual\.helper\.assume/ }).check()
+  await expect(page.getByText('实体（Entity）委托 · 已配置 2 项', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: '已进入角色草稿' })).toBeVisible()
-  await page.getByText('实体管理 · 已配置 0 项', { exact: true }).click()
+  await page.getByText('实体（Entity）管理 · 已配置 0 项', { exact: true }).click()
   dynamicPermissions = page.locator('.dynamic-permission-list:visible')
-  await dynamicPermissions.getByRole('checkbox', { name: /管理指定虚拟实体.*team\.entity\.virtual\.helper\.manage/ }).check()
-  await expect(page.getByText('实体管理 · 已配置 1 项', { exact: true })).toBeVisible()
+  await dynamicPermissions.getByRole('checkbox', { name: /管理指定虚拟实体（Virtual Entity）.*team\.entity\.virtual\.helper\.manage/ }).check()
+  await expect(page.getByText('实体（Entity）管理 · 已配置 1 项', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '保存权限' }).click()
   await expect.poll(() => savedPermissions).toContain('team.entity.virtual.helper.manage')
   expect(savedPermissions).toContain('chat.virtual.helper.act')
@@ -2185,7 +2200,7 @@ test('team role tasks use independent routes for entity assignment and permissio
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 
   await page.goto('http://demo.team.lostsky.work:5175/personal/access')
-  await page.getByText('实体委托', { exact: true }).click()
+  await page.getByText('实体（Entity）委托', { exact: true }).click()
   const delegationSummary = page.locator('.effective')
   await expect(delegationSummary.locator('li')).toHaveCount(4)
   await expect(delegationSummary.locator('code').filter({ hasText: 'identity.member.member-2.assume' })).toHaveCount(2)
@@ -2205,7 +2220,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
   await page.route('http://demo.transaction.lostsky.work:5177/api/**', async (route) => {
     const url = new URL(route.request().url())
     const entity = { id: 11, entity_id: 11, entityable_type: 'teamMember', entityable_id: 1, type: 'member', slug: 'handler', name: 'Handler', profile: { nickname: 'Handler' }, nickname: '青空接单人', avatar: null, status_code: 'active', status_label: '正常' }
-    const customer = { id: 8, nickname: '晚风客户', avatar: null, description: '长期客户', is_blocked: 0, balance: { balance: 880, recharged: 1200, spent: 320 } }
+    const customer = { id: 8, nickname: '晚风顾客', avatar: null, description: '长期顾客', is_blocked: 0, balance: { balance: 880, recharged: 1200, spent: 320 } }
     const transaction = {
       id: 21, handler_entity_id: 11, sender_entity_id: null, cs_entity_id: null, customer_id: 8, type: 2,
       total_price: 320, cost: 80, cash: 200, prepaid: 120, handler_cut: 140, sender_cut: 0,
@@ -2220,7 +2235,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
         abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: '记账' } },
         identity: { type: 'teamMember', entity_id: 11, name: '青空接单人', slug: 'handler', avatar: '' },
       }
-    } else if (url.pathname.endsWith('/transaction/options')) {
+    } else if (url.pathname.endsWith('/transaction/options') || url.pathname.endsWith('/personal/transaction-options')) {
       if (optionsMode === 'error') {
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 50300, message: '选项服务暂不可用', data: null }) })
         return
@@ -2258,7 +2273,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
           expire_time: 0,
           is_expired: false,
           is_exhausted: false,
-          customer: { id: 8, name: '晚风客户', avatar: null },
+          customer: { id: 8, name: '晚风顾客', avatar: null },
           service: { id: 6, name: '陪玩服务' },
           product: { id: 31, name: '三小时服务' },
         }],
@@ -2273,55 +2288,58 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
       const type = url.searchParams.get('type')
       if (type === 'timeline') data = [{ date: '2026-07-20', count: 1, amount: 320 }]
       else if (type === 'byEntity') data = [{ entity_id: 11, type: 'member', slug: 'handler', name: '青空接单人', count: 1, amount: 140 }]
-      else if (type === 'byCustomer') data = [{ customer_id: 8, customer_name: '晚风客户', count: 1, amount: 320 }]
+      else if (type === 'byCustomer') data = [{ customer_id: 8, customer_name: '晚风顾客', count: 1, amount: 320 }]
       else data = { total_count: 1, total_price: 320, total_cost: 80, total_cut: 240, cash_total: 200, prepaid_total: 120, avg_price: 320 }
-    } else if (url.pathname.endsWith('/transaction/sender/all')) data = [{ id: 3, entity_id: 11, customer_id: 8, create_time: 1784563200, subject: entity, customer }]
-    else if (url.pathname.endsWith('/transaction/balance/logs')) data = { list: [{ id: 5, customer_id: 8, type: 1, amount: 1200, balance_after: 1200, memo: '首次充值', create_time: 1784563200 }], total: 1, page: 1, limit: 20 }
+    } else if (url.pathname.endsWith('/transaction/balance/logs')) data = { list: [{ id: 5, customer_id: 8, type: 1, amount: 1200, balance_after: 1200, memo: '首次充值', create_time: 1784563200 }], total: 1, page: 1, limit: 20 }
     else if (url.pathname.endsWith('/transaction/21')) data = transaction
     else if (url.pathname.endsWith('/transaction')) data = { list: [transaction], total: 1, page: 1, limit: 20 }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
 
-  const routes = ['/', '/new', '/detail?id=21', '/edit?id=21', '/stats', '/services', '/entitlements/new', '/bindings', '/binding-new', '/balances', '/balance?customer_id=8', '/recharge?customer_id=8']
+  const routes = ['/', '/personal/transactions/new', '/detail?id=21', '/edit?id=21', '/stats', '/services', '/entitlements/new', '/balances', '/balance?customer_id=8', '/recharge?customer_id=8']
   for (const path of routes) {
     await page.goto(`http://demo.transaction.lostsky.work:5177${path}`)
     await expect(page.locator('#workspace'), `workspace missing at ${path}; ${pageErrors.join(' | ')}`).toBeVisible()
     await expect(page.locator('#workspace').getByRole('heading', { level: 1 }).first()).toBeVisible()
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
     expect(overflow, `horizontal overflow at ${path}`).toBe(false)
-    if (['/', '/bindings', '/balances'].includes(path)) await expect(page.locator('.ls-list-toolbar')).toBeVisible()
+    if (['/', '/balances'].includes(path)) await expect(page.locator('.ls-list-toolbar')).toBeVisible()
   }
 
   await page.goto('http://demo.transaction.lostsky.work:5177/')
-  await expect(page.getByText('晚风客户', { exact: true })).toBeVisible()
+  await expect(page.getByText('晚风顾客', { exact: true })).toBeVisible()
   await expect(page.getByText('¥320.00', { exact: true })).toBeVisible()
-  await page.goto('http://demo.transaction.lostsky.work:5177/new')
+  await expect(page.getByRole('link', { name: /登记流水/ })).toHaveCount(0)
+  await page.goto('http://demo.transaction.lostsky.work:5177/personal/transactions')
+  await expect(page.getByRole('link', { name: /登记流水/ }).last()).toHaveAttribute('href', '/personal/transactions/new')
+  await page.goto('http://demo.transaction.lostsky.work:5177/personal/transactions/new')
   await expect(page.getByText('金额平衡')).toBeVisible()
+  await expect(page.getByRole('link', { name: '返回我的流水' })).toHaveAttribute('href', '/personal/transactions')
   await expect(page.getByRole('button', { name: '保存流水' })).toBeDisabled()
   optionsMode = 'missing'
-  await page.goto('http://demo.transaction.lostsky.work:5177/new')
+  await page.goto('http://demo.transaction.lostsky.work:5177/personal/transactions/new')
   await expect(page.getByText('当前响应未提供主体选项')).toBeVisible()
-  await expect(page.getByText('当前响应未提供客户选项')).toBeVisible()
+  await expect(page.getByText('当前响应未提供顾客选项')).toBeVisible()
   await expect(page.getByRole('button', { name: '保存流水' })).toBeDisabled()
   optionsMode = 'empty'
-  await page.goto('http://demo.transaction.lostsky.work:5177/new')
+  await page.goto('http://demo.transaction.lostsky.work:5177/personal/transactions/new')
   await expect(page.getByText('金额平衡')).toBeVisible()
   await expect(page.getByRole('button', { name: '保存流水' })).toBeDisabled()
   optionsMode = 'error'
-  await page.goto('http://demo.transaction.lostsky.work:5177/new')
+  await page.goto('http://demo.transaction.lostsky.work:5177/personal/transactions/new')
   await expect(page.getByRole('alert')).toContainText('参与方选项暂时无法读取')
   await expect(page.getByText('金额平衡')).toBeVisible()
   await expect(page.getByRole('button', { name: '保存流水' })).toBeDisabled()
   optionsMode = 'full'
   await page.goto('http://demo.transaction.lostsky.work:5177/services')
-  await expect(page.getByRole('link', { name: '赋予客户权益' })).toHaveAttribute('href', '/entitlements/new')
-  await page.getByRole('link', { name: '赋予客户权益' }).click()
-  await expect(page.locator('#workspace').getByRole('heading', { name: '赋予客户权益', level: 1 })).toBeVisible()
+  await expect(page.getByRole('link', { name: '赋予顾客权益' })).toHaveAttribute('href', '/entitlements/new')
+  await page.getByRole('link', { name: '赋予顾客权益' }).click()
+  await expect(page.locator('#workspace').getByRole('heading', { name: '赋予顾客权益', level: 1 })).toBeVisible()
   await expect(page.getByText('当前设置只赋予权益，不同步流水。')).toBeVisible()
   await page.locator('#grant-product').click()
   await page.getByText('三小时服务 · ¥300.00', { exact: true }).click()
   await page.locator('#grant-customer').click()
-  await page.getByText('晚风客户', { exact: true }).last().click()
+  await page.getByText('晚风顾客', { exact: true }).last().click()
   await page.getByRole('button', { name: '确认赋予' }).click()
   await expect.poll(() => manualGrantPayload).toEqual({
     product_id: 31,
@@ -2332,21 +2350,21 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
   })
   await expect(page.locator('.grant-result')).toContainText('未创建商城订单；未同步流水')
   await page.goto('http://demo.transaction.lostsky.work:5177/personal')
-  await page.locator('.ls-workspace-overview__entry').filter({ hasText: '权益赠送' }).click()
+  await page.locator('.ls-workspace-overview__entry').filter({ hasText: '权益下发' }).click()
   await expect(page).toHaveURL(/\/personal\/entitlements$/)
-  await expect(page.locator('#workspace').getByRole('heading', { name: '权益赠送', level: 1 })).toBeVisible()
+  await expect(page.locator('#workspace').getByRole('heading', { name: '权益下发', level: 1 })).toBeVisible()
   await expect(page.getByText('陪玩服务', { exact: true })).toBeVisible()
   await expect(page.getByText('三小时服务', { exact: true })).toBeVisible()
   await expect(page.locator('.ls-responsive-data-table')).toContainText('2 小时')
-  await page.getByRole('link', { name: '赠送权益' }).click()
+  await page.getByRole('link', { name: '下发权益' }).click()
   await expect(page).toHaveURL(/\/personal\/entitlements\/new$/)
-  await expect(page.locator('#workspace').getByRole('heading', { name: '赠送客户权益', level: 1 })).toBeVisible()
+  await expect(page.locator('#workspace').getByRole('heading', { name: '下发顾客权益', level: 1 })).toBeVisible()
   await expect(page.locator('#grant-sender')).toHaveCount(0)
-  await expect(page.getByText('发单人固定为当前 Entity')).toBeVisible()
+  await expect(page.getByText('发单人固定为当前实体（Entity）')).toBeVisible()
   await page.locator('#grant-product').click()
   await page.getByText('三小时服务 · ¥300.00', { exact: true }).click()
   await page.locator('#grant-customer').click()
-  await page.getByText('晚风客户', { exact: true }).last().click()
+  await page.getByText('晚风顾客', { exact: true }).last().click()
   await page.getByRole('button', { name: '确认赋予' }).click()
   await expect.poll(() => personalGrantPayload).toEqual({
     product_id: 31,
@@ -2357,11 +2375,11 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
   await expect(page.locator('.grant-result')).toContainText('未创建商城订单；未同步流水')
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: width < 768 ? 812 : 900 })
-    await page.goto('http://demo.transaction.lostsky.work:5177/new')
+    await page.goto('http://demo.transaction.lostsky.work:5177/personal/transactions/new')
     await expect(page.locator('#workspace')).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `horizontal overflow at ${width}px`).toBe(false)
     if (width < 768) await expect(page.getByRole('button', { name: '操作' })).toBeVisible()
-    else await expect(page.getByRole('link', { name: /登记流水/ }).last()).toBeVisible()
+    else await expect(page.locator('#workspace').getByRole('heading', { name: '登记流水' })).toBeVisible()
     await page.goto('http://demo.transaction.lostsky.work:5177/entitlements/new')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `entitlement grant horizontal overflow at ${width}px`).toBe(false)
     await page.goto('http://demo.transaction.lostsky.work:5177/personal/entitlements/new')

@@ -89,9 +89,9 @@ final class PermissionDictionary
             self::TEAM_ROLE_READ => '查看角色',
             self::TEAM_ROLE_WRITE => '管理角色',
         ],
-        '客户' => [
-            self::TEAM_CUSTOMER_READ => '查看全部客户',
-            self::TEAM_CUSTOMER_MANAGE => '管理客户资料、归属与封禁状态',
+        '顾客' => [
+            self::TEAM_CUSTOMER_READ => '查看全部顾客',
+            self::TEAM_CUSTOMER_MANAGE => '管理顾客资料、归属、协作与封禁状态',
         ],
         '加入审核' => [
             self::TEAM_JOIN_FIELD_READ => '查看申请字段',
@@ -113,7 +113,7 @@ final class PermissionDictionary
             self::TRANSACTION_WRITE => '编辑交易',
             self::TRANSACTION_DELETE => '删除交易',
             self::TRANSACTION_REPORT_READ => '查看团队全部报表',
-            self::SERVICE_ENTITLEMENT_GRANT => '为本人接待客户赋予权益',
+            self::SERVICE_ENTITLEMENT_GRANT => '为本人接待顾客赋予权益',
             self::SERVICE_REDEMPTION_READ => '查看全部服务核销',
             self::SERVICE_REDEMPTION_MANAGE => '管理服务核销',
         ],
@@ -140,12 +140,12 @@ final class PermissionDictionary
             self::TEAM_ENTITY_VIRTUAL_ALL_MANAGE => '管理全部虚拟实体',
             self::TEAM_ENTITY_VIRTUAL_ALL_FIELD_MANAGE => '管理全部虚拟实体字段',
             self::TEAM_ENTITY_FIELD_MANAGE => '管理团队与成员字段',
-            self::TEAM_ENTITY_FIELD_CUSTOMER_MANAGE => '管理客户字段',
+            self::TEAM_ENTITY_FIELD_CUSTOMER_MANAGE => '管理顾客字段',
         ],
         '实体委托' => [
             self::IDENTITY_TEAM_ASSUME => '领取团队身份',
             self::IDENTITY_MEMBER_ALL_ASSUME => '领取全部成员身份',
-            self::IDENTITY_CUSTOMER_ALL_ASSUME => '领取全部客户身份',
+            self::IDENTITY_CUSTOMER_ALL_ASSUME => '领取全部顾客身份',
             self::IDENTITY_VIRTUAL_ALL_ASSUME => '领取全部虚拟实体身份',
         ],
         '聊天' => [

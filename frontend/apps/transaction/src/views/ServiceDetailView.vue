@@ -107,8 +107,8 @@ function confirmFee() {
   const cost = feeNumber(fee.cost).toFixed(2)
   dialog.warning({
     title: '提交费用调整',
-    content: `客户需要另行确认并支付 ¥${amount}；内部成本 ¥${cost}，预计可分配 ¥${feeNet.value.toFixed(2)}。`,
-    positiveText: '提交客户确认',
+    content: `顾客需要另行确认并支付 ¥${amount}；内部成本 ¥${cost}，预计可分成 ¥${feeNet.value.toFixed(2)}。`,
+    positiveText: '提交顾客确认',
     negativeText: '返回核对',
     onPositiveClick: () => action.mutate({
       path: 'adjustments',
@@ -147,7 +147,7 @@ function confirmFee() {
       ><LsPanel
         ><dl class="facts">
           <div>
-            <dt>客户</dt>
+            <dt>顾客</dt>
             <dd>{{ customerName(query.data.value.customer) }}</dd>
           </div>
           <div>
@@ -190,7 +190,7 @@ function confirmFee() {
       ><LsPanel v-if="pending"
         ><section class="task-section">
           <h2>取消申请</h2>
-          <p>{{ pending.reason || "客户未填写原因" }}</p>
+          <p>{{ pending.reason || "顾客未填写原因" }}</p>
           <div v-if="canApprove" class="actions">
             <LsButton
               variant="secondary"
@@ -210,14 +210,14 @@ function confirmFee() {
             >
           </div>
           <p v-else class="hint">
-            只有当前接单人或具有服务管理权限的 Entity 可以处理该申请。
+            只有当前接单人或具有服务管理权限（Permission）的实体（Entity）可以处理该申请。
           </p>
         </section></LsPanel
       ><LsPanel v-if="query.data.value.status === 2 && !pending && canManage"
         ><section class="task-section">
           <h2>费用调整</h2>
-          <p class="hint">额外费用由客户单独确认并支付；履约完成后再形成对应业绩，不与原服务重复收款。</p>
-          <div v-if="query.data.value.adjustments?.length" class="fee-list"><div v-for="item in query.data.value.adjustments" :key="item.id"><div><strong>{{ item.name }}</strong><small>{{ item.quantity }} × ¥{{ item.unit_price }} = ¥{{ item.total_price }} · {{ item.status===1?'待客户确认':item.status===2?'客户已确认':'已取消' }}</small></div><LsButton v-if="item.status===1" size="sm" variant="secondary" :loading="action.isPending.value" @click="action.mutate({path:`adjustments/${item.id}/cancel`})">取消费用</LsButton></div></div>
+          <p class="hint">额外费用由顾客单独确认并支付；履约完成后再形成对应业绩，不与原服务重复收款。</p>
+          <div v-if="query.data.value.adjustments?.length" class="fee-list"><div v-for="item in query.data.value.adjustments" :key="item.id"><div><strong>{{ item.name }}</strong><small>{{ item.quantity }} × ¥{{ item.unit_price }} = ¥{{ item.total_price }} · {{ item.status===1?'待顾客确认':item.status===2?'顾客已确认':'已取消' }}</small></div><LsButton v-if="item.status===1" size="sm" variant="secondary" :loading="action.isPending.value" @click="action.mutate({path:`adjustments/${item.id}/cancel`})">取消费用</LsButton></div></div>
           <form class="fee-form" @submit.prevent="confirmFee">
             <LsField label="费用名称" for-id="fee-name" required><NInput id="fee-name" v-model:value="fee.name" placeholder="例如：额外时段费用" /></LsField>
             <LsField label="计费数量" for-id="fee-quantity" required><NInputNumber id="fee-quantity" v-model:value="fee.quantity" :min="Number(query.data.value.entitlement?.quantity_step ?? 1)" :step="Number(query.data.value.entitlement?.quantity_step ?? 1)" :precision="quantityScale" /></LsField>
@@ -225,11 +225,11 @@ function confirmFee() {
             <LsField label="总成本" for-id="fee-cost" required hint="填写本次费用调整的全部内部成本，不按数量再次相乘。"><NInputNumber id="fee-cost" v-model:value="fee.cost" :min="0" :precision="2" /></LsField>
             <LsField label="说明" for-id="fee-memo"><NInput id="fee-memo" v-model:value="fee.memo" type="textarea" /></LsField>
             <dl class="fee-preview" aria-live="polite">
-              <div><dt>客户需确认并支付</dt><dd>¥{{ feeTotal.toFixed(2) }}</dd></div>
+              <div><dt>顾客需确认并支付</dt><dd>¥{{ feeTotal.toFixed(2) }}</dd></div>
               <div><dt>内部成本</dt><dd>¥{{ feeNumber(fee.cost).toFixed(2) }}</dd></div>
-              <div><dt>预计可分配</dt><dd :class="{ invalid: feeNet < 0 }">¥{{ feeNet.toFixed(2) }}</dd></div>
+              <div><dt>预计可分成</dt><dd :class="{ invalid: feeNet < 0 }">¥{{ feeNet.toFixed(2) }}</dd></div>
             </dl>
-            <LsFormActions><LsButton type="submit" variant="secondary" :disabled="!feeValid" :loading="action.isPending.value">提交客户确认</LsButton></LsFormActions>
+            <LsFormActions><LsButton type="submit" variant="secondary" :disabled="!feeValid" :loading="action.isPending.value">提交顾客确认</LsButton></LsFormActions>
           </form>
         </section></LsPanel
       ><LsPanel v-if="query.data.value.status === 2 && !pending && canManage"
@@ -329,9 +329,9 @@ function confirmFee() {
             "
             >确认已核销</LsButton
           >
-          <p v-if="pendingFee" class="hint">请先等待客户确认或取消全部待确认费用。</p>
+          <p v-if="pendingFee" class="hint">请先等待顾客确认或取消全部待确认费用。</p>
           <p class="hint">
-            Transaction Ability 失效时服务仍可完成，但不会生成或后补核销流水。
+            记账能力（Ability）失效时服务仍可完成，但不会生成或后补核销流水。
           </p>
         </section></LsPanel
       ><LsInlineError

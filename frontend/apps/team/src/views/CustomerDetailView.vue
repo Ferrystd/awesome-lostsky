@@ -37,6 +37,7 @@ interface CustomerDetail {
   create_time: number
   balance: { balance: string; recharged: string; spent: string }
   assignee?: EntitySummary | null
+  senders: EntitySummary[]
   summary: {
     transaction_count: number
     transaction_total: string
@@ -59,6 +60,7 @@ function isCustomerDetail(value: unknown): value is CustomerDetail {
     && typeof value.balance.balance === 'string'
     && typeof value.balance.recharged === 'string'
     && typeof value.balance.spent === 'string'
+    && Array.isArray(value.senders)
     && typeof value.summary.transaction_count === 'number'
     && typeof value.summary.transaction_total === 'string'
     && typeof value.summary.order_count === 'number'
@@ -74,7 +76,7 @@ async function loadCustomerDetail() {
   const path = `/customer/${id.value}`
   const value = await api.get<unknown>(path)
   if (!isCustomerDetail(value)) {
-    throw new ApiError('客户详情数据不完整，请刷新后重试', { method: 'GET', path })
+    throw new ApiError('顾客详情数据不完整，请刷新后重试', { method: 'GET', path })
   }
   return value
 }
@@ -92,11 +94,15 @@ const assignees = useQuery({
   queryFn: () => api.get<EntitySummary[]>('/customer/assignees'),
   enabled: canManage,
 })
+const senderOptions = computed(() => canManage.value
+  ? (assignees.data.value ?? [])
+  : (query.data.value?.senders ?? []))
 const form = reactive({
   name: '',
   avatar: '',
   description: '',
   assignee_entity_id: null as number | null,
+  sender_entity_ids: [] as number[],
   is_blocked: false,
 })
 watch(() => query.data.value, value => {
@@ -106,6 +112,7 @@ watch(() => query.data.value, value => {
     avatar: value.avatar ?? '',
     description: value.description ?? '',
     assignee_entity_id: value.assignee?.entity_id ?? null,
+    sender_entity_ids: value.senders.map(sender => sender.entity_id),
     is_blocked: value.is_blocked,
   })
 }, { immediate: true })
@@ -115,6 +122,7 @@ const save = useMutation({
     avatar: form.avatar.trim() || null,
     description: form.description.trim() || null,
     assignee_entity_id: form.assignee_entity_id,
+    sender_entity_ids: form.sender_entity_ids,
     is_blocked: form.is_blocked ? 1 : 0,
   }),
   onSuccess: async () => {
@@ -144,10 +152,10 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
 <template>
   <AdminPage width="form">
     <AdminPageHeader
-      :title="query.data.value?.name || '客户详情'"
-      description="查看客户归属、余额和经营摘要；历史订单与流水保留创建时的发单归属。"
+      :title="query.data.value?.name || '顾客详情'"
+      description="查看顾客归属、余额和经营摘要；历史订单与流水保留创建时的发单归属。"
       back-to="/customers"
-      back-label="返回客户列表"
+      back-label="返回顾客列表"
     >
       <template #actions>
         <LsPagePrimaryAction :icon="MessageCircleMore" label="发起对话" :href="chatUrl" :disabled="Boolean(chatReason || !chatUrl)" :disabled-reason="chatReason" />
@@ -155,19 +163,19 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
     </AdminPageHeader>
 
     <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
-    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取客户详情" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取顾客详情" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
     <template v-else-if="query.data.value">
-      <section class="summary-grid" aria-label="客户经营摘要">
+      <section class="summary-grid" aria-label="顾客经营摘要">
         <article><span>可用余额</span><strong>{{ money(query.data.value.balance.balance) }}</strong><small>累计充值 {{ money(query.data.value.balance.recharged) }}</small></article>
         <article><span>流水</span><strong>{{ query.data.value.summary.transaction_count }} 笔</strong><small>{{ money(query.data.value.summary.transaction_total) }}</small></article>
         <article><span>订单</span><strong>{{ query.data.value.summary.order_count }} 笔</strong><small>{{ money(query.data.value.summary.order_total) }}</small></article>
       </section>
 
       <LsPanel>
-        <template #header><header class="detail-heading"><div><h3>客户资料</h3><p>@{{ query.data.value.slug }}</p></div><span>{{ canManage ? '可维护' : '只读' }}</span></header></template>
+        <template #header><header class="detail-heading"><div><h3>顾客资料</h3><p>@{{ query.data.value.slug }}</p></div><span>{{ canManage ? '可维护' : '只读' }}</span></header></template>
         <form @submit.prevent="save.mutate()">
-          <LsField label="客户昵称" for-id="customer-name"><NInput v-model:value="form.name" :input-props="{ id: 'customer-name' }" :disabled="!canManage" maxlength="50" /></LsField>
+          <LsField label="顾客昵称" for-id="customer-name"><NInput v-model:value="form.name" :input-props="{ id: 'customer-name' }" :disabled="!canManage" maxlength="50" /></LsField>
           <LsField label="头像" for-id="customer-avatar"><LsMediaUploadField id="customer-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(avatarUploadDisabledReason)" :disabled-reason="avatarUploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
           <LsField label="说明" for-id="customer-description"><NInput v-model:value="form.description" :input-props="{ id: 'customer-description' }" :disabled="!canManage" type="textarea" maxlength="500" /></LsField>
           <LsField label="当前归属人" for-id="customer-assignee" hint="变更只影响之后创建的订单和流水，不修改历史发单人。">
@@ -181,8 +189,19 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
               placeholder="未归属"
             />
           </LsField>
-          <LsSwitchField v-model="form.is_blocked" label="封禁客户" description="封禁后客户现有身份会话不能继续使用。" :disabled="!canManage" />
-          <LsFormActions v-if="canManage"><LsButton type="submit" :loading="save.isPending.value" :disabled="avatarUploading"><template #icon><Save :size="18" /></template>保存客户资料</LsButton></LsFormActions>
+          <LsField label="协作发单人" for-id="customer-senders" hint="可多选；这些 Entity 仍需具备记账 Ability 与对应 Permission，才能协作处理该顾客。">
+            <LsEntitySelect
+              id="customer-senders"
+              v-model="form.sender_entity_ids"
+              :entities="senderOptions"
+              :loading="canManage && assignees.isPending.value"
+              :disabled="!canManage"
+              multiple
+              placeholder="未绑定协作发单人"
+            />
+          </LsField>
+          <LsSwitchField v-model="form.is_blocked" label="封禁顾客" description="封禁后顾客现有身份会话不能继续使用。" :disabled="!canManage" />
+          <LsFormActions v-if="canManage"><LsButton type="submit" :loading="save.isPending.value" :disabled="avatarUploading"><template #icon><Save :size="18" /></template>保存顾客资料</LsButton></LsFormActions>
         </form>
       </LsPanel>
     </template>

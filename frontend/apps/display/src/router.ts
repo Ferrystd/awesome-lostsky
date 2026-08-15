@@ -12,8 +12,8 @@ export const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
   routes: [
     { path: '/', component: HomeView, meta: { title: '团队公开主页' } },
-    { path: '/entities', component: EntitiesView, meta: { title: '公开实体' } },
-    { path: '/entity/:slug', component: EntityView, meta: { title: '实体资料' } },
+    { path: '/entities', component: EntitiesView, meta: { title: '公开实体（Entity）' } },
+    { path: '/entity/:slug', component: EntityView, meta: { title: '实体（Entity）资料' } },
     { path: '/document/:id(\\d+)', component: DocumentView, meta: { title: '公开文档' } },
     { path: '/:pathMatch(.*)*', component: NotFoundView, meta: { title: '页面不存在' } },
   ],

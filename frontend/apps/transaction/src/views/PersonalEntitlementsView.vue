@@ -32,7 +32,7 @@ const access = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: (
 const rows = computed(() => query.data.value?.list ?? [])
 const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / filters.limit)))
 const grantReason = computed(() => {
-  if (access.isPending.value) return '正在核对 service.entitlement.grant Permission'
+  if (access.isPending.value) return '正在核对权限（Permission）：service.entitlement.grant'
   if (access.isError.value) return friendlyError(access.error.value)
   return hasWorkspacePermission(access.data.value?.permissions ?? [], 'service.entitlement.grant')
     ? ''
@@ -50,35 +50,35 @@ function status(row: PersonalEntitlementGrantRecord) {
 
 const columns: DataTableColumns<PersonalEntitlementGrantRecord> = [
   { title: '权益 / 商品', key: 'service', render: row => h('span', { class: 'entitlement-cell' }, [h('strong', row.service.name || `权益 #${row.id}`), h('small', row.product.name || '服务套餐')]) },
-  { title: '客户', key: 'customer', render: row => h(LsEntityIdentity, { type: 'customer', name: row.customer.name || `客户 #${row.customer.id}`, imageUrl: row.customer.avatar ?? null, size: 'sm' }) },
+  { title: '顾客', key: 'customer', render: row => h(LsEntityIdentity, { type: 'customer', name: row.customer.name || `顾客 #${row.customer.id}`, imageUrl: row.customer.avatar ?? null, size: 'sm' }) },
   { title: '额度', key: 'quantity', render: row => h('span', { class: 'entitlement-cell ls-tabular' }, [h('strong', quantity(row.granted_quantity, row.unit_name)), h('small', `剩余 ${quantity(row.available_quantity, row.unit_name)}`)]) },
   { title: '状态', key: 'status', render: row => h(LsStatusTag, status(row)) },
-  { title: '赠送时间 / 到期', key: 'time', render: row => h('span', { class: 'entitlement-cell' }, [h('strong', dateTime(row.create_time)), h('small', row.expire_time ? `到期 ${dateTime(row.expire_time)}` : '永久有效')]) },
+  { title: '下发时间 / 到期', key: 'time', render: row => h('span', { class: 'entitlement-cell' }, [h('strong', dateTime(row.create_time)), h('small', row.expire_time ? `到期 ${dateTime(row.expire_time)}` : '永久有效')]) },
 ]
 </script>
 
 <template>
   <div class="personal-entitlements-view">
-    <LsPageHeader title="权益赠送" description="查看当前 Entity 直接赠送给客户的全部服务权益；每项记录均按本人发单身份固定归档。">
+    <LsPageHeader title="权益下发" description="查看当前实体（Entity）直接下发给顾客的全部服务权益；每项记录均按本人发单身份固定归档。">
       <template #actions>
-        <LsPagePrimaryAction :icon="Gift" label="赠送权益" to="/personal/entitlements/new" :disabled="Boolean(grantReason)" :disabled-reason="grantReason" />
+        <LsPagePrimaryAction :icon="Gift" label="下发权益" to="/personal/entitlements/new" :disabled="Boolean(grantReason)" :disabled-reason="grantReason" />
       </template>
     </LsPageHeader>
 
     <LsListToolbar
       v-model="filters.keyword"
-      placeholder="搜索权益、商品或客户"
-      aria-label="搜索本人赠送的权益"
+      placeholder="搜索权益、商品或顾客"
+      aria-label="搜索本人下发的权益"
       :count-label="`${query.data.value?.total ?? 0} 项权益`"
       @update:model-value="filters.page = 1"
     />
 
-    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取赠送记录" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取下发记录" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
     <LsEmptyState
       v-else-if="!rows.length"
-      :title="filters.keyword ? '没有匹配的赠送记录' : '还没有赠送权益'"
-      :description="filters.keyword ? '调整搜索关键词后再试。' : '获得赠送权限后，可通过页面右上角为自己接待的客户赠送权益。'"
+      :title="filters.keyword ? '没有匹配的下发记录' : '还没有下发权益'"
+      :description="filters.keyword ? '调整搜索关键词后再试。' : '获得下发权限（Permission）后，可通过页面右上角为自己接待的顾客下发权益。'"
     />
     <LsResponsiveDataTable v-else :columns="columns" :data="rows" :row-key="row => Number(row.id)" :scroll-x="900">
       <template #mobile-title="{ row }">{{ row.service.name || `权益 #${row.id}` }}</template>
@@ -86,10 +86,10 @@ const columns: DataTableColumns<PersonalEntitlementGrantRecord> = [
       <template #mobile="{ row }">
         <dl>
           <dt>来源商品</dt><dd>{{ row.product.name || '服务套餐' }}</dd>
-          <dt>客户</dt><dd>{{ row.customer.name || `客户 #${row.customer.id}` }}</dd>
-          <dt>赠送额度</dt><dd class="ls-tabular">{{ quantity(row.granted_quantity, row.unit_name) }}</dd>
+          <dt>顾客</dt><dd>{{ row.customer.name || `顾客 #${row.customer.id}` }}</dd>
+          <dt>下发额度</dt><dd class="ls-tabular">{{ quantity(row.granted_quantity, row.unit_name) }}</dd>
           <dt>剩余额度</dt><dd class="ls-tabular">{{ quantity(row.available_quantity, row.unit_name) }}</dd>
-          <dt>赠送时间</dt><dd>{{ dateTime(row.create_time) }}</dd>
+          <dt>下发时间</dt><dd>{{ dateTime(row.create_time) }}</dd>
           <dt>有效期</dt><dd>{{ row.expire_time ? dateTime(row.expire_time) : '永久有效' }}</dd>
         </dl>
       </template>

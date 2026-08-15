@@ -8,7 +8,7 @@ test('shop customer can split an entitlement between a named handler and open di
   const offerPayloads: Record<string, unknown>[] = []
   const offers: Array<Record<string, unknown>> = []
   const instances: Array<Record<string, unknown>> = []
-  const customer = { id: 31, team_id: 1, is_blocked: 0, profile: { name: '晚风客户' }, identity: { slug: 'evening-sky' } }
+  const customer = { id: 31, team_id: 1, is_blocked: 0, profile: { name: '晚风顾客' }, identity: { slug: 'evening-sky' } }
   const entitlement = () => ({
     id: 101, granted_quantity: '3.0000', available_quantity: available.toFixed(4),
     reserved_quantity: (3 - available).toFixed(4), consumed_quantity: '0.0000',
@@ -115,7 +115,7 @@ test('transaction service redemption supports management and fixed 390px navigat
   let completePayload: Record<string, unknown> | null = null
   let adjustmentPayload: Record<string, unknown> | null = null
   const entity = { id: 11, entityable_type: 'teamMember', entityable_id: 1, type: 'member', slug: 'handler', name: '青空接单人', profile: { name: '青空接单人' } }
-  const customer = { id: 31, profile: { name: '晚风客户' } }
+  const customer = { id: 31, profile: { name: '晚风顾客' } }
   const service = () => ({
     id: 101, status: completed ? 3 : 2, expire_time: 1_900_000_000, started_at: 1_785_000_000,
     completed_at: completed ? 1_785_003_600 : null, quantity: '2.5000',
@@ -156,7 +156,7 @@ test('transaction service redemption supports management and fixed 390px navigat
   const feePrice = page.locator('#fee-price input')
   await feePrice.fill('')
   await feePrice.press('Tab')
-  await expect(page.getByRole('button', { name: '提交客户确认' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '提交顾客确认' })).toBeDisabled()
   await page.locator('#fee-quantity input').fill('2')
   await feePrice.fill('30')
   const feeCost = page.locator('#fee-cost input')
@@ -164,9 +164,9 @@ test('transaction service redemption supports management and fixed 390px navigat
   await feeCost.press('Tab')
   await expect(page.getByText('¥60.00', { exact: true })).toBeVisible()
   await expect(page.getByText('¥50.00', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: '提交客户确认' }).click()
-  await expect(page.getByText(/客户需要另行确认并支付 ¥60\.00；内部成本 ¥10\.00，预计可分配 ¥50\.00/)).toBeVisible()
-  await page.getByRole('button', { name: '提交客户确认', exact: true }).last().click()
+  await page.getByRole('button', { name: '提交顾客确认' }).click()
+  await expect(page.getByText(/顾客需要另行确认并支付 ¥60\.00；内部成本 ¥10\.00，预计可分成 ¥50\.00/)).toBeVisible()
+  await page.getByRole('button', { name: '提交顾客确认', exact: true }).last().click()
   await expect.poll(() => adjustmentPayload).toMatchObject({ name: '额外时段', quantity: 2, unit_price: '30.00', cost: '10.00' })
   await page.getByRole('textbox', { name: /服务结果/ }).fill('已完成咨询并回访')
   await page.getByRole('button', { name: '确认已核销' }).click()
@@ -178,8 +178,8 @@ test('transaction service redemption supports management and fixed 390px navigat
   await page.goto('http://demo.transaction.lostsky.work:5177/services')
   const mobileNav = page.getByRole('navigation', { name: '移动端导航' })
   await expect(mobileNav.getByText('概览', { exact: true })).toBeVisible()
-  await expect(mobileNav.getByText('流水', { exact: true })).toBeVisible()
-  await expect(mobileNav.getByText('服务核销', { exact: true })).toBeVisible()
+  await expect(mobileNav.getByText('团队流水', { exact: true })).toBeVisible()
+  await expect(mobileNav.getByText('经营统计', { exact: true })).toBeVisible()
   await expect(mobileNav.getByText('更多', { exact: true })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })
@@ -187,7 +187,7 @@ test('transaction service redemption supports management and fixed 390px navigat
 test('personal handler workspace confirms invitations, claims open tasks and returns work', async ({ page }) => {
   const actorToken = `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type: 'teamMember', id: 11 } })).toString('base64url')}.x`
   await page.context().addCookies([{ name: 'lostsky_token', value: actorToken, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
-  const customer = { id: 31, profile: { name: '晚风客户' } }
+  const customer = { id: 31, profile: { name: '晚风顾客' } }
   const entitlement = { id: 91, unit_name: '小时', quantity_step: '0.5000' }
   const fields = [{ id: 5, name: '微信号', value_type: 'string', input_type: 'text', fill_stage: 'customer', is_required: 1, value: 'wx-candidate' }]
   const offers: Array<Record<string, unknown>> = [
@@ -233,7 +233,7 @@ test('personal handler workspace confirms invitations, claims open tasks and ret
   await page.goto('http://demo.transaction.lostsky.work:5177/personal/services')
   await expect(page.getByRole('heading', { name: '待我确认' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '我可以接' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: '我的核销', level: 2 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '我的接单', level: 2 })).toBeVisible()
   const taskPanels = page.locator('.personal-service-lists > .ls-panel')
   await expect(taskPanels).toHaveCount(3)
   const panelGeometry = await taskPanels.evaluateAll(elements => elements.map(element => {

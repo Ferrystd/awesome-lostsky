@@ -60,7 +60,7 @@ class CustomerProfile
         \think\facade\Db::transaction(function () use ($teamId, $customerId, $data): void {
             $customer = app(CustomerAssignment::class)->customer($teamId, $customerId, true);
             if ($customer->is_blocked) {
-                throw new HttpException(404, '客户不存在');
+                throw new HttpException(404, '顾客不存在');
             }
             if (array_key_exists('assignee_entity_id', $data)) {
                 $assigneeId = $data['assignee_entity_id'] === null || $data['assignee_entity_id'] === ''
@@ -102,7 +102,7 @@ class CustomerProfile
     {
         $customer = TeamCustomer::where('team_id', $teamId)->find($customerId);
         if (!$customer || $customer->is_blocked) {
-            throw new HttpException(404, '客户不存在');
+            throw new HttpException(404, '顾客不存在');
         }
         return $customer;
     }

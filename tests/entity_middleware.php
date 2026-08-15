@@ -245,7 +245,6 @@ $transactionBusinessControllers = [
     \app\transaction\controller\Transaction::class,
     \app\transaction\controller\Options::class,
     \app\transaction\controller\Service::class,
-    \app\transaction\controller\Sender::class,
     \app\transaction\controller\Balance::class,
     \app\transaction\controller\Personal::class,
     \app\transaction\controller\EntitlementGrant::class,
@@ -271,6 +270,12 @@ $assert(
     'team and personal entitlement grants use distinct permissions and customer scope checks'
 );
 $entitlementGrantMiddleware = $middleware(\app\transaction\controller\EntitlementGrant::class);
+$personalTransactionMiddleware = $middleware(\app\transaction\controller\Personal::class);
+$assertSame(
+    ['transactionOptions'],
+    $personalTransactionMiddleware['Permission:' . \app\service\PermissionDictionary::TRANSACTION_WRITE]['only'] ?? null,
+    'personal transaction options require transaction.write'
+);
 $assertSame(
     ['options', 'create'],
     $entitlementGrantMiddleware['Permission:' . \app\service\PermissionDictionary::TRANSACTION_WRITE]['only'] ?? null,

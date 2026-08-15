@@ -44,10 +44,10 @@ LostSky 的访问结果不是由单一“管理员”开关决定。系统会依
 | --- | --- | ---: | --- |
 | `doc` | 文档 | 1 | Team 文档列表、详情、创建、编辑和删除 |
 | `file` | 文件上传 | 1 | 文件页、Markdown 编辑器、成员资料和加入申请等团队文件上传 |
-| `transaction` | 记账 | 1 | 流水写入与删除、经营统计、客户充值、手动赋予客户权益，以及商城自动生成关联流水 |
-| `shop` | 商城 | 1 | 控制团队能否通过“开放商城”向客户展示和销售已上架商品 |
+| `transaction` | 记账 | 1 | 流水写入与删除、经营统计、顾客充值、手动赋予顾客权益，以及商城自动生成关联流水 |
+| `shop` | 商城 | 1 | 控制团队能否通过“开放商城”向顾客展示和销售已上架商品 |
 
-当前没有 Chat 或 Display 独立 Ability。Shop 后台、客户中心与历史业务不受 Shop Ability 限制；该 Ability 只控制公开商品陈列与客户购买。
+当前没有 Chat 或 Display 独立 Ability。Shop 后台、顾客中心与历史业务不受 Shop Ability 限制；该 Ability 只控制公开商品陈列与顾客购买。
 
 ### File Ability 等级与配额
 
@@ -69,8 +69,8 @@ LostSky 的访问结果不是由单一“管理员”开关决定。系统会依
 | 缺失或不可用能力 | 停止的功能 | 仍可使用的功能 |
 | --- | --- | --- |
 | `doc` | Team 文档导航禁用；文档列表、详情、创建、编辑和删除不能进入 | 文件、实体资料、通知等其他 Team 功能；已经公开的文档不会因能力失效而自动撤下 Display |
-| `transaction` | Transaction 个人/团队工作台中的流水、统计、核销、绑定、余额与充值业务请求；商城订单自动生成关联流水 | 记账访问快照与不可用说明；Team、Shop、Chat 其他功能；客户继续用既有预存余额下单、取消和退款，订单与余额结果不受影响 |
-| `shop` | 公开商城首页与列表不再展示商品，商品详情和新购买被拒绝，“开放商城”自动关闭 | 商城后台、客户中心、历史订单、余额、卡密和已有服务权益 |
+| `transaction` | Transaction 个人/团队工作台中的流水、统计、核销、绑定、余额与充值业务请求；商城订单自动生成关联流水 | 记账访问快照与不可用说明；Team、Shop、Chat 其他功能；顾客继续用既有预存余额下单、取消和退款，订单与余额结果不受影响 |
+| `shop` | 公开商城首页与列表不再展示商品，商品详情和新购买被拒绝，“开放商城”自动关闭 | 商城后台、顾客中心、历史订单、余额、卡密和已有服务权益 |
 
 更具体的行为：
 
@@ -104,7 +104,7 @@ Permission 来自当前 Entity 在目标团队中获得的全部角色，多个�
 | `team.entity.read` | 有效、非 Customer 且团队内可见的实体 | 全部有效实体，包括 Customer 和团队内隐藏实体 |
 | `team.member.read` | 有效且团队内可见的成员 | 完整成员管理集合，包括隐藏或封禁成员 |
 | `team.document.read` | 当前 Entity 按文档可见性可读的文档 | 当前团队全部文档 |
-| `team.customer.read` | 当前归属实体只看到归属于自己的客户 | 当前团队全部客户 |
+| `team.customer.read` | 当前归属实体只看到归属于自己的顾客 | 当前团队全部顾客 |
 
 无权访问隐藏对象时，直接链接会返回“未找到”，而不是确认对象存在后再报无权。
 
@@ -125,8 +125,8 @@ Permission 来自当前 Entity 在目标团队中获得的全部角色，多个�
 | 内容维护 | `team.entity.profile.manage`、`team.document.read`、`file.read`；如需直接维护团队文件库，再授予 `file.upload` |
 | 成员管理员 | `team.member.read`、`team.member.invite`、`team.member.update`、`team.member.remove` |
 | 财务 | `transaction.read`、`transaction.write`、`transaction.report.read` |
-| 客户运营 | `team.customer.read`、`team.customer.manage`、`team.notice.send` |
-| 发单运营 | `service.entitlement.grant`；本人相关流水、业绩和客户协作无需 Team 全量读取 Permission |
+| 顾客运营 | `team.customer.read`、`team.customer.manage`、`team.notice.send` |
+| 发单运营 | `service.entitlement.grant`；我的流水、业绩和我的顾客无需 Team 全量读取 Permission |
 | Chat 运营 | `chat.conversation.create`、`chat.group.manage`，以及所需虚拟实体的 `chat.virtual.<slug>.act` 权限 |
 
 新团队会自动创建 owner 角色并给创建者取得管理所需权限。后续修改 owner 或其他高权限角色前，应先确保至少还有一个实体能够恢复角色配置。

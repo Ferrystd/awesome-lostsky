@@ -39,7 +39,7 @@ function confirmDelete() { dialog.warning({ title: '删除这个平台角色？'
 </script>
 
 <template>
-  <LsPageHeader :title="id ? '编辑平台角色' : '创建平台角色'" description="角色标识创建后不可修改；系统角色始终拥有固定的平台权限。" back-to="/roles">
+  <LsPageHeader :title="id ? '编辑平台角色' : '创建平台角色'" description="角色标识创建后不可修改；系统角色始终拥有固定的平台权限（Permission）。" back-to="/roles">
     <template #actions><LsButton v-if="id && writable" variant="danger" @click="confirmDelete">删除角色</LsButton></template>
   </LsPageHeader>
   <LsAsyncState v-if="loading" state="loading" :rows="5" />
@@ -50,8 +50,8 @@ function confirmDelete() { dialog.warning({ title: '删除这个平台角色？'
       <LsField label="角色名称" for-id="role-name" required><NInput v-model:value="name" :input-props="{ id: 'role-name' }" :disabled="!writable && Boolean(id)" placeholder="例如 支持运营" maxlength="50" /></LsField>
       <LsField label="角色说明" for-id="role-description"><NInput v-model:value="description" :input-props="{ id: 'role-description' }" :disabled="!writable && Boolean(id)" type="textarea" maxlength="255" show-count /></LsField>
     </div></LsPanel>
-    <LsPanel><template #header><div class="role-panel-header"><h2>权限</h2><p>同一管理员的多个角色按权限并集生效。</p></div></template>
-      <NFormItem label="平台权限"><NCheckboxGroup v-model:value="permissions" :disabled="!writable && Boolean(id)"><div v-for="group in queries[1].data?.groups" :key="group.name" class="permission-group"><h3>{{ group.name }}</h3><NCheckbox v-for="item in group.items" :key="item.key" :value="item.key"><span>{{ item.label }}</span><small>{{ item.key }}</small></NCheckbox></div></NCheckboxGroup></NFormItem>
+    <LsPanel><template #header><div class="role-panel-header"><h2>权限（Permission）</h2><p>同一管理员的多个角色按权限（Permission）并集生效。</p></div></template>
+      <NFormItem label="平台权限（Permission）"><NCheckboxGroup v-model:value="permissions" :disabled="!writable && Boolean(id)"><div v-for="group in queries[1].data?.groups" :key="group.name" class="permission-group"><h3>{{ group.name }}</h3><NCheckbox v-for="item in group.items" :key="item.key" :value="item.key"><span>{{ item.label }}</span><small>{{ item.key }}</small></NCheckbox></div></NCheckboxGroup></NFormItem>
     </LsPanel>
     <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
     <LsFormActions v-if="writable || !id"><RouterLink to="/roles">保留现状</RouterLink><LsButton type="submit" :loading="save.isPending.value" :disabled="!name || (!id && !key)">保存平台角色</LsButton></LsFormActions>

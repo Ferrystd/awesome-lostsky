@@ -90,24 +90,24 @@ function permissionMetadata(key: string) {
   const known = labelMap.value.get(key)
   if (known) return known
   if (/^team\.entity\.virtual\.[a-z0-9][a-z0-9_-]{0,49}(?:\.field)?$/.test(key)) {
-    return { label: `覆盖 ${key} 下全部权限`, group: '实体管理' }
+    return { label: `覆盖 ${key} 下全部权限（Permission）`, group: '实体（Entity）管理' }
   }
   if (/^identity\.(?:member|customer|virtual)\.[a-z0-9][a-z0-9_-]{0,49}$/.test(key)) {
-    return { label: `覆盖 ${key} 下全部权限`, group: '实体委托' }
+    return { label: `覆盖 ${key} 下全部权限（Permission）`, group: '实体（Entity）委托' }
   }
   if (/^chat\.virtual\.[a-z0-9][a-z0-9_-]{0,49}$/.test(key)) {
-    return { label: `覆盖 ${key} 下全部权限`, group: '聊天' }
+    return { label: `覆盖 ${key} 下全部权限（Permission）`, group: '聊天' }
   }
   if (/^identity\.(?:member|customer|virtual)\.(?:\*|[a-z0-9][a-z0-9_-]{0,49})\.assume$/.test(key)) {
-    return { label: key, group: '实体委托' }
+    return { label: key, group: '实体（Entity）委托' }
   }
   if (/^chat\.virtual\.(?:\*|[a-z0-9][a-z0-9_-]{0,49})\.act$/.test(key)) {
     return { label: key, group: '聊天' }
   }
   if (/^team\.entity\.virtual\.[a-z0-9][a-z0-9_-]{0,49}\.(?:manage|field\.manage)$/.test(key)) {
-    return { label: key, group: '实体管理' }
+    return { label: key, group: '实体（Entity）管理' }
   }
-  return { label: key, group: '动态权限' }
+  return { label: key, group: '动态权限（Permission）' }
 }
 
 function isAdvancedPermission(permission: EffectivePermission) {
@@ -134,7 +134,7 @@ const permissions = computed<EffectivePermission[]>(() => {
 const groupedPermissions = computed(() => {
   const groups = new Map<string, EffectivePermission[]>()
   for (const permission of permissions.value) {
-    const group = permission.group || '其他权限'
+    const group = permission.group || '其他权限（Permission）'
     groups.set(group, [...(groups.get(group) ?? []), permission])
   }
   return [...groups.entries()].map(([name, items]) => ({ name, items }))
@@ -147,14 +147,14 @@ const groupedPermissions = computed(() => {
     <header>
       <div>
         <h2 id="entity-permissions-title">角色与权限</h2>
-        <p>{{ canEdit ? '角色决定该实体在当前团队能够执行的操作。' : '以下按当前团队分配角色中的权限记录逐条展示。' }}</p>
+        <p>{{ canEdit ? '角色决定该实体（Entity）在当前团队能够执行的操作。' : '以下按当前团队分配角色中的权限（Permission）记录逐条展示。' }}</p>
       </div>
       <LsButton v-if="canEdit" class="permissions-save" variant="secondary" :loading="saving" :disabled="loading || !isDirty" @click="emit('save', selected)">
         保存角色
       </LsButton>
     </header>
 
-    <p v-if="loading" class="state">正在读取角色与权限…</p>
+    <p v-if="loading" class="state">正在读取角色与权限（Permission）…</p>
     <template v-else>
       <LsCheckboxGroupField
         v-if="canEdit && roles.length"
@@ -168,7 +168,7 @@ const groupedPermissions = computed(() => {
           <small>{{ role.description || role.role_key || '暂无说明' }}</small>
         </span>
       </div>
-      <NEmpty v-else description="当前实体尚未分配角色" />
+      <NEmpty v-else description="当前实体（Entity）尚未分配角色" />
 
       <div class="effective">
         <div class="effective-heading">
@@ -188,7 +188,7 @@ const groupedPermissions = computed(() => {
             </ul>
           </NCollapseItem>
         </NCollapse>
-        <p v-else class="state">当前角色没有授予业务权限。</p>
+        <p v-else class="state">当前角色没有授予业务权限（Permission）。</p>
       </div>
     </template>
 

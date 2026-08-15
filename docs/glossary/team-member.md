@@ -12,7 +12,7 @@
 
 - [Entity](entity.md)说明成员作为业务主体的统一方式。
 - [Slug](slug.md)用于成员的全局标识与精确授权。
-- [团队客户](team-customer.md)是另一种可关联用户的实体。
+- [团队顾客](team-customer.md)是另一种可关联用户的实体。
 
 ## 来源与示例
 

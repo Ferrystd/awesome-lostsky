@@ -25,10 +25,10 @@ function snapshot(overrides: Partial<AccessSnapshotLike> = {}): AccessSnapshotLi
 describe('team access helpers', () => {
   it('keeps Permission and Ability reasons stable and explicit', () => {
     expect(permissionReason('team.entity.profile.manage')).toBe(
-      '您缺少该团队权限(Permission): team.entity.profile.manage,请联系团队管理员开通。',
+      '您缺少该团队权限（Permission）: team.entity.profile.manage,请联系团队管理员开通。',
     )
     expect(abilityReason('file', '文件上传')).toBe(
-      '该团队能力(Ability)缺失: 文件上传(File),管理员可按需购买。',
+      '该团队能力（Ability）缺失: 文件上传(File),管理员可按需购买。',
     )
   })
 
@@ -38,7 +38,7 @@ describe('team access helpers', () => {
 
   it('reports the file library upload Permission independently from File level', () => {
     const value = snapshot()
-    expect(fileUploadReason(value)).toBe('您缺少该团队权限(Permission): file.upload,请联系团队管理员开通。')
+    expect(fileUploadReason(value)).toBe('您缺少该团队权限（Permission）: file.upload,请联系团队管理员开通。')
 
     value.permissions!.push('file.upload')
     expect(fileUploadReason(value)).toBe('')

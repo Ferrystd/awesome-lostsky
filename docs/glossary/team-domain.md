@@ -15,4 +15,4 @@
 
 ## 来源与示例
 
-解析边界见[请求路由与应用解析](../architecture/routing.md)，模型关联位于 `app/model/Team.php`。例如，`https://{customDomain}` 的 API 请求会由团队域名记录反查团队，而不是接受客户端任意提交的团队 ID。
+解析边界见[请求路由与应用解析](../architecture/routing.md)，模型关联位于 `app/model/Team.php`。例如，`https://{customDomain}` 的 API 请求会由团队域名记录反查团队，而不是接受顾客端任意提交的团队 ID。

@@ -306,7 +306,7 @@ try {
         'personal entitlement writes reject a stale expected Entity'
     );
 
-    // 一份 3 小时权益不预拆实例；客户可按 0.5 小时步长分给不同接单人。
+    // 一份 3 小时权益不预拆实例；顾客可按 0.5 小时步长分给不同接单人。
     $service = new TeamService;
     $service->save([
         'team_id' => $team->id,
@@ -594,7 +594,7 @@ try {
     $assert(TeamServiceInstance::find($sliceAId)->enumCase('status') === ServiceStatus::Unredeemed, 'cancelled historical slice remains unchanged');
     $assert(TeamServiceInstance::find($replacementSliceAId)->enumCase('status') === ServiceStatus::Processing, 'new invitation creates a fresh replacement slice');
 
-    // 加价先由管理方提出，客户单独确认并扣款，完成时再形成加价业绩。
+    // 加价先由管理方提出，顾客单独确认并扣款，完成时再形成加价业绩。
     $beforeBalance = (float) TeamCustomerBalance::where('customer_id', $customer->id)->value('balance');
     $adjustmentId = app(ServiceAdjustment::class)->create(
         (int) $team->id,

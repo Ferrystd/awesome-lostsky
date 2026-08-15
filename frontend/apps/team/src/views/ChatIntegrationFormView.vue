@@ -114,9 +114,9 @@ function deleteIntegration() {
     <div class="integration-form-page">
       <AdminPageHeader
         :title="editing ? '编辑 Webhook 集成' : '创建 Webhook 集成'"
-        :description="`该集成仅代表 @${slug}，只能向这个虚拟实体已参与的会话发送消息。`"
+        :description="`该集成仅代表 @${slug}，只能向这个虚拟实体（Virtual Entity）已参与的会话发送消息。`"
         :back-to="{ path: '/chat-virtual', query: { slug } }"
-        back-label="返回虚拟实体"
+        back-label="返回虚拟实体（Virtual Entity）"
       >
         <template v-if="editing" #actions>
           <LsButton variant="danger" :loading="remove.isPending.value" @click="deleteIntegration">

@@ -112,7 +112,7 @@ test("shop manager exposes the complete catalog workflow at desktop and 390px", 
               total_price: "199.00",
               status: 1,
               create_time: 1_785_000_000,
-              customer: { nickname: "晚风客户" },
+              customer: { nickname: "晚风顾客" },
             },
           ],
         };
@@ -646,7 +646,7 @@ test("Shop personal workspace creates an immutable self-owned product through pe
   const costSection = await page.locator("#product-cost").evaluate((control) =>
     control.closest(".ls-form-section")?.querySelector("h2")?.textContent,
   );
-  expect(costSection).toBe("默认分配");
+  expect(costSection).toBe("默认分成");
   await page.locator("#product-price input").fill("66");
   await page.locator("#product-cost input").fill("6");
   await page.locator("#product-name input").focus();
@@ -680,7 +680,7 @@ test("Shop personal workspace creates an immutable self-owned product through pe
   await expect(page.getByRole("link", { name: "核销字段" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "下架商品" })).toHaveCount(0);
   const sectionOrder = await page.getByRole("heading", { name: "核销字段", level: 2 }).evaluate((heading) => {
-    const allocation = [...document.querySelectorAll("h2")].find(item => item.textContent === "默认分配");
+    const allocation = [...document.querySelectorAll("h2")].find(item => item.textContent === "默认分成");
     return Boolean(allocation && (allocation.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING));
   });
   expect(sectionOrder).toBe(true);

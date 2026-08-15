@@ -2,12 +2,13 @@
 
 界面专属约束见[后台设计规范：Team](../design/admin/applications.md#team)；公共组件、状态和响应式规则不在本页重复。
 
-Team 是团队工作台的核心应用，负责成员资料、角色权限、团队配置、文件、文档、通知和加入审核。除加入申请的访客入口外，业务接口都以当前团队上下文为边界。
+Team 是团队工作台的核心应用，负责成员资料、顾客资料与协作关系、角色权限、团队配置、文件、文档、通知和加入审核。除加入申请的访客入口外，业务接口都以当前团队上下文为边界。
 
 ## 业务领域
 
 - 个人工作台：Team、成员和虚拟实体维护当前 Entity 的资料、对象字段，并只读查看角色与有效 Permission；侧栏不提供身份切换，内容按实体类型受限。
 - 成员管理：正常、封禁、离队三态，成员资料、任期留存、封禁、离队申请、复职和搜索。
+- 顾客管理：按当前归属或全量 Permission 查看顾客，在顾客详情维护资料、当前归属、协作发单人和封禁状态。
 - 扩展资料：成员自定义字段、字段值和岗位类型。
 - RBAC：角色、角色权限和成员角色绑定。
 - 团队设置：按应用读取配置，由团队管理者读取配置结构并保存设置。
@@ -48,6 +49,8 @@ Team 应用按操作组合以下中间件：
 
 `GET /entity/index|get` 与 `GET /member/index|get` 不把 `team.entity.read` 或 `team.member.read` 作为页面门票。缺少实体全量读取权限时只返回有效、非 Customer 且团队内可见的实体；Customer 与隐藏实体统一返回 404。具有权限时读取完整集合。`team.entity.profile.manage` 控制资料、内部可见和公开 Display 写入，读取基础详情本身不要求该权限。
 
+`GET /customer/index|get` 对没有全量权限的 Entity 只返回当前归属顾客；`team.customer.read` 或 `team.customer.manage` 可读取全团队顾客及详情中的协作发单人。`POST /customer/<id>` 统一使用 `team.customer.manage` 原子更新资料、当前归属、协作发单人和封禁状态；协作关系不经过 Transaction Ability 或交易 Permission。
+
 `GET /member/get` 在成员资料之外返回当前操作者对该任务页的能力集合，包括成员编辑、字段管理、角色读取/编辑、封禁、搜索设置、slug 补全、办理离职和身份切换。前端据此裁剪整张卡片和操作入口；所有写接口仍各自执行服务端权限校验。
 
 成员生命周期不再使用软删除：`team_member.status` 保存正常、封禁和已离队状态，`is_blocked` 仅保留为弃用兼容字段。离队通过 `/memberDeparture/index|get|mine|apply|depart|cancel|approve|reject` 完成；`depart` 仅供有 `team.member.remove` 的管理员一次办结离职，其他申请类接口保留成员自助流程。任期写入 `team_member_tenure`，第一版只后端留存。复职是 `team_join_application.purpose=reinstate`，服务端按成员状态推断目的，批准时复用原 Member 与 Entity。
@@ -73,7 +76,7 @@ Team 应用按操作组合以下中间件：
 
 Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `scope=team|entity` 显式选择 Team 共享站内通知或当前 Entity 收件箱，省略 scope 时保持旧版身份默认行为。`GET /notice/capabilities` 为前端返回共享站内通知查看、通知发送和默认收件箱能力。
 
-团队审计读取要求 `team.audit.read`。新团队 owner 会随权限目录自动获得该权限，升级 SQL 补丁为现存有效 owner 角色补授；其他角色必须由管理员显式授权。`GET /audit/index` 和 `GET /audit/get` 只使用请求上下文中的 `team_id`，不接受外部团队参数。列表首屏只放关键词与应用，动作、资源和时间进入“更多筛选”；服务端目录必须覆盖所有实际写入的动作与资源类型，并由契约测试锁定。列表不返回 `context`，详情只返回经统一安全规范化后的上下文，并同时保留认证账号与 acting Entity；没有 acting Entity 的加入申请或首次客户绑定只保留认证账号归因。
+团队审计读取要求 `team.audit.read`。新团队 owner 会随权限目录自动获得该权限，升级 SQL 补丁为现存有效 owner 角色补授；其他角色必须由管理员显式授权。`GET /audit/index` 和 `GET /audit/get` 只使用请求上下文中的 `team_id`，不接受外部团队参数。列表首屏只放关键词与应用，动作、资源和时间进入“更多筛选”；服务端目录必须覆盖所有实际写入的动作与资源类型，并由契约测试锁定。列表不返回 `context`，详情只返回经统一安全规范化后的上下文，并同时保留认证账号与 acting Entity；没有 acting Entity 的加入申请或首次顾客绑定只保留认证账号归因。
 
 成功且产生状态变化的写请求必须记录；成功幂等命令同样记录并标记 `changed=false`。失败请求、读取、预检、通知已读、普通聊天消息和实时连接不写业务审计，由运行日志按 `request_id` 留痕。Team、Shop、Transaction 与 Chat 的全部 POST 路由分类由 `tests/audit_route_classification.php` 作为可执行清单维护。
 
@@ -111,7 +114,7 @@ Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `sco
 
 ## 前端列表约束
 
-实体与成员列表的主体操作必须复用 `LsResponsiveActions`，显示为透明、无边框的图标加文字；创建、提交和确认仍使用命令按钮。成员状态通过 `LsEntityIdentity` 的 `status` 插槽紧随名称，客户空目录使用 `LsAsyncState` 呈现标题和说明。公共规则正文见[后台组件规范](../design/admin/components.md)与[后台页面模式](../design/admin/patterns.md)，本节只登记 Team 的落点，不复制公共参数。
+实体与成员列表的主体操作必须复用 `LsResponsiveActions`，显示为透明、无边框的图标加文字；创建、提交和确认仍使用命令按钮。成员状态通过 `LsEntityIdentity` 的 `status` 插槽紧随名称，顾客空目录使用 `LsAsyncState` 呈现标题和说明。公共规则正文见[后台组件规范](../design/admin/components.md)与[后台页面模式](../design/admin/patterns.md)，本节只登记 Team 的落点，不复制公共参数。
 
 ## 控制器约定
 

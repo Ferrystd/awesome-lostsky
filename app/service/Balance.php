@@ -15,7 +15,7 @@ class Balance
     {
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
         if (!TeamCustomer::where('team_id', $teamId)->find($customerId)) {
-            throw new HttpException(404, '客户不存在');
+            throw new HttpException(404, '顾客不存在');
         }
 
         $paginator = TeamCustomerBalanceLog::where('customer_id', $customerId)
@@ -40,7 +40,7 @@ class Balance
 
         \think\facade\Db::transaction(function () use ($teamId, $customerId, $amount, $memo) {
             if (!TeamCustomer::where('team_id', $teamId)->lock(true)->find($customerId)) {
-                throw new HttpException(404, '客户不存在');
+                throw new HttpException(404, '顾客不存在');
             }
             $balance = TeamCustomerBalance::where('customer_id', $customerId)->lock(true)->find();
             if (!$balance) {
@@ -54,7 +54,7 @@ class Balance
 
             $balance = (new TeamCustomerBalance)->recharge($customerId, $amount);
             if (!$balance) {
-                throw new HttpException(409, '客户余额更新失败');
+                throw new HttpException(409, '顾客余额更新失败');
             }
 
             $log = new TeamCustomerBalanceLog;

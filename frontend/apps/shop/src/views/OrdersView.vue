@@ -15,7 +15,7 @@ const balance = useQuery({ queryKey: ['shop-balance'], queryFn: shopApi.balance 
         <h1 tabindex="-1">我的订单</h1>
         <p>购买记录、处理状态与退款结果都会保留在这里。</p>
       </div>
-      <aside class="balance-brief" aria-label="客户余额">
+      <aside class="balance-brief" aria-label="顾客余额">
         <div><WalletCards :size="20" aria-hidden="true" /><span>可用余额</span></div>
         <strong v-if="balance.data.value">{{ formatMoney(balance.data.value.balance) }}</strong>
         <span v-else-if="balance.isPending.value" class="balance-loading" role="status">正在读取余额…</span>

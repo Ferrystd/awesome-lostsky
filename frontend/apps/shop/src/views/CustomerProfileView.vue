@@ -59,7 +59,7 @@ const save = useMutation({
     if (!name) throw new Error('团队内昵称不能为空')
     if (!slug.value) {
       const claimed = newSlug.value.trim()
-      if (!claimed) throw new Error('请先领取客户标识')
+      if (!claimed) throw new Error('请先领取顾客标识')
       claimedSlug.value = (await shopApi.claimSlug(claimed)).slug
     }
     await shopApi.updateProfile({
@@ -87,22 +87,22 @@ const save = useMutation({
   <section class="customer-profile-page">
     <header class="profile-heading">
       <div>
-        <p class="section-label">CUSTOMER CENTER</p>
+        <p class="section-label">顾客中心</p>
         <h1 tabindex="-1">我的资料</h1>
-        <p>维护你在 <strong>{{ merchantName }}</strong> 的团队内身份。这些内容不会出现在公开客户目录。</p>
+        <p>维护你在 <strong>{{ merchantName }}</strong> 的团队内身份。这些内容不会出现在公开顾客目录。</p>
       </div>
       <div class="profile-mark" aria-hidden="true"><UserRound :size="34" /></div>
     </header>
 
     <div v-if="profileState === 'loading'" class="profile-state" aria-live="polite">
       <NSpin size="large" />
-      <strong>正在验证当前客户身份</strong>
+      <strong>正在验证当前顾客身份</strong>
       <p>我们正在读取你在此商家的资料。</p>
     </div>
 
     <div v-else-if="profileState === 'blocked'" class="profile-state profile-state-danger" role="alert">
       <CircleAlert :size="38" aria-hidden="true" />
-      <strong>当前客户身份已被商家封禁</strong>
+      <strong>当前顾客身份已被商家封禁</strong>
       <p>{{ friendlyError(customer.error.value) }}</p>
       <RouterLink to="/">返回商城</RouterLink>
     </div>
@@ -110,15 +110,15 @@ const save = useMutation({
     <div v-else-if="profileState === 'mismatch'" class="profile-state" role="alert">
       <ShieldCheck :size="38" aria-hidden="true" />
       <strong>当前身份不属于这家商店</strong>
-      <p>你可以为 {{ merchantName }} 建立独立的客户身份，完成后会回到本页。</p>
+      <p>你可以为 {{ merchantName }} 建立独立的顾客身份，完成后会回到本页。</p>
       <RouterLink class="primary-link" :to="{ path: '/customer/bind', query: { redirect: retryTarget } }">
-        建立客户身份<ArrowRight :size="18" aria-hidden="true" />
+        建立顾客身份<ArrowRight :size="18" aria-hidden="true" />
       </RouterLink>
     </div>
 
     <div v-else-if="profileState === 'error'" class="profile-state" role="alert">
       <CircleAlert :size="38" aria-hidden="true" />
-      <strong>暂时无法读取客户资料</strong>
+      <strong>暂时无法读取顾客资料</strong>
       <p>{{ friendlyError(customer.error.value) }}</p>
       <NButton secondary size="large" @click="customer.refetch()"><RotateCcw :size="17" />重新加载</NButton>
     </div>
@@ -152,7 +152,7 @@ const save = useMutation({
         <div class="section-copy">
           <span>02</span>
           <div>
-            <h2 id="slug-heading">客户标识</h2>
+            <h2 id="slug-heading">顾客标识</h2>
             <p>标识用于身份签发和内部引用，不代表公开主页；领取后不可修改。</p>
           </div>
         </div>
@@ -164,7 +164,7 @@ const save = useMutation({
           <label v-else for="customer-new-slug">
             首次领取 slug
             <NInput v-model:value="newSlug" maxlength="50" size="large" :input-props="{ id: 'customer-new-slug', 'aria-label': '首次领取 slug' }" placeholder="例如 sky-friend" />
-            <small>仅历史上尚未生成标识的客户需要填写。</small>
+            <small>仅历史上尚未生成标识的顾客需要填写。</small>
           </label>
         </div>
       </section>
@@ -179,7 +179,7 @@ const save = useMutation({
         </div>
         <div class="profile-fields">
           <label for="customer-assignee">
-            当前归属实体
+            当前归属实体（Entity）
             <NSelect
               v-model:value="assigneeEntityId"
               :options="assigneeOptions"
@@ -188,9 +188,9 @@ const save = useMutation({
               filterable
               size="large"
               placeholder="未归属"
-              aria-label="当前归属实体"
+              aria-label="当前归属实体（Entity）"
             />
-            <small>可以选择当前团队的 Team、成员或虚拟实体，Customer 不能成为归属人。</small>
+            <small>可以选择当前团队的 Team、成员或虚拟实体（Virtual Entity），Customer 不能成为归属人。</small>
           </label>
         </div>
       </section>

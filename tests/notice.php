@@ -96,8 +96,8 @@ try {
     $entityNotice = $service->sendToEntity(
         (int) $team->id,
         (int) $customerEntity->id,
-        '客户通知',
-        '仅客户 Entity 可见',
+        '顾客通知',
+        '仅顾客 Entity 可见',
         true
     );
     $noticeIds[] = (int) $entityNotice['id'];

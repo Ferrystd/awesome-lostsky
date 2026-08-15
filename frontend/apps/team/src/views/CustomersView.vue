@@ -73,7 +73,7 @@ const assigneeEntities = computed(() => [
   ...(assignees.data.value ?? []),
 ])
 const blockedOptions = [
-  { label: '正常客户', value: 0 },
+  { label: '正常顾客', value: 0 },
   { label: '已封禁', value: 1 },
 ]
 const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / filters.limit)))
@@ -85,7 +85,7 @@ const date = (value: number) => new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'medium',
 }).format(value * 1000)
 const columns: DataTableColumns<CustomerRow> = [
-  { title: '客户', key: 'customer', render: item => h(LsEntityIdentity, { type: 'customer', name: item.name, slug: item.slug, imageUrl: item.avatar ?? null, size: 'sm' }) },
+  { title: '顾客', key: 'customer', render: item => h(LsEntityIdentity, { type: 'customer', name: item.name, slug: item.slug, imageUrl: item.avatar ?? null, size: 'sm' }) },
   { title: '当前归属', key: 'assignee', render: item => item.assignee ? h(LsEntityIdentity, { type: item.assignee.type as EntityType, name: item.assignee.name, slug: item.assignee.slug, imageUrl: item.assignee.avatar ?? null, size: 'sm' }) : '未归属' },
   { title: '可用余额', key: 'balance', render: item => h('span', { class: 'ls-tabular' }, money(item.balance.balance)) },
   { title: '创建时间', key: 'create_time', render: item => date(item.create_time) },
@@ -97,13 +97,13 @@ const columns: DataTableColumns<CustomerRow> = [
 <template>
   <div class="customers-view">
     <AdminPageHeader
-      title="客户"
+      title="顾客"
       :description="query.data.value?.scope === 'own'
-        ? '这里显示当前归属于你的客户；完整客户目录需要客户读取权限。'
-        : '查看团队客户、当前归属与余额状态，进入详情后执行维护或发起会话。'"
+        ? '这里显示当前归属于你的顾客；完整顾客目录需要顾客读取权限（Permission）。'
+        : '查看团队顾客、当前归属与余额状态，进入详情后执行维护或发起会话。'"
     />
 
-    <LsListToolbar v-model="filters.keyword" placeholder="搜索客户昵称" aria-label="搜索客户" :count-label="`${query.data.value?.total ?? 0} 位客户`" @update:model-value="filters.page = 1">
+    <LsListToolbar v-model="filters.keyword" placeholder="搜索顾客昵称" aria-label="搜索顾客" :count-label="`${query.data.value?.total ?? 0} 位顾客`" @update:model-value="filters.page = 1">
       <template #filters>
       <LsEntitySelect
         v-if="canReadAll"
@@ -123,12 +123,12 @@ const columns: DataTableColumns<CustomerRow> = [
       </template>
     </LsListToolbar>
 
-    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取客户" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取顾客" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
     <LsEmptyState
       v-else-if="!query.data.value?.list.length"
-      :title="filters.keyword || filters.assignee_entity_id !== null || filters.blocked !== null ? '没有匹配的客户' : '还没有可查看的客户'"
-      :description="query.data.value?.scope === 'own' ? '归属于当前身份的客户会出现在这里。' : '客户领取团队商店身份后会进入客户目录。'"
+      :title="filters.keyword || filters.assignee_entity_id !== null || filters.blocked !== null ? '没有匹配的顾客' : '还没有可查看的顾客'"
+      :description="query.data.value?.scope === 'own' ? '归属于当前身份的顾客会出现在这里。' : '顾客领取团队商店身份后会进入顾客目录。'"
     />
     <LsResponsiveDataTable v-else :columns="columns" :data="query.data.value.list" :row-key="row => row.id" :scroll-x="920">
       <template #mobile-title="{ row: customer }">
@@ -147,7 +147,7 @@ const columns: DataTableColumns<CustomerRow> = [
       </template>
     </LsResponsiveDataTable>
     <div v-if="query.data.value && query.data.value.total > 0" class="pager">
-      <span>共 {{ query.data.value.total }} 位客户，第 {{ filters.page }} / {{ pages }} 页</span>
+      <span>共 {{ query.data.value.total }} 位顾客，第 {{ filters.page }} / {{ pages }} 页</span>
       <NPagination v-model:page="filters.page" :page-count="pages" />
     </div>
   </div>

@@ -110,7 +110,7 @@ class CustomerBinding
         }
 
         if (!$customer || $customer->is_blocked || !$customer->identity) {
-            throw new HttpException(403, '客户身份不可用');
+            throw new HttpException(403, '顾客身份不可用');
         }
 
         $issue = app(IdentitySession::class)->receiveBoundCustomer(
@@ -128,7 +128,7 @@ class CustomerBinding
         if ($current && $current->subject) {
             $source = EntityModel::with(['profile'])->find((int) $current->entity_id);
             return [
-                'name' => (string) ($source?->profile?->name ?: $source?->slug ?: '客户'),
+                'name' => (string) ($source?->profile?->name ?: $source?->slug ?: '顾客'),
                 'avatar' => $source?->profile?->avatar ?: null,
                 'description' => null,
             ];
@@ -136,7 +136,7 @@ class CustomerBinding
 
         $user = User::with(['profile'])->find($userId);
         return [
-            'name' => (string) ($user?->nickname ?: $user?->username ?: '客户'),
+            'name' => (string) ($user?->nickname ?: $user?->username ?: '顾客'),
             'avatar' => $user?->avatar ?: null,
             'description' => null,
         ];
@@ -145,7 +145,7 @@ class CustomerBinding
     private function result(?TeamCustomer $customer, ?array $issue, bool $created): array
     {
         if (!$customer || $customer->is_blocked || !$customer->identity) {
-            throw new HttpException(403, '客户身份不可用');
+            throw new HttpException(403, '顾客身份不可用');
         }
 
         return [

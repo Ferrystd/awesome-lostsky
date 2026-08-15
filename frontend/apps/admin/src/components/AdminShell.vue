@@ -102,7 +102,7 @@ onBeforeUnmount(() => {
       <NButton v-if="drawer" class="shell-backdrop" quaternary aria-label="关闭导航" @click="drawer=false" />
     </Transition>
     <section class="admin-workspace">
-      <LsWorkspaceHeader context-label="PLATFORM ADMIN" :title="title" :actions="[{ key: 'search', label: '搜索平台资源' }]" @menu="drawer=true" @action="commandOpen=true">
+      <LsWorkspaceHeader context-label="平台管理" :title="title" :actions="[{ key: 'search', label: '搜索平台资源' }]" @menu="drawer=true" @action="commandOpen=true">
         <template #actions><NButton class="top-search" secondary @click="commandOpen=true"><template #icon><Search :size="18" /></template><span>搜索用户、团队</span><kbd>Ctrl K</kbd></NButton></template>
       </LsWorkspaceHeader>
       <slot />

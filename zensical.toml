@@ -42,15 +42,28 @@ nav = [
   ]},
   {"术语" = [
     "glossary/index.md",
-    {"Entity" = "glossary/entity.md"},
-    {"Slug" = "glossary/slug.md"},
-    {"Permission" = "glossary/permission.md"},
-    {"Ability" = "glossary/ability.md"},
-    {"Context" = "glossary/context.md"},
+    "glossary/registry.md",
+    "glossary/template.md",
+    {"核心主体" = [
+      "glossary/team.md",
+      "glossary/customer.md",
+      "glossary/Virtual.md",
+      "glossary/team-member.md",
+      "glossary/team-customer.md"
+    ]},
+    {"访问控制" = [
+      "glossary/role.md",
+      "glossary/entity.md",
+      "glossary/slug.md",
+      "glossary/permission.md",
+      "glossary/ability.md",
+      "glossary/context.md"
+    ]},
     {"Service" = "glossary/service.md"},
-    {"团队成员" = "glossary/team-member.md"},
-    {"团队客户" = "glossary/team-customer.md"},
-    {"团队域名" = "glossary/team-domain.md"}
+    {"系统与通信" = [
+      "glossary/notice.md",
+      "glossary/team-domain.md"
+    ]}
   ]},
   {"应用" = [
     "apps/account.md",

@@ -3,7 +3,7 @@ import { NInput } from "naive-ui";
 import { useQueryClient } from "@tanstack/vue-query";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsWorkspaceOverview from "@lostsky/ui/components/LsWorkspaceOverview.vue";
-import { BadgeCheck, BarChart3, House, ReceiptText, ShoppingBag, UserRound } from "@lucide/vue";
+import { BadgeCheck, BarChart3, CircleDollarSign, House, ReceiptText, ShoppingBag, UserRound } from "@lucide/vue";
 import AuthShell from "../../apps/account/src/components/AuthShell.vue";
 import SmsCodeField from "../../apps/account/src/components/SmsCodeField.vue";
 import AdminShell from "../../apps/admin/src/components/AdminShell.vue";
@@ -73,7 +73,7 @@ const imageData =
 const profile = {
   name: "青空成员",
   avatar: null,
-  description: "负责内容维护与客户协作。",
+  description: "负责内容维护与顾客协作。",
   intro_image: imageData,
   intro_video:
     "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDE=",
@@ -85,7 +85,7 @@ const entity = {
   type: "teamMember" as const,
   name: "青空成员",
   avatar: null,
-  description: "内容维护与客户协作",
+  description: "内容维护与顾客协作",
   roles: [{ name: "内容主理人", description: "维护公开资料" }],
   status_code: "departed" as const,
   status_label: "已离队",
@@ -298,7 +298,7 @@ const adminPage = story("AdminPage", layout, () =>
     { width: "content" },
     {
       default: () =>
-        stage([h("h2", "客户详情"), h("p", "内容区域遵循详情页最大宽度。")]),
+        stage([h("h2", "顾客详情"), h("p", "内容区域遵循详情页最大宽度。")]),
     },
   ),
 );
@@ -401,9 +401,9 @@ const roles = [
   },
   {
     id: 2,
-    name: "客户运营",
+    name: "顾客运营",
     role_key: "customer",
-    description: "维护客户资料",
+    description: "维护顾客资料",
     permissions: [
       { permission_key: "team.customer.read" },
       { permission_key: "identity.member.member-2.assume" },
@@ -433,8 +433,8 @@ const entityPermissionsCard = story(
         effectivePermissions: [
           { key: "team.document.read", label: "查看文档", group: "内容" },
           { key: "team.document.write", label: "维护文档", group: "内容" },
-          { key: "team.customer.read", label: "查看客户", group: "客户" },
-          { key: "team.customer.read", label: "查看客户", group: "客户" },
+          { key: "team.customer.read", label: "查看顾客", group: "顾客" },
+          { key: "team.customer.read", label: "查看顾客", group: "顾客" },
           { key: "chat.conversation.create", label: "创建会话", group: "聊天" },
           { key: "chat.virtual.*.act", label: "代表全部虚拟实体参与聊天", group: "聊天" },
           { key: "identity.member.*.assume", label: "领取全部成员身份", group: "实体委托" },
@@ -451,7 +451,7 @@ const entityPermissionsCard = story(
               { key: "team.document.write", label: "维护文档" },
             ],
           },
-          { name: "客户", items: [{ key: "team.customer.read", label: "查看客户" }] },
+          { name: "顾客", items: [{ key: "team.customer.read", label: "查看顾客" }] },
           {
             name: "聊天",
             items: [
@@ -481,7 +481,7 @@ const entityPermissionsCard = story(
 const memberProfile = {
   nickname: "青空成员",
   avatar: "",
-  description: "负责内容维护与客户协作。",
+  description: "负责内容维护与顾客协作。",
   intro_image: "",
   intro_video: "",
   introduction_markdown: "## 自我介绍\n\n今天也在认真维护团队资料。",
@@ -540,12 +540,13 @@ const transactionShell = story(
         h(LsWorkspaceOverview, {
           eyebrow: "记账团队工作台",
           title: "青空协作组",
-          description: "从流水到核销和客户协作，按经营任务进入对应区域。",
+          description: "从流水到核销和顾客协作，按经营任务进入对应区域。",
           actions: [{ key: "personal", label: "进入个人工作台", to: "/personal", icon: UserRound, primary: true }],
           entries: [
-            { key: "transactions", label: "流水", description: "查看团队收入、支出与调整记录。", to: "/", icon: ReceiptText },
+            { key: "transactions", label: "团队流水", description: "查看团队收入、支出与调整记录。", to: "/", icon: ReceiptText },
             { key: "stats", label: "经营统计", description: "查看团队收入结构与业绩汇总。", to: "/stats", icon: BarChart3 },
-            { key: "services", label: "服务核销", description: "处理服务实例并记录核销过程。", to: "/services", icon: BadgeCheck },
+            { key: "services", label: "权益核销", description: "处理服务实例并记录核销过程。", to: "/services", icon: BadgeCheck },
+            { key: "balances", label: "顾客余额", description: "查看余额、明细并按权限执行充值。", to: "/balances", icon: CircleDollarSign },
           ],
           scopeNotes: ["概览不请求流水或统计数据。"],
         }),
@@ -561,9 +562,9 @@ const personalServiceLists = story(
   "PersonalServiceLists",
   ["default", "loading", "mobile"],
   (state) => stage(h(PersonalServiceLists, {
-    offers: [{ id: 8, status: 1, quantity: "0.5", create_time: 1786400000, total_price: "60.00", handler_cut: "48.00", service: { name: "候选人面试" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_step: "0.5000", unit_name: "人" }, redemption_fields: [{ id: 1, name: "微信号", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "candidate-a" }] }],
-    available: [{ id: 21, quantity: "1.0", status: 2, expire_time: 0, service: { name: "咨询服务" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_step: "0.5000", unit_name: "小时" }, redemption_fields: [{ id: 2, name: "预约说明", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "凌晨时段" }] }],
-    assigned: [{ id: 18, quantity: "2.0", status: 2, status_label: "核销中", expire_time: 0, service: { name: "方案复盘" }, customer: { profile: { name: "示例客户" } }, entitlement: { quantity_step: "0.5000", unit_name: "小时" } }],
+    offers: [{ id: 8, status: 1, quantity: "0.5", create_time: 1786400000, total_price: "60.00", handler_cut: "48.00", service: { name: "候选人面试" }, customer: { profile: { name: "示例顾客" } }, entitlement: { quantity_step: "0.5000", unit_name: "人" }, redemption_fields: [{ id: 1, name: "微信号", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "candidate-a" }] }],
+    available: [{ id: 21, quantity: "1.0", status: 2, expire_time: 0, service: { name: "咨询服务" }, customer: { profile: { name: "示例顾客" } }, entitlement: { quantity_step: "0.5000", unit_name: "小时" }, redemption_fields: [{ id: 2, name: "预约说明", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "凌晨时段" }] }],
+    assigned: [{ id: 18, quantity: "2.0", status: 2, status_label: "核销中", expire_time: 0, service: { name: "方案复盘" }, customer: { profile: { name: "示例顾客" } }, entitlement: { quantity_step: "0.5000", unit_name: "小时" } }],
     acting: state === "loading",
   }), state === "mobile" ? "story-stage--mobile" : ""),
   { disabled: "列表不提供整体禁用状态。", error: "读取错误由页面级异步状态表达。" },

@@ -65,7 +65,7 @@ const managerScopeOptions = [
 const visibilityOptions = [
   { label: '仅字段管理员可见', value: 1 },
   { label: '对象本人和字段管理员可见', value: 3 },
-  { label: '团队实体可见', value: 4 },
+  { label: '团队实体（Team Entity）可见', value: 4 },
   { label: '公开可见', value: 5 },
   { label: '指定对象可见', value: 6 },
 ]
@@ -118,7 +118,7 @@ const remove = useMutation({
   mutationFn: () => api.post('/entityField/delete', { id: id.value }),
   onSuccess: () => router.replace('/fields'),
 })
-const typeOptions = [{ label: '人员', value: 'entity' }, { label: '客户', value: 'customer' }, { label: '虚拟实体', value: 'virtual' }]
+const typeOptions = [{ label: '人员', value: 'entity' }, { label: '顾客', value: 'customer' }, { label: '虚拟实体（Virtual Entity）', value: 'virtual' }]
 const valueOptions = ['string','text','int','decimal','bool','date','datetime','select','multi_select','json'].map(value => ({ label: value, value }))
 const inputOptions = ['text','textarea','radio','checkbox','select','date','datetime'].map(value => ({ label: value, value }))
 function deleteField() {
@@ -128,7 +128,7 @@ function deleteField() {
 
 <template>
     <div class="field-form-page">
-      <AdminPageHeader :title="editing ? '编辑对象字段' : '创建对象字段'" description="字段定义属于团队；值按对象类型与内部 ID 关联，不把数字 ID 暴露到权限 key。" back-to="/fields" back-label="返回对象字段" />
+      <AdminPageHeader :title="editing ? '编辑对象字段' : '创建对象字段'" description="字段定义属于团队；值按对象类型与内部 ID 关联，不把数字 ID 暴露到权限（Permission） key。" back-to="/fields" back-label="返回对象字段" />
       <form @submit.prevent="save.mutate()">
         <label>对象类型<NSelect v-model:value="form.entity_type" :disabled="editing" :options="typeOptions" /></label>
         <label>字段标识<NInput v-model:value="form.field_key" :disabled="editing" maxlength="64" placeholder="department" /></label>
@@ -137,7 +137,7 @@ function deleteField() {
         <label>输入控件<NSelect v-model:value="form.input_type" :options="inputOptions" /></label>
         <label v-if="['select','multi_select'].includes(form.value_type)">选项<NInput v-model:value="form.optionsText" type="textarea" :autosize="{ minRows: 3, maxRows: 8 }" placeholder="每行一个选项" /></label>
         <section class="access-policy" aria-labelledby="field-access-title">
-          <LsSectionHeader id="field-access-title" title="访问与维护规则" description="可见范围不会授予页面访问权；能看见字段值的实体也不会因此自动获得编辑权。" />
+          <LsSectionHeader id="field-access-title" title="访问与维护规则" description="可见范围不会授予页面访问权；能看见字段值的实体（Entity）也不会因此自动获得编辑权。" />
           <label>值维护范围<NSelect v-model:value="form.manager_scope" :options="managerScopeOptions" /></label>
           <label>值可见范围<NSelect v-model:value="form.visibility" :options="visibilityOptions" /></label>
           <label v-if="form.visibility === 6">
@@ -153,7 +153,7 @@ function deleteField() {
             />
             <small>所选对象可在其原本有权打开的所有对象资料中查看该字段。</small>
           </label>
-          <p v-if="form.visibility === 5" class="policy-note">公开字段只有在所属实体有效且已开启公开主页展示时，才会向未登录访客显示。</p>
+          <p v-if="form.visibility === 5" class="policy-note">公开字段只有在所属实体（Entity）有效且已开启公开主页展示时，才会向未登录访客显示。</p>
           <LsSwitchField v-model="form.is_editable" label="允许修改字段值" description="关闭后，字段管理员和对象本人都只能查看，不能手动修改。" />
         </section>
         <LsSwitchField v-model="form.is_required" label="必填" description="在允许编辑该字段的资料保存时校验不能为空。" />

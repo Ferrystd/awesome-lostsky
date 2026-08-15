@@ -178,7 +178,6 @@ try {
     foreach ([
         'app/transaction/controller/Transaction.php',
         'app/transaction/controller/Balance.php',
-        'app/transaction/controller/Sender.php',
         'app/shop/controller/Product.php',
         'app/shop/controller/Order.php',
         'app/team/controller/File.php',

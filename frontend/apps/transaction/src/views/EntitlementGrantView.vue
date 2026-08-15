@@ -72,7 +72,7 @@ const save = useMutation({
     form.customer_id = null
     form.quantity = 1
     form.cs_entity_id = null
-    feedback.success('客户权益已赋予')
+    feedback.success('顾客权益已赋予')
   },
 })
 </script>
@@ -80,10 +80,10 @@ const save = useMutation({
 <template>
   <div class="entitlement-grant-view">
     <LsPageHeader
-      :title="personal ? '赠送客户权益' : '赋予客户权益'"
-      :description="personal ? '为当前 Entity 接待的客户直接交付 Shop 服务套餐权益；本操作不创建商城订单。' : '从 Shop 服务套餐读取权益快照并直接交付给客户；本操作不创建商城订单。'"
+      :title="personal ? '下发顾客权益' : '赋予顾客权益'"
+      :description="personal ? '为当前实体（Entity）接待的顾客直接交付 Shop 服务套餐权益；本操作不创建商城订单。' : '从 Shop 服务套餐读取权益快照并直接交付给顾客；本操作不创建商城订单。'"
       :back-to="personal ? '/personal/entitlements' : '/services'"
-      :back-label="personal ? '返回权益赠送' : '返回服务核销'"
+      :back-label="personal ? '返回权益下发' : '返回服务核销'"
     />
     <LsAsyncState v-if="options.isPending.value" state="loading" :rows="5" />
     <LsAsyncState v-else-if="options.isError.value" state="error" title="暂时无法读取赋予候选" :description="friendlyError(options.error.value)" />
@@ -91,17 +91,17 @@ const save = useMutation({
       <template #action><a class="primary-link" :href="shopProductsUrl">前往商品管理</a></template>
     </LsEmptyState>
     <form v-else @submit.prevent="save.mutate()">
-      <LsFormSection title="赋予内容" :description="personal ? '商品、本人接待客户、客服和份数会作为同一次原子操作保存；发单人固定为当前 Entity。' : '商品、客户、业务归属和份数会作为同一次原子操作保存。'">
+      <LsFormSection title="赋予内容" :description="personal ? '商品、本人接待顾客、客服和份数会作为同一次原子操作保存；发单人固定为当前实体（Entity）。' : '商品、顾客、业务归属和份数会作为同一次原子操作保存。'">
         <LsField label="服务套餐商品" for-id="grant-product" required hint="只显示 Shop 中已启用且关联有效权益包的服务套餐。">
           <NSelect id="grant-product" v-model:value="form.product_id" :options="productOptions" filterable placeholder="选择服务套餐商品" />
         </LsField>
-        <LsField label="客户" for-id="grant-customer" required>
-          <NSelect id="grant-customer" v-model:value="form.customer_id" :options="customerOptions(options.data.value)" filterable placeholder="选择客户" />
+        <LsField label="顾客" for-id="grant-customer" required>
+          <NSelect id="grant-customer" v-model:value="form.customer_id" :options="customerOptions(options.data.value)" filterable placeholder="选择顾客" />
         </LsField>
         <LsField label="赋予份数" for-id="grant-quantity" required hint="每份包含该商品权益包中的全部服务权益。">
           <NInputNumber id="grant-quantity" v-model:value="form.quantity" :min="1" :max="999" :precision="0" />
         </LsField>
-        <LsField v-if="!personal" label="发单人" for-id="grant-sender" required hint="客户已有当前归属时，服务端优先使用该归属。">
+        <LsField v-if="!personal" label="发单人" for-id="grant-sender" required hint="顾客已有当前归属时，服务端优先使用该归属。">
           <LsEntitySelect id="grant-sender" v-model="form.sender_entity_id" :entities="options.data.value?.entities ?? []" placeholder="选择发单人" />
         </LsField>
         <LsField label="客服" for-id="grant-cs">
@@ -111,7 +111,7 @@ const save = useMutation({
           <template v-if="selectedProduct">当前商品单份 {{ money(selectedProduct.price) }}；</template>
           {{ options.data.value?.sync_transaction ? '提交后会同步一笔服务包收款流水。' : '当前设置只赋予权益，不同步流水。' }}
         </p>
-        <p v-if="!customerOptions(options.data.value).length" class="grant-note" role="note">当前没有可用客户，请先建立并启用客户资料。</p>
+        <p v-if="!customerOptions(options.data.value).length" class="grant-note" role="note">当前没有可用顾客，请先建立并启用顾客资料。</p>
         <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
         <p v-if="result" class="grant-result" role="status" aria-live="polite">
           已赋予 {{ result.entitlement_count }} 项权益；未创建商城订单；{{ result.transaction_id ? `已生成流水 #${result.transaction_id}` : '未同步流水' }}。

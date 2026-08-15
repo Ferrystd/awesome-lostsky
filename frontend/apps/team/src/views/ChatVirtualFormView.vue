@@ -53,14 +53,14 @@ const remove = useMutation({
   onSuccess: () => router.replace('/chat-virtuals'),
 })
 function deleteVirtual() {
-  if (confirm('删除后具体 slug 权限会同步清理，slug 将永久保留。确认继续？')) remove.mutate()
+  if (confirm('删除后具体 slug 权限（Permission）会同步清理，slug 将永久保留。确认继续？')) remove.mutate()
 }
 </script>
 
 <template>
     <div class="virtual-form-page">
-      <AdminPageHeader :title="editing ? '编辑虚拟实体' : '创建虚拟实体'" description="slug 用于 URL、权限和集成身份；确定后不可修改或复用。" back-to="/chat-virtuals" back-label="返回虚拟实体">
-        <template v-if="editing" #actions><LsButton variant="danger" :loading="remove.isPending.value" @click="deleteVirtual"><Trash2 :size="16" />删除实体</LsButton></template>
+      <AdminPageHeader :title="editing ? '编辑虚拟实体（Virtual Entity）' : '创建虚拟实体（Virtual Entity）'" description="slug 用于 URL、权限（Permission）和集成身份；确定后不可修改或复用。" back-to="/chat-virtuals" back-label="返回虚拟实体（Virtual Entity）">
+        <template v-if="editing" #actions><LsButton variant="danger" :loading="remove.isPending.value" @click="deleteVirtual"><Trash2 :size="16" />删除实体（Entity）</LsButton></template>
       </AdminPageHeader>
       <form @submit.prevent="save.mutate()"><LsPanel><div class="virtual-fields">
         <h3>基本信息</h3>
@@ -68,15 +68,15 @@ function deleteVirtual() {
         <LsField label="显示名称" for-id="virtual-name" required><NInput id="virtual-name" v-model:value="form.name" maxlength="50" placeholder="销售助手" /></LsField>
         <LsField label="头像" for-id="virtual-avatar"><LsMediaUploadField id="virtual-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
         <LsField label="简介" for-id="virtual-description"><NInput id="virtual-description" v-model:value="form.description" type="textarea" maxlength="500" :autosize="{ minRows: 3, maxRows: 7 }" /></LsField>
-        <LsSwitchField v-if="editing" v-model="form.is_active" label="启用实体" description="停用后不能参与新操作。" />
+        <LsSwitchField v-if="editing" v-model="form.is_active" label="启用实体（Entity）" description="停用后不能参与新操作。" />
         <LsInlineError v-if="save.isError.value || remove.isError.value" :message="friendlyError(save.error.value || remove.error.value)" />
-        <LsButton type="submit" :loading="save.isPending.value" :disabled="avatarUploading">保存实体</LsButton>
+        <LsButton type="submit" :loading="save.isPending.value" :disabled="avatarUploading">保存实体（Entity）</LsButton>
       </div></LsPanel></form>
 
       <template v-if="editing">
         <LsPanel>
           <template #header><header>
-            <div><h3>Webhook 集成</h3><p>同一虚拟实体可以同时由成员操作并连接多个外部系统。</p></div>
+            <div><h3>Webhook 集成</h3><p>同一虚拟实体（Virtual Entity）可以同时由成员操作并连接多个外部系统。</p></div>
             <RouterLink :to="{ path: '/chat-integration-new', query: { slug } }">
               <LsButton size="sm"><Plus :size="16" />创建集成</LsButton>
             </RouterLink>

@@ -141,12 +141,12 @@ class IdentitySession
     ): array {
         $identity = $customer->identity;
         if (!$identity || !$identity->is_valid) {
-            throw new HttpException(403, '客户身份不可用');
+            throw new HttpException(403, '顾客身份不可用');
         }
 
         if ($current) {
             if ((int) ($customer->owner_entity_id ?? 0) !== (int) $current->entity_id) {
-                throw new HttpException(403, '当前实体不能领取该客户身份');
+                throw new HttpException(403, '当前实体不能领取该顾客身份');
             }
             return $this->publicIssue($this->issueDelegated(
                 $userId,
@@ -157,7 +157,7 @@ class IdentitySession
         }
 
         if ((int) ($customer->user_id ?? 0) !== $userId) {
-            throw new HttpException(403, '当前用户不能领取该客户身份');
+            throw new HttpException(403, '当前用户不能领取该顾客身份');
         }
 
         return $this->publicIssue($this->issueRoot(
@@ -171,7 +171,7 @@ class IdentitySession
     {
         $identity = $customer->identity;
         if (!$identity) {
-            throw new HttpException(404, '客户身份不存在');
+            throw new HttpException(404, '顾客身份不存在');
         }
         return $this->itemFromIdentity($identity) ?? [];
     }
@@ -266,7 +266,7 @@ class IdentitySession
             'team' => '团队',
             'teamVirtual' => '虚拟实体',
             'teamMember' => "成员 #{$id}",
-            'teamCustomer' => "客户 #{$id}",
+            'teamCustomer' => "顾客 #{$id}",
             default => '实体',
         };
 

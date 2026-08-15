@@ -6,7 +6,7 @@ Context 是认证完成后，根据当前 Entity 写入请求的可信业务上�
 
 ## 使用场景
 
-它补充当前团队、成员或客户等业务身份，供权限、访问和领域服务消费；它不把真实 `user` 自动当作业务主体。
+它补充当前团队、成员或顾客等业务身份，供权限、访问和领域服务消费；它不把真实 `user` 自动当作业务主体。
 
 ## 调用参数
 
@@ -16,7 +16,7 @@ Context 是认证完成后，根据当前 Entity 写入请求的可信业务上�
 | --- | --- | --- | --- |
 | `jwt` | `JwtAuth` | 是 | 从 `jwt.uid` 取得真实登录用户 ID。 |
 | `entity_session` | `JwtAuth` | 否 | 实体身份 Token 对应的有效会话；存在时用其 `subject` 建立当前 acting entity。 |
-| `team` | `AppResolver` | 否 | 当前路由解析出的团队；存在时补充团队以及团队内成员或客户上下文。 |
+| `team` | `AppResolver` | 否 | 当前路由解析出的团队；存在时补充团队以及团队内成员或顾客上下文。 |
 
 ## 写入的请求属性
 
@@ -35,8 +35,8 @@ Context 是认证完成后，根据当前 Entity 写入请求的可信业务上�
 ## 相关概念
 
 - [Entity](entity.md)是 Context 的身份来源。
-- [团队成员](team-member.md)与[团队客户](team-customer.md)是可能写入 Context 的业务身份。
+- [团队成员](team-member.md)与[团队顾客](team-customer.md)是可能写入 Context 的业务身份。
 
 ## 来源与示例
 
-边界见[实体身份与跨团队委托](../architecture/entity-authorization.md)，中间件实现位于 `app/middleware/Context.php`。例如，客户实体发起订单时，订单逻辑读取当前客户 Context，而非从 user 关联关系回退推断客户。
+边界见[实体身份与跨团队委托](../architecture/entity-authorization.md)，中间件实现位于 `app/middleware/Context.php`。例如，顾客实体发起订单时，订单逻辑读取当前顾客 Context，而非从 user 关联关系回退推断顾客。

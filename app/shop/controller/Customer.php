@@ -34,7 +34,7 @@ class Customer
             ['changed' => (bool) ($result['created'] ?? false)]
         );
 
-        return success($result, $result['created'] ? '客户身份已建立' : '客户身份已领取');
+        return success($result, $result['created'] ? '顾客身份已建立' : '顾客身份已领取');
     }
 
     public function me(Request $request)
@@ -69,7 +69,7 @@ class Customer
             ['changed_fields' => array_keys($data), 'changed' => $data !== []]
         );
 
-        return message('客户资料已更新');
+        return message('顾客资料已更新');
     }
 
     public function upload(Request $request)
@@ -111,7 +111,7 @@ class Customer
             $request, 'shop', 'setSlug', 'customer', $request->customer_id,
             ['changed_fields' => ['slug']]
         );
-        return success($result, '客户标识已确定');
+        return success($result, '顾客标识已确定');
     }
 
     public function orders(Request $request)

@@ -105,7 +105,7 @@ function personalResult(type: 'team' | 'teamMember' | 'teamVirtual' = 'team') {
       { key: 'chat.virtual.*.act', label: '代表全部虚拟实体参与聊天', group: '聊天' },
       { key: 'team.document.read', label: '查看文档', group: '内容' },
       { key: 'team.document.write', label: '维护文档', group: '内容' },
-      { key: 'team.customer.read', label: '查看客户', group: '客户' },
+      { key: 'team.customer.read', label: '查看顾客', group: '顾客' },
       { key: 'team.role.read', label: '查看角色', group: '角色' },
     ],
   }
@@ -219,7 +219,7 @@ test('Team personal access keeps expanded permission groups in one vertical colu
   await setToken(page, 'team', 1)
   await mockTeamWorkspace(page, 'team')
   await page.goto('http://demo.team.lostsky.work:5175/personal/access')
-  await expect(page.locator('#workspace').getByRole('heading', { name: '角色与有效权限', level: 1 })).toBeVisible()
+  await expect(page.locator('#workspace').getByRole('heading', { name: '角色与权限', level: 1 })).toBeVisible()
 
   const collapse = page.locator('.effective .n-collapse')
   const items = collapse.locator('.n-collapse-item')
@@ -351,9 +351,17 @@ test('Transaction binds overview first in both team and personal workspaces', as
     let data: unknown = access
     if (path.endsWith('/personal/entitlements')) data = { total: 0, list: [], page: 1, limit: 20 }
     else if (path.endsWith('/personal/transactions')) data = { total: 0, list: [], page: 1, limit: 20 }
-    else if (path.endsWith('/personal/stats')) data = { total_count: 0, performance_total: 0, handler_cut: 0, sender_cut: 0, cs_cut: 0, redemption_count: 0 }
+    else if (path.endsWith('/personal/stats')) data = { handler_count: 0, sender_count: 0, cs_count: 0, monthly_performance_total: 0, monthly_flow_total: 0, performance_total: 0 }
     else if (path.endsWith('/personal/services')) data = { total: 0, list: [], offers: [], available: [], page: 1, limit: 20 }
-    else if (path.endsWith('/personal/bindings')) data = []
+    else if (path.endsWith('/personal/customers')) data = {
+      total: 2,
+      page: 1,
+      limit: 20,
+      list: [
+        { id: 8, entity_id: 108, slug: 'customer-8', name: '晚风顾客', avatar: null, is_blocked: false, balance: { balance: '120.00', recharged: '200.00', spent: '80.00' }, is_assignee: true, is_sender: false },
+        { id: 9, entity_id: 109, slug: 'customer-9', name: '星河顾客', avatar: null, is_blocked: false, balance: { balance: '0.00', recharged: '0.00', spent: '0.00' }, is_assignee: true, is_sender: true },
+      ],
+    }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
 
@@ -362,10 +370,11 @@ test('Transaction binds overview first in both team and personal workspaces', as
   await expect(page.locator('.sidebar').getByRole('button', { name: '退出登录' })).toHaveCSS('justify-content', 'flex-start')
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: '进入个人工作台' })).toHaveAttribute('href', '/personal')
+  await expect(page.locator('.sidebar').getByText('登记流水', { exact: true })).toHaveCount(0)
   const redemptionPermissions = ['service.redemption.read', 'service.redemption.manage']
-  await expect(page.locator('.sidebar').getByRole('button').filter({ hasText: '服务核销' }))
+  await expect(page.locator('.sidebar').getByRole('button').filter({ hasText: '权益核销' }))
     .toHaveAttribute('title', formatPermissionDenied(redemptionPermissions))
-  const disabledRedemption = page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '服务核销' })
+  const disabledRedemption = page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '权益核销' })
   await expect(disabledRedemption).not.toContainText(formatPermissionDenied(redemptionPermissions))
   await disabledRedemption.click({ force: true })
   await expect(page.locator('.n-message').filter({ hasText: formatPermissionDenied(redemptionPermissions) })).toBeVisible()
@@ -382,13 +391,13 @@ test('Transaction binds overview first in both team and personal workspaces', as
   await expect(page.locator('#workspace').getByRole('heading', { name: '青空接单人', level: 2 })).toBeVisible()
   await expect(page.locator('#workspace')).toContainText('@handler')
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
+  await expect(page.locator('.sidebar').getByText('登记流水', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/overview')
   const personalEntries = [
-    ['相关流水', '/personal/transactions'],
-    ['我的业绩', '/personal/stats'],
-    ['我的核销', '/personal/services'],
-    ['客户协作', '/personal/bindings'],
-    ['权益赠送', '/personal/entitlements'],
+    ['我的流水', '/personal/transactions'],
+    ['我的接单', '/personal/services'],
+    ['我的顾客', '/personal/customers'],
+    ['权益下发', '/personal/entitlements'],
   ] as const
   for (const [label, href] of personalEntries) {
     await expect(page.locator('.sidebar').getByRole('link', { name: label })).toHaveAttribute('href', href)
@@ -398,23 +407,36 @@ test('Transaction binds overview first in both team and personal workspaces', as
   expect(businessRequests).toBe(0)
 
   for (const [path, title] of [
-    ['/personal/transactions', '与我相关的流水'],
-    ['/personal/stats', '我的业绩'],
-    ['/personal/services', '我的核销'],
-    ['/personal/bindings', '我的客户协作 / 发单绑定'],
+    ['/personal/transactions', '我的流水'],
+    ['/personal/services', '我的接单'],
+    ['/personal/customers', '我的顾客'],
   ] as const) {
     await page.goto(`http://demo.transaction.lostsky.work:5177${path}`)
     await expect(page).toHaveURL(`http://demo.transaction.lostsky.work:5177${path}`)
     await expect(page.locator('#workspace').getByRole('heading', { name: title, level: 1 })).toBeVisible()
+    if (path === '/personal/transactions') {
+      for (const label of ['总接单数', '总发单数', '总接待数', '月度业绩', '月度流水', '个人业绩']) {
+        await expect(page.locator('.stats').getByText(label, { exact: true })).toBeVisible()
+      }
+      await expect(page.locator('.sidebar').getByText('我的业绩', { exact: true })).toHaveCount(0)
+    }
   }
 
+  await page.goto('http://demo.transaction.lostsky.work:5177/personal/customers')
+  await expect(page.getByText('晚风顾客', { exact: true })).toBeVisible()
+  await expect(page.getByText('星河顾客', { exact: true })).toBeVisible()
+  await expect(page.getByText('当前归属', { exact: true })).toHaveCount(2)
+  await expect(page.getByText('协作发单', { exact: true })).toHaveCount(1)
+  await page.goto('http://demo.transaction.lostsky.work:5177/personal/bindings')
+  await expect(page).toHaveURL('http://demo.transaction.lostsky.work:5177/personal/customers')
+
   await page.goto('http://demo.transaction.lostsky.work:5177/personal')
-  await page.getByRole('link', { name: /权益赠送/ }).last().click()
+  await page.getByRole('link', { name: /权益下发/ }).last().click()
   await expect(page).toHaveURL('http://demo.transaction.lostsky.work:5177/personal/entitlements')
-  await expect(page.locator('#workspace').getByRole('heading', { name: '权益赠送', level: 1 })).toBeVisible()
-  await expect(page.getByRole('button', { name: '赠送权益' }))
+  await expect(page.locator('#workspace').getByRole('heading', { name: '权益下发', level: 1 })).toBeVisible()
+  await expect(page.getByRole('button', { name: '下发权益' }))
     .toHaveAttribute('title', formatPermissionDenied(['service.entitlement.grant']))
-  expect(businessRequests).toBe(5)
+  expect(businessRequests).toBe(7)
   await page.goto('http://demo.transaction.lostsky.work:5177/personal/entitlements/new')
   await expect(page).toHaveURL('http://demo.transaction.lostsky.work:5177/personal/entitlements')
   expect(grantOptionRequests).toBe(0)
@@ -459,7 +481,7 @@ test('Chat keeps the four-app switch for Customer and routes Product to the cust
   await page.route('http://demo.shop.lostsky.work:5179/api/**', async route => {
     const path = new URL(route.request().url()).pathname
     const data = path.endsWith('/customer/me')
-      ? { id: 31, nickname: '青空客户', slug: 'sky-customer', avatar: null, description: '', assignee_entity_id: null, balance: '0.00' }
+      ? { id: 31, nickname: '青空顾客', slug: 'sky-customer', avatar: null, description: '', assignee_entity_id: null, balance: '0.00' }
       : []
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
@@ -475,8 +497,8 @@ test('Chat keeps the four-app switch for Customer and routes Product to the cust
 
   const topbar = page.locator('.topbar')
   await expect(topbar.locator('.app-links').getByRole('link', { name: '商品' })).toBeVisible()
-  await expect(topbar.getByRole('button', { name: '团队不可用：客户不进入后台工作台' })).toBeVisible()
-  await expect(topbar.getByRole('button', { name: '记账不可用：客户不进入后台工作台' })).toBeVisible()
+  await expect(topbar.getByRole('button', { name: '团队不可用：顾客不进入后台工作台' })).toBeVisible()
+  await expect(topbar.getByRole('button', { name: '记账不可用：顾客不进入后台工作台' })).toBeVisible()
   await topbar.locator('.app-links').getByRole('link', { name: '商品' }).click()
   await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/customer/profile')
 })
@@ -486,7 +508,7 @@ test('Customer direct backend links resolve to the Shop customer center', async 
   await page.route('http://demo.shop.lostsky.work:5179/api/**', async route => {
     const path = new URL(route.request().url()).pathname
     const data = path.endsWith('/customer/me')
-      ? { id: 31, nickname: '青空客户', slug: 'sky-customer', avatar: null, description: '', assignee_entity_id: null, balance: '0.00' }
+      ? { id: 31, nickname: '青空顾客', slug: 'sky-customer', avatar: null, description: '', assignee_entity_id: null, balance: '0.00' }
       : []
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })

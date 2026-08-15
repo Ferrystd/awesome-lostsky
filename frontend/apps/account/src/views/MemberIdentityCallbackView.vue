@@ -47,7 +47,7 @@ onMounted(() => {
     <section class="callback-card" :aria-busy="receive.isPending.value">
       <template v-if="invalid">
         <AlertTriangle class="status-icon warning" :size="30" aria-hidden="true" />
-        <p class="eyebrow">IDENTITY ERROR</p>
+        <p class="eyebrow">身份错误</p>
         <h1>无法确定要进入的团队</h1>
         <p class="description">回调地址缺少有效的团队标识。你的当前身份没有发生变化。</p>
         <LsButton @click="returnToOrigin">返回</LsButton>
@@ -55,9 +55,9 @@ onMounted(() => {
 
       <template v-else-if="reason === 'team_mismatch' && !receive.isPending.value && !receive.isError.value">
         <AlertTriangle class="status-icon warning" :size="30" aria-hidden="true" />
-        <p class="eyebrow">CONFIRM SWITCH</p>
+        <p class="eyebrow">确认切换</p>
         <h1>切换到 {{ teamSlug }} 的成员身份？</h1>
-        <p class="description">继续将放弃当前实体身份，并领取该团队内与你账号关联的有效成员身份。</p>
+        <p class="description">继续将放弃当前实体（Entity）身份，并领取该团队内与你账号关联的有效成员身份。</p>
         <div class="actions">
           <LsButton variant="secondary" @click="returnToOrigin">取消并保留当前身份</LsButton>
           <LsButton autofocus @click="retry">确认切换</LsButton>
@@ -66,17 +66,17 @@ onMounted(() => {
 
       <template v-else-if="receive.isPending.value">
         <LoaderCircle class="status-icon spinner" :size="30" aria-hidden="true" />
-        <p class="eyebrow">IDENTITY</p>
+        <p class="eyebrow">身份</p>
         <h1>正在领取成员身份</h1>
         <p class="description">正在验证你在 {{ teamSlug }} 的成员资格，完成后将返回原页面。</p>
       </template>
 
       <template v-else-if="receive.isError.value">
         <AlertTriangle class="status-icon warning" :size="30" aria-hidden="true" />
-        <p class="eyebrow">IDENTITY ERROR</p>
+        <p class="eyebrow">身份错误</p>
         <h1>暂时无法领取成员身份</h1>
         <p class="description" role="alert">{{ friendlyError(receive.error.value) }}</p>
-        <p class="assurance">原实体身份仍然保留，请返回后稍后再次进入。</p>
+        <p class="assurance">原实体（Entity）身份仍然保留，请返回后稍后再次进入。</p>
         <div class="actions">
           <LsButton variant="secondary" @click="returnToOrigin">返回</LsButton>
         </div>
@@ -84,7 +84,7 @@ onMounted(() => {
 
       <template v-else>
         <BadgeCheck class="status-icon" :size="30" aria-hidden="true" />
-        <p class="eyebrow">IDENTITY</p>
+        <p class="eyebrow">身份</p>
         <h1>准备领取成员身份</h1>
       </template>
     </section>

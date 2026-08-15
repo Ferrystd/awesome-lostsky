@@ -50,7 +50,7 @@ const returnTask = (id: number) => {
   <div class="personal-service-lists">
     <LsPanel aria-labelledby="offer-service-title">
       <template #header>
-        <LsSectionHeader id="offer-service-title" title="待我确认" description="Customer 指定当前 Entity、等待处理的接单邀请">
+        <LsSectionHeader id="offer-service-title" title="待我确认" description="顾客（Customer）指定当前实体（Entity）、等待处理的接单邀请">
           <template #aside><span class="group-count" aria-live="polite">{{ offers.length }} 个</span></template>
         </LsSectionHeader>
       </template>
@@ -70,7 +70,7 @@ const returnTask = (id: number) => {
 
     <LsPanel aria-labelledby="available-service-title">
       <template #header>
-        <LsSectionHeader id="available-service-title" title="我可以接" description="当前 Entity 所在接单池中的公开任务">
+        <LsSectionHeader id="available-service-title" title="我可以接" description="当前实体（Entity）所在接单池中的公开任务">
           <template #aside><span class="group-count" aria-live="polite">{{ available.length }} 个</span></template>
         </LsSectionHeader>
       </template>
@@ -89,7 +89,7 @@ const returnTask = (id: number) => {
 
     <LsPanel aria-labelledby="assigned-service-title">
       <template #header>
-        <LsSectionHeader id="assigned-service-title" title="我的核销" description="已由当前 Entity 接取、尚未退回的履约任务">
+        <LsSectionHeader id="assigned-service-title" title="我的接单" description="已由当前实体（Entity）接取、尚未退回的履约任务">
           <template #aside><span class="group-count" aria-live="polite">{{ assigned.length }} 个</span></template>
         </LsSectionHeader>
       </template>

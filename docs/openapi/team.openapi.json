@@ -1326,6 +1326,13 @@
             ],
             "nullable": true
           },
+          "senders": {
+            "type": "array",
+            "description": "可协作处理该客户的发单 Entity；详情响应始终返回。",
+            "items": {
+              "$ref": "#/components/schemas/CustomerAssignee"
+            }
+          },
           "summary": {
             "type": "object",
             "properties": {
@@ -10141,8 +10148,8 @@
         "tags": [
           "Customer"
         ],
-        "summary": "更新团队客户资料与归属",
-        "description": "需要 team.customer.manage。归属仅允许当前团队的 Team、成员或虚拟实体。",
+        "summary": "更新团队客户资料、归属与协作发单人",
+        "description": "需要 team.customer.manage。归属和协作发单人仅允许当前团队的 Team、成员或虚拟实体；协作发单人数组不允许重复 Entity。",
         "operationId": "teamCustomerUpdate",
         "security": [
           {
@@ -10175,6 +10182,15 @@
                     "format": "int64",
                     "nullable": true,
                     "minimum": 1
+                  },
+                  "sender_entity_ids": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer",
+                      "format": "int64",
+                      "minimum": 1
+                    }
                   },
                   "is_blocked": {
                     "type": "integer",
@@ -10220,7 +10236,7 @@
             }
           },
           "422": {
-            "description": "归属实体或资料不合法",
+            "description": "归属、协作发单实体或资料不合法",
             "content": {
               "application/json": {
                 "schema": {

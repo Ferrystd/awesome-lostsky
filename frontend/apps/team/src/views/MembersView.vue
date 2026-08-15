@@ -68,7 +68,7 @@ function memberActions(item: Record<string, unknown>) {
   const status = memberStatusCode(item)
   const available = item.is_valid !== false
   return [
-    { key: 'chat', label: '对话', icon: MessageCircleMore, disabled: !item.slug || !available, reason: !item.slug ? '尚未认领 slug' : !available ? `${memberStatusLabel(item)}，实体当前不可用` : '' },
+    { key: 'chat', label: '对话', icon: MessageCircleMore, disabled: !item.slug || !available, reason: !item.slug ? '尚未认领 slug' : !available ? `${memberStatusLabel(item)}，实体（Entity）当前不可用` : '' },
     { key: 'preview', label: '预览', icon: FileText },
     { key: 'manage', label: canUpdate.value ? '管理' : '查看', icon: Pencil },
     ...(status === 'departed' ? [] : [{ key: status === 'blocked' ? 'unblock' : 'block', label: status === 'blocked' ? '解封' : '封禁', icon: status === 'blocked' ? ShieldCheck : ShieldBan, disabled: !canUpdate.value, reason: canUpdate.value ? '' : permissionReason('team.member.update') }]),
@@ -87,7 +87,7 @@ function handleAction(key: string, item: Record<string, unknown>) {
 
 <template>
   <div class="members-view">
-    <AdminPageHeader title="成员" description="浏览团队内可见成员；具有全量读取权限时也会列出隐藏或封禁成员。">
+    <AdminPageHeader title="成员" description="浏览团队内可见成员；具有全量读取权限（Permission）时也会列出隐藏或封禁成员。">
       <template #actions><LsPagePrimaryAction :icon="Plus" label="添加成员" to="/member-add" :disabled="!canInvite" :disabled-reason="canInvite ? '' : permissionReason('team.member.invite')" /></template>
     </AdminPageHeader>
 

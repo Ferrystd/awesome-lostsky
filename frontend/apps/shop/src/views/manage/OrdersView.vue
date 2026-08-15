@@ -62,7 +62,7 @@ const tone = (v: number) =>
   v === 2 ? "success" : v === 3 ? "default" : "warning";
 const customerOptions = computed(() =>
   (options.data.value?.customers ?? []).map((c) => ({
-    label: c.nickname || c.name || `客户 #${c.id}`,
+    label: c.nickname || c.name || `顾客 #${c.id}`,
     value: c.id,
   })),
 );
@@ -77,7 +77,7 @@ const columns: DataTableColumns<Row> = [
       ]),
   },
   {
-    title: "客户",
+    title: "顾客",
     key: "customer",
     render: (r) => r.customer?.nickname ?? "未关联",
   },
@@ -129,7 +129,7 @@ const columns: DataTableColumns<Row> = [
           :options="customerOptions"
           filterable
           clearable
-          placeholder="全部客户"
+          placeholder="全部顾客"
           @update:value="filters.page = 1" /><LsEntitySelect
           v-model="filters.handler_entity_id"
           :entities="options.data.value?.entities ?? []"
@@ -167,7 +167,7 @@ const columns: DataTableColumns<Row> = [
         ><dl>
           <dt>数量</dt>
           <dd>{{ row.quantity }}</dd>
-          <dt>客户</dt>
+          <dt>顾客</dt>
           <dd>{{ row.customer?.nickname ?? "未关联" }}</dd>
           <dt>金额</dt>
           <dd>{{ formatMoney(row.total_price) }}</dd>

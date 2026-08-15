@@ -27,7 +27,7 @@ class Order extends Validate
         'handler_entity_id.integer'  => '接单人ID格式不正确',
         'sender_entity_id.integer'   => '发单人ID格式不正确',
         'cs_entity_id.integer'       => '客服ID格式不正确',
-        'customer_id.integer' => '客户ID格式不正确',
+        'customer_id.integer' => '顾客ID格式不正确',
         'quantity.integer'    => '数量格式不正确',
         'quantity.>='         => '数量必须大于0',
         'handler_cut.float'   => '接单人抽成格式不正确',

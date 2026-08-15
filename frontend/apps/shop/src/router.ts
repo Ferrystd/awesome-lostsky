@@ -11,7 +11,7 @@ export const router = createRouter({
     { path: '/', component: () => import('./views/HomeView.vue'), meta: { title: '商城' } },
     { path: '/product/:id(\\d+)', component: () => import('./views/ProductView.vue'), meta: { title: '商品详情' } },
     { path: '/product/:id(\\d+)/checkout', component: () => import('./views/CheckoutView.vue'), meta: { title: '确认购买', customer: true } },
-    { path: '/customer/bind', component: () => import('./views/CustomerBindView.vue'), meta: { title: '领取客户身份' } },
+    { path: '/customer/bind', component: () => import('./views/CustomerBindView.vue'), meta: { title: '领取顾客身份' } },
     { path: '/customer/profile', component: () => import('./views/CustomerProfileView.vue'), meta: { title: '我的资料', customer: true } },
     { path: '/orders', component: () => import('./views/OrdersView.vue'), meta: { title: '我的订单', customer: true } },
     { path: '/orders/:id(\\d+)', component: () => import('./views/OrderView.vue'), meta: { title: '订单详情', customer: true } },
@@ -52,7 +52,7 @@ export const router = createRouter({
     { path: '/manage/campaigns/new', component: () => import('./views/manage/CampaignFormView.vue'), meta: { title: '新建卡活动', manage: true, permission: 'shop.product.write', width: 'form' } },
     { path: '/manage/campaigns/:id(\\d+)', component: () => import('./views/manage/CampaignFormView.vue'), meta: { title: '编辑卡活动', manage: true, permission: 'shop.product.read', width: 'form' } },
     { path: '/manage/campaigns/:id(\\d+)/codes', component: () => import('./views/manage/CampaignCodesView.vue'), meta: { title: '兑换码', manage: true, permission: 'shop.product.read', width: 'content' } },
-    { path: '/manage/forbidden', component: () => import('./views/manage/ForbiddenView.vue'), meta: { title: '没有访问权限', manage: true, managePublic: true, width: 'content' } },
+    { path: '/manage/forbidden', component: () => import('./views/manage/ForbiddenView.vue'), meta: { title: '没有访问权限（Permission）', manage: true, managePublic: true, width: 'content' } },
     { path: '/:pathMatch(.*)*', component: () => import('./views/NotFoundView.vue'), meta: { title: '页面不存在' } },
   ],
 })

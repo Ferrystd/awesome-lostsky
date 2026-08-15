@@ -14,8 +14,8 @@ use app\model\TeamCustomerSender;
  *
  * 规则（任一命中即通过）：
  *   A. 团队实体
- *   B. 发单人已绑定该客户
- *   C. 匿名客户（walk-in）
+ *   B. 发单人已绑定该顾客
+ *   C. 匿名顾客（walk-in）
  */
 class TransactionVerify
 {
@@ -36,7 +36,7 @@ class TransactionVerify
         $customerId = (int) ($request->post('customer_id', 0) ?: 0);
         $isEdit     = $request->route('id/d', 0) > 0;
 
-        // 规则 B：发单人已绑定该客户
+        // 规则 B：发单人已绑定该顾客
         if ($customerId > 0) {
             $customer = TeamCustomerModel::where('id', $customerId)
                 ->where('team_id', $team->id)
@@ -50,7 +50,7 @@ class TransactionVerify
             }
         }
 
-        // 规则 C：匿名客户（仅创建时允许，编辑不允许匿名绕过）
+        // 规则 C：匿名顾客（仅创建时允许，编辑不允许匿名绕过）
         if (!$isEdit && $customerId === 0) {
             return $next($request);
         }

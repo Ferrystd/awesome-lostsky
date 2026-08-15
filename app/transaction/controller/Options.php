@@ -27,7 +27,7 @@ class Options
     {
         $type = $request->acting_entity['type'] ?? '';
         if (!in_array($type, ['team', 'teamMember', 'teamVirtual'], true)) {
-            throw new \think\exception\HttpException(422, '当前身份不能成为客户归属人');
+            throw new \think\exception\HttpException(422, '当前身份不能成为顾客归属人');
         }
         $summary = app(\app\service\ChatActor::class)->summaryEntity($request->entity_id);
         return success([

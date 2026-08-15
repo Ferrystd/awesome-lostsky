@@ -179,7 +179,7 @@ function deleteField() {
     />
 
     <LsAsyncState v-if="access.isPending.value" state="loading" :rows="5" />
-    <LsAsyncState v-else-if="access.isError.value" state="error" title="暂时无法确认申请字段权限" :description="friendlyError(access.error.value)" />
+    <LsAsyncState v-else-if="access.isError.value" state="error" title="暂时无法确认申请字段权限（Permission）" :description="friendlyError(access.error.value)" />
     <NAlert v-else-if="!pageAllowed" type="warning" title="申请字段不可用">{{ permissionReason(requiredPermission) }}</NAlert>
     <LsAsyncState v-else-if="editing && fieldsQuery.isPending.value" state="loading" :rows="7" />
     <LsAsyncState v-else-if="editing && fieldsQuery.isError.value" state="error" title="暂时无法读取申请字段" :description="friendlyError(fieldsQuery.error.value)" />

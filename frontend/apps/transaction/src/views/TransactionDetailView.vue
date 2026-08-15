@@ -36,7 +36,7 @@ function confirmDelete() {
 
 <template>
   <div class="detail-view">
-    <LsPageHeader title="流水详情" description="核对参与方、支付构成与分配结果。" back-to="/" back-label="返回流水列表">
+    <LsPageHeader title="流水详情" description="核对参与方、支付构成与分成结果。" back-to="/" back-label="返回流水列表">
       <template v-if="query.data.value?.type === 2" #actions>
         <RouterLink class="secondary-link" :to="`/edit?id=${id}`"><Pencil :size="17" />编辑</RouterLink>
         <LsButton variant="danger" @click="confirmDelete"><template #icon><Trash2 :size="17" /></template>删除</LsButton>
@@ -55,11 +55,11 @@ function confirmDelete() {
         <div><span>接单人</span><strong>{{ entityName(query.data.value.handler, query.data.value.handler_entity_id) }}</strong></div>
         <div><span>发单人</span><strong>{{ entityName(query.data.value.sender, query.data.value.sender_entity_id) }}</strong></div>
         <div><span>客服</span><strong>{{ entityName(query.data.value.cs, query.data.value.cs_entity_id) }}</strong></div>
-        <div><span>客户</span><strong>{{ customerName(query.data.value.customer, query.data.value.customer_id) }}</strong></div>
+        <div><span>顾客</span><strong>{{ customerName(query.data.value.customer, query.data.value.customer_id) }}</strong></div>
       </div></LsPanel>
       <section class="breakdown">
-        <LsPanel><article><LsSectionHeader title="支付构成" description="客户本次实际支付方式" :heading-level="3" /><dl><div><dt>现款</dt><dd>{{ money(query.data.value.cash) }}</dd></div><div><dt>预存款</dt><dd>{{ money(query.data.value.prepaid) }}</dd></div><div class="total"><dt>合计</dt><dd>{{ money(Number(query.data.value.cash) + Number(query.data.value.prepaid)) }}</dd></div></dl></article></LsPanel>
-        <LsPanel><article><LsSectionHeader title="成本与分配" description="本笔流水的归属结果" :heading-level="3" /><dl><div><dt>成本</dt><dd>{{ money(query.data.value.cost) }}</dd></div><div><dt>接单人</dt><dd>{{ money(query.data.value.handler_cut) }}</dd></div><div><dt>发单人</dt><dd>{{ money(query.data.value.sender_cut) }}</dd></div><div><dt>客服</dt><dd>{{ money(query.data.value.cs_cut) }}</dd></div><div><dt>团队</dt><dd>{{ money(query.data.value.team_cut) }}</dd></div></dl></article></LsPanel>
+        <LsPanel><article><LsSectionHeader title="支付构成" description="顾客本次实际支付方式" :heading-level="3" /><dl><div><dt>现款</dt><dd>{{ money(query.data.value.cash) }}</dd></div><div><dt>预存款</dt><dd>{{ money(query.data.value.prepaid) }}</dd></div><div class="total"><dt>合计</dt><dd>{{ money(Number(query.data.value.cash) + Number(query.data.value.prepaid)) }}</dd></div></dl></article></LsPanel>
+        <LsPanel><article><LsSectionHeader title="成本与分成" description="本笔流水的归属结果" :heading-level="3" /><dl><div><dt>成本</dt><dd>{{ money(query.data.value.cost) }}</dd></div><div><dt>接单人</dt><dd>{{ money(query.data.value.handler_cut) }}</dd></div><div><dt>发单人</dt><dd>{{ money(query.data.value.sender_cut) }}</dd></div><div><dt>客服</dt><dd>{{ money(query.data.value.cs_cut) }}</dd></div><div><dt>团队</dt><dd>{{ money(query.data.value.team_cut) }}</dd></div></dl></article></LsPanel>
       </section>
     </template>
   </div>

@@ -64,10 +64,10 @@ final class TeamAudit
     private const RESOURCES = [
         'abilityClaim' => '团队能力',
         'chatIntegration' => 'Webhook 集成',
-        'customer' => '客户',
-        'customerBalance' => '客户余额',
+        'customer' => '顾客',
+        'customerBalance' => '顾客余额',
         'customerSender' => '发单绑定',
-        'customer_file' => '客户文件',
+        'customer_file' => '顾客文件',
         'document' => '文档',
         'entity' => '实体',
         'entity_display' => '实体公开展示',

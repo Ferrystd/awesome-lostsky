@@ -52,7 +52,7 @@ const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?
 const fieldsEditor = ref<InstanceType<typeof ProductFieldsEditor> | null>(null)
 const uploading = ref<'cover' | 'markdown' | ''>('')
 const uploadDisabledReason = computed(() => {
-  if (access.isPending.value) return '正在核对文件上传能力'
+  if (access.isPending.value) return '正在核对文件上传能力（Ability）'
   if (access.isError.value) return friendlyError(access.error.value)
   return fileUploadReason(access.data.value?.file_upload)
 })
@@ -169,8 +169,8 @@ const teamCut = computed(() => calculateServiceTeamCut(
   form.cs_cut,
 ))
 const teamCutHint = computed(() => teamCut.value < 0
-  ? '成本与人员分配超过售价，请调低金额后再保存。'
-  : '自动取售价扣除成本与人员分配后的余额。')
+  ? '成本与人员分成超过售价，请调低金额后再保存。'
+  : '自动取售价扣除成本与人员分成后的余额。')
 watch(benefitPricingSummary, summary => {
   if (!summary) return
   form.price = Number(summary.price)
@@ -273,7 +273,7 @@ const valid = computed(() => Boolean(
           <LsField v-if="!personal" label="专属 Entity" for-id="product-owner"><LsEntitySelect id="product-owner" v-model="form.entity_id" :entities="entities" :loading="options.isPending.value" :disabled="options.isError.value" clearable placeholder="留空表示团队公用商品" /></LsField>
           <LsField label="可选接单人" for-id="product-handlers" hint="普通商品用于下单选择；服务商品的核销接单池由服务定义控制。"><LsEntitySelect id="product-handlers" v-model="form.handler_entity_ids" :entities="entities" :loading="options.isPending.value" :disabled="options.isError.value" multiple clearable placeholder="选择可选接单人" /></LsField>
       </LsFormSection>
-      <LsFormSection v-if="pricingLocked" title="权益包分配汇总" description="订单创建后，实际金额继续按每个服务项冻结，不会平均分摊。">
+      <LsFormSection v-if="pricingLocked" title="权益包分成汇总" description="订单创建后，实际金额继续按每个服务项冻结，不会平均分摊。">
           <dl class="pricing-breakdown">
             <div><dt>成本</dt><dd>¥{{ benefitPricingSummary?.cost }}</dd></div>
             <div><dt>接单分成</dt><dd>¥{{ benefitPricingSummary?.handler_cut }}</dd></div>
@@ -282,12 +282,12 @@ const valid = computed(() => Boolean(
             <div><dt>团队分成</dt><dd>¥{{ benefitPricingSummary?.team_cut }}</dd></div>
           </dl>
       </LsFormSection>
-      <LsFormSection v-else title="默认分配" description="修改售价或成本后，将按团队设置重算人员分配；订单创建时冻结当前金额。">
+      <LsFormSection v-else title="默认分成" description="修改售价或成本后，将按团队设置重算人员分成；订单创建时冻结当前金额。">
           <LsField label="成本" for-id="product-cost"><NInputNumber id="product-cost" v-model:value="form.cost" :min="0" :step="0.01" :precision="2" /></LsField>
-          <LsField label="接单分配" for-id="product-handler-cut"><NInputNumber id="product-handler-cut" v-model:value="form.handler_cut" :min="0" :precision="2" clearable /></LsField>
-          <LsField label="发单分配" for-id="product-sender-cut"><NInputNumber id="product-sender-cut" v-model:value="form.sender_cut" :min="0" :precision="2" clearable /></LsField>
-          <LsField label="客服分配" for-id="product-cs-cut"><NInputNumber id="product-cs-cut" v-model:value="form.cs_cut" :min="0" :precision="2" clearable /></LsField>
-          <LsField label="团队分配" for-id="product-team-cut" :hint="teamCutHint"><NInputNumber id="product-team-cut" :value="teamCut" :precision="2" disabled /></LsField>
+          <LsField label="接单分成" for-id="product-handler-cut"><NInputNumber id="product-handler-cut" v-model:value="form.handler_cut" :min="0" :precision="2" clearable /></LsField>
+          <LsField label="发单分成" for-id="product-sender-cut"><NInputNumber id="product-sender-cut" v-model:value="form.sender_cut" :min="0" :precision="2" clearable /></LsField>
+          <LsField label="客服分成" for-id="product-cs-cut"><NInputNumber id="product-cs-cut" v-model:value="form.cs_cut" :min="0" :precision="2" clearable /></LsField>
+          <LsField label="团队分成" for-id="product-team-cut" :hint="teamCutHint"><NInputNumber id="product-team-cut" :value="teamCut" :precision="2" disabled /></LsField>
       </LsFormSection>
       <ProductFieldsEditor
         v-if="editing"

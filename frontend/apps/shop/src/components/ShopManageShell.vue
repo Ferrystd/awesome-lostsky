@@ -164,7 +164,7 @@ function explainPermission(permission: string | null) {
     /></Transition>
     <section class="manage-workspace">
       <LsWorkspaceHeader
-        context-label="SHOP WORKSPACE"
+        context-label="商品工作台"
         :title="title"
         :actions="headerActions"
         app-navigation

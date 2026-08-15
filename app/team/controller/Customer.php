@@ -50,7 +50,7 @@ class Customer
     {
         $id = $request->route('id/d', 0);
         $data = [];
-        foreach (['name', 'avatar', 'description', 'assignee_entity_id', 'is_blocked'] as $field) {
+        foreach (['name', 'avatar', 'description', 'assignee_entity_id', 'sender_entity_ids', 'is_blocked'] as $field) {
             if ($request->has($field, 'post')) {
                 $data[$field] = $request->post($field);
             }
@@ -64,6 +64,6 @@ class Customer
             $id,
             ['changed_fields' => array_keys($data), 'changed' => $data !== []]
         );
-        return message('客户资料已更新');
+        return message('顾客资料已更新');
     }
 }

@@ -44,7 +44,7 @@ const primary: NavItem[] = [
   { to: '/', label: '概览', icon: House },
   { to: '/entities', label: '实体', icon: Boxes },
   { to: '/members', label: '成员', icon: Users },
-  { to: '/customers', label: '客户', icon: Contact },
+  { to: '/customers', label: '顾客', icon: Contact },
   { to: '/notices/entity', label: '通知', icon: Bell },
   { to: '/docs', label: '文档', icon: BookOpen, ability: 'doc' },
   { to: '/me', label: '当前实体', icon: UserRound },
@@ -206,7 +206,7 @@ watch(
       <div v-if="drawer" class="backdrop" aria-hidden="true" @click="drawer = false" />
     </Transition>
     <section class="workspace">
-      <LsWorkspaceHeader context-label="TEAM WORKSPACE" :title="title" :actions="headerActions" app-navigation @menu="drawer = true" @action="handleHeaderAction">
+      <LsWorkspaceHeader context-label="团队工作台" :title="title" :actions="headerActions" app-navigation @menu="drawer = true" @action="handleHeaderAction">
         <template #actions>
           <RouterLink class="display-link" to="/"><House :size="17" /><span>团队</span></RouterLink>
           <a class="display-link" :href="appEntries[1]?.href"><Store :size="17" /><span>商品</span></a>

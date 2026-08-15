@@ -125,7 +125,7 @@ class TeamCustomer extends Base
 
     public function getIsSearchableAttr(): bool
     {
-        // 客户实体固定不进入全局实体搜索和普通团队目录；读取 Customer 始终需要 team.entity.read。
+        // 顾客实体固定不进入全局实体搜索和普通团队目录；读取 Customer 始终需要 team.entity.read。
         // Entity.is_internal_visible 不会降低该权限边界，Customer 也不支持公开 Display。
         return false;
     }

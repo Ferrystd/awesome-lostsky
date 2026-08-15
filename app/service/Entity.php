@@ -151,7 +151,7 @@ class Entity
     {
         $customer = \app\model\TeamCustomer::find($customerId);
         if (!$customer) {
-            throw new HttpException(404, '客户不存在');
+            throw new HttpException(404, '顾客不存在');
         }
 
         return \think\facade\Db::transaction(function () use ($customerId, $slug) {
@@ -160,7 +160,7 @@ class Entity
                 ->where('entityable_id', $customerId)
                 ->find();
             if ($existing) {
-                throw new HttpException(409, "客户标识已经确定：{$existing->slug}");
+                throw new HttpException(409, "顾客标识已经确定：{$existing->slug}");
             }
 
             return $this->create('teamCustomer', $customerId, $slug);
@@ -491,7 +491,7 @@ class Entity
             default => 'teamMember',
         };
         $displayName = match ($type) {
-            'teamCustomer' => $entity->nickname ?: "客户 #{$entity->id}",
+            'teamCustomer' => $entity->nickname ?: "顾客 #{$entity->id}",
             'teamVirtual' => $entity->name ?: $identity->slug,
             default => $entity->nickname ?: "成员 #{$entity->id}",
         };

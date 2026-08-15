@@ -10,10 +10,10 @@ import {
 describe('error message formatting', () => {
   it('formats the default Permission and Ability messages', () => {
     expect(formatPermissionDenied(['team.entity.profile.manage'])).toBe(
-      '您缺少该团队权限(Permission): team.entity.profile.manage,请联系团队管理员开通。',
+      '您缺少该团队权限（Permission）: team.entity.profile.manage,请联系团队管理员开通。',
     )
     expect(formatAbilityDenied('file', '文件上传')).toBe(
-      '该团队能力(Ability)缺失: 文件上传(File),管理员可按需购买。',
+      '该团队能力（Ability）缺失: 文件上传(File),管理员可按需购买。',
     )
   })
 
@@ -35,7 +35,7 @@ describe('error message formatting', () => {
     ERROR_MESSAGES.access.permission.overrides[key] = '不应使用这个覆盖'
     try {
       expect(formatPermissionDenied([key, 'test.other', key])).toBe(
-        '您缺少该团队权限(Permission): test.permission / test.other,请联系团队管理员开通。',
+        '您缺少该团队权限（Permission）: test.permission / test.other,请联系团队管理员开通。',
       )
     } finally {
       if (previous === undefined) delete ERROR_MESSAGES.access.permission.overrides[key]
@@ -48,7 +48,7 @@ describe('error message formatting', () => {
     const previous = ERROR_MESSAGES.access.ability.overrides[key]
     ERROR_MESSAGES.access.ability.overrides[key] = '{label}需要 Ability：{key}/{keyTitle}'
     try {
-      expect(formatAbilityDenied(key, '测试能力')).toBe('测试能力需要 Ability：test/Test')
+      expect(formatAbilityDenied(key, '测试能力（Ability）')).toBe('测试能力（Ability）需要 Ability：test/Test')
     } finally {
       if (previous === undefined) delete ERROR_MESSAGES.access.ability.overrides[key]
       else ERROR_MESSAGES.access.ability.overrides[key] = previous
@@ -59,10 +59,10 @@ describe('error message formatting', () => {
     expect(formatSettingDenied(
       'chat',
       'customer_direct_start',
-      '客户可发起单聊',
+      '顾客可发起单聊',
       false,
       { equals: true },
-    )).toBe('需要“客户可发起单聊”（chat.customer_direct_start）设为开启，现在为关闭，请联系团队管理员设置。')
+    )).toBe('需要“顾客可发起单聊”（chat.customer_direct_start）设为开启，现在为关闭，请联系团队管理员设置。')
     expect(formatSettingDenied(
       'chat',
       'edit_window_minutes',
@@ -82,10 +82,10 @@ describe('error message formatting', () => {
       expect(formatSettingDenied(
         'chat',
         'customer_group_mode',
-        '客户群聊权限',
+        '顾客群聊权限（Permission）',
         'disabled',
         { equals: 'invite_only' },
-      )).toBe('客户群聊权限需要设为“invite_only”，当前为“disabled”（chat/customer_group_mode）')
+      )).toBe('顾客群聊权限（Permission）需要设为“invite_only”，当前为“disabled”（chat/customer_group_mode）')
     } finally {
       if (previous === undefined) delete ERROR_MESSAGES.access.setting.overrides[setting]
       else ERROR_MESSAGES.access.setting.overrides[setting] = previous

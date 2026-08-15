@@ -6,7 +6,7 @@ namespace app\model;
 use app\model\Base;
 
 /**
- * TeamCustomerSender 模型 客户-发单人绑定
+ * TeamCustomerSender 模型 顾客-发单人绑定
  * @mixin \think\Model
  */
 class TeamCustomerSender extends Base

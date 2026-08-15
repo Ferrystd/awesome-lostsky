@@ -101,7 +101,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
       ]),
   },
   {
-    title: "成交客户",
+    title: "成交顾客",
     key: "customer_count",
     render: (row) => integer(row.customer_count),
   },
@@ -218,7 +218,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
       <section class="rankings">
         <LsPanel
           ><article>
-            <LsSectionHeader title="接单人分配" description="按分配金额从高到低" :heading-level="3" />
+            <LsSectionHeader title="接单人分成" description="按分成金额从高到低" :heading-level="3" />
             <ol v-if="entities.length">
               <li v-for="item in entities" :key="String(item.entity_id)">
                 <span
@@ -232,16 +232,16 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
         >
         <LsPanel
           ><article>
-            <LsSectionHeader title="客户贡献" description="按成交金额从高到低" :heading-level="3" />
+            <LsSectionHeader title="顾客贡献" description="按成交金额从高到低" :heading-level="3" />
             <ol v-if="customers.length">
               <li v-for="item in customers" :key="String(item.customer_id)">
                 <span
-                  >{{ item.customer_name || "未关联客户"
+                  >{{ item.customer_name || "未关联顾客"
                   }}<small>{{ item.count }} 笔</small></span
                 ><strong>{{ money(item.amount) }}</strong>
               </li>
             </ol>
-            <p v-else class="hint">暂无客户统计。</p>
+            <p v-else class="hint">暂无顾客统计。</p>
           </article></LsPanel
         >
       </section>
@@ -255,7 +255,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
             :row-key="(row) => row.entity_id"
             :scroll-x="760"
           />
-          <p v-else class="hint">所选时间内暂无带客户归属的成交。</p>
+          <p v-else class="hint">所选时间内暂无带顾客归属的成交。</p>
         </section></LsPanel
       >
     </template>

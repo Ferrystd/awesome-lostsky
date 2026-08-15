@@ -6,6 +6,7 @@ namespace app\service;
 use app\model\TeamCustomer;
 use app\model\TeamCustomerBalance;
 use app\model\TeamCustomerBalanceLog;
+use app\model\TeamCustomerSender;
 use app\model\TeamTransaction;
 use app\enum\LogType;
 use app\enum\TransactionType;
@@ -13,12 +14,23 @@ use think\exception\HttpException;
 
 class Transaction
 {
-    public function options(int $teamId): array
+    public function options(int $teamId, ?int $actorEntityId = null): array
     {
         // 交易选项接口已由 transaction.read 保护，需要完整主体集合（包括 Customer 与内部隐藏实体）。
         $entities = app(Entity::class)->optionsForTeam($teamId, true);
 
-        $customers = TeamCustomer::where('team_id', $teamId)
+        $customerQuery = TeamCustomer::where('team_id', $teamId);
+        if ($actorEntityId) {
+            $bindingCustomerIds = TeamCustomerSender::where('team_id', $teamId)
+                ->where('entity_id', $actorEntityId)
+                ->column('customer_id');
+            $customerQuery->where(function ($scope) use ($actorEntityId, $bindingCustomerIds) {
+                $scope->where('assignee_entity_id', $actorEntityId);
+                if ($bindingCustomerIds) $scope->whereIn('id', $bindingCustomerIds, 'OR');
+            });
+        }
+
+        $customers = $customerQuery
             ->with(['profile', 'balance'])
             ->visible([
                 'id',
@@ -26,6 +38,7 @@ class Transaction
                 'avatar',
                 'description',
                 'is_blocked',
+                'assignee_entity_id',
                 'balance',
             ])
             ->order('id', 'asc')
@@ -162,19 +175,19 @@ class Transaction
             $prepaid = $data['prepaid'];
             $prepaidChange = (new TeamTransaction)->prepaidChange('0.00', $prepaid);
             if ((int) $prepaidChange['direction'] > 0 && !$customerId) {
-                throw new HttpException(422, '预存款支付必须关联客户');
+                throw new HttpException(422, '预存款支付必须关联顾客');
             }
 
             if ((int) $prepaidChange['direction'] > 0 && $customerId) {
                 // FOR UPDATE 行锁，依赖外层 Db::transaction() 才能生效
                 $balance = TeamCustomerBalance::where('customer_id', $customerId)->lock(true)->find();
                 if (!$balance) {
-                    throw new HttpException(422, '客户预存款余额不足');
+                    throw new HttpException(422, '顾客预存款余额不足');
                 }
 
                 $balance = (new TeamCustomerBalance)->consume((int) $customerId, $prepaid);
                 if (!$balance) {
-                    throw new HttpException(422, '客户预存款余额不足');
+                    throw new HttpException(422, '顾客预存款余额不足');
                 }
 
                 $transId = $this->saveTransaction($teamId, $data);
@@ -353,7 +366,7 @@ class Transaction
 
             $newPrepaidState = (new TeamTransaction)->prepaidChange('0.00', $newPrepaid);
             if ((int) $newPrepaidState['direction'] > 0 && !$newCustomerId) {
-                throw new HttpException(422, '预存款支付必须关联客户');
+                throw new HttpException(422, '预存款支付必须关联顾客');
             }
 
             $this->lockCustomerBalances([$oldCustomerId, $newCustomerId]);
@@ -367,10 +380,10 @@ class Transaction
             } else {
                 $oldState = (new TeamTransaction)->prepaidChange('0.00', $oldPrepaid);
                 if ($oldCustomerId && (int) $oldState['direction'] > 0) {
-                    $this->refundBalance($oldCustomerId, $oldPrepaid, (int) $transaction->id, '流水更换客户退款');
+                    $this->refundBalance($oldCustomerId, $oldPrepaid, (int) $transaction->id, '流水更换顾客退款');
                 }
                 if ($newCustomerId && (int) $newPrepaidState['direction'] > 0) {
-                    $this->consumeBalance($newCustomerId, $newPrepaid, (int) $transaction->id, '流水更换客户消费');
+                    $this->consumeBalance($newCustomerId, $newPrepaid, (int) $transaction->id, '流水更换顾客消费');
                 }
             }
 
@@ -395,11 +408,11 @@ class Transaction
                 $balance = TeamCustomerBalance::where('customer_id', $transaction->customer_id)
                     ->lock(true)->find();
                 if (!$balance) {
-                    throw new HttpException(422, '客户余额记录不存在');
+                    throw new HttpException(422, '顾客余额记录不存在');
                 }
                 $balance = (new TeamCustomerBalance)->refund((int) $transaction->customer_id, $transaction->prepaid);
                 if (!$balance) {
-                    throw new HttpException(409, '客户余额退款失败');
+                    throw new HttpException(409, '顾客余额退款失败');
                 }
 
                 $log = new TeamCustomerBalanceLog;
@@ -525,12 +538,12 @@ class Transaction
 
         $balance = TeamCustomerBalance::where('customer_id', $customerId)->lock(true)->find();
         if (!$balance) {
-            throw new HttpException(422, '客户预存款余额不足');
+            throw new HttpException(422, '顾客预存款余额不足');
         }
 
         $balance = (new TeamCustomerBalance)->consume($customerId, $amount);
         if (!$balance) {
-            throw new HttpException(422, '客户预存款余额不足');
+            throw new HttpException(422, '顾客预存款余额不足');
         }
 
         $log = new TeamCustomerBalanceLog;
@@ -551,12 +564,12 @@ class Transaction
 
         $balance = TeamCustomerBalance::where('customer_id', $customerId)->lock(true)->find();
         if (!$balance) {
-            throw new HttpException(422, '客户余额记录不存在');
+            throw new HttpException(422, '顾客余额记录不存在');
         }
 
         $balance = (new TeamCustomerBalance)->refund($customerId, $amount);
         if (!$balance) {
-            throw new HttpException(409, '客户余额退款失败');
+            throw new HttpException(409, '顾客余额退款失败');
         }
 
         $log = new TeamCustomerBalanceLog;

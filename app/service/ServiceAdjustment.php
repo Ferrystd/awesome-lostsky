@@ -71,7 +71,7 @@ class ServiceAdjustment
             if (!$instance->cs_entity_id) $parts['cs_cut'] = '0.00';
             $teamCents = $totalCents;
             foreach ($parts as $value) $teamCents -= $this->toCents($value);
-            if ($teamCents < 0) throw new HttpException(422, '加价费用分配超过加价总额');
+            if ($teamCents < 0) throw new HttpException(422, '加价费用分成超过加价总额');
             $adjustment = new TeamServiceAdjustment;
             $adjustment->save([
                 'team_id' => $teamId,
@@ -155,7 +155,7 @@ class ServiceAdjustment
             if (!$adjustment) throw new HttpException(404, '费用调整不存在');
             if ($adjustment->enumCase('status') === ServiceAdjustmentStatus::Cancelled) return;
             if ($adjustment->enumCase('status') !== ServiceAdjustmentStatus::Pending) {
-                throw new HttpException(409, '客户已确认的加价费用不能直接取消');
+                throw new HttpException(409, '顾客已确认的加价费用不能直接取消');
             }
             $adjustment->save([
                 'status' => ServiceAdjustmentStatus::Cancelled,
@@ -213,9 +213,9 @@ class ServiceAdjustment
     private function consumeWithoutTransaction(int $customerId, string $amount, string $memo): void
     {
         $balance = TeamCustomerBalance::where('customer_id', $customerId)->lock(true)->find();
-        if (!$balance) throw new HttpException(422, '客户预存款余额不足');
+        if (!$balance) throw new HttpException(422, '顾客预存款余额不足');
         $balance = (new TeamCustomerBalance)->consume($customerId, $amount);
-        if (!$balance) throw new HttpException(422, '客户预存款余额不足');
+        if (!$balance) throw new HttpException(422, '顾客预存款余额不足');
         $log = new TeamCustomerBalanceLog;
         $log->save([
             'customer_id' => $customerId,

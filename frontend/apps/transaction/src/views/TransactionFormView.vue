@@ -8,10 +8,11 @@ import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
+import { NDatePicker, NInput, NInputNumber } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { customerOptions, money } from '../lib'
+import { customerName, money, transactionParticipantDefaults } from '../lib'
+import { loadWorkspaceAccess } from '../lib/workspace-access'
 import type { TransactionOptions, TransactionRecord } from '../types'
 
 const route = useRoute()
@@ -19,6 +20,7 @@ const router = useRouter()
 const client = useQueryClient()
 const id = computed(() => Number(route.query.id || 0))
 const editing = computed(() => id.value > 0)
+const personal = computed(() => route.meta.workspace === 'personal')
 const form = reactive({
   handler_entity_id: null as number | null,
   sender_entity_id: null as number | null,
@@ -36,8 +38,12 @@ const form = reactive({
   memo: '',
 })
 const optionsQuery = useQuery({
-  queryKey: ['transaction-options'],
-  queryFn: () => api.get<TransactionOptions>('/transaction/options'),
+  queryKey: computed(() => ['transaction-options', personal.value ? 'personal' : 'team']),
+  queryFn: () => api.get<TransactionOptions>(personal.value ? '/personal/transaction-options' : '/transaction/options'),
+})
+const accessQuery = useQuery({
+  queryKey: ['transaction-workspace-access'],
+  queryFn: () => loadWorkspaceAccess(),
 })
 const detail = useQuery({
   queryKey: computed(() => ['transaction', id.value]),
@@ -74,10 +80,31 @@ const balanced = computed(() => {
 const hasEntityOptions = computed(() => Array.isArray(optionsQuery.data.value?.entities))
 const hasCustomerOptions = computed(() => Array.isArray(optionsQuery.data.value?.customers))
 const customers = computed(() => optionsQuery.data.value?.customers ?? [])
+const customerEntities = computed(() => customers.value
+  .filter(item => Number(item.is_blocked ?? 0) !== 1)
+  .map(item => ({
+    id: Number(item.id),
+    type: 'teamCustomer',
+    name: customerName(item, item.id),
+    avatar: item.avatar,
+  })))
 const selectedCustomer = computed(() => customers.value.find(item => Number(item.id) === form.customer_id))
+const currentEntityId = computed(() => Number(accessQuery.data.value?.identity?.entity_id) || null)
 const balance = computed(() => Number(selectedCustomer.value?.balance?.balance ?? 0))
 const canSubmit = computed(() => Boolean(form.handler_entity_id && form.trans_at && balanced.value && (!form.prepaid || form.customer_id)))
 const amountProps = { min: 0, precision: 2, step: 1 } as const
+
+function applyCustomerDefaults(value: number | number[] | null) {
+  const customerId = Array.isArray(value) ? null : value
+  const customer = customers.value.find(item => Number(item.id) === Number(customerId))
+  const defaults = transactionParticipantDefaults(customer, currentEntityId.value)
+  form.sender_entity_id = defaults.senderEntityId
+  if (defaults.csEntityId) form.cs_entity_id = defaults.csEntityId
+}
+
+watch(currentEntityId, (entityId) => {
+  if (!editing.value && entityId) applyCustomerDefaults(form.customer_id)
+}, { immediate: true })
 
 const save = useMutation({
   mutationFn: () => api.post<{ id?: number }>(editing.value ? `/transaction/${id.value}` : '/transaction', {
@@ -98,7 +125,9 @@ const save = useMutation({
   }),
   onSuccess: async (data) => {
     await client.invalidateQueries({ queryKey: ['transactions'] })
-    await router.push(`/detail?id=${editing.value ? id.value : Number(data?.id ?? 0)}`)
+    await router.push(personal.value && !editing.value
+      ? '/personal/transactions'
+      : `/detail?id=${editing.value ? id.value : Number(data?.id ?? 0)}`)
   },
 })
 </script>
@@ -107,21 +136,21 @@ const save = useMutation({
   <div class="transaction-form-view">
     <LsPageHeader
       :title="editing ? '编辑流水' : '登记流水'"
-      :description="editing ? '接单人创建后不可更换；修改预存款会同步生成余额变动。' : '总价需要同时与支付构成、成本及分配构成保持一致。'"
-      :back-to="editing ? `/detail?id=${id}` : '/'"
-      :back-label="editing ? '返回流水详情' : '返回流水列表'"
+      :description="editing ? '接单人创建后不可更换；修改预存款会同步生成余额变动。' : '总价需要同时与支付构成、成本及分成构成保持一致。'"
+      :back-to="editing ? `/detail?id=${id}` : personal ? '/personal/transactions' : '/'"
+      :back-label="editing ? '返回流水详情' : personal ? '返回我的流水' : '返回流水列表'"
     />
     <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
     <form v-else class="transaction-form" @submit.prevent="save.mutate()">
       <LsInlineError v-if="optionsQuery.isError.value" message="参与方选项暂时无法读取；表单仍可查看，但相关字段已禁用。" />
-      <LsFormSection title="参与方" description="选择接单人、发单人、客服与客户；客户为空时不能使用预存款。" :heading-level="3">
+      <LsFormSection title="参与方" description="选择接单人、发单人、客服与顾客；顾客为空时不能使用预存款。" :heading-level="3">
         <p v-if="optionsQuery.data.value && !hasEntityOptions" class="hint">当前响应未提供主体选项，主体字段已禁用，其他金额与备注仍可填写。</p>
-        <p v-if="optionsQuery.data.value && !hasCustomerOptions" class="hint">当前响应未提供客户选项，客户与预存款暂不可用。</p>
+        <p v-if="optionsQuery.data.value && !hasCustomerOptions" class="hint">当前响应未提供顾客选项，顾客与预存款暂不可用。</p>
         <LsField label="接单人" for-id="transaction-handler" required><LsEntitySelect id="transaction-handler" v-model="form.handler_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="optionsQuery.isPending.value" :disabled="editing || !hasEntityOptions" placeholder="选择接单人" /></LsField>
         <LsField label="发单人" for-id="transaction-sender"><LsEntitySelect id="transaction-sender" v-model="form.sender_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="optionsQuery.isPending.value" :disabled="!hasEntityOptions" clearable placeholder="可选" /></LsField>
         <LsField label="客服" for-id="transaction-cs"><LsEntitySelect id="transaction-cs" v-model="form.cs_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="optionsQuery.isPending.value" :disabled="!hasEntityOptions" clearable placeholder="可选" /></LsField>
-        <LsField label="客户" for-id="transaction-customer"><NSelect id="transaction-customer" v-model:value="form.customer_id" :options="customerOptions(optionsQuery.data.value)" filterable clearable :disabled="!hasCustomerOptions" placeholder="可选；使用预存款时必填" /></LsField>
-        <p v-if="selectedCustomer" class="balance-hint">当前客户余额 <strong class="ls-tabular">{{ money(balance) }}</strong></p>
+        <LsField label="顾客" for-id="transaction-customer"><LsEntitySelect id="transaction-customer" v-model="form.customer_id" :entities="customerEntities" :loading="optionsQuery.isPending.value" :disabled="!hasCustomerOptions" clearable placeholder="可选；使用预存款时必填" @update:model-value="applyCustomerDefaults" /></LsField>
+        <p v-if="selectedCustomer" class="balance-hint">当前顾客余额 <strong class="ls-tabular">{{ money(balance) }}</strong></p>
       </LsFormSection>
       <LsFormSection title="金额与支付" description="现款 + 预存款必须等于总价。" :heading-level="3"><template #aside><strong :class="balanced ? 'ok' : 'warn'">{{ balanced ? '金额平衡' : '金额未平衡' }}</strong></template>
         <LsField label="总价" for-id="transaction-total" required><NInputNumber id="transaction-total" v-model:value="form.total_price" v-bind="amountProps" /></LsField>
@@ -129,19 +158,19 @@ const save = useMutation({
         <LsField label="预存款" for-id="transaction-prepaid"><NInputNumber id="transaction-prepaid" v-model:value="form.prepaid" v-bind="amountProps" :disabled="!hasCustomerOptions" /></LsField>
         <p class="equation ls-tabular">支付合计 {{ money(paymentTotal) }} / 总价 {{ money(form.total_price) }}</p>
       </LsFormSection>
-      <LsFormSection title="成本与分配" description="成本 + 四类分配必须等于总价。" :heading-level="3">
+      <LsFormSection title="成本与分成" description="成本 + 四类分成必须等于总价。" :heading-level="3">
         <LsField label="成本" for-id="transaction-cost"><NInputNumber id="transaction-cost" v-model:value="form.cost" v-bind="amountProps" /></LsField>
-        <LsField label="接单人分配" for-id="transaction-handler-cut"><NInputNumber id="transaction-handler-cut" v-model:value="form.handler_cut" v-bind="amountProps" /></LsField>
-        <LsField label="发单人分配" for-id="transaction-sender-cut"><NInputNumber id="transaction-sender-cut" v-model:value="form.sender_cut" v-bind="amountProps" /></LsField>
-        <LsField label="客服分配" for-id="transaction-cs-cut"><NInputNumber id="transaction-cs-cut" v-model:value="form.cs_cut" v-bind="amountProps" /></LsField>
-        <LsField label="团队分配" for-id="transaction-team-cut"><NInputNumber id="transaction-team-cut" v-model:value="form.team_cut" v-bind="amountProps" /></LsField>
-        <p class="equation ls-tabular">成本与分配合计 {{ money(allocationTotal) }} / 总价 {{ money(form.total_price) }}</p>
+        <LsField label="接单人分成" for-id="transaction-handler-cut"><NInputNumber id="transaction-handler-cut" v-model:value="form.handler_cut" v-bind="amountProps" /></LsField>
+        <LsField label="发单人分成" for-id="transaction-sender-cut"><NInputNumber id="transaction-sender-cut" v-model:value="form.sender_cut" v-bind="amountProps" /></LsField>
+        <LsField label="客服分成" for-id="transaction-cs-cut"><NInputNumber id="transaction-cs-cut" v-model:value="form.cs_cut" v-bind="amountProps" /></LsField>
+        <LsField label="团队分成" for-id="transaction-team-cut"><NInputNumber id="transaction-team-cut" v-model:value="form.team_cut" v-bind="amountProps" /></LsField>
+        <p class="equation ls-tabular">成本与分成合计 {{ money(allocationTotal) }} / 总价 {{ money(form.total_price) }}</p>
       </LsFormSection>
       <LsFormSection title="交易信息" description="时间用于列表排序和统计归属。" :heading-level="3">
         <LsField label="交易时间" for-id="transaction-time" required><NDatePicker id="transaction-time" v-model:value="form.trans_at" type="datetime" clearable /></LsField>
         <LsField label="备注" for-id="transaction-memo"><NInput id="transaction-memo" v-model:value="form.memo" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" maxlength="500" show-count placeholder="可记录订单来源、异常说明或结算信息" /></LsField>
       </LsFormSection>
-      <LsInlineError v-if="form.prepaid > balance && selectedCustomer" message="预存款金额超过当前客户余额。" />
+      <LsInlineError v-if="form.prepaid > balance && selectedCustomer" message="预存款金额超过当前顾客余额。" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>

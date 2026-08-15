@@ -26,10 +26,10 @@ const rows = computed(() => { const keyword = search.value.trim().toLocaleLowerC
 
 <template>
   <div class="virtual-list-page">
-    <AdminPageHeader title="虚拟实体" description="以同一套通用能力承载人工代操作、Webhook，以及未来的 LLM 或工作流。">
-      <template #actions><LsPagePrimaryAction :icon="Plus" label="创建虚拟实体" to="/chat-virtual-new" /></template>
+    <AdminPageHeader title="虚拟实体（Virtual Entity）" description="以同一套通用能力（Ability）承载人工代操作、Webhook，以及未来的 LLM 或工作流。">
+      <template #actions><LsPagePrimaryAction :icon="Plus" label="创建虚拟实体（Virtual Entity）" to="/chat-virtual-new" /></template>
     </AdminPageHeader>
-    <LsListToolbar v-model="search" placeholder="搜索虚拟实体名称或 slug" aria-label="搜索虚拟实体" :count-label="`${rows.length} 个虚拟实体`" />
+    <LsListToolbar v-model="search" placeholder="搜索虚拟实体（Virtual Entity）名称或 slug" aria-label="搜索虚拟实体（Virtual Entity）" :count-label="`${rows.length} 个虚拟实体（Virtual Entity）`" />
     <p v-if="virtuals.isError.value" class="state error" role="alert">{{ friendlyError(virtuals.error.value) }}</p>
     <div v-else-if="rows.length" class="virtual-list">
       <RouterLink v-for="item in rows" :key="item.slug" :to="{ path: '/chat-virtual', query: { slug: item.slug } }">
@@ -40,7 +40,7 @@ const rows = computed(() => { const keyword = search.value.trim().toLocaleLowerC
         <ChevronRight :size="18" />
       </RouterLink>
     </div>
-    <LsEmptyState v-else title="还没有虚拟实体" description="创建后再通过角色授予全局或指定 slug 的管理、操作与字段权限。" />
+    <LsEmptyState v-else title="还没有虚拟实体（Virtual Entity）" description="创建后再通过角色授予全局或指定 slug 的管理、操作与字段权限（Permission）。" />
   </div>
 </template>
 

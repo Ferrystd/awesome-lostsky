@@ -16,7 +16,7 @@ describe('成员邀请来源前端契约', () => {
     expect(view).not.toMatch(/v-model[^\n]+inviterSlug/)
   })
 
-  it('客户领取身份只读展示既有邀请来源，不改变绑定请求逻辑', () => {
+  it('顾客领取身份只读展示既有邀请来源，不改变绑定请求逻辑', () => {
     const view = source('frontend/apps/shop/src/views/CustomerBindView.vue')
     const api = source('frontend/apps/shop/src/lib.ts')
     expect(view).toContain('const inviterSlug = storedReferral()')

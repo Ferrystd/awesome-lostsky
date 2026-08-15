@@ -18,7 +18,6 @@ use app\middleware\TransactionVerify;
 use app\service\Balance;
 use app\service\Entity as EntityService;
 use app\service\EntityProfile;
-use app\service\Sender;
 use app\service\Transaction;
 use app\service\TransactionStats;
 use app\service\TeamCustomerManagement;
@@ -254,7 +253,7 @@ try {
     $secondCustomerId = (int) $fixture['secondCustomer']->id;
 
     $balanceService = app(Balance::class);
-    $senderService = app(Sender::class);
+    $customerManagement = app(TeamCustomerManagement::class);
     $transactionService = app(Transaction::class);
     $statsService = app(TransactionStats::class);
 
@@ -262,11 +261,16 @@ try {
     $balance = TeamCustomerBalance::where('customer_id', $customerId)->find();
     $assertFloat(200, $balance->balance, 'recharge increases balance');
     $assertFloat(200, $balance->recharged, 'recharge increases cumulative recharged');
+    $fixture['customer']->assignee_entity_id = $memberId;
+    $fixture['customer']->save();
     $options = $transactionService->options($teamId);
     $assertSame(5, count($options['entities']), 'transaction options list every available team entity');
     $assertSame(2, count($options['customers']), 'transaction options list team customers');
     $assertSame('Alice Customer', $options['customers'][0]['nickname'], 'transaction options expose customer nickname');
+    $assertSame($memberId, $options['customers'][0]['assignee_entity_id'], 'transaction options expose customer assignee');
     $assertFloat(200, $options['customers'][0]['balance']['balance'], 'transaction options expose customer balance');
+    $fixture['customer']->assignee_entity_id = null;
+    $fixture['customer']->save();
     $assertThrows(
         fn () => $balanceService->recharge($teamId, $customerId, 0),
         422,
@@ -278,18 +282,44 @@ try {
         'balance logs enforce team scope'
     );
 
-    $senderService->bind($teamId, $secondMemberId, $customerId);
-    $bindings = $senderService->bindings($teamId, $secondMemberId);
-    $assertSame(1, count($bindings), 'sender binding is listed');
-    $bindingId = (int) $bindings[0]['id'];
+    $customerManagement->update($teamId, $customerId, [
+        'sender_entity_ids' => [$secondMemberId],
+    ]);
+    $assertSame(1, TeamCustomerSender::where('team_id', $teamId)->where('customer_id', $customerId)->where('entity_id', $secondMemberId)->count(), 'customer update creates a sender binding');
+    $senderCustomers = $customerManagement->personalListing($teamId, $secondMemberId, [], 1, 20);
+    $assertSame(1, $senderCustomers['total'], 'personal customers include sender-bound customers');
+    $assertSame(false, $senderCustomers['list'][0]['is_assignee'], 'sender-only customer is not marked as assigned');
+    $assertSame(true, $senderCustomers['list'][0]['is_sender'], 'sender-only customer is marked as collaborative');
+    $customerManagement->update($teamId, $customerId, ['sender_entity_ids' => []]);
+    $assertSame(0, TeamCustomerSender::where('team_id', $teamId)->where('customer_id', $customerId)->where('entity_id', $secondMemberId)->count(), 'customer update removes a sender binding');
+    $customerManagement->update($teamId, $customerId, [
+        'sender_entity_ids' => [$secondMemberId],
+    ]);
+    $assertSame(1, TeamCustomerSender::where('team_id', $teamId)->where('customer_id', $customerId)->where('entity_id', $secondMemberId)->count(), 'customer update restores a soft-deleted sender binding');
     $assertThrows(
-        fn () => $senderService->bind($teamId, $secondMemberId, $customerId),
-        409,
-        'duplicate sender binding is rejected'
+        fn () => $customerManagement->update($teamId, $customerId, [
+            'sender_entity_ids' => [$secondMemberId, $secondMemberId],
+        ]),
+        422,
+        'customer update rejects duplicate sender entities'
     );
-    $senderService->unbind($teamId, $bindingId);
-    $senderService->bind($teamId, $secondMemberId, $customerId);
-    $assertSame(1, count($senderService->allBindings($teamId)), 'soft-deleted sender binding can be restored');
+    $assertThrows(
+        fn () => $customerManagement->update($teamId, $customerId, [
+            'sender_entity_ids' => [$secondMemberId, (int) $fixture['foreignMemberEntity']->id],
+        ]),
+        422,
+        'customer update rejects a foreign sender entity'
+    );
+    $assertSame(1, TeamCustomerSender::where('team_id', $teamId)->where('customer_id', $customerId)->where('entity_id', $secondMemberId)->count(), 'invalid sender sync rolls back without changing bindings');
+
+    $fixture['customer']->assignee_entity_id = $secondMemberId;
+    $fixture['customer']->save();
+    $mergedCustomers = $customerManagement->personalListing($teamId, $secondMemberId, [], 1, 20);
+    $assertSame(1, $mergedCustomers['total'], 'assigned and sender-bound customer is merged into one personal row');
+    $assertSame(true, $mergedCustomers['list'][0]['is_assignee'], 'merged customer keeps assigned relation');
+    $assertSame(true, $mergedCustomers['list'][0]['is_sender'], 'merged customer keeps sender relation');
+    $fixture['customer']->assignee_entity_id = null;
+    $fixture['customer']->save();
 
     $verifyRequest = static function (Team $team, int $entityId, int $subjectId, int $customerId): Request {
         $request = (new Request)->withPost(['customer_id' => $customerId]);
@@ -329,6 +359,8 @@ try {
     );
     $fixture['customer']->assignee_entity_id = $memberId;
     $fixture['customer']->save();
+    $personalOptions = $transactionService->options($teamId, $memberId);
+    $assertSame([$customerId], array_map('intval', array_column($personalOptions['customers'], 'id')), 'personal transaction options only expose assigned or bound customers');
     $assertSame(
         'allowed',
         (new TransactionVerify)->handle(
@@ -342,7 +374,6 @@ try {
         ),
         'current assignee can operate for their customer without an extra sender binding'
     );
-    $customerManagement = app(TeamCustomerManagement::class);
     $memberCustomers = $customerManagement->listing($teamId, [
         'entity_id' => $memberId,
         'type' => 'teamMember',
@@ -351,6 +382,10 @@ try {
     $assertSame('own', $memberCustomers['scope'], 'entity without customer read permission gets an own-customer scope');
     $assertSame(1, $memberCustomers['total'], 'entity without customer read permission sees only assigned customers');
     $assertSame($customerId, (int) $memberCustomers['list'][0]['id'], 'own-customer scope returns the assigned customer');
+    $personalCustomers = $customerManagement->personalListing($teamId, $memberId, ['keyword' => 'Alice'], 1, 20);
+    $assertSame(1, $personalCustomers['total'], 'personal customers include assigned customers and support keyword filtering');
+    $assertSame(true, $personalCustomers['list'][0]['is_assignee'], 'assigned customer is marked as assigned');
+    $assertSame(false, $personalCustomers['list'][0]['is_sender'], 'assigned-only customer is not marked as collaborative');
     $assertThrows(
         fn () => $customerManagement->get($teamId, [
             'entity_id' => $memberId,
@@ -390,6 +425,12 @@ try {
     ], [], 1, 20);
     $assertSame('all', $teamCustomers['scope'], 'team entity receives full customer scope');
     $assertSame(2, $teamCustomers['total'], 'team entity sees every customer');
+    $customerDetail = $customerManagement->get($teamId, [
+        'entity_id' => (int) $fixture['teamEntity']->id,
+        'type' => 'team',
+        'id' => $teamId,
+    ], $customerId);
+    $assertSame([$secondMemberId], array_column($customerDetail['senders'], 'entity_id'), 'customer detail exposes sender collaborators');
 
     $valid = [
         'handler_entity_id'  => $memberId,
@@ -535,7 +576,12 @@ try {
     $personalStats = $statsService->personal($teamId, $memberId, 1_719_999_999, 1_720_200_000);
     $assertSame(2, $personalTransactions['total'], 'personal transaction scope includes current entity participation');
     $assertSame(0, $foreignPersonalTransactions['total'], 'personal transaction scope cannot be expanded with an unrelated entity');
-    $assertSame(2, (int) $personalStats['total_count'], 'personal stats use the same current entity scope');
+    $assertSame(2, (int) $personalStats['handler_count'], 'personal stats count current entity handled performance transactions');
+    $assertSame(2, (int) $personalStats['sender_count'], 'personal stats count current entity sent performance transactions');
+    $assertSame(0, (int) $personalStats['cs_count'], 'personal stats count current entity customer-service performance transactions');
+    $assertFloat(200, $personalStats['monthly_performance_total'], 'personal stats total monthly handled performance');
+    $assertFloat(200, $personalStats['monthly_flow_total'], 'personal stats total monthly cash and prepaid flow');
+    $assertFloat(200, $personalStats['performance_total'], 'personal stats total current entity handled performance');
     $assertSame($cashId, (int) $transactionService->getPersonal($teamId, $memberId, $cashId)['id'], 'personal transaction detail checks participation');
     $assertThrows(
         fn () => $transactionService->getPersonal($teamId, (int) $fixture['foreignMemberEntity']->id, $cashId),

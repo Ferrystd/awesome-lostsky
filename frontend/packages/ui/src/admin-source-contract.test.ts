@@ -104,7 +104,7 @@ describe('后台源码设计契约', () => {
     const usages = componentCallerRoots.flatMap(filesUnder)
       .filter(path => path.endsWith('.vue'))
       .flatMap(path => [...readFileSync(path, 'utf8').matchAll(/<LsPagePrimaryAction\b[^>]*>/g)].map(match => ({ path, tag: match[0] })))
-    expect(usages).toHaveLength(31)
+    expect(usages).toHaveLength(30)
     for (const usage of usages) {
       const file = relative(repository, usage.path).replaceAll('\\', '/')
       expect(usage.tag, `${file} 的页面主操作缺少强制 icon`).toMatch(/:icon=/)
@@ -133,7 +133,7 @@ describe('后台源码设计契约', () => {
     expect(editor).not.toContain('Boolean(props.uploadImage)')
   })
 
-  it('实体资料的普通字段统一使用 LsField 且保持单列表单', () => {
+  it('实体（Entity）资料的普通字段统一使用 LsField 且保持单列表单', () => {
     const source = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'components', 'EntityProfileFields.vue'), 'utf8')
     expect(source).not.toContain('NFormItem')
     expect(source).not.toContain('entity-profile-fields__media')
@@ -288,7 +288,6 @@ describe('后台源码设计契约', () => {
       'team/src/views/ResourceView.vue',
       'team/src/views/SettingsView.vue',
       'transaction/src/views/TransactionsView.vue',
-      'transaction/src/views/BindingsView.vue',
       'transaction/src/views/BalancesView.vue',
       'transaction/src/views/BalanceLogsView.vue',
     ]

@@ -38,9 +38,9 @@ const workspaceAccess = useQuery({
 const appOptions = computed<AppOption[]>(() => {
   const transaction = workspaceAccess.data.value?.abilities?.transaction
   if (customerWorkspace.value) return [
-    { key: 'team', label: '团队', disabled: true, reason: '客户不进入后台工作台' },
+    { key: 'team', label: '团队', disabled: true, reason: '顾客不进入后台工作台' },
     { key: 'shop', label: '商品', href: shopWorkspaceUrl('/customer/profile') },
-    { key: 'transaction', label: '记账', disabled: true, reason: '客户不进入后台工作台' },
+    { key: 'transaction', label: '记账', disabled: true, reason: '顾客不进入后台工作台' },
     { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
   ]
   if (!backendWorkspace.value) return [
@@ -317,7 +317,7 @@ onUnmounted(() => {
       <div class="workspace">
         <aside :class="['conversation-pane', { hidden: activeUuid }]">
           <div class="pane-heading">
-            <div><p>CONVERSATIONS</p><h1>消息</h1></div>
+            <div><p>会话</p><h1>消息</h1></div>
             <a href="/new" aria-label="创建会话"><Plus /></a>
           </div>
           <p v-if="conversationsQuery.isError.value" class="error" role="alert">{{ friendlyError(conversationsQuery.error.value) }}</p>

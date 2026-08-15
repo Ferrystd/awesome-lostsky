@@ -14,7 +14,7 @@ enum ServiceAdjustmentStatus: int implements EnumTransform
     public function value(): string
     {
         return match ($this) {
-            self::Pending => '待客户确认',
+            self::Pending => '待顾客确认',
             self::Accepted => '已确认',
             self::Cancelled => '已取消',
         };

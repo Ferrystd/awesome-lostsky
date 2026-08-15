@@ -40,7 +40,7 @@ describe('后台工作台入口架构', () => {
       expect(shell).toContain("key: 'chat', label: '聊天'")
     }
     const team = source('frontend/apps/team/src/components/TeamShell.vue')
-    expect(team).toContain('context-label="TEAM WORKSPACE"')
+    expect(team).toContain('context-label="团队工作台"')
     expect(source('frontend/apps/team/src/views/DashboardView.vue')).toContain('进入个人工作台')
     expect(source('frontend/apps/shop/src/views/manage/ManageOverviewView.vue')).toContain('进入个人工作台')
     expect(source('frontend/apps/transaction/src/views/TeamOverviewView.vue')).toContain('进入个人工作台')
@@ -98,21 +98,22 @@ describe('后台工作台入口架构', () => {
     const transaction = source('frontend/apps/transaction/src/components/TransactionShell.vue')
     expect(transaction).toContain("const teamNav = [\n  ['/overview', '概览', House, null]")
     expect(transaction).toContain("const personalNav = [\n  ['/personal', '概览', House, null]")
-    expect(transaction).toContain("['/personal/transactions', '相关流水', ListChecks, null]")
-    expect(transaction).toContain("['/personal/stats', '我的业绩', BarChart3, null]")
-    expect(transaction).toContain("['/personal/services', '我的核销', BadgeCheck, null]")
-    expect(transaction).toContain("['/personal/bindings', '客户协作', Handshake, null]")
-    expect(transaction).toContain("['/personal/entitlements', '权益赠送', Gift, null]")
+    expect(transaction).toContain("['/personal/transactions', '我的流水', ListChecks, null]")
+    expect(transaction).not.toContain("['/personal/stats', '我的业绩'")
+    expect(transaction).toContain("['/personal/services', '我的接单', BadgeCheck, null]")
+    expect(transaction).toContain("['/personal/customers', '我的顾客', Handshake, null]")
+    expect(transaction).toContain("['/personal/entitlements', '权益下发', Gift, null]")
 
     const personalEntitlements = source('frontend/apps/transaction/src/views/PersonalEntitlementsView.vue')
     expect(personalEntitlements).toContain("api.get<Pagination<PersonalEntitlementGrantRecord>>('/personal/entitlements'")
     expect(personalEntitlements).toContain("hasWorkspacePermission(access.data.value?.permissions ?? [], 'service.entitlement.grant')")
     const transactionRouter = source('frontend/apps/transaction/src/router.ts')
-    expect(transactionRouter).toContain("path: '/personal/transactions', component: PersonalWorkspaceView, meta: { title: '与我相关的流水', pageWidth: 'wide', workspace: 'personal', personalSection: 'transactions' }")
-    expect(transactionRouter).toContain("path: '/personal/stats', component: PersonalWorkspaceView, meta: { title: '我的业绩', pageWidth: 'wide', workspace: 'personal', personalSection: 'stats' }")
-    expect(transactionRouter).toContain("path: '/personal/bindings', component: PersonalWorkspaceView, meta: { title: '我的客户协作', pageWidth: 'wide', workspace: 'personal', personalSection: 'bindings' }")
-    expect(transactionRouter).toContain("path: '/personal/entitlements', component: PersonalEntitlementsView, meta: { title: '权益赠送', pageWidth: 'wide', workspace: 'personal' }")
-    expect(transactionRouter).toContain("path: '/personal/entitlements/new', component: EntitlementGrantView, meta: { title: '赠送客户权益', pageWidth: 'form', workspace: 'personal', permission: 'service.entitlement.grant'")
+    expect(transactionRouter).toContain("path: '/personal/transactions', component: PersonalWorkspaceView, meta: { title: '我的流水', pageWidth: 'wide', workspace: 'personal', personalSection: 'transactions' }")
+    expect(transactionRouter).not.toContain("path: '/personal/stats'")
+    expect(transactionRouter).toContain("path: '/personal/customers', component: PersonalCustomersView, meta: { title: '我的顾客', pageWidth: 'wide', workspace: 'personal' }")
+    expect(transactionRouter).toContain("path: '/personal/bindings', redirect: '/personal/customers'")
+    expect(transactionRouter).toContain("path: '/personal/entitlements', component: PersonalEntitlementsView, meta: { title: '权益下发', pageWidth: 'wide', workspace: 'personal' }")
+    expect(transactionRouter).toContain("path: '/personal/entitlements/new', component: EntitlementGrantView, meta: { title: '下发顾客权益', pageWidth: 'form', workspace: 'personal', permission: 'service.entitlement.grant'")
 
     expect(source('frontend/apps/team/src/router.ts')).toContain("path: '/personal', component: PersonalView, meta: { title: '概览'")
     expect(source('frontend/apps/shop/src/router.ts')).toContain("path: '/manage/personal', component: () => import('./views/manage/PersonalOverviewView.vue'), meta: { title: '概览'")
@@ -143,10 +144,10 @@ describe('后台工作台入口架构', () => {
     expect(component.match(/class="group-count" aria-live="polite"/g)).toHaveLength(3)
     expect(component).not.toMatch(/\.task-list\{[^}]*border:/)
     expect(component).not.toContain(':deep(.ls-')
-    expect(source('docs/design/admin/applications.md')).toContain('“待我确认”“我可以接”“我的核销”三个具名连续边界面板')
+    expect(source('docs/design/admin/applications.md')).toContain('“待我确认”“我可以接”“我的接单”三个具名连续边界面板')
   })
 
-  it('Account 只保留旧深链跳转，客户资料留在商城客户中心', () => {
+  it('Account 只保留旧深链跳转，顾客资料留在商城顾客中心', () => {
     const accountRouter = source('frontend/apps/account/src/router.ts')
     const shopRouter = source('frontend/apps/shop/src/router.ts')
     expect(accountRouter).toContain("path: '/identity/current/:section?'")
@@ -198,11 +199,14 @@ describe('后台工作台入口架构', () => {
     const overview = source('frontend/apps/transaction/src/views/TeamOverviewView.vue')
     const router = source('frontend/apps/transaction/src/router.ts')
 
-    expect(shell).toContain("['/services', '服务核销', BadgeCheck, serviceRedemptionReadPermissions]")
+    expect(shell).toContain("['/', '团队流水', ListChecks, 'transaction.read']")
+    expect(shell).toContain("['/stats', '经营统计', BarChart3, 'transaction.report.read']")
+    expect(shell).toContain("['/services', '权益核销', BadgeCheck, serviceRedemptionReadPermissions]")
+    expect(shell).toContain("['/balances', '顾客余额', CircleDollarSign, 'transaction.read']")
     expect(overview).toContain("to: '/services', icon: BadgeCheck, permission: serviceRedemptionReadPermissions")
     expect(router).toMatch(/path: '\/services'[^\n]*permission: serviceRedemptionReadPermissions/)
     expect(router).toMatch(/path: '\/services\/:id\(\\\\d\+\)'[^\n]*permission: serviceRedemptionReadPermissions/)
-    expect(shell).toContain("['/personal/services', '我的核销', BadgeCheck, null]")
+    expect(shell).toContain("['/personal/services', '我的接单', BadgeCheck, null]")
     expect(router).toMatch(/path: '\/personal\/services'[^\n]*workspace: 'personal'[^\n]*(?!permission:)/)
   })
 
@@ -227,7 +231,7 @@ describe('后台工作台入口架构', () => {
     expect(source('frontend/apps/team/src/lib/teamAccessReason.ts')).toContain('export function resourceUploadReason')
   })
 
-  it('商城客户头像通过客户自助上传端点保存，不借用后台角色权限', () => {
+  it('商城顾客头像通过顾客自助上传端点保存，不借用后台角色权限', () => {
     const controller = source('app/shop/controller/Customer.php')
     const route = source('app/shop/route/app.php')
     const form = source('frontend/apps/shop/src/views/CustomerProfileView.vue')
@@ -245,8 +249,10 @@ describe('后台工作台入口架构', () => {
     expect(source('frontend/apps/team/src/router.ts')).toContain("auth.entity()?.type === 'teamCustomer'")
     expect(source('frontend/apps/shop/src/router.ts')).toContain("entityType === 'teamCustomer'")
     expect(source('frontend/apps/transaction/src/router.ts')).toContain("entityType === 'teamCustomer'")
-    expect(source('app/transaction/controller/Personal.php'))
-      .not.toContain('Permission:')
+    const personalController = source('app/transaction/controller/Personal.php')
+    expect(personalController).not.toContain('Permissions::TRANSACTION_READ')
+    expect(personalController).not.toContain('Permissions::TRANSACTION_REPORT_READ')
+    expect(personalController).toContain("Permissions::TRANSACTION_WRITE => ['only' => ['transactionOptions']]")
     expect(source('frontend/apps/transaction/src/router.ts'))
       .toContain("personalSection: 'services' }")
   })
@@ -260,8 +266,8 @@ describe('后台工作台入口架构', () => {
         '/personal/products/{id}/redemption-fields',
       ]],
       ['docs/openapi/transaction.openapi.json', [
-        '/workspace/access', '/personal/transactions', '/personal/transactions/{id}', '/personal/stats',
-        '/personal/services', '/personal/services/{id}', '/personal/bindings', '/personal/entitlements',
+        '/workspace/access', '/personal/transaction-options', '/personal/transactions', '/personal/transactions/{id}', '/personal/stats',
+        '/personal/services', '/personal/services/{id}', '/personal/customers', '/personal/entitlements',
         '/personal/entitlement-grant/options', '/personal/entitlement-grant',
       ]],
     ] as const

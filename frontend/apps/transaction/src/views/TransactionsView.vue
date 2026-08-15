@@ -7,10 +7,9 @@ import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
-import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { CirclePlus, SlidersHorizontal } from '@lucide/vue'
+import { SlidersHorizontal } from '@lucide/vue'
 import { NDatePicker, NPagination, NSelect } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { computed, h, reactive } from 'vue'
@@ -55,7 +54,7 @@ function reset() {
 }
 const columns: DataTableColumns<TransactionRecord> = [
   { title: '时间 / 类型', key: 'time', render: row => h('span', { class: 'transaction-cell' }, [h('strong', dateTime(row.trans_at)), h('small', transactionType(row.type))]) },
-  { title: '客户', key: 'customer', render: row => h(LsEntityIdentity, { type: 'customer', name: customerName(row.customer, row.customer_id), slug: String((row.customer as any)?.slug ?? ''), imageUrl: (row.customer as any)?.avatar ?? null, size: 'sm' }) },
+  { title: '顾客', key: 'customer', render: row => h(LsEntityIdentity, { type: 'customer', name: customerName(row.customer, row.customer_id), slug: String((row.customer as any)?.slug ?? ''), imageUrl: (row.customer as any)?.avatar ?? null, size: 'sm' }) },
   { title: '接单人', key: 'handler', render: row => h(LsEntityIdentity, { type: (row.handler as any)?.type ?? 'entity', name: entityName(row.handler, row.handler_entity_id), slug: String((row.handler as any)?.slug ?? ''), imageUrl: (row.handler as any)?.avatar ?? null, size: 'sm' }) },
   { title: '支付构成', key: 'payment', render: row => h('span', { class: 'transaction-cell' }, [h('span', `现款 ${money(row.cash)}`), h('small', `预存 ${money(row.prepaid)}`)]) },
   { title: '总价', key: 'total_price', render: row => h('strong', { class: 'ls-tabular' }, money(row.total_price)) },
@@ -65,18 +64,14 @@ const columns: DataTableColumns<TransactionRecord> = [
 
 <template>
   <div class="transactions-view">
-    <LsPageHeader title="流水" description="按时间查看收入构成与参与方；创建、查看和编辑均在独立任务页完成。">
-      <template #actions>
-        <LsPagePrimaryAction :icon="CirclePlus" label="登记流水" to="/new" />
-      </template>
-    </LsPageHeader>
+    <LsPageHeader title="流水" description="通过对流水的实时查看，您可对商业状态了如指掌。" />
 
-    <LsListToolbar v-model="filters.keyword" placeholder="搜索客户昵称" aria-label="搜索流水客户" :count-label="`${query.data.value?.total ?? 0} 条流水`" @update:model-value="filters.page = 1">
+    <LsListToolbar v-model="filters.keyword" placeholder="搜索顾客昵称" aria-label="搜索流水顾客" :count-label="`${query.data.value?.total ?? 0} 条流水`" @update:model-value="filters.page = 1">
       <template #filters>
       <NDatePicker v-model:value="filters.range" type="daterange" clearable start-placeholder="开始日期" end-placeholder="结束日期" @update:value="filters.page = 1" />
       <NSelect v-model:value="filters.type" :options="typeOptions" clearable placeholder="全部类型" @update:value="filters.page = 1" />
       <LsEntitySelect v-model="filters.handler_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="optionsQuery.isPending.value" :disabled="optionsQuery.isError.value" clearable placeholder="全部接单人" @update:model-value="filters.page = 1" />
-      <NSelect v-model:value="filters.customer_id" :options="customerOptions(optionsQuery.data.value)" filterable clearable placeholder="全部客户" @update:value="filters.page = 1" />
+      <NSelect v-model:value="filters.customer_id" :options="customerOptions(optionsQuery.data.value)" filterable clearable placeholder="全部顾客" @update:value="filters.page = 1" />
       </template>
       <template v-if="hasFilters" #actions><LsButton variant="secondary" size="sm" @click="reset"><template #icon><SlidersHorizontal :size="17" /></template>清除筛选</LsButton></template>
     </LsListToolbar>
@@ -92,7 +87,7 @@ const columns: DataTableColumns<TransactionRecord> = [
       <template #mobile-title="{ row }">{{ dateTime(row.trans_at) }} · {{ transactionType(row.type) }}</template>
       <template #mobile="{ row }">
         <dl>
-          <dt>客户</dt><dd>{{ customerName(row.customer, row.customer_id) }}</dd>
+          <dt>顾客</dt><dd>{{ customerName(row.customer, row.customer_id) }}</dd>
           <dt>接单人</dt><dd>{{ entityName(row.handler, row.handler_entity_id) }}</dd>
           <dt>现金 / 预存</dt><dd class="ls-tabular">{{ money(row.cash) }} / {{ money(row.prepaid) }}</dd>
           <dt>总价</dt><dd class="ls-tabular"><strong>{{ money(row.total_price) }}</strong></dd>

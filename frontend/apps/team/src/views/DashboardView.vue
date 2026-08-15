@@ -25,7 +25,7 @@ const query = useQuery({
 })
 
 const stats = computed(() => [
-  { key: 'entities', label: '实体', icon: Boxes, to: '/entities', metric: query.data.value?.entities },
+  { key: 'entities', label: '实体（Entity）', icon: Boxes, to: '/entities', metric: query.data.value?.entities },
   { key: 'members', label: '成员', icon: Users, to: '/members', metric: query.data.value?.members },
   { key: 'documents', label: '文档', icon: BookOpen, to: '/docs', metric: query.data.value?.documents },
   { key: 'notices', label: '通知', icon: Bell, to: '/notices/entity', metric: query.data.value?.notices },
@@ -91,10 +91,10 @@ function reason(metric: DashboardMetric | undefined) {
 
     <section class="work-grid">
       <article>
-        <div><h3>实体与权限</h3><p>维护实体资料、角色和访问范围。</p></div>
+        <div><h3>实体（Entity）与权限（Permission）</h3><p>维护实体（Entity）资料、角色和访问范围。</p></div>
         <nav>
-          <RouterLink to="/entities">实体列表<ArrowRight :size="17" /></RouterLink>
-          <RouterLink to="/roles">角色权限<ArrowRight :size="17" /></RouterLink>
+          <RouterLink to="/entities">实体（Entity）列表<ArrowRight :size="17" /></RouterLink>
+          <RouterLink to="/roles">角色权限（Permission）<ArrowRight :size="17" /></RouterLink>
           <RouterLink to="/join-review">加入审核<ArrowRight :size="17" /></RouterLink>
         </nav>
       </article>

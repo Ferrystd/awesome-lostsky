@@ -369,8 +369,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 读取当前 Entity 个人业绩
-         * @description 只汇总当前 acting_entity 作为接单人、发单人或客服取得的分配，不要求 transaction.report.read。
+         * 读取当前 Entity 流水页个人统计
+         * @description 返回接单、发单和客服累计笔数，以及月度业绩、月度流水和个人业绩。三类笔数与业绩排除纯收款流水；月度流水汇总本人参与流水的现款与预存款收入。不要求 transaction.report.read。
          */
         get: operations["transactionPersonalStats"];
         put?: never;
@@ -554,7 +554,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/personal/bindings": {
+    "/personal/customers": {
         parameters: {
             query?: never;
             header?: never;
@@ -562,10 +562,30 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 读取当前 Entity 的客户协作与发单绑定
-         * @description 只使用当前 acting_entity 查询绑定，不接受 Entity ID，也不要求 transaction.read。
+         * 分页读取我的客户
+         * @description 只使用当前 acting_entity，合并当前归属与协作发单客户并去重；同一客户分别返回 is_assignee 与 is_sender 关系标记，不接受 Entity ID，也不要求 Team 全量读取 Permission。
          */
-        get: operations["transactionPersonalBindings"];
+        get: operations["transactionPersonalCustomers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/transaction-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取个人登记流水候选
+         * @description 要求 transaction.write；Team Entity 返回团队全部候选，成员和虚拟 Entity 只返回当前归属或发单绑定客户。
+         */
+        get: operations["transactionPersonalOptions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -678,74 +698,6 @@ export interface paths {
         put?: never;
         /** 删除流水 */
         post: operations["transactionDelete"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/transaction/sender": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 当前成员绑定的客户列表 */
-        get: operations["transactionSenderIndex"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/transaction/sender/all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 全团队绑定关系列表 */
-        get: operations["transactionSenderAll"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/transaction/sender/bind": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 绑定客户到发单人 */
-        post: operations["transactionSenderBind"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/transaction/sender/unbind": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 解绑发单人客户关系 */
-        post: operations["transactionSenderUnbind"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1079,6 +1031,11 @@ export interface components {
              * @enum {integer}
              */
             is_blocked?: 0 | 1;
+            /**
+             * Format: int64
+             * @description 客户当前归属 Entity；为空表示未归属。
+             */
+            assignee_entity_id?: number | null;
             nickname?: string;
             avatar?: string | null;
             description?: string | null;
@@ -1093,6 +1050,29 @@ export interface components {
              * @description Unix timestamp, seconds
              */
             update_time?: number;
+        };
+        PersonalCustomer: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            entity_id: number;
+            slug: string;
+            name: string;
+            avatar?: string | null;
+            description?: string | null;
+            is_blocked: boolean;
+            balance: components["schemas"]["Balance"];
+            assignee?: components["schemas"]["EntitySummary"] | null;
+            /** @description 当前 acting_entity 是否为客户当前归属。 */
+            is_assignee: boolean;
+            /** @description 当前 acting_entity 是否为客户协作发单人。 */
+            is_sender: boolean;
+        };
+        PersonalCustomerPage: {
+            total: number;
+            list: components["schemas"]["PersonalCustomer"][];
+            page: number;
+            limit: number;
         };
         Balance: {
             /** Format: int64 */
@@ -1204,23 +1184,6 @@ export interface components {
             cs?: components["schemas"]["Entity"];
             customer?: components["schemas"]["Customer"];
         };
-        SenderBinding: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            team_id?: number;
-            /** Format: int64 */
-            customer_id?: number;
-            /** Format: int64 */
-            entity_id?: number;
-            /**
-             * Format: int64
-             * @description Unix timestamp, seconds
-             */
-            create_time?: number;
-            customer?: components["schemas"]["Customer"];
-            subject?: components["schemas"]["Entity"];
-        };
         TransactionOptions: {
             entities: components["schemas"]["EntitySummary"][];
             customers: components["schemas"]["Customer"][];
@@ -1293,6 +1256,20 @@ export interface components {
             list: components["schemas"]["PersonalEntitlementGrantRecord"][];
             page: number;
             limit: number;
+        };
+        PersonalTransactionStats: {
+            /** @description 当前 Entity 作为接单人的非纯收款流水笔数。 */
+            handler_count: number;
+            /** @description 当前 Entity 作为发单人的非纯收款流水笔数。 */
+            sender_count: number;
+            /** @description 当前 Entity 作为客服的非纯收款流水笔数。 */
+            cs_count: number;
+            /** @description 当月当前 Entity 接单流水的业绩金额。 */
+            monthly_performance_total: string;
+            /** @description 当月当前 Entity 参与流水的现款与预存款收入。 */
+            monthly_flow_total: string;
+            /** @description 当前 Entity 接单流水的累计业绩金额。 */
+            performance_total: string;
         };
         TransactionStatsSummary: {
             total_count: number;
@@ -2049,7 +2026,11 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["PersonalTransactionStats"];
+                    };
+                };
             };
         };
     };
@@ -2312,7 +2293,34 @@ export interface operations {
             };
         };
     };
-    transactionPersonalBindings: {
+    transactionPersonalCustomers: {
+        parameters: {
+            query?: {
+                /** @description 按客户名称搜索。 */
+                keyword?: string;
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["PersonalCustomerPage"];
+                    };
+                };
+            };
+        };
+    };
+    transactionPersonalOptions: {
         parameters: {
             query?: never;
             header?: never;
@@ -2323,6 +2331,17 @@ export interface operations {
         responses: {
             /** @description 成功 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["TransactionOptions"];
+                    };
+                };
+            };
+            /** @description Transaction Ability 或 transaction.write 不满足 */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2965,370 +2984,6 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
-        responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    transactionSenderIndex: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["SenderBinding"][];
-                    };
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    transactionSenderAll: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["SenderBinding"][];
-                    };
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    transactionSenderBind: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: int64 */
-                    entity_id: number;
-                    /** Format: int64 */
-                    customer_id: number;
-                };
-            };
-        };
-        responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-            /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
-                };
-            };
-        };
-    };
-    transactionSenderUnbind: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
-                "X-Page-Id"?: components["parameters"]["PageId"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: int64 */
-                    id: number;
-                };
-            };
-        };
         responses: {
             /** @description 操作成功 */
             200: {

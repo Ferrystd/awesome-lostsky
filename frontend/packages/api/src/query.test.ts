@@ -3,7 +3,7 @@ import { ApiError } from './client'
 import { shouldRefetchOnWindowFocus, shouldRetryQuery } from './query'
 
 describe('后台查询恢复策略', () => {
-  it('不重试权限、能力和其他 4xx 响应', () => {
+  it('不重试权限（Permission）、能力（Ability）和其他 4xx 响应', () => {
     expect(shouldRetryQuery(0, new ApiError('forbidden', { status: 403 }))).toBe(false)
     expect(shouldRetryQuery(0, new ApiError('not found', { status: 404 }))).toBe(false)
   })

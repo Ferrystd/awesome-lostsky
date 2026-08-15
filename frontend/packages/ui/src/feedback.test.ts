@@ -33,8 +33,8 @@ describe('global feedback', () => {
   })
 
   it('suppresses the same message repeated immediately', () => {
-    feedback.info('权限原因')
-    feedback.info('权限原因')
+    feedback.info('权限（Permission）原因')
+    feedback.info('权限（Permission）原因')
 
     expect(message.info).toHaveBeenCalledTimes(1)
   })

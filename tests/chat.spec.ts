@@ -83,7 +83,7 @@ test('Chat identity entry opens the workspace that owns current-entity self mana
 
   await setToken(page, identityToken('teamCustomer', 31))
   await page.goto('http://demo.chat.lostsky.work:5176/')
-  await expect(page.getByRole('link', { name: '客户中心' }))
+  await expect(page.getByRole('link', { name: '顾客中心' }))
     .toHaveAttribute('href', 'http://demo.shop.lostsky.work:5179/customer/profile')
 
   await setToken(page, identityToken('teamMember', 11))
@@ -199,7 +199,7 @@ test('Account identity picker shows cross-team candidates and preserves the curr
   })
 
   await page.goto('http://account.lostsky.work:5174/identity')
-  await expect(page.getByText('当前正在使用实体身份')).toBeVisible()
+  await expect(page.getByText('当前正在使用实体（Entity）身份')).toBeVisible()
   await expect(page.getByRole('heading', { name: '可切换身份' })).toBeVisible()
   await expect(page.getByText('团队 B · team-b')).toBeVisible()
   await page.getByRole('button', { name: '切换' }).click()

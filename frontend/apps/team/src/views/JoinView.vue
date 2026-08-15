@@ -78,7 +78,7 @@ async function upload(field: JoinField, event: Event) {
 <template>
   <main class="join">
     <a href="//www.lostsky.work"><ArrowLeft :size="18" />LostSky</a>
-    <section><p>{{ isReinstate ? 'RETURN TO THE TEAM' : 'JOIN THE TEAM' }}</p><h1 class="ls-display">{{ isReinstate ? '申请复职' : '申请进入' }}<br>这片青空。</h1><span>{{ isReinstate ? '复职会继续使用原成员实体、对象标识和业务关系。' : '填写团队设置的申请资料，提交后由管理员审核。' }}</span></section>
+    <section><p>{{ isReinstate ? '返回团队' : '加入团队' }}</p><h1 class="ls-display">{{ isReinstate ? '申请复职' : '申请进入' }}<br>这片青空。</h1><span>{{ isReinstate ? '复职会继续使用原成员实体（Entity）、对象标识和业务关系。' : '填写团队设置的申请资料，提交后由管理员审核。' }}</span></section>
     <form @submit.prevent="mutation.mutate()">
       <h2>{{ isReinstate ? '复职申请' : '加入申请' }}</h2>
       <p v-if="form.isPending.value" class="form-state">正在读取申请表…</p>

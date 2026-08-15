@@ -48,7 +48,7 @@ class CustomerAssignment
         }
         $customer = $query->find($customerId);
         if (!$customer) {
-            throw new HttpException(422, '客户不存在');
+            throw new HttpException(422, '顾客不存在');
         }
 
         return $customer;
@@ -64,7 +64,7 @@ class CustomerAssignment
         try {
             return (int) $this->assertEntity($teamId, $entityId)->id;
         } catch (HttpException) {
-            throw new HttpException(422, '客户归属人不可用，请先修改归属');
+            throw new HttpException(422, '顾客归属人不可用，请先修改归属');
         }
     }
 

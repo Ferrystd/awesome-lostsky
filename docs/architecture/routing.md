@@ -17,7 +17,7 @@ LostSky 使用 ThinkPHP 8 多应用模式。API 请求先确定应用，再按�
 
 Display 与 Shop 使用标准团队前端 Origin
 `https://{slug}.display.lostsky.work`、`https://{slug}.shop.lostsky.work`。两者都需要有效团队上下文，
-但公开展示控制器不组合登录或实体身份中间件；Shop 的客户写接口仍按各自路由要求认证。
+但公开展示控制器不组合登录或实体身份中间件；Shop 的顾客写接口仍按各自路由要求认证。
 
 域名根和 API 域名由 `config/app.php` 的 `domain.root`、`domain.api` 配置。生产默认值为 `lostsky.work` 和 `api.lostsky.work`。
 
@@ -31,7 +31,7 @@ Display 与 Shop 使用标准团队前端 Origin
 4. `MultiApp`：由 ThinkPHP 完成多应用分发。
 5. `Dedup`：优先按 `X-Request-Id`，兼容按 `X-Page-Id + 内容`，请求头缺省时按登录主体、路径和内容过滤短时间内的重复写请求。
 
-`RequestLog` 不记录请求体、查询参数、Authorization 或 Cookie。合法的客户端 `X-Request-Id` 会同时进入运行日志和业务审计；缺省或不安全的值只在服务器内部替换为随机 ID。完整格式、保留和排查方法见[系统运行日志](../operations/logging.md)。
+`RequestLog` 不记录请求体、查询参数、Authorization 或 Cookie。合法的顾客端 `X-Request-Id` 会同时进入运行日志和业务审计；缺省或不安全的值只在服务器内部替换为随机 ID。完整格式、保留和排查方法见[系统运行日志](../operations/logging.md)。
 
 `AppResolver` 通过 `Team::active()` 查询团队，并将 `team`、`team_id` 和 `slug` 写入请求。团队查询按 slug 或 ID 缓存 3600 秒。
 
@@ -45,7 +45,7 @@ Display 与 Shop 使用标准团队前端 Origin
 'teamless_apps' => ['account', 'admin'],
 ```
 
-Account 负责登录、注册、设备、用户团队入口和所有实体会话签发/撤销；Admin 负责平台级 RBAC、用户与团队治理、审计和系统状态。两者均不接收团队上下文。选定团队后，团队业务应用再使用包含 slug 的域名。业务应用的共享客户端收到 `42801` 或 `40301` 时进入 Account 成员回调，显式按 `team_slug` 领取身份后返回原深链接。`X-LostSky-App` 的显式白名单仍只包含 `common`。
+Account 负责登录、注册、设备、用户团队入口和所有实体会话签发/撤销；Admin 负责平台级 RBAC、用户与团队治理、审计和系统状态。两者均不接收团队上下文。选定团队后，团队业务应用再使用包含 slug 的域名。业务应用的共享顾客端收到 `42801` 或 `40301` 时进入 Account 成员回调，显式按 `team_slug` 领取身份后返回原深链接。`X-LostSky-App` 的显式白名单仍只包含 `common`。
 
 ## 自定义域名
 

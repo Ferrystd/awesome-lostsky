@@ -88,7 +88,7 @@ class BenefitFulfillment
             throw new HttpException(422, '商品不是可直接赋予的服务套餐');
         }
         if ((int) $customer->team_id !== (int) $product->team_id || !$customer->root_entity_id) {
-            throw new HttpException(422, '客户权益主体无效');
+            throw new HttpException(422, '顾客权益主体无效');
         }
         if ($quantity < 1 || $quantity > 999) {
             throw new HttpException(422, '赋予份数必须在 1 到 999 之间');
@@ -143,14 +143,14 @@ class BenefitFulfillment
     {
         $existing = TeamServiceEntitlement::where('source_order_id', $order->id)->column('id');
         if ($existing) return $existing;
-        if (!$order->customer_id) throw new HttpException(422, '服务套餐订单必须关联客户');
+        if (!$order->customer_id) throw new HttpException(422, '服务套餐订单必须关联顾客');
         if (!$product->benefit_package_id) throw new HttpException(422, '服务套餐未配置权益');
 
         $package = BenefitPackage::find((int) $product->benefit_package_id);
         if (!$package) throw new HttpException(422, '服务套餐权益包不存在');
         $items = $this->packageItems((int) $product->benefit_package_id, (int) $order->team_id);
         $customer = TeamCustomer::where('team_id', $order->team_id)->find($order->customer_id);
-        if (!$customer || !$customer->root_entity_id) throw new HttpException(422, '订单客户Entity不存在');
+        if (!$customer || !$customer->root_entity_id) throw new HttpException(422, '订单顾客Entity不存在');
 
         $specs = [];
         for ($copy = 0; $copy < (int) $order->quantity; $copy++) {

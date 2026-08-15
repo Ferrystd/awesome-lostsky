@@ -72,7 +72,7 @@ class Service
             $request->post()
         );
         app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'create', 'serviceAdjustment', $id);
-        return success(['id' => $id], '加价费用已提交客户确认');
+        return success(['id' => $id], '加价费用已提交顾客确认');
     }
 
     public function cancelAdjustment(Request $request)

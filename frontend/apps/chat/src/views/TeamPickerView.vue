@@ -22,9 +22,9 @@ const teams = useQuery({ queryKey: ['chat-teams'], queryFn: () => api.get<TeamIt
       <a class="brand" href="//www.lostsky.work"><span>LostSky</span><strong>Chat</strong></a>
       <a class="identity-link" :href="identityUrl()">切换身份</a>
       <div class="hero-icon"><MessageCircleMore :size="34" /></div>
-      <p class="eyebrow">YOUR CONVERSATIONS</p>
+      <p class="eyebrow">我的会话</p>
       <h1>从一个团队开始</h1>
-      <p>成员工作区和客户会话汇总在同一处；进入团队后仍可切换你能使用的身份。</p>
+      <p>成员工作区和顾客会话汇总在同一处；进入团队后仍可切换你能使用的身份。</p>
     </header>
 
     <section aria-labelledby="teams-title">
@@ -40,13 +40,13 @@ const teams = useQuery({ queryKey: ['chat-teams'], queryFn: () => api.get<TeamIt
             <LsEntityIdentity type="team" :name="team.display_name || team.slug" :slug="team.slug" />
             <p>
               <span v-if="team.as_member"><Users :size="14" />成员</span>
-              <span v-if="team.as_customer"><UserRound :size="14" />客户</span>
+              <span v-if="team.as_customer"><UserRound :size="14" />顾客</span>
             </p>
           </div>
           <ArrowRight :size="20" />
         </a>
       </div>
-      <LsEmptyState v-else title="还没有可用的聊天团队" description="加入团队成为成员，或在商店中建立客户关系后，这里会自动出现入口。" />
+      <LsEmptyState v-else title="还没有可用的聊天团队" description="加入团队成为成员，或在商店中建立顾客关系后，这里会自动出现入口。" />
     </section>
   </main>
 </template>

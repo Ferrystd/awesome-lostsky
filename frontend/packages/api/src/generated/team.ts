@@ -1927,8 +1927,8 @@ export interface paths {
         get: operations["teamCustomerGet"];
         put?: never;
         /**
-         * 更新团队客户资料与归属
-         * @description 需要 team.customer.manage。归属仅允许当前团队的 Team、成员或虚拟实体。
+         * 更新团队客户资料、归属与协作发单人
+         * @description 需要 team.customer.manage。归属和协作发单人仅允许当前团队的 Team、成员或虚拟实体；协作发单人数组不允许重复 Entity。
          */
         post: operations["teamCustomerUpdate"];
         delete?: never;
@@ -2418,6 +2418,8 @@ export interface components {
                 spent: string;
             };
             assignee?: components["schemas"]["CustomerAssignee"] | null;
+            /** @description 可协作处理该客户的发单 Entity；详情响应始终返回。 */
+            senders?: components["schemas"]["CustomerAssignee"][];
             summary?: {
                 transaction_count?: number;
                 transaction_total?: string;
@@ -8029,6 +8031,7 @@ export interface operations {
                     description?: string | null;
                     /** Format: int64 */
                     assignee_entity_id?: number | null;
+                    sender_entity_ids?: number[];
                     /** @enum {integer} */
                     is_blocked?: 0 | 1;
                 };
@@ -8062,7 +8065,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description 归属实体或资料不合法 */
+            /** @description 归属、协作发单实体或资料不合法 */
             422: {
                 headers: {
                     [name: string]: unknown;

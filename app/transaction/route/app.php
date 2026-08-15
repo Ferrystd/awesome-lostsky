@@ -4,6 +4,7 @@ use think\facade\Route;
 Route::pattern(['id' => 'int']);
 
 Route::get('workspace/access', 'Workspace/access')->completeMatch();
+Route::get('personal/transaction-options', 'Personal/transactionOptions')->completeMatch();
 Route::get('personal/transactions', 'Personal/transactions')->completeMatch();
 Route::get('personal/transactions/<id>', 'Personal/transaction')->completeMatch();
 Route::get('personal/stats', 'Personal/stats')->completeMatch();
@@ -17,7 +18,7 @@ Route::get('personal/service-offers', 'Personal/serviceOffers')->completeMatch()
 Route::get('personal/service-offers/<id>', 'Personal/serviceOffer')->completeMatch();
 Route::post('personal/service-offers/<id>/accept', 'Personal/acceptServiceOffer')->completeMatch();
 Route::post('personal/service-offers/<id>/reject', 'Personal/rejectServiceOffer')->completeMatch();
-Route::get('personal/bindings', 'Personal/bindings')->completeMatch();
+Route::get('personal/customers', 'Personal/customers')->completeMatch();
 Route::get('personal/entitlements', 'EntitlementGrant/personalHistory')->completeMatch();
 Route::get('personal/entitlement-grant/options', 'EntitlementGrant/personalOptions')->completeMatch();
 Route::post('personal/entitlement-grant', 'EntitlementGrant/personalCreate')->completeMatch();
@@ -44,12 +45,6 @@ Route::post('service/<id>/cancel/reject', 'Service/rejectCancel')->completeMatch
 Route::post('service/<id>/complete', 'Service/complete')->completeMatch();
 Route::post('service/<id>/adjustments', 'Service/createAdjustment')->completeMatch();
 Route::post('service/<id>/adjustments/<adjustment_id>/cancel', 'Service/cancelAdjustment')->completeMatch();
-
-// sender
-Route::get('transaction/sender', 'Sender/index')->completeMatch();
-Route::get('transaction/sender/all', 'Sender/all')->completeMatch();
-Route::post('transaction/sender/bind', 'Sender/bind')->completeMatch();
-Route::post('transaction/sender/unbind', 'Sender/unbind')->completeMatch();
 
 // balance
 Route::get('transaction/balance/logs', 'Balance/logs')->completeMatch();

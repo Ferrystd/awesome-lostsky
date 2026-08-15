@@ -19,7 +19,7 @@ const missing = computed(() => detail.error.value instanceof ApiError && detail.
 const documentGroups = computed(() => groupPublicDocuments(
   documents.data.value?.list ?? [],
   detail.data.value?.profile.document_tags ?? [],
-  '与该实体相关的内容',
+  '与该实体（Entity）相关的内容',
 ))
 
 watch(() => detail.data.value?.profile.name, (name) => {
@@ -28,10 +28,10 @@ watch(() => detail.data.value?.profile.name, (name) => {
 </script>
 
 <template>
-  <section v-if="detail.isPending.value" class="detail-skeleton" aria-label="正在加载实体资料"><span /><span /><span /></section>
+  <section v-if="detail.isPending.value" class="detail-skeleton" aria-label="正在加载实体（Entity）资料"><span /><span /><span /></section>
   <section v-else-if="detail.isError.value" class="state-page">
     <p>{{ missing ? '404' : '连接未完成' }}</p>
-    <h1 tabindex="-1">{{ missing ? '该实体没有公开资料' : '实体资料暂时无法打开' }}</h1>
+    <h1 tabindex="-1">{{ missing ? '该实体（Entity）没有公开资料' : '实体（Entity）资料暂时无法打开' }}</h1>
     <span>{{ missing ? '资料可能已被隐藏、停用或移除。' : '请检查网络连接后重试。' }}</span>
     <RouterLink v-if="missing" to="/"><ArrowLeft :size="18" aria-hidden="true" />返回团队主页</RouterLink>
     <button v-else type="button" @click="detail.refetch()">重新加载</button>
@@ -62,7 +62,7 @@ watch(() => detail.data.value?.profile.name, (name) => {
                 <span v-if="role.description">{{ role.description }}</span>
               </li>
             </ul>
-            <p>{{ detail.data.value.profile.description || '公开实体资料' }}</p>
+            <p>{{ detail.data.value.profile.description || '公开实体（Entity）资料' }}</p>
           </div>
         </div>
       </div>
@@ -77,14 +77,14 @@ watch(() => detail.data.value?.profile.name, (name) => {
         <PublicFields :fields="detail.data.value.fields" />
       </section>
       <section v-if="detail.data.value.products?.length" class="reading-section">
-        <header class="section-heading"><h2>商品</h2><p>由该实体提供的已上架商品</p></header>
+        <header class="section-heading"><h2>商品</h2><p>由该实体（Entity）提供的已上架商品</p></header>
         <ProductList :products="detail.data.value.products" />
       </section>
       <PublicDocumentSection
         v-if="documents.isPending.value || documents.isError.value"
         class="reading-section"
         title="公开文档"
-        description="与该实体相关的内容"
+        description="与该实体（Entity）相关的内容"
         :documents="[]"
         :loading="documents.isPending.value"
         :error="documents.isError.value"

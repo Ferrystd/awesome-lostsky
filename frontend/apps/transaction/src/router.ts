@@ -7,8 +7,6 @@ const TransactionsView = () => import('./views/TransactionsView.vue')
 const TransactionFormView = () => import('./views/TransactionFormView.vue')
 const TransactionDetailView = () => import('./views/TransactionDetailView.vue')
 const StatsView = () => import('./views/StatsView.vue')
-const BindingsView = () => import('./views/BindingsView.vue')
-const BindingFormView = () => import('./views/BindingFormView.vue')
 const BalancesView = () => import('./views/BalancesView.vue')
 const BalanceLogsView = () => import('./views/BalanceLogsView.vue')
 const RechargeView = () => import('./views/RechargeView.vue')
@@ -17,6 +15,7 @@ const ServiceDetailView = () => import('./views/ServiceDetailView.vue')
 const PersonalWorkspaceView = () => import('./views/PersonalWorkspaceView.vue')
 const PersonalServiceTaskView = () => import('./views/PersonalServiceTaskView.vue')
 const PersonalOverviewView = () => import('./views/PersonalOverviewView.vue')
+const PersonalCustomersView = () => import('./views/PersonalCustomersView.vue')
 const UnavailableView = () => import('./views/UnavailableView.vue')
 const TeamOverviewView = () => import('./views/TeamOverviewView.vue')
 const EntitlementGrantView = () => import('./views/EntitlementGrantView.vue')
@@ -30,27 +29,25 @@ export const router = createRouter({
     { path: '/overview', component: TeamOverviewView, meta: { title: '概览', pageWidth: 'wide', accessPublic: true } },
     { path: '/unavailable', component: UnavailableView, meta: { title: '记账暂不可用', pageWidth: 'content', accessPublic: true } },
     { path: '/personal', component: PersonalOverviewView, meta: { title: '概览', pageWidth: 'wide', workspace: 'personal', accessPublic: true } },
-    { path: '/personal/transactions', component: PersonalWorkspaceView, meta: { title: '与我相关的流水', pageWidth: 'wide', workspace: 'personal', personalSection: 'transactions' } },
-    { path: '/personal/stats', component: PersonalWorkspaceView, meta: { title: '我的业绩', pageWidth: 'wide', workspace: 'personal', personalSection: 'stats' } },
-    { path: '/personal/services', component: PersonalWorkspaceView, meta: { title: '我的核销', pageWidth: 'wide', workspace: 'personal', personalSection: 'services' } },
+    { path: '/personal/transactions', component: PersonalWorkspaceView, meta: { title: '我的流水', pageWidth: 'wide', workspace: 'personal', personalSection: 'transactions' } },
+    { path: '/personal/transactions/new', component: TransactionFormView, meta: { title: '登记流水', pageWidth: 'form', workspace: 'personal', permission: 'transaction.write', permissionFallback: '/personal/transactions' } },
+    { path: '/personal/services', component: PersonalWorkspaceView, meta: { title: '我的接单', pageWidth: 'wide', workspace: 'personal', personalSection: 'services' } },
     { path: '/personal/service-offers/:id(\\d+)', component: PersonalServiceTaskView, meta: { title: '接单邀请', pageWidth: 'content', workspace: 'personal', personalTask: 'offer' } },
     { path: '/personal/services/available/:id(\\d+)', component: PersonalServiceTaskView, meta: { title: '公开任务', pageWidth: 'content', workspace: 'personal', personalTask: 'available' } },
-    { path: '/personal/services/:id(\\d+)', component: PersonalServiceTaskView, meta: { title: '我的核销任务', pageWidth: 'content', workspace: 'personal', personalTask: 'assigned' } },
-    { path: '/personal/bindings', component: PersonalWorkspaceView, meta: { title: '我的客户协作', pageWidth: 'wide', workspace: 'personal', personalSection: 'bindings' } },
-    { path: '/personal/entitlements', component: PersonalEntitlementsView, meta: { title: '权益赠送', pageWidth: 'wide', workspace: 'personal' } },
-    { path: '/personal/entitlements/new', component: EntitlementGrantView, meta: { title: '赠送客户权益', pageWidth: 'form', workspace: 'personal', permission: 'service.entitlement.grant', permissionFallback: '/personal/entitlements' } },
-    { path: '/new', component: TransactionFormView, meta: { title: '新建流水', pageWidth: 'form', permission: 'transaction.write' } },
+    { path: '/personal/services/:id(\\d+)', component: PersonalServiceTaskView, meta: { title: '我的接单任务', pageWidth: 'content', workspace: 'personal', personalTask: 'assigned' } },
+    { path: '/personal/customers', component: PersonalCustomersView, meta: { title: '我的顾客', pageWidth: 'wide', workspace: 'personal' } },
+    { path: '/personal/bindings', redirect: '/personal/customers' },
+    { path: '/personal/entitlements', component: PersonalEntitlementsView, meta: { title: '权益下发', pageWidth: 'wide', workspace: 'personal' } },
+    { path: '/personal/entitlements/new', component: EntitlementGrantView, meta: { title: '下发顾客权益', pageWidth: 'form', workspace: 'personal', permission: 'service.entitlement.grant', permissionFallback: '/personal/entitlements' } },
     { path: '/detail', component: TransactionDetailView, meta: { title: '流水详情', pageWidth: 'content', permission: 'transaction.read' } },
     { path: '/edit', component: TransactionFormView, meta: { title: '编辑流水', pageWidth: 'form', permission: 'transaction.write' } },
     { path: '/stats', component: StatsView, meta: { title: '经营统计', pageWidth: 'wide', permission: 'transaction.report.read' } },
     { path: '/services', component: ServicesView, meta: { title: '服务核销', pageWidth: 'wide', permission: serviceRedemptionReadPermissions } },
-    { path: '/entitlements/new', component: EntitlementGrantView, meta: { title: '赋予客户权益', pageWidth: 'form', permission: 'transaction.write' } },
+    { path: '/entitlements/new', component: EntitlementGrantView, meta: { title: '赋予顾客权益', pageWidth: 'form', permission: 'transaction.write' } },
     { path: '/services/:id(\\d+)', component: ServiceDetailView, meta: { title: '核销详情', pageWidth: 'content', permission: serviceRedemptionReadPermissions } },
-    { path: '/bindings', component: BindingsView, meta: { title: '发单绑定', pageWidth: 'wide', permission: 'transaction.read' } },
-    { path: '/binding-new', component: BindingFormView, meta: { title: '新增发单绑定', pageWidth: 'form', permission: 'transaction.write' } },
-    { path: '/balances', component: BalancesView, meta: { title: '客户余额', pageWidth: 'wide', permission: 'transaction.read' } },
+    { path: '/balances', component: BalancesView, meta: { title: '顾客余额', pageWidth: 'wide', permission: 'transaction.read' } },
     { path: '/balance', component: BalanceLogsView, meta: { title: '余额明细', pageWidth: 'content', permission: 'transaction.read' } },
-    { path: '/recharge', component: RechargeView, meta: { title: '客户充值', pageWidth: 'form', permission: 'transaction.write' } },
+    { path: '/recharge', component: RechargeView, meta: { title: '顾客充值', pageWidth: 'form', permission: 'transaction.write' } },
   ],
 })
 

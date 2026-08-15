@@ -29,9 +29,9 @@ const filtered = computed(() => { const keyword = search.value.trim().toLocaleLo
 
 <template>
     <div class="roles-page">
-      <AdminPageHeader title="角色与权限" description="角色列表只用于查找和进入管理任务；角色资料、权限与实体分配分别在独立页面完成。">
+      <AdminPageHeader title="角色与权限（Permission）" description="角色列表只用于查找和进入管理任务；角色资料、权限（Permission）与实体（Entity）分配分别在独立页面完成。">
         <template #actions>
-          <RouterLink class="secondary-link" to="/roles/entities"><UserRoundCog :size="17" />实体角色分配</RouterLink>
+          <RouterLink class="secondary-link" to="/roles/entities"><UserRoundCog :size="17" />实体（Entity）角色分配</RouterLink>
           <LsPagePrimaryAction :icon="Plus" label="新建角色" to="/roles/new" />
         </template>
       </AdminPageHeader>
@@ -41,7 +41,7 @@ const filtered = computed(() => { const keyword = search.value.trim().toLocaleLo
       <section v-else-if="query.isPending.value" class="loading" aria-label="正在加载角色">
         <div v-for="index in 4" :key="index"><NSkeleton text width="34%" /><NSkeleton text width="58%" /></div>
       </section>
-      <LsEmptyState v-else-if="!filtered.length" title="还没有角色" description="先创建角色，再为它选择完成工作所需的最小权限。" />
+      <LsEmptyState v-else-if="!filtered.length" title="还没有角色" description="先创建角色，再为它选择完成工作所需的最小权限（Permission）。" />
       <section v-else class="role-list" aria-label="角色列表">
         <RouterLink v-for="role in filtered" :key="role.id" :to="`/roles/${role.id}`">
           <div>

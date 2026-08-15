@@ -14,18 +14,18 @@ enum ChatCustomerGroupMode: string implements EnumTransform
     public function value(): string
     {
         return match ($this) {
-            self::Disabled   => '禁止客户加入',
+            self::Disabled   => '禁止顾客加入',
             self::InviteOnly => '仅限团队邀请',
-            self::Create     => '允许客户创建',
+            self::Create     => '允许顾客创建',
         };
     }
 
     public function description(): string
     {
         return match ($this) {
-            self::Disabled   => '客户不能创建群聊，也不能被邀请进入群聊。',
-            self::InviteOnly => '客户不能创建群聊，只能由团队成员邀请进入。',
-            self::Create     => '客户可以创建群聊，但不能主动邀请其他客户。',
+            self::Disabled   => '顾客不能创建群聊，也不能被邀请进入群聊。',
+            self::InviteOnly => '顾客不能创建群聊，只能由团队成员邀请进入。',
+            self::Create     => '顾客可以创建群聊，但不能主动邀请其他顾客。',
         };
     }
 }

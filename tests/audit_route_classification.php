@@ -81,7 +81,6 @@ $classification = [
             'service/<id>/reassign', 'service/<id>/cancel/approve',
             'service/<id>/cancel/reject', 'service/<id>/complete',
             'service/<id>/adjustments', 'service/<id>/adjustments/<adjustment_id>/cancel',
-            'transaction/sender/bind', 'transaction/sender/unbind',
             'transaction/balance/recharge',
         ],
         'exclude' => [],

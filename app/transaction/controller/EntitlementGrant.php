@@ -80,6 +80,6 @@ final class EntitlementGrant
                 'transaction_id' => $result['transaction_id'],
             ]
         );
-        return success($result, '客户权益已赋予');
+        return success($result, '顾客权益已赋予');
     }
 }

@@ -228,11 +228,11 @@ class Order
                 $balance = TeamCustomerBalance::where('customer_id', $order->customer_id)
                     ->lock(true)->find();
                 if (!$balance) {
-                    throw new HttpException(422, '客户余额记录不存在');
+                    throw new HttpException(422, '顾客余额记录不存在');
                 }
                 $balance = (new TeamCustomerBalance)->refund((int) $order->customer_id, $order->prepaid);
                 if (!$balance) {
-                    throw new HttpException(409, '客户余额退款失败');
+                    throw new HttpException(409, '顾客余额退款失败');
                 }
 
                 $log = new TeamCustomerBalanceLog;
@@ -377,17 +377,17 @@ class Order
             return;
         }
         if (!$customerId) {
-            throw new HttpException(422, '预存款支付必须关联客户');
+            throw new HttpException(422, '预存款支付必须关联顾客');
         }
 
         $balance = TeamCustomerBalance::where('customer_id', $customerId)->lock(true)->find();
         if (!$balance) {
-            throw new HttpException(422, '客户预存款余额不足');
+            throw new HttpException(422, '顾客预存款余额不足');
         }
 
         $balance = (new TeamCustomerBalance)->consume($customerId, $amount);
         if (!$balance) {
-            throw new HttpException(422, '客户预存款余额不足');
+            throw new HttpException(422, '顾客预存款余额不足');
         }
 
         $log = new TeamCustomerBalanceLog;

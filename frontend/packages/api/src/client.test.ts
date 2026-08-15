@@ -252,12 +252,12 @@ describe('friendlyError', () => {
       status: 403,
       code: 40302,
       data: { kind: 'permission', required_any: ['file.upload'] },
-    }))).toBe('您缺少该团队权限(Permission): file.upload,请联系团队管理员开通。')
+    }))).toBe('您缺少该团队权限（Permission）: file.upload,请联系团队管理员开通。')
     expect(friendlyError(new ApiError('server ability message', {
       status: 403,
       code: 40303,
       data: { kind: 'ability', key: 'file', label: '文件上传', reason: 'missing' },
-    }))).toBe('该团队能力(Ability)缺失: 文件上传(File),管理员可按需购买。')
+    }))).toBe('该团队能力（Ability）缺失: 文件上传(File),管理员可按需购买。')
   })
 
   it('keeps the server message when structured access details are incomplete', () => {

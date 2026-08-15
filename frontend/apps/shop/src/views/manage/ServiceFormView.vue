@@ -114,8 +114,8 @@ const teamCut = computed(() => calculateServiceTeamCut(
   form.default_cs_cut,
 ))
 const teamCutHint = computed(() => teamCut.value < 0
-  ? '人员分配超过可分配金额，请调低分配后再保存。'
-  : '自动取单位服务价值扣除成本与人员分配后的余额。')
+  ? '人员分成超过可分成金额，请调低分成后再保存。'
+  : '自动取单位服务价值扣除成本与人员分成后的余额。')
 
 const handlerEntities = computed(() => (options.data.value?.entities ?? []).filter(entity =>
   ['team', 'teamMember', 'teamVirtual'].includes(String(entity.type)),
@@ -172,13 +172,13 @@ const valid = computed(() => Boolean(
         <LsField label="计量单位" for-id="service-unit" required hint="例如：人、次、小时"><NInput id="service-unit" v-model:value="form.unit_name" maxlength="20" /></LsField>
         <LsField label="最小核销步长" for-id="service-step" required hint="最多四位小数；数量精度自动确定，每次履约数量必须是该步长的整数倍。"><NInputNumber id="service-step" v-model:value="form.quantity_step" :min="0.0001" :step="0.0001" :validator="isValidQuantityStep" /></LsField>
       </LsFormSection>
-      <LsFormSection title="默认单位金额与分配" description="修改服务价值或成本后，将按团队设置重算人员分配；团队分配始终取余额。">
+      <LsFormSection title="默认单位金额与分成" description="修改服务价值或成本后，将按团队设置重算人员分成；团队分成始终取余额。">
         <LsField label="单位服务价值" for-id="service-price"><NInputNumber id="service-price" v-model:value="form.default_total_price" :min="0" :step="0.01" :precision="2" /></LsField>
         <LsField label="单位成本" for-id="service-cost"><NInputNumber id="service-cost" v-model:value="form.default_cost" :min="0" :step="0.01" :precision="2" /></LsField>
-        <LsField label="单位接单分配" for-id="service-handler-cut"><NInputNumber id="service-handler-cut" v-model:value="form.default_handler_cut" :min="0" :precision="2" /></LsField>
-        <LsField label="单位发单分配" for-id="service-sender-cut"><NInputNumber id="service-sender-cut" v-model:value="form.default_sender_cut" :min="0" :precision="2" /></LsField>
-        <LsField label="单位客服分配" for-id="service-cs-cut"><NInputNumber id="service-cs-cut" v-model:value="form.default_cs_cut" :min="0" :precision="2" /></LsField>
-        <LsField label="单位团队分配" for-id="service-team-cut" :hint="teamCutHint"><NInputNumber id="service-team-cut" :value="teamCut" :precision="2" disabled /></LsField>
+        <LsField label="单位接单分成" for-id="service-handler-cut"><NInputNumber id="service-handler-cut" v-model:value="form.default_handler_cut" :min="0" :precision="2" /></LsField>
+        <LsField label="单位发单分成" for-id="service-sender-cut"><NInputNumber id="service-sender-cut" v-model:value="form.default_sender_cut" :min="0" :precision="2" /></LsField>
+        <LsField label="单位客服分成" for-id="service-cs-cut"><NInputNumber id="service-cs-cut" v-model:value="form.default_cs_cut" :min="0" :precision="2" /></LsField>
+        <LsField label="单位团队分成" for-id="service-team-cut" :hint="teamCutHint"><NInputNumber id="service-team-cut" :value="teamCut" :precision="2" disabled /></LsField>
       </LsFormSection>
       <LsFormSection title="接单池" description="留空表示不限接单人；指定名单后，只有名单内的有效 Entity 可以接受邀请或领取新任务。">
         <LsField label="可接单 Entity" for-id="service-handlers" hint="仅可选择当前团队内有效的 Team、TeamMember 或 TeamVirtual Entity。">

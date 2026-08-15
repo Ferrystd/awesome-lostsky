@@ -126,7 +126,7 @@ final class EntitlementManagement
             - (int) round((float) $money['default_handler_cut'] * 100)
             - (int) round((float) $money['default_sender_cut'] * 100)
             - (int) round((float) $money['default_cs_cut'] * 100);
-        if ($teamCents < 0) throw new HttpException(422, '服务成本与人员分配不能超过单位服务价值');
+        if ($teamCents < 0) throw new HttpException(422, '服务成本与人员分成不能超过单位服务价值');
         $money['default_team_cut'] = number_format($teamCents / 100, 2, '.', '');
         $hasHandlers = array_key_exists('handler_entity_ids', $data);
         $handlerIds = array_values(array_unique(array_map('intval', is_array($data['handler_entity_ids'] ?? null) ? $data['handler_entity_ids'] : [])));

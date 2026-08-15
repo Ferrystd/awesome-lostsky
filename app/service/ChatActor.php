@@ -154,7 +154,7 @@ class ChatActor
             'slug' => $model->slug ?? null,
             'name' => match ($type) {
                 ChatActorType::Entity => $model->nickname ?: '人员',
-                ChatActorType::Customer => $model->nickname ?: '客户',
+                ChatActorType::Customer => $model->nickname ?: '顾客',
                 ChatActorType::Team => $model->display_name ?: '团队',
                 ChatActorType::Virtual => $model->name ?: '虚拟实体',
             },

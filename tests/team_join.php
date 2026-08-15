@@ -79,7 +79,7 @@ try {
     app(\app\service\TeamEntityField::class)->create((int) $targetTeam->id, [
         'entity_type' => 'customer',
         'field_key' => 'customer_note',
-        'name' => '客户备注',
+        'name' => '顾客备注',
         'value_type' => 'string',
         'input_type' => 'text',
     ]);

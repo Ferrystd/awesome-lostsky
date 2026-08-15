@@ -39,7 +39,7 @@ async function save() {
   <div class="manage-page">
     <LsPageHeader
       title="核销字段"
-      description="客户字段在发起时填写，管理字段在确认完成时填写；停用不会删除历史值。"
+      description="顾客字段在发起时填写，管理字段在确认完成时填写；停用不会删除历史值。"
       :back-to="`${management.routeBase}/${id}`"
       :back-label="management.personal ? '返回本人商品' : '返回商品'"
     />

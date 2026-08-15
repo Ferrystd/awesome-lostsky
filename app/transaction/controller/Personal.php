@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 namespace app\transaction\controller;
 
-use app\service\Sender;
+use app\service\PermissionDictionary as Permissions;
 use app\service\ServiceRedemption;
+use app\service\TeamCustomerManagement;
 use app\service\Transaction as TransactionService;
 use app\service\TransactionStats;
 use think\Request;
@@ -13,7 +14,16 @@ final class Personal
 {
     protected $middleware = [
         'JwtAuth', 'Context', 'EntityType:team,teamMember,teamVirtual', 'TeamAuth', 'Ability:transaction',
+        'Permission:' . Permissions::TRANSACTION_WRITE => ['only' => ['transactionOptions']],
     ];
+
+    public function transactionOptions(Request $request)
+    {
+        $actorEntityId = ($request->acting_entity['type'] ?? '') === 'team'
+            ? null
+            : $request->entity_id;
+        return success(app(TransactionService::class)->options($request->team_id, $actorEntityId));
+    }
 
     public function transactions(Request $request)
     {
@@ -149,8 +159,14 @@ final class Personal
         ));
     }
 
-    public function bindings(Request $request)
+    public function customers(Request $request)
     {
-        return success(app(Sender::class)->bindings($request->team_id, $request->entity_id));
+        return success(app(TeamCustomerManagement::class)->personalListing(
+            $request->team_id,
+            $request->entity_id,
+            ['keyword' => $request->get('keyword/s', '')],
+            $request->get('page/d', 1),
+            $request->get('limit/d', 20)
+        ));
     }
 }

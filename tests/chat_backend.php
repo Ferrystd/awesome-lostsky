@@ -156,7 +156,7 @@ try {
         'customer group mode uses the shared enum choice control'
     );
     $assertSame(
-        ['禁止客户加入', '仅限团队邀请', '允许客户创建'],
+        ['禁止顾客加入', '仅限团队邀请', '允许顾客创建'],
         array_column($chatSettingFields['customer_group_mode']['options'] ?? [], 'label'),
         'customer group mode exposes localized option labels'
     );

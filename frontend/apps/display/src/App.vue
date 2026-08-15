@@ -9,7 +9,7 @@ import { RouterLink, RouterView } from 'vue-router'
     <header class="site-header">
       <RouterLink class="brand" to="/" aria-label="返回团队公开主页">
         <span>LOSTSKY</span>
-        <small>TEAM DISPLAY</small>
+        <small>团队展示</small>
       </RouterLink>
       <nav aria-label="公开主页导航">
         <RouterLink to="/">团队主页</RouterLink>

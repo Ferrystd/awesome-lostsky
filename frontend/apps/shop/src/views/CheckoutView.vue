@@ -28,7 +28,7 @@ async function submit() {
 
 <template>
   <section class="checkout-page">
-    <header><p class="eyebrow">CHECKOUT / BALANCE</p><h1 tabindex="-1">确认购买</h1><p>价格与余额会在提交时由服务端再次核对。</p></header>
+    <header><p class="eyebrow">确认购买</p><h1 tabindex="-1">确认购买</h1><p>价格与余额会在提交时由服务端再次核对。</p></header>
     <div v-if="product.isPending.value || balance.isPending.value" class="checkout-skeleton"><span /><span /></div>
     <div v-else-if="product.isError.value || balance.isError.value" class="inline-error"><span>{{ product.isError.value ? friendlyError(product.error.value) : '结账信息加载失败。' }}</span><button type="button" @click="product.refetch(); balance.refetch()">重试</button></div>
     <form v-else-if="product.data.value && balance.data.value" class="checkout-layout" @submit.prevent="submit">

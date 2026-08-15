@@ -301,15 +301,15 @@ class ChatConversation
             $settings = app(TeamSetting::class)->internal($teamId, 'chat');
             if ($kind === ChatConversationKind::Direct
                 && ($settings['customer_direct_start'] ?? '0') !== '1') {
-                throw new HttpException(403, '团队未允许客户发起会话');
+                throw new HttpException(403, '团队未允许顾客发起会话');
             }
             if ($kind === ChatConversationKind::Group
                 && ($settings['customer_group_mode'] ?? ChatCustomerGroupMode::InviteOnly->value)
                     !== ChatCustomerGroupMode::Create->value) {
-                throw new HttpException(403, '团队未允许客户创建群聊');
+                throw new HttpException(403, '团队未允许顾客创建群聊');
             }
             if ($temporary) {
-                throw new HttpException(403, '客户不能创建临时会话');
+                throw new HttpException(403, '顾客不能创建临时会话');
             }
             return;
         }
@@ -332,7 +332,7 @@ class ChatConversation
             foreach ($participants as $participant) {
                 if ($participant['type'] === ChatActorType::Customer
                     && $participant['id'] !== $creator['id']) {
-                    throw new HttpException(403, '客户不能主动邀请其他客户');
+                    throw new HttpException(403, '顾客不能主动邀请其他顾客');
                 }
             }
             if ($kind === ChatConversationKind::Direct) {
@@ -352,11 +352,11 @@ class ChatConversation
         $settings = app(TeamSetting::class)->internal($teamId, 'chat');
         $mode = $settings['customer_group_mode'] ?? ChatCustomerGroupMode::InviteOnly->value;
         if ($mode === ChatCustomerGroupMode::Disabled->value) {
-            throw new HttpException(403, '团队已禁止客户加入群聊');
+            throw new HttpException(403, '团队已禁止顾客加入群聊');
         }
         if ($creator && $creator['type'] === ChatActorType::Customer
             && $mode !== ChatCustomerGroupMode::Create->value) {
-            throw new HttpException(403, '客户只能由团队成员邀请进入群聊');
+            throw new HttpException(403, '顾客只能由团队成员邀请进入群聊');
         }
     }
 

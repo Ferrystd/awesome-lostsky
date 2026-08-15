@@ -638,7 +638,7 @@ class ServiceRedemption
             if ($this->pendingCancel((int) $instance->id, true)) throw new HttpException(409, '待处理取消申请存在时不可完成');
             if (TeamServiceAdjustment::where('service_instance_id', $id)
                 ->where('status', ServiceAdjustmentStatus::Pending->value)->lock(true)->find()) {
-                throw new HttpException(409, '仍有待客户确认的加价费用');
+                throw new HttpException(409, '仍有待顾客确认的加价费用');
             }
             app(ProductRedemptionField::class)->saveForStage($instance, 'manager', $fieldValues);
             $transId = null;
@@ -827,7 +827,7 @@ class ServiceRedemption
             - $this->toCents($money['handler_cut'])
             - $this->toCents($money['sender_cut'])
             - $this->toCents($money['cs_cut']);
-        if ($teamCents < 0) throw new HttpException(422, '该次服务的金额分配不平衡');
+        if ($teamCents < 0) throw new HttpException(422, '该次服务的金额分成不平衡');
         $money['team_cut'] = $this->fromCents($teamCents);
         return $money;
     }

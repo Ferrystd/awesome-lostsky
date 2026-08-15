@@ -582,15 +582,6 @@
 | `bootstrapOwner` | `int $teamId`、`int $memberId` | `void` |
 | `save` | `int $teamId`、`int $roleId`、`mixed $permissionKeys` | `void` |
 
-## Sender
-
-| 方法 | 参数 | 返回 |
-| --- | --- | --- |
-| `bindings` | `int $teamId`、`int $entityId` | `array` |
-| `allBindings` | `int $teamId` | `array` |
-| `bind` | `int $teamId`、`int $entityId`、`int $customerId` | `void` |
-| `unbind` | `int $teamId`、`int $id` | `void` |
-
 ## ServiceAdjustment
 
 | 方法 | 参数 | 返回 |
@@ -703,6 +694,7 @@
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `listing` | `int $teamId`、`array $actingEntity`、`array $filters`、`int $page`、`int $limit` | `array` |
+| `personalListing` | `int $teamId`、`int $entityId`、`array $filters`、`int $page`、`int $limit` | `array` |
 | `get` | `int $teamId`、`array $actingEntity`、`int $customerId` | `array` |
 | `update` | `int $teamId`、`int $customerId`、`array $data` | `void` |
 | `assignees` | `int $teamId` | `array` |
@@ -796,7 +788,7 @@
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `options` | `int $teamId` | `array` |
+| `options` | `int $teamId`、`?int $actorEntityId = null` | `array` |
 | `list` | `int $teamId`、`array $filters`、`int $page = 1`、`int $limit = 20` | `array` |
 | `personal` | `int $teamId`、`int $actorEntityId`、`array $filters`、`int $page = 1`、`int $limit = 20` | `array` |
 | `getPersonal` | `int $teamId`、`int $actorEntityId`、`int $id` | `array` |

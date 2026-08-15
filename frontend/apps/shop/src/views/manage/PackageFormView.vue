@@ -121,8 +121,8 @@ const selectedService = (item: Item) => availableServices.value.find(service => 
 const sharedPricingLocked = (item: Item) => Boolean(personal.value && selectedService(item)?.owner_entity_id == null && !canRepriceSharedService.value)
 const moneyLocked = (item: Item) => pricingLocked.value || sharedPricingLocked(item)
 const sharedPricingHint = (item: Item) => sharedPricingLocked(item)
-  ? '团队公用服务的价格、成本与分配沿用服务定义；需要 shop.product.self.package.reprice 才能调整。'
-  : '默认使用服务价格；修改后按团队默认比例重算人员分配。'
+  ? '团队公用服务的价格、成本与分成沿用服务定义；需要 shop.product.self.package.reprice 才能调整。'
+  : '默认使用服务价格；修改后按团队默认比例重算人员分成。'
 const quantityScale = (item: Item) => quantityScaleForStep(selectedService(item)?.quantity_step)
 const quantityStep = (item: Item) => Number(selectedService(item)?.quantity_step ?? 1)
 const itemized = computed(() => form.pricing_mode === 2)
@@ -296,11 +296,11 @@ function stop() {
                     <LsField label="单位成本" :for-id="`package-cost-${item.key}`"><NInputNumber :id="`package-cost-${item.key}`" :value="item.unit_cost" :min="0" :step="0.01" :precision="2" :disabled="moneyLocked(item)" @update:value="value => updateItemMoney(item, 'unit_cost', value)" /></LsField>
                   </section>
                   <section class="package-field-group" data-package-group="distribution" :aria-labelledby="`package-group-distribution-title-${item.key}`">
-                    <h4 :id="`package-group-distribution-title-${item.key}`">分配</h4>
-                    <LsField label="单位接单分配" :for-id="`package-handler-cut-${item.key}`"><NInputNumber :id="`package-handler-cut-${item.key}`" v-model:value="item.unit_handler_cut" :min="0" :precision="2" :disabled="moneyLocked(item)" /></LsField>
-                    <LsField label="单位发单分配" :for-id="`package-sender-cut-${item.key}`"><NInputNumber :id="`package-sender-cut-${item.key}`" v-model:value="item.unit_sender_cut" :min="0" :precision="2" :disabled="moneyLocked(item)" /></LsField>
-                    <LsField label="单位客服分配" :for-id="`package-cs-cut-${item.key}`"><NInputNumber :id="`package-cs-cut-${item.key}`" v-model:value="item.unit_cs_cut" :min="0" :precision="2" :disabled="moneyLocked(item)" /></LsField>
-                    <LsField label="单位团队分配" :for-id="`package-team-cut-${item.key}`" hint="自动取单位价格扣除成本与人员分配后的余额。"><NInputNumber :id="`package-team-cut-${item.key}`" :value="itemTeamCut(item)" :precision="2" disabled /></LsField>
+                    <h4 :id="`package-group-distribution-title-${item.key}`">分成</h4>
+                    <LsField label="单位接单分成" :for-id="`package-handler-cut-${item.key}`"><NInputNumber :id="`package-handler-cut-${item.key}`" v-model:value="item.unit_handler_cut" :min="0" :precision="2" :disabled="moneyLocked(item)" /></LsField>
+                    <LsField label="单位发单分成" :for-id="`package-sender-cut-${item.key}`"><NInputNumber :id="`package-sender-cut-${item.key}`" v-model:value="item.unit_sender_cut" :min="0" :precision="2" :disabled="moneyLocked(item)" /></LsField>
+                    <LsField label="单位客服分成" :for-id="`package-cs-cut-${item.key}`"><NInputNumber :id="`package-cs-cut-${item.key}`" v-model:value="item.unit_cs_cut" :min="0" :precision="2" :disabled="moneyLocked(item)" /></LsField>
+                    <LsField label="单位团队分成" :for-id="`package-team-cut-${item.key}`" hint="自动取单位价格扣除成本与人员分成后的余额。"><NInputNumber :id="`package-team-cut-${item.key}`" :value="itemTeamCut(item)" :precision="2" disabled /></LsField>
                   </section>
                 </template>
               </div>
@@ -309,14 +309,14 @@ function stop() {
         </LsFormList>
       </LsFormSection>
 
-      <LsFormSection v-if="itemized" title="套餐金额汇总" description="团队分配始终取每个服务项扣除成本与人员分配后的余额。">
+      <LsFormSection v-if="itemized" title="套餐金额汇总" description="团队分成始终取每个服务项扣除成本与人员分成后的余额。">
         <dl class="package-summary">
           <div><dt>售价</dt><dd>¥{{ currency(summary.price) }}</dd></div>
           <div><dt>成本</dt><dd>¥{{ currency(summary.cost) }}</dd></div>
-          <div><dt>接单分配</dt><dd>¥{{ currency(summary.handler) }}</dd></div>
-          <div><dt>发单分配</dt><dd>¥{{ currency(summary.sender) }}</dd></div>
-          <div><dt>客服分配</dt><dd>¥{{ currency(summary.cs) }}</dd></div>
-          <div><dt>团队分配</dt><dd>¥{{ currency(summary.team) }}</dd></div>
+          <div><dt>接单分成</dt><dd>¥{{ currency(summary.handler) }}</dd></div>
+          <div><dt>发单分成</dt><dd>¥{{ currency(summary.sender) }}</dd></div>
+          <div><dt>客服分成</dt><dd>¥{{ currency(summary.cs) }}</dd></div>
+          <div><dt>团队分成</dt><dd>¥{{ currency(summary.team) }}</dd></div>
         </dl>
       </LsFormSection>
 

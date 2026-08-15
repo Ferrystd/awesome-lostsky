@@ -8,7 +8,7 @@ export interface IdentityManagementLink {
 
 export function identityManagementLink(type = auth.entity()?.type): IdentityManagementLink {
   if (type === 'team' || type === 'teamMember' || type === 'teamVirtual') return { href: teamWorkspaceUrl('/personal'), label: '个人工作台' }
-  if (type === 'teamCustomer') return { href: shopWorkspaceUrl('/customer/profile'), label: '客户中心' }
+  if (type === 'teamCustomer') return { href: shopWorkspaceUrl('/customer/profile'), label: '顾客中心' }
   return { href: identityUrl(location.href), label: '切换身份' }
 }
 
