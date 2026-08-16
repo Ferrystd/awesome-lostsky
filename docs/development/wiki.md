@@ -23,7 +23,11 @@ npm run build:docs
 
 ## 维护规则
 
-新增文档时直接编辑 `docs/` 下对应 Markdown，并同步更新 `zensical.toml` 导航。新增、改名或删除用户指南页面时还需同步更新 `zensical.guide.toml`。项目文档不得写入凭据、Token、Cookie、内部地址或其他敏感信息。
+新增文档时直接编辑 `docs/` 下对应 Markdown，并同步更新 `zensical.toml` 导航。新增、改名或删除用户指南页面时还需同步更新 `zensical.guide.toml`。
+
+名词页为双副本结构：dev 术语源在 `docs/glossary/`（可含架构引用与 `app/` 路径，仅 dev 站构建），用户侧副本在 `docs/manual/glossary/`（用户语言，不出现 dev 引用）；`notice.md` 为两站共享单页。`zensical.toml` 的「术语」节列出 `docs/glossary/` 全部页面，`zensical.guide.toml` 的「名词解释」只收录用户可见分类；新增或改动名词页时，两份副本与两个导航都要同步。`service.md` 由 `php think docs:services` 生成到 `docs/glossary/`，禁止手改。
+
+项目文档不得写入凭据、Token、Cookie、内部地址或其他敏感信息。
 
 `docs/updates.md` 只摘要最近两个正式产品版本，完整事实以 [`docs/changelog.md`](../changelog.md) 为准；正式产品版本发布时同步更新摘要，预发布和构建发布不滚动正式版本摘要。
 

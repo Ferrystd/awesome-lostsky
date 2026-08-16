@@ -21,9 +21,34 @@ nav = [
   ]},
   {"业务使用" = [
     "transactions.md",
-    "public-pages-and-shop.md"
+    "public-pages-and-shop.md",
+    "service-redemption.md"
   ]},
-  {"平台管理" = "platform-admin.md"}
+  {"业务实现方案" = [
+    "service-business-solutions.md"
+  ]},
+  {"平台管理" = "platform-admin.md"},
+  {"名词解释" = [
+    {"核心主体与标识" = [
+      "glossary/entity.md",
+      "glossary/slug.md",
+      "glossary/team.md",
+      "glossary/customer.md",
+      "glossary/virtual.md",
+      "glossary/team-member.md",
+      "glossary/team-customer.md"
+    ]},
+    {"访问控制" = [
+      "glossary/role.md",
+      "glossary/permission.md",
+      "glossary/ability.md",
+      "glossary/context.md"
+    ]},
+    {"系统与通信" = [
+      "glossary/notice.md",
+      "glossary/team-domain.md"
+    ]}
+  ]}
 ]
 
 [project.theme]

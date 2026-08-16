@@ -38,30 +38,32 @@ nav = [
     "manual/chat.md",
     "manual/transactions.md",
     "manual/public-pages-and-shop.md",
+    "manual/service-redemption.md",
+    "manual/service-business-solutions.md",
     "manual/platform-admin.md"
   ]},
   {"术语" = [
     "glossary/index.md",
     "glossary/registry.md",
     "glossary/template.md",
-    {"核心主体" = [
+    {"核心主体与标识" = [
       "glossary/team.md",
       "glossary/customer.md",
-      "glossary/Virtual.md",
+      "glossary/virtual.md",
       "glossary/team-member.md",
-      "glossary/team-customer.md"
+      "glossary/team-customer.md",
+      "glossary/entity.md",
+      "glossary/slug.md"
     ]},
     {"访问控制" = [
       "glossary/role.md",
-      "glossary/entity.md",
-      "glossary/slug.md",
       "glossary/permission.md",
       "glossary/ability.md",
       "glossary/context.md"
     ]},
-    {"Service" = "glossary/service.md"},
     {"系统与通信" = [
-      "glossary/notice.md",
+      "glossary/service.md",
+      "manual/glossary/notice.md",
       "glossary/team-domain.md"
     ]}
   ]},

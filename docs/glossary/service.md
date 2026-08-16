@@ -1,3 +1,11 @@
+---
+title: Service 字典
+description: 由代码生成的 Service public 方法字典。
+tags: [glossary]
+status: 生成文档
+aliases: [服务, Service]
+---
+
 # Service 字典
 
 > 本页由 `php think docs:services` 生成。修改 Service 后运行该命令，使用 `--check` 可只校验是否最新。

@@ -20,7 +20,7 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 
 ## 参考
 
-- [术语索引](glossary/index.md)
+- [术语索引](manual/glossary/index.md)
 - [应用边界](overview.md)
 - [架构说明](architecture/routing.md)
 - [OpenAPI](openapi/README.md)

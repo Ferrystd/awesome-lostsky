@@ -20,4 +20,4 @@ description: 从产品入口、开发环境或 API 快速认识 LostSky。
 2. 从[项目概览](overview.md)定位应用边界，再查看对应 [OpenAPI](openapi/README.md)。
 3. 按[测试须知](development/testing.md)选择最小验证。
 
-常见概念可从[术语索引](glossary/index.md)查询；版本变化见[最近更新](updates.md)。
+常见概念可从[术语索引](manual/glossary/index.md)查询；版本变化见[最近更新](updates.md)。

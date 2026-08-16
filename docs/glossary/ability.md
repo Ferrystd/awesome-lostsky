@@ -1,12 +1,25 @@
-# Ability
+---
+title: 能力（Ability）
+description: 应用级功能边界与路由访问能力。
+tags: [glossary]
+status: 已建页
+aliases: [能力, Ability]
+---
+
+# 能力（Ability）
 
 ## 定义
 
-Team功能边界的能力标识
+团队(Team)功能边界的能力标识
 
 ## 使用场景
 
-校验Team是否开通了某能力，或是否达到一定等级
+校验团队(Team)是否开通了某能力，或是否达到一定等级，进而决定团队功能是否开放。
+
+## 不包括什么
+
+- 不做具体业务操作级别的细粒度授权判断（由 [Permission](permission.md) 承担）。
+- 不代表功能是否开通或开通等级的存储记录，只表达功能边界。
 
 ## 相关概念
 

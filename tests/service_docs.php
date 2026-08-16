@@ -32,7 +32,8 @@ if ($exit !== 0 || $stderr !== '') {
 }
 
 $document = file_get_contents($root . DIRECTORY_SEPARATOR . 'docs'
-    . DIRECTORY_SEPARATOR . 'glossary' . DIRECTORY_SEPARATOR . 'service.md');
+    . DIRECTORY_SEPARATOR . 'glossary'
+    . DIRECTORY_SEPARATOR . 'service.md');
 if ($document === false) {
     fwrite(STDERR, "Unable to read generated Service dictionary\n");
     exit(1);

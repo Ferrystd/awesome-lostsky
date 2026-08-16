@@ -14,9 +14,9 @@
 | 团队成员 | `team.member.invite` | 邀请或新增成员 |
 | 团队成员 | `team.member.update` | 编辑、封禁、解封、设置 slug 与搜索成员 |
 | 团队成员 | `team.member.remove` | 查询、代提、批准和拒绝成员离队申请；不提供直接移出通道 |
-| 团队成员 | `team.post_type.write` | 管理岗位类型 |
 | 团队成员 | `team.role.read` | 查看角色、权限和角色分配 |
 | 团队成员 | `team.role.write` | 管理角色、权限和角色分配 |
+| 团队成员 | `team.ability.redeem` | 兑换团队能力（卡密或体验码） |
 | 顾客 | `team.customer.read` | 查看当前团队全部顾客；无此权限的归属实体仍只能查看自己的顾客 |
 | 顾客 | `team.customer.manage` | 管理顾客资料、当前归属与封禁状态，并包含全量顾客读取 |
 | 加入审核 | `team.join_field.read` | 查看加入申请字段 |
@@ -35,12 +35,15 @@
 | 交易 | `transaction.delete` | 删除流水 |
 | 交易 | `transaction.report.read` | 查看 Team 全量交易统计报表；“我的流水”中的个人统计不依赖此权限 |
 | 交易 | `service.entitlement.grant` | 在个人工作台为当前 Entity 接待的顾客赋予服务权益 |
+| 交易 | `service.redemption.read` | 进入团队服务核销并查看全量列表、详情与接单池 |
+| 交易 | `service.redemption.manage` | 查看团队全量核销，并允许改派、处理取消、确认完成与调整费用 |
 | 文件与设置 | `file.read` | 查看团队文件与用量 |
 | 文件与设置 | `file.upload` | 通过团队文件库上传团队文件；资源附件上传只受 File Ability 与所属资源编辑鉴权控制 |
 | 文件与设置 | `file.delete` | 删除团队文件 |
 | 文件与设置 | `team.document.read` | 查看团队全部文档，包括当前 Entity 按可见性无法读取的文档；基础文档入口不要求此权限 |
 | 文件与设置 | `team.setting.read` | 查看团队设置及设置结构 |
 | 文件与设置 | `team.setting.update` | 修改团队设置 |
+| 安全与审计 | `team.audit.read` | 查看当前团队审计日志 |
 | 通知 | `team.notice.read` | 查看 LostSky 发给 Team 的共享站内通知 |
 | 通知 | `team.notice.send` | 以团队名义向同 Team Entity 发送单向通知 |
 | 实体委托 | `identity.team.assume` | 领取当前授权团队的团队实体 |
