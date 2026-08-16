@@ -199,7 +199,7 @@ test('Account identity picker shows cross-team candidates and preserves the curr
   })
 
   await page.goto('http://account.lostsky.work:5174/identity')
-  await expect(page.getByText('当前正在使用实体（Entity）身份')).toBeVisible()
+  await expect(page.getByText('当前正在使用实体身份')).toBeVisible()
   await expect(page.getByRole('heading', { name: '可切换身份' })).toBeVisible()
   await expect(page.getByText('团队 B · team-b')).toBeVisible()
   await page.getByRole('button', { name: '切换' }).click()

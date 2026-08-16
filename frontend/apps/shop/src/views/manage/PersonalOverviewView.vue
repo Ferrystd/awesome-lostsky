@@ -8,7 +8,7 @@ import { computed } from 'vue'
 import { hasManagePermission, loadManageAccess } from '../../lib'
 
 const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess() })
-const identityType = computed(() => ({ team: 'Team Entity', teamMember: '团队成员', teamVirtual: '虚拟实体（Virtual Entity）' })[access.data.value?.identity?.type ?? ''] || '当前 Entity')
+const identityType = computed(() => ({ team: 'Team Entity', teamMember: '团队成员', teamVirtual: '虚拟实体' })[access.data.value?.identity?.type ?? ''] || '当前 Entity')
 const orderReason = computed(() => {
   if (access.isPending.value) return '正在核对 shop.order.read Permission'
   if (access.isError.value) return friendlyError(access.error.value)

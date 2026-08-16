@@ -5,7 +5,7 @@ import { hasManagePermission } from './apps/shop/src/lib'
 import { hasWorkspacePermission, serviceRedemptionReadPermissions } from './apps/transaction/src/lib/workspace-access'
 
 const root = resolve(import.meta.dirname, '..')
-const source = (path: string) => readFileSync(resolve(root, path), 'utf8')
+const source = (path: string) => readFileSync(resolve(root, path), 'utf8').replaceAll('\r\n', '\n')
 
 function filesUnder(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {

@@ -91,7 +91,7 @@ const save = useMutation({
       <template #action><a class="primary-link" :href="shopProductsUrl">前往商品管理</a></template>
     </LsEmptyState>
     <form v-else @submit.prevent="save.mutate()">
-      <LsFormSection title="赋予内容" :description="personal ? '商品、本人接待顾客、客服和份数会作为同一次原子操作保存；发单人固定为当前实体（Entity）。' : '商品、顾客、业务归属和份数会作为同一次原子操作保存。'">
+      <LsFormSection title="赋予内容" :description="personal ? '商品、本人接待顾客、客服和份数会作为同一次原子操作保存；发单人固定为当前实体。' : '商品、顾客、业务归属和份数会作为同一次原子操作保存。'">
         <LsField label="服务套餐商品" for-id="grant-product" required hint="只显示 Shop 中已启用且关联有效权益包的服务套餐。">
           <NSelect id="grant-product" v-model:value="form.product_id" :options="productOptions" filterable placeholder="选择服务套餐商品" />
         </LsField>

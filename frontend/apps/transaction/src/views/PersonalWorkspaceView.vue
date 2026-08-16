@@ -26,7 +26,7 @@ const statsQuery = useQuery({
 })
 const accessQuery = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: () => loadWorkspaceAccess() })
 const newReason = computed(() => accessQuery.isPending.value
-  ? '正在核对权限（Permission）：transaction.write'
+  ? '正在核对权限：transaction.write'
   : accessQuery.isError.value
     ? friendlyError(accessQuery.error.value)
     : hasWorkspacePermission(accessQuery.data.value?.permissions ?? [], 'transaction.write')
@@ -49,7 +49,7 @@ const money = (value: unknown) => `¥${Number(value || 0).toFixed(2)}`
 
 <template>
   <div class="personal-workspace">
-    <LsPageHeader :title="title" :description="section === 'services' ? '确认指定邀请、领取公开任务，并管理当前实体（Entity）已接取的履约任务。' : '集中查看当前实体（Entity）的角色笔数、月度数据与参与流水。'">
+    <LsPageHeader :title="title" :description="section === 'services' ? '确认指定邀请、领取公开任务，并管理当前实体（Entity）已接取的履约任务。' : '集中查看当前实体的角色笔数、月度数据与参与流水。'">
       <template v-if="section === 'transactions'" #actions>
         <LsPagePrimaryAction :icon="CirclePlus" label="登记流水" to="/personal/transactions/new" :disabled="Boolean(newReason)" :disabled-reason="newReason" />
       </template>
@@ -74,7 +74,7 @@ const money = (value: unknown) => `¥${Number(value || 0).toFixed(2)}`
           <div><dt>个人业绩</dt><dd>{{ money(statsQuery.data.value?.performance_total) }}</dd></div>
         </dl>
       </LsPanel>
-      <LsEmptyState v-if="!rows.length" title="暂无相关记录" description="当前实体（Entity）参与业务后，流水会显示在这里。" />
+      <LsEmptyState v-if="!rows.length" title="暂无相关记录" description="当前实体参与业务后，流水会显示在这里。" />
       <div v-else class="record-list">
         <article v-for="(row, index) in rows" :key="row.id ?? index">
           <strong>{{ row.product_name || row.customer?.profile?.name || row.customer?.nickname || `记录 #${row.id ?? index + 1}` }}</strong>

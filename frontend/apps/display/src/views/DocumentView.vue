@@ -32,7 +32,7 @@ watch(() => query.data.value?.title, (title) => {
   </section>
   <article v-else-if="query.data.value" class="document-page">
     <div class="document-shell">
-      <RouterLink class="back-link" :to="backTo"><ArrowLeft :size="18" aria-hidden="true" />返回{{ query.data.value.entity.type === 'team' ? '团队主页' : '实体（Entity）资料' }}</RouterLink>
+      <RouterLink class="back-link" :to="backTo"><ArrowLeft :size="18" aria-hidden="true" />返回{{ query.data.value.entity.type === 'team' ? '团队主页' : '实体资料' }}</RouterLink>
       <header class="document-header">
         <RouterLink class="document-subject" :to="backTo">
           {{ entityTypeLabel(query.data.value.entity.type) }} · @{{ query.data.value.entity.slug }}

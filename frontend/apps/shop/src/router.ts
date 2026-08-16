@@ -52,7 +52,7 @@ export const router = createRouter({
     { path: '/manage/campaigns/new', component: () => import('./views/manage/CampaignFormView.vue'), meta: { title: '新建卡活动', manage: true, permission: 'shop.product.write', width: 'form' } },
     { path: '/manage/campaigns/:id(\\d+)', component: () => import('./views/manage/CampaignFormView.vue'), meta: { title: '编辑卡活动', manage: true, permission: 'shop.product.read', width: 'form' } },
     { path: '/manage/campaigns/:id(\\d+)/codes', component: () => import('./views/manage/CampaignCodesView.vue'), meta: { title: '兑换码', manage: true, permission: 'shop.product.read', width: 'content' } },
-    { path: '/manage/forbidden', component: () => import('./views/manage/ForbiddenView.vue'), meta: { title: '没有访问权限（Permission）', manage: true, managePublic: true, width: 'content' } },
+    { path: '/manage/forbidden', component: () => import('./views/manage/ForbiddenView.vue'), meta: { title: '没有访问权限', manage: true, managePublic: true, width: 'content' } },
     { path: '/:pathMatch(.*)*', component: () => import('./views/NotFoundView.vue'), meta: { title: '页面不存在' } },
   ],
 })

@@ -44,8 +44,8 @@ watch(() => query.data.value, data => {
 }, { immediate: true })
 const expectedEntityId = computed(() => query.data.value?.identity.entity_id ?? 0)
 const identityType = computed(() => query.data.value?.identity.type === 'team'
-  ? 'Team Entity'
-  : query.data.value?.identity.type === 'teamVirtual' ? '虚拟实体（Virtual Entity）' : '团队成员')
+  ? '团队实体'
+  : query.data.value?.identity.type === 'teamVirtual' ? '虚拟实体' : '团队成员')
 const overviewTitle = computed(() => query.data.value?.identity.name || (query.isError.value ? '当前 Entity 摘要暂时不可用' : '正在读取当前 Entity…'))
 const overviewDescription = computed(() => query.data.value
   ? `${identityType.value} · 所属团队 ${query.data.value.identity.team.name}`
@@ -88,14 +88,14 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
         :description="overviewDescription"
         :actions="overviewActions"
         :entries="overviewEntries"
-        :scope-notes="['所有资料和业务范围都以当前已领取的 Entity 为主体。', '切换身份后，系统会重新核对 Entity 类型、角色与有效权限（Permission）。']"
+        :scope-notes="['所有资料和业务范围都以当前已领取的 Entity 为主体。', '切换身份后，系统会重新核对 Entity 类型、角色与有效权限。']"
       />
       <LsInlineError v-if="query.isError.value" :message="friendlyError(query.error.value)" />
     </template>
     <template v-else>
       <AdminPageHeader :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的 Entity；切换身份后会自动重新核对。" />
       <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
-      <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取当前实体（Entity）" :description="friendlyError(query.error.value)" />
+      <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取当前实体" :description="friendlyError(query.error.value)" />
       <template v-else-if="query.data.value">
       <form v-if="section === 'profile'" class="profile-form" @submit.prevent="saveProfile.mutate()">
         <LsPanel>

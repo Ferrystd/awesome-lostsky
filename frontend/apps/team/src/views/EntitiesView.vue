@@ -37,10 +37,10 @@ const labels: Record<string, string> = {
   team: '团队',
   teamMember: '成员',
   teamCustomer: '顾客',
-  teamVirtual: '虚拟实体（Virtual Entity）',
+  teamVirtual: '虚拟实体',
 }
 const options = [
-  { label: '全部实体（Entity）', value: '' },
+  { label: '全部实体', value: '' },
   ...Object.entries(labels).map(([value, label]) => ({ label, value })),
 ]
 const rows = computed(() => {
@@ -62,11 +62,11 @@ function handleAction(key: string, entity: Entity) {
 
 <template>
   <div class="entities-view">
-    <AdminPageHeader title="实体（Entity）" description="浏览团队、成员、顾客与虚拟实体（Virtual Entity）。具有全量读取权限（Permission）时也会列出团队内隐藏实体（Entity）。" />
-    <LsListToolbar v-model="search" placeholder="搜索实体（Entity）名称或 slug" aria-label="搜索实体（Entity）" :count-label="`${rows.length} 个实体（Entity）`"><template #filters><NSelect v-model:value="type" :options="options" clearable placeholder="全部类型" /></template></LsListToolbar>
+    <AdminPageHeader title="实体" description="浏览团队、成员、顾客与虚拟实体（Virtual Entity）。具有全量读取权限（Permission）时也会列出团队内隐藏实体。" />
+    <LsListToolbar v-model="search" placeholder="搜索实体名称或 slug" aria-label="搜索实体" :count-label="`${rows.length} 个实体`"><template #filters><NSelect v-model:value="type" :options="options" clearable placeholder="全部类型" /></template></LsListToolbar>
     <NSpin v-if="query.isPending.value" size="large" />
     <p v-else-if="query.isError.value" class="feedback" role="alert">{{ friendlyError(query.error.value) }}</p>
-    <LsEmptyState v-else-if="!rows.length" title="没有可查看的实体（Entity）" description="调整搜索词或实体（Entity）类型筛选后查看。" />
+    <LsEmptyState v-else-if="!rows.length" title="没有可查看的实体" description="调整搜索词或实体类型筛选后查看。" />
     <div v-else class="entity-list">
       <article
         v-for="entity in rows"
@@ -74,7 +74,7 @@ function handleAction(key: string, entity: Entity) {
         class="entity-row"
       >
         <RouterLink :to="{ path: '/entity', query: { id: entity.id } }" class="entity-main">
-          <LsEntityIdentity :type="entity.entityable_type as 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'" :name="entity.profile?.name || '未命名实体（Entity）'" :slug="entity.slug" :image-url="entity.profile?.avatar" />
+          <LsEntityIdentity :type="entity.entityable_type as 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'" :name="entity.profile?.name || '未命名实体'" :slug="entity.slug" :image-url="entity.profile?.avatar" />
         </RouterLink>
         <LsResponsiveActions :actions="entityActions(entity)" primary-key="manage" @select="handleAction($event, entity)" />
       </article>

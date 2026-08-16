@@ -96,7 +96,7 @@ const canToggleInternal = computed(() =>
 const internalFixedMessage = computed(() =>
   detail.data.value?.entityable_type === 'teamCustomer'
     ? 'Customer 属于敏感目录，始终需要 team.entity.read 才能查看。'
-    : 'Team 实体（Entity）始终在团队内部可见。'
+    : 'Team 实体始终在团队内部可见。'
 )
 const publicFixedMessage = computed(() =>
   detail.data.value?.entityable_type === 'teamCustomer'
@@ -107,8 +107,8 @@ const entityTypeLabel = computed(() => ({
   team: '团队',
   teamMember: '成员',
   teamCustomer: '顾客',
-  teamVirtual: '虚拟实体（Virtual Entity）',
-} as Record<string, string>)[String(detail.data.value?.entityable_type ?? '')] ?? '实体（Entity）')
+  teamVirtual: '虚拟实体',
+} as Record<string, string>)[String(detail.data.value?.entityable_type ?? '')] ?? '实体')
 const displayUrl = computed(() => (
   detail.data.value?.is_displayed && canDisplay.value
     ? `//${window.location.hostname.split('.')[0]}.display.lostsky.work/entity/${detail.data.value.slug}`
@@ -166,7 +166,7 @@ const profileSave = useMutation({
   onSuccess: (_, payload) => {
     profileSnapshot.value = profileFingerprint(payload)
     if (!profileDirty.value) editor.value?.clearDraft()
-    feedback.success('实体（Entity）资料已保存')
+    feedback.success('实体资料已保存')
     return client.invalidateQueries({ queryKey: ['entity', id.value] })
   },
   onError: error => feedback.error(friendlyError(error)),
@@ -235,10 +235,10 @@ async function submitProfile() {
 <template>
   <div class="entity-detail">
     <AdminPageHeader
-      :title="canManage ? '管理实体（Entity）资料' : '查看实体（Entity）资料'"
+      :title="canManage ? '管理实体资料' : '查看实体资料'"
       description="团队内可见、全局搜索和公开主页是三套互相独立的展示范围。"
       back-to="/entities"
-      back-label="返回实体（Entity）"
+      back-label="返回实体"
     >
       <template #actions>
         <LsPagePrimaryAction v-if="chatUrl" :icon="MessageCircleMore" label="发起对话" :href="chatUrl" />
@@ -248,7 +248,7 @@ async function submitProfile() {
     <LsAsyncState
       v-else-if="detail.isError.value"
       state="error"
-      title="暂时无法读取实体（Entity）资料"
+      title="暂时无法读取实体资料"
       :description="friendlyError(detail.error.value)"
     />
     <template v-else-if="detail.data.value">
@@ -273,7 +273,7 @@ async function submitProfile() {
         <section v-if="supportsPublicDocuments" class="document-tag-groups" aria-labelledby="document-tag-groups-title">
           <div>
             <h3 id="document-tag-groups-title">公开文档分组</h3>
-            <p>按这里的顺序组织该实体（Entity）的公开文档；说明会显示在对应分组标题下方。</p>
+            <p>按这里的顺序组织该实体的公开文档；说明会显示在对应分组标题下方。</p>
           </div>
           <LsFormList
             v-model="form.document_tags"
@@ -344,7 +344,7 @@ async function submitProfile() {
             v-model="isInternalVisible"
             label="团队内可见"
             :heading-level="3"
-            description="控制普通成员是否能在当前团队工作空间发现该实体（Entity）；具有 team.entity.read 的角色仍可查看。它不影响全局搜索或公开主页。"
+            description="控制普通成员是否能在当前团队工作空间发现该实体；具有 team.entity.read 的角色仍可查看。它不影响全局搜索或公开主页。"
             :disabled="!canManage"
             :loading="visibilitySave.isPending.value"
             :disabled-reason="!canManage ? manageReason : ''"
@@ -354,7 +354,7 @@ async function submitProfile() {
             :model-value="detail.data.value.entityable_type === 'team'"
             label="团队内可见"
             :heading-level="3"
-            description="控制普通成员是否能在当前团队工作空间发现该实体（Entity）；它不影响全局搜索或公开主页。"
+            description="控制普通成员是否能在当前团队工作空间发现该实体；它不影响全局搜索或公开主页。"
             read-only
             :disabled-reason="internalFixedMessage"
           />
@@ -364,7 +364,7 @@ async function submitProfile() {
             v-model="isDisplayed"
             label="公开主页展示"
             :heading-level="3"
-            description="控制互联网访客能否在 Display 公开主页浏览该实体（Entity）。它不影响团队内目录或全局搜索。"
+            description="控制互联网访客能否在 Display 公开主页浏览该实体。它不影响团队内目录或全局搜索。"
             :disabled="!canManage"
             :loading="visibilitySave.isPending.value"
             :disabled-reason="!canManage ? manageReason : ''"
@@ -374,7 +374,7 @@ async function submitProfile() {
             :model-value="detail.data.value.entityable_type === 'team'"
             label="公开主页展示"
             :heading-level="3"
-            description="控制互联网访客能否在 Display 公开主页浏览该实体（Entity）。"
+            description="控制互联网访客能否在 Display 公开主页浏览该实体。"
             read-only
             :disabled-reason="publicFixedMessage"
           />

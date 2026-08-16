@@ -28,7 +28,7 @@ const dialog = ref(false)
 const query = useQuery({ queryKey: ['admin-team', id], queryFn: () => api.get<TeamDetail>(`/teams/${id}`) })
 const action = computed(() => query.data.value?.is_banned ? 'unban' : 'ban')
 const teamStatus = computed<AdminStatus>(() => query.data.value?.is_cancelled ? 'cancelled' : query.data.value?.is_banned ? 'banned' : 'active')
-const mutation = useMutation({ mutationFn: (reason: string) => api.post(`/teams/${id}/${action.value}`, { reason }), onSuccess: async () => { feedback.success(action.value === 'ban' ? '团队已封禁' : '团队已解封'); dialog.value = false; await query.refetch() } })
+const mutation = useMutation({ mutationFn: (reason: string) => api.post(`/teams/${id}/${action.value}`, { reason }), onSuccess: async () => { feedback.success(action.value === 'ban' ? '团队已封禁' : '团队已解封'); dialog.value = false; await query.refetch() }, onError: error => feedback.error(friendlyError(error)) })
 const domainColumns: DataTableColumns<Domain> = [
   { title: '域名', key: 'domain' },
   { title: '应用', key: 'app', render: row => h(NTag, { size: 'small' }, { default: () => row.app }) },
@@ -53,8 +53,8 @@ const domainColumns: DataTableColumns<Domain> = [
       <NDataTable v-else :columns="domainColumns" :data="query.data.value.domains" :row-key="row => row.id" />
     </LsPanel>
     <LsPanel>
-      <template #header><div><h2>已启用能力（Ability）</h2><p>能力（Ability）仅展示，不在 Admin 首版调整</p></div></template>
-      <LsEmptyState v-if="!query.data.value.abilities.length" title="没有额外能力（Ability）" description="当前团队仅使用默认能力（Ability）。" />
+      <template #header><div><h2>已启用能力</h2><p>能力仅展示，不在 Admin 首版调整</p></div></template>
+      <LsEmptyState v-if="!query.data.value.abilities.length" title="没有额外能力" description="当前团队仅使用默认能力。" />
       <div v-else class="ability-list"><div v-for="ability in query.data.value.abilities" :key="ability.id"><strong>{{ ability.ability_key }}</strong><span>等级 {{ ability.level }} · {{ ability.expire_time ? formatTime(ability.expire_time) : '永久' }}</span></div></div>
     </LsPanel>
   </template>

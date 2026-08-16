@@ -21,7 +21,7 @@ describe('资料表单布局契约', () => {
     const formActions = source('../../../packages/ui/src/components/LsFormActions.vue')
     expect(view).toContain('<LsFormActions>')
     expect(view).not.toContain(':deep(.ls-')
-    expect(router).toContain("path: '/entity', component: EntityDetailView, meta: { title: '实体（Entity）资料', pageWidth: 'form' }")
+    expect(router).toContain("path: '/entity', component: EntityDetailView, meta: { title: '实体资料', pageWidth: 'form' }")
     expect(formList).toContain('.ls-form-list__add { justify-self: start;')
     expect(formActions).toContain('.ls-form-actions :deep(.ls-button) { min-width: 7rem; }')
     expect(view).toContain('class="visibility-settings"')

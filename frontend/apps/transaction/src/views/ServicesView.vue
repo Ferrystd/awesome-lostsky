@@ -22,7 +22,7 @@ import { hasWorkspacePermission, loadWorkspaceAccess } from "../lib/workspace-ac
 
 const access = useQuery({ queryKey: ["transaction-workspace-access"], queryFn: () => loadWorkspaceAccess() });
 const grantReason = computed(() => {
-  if (!access.data.value) return "正在核对权限（Permission）";
+  if (!access.data.value) return "正在核对权限";
   return hasWorkspacePermission(access.data.value.permissions, "transaction.write")
     ? ""
     : formatPermissionDenied(["transaction.write"]);
@@ -129,7 +129,7 @@ const columns: DataTableColumns<ServiceRedemption> = [
   <div class="redemptions-view">
     <LsPageHeader
       title="服务核销"
-      description="接单实体（Entity）查看自己的任务；管理实体（Entity）处理改派、取消审批与确认完成。"
+      description="接单实体（Entity）查看自己的任务；管理实体处理改派、取消审批与确认完成。"
     >
       <template #actions>
         <LsPagePrimaryAction :icon="Gift" label="赋予顾客权益" to="/entitlements/new" :disabled="Boolean(grantReason)" :disabled-reason="grantReason" />

@@ -76,7 +76,7 @@ onMounted(() => {
         <p class="eyebrow">身份错误</p>
         <h1>暂时无法领取成员身份</h1>
         <p class="description" role="alert">{{ friendlyError(receive.error.value) }}</p>
-        <p class="assurance">原实体（Entity）身份仍然保留，请返回后稍后再次进入。</p>
+        <p class="assurance">原实体身份仍然保留，请返回后稍后再次进入。</p>
         <div class="actions">
           <LsButton variant="secondary" @click="returnToOrigin">返回</LsButton>
         </div>

@@ -75,7 +75,7 @@ const valid = computed(() => Boolean(actorSlug.value)
         <label>会话形式<NRadioGroup v-model:value="kind"><NRadioButton value="direct">单聊</NRadioButton><NRadioButton value="group">群聊</NRadioButton></NRadioGroup></label>
         <label>你的身份<NSelect v-model:value="actorSlug" :options="actorOptions" placeholder="选择可操作身份" /></label>
         <label>{{ kind === 'direct' ? '聊天对象' : '参与者' }}
-          <LsEntityInput v-model="participants" :candidates="participantCandidates" :recent="recentParticipants" :multiple="kind === 'group'" placeholder="输入标识（Slug）搜索" @chat="kind = 'direct'" />
+          <LsEntityInput v-model="participants" :candidates="participantCandidates" :recent="recentParticipants" :multiple="kind === 'group'" placeholder="输入标识搜索" @chat="kind = 'direct'" />
         </label>
         <label v-if="kind === 'group'">群聊名称<NInput v-model:value="title" maxlength="100" placeholder="可选" /></label>
         <label class="check"><NCheckbox v-model:checked="temporary">临时会话</NCheckbox><small>临时会话可以重复创建，并可设置自动关闭时间。</small></label>

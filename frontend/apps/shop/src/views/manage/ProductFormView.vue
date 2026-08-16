@@ -52,7 +52,7 @@ const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?
 const fieldsEditor = ref<InstanceType<typeof ProductFieldsEditor> | null>(null)
 const uploading = ref<'cover' | 'markdown' | ''>('')
 const uploadDisabledReason = computed(() => {
-  if (access.isPending.value) return '正在核对文件上传能力（Ability）'
+  if (access.isPending.value) return '正在核对文件上传能力'
   if (access.isError.value) return friendlyError(access.error.value)
   return fileUploadReason(access.data.value?.file_upload)
 })

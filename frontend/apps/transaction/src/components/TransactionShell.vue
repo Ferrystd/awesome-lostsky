@@ -34,7 +34,7 @@ const nav = computed(() => activeWorkspace.value === 'personal' ? personalNav : 
 const mobileNav = computed(() => nav.value.slice(0, 3))
 const title = computed(() => String(route.meta.title ?? '记账工作台'))
 const transactionReason = computed(() => {
-  if (!access.value) return '正在核对记账能力（Ability）'
+  if (!access.value) return '正在核对记账能力'
   const transaction = access.value.abilities?.transaction
   return transaction?.enabled ? '' : formatAbilityDenied('transaction', transaction?.label ?? '记账')
 })
@@ -57,7 +57,7 @@ function handleHeaderAction(key: string) {
 }
 function disabledReason(permission: WorkspacePermissionRequirement | null) {
   if (!permission) return ''
-  if (!access.value) return '正在核对权限（Permission）'
+  if (!access.value) return '正在核对权限'
   if (transactionReason.value) return transactionReason.value
   return hasWorkspacePermission(access.value.permissions, permission) ? '' : formatPermissionDenied(workspacePermissionKeys(permission))
 }

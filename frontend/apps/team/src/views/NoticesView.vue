@@ -45,10 +45,10 @@ const copy = computed(() => scope.value === 'team'
     }
   : {
       title: '通知',
-      description: '当前实体（Entity）收到的 Team 单向通知',
+      description: '当前实体收到的 Team 单向通知',
       noun: '通知',
       empty: '目前没有通知',
-      emptyDescription: 'Team 发给当前实体（Entity）的通知会显示在这里。',
+      emptyDescription: 'Team 发给当前实体的通知会显示在这里。',
     })
 const query = useQuery({
   queryKey: computed(() => ['notices', scope.value]),

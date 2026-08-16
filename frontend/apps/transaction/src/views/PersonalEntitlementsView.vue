@@ -32,7 +32,7 @@ const access = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: (
 const rows = computed(() => query.data.value?.list ?? [])
 const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / filters.limit)))
 const grantReason = computed(() => {
-  if (access.isPending.value) return '正在核对权限（Permission）：service.entitlement.grant'
+  if (access.isPending.value) return '正在核对权限：service.entitlement.grant'
   if (access.isError.value) return friendlyError(access.error.value)
   return hasWorkspacePermission(access.data.value?.permissions ?? [], 'service.entitlement.grant')
     ? ''

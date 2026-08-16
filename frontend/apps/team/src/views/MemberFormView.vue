@@ -324,7 +324,7 @@ useUnsavedChangesGuard(hasUnsavedChanges)
       role="status"
     >
       <strong>请先补全成员 slug</strong>
-      <p>确认对象标识后，才能维护该成员的对象字段和角色权限（Permission）。</p>
+      <p>确认对象标识后，才能维护该成员的对象字段和角色权限。</p>
     </section>
 
     <LsPanel
@@ -332,7 +332,7 @@ useUnsavedChangesGuard(hasUnsavedChanges)
       aria-labelledby="member-management-title"
     >
       <section class="management">
-      <LsSectionHeader id="member-management-title" title="管理操作" description="成员状态、搜索范围与实体（Entity）身份操作。"><template #aside><span class="section-state">{{ memberStatusLabel(detail.data.value) }}</span></template></LsSectionHeader>
+      <LsSectionHeader id="member-management-title" title="管理操作" description="成员状态、搜索范围与实体身份操作。"><template #aside><span class="section-state">{{ memberStatusLabel(detail.data.value) }}</span></template></LsSectionHeader>
       <form v-if="!detail.data.value.slug && capabilities.member_slug" class="inline-form" @submit.prevent="claim.mutate()">
         <LsField label="补全对象标识" for-id="member-slug"><NInput id="member-slug" v-model:value="identityForm.slug" placeholder="例如 zhang-san" autocapitalize="none" /></LsField>
         <LsButton type="submit" variant="secondary" :loading="claim.isPending.value" :disabled="!identityForm.slug.trim()">确认标识</LsButton>
@@ -350,7 +350,7 @@ useUnsavedChangesGuard(hasUnsavedChanges)
           type="button"
           variant="secondary"
           :loading="memberAction.isPending.value"
-          @click="confirmAction('/member/block', '确认封禁该成员？封禁后该实体（Entity）暂时无法使用。')"
+          @click="confirmAction('/member/block', '确认封禁该成员？封禁后该实体暂时无法使用。')"
         >
           封禁成员
         </LsButton>
@@ -364,7 +364,7 @@ useUnsavedChangesGuard(hasUnsavedChanges)
           解除封禁
         </LsButton>
         <LsButton v-if="capabilities.identity_assume && memberSlug" type="button" variant="secondary" @click="switchIdentity">
-          切换为该实体（Entity）
+          切换为该实体
         </LsButton>
       </div>
 

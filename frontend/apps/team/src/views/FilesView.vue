@@ -127,7 +127,7 @@ function runFileAction(key: string, item: Record<string, unknown>) {
         <h2>团队文件</h2>
       </div>
       <div class="header-actions">
-        <RouterLink v-if="canUpgrade" class="secondary-link" to="/abilities">升级团队能力（Ability）</RouterLink>
+        <RouterLink v-if="canUpgrade" class="secondary-link" to="/abilities">升级团队能力</RouterLink>
         <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload">
           <template #trigger="{ choose }"><LsPagePrimaryAction :icon="Upload" label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @click="choose" /></template>
         </LsUploadField>

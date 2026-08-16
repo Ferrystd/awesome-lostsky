@@ -162,7 +162,7 @@ test('Team keeps its original layout and reaches personal workspace from the ove
   await expect(page).toHaveURL(/\/personal$/)
   await expect.poll(() => pageErrors).toEqual([])
   await expect(page.getByRole('heading', { name: '概览', level: 1 })).toBeVisible()
-  await expect(page.getByText(/个人工作台 · Team Entity/)).toBeVisible()
+  await expect(page.getByText(/个人工作台 · 团队实体/)).toBeVisible()
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: '切换身份' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/')

@@ -70,7 +70,7 @@ const returnTask = (id: number) => {
 
     <LsPanel aria-labelledby="available-service-title">
       <template #header>
-        <LsSectionHeader id="available-service-title" title="我可以接" description="当前实体（Entity）所在接单池中的公开任务">
+        <LsSectionHeader id="available-service-title" title="我可以接" description="当前实体所在接单池中的公开任务">
           <template #aside><span class="group-count" aria-live="polite">{{ available.length }} 个</span></template>
         </LsSectionHeader>
       </template>
@@ -89,7 +89,7 @@ const returnTask = (id: number) => {
 
     <LsPanel aria-labelledby="assigned-service-title">
       <template #header>
-        <LsSectionHeader id="assigned-service-title" title="我的接单" description="已由当前实体（Entity）接取、尚未退回的履约任务">
+        <LsSectionHeader id="assigned-service-title" title="我的接单" description="已由当前实体接取、尚未退回的履约任务">
           <template #aside><span class="group-count" aria-live="polite">{{ assigned.length }} 个</span></template>
         </LsSectionHeader>
       </template>

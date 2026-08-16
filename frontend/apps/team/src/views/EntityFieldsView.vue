@@ -25,7 +25,7 @@ const fields = useQuery({
   queryKey: computed(() => ['entity-fields', type.value]),
   queryFn: () => api.get<EntityField[]>('/entityField/index', { entity_type: type.value }),
 })
-const labels: Record<EntityType, string> = { entity: '人员', customer: '顾客', virtual: '虚拟实体（Virtual Entity）' }
+const labels: Record<EntityType, string> = { entity: '人员', customer: '顾客', virtual: '虚拟实体' }
 const visibleFields = computed(() => { const keyword = search.value.trim().toLocaleLowerCase(); return (fields.data.value ?? []).filter(field => !keyword || `${field.name} ${field.field_key}`.toLocaleLowerCase().includes(keyword)) })
 </script>
 

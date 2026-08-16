@@ -97,6 +97,7 @@ const save = useMutation({
     feedback.success("体验活动已保存");
     router.push(`/entitlements/campaigns/${data.id}`);
   },
+  onError: (error) => feedback.error(friendlyError(error)),
 });
 const page = ref(1);
 const quantity = ref(1);
@@ -125,26 +126,33 @@ const issue = useMutation({
       queryKey: ["admin-entitlement-codes", id.value],
     });
   },
+  onError: (error) => feedback.error(friendlyError(error)),
 });
 async function reveal(codeId: number) {
-  const r = await api.post<{ code: string }>(
-    `/entitlements/campaigns/${id.value}/codes/${codeId}/reveal`,
-    {},
-  );
-  revealed.value = { ...revealed.value, [codeId]: r.code };
+  try {
+    const r = await api.post<{ code: string }>(
+      `/entitlements/campaigns/${id.value}/codes/${codeId}/reveal`,
+      {},
+    );
+    revealed.value = { ...revealed.value, [codeId]: r.code };
+  } catch (error) { feedback.error(friendlyError(error)) }
 }
 async function copy(value: string) {
-  await navigator.clipboard.writeText(value);
-  feedback.success("体验码已复制");
+  try {
+    await navigator.clipboard.writeText(value);
+    feedback.success("体验码已复制");
+  } catch (error) { feedback.error(friendlyError(error)) }
 }
 async function disable(codeId: number) {
-  await api.post(
-    `/entitlements/campaigns/${id.value}/codes/${codeId}/disable`,
-    {},
-  );
-  await client.invalidateQueries({
-    queryKey: ["admin-entitlement-codes", id.value],
-  });
+  try {
+    await api.post(
+      `/entitlements/campaigns/${id.value}/codes/${codeId}/disable`,
+      {},
+    );
+    await client.invalidateQueries({
+      queryKey: ["admin-entitlement-codes", id.value],
+    });
+  } catch (error) { feedback.error(friendlyError(error)) }
 }
 const pages = computed(() =>
   Math.max(1, Math.ceil(Number(codes.data.value?.total ?? 0) / 20)),
@@ -215,9 +223,6 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
       ><LsInlineError
         v-if="detail.isError.value"
         :message="friendlyError(detail.error.value)"
-      /><LsInlineError
-        v-if="save.isError.value"
-        :message="friendlyError(save.error.value)"
       />
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()"
@@ -249,10 +254,6 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
               >发行</LsButton
             >
           </div>
-          <LsInlineError
-            v-if="issue.isError.value"
-            :message="friendlyError(issue.error.value)"
-          />
           <div v-if="issued.length" class="issued">
             <LsButton
               v-for="row in issued"

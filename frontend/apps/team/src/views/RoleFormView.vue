@@ -30,7 +30,7 @@ function submit() {
 
 <template>
     <div class="role-form-page">
-      <AdminPageHeader title="新建角色" description="先建立角色，再为它分配完成工作所需的最小权限（Permission）。" back-to="/roles" back-label="返回角色与权限（Permission）" />
+      <AdminPageHeader title="新建角色" description="先建立角色，再为它分配完成工作所需的最小权限（Permission）。" back-to="/roles" back-label="返回角色与权限" />
       <NForm class="role-form" label-placement="top" :show-require-mark="true" @submit.prevent="submit">
         <NFormItem label="角色标识" required>
           <NInput v-model:value="form.role_key" aria-label="角色标识" autocomplete="off" placeholder="例如 operator" />
@@ -46,7 +46,7 @@ function submit() {
           <NInputNumber v-model:value="form.sort" aria-label="显示顺序" :min="0" :show-button="false" />
           <template #feedback>数字越小越靠前。</template>
         </NFormItem>
-        <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开实体（Entity）资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟实体（Virtual Entity）会展示角色名称和说明；角色权限（Permission）不会公开。" />
+        <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开实体资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟实体（Virtual Entity）会展示角色名称和说明；角色权限不会公开。" />
         <p v-if="save.isError.value" class="error" role="alert">{{ friendlyError(save.error.value) }}</p>
         <footer>
           <LsButton variant="secondary" @click="router.push('/roles')">取消</LsButton>

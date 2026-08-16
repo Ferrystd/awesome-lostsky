@@ -327,7 +327,7 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('ls-entity-tag__name')
     expect(html).toContain('n-tag__close')
     expect(virtualHtml).toContain('data-entity-tone="virtual"')
-    expect(virtualHtml).toContain('协作助手 · 虚拟实体（Virtual Entity） · @helper')
+    expect(virtualHtml).toContain('协作助手 · 虚拟实体 · @helper')
   })
 
   it('Entity 下拉统一提供类型、slug 与多字段搜索', () => {

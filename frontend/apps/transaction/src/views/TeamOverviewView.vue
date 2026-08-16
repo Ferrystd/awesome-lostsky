@@ -11,7 +11,7 @@ const access = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: (
 
 function permissionReason(permission: WorkspacePermissionRequirement | null) {
   if (!permission) return ''
-  if (access.isPending.value) return `正在核对权限（Permission）：${workspacePermissionKeys(permission).join(' / ')}`
+  if (access.isPending.value) return `正在核对权限：${workspacePermissionKeys(permission).join(' / ')}`
   if (access.isError.value) return friendlyError(access.error.value)
   return hasWorkspacePermission(access.data.value?.permissions ?? [], permission) ? '' : formatPermissionDenied(workspacePermissionKeys(permission))
 }
@@ -31,9 +31,9 @@ const entries = computed(() => [
   <LsWorkspaceOverview
     eyebrow="记账团队工作台"
     :title="access.data.value?.team?.name || (access.isError.value ? '团队摘要暂时不可用' : '正在读取当前团队…')"
-    description="从流水到接单和我的顾客，按经营任务进入对应区域；不可用入口会保留并说明所需权限（Permission）。"
+    description="从流水到接单和我的顾客，按经营任务进入对应区域；不可用入口会保留并说明所需权限。"
     :actions="[{ key: 'personal', label: '进入个人工作台', to: '/personal', icon: UserRound, primary: true }]"
     :entries="entries"
-    :scope-notes="['团队概览只读取访问快照，不请求流水、统计、核销或余额数据。', '具体业务页继续执行记账能力（Ability）、权限（Permission）与服务端数据范围校验。']"
+    :scope-notes="['团队概览只读取访问快照，不请求流水、统计、核销或余额数据。', '具体业务页继续执行记账能力（Ability）、权限与服务端数据范围校验。']"
   />
 </template>

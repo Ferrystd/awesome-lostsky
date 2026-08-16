@@ -39,7 +39,7 @@ interface TeamEntityOption {
   name: string
   avatar?: string | null
 }
-type SpecialPermissionGroup = '实体（Entity）管理' | '实体（Entity）委托'
+type SpecialPermissionGroup = '实体管理' | '实体委托'
 type DynamicPermissionId = 'manage' | 'field-manage' | 'assume'
 interface DynamicPermissionDefinition {
   id: DynamicPermissionId
@@ -50,12 +50,12 @@ interface DynamicPermissionDefinition {
 }
 
 const dynamicPermissionDefinitions: DynamicPermissionDefinition[] = [
-  { id: 'manage', label: '管理指定虚拟实体（Virtual Entity）', template: 'team.entity.virtual.<slug>.manage', virtualOnly: true, group: '实体（Entity）管理' },
-  { id: 'field-manage', label: '管理指定虚拟实体（Virtual Entity）字段', template: 'team.entity.virtual.<slug>.field.manage', virtualOnly: true, group: '实体（Entity）管理' },
-  { id: 'assume', label: '领取指定实体（Entity）身份', template: 'identity.<type>.<slug>.assume', virtualOnly: false, group: '实体（Entity）委托' },
+  { id: 'manage', label: '管理指定虚拟实体', template: 'team.entity.virtual.<slug>.manage', virtualOnly: true, group: '实体管理' },
+  { id: 'field-manage', label: '管理指定虚拟实体字段', template: 'team.entity.virtual.<slug>.field.manage', virtualOnly: true, group: '实体管理' },
+  { id: 'assume', label: '领取指定实体身份', template: 'identity.<type>.<slug>.assume', virtualOnly: false, group: '实体委托' },
 ]
-const entityDelegationGroupName = '实体（Entity）委托'
-const entityManagementGroupName = '实体（Entity）管理'
+const entityDelegationGroupName = '实体委托'
+const entityManagementGroupName = '实体管理'
 
 const route = useRoute()
 const router = useRouter()
@@ -105,7 +105,7 @@ const advancedItems = computed(() => {
     if (/^identity\.(?:member|customer|virtual)\.[a-z0-9][a-z0-9_-]{0,49}$/.test(key) && !items.has(key)) {
       items.set(key, {
         key,
-        label: `覆盖 ${key} 下全部权限（Permission）`,
+        label: `覆盖 ${key} 下全部权限`,
         covered_keys: [`${key}.assume`],
       })
     }
@@ -192,7 +192,7 @@ const savePermissions = useMutation({
     initialPermissionKeys.value = [...keys]
     pendingPermissionKeys.value = []
     showAdvancedConfirm.value = false
-    feedback.success('角色权限（Permission）已保存')
+    feedback.success('角色权限已保存')
   },
   onError: error => feedback.error(friendlyError(error)),
 })
@@ -287,22 +287,22 @@ function toggleDynamicPermission(key: string | null, checked: boolean) {
   if (checked && key.startsWith('identity.') && key.endsWith('.assume')) {
     const parent = key.replace(/\.assume$/, '')
     if (!dynamicAdvancedItems.value.some(item => item.key === parent)) {
-      dynamicAdvancedItems.value.push({ key: parent, label: `覆盖 ${parent} 下全部权限（Permission）`, covered_keys: [key] })
+      dynamicAdvancedItems.value.push({ key: parent, label: `覆盖 ${parent} 下全部权限`, covered_keys: [key] })
     }
   }
 }
 function dynamicPermissionLabel(key: string) {
   return leafLabels.value.get(key)
-    || (key.endsWith('.field.manage') ? '管理指定虚拟实体（Virtual Entity）字段'
-      : key.endsWith('.manage') ? '管理指定虚拟实体（Virtual Entity）'
-        : '领取指定实体（Entity）身份')
+    || (key.endsWith('.field.manage') ? '管理指定虚拟实体字段'
+      : key.endsWith('.manage') ? '管理指定虚拟实体'
+        : '领取指定实体身份')
 }
 </script>
 
 <template>
     <div class="role-detail">
       <AdminPageHeader
-        :title="roleQuery.data.value?.name || '编辑角色权限（Permission）'"
+        :title="roleQuery.data.value?.name || '编辑角色权限'"
         :description="roleQuery.data.value?.role_key ? `角色标识：${roleQuery.data.value.role_key}` : '维护角色资料与最小权限（Permission）集合。'"
         back-to="/roles"
         back-label="返回角色列表"
@@ -327,7 +327,7 @@ function dynamicPermissionLabel(key: string) {
               <NInputNumber v-model:value="form.sort" aria-label="显示顺序" :min="0" :show-button="false" />
               <template #feedback>数字越小越靠前。</template>
             </NFormItem>
-            <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开实体（Entity）资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟实体（Virtual Entity）会展示角色名称和说明；角色权限（Permission）不会公开。" />
+            <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开实体资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟实体（Virtual Entity）会展示角色名称和说明；角色权限不会公开。" />
             <footer>
               <LsButton variant="danger" :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</LsButton>
               <LsButton type="submit" :loading="saveInfo.isPending.value" :disabled="!form.name.trim()"><template #icon><Save :size="17" /></template>保存资料</LsButton>
@@ -337,8 +337,8 @@ function dynamicPermissionLabel(key: string) {
 
         <LsPanel><section class="permissions-panel">
           <header>
-            <div><h3>角色权限（Permission）</h3><p>权限（Permission）按工作领域折叠展示，展开需要调整的分组即可。</p></div>
-            <LsButton :loading="savePermissions.isPending.value" @click="requestPermissionSave">保存权限（Permission）</LsButton>
+            <div><h3>角色权限</h3><p>权限按工作领域折叠展示，展开需要调整的分组即可。</p></div>
+            <LsButton :loading="savePermissions.isPending.value" @click="requestPermissionSave">保存权限</LsButton>
           </header>
 
           <NCollapse class="permission-groups" arrow-placement="right">
@@ -399,26 +399,26 @@ function dynamicPermissionLabel(key: string) {
                 <section class="dynamic-target" :aria-labelledby="`${specialGroup.id}-target-title`">
                   <header>
                     <div>
-                      <h4 :id="`${specialGroup.id}-target-title`">指定实体（Entity）</h4>
-                      <p>选择实体（Entity）后可配置精确权限（Permission）；选择目标本身不会产生授权。</p>
+                      <h4 :id="`${specialGroup.id}-target-title`">指定实体</h4>
+                      <p>选择实体后可配置精确权限；选择目标本身不会产生授权。</p>
                     </div>
                     <span v-if="selectedTarget" class="dynamic-target__status">当前目标 @{{ selectedTarget.slug }}</span>
                   </header>
                   <div class="target-selector">
-                    <label :for="`${specialGroup.id}-target-slug`">选择权限（Permission）目标</label>
+                    <label :for="`${specialGroup.id}-target-slug`">选择权限目标</label>
                     <LsEntityInput
                       :model-value="targetEntities"
                       :query="targetSlug"
                       :search-entities="searchEntities"
                       :input-id="`${specialGroup.id}-target-slug`"
-                      placeholder="按名称或 slug 搜索当前团队实体（Team Entity）"
+                      placeholder="按名称或 slug 搜索当前团队实体"
                       @update:model-value="selectTargetEntities"
                       @update:query="targetSlug = $event"
                     />
                   </div>
                 </section>
                 <p class="dynamic-guidance">
-                  {{ selectedTarget ? `正在为 @${selectedTarget.slug} 配置${specialGroup.name}，勾选后立即进入角色权限（Permission）草稿。` : `请先选择目标实体（Entity），再配置${specialGroup.name}。` }}
+                  {{ selectedTarget ? `正在为 @${selectedTarget.slug} 配置${specialGroup.name}，勾选后立即进入角色权限草稿。` : `请先选择目标实体，再配置${specialGroup.name}。` }}
                 </p>
                 <div class="permission-list dynamic-permission-list">
                   <NCheckbox
@@ -433,8 +433,8 @@ function dynamicPermissionLabel(key: string) {
                       <strong>{{ option.label }}</strong>
                       <code>{{ option.key || option.template }}</code>
                       <small v-if="option.coveredBy">由 {{ option.coveredBy }} 覆盖</small>
-                      <small v-else-if="!selectedTarget">先选择目标实体（Entity）</small>
-                      <small v-else-if="!option.key">仅适用于虚拟实体（Virtual Entity）</small>
+                      <small v-else-if="!selectedTarget">先选择目标实体</small>
+                      <small v-else-if="!option.key">仅适用于虚拟实体</small>
                     </span>
                   </NCheckbox>
                 </div>
@@ -442,7 +442,7 @@ function dynamicPermissionLabel(key: string) {
                   <header>
                     <div>
                       <h4 :id="`${specialGroup.id}-assigned-title`">已进入角色草稿</h4>
-                      <p>如需调整，请在上方重新选择对应实体（Entity）。</p>
+                      <p>如需调整，请在上方重新选择对应实体。</p>
                     </div>
                     <span>{{ assignedDynamicKeys(specialGroup.name).length }} 项</span>
                   </header>
@@ -457,16 +457,16 @@ function dynamicPermissionLabel(key: string) {
           </NCollapse>
 
           <NCollapse class="advanced-permissions" arrow-placement="right">
-            <NCollapseItem name="advanced" title="高级范围权限（Permission）">
+            <NCollapseItem name="advanced" title="高级范围权限">
               <div class="advanced-content">
-                <p class="advanced-warning">父级 Permission 会覆盖当前及未来新增的同前缀子权限（Permission）。只在职责边界稳定、确实需要整段授权时使用。</p>
+                <p class="advanced-warning">父级 Permission 会覆盖当前及未来新增的同前缀子权限。只在职责边界稳定、确实需要整段授权时使用。</p>
                 <NInput
                   v-model:value="advancedSearch"
                   clearable
-                  :input-props="{ 'aria-label': '搜索高级范围权限（Permission）' }"
-                  placeholder="搜索父级 Permission 或被覆盖权限（Permission）"
+                  :input-props="{ 'aria-label': '搜索高级范围权限' }"
+                  placeholder="搜索父级 Permission 或被覆盖权限"
                 />
-                <p v-if="!advancedGroups.length" class="advanced-empty">没有匹配的高级范围权限（Permission）。</p>
+                <p v-if="!advancedGroups.length" class="advanced-empty">没有匹配的高级范围权限。</p>
                 <template v-else>
                   <section v-for="advancedGroup in advancedGroups" :key="advancedGroup.name" class="advanced-group">
                     <header>
@@ -486,7 +486,7 @@ function dynamicPermissionLabel(key: string) {
                           <strong>{{ item.label }}</strong>
                           <code>{{ item.key }}</code>
                           <small v-if="coveringParent(item.key)">由 {{ coveringParent(item.key) }} 覆盖</small>
-                          <small v-else>当前覆盖 {{ item.covered_keys.length }} 项；未来同前缀权限（Permission）也会自动生效</small>
+                          <small v-else>当前覆盖 {{ item.covered_keys.length }} 项；未来同前缀权限也会自动生效</small>
                         </span>
                       </NCheckbox>
                       <details>
@@ -511,11 +511,11 @@ function dynamicPermissionLabel(key: string) {
       <NModal
         v-model:show="showAdvancedConfirm"
         preset="card"
-        title="确认授予高级范围权限（Permission）"
+        title="确认授予高级范围权限"
         :mask-closable="false"
         class="advanced-confirm"
       >
-        <p>以下父级 Permission 会同时覆盖当前列出的权限（Permission），以及未来新增的同前缀权限（Permission）：</p>
+        <p>以下父级 Permission 会同时覆盖当前列出的权限，以及未来新增的同前缀权限：</p>
         <ul>
           <li v-for="item in newlyAddedAdvanced" :key="item.key">
             <code>{{ item.key }}</code>

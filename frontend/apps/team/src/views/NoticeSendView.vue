@@ -110,7 +110,7 @@ const send = useMutation({
   <div class="notice-send-view">
     <AdminPageHeader
       title="发送通知"
-      description="由有权限（Permission）的当前实体（Entity）代表 Team，向同 Team 的一个实体（Entity）发送单向通知。"
+      description="由有权限（Permission）的当前实体（Entity）代表 Team，向同 Team 的一个实体发送单向通知。"
       back-to="/notices/entity"
       back-label="返回通知"
     />
@@ -118,10 +118,10 @@ const send = useMutation({
     <form class="notice-form" @submit.prevent="send.mutate()">
       <section class="delivery-note" aria-labelledby="delivery-note-title">
         <strong id="delivery-note-title">单向、同 Team 送达</strong>
-        <p>通知只进入所选实体（Entity）的收件箱，不支持回复、抄送或会话；发送方统一显示为当前 Team。</p>
+        <p>通知只进入所选实体的收件箱，不支持回复、抄送或会话；发送方统一显示为当前 Team。</p>
       </section>
 
-      <LsField label="收件 Entity" for-id="notice-recipient" required hint="可选择 Team、成员、顾客或虚拟实体（Virtual Entity）；结果包含类型与全局标识，避免发给同名对象。">
+      <LsField label="收件 Entity" for-id="notice-recipient" required hint="可选择 Team、成员、顾客或虚拟实体；结果包含类型与全局标识，避免发给同名对象。">
         <NSelect
           id="notice-recipient"
           v-model:value="form.entity_id"
@@ -133,7 +133,7 @@ const send = useMutation({
           :disabled="entities.isError.value || !recipientOptions.length"
           :virtual-scroll="false"
           filterable
-          placeholder="选择本 Team 内的实体（Entity）"
+          placeholder="选择本 Team 内的实体"
         />
       </LsField>
       <LsInlineError v-if="entities.isError.value" :message="`收件对象加载失败：${friendlyError(entities.error.value)}`" />

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { api, auth } from '@lostsky/api/client'
+import { api, auth, friendlyError } from '@lostsky/api/client'
 import { redirectToLogin } from '@lostsky/shared/navigation'
+import { feedback } from '@lostsky/ui/feedback'
 import LsSearchInput from '@lostsky/ui/components/LsSearchInput.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
@@ -46,6 +47,7 @@ watch(search, (value) => {
   timer = window.setTimeout(async () => {
     searching.value = true
     try { results.value = await api.get('/search', { q: keyword }) }
+    catch (error) { feedback.error(friendlyError(error)) }
     finally { searching.value = false }
   }, 180)
 })
