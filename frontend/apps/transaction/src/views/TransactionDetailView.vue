@@ -53,8 +53,8 @@ function confirmDelete() {
       </div></LsPanel>
       <LsPanel><div class="facts">
         <div><span>接单人</span><strong>{{ entityName(query.data.value.handler, query.data.value.handler_entity_id) }}</strong></div>
-        <div><span>发单人</span><strong>{{ entityName(query.data.value.sender, query.data.value.sender_entity_id) }}</strong></div>
-        <div><span>客服</span><strong>{{ entityName(query.data.value.cs, query.data.value.cs_entity_id) }}</strong></div>
+        <div><span>发单人</span><strong>{{ query.data.value.sender_entity_id ? entityName(query.data.value.sender, query.data.value.sender_entity_id) : '—' }}</strong></div>
+        <div><span>客服</span><strong>{{ query.data.value.cs_entity_id ? entityName(query.data.value.cs, query.data.value.cs_entity_id) : '—' }}</strong></div>
         <div><span>顾客</span><strong>{{ customerName(query.data.value.customer, query.data.value.customer_id) }}</strong></div>
       </div></LsPanel>
       <section class="breakdown">

@@ -506,20 +506,6 @@ aliases: [服务, Service]
 | `delete` | `int $teamId`、`int $id` | `void` |
 | `setHandlers` | `int $teamId`、`int $productId`、`array $entityIds` | `void` |
 
-## ProductRedemptionField
-
-| 方法 | 参数 | 返回 |
-| --- | --- | --- |
-| `list` | `int $teamId`、`int $productId` | `array` |
-| `create` | `int $teamId`、`int $productId`、`array $data` | `int` |
-| `update` | `int $teamId`、`int $productId`、`int $id`、`array $data` | `void` |
-| `delete` | `int $teamId`、`int $productId`、`int $id` | `void` |
-| `fieldsForInstance` | `model\TeamServiceInstance $instance`、`bool $customer` | `array` |
-| `fieldsForProduct` | `int $teamId`、`int $productId`、`bool $customer`、`?int $instanceId = null` | `array` |
-| `saveForStage` | `model\TeamServiceInstance $instance`、`string $stage`、`array $values` | `void` |
-| `validateForProduct` | `int $teamId`、`int $productId`、`string $stage`、`array $values` | `array` |
-| `fieldsForValues` | `int $teamId`、`int $productId`、`array $values` | `array` |
-
 ## ProductSelfManagement
 
 | 方法 | 参数 | 返回 |
@@ -530,10 +516,6 @@ aliases: [服务, Service]
 | `create` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`array $data` | `int` |
 | `edit` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id`、`array $data` | `void` |
 | `setHandlers` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id`、`array $entityIds` | `void` |
-| `fields` | `int $teamId`、`array $actingEntity`、`int $id` | `array` |
-| `createField` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id`、`array $data` | `int` |
-| `updateField` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id`、`int $fieldId`、`array $data` | `void` |
-| `deleteField` | `int $teamId`、`array $actingEntity`、`int $expectedEntityId`、`int $id`、`int $fieldId` | `void` |
 
 ## Redemption
 
@@ -621,7 +603,7 @@ aliases: [服务, Service]
 | `withdrawOffer` | `int $teamId`、`int $customerId`、`int $actorEntityId`、`int $id`、`string $reason = ''` | `void` |
 | `assignmentOffers` | `int $teamId`、`int $actorEntityId`、`int $page = 1`、`int $limit = 20` | `array` |
 | `assignmentOffer` | `int $teamId`、`int $actorEntityId`、`int $id` | `array` |
-| `acceptOffer` | `int $teamId`、`int $actorEntityId`、`int $id` | `int` |
+| `acceptOffer` | `int $teamId`、`int $actorEntityId`、`int $id`、`array $fieldValues = []` | `int` |
 | `rejectOffer` | `int $teamId`、`int $actorEntityId`、`int $id`、`string $reason = ''` | `void` |
 | `start` | `int $teamId`、`int $customerId`、`int $entitlementId`、`mixed $quantity`、`int $handlerEntityId`、`string $memo`、`array $fieldValues`、`int $actorEntityId` | `int` |
 | `restart` | `int $teamId`、`int $customerId`、`int $id`、`int $handlerEntityId`、`string $memo`、`array $fieldValues`、`int $actorEntityId` | `void` |
@@ -631,13 +613,34 @@ aliases: [服务, Service]
 | `availableHandlers` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id` | `array` |
 | `claimable` | `int $teamId`、`int $actorEntityId`、`int $page = 1`、`int $limit = 20` | `array` |
 | `claimableGet` | `int $teamId`、`int $actorEntityId`、`int $id` | `array` |
-| `claim` | `int $teamId`、`int $actorEntityId`、`int $id` | `void` |
+| `claim` | `int $teamId`、`int $actorEntityId`、`int $id`、`mixed $quantity = null`、`array $fieldValues = []` | `int` |
 | `returnToPool` | `int $teamId`、`int $actorEntityId`、`int $id`、`string $reason` | `void` |
 | `invalidateOffersForHandlers` | `int $teamId`、`int $serviceId`、`array $entityIds` | `void` |
 | `approveCancel` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id` | `void` |
 | `rejectCancel` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`string $reason` | `void` |
+| `reject` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`string $reason` | `void` |
 | `reassign` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`int $handlerEntityId`、`string $reason` | `void` |
 | `complete` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`array $fieldValues = []` | `void` |
+| `completeOwn` | `int $teamId`、`int $actorEntityId`、`int $id`、`array $fieldValues = []` | `void` |
+
+## ServiceRedemptionField
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `list` | `int $teamId`、`int $serviceId` | `array` |
+| `sync` | `int $teamId`、`int $serviceId`、`array $rows` | `array` |
+| `fieldsForInstance` | `model\TeamServiceInstance $instance`、`bool $customer` | `array` |
+| `fieldsForService` | `int $teamId`、`int $serviceId`、`bool $customer`、`?int $instanceId = null`、`int $resourceIndex = 1` | `array` |
+| `resourcesForInstance` | `model\TeamServiceInstance $instance`、`bool $customer` | `array` |
+| `saveForStage` | `model\TeamServiceInstance $instance`、`string $stage`、`array $values` | `void` |
+| `saveResourcesForStage` | `model\TeamServiceInstance $instance`、`string $stage`、`array $values` | `void` |
+| `validateForService` | `int $teamId`、`int $serviceId`、`string $stage`、`array $values` | `array` |
+| `validateResourcesForService` | `int $teamId`、`int $serviceId`、`string $stage`、`mixed $quantity`、`mixed $step`、`array $values` | `array` |
+| `fieldsForValues` | `int $teamId`、`int $serviceId`、`array $values` | `array` |
+| `resourcesForValues` | `int $teamId`、`int $serviceId`、`mixed $quantity`、`mixed $step`、`array $values`、`bool $customer = false` | `array` |
+| `copyStageValues` | `model\TeamServiceInstance $source`、`model\TeamServiceInstance $target`、`string $stage` | `void` |
+| `splitStageValues` | `model\TeamServiceInstance $source`、`model\TeamServiceInstance $target`、`string $stage`、`int $claimedResourceCount` | `void` |
+| `resourceCount` | `string $quantity`、`string $step` | `int` |
 
 ## ShopAvailability
 
@@ -817,6 +820,7 @@ aliases: [服务, Service]
 | `byRole` | `int $teamId`、`int $startTime`、`int $endTime` | `array` |
 | `byEntity` | `int $teamId`、`int $startTime`、`int $endTime`、`string $role` | `array` |
 | `timeline` | `int $teamId`、`int $startTime`、`int $endTime`、`string $granularity = 'day'` | `array` |
+| `byPerson` | `int $teamId`、`int $startTime`、`int $endTime`、`int $page = 1`、`int $limit = 20`、`string $sortBy = 'handler_performance_total'`、`string $sortOrder = 'desc'` | `array` |
 | `byCustomer` | `int $teamId`、`int $startTime`、`int $endTime` | `array` |
 | `byAssignee` | `int $teamId`、`int $startTime`、`int $endTime` | `array` |
 

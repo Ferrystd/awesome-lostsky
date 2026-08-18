@@ -258,6 +258,9 @@ try {
     $statsService = app(TransactionStats::class);
 
     $balanceService->recharge($teamId, $customerId, 200, 'initial balance');
+    TeamCustomerBalanceLog::where('customer_id', $customerId)
+        ->where('type', LogType::Recharge->value)
+        ->update(['create_time' => 1_720_000_100]);
     $balance = TeamCustomerBalance::where('customer_id', $customerId)->find();
     $assertFloat(200, $balance->balance, 'recharge increases balance');
     $assertFloat(200, $balance->recharged, 'recharge increases cumulative recharged');
@@ -560,6 +563,7 @@ try {
     $summary = $statsService->summary($teamId, 1_719_999_999, 1_720_200_000);
     $assertSame(2, (int) $summary['total_count'], 'summary counts transactions');
     $assertFloat(200, $summary['total_price'], 'summary totals transaction amount');
+    $assertFloat(200, $summary['recharge_total'], 'summary totals recharge logs in the selected period');
     $roleStats = $statsService->byRole($teamId, 1_719_999_999, 1_720_200_000);
     $assertSame(1, count($roleStats['handler']), 'role stats group handler');
     $assertFloat(50, $roleStats['handler'][0]['amount'], 'role stats use handler cut column');
@@ -582,6 +586,186 @@ try {
     $assertFloat(200, $personalStats['monthly_performance_total'], 'personal stats total monthly handled performance');
     $assertFloat(200, $personalStats['monthly_flow_total'], 'personal stats total monthly cash and prepaid flow');
     $assertFloat(200, $personalStats['performance_total'], 'personal stats total current entity handled performance');
+
+    $receipt = new TeamTransaction;
+    $receipt->save([
+        'team_id' => $teamId,
+        'handler_entity_id' => null,
+        'sender_entity_id' => $secondMemberId,
+        'cs_entity_id' => null,
+        'customer_id' => $customerId,
+        'type' => TransactionType::ServicePackageReceipt,
+        'total_price' => '50.00',
+        'cost' => '0.00',
+        'cash' => '50.00',
+        'prepaid' => '0.00',
+        'service_credit' => '0.00',
+        'handler_cut' => '0.00',
+        'sender_cut' => '0.00',
+        'cs_cut' => '0.00',
+        'team_cut' => '50.00',
+        'trans_at' => 1_720_100_000,
+        'memo' => '20 次权益包收款',
+    ]);
+    $adjustmentReceipt = new TeamTransaction;
+    $adjustmentReceipt->save([
+        'team_id' => $teamId,
+        'handler_entity_id' => null,
+        'sender_entity_id' => $secondMemberId,
+        'cs_entity_id' => null,
+        'customer_id' => $customerId,
+        'type' => TransactionType::ServiceAdjustmentReceipt,
+        'total_price' => '30.00',
+        'cost' => '0.00',
+        'cash' => '30.00',
+        'prepaid' => '0.00',
+        'service_credit' => '0.00',
+        'handler_cut' => '0.00',
+        'sender_cut' => '0.00',
+        'cs_cut' => '0.00',
+        'team_cut' => '30.00',
+        'trans_at' => 1_720_100_100,
+    ]);
+    // 权益包共有 20 次额度；只有已完成的 10 次产生核销流水，剩余 10 次不产生统计记录。
+    for ($index = 0; $index < 10; $index++) {
+        $redemption = new TeamTransaction;
+        $redemption->save([
+            'team_id' => $teamId,
+            'handler_entity_id' => $memberId,
+            'sender_entity_id' => $secondMemberId,
+            'cs_entity_id' => null,
+            'customer_id' => $customerId,
+            'type' => TransactionType::ServiceRedemption,
+            'total_price' => '5.00',
+            'cost' => '0.00',
+            'cash' => '0.00',
+            'prepaid' => '0.00',
+            'service_credit' => '5.00',
+            'handler_cut' => '0.00',
+            'sender_cut' => '0.00',
+            'cs_cut' => '0.00',
+            'team_cut' => '5.00',
+            'trans_at' => 1_720_101_000 + $index,
+        ]);
+    }
+    $adjustmentPerformance = new TeamTransaction;
+    $adjustmentPerformance->save([
+        'team_id' => $teamId,
+        'handler_entity_id' => $memberId,
+        'sender_entity_id' => $secondMemberId,
+        'cs_entity_id' => null,
+        'customer_id' => $customerId,
+        'type' => TransactionType::ServiceAdjustmentPerformance,
+        'total_price' => '30.00',
+        'cost' => '0.00',
+        'cash' => '0.00',
+        'prepaid' => '0.00',
+        'service_credit' => '30.00',
+        'handler_cut' => '0.00',
+        'sender_cut' => '0.00',
+        'cs_cut' => '0.00',
+        'team_cut' => '30.00',
+        'trans_at' => 1_720_101_100,
+    ]);
+    $standardOrder = new TeamTransaction;
+    $standardOrder->save([
+        'team_id' => $teamId,
+        'handler_entity_id' => $memberId,
+        'sender_entity_id' => $memberId,
+        'cs_entity_id' => null,
+        'customer_id' => $customerId,
+        'type' => TransactionType::ShopOrder,
+        'total_price' => '40.00',
+        'cost' => '0.00',
+        'cash' => '40.00',
+        'prepaid' => '0.00',
+        'service_credit' => '0.00',
+        'handler_cut' => '0.00',
+        'sender_cut' => '0.00',
+        'cs_cut' => '0.00',
+        'team_cut' => '40.00',
+        'trans_at' => 1_720_099_000,
+    ]);
+    $foreignReceipt = new TeamTransaction;
+    $foreignReceipt->save([
+        'team_id' => (int) $fixture['foreignTeam']->id,
+        'handler_entity_id' => (int) $fixture['foreignMemberEntity']->id,
+        'type' => TransactionType::ServicePackageReceipt,
+        'total_price' => '999.00',
+        'cost' => '0.00',
+        'cash' => '999.00',
+        'prepaid' => '0.00',
+        'service_credit' => '0.00',
+        'handler_cut' => '0.00',
+        'sender_cut' => '0.00',
+        'cs_cut' => '0.00',
+        'team_cut' => '999.00',
+        'trans_at' => 1_720_100_000,
+    ]);
+    $handlerQuantityStats = $statsService->byEntity($teamId, 1_719_999_999, 1_720_200_000, 'handler');
+    $assertSame($memberId, (int) $handlerQuantityStats[0]['entity_id'], 'handler quantity stats sort by count');
+    $assertSame(13, (int) $handlerQuantityStats[0]['count'], 'handler quantity stats count shop orders, ledger entries, and completed redemptions');
+    $personStats = $statsService->byPerson(
+        $teamId,
+        1_719_999_999,
+        1_720_200_000,
+        1,
+        20,
+        'handler_performance_total',
+        'desc'
+    );
+    $assertSame(2, $personStats['total'], 'person stats include active people and enforce team scope');
+    $assertSame($memberId, (int) $personStats['list'][0]['entity_id'], 'person stats sort by handler performance descending');
+    $assertSame(13, (int) $personStats['list'][0]['handler_count'], 'person stats count shop orders, ledger entries, and each completed redemption');
+    $assertSame(3, (int) $personStats['list'][0]['sender_count'], 'person stats count shop orders and ledger entries as sent orders');
+    $assertFloat(320, $personStats['list'][0]['handler_performance_total'], 'person stats include ordinary, redemption, and adjustment handler performance');
+    $assertFloat(240, $personStats['list'][0]['sender_performance_total'], 'person stats use actual payments for ordinary sent transactions');
+    $assertFloat(70, $personStats['list'][0]['income_total'], 'person stats sum each role cut when one person holds multiple roles');
+    $assertSame(1, (int) $personStats['list'][1]['sender_count'], 'one service package purchase counts as one sent order despite ten redemptions');
+    $assertFloat(80, $personStats['list'][1]['sender_performance_total'], 'sender performance includes package and adjustment actual payments');
+    $updatedPersonalStats = $statsService->personal($teamId, $memberId, 1_719_999_999, 1_720_200_000);
+    $assertSame(13, (int) $updatedPersonalStats['handler_count'], 'personal stats share the shop, ledger, and completed-redemption handler count');
+    $assertSame(3, (int) $updatedPersonalStats['sender_count'], 'personal stats share the ordinary sent-order count');
+    $assertFloat(320, $updatedPersonalStats['performance_total'], 'personal stats include all handler performance types');
+    $senderPersonalStats = $statsService->personal($teamId, $secondMemberId, 1_719_999_999, 1_720_200_000);
+    $assertSame(1, (int) $senderPersonalStats['sender_count'], 'personal sender count ignores repeated redemptions and adjustment payment');
+    $assertFloat(280, $senderPersonalStats['monthly_flow_total'], 'personal flow retains existing participation plus package and adjustment payments');
+    $purchasePeriod = $statsService->byPerson($teamId, 1_720_099_900, 1_720_100_050);
+    $assertSame(1, (int) $purchasePeriod['list'][0]['sender_count'], 'service package sender count belongs to the payment period');
+    $assertFloat(50, $purchasePeriod['list'][0]['sender_performance_total'], 'full package payment belongs to the payment period before redemption');
+    $redemptionPeriod = $statsService->byPerson($teamId, 1_720_100_500, 1_720_102_000);
+    $redemptionPeople = array_column($redemptionPeriod['list'], null, 'entity_id');
+    $assertSame(10, (int) $redemptionPeople[$memberId]['handler_count'], 'completed redemptions belong to their completion period');
+    $assertFloat(80, $redemptionPeople[$memberId]['handler_performance_total'], 'redemption period includes redemption and adjustment handler performance');
+    $assertSame(0, (int) $redemptionPeople[$secondMemberId]['sender_count'], 'redemption period does not repeat the package sender count');
+    $assertFloat(0, $redemptionPeople[$secondMemberId]['sender_performance_total'], 'redemption period does not repeat the package payment');
+    $senderCountOrder = $statsService->byPerson($teamId, 1_719_999_999, 1_720_200_000, 1, 20, 'sender_count', 'desc');
+    $assertSame($memberId, (int) $senderCountOrder['list'][0]['entity_id'], 'person stats sort by sent-order count using the new counting rules');
+    $senderPerformanceOrder = $statsService->byPerson($teamId, 1_719_999_999, 1_720_200_000, 1, 20, 'sender_performance_total', 'desc');
+    $assertSame($memberId, (int) $senderPerformanceOrder['list'][0]['entity_id'], 'person stats sort by actual paid sender performance');
+    $personPage = $statsService->byPerson(
+        $teamId,
+        1_719_999_999,
+        1_720_200_000,
+        2,
+        1,
+        'handler_count',
+        'desc'
+    );
+    $assertSame(2, $personPage['total'], 'person stats pagination keeps total');
+    $assertSame(2, $personPage['page'], 'person stats pagination returns current page');
+    $assertSame(1, count($personPage['list']), 'person stats pagination limits list');
+    $stableIncome = $statsService->byPerson(
+        $teamId,
+        1_719_999_999,
+        1_720_200_000,
+        1,
+        20,
+        'income_total',
+        'desc'
+    );
+    $assertSame($memberId, (int) $stableIncome['list'][0]['entity_id'], 'person stats sort by personal income');
+    $assertSame(3, count($statsService->timeline($teamId, 1_719_999_999, 1_720_200_000, 'hour')), 'timeline supports hourly grouping');
     $assertSame($cashId, (int) $transactionService->getPersonal($teamId, $memberId, $cashId)['id'], 'personal transaction detail checks participation');
     $assertThrows(
         fn () => $transactionService->getPersonal($teamId, (int) $fixture['foreignMemberEntity']->id, $cashId),

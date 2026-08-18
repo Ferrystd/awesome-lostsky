@@ -606,6 +606,22 @@
           "owner": {"allOf":[{"$ref":"#/components/schemas/Entity"}],"nullable":true}
         }
       },
+      "ServiceRedemptionFieldInput": {
+        "type": "object",
+        "required": ["name", "value_type", "input_type", "fill_stage", "is_customer_visible", "is_required", "is_active", "sort"],
+        "properties": {
+          "id": {"type":"integer","format":"int64","description":"更新已有字段时提交；新建字段省略"},
+          "name": {"type":"string","minLength":1,"maxLength":50},
+          "value_type": {"type":"string","enum":["string","text","int","decimal","date","datetime","select","multi_select","bool"]},
+          "input_type": {"type":"string","enum":["text","textarea","select","radio","checkbox"]},
+          "options": {"type":"array","items":{"type":"string"}},
+          "fill_stage": {"type":"string","enum":["customer","manager"]},
+          "is_customer_visible": {"type":"integer","enum":[0,1]},
+          "is_required": {"type":"integer","enum":[0,1]},
+          "is_active": {"type":"integer","enum":[0,1]},
+          "sort": {"type":"integer"}
+        }
+      },
       "ServiceInput": {
         "type": "object",
         "required": ["name", "unit_name", "quantity_step", "handler_entity_ids"],
@@ -620,7 +636,8 @@
           "default_sender_cut": {"type":"number","minimum":0},
           "default_cs_cut": {"type":"number","minimum":0},
           "is_active": {"type":"integer","enum":[0,1],"default":1},
-          "handler_entity_ids": {"type":"array","uniqueItems":true,"description":"显式接单池；空数组表示不限接单人","items":{"type":"integer","format":"int64"}}
+          "handler_entity_ids": {"type":"array","uniqueItems":true,"description":"显式接单池；空数组表示不限接单人","items":{"type":"integer","format":"int64"}},
+          "redemption_fields": {"type":"array","maxItems":50,"description":"当前服务的核销字段完整列表；省略已有字段即删除，已有历史值时改为停用","items":{"$ref":"#/components/schemas/ServiceRedemptionFieldInput"}}
         }
       },
       "BenefitPackageServiceInput": {
@@ -1839,10 +1856,75 @@
                 "items": {
                   "$ref": "#/components/schemas/StorefrontHandler"
                 }
+              },
+              "benefit_package": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/StorefrontBenefitPackage"
+                  }
+                ],
+                "nullable": true
               }
             }
           }
         ]
+      },
+      "StorefrontBenefitPackage": {
+        "type": "object",
+        "required": [
+          "name",
+          "services"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StorefrontBenefitService"
+            }
+          }
+        }
+      },
+      "StorefrontBenefitService": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "quantity",
+          "unit_name",
+          "quantity_step",
+          "valid_days"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "string",
+            "description": "Exact decimal string."
+          },
+          "unit_name": {
+            "type": "string"
+          },
+          "quantity_step": {
+            "type": "string",
+            "description": "Exact decimal string."
+          },
+          "valid_days": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
       },
       "CustomerBindResult": {
         "type": "object",
@@ -1958,12 +2040,12 @@
     "/personal/orders/{id}": {"get":{"tags":["Order"],"operationId":"shopPersonalOrder","summary":"读取当前 Entity 参与的订单详情","description":"订单必须由当前 acting_entity 接单或发单。","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"订单不存在或不属于当前个人范围"}}}},
     "/personal/services": {
       "get":{"tags":["Product"],"operationId":"shopPersonalServices","summary":"读取本人服务列表","description":"只返回 owner_entity_id 等于当前 acting_entity 的服务；停用项仍保留在管理列表。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"403":{"description":"缺少 shop.product.self.manage"}}},
-      "post":{"tags":["Product"],"operationId":"shopPersonalServiceCreate","summary":"创建本人服务","description":"服务端强制写入当前 acting_entity 作为 Owner。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ServiceInput"},{"$ref":"#/components/schemas/ExpectedEntityInput"}]}}}},"responses":{"200":{"description":"创建成功"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
+      "post":{"tags":["Product"],"operationId":"shopPersonalServiceCreate","summary":"创建本人服务及核销字段","description":"服务端强制写入当前 acting_entity 作为 Owner；服务资料、接单池与核销字段原子保存。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ServiceInput"},{"$ref":"#/components/schemas/ExpectedEntityInput"}]}}}},"responses":{"200":{"description":"创建成功"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
     },
     "/personal/services/{id}": {
       "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
-      "get":{"tags":["Product"],"operationId":"shopPersonalServiceGet","summary":"读取本人服务详情","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"404":{"description":"服务不存在或不属于当前 Entity"}}},
-      "post":{"tags":["Product"],"operationId":"shopPersonalServiceUpdate","summary":"更新本人服务","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ServiceInput"},{"$ref":"#/components/schemas/ExpectedEntityInput"}]}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"服务不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
+      "get":{"tags":["Product"],"operationId":"shopPersonalServiceGet","summary":"读取本人服务详情与核销字段","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"404":{"description":"服务不存在或不属于当前 Entity"}}},
+      "post":{"tags":["Product"],"operationId":"shopPersonalServiceUpdate","summary":"更新本人服务及核销字段","description":"服务资料、接单池与当前服务的核销字段原子保存。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ServiceInput"},{"$ref":"#/components/schemas/ExpectedEntityInput"}]}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"服务不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
     },
     "/personal/services/{id}/handlers": {
       "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
@@ -2009,16 +2091,9 @@
       "post":{"tags":["Product"],"operationId":"shopPersonalProductEdit","summary":"编辑或上下架本人商品","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/PersonalProductWriteInput"}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"商品不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
     },
     "/personal/products/{id}/handlers": {"post":{"tags":["Product"],"operationId":"shopPersonalProductSetHandlers","summary":"设置本人商品接单人","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ExpectedEntityInput"},{"type":"object","required":["entity_ids"],"properties":{"entity_ids":{"type":"array","items":{"type":"integer"},"uniqueItems":true}}}]}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"商品不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
-    "/personal/products/{id}/redemption-fields": {
-      "parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
-      "get":{"tags":["Product"],"operationId":"shopPersonalProductFields","summary":"读取本人商品核销字段","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"},"404":{"description":"商品不存在或不属于当前 Entity"}}},
-      "post":{"tags":["Product"],"operationId":"shopPersonalProductCreateField","summary":"创建本人商品核销字段","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ExpectedEntityInput"},{"type":"object","additionalProperties":true}]}}}},"responses":{"200":{"description":"创建成功"},"404":{"description":"商品不存在或不属于当前 Entity"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}
-    },
-    "/personal/products/{id}/redemption-fields/{field_id}": {"post":{"tags":["Product"],"operationId":"shopPersonalProductUpdateField","summary":"更新本人商品核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"field_id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/ExpectedEntityInput"},{"type":"object","additionalProperties":true}]}}}},"responses":{"200":{"description":"已保存"},"404":{"description":"商品或字段不存在"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
-    "/personal/products/{id}/redemption-fields/{field_id}/delete": {"post":{"tags":["Product"],"operationId":"shopPersonalProductDeleteField","summary":"删除或停用本人商品核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"field_id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ExpectedEntityInput"}}}},"responses":{"200":{"description":"已处理"},"404":{"description":"商品或字段不存在"},"409":{"description":"当前身份与 expected_entity_id 不一致"}}}},
     "/manage/options": {"get":{"tags":["Product"],"operationId":"shopManageOptions","summary":"商城管理候选项","description":"返回服务默认计量规则与金额分配比例；数量精度由最小核销步长推导。","responses":{"200":{"description":"成功"}}}},
-    "/manage/services": {"get":{"tags":["Product"],"operationId":"shopManageServices","summary":"服务定义列表","responses":{"200":{"description":"成功；handlers 为空表示不限接单人，数量精度由 quantity_step 推导"}}},"post":{"tags":["Product"],"operationId":"shopCreateService","summary":"创建服务定义并保存接单池","description":"handler_entity_ids 与服务资料原子保存，空数组表示不限接单人；quantity_step 是唯一的数量精度来源，团队分配由服务价值减去成本及人员分配后的余额生成。","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ServiceInput"}}}},"responses":{"200":{"description":"成功"},"422":{"description":"步长、服务金额、接单 Entity 无效或人员分配超过可分配金额"}}}},
-    "/manage/services/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManageService","summary":"服务定义详情","responses":{"200":{"description":"成功；handlers 为空表示不限接单人，数量精度由 quantity_step 推导"}}},"post":{"tags":["Product"],"operationId":"shopUpdateService","summary":"更新服务定义并保存接单池","description":"handler_entity_ids 与服务资料原子保存，空数组表示不限接单人；quantity_step 是唯一的数量精度来源，团队分配由服务价值减去成本及人员分配后的余额生成。","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ServiceInput"}}}},"responses":{"200":{"description":"成功"},"422":{"description":"步长、服务金额、接单 Entity 无效或人员分配超过可分配金额"}}}},
+    "/manage/services": {"get":{"tags":["Product"],"operationId":"shopManageServices","summary":"服务定义列表","responses":{"200":{"description":"成功；handlers 为空表示不限接单人，数量精度由 quantity_step 推导"}}},"post":{"tags":["Product"],"operationId":"shopCreateService","summary":"创建服务定义、接单池与核销字段","description":"handler_entity_ids、redemption_fields 与服务资料原子保存；核销字段只属于当前服务。空接单池表示不限接单人；quantity_step 是唯一的数量精度来源。","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ServiceInput"}}}},"responses":{"200":{"description":"成功"},"422":{"description":"步长、服务金额、接单 Entity、核销字段无效或人员分配超过可分配金额"}}}},
+    "/manage/services/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManageService","summary":"服务定义详情","responses":{"200":{"description":"成功；包含服务自己的 redemption_fields，handlers 为空表示不限接单人"}}},"post":{"tags":["Product"],"operationId":"shopUpdateService","summary":"更新服务定义、接单池与核销字段","description":"handler_entity_ids、redemption_fields 与服务资料原子保存；核销字段只属于当前服务。省略字段从当前列表移除，有历史值时自动停用。","requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ServiceInput"}}}},"responses":{"200":{"description":"成功"},"422":{"description":"步长、服务金额、接单 Entity、核销字段无效或人员分配超过可分配金额"}}}},
     "/manage/services/{id}/handlers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopManageServiceHandlers","summary":"读取服务显式接单池","description":"空数组表示不限接单人。","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopSaveServiceHandlers","summary":"兼容接口：原子替换服务显式接单池","description":"仅接受当前团队内有效的 Team、TeamMember 或 TeamVirtual Entity；空数组表示不限接单人。配置非空名单后，名单外待确认邀请失效，历史已接任务不变。","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["entity_ids"],"properties":{"entity_ids":{"type":"array","items":{"type":"integer"}}}}}}},"responses":{"200":{"description":"成功"},"422":{"description":"接单 Entity 无效或不属于当前团队"}}}},
     "/manage/services/{id}/disable": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Product"],"operationId":"shopDisableService","summary":"停用服务定义","responses":{"200":{"description":"成功"}}}},
     "/manage/packages": {
@@ -2037,26 +2112,13 @@
     "/manage/campaigns/{id}/codes": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Product"],"operationId":"shopCampaignCodes","summary":"卡密列表（不含明文）","responses":{"200":{"description":"成功"}}},"post":{"tags":["Product"],"operationId":"shopIssueCampaignCodes","summary":"发行卡密","responses":{"200":{"description":"成功"}}}},
     "/manage/campaigns/{id}/codes/{code_id}/reveal": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"code_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Product"],"operationId":"shopRevealCampaignCode","summary":"显式查看卡密","responses":{"200":{"description":"成功"}}}},
     "/manage/campaigns/{id}/codes/{code_id}/disable": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"code_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Product"],"operationId":"shopDisableCampaignCode","summary":"停用卡密","responses":{"200":{"description":"成功"}}}},
-    "/product/{id}/redemption-fields": {
-      "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],
-      "get": {"tags":["Product"],"operationId":"productRedemptionFields","summary":"查询商品核销字段","responses":{"200":{"description":"成功"}}},
-      "post": {"tags":["Product"],"operationId":"createProductRedemptionField","summary":"创建商品核销字段","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object"}}}},"responses":{"200":{"description":"成功"}}}
-    },
-    "/product/{id}/redemption-fields/{field_id}": {
-      "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"field_id","in":"path","required":true,"schema":{"type":"integer"}}],
-      "post": {"tags":["Product"],"operationId":"updateProductRedemptionField","summary":"更新商品核销字段","responses":{"200":{"description":"成功"}}}
-    },
-    "/product/{id}/redemption-fields/{field_id}/delete": {
-      "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"field_id","in":"path","required":true,"schema":{"type":"integer"}}],
-      "post": {"tags":["Product"],"operationId":"deleteProductRedemptionField","summary":"删除商品核销字段","responses":{"200":{"description":"成功"}}}
-    },
     "/customer/services": {"get":{"tags":["Customer"],"operationId":"customerServices","summary":"查询持有的计量服务权益","responses":{"200":{"description":"成功"}}}},
     "/customer/services/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Customer"],"operationId":"customerService","summary":"查询服务权益及履约切片","responses":{"200":{"description":"成功"}}}},
     "/customer/services/{id}/handlers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Customer"],"operationId":"customerServiceHandlers","summary":"查询权益对应的可选接单 Entity","responses":{"200":{"description":"成功"}}}},
-    "/customer/services/{id}/start": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"startCustomerService","summary":"公开召唤并立即创建未分配的核销中切片","description":"完整 Customer 核销字段在领取前向显式接单池公开；接单池为空时向团队内全部有效接单 Entity 公开。团队缺少有效 Transaction Ability 时拒绝创建。","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["quantity"],"properties":{"quantity":{"type":"string","description":"符合权益精度和最小步长的履约数量"},"handler_entity_id":{"type":"integer","enum":[0],"description":"兼容字段，只允许 0"},"memo":{"type":"string"},"field_values":{"type":"object","additionalProperties":true}}}}}},"responses":{"200":{"description":"成功"},"409":{"description":"可用额度不足"},"422":{"description":"字段、数量或 Ability 无效"}}}},
-    "/customer/services/{id}/offers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"post":{"tags":["Customer"],"operationId":"createCustomerServiceOffer","summary":"创建持续等待的指定接单邀请并预占额度","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["quantity","handler_entity_id"],"properties":{"quantity":{"type":"string"},"handler_entity_id":{"type":"integer","minimum":1},"memo":{"type":"string"},"field_values":{"type":"object","additionalProperties":true}}}}}},"responses":{"200":{"description":"邀请已创建"},"409":{"description":"可用额度不足"},"422":{"description":"接单资格、字段、数量或 Ability 无效"}}}},
+    "/customer/services/{id}/start": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"startCustomerService","summary":"公开召唤并立即创建未分配的核销中切片","description":"完整 Customer 核销字段在领取前向显式接单池公开；接单池为空时向团队内全部有效接单 Entity 公开。团队缺少有效 Transaction Ability 时拒绝创建。","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["quantity"],"properties":{"quantity":{"type":"string","description":"符合权益精度和最小步长的履约数量"},"handler_entity_id":{"type":"integer","enum":[0],"description":"兼容字段，只允许 0"},"memo":{"type":"string"},"field_values":{"type":"array","description":"按最小核销步长逐份提交，数组顺序即履约资源序号","items":{"type":"object","additionalProperties":true}}}}}}},"responses":{"200":{"description":"成功"},"409":{"description":"可用额度不足"},"422":{"description":"字段、数量或 Ability 无效"}}}},
+    "/customer/services/{id}/offers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"post":{"tags":["Customer"],"operationId":"createCustomerServiceOffer","summary":"创建持续等待的指定接单邀请并预占额度","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["quantity","handler_entity_id"],"properties":{"quantity":{"type":"string"},"handler_entity_id":{"type":"integer","minimum":1},"memo":{"type":"string"},"field_values":{"type":"array","description":"按最小核销步长逐份提交，数组顺序即履约资源序号","items":{"type":"object","additionalProperties":true}}}}}}},"responses":{"200":{"description":"邀请已创建"},"409":{"description":"可用额度不足"},"422":{"description":"接单资格、字段、数量或 Ability 无效"}}}},
     "/customer/service-offers/{id}/withdraw": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"post":{"tags":["Customer"],"operationId":"withdrawCustomerServiceOffer","summary":"取消待确认指定邀请并释放预占","responses":{"200":{"description":"已取消"},"409":{"description":"邀请已处理"}}}},
-    "/customer/service-redemptions/{id}/start": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"restartCustomerServiceRedemption","summary":"重新发起已取消的履约切片","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["handler_entity_id"],"properties":{"handler_entity_id":{"type":"integer","minimum":1,"description":"重新指定的接单 Entity"},"memo":{"type":"string"},"field_values":{"type":"object","additionalProperties":true}}}}}},"responses":{"200":{"description":"成功"}}}},
+    "/customer/service-redemptions/{id}/start": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"restartCustomerServiceRedemption","summary":"重新发起已取消的履约切片","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["handler_entity_id"],"properties":{"handler_entity_id":{"type":"integer","minimum":1,"description":"重新指定的接单 Entity"},"memo":{"type":"string"},"field_values":{"type":"array","description":"按原履约资源序号重新提交字段","items":{"type":"object","additionalProperties":true}}}}}}},"responses":{"200":{"description":"成功"}}}},
     "/customer/service-redemptions/{id}/cancel": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"cancelCustomerService","summary":"申请取消履约切片","responses":{"200":{"description":"成功"}}}},
     "/customer/service-redemptions/{id}/adjustments/{adjustment_id}/accept": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"adjustment_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"acceptServiceAdjustment","summary":"确认并支付履约加价费用","responses":{"200":{"description":"成功"}}}},
     "/customer/service-redemptions/{id}/adjustments/{adjustment_id}/reject": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"adjustment_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Customer"],"operationId":"rejectServiceAdjustment","summary":"拒绝履约加价费用","responses":{"200":{"description":"成功"}}}},

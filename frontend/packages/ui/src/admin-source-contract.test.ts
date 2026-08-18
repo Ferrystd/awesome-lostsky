@@ -334,7 +334,7 @@ describe('后台源码设计契约', () => {
     expect(offenders).toEqual([])
   })
 
-  it('三个业务工作台的侧栏退出入口保持导航式左对齐', () => {
+  it('三个业务工作台的侧栏身份入口保持导航式左对齐', () => {
     const shells = [
       ['team', 'frontend/apps/team/src/components/TeamShell.vue', 'frontend/apps/team/src/components/TeamShell.vue'],
       ['shop', 'frontend/apps/shop/src/components/ShopManageShell.vue', 'frontend/apps/shop/src/components/ShopManageShell.vue'],
@@ -343,9 +343,11 @@ describe('后台源码设计契约', () => {
     for (const [name, shellPath, stylePath] of shells) {
       const source = readFileSync(join(repository, shellPath), 'utf8')
       const styles = readFileSync(join(repository, stylePath), 'utf8')
-      expect(source, `${name} 缺少退出入口`).toContain('<NButton class="logout"')
-      expect(styles, `${name} 退出入口没有左对齐`).toMatch(/\.logout\s*\{[^}]*justify-content:\s*flex-start/)
-      expect(source, `${name} 侧栏不应提供切换身份`).not.toContain('切换身份')
+      expect(source, `${name} 缺少身份入口`).toContain('<NButton class="logout"')
+      expect(styles, `${name} 身份入口没有左对齐`).toMatch(/\.logout\s*\{[^}]*justify-content:\s*flex-start/)
+      expect(source, `${name} 侧栏应进入身份切换页`).toContain('identityUrl()')
+      expect(source, `${name} 侧栏应标明切换身份`).toContain('切换身份')
+      expect(source, `${name} 侧栏不应直接退出登录`).not.toContain('退出登录')
     }
   })
 

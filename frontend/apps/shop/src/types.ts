@@ -29,6 +29,18 @@ export interface Handler {
 export interface ProductDetail extends ProductSummary {
   introduction_markdown?: string | null
   handlers: Handler[]
+  benefit_package?: {
+    name: string
+    services: Array<{
+      id: number
+      name: string
+      description?: string | null
+      quantity: string
+      unit_name: string
+      quantity_step: string
+      valid_days: number
+    }>
+  } | null
 }
 
 export interface Page<T> { total: number; list: T[]; page: number; limit: number }
@@ -87,8 +99,29 @@ export interface RedemptionField {
   input_type: string
   options?: string[] | null
   fill_stage: 'customer' | 'manager'
+  is_customer_visible: 0 | 1
   is_required: 0 | 1
+  is_active: 0 | 1
+  sort: number
   value?: Record<string, unknown> | null
+}
+
+export interface ServiceRedemptionFieldInput {
+  id?: number
+  name: string
+  value_type: string
+  input_type: string
+  options: string[]
+  fill_stage: 'customer' | 'manager'
+  is_customer_visible: 0 | 1
+  is_required: 0 | 1
+  is_active: 0 | 1
+  sort: number
+}
+
+export interface ServiceRedemptionFieldDraft extends Omit<ServiceRedemptionFieldInput, 'options'> {
+  key: string
+  options_text: string
 }
 
 export interface ServiceInstance {
@@ -173,6 +206,7 @@ export interface ManageService extends ManageOwnedResource {
   unit_name: string; quantity_step: string
   default_total_price: string; default_cost: string; default_handler_cut: string; default_sender_cut: string; default_cs_cut: string; default_team_cut: string
   handlers?: Array<{ entity_id: number; subject?: ManageEntityOption | null }>
+  redemption_fields?: RedemptionField[]
 }
 export interface ManagePackageService {
   id?: number; service_id: number; quantity: string | number; valid_days: number; service?: ManageService | null

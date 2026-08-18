@@ -22,6 +22,7 @@ class TeamServiceFieldValue extends Base
         'delete_time' => 'integer',
         'service_instance_id' => 'integer',
         'field_id' => 'integer',
+        'resource_index' => 'integer',
     ];
 
     /** JSON 字段 */
@@ -34,8 +35,8 @@ class TeamServiceFieldValue extends Base
     protected $append = [];
 
     /** 只读字段 */
-    protected $readonly = ['service_instance_id', 'field_id'];
+    protected $readonly = ['service_instance_id', 'field_id', 'resource_index'];
 
     public function instance() { return $this->belongsTo(TeamServiceInstance::class, 'service_instance_id'); }
-    public function field() { return $this->belongsTo(TeamProductRedemptionField::class, 'field_id'); }
+    public function field() { return $this->belongsTo(TeamServiceRedemptionField::class, 'field_id'); }
 }

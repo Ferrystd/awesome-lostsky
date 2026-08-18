@@ -52,4 +52,5 @@ class TeamService extends Base
     public function instances() { return $this->hasMany(TeamServiceInstance::class, 'service_id'); }
     public function entitlements() { return $this->hasMany(TeamServiceEntitlement::class, 'service_id'); }
     public function assignmentOffers() { return $this->hasMany(TeamServiceAssignmentOffer::class, 'service_id'); }
+    public function redemptionFields() { return $this->hasMany(TeamServiceRedemptionField::class, 'service_id'); }
 }

@@ -12,7 +12,6 @@ use app\model\TeamCustomerBalanceLog;
 use app\model\TeamOrder;
 use app\model\TeamProduct;
 use app\model\TeamProductHandler;
-use app\model\TeamProductRedemptionField;
 use app\model\TeamTransaction;
 use app\model\User;
 use app\service\Balance;
@@ -288,33 +287,6 @@ try {
         TeamProductHandler::where('product_id', $selfProductId)->count() === 1,
         'personal product management updates handlers inside the owned product scope'
     );
-    $fieldId = $selfProducts->createField(
-        (int) $team->id,
-        $actingTeam,
-        (int) $teamEntity->id,
-        $selfProductId,
-        ['field_key' => 'appointment_note', 'name' => '预约说明', 'value_type' => 'string']
-    );
-    $selfProducts->updateField(
-        (int) $team->id,
-        $actingTeam,
-        (int) $teamEntity->id,
-        $selfProductId,
-        $fieldId,
-        ['name' => '更新后的预约说明']
-    );
-    $assert(
-        TeamProductRedemptionField::find($fieldId)->name === '更新后的预约说明',
-        'personal product management updates redemption fields'
-    );
-    $selfProducts->deleteField(
-        (int) $team->id,
-        $actingTeam,
-        (int) $teamEntity->id,
-        $selfProductId,
-        $fieldId
-    );
-    $assert(TeamProductRedemptionField::find($fieldId) === null, 'personal product management removes unused redemption fields');
 } finally {
     $db->rollback();
 }

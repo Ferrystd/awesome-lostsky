@@ -108,6 +108,8 @@ describe('后台工作台入口架构', () => {
     expect(personalEntitlements).toContain("api.get<Pagination<PersonalEntitlementGrantRecord>>('/personal/entitlements'")
     expect(personalEntitlements).toContain("hasWorkspacePermission(access.data.value?.permissions ?? [], 'service.entitlement.grant')")
     const transactionRouter = source('frontend/apps/transaction/src/router.ts')
+    expect(transactionRouter).toContain("path: '/', redirect: '/overview'")
+    expect(transactionRouter).toContain("path: '/transactions', component: TransactionsView, meta: { title: '团队流水'")
     expect(transactionRouter).toContain("path: '/personal/transactions', component: PersonalWorkspaceView, meta: { title: '我的流水', pageWidth: 'wide', workspace: 'personal', personalSection: 'transactions' }")
     expect(transactionRouter).not.toContain("path: '/personal/stats'")
     expect(transactionRouter).toContain("path: '/personal/customers', component: PersonalCustomersView, meta: { title: '我的顾客', pageWidth: 'wide', workspace: 'personal' }")
@@ -129,6 +131,42 @@ describe('后台工作台入口架构', () => {
     expect(header).toContain('>操作</NButton>')
   })
 
+  it('工作台侧栏统一前往身份切换页，退出登录收口到 Account 身份页', () => {
+    for (const path of [
+      'frontend/apps/team/src/components/TeamShell.vue',
+      'frontend/apps/shop/src/components/ShopManageShell.vue',
+      'frontend/apps/transaction/src/components/TransactionShell.vue',
+    ]) {
+      const shell = source(path)
+      expect(shell).toContain('identityUrl()')
+      expect(shell).toContain('切换身份')
+      expect(shell).not.toContain('退出登录')
+      expect(shell).not.toContain('function logout()')
+    }
+
+    const identity = source('frontend/apps/account/src/views/IdentityView.vue')
+    expect(identity).toContain("api.post('/devices/quit', {})")
+    expect(identity).toContain('auth.clear()')
+    expect(identity).toContain("router.replace('/login')")
+    expect(identity).toContain('退出登录')
+    expect(identity).toContain("safeRedirect(route.query.redirect, '')")
+    expect(identity).toContain('href="/teams"')
+    expect(identity).toContain('返回团队列表')
+    expect(identity).toContain('<footer v-if="returnUrl" class="return-action">')
+    expect(identity).toContain('<a class="return-link" :href="returnUrl">')
+    expect(identity).toContain('前往页面')
+    expect(identity).not.toContain('<NButton type="primary" tag="a" :href="returnUrl">')
+    expect(identity).toContain('await candidates.refetch()')
+    expect(identity).not.toContain('goToSafeRedirect')
+  })
+
+  it('商城前台导航标明首页，并从页脚进入身份切换', () => {
+    const storefront = source('frontend/apps/shop/src/App.vue')
+    expect(storefront).toContain('<RouterLink to="/"><House :size="17" aria-hidden="true" />商城首页</RouterLink>')
+    expect(storefront).toContain('<a :href="identityUrl()">切换身份</a>')
+    expect(storefront).not.toContain('认识 LostSky')
+  })
+
   it('记账先读取访问快照，Ability 缺失时进入零业务请求页面', () => {
     const router = source('frontend/apps/transaction/src/router.ts')
     expect(router).toContain('await loadWorkspaceAccess()')
@@ -140,11 +178,17 @@ describe('后台工作台入口架构', () => {
     const component = source('frontend/apps/transaction/src/components/PersonalServiceLists.vue')
     expect(component).toContain("import LsPanel from '@lostsky/ui/components/LsPanel.vue'")
     expect(component).toContain("import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'")
+    expect(component).toContain("import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'")
     expect(component.match(/<LsPanel aria-labelledby=/g)).toHaveLength(3)
     expect(component.match(/class="group-count" aria-live="polite"/g)).toHaveLength(3)
+    expect(component).toContain('class="task-field-section"')
+    expect(component).toContain('class="return-composer"')
+    expect(component).toContain(":input-props=\"{ 'aria-label': '退回原因' }\"")
     expect(component).not.toMatch(/\.task-list\{[^}]*border:/)
+    expect(component).not.toContain('class="task-main"')
+    expect(component).not.toContain('class="return-action"')
     expect(component).not.toContain(':deep(.ls-')
-    expect(source('docs/design/admin/applications.md')).toContain('“待我确认”“我可以接”“我的接单”三个具名连续边界面板')
+    expect(source('docs/design/admin/applications.md')).toContain('Transaction 个人接单队列')
   })
 
   it('Account 只保留旧深链跳转，顾客资料留在商城顾客中心', () => {
@@ -199,7 +243,7 @@ describe('后台工作台入口架构', () => {
     const overview = source('frontend/apps/transaction/src/views/TeamOverviewView.vue')
     const router = source('frontend/apps/transaction/src/router.ts')
 
-    expect(shell).toContain("['/', '团队流水', ListChecks, 'transaction.read']")
+    expect(shell).toContain("['/transactions', '团队流水', ListChecks, 'transaction.read']")
     expect(shell).toContain("['/stats', '经营统计', BarChart3, 'transaction.report.read']")
     expect(shell).toContain("['/services', '权益核销', BadgeCheck, serviceRedemptionReadPermissions]")
     expect(shell).toContain("['/balances', '顾客余额', CircleDollarSign, 'transaction.read']")
@@ -208,6 +252,8 @@ describe('后台工作台入口架构', () => {
     expect(router).toMatch(/path: '\/services\/:id\(\\\\d\+\)'[^\n]*permission: serviceRedemptionReadPermissions/)
     expect(shell).toContain("['/personal/services', '我的接单', BadgeCheck, null]")
     expect(router).toMatch(/path: '\/personal\/services'[^\n]*workspace: 'personal'[^\n]*(?!permission:)/)
+    expect(source('app/transaction/route/app.php')).toContain("Route::post('personal/services/<id>/complete', 'Personal/completeService')")
+    expect(source('frontend/apps/transaction/src/views/PersonalServiceTaskView.vue')).toContain("suffix:'complete'")
   })
 
   it('Shop 商品表单通过统一上传接口处理封面与详情图片', () => {
@@ -263,7 +309,7 @@ describe('后台工作台入口架构', () => {
       ['docs/openapi/shop.openapi.json', [
         '/manage/access', '/personal/orders', '/personal/orders/{id}', '/personal/products',
         '/personal/products/{id}', '/personal/products/{id}/handlers',
-        '/personal/products/{id}/redemption-fields',
+        '/personal/services/{id}',
       ]],
       ['docs/openapi/transaction.openapi.json', [
         '/workspace/access', '/personal/transaction-options', '/personal/transactions', '/personal/transactions/{id}', '/personal/stats',

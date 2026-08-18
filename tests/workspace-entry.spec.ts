@@ -69,6 +69,9 @@ async function expectOverviewLayout(page: Page, label: string) {
       return { width: box.width, height: box.height }
     }))
     expect(sizes.every(size => size.width >= 44 && size.height >= 44)).toBe(true)
+    if (width >= 800) {
+      await expect(overview.locator('.ls-workspace-overview__hero')).toHaveCSS('height', '188px')
+    }
   }
   await page.setViewportSize({ width: 1024, height: 900 })
   const firstLink = overview.locator('a').first()
@@ -148,7 +151,6 @@ test('Team keeps its original layout and reaches personal workspace from the ove
   await expect(page.getByRole('button', { name: '个人工作台' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '团队工作台' })).toHaveCount(0)
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
-
   const header = page.locator('.ls-workspace-header')
   await expectHeaderApps(page)
 
@@ -164,17 +166,20 @@ test('Team keeps its original layout and reaches personal workspace from the ove
   await expect(page.getByRole('heading', { name: '概览', level: 1 })).toBeVisible()
   await expect(page.getByText(/个人工作台 · 团队实体/)).toBeVisible()
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
-  await expect(page.getByRole('link', { name: '切换身份' })).toHaveCount(1)
-  await expect(page.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/')
+  const personalSidebar = page.locator('.sidebar')
+  const personalOverview = page.locator('.ls-workspace-overview')
+  await expect(personalSidebar.getByRole('link', { name: '切换身份' })).toHaveCount(1)
+  await expect(personalOverview.getByRole('link', { name: '切换身份' })).toHaveCount(1)
+  await expect(personalOverview.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/')
 
-  const teamDesktopRect = await page.getByRole('link', { name: /进入团队工作台/ }).evaluate(element => element.getBoundingClientRect().toJSON())
-  const identityDesktopRect = await page.getByRole('link', { name: '切换身份' }).evaluate(element => element.getBoundingClientRect().toJSON())
+  const teamDesktopRect = await personalOverview.getByRole('link', { name: /进入团队工作台/ }).evaluate(element => element.getBoundingClientRect().toJSON())
+  const identityDesktopRect = await personalOverview.getByRole('link', { name: '切换身份' }).evaluate(element => element.getBoundingClientRect().toJSON())
   expect(teamDesktopRect.width).toBeGreaterThan(identityDesktopRect.width)
   expect(Math.abs(teamDesktopRect.height - identityDesktopRect.height)).toBeLessThanOrEqual(1)
   expect(Math.abs(documentDesktopRect.width - identityDesktopRect.width)).toBeLessThanOrEqual(1)
 
   await page.setViewportSize({ width: 375, height: 812 })
-  const identityMobileWidth = await page.getByRole('link', { name: '切换身份' }).evaluate(element => element.getBoundingClientRect().width)
+  const identityMobileWidth = await personalOverview.getByRole('link', { name: '切换身份' }).evaluate(element => element.getBoundingClientRect().width)
   await page.goto('http://demo.team.lostsky.work:5175/')
   const personalMobileWidth = await page.getByRole('link', { name: '进入个人工作台' }).evaluate(element => element.getBoundingClientRect().width)
   const documentMobileWidth = await page.getByRole('link', { name: '使用文档' }).evaluate(element => element.getBoundingClientRect().width)
@@ -289,7 +294,7 @@ test('team workspaces keep a readable overview and disabled Permission entries',
 
   await page.goto('http://demo.shop.lostsky.work:5179/manage')
   await expect(page.getByRole('heading', { name: '概览', level: 1 })).toBeVisible()
-  await expect(page.locator('.manage-sidebar').getByRole('button', { name: '退出登录' })).toHaveCSS('justify-content', 'flex-start')
+  await expect(page.locator('.manage-sidebar').getByRole('link', { name: '切换身份' })).toHaveCSS('justify-content', 'flex-start')
   await expect(page.locator('#shop-manage-main').getByText('青空协作组')).toBeVisible()
   const disabledProducts = page.locator('.ls-workspace-overview__entry.disabled').filter({ hasText: '商品' })
   await expect(disabledProducts).not.toContainText(formatPermissionDenied(['shop.product.read']))
@@ -334,6 +339,28 @@ test('team workspaces keep a readable overview and disabled Permission entries',
   await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/manage')
 })
 
+test('Transaction root opens the team overview by default', async ({ page }) => {
+  await setToken(page, 'teamMember', 11)
+  let businessRequests = 0
+  await page.route('http://demo.transaction.lostsky.work:5177/api/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    if (!path.endsWith('/workspace/access')) businessRequests++
+    const data = {
+      team: { id: 1, slug: 'demo', name: '青空协作组' },
+      permissions: ['transaction.read'],
+      abilities: { transaction: { enabled: true, level: 1, expire_time: 0, reason: null, label: '记账' } },
+      identity: { type: 'teamMember', entity_id: 11, name: '青空接单人', slug: 'handler', avatar: '' },
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
+  })
+
+  await page.goto('http://demo.transaction.lostsky.work:5177/')
+  await expect(page).toHaveURL('http://demo.transaction.lostsky.work:5177/overview')
+  await expect(page.getByRole('heading', { name: '概览', level: 1 })).toBeVisible()
+  await expect(page.locator('.sidebar').getByRole('link', { name: '团队流水' })).toHaveAttribute('href', '/transactions')
+  expect(businessRequests).toBe(0)
+})
+
 test('Transaction binds overview first in both team and personal workspaces', async ({ page }) => {
   await setToken(page, 'teamMember', 11)
   let businessRequests = 0
@@ -367,7 +394,7 @@ test('Transaction binds overview first in both team and personal workspaces', as
 
   await page.goto('http://demo.transaction.lostsky.work:5177/overview')
   await expect(page.getByRole('heading', { name: '概览', level: 1 })).toBeVisible()
-  await expect(page.locator('.sidebar').getByRole('button', { name: '退出登录' })).toHaveCSS('justify-content', 'flex-start')
+  await expect(page.locator('.sidebar').getByRole('link', { name: '切换身份' })).toHaveCSS('justify-content', 'flex-start')
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   await expect(page.getByRole('link', { name: '进入个人工作台' })).toHaveAttribute('href', '/personal')
   await expect(page.locator('.sidebar').getByText('登记流水', { exact: true })).toHaveCount(0)
@@ -416,7 +443,7 @@ test('Transaction binds overview first in both team and personal workspaces', as
     await expect(page.locator('#workspace').getByRole('heading', { name: title, level: 1 })).toBeVisible()
     if (path === '/personal/transactions') {
       for (const label of ['总接单数', '总发单数', '总接待数', '月度业绩', '月度流水', '个人业绩']) {
-        await expect(page.locator('.stats').getByText(label, { exact: true })).toBeVisible()
+        await expect(page.locator('.ls-metric-grid').getByText(label, { exact: true })).toBeVisible()
       }
       await expect(page.locator('.sidebar').getByText('我的业绩', { exact: true })).toHaveCount(0)
     }

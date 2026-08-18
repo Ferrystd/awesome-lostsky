@@ -92,6 +92,7 @@ final class EntitlementManagement
         $service = $query->with(['handlers.subject.profile'])->find($id);
         if (!$service) throw new HttpException(404, '服务不存在');
         $result = $service->toArray();
+        $result['redemption_fields'] = app(ServiceRedemptionField::class)->list($teamId, $id);
         $rows = [&$result];
         $this->attachResourceOwners($rows);
         return $result;
@@ -131,8 +132,11 @@ final class EntitlementManagement
         $hasHandlers = array_key_exists('handler_entity_ids', $data);
         $handlerIds = array_values(array_unique(array_map('intval', is_array($data['handler_entity_ids'] ?? null) ? $data['handler_entity_ids'] : [])));
         if ($hasHandlers) foreach ($handlerIds as $entityId) $this->assertServiceHandler($teamId, $entityId);
+        $hasRedemptionFields = array_key_exists('redemption_fields', $data);
+        $redemptionFields = is_array($data['redemption_fields'] ?? null) ? $data['redemption_fields'] : [];
+        if ($hasRedemptionFields && !is_array($data['redemption_fields'])) throw new HttpException(422, '核销字段格式无效');
 
-        return Db::transaction(function () use ($teamId, $id, $data, $name, $unitName, $quantityStep, $money, $handlerIds, $hasHandlers, $ownerEntityId) {
+        return Db::transaction(function () use ($teamId, $id, $data, $name, $unitName, $quantityStep, $money, $handlerIds, $hasHandlers, $redemptionFields, $hasRedemptionFields, $ownerEntityId) {
             $service = $id ? TeamService::where('team_id', $teamId)->find($id) : new TeamService;
             if (!$service) throw new HttpException(404, '服务不存在');
             $values = array_merge($money, [
@@ -146,6 +150,7 @@ final class EntitlementManagement
             if (!$id) $values['owner_entity_id'] = $ownerEntityId;
             $service->save($values);
             if ($hasHandlers) $this->syncServiceHandlers($teamId, (int) $service->id, $handlerIds);
+            if ($hasRedemptionFields) app(ServiceRedemptionField::class)->sync($teamId, (int) $service->id, $redemptionFields);
             return (int) $service->id;
         });
     }

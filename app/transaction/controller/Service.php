@@ -18,7 +18,7 @@ class Service
         // complete 收口；ServiceRedemption 会跳过流水与加价业绩写入。
         'Ability:transaction' => ['except' => ['complete']],
         'Permission:' . Permissions::SERVICE_REDEMPTION_READ . ',' . Permissions::SERVICE_REDEMPTION_MANAGE => ['only' => ['index', 'get', 'handlers']],
-        'Permission:' . Permissions::SERVICE_REDEMPTION_MANAGE => ['only' => ['approveCancel', 'rejectCancel', 'reassign', 'complete', 'createAdjustment', 'cancelAdjustment']],
+        'Permission:' . Permissions::SERVICE_REDEMPTION_MANAGE => ['only' => ['approveCancel', 'rejectCancel', 'reassign', 'complete', 'reject', 'createAdjustment', 'cancelAdjustment']],
     ];
 
     public function index(Request $request)
@@ -60,6 +60,7 @@ class Service
     public function rejectCancel(Request $request) { return $this->run($request, 'rejectCancel', '已拒绝取消核销', $request->post('reason/s', '')); }
     public function reassign(Request $request) { return $this->run($request, 'reassign', '已改派接单人', $request->post('handler_entity_id/d', 0), $request->post('reason/s', '')); }
     public function complete(Request $request) { return $this->run($request, 'complete', '服务已核销', $request->post('field_values/a', [])); }
+    public function reject(Request $request) { return $this->run($request, 'reject', '核销已驳回', $request->post('reason/s', '')); }
 
     public function createAdjustment(Request $request)
     {

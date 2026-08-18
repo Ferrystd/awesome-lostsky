@@ -11,6 +11,11 @@
   --muted: #9fb0c1;
   --line: rgba(159, 190, 207, 0.2);
   --danger: #ff9d98;
+  --entity-team: #69e4dc;
+  --entity-member: #91a9ff;
+  --entity-customer: #f4bd81;
+  --entity-virtual: #b9a7ff;
+  --entity-unknown: #aebdcb;
   font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   color: var(--ink);
   background: var(--void);
@@ -796,6 +801,74 @@ main {
   padding-top: 3rem;
   border-top: 1px solid var(--line);
 }
+.product-inclusions {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.3fr) minmax(0, 1fr);
+  gap: clamp(2rem, 7vw, 7rem);
+  margin-top: clamp(5rem, 10vw, 9rem);
+  padding-top: 3rem;
+  border-top: 1px solid var(--line);
+}
+.product-inclusions h2 {
+  margin: 0.75rem 0 0;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.05;
+}
+.product-inclusions > div:first-child > p:last-child {
+  color: var(--muted);
+  line-height: 1.65;
+}
+.inclusion-list {
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--line);
+}
+.inclusion-item {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 1.25rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  background: var(--surface);
+}
+.inclusion-item > span {
+  color: var(--cyan);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.inclusion-item h3,
+.inclusion-item p {
+  margin: 0;
+}
+.inclusion-item h3 {
+  font-size: 1.25rem;
+}
+.inclusion-item p {
+  margin-top: 0.55rem;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.inclusion-item dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0 0;
+}
+.inclusion-item dl div {
+  display: grid;
+  gap: 0.3rem;
+}
+.inclusion-item dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.inclusion-item dd {
+  margin: 0;
+  font-weight: 700;
+}
 .eyebrow,
 .section-index {
   margin: 0;
@@ -1403,7 +1476,8 @@ main {
     font-size: clamp(3.25rem, 13vw, 5.2rem);
   }
   .manifesto,
-  .product-story {
+  .product-story,
+  .product-inclusions {
     grid-template-columns: 1fr;
   }
   .product-feature,
@@ -1450,6 +1524,9 @@ main {
   .detail-media img,
   .detail-media .type-cover {
     min-height: 24rem;
+  }
+  .inclusion-item dl {
+    grid-template-columns: 1fr;
   }
   .bind-page {
     align-content: center;

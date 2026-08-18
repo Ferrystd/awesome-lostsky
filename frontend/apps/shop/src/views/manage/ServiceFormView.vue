@@ -16,8 +16,11 @@ import { Eye } from '@lucide/vue'
 import { NInput, NInputNumber } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import ServiceFieldsEditor from '../../components/ServiceFieldsEditor.vue'
 import { canManage, entitlementManagement, loadManageAccess } from '../../lib'
 import { calculateDefaultServiceDistribution, calculateServiceTeamCut } from '../../service-distribution'
+import { hydrateServiceRedemptionFields, serializeServiceRedemptionFields, validServiceRedemptionFields } from '../../service-redemption-fields'
+import type { ServiceRedemptionFieldDraft } from '../../types'
 
 type ServiceFormState = {
   name: string
@@ -50,6 +53,7 @@ const form = reactive<ServiceFormState>({
 const distributionRates = reactive({ handler: 80, sender: 15, customerService: 0 })
 let hydratingAmounts = false
 const handlerIds = ref<number[]>([])
+const redemptionFields = ref<ServiceRedemptionFieldDraft[]>([])
 const options = useQuery({ queryKey: computed(() => [scope.value, 'manage-options']), queryFn: () => management.value.options() })
 const detail = useQuery({ queryKey: computed(() => [scope.value, 'manage-service', id.value]), queryFn: () => management.value.service(id.value), enabled: editing })
 
@@ -69,6 +73,7 @@ watch(() => detail.data.value, data => {
     is_active: data.is_active,
   })
   handlerIds.value = (data.handlers ?? []).map(item => Number(item.entity_id))
+  redemptionFields.value = hydrateServiceRedemptionFields(data.redemption_fields)
   hydratingAmounts = false
 }, { immediate: true })
 watch(() => options.data.value?.service_defaults, defaults => {
@@ -125,6 +130,7 @@ const save = useMutation({
     ...form,
     default_team_cut: teamCut.value,
     handler_entity_ids: handlerIds.value,
+    redemption_fields: serializeServiceRedemptionFields(redemptionFields.value),
   }, expectedEntityId.value),
   onSuccess: async data => {
     await Promise.all([
@@ -149,13 +155,14 @@ const valid = computed(() => Boolean(
   && nonNegative(form.default_handler_cut)
   && nonNegative(form.default_sender_cut)
   && nonNegative(form.default_cs_cut)
-  && teamCut.value >= 0,
+  && teamCut.value >= 0
+  && validServiceRedemptionFields(redemptionFields.value)
 ))
 </script>
 
 <template>
   <div class="manage-page">
-    <LsPageHeader :title="editing ? (personal ? '编辑本人服务' : '编辑服务') : (personal ? '新建本人服务' : '新建服务')" description="定义可计量的服务单位、核销步长与默认单价；接单资格通过独立接单池维护。" :back-to="`${management.routePrefix}/services`" back-label="返回服务">
+    <LsPageHeader :title="editing ? (personal ? '编辑本人服务' : '编辑服务') : (personal ? '新建本人服务' : '新建服务')" description="定义服务的计量、金额、接单池与核销字段；同一商品中的不同服务可以使用各自字段。" :back-to="`${management.routePrefix}/services`" back-label="返回服务">
       <template #actions>
         <LsPagePrimaryAction v-if="editing" :icon="Eye" label="预览商品" href="/" target="_blank" rel="noopener noreferrer" />
       </template>
@@ -185,6 +192,7 @@ const valid = computed(() => Boolean(
           <LsEntitySelect id="service-handlers" v-model="handlerIds" :entities="handlerEntities" :loading="options.isPending.value" :disabled="options.isError.value" multiple clearable placeholder="不限接单人" />
         </LsField>
       </LsFormSection>
+      <ServiceFieldsEditor v-model="redemptionFields" />
       <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
       <LsInlineError v-if="options.isError.value" :message="`接单 Entity 暂时无法读取：${friendlyError(options.error.value)}`" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />

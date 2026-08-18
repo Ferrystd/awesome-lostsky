@@ -282,13 +282,6 @@ class Product
                 ->with(['subject.profile'])->select()->toArray();
             foreach ($handlers as $handler) $handlersByProduct[(int) $handler['product_id']][] = $handler;
         }
-        $fieldsByProduct = [];
-        if ($detail && $productIds) {
-            $fields = \app\model\TeamProductRedemptionField::whereIn('product_id', array_values($productIds))
-                ->order('sort', 'asc')->order('id', 'asc')->select()->toArray();
-            foreach ($fields as $field) $fieldsByProduct[(int) $field['product_id']][] = $field;
-        }
-
         foreach ($rows as &$row) {
             $productId = (int) $row['id'];
             $entityId = (int) ($row['entity_id'] ?? 0);
@@ -298,7 +291,6 @@ class Product
             $row['handlers'] = $handlersByProduct[$productId] ?? [];
             $row['benefit_package'] = $packageId > 0 ? ($packageMap[$packageId] ?? null) : null;
             $row['redemption_campaign'] = $campaignId > 0 ? ($campaignMap[$campaignId] ?? null) : null;
-            if ($detail) $row['redemption_fields'] = $fieldsByProduct[$productId] ?? [];
         }
     }
 

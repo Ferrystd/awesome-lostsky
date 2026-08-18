@@ -75,8 +75,8 @@ export interface paths {
         get: operations["shopPersonalServices"];
         put?: never;
         /**
-         * 创建本人服务
-         * @description 服务端强制写入当前 acting_entity 作为 Owner。
+         * 创建本人服务及核销字段
+         * @description 服务端强制写入当前 acting_entity 作为 Owner；服务资料、接单池与核销字段原子保存。
          */
         post: operations["shopPersonalServiceCreate"];
         delete?: never;
@@ -94,10 +94,13 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** 读取本人服务详情 */
+        /** 读取本人服务详情与核销字段 */
         get: operations["shopPersonalServiceGet"];
         put?: never;
-        /** 更新本人服务 */
+        /**
+         * 更新本人服务及核销字段
+         * @description 服务资料、接单池与当前服务的核销字段原子保存。
+         */
         post: operations["shopPersonalServiceUpdate"];
         delete?: never;
         options?: never;
@@ -405,60 +408,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/personal/products/{id}/redemption-fields": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        /** 读取本人商品核销字段 */
-        get: operations["shopPersonalProductFields"];
-        put?: never;
-        /** 创建本人商品核销字段 */
-        post: operations["shopPersonalProductCreateField"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/personal/products/{id}/redemption-fields/{field_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 更新本人商品核销字段 */
-        post: operations["shopPersonalProductUpdateField"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/personal/products/{id}/redemption-fields/{field_id}/delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 删除或停用本人商品核销字段 */
-        post: operations["shopPersonalProductDeleteField"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/manage/options": {
         parameters: {
             query?: never;
@@ -490,8 +439,8 @@ export interface paths {
         get: operations["shopManageServices"];
         put?: never;
         /**
-         * 创建服务定义并保存接单池
-         * @description handler_entity_ids 与服务资料原子保存，空数组表示不限接单人；quantity_step 是唯一的数量精度来源，团队分配由服务价值减去成本及人员分配后的余额生成。
+         * 创建服务定义、接单池与核销字段
+         * @description handler_entity_ids、redemption_fields 与服务资料原子保存；核销字段只属于当前服务。空接单池表示不限接单人；quantity_step 是唯一的数量精度来源。
          */
         post: operations["shopCreateService"];
         delete?: never;
@@ -513,8 +462,8 @@ export interface paths {
         get: operations["shopManageService"];
         put?: never;
         /**
-         * 更新服务定义并保存接单池
-         * @description handler_entity_ids 与服务资料原子保存，空数组表示不限接单人；quantity_step 是唯一的数量精度来源，团队分配由服务价值减去成本及人员分配后的余额生成。
+         * 更新服务定义、接单池与核销字段
+         * @description handler_entity_ids、redemption_fields 与服务资料原子保存；核销字段只属于当前服务。省略字段从当前列表移除，有历史值时自动停用。
          */
         post: operations["shopUpdateService"];
         delete?: never;
@@ -742,66 +691,6 @@ export interface paths {
         put?: never;
         /** 停用卡密 */
         post: operations["shopDisableCampaignCode"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/product/{id}/redemption-fields": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        /** 查询商品核销字段 */
-        get: operations["productRedemptionFields"];
-        put?: never;
-        /** 创建商品核销字段 */
-        post: operations["createProductRedemptionField"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/product/{id}/redemption-fields/{field_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-                field_id: number;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 更新商品核销字段 */
-        post: operations["updateProductRedemptionField"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/product/{id}/redemption-fields/{field_id}/delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-                field_id: number;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 删除商品核销字段 */
-        post: operations["deleteProductRedemptionField"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1651,6 +1540,28 @@ export interface components {
             owner_entity_id?: number | null;
             owner?: components["schemas"]["Entity"] | null;
         };
+        ServiceRedemptionFieldInput: {
+            /**
+             * Format: int64
+             * @description 更新已有字段时提交；新建字段省略
+             */
+            id?: number;
+            name: string;
+            /** @enum {string} */
+            value_type: "string" | "text" | "int" | "decimal" | "date" | "datetime" | "select" | "multi_select" | "bool";
+            /** @enum {string} */
+            input_type: "text" | "textarea" | "select" | "radio" | "checkbox";
+            options?: string[];
+            /** @enum {string} */
+            fill_stage: "customer" | "manager";
+            /** @enum {integer} */
+            is_customer_visible: 0 | 1;
+            /** @enum {integer} */
+            is_required: 0 | 1;
+            /** @enum {integer} */
+            is_active: 0 | 1;
+            sort: number;
+        };
         ServiceInput: {
             name: string;
             description?: string | null;
@@ -1668,6 +1579,8 @@ export interface components {
             is_active: 0 | 1;
             /** @description 显式接单池；空数组表示不限接单人 */
             handler_entity_ids: number[];
+            /** @description 当前服务的核销字段完整列表；省略已有字段即删除，已有历史值时改为停用 */
+            redemption_fields?: components["schemas"]["ServiceRedemptionFieldInput"][];
         };
         BenefitPackageServiceInput: {
             /** Format: int64 */
@@ -2221,6 +2134,23 @@ export interface components {
         StorefrontProductDetail: components["schemas"]["StorefrontProduct"] & {
             introduction_markdown?: string | null;
             handlers?: components["schemas"]["StorefrontHandler"][];
+            benefit_package?: components["schemas"]["StorefrontBenefitPackage"] | null;
+        };
+        StorefrontBenefitPackage: {
+            name: string;
+            services: components["schemas"]["StorefrontBenefitService"][];
+        };
+        StorefrontBenefitService: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+            description?: string | null;
+            /** @description Exact decimal string. */
+            quantity: string;
+            unit_name: string;
+            /** @description Exact decimal string. */
+            quantity_step: string;
+            valid_days: number;
         };
         CustomerBindResult: {
             token?: string | null;
@@ -3245,153 +3175,6 @@ export interface operations {
             };
         };
     };
-    shopPersonalProductFields: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 商品不存在或不属于当前 Entity */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    shopPersonalProductCreateField: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExpectedEntityInput"] & {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description 创建成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 商品不存在或不属于当前 Entity */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 当前身份与 expected_entity_id 不一致 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    shopPersonalProductUpdateField: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-                field_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExpectedEntityInput"] & {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description 已保存 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 商品或字段不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 当前身份与 expected_entity_id 不一致 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    shopPersonalProductDeleteField: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-                field_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExpectedEntityInput"];
-            };
-        };
-        responses: {
-            /** @description 已处理 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 商品或字段不存在 */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description 当前身份与 expected_entity_id 不一致 */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     shopManageOptions: {
         parameters: {
             query?: never;
@@ -3448,7 +3231,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description 步长、服务金额、接单 Entity 无效或人员分配超过可分配金额 */
+            /** @description 步长、服务金额、接单 Entity、核销字段无效或人员分配超过可分配金额 */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3468,7 +3251,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功；handlers 为空表示不限接单人，数量精度由 quantity_step 推导 */
+            /** @description 成功；包含服务自己的 redemption_fields，handlers 为空表示不限接单人 */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3499,7 +3282,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description 步长、服务金额、接单 Entity 无效或人员分配超过可分配金额 */
+            /** @description 步长、服务金额、接单 Entity、核销字段无效或人员分配超过可分配金额 */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -3881,92 +3664,6 @@ export interface operations {
             };
         };
     };
-    productRedemptionFields: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    createProductRedemptionField: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": Record<string, never>;
-            };
-        };
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    updateProductRedemptionField: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-                field_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    deleteProductRedemptionField: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-                field_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     customerServices: {
         parameters: {
             query?: never;
@@ -4045,9 +3742,10 @@ export interface operations {
                      */
                     handler_entity_id?: 0;
                     memo?: string;
+                    /** @description 按最小核销步长逐份提交，数组顺序即履约资源序号 */
                     field_values?: {
                         [key: string]: unknown;
-                    };
+                    }[];
                 };
             };
         };
@@ -4092,9 +3790,10 @@ export interface operations {
                     quantity: string;
                     handler_entity_id: number;
                     memo?: string;
+                    /** @description 按最小核销步长逐份提交，数组顺序即履约资源序号 */
                     field_values?: {
                         [key: string]: unknown;
-                    };
+                    }[];
                 };
             };
         };
@@ -4166,9 +3865,10 @@ export interface operations {
                     /** @description 重新指定的接单 Entity */
                     handler_entity_id: number;
                     memo?: string;
+                    /** @description 按原履约资源序号重新提交字段 */
                     field_values?: {
                         [key: string]: unknown;
-                    };
+                    }[];
                 };
             };
         };

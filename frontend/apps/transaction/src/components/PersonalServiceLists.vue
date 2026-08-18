@@ -4,12 +4,14 @@ import { quantityScaleForStep } from '@lostsky/shared/quantity'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import { ArrowUpRight, ClipboardCheck, RadioTower, RotateCcw } from '@lucide/vue'
 import { NInput } from 'naive-ui'
-import { reactive } from 'vue'
+import { reactive, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { ServiceAssignmentOffer, ServiceField, ServiceRedemption } from '../types'
 
-defineProps<{
+const props = defineProps<{
   offers: ServiceAssignmentOffer[]
   available: ServiceRedemption[]
   assigned: ServiceRedemption[]
@@ -17,12 +19,19 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  acceptOffer: [id: number]
-  rejectOffer: [id: number]
-  claim: [id: number]
   returnTask: [id: number, reason: string]
 }>()
 const returnReasons = reactive<Record<number, string>>({})
+const returning = reactive<Record<number, boolean>>({})
+watch(() => props.assigned.map(row => row.id), ids => {
+  const activeIds = new Set(ids)
+  for (const key of Object.keys(returning)) {
+    const id = Number(key)
+    if (activeIds.has(id)) continue
+    delete returning[id]
+    delete returnReasons[id]
+  }
+})
 const quantityLabel = (row: ServiceRedemption | ServiceAssignmentOffer) => {
   const scale = quantityScaleForStep(row.entitlement?.quantity_step)
   return `${Number(row.quantity).toFixed(scale)} ${row.entitlement?.unit_name || '单位'}`
@@ -44,63 +53,81 @@ const fieldValue = (field: ServiceField) => {
 const returnTask = (id: number) => {
   emit('returnTask', id, returnReasons[id] ?? '')
 }
+const closeReturnTask = (id: number) => {
+  returning[id] = false
+  returnReasons[id] = ''
+}
 </script>
 
 <template>
   <div class="personal-service-lists">
     <LsPanel aria-labelledby="offer-service-title">
       <template #header>
-        <LsSectionHeader id="offer-service-title" title="待我确认" description="顾客（Customer）指定当前实体（Entity）、等待处理的接单邀请">
-          <template #aside><span class="group-count" aria-live="polite">{{ offers.length }} 个</span></template>
+        <LsSectionHeader id="offer-service-title" title="待我确认" description="进入详情填写接单资料，再接受顾客指定邀请。">
+          <template #aside><span class="group-count" aria-live="polite">{{ offers.length }} 项</span></template>
         </LsSectionHeader>
       </template>
-      <p v-if="!offers.length" class="empty">当前没有待确认邀请。</p>
+      <div v-if="!offers.length" class="queue-empty"><strong>没有待确认邀请</strong><span>新的指定邀请会在这里等待你接受或拒绝。</span></div>
       <div v-else class="task-list">
-        <article v-for="offer in offers" :key="offer.id">
-          <div class="task-main">
-            <RouterLink :to="`/personal/service-offers/${offer.id}`"><strong>{{ offer.service?.name || `邀请 #${offer.id}` }}</strong><small>指定邀请 · {{ quantityLabel(offer) }} · 预计接单分成 {{ money(offer.handler_cut) }}</small></RouterLink>
-            <LsEntityIdentity type="customer" :name="customerName(offer)" size="sm" />
-            <dl class="task-facts"><div><dt>提交时间</dt><dd>{{ dateTime(offer.create_time) }}</dd></div></dl>
-            <dl v-if="offer.redemption_fields?.length" class="field-list"><div v-for="field in offer.redemption_fields" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ fieldValue(field) }}</dd></div></dl>
+        <article v-for="offer in offers" :key="offer.id" class="task-row">
+          <div class="task-summary">
+            <span class="task-kind"><ClipboardCheck :size="16" aria-hidden="true" />指定邀请 #{{ offer.id }}</span>
+            <RouterLink class="task-title" :to="`/personal/service-offers/${offer.id}`"><strong>{{ offer.service?.name || `邀请 #${offer.id}` }}</strong><ArrowUpRight :size="18" aria-hidden="true" /></RouterLink>
+            <dl class="task-metrics">
+              <div><dt>服务量</dt><dd>{{ quantityLabel(offer) }}</dd></div>
+              <div><dt>预计分成</dt><dd>{{ money(offer.handler_cut) }}</dd></div>
+              <div><dt>提交时间</dt><dd>{{ dateTime(offer.create_time) }}</dd></div>
+            </dl>
           </div>
-          <div class="task-actions"><LsButton size="sm" variant="secondary" :loading="acting" @click="emit('rejectOffer', offer.id)">拒绝</LsButton><LsButton size="sm" :loading="acting" @click="emit('acceptOffer', offer.id)">接受邀请</LsButton></div>
+          <div class="task-customer"><span class="task-label">顾客</span><LsEntityIdentity type="customer" :name="customerName(offer)" size="sm" /></div>
+          <div class="task-actions"><RouterLink class="task-detail-link" :to="`/personal/service-offers/${offer.id}`">查看详情<ArrowUpRight :size="16" aria-hidden="true" /></RouterLink></div>
+          <div v-if="offer.redemption_fields?.length" class="task-field-section"><span class="task-label">履约资料</span><dl class="field-list"><div v-for="field in offer.redemption_fields" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ fieldValue(field) }}</dd></div></dl></div>
         </article>
       </div>
     </LsPanel>
 
     <LsPanel aria-labelledby="available-service-title">
       <template #header>
-        <LsSectionHeader id="available-service-title" title="我可以接" description="当前实体所在接单池中的公开任务">
-          <template #aside><span class="group-count" aria-live="polite">{{ available.length }} 个</span></template>
+        <LsSectionHeader id="available-service-title" title="我可以接" description="进入详情选择本次接单数量、填写接单资料并确认领取。">
+          <template #aside><span class="group-count" aria-live="polite">{{ available.length }} 项</span></template>
         </LsSectionHeader>
       </template>
-      <p v-if="!available.length" class="empty">当前接单池没有公开任务。</p>
+      <div v-if="!available.length" class="queue-empty"><strong>当前没有公开任务</strong><span>符合接单池资格的新任务会出现在这里。</span></div>
       <div v-else class="task-list">
-        <article v-for="row in available" :key="row.id">
-          <div class="task-main">
-            <RouterLink :to="`/personal/services/available/${row.id}`"><strong>{{ row.service?.name || `任务 #${row.id}` }}</strong><small>公开召唤 · {{ quantityLabel(row) }} · 预计接单分成 {{ money((row as any).handler_cut) }}</small></RouterLink>
-            <LsEntityIdentity type="customer" :name="customerName(row)" size="sm" />
-            <dl v-if="row.redemption_fields?.length" class="field-list"><div v-for="field in row.redemption_fields" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ fieldValue(field) }}</dd></div></dl>
+        <article v-for="row in available" :key="row.id" class="task-row">
+          <div class="task-summary">
+            <span class="task-kind"><RadioTower :size="16" aria-hidden="true" />公开任务 #{{ row.id }}</span>
+            <RouterLink class="task-title" :to="`/personal/services/available/${row.id}`"><strong>{{ row.service?.name || `任务 #${row.id}` }}</strong><ArrowUpRight :size="18" aria-hidden="true" /></RouterLink>
+            <dl class="task-metrics"><div><dt>服务量</dt><dd>{{ quantityLabel(row) }}</dd></div><div><dt>预计分成</dt><dd>{{ money(row.handler_cut) }}</dd></div></dl>
           </div>
-          <LsButton class="claim-action" size="sm" :loading="acting" @click="emit('claim', row.id)">领取任务</LsButton>
+          <div class="task-customer"><span class="task-label">顾客</span><LsEntityIdentity type="customer" :name="customerName(row)" size="sm" /></div>
+          <div class="task-actions"><RouterLink class="task-detail-link" :to="`/personal/services/available/${row.id}`">查看详情<ArrowUpRight :size="16" aria-hidden="true" /></RouterLink></div>
+          <div v-if="row.redemption_fields?.length" class="task-field-section"><span class="task-label">履约资料</span><dl class="field-list"><div v-for="field in row.redemption_fields" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ fieldValue(field) }}</dd></div></dl></div>
         </article>
       </div>
     </LsPanel>
 
     <LsPanel aria-labelledby="assigned-service-title">
       <template #header>
-        <LsSectionHeader id="assigned-service-title" title="我的接单" description="已由当前实体接取、尚未退回的履约任务">
-          <template #aside><span class="group-count" aria-live="polite">{{ assigned.length }} 个</span></template>
+        <LsSectionHeader id="assigned-service-title" title="我的接单" description="已经由你接取的进行中任务，可查看详情或退回公开池。">
+          <template #aside><span class="group-count" aria-live="polite">{{ assigned.length }} 项</span></template>
         </LsSectionHeader>
       </template>
-      <p v-if="!assigned.length" class="empty">接受邀请或领取公开任务后会显示在这里。</p>
+      <div v-if="!assigned.length" class="queue-empty"><strong>还没有进行中的接单</strong><span>接受邀请或领取公开任务后，会进入这里持续处理。</span></div>
       <div v-else class="task-list">
-        <article v-for="row in assigned" :key="row.id">
-          <div class="task-main">
-            <RouterLink :to="`/personal/services/${row.id}`"><strong>{{ row.service?.name || `任务 #${row.id}` }}</strong><small>{{ quantityLabel(row) }} · {{ row.status_label || `状态 ${row.status}` }}</small></RouterLink>
-            <LsEntityIdentity type="customer" :name="customerName(row)" size="sm" />
+        <article v-for="row in assigned" :key="row.id" class="task-row">
+          <div class="task-summary">
+            <span class="task-kind"><ClipboardCheck :size="16" aria-hidden="true" />接单 #{{ row.id }}<LsStatusTag :label="row.status_label || `状态 ${row.status}`" :type="row.status === 3 ? 'success' : 'warning'" /></span>
+            <RouterLink class="task-title" :to="`/personal/services/${row.id}`"><strong>{{ row.service?.name || `任务 #${row.id}` }}</strong><ArrowUpRight :size="18" aria-hidden="true" /></RouterLink>
+            <dl class="task-metrics"><div><dt>服务量</dt><dd>{{ quantityLabel(row) }}</dd></div><div><dt>接取时间</dt><dd>{{ dateTime(row.started_at || row.create_time) }}</dd></div></dl>
           </div>
-          <div v-if="row.status === 2" class="return-action"><NInput v-model:value="returnReasons[row.id]" size="small" placeholder="填写退回原因" /><LsButton size="sm" variant="secondary" :disabled="!returnReasons[row.id]?.trim()" :loading="acting" @click="returnTask(row.id)">退回公开池</LsButton></div>
+          <div class="task-customer"><span class="task-label">顾客</span><LsEntityIdentity type="customer" :name="customerName(row)" size="sm" /></div>
+          <div v-if="row.status === 2 && !returning[row.id]" class="task-actions"><LsButton variant="secondary" :loading="acting" @click="returning[row.id] = true"><template #icon><RotateCcw :size="16" /></template>退回任务</LsButton></div>
+          <div v-if="row.status === 2 && returning[row.id]" class="return-composer">
+            <div><strong>退回公开池</strong><span>说明原因后，任务会重新开放给其他接单人。</span></div>
+            <NInput v-model:value="returnReasons[row.id]" placeholder="填写退回原因" maxlength="500" show-count :input-props="{ 'aria-label': '退回原因' }" />
+            <div class="return-actions"><LsButton variant="ghost" :disabled="acting" @click="closeReturnTask(row.id)">取消</LsButton><LsButton variant="secondary" :disabled="!returnReasons[row.id]?.trim()" :loading="acting" @click="returnTask(row.id)">确认退回</LsButton></div>
+          </div>
         </article>
       </div>
     </LsPanel>
@@ -108,6 +135,10 @@ const returnTask = (id: number) => {
 </template>
 
 <style scoped>
-.personal-service-lists{display:grid;gap:1.75rem}.group-count,.empty,.task-list small,.task-facts dt,.field-list dt{color:var(--muted-ink);font-size:.8rem}.group-count{font-variant-numeric:tabular-nums}.empty,.task-facts,.field-list{margin:0}.empty{line-height:1.6}.task-list{min-width:0;overflow:hidden}.task-list>article{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:1rem;padding:0 0 1rem;border-bottom:1px solid var(--border)}.task-list>article+article{padding-top:1rem}.task-list>article:last-child{padding-bottom:0;border-bottom:0}.task-main{min-width:0;display:grid;gap:.75rem}.task-main>a{min-width:0;color:var(--ink)}.task-main>a:hover strong{color:var(--primary)}.task-main strong,.task-main small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.task-main small{margin-top:.2rem}.task-facts,.field-list{display:flex;flex-wrap:wrap;gap:.5rem 1rem}.task-facts div,.field-list div{min-width:8rem}.task-facts dd,.field-list dd{margin:.15rem 0 0;overflow-wrap:anywhere}.field-list{padding:.75rem;background:var(--cloud);border-radius:8px}.task-actions,.return-action{display:flex;align-items:center;gap:.5rem}.return-action{width:min(24rem,100%)}.return-action .n-input{min-width:10rem}
-@media(max-width:700px){.task-list>article{grid-template-columns:1fr}.task-actions,.return-action{width:100%}.task-actions>*{flex:1}.return-action{align-items:stretch;flex-direction:column}.claim-action{width:100%}.task-facts,.field-list{display:grid;grid-template-columns:1fr}.task-facts div,.field-list div{min-width:0}}
+.task-detail-link{display:inline-flex;align-items:center;gap:.35rem;color:var(--primary);font-size:.84rem;font-weight:700}.task-detail-link:hover{text-decoration:underline}
+.personal-service-lists{display:grid;gap:1.25rem}.group-count{min-width:3.75rem;display:inline-flex;align-items:center;justify-content:center;padding:.4rem .65rem;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 86%);border-radius:var(--radius-sm);font-size:.78rem;font-weight:750;font-variant-numeric:tabular-nums}.queue-empty{min-height:5.5rem;display:flex;justify-content:center;flex-direction:column;gap:.25rem;color:var(--muted-ink)}.queue-empty strong{color:var(--ink);font-size:.9rem}.queue-empty span{font-size:.8rem;line-height:1.55}.task-list{min-width:0;overflow:hidden}.task-row{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 15rem 16rem;grid-template-areas:"summary customer actions" "fields fields fields";align-items:center;gap:1rem 1.5rem;padding:0 0 1.25rem;border-bottom:1px solid var(--border)}.task-row+.task-row{padding-top:1.25rem}.task-row:last-child{padding-bottom:0;border-bottom:0}.task-summary{grid-area:summary;min-width:0;display:grid;gap:.5rem}.task-kind{min-width:0;display:flex;align-items:center;gap:.4rem;color:var(--sky-lost-strong);font-size:.75rem;font-weight:700;line-height:1.4}.task-title{width:fit-content;max-width:100%;display:flex;align-items:center;gap:.4rem;color:var(--ink)}.task-title strong{min-width:0;overflow:hidden;font-size:1.05rem;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}.task-title svg{flex:none;color:var(--muted-ink);transition:color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}.task-title:hover strong{color:var(--primary)}.task-title:hover svg{color:var(--primary);transform:translate(.1rem,-.1rem)}.task-metrics,.field-list{margin:0}.task-metrics{display:flex;flex-wrap:wrap;gap:.45rem 1.25rem}.task-metrics div{min-width:6.5rem}.task-metrics dt,.field-list dt,.task-label{color:var(--muted-ink);font-size:.72rem;font-weight:650;line-height:1.4}.task-metrics dd,.field-list dd{margin:.12rem 0 0;color:var(--ink);font-size:.84rem;line-height:1.45;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.task-customer{grid-area:customer;min-width:0;display:grid;gap:.45rem;padding-left:1.25rem;border-left:1px solid var(--border)}.task-actions{grid-area:actions;display:flex;align-items:center;justify-content:flex-end;gap:.5rem}.task-field-section{grid-area:fields;display:grid;grid-template-columns:6rem minmax(0,1fr);align-items:start;gap:1rem;padding-top:1rem;border-top:1px solid var(--border)}.field-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));gap:.75rem 1rem}.field-list div{min-width:0}.return-composer{grid-column:1/-1;display:grid;grid-template-columns:minmax(10rem,.65fr) minmax(14rem,1fr) auto;align-items:center;gap:1rem;padding:1rem;background:var(--cloud);border-radius:var(--radius-sm)}.return-composer>div:first-child{min-width:0;display:grid;gap:.2rem}.return-composer strong{font-size:.86rem}.return-composer span{color:var(--muted-ink);font-size:.76rem;line-height:1.5}.return-actions{display:flex;align-items:center;justify-content:flex-end;gap:.5rem}
+@media(max-width:1280px){.task-row{grid-template-columns:minmax(0,1fr) minmax(11rem,.5fr);grid-template-areas:"summary customer" "actions actions" "fields fields"}.task-actions{justify-content:flex-start}.return-composer{grid-template-columns:1fr minmax(14rem,1.25fr)}.return-actions{grid-column:2}}
+@media(max-width:700px){.personal-service-lists{gap:1rem}.task-row{grid-template-columns:1fr;grid-template-areas:"summary" "customer" "fields" "actions";gap:1rem}.task-customer{padding:1rem 0 0;border-top:1px solid var(--border);border-left:0}.task-actions{width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))}.task-actions>*{width:100%}.task-field-section{grid-template-columns:1fr;gap:.6rem}.field-list{grid-template-columns:1fr}.return-composer{grid-template-columns:1fr}.return-actions{grid-column:auto;justify-content:stretch}.return-actions>*{flex:1}.task-title strong{white-space:normal;overflow-wrap:anywhere}.task-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.task-metrics div{min-width:0}}
+@media(max-width:420px){.task-metrics{grid-template-columns:1fr}.return-actions{flex-direction:column}.return-actions>*{width:100%}}
+@media(prefers-reduced-motion:reduce){.task-title svg{transition:none}.task-title:hover svg{transform:none}}
 </style>

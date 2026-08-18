@@ -21,6 +21,7 @@ import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
+import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import LsPage from '@lostsky/ui/components/LsPage.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
@@ -225,12 +226,24 @@ const page = story('LsPage', passive, () => h(LsPage, { width: 'content' }, { de
 
 const pageHeader = story('LsPageHeader', ['default', 'hover', 'focus', 'active', 'disabled', 'mobile'], state => stage(h(LsPageHeader, {
   title: '对象字段', description: '统一定义人员、顾客和虚拟实体的团队内部资料。', backTo: '/', backLabel: '返回工作台',
-}, { actions: () => h(LsButton, { disabled: state === 'disabled' }, { default: () => '创建字段' }) })), { loading: '页面标题不负责加载状态。', error: '页面错误由内容区域表达。' })
+}, { actions: () => h(LsPagePrimaryAction, { icon: Plus, label: '创建字段', disabled: state === 'disabled', disabledReason: state === 'disabled' ? '当前身份不能创建字段' : '' }) })), { loading: '页面标题不负责加载状态。', error: '页面错误由内容区域表达。' })
 
 const panel = story('LsPanel', passive, () => stage(h(LsPanel, null, {
   header: () => h('div', [h('strong', '顾客资料'), h('p', '经营资料与当前状态')]),
   default: () => h('p', '当前归属：青空成员'),
   footer: () => h('small', '更新于今天 14:30'),
+})))
+
+const metricGrid = story('LsMetricGrid', passive, () => stage(h(LsMetricGrid, {
+  ariaLabel: '经营统计摘要',
+  items: [
+    { key: 'performance', label: '履约业绩', value: '¥12,860.00', hint: '42 次服务核销' },
+    { key: 'flow', label: '实际流水', value: '¥15,420.00', hint: '现金与预存款' },
+    { key: 'orders', label: '接单数', value: 68, hint: '非纯收款流水' },
+    { key: 'dispatch', label: '派单数', value: 51, hint: '按发单人统计' },
+    { key: 'average', label: '平均单价', value: '¥189.12', hint: '按履约流水平均' },
+    { key: 'cost', label: '成本', value: '¥3,260.00', hint: '直接成本' },
+  ],
 })))
 
 const actions = [
@@ -320,7 +333,7 @@ export const uiStories: Record<string, StoryDefinition> = {
   LsEmptyState: emptyState, LsEntityCard: entityCard,
   LsEntityIdentity: entityIdentity, LsEntityInput: entityInput, LsEntitySelect: entitySelect, LsEntityTag: entityTag, LsField: field, LsFormList: formList,
   LsFormActions: formActions, LsFormSection: formSection, LsInlineError: inlineError, LsInput: input, LsListToolbar: listToolbar, LsMarkdownEditor: markdownEditor, LsMediaUploadField: mediaUploadField,
-  LsMarkdownRenderer: markdownRenderer, LsPage: page, LsPageHeader: pageHeader, LsPagePrimaryAction: pagePrimaryAction, LsPanel: panel,
+  LsMarkdownRenderer: markdownRenderer, LsMetricGrid: metricGrid, LsPage: page, LsPageHeader: pageHeader, LsPagePrimaryAction: pagePrimaryAction, LsPanel: panel,
   LsResponsiveActions: responsiveActions, LsResponsiveDataTable: responsiveDataTable,
   LsRouteErrorBoundary: routeBoundary, LsSearchInput: searchInput, LsSectionHeader: sectionHeader, LsStatusTag: statusTag,
   LsSwitch: switchControl, LsSwitchField: switchField, LsUploadField: uploadField, LsWorkspaceHeader: workspaceHeader, LsWorkspaceOverview: workspaceOverview,

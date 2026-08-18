@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { auth } from '@lostsky/api/client'
-import { chatWorkspaceUrl, redirectToLogin, shopWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
+import { chatWorkspaceUrl, identityUrl, shopWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import {
   Bell, BookOpen, Bot, Boxes, ChevronDown, ChevronRight,
-  FileClock, FileText, Files, House, ListPlus, LogOut, Menu, MessageCircleMore, ReceiptText, Send, Settings, ShieldCheck,
+  FileClock, FileText, Files, House, ListPlus, Menu, MessageCircleMore, ReceiptText, Send, Settings, ShieldCheck,
   Contact, KeyRound, Store, UserRound, Users, X,
 } from '@lucide/vue'
 import { NButton } from 'naive-ui'
@@ -126,11 +125,6 @@ function scrollMenuDown() {
   })
 }
 
-function logout() {
-  auth.clear()
-  redirectToLogin()
-}
-
 onMounted(() => {
   void nextTick(updateMenuScroll)
   window.addEventListener('resize', updateMenuScroll)
@@ -199,7 +193,7 @@ watch(
           <ChevronDown :size="18" stroke-width="2.4" />
         </NButton>
       </div>
-      <NButton class="logout" quaternary @click="logout"><template #icon><LogOut :size="18" /></template>退出登录</NButton>
+      <NButton class="logout" quaternary tag="a" :href="identityUrl()"><template #icon><ShieldCheck :size="18" /></template>切换身份</NButton>
     </aside>
 
     <Transition name="ls-backdrop">

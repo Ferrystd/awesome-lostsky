@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\model\BenefitPackage;
 use app\model\TeamProduct;
 use think\exception\HttpException;
 
@@ -80,6 +81,31 @@ class Storefront
 
         $data['introduction_markdown'] = $product->introduction_markdown ?: null;
         $data['handlers'] = $handlers;
+        $packageId = (int) ($product->benefit_package_id ?? 0);
+        $package = $packageId > 0
+            ? BenefitPackage::where('issuer_team_id', (int) $product->team_id)
+                ->with(['services.service'])
+                ->find($packageId)
+            : null;
+        $data['benefit_package'] = $package ? [
+            'name' => (string) $package->name,
+            'services' => array_values(array_filter(array_map(
+                static function ($item): ?array {
+                    $service = $item->service;
+                    if (!$service) return null;
+                    return [
+                        'id' => (int) $service->id,
+                        'name' => (string) $service->name,
+                        'description' => $service->description ?: null,
+                        'quantity' => (string) $item->quantity,
+                        'unit_name' => (string) $service->unit_name,
+                        'quantity_step' => (string) $service->quantity_step,
+                        'valid_days' => (int) $item->valid_days,
+                    ];
+                },
+                ($package->services ?? collect())->all()
+            ))),
+        ] : null;
         return $data;
     }
 }

@@ -1,406 +1,364 @@
 <script setup lang="ts">
-import { api, friendlyError } from "@lostsky/api/client";
-import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
-import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
-import LsPanel from "@lostsky/ui/components/LsPanel.vue";
-import LsSectionHeader from "@lostsky/ui/components/LsSectionHeader.vue";
-import { useQueries } from "@tanstack/vue-query";
-import { BarChart3 } from "@lucide/vue";
-import { NDataTable, NDatePicker } from "naive-ui";
-import type { DataTableColumns } from "naive-ui";
-import { computed, h, ref } from "vue";
-import { integer, money } from "../lib";
+import { api, friendlyError } from '@lostsky/api/client'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import { useQueries, useQuery } from '@tanstack/vue-query'
+import { ChevronLeft, ChevronRight } from '@lucide/vue'
+import {
+  NDataTable,
+  NDatePicker,
+  NPagination,
+  NRadioButton,
+  NRadioGroup,
+  NSelect,
+} from 'naive-ui'
+import type { DataTableColumns, DataTableSortState } from 'naive-ui'
+import { computed, h, ref, watch } from 'vue'
+import PersonTickRanking from '../components/PersonTickRanking.vue'
+import TransactionFlowTrend from '../components/TransactionFlowTrend.vue'
+import { integer, money } from '../lib'
+import { fillTimeline, periodRange, shiftPeriod } from '../lib/stats-period'
+import type { StatsPeriod } from '../lib/stats-period'
 import type {
   AssigneeStat,
   CustomerStat,
   EntityStat,
+  PersonStat,
+  PersonStatsPage,
   StatsSummary,
   TimelineStat,
-} from "../types";
+} from '../types'
 
-const now = new Date();
-const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).getTime();
-const range = ref<[number, number]>([start, end]);
+type SortKey = 'handler_performance_total' | 'handler_count' | 'sender_count' | 'sender_performance_total' | 'income_total'
+
+const period = ref<StatsPeriod>('month')
+const periodAnchor = ref(Date.now())
+const page = ref(1)
+const limit = 20
+const sortBy = ref<SortKey>('handler_performance_total')
+const sortOrder = ref<'asc' | 'desc'>('desc')
+const range = computed(() => periodRange(periodAnchor.value, period.value))
 const params = computed(() => ({
   start_time: Math.floor(range.value[0] / 1000),
-  end_time: Math.floor(range.value[1] / 1000) + 86400,
-}));
+  end_time: Math.floor(range.value[1] / 1000),
+}))
+const pickerType = computed(() => period.value === 'day' ? 'date' : period.value)
+const periodUnit = computed(() => period.value === 'day' ? '日' : period.value === 'week' ? '周' : '月')
+const timelineGranularity = computed(() => period.value === 'day' ? 'hour' : 'day')
+const periodLabel = computed(() => {
+  const start = new Date(range.value[0])
+  const end = new Date(range.value[1] - 1)
+  if (period.value === 'day') return `${start.getFullYear()}年${start.getMonth() + 1}月${start.getDate()}日`
+  if (period.value === 'month') return `${start.getFullYear()}年${start.getMonth() + 1}月`
+  return `${start.getMonth() + 1}月${start.getDate()}日—${end.getMonth() + 1}月${end.getDate()}日`
+})
+
+watch([period, periodAnchor, sortBy, sortOrder], () => { page.value = 1 })
+
 const queries = useQueries({
   queries: computed(() => [
     {
-      queryKey: ["transaction-stats", "summary", params.value],
-      queryFn: () =>
-        api.get<StatsSummary>("/transaction/stats", {
-          ...params.value,
-          type: "summary",
-        }),
+      queryKey: ['transaction-stats', 'summary', params.value],
+      queryFn: () => api.get<StatsSummary>('/transaction/stats', { ...params.value, type: 'summary' }),
     },
     {
-      queryKey: ["transaction-stats", "timeline", params.value],
-      queryFn: () =>
-        api.get<TimelineStat[]>("/transaction/stats", {
-          ...params.value,
-          type: "timeline",
-          granularity: "day",
-        }),
+      queryKey: ['transaction-stats', 'timeline', timelineGranularity.value, params.value],
+      queryFn: () => api.get<TimelineStat[]>('/transaction/stats', {
+        ...params.value,
+        type: 'timeline',
+        granularity: timelineGranularity.value,
+      }),
     },
     {
-      queryKey: ["transaction-stats", "entities", params.value],
-      queryFn: () =>
-        api.get<EntityStat[]>("/transaction/stats", {
-          ...params.value,
-          type: "byEntity",
-          role: "handler",
-        }),
+      queryKey: ['transaction-stats', 'entities', params.value],
+      queryFn: () => api.get<EntityStat[]>('/transaction/stats', { ...params.value, type: 'byEntity', role: 'handler' }),
     },
     {
-      queryKey: ["transaction-stats", "customers", params.value],
-      queryFn: () =>
-        api.get<CustomerStat[]>("/transaction/stats", {
-          ...params.value,
-          type: "byCustomer",
-        }),
+      queryKey: ['transaction-stats', 'customers', params.value],
+      queryFn: () => api.get<CustomerStat[]>('/transaction/stats', { ...params.value, type: 'byCustomer' }),
     },
     {
-      queryKey: ["transaction-stats", "assignees", params.value],
-      queryFn: () =>
-        api.get<AssigneeStat[]>("/transaction/stats", {
-          ...params.value,
-          type: "byAssignee",
-        }),
+      queryKey: ['transaction-stats', 'assignees', params.value],
+      queryFn: () => api.get<AssigneeStat[]>('/transaction/stats', { ...params.value, type: 'byAssignee' }),
     },
   ]),
-});
-const summary = computed(
-  () => queries.value[0]?.data as StatsSummary | undefined,
-);
-const timeline = computed(
-  () => (queries.value[1]?.data ?? []) as TimelineStat[],
-);
-const entities = computed(() => (queries.value[2]?.data ?? []) as EntityStat[]);
-const customers = computed(
-  () => (queries.value[3]?.data ?? []) as CustomerStat[],
-);
-const assignees = computed(
-  () => (queries.value[4]?.data ?? []) as AssigneeStat[],
-);
-const pending = computed(() => queries.value.some((item) => item.isPending));
-const error = computed(() => queries.value.find((item) => item.error)?.error);
-const maxTimeline = computed(() =>
-  Math.max(1, ...timeline.value.map((item) => Number(item.amount))),
-);
+})
+const personQuery = useQuery({
+  queryKey: computed(() => ['transaction-stats', 'people', params.value, page.value, sortBy.value, sortOrder.value]),
+  queryFn: () => api.get<PersonStatsPage>('/transaction/stats', {
+    ...params.value,
+    type: 'byPerson',
+    page: page.value,
+    limit,
+    sort_by: sortBy.value,
+    sort_order: sortOrder.value,
+  }),
+})
+const rankingQuery = useQuery({
+  queryKey: computed(() => ['transaction-stats', 'people-ranking', params.value, sortBy.value]),
+  queryFn: () => api.get<PersonStatsPage>('/transaction/stats', {
+    ...params.value,
+    type: 'byPerson',
+    page: 1,
+    limit: 8,
+    sort_by: sortBy.value,
+    sort_order: 'desc',
+  }),
+})
+
+const summary = computed(() => queries.value[0]?.data as StatsSummary | undefined)
+const timeline = computed(() => (queries.value[1]?.data ?? []) as TimelineStat[])
+const entities = computed(() => (queries.value[2]?.data ?? []) as EntityStat[])
+const customers = computed(() => (queries.value[3]?.data ?? []) as CustomerStat[])
+const assignees = computed(() => (queries.value[4]?.data ?? []) as AssigneeStat[])
+const summaryPending = computed(() => queries.value[0]?.isPending ?? true)
+const summaryError = computed(() => queries.value[0]?.error)
+const timelinePending = computed(() => queries.value[1]?.isPending ?? true)
+const timelineError = computed(() => queries.value[1]?.error)
+const entitiesPending = computed(() => queries.value[2]?.isPending ?? true)
+const entitiesError = computed(() => queries.value[2]?.error)
+const customersPending = computed(() => queries.value[3]?.isPending ?? true)
+const customersError = computed(() => queries.value[3]?.error)
+const assigneesPending = computed(() => queries.value[4]?.isPending ?? true)
+const assigneesError = computed(() => queries.value[4]?.error)
+const people = computed(() => personQuery.data.value?.list ?? [])
+const pageCount = computed(() => Math.max(1, Math.ceil((personQuery.data.value?.total ?? 0) / limit)))
+
+const summaryItems = computed(() => [
+  { key: 'performance', label: '履约业绩', value: money(summary.value?.performance_total), hint: `${integer(summary.value?.service_redemption_count)} 次服务核销` },
+  { key: 'receipt', label: '实际流水', value: money(summary.value?.receipt_total ?? summary.value?.total_price), hint: `${integer(summary.value?.service_receipt_count)} 笔服务包收款` },
+  { key: 'recharge', label: '新增预存', value: money(summary.value?.recharge_total), hint: '顾客充值' },
+  { key: 'cash', label: '现款', value: money(summary.value?.cash_total), hint: '实时支付' },
+  { key: 'prepaid', label: '预存款', value: money(summary.value?.prepaid_total), hint: '余额支付' },
+  { key: 'cost', label: '成本', value: money(summary.value?.total_cost), hint: '直接成本' },
+])
+const filledTimeline = computed(() => fillTimeline(timeline.value, range.value[0], range.value[1], period.value))
+const flowPoints = computed(() => filledTimeline.value.map(item => ({
+  key: item.date,
+  label: period.value === 'day'
+    ? `${item.date.slice(11, 13)}时`
+    : `${Number(item.date.slice(5, 7))}/${Number(item.date.slice(8, 10))}`,
+  value: Number(item.receipt_amount),
+})))
+const sortLabels: Record<SortKey, string> = {
+  handler_performance_total: '接单业绩',
+  handler_count: '接单数',
+  sender_count: '派单数',
+  sender_performance_total: '发单业绩',
+  income_total: '个人收入',
+}
+const sortOptions = Object.entries(sortLabels).map(([value, label]) => ({ value, label }))
+const moneySort = computed(() => !['handler_count', 'sender_count'].includes(sortBy.value))
+const rankingRows = computed(() => (rankingQuery.data.value?.list ?? []).map(row => ({
+  key: row.entity_id,
+  name: row.name || `主体 #${row.entity_id}`,
+  value: Number(row[sortBy.value]),
+})))
+
+function shift(amount: number) {
+  periodAnchor.value = shiftPeriod(periodAnchor.value, period.value, amount)
+}
+function updateAnchor(value: number | null) {
+  if (typeof value === 'number') periodAnchor.value = value
+}
+function updateSorter(state: DataTableSortState | DataTableSortState[] | null) {
+  const selected = Array.isArray(state) ? state[0] : state
+  if (!selected?.columnKey || !selected.order) return
+  sortBy.value = selected.columnKey as SortKey
+  sortOrder.value = selected.order === 'ascend' ? 'asc' : 'desc'
+}
+const sortState = (key: SortKey) => sortBy.value === key ? (sortOrder.value === 'asc' ? 'ascend' : 'descend') : false
+const personColumns = computed<DataTableColumns<PersonStat>>(() => [
+  {
+    title: '人员',
+    key: 'name',
+    width: 220,
+    render: row => h(LsEntityIdentity, { type: 'unknown', name: row.name || `主体 #${row.entity_id}`, slug: row.slug ?? '', imageUrl: row.avatar }),
+  },
+  { title: '接单数', key: 'handler_count', sorter: true, sortOrder: sortState('handler_count'), render: row => integer(row.handler_count) },
+  { title: '派单数', key: 'sender_count', sorter: true, sortOrder: sortState('sender_count'), render: row => integer(row.sender_count) },
+  { title: '接单业绩', key: 'handler_performance_total', sorter: true, sortOrder: sortState('handler_performance_total'), render: row => money(row.handler_performance_total) },
+  { title: '发单业绩', key: 'sender_performance_total', sorter: true, sortOrder: sortState('sender_performance_total'), render: row => money(row.sender_performance_total) },
+  { title: '个人收入', key: 'income_total', sorter: true, sortOrder: sortState('income_total'), render: row => money(row.income_total) },
+])
 const assigneeColumns: DataTableColumns<AssigneeStat> = [
   {
-    title: "归属人",
-    key: "name",
-    render: (row) =>
-      h("span", [
-        h("strong", row.name || `主体 #${row.entity_id}`),
-        row.slug ? h("small", `@${row.slug}`) : null,
-      ]),
+    title: '发单人',
+    key: 'name',
+    render: row => h('span', [h('strong', row.name || `主体 #${row.entity_id}`), row.slug ? h('small', `@${row.slug}`) : null]),
   },
-  {
-    title: "成交顾客",
-    key: "customer_count",
-    render: (row) => integer(row.customer_count),
-  },
-  {
-    title: "流水",
-    key: "transaction_count",
-    render: (row) => integer(row.transaction_count),
-  },
-  {
-    title: "成交额",
-    key: "total_price",
-    render: (row) => money(row.total_price),
-  },
-  { title: "成本", key: "total_cost", render: (row) => money(row.total_cost) },
-  { title: "团队所得", key: "team_cut", render: (row) => money(row.team_cut) },
-];
+  { title: '成交顾客', key: 'customer_count', render: row => integer(row.customer_count) },
+  { title: '流水', key: 'transaction_count', render: row => integer(row.transaction_count) },
+  { title: '成交额', key: 'total_price', render: row => money(row.total_price) },
+  { title: '成本', key: 'total_cost', render: row => money(row.total_cost) },
+  { title: '团队所得', key: 'team_cut', render: row => money(row.team_cut) },
+]
 </script>
 
 <template>
   <div class="stats-view">
-    <LsPageHeader
-      title="经营统计"
-      description="分开查看实际收款与履约业绩，服务包购买和逐次核销不会重复计算。"
-    >
-      <template #actions>
-        <NDatePicker
-          v-model:value="range"
-          type="daterange"
-          :clearable="false"
-        />
-      </template>
-    </LsPageHeader>
-    <LsAsyncState
-      v-if="error"
-      state="error"
-      title="暂时无法读取经营统计"
-      :description="friendlyError(error)"
-    />
-    <LsAsyncState v-else-if="pending" state="loading" :rows="5" />
+    <LsPageHeader title="经营统计" description="按自然日、周或月查看团队实际流水、履约业绩与人员贡献。" />
+
+    <section class="period-toolbar" aria-label="统计周期">
+      <NRadioGroup v-model:value="period" name="stats-period" aria-label="周期粒度">
+        <NRadioButton value="day">日</NRadioButton>
+        <NRadioButton value="week">周</NRadioButton>
+        <NRadioButton value="month">月</NRadioButton>
+      </NRadioGroup>
+      <div class="period-navigator">
+        <LsButton variant="ghost" size="sm" :aria-label="`上一${periodUnit}`" @click="shift(-1)">
+          <template #icon><ChevronLeft :size="17" /></template>上一{{ periodUnit }}
+        </LsButton>
+        <NDatePicker :value="periodAnchor" :type="pickerType" :clearable="false" aria-label="选择统计日期" @update:value="updateAnchor" />
+        <LsButton variant="ghost" size="sm" :aria-label="`下一${periodUnit}`" @click="shift(1)">
+          下一{{ periodUnit }}<template #icon><ChevronRight :size="17" /></template>
+        </LsButton>
+      </div>
+      <strong class="period-label">{{ periodLabel }}</strong>
+    </section>
+
+    <LsAsyncState v-if="summaryError" state="error" title="暂时无法读取经营统计" :description="friendlyError(summaryError)" />
+    <LsAsyncState v-else-if="summaryPending" state="loading" :rows="5" />
     <template v-else>
-      <LsPanel
-        ><section class="metrics" aria-label="统计摘要">
-          <article>
-            <span>履约业绩</span
-            ><strong class="ls-tabular">{{
-              money(summary?.performance_total)
-            }}</strong
-            ><small
-              >{{
-                integer(summary?.service_redemption_count)
-              }}
-              次服务核销</small
-            >
-          </article>
-          <article>
-            <span>成交金额</span
-            ><strong class="ls-tabular">{{
-              money(summary?.receipt_total ?? (summary as any)?.total_price)
-            }}</strong
-            ><small
-              >收款口径 ·
-              {{ integer(summary?.service_receipt_count) }} 笔服务包收款</small
-            >
-          </article>
-          <article>
-            <span>平均单价</span
-            ><strong class="ls-tabular">{{ money(summary?.avg_price) }}</strong
-            ><small>按流水平均</small>
-          </article>
-          <article>
-            <span>现款</span
-            ><strong class="ls-tabular">{{ money(summary?.cash_total) }}</strong
-            ><small>实时支付</small>
-          </article>
-          <article>
-            <span>预存款</span
-            ><strong class="ls-tabular">{{
-              money(summary?.prepaid_total)
-            }}</strong
-            ><small>余额支付</small>
-          </article>
-          <article>
-            <span>成本</span
-            ><strong class="ls-tabular">{{ money(summary?.total_cost) }}</strong
-            ><small>直接成本</small>
-          </article>
-        </section></LsPanel
-      >
-      <LsPanel
-        ><section class="chart">
-          <LsSectionHeader title="每日成交" description="柱长表示当天成交金额，数字保留精确值。" :heading-level="3" />
-          <div
-            v-if="timeline.length"
-            class="bars"
-            role="img"
-            aria-label="每日成交金额条形图"
-          >
-            <div v-for="item in timeline" :key="item.date">
-              <span>{{ item.date }}</span>
-              <i
-                ><b
-                  :style="{
-                    width: `${Math.max(2, (Number(item.amount) / maxTimeline) * 100)}%`,
-                  }"
-              /></i>
-              <strong>{{ money(item.amount) }}</strong>
-            </div>
+      <LsPanel><LsMetricGrid :items="summaryItems" aria-label="经营统计摘要" /></LsPanel>
+
+      <LsPanel>
+        <LsAsyncState v-if="timelinePending" state="loading" :rows="4" />
+        <LsAsyncState v-else-if="timelineError" state="error" title="暂时无法读取实际流水趋势" :description="friendlyError(timelineError)" />
+        <TransactionFlowTrend v-else :points="flowPoints" :period-label="periodLabel" />
+      </LsPanel>
+
+      <LsPanel>
+        <LsAsyncState v-if="rankingQuery.isPending.value" state="loading" :rows="4" />
+        <LsAsyncState v-else-if="rankingQuery.isError.value" state="error" title="暂时无法读取人员排行" :description="friendlyError(rankingQuery.error.value)" />
+        <PersonTickRanking v-else-if="rankingRows.length" :rows="rankingRows" :metric-label="sortLabels[sortBy]" :money-metric="moneySort" />
+        <p v-else class="hint">所选时间内暂无人员业绩。</p>
+      </LsPanel>
+
+      <LsPanel>
+        <section class="person-performance">
+          <LsSectionHeader title="人员业绩明细" :description="`共 ${integer(personQuery.data.value?.total)} 人 · 可切换排序指标，排行榜同步切换指标`" :heading-level="3" />
+          <div class="mobile-sort" aria-label="人员明细排序">
+            <label for="person-sort-metric">排序指标</label>
+            <NSelect id="person-sort-metric" v-model:value="sortBy" :options="sortOptions" />
+            <NRadioGroup v-model:value="sortOrder" name="person-sort-order" aria-label="排序方向">
+              <NRadioButton value="desc">从高到低</NRadioButton>
+              <NRadioButton value="asc">从低到高</NRadioButton>
+            </NRadioGroup>
           </div>
-          <div v-else class="mini-empty">
-            <BarChart3 :size="30" /><span>所选时间内没有成交数据</span>
-          </div>
-        </section></LsPanel
-      >
+          <LsAsyncState v-if="personQuery.isPending.value" state="loading" :rows="5" />
+          <LsAsyncState v-else-if="personQuery.isError.value" state="error" title="暂时无法读取人员明细" :description="friendlyError(personQuery.error.value)" />
+          <template v-else-if="people.length">
+            <LsResponsiveDataTable :columns="personColumns" :data="people" :row-key="row => row.entity_id" :scroll-x="940" @update:sorter="updateSorter">
+              <template #mobile-title="{ row }"><span>{{ row.name || `主体 #${row.entity_id}` }}</span></template>
+              <template #mobile="{ row }">
+                <dl>
+                  <dt>接单数</dt><dd>{{ integer(row.handler_count) }}</dd>
+                  <dt>派单数</dt><dd>{{ integer(row.sender_count) }}</dd>
+                  <dt>接单业绩</dt><dd>{{ money(row.handler_performance_total) }}</dd>
+                  <dt>发单业绩</dt><dd>{{ money(row.sender_performance_total) }}</dd>
+                  <dt>个人收入</dt><dd>{{ money(row.income_total) }}</dd>
+                </dl>
+              </template>
+            </LsResponsiveDataTable>
+            <footer class="pager">
+              <span>第 {{ page }} / {{ pageCount }} 页</span>
+              <NPagination v-model:page="page" :page-count="pageCount" />
+            </footer>
+          </template>
+          <p v-else class="hint">所选时间内暂无人员参与流水。</p>
+        </section>
+      </LsPanel>
+
       <section class="rankings">
-        <LsPanel
-          ><article>
-            <LsSectionHeader title="接单人分成" description="按分成金额从高到低" :heading-level="3" />
-            <ol v-if="entities.length">
-              <li v-for="item in entities" :key="String(item.entity_id)">
-                <span
-                  >{{ item.name || "团队主体"
-                  }}<small>{{ item.count }} 笔</small></span
-                ><strong>{{ money(item.amount) }}</strong>
-              </li>
-            </ol>
-            <p v-else class="hint">暂无接单人统计。</p>
-          </article></LsPanel
-        >
-        <LsPanel
-          ><article>
-            <LsSectionHeader title="顾客贡献" description="按成交金额从高到低" :heading-level="3" />
-            <ol v-if="customers.length">
-              <li v-for="item in customers" :key="String(item.customer_id)">
-                <span
-                  >{{ item.customer_name || "未关联顾客"
-                  }}<small>{{ item.count }} 笔</small></span
-                ><strong>{{ money(item.amount) }}</strong>
-              </li>
-            </ol>
-            <p v-else class="hint">暂无顾客统计。</p>
-          </article></LsPanel
-        >
+        <LsPanel><article>
+          <LsSectionHeader title="接单数量" description="按接单数量从高到低" :heading-level="3" />
+          <LsAsyncState v-if="entitiesPending" state="loading" :rows="3" />
+          <LsAsyncState v-else-if="entitiesError" state="error" title="暂时无法读取接单数量" :description="friendlyError(entitiesError)" />
+          <ol v-else-if="entities.length">
+            <li v-for="item in entities" :key="String(item.entity_id)"><span>{{ item.name || '团队主体' }}</span><strong>{{ integer(item.count) }} 笔</strong></li>
+          </ol>
+          <p v-else class="hint">暂无接单人统计。</p>
+        </article></LsPanel>
+        <LsPanel><article>
+          <LsSectionHeader title="顾客贡献" description="按成交金额从高到低" :heading-level="3" />
+          <LsAsyncState v-if="customersPending" state="loading" :rows="3" />
+          <LsAsyncState v-else-if="customersError" state="error" title="暂时无法读取顾客贡献" :description="friendlyError(customersError)" />
+          <ol v-else-if="customers.length">
+            <li v-for="item in customers" :key="String(item.customer_id)"><span>{{ item.customer_name || '未关联顾客' }}<small>{{ item.count }} 笔</small></span><strong>{{ money(item.amount) }}</strong></li>
+          </ol>
+          <p v-else class="hint">暂无顾客统计。</p>
+        </article></LsPanel>
       </section>
-      <LsPanel
-        ><section class="assignee-performance">
-          <LsSectionHeader title="归属业绩" description="按交易发生时写入的发单归属统计，之后改归属不会改变历史。" :heading-level="3" />
-          <NDataTable
-            v-if="assignees.length"
-            :columns="assigneeColumns"
-            :data="assignees"
-            :row-key="(row) => row.entity_id"
-            :scroll-x="760"
-          />
-          <p v-else class="hint">所选时间内暂无带顾客归属的成交。</p>
-        </section></LsPanel
-      >
+
+      <LsPanel><section class="assignee-performance">
+        <LsSectionHeader title="发单业绩" description="按流水保存的发单人统计；顾客有归属人时会自动写入该归属人。" :heading-level="3" />
+        <LsAsyncState v-if="assigneesPending" state="loading" :rows="3" />
+        <LsAsyncState v-else-if="assigneesError" state="error" title="暂时无法读取发单业绩" :description="friendlyError(assigneesError)" />
+        <NDataTable v-else-if="assignees.length" :columns="assigneeColumns" :data="assignees" :row-key="row => row.entity_id" :scroll-x="760" />
+        <p v-else class="hint">所选时间内暂无带发单人的成交。</p>
+      </section></LsPanel>
     </template>
   </div>
 </template>
 
 <style scoped>
-.stats-view {
+.stats-view { display: grid; gap: 1.25rem; }
+.period-toolbar {
   display: grid;
-  gap: 1.25rem;
-}
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-}
-.metrics article {
-  display: grid;
-  gap: 0.25rem;
-  padding: 1.15rem;
-  border-right: 1px solid var(--line);
-}
-.metrics article:nth-child(3n) {
-  border-right: 0;
-}
-.metrics article:nth-child(-n + 3) {
-  border-bottom: 1px solid var(--line);
-}
-.metrics span,
-.metrics small {
-  color: var(--muted-ink);
-  font-size: 0.76rem;
-}
-.metrics strong {
-  font-size: 1.12rem;
-}
-.bars {
-  display: grid;
-  gap: 0.65rem;
-  margin-top: 1rem;
-}
-.bars > div {
-  display: grid;
-  grid-template-columns: 6.5rem minmax(6rem, 1fr) 7.5rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 0.75rem;
-  font-size: 0.78rem;
-}
-.bars i {
-  height: 8px;
-  overflow: hidden;
-  border-radius: 4px;
-  background: var(--cloud);
-}
-.bars b {
-  display: block;
-  height: 100%;
-  border-radius: 4px;
-  background: var(--sky-lost-strong);
-}
-.bars strong {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.mini-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  padding: 3rem;
-  color: var(--muted-ink);
-}
-.rankings {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
-.rankings ol {
-  list-style: none;
-  margin: 1rem 0 0;
-  padding: 0;
-}
-.rankings li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.7rem 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 0.875rem;
-}
-.rankings li:last-child {
-  border-bottom: 0;
-}
+.period-toolbar > :first-child { justify-self: start; }
+.period-navigator { display: flex; align-items: center; justify-content: center; gap: .5rem; }
+.period-navigator :deep(.n-date-picker) { width: 12rem; }
+.period-label { justify-self: end; color: var(--text-secondary); font-size: .82rem; font-variant-numeric: tabular-nums; }
+.person-performance,
+.assignee-performance { min-width: 0; }
+.person-performance > :first-child,
+.assignee-performance > :first-child { margin-bottom: 1rem; }
+.mobile-sort { display: none; }
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; color: var(--text-secondary); font-size: .8rem; }
+.rankings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.rankings ol { list-style: none; margin: 1rem 0 0; padding: 0; }
+.rankings li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem 0; border-bottom: 1px solid var(--border); font-size: .875rem; }
+.rankings li:last-child { border-bottom: 0; }
 .rankings li span,
-.rankings li small {
-  display: block;
-}
-.rankings li small {
-  color: var(--muted-ink);
-  font-size: 0.72rem;
-}
-.rankings li strong {
-  font-variant-numeric: tabular-nums;
-}
-@media (max-width: 800px) {
-  .metrics {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .metrics article {
-    border-bottom: 1px solid var(--line);
-  }
-  .metrics article:nth-child(3n) {
-    border-right: 1px solid var(--line);
-  }
-  .metrics article:nth-child(2n) {
-    border-right: 0;
-  }
-  .rankings {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 560px) {
-  .bars > div {
-    grid-template-columns: 5rem 1fr;
-  }
-  .bars strong {
-    grid-column: 2;
-  }
-  .metrics {
-    grid-template-columns: 1fr;
-  }
-  .metrics article {
-    border-right: 0 !important;
-  }
-}
-.assignee-performance {
-  min-width: 0;
-}
+.rankings li small,
 .assignee-performance strong,
-.assignee-performance small {
-  display: block;
+.assignee-performance small { display: block; }
+.rankings li small,
+.assignee-performance small { margin-top: .15rem; color: var(--text-secondary); font-size: .72rem; }
+.rankings li strong { font-variant-numeric: tabular-nums; }
+.hint { margin: 1rem 0 0; color: var(--text-secondary); }
+@media (max-width: 900px) {
+  .period-toolbar { grid-template-columns: 1fr; align-items: stretch; }
+  .period-toolbar > :first-child,
+  .period-label { justify-self: auto; }
+  .period-navigator { justify-content: space-between; }
+  .period-label { text-align: center; }
 }
-.assignee-performance small {
-  margin-top: 0.15rem;
-  color: var(--muted-ink);
-  font-size: 0.72rem;
+@media (max-width: 719px) {
+  .rankings { grid-template-columns: 1fr; }
+  .pager { align-items: flex-start; flex-direction: column; }
+  .mobile-sort { display: grid; gap: .6rem; margin-bottom: 1rem; padding: .85rem; background: var(--surface-subtle); border: 1px solid var(--border); border-radius: var(--radius-md); }
+  .mobile-sort label { color: var(--text-secondary); font-size: .78rem; font-weight: 700; }
+  .mobile-sort :deep(.n-radio-group) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mobile-sort :deep(.n-radio-button) { width: 100%; text-align: center; }
+}
+@media (max-width: 479px) {
+  .period-navigator { display: grid; grid-template-columns: 1fr 1fr; }
+  .period-navigator :deep(.n-date-picker) { grid-column: 1 / -1; grid-row: 1; width: 100%; }
 }
 </style>

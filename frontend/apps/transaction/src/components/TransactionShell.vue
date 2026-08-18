@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { auth } from '@lostsky/api/client'
 import { formatAbilityDenied, formatPermissionDenied } from '@lostsky/api/error-format'
-import { chatWorkspaceUrl, redirectToLogin, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
+import { chatWorkspaceUrl, identityUrl, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
-import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Gift, Handshake, House, ListChecks, LogOut, Menu, MessageCircleMore, ReceiptText, Store, X } from '@lucide/vue'
+import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Gift, Handshake, House, ListChecks, Menu, MessageCircleMore, ReceiptText, Store, UserRound, X } from '@lucide/vue'
 import { NButton } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -15,7 +14,7 @@ const router = useRouter()
 const drawer = ref(false)
 const teamNav = [
   ['/overview', '概览', House, null],
-  ['/', '团队流水', ListChecks, 'transaction.read'],
+  ['/transactions', '团队流水', ListChecks, 'transaction.read'],
   ['/stats', '经营统计', BarChart3, 'transaction.report.read'],
   ['/services', '权益核销', BadgeCheck, serviceRedemptionReadPermissions],
   ['/balances', '顾客余额', CircleDollarSign, 'transaction.read'],
@@ -62,10 +61,6 @@ function disabledReason(permission: WorkspacePermissionRequirement | null) {
   return hasWorkspacePermission(access.value.permissions, permission) ? '' : formatPermissionDenied(workspacePermissionKeys(permission))
 }
 function explain(reason: string) { feedback.info(reason) }
-function logout() {
-  auth.clear()
-  redirectToLogin()
-}
 </script>
 
 <template>
@@ -83,7 +78,7 @@ function logout() {
           <RouterLink v-else :to="item[0]" @click="drawer = false"><component :is="item[2]" :size="19" /><span>{{ item[1] }}</span><ChevronRight :size="15" /></RouterLink>
         </template>
       </nav>
-      <NButton class="logout" quaternary @click="logout"><template #icon><LogOut :size="18" /></template>退出登录</NButton>
+      <NButton class="logout" quaternary tag="a" :href="identityUrl()"><template #icon><UserRound :size="18" /></template>切换身份</NButton>
     </aside>
     <Transition name="ls-backdrop">
       <div v-if="drawer" class="backdrop" aria-hidden="true" @click="drawer = false"></div>

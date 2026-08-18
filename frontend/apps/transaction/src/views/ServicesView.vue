@@ -16,7 +16,7 @@ import { NPagination, NSelect } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { computed, h, reactive } from "vue";
 import { RouterLink } from "vue-router";
-import { customerName, dateTime, entityName } from "../lib";
+import { customerName, dateTime, entityName, serviceStatusCode, serviceStatusName } from "../lib";
 import type { Pagination, ServiceRedemption } from "../types";
 import { hasWorkspacePermission, loadWorkspaceAccess } from "../lib/workspace-access";
 
@@ -54,10 +54,9 @@ const statuses = [
   { label: "核销中", value: 2 },
   { label: "已核销", value: 3 },
 ];
-const statusName = (value: number) =>
-  statuses.find((item) => item.value === value)?.label ?? "未知";
-const statusType = (value: number) =>
-  value === 3 ? "success" : value === 2 ? "warning" : "default";
+const rowStatus = (row: ServiceRedemption) => serviceStatusCode(row.status_code ?? row.status);
+const statusType = (value: unknown) =>
+  serviceStatusCode(value) === 3 ? "success" : serviceStatusCode(value) === 2 ? "warning" : "default";
 const columns: DataTableColumns<ServiceRedemption> = [
   {
     title: "服务",
@@ -69,7 +68,13 @@ const columns: DataTableColumns<ServiceRedemption> = [
         {
           default: () => [
             h("strong", r.service.name),
-            h("small", `实例 #${r.id}`),
+            h("span", { class: "service-meta" }, [
+              h("small", `实例 #${r.id}`),
+              h(LsStatusTag, {
+                label: serviceStatusName(rowStatus(r)),
+                type: statusType(rowStatus(r)) as any,
+              }),
+            ]),
           ],
         },
       ),
@@ -107,15 +112,6 @@ const columns: DataTableColumns<ServiceRedemption> = [
     title: "履约数量",
     key: "quantity",
     render: (r) => `${Number(r.quantity).toFixed(quantityScaleForStep(r.entitlement?.quantity_step))} ${r.entitlement?.unit_name || '单位'}`,
-  },
-  {
-    title: "状态",
-    key: "status",
-    render: (r) =>
-      h(LsStatusTag, {
-        label: statusName(r.status),
-        type: statusType(r.status) as any,
-      }),
   },
   {
     title: "操作",
@@ -173,15 +169,15 @@ const columns: DataTableColumns<ServiceRedemption> = [
       :columns="columns"
       :data="rows"
       :row-key="(r) => r.id"
-      :scroll-x="1020"
+      :scroll-x="920"
       ><template #mobile-title="{ row }"
         ><RouterLink :to="`/services/${row.id}`"
           >{{ row.service.name }} · #{{ row.id }}</RouterLink
         ></template
       ><template #mobile-status="{ row }"
         ><LsStatusTag
-          :label="statusName(row.status)"
-          :type="statusType(row.status)" /></template
+          :label="serviceStatusName(rowStatus(row))"
+          :type="statusType(rowStatus(row))" /></template
       ><template #mobile="{ row }"
         ><dl>
           <dt>顾客</dt>
@@ -211,8 +207,13 @@ const columns: DataTableColumns<ServiceRedemption> = [
 .redemptions-view :deep(.service-cell > *) {
   display: block;
 }
+.redemptions-view :deep(.service-meta) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
 .redemptions-view :deep(.service-cell small) {
-  margin-top: 0.15rem;
   color: var(--muted-ink);
   font-size: 0.75rem;
 }

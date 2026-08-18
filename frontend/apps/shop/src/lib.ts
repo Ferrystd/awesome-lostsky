@@ -67,10 +67,10 @@ export const shopApi = {
   services: (page = 1, limit = 20) => pageRequest<ServiceEntitlement>('/customer/services', { page, limit }, '服务权益列表'),
   service: (id: number) => api.get<ServiceEntitlement>(`/customer/services/${id}`),
   serviceHandlers: (id: number) => api.get<Array<{ entity_id: number; subject: ManageEntityOption & { entityable_type?: string } }>>(`/customer/services/${id}/handlers`),
-  startService: (id: number, body: { quantity: string; handler_entity_id: 0; memo?: string; field_values?: Record<number, unknown> }) => api.post<{id:number}>(`/customer/services/${id}/start`, body),
-  createServiceOffer: (id: number, body: { quantity: string; handler_entity_id: number; memo?: string; field_values?: Record<number, unknown> }) => api.post<{id:number}>(`/customer/services/${id}/offers`, body),
+  startService: (id: number, body: { quantity: string; handler_entity_id: 0; memo?: string; field_values?: Array<Record<number, unknown>> }) => api.post<{id:number}>(`/customer/services/${id}/start`, body),
+  createServiceOffer: (id: number, body: { quantity: string; handler_entity_id: number; memo?: string; field_values?: Array<Record<number, unknown>> }) => api.post<{id:number}>(`/customer/services/${id}/offers`, body),
   withdrawServiceOffer: (id: number, reason = '') => api.post(`/customer/service-offers/${id}/withdraw`, { reason }),
-  restartService: (id: number, body: { handler_entity_id: number; memo?: string; field_values?: Record<number, unknown> }) => api.post(`/customer/service-redemptions/${id}/start`, body),
+  restartService: (id: number, body: { handler_entity_id: number; memo?: string; field_values?: Array<Record<number, unknown>> }) => api.post(`/customer/service-redemptions/${id}/start`, body),
   cancelService: (id: number, reason: string) => api.post(`/customer/service-redemptions/${id}/cancel`, { reason }),
   acceptServiceAdjustment: (instanceId: number, adjustmentId: number) => api.post(`/customer/service-redemptions/${instanceId}/adjustments/${adjustmentId}/accept`, {}),
   rejectServiceAdjustment: (instanceId: number, adjustmentId: number) => api.post(`/customer/service-redemptions/${instanceId}/adjustments/${adjustmentId}/reject`, {}),
@@ -122,11 +122,6 @@ export function productManagement(scope: ProductManagementScope) {
     disableProduct: (id: number, expectedEntityId?: number) => api.post(`${apiBase}/${id}`, payload({ is_active: 0 }, expectedEntityId)),
     setProductHandlers: (id: number, entityIds: number[], expectedEntityId?: number) =>
       api.post(`${apiBase}/${id}/handlers`, payload({ entity_ids: entityIds }, expectedEntityId)),
-    productFields: (id: number) => api.get<any[]>(`${apiBase}/${id}/redemption-fields`),
-    saveProductField: (productId: number, fieldId: number | null, body: Record<string, unknown>, expectedEntityId?: number) =>
-      api.post(`${apiBase}/${productId}/redemption-fields${fieldId ? `/${fieldId}` : ''}`, payload(body, expectedEntityId)),
-    deleteProductField: (productId: number, fieldId: number, expectedEntityId?: number) =>
-      api.post(`${apiBase}/${productId}/redemption-fields/${fieldId}/delete`, payload({}, expectedEntityId)),
   }
 }
 
@@ -182,9 +177,6 @@ export const manageApi = {
   saveProduct: (id: number | null, body: Record<string, unknown>) => api.post<{id:number}>(id ? `/product/${id}` : '/product', body),
   disableProduct: (id: number) => api.post(`/product/${id}`, { is_active: 0 }),
   setProductHandlers: (id: number, entity_ids: number[]) => api.post(`/product/${id}/handlers`, { entity_ids }),
-  productFields: (id: number) => api.get<any[]>(`/product/${id}/redemption-fields`),
-  saveProductField: (productId: number, fieldId: number | null, body: Record<string, unknown>) => api.post(`/product/${productId}/redemption-fields${fieldId ? `/${fieldId}` : ''}`, body),
-  deleteProductField: (productId: number, fieldId: number) => api.post(`/product/${productId}/redemption-fields/${fieldId}/delete`, {}),
   orders: (params: Record<string, unknown>) => pageRequest<any>('/order', params, '订单列表'),
   order: (id: number) => api.get<any>(`/order/${id}`),
   personalOrders: (params: Record<string, unknown>) => pageRequest<any>('/personal/orders', params, '我的业务订单'),

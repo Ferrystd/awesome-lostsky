@@ -17,7 +17,7 @@ function permissionReason(permission: WorkspacePermissionRequirement | null) {
 }
 
 const entries = computed(() => [
-  { key: 'transactions', label: '团队流水', description: '查看团队收入、支出与调整记录。', to: '/', icon: ListChecks, permission: 'transaction.read' },
+  { key: 'transactions', label: '团队流水', description: '查看团队收入、支出与调整记录。', to: '/transactions', icon: ListChecks, permission: 'transaction.read' },
   { key: 'stats', label: '经营统计', description: '查看团队收入结构与业绩汇总。', to: '/stats', icon: BarChart3, permission: 'transaction.report.read' },
   { key: 'services', label: '权益核销', description: '处理服务实例并记录核销过程。', to: '/services', icon: BadgeCheck, permission: serviceRedemptionReadPermissions },
   { key: 'balances', label: '顾客余额', description: '查看余额、明细并按权限（Permission）执行充值。', to: '/balances', icon: CircleDollarSign, permission: 'transaction.read' },

@@ -3,6 +3,7 @@ import { api, friendlyError } from '@lostsky/api/client'
 import { formatPermissionDenied } from '@lostsky/api/error-format'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
@@ -45,11 +46,19 @@ const action = useMutation({
   onError: error => actionError.value = friendlyError(error),
 })
 const money = (value: unknown) => `¥${Number(value || 0).toFixed(2)}`
+const personalMetricItems = computed(() => [
+  { key: 'handler', label: '总接单数', value: statsQuery.data.value?.handler_count ?? 0 },
+  { key: 'sender', label: '总发单数', value: statsQuery.data.value?.sender_count ?? 0 },
+  { key: 'cs', label: '总接待数', value: statsQuery.data.value?.cs_count ?? 0 },
+  { key: 'monthly-performance', label: '月度业绩', value: money(statsQuery.data.value?.monthly_performance_total) },
+  { key: 'monthly-flow', label: '月度流水', value: money(statsQuery.data.value?.monthly_flow_total) },
+  { key: 'performance', label: '个人业绩', value: money(statsQuery.data.value?.performance_total) },
+])
 </script>
 
 <template>
   <div class="personal-workspace">
-    <LsPageHeader :title="title" :description="section === 'services' ? '确认指定邀请、领取公开任务，并管理当前实体（Entity）已接取的履约任务。' : '集中查看当前实体的角色笔数、月度数据与参与流水。'">
+    <LsPageHeader :title="title" :description="section === 'services' ? '确认指定邀请，登记信息并接单核销，并管理当前实体（Entity）已结单的履约任务。' : '集中查看当前实体的角色笔数、月度数据与参与流水。'">
       <template v-if="section === 'transactions'" #actions>
         <LsPagePrimaryAction :icon="CirclePlus" label="登记流水" to="/personal/transactions/new" :disabled="Boolean(newReason)" :disabled-reason="newReason" />
       </template>
@@ -59,20 +68,13 @@ const money = (value: unknown) => `¥${Number(value || 0).toFixed(2)}`
     <LsAsyncState v-else-if="query.isError.value || (section === 'transactions' && statsQuery.isError.value)" state="error" title="暂时无法读取" :description="friendlyError(query.error.value || statsQuery.error.value)" />
 
     <template v-else-if="section === 'services'">
-      <PersonalServiceLists :offers="offers" :available="available" :assigned="rows" :acting="action.isPending.value" @accept-offer="id => action.mutate({ path: `/personal/service-offers/${id}/accept` })" @reject-offer="id => action.mutate({ path: `/personal/service-offers/${id}/reject` })" @claim="id => action.mutate({ path: `/personal/services/${id}/claim` })" @return-task="(id, reason) => action.mutate({ path: `/personal/services/${id}/return`, body: { reason } })" />
+      <PersonalServiceLists :offers="offers" :available="available" :assigned="rows" :acting="action.isPending.value" @return-task="(id, reason) => action.mutate({ path: `/personal/services/${id}/return`, body: { reason } })" />
       <p v-if="actionError" class="action-error" role="alert">{{ actionError }}</p>
     </template>
 
     <template v-else>
       <LsPanel>
-        <dl class="stats">
-          <div><dt>总接单数</dt><dd>{{ statsQuery.data.value?.handler_count ?? 0 }}</dd></div>
-          <div><dt>总发单数</dt><dd>{{ statsQuery.data.value?.sender_count ?? 0 }}</dd></div>
-          <div><dt>总接待数</dt><dd>{{ statsQuery.data.value?.cs_count ?? 0 }}</dd></div>
-          <div><dt>月度业绩</dt><dd>{{ money(statsQuery.data.value?.monthly_performance_total) }}</dd></div>
-          <div><dt>月度流水</dt><dd>{{ money(statsQuery.data.value?.monthly_flow_total) }}</dd></div>
-          <div><dt>个人业绩</dt><dd>{{ money(statsQuery.data.value?.performance_total) }}</dd></div>
-        </dl>
+        <LsMetricGrid :items="personalMetricItems" aria-label="个人流水统计" />
       </LsPanel>
       <LsEmptyState v-if="!rows.length" title="暂无相关记录" description="当前实体参与业务后，流水会显示在这里。" />
       <div v-else class="record-list">
@@ -86,5 +88,5 @@ const money = (value: unknown) => `¥${Number(value || 0).toFixed(2)}`
 </template>
 
 <style scoped>
-.personal-workspace{display:grid;gap:1rem}.record-list{overflow:hidden;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md)}.record-list article{min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 1rem;border-bottom:1px solid var(--border)}.record-list article:last-child{border-bottom:0}.record-list span{color:var(--muted-ink)}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:0}.stats div{display:grid;gap:.25rem;padding:1rem;background:var(--cloud);border-radius:8px}.stats dt{color:var(--muted-ink);font-size:.78rem}.stats dd{margin:0;font-size:1.2rem;font-weight:750;font-variant-numeric:tabular-nums}.action-error{margin:0;color:var(--danger)}@media(max-width:640px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.record-list article{align-items:flex-start;flex-direction:column}}
+.personal-workspace{display:grid;gap:1rem}.record-list{overflow:hidden;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md)}.record-list article{min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 1rem;border-bottom:1px solid var(--border)}.record-list article:last-child{border-bottom:0}.record-list span{color:var(--muted-ink)}.action-error{margin:0;color:var(--danger)}@media(max-width:640px){.record-list article{align-items:flex-start;flex-direction:column}}
 </style>

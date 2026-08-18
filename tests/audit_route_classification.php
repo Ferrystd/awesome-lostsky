@@ -38,12 +38,7 @@ $classification = [
     'shop' => [
         'audit' => [
             'product', 'product/<id>', 'product/<id>/delete', 'product/<id>/handlers',
-            'product/<id>/redemption-fields', 'product/<id>/redemption-fields/<field_id>',
-            'product/<id>/redemption-fields/<field_id>/delete', 'personal/products',
-            'personal/products/<id>', 'personal/products/<id>/handlers',
-            'personal/products/<id>/redemption-fields',
-            'personal/products/<id>/redemption-fields/<field_id>',
-            'personal/products/<id>/redemption-fields/<field_id>/delete',
+            'personal/products', 'personal/products/<id>', 'personal/products/<id>/handlers',
             'personal/services', 'personal/services/<id>',
             'personal/services/<id>/handlers', 'personal/services/<id>/disable',
             'personal/packages', 'personal/packages/<id>', 'personal/packages/<id>/disable',
@@ -73,13 +68,13 @@ $classification = [
     ],
     'transaction' => [
         'audit' => [
-            'personal/services/<id>/claim', 'personal/services/<id>/return',
+            'personal/services/<id>/claim', 'personal/services/<id>/return', 'personal/services/<id>/complete',
             'personal/service-offers/<id>/accept', 'personal/service-offers/<id>/reject',
             'personal/entitlement-grant',
             'transaction', 'transaction/<id>', 'transaction/<id>/delete',
             'entitlement-grant',
             'service/<id>/reassign', 'service/<id>/cancel/approve',
-            'service/<id>/cancel/reject', 'service/<id>/complete',
+            'service/<id>/cancel/reject', 'service/<id>/complete', 'service/<id>/reject',
             'service/<id>/adjustments', 'service/<id>/adjustments/<adjustment_id>/cancel',
             'transaction/balance/recharge',
         ],

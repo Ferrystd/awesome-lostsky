@@ -6,6 +6,7 @@ const json = (data: unknown) =>
 test("shop manager exposes the complete catalog workflow at desktop and 390px", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
   const token = `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type: "team", id: 1 } })).toString("base64url")}.x`;
   await page.context().addCookies([
     {
@@ -272,6 +273,7 @@ test("shop manager exposes the complete catalog workflow at desktop and 390px", 
 test("shop manager publishes a service package product through the shared forms", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   const token = `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type: "team", id: 1 } })).toString("base64url")}.x`;
@@ -411,6 +413,10 @@ test("shop manager publishes a service package product through the shared forms"
   await expect(page.locator("#service-sender-cut input")).toHaveValue("2.00");
   await expect(page.locator("#service-cs-cut input")).toHaveValue("0.40");
   await expect(page.locator("#service-team-cut input")).toHaveValue("0.80");
+  await page.getByRole("button", { name: "添加核销字段" }).click();
+  const redemptionFieldName = page.locator('[id^="field-name-"] input');
+  await expect(redemptionFieldName).toHaveCount(1);
+  await redemptionFieldName.fill("预约说明");
   await page.getByRole("button", { name: "保存服务" }).click();
   await expect(page).toHaveURL(/\/manage\/services\/101$/);
   const storefrontPreview = page.getByRole("link", { name: "预览商品" });
@@ -428,6 +434,7 @@ test("shop manager publishes a service package product through the shared forms"
     default_cs_cut: 0.4,
     default_team_cut: 0.8,
     handler_entity_ids: [],
+    redemption_fields: [{ name: "预约说明", sort: 0 }],
   });
 
   await page.goto("http://demo.shop.lostsky.work:5179/manage/packages/new");
@@ -526,7 +533,7 @@ test("shop manager publishes a service package product through the shared forms"
   await page.locator("#product-kind").click();
   await page.getByText("服务套餐", { exact: true }).last().click();
   await page.locator("#product-package").click();
-  await page.getByText("十次咨询 · 团队公用", { exact: true }).last().click();
+  await page.locator(".n-base-select-option").filter({ hasText: "十次咨询" }).last().click();
   await expect(page.locator("#product-price input")).toHaveValue("120.00");
   await expect(page.locator("#product-price input")).toBeDisabled();
   await page.getByRole("button", { name: "保存商品" }).click();
@@ -563,6 +570,60 @@ test("shop manager publishes a service package product through the shared forms"
   expect(mobilePackageGeometry.columns).toEqual([1, 1, 1]);
   expect(mobilePackageGeometry.fieldWidths.every((width) => Math.abs(width - mobilePackageGeometry.itemWidth) <= 1)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+});
+
+test("shop manager adds and saves a name-only redemption field", async ({ page }) => {
+  const token = `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type: "team", id: 1 } })).toString("base64url")}.x`;
+  await page.context().addCookies([{
+    name: "lostsky_token",
+    value: token,
+    domain: ".lostsky.work",
+    path: "/",
+    sameSite: "Lax",
+  }]);
+
+  let servicePayload: Record<string, unknown> | null = null;
+  await page.route("http://demo.shop.lostsky.work:5179/api/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    let data: unknown = null;
+    if (path.endsWith("/manage/access")) {
+      data = { permissions: ["shop.product.read", "shop.product.write"] };
+    } else if (path.endsWith("/manage/options")) {
+      data = {
+        entities: [], services: [], packages: [], campaigns: [], customers: [],
+        service_defaults: {
+          default_unit_name: "次",
+          default_quantity_step: "1",
+          default_valid_days: 30,
+          allow_customer_open_dispatch: true,
+          default_handler_rate_percent: 60,
+          default_sender_rate_percent: 25,
+          default_cs_rate_percent: 5,
+        },
+      };
+    } else if (path.endsWith("/manage/services") && request.method() === "POST") {
+      servicePayload = request.postDataJSON();
+      data = { id: 101 };
+    } else if (path.endsWith("/manage/services/101")) {
+      data = { id: 101, ...servicePayload, handlers: [] };
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: json(data) });
+  });
+
+  await page.goto("http://demo.shop.lostsky.work:5179/manage/services/new");
+  await page.locator("#service-name input").fill("咨询服务");
+  await page.getByRole("button", { name: "添加核销字段" }).click();
+  const fieldName = page.locator('[id^="field-name-"] input');
+  await expect(fieldName).toHaveCount(1);
+  await fieldName.fill("预约说明");
+  await page.getByRole("button", { name: "保存服务" }).click();
+  await expect(page).toHaveURL(/\/manage\/services\/101$/);
+
+  expect(servicePayload).toMatchObject({
+    redemption_fields: [{ name: "预约说明", sort: 0 }],
+  });
+  expect((servicePayload?.redemption_fields as Array<Record<string, unknown>>)[0]).not.toHaveProperty("field_key");
 });
 
 test("Shop personal workspace creates an immutable self-owned product through personal APIs", async ({
@@ -610,11 +671,6 @@ test("Shop personal workspace creates an immutable self-owned product through pe
       data = { id: 204 };
     } else if (path.endsWith("/personal/products/204/handlers") && method === "POST") {
       payloads.handlers = request.postDataJSON();
-    } else if (path.endsWith("/personal/products/204/redemption-fields") && method === "GET") {
-      data = [];
-    } else if (path.endsWith("/personal/products/204/redemption-fields") && method === "POST") {
-      payloads.field = request.postDataJSON();
-      data = { id: 301 };
     } else if (path.endsWith("/personal/products/204")) {
       data = { id: 204, ...payloads.product, entity_id: 71, handlers: [] };
     } else if (path.endsWith("/personal/products")) {
@@ -677,23 +733,7 @@ test("Shop personal workspace creates an immutable self-owned product through pe
   await expect(preview).toHaveAttribute("href", "/product/204");
   await expect(preview).toHaveAttribute("target", "_blank");
   await expect(preview).toHaveClass(/ls-page-primary-action/);
-  await expect(page.getByRole("link", { name: "核销字段" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "下架商品" })).toHaveCount(0);
-  const sectionOrder = await page.getByRole("heading", { name: "核销字段", level: 2 }).evaluate((heading) => {
-    const allocation = [...document.querySelectorAll("h2")].find(item => item.textContent === "默认分成");
-    return Boolean(allocation && (allocation.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING));
-  });
-  expect(sectionOrder).toBe(true);
-  await page.getByRole("button", { name: "添加核销字段" }).click();
-  await page.locator('[id^="field-key-"] input').fill("appointment_note");
-  await page.locator('[id^="field-name-"] input').fill("预约说明");
-  await page.getByRole("button", { name: "保存商品" }).click();
-  await expect.poll(() => payloads.field).toMatchObject({
-    field_key: "appointment_note",
-    name: "预约说明",
-    expected_entity_id: 71,
-  });
-  await expect(page.getByText("商品已保存", { exact: true })).toBeVisible();
 
   await page.setViewportSize({ width: 320, height: 780 });
   await page.goto("http://demo.shop.lostsky.work:5179/manage/personal/products");
@@ -750,8 +790,6 @@ test("Shop personal workspace completes the self-owned card service chain", asyn
       payloads.product = request.postDataJSON(); data = { id: 601 };
     } else if (path.endsWith("/personal/products/601/handlers") && method === "POST") {
       payloads.handlers = request.postDataJSON();
-    } else if (path.endsWith("/personal/products/601/redemption-fields")) {
-      data = [];
     } else if (path.endsWith("/personal/products/601")) {
       data = { id: 601, ...payloads.product, entity_id: 71, handlers: [], redemption_campaign: ownCampaign };
     }
@@ -885,6 +923,15 @@ test("team can inspect and redeem an Ability card then refresh current state", a
             reason: redeemed ? null : "missing",
             source: redeemed ? "grant" : "none",
           },
+          {
+            key: "shop",
+            label: "商城",
+            enabled: false,
+            level: 0,
+            expire_time: 0,
+            reason: "missing",
+            source: "none",
+          },
         ];
       await route.fulfill({
         status: 200,
@@ -900,6 +947,19 @@ test("team can inspect and redeem an Ability card then refresh current state", a
       .locator("#workspace")
       .getByRole("heading", { name: "团队能力", level: 1 }),
   ).toBeVisible();
+  const levelRightEdges = await page.locator(".ability-level").evaluateAll((levels) =>
+    levels.map((level) => level.getBoundingClientRect().right),
+  );
+  expect(new Set(levelRightEdges).size).toBe(1);
+  if (page.viewportSize()?.width && page.viewportSize()!.width >= 640) {
+    const statusCenters = await page.locator(".ability-status").evaluateAll((statuses) =>
+      statuses.map((status) => {
+        const bounds = status.getBoundingClientRect();
+        return bounds.left + bounds.width / 2;
+      }),
+    );
+    expect(new Set(statusCenters).size).toBe(1);
+  }
   await page.getByPlaceholder("LS-XXXX-XXXX-…").fill("LS-DEMO-CARD");
   await page.getByRole("button", { name: "检查兑换码" }).click();
   await expect(

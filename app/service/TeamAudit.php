@@ -85,7 +85,6 @@ final class TeamAudit
         'notice' => '通知',
         'order' => '订单',
         'product' => '商品',
-        'productRedemptionField' => '商品核销字段',
         'benefitPackage' => '权益包',
         'redemptionCampaign' => '兑换活动',
         'redemptionCode' => '兑换码',

@@ -311,7 +311,7 @@ $assertSame(
     'team service redemption reads require read or manage permission'
 );
 $assertSame(
-    ['approveCancel', 'rejectCancel', 'reassign', 'complete', 'createAdjustment', 'cancelAdjustment'],
+    ['approveCancel', 'rejectCancel', 'reassign', 'complete', 'reject', 'createAdjustment', 'cancelAdjustment'],
     $serviceRedemptionMiddleware['Permission:' . \app\service\PermissionDictionary::SERVICE_REDEMPTION_MANAGE]['only'] ?? null,
     'team service redemption writes require manage permission'
 );

@@ -81,9 +81,15 @@ final class Personal
     public function claimService(Request $request)
     {
         $id = $request->route('id/d', 0);
-        app(ServiceRedemption::class)->claim($request->team_id, $request->entity_id, $id);
+        $instanceId = app(ServiceRedemption::class)->claim(
+            $request->team_id,
+            $request->entity_id,
+            $id,
+            $request->post('quantity', null),
+            $request->post('field_values/a', [])
+        );
         app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'claim', 'serviceInstance', $id);
-        return message('已领取履约任务');
+        return success(['id' => $instanceId], '已领取履约任务');
     }
 
     public function availableServices(Request $request)
@@ -127,7 +133,12 @@ final class Personal
     public function acceptServiceOffer(Request $request)
     {
         $offerId = $request->route('id/d', 0);
-        $instanceId = app(ServiceRedemption::class)->acceptOffer($request->team_id, $request->entity_id, $offerId);
+        $instanceId = app(ServiceRedemption::class)->acceptOffer(
+            $request->team_id,
+            $request->entity_id,
+            $offerId,
+            $request->post('field_values/a', [])
+        );
         app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'accept', 'serviceAssignmentOffer', $offerId, ['service_instance_id' => $instanceId]);
         return success(['id' => $instanceId], '已接受接单邀请');
     }
@@ -146,6 +157,19 @@ final class Personal
         app(ServiceRedemption::class)->returnToPool($request->team_id, $request->entity_id, $id, $request->post('reason/s', ''));
         app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'return', 'serviceInstance', $id);
         return message('任务已退回公开接单池');
+    }
+
+    public function completeService(Request $request)
+    {
+        $id = $request->route('id/d', 0);
+        app(ServiceRedemption::class)->completeOwn(
+            $request->team_id,
+            $request->entity_id,
+            $id,
+            $request->post('field_values/a', [])
+        );
+        app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'complete', 'serviceInstance', $id);
+        return message('服务已核销');
     }
 
     public function service(Request $request)

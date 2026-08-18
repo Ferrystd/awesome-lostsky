@@ -144,12 +144,20 @@
     "aliases": ["资源归属标签", "团队公用标签"]
   },
   {
-    "id": "shop-product-fields-editor",
-    "name": "ProductFieldsEditor",
-    "source": "frontend/apps/shop/src/components/ProductFieldsEditor.vue",
-    "story": "frontend/component-previews/src/story-registry.ts#ProductFieldsEditor",
+    "id": "shop-service-fields-editor",
+    "name": "ServiceFieldsEditor",
+    "source": "frontend/apps/shop/src/components/ServiceFieldsEditor.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#ServiceFieldsEditor",
     "category": "shop",
-    "aliases": ["商品核销字段编辑器", "核销字段配置"]
+    "aliases": ["服务核销字段编辑器", "核销字段配置"]
+  },
+  {
+    "id": "transaction-service-completion-fields",
+    "name": "ServiceCompletionFields",
+    "source": "frontend/apps/transaction/src/components/ServiceCompletionFields.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#ServiceCompletionFields",
+    "category": "transaction",
+    "aliases": ["接单核销字段", "完成核销字段"]
   },
   {
     "id": "transaction-transaction-shell",
@@ -166,6 +174,22 @@
     "story": "frontend/component-previews/src/story-registry.ts#PersonalServiceLists",
     "category": "transaction",
     "aliases": ["个人核销列表", "公开任务列表", "履约记录列表"]
+  },
+  {
+    "id": "transaction-person-tick-ranking",
+    "name": "PersonTickRanking",
+    "source": "frontend/apps/transaction/src/components/PersonTickRanking.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#PersonTickRanking",
+    "category": "transaction",
+    "aliases": ["人员刻度排行", "人员业绩排行榜"]
+  },
+  {
+    "id": "transaction-flow-trend",
+    "name": "TransactionFlowTrend",
+    "source": "frontend/apps/transaction/src/components/TransactionFlowTrend.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#TransactionFlowTrend",
+    "category": "transaction",
+    "aliases": ["实际流水趋势", "流水折线图"]
   },
   {
     "id": "ui-ls-async-state",
@@ -278,6 +302,14 @@
     "story": "frontend/component-previews/src/story-registry.ts#LsMediaUploadField",
     "category": "ui",
     "aliases": ["媒体上传字段", "单文件上传", "图片上传"]
+  },
+  {
+    "id": "ui-ls-metric-grid",
+    "name": "LsMetricGrid",
+    "source": "frontend/packages/ui/src/components/LsMetricGrid.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#LsMetricGrid",
+    "category": "ui",
+    "aliases": ["指标网格", "统计摘要", "数据指标"]
   },
   {
     "id": "ui-ls-markdown-editor",

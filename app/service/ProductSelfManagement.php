@@ -45,35 +45,6 @@ final class ProductSelfManagement
         app(Product::class)->setHandlers($teamId, $id, $entityIds);
     }
 
-    public function fields(int $teamId, array $actingEntity, int $id): array
-    {
-        $this->assertOwn($teamId, $this->entityId($actingEntity), $id);
-        return app(ProductRedemptionField::class)->list($teamId, $id);
-    }
-
-    public function createField(int $teamId, array $actingEntity, int $expectedEntityId, int $id, array $data): int
-    {
-        $entityId = $this->writableEntityId($actingEntity, $expectedEntityId);
-        $this->assertOwn($teamId, $entityId, $id);
-        unset($data['expected_entity_id']);
-        return app(ProductRedemptionField::class)->create($teamId, $id, $data);
-    }
-
-    public function updateField(int $teamId, array $actingEntity, int $expectedEntityId, int $id, int $fieldId, array $data): void
-    {
-        $entityId = $this->writableEntityId($actingEntity, $expectedEntityId);
-        $this->assertOwn($teamId, $entityId, $id);
-        unset($data['expected_entity_id']);
-        app(ProductRedemptionField::class)->update($teamId, $id, $fieldId, $data);
-    }
-
-    public function deleteField(int $teamId, array $actingEntity, int $expectedEntityId, int $id, int $fieldId): void
-    {
-        $entityId = $this->writableEntityId($actingEntity, $expectedEntityId);
-        $this->assertOwn($teamId, $entityId, $id);
-        app(ProductRedemptionField::class)->delete($teamId, $id, $fieldId);
-    }
-
     private function entityId(array $actingEntity): int
     {
         $entityId = (int) ($actingEntity['entity_id'] ?? 0);

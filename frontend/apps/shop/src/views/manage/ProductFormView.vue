@@ -10,14 +10,15 @@ import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { Eye } from '@lucide/vue'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
-import { computed, reactive, ref, watch } from 'vue'
+import type { SelectOption, SelectRenderLabel } from 'naive-ui'
+import { computed, h, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ProductFieldsEditor from '../../components/ProductFieldsEditor.vue'
 import { canManage, fileUploadReason, loadManageAccess, productManagement, resourceOwnerLabel } from '../../lib'
 import { calculateDefaultServiceDistribution, calculateServiceTeamCut } from '../../service-distribution'
 import type { ManagePricingSummary } from '../../types'
@@ -40,6 +41,11 @@ type ProductFormState = {
   handler_entity_ids: number[]
 }
 
+interface ResourceSelectOption extends SelectOption {
+  ownerLabel: string
+  resourceName: string
+}
+
 const route = useRoute()
 const router = useRouter()
 const id = computed(() => Number(route.params.id || 0))
@@ -49,7 +55,6 @@ const management = computed(() => productManagement(scope.value))
 const personal = computed(() => management.value.personal)
 const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess(true) })
 const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?? 0)
-const fieldsEditor = ref<InstanceType<typeof ProductFieldsEditor> | null>(null)
 const uploading = ref<'cover' | 'markdown' | ''>('')
 const uploadDisabledReason = computed(() => {
   if (access.isPending.value) return '正在核对文件上传能力'
@@ -116,12 +121,21 @@ const packages = computed(() => availablePackages.value.map(item => ({
   label: `${item.name} · ${resourceOwnerLabel(item, expectedEntityId.value)}`,
   value: item.id,
   disabled: !item.is_active,
+  ownerLabel: resourceOwnerLabel(item, expectedEntityId.value),
+  resourceName: item.name,
 })))
 const campaigns = computed(() => availableCampaigns.value.map(item => ({
   label: `${item.name} · ${resourceOwnerLabel(item, expectedEntityId.value)}`,
   value: item.id,
   disabled: !item.is_active,
 })))
+const renderResourceLabel: SelectRenderLabel = option => {
+  const resourceOption = option as ResourceSelectOption
+  return h('span', { class: 'product-resource-option' }, [
+    h('span', { class: 'product-resource-option__name' }, resourceOption.resourceName),
+    h(LsStatusTag, { label: resourceOption.ownerLabel, type: 'info' }),
+  ])
+}
 watch(resourceOwnerEntityId, () => {
   const selectedPackage = availablePackages.value.find(item => item.id === form.benefit_package_id)
   if (selectedPackage && !compatibleOwner(selectedPackage.owner_entity_id)) form.benefit_package_id = null
@@ -220,7 +234,6 @@ const save = useMutation({
     )
     const productId = editing.value ? id.value : result.id
     await management.value.setProductHandlers(productId, form.handler_entity_ids, expectedEntityId.value)
-    if (editing.value) await fieldsEditor.value?.save()
     return { id: productId }
   },
   onSuccess: data => {
@@ -259,14 +272,14 @@ const valid = computed(() => Boolean(
       <LsFormSection title="基本信息">
           <LsField label="商品名称" for-id="product-name" required><NInput id="product-name" v-model:value="form.name" maxlength="100" /></LsField>
           <LsField label="简短说明" for-id="product-description"><NInput id="product-description" v-model:value="form.description" type="textarea" maxlength="500" show-count /></LsField>
-          <LsField label="封面" for-id="product-cover" required hint="可粘贴已登记媒体 URL，或从本地上传图片。"><LsMediaUploadField id="product-cover" v-model="form.cover_image" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传封面" :disabled="Boolean(uploading || uploadDisabledReason)" :disabled-reason="uploading ? '正在上传图片，请稍候' : uploadDisabledReason" @uploading="uploading = $event ? 'cover' : ''" @uploaded="access.refetch(); feedback.success('商品封面已上传')" /></LsField>
+          <LsField label="封面" for-id="product-cover" required><LsMediaUploadField id="product-cover" v-model="form.cover_image" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传封面" :disabled="Boolean(uploading || uploadDisabledReason)" :disabled-reason="uploading ? '正在上传图片，请稍候' : uploadDisabledReason" @uploading="uploading = $event ? 'cover' : ''" @uploaded="access.refetch(); feedback.success('商品封面已上传')" /></LsField>
           <LsField label="详情" for-id="product-markdown"><LsMarkdownEditor id="product-markdown" v-model="form.introduction_markdown" :draft-key="`shop-product-${scope}-${id || 'new'}`" :upload-image="uploadMarkdownImage" :upload-disabled-reason="uploading ? '正在上传图片，请稍候' : uploadDisabledReason" /></LsField>
           <LsSwitchField id="product-active" :model-value="form.is_active === 1" label="上架状态" description="关闭后商品不会在商城展示。" @update:model-value="value => form.is_active = value ? 1 : 0" />
       </LsFormSection>
       <LsFormSection title="销售与履约">
           <p v-if="personal" class="form-intro" role="note">此商品自动归属当前已领取的 Entity，个人工作台不能转移归属。</p>
           <LsField label="商品类型" for-id="product-kind" required><NSelect id="product-kind" v-model:value="form.kind" :options="[{ label: '普通商品', value: 1 }, { label: '服务套餐', value: 2 }, { label: '权益卡密', value: 3 }]" /></LsField>
-          <LsField v-if="form.kind === 2" label="服务权益包" for-id="product-package" required><NSelect id="product-package" v-model:value="form.benefit_package_id" :options="packages" filterable /></LsField>
+          <LsField v-if="form.kind === 2" label="服务权益包" for-id="product-package" required><NSelect id="product-package" v-model:value="form.benefit_package_id" :options="packages" :render-label="renderResourceLabel" filterable /></LsField>
           <LsField v-if="form.kind === 3" label="卡密活动" for-id="product-campaign" required><NSelect id="product-campaign" v-model:value="form.redemption_campaign_id" :options="campaigns" filterable /></LsField>
           <p v-if="pricingLocked" class="form-intro" role="note">售价、成本和分成由所选权益包的服务项目自动汇总。若要调整，请新建或修改尚未被引用的权益包。</p>
           <LsField label="售价" for-id="product-price" required :hint="pricingLocked ? '由权益包自动汇总' : undefined"><NInputNumber id="product-price" v-model:value="form.price" :min="0" :step="0.01" :precision="2" :disabled="pricingLocked" /></LsField>
@@ -289,13 +302,6 @@ const valid = computed(() => Boolean(
           <LsField label="客服分成" for-id="product-cs-cut"><NInputNumber id="product-cs-cut" v-model:value="form.cs_cut" :min="0" :precision="2" clearable /></LsField>
           <LsField label="团队分成" for-id="product-team-cut" :hint="teamCutHint"><NInputNumber id="product-team-cut" :value="teamCut" :precision="2" disabled /></LsField>
       </LsFormSection>
-      <ProductFieldsEditor
-        v-if="editing"
-        ref="fieldsEditor"
-        :product-id="id"
-        :scope="scope"
-        :expected-entity-id="expectedEntityId"
-      />
       <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
       <LsInlineError v-if="options.isError.value" :message="friendlyError(options.error.value)" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
@@ -306,6 +312,11 @@ const valid = computed(() => Boolean(
     </form>
   </div>
 </template>
+
+<style>
+.product-resource-option { min-width: 0; display: flex; align-items: center; gap: .45rem; }
+.product-resource-option__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
 
 <style scoped>
 .pricing-breakdown { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin: 0; }

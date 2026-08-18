@@ -17,10 +17,6 @@ Route::post('product', 'Product/create')->completeMatch();
 Route::post('product/<id>', 'Product/edit')->completeMatch();
 Route::post('product/<id>/delete', 'Product/delete')->completeMatch();
 Route::post('product/<id>/handlers', 'Product/setHandlers')->completeMatch();
-Route::get('product/<id>/redemption-fields', 'Product/fields')->completeMatch();
-Route::post('product/<id>/redemption-fields', 'Product/createField')->completeMatch();
-Route::post('product/<id>/redemption-fields/<field_id>', 'Product/updateField')->completeMatch();
-Route::post('product/<id>/redemption-fields/<field_id>/delete', 'Product/deleteField')->completeMatch();
 
 // merchant management
 Route::get('manage/access', 'Manage/access')->completeMatch();
@@ -32,10 +28,6 @@ Route::post('personal/products', 'PersonalProduct/create')->completeMatch();
 Route::get('personal/products/<id>', 'PersonalProduct/get')->completeMatch();
 Route::post('personal/products/<id>', 'PersonalProduct/edit')->completeMatch();
 Route::post('personal/products/<id>/handlers', 'PersonalProduct/setHandlers')->completeMatch();
-Route::get('personal/products/<id>/redemption-fields', 'PersonalProduct/fields')->completeMatch();
-Route::post('personal/products/<id>/redemption-fields', 'PersonalProduct/createField')->completeMatch();
-Route::post('personal/products/<id>/redemption-fields/<field_id>', 'PersonalProduct/updateField')->completeMatch();
-Route::post('personal/products/<id>/redemption-fields/<field_id>/delete', 'PersonalProduct/deleteField')->completeMatch();
 Route::get('personal/services', 'PersonalEntitlement/services')->completeMatch();
 Route::get('personal/services/<id>', 'PersonalEntitlement/service')->completeMatch();
 Route::post('personal/services', 'PersonalEntitlement/saveService')->completeMatch();

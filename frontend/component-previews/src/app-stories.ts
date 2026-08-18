@@ -1,6 +1,5 @@
-import { defineComponent, h } from "vue";
+import { defineComponent, h, ref } from "vue";
 import { NInput } from "naive-ui";
-import { useQueryClient } from "@tanstack/vue-query";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsWorkspaceOverview from "@lostsky/ui/components/LsWorkspaceOverview.vue";
 import { BadgeCheck, BarChart3, CircleDollarSign, House, ReceiptText, ShoppingBag, UserRound } from "@lucide/vue";
@@ -22,9 +21,14 @@ import EntityProfileFields from "../../apps/team/src/components/EntityProfileFie
 import TeamShell from "../../apps/team/src/components/TeamShell.vue";
 import TransactionShell from "../../apps/transaction/src/components/TransactionShell.vue";
 import PersonalServiceLists from "../../apps/transaction/src/components/PersonalServiceLists.vue";
+import PersonTickRanking from "../../apps/transaction/src/components/PersonTickRanking.vue";
+import ServiceCompletionFields from "../../apps/transaction/src/components/ServiceCompletionFields.vue";
+import TransactionFlowTrend from "../../apps/transaction/src/components/TransactionFlowTrend.vue";
 import ShopManageShell from "../../apps/shop/src/components/ShopManageShell.vue";
-import ProductFieldsEditor from "../../apps/shop/src/components/ProductFieldsEditor.vue";
+import ServiceFieldsEditor from "../../apps/shop/src/components/ServiceFieldsEditor.vue";
 import ResourceOwnerTag from "../../apps/shop/src/components/ResourceOwnerTag.vue";
+import type { ServiceRedemptionFieldDraft } from "../../apps/shop/src/types";
+import type { ServiceField } from "../../apps/transaction/src/types";
 import {
   previewStates,
   type PreviewState,
@@ -560,14 +564,14 @@ const transactionShell = story(
 
 const personalServiceLists = story(
   "PersonalServiceLists",
-  ["default", "loading", "mobile"],
+  ["default", "hover", "focus", "active", "loading", "error", "mobile"],
   (state) => stage(h(PersonalServiceLists, {
-    offers: [{ id: 8, status: 1, quantity: "0.5", create_time: 1786400000, total_price: "60.00", handler_cut: "48.00", service: { name: "候选人面试" }, customer: { profile: { name: "示例顾客" } }, entitlement: { quantity_step: "0.5000", unit_name: "人" }, redemption_fields: [{ id: 1, name: "微信号", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "candidate-a" }] }],
-    available: [{ id: 21, quantity: "1.0", status: 2, expire_time: 0, service: { name: "咨询服务" }, customer: { profile: { name: "示例顾客" } }, entitlement: { quantity_step: "0.5000", unit_name: "小时" }, redemption_fields: [{ id: 2, name: "预约说明", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "凌晨时段" }] }],
-    assigned: [{ id: 18, quantity: "2.0", status: 2, status_label: "核销中", expire_time: 0, service: { name: "方案复盘" }, customer: { profile: { name: "示例顾客" } }, entitlement: { quantity_step: "0.5000", unit_name: "小时" } }],
+    offers: state === "error" ? [] : [{ id: 8, status: 1, quantity: "0.5", create_time: 1786400000, total_price: "60.00", handler_cut: "48.00", service: { name: "候选人面试与岗位匹配沟通" }, customer: { profile: { name: "示例顾客" } }, entitlement: { quantity_step: "0.5000", unit_name: "人" }, redemption_fields: [{ id: 1, name: "微信号", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "candidate-a" }, { id: 3, name: "沟通重点", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 0, value: "确认晚间工作时间与擅长品类" }] }],
+    available: state === "error" ? [] : [{ id: 21, quantity: "1.0", status: 2, expire_time: 0, handler_cut: "80.00", service: { name: "咨询服务" }, customer: { profile: { name: "示例顾客" } }, entitlement: { quantity_step: "0.5000", unit_name: "小时" }, redemption_fields: [{ id: 2, name: "预约说明", value_type: "string", input_type: "text", fill_stage: "customer", is_required: 1, value: "凌晨时段" }] }],
+    assigned: state === "error" ? [] : [{ id: 18, quantity: "2.0", status: 2, status_label: "核销中", started_at: 1786403600, expire_time: 0, service: { name: "方案复盘" }, customer: { profile: { name: "示例顾客" } }, entitlement: { quantity_step: "0.5000", unit_name: "小时" } }],
     acting: state === "loading",
   }), state === "mobile" ? "story-stage--mobile" : ""),
-  { disabled: "列表不提供整体禁用状态。", error: "读取错误由页面级异步状态表达。" },
+  { disabled: "列表不提供整体禁用状态。", error: "空数据状态显示三组来源说明；读取错误仍由页面级异步状态表达。" },
 );
 
 const shopManageShell = story(
@@ -611,37 +615,91 @@ const resourceOwnerTag = story(
   },
 );
 
-const ProductFieldsEditorHost = defineComponent({
+const ServiceFieldsEditorHost = defineComponent({
   setup() {
-    const client = useQueryClient();
-    const key = ["product-fields", "team", 901];
-    client.setQueryDefaults(key, { staleTime: Infinity });
-    client.setQueryData(key, [{
+    const fields = ref<ServiceRedemptionFieldDraft[]>([{
+      key: "field-31",
       id: 31,
-      field_key: "appointment_note",
       name: "预约说明",
       value_type: "string",
       input_type: "textarea",
-      options: [],
+      options_text: "",
       fill_stage: "customer",
       is_customer_visible: 1,
       is_required: 1,
       is_active: 1,
       sort: 0,
     }]);
-    return () => h(ProductFieldsEditor, { productId: 901, scope: "team" });
+    return () => h(ServiceFieldsEditor, {
+      modelValue: fields.value,
+      "onUpdate:modelValue": value => fields.value = value,
+    });
   },
 });
 
-const productFieldsEditor = story(
-  "ProductFieldsEditor",
+const serviceFieldsEditor = story(
+  "ServiceFieldsEditor",
   ["default", "hover", "focus", "active", "mobile"],
-  state => stage(h(ProductFieldsEditorHost), state === "mobile" ? "story-stage--mobile" : ""),
+  state => stage(h(ServiceFieldsEditorHost), state === "mobile" ? "story-stage--mobile" : ""),
   {
-    disabled: "字段权限由所属商品编辑页控制。",
-    loading: "读取状态由组件内的查询骨架表达，不作为静态夹具。",
-    error: "读取失败由组件内的区域错误表达，不作为静态夹具。",
+    disabled: "字段权限由所属服务编辑页控制。",
+    loading: "字段与服务详情一同读取，由所属页面表达加载状态。",
+    error: "字段与服务详情一同读取，由所属页面表达错误状态。",
   },
+);
+
+const ServiceCompletionFieldsHost = defineComponent({
+  setup() {
+    const values = ref<Record<number, unknown>>({ 42: "已完成服务并回访" });
+    const fields: ServiceField[] = [
+      { id: 42, name: "服务结果", value_type: "text", input_type: "textarea", fill_stage: "manager", is_required: 1 },
+      { id: 43, name: "完成日期", value_type: "date", input_type: "text", fill_stage: "manager", is_required: 0 },
+    ];
+    return () => h(ServiceCompletionFields, {
+      modelValue: values.value,
+      "onUpdate:modelValue": value => values.value = value,
+      fields,
+    });
+  },
+});
+
+const serviceCompletionFields = story(
+  "ServiceCompletionFields",
+  ["default", "focus", "mobile"],
+  state => stage(h(ServiceCompletionFieldsHost), state === "mobile" ? "story-stage--mobile" : ""),
+  {
+    disabled: "字段是否可填写由所属核销任务控制。",
+    loading: "字段定义随核销详情一同加载。",
+    error: "提交错误由所属核销任务就近显示。",
+  },
+);
+
+const personTickRanking = story(
+  "PersonTickRanking",
+  layout,
+  state => stage(h(PersonTickRanking, {
+    metricLabel: "履约业绩",
+    moneyMetric: true,
+    rows: [
+      { key: 1, name: "青空成员", value: 12860 },
+      { key: 2, name: "协作助手", value: 9840 },
+      { key: 3, name: "云端成员", value: 6720 },
+      { key: 4, name: "夜航成员", value: 4310 },
+    ],
+  })),
+);
+
+const transactionFlowTrend = story(
+  "TransactionFlowTrend",
+  layout,
+  state => stage(h(TransactionFlowTrend, {
+    periodLabel: "2026年8月",
+    points: Array.from({ length: 12 }, (_, index) => ({
+      key: `2026-08-${String(index + 1).padStart(2, "0")}`,
+      label: `8/${index + 1}`,
+      value: [620, 980, 760, 1380, 1040, 1680, 1420, 2140, 1860, 2320, 1940, 2680][index],
+    })),
+  })),
 );
 
 export const appStories: Record<string, StoryDefinition> = {
@@ -663,7 +721,10 @@ export const appStories: Record<string, StoryDefinition> = {
   TeamShell: teamShell,
   TransactionShell: transactionShell,
   PersonalServiceLists: personalServiceLists,
-  ProductFieldsEditor: productFieldsEditor,
+  PersonTickRanking: personTickRanking,
+  ServiceCompletionFields: serviceCompletionFields,
+  TransactionFlowTrend: transactionFlowTrend,
+  ServiceFieldsEditor: serviceFieldsEditor,
   ResourceOwnerTag: resourceOwnerTag,
   ShopManageShell: shopManageShell,
 };

@@ -24,6 +24,27 @@ const product = useQuery({ queryKey: computed(() => ['shop-product', id.value]),
       </div>
       <div class="detail-copy"><p class="eyebrow">商品 / {{ product.data.value.id }}</p><h1 tabindex="-1">{{ product.data.value.name }}</h1><p>{{ product.data.value.description }}</p><strong class="detail-price">{{ formatMoney(product.data.value.price) }}</strong><RouterLink class="primary-link" :to="`/product/${id}/checkout`">确认购买 <ArrowRight :size="18" aria-hidden="true" /></RouterLink><small>使用商家预存余额支付</small></div>
     </div>
+    <section v-if="product.data.value.benefit_package?.services.length" class="product-inclusions" aria-labelledby="product-inclusions-title">
+      <div>
+        <p class="section-index">权益内容</p>
+        <h2 id="product-inclusions-title">内含服务</h2>
+        <p>{{ product.data.value.benefit_package.name }}将在购买成功后发放到你的服务权益中。</p>
+      </div>
+      <div class="inclusion-list">
+        <article v-for="(item, index) in product.data.value.benefit_package.services" :key="item.id" class="inclusion-item">
+          <span>{{ String(index + 1).padStart(2, '0') }}</span>
+          <div>
+            <h3>{{ item.name }}</h3>
+            <p v-if="item.description">{{ item.description }}</p>
+            <dl>
+              <div><dt>服务额度</dt><dd>{{ Number(item.quantity) }} {{ item.unit_name }}</dd></div>
+              <div><dt>单次最小额度</dt><dd>{{ Number(item.quantity_step) }} {{ item.unit_name }}</dd></div>
+              <div><dt>有效期</dt><dd>{{ item.valid_days > 0 ? `领取后 ${item.valid_days} 天` : '长期有效' }}</dd></div>
+            </dl>
+          </div>
+        </article>
+      </div>
+    </section>
     <section v-if="product.data.value.introduction_markdown" class="product-story"><p class="section-index">商品详情</p><LsMarkdownRenderer class="shop-markdown" :content="product.data.value.introduction_markdown" :chat-enabled="false" /></section>
   </article>
 </template>

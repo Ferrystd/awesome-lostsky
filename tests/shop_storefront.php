@@ -19,6 +19,7 @@ use app\service\CustomerBinding;
 use app\service\CustomerProfile as CustomerProfileService;
 use app\service\Balance as BalanceService;
 use app\service\Entity as EntityService;
+use app\service\EntitlementManagement;
 use app\service\IdentitySession;
 use app\service\Jwt;
 use app\service\Product;
@@ -167,6 +168,48 @@ try {
     $assert(!array_key_exists('cost', $page['list'][0]) && !array_key_exists('handler_cut', $page['list'][0]), 'storefront list excludes internal money fields');
     $detail = app(Storefront::class)->product((int) $team->id, $activeId);
     $assert(($detail['introduction_markdown'] ?? null) === '# Public details', 'storefront detail includes product markdown');
+    $entitlements = app(EntitlementManagement::class);
+    $serviceId = $entitlements->saveService((int) $team->id, null, [
+        'name' => 'Guided Session',
+        'description' => 'A private guided session',
+        'unit_name' => 'hours',
+        'quantity_step' => '0.5',
+        'default_total_price' => '20.00',
+        'default_cost' => '0.00',
+    ]);
+    $packageId = $entitlements->savePackage((int) $team->id, null, [
+        'name' => 'Guided Package',
+        'services' => [[
+            'service_id' => $serviceId,
+            'quantity' => '1.5',
+            'valid_days' => 30,
+        ]],
+    ]);
+    $bundleId = app(Product::class)->create((int) $team->id, [
+        'name' => 'Guided Bundle',
+        'cover_image' => 'https://assets.lostsky.work/media/bundle.webp',
+        'price' => '60.00',
+        'kind' => 2,
+        'benefit_package_id' => $packageId,
+    ]);
+    $bundle = app(Storefront::class)->product((int) $team->id, $bundleId);
+    $included = $bundle['benefit_package']['services'][0] ?? [];
+    $assert(
+        ($bundle['benefit_package']['name'] ?? '') === 'Guided Package'
+            && ($included['name'] ?? '') === 'Guided Session'
+            && ($included['description'] ?? '') === 'A private guided session'
+            && ($included['quantity'] ?? '') === '1.5000'
+            && ($included['unit_name'] ?? '') === 'hours'
+            && ($included['quantity_step'] ?? '') === '0.5000'
+            && ($included['valid_days'] ?? 0) === 30,
+        'storefront bundle detail exposes customer-facing included service information'
+    );
+    $assert(
+        !array_key_exists('unit_price', $included)
+            && !array_key_exists('unit_cost', $included)
+            && !array_key_exists('unit_handler_cut', $included),
+        'storefront included services exclude internal pricing and share fields'
+    );
     $assertThrows(fn () => app(Storefront::class)->product((int) $team->id, $inactiveId), 404, 'inactive product detail is private');
 
     $deviceToken = bin2hex(random_bytes(16));

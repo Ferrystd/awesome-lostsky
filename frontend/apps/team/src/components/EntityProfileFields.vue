@@ -75,7 +75,6 @@ defineExpose({ clearDraft: () => editor.value?.clearDraft() })
     <LsField
       label="头像"
       :for-id="`${idPrefix}-avatar`"
-      hint="可粘贴已登记媒体 URL，或从本地上传图片。"
     >
       <LsMediaUploadField
         :id="`${idPrefix}-avatar`"
@@ -95,7 +94,6 @@ defineExpose({ clearDraft: () => editor.value?.clearDraft() })
     <LsField
       label="介绍图片"
       :for-id="`${idPrefix}-intro-image`"
-      hint="可粘贴已登记媒体 URL，或从本地上传图片。"
     >
       <LsMediaUploadField
         :id="`${idPrefix}-intro-image`"

@@ -79,7 +79,7 @@ const columns = computed<DataTableColumns<ManageCampaign>>(() => [
   <div class="manage-page">
     <LsPageHeader
       :title="personal ? '我的卡活动' : '卡活动'"
-      :description="personal ? '使用本人或团队公用权益包配置卡活动，并发行自己的服务卡密。' : '配置服务权益卡的发行模式、领取窗口和兑换码。'"
+      :description="personal ? '使用本人或团队公用权益包配置卡活动，并发行自己的服务卡密。(实验性功能，使用可能造成资产损失)' : '配置服务权益卡的发行模式、领取窗口和兑换码。(实验性功能，使用可能造成资产损失)'"
       ><template #actions>
         <LsPagePrimaryAction v-if="canManage(management.permission)" :icon="Plus" label="新建活动" :to="`${management.routePrefix}/campaigns/new`" /></template
       ></LsPageHeader

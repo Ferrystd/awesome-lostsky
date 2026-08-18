@@ -144,27 +144,49 @@ test('direct conversation submits a single selected participant as an array', as
   await expect.poll(() => createPayload?.participants).toEqual(['sales-assistant'])
 })
 
-test('Account identity picker receives an entity token', async ({ page }) => {
-  let receivedSlug: string | null = null
+test('Account identity picker switches continuously and returns to its safe redirect', async ({ page }) => {
+  const receivedSlugs: string[] = []
   await setToken(page, 'user-token')
   await page.route('http://account.lostsky.work:5174/api/**', async route => {
     const url = new URL(route.request().url())
     let data: unknown = null
     if (url.pathname.endsWith('/identity/candidates')) {
-      data = [{ type: 'teamVirtual', id: 9, slug: 'sales-assistant', name: '销售助手' }]
+      data = [
+        { type: 'teamVirtual', id: 9, slug: 'sales-assistant', name: '销售助手' },
+        { type: 'teamMember', id: 10, slug: 'service-member', name: '客服成员' },
+      ]
     } else if (url.pathname.endsWith('/identity/receive')) {
-      receivedSlug = route.request().postDataJSON().slug
-      data = { token: 'entity-token', identity: { type: 'teamVirtual', id: 9, slug: 'sales-assistant', name: '销售助手' } }
+      const slug = route.request().postDataJSON().slug
+      receivedSlugs.push(slug)
+      data = {
+        token: `${slug}-token`,
+        identity: slug === 'sales-assistant'
+          ? { type: 'teamVirtual', id: 9, slug, name: '销售助手' }
+          : { type: 'teamMember', id: 10, slug, name: '客服成员' },
+      }
     }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
 
-  await page.goto('http://account.lostsky.work:5174/identity')
+  const redirect = 'http://demo.team.lostsky.work:5175/personal'
+  await page.route(redirect, route => route.fulfill({ status: 200, contentType: 'text/html', body: '<main>原页面</main>' }))
+  await page.goto(`http://account.lostsky.work:5174/identity?redirect=${encodeURIComponent(redirect)}`)
   await expect(page.getByRole('heading', { name: '选择当前身份' })).toBeVisible()
-  await page.getByRole('button', { name: '领取' }).click()
-  await expect.poll(() => receivedSlug).toBe('sales-assistant')
-  await expect(page).toHaveURL('http://account.lostsky.work:5174/teams')
-  await expect.poll(() => token(page)).toBe('entity-token')
+  const returnLink = page.getByRole('link', { name: '前往页面' })
+  await expect(returnLink).toHaveAttribute('href', redirect)
+
+  await page.locator('article').filter({ hasText: '@sales-assistant' }).getByRole('button', { name: '领取' }).click()
+  await expect.poll(() => receivedSlugs).toEqual(['sales-assistant'])
+  await expect(page).toHaveURL(new RegExp('/identity\\?redirect='))
+  await expect.poll(() => token(page)).toBe('sales-assistant-token')
+
+  await page.locator('article').filter({ hasText: '@service-member' }).getByRole('button', { name: '切换' }).click()
+  await expect.poll(() => receivedSlugs).toEqual(['sales-assistant', 'service-member'])
+  await expect(page).toHaveURL(new RegExp('/identity\\?redirect='))
+  await expect.poll(() => token(page)).toBe('service-member-token')
+
+  await returnLink.click()
+  await expect(page).toHaveURL(redirect)
 })
 
 test('Account identity picker shows cross-team candidates and preserves the current token on failure', async ({ page }) => {

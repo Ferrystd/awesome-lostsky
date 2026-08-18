@@ -645,14 +645,13 @@ CREATE TABLE `team_product_handler` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品接单人白名单';
 
 -- ----------------------------
--- Table: team_product_redemption_field
--- Model: app\model\TeamProductRedemptionField
+-- Table: team_service_redemption_field
+-- Model: app\model\TeamServiceRedemptionField
 -- ----------------------------
-CREATE TABLE `team_product_redemption_field` (
+CREATE TABLE `team_service_redemption_field` (
     `id`                  INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `team_id`             INT UNSIGNED NOT NULL COMMENT '团队ID',
-    `product_id`          INT UNSIGNED NOT NULL COMMENT '商品ID',
-    `field_key`           VARCHAR(64)  NOT NULL DEFAULT '' COMMENT '字段标识',
+    `service_id`          INT UNSIGNED NOT NULL COMMENT '服务ID',
     `name`                VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '字段名称',
     `value_type`          VARCHAR(20)  NOT NULL DEFAULT 'string' COMMENT '值类型',
     `input_type`          VARCHAR(20)  NOT NULL DEFAULT 'text' COMMENT '输入控件',
@@ -667,9 +666,8 @@ CREATE TABLE `team_product_redemption_field` (
     `update_time`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time`         INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_product_redemption_field` (`product_id`, `field_key`),
-    KEY `idx_product_redemption_sort` (`product_id`, `is_active`, `sort`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品核销自定义字段';
+    KEY `idx_service_redemption_sort` (`service_id`, `is_active`, `sort`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='服务核销自定义字段';
 
 -- ----------------------------
 -- Table: team_order
@@ -837,7 +835,8 @@ CREATE TABLE `team_service_instance` (
 CREATE TABLE `team_service_field_value` (
     `id`                  INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `service_instance_id` INT UNSIGNED NOT NULL COMMENT '服务实例ID',
-    `field_id`            INT UNSIGNED NOT NULL COMMENT '商品核销字段ID',
+    `field_id`            INT UNSIGNED NOT NULL COMMENT '服务核销字段ID',
+    `resource_index`      INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '履约资源序号，从1开始',
     `value_string`        VARCHAR(500) NULL DEFAULT NULL COMMENT '字符串值',
     `value_text`          TEXT         NULL COMMENT '文本值',
     `value_int`           INT          NULL DEFAULT NULL COMMENT '整数值',
@@ -848,7 +847,7 @@ CREATE TABLE `team_service_field_value` (
     `update_time`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time`         INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_service_field_value` (`service_instance_id`, `field_id`),
+    UNIQUE KEY `uk_service_field_value` (`service_instance_id`, `field_id`, `resource_index`),
     KEY `idx_service_field` (`field_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='服务核销字段值';
 
@@ -1582,12 +1581,12 @@ ALTER TABLE `team_customer_balance_log` ADD CONSTRAINT `fk_balance_log_customer`
 ALTER TABLE `team_customer_sender` ADD CONSTRAINT `fk_customer_sender_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_customer_sender_customer` FOREIGN KEY (`customer_id`) REFERENCES `team_customer` (`id`), ADD CONSTRAINT `fk_customer_sender_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_product` ADD CONSTRAINT `fk_product_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_product_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_product_benefit_package` FOREIGN KEY (`benefit_package_id`) REFERENCES `benefit_package` (`id`), ADD CONSTRAINT `fk_product_redemption_campaign` FOREIGN KEY (`redemption_campaign_id`) REFERENCES `redemption_campaign` (`id`);
 ALTER TABLE `team_product_handler` ADD CONSTRAINT `fk_product_handler_product` FOREIGN KEY (`product_id`) REFERENCES `team_product` (`id`), ADD CONSTRAINT `fk_product_handler_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
-ALTER TABLE `team_product_redemption_field` ADD CONSTRAINT `fk_product_redemption_field_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_product_redemption_field_product` FOREIGN KEY (`product_id`) REFERENCES `team_product` (`id`);
+ALTER TABLE `team_service_redemption_field` ADD CONSTRAINT `fk_service_redemption_field_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_service_redemption_field_service` FOREIGN KEY (`service_id`) REFERENCES `team_service` (`id`);
 ALTER TABLE `team_order` ADD CONSTRAINT `fk_order_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_order_customer` FOREIGN KEY (`customer_id`) REFERENCES `team_customer` (`id`), ADD CONSTRAINT `fk_order_handler_entity` FOREIGN KEY (`handler_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_order_sender_entity` FOREIGN KEY (`sender_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_order_cs_entity` FOREIGN KEY (`cs_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_order_product` FOREIGN KEY (`product_id`) REFERENCES `team_product` (`id`), ADD CONSTRAINT `fk_order_transaction` FOREIGN KEY (`trans_id`) REFERENCES `team_transaction` (`id`);
 ALTER TABLE `team_service_entitlement` ADD CONSTRAINT `fk_entitlement_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_entitlement_service` FOREIGN KEY (`service_id`) REFERENCES `team_service` (`id`), ADD CONSTRAINT `fk_entitlement_customer` FOREIGN KEY (`customer_id`) REFERENCES `team_customer` (`id`), ADD CONSTRAINT `fk_entitlement_holder` FOREIGN KEY (`holder_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_entitlement_sender` FOREIGN KEY (`sender_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_entitlement_cs` FOREIGN KEY (`cs_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_entitlement_product` FOREIGN KEY (`source_product_id`) REFERENCES `team_product` (`id`), ADD CONSTRAINT `fk_entitlement_order` FOREIGN KEY (`source_order_id`) REFERENCES `team_order` (`id`), ADD CONSTRAINT `fk_entitlement_claim` FOREIGN KEY (`source_claim_id`) REFERENCES `redemption_claim` (`id`), ADD CONSTRAINT `fk_entitlement_package_item` FOREIGN KEY (`source_package_item_id`) REFERENCES `benefit_package_service` (`id`);
 ALTER TABLE `team_service_assignment_offer` ADD CONSTRAINT `fk_assignment_offer_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_assignment_offer_service` FOREIGN KEY (`service_id`) REFERENCES `team_service` (`id`), ADD CONSTRAINT `fk_assignment_offer_customer` FOREIGN KEY (`customer_id`) REFERENCES `team_customer` (`id`), ADD CONSTRAINT `fk_assignment_offer_holder` FOREIGN KEY (`holder_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_assignment_offer_entitlement` FOREIGN KEY (`entitlement_id`) REFERENCES `team_service_entitlement` (`id`), ADD CONSTRAINT `fk_assignment_offer_target` FOREIGN KEY (`target_handler_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_assignment_offer_instance` FOREIGN KEY (`service_instance_id`) REFERENCES `team_service_instance` (`id`), ADD CONSTRAINT `fk_assignment_offer_decider` FOREIGN KEY (`decided_by_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_service_instance` ADD CONSTRAINT `fk_service_instance_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_service_instance_service` FOREIGN KEY (`service_id`) REFERENCES `team_service` (`id`), ADD CONSTRAINT `fk_service_instance_customer` FOREIGN KEY (`customer_id`) REFERENCES `team_customer` (`id`), ADD CONSTRAINT `fk_service_instance_holder` FOREIGN KEY (`holder_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_service_instance_entitlement` FOREIGN KEY (`entitlement_id`) REFERENCES `team_service_entitlement` (`id`), ADD CONSTRAINT `fk_service_instance_product` FOREIGN KEY (`source_product_id`) REFERENCES `team_product` (`id`), ADD CONSTRAINT `fk_service_instance_order` FOREIGN KEY (`source_order_id`) REFERENCES `team_order` (`id`), ADD CONSTRAINT `fk_service_instance_claim` FOREIGN KEY (`source_claim_id`) REFERENCES `redemption_claim` (`id`), ADD CONSTRAINT `fk_service_instance_handler` FOREIGN KEY (`handler_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_service_instance_sender` FOREIGN KEY (`sender_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_service_instance_cs` FOREIGN KEY (`cs_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_service_instance_transaction` FOREIGN KEY (`trans_id`) REFERENCES `team_transaction` (`id`);
-ALTER TABLE `team_service_field_value` ADD CONSTRAINT `fk_service_field_value_instance` FOREIGN KEY (`service_instance_id`) REFERENCES `team_service_instance` (`id`), ADD CONSTRAINT `fk_service_field_value_field` FOREIGN KEY (`field_id`) REFERENCES `team_product_redemption_field` (`id`);
+ALTER TABLE `team_service_field_value` ADD CONSTRAINT `fk_service_field_value_instance` FOREIGN KEY (`service_instance_id`) REFERENCES `team_service_instance` (`id`), ADD CONSTRAINT `fk_service_field_value_field` FOREIGN KEY (`field_id`) REFERENCES `team_service_redemption_field` (`id`);
 ALTER TABLE `team_service_cancel_request` ADD CONSTRAINT `fk_service_cancel_instance` FOREIGN KEY (`service_instance_id`) REFERENCES `team_service_instance` (`id`), ADD CONSTRAINT `fk_service_cancel_requester` FOREIGN KEY (`requested_by_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_service_cancel_decider` FOREIGN KEY (`decided_by_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_service_event` ADD CONSTRAINT `fk_service_event_instance` FOREIGN KEY (`service_instance_id`) REFERENCES `team_service_instance` (`id`), ADD CONSTRAINT `fk_service_event_actor` FOREIGN KEY (`actor_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_service_event_from_handler` FOREIGN KEY (`from_handler_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_service_event_to_handler` FOREIGN KEY (`to_handler_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_service_adjustment` ADD CONSTRAINT `fk_adjustment_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_adjustment_instance` FOREIGN KEY (`service_instance_id`) REFERENCES `team_service_instance` (`id`), ADD CONSTRAINT `fk_adjustment_customer` FOREIGN KEY (`customer_id`) REFERENCES `team_customer` (`id`), ADD CONSTRAINT `fk_adjustment_requester` FOREIGN KEY (`requested_by_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_adjustment_decider` FOREIGN KEY (`decided_by_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_adjustment_receipt_trans` FOREIGN KEY (`receipt_trans_id`) REFERENCES `team_transaction` (`id`), ADD CONSTRAINT `fk_adjustment_performance_trans` FOREIGN KEY (`performance_trans_id`) REFERENCES `team_transaction` (`id`);

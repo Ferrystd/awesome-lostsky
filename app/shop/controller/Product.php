@@ -14,8 +14,8 @@ class Product
         'Context'      => ['except' => []],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
         'TeamAuth'     => ['except' => []],
-        'Permission:' . Permissions::SHOP_PRODUCT_READ => ['only' => ['index', 'get', 'fields']],
-        'Permission:' . Permissions::SHOP_PRODUCT_WRITE => ['only' => ['create', 'edit', 'setHandlers', 'createField', 'updateField', 'deleteField']],
+        'Permission:' . Permissions::SHOP_PRODUCT_READ => ['only' => ['index', 'get']],
+        'Permission:' . Permissions::SHOP_PRODUCT_WRITE => ['only' => ['create', 'edit', 'setHandlers']],
         'Permission:' . Permissions::SHOP_PRODUCT_DELETE => ['only' => ['delete']],
     ];
 
@@ -108,50 +108,4 @@ class Product
         return message('接单人已更新');
     }
 
-    public function fields(Request $request)
-    {
-        return success(app(\app\service\ProductRedemptionField::class)->list($request->team_id, $request->route('id/d', 0)));
-    }
-
-    public function createField(Request $request)
-    {
-        $id = app(\app\service\ProductRedemptionField::class)->create(
-            $request->team_id,
-            $request->route('id/d', 0),
-            $request->post()
-        );
-        app(\app\service\BusinessAudit::class)->record(
-            $request, 'shop', 'create', 'productRedemptionField', $id,
-            ['changed_fields' => array_keys($request->post())]
-        );
-        return success(['id' => $id], '核销字段已创建');
-    }
-
-    public function updateField(Request $request)
-    {
-        app(\app\service\ProductRedemptionField::class)->update(
-            $request->team_id,
-            $request->route('id/d', 0),
-            $request->route('field_id/d', 0),
-            $request->post()
-        );
-        app(\app\service\BusinessAudit::class)->record(
-            $request, 'shop', 'update', 'productRedemptionField', $request->route('field_id/d', 0),
-            ['changed_fields' => array_keys($request->post())]
-        );
-        return message('核销字段已更新');
-    }
-
-    public function deleteField(Request $request)
-    {
-        app(\app\service\ProductRedemptionField::class)->delete(
-            $request->team_id,
-            $request->route('id/d', 0),
-            $request->route('field_id/d', 0)
-        );
-        app(\app\service\BusinessAudit::class)->record(
-            $request, 'shop', 'delete', 'productRedemptionField', $request->route('field_id/d', 0)
-        );
-        return message('核销字段已删除');
-    }
 }

@@ -57,13 +57,17 @@ class ServiceRedemption
         foreach ($instances as &$instance) {
             $model = TeamServiceInstance::find((int) $instance['id']);
             $instance['redemption_fields'] = $model
-                ? app(ProductRedemptionField::class)->fieldsForInstance($model, true)
+                ? app(ServiceRedemptionField::class)->fieldsForInstance($model, true)
                 : [];
+            $instance['redemption_resources'] = $model
+                ? app(ServiceRedemptionField::class)->resourcesForInstance($model, true)
+                : [];
+            if ($model) $this->attachStatus($instance, $model);
         }
         $result['instances'] = $instances;
-        $result['redemption_fields'] = app(ProductRedemptionField::class)->fieldsForProduct(
+        $result['redemption_fields'] = app(ServiceRedemptionField::class)->fieldsForService(
             $teamId,
-            (int) $entitlement->source_product_id,
+            (int) $entitlement->service_id,
             true
         );
         $result['allow_open_dispatch'] = (bool) app(TeamSetting::class)->internal($teamId, 'service')['allow_customer_open_dispatch'];
@@ -72,11 +76,16 @@ class ServiceRedemption
             ->where('customer_id', $customerId)->where('entitlement_id', $id)
             ->with(['targetHandler.profile', 'instance'])->order('id', 'desc')->select()->toArray();
         foreach ($offers as &$offer) {
-            $offer['redemption_fields'] = app(ProductRedemptionField::class)->fieldsForValues(
+            $resources = app(ServiceRedemptionField::class)->resourcesForValues(
                 $teamId,
-                (int) $entitlement->source_product_id,
-                is_array($offer['field_values'] ?? null) ? $offer['field_values'] : []
+                (int) $entitlement->service_id,
+                $offer['quantity'],
+                $entitlement->quantity_step,
+                is_array($offer['field_values'] ?? null) ? $offer['field_values'] : [],
+                true
             );
+            $offer['redemption_resources'] = $resources;
+            $offer['redemption_fields'] = $resources[0]['redemption_fields'] ?? [];
         }
         $result['assignment_offers'] = $offers;
         return $result;
@@ -126,10 +135,12 @@ class ServiceRedemption
             if ($quantityMinor > app(ServiceQuantity::class)->toMinor($entitlement->available_quantity)) {
                 throw new HttpException(409, '可用服务额度不足');
             }
-            $fields = app(ProductRedemptionField::class)->validateForProduct(
+            $fields = app(ServiceRedemptionField::class)->validateResourcesForService(
                 $teamId,
-                (int) $entitlement->source_product_id,
+                (int) $entitlement->service_id,
                 'customer',
+                $normalized,
+                $entitlement->quantity_step,
                 $fieldValues
             );
             $money = $this->allocateMoney($entitlement, $quantityMinor);
@@ -195,14 +206,22 @@ class ServiceRedemption
         return $result;
     }
 
-    public function acceptOffer(int $teamId, int $actorEntityId, int $id): int
+    public function acceptOffer(int $teamId, int $actorEntityId, int $id, array $fieldValues = []): int
     {
-        return Db::transaction(function () use ($teamId, $actorEntityId, $id) {
+        return Db::transaction(function () use ($teamId, $actorEntityId, $id, $fieldValues) {
             [$entitlement, $offer] = $this->lockedOffer($teamId, $id);
             if ((int) $offer->target_handler_entity_id !== $actorEntityId) throw new HttpException(403, '该邀请不属于当前 Entity');
             if ($offer->enumCase('status') === ServiceAssignmentOfferStatus::Accepted) return (int) $offer->service_instance_id;
             if ($offer->enumCase('status') !== ServiceAssignmentOfferStatus::Pending) throw new HttpException(409, '邀请已失效');
             $this->assertHandler($teamId, (int) $offer->service_id, $actorEntityId);
+            app(ServiceRedemptionField::class)->validateResourcesForService(
+                $teamId,
+                (int) $offer->service_id,
+                'manager',
+                $offer->quantity,
+                $entitlement->quantity_step,
+                $fieldValues
+            );
             $ordinal = (int) TeamServiceInstance::where('entitlement_id', $entitlement->id)->max('ordinal') + 1;
             $instance = new TeamServiceInstance;
             $instance->save([
@@ -230,11 +249,12 @@ class ServiceRedemption
                 'started_at' => time(),
                 'memo' => $offer->memo,
             ]);
-            app(ProductRedemptionField::class)->saveForStage(
+            app(ServiceRedemptionField::class)->saveResourcesForStage(
                 $instance,
                 'customer',
                 is_array($offer->field_values) ? $offer->field_values : []
             );
+            app(ServiceRedemptionField::class)->saveResourcesForStage($instance, 'manager', $fieldValues);
             $offer->save([
                 'status' => ServiceAssignmentOfferStatus::Accepted,
                 'service_instance_id' => $instance->id,
@@ -324,7 +344,7 @@ class ServiceRedemption
                 'started_at' => time(),
                 'memo' => trim($memo),
             ] + $money);
-            app(ProductRedemptionField::class)->saveForStage($instance, 'customer', $fieldValues);
+            app(ServiceRedemptionField::class)->saveResourcesForStage($instance, 'customer', $fieldValues);
             $this->reserve($entitlement, $quantityMinor);
             $this->event((int) $instance->id, $actorEntityId, 'opened', null, null, [
                 'quantity' => $normalized,
@@ -355,7 +375,7 @@ class ServiceRedemption
                 throw new HttpException(409, '可用服务额度不足');
             }
             $this->assertHandler($teamId, (int) $instance->service_id, $handlerEntityId);
-            app(ProductRedemptionField::class)->saveForStage($instance, 'customer', $fieldValues);
+            app(ServiceRedemptionField::class)->saveResourcesForStage($instance, 'customer', $fieldValues);
             $money = $this->allocateMoney($entitlement, $quantityMinor);
             $instance->status = ServiceStatus::Processing;
             $instance->handler_entity_id = $handlerEntityId;
@@ -375,7 +395,7 @@ class ServiceRedemption
     public function requestCancel(int $teamId, int $customerId, int $id, string $reason, int $actorEntityId): int
     {
         return Db::transaction(function () use ($teamId, $customerId, $id, $reason, $actorEntityId) {
-            [, $instance] = $this->lockedPair($teamId, $id);
+            [$entitlement, $instance] = $this->lockedPair($teamId, $id);
             if ((int) $instance->customer_id !== $customerId || (int) $instance->holder_entity_id !== $actorEntityId) {
                 throw new HttpException(403, '只能操作当前 Customer Entity 持有的服务');
             }
@@ -402,7 +422,12 @@ class ServiceRedemption
         if (!empty($filters['handler_entity_id'])) $query->where('handler_entity_id', (int) $filters['handler_entity_id']);
         $paginator = $query->with(['service', 'customer.profile', 'entitlement'])
             ->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
-        $list = $paginator->getCollection()->toArray();
+        $list = [];
+        foreach ($paginator->getCollection() as $model) {
+            $row = $model->toArray();
+            $this->attachStatus($row, $model);
+            $list[] = $row;
+        }
         $this->attachEntities($list, ['handler' => 'handler_entity_id']);
         return [
             'total' => $paginator->total(),
@@ -426,6 +451,7 @@ class ServiceRedemption
             throw new HttpException(403, '无权查看该核销');
         }
         $result = $instance->toArray();
+        $this->attachStatus($result, $instance);
         $rows = [&$result];
         $this->attachEntities($rows, [
             'handler' => 'handler_entity_id',
@@ -435,7 +461,8 @@ class ServiceRedemption
         if (!empty($result['cancel_requests'])) {
             $this->attachEntities($result['cancel_requests'], ['decider' => 'decided_by_entity_id']);
         }
-        $result['redemption_fields'] = app(ProductRedemptionField::class)->fieldsForInstance($instance, false);
+        $result['redemption_fields'] = app(ServiceRedemptionField::class)->fieldsForInstance($instance, false);
+        $result['redemption_resources'] = app(ServiceRedemptionField::class)->resourcesForInstance($instance, false);
         $manage = $this->canManage($teamId, $subject);
         $result['capabilities'] = [
             'manage' => $manage,
@@ -498,20 +525,83 @@ class ServiceRedemption
         return $result;
     }
 
-    public function claim(int $teamId, int $actorEntityId, int $id): void
+    public function claim(int $teamId, int $actorEntityId, int $id, mixed $quantity = null, array $fieldValues = []): int
     {
-        Db::transaction(function () use ($teamId, $actorEntityId, $id) {
-            [, $instance] = $this->lockedPair($teamId, $id);
+        return Db::transaction(function () use ($teamId, $actorEntityId, $id, $quantity, $fieldValues) {
+            [$entitlement, $instance] = $this->lockedPair($teamId, $id);
             $this->assertProcessing($instance);
             if ($instance->handler_entity_id !== null) {
-                if ((int) $instance->handler_entity_id === $actorEntityId) return;
+                if ((int) $instance->handler_entity_id === $actorEntityId) return (int) $instance->id;
                 throw new HttpException(409, '该任务已被其他接单人领取');
             }
             if ($this->pendingCancel((int) $instance->id, true)) throw new HttpException(409, '该任务正在申请取消');
             $this->assertHandler($teamId, (int) $instance->service_id, $actorEntityId);
-            $instance->handler_entity_id = $actorEntityId;
-            $instance->save();
-            $this->event((int) $instance->id, $actorEntityId, 'claimed', null, $actorEntityId, []);
+            $quantityRules = app(ServiceQuantity::class);
+            $requested = $quantity === null || $quantity === '' ? $instance->quantity : $quantity;
+            $normalized = $quantityRules->normalize($requested, $entitlement->quantity_step);
+            $requestedMinor = $quantityRules->toMinor($normalized);
+            $currentMinor = $quantityRules->toMinor($instance->quantity);
+            if ($requestedMinor > $currentMinor) throw new HttpException(409, '领取数量不能超过当前公开任务数量');
+
+            $fieldService = app(ServiceRedemptionField::class);
+            $fieldService->validateResourcesForService(
+                $teamId,
+                (int) $instance->service_id,
+                'manager',
+                $normalized,
+                $entitlement->quantity_step,
+                $fieldValues
+            );
+            $remainderId = null;
+            if ($requestedMinor < $currentMinor) {
+                if (TeamServiceAdjustment::where('service_instance_id', $instance->id)->find()) {
+                    throw new HttpException(409, '已有费用调整的任务只能整单领取');
+                }
+                [$claimedMoney, $remainderMoney] = $this->splitInstanceMoney($instance, $requestedMinor, $currentMinor);
+                $remainder = new TeamServiceInstance;
+                $remainder->save([
+                    'team_id' => $instance->team_id,
+                    'service_id' => $instance->service_id,
+                    'customer_id' => $instance->customer_id,
+                    'holder_entity_id' => $instance->holder_entity_id,
+                    'entitlement_id' => $instance->entitlement_id,
+                    'source_product_id' => $instance->source_product_id,
+                    'source_order_id' => $instance->source_order_id,
+                    'source_claim_id' => $instance->source_claim_id,
+                    'ordinal' => (int) TeamServiceInstance::where('entitlement_id', $instance->entitlement_id)->max('ordinal') + 1,
+                    'quantity' => $quantityRules->fromMinor($currentMinor - $requestedMinor),
+                    'status' => ServiceStatus::Processing,
+                    'handler_entity_id' => null,
+                    'sender_entity_id' => $instance->sender_entity_id,
+                    'cs_entity_id' => $instance->cs_entity_id,
+                    'expire_time' => $instance->expire_time,
+                    'started_at' => $instance->started_at,
+                    'memo' => $instance->memo,
+                ] + $remainderMoney);
+                $claimedResourceCount = $fieldService->resourceCount($normalized, (string) $entitlement->quantity_step);
+                $fieldService->splitStageValues($instance, $remainder, 'customer', $claimedResourceCount);
+                $fieldService->splitStageValues($instance, $remainder, 'manager', $claimedResourceCount);
+                Db::name('team_service_instance')->where('id', $instance->id)->update([
+                    'quantity' => $normalized,
+                    'handler_entity_id' => $actorEntityId,
+                    'update_time' => time(),
+                ] + $claimedMoney);
+                $remainderId = (int) $remainder->id;
+                $instance = TeamServiceInstance::find((int) $instance->id);
+                $this->event($remainderId, $actorEntityId, 'split_opened', null, null, [
+                    'source_instance_id' => (int) $instance->id,
+                    'quantity' => $remainder->quantity,
+                ]);
+            } else {
+                $instance->handler_entity_id = $actorEntityId;
+                $instance->save();
+            }
+            $fieldService->saveResourcesForStage($instance, 'manager', $fieldValues);
+            $this->event((int) $instance->id, $actorEntityId, 'claimed', null, $actorEntityId, [
+                'quantity' => $normalized,
+                'remainder_instance_id' => $remainderId,
+            ]);
+            return (int) $instance->id;
         });
     }
 
@@ -612,6 +702,46 @@ class ServiceRedemption
         });
     }
 
+    public function reject(int $teamId, array $subject, int $actorEntityId, int $id, string $reason): void
+    {
+        $this->assertManage($teamId, $subject);
+        $reason = trim($reason);
+        if ($reason === '') throw new HttpException(422, '请填写驳回原因');
+        Db::transaction(function () use ($teamId, $actorEntityId, $id, $reason) {
+            [$entitlement, $instance] = $this->lockedPair($teamId, $id);
+            $this->assertProcessing($instance);
+            if (TeamServiceAdjustment::where('service_instance_id', $id)
+                ->where('status', ServiceAdjustmentStatus::Accepted->value)->find()) {
+                throw new HttpException(409, '存在已确认的加价费用，暂不能驳回该次核销');
+            }
+            TeamServiceAdjustment::where('service_instance_id', $id)
+                ->where('status', ServiceAdjustmentStatus::Pending->value)
+                ->update([
+                    'status' => ServiceAdjustmentStatus::Cancelled->value,
+                    'decided_by_entity_id' => $actorEntityId,
+                    'decided_at' => time(),
+                ]);
+            if ($request = $this->pendingCancel((int) $instance->id, true)) {
+                $request->save([
+                    'status' => ServiceCancelStatus::Approved,
+                    'decided_by_entity_id' => $actorEntityId,
+                    'decision_reason' => $reason,
+                    'decided_at' => time(),
+                ]);
+            }
+            $oldHandler = $instance->handler_entity_id ? (int) $instance->handler_entity_id : null;
+            $instance->status = ServiceStatus::Unredeemed;
+            $instance->handler_entity_id = null;
+            $instance->started_at = null;
+            $instance->completed_at = null;
+            $instance->save();
+            $this->release($entitlement, app(ServiceQuantity::class)->toMinor($instance->quantity));
+            $this->event((int) $instance->id, $actorEntityId, 'redemption_rejected', $oldHandler, null, [
+                'reason' => $reason,
+            ]);
+        });
+    }
+
     public function reassign(int $teamId, array $subject, int $actorEntityId, int $id, int $handlerEntityId, string $reason): void
     {
         $this->assertManage($teamId, $subject);
@@ -631,8 +761,21 @@ class ServiceRedemption
     public function complete(int $teamId, array $subject, int $actorEntityId, int $id, array $fieldValues = []): void
     {
         $this->assertManage($teamId, $subject);
-        Db::transaction(function () use ($teamId, $actorEntityId, $id, $fieldValues) {
+        $this->completeAuthorized($teamId, $actorEntityId, $id, $fieldValues);
+    }
+
+    public function completeOwn(int $teamId, int $actorEntityId, int $id, array $fieldValues = []): void
+    {
+        $this->completeAuthorized($teamId, $actorEntityId, $id, $fieldValues, $actorEntityId);
+    }
+
+    private function completeAuthorized(int $teamId, int $actorEntityId, int $id, array $fieldValues, ?int $requiredHandlerId = null): void
+    {
+        Db::transaction(function () use ($teamId, $actorEntityId, $id, $fieldValues, $requiredHandlerId) {
             [$entitlement, $instance] = $this->lockedPair($teamId, $id);
+            if ($requiredHandlerId !== null && (int) $instance->handler_entity_id !== $requiredHandlerId) {
+                throw new HttpException(403, '只能完成当前 Entity 自己接取的核销');
+            }
             if ($instance->enumCase('status') === ServiceStatus::Redeemed) return;
             $this->assertProcessing($instance);
             if ($this->pendingCancel((int) $instance->id, true)) throw new HttpException(409, '待处理取消申请存在时不可完成');
@@ -640,7 +783,7 @@ class ServiceRedemption
                 ->where('status', ServiceAdjustmentStatus::Pending->value)->lock(true)->find()) {
                 throw new HttpException(409, '仍有待顾客确认的加价费用');
             }
-            app(ProductRedemptionField::class)->saveForStage($instance, 'manager', $fieldValues);
+            app(ServiceRedemptionField::class)->saveResourcesForStage($instance, 'manager', $fieldValues);
             $transId = null;
             if (app(AbilityResolver::class)->available($teamId, 'transaction')) {
                 $transId = app(Transaction::class)->createServiceRedemption($teamId, [
@@ -750,11 +893,15 @@ class ServiceRedemption
     private function attachOfferFields(array &$offer): void
     {
         $entitlement = $offer['entitlement'] ?? null;
-        $offer['redemption_fields'] = app(ProductRedemptionField::class)->fieldsForValues(
+        $resources = app(ServiceRedemptionField::class)->resourcesForValues(
             (int) $offer['team_id'],
-            (int) ($entitlement['source_product_id'] ?? 0),
+            (int) ($offer['service_id'] ?? $entitlement['service_id'] ?? 0),
+            $offer['quantity'] ?? '1',
+            $entitlement['quantity_step'] ?? '1',
             is_array($offer['field_values'] ?? null) ? $offer['field_values'] : []
         );
+        $offer['redemption_resources'] = $resources;
+        $offer['redemption_fields'] = $resources[0]['redemption_fields'] ?? [];
     }
 
     private function attachInstanceFields(array &$instance): void
@@ -762,9 +909,20 @@ class ServiceRedemption
         $entitlement = $instance['entitlement'] ?? null;
         $model = TeamServiceInstance::find((int) $instance['id']);
         $instance['redemption_fields'] = $model
-            ? app(ProductRedemptionField::class)->fieldsForInstance($model, false)
+            ? app(ServiceRedemptionField::class)->fieldsForInstance($model, false)
             : [];
+        $instance['redemption_resources'] = $model
+            ? app(ServiceRedemptionField::class)->resourcesForInstance($model, false)
+            : [];
+        if ($model) $this->attachStatus($instance, $model);
         $instance['unit_name'] = $entitlement['unit_name'] ?? '单位';
+    }
+
+    private function attachStatus(array &$row, TeamServiceInstance $instance): void
+    {
+        $status = $instance->enumCase('status');
+        $row['status_code'] = $status->value;
+        $row['status_label'] = $status->value();
     }
 
     private function handlerRows(int $teamId, int $serviceId): array
@@ -830,6 +988,28 @@ class ServiceRedemption
         if ($teamCents < 0) throw new HttpException(422, '该次服务的金额分成不平衡');
         $money['team_cut'] = $this->fromCents($teamCents);
         return $money;
+    }
+
+    private function splitInstanceMoney(TeamServiceInstance $instance, int $claimedMinor, int $totalMinor): array
+    {
+        $claimed = [];
+        $remainder = [];
+        foreach (self::MONEY_FIELDS as $field) {
+            $total = $this->toCents($instance->{$field});
+            $claimedCents = intdiv($total * $claimedMinor, $totalMinor);
+            $claimed[$field] = $this->fromCents($claimedCents);
+            $remainder[$field] = $this->fromCents($total - $claimedCents);
+        }
+        foreach ([&$claimed, &$remainder] as &$money) {
+            $money['team_cut'] = $this->fromCents(
+                $this->toCents($money['total_price'])
+                - $this->toCents($money['cost'])
+                - $this->toCents($money['handler_cut'])
+                - $this->toCents($money['sender_cut'])
+                - $this->toCents($money['cs_cut'])
+            );
+        }
+        return [$claimed, $remainder];
     }
 
     private function usedCents(int $entitlementId, string $field): int

@@ -13,6 +13,7 @@ Route::get('personal/services/available', 'Personal/availableServices')->complet
 Route::get('personal/services/available/<id>', 'Personal/availableService')->completeMatch();
 Route::post('personal/services/<id>/claim', 'Personal/claimService')->completeMatch();
 Route::post('personal/services/<id>/return', 'Personal/returnService')->completeMatch();
+Route::post('personal/services/<id>/complete', 'Personal/completeService')->completeMatch();
 Route::get('personal/services/<id>', 'Personal/service')->completeMatch();
 Route::get('personal/service-offers', 'Personal/serviceOffers')->completeMatch();
 Route::get('personal/service-offers/<id>', 'Personal/serviceOffer')->completeMatch();
@@ -43,6 +44,7 @@ Route::post('service/<id>/reassign', 'Service/reassign')->completeMatch();
 Route::post('service/<id>/cancel/approve', 'Service/approveCancel')->completeMatch();
 Route::post('service/<id>/cancel/reject', 'Service/rejectCancel')->completeMatch();
 Route::post('service/<id>/complete', 'Service/complete')->completeMatch();
+Route::post('service/<id>/reject', 'Service/reject')->completeMatch();
 Route::post('service/<id>/adjustments', 'Service/createAdjustment')->completeMatch();
 Route::post('service/<id>/adjustments/<adjustment_id>/cancel', 'Service/cancelAdjustment')->completeMatch();
 

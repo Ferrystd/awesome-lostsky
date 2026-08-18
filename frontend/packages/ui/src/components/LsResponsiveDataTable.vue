@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="Row extends DataTableRowData">
 import { NDataTable } from 'naive-ui'
-import type { DataTableColumns, DataTableRowData, DataTableRowKey } from 'naive-ui'
+import type { DataTableColumns, DataTableRowData, DataTableRowKey, DataTableSortState } from 'naive-ui'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 defineProps<{
@@ -9,6 +9,7 @@ defineProps<{
   rowKey: (row: Row) => DataTableRowKey
   scrollX?: number
 }>()
+const emit = defineEmits<{ 'update:sorter': [state: DataTableSortState | DataTableSortState[] | null] }>()
 
 const isMobile = ref(false)
 let mediaQuery: MediaQueryList | undefined
@@ -25,7 +26,7 @@ onBeforeUnmount(() => mediaQuery?.removeEventListener('change', syncViewport))
 <template>
   <section class="ls-responsive-data-table">
     <div v-if="!isMobile" class="ls-responsive-data-table__desktop">
-      <NDataTable :columns="columns" :data="data" :row-key="rowKey" :scroll-x="scrollX" />
+      <NDataTable :columns="columns" :data="data" :row-key="rowKey" :scroll-x="scrollX" @update:sorter="state => emit('update:sorter', state)" />
     </div>
     <div v-else class="ls-responsive-data-table__mobile">
       <article v-for="row in data" :key="rowKey(row)" class="ls-responsive-data-table__record">

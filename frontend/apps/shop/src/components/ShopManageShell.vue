@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { auth } from "@lostsky/api/client";
 import { formatAbilityDenied, formatPermissionDenied } from "@lostsky/api/error-format";
-import { chatWorkspaceUrl, redirectToLogin, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from "@lostsky/shared/navigation";
+import { chatWorkspaceUrl, identityUrl, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from "@lostsky/shared/navigation";
 import LsPage from "@lostsky/ui/components/LsPage.vue";
 import LsWorkspaceHeader from "@lostsky/ui/components/LsWorkspaceHeader.vue";
 import { feedback } from "@lostsky/ui/feedback";
@@ -10,7 +9,6 @@ import {
   ChevronRight,
   House,
   KeyRound,
-  LogOut,
   MessageCircleMore,
   PackageOpen,
   ReceiptText,
@@ -96,10 +94,6 @@ const width = computed<"wide" | "content" | "form">(() =>
     ? (route.meta.width as "content" | "form")
     : "wide",
 );
-function logout() {
-  auth.clear();
-  redirectToLogin({ redirect: location.href });
-}
 function handleHeaderAction(key: string) {
   const entry = appEntries.value.find(item => item.key === key);
   if (!entry || entry.disabled) return;
@@ -151,8 +145,8 @@ function explainPermission(permission: string | null) {
         /></RouterLink>
         </template>
       </nav>
-      <NButton class="logout" quaternary @click="logout"
-        ><template #icon><LogOut :size="18" /></template>退出登录</NButton
+      <NButton class="logout" quaternary tag="a" :href="identityUrl()"
+        ><template #icon><UserRound :size="18" /></template>切换身份</NButton
       >
     </aside>
     <Transition name="ls-backdrop"

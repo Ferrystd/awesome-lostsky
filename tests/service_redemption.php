@@ -28,6 +28,7 @@ use app\model\TeamServiceAssignmentOffer;
 use app\model\TeamServiceEntitlement;
 use app\model\TeamServiceHandler;
 use app\model\TeamServiceInstance;
+use app\model\TeamServiceRedemptionField;
 use app\model\TeamTransaction;
 use app\model\TeamOrder;
 use app\model\TeamProduct;
@@ -40,7 +41,7 @@ use app\service\ManualEntitlementGrant;
 use app\service\Order;
 use app\service\PermissionDictionary;
 use app\service\Product;
-use app\service\ProductRedemptionField;
+use app\service\ServiceRedemptionField;
 use app\service\Redemption;
 use app\service\RedemptionCrypto;
 use app\service\ServiceAdjustment;
@@ -336,12 +337,33 @@ try {
         'default_sender_cut' => '1.00',
         'default_cs_cut' => '0.50',
         'default_team_cut' => '99.00',
+        'redemption_fields' => [[
+            'name' => '服务说明', 'value_type' => 'text',
+            'input_type' => 'textarea', 'fill_stage' => 'customer', 'is_customer_visible' => 1,
+        ]],
     ]);
     $balancedService = TeamService::find($balancedServiceId);
+    $balancedServiceDetail = app(EntitlementManagement::class)->service((int) $team->id, $balancedServiceId);
     $assert(
         (string) $balancedService->quantity_step === '0.2500'
-            && (string) $balancedService->default_team_cut === '5.50',
-        'service save persists the normalized step and derived team cut'
+            && (string) $balancedService->default_team_cut === '5.50'
+            && ($balancedServiceDetail['redemption_fields'][0]['name'] ?? null) === '服务说明',
+        'service save persists the normalized step, derived team cut and service fields'
+    );
+    $throws(
+        fn () => app(EntitlementManagement::class)->saveService((int) $team->id, $balancedServiceId, [
+            'name' => '不应提交的服务名',
+            'redemption_fields' => [
+                ['name' => '重复字段', 'value_type' => 'string'],
+                ['name' => '重复字段', 'value_type' => 'string'],
+            ],
+        ]),
+        409,
+        'duplicate service field keys reject the whole service save'
+    );
+    $assert(
+        TeamService::find($balancedServiceId)->name === '自动团队余额',
+        'invalid service fields roll back service changes atomically'
     );
     $throws(
         fn () => app(EntitlementManagement::class)->saveService((int) $team->id, $balancedServiceId, [
@@ -420,24 +442,27 @@ try {
         'kind' => 2,
         'benefit_package_id' => $packageId,
     ]);
-    $customerField = app(ProductRedemptionField::class)->create((int) $team->id, $productId, [
-        'field_key' => 'contact',
+    $savedFields = app(ServiceRedemptionField::class)->sync((int) $team->id, (int) $service->id, [[
         'name' => '联系方式',
         'value_type' => 'string',
         'input_type' => 'text',
         'fill_stage' => 'customer',
         'is_customer_visible' => 1,
         'is_required' => 1,
-    ]);
-    $managerField = app(ProductRedemptionField::class)->create((int) $team->id, $productId, [
-        'field_key' => 'result',
+    ], [
         'name' => '履约结果',
         'value_type' => 'text',
         'input_type' => 'textarea',
         'fill_stage' => 'manager',
         'is_customer_visible' => 0,
         'is_required' => 1,
-    ]);
+    ]]);
+    $customerField = (int) $savedFields[0]['id'];
+    $managerField = (int) $savedFields[1]['id'];
+    $assert(
+        (int) TeamServiceRedemptionField::find($customerField)->service_id === (int) $service->id,
+        'redemption fields belong to the service definition'
+    );
     $orderId = app(Order::class)->create((int) $team->id, [
         'product_id' => $productId,
         'customer_id' => $customer->id,
@@ -532,7 +557,8 @@ try {
     );
     $offerDetail = app(ServiceRedemption::class)->assignmentOffer((int) $team->id, (int) $handlerA->id, $offerAId);
     $assert(($offerDetail['redemption_fields'][0]['value'] ?? null) === 'wx-a', 'target handler sees full customer fields before accepting');
-    $sliceAId = app(ServiceRedemption::class)->acceptOffer((int) $team->id, (int) $handlerA->id, $offerAId);
+    $throws(fn () => app(ServiceRedemption::class)->acceptOffer((int) $team->id, (int) $handlerA->id, $offerAId), 422, 'required manager field blocks accepting an offer');
+    $sliceAId = app(ServiceRedemption::class)->acceptOffer((int) $team->id, (int) $handlerA->id, $offerAId, [$managerField => '邀请接单确认']);
     $assert(app(ServiceRedemption::class)->acceptOffer((int) $team->id, (int) $handlerA->id, $offerAId) === $sliceAId, 'accepting the same offer is idempotent');
     $assert(TeamServiceInstance::find($sliceAId)->enumCase('status') === ServiceStatus::Processing, 'accepting an offer creates a processing slice');
     $sliceBId = app(ServiceRedemption::class)->start(
@@ -542,20 +568,45 @@ try {
         '2.5',
         0,
         '',
-        [$customerField => 'wx-b'],
+        [
+            [$customerField => 'wx-b-1'],
+            [$customerField => 'wx-b-2'],
+            [$customerField => 'wx-b-3'],
+            [$customerField => 'wx-b-4'],
+            [$customerField => 'wx-b-5'],
+        ],
         (int) $customerEntity->id
     );
     $openSlice = TeamServiceInstance::find($sliceBId);
     $assert($openSlice->handler_entity_id === null && $openSlice->enumCase('status') === ServiceStatus::Processing, 'open dispatch creates an unassigned processing slice');
     $openDetail = app(ServiceRedemption::class)->claimableGet((int) $team->id, (int) $handlerB->id, $sliceBId);
-    $assert(($openDetail['redemption_fields'][0]['value']['value_string'] ?? $openDetail['redemption_fields'][0]['value'] ?? null) === 'wx-b', 'pool handler sees all fields before claiming open task');
-    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerB->id, $sliceBId);
-    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerB->id, $sliceBId);
+    $assert(($openDetail['redemption_fields'][0]['value']['value_string'] ?? $openDetail['redemption_fields'][0]['value'] ?? null) === 'wx-b-1', 'pool handler sees the first resource fields before claiming open task');
+    $assert(
+        array_map(
+            static fn (array $resource): mixed => $resource['redemption_fields'][0]['value']['value_string'] ?? null,
+            $openDetail['redemption_resources']
+        ) === ['wx-b-1', 'wx-b-2', 'wx-b-3', 'wx-b-4', 'wx-b-5'],
+        'each minimum-step fulfillment resource keeps distinct customer fields'
+    );
+    $throws(fn () => app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerB->id, $sliceBId, '0.5'), 422, 'required manager field blocks claiming an open task');
+    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerB->id, $sliceBId, '0.5', [$managerField => '首份接单确认']);
+    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerB->id, $sliceBId, '0.5', [$managerField => '首份接单确认']);
+    $remainderSliceId = (int) TeamServiceInstance::where('entitlement_id', $entitlement->id)
+        ->where('id', '<>', $sliceAId)->where('id', '<>', $sliceBId)->whereNull('handler_entity_id')->value('id');
+    $assert($remainderSliceId > 0 && (string) TeamServiceInstance::find($remainderSliceId)->quantity === '2.0000', 'partial claim leaves the unclaimed quantity in the public pool');
+    $assert((string) TeamServiceInstance::find($sliceBId)->quantity === '0.5000', 'partial claim keeps the original task id for the claimed slice');
+    $assert((string) TeamServiceEntitlement::find($entitlement->id)->reserved_quantity === '3.0000', 'partial claim does not change the reserved entitlement quantity');
     $throws(fn () => app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerA->id, $sliceBId), 409, 'only one handler can claim an open task');
     app(ServiceRedemption::class)->returnToPool((int) $team->id, (int) $handlerB->id, $sliceBId, '交接给其他同事');
     app(ServiceRedemption::class)->returnToPool((int) $team->id, (int) $handlerB->id, $sliceBId, '交接给其他同事');
     $assert(TeamServiceInstance::find($sliceBId)->handler_entity_id === null, 'handler can return an unfinished task without changing processing status');
-    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerA->id, $sliceBId);
+    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerA->id, $sliceBId, '0.5', [$managerField => '重新接单确认']);
+    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerA->id, $remainderSliceId, '2', [
+        [$managerField => '第2份接单确认'],
+        [$managerField => '第3份接单确认'],
+        [$managerField => '第4份接单确认'],
+        [$managerField => '第5份接单确认'],
+    ]);
     $entitlement = TeamServiceEntitlement::find($entitlement->id);
     $assert((string) $entitlement->available_quantity === '0.0000', 'parallel slices reserve the complete entitlement');
     $throws(fn () => app(ServiceRedemption::class)->start(
@@ -590,9 +641,30 @@ try {
         (int) $customerEntity->id,
         'offer-a-replacement'
     );
-    $replacementSliceAId = app(ServiceRedemption::class)->acceptOffer((int) $team->id, (int) $handlerA->id, $replacementOfferId);
+    $replacementSliceAId = app(ServiceRedemption::class)->acceptOffer((int) $team->id, (int) $handlerA->id, $replacementOfferId, [$managerField => '替补邀请接单确认']);
     $assert(TeamServiceInstance::find($sliceAId)->enumCase('status') === ServiceStatus::Unredeemed, 'cancelled historical slice remains unchanged');
     $assert(TeamServiceInstance::find($replacementSliceAId)->enumCase('status') === ServiceStatus::Processing, 'new invitation creates a fresh replacement slice');
+    app(ServiceRedemption::class)->reject(
+        (int) $team->id,
+        $subjectManager,
+        (int) $teamEntity->id,
+        $replacementSliceAId,
+        '逐份资料不完整'
+    );
+    $assert(
+        TeamServiceInstance::find($replacementSliceAId)->enumCase('status') === ServiceStatus::Unredeemed
+            && (string) TeamServiceEntitlement::find($entitlement->id)->available_quantity === '0.5000',
+        'manager rejection returns the slice to unredeemed and releases its reservation'
+    );
+    app(ServiceRedemption::class)->restart(
+        (int) $team->id,
+        (int) $customer->id,
+        $replacementSliceAId,
+        (int) $handlerA->id,
+        '逐份资料已修正',
+        [[$customerField => 'wx-a-revised']],
+        (int) $customerEntity->id
+    );
 
     // 加价先由管理方提出，顾客单独确认并扣款，完成时再形成加价业绩。
     $beforeBalance = (float) TeamCustomerBalance::where('customer_id', $customer->id)->value('balance');
@@ -600,7 +672,7 @@ try {
         (int) $team->id,
         $subjectManager,
         (int) $teamEntity->id,
-        $sliceBId,
+        $remainderSliceId,
         [
             'name' => '额外时段费用',
             'quantity' => '0.5',
@@ -613,7 +685,7 @@ try {
         (int) $team->id,
         (int) $customer->id,
         (int) $customerEntity->id,
-        $sliceBId,
+        $remainderSliceId,
         $adjustmentId
     );
     $adjustment = TeamServiceAdjustment::find($adjustmentId);
@@ -623,19 +695,19 @@ try {
         TeamTransaction::find((int) $adjustment->receipt_trans_id)?->enumCase('type') === TransactionType::ServiceAdjustmentReceipt,
         'accepted adjustment creates a separate receipt transaction'
     );
-    $throws(fn () => app(ServiceRedemption::class)->complete(
+    $throws(fn () => app(ServiceRedemption::class)->completeOwn(
         (int) $team->id,
-        $subjectManager,
-        (int) $teamEntity->id,
-        $sliceBId
-    ), 422, 'required manager field blocks completion');
-    app(ServiceRedemption::class)->complete(
+        (int) $handlerB->id,
+        $remainderSliceId,
+        [$managerField => '越权完成']
+    ), 403, 'handler cannot complete another entity task');
+    app(ServiceRedemption::class)->completeOwn(
         (int) $team->id,
-        $subjectManager,
-        (int) $teamEntity->id,
-        $sliceBId,
-        [$managerField => '完成 2.5 小时']
+        (int) $handlerA->id,
+        $remainderSliceId
     );
+    app(ServiceRedemption::class)->completeOwn((int) $team->id, (int) $handlerA->id, $sliceBId);
+    $assert(TeamServiceInstance::find($remainderSliceId)->enumCase('status') === ServiceStatus::Redeemed, 'handler completes own task with fields collected at claim time');
     $adjustment = TeamServiceAdjustment::find($adjustmentId);
     $assert(
         TeamTransaction::find((int) $adjustment->performance_trans_id)?->enumCase('type') === TransactionType::ServiceAdjustmentPerformance,
@@ -821,6 +893,22 @@ try {
     $assert((string) $mixed[0]->granted_quantity === '20.0000' && (string) $mixed[1]->granted_quantity === '10.0000', 'mixed entitlements preserve independent quantities');
     $assert($sumCents([$mixed[0]], 'total_price') === 10000 && $sumCents([$mixed[1]], 'total_price') === 8000, 'mixed entitlements preserve independent pricing');
     $assert($sumCents([$mixed[0]], 'handler_cut') === 3000 && $sumCents([$mixed[1]], 'handler_cut') === 1500, 'mixed entitlements preserve independent fixed distributions');
+    $mixedFieldsA = app(ServiceRedemptionField::class)->sync((int) $team->id, (int) $recruitA->id, [[
+        'name' => '候选人资料', 'value_type' => 'text',
+        'input_type' => 'textarea', 'fill_stage' => 'customer', 'is_customer_visible' => 1,
+    ]]);
+    $mixedFieldsB = app(ServiceRedemptionField::class)->sync((int) $team->id, (int) $recruitB->id, [[
+        'name' => '交付渠道', 'value_type' => 'string',
+        'input_type' => 'text', 'fill_stage' => 'customer', 'is_customer_visible' => 1,
+    ]]);
+    $mixedDetailA = app(ServiceRedemption::class)->customerGet((int) $team->id, (int) $customer->id, (int) $mixed[0]->id);
+    $mixedDetailB = app(ServiceRedemption::class)->customerGet((int) $team->id, (int) $customer->id, (int) $mixed[1]->id);
+    $assert(
+        array_column($mixedDetailA['redemption_fields'], 'name') === ['候选人资料']
+            && array_column($mixedDetailB['redemption_fields'], 'name') === ['交付渠道']
+            && (int) $mixedFieldsA[0]['id'] !== (int) $mixedFieldsB[0]['id'],
+        'different services in one product expose their own redemption fields'
+    );
     $mixedSliceA = app(ServiceRedemption::class)->start(
         (int) $team->id, (int) $customer->id, (int) $mixed[0]->id, '1', 0, '', [], (int) $customerEntity->id
     );
@@ -900,20 +988,20 @@ try {
         '0.5',
         0,
         '',
-        [],
+        [$customerField => 'card-open'],
         (int) $customerEntity->id
     );
     $openSlice = TeamServiceInstance::find($noLedgerId);
     $claimable = app(ServiceRedemption::class)->claimable((int) $team->id, (int) $handlerA->id, 1, 20);
     $assert($openSlice->enumCase('status') === ServiceStatus::Processing && $openSlice->handler_entity_id === null, 'open dispatch enters processing without binding a handler');
     $assert(in_array($noLedgerId, array_map(static fn (array $row): int => (int) $row['id'], $claimable['list']), true), 'eligible handler sees the open task');
-    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerA->id, $noLedgerId);
+    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerA->id, $noLedgerId, null, [$managerField => '卡密接单确认']);
     $assert((int) TeamServiceInstance::find($noLedgerId)->handler_entity_id === (int) $handlerA->id, 'eligible handler can atomically claim an open task');
     $throws(fn () => app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerB->id, $noLedgerId), 409, 'claimed task cannot be claimed twice');
 
     $unrestrictedOfferId = app(ServiceRedemption::class)->createOffer(
         (int) $team->id, (int) $customer->id, (int) $cardEntitlement->id,
-        '0.5', (int) $handlerB->id, '', [], (int) $customerEntity->id, 'unrestricted-pool-offer'
+        '0.5', (int) $handlerB->id, '', [$customerField => 'card-offer'], (int) $customerEntity->id, 'unrestricted-pool-offer'
     );
     app(EntitlementManagement::class)->saveServiceHandlers((int) $team->id, (int) $service->id, []);
     $savedUnrestrictedPool = app(EntitlementManagement::class)->serviceHandlers((int) $team->id, (int) $service->id);
@@ -942,14 +1030,14 @@ try {
     );
     $unrestrictedOpenId = app(ServiceRedemption::class)->start(
         (int) $team->id, (int) $customer->id, (int) $cardEntitlement->id,
-        '0.5', 0, '', [], (int) $customerEntity->id
+        '0.5', 0, '', [$customerField => 'card-unrestricted'], (int) $customerEntity->id
     );
     $unrestrictedClaimable = app(ServiceRedemption::class)->claimable((int) $team->id, (int) $handlerB->id, 1, 20);
     $assert(
         in_array($unrestrictedOpenId, array_map(static fn (array $row): int => (int) $row['id'], $unrestrictedClaimable['list']), true),
         'every eligible handler sees open tasks when the service pool is empty'
     );
-    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerB->id, $unrestrictedOpenId);
+    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerB->id, $unrestrictedOpenId, null, [$managerField => '开放池接单确认']);
     $assert((int) TeamServiceInstance::find($unrestrictedOpenId)->handler_entity_id === (int) $handlerB->id, 'an eligible handler can claim from an unrestricted service');
     $throws(
         fn () => app(ServiceRedemption::class)->claimable((int) $team->id, (int) $customerEntity->id, 1, 20),
@@ -971,7 +1059,13 @@ try {
         str_contains((string) $serviceController, "'Ability:transaction' => ['except' => ['complete']]") ,
         'transaction service completion remains reachable after ability expiry'
     );
-    app(ServiceRedemption::class)->complete((int) $team->id, $subjectManager, (int) $teamEntity->id, $noLedgerId);
+    app(ServiceRedemption::class)->complete(
+        (int) $team->id,
+        $subjectManager,
+        (int) $teamEntity->id,
+        $noLedgerId,
+        [$managerField => '卡密服务完成']
+    );
     $noLedger = TeamServiceInstance::find($noLedgerId);
     $assert($noLedger->enumCase('status') === ServiceStatus::Redeemed && $noLedger->trans_id === null, 'missing ability completes without creating transaction');
 } catch (Throwable $exception) {

@@ -66,11 +66,6 @@ class TeamProduct extends Base
         return $this->belongsTo(RedemptionCampaign::class, 'redemption_campaign_id');
     }
 
-    public function redemptionFields()
-    {
-        return $this->hasMany(TeamProductRedemptionField::class, 'product_id');
-    }
-
     public function markdownReferences()
     {
         return $this->morphMany(MarkdownReference::class, 'referenceable', 'teamProduct');

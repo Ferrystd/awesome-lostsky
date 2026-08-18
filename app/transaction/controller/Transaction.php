@@ -118,6 +118,15 @@ class Transaction
             'timeline'   => $service->timeline($request->team_id, $startTime, $endTime, $request->get('granularity', 'day')),
             'byCustomer' => $service->byCustomer($request->team_id, $startTime, $endTime),
             'byAssignee' => $service->byAssignee($request->team_id, $startTime, $endTime),
+            'byPerson'   => $service->byPerson(
+                $request->team_id,
+                $startTime,
+                $endTime,
+                $request->get('page/d', 1),
+                $request->get('limit/d', 20),
+                $request->get('sort_by/s', 'handler_performance_total'),
+                $request->get('sort_order/s', 'desc')
+            ),
             default      => $service->summary($request->team_id, $startTime, $endTime),
         };
 

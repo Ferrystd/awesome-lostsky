@@ -25,8 +25,9 @@ export const router = createRouter({
   history: createWebHistory(),
   scrollBehavior: () => ({ top: 0 }),
   routes: [
-    { path: '/', component: TransactionsView, meta: { title: '流水', pageWidth: 'wide', permission: 'transaction.read' } },
+    { path: '/', redirect: '/overview' },
     { path: '/overview', component: TeamOverviewView, meta: { title: '概览', pageWidth: 'wide', accessPublic: true } },
+    { path: '/transactions', component: TransactionsView, meta: { title: '团队流水', pageWidth: 'wide', permission: 'transaction.read' } },
     { path: '/unavailable', component: UnavailableView, meta: { title: '记账暂不可用', pageWidth: 'content', accessPublic: true } },
     { path: '/personal', component: PersonalOverviewView, meta: { title: '概览', pageWidth: 'wide', workspace: 'personal', accessPublic: true } },
     { path: '/personal/transactions', component: PersonalWorkspaceView, meta: { title: '我的流水', pageWidth: 'wide', workspace: 'personal', personalSection: 'transactions' } },

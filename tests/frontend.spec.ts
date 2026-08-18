@@ -348,6 +348,13 @@ test('shop storefront supports public display, customer binding, balance purchas
         introduction_markdown: '## 商品说明\n\n购买后由团队联系。',
         price: '30.00',
         handlers: [{ entity_id: 8, slug: 'guide', name: '青空向导', avatar: null }],
+        benefit_package: {
+          name: '青空陪伴权益包',
+          services: [
+            { id: 7, name: '专属陪伴', description: '一对一完成本次陪伴服务。', quantity: '3.0000', unit_name: '小时', quantity_step: '1.0000', valid_days: 30 },
+            { id: 8, name: '回访沟通', description: null, quantity: '1.0000', unit_name: '次', quantity_step: '1.0000', valid_days: 0 },
+          ],
+        },
       }
     } else if (url.pathname.endsWith('/storefront/products')) {
       data = {
@@ -393,6 +400,13 @@ test('shop storefront supports public display, customer binding, balance purchas
   await expect(page.getByRole('heading', { name: '青空陪伴计划' })).toBeVisible()
   await expect(page.locator('.shop-markdown script')).toHaveCount(0)
   expect(await page.evaluate(() => (window as typeof window & { __shopXss?: number }).__shopXss)).toBeUndefined()
+
+  await page.goto('http://demo.shop.lostsky.work:5179/product/1')
+  await expect(page.getByRole('heading', { name: '内含服务', level: 2 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '专属陪伴', level: 3 })).toBeVisible()
+  await expect(page.getByText('3 小时')).toBeVisible()
+  await expect(page.getByText('领取后 30 天')).toBeVisible()
+  await expect(page.getByText('长期有效')).toBeVisible()
 
   await page.setViewportSize({ width: 375, height: 812 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
@@ -1417,7 +1431,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       const originalViewport = page.viewportSize()
       await page.setViewportSize({ width: 1000, height: 560 })
       const sidebarMenu = page.locator('.sidebar nav')
-      await expect(page.getByRole('button', { name: '退出登录' })).toHaveCSS('justify-content', 'flex-start')
+      await expect(page.getByRole('link', { name: '切换身份' })).toHaveCSS('justify-content', 'flex-start')
       const disabledAbility = page.locator('.sidebar .nav-disabled').filter({ hasText: '团队能力' })
       await expect(disabledAbility).toBeVisible()
       const disabledAbilityContent = disabledAbility.locator('.n-button__content')
@@ -1515,6 +1529,19 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       const scope = path.endsWith('/team') ? 'team' : 'entity'
       await expect(page.getByRole('link', { name: /维护窗口提醒/ })).toHaveAttribute('href', `/notices/${scope}/detail?id=21`)
       await expect(page.getByText('置顶', { exact: true })).toBeVisible()
+      if ((page.viewportSize()?.width ?? 0) < 640) {
+        const header = page.locator('.ls-page-header')
+        const titleBox = await header.getByRole('heading', { level: 1 }).boundingBox()
+        const descriptionBox = await header.locator('p').boundingBox()
+        const actionBox = await header.getByRole('button', { name: '全部标为已读' }).boundingBox()
+        expect(titleBox).not.toBeNull()
+        expect(descriptionBox).not.toBeNull()
+        expect(actionBox).not.toBeNull()
+        expect(Math.abs((titleBox?.x ?? 0) - (descriptionBox?.x ?? 0))).toBeLessThanOrEqual(1)
+        expect(descriptionBox?.y ?? 0).toBeGreaterThan(titleBox?.y ?? 0)
+        expect(Math.abs((descriptionBox?.y ?? 0) - (actionBox?.y ?? 0))).toBeLessThanOrEqual(1)
+        expect(actionBox?.x ?? 0).toBeGreaterThanOrEqual((descriptionBox?.x ?? 0) + (descriptionBox?.width ?? 0))
+      }
       await expect(page.locator('.notice-detail-view')).toHaveCount(0)
       await expect(page.locator('.sidebar a[href="/notices/entity"]')).toContainText('通知')
       await expect(page.locator('.sidebar a[href="/notices/team"]')).toContainText('站内通知')
@@ -2208,7 +2235,8 @@ test('team role tasks use independent routes for entity assignment and permissio
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })
 
-test('transaction workspace covers ledger tasks without horizontal overflow', async ({ page }) => {
+test('transaction workspace covers ledger tasks without horizontal overflow', async ({ page }, testInfo) => {
+  test.setTimeout(120_000)
   const pageErrors: string[] = []
   page.on('pageerror', (error) => pageErrors.push(error.message))
   page.on('console', (message) => { if (message.type() === 'error') pageErrors.push(message.text()) })
@@ -2217,6 +2245,8 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
   let optionsMode: 'full' | 'missing' | 'empty' | 'error' = 'full'
   let manualGrantPayload: Record<string, unknown> | null = null
   let personalGrantPayload: Record<string, unknown> | null = null
+  let statsFailureType: string | null = null
+  const statsRequests: string[] = []
   await page.route('http://demo.transaction.lostsky.work:5177/api/**', async (route) => {
     const url = new URL(route.request().url())
     const entity = { id: 11, entity_id: 11, entityable_type: 'teamMember', entityable_id: 1, type: 'member', slug: 'handler', name: 'Handler', profile: { nickname: 'Handler' }, nickname: '青空接单人', avatar: null, status_code: 'active', status_label: '正常' }
@@ -2286,27 +2316,55 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
     else if (url.pathname.endsWith('/service')) data = { list: [], total: 0, page: 1, limit: 20 }
     else if (url.pathname.endsWith('/transaction/stats')) {
       const type = url.searchParams.get('type')
-      if (type === 'timeline') data = [{ date: '2026-07-20', count: 1, amount: 320 }]
+      statsRequests.push(url.search)
+      if (type === statsFailureType) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 50300, message: 'stats unavailable', data: null }) })
+        return
+      }
+      if (type === 'timeline') data = url.searchParams.get('granularity') === 'hour'
+        ? [{ date: '2026-08-17 09:00', count: 1, amount: '320.00', receipt_amount: '320.00' }]
+        : [{ date: '2026-08-05', count: 1, amount: '320.00', receipt_amount: '320.00' }]
       else if (type === 'byEntity') data = [{ entity_id: 11, type: 'member', slug: 'handler', name: '青空接单人', count: 1, amount: 140 }]
       else if (type === 'byCustomer') data = [{ customer_id: 8, customer_name: '晚风顾客', count: 1, amount: 320 }]
-      else data = { total_count: 1, total_price: 320, total_cost: 80, total_cut: 240, cash_total: 200, prepaid_total: 120, avg_price: 320 }
+      else if (type === 'byAssignee') data = [{ entity_id: 11, slug: 'handler', name: '青空接单人', customer_count: 1, transaction_count: 1, total_price: '320.00', total_cost: '80.00', team_cut: '100.00' }]
+      else if (type === 'byPerson') {
+        const currentPage = Number(url.searchParams.get('page') ?? 1)
+        const requestedLimit = Number(url.searchParams.get('limit') ?? 20)
+        const people = Array.from({ length: currentPage === 1 ? Math.min(8, requestedLimit) : 1 }, (_, index) => ({
+          entity_id: currentPage === 1 ? 11 + index : 31,
+          slug: currentPage === 1 && index === 0 ? 'handler' : `member-${index + 1}`,
+          name: currentPage === 1 && index === 0 ? '青空接单人' : currentPage === 1 ? `协作成员 ${index + 1}` : '第二页成员',
+          avatar: null,
+          handler_count: Math.max(0, 12 - index),
+          sender_count: Math.max(0, 9 - index),
+          handler_performance_total: String(3200 - index * 180),
+          sender_performance_total: String(2800 - index * 160),
+          income_total: String(1600 - index * 90),
+        }))
+        data = { total: 21, list: people, page: currentPage, limit: requestedLimit }
+      }
+      else data = { total_count: 1, total_price: '320.00', receipt_total: '320.00', performance_total: '320.00', total_cost: '80.00', total_cut: '240.00', cash_total: '200.00', prepaid_total: '120.00', recharge_total: '480.00', avg_price: '320.00', service_receipt_count: 0, service_redemption_count: 0 }
     } else if (url.pathname.endsWith('/transaction/balance/logs')) data = { list: [{ id: 5, customer_id: 8, type: 1, amount: 1200, balance_after: 1200, memo: '首次充值', create_time: 1784563200 }], total: 1, page: 1, limit: 20 }
     else if (url.pathname.endsWith('/transaction/21')) data = transaction
     else if (url.pathname.endsWith('/transaction')) data = { list: [transaction], total: 1, page: 1, limit: 20 }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
 
-  const routes = ['/', '/personal/transactions/new', '/detail?id=21', '/edit?id=21', '/stats', '/services', '/entitlements/new', '/balances', '/balance?customer_id=8', '/recharge?customer_id=8']
+  const routes = ['/overview', '/transactions', '/personal/transactions/new', '/detail?id=21', '/edit?id=21', '/stats', '/services', '/entitlements/new', '/balances', '/balance?customer_id=8', '/recharge?customer_id=8']
   for (const path of routes) {
     await page.goto(`http://demo.transaction.lostsky.work:5177${path}`)
     await expect(page.locator('#workspace'), `workspace missing at ${path}; ${pageErrors.join(' | ')}`).toBeVisible()
-    await expect(page.locator('#workspace').getByRole('heading', { level: 1 }).first()).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1 }).first(), `page heading missing at ${path}`).toBeVisible()
+    if (path === '/detail?id=21') {
+      await expect(page.locator('.facts').getByText('未知人员', { exact: true })).toHaveCount(0)
+      await expect(page.locator('.facts').getByText('—', { exact: true })).toHaveCount(2)
+    }
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
     expect(overflow, `horizontal overflow at ${path}`).toBe(false)
-    if (['/', '/balances'].includes(path)) await expect(page.locator('.ls-list-toolbar')).toBeVisible()
+    if (['/transactions', '/balances'].includes(path)) await expect(page.locator('.ls-list-toolbar')).toBeVisible()
   }
 
-  await page.goto('http://demo.transaction.lostsky.work:5177/')
+  await page.goto('http://demo.transaction.lostsky.work:5177/transactions')
   await expect(page.getByText('晚风顾客', { exact: true })).toBeVisible()
   await expect(page.getByText('¥320.00', { exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: /登记流水/ })).toHaveCount(0)
@@ -2386,9 +2444,84 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `personal entitlement grant horizontal overflow at ${width}px`).toBe(false)
     await page.goto('http://demo.transaction.lostsky.work:5177/personal/entitlements')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `personal entitlement history horizontal overflow at ${width}px`).toBe(false)
+    await page.goto('http://demo.transaction.lostsky.work:5177/stats')
+    await expect(page.getByText('实际流水', { exact: true }).first(), pageErrors.join(' | ')).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `stats horizontal overflow at ${width}px`).toBe(false)
   }
+  const reviewViewport = testInfo.project.name === 'mobile-chromium'
+    ? { width: 390, height: 844 }
+    : { width: 1440, height: 1000 }
+  await page.setViewportSize(reviewViewport)
   await page.goto('http://demo.transaction.lostsky.work:5177/stats')
-  await expect(page.getByText('成交金额', { exact: true })).toBeVisible()
-  await expect(page.getByText('青空接单人')).toBeVisible()
+  await expect(page.locator('.person-performance')).toBeVisible()
+  const handlerQuantity = page.locator('.rankings article').filter({ has: page.getByRole('heading', { name: '接单数量' }) })
+  await expect(handlerQuantity.getByText('按接单数量从高到低')).toBeVisible()
+  await expect(handlerQuantity.getByText('1 笔', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '接单人分成' })).toHaveCount(0)
+  await page.screenshot({
+    path: `.impeccable/review/${testInfo.project.name === 'mobile-chromium' ? 'mobile.png' : 'desktop.png'}`,
+    fullPage: true,
+  })
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.locator('.mobile-sort .n-select').click()
+    await page.locator('.n-base-select-option').nth(2).click()
+    await expect.poll(() => statsRequests.some(request => request.includes('sort_by=sender_count'))).toBe(true)
+    await page.locator('.mobile-sort .n-radio-button').nth(1).click()
+    await expect.poll(() => statsRequests.some(request => request.includes('sort_by=sender_count') && request.includes('sort_order=asc'))).toBe(true)
+  }
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('http://demo.transaction.lostsky.work:5177/stats')
+  await expect(page.getByText('实际流水', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('新增预存', { exact: true })).toBeVisible()
+  await expect(page.getByText('¥480.00', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '发单业绩' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '人员业绩明细' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: '接单业绩' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: '发单业绩' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: '个人收入' })).toBeVisible()
+  await expect(page.locator('.person-performance').getByText('青空接单人', { exact: true }).first()).toBeVisible()
+  const toolbar = page.locator('.period-toolbar')
+  const navigator = page.locator('.period-navigator')
+  const expectNavigatorCentered = async () => {
+    const [toolbarBox, navigatorBox] = await Promise.all([toolbar.boundingBox(), navigator.boundingBox()])
+    expect(toolbarBox).not.toBeNull()
+    expect(navigatorBox).not.toBeNull()
+    expect(Math.abs((navigatorBox!.x + navigatorBox!.width / 2) - (toolbarBox!.x + toolbarBox!.width / 2))).toBeLessThanOrEqual(1)
+  }
+  await page.locator('.period-toolbar .n-radio-button').filter({ hasText: /^日$/ }).click()
+  await expect.poll(() => statsRequests.some(request => request.includes('granularity=hour'))).toBe(true)
+  await expectNavigatorCentered()
+  await page.locator('.period-toolbar .n-radio-button').filter({ hasText: /^周$/ }).click()
+  await expect.poll(() => statsRequests.some(request => request.includes('granularity=day'))).toBe(true)
+  await expectNavigatorCentered()
+  await page.locator('.period-toolbar .n-radio-button').filter({ hasText: /^月$/ }).click()
+  await expectNavigatorCentered()
+  await page.getByRole('columnheader', { name: /派单数/ }).click()
+  await expect.poll(() => statsRequests.some(request => request.includes('sort_by=sender_count'))).toBe(true)
+  await page.getByRole('columnheader', { name: /个人收入/ }).click()
+  await expect.poll(() => statsRequests.some(request => request.includes('sort_by=income_total'))).toBe(true)
+  await page.locator('.n-pagination-item').filter({ hasText: /^2$/ }).click()
+  await expect(page.getByText('第二页成员')).toBeVisible()
+  statsFailureType = 'byCustomer'
+  await page.locator('.period-navigator button').first().click()
+  await expect(page.locator('.rankings .ls-async-state')).toHaveCount(1)
+  await expect(page.locator('.person-performance')).toBeVisible()
+  await expect(page.locator('.tick-ranking')).toBeVisible()
+  statsFailureType = null
+  await page.setViewportSize({ width: 1024, height: 900 })
+  await page.locator('html').evaluate(element => { element.style.fontSize = '200%' })
+  const overflowingElements = await page.locator('.stats-view').evaluate(root => {
+    const rootRect = root.getBoundingClientRect()
+    return [...root.children]
+      .map(element => ({ element: element as HTMLElement, rect: element.getBoundingClientRect() }))
+      .filter(({ rect }) => rect.width > 0 && (rect.right > rootRect.right + 1 || rect.left < rootRect.left - 1))
+      .map(({ element, rect }) => ({
+        element: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}${[...element.classList].map(name => `.${name}`).join('')}`,
+        left: Math.round(rect.left),
+        right: Math.round(rect.right),
+        width: Math.round(rect.width),
+      }))
+  })
+  expect(overflowingElements, 'stats overflow at 200% text size').toEqual([])
   expect(pageErrors).toEqual([])
 })

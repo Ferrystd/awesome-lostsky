@@ -146,10 +146,32 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 确认已核销
+         * 通过核销
          * @description 要求 service.redemption.manage；已开始履约时允许在 Transaction Ability 失效后收口。
          */
         post: operations["completeServiceRedemption"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/service/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 驳回核销并释放预占额度
+         * @description 要求 service.redemption.manage；已确认加价费用存在时不可驳回。
+         */
+        post: operations["rejectServiceRedemption"];
         delete?: never;
         options?: never;
         head?: never;
@@ -370,7 +392,7 @@ export interface paths {
         };
         /**
          * 读取当前 Entity 流水页个人统计
-         * @description 返回接单、发单和客服累计笔数，以及月度业绩、月度流水和个人业绩。三类笔数与业绩排除纯收款流水；月度流水汇总本人参与流水的现款与预存款收入。不要求 transaction.report.read。
+         * @description 返回接单、发单和客服累计笔数，以及月度业绩、月度流水和个人业绩。接单按普通成交与每次服务核销计数，发单按普通成交与服务包收款计数；接单业绩包含履约加价业绩，月度流水汇总本人参与流水的现款与预存款收入。不要求 transaction.report.read。
          */
         get: operations["transactionPersonalStats"];
         put?: never;
@@ -444,7 +466,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 领取有资格接取的公开履约任务 */
+        /**
+         * 在详情页填写接单资料并领取公开履约任务
+         * @description quantity 可小于公开任务数量，但必须符合服务最小步长；已领取部分沿用原任务 ID，剩余数量生成新的未分配公开任务。
+         */
         post: operations["claimPersonalService"];
         delete?: never;
         options?: never;
@@ -463,6 +488,26 @@ export interface paths {
         put?: never;
         /** 主动退回自己未完成的任务至公开接单池 */
         post: operations["returnPersonalService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/services/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 当前接单 Entity 完成自己的任务
+         * @description 接单字段在领取任务时逐份填写；完成操作只允许当前 acting_entity 完成 handler_entity_id 为自身的核销，不要求 service.redemption.manage。field_values 仅为兼容既有任务保留。
+         */
+        post: operations["completePersonalService"];
         delete?: never;
         options?: never;
         head?: never;
@@ -529,7 +574,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 接受邀请并原子创建已分配核销中切片 */
+        /** 在详情页逐份填写接单资料并接受邀请 */
         post: operations["acceptPersonalServiceOffer"];
         delete?: never;
         options?: never;
@@ -1142,7 +1187,7 @@ export interface components {
              * @description 1=商城下单, 2=记账登记, 3=服务包收款, 4=服务核销, 5=履约加价收款, 6=履约加价业绩
              * @enum {integer}
              */
-            type?: 1 | 2 | 3 | 4;
+            type?: 1 | 2 | 3 | 4 | 5 | 6;
             /** @description Exact decimal string. */
             total_price?: string;
             /** @description Exact decimal string. */
@@ -1258,17 +1303,17 @@ export interface components {
             limit: number;
         };
         PersonalTransactionStats: {
-            /** @description 当前 Entity 作为接单人的非纯收款流水笔数。 */
+            /** @description 当前 Entity 作为接单人的商城订单、记账登记和服务核销笔数；履约加价业绩不增加笔数。 */
             handler_count: number;
-            /** @description 当前 Entity 作为发单人的非纯收款流水笔数。 */
+            /** @description 当前 Entity 作为发单人的商城订单、记账登记和服务包收款笔数；服务核销与履约加价不增加笔数。 */
             sender_count: number;
             /** @description 当前 Entity 作为客服的非纯收款流水笔数。 */
             cs_count: number;
-            /** @description 当月当前 Entity 接单流水的业绩金额。 */
+            /** @description 当月当前 Entity 作为接单人的商城订单、记账登记、服务核销和履约加价业绩金额。 */
             monthly_performance_total: string;
             /** @description 当月当前 Entity 参与流水的现款与预存款收入。 */
             monthly_flow_total: string;
-            /** @description 当前 Entity 接单流水的累计业绩金额。 */
+            /** @description 当前 Entity 作为接单人的商城订单、记账登记、服务核销和履约加价累计业绩金额。 */
             performance_total: string;
         };
         TransactionStatsSummary: {
@@ -1279,6 +1324,8 @@ export interface components {
             total_cut: number;
             cash_total: number;
             prepaid_total: number;
+            /** @description 所选时间范围内顾客充值日志的入账金额。 */
+            recharge_total: number;
             /** @description 现金与预存款的实际收款口径。 */
             receipt_total: number;
             /** @description 排除服务包与履约加价收款后的履约业绩口径。 */
@@ -1309,6 +1356,8 @@ export interface components {
             count: number;
             /** @description Exact decimal string. */
             amount: string;
+            /** @description 现金与预存款的实际流水金额。 */
+            receipt_amount: string;
         };
         TransactionCustomerStat: {
             customer_id: number | null;
@@ -1329,6 +1378,29 @@ export interface components {
             total_cost: string;
             team_cut: string;
         };
+        TransactionPersonStat: {
+            /** Format: int64 */
+            entity_id: number;
+            slug?: string | null;
+            name: string;
+            avatar?: string | null;
+            /** @description 作为接单人的商城订单、记账登记和服务核销笔数；履约加价业绩不增加笔数。 */
+            handler_count: number;
+            /** @description 作为发单人的商城订单、记账登记和服务包收款笔数；服务核销与履约加价不增加笔数。 */
+            sender_count: number;
+            /** @description 作为接单人的商城订单、记账登记、服务核销和履约加价业绩金额。 */
+            handler_performance_total: string;
+            /** @description 作为发单人的商城订单、记账登记、服务包收款和履约加价收款的现金与预存款实付金额。 */
+            sender_performance_total: string;
+            /** @description 作为接单人、发单人或客服取得的全部分成之和；同一笔流水兼任多个角色时累加各角色分成。 */
+            income_total: string;
+        };
+        TransactionPersonStatsPage: {
+            total: number;
+            list: components["schemas"]["TransactionPersonStat"][];
+            page: number;
+            limit: number;
+        };
         TransactionInviteIdentity: {
             /** Format: int64 */
             entity_id: number;
@@ -1339,7 +1411,7 @@ export interface components {
             avatar?: string | null;
             display_url: string;
         };
-        TransactionStatsResult: components["schemas"]["TransactionStatsSummary"] | components["schemas"]["TransactionRoleStats"] | components["schemas"]["TransactionEntityStat"][] | components["schemas"]["TransactionTimelineStat"][] | components["schemas"]["TransactionCustomerStat"][] | components["schemas"]["TransactionAssigneeStat"][];
+        TransactionStatsResult: components["schemas"]["TransactionStatsSummary"] | components["schemas"]["TransactionRoleStats"] | components["schemas"]["TransactionEntityStat"][] | components["schemas"]["TransactionTimelineStat"][] | components["schemas"]["TransactionCustomerStat"][] | components["schemas"]["TransactionAssigneeStat"][] | components["schemas"]["TransactionPersonStatsPage"];
         File: {
             /** Format: int64 */
             id?: number;
@@ -1677,7 +1749,16 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description 按履约资源序号提交的接单字段 */
+                    field_values?: {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
         responses: {
             /** @description 成功 */
             200: {
@@ -1688,6 +1769,46 @@ export interface operations {
             };
             /** @description Permission 不满足 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rejectServiceRedemption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 核销已驳回 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 任务状态或费用状态不允许驳回 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 驳回原因为空 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2110,23 +2231,32 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    quantity: number | string;
+                    field_values: {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
         responses: {
-            /** @description 成功 */
+            /** @description 成功，返回已领取任务 ID */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description 任务已被领取或正在取消 */
+            /** @description 任务已被领取、正在取消或数量不可拆分 */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description 当前 Entity 不具备接单资格 */
+            /** @description 接单资格、数量或接单字段无效 */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2163,6 +2293,55 @@ export interface operations {
             };
             /** @description 存在待处理取消申请或任务状态已改变 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    completePersonalService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    field_values?: {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description 服务已核销 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 任务不属于当前接单 Entity */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 任务状态或待处理事项不允许完成 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 既有任务缺少必填接单字段 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2246,9 +2425,17 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    field_values: {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+        };
         responses: {
-            /** @description 已接受 */
+            /** @description 已接受并返回任务 ID */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2262,7 +2449,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description 接单资格已失效 */
+            /** @description 接单资格已失效或接单字段无效 */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2626,9 +2813,13 @@ export interface operations {
             query?: {
                 start_time?: number;
                 end_time?: number;
-                type?: "summary" | "byRole" | "byEntity" | "timeline" | "byCustomer" | "byAssignee";
+                type?: "summary" | "byRole" | "byEntity" | "timeline" | "byCustomer" | "byAssignee" | "byPerson";
                 role?: "handler" | "sender" | "cs";
-                granularity?: "day" | "week" | "month";
+                granularity?: "hour" | "day" | "week" | "month";
+                page?: components["parameters"]["Page"];
+                limit?: components["parameters"]["Limit"];
+                sort_by?: "handler_performance_total" | "handler_count" | "sender_count" | "sender_performance_total" | "income_total";
+                sort_order?: "asc" | "desc";
             };
             header?: {
                 /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */

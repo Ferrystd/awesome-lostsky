@@ -341,13 +341,21 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain(':render-tag="renderTag"')
     expect(source).not.toContain('ls-entity-select-tag__name')
     expect(source).toContain(":max-tag-count=\"multiple ? 'responsive' : undefined\"")
+    expect(source).toContain('min-height:54px')
+    expect(source).toContain('.n-base-select-option--selected.n-base-select-option--pending')
+    expect(source).toContain('color:color-mix(in oklch,var(--ink),transparent 38%)')
   })
 
   it('页面标题、工作区标题和响应式动作始终保留可读文字', async () => {
     const pageHeader = await render(LsPageHeader, { title: '成员', description: '团队成员目录' })
+    const pageHeaderSource = readFileSync(new URL('./components/LsPageHeader.vue', import.meta.url), 'utf8')
     const workspaceHeader = await render(LsWorkspaceHeader, { contextLabel: 'TEAM WORKSPACE', title: '成员', actions: [{ key: 'notice', label: '通知' }] })
     const actions = await render(LsResponsiveActions, { primaryKey: 'manage', actions: [{ key: 'manage', label: '管理' }, { key: 'remove', label: '移出' }] })
     expect(pageHeader).toContain('团队成员目录')
+    expect(pageHeader).toContain('ls-page-header__copy')
+    expect(pageHeaderSource).toContain('.ls-page-header__copy{display:contents}')
+    expect(pageHeaderSource).toContain('.ls-page-header p{grid-column:1;grid-row:2;margin-top:0}')
+    expect(pageHeaderSource).toContain('.ls-page-header__content--described .ls-page-header__actions{grid-row:2}')
     expect(workspaceHeader).toContain('TEAM WORKSPACE')
     expect(workspaceHeader).toContain('操作')
     expect(workspaceHeader).toContain('ls-workspace-header__mobile')
@@ -395,6 +403,7 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain('background:color-mix(in oklch,white,var(--cloud) 34%)')
     expect(source).toContain('border-style:dashed')
     expect(source).toContain('opacity:.52')
+    expect(source).toContain('.ls-workspace-overview__hero{block-size:11.75rem;')
   })
 
   it('响应式数据表在移动端切换为同一份数据的记录结构', () => {
