@@ -355,7 +355,7 @@ test('personal handler workspace confirms invitations, claims, completes and ret
 
   await page.goto('http://demo.transaction.lostsky.work:5177/personal/services/available/81')
   await expect(page.getByText('待接单', { exact: true })).toBeVisible()
-  await expect(page.getByText('待核销', { exact: true })).toBeVisible()
+  await expect(page.getByText('未结单', { exact: true })).toBeVisible()
   await expect(page.getByText('任务编号', { exact: true })).toBeVisible()
   await expect(page.locator('.summary-strip > div')).toHaveCount(5)
   const detailLayout = await page.locator('.field-columns').evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length)
@@ -381,8 +381,8 @@ test('personal handler workspace confirms invitations, claims, completes and ret
   await page.getByRole('button', { name: '确认退回' }).first().click()
 
   await page.goto('http://demo.transaction.lostsky.work:5177/personal/services/81')
-  await expect(page.getByText('已结单', { exact: true })).toBeVisible()
-  await expect(page.getByText('待核销', { exact: true })).toBeVisible()
+  await expect(page.getByText('已接单', { exact: true })).toBeVisible()
+  await expect(page.getByText('未结单', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: '接单字段' })).toBeVisible()
   await expect(page.getByText('部分接单资料')).toBeVisible()
   await page.getByRole('button', { name: '确认已核销' }).click()

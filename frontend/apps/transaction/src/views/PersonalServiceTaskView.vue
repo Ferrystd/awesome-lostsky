@@ -53,17 +53,18 @@ const resources = computed<ServiceRedemptionResource[]>(() => {
 })
 const resourceFields = (resource: ServiceRedemptionResource, stage: 'customer' | 'manager') =>
   resource.redemption_fields.filter(field => field.fill_stage === stage)
+const hasClaimFields = computed(() => resources.value.some(resource => resourceFields(resource, 'manager').length > 0))
 const quantityLabel = computed(() => `${maxQuantity.value.toFixed(quantityScale.value)} ${row.value?.entitlement?.unit_name || '单位'}`)
 const taskSource = computed(() => kind.value === 'offer' ? '指定邀请' : kind.value === 'available' ? '公开接单' : '已结单任务')
 const claimStatus = computed(() => kind.value === 'offer'
-  ? { label: '待确认', type: 'warning' as const }
+  ? { label: '邀请中', type: 'warning' as const }
   : kind.value === 'available'
     ? { label: '待接单', type: 'default' as const }
-    : { label: '已结单', type: 'info' as const })
+    : { label: '已接单', type: 'info' as const })
 const rowStatus = computed(() => serviceStatusCode(row.value?.status_code ?? row.value?.status))
 const redemptionStatus = computed(() => rowStatus.value === 3
-  ? { label: '已核销', type: 'success' as const }
-  : { label: '待核销', type: 'warning' as const })
+  ? { label: '已结单', type: 'success' as const }
+  : { label: '未结单', type: 'warning' as const })
 const money = (value: unknown) => `¥${Number(value || 0).toFixed(2)}`
 const dateTime = (value: number | null | undefined) => value ? new Date(value * 1000).toLocaleString() : '—'
 const handlerName = computed(() => kind.value === 'assigned' ? row.value?.handler?.name || '当前 Entity' : '—')
@@ -166,7 +167,7 @@ const completeTask = () => action.mutate({suffix:'complete', body: needsLegacyCl
 
       <div v-if="kind === 'offer' || kind === 'available'" class="actions task-actions">
         <LsButton v-if="kind === 'offer'" variant="secondary" :loading="action.isPending.value" @click="action.mutate({ suffix: 'reject', body: { reason } })">拒绝邀请</LsButton>
-        <LsButton v-if="kind === 'offer'" :disabled="!claimReady" :loading="action.isPending.value" @click="acceptOffer">填写并接受邀请</LsButton>
+        <LsButton v-if="kind === 'offer'" :disabled="!claimReady" :loading="action.isPending.value" @click="acceptOffer">{{ hasClaimFields ? '填写并接受邀请' : '接受邀请' }}</LsButton>
         <LsButton v-else :disabled="!claimReady" :loading="action.isPending.value" @click="claimTask">填写并进行接单</LsButton>
       </div>
 
