@@ -198,7 +198,18 @@ location / {
 
 ## 宝塔静态前端部署
 
-宝塔添加站点时会在根目录生成默认 `index.html` 和 `404.html`。LostSky 前端是单入口 SPA，每个业务域名目录只保留 `index.html`，前端路径统一回退到该文件，因此不要直接在已经发布的 `www/{domain}` 目录上添加站点。
+宝塔添加站点时会在根目录生成默认 `index.html` 和 `404.html`。LostSky 的 Vite 应用是单入口 SPA，每个应用域名目录只保留 `index.html`，前端路径统一回退到该文件，因此不要直接在已经发布的 `www/{domain}` 目录上添加站点。
+
+以下路由边界是强制部署规范：
+
+| 站点类型 | 域名 | 不存在的路径 |
+| --- | --- | --- |
+| Vue SPA | `www`、`account`、`admin`、`team`、`chat`、`transaction`、`display`、`shop` 及其团队子域名 | 回退到 `/index.html`，交给 Vue Router |
+| 公共静态资源 | `assets.lostsky.work` | 直接返回 `404` |
+| 文档站 | `docs.lostsky.work`、`doc.lostsky.work` | 直接返回 `404` |
+| ThinkPHP API | `api.lostsky.work` | 使用后端重写规则，不使用 SPA 回退 |
+
+不得为 API、资源或文档站复制 SPA 伪静态规则；也不得让不存在的 JS、CSS、字体或图片回退到 HTML。
 
 Git 标签只包含源码和无法由构建命令再生的原始静态资源，不包含应用与文档站产物。发布机必须在独立发布目录检出不可变标签并生成完整 `www/`：
 
@@ -217,7 +228,7 @@ npm run build:docs
 1. 构建前端，将产物保存在独立发布目录，例如 `/www/deploy/lostsky/www/`。
 2. 在宝塔添加站点时使用一次性占位目录，例如 `/www/wwwroot/.bt-bootstrap/account.lostsky.work/`。
 3. 完成站点创建和域名绑定后，在「网站 → 设置 → 网站目录」中将根目录切换为真实产物目录，例如 `/www/deploy/lostsky/www/account.lostsky.work/`。同一站点新增域名只使用「域名管理」。
-4. 删除或注释宝塔生成的 `error_page 404 /404.html;`，并配置：
+4. 对表中所有 Vue SPA，删除或注释宝塔生成的 `error_page 404 /404.html;`，并统一配置：
 
    ```nginx
    root /www/deploy/lostsky/www/account.lostsky.work;
@@ -226,10 +237,26 @@ npm run build:docs
    location / {
        try_files $uri $uri/ /index.html;
    }
+
+   location ~* \.(css|js|mjs|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot)$ {
+       try_files $uri =404;
+       access_log off;
+       expires 30d;
+   }
    ```
 
-5. `assets.lostsky.work` 不使用 SPA 回退，文件不存在时直接返回 `404`；完整模板见 `deploy/nginx/lostsky-static-wildcard.conf`，CORS 配置见[静态资源 CORS](assets-cors.md)。
+   第一段保证刷新 `/teams`、`/entitlements/packages` 等前端深链接时仍进入应用；第二段保证缺失静态资源返回真实 `404`，避免浏览器把 `index.html` 当作脚本或样式加载。完整模板以 `deploy/nginx/lostsky-static-wildcard.conf` 为准。
+5. `assets.lostsky.work` 不使用 SPA 回退，文件不存在时直接返回 `404`；CORS 配置见[静态资源 CORS](assets-cors.md)。
 6. 后续发布只原子替换 `/www/deploy/lostsky/www/` 的内容，不再通过宝塔添加站点。占位目录可以保留，供将来重新建站使用。
+
+保存配置后先执行 `nginx -t`，成功后再重载 Nginx。Windows 宝塔必须在管理员终端中使用宝塔 Nginx 根目录作为前缀：
+
+```powershell
+D:\BtSoft\nginx\nginx.exe -p D:\BtSoft\nginx -c conf\nginx.conf -t
+D:\BtSoft\nginx\nginx.exe -p D:\BtSoft\nginx -c conf\nginx.conf -s reload
+```
+
+每个 SPA 站点至少验收：首页和一个真实前端深链接均返回 `200 text/html`；随机不存在的 `.js` 返回 `404`；文档站随机不存在的路径仍返回 `404`。`OpenEvent(... Access is denied)` 表示执行终端未提升为管理员权限，不代表配置语法错误。
 
 静态站点模板和 API 站点统一引用 Certbot 的稳定证书路径。续期后只需运行 `php think certificate:update`，不需要逐站点复制证书。
 

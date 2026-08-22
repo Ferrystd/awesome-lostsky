@@ -110,6 +110,10 @@ try {
     if ($exitCode === 0) {
         throw new RuntimeException('Grant command accepted an invalid ability key');
     }
+    [$exitCode] = $run(['--team=' . $team->slug, '--ability=unknown']);
+    if ($exitCode === 0) {
+        throw new RuntimeException('Grant command accepted an Ability outside the fixed catalog');
+    }
 
     $auditCount = BusinessAuditEvent::where('application', 'admin')
         ->where('action', 'ability.grant')

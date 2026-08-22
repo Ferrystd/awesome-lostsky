@@ -19,6 +19,7 @@ Admin 管理 LostSky 平台本身，不代替团队管理员编辑成员、顾�
 | ADMIN-06 | 查看审计 | `admin.audit.read` | 按执行人、应用和资源查看脱敏事件 |
 | ADMIN-07 | 查看系统状态 | `admin.system.read` | 看到核心依赖、积压和检查时间的只读状态 |
 | ADMIN-08 | 管理 Ability 体验权益 | `admin.entitlement.read/write` | 配置平台权益包、公共体验活动与兑换码 |
+| ADMIN-09 | 为团队开通能力 | `admin.team.ability.write` | 输入准确团队 slug，选择 Ability 与等级，设置永久或有限有效期并立即生效 |
 
 完整平台 Permission 见[权限目录](permissions.md)。
 
@@ -80,7 +81,9 @@ Admin 位于 `admin.lostsky.work`，不需要选择团队 Entity。所有页面�
 - 标准/自定义域名绑定；
 - 已授予 Ability 的键、等级和有效期。
 
-当前 Admin 只读显示 Ability，不提供开通、改级或续期界面。Ability 仍由有服务器权限的 LostSky 平台运维处理；团队角色管理员不能通过 Permission 自行开通。
+具有 `admin.team.ability.write` 的平台管理员可从左侧“团队能力”输入准确的团队 slug，再从固定目录选择 Ability、合法等级和到期时间；该操作不需要 `admin.team.read`，页面不会展示或搜索全量团队。若管理员同时拥有团队读取权限，也可从团队详情点击“开通能力”自动预填 slug。提交会替换相同 Ability 的旧手工授权并立即重算团队有效能力；兑换活动产生的其他有效授权不会被撤销。永久授权把到期时间留空，有限期默认 30 天，也可选择未来的具体时间。不存在或已注销的团队不能开通能力。
+
+该 Permission 不授予团队封禁、角色管理或平台体验权益管理能力；团队 owner 和团队角色管理员仍不能自行开通 Ability。每次直接授权都会记录执行管理员、团队、Ability、等级和到期时间，并进入平台审计。
 
 封禁团队需要 `admin.team.moderate` 和 5–500 字原因。结果会立即让该团队全部标准域名和自定义域名不可用，但不删除团队内容，也不影响成员账号访问其他有效团队。解封后团队入口恢复，成员仍需使用有效登录和 Entity 会话。
 
@@ -139,14 +142,14 @@ Admin 位于 `admin.lostsky.work`，不需要选择团队 Entity。所有页面�
 | 页面或导航不可用 | 当前平台角色缺少对应 Permission | 核对页面所需 Permission，联系角色管理员调整 |
 | 搜索不到用户或团队 | 搜索值不符，或缺少敏感资料 Permission | 核对用户名、ID 和筛选；需要完整手机号/邮箱时申请 `admin.user.sensitive.read` |
 | 不能封禁、解封或撤销会话 | 缺少治理 Permission，或目标是当前管理员自己 | 使用具备 `admin.user.moderate` 或 `admin.user.session.revoke` 的角色，并核对对象 |
-| 不能管理 Ability | Admin 当前只读显示 Ability | Ability 由有服务器权限的 LostSky 平台运维开通或续期 |
+| 看不到“团队能力”或提交被拒绝 | 缺少 `admin.team.ability.write`，slug 不存在或团队已注销 | 核对准确 slug，并由平台角色管理员补齐独立 Permission；已注销团队不可恢复开通 |
 | 不能保存角色或管理员绑定 | 缺少 `admin.access.write`，或操作会破坏超级管理员安全线 | 核对完整角色集合，并保留至少一个可用超级管理员 |
 | 审计或系统状态不刷新 | 页面只读且按规则自动更新 | 重新进入页面或稍后查看；异常按运维流程处理 |
 
 ## 当前边界
 
 - 不提供用户删除、密码重置、身份代办或团队内容编辑。
-- 不提供 Ability 授予、域名管理、商品/订单/流水治理或顾客余额调整。
+- 不提供 Ability 撤销、域名管理、商品/订单/流水治理或顾客余额调整。
 - 不提供审计导出、队列重试、自动修复或在线控制台。
 - 解封用户不会恢复旧会话；解封团队也不会绕过成员自身状态和 Entity 授权。
 - 平台命令搜索可用 Ctrl/Cmd+K 或 `/` 打开；移动端使用导航抽屉。

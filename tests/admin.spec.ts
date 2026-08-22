@@ -6,7 +6,7 @@ const session = {
   permissions: [
     'admin.dashboard.read', 'admin.user.read', 'admin.user.sensitive.read', 'admin.user.moderate',
     'admin.user.session.revoke', 'admin.team.read', 'admin.team.moderate', 'admin.access.read',
-    'admin.access.write', 'admin.audit.read', 'admin.system.read',
+    'admin.team.ability.write', 'admin.access.write', 'admin.audit.read', 'admin.system.read',
   ],
   is_super_admin: true,
 }
@@ -65,7 +65,22 @@ async function mockAdminApi(
     else if (path === '/users/23') {
       data = { ...user, teams: [team], devices: [{ id: 3, device_name: 'Chrome', ua: 'Desktop Chrome', last_active_time: 1_753_660_800, create_time: 1_753_660_800 }], roles: [], audit_events: [audit] }
     } else if (path === '/teams') data = { total: 1, list: [team], page: 1, limit: 20 }
-    else if (path === '/teams/7') data = { ...team, domains: [], abilities: [], audit_events: [audit] }
+    else if (path === '/teams/7') data = {
+      ...team,
+      domains: [],
+      abilities: [],
+      audit_events: [audit],
+    }
+    else if (path === '/team-abilities/catalog') data = [
+      { key: 'doc', label: '文档', levels: [1] },
+      { key: 'file', label: '文件', levels: [1, 2, 3] },
+      { key: 'transaction', label: '流水', levels: [1] },
+      { key: 'shop', label: '商城', levels: [1] },
+    ]
+    else if (path === '/team-abilities' && request.method() === 'POST') {
+      const input = request.postDataJSON()
+      data = { team_slug: input.team_slug, ability_key: input.ability_key, level: input.level, expire_time: input.expire_time }
+    }
     else if (path === '/administrators') data = [{ ...session.user, is_banned: 0, roles: session.roles }]
     else if (path === '/roles' && request.method() === 'POST') data = { id: 4 }
     else if (path === '/roles') data = session.roles.map((role) => ({ ...role, permissions: session.permissions, administrator_count: 1 }))
@@ -179,6 +194,65 @@ test('Admin navigation and route guards follow the current permission set', asyn
   await expect(page.getByRole('link', { name: '用户' })).toBeVisible()
   await expect(page.getByRole('link', { name: '团队' })).toHaveCount(0)
   await page.goto('http://127.0.0.1:5180/teams')
+  await expect(page).toHaveURL(/\/forbidden$/)
+})
+
+test('Admin grants a Team Ability by exact slug without Team read access', async ({ page }) => {
+  const writeOnly = {
+    ...session,
+    roles: [{ id: 4, role_key: 'ability_operator', name: '能力运营', description: '仅按 slug 开通能力', is_system: 0 }],
+    permissions: ['admin.team.ability.write'],
+    is_super_admin: false,
+  }
+  const teamReadRequests: string[] = []
+  page.on('request', (request) => {
+    const path = new URL(request.url()).pathname
+    if (path === '/api/teams' || /^\/api\/teams\/\d+$/.test(path)) teamReadRequests.push(path)
+  })
+  await mockAdminApi(page, { session: writeOnly })
+  await page.goto('http://127.0.0.1:5180/entitlements/team-abilities')
+
+  await expect(page).toHaveURL(/\/entitlements\/team-abilities$/)
+  await expect(page.getByRole('link', { name: '团队能力' })).toBeVisible()
+  await expect(page.locator('#admin-main').getByRole('heading', { name: '开通团队能力', level: 1 })).toBeVisible()
+  await page.getByLabel('团队 slug').fill('demo')
+  await page.getByLabel('Ability').click()
+  await page.getByText('文件（file）').click()
+  await page.getByLabel('等级').click()
+  await page.getByText('等级 2').click()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  const request = page.waitForRequest((candidate) => candidate.url().endsWith('/api/team-abilities') && candidate.method() === 'POST')
+  await page.getByRole('button', { name: '开通能力' }).click()
+  const payload = (await request).postDataJSON()
+  expect(payload).toMatchObject({ team_slug: 'demo', ability_key: 'file', level: 2 })
+  expect(payload.expire_time).toBeGreaterThan(Math.floor(Date.now() / 1000))
+  await expect(page).toHaveURL(/\/entitlements\/team-abilities$/)
+  await expect(page.getByLabel('团队 slug')).toHaveValue('')
+  expect(teamReadRequests).toEqual([])
+})
+
+test('Admin prefills the exact slug when granting from a readable Team detail', async ({ page }) => {
+  await mockAdminApi(page)
+  await page.goto('http://127.0.0.1:5180/teams/7')
+
+  await page.getByRole('link', { name: '开通能力' }).click()
+  await expect(page).toHaveURL(/\/entitlements\/team-abilities\?team=demo/)
+  await expect(page.getByLabel('团队 slug')).toHaveValue('demo')
+})
+
+test('Admin hides and guards the Team Ability grant entry without its dedicated permission', async ({ page }) => {
+  const limited = {
+    ...session,
+    roles: [{ id: 3, role_key: 'team_reader', name: '团队只读', description: '只读团队', is_system: 0 }],
+    permissions: ['admin.team.read'],
+    is_super_admin: false,
+  }
+  await mockAdminApi(page, { session: limited })
+  await page.goto('http://127.0.0.1:5180/teams/7')
+
+  await expect(page.getByRole('link', { name: '开通能力' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: '团队能力' })).toHaveCount(0)
+  await page.goto('http://127.0.0.1:5180/entitlements/team-abilities')
   await expect(page).toHaveURL(/\/forbidden$/)
 })
 

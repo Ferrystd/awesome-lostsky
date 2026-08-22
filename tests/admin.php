@@ -9,6 +9,8 @@ use app\model\BusinessAuditEvent;
 use app\model\PlatformAdminRole;
 use app\model\PlatformAdminUserRole;
 use app\model\Team;
+use app\model\TeamAbility;
+use app\model\TeamAbilityGrant;
 use app\model\TeamMember;
 use app\model\User;
 use app\model\UserDevice;
@@ -45,6 +47,8 @@ $assertThrows = static function (callable $callback, int $status, string $case) 
 $root = dirname(__DIR__);
 $schema = (string) file_get_contents("{$root}/sql/schema.sql");
 $patch = (string) file_get_contents("{$root}/sql/patches/20260729_admin_platform.sql");
+$adminRoutes = (string) file_get_contents("{$root}/app/admin/route/app.php");
+$teamController = (string) file_get_contents("{$root}/app/admin/controller/Teams.php");
 foreach ([
     '`is_banned`' => 'user ban flag is declared',
     'CREATE TABLE `platform_admin_role`' => 'platform role table is declared',
@@ -74,6 +78,7 @@ $assert(
         'admin.user.session.revoke',
         'admin.team.read',
         'admin.team.moderate',
+        'admin.team.ability.write',
         'admin.access.read',
         'admin.access.write',
         'admin.audit.read',
@@ -81,6 +86,21 @@ $assert(
         'admin.entitlement.write',
     ],
     'platform permission catalog matches the public contract'
+);
+$assert(
+    str_contains($adminRoutes, "Route::get('team-abilities/catalog', 'teams/abilityCatalog')")
+        && str_contains($adminRoutes, "Route::post('team-abilities', 'teams/grantAbility')")
+        && !str_contains($adminRoutes, "teams/<id>/abilities"),
+    'Team Ability HTTP routes use the exact-slug contract instead of a readable Team id'
+);
+$assert(
+    str_contains(
+        $teamController,
+        "Permissions::ADMIN_TEAM_ABILITY_WRITE => ['only' => ['abilityCatalog', 'grantAbility']]"
+    )
+        && str_contains($teamController, 'use app\\service\\AbilityCatalog;')
+        && str_contains($teamController, "post('team_slug/s', '')"),
+    'Team Ability catalog and grant use the real catalog service with only their dedicated write permission and slug input'
 );
 if ($failures) {
     fwrite(STDERR, implode(PHP_EOL, $failures) . PHP_EOL);
@@ -369,6 +389,64 @@ try {
         ),
         422,
         'moderation reasons must contain 5 to 500 characters'
+    );
+
+    $abilityRequest = new Request;
+    $abilityRequest->request_id = "admin-ability-{$suffix}";
+    $expireTime = time() + 3600;
+    $grantedBySlug = $admin->grantTeamAbilityBySlug(
+        (int) $actor->id,
+        (string) $team->slug,
+        'file',
+        2,
+        $expireTime,
+        $abilityRequest
+    );
+    $granted = TeamAbility::where('team_id', $team->id)->where('ability_key', 'file')->find()->toArray();
+    $abilityAudit = BusinessAuditEvent::where('application', 'admin')
+        ->where('action', 'ability.grant')
+        ->where('resource_type', 'team_ability')
+        ->where('resource_id', $granted['id'])
+        ->order('id', 'desc')
+        ->find();
+    $assert(
+        $grantedBySlug === [
+            'team_slug' => (string) $team->slug,
+            'ability_key' => 'file',
+            'level' => 2,
+            'expire_time' => $expireTime,
+        ]
+            && TeamAbilityGrant::where('team_id', $team->id)
+                ->where('ability_key', 'file')->where('source_type', 'manual')
+                ->whereNull('revoked_at')->count() === 1
+            && $abilityAudit
+            && $abilityAudit->authenticated_user_id === (int) $actor->id
+            && $abilityAudit->request_id === $abilityRequest->request_id,
+        'write-only platform administrator grants a catalog Ability by exact slug with a minimal response'
+    );
+    $assertThrows(
+        fn () => $admin->grantTeamAbilityBySlug((int) $actor->id, 'INVALID SLUG', 'file', 1, 0),
+        422,
+        'slug grants reject invalid Team slugs before lookup'
+    );
+    $assertThrows(
+        fn () => $admin->grantTeamAbilityBySlug((int) $actor->id, 'missing-team', 'file', 1, 0),
+        404,
+        'slug grants do not expose a Team directory when the exact Team is absent'
+    );
+    $admin->grantTeamAbility((int) $actor->id, (int) $team->id, 'file', 3, 0);
+    $assert(
+        TeamAbilityGrant::where('team_id', $team->id)
+            ->where('ability_key', 'file')->where('source_type', 'manual')
+            ->whereNull('revoked_at')->count() === 1
+            && (int) TeamAbility::where('team_id', $team->id)
+                ->where('ability_key', 'file')->value('level') === 3,
+        'repeated direct grants replace the previous manual grant and refresh the projection'
+    );
+    $assertThrows(
+        fn () => $admin->grantTeamAbility((int) $actor->id, (int) $team->id, 'unknown', 1, 0),
+        422,
+        'direct grants only accept the fixed Ability catalog'
     );
 
     $access->grantByKey((int) $outsider->id, "reader_{$suffix}");

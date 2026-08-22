@@ -7,7 +7,7 @@ import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import {
   Activity, ChevronRight, Command, FileClock, Gauge, KeyRound, LogOut, Menu, Search,
-  ShieldCheck, Users, UserRoundCog, X,
+  ShieldCheck, ShieldPlus, Users, UserRoundCog, X,
 } from '@lucide/vue'
 import { NButton, NModal } from 'naive-ui'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -24,7 +24,8 @@ const searching = ref(false)
 const results = ref<{ users: UserSummary[]; teams: TeamSummary[] }>({ users: [], teams: [] })
 let timer = 0
 
-const nav = [
+interface NavItem { to: string; label: string; icon: typeof Gauge; permission: string }
+const nav: NavItem[] = [
   { to: '/', label: '平台总览', icon: Gauge, permission: 'admin.dashboard.read' },
   { to: '/users', label: '用户', icon: Users, permission: 'admin.user.read' },
   { to: '/teams', label: '团队', icon: ShieldCheck, permission: 'admin.team.read' },
@@ -32,6 +33,7 @@ const nav = [
   { to: '/roles', label: '平台角色', icon: Command, permission: 'admin.access.read' },
   { to: '/audit', label: '审计日志', icon: FileClock, permission: 'admin.audit.read' },
   { to: '/system', label: '系统状态', icon: Activity, permission: 'admin.system.read' },
+  { to: '/entitlements/team-abilities', label: '团队能力', icon: ShieldPlus, permission: 'admin.team.ability.write' },
   { to: '/entitlements/packages', label: '平台权益', icon: KeyRound, permission: 'admin.entitlement.read' },
 ]
 const visibleNav = computed(() => nav.filter((item) => can(item.permission)))

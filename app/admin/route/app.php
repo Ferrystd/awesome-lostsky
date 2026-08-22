@@ -19,6 +19,8 @@ Route::get('teams', 'teams/index')->completeMatch();
 Route::get('teams/<id>', 'teams/get');
 Route::post('teams/<id>/ban', 'teams/ban');
 Route::post('teams/<id>/unban', 'teams/unban');
+Route::get('team-abilities/catalog', 'teams/abilityCatalog');
+Route::post('team-abilities', 'teams/grantAbility')->completeMatch();
 
 Route::get('administrators', 'access/administrators');
 Route::put('administrators/<user_id>/roles', 'access/assignRoles');

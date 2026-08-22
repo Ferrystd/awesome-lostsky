@@ -292,9 +292,13 @@ describe('后台工作台入口架构', () => {
   })
 
   it('Customer 不进入后台双工作台，个人业务不借用 Team 全量读取权限', () => {
-    expect(source('frontend/apps/team/src/router.ts')).toContain("auth.entity()?.type === 'teamCustomer'")
-    expect(source('frontend/apps/shop/src/router.ts')).toContain("entityType === 'teamCustomer'")
-    expect(source('frontend/apps/transaction/src/router.ts')).toContain("entityType === 'teamCustomer'")
+    for (const router of [
+      source('frontend/apps/team/src/router.ts'),
+      source('frontend/apps/shop/src/router.ts'),
+      source('frontend/apps/transaction/src/router.ts'),
+    ]) {
+      expect(router).toContain('location.replace(identityUrl(location.href))')
+    }
     const personalController = source('app/transaction/controller/Personal.php')
     expect(personalController).not.toContain('Permissions::TRANSACTION_READ')
     expect(personalController).not.toContain('Permissions::TRANSACTION_REPORT_READ')

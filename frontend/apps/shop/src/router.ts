@@ -61,7 +61,6 @@ router.beforeEach(async (to) => {
     if (!auth.token()) { redirectToLogin({ redirect: location.href }); return false }
     const entityType = String(auth.entity()?.type ?? '')
     if (!['team', 'teamMember', 'teamVirtual'].includes(entityType)) {
-      if (entityType === 'teamCustomer') return '/customer/profile'
       location.replace(identityUrl(location.href))
       return false
     }

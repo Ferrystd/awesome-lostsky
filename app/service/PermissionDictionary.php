@@ -71,6 +71,7 @@ final class PermissionDictionary
     public const ADMIN_USER_SESSION_REVOKE = 'admin.user.session.revoke';
     public const ADMIN_TEAM_READ = 'admin.team.read';
     public const ADMIN_TEAM_MODERATE = 'admin.team.moderate';
+    public const ADMIN_TEAM_ABILITY_WRITE = 'admin.team.ability.write';
     public const ADMIN_ACCESS_READ = 'admin.access.read';
     public const ADMIN_ACCESS_WRITE = 'admin.access.write';
     public const ADMIN_AUDIT_READ = 'admin.audit.read';
@@ -171,6 +172,7 @@ final class PermissionDictionary
         '团队治理' => [
             self::ADMIN_TEAM_READ => '查看团队',
             self::ADMIN_TEAM_MODERATE => '封禁与解封团队',
+            self::ADMIN_TEAM_ABILITY_WRITE => '开通、调整与续期团队能力',
         ],
         '平台权限' => [
             self::ADMIN_ACCESS_READ => '查看平台管理员与角色',

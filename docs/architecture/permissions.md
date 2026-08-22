@@ -102,6 +102,7 @@ Admin 平台权限与团队权限共用 `PermissionDictionary` 作为代码事�
 | 用户治理 | `admin.user.session.revoke` | 撤销用户全部会话 |
 | 团队治理 | `admin.team.read` | 查看团队 |
 | 团队治理 | `admin.team.moderate` | 封禁与解封团队 |
+| 团队治理 | `admin.team.ability.write` | 开通、调整与续期团队 Ability |
 | 平台权限 | `admin.access.read` | 查看平台管理员与角色 |
 | 平台权限 | `admin.access.write` | 管理平台管理员与角色 |
 | 平台权限 | `admin.audit.read` | 查看集中审计事件 |

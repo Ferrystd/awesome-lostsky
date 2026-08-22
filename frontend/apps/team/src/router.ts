@@ -1,5 +1,5 @@
 import { api, auth } from '@lostsky/api/client'
-import { redirectToLogin, shopWorkspaceUrl } from '@lostsky/shared/navigation'
+import { identityUrl, redirectToLogin } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteLocationGeneric } from 'vue-router'
@@ -167,7 +167,7 @@ router.beforeEach(async (to) => {
     return false
   }
   if (!to.meta.public && auth.entity()?.type === 'teamCustomer') {
-    location.replace(shopWorkspaceUrl('/customer/profile'))
+    location.replace(identityUrl(location.href))
     return false
   }
   if (to.meta.workspace === 'personal' && !['team', 'teamMember', 'teamVirtual'].includes(String(auth.entity()?.type ?? ''))) return '/'

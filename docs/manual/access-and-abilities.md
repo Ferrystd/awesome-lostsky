@@ -14,7 +14,7 @@ LostSky 的访问结果不是由单一“管理员”开关决定。系统会依
 | 归属 | 团队 | 当前实体(Entity)的角色 |
 | 作用 | 决定某项产品能力是否开通、等级和有效期 | 决定具体读取、创建、编辑、删除或管理动作 |
 | 例子 | `transaction` 开通记账能力 | `transaction.write` 允许登记或编辑流水 |
-| 谁能调整 | 当前版本由 LostSky 平台运维授予；Team 和 Admin 界面只读或不提供授权 | 具备 `team.role.write` 的团队角色管理员 |
+| 谁能调整 | 具备 `admin.team.ability.write` 的 LostSky 平台管理员，或有服务器权限的平台运维；Team 界面不能直接授权 | 具备 `team.role.write` 的团队角色管理员 |
 | 缺失提示 | `当前团队缺失能力(Ability): …` | `缺少权限(Permission): …` |
 
 某操作同时要求两者时，二者必须同时满足。拥有全部 Permission 不会自动开通 Ability；团队开通 Ability 也不会把对应权限自动发给所有实体。

@@ -49,7 +49,7 @@ LostSky 不会自动为每个账号创建个人空间。
 先区分 Ability 和 Permission：
 
 - Permission 属于实体的角色，团队角色管理员可以调整；
-- Ability 属于团队，由 LostSky 平台运维开通或续期；
+- Ability 属于团队，由具备 `admin.team.ability.write` 的 LostSky 平台管理员或有服务器权限的平台运维开通、调整或续期；
 - Doc、File、Transaction 的具体降级见[能力、权限与功能降级](access-and-abilities.md)。
 
 还要确认角色是分配给「当前正在使用的实体」，而不是只分配给登录账号的另一个成员或顾客实体。切换身份后权限会重新计算。

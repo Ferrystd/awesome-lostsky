@@ -470,6 +470,8 @@ aliases: [服务, Service]
 | `revokeUserSessions` | `int $actorUserId`、`int $targetUserId`、`string $reason`、`think\Request $request` | `void` |
 | `teams` | `array $filters` | `array` |
 | `team` | `int $id` | `array` |
+| `grantTeamAbility` | `int $actorUserId`、`int $teamId`、`string $abilityKey`、`int $level`、`int $expireTime`、`?think\Request $request = null`、`bool $enforceCatalogLevels = true` | `array` |
+| `grantTeamAbilityBySlug` | `int $actorUserId`、`string $teamSlug`、`string $abilityKey`、`int $level`、`int $expireTime`、`?think\Request $request = null` | `array` |
 | `moderateTeam` | `int $actorUserId`、`int $teamId`、`bool $banned`、`string $reason`、`think\Request $request` | `void` |
 | `auditEvents` | `array $filters` | `array` |
 | `systemHealth` | — | `array` |

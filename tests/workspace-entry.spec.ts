@@ -530,13 +530,10 @@ test('Chat keeps the four-app switch for Customer and routes Product to the cust
   await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/customer/profile')
 })
 
-test('Customer direct backend links resolve to the Shop customer center', async ({ page }) => {
+test('Customer direct backend links open identity switching and preserve the requested page', async ({ page }) => {
   await setToken(page, 'teamCustomer', 31)
-  await page.route('http://demo.shop.lostsky.work:5179/api/**', async route => {
-    const path = new URL(route.request().url()).pathname
-    const data = path.endsWith('/customer/me')
-      ? { id: 31, nickname: '青空顾客', slug: 'sky-customer', avatar: null, description: '', assignee_entity_id: null, balance: '0.00' }
-      : []
+  await page.route('http://account.lostsky.work:5174/api/**', async route => {
+    const data = new URL(route.request().url()).pathname.endsWith('/identity/candidates') ? [] : null
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
   })
 
@@ -546,6 +543,7 @@ test('Customer direct backend links resolve to the Shop customer center', async 
     'http://demo.shop.lostsky.work:5179/manage',
   ]) {
     await page.goto(url)
-    await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/customer/profile')
+    await expect(page).toHaveURL(/^http:\/\/account\.lostsky\.work:5174\/identity\?/)
+    expect(new URL(page.url()).searchParams.get('redirect')).toBe(url)
   }
 })

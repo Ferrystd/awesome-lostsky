@@ -6,6 +6,8 @@ namespace app\service;
 use app\model\BusinessAuditEvent;
 use app\model\PlatformAdminUserRole;
 use app\model\Team;
+use app\model\TeamAbility;
+use app\model\TeamAbilityGrant;
 use app\model\User;
 use app\model\UserDevice;
 use think\exception\HttpException;
@@ -285,6 +287,7 @@ final class PlatformAdmin
             ->whereNull('delete_time')->field('id,domain,app,create_time')->select()->toArray();
         $data['abilities'] = Db::name('team_ability')->where('team_id', $id)
             ->whereNull('delete_time')->field('id,ability_key,level,expire_time')->select()->toArray();
+        $data['ability_catalog'] = AbilityCatalog::all();
         $data['audit_events'] = $this->auditEvents([
             'resource_type' => 'team',
             'resource_id' => $id,
@@ -292,6 +295,118 @@ final class PlatformAdmin
         ])['list'];
 
         return $data;
+    }
+
+    public function grantTeamAbility(
+        int $actorUserId,
+        int $teamId,
+        string $abilityKey,
+        int $level,
+        int $expireTime,
+        ?Request $request = null,
+        bool $enforceCatalogLevels = true
+    ): array {
+        $abilityKey = trim($abilityKey);
+        $catalog = null;
+        foreach (AbilityCatalog::all() as $item) {
+            if ($item['key'] === $abilityKey) {
+                $catalog = $item;
+                break;
+            }
+        }
+        if (!$catalog
+            || $level < 1
+            || ($enforceCatalogLevels && !in_array($level, $catalog['levels'], true))
+            || $expireTime < 0
+            || $expireTime > 4294967295) {
+            throw new HttpException(422, '请选择有效的 Ability、等级和到期时间');
+        }
+
+        return Db::transaction(function () use (
+            $actorUserId,
+            $teamId,
+            $abilityKey,
+            $level,
+            $expireTime,
+            $request
+        ): array {
+            $team = Team::where('id', $teamId)->lock(true)->find();
+            if (!$team) {
+                throw new HttpException(404, '团队不存在');
+            }
+            if ((int) $team->is_cancelled === 1) {
+                throw new HttpException(409, '已注销团队不能开通能力');
+            }
+
+            TeamAbilityGrant::where('team_id', $teamId)
+                ->where('ability_key', $abilityKey)
+                ->where('source_type', 'manual')
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => time(), 'revoke_reason' => 'replaced']);
+            $grant = new TeamAbilityGrant;
+            $grant->save([
+                'team_id' => $teamId,
+                'ability_key' => $abilityKey,
+                'level' => $level,
+                'starts_at' => time(),
+                'ends_at' => $expireTime,
+                'source_type' => 'manual',
+            ]);
+            app(AbilityResolver::class)->syncProjection($teamId, $abilityKey);
+            app(AbilityExpirationScheduler::class)->schedule($grant);
+            $ability = TeamAbility::where('team_id', $teamId)
+                ->where('ability_key', $abilityKey)->find();
+
+            app(BusinessAudit::class)->recordPlatform(
+                $actorUserId > 0 ? $actorUserId : null,
+                'ability.grant',
+                'team_ability',
+                (int) $ability->id,
+                [
+                    'team_id' => $teamId,
+                    'ability_key' => $abilityKey,
+                    'level' => $level,
+                    'expire_time' => $expireTime,
+                ],
+                $request
+            );
+
+            return $ability->toArray();
+        });
+    }
+
+    public function grantTeamAbilityBySlug(
+        int $actorUserId,
+        string $teamSlug,
+        string $abilityKey,
+        int $level,
+        int $expireTime,
+        ?Request $request = null
+    ): array {
+        $teamSlug = strtolower(trim($teamSlug));
+        if (!preg_match('/^[a-z][a-z0-9_-]{1,49}$/D', $teamSlug)) {
+            throw new HttpException(422, '请输入有效的团队 slug');
+        }
+        $team = Team::where('slug', $teamSlug)->field('id,slug')->find();
+        if (!$team) {
+            throw new HttpException(404, '团队不存在');
+        }
+
+        $ability = $this->grantTeamAbility(
+            $actorUserId,
+            (int) $team->id,
+            $abilityKey,
+            $level,
+            $expireTime,
+            $request
+        );
+
+        return [
+            'team_slug' => (string) $team->slug,
+            'ability_key' => (string) $ability['ability_key'],
+            'level' => (int) $ability['level'],
+            'expire_time' => (int) $ability['expire_time'],
+        ];
     }
 
     public function moderateTeam(

@@ -4,15 +4,12 @@ declare(strict_types=1);
 namespace app\command;
 
 use app\model\Team;
-use app\model\TeamAbility;
-use app\model\TeamAbilityGrant;
-use app\service\AbilityResolver;
-use app\service\BusinessAudit;
+use app\service\PlatformAdmin;
 use think\console\Command;
 use think\console\Input;
 use think\console\input\Option;
 use think\console\Output;
-use think\facade\Db;
+use think\exception\HttpException;
 
 final class TeamGrantAbility extends Command
 {
@@ -46,49 +43,23 @@ final class TeamGrantAbility extends Command
             return 1;
         }
 
-        $ability = Db::transaction(function () use ($teamSlug, $abilityKey, $level, $expireTime): ?TeamAbility {
-            $team = Team::where('slug', $teamSlug)->lock(true)->find();
-            if (!$team) {
-                return null;
-            }
-            $teamId = (int) $team->id;
-
-            TeamAbilityGrant::where('team_id', $teamId)
-                ->where('ability_key', $abilityKey)
-                ->where('source_type', 'manual')
-                ->whereNull('revoked_at')
-                ->update(['revoked_at' => time(), 'revoke_reason' => 'replaced']);
-            $grant = new TeamAbilityGrant;
-            $grant->save([
-                'team_id' => $teamId,
-                'ability_key' => $abilityKey,
-                'level' => $level,
-                'starts_at' => time(),
-                'ends_at' => $expireTime,
-                'source_type' => 'manual',
-            ]);
-            app(AbilityResolver::class)->syncProjection($teamId, $abilityKey);
-            app(\app\service\AbilityExpirationScheduler::class)->schedule($grant);
-            $ability = TeamAbility::where('team_id', $teamId)->where('ability_key', $abilityKey)->find();
-
-            app(BusinessAudit::class)->recordPlatform(
-                null,
-                'ability.grant',
-                'team_ability',
-                (int) $ability->id,
-                [
-                    'team_id' => $teamId,
-                    'ability_key' => $abilityKey,
-                    'level' => $level,
-                    'expire_time' => $expireTime,
-                ]
-            );
-
-            return $ability;
-        });
-
-        if (!$ability) {
+        $team = Team::where('slug', $teamSlug)->find();
+        if (!$team) {
             $output->writeln("<error>团队 {$teamSlug} 不存在</error>");
+            return 1;
+        }
+        try {
+            app(PlatformAdmin::class)->grantTeamAbility(
+                0,
+                (int) $team->id,
+                $abilityKey,
+                $level,
+                $expireTime,
+                null,
+                false
+            );
+        } catch (HttpException $exception) {
+            $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return 1;
         }
 

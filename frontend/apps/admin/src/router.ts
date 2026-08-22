@@ -8,6 +8,7 @@ const UsersView = () => import('./views/UsersView.vue')
 const UserDetailView = () => import('./views/UserDetailView.vue')
 const TeamsView = () => import('./views/TeamsView.vue')
 const TeamDetailView = () => import('./views/TeamDetailView.vue')
+const TeamAbilityGrantView = () => import('./views/TeamAbilityGrantView.vue')
 const AdministratorsView = () => import('./views/AdministratorsView.vue')
 const AdministratorFormView = () => import('./views/AdministratorFormView.vue')
 const RolesView = () => import('./views/RolesView.vue')
@@ -28,6 +29,7 @@ export const router = createRouter({
     { path: '/users/:id(\\d+)', component: UserDetailView, meta: { title: '用户详情', permission: 'admin.user.read', width: 'content' } },
     { path: '/teams', component: TeamsView, meta: { title: '团队', permission: 'admin.team.read' } },
     { path: '/teams/:id(\\d+)', component: TeamDetailView, meta: { title: '团队详情', permission: 'admin.team.read', width: 'content' } },
+    { path: '/entitlements/team-abilities', component: TeamAbilityGrantView, meta: { title: '团队能力', permission: 'admin.team.ability.write', width: 'form' } },
     { path: '/administrators', component: AdministratorsView, meta: { title: '平台管理员', permission: 'admin.access.read' } },
     { path: '/administrators/new', component: AdministratorFormView, meta: { title: '添加平台管理员', permission: 'admin.access.write', width: 'form' } },
     { path: '/administrators/:userId(\\d+)', component: AdministratorFormView, meta: { title: '管理员角色', permission: 'admin.access.write', width: 'form' } },

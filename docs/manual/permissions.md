@@ -163,6 +163,7 @@ description: 查询 LostSky 当前全部团队权限、动态权限和平台管�
 | `admin.user.session.revoke` | 撤销用户全部设备与登录会话 |
 | `admin.team.read` | 查看团队、域名和 Ability |
 | `admin.team.moderate` | 封禁或解封团队 |
+| `admin.team.ability.write` | 为团队开通、调整等级或续期 Ability |
 | `admin.access.read` | 查看平台管理员和平台角色 |
 | `admin.access.write` | 管理平台管理员、角色与权限 |
 | `admin.audit.read` | 查看集中审计事件 |

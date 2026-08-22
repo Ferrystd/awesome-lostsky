@@ -104,7 +104,7 @@ describe('后台源码设计契约', () => {
     const usages = componentCallerRoots.flatMap(filesUnder)
       .filter(path => path.endsWith('.vue'))
       .flatMap(path => [...readFileSync(path, 'utf8').matchAll(/<LsPagePrimaryAction\b[^>]*>/g)].map(match => ({ path, tag: match[0] })))
-    expect(usages).toHaveLength(30)
+    expect(usages).toHaveLength(31)
     for (const usage of usages) {
       const file = relative(repository, usage.path).replaceAll('\\', '/')
       expect(usage.tag, `${file} 的页面主操作缺少强制 icon`).toMatch(/:icon=/)

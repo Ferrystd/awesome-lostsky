@@ -217,6 +217,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/team-abilities/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取可直接授权的 Ability 目录 */
+        get: operations["adminTeamAbilityCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/team-abilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 按团队 slug 开通、调整或续期 Ability */
+        post: operations["adminGrantTeamAbility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/administrators": {
         parameters: {
             query?: never;
@@ -641,6 +675,15 @@ export interface components {
             description?: string;
             permission_keys?: string[];
         };
+        TeamAbilityGrantInput: {
+            /** @description 准确的团队 slug；该接口不提供团队目录读取 */
+            team_slug: string;
+            /** @enum {string} */
+            ability_key: "doc" | "file" | "transaction" | "shop";
+            level: number;
+            /** @description Unix 时间戳；0 表示永久 */
+            expire_time: number;
+        };
     };
     responses: {
         /** @description 成功 */
@@ -801,6 +844,39 @@ export interface operations {
             200: components["responses"]["Success"];
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];
+        };
+    };
+    adminTeamAbilityCatalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["Success"];
+            403: components["responses"]["Error"];
+        };
+    };
+    adminGrantTeamAbility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamAbilityGrantInput"];
+            };
+        };
+        responses: {
+            200: components["responses"]["Success"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
         };
     };
     adminAdministrators: {

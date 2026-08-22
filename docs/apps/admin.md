@@ -9,12 +9,12 @@ Admin 是不依赖团队上下文的平台治理后台，前端入口为 `admin.
 - 展示平台状态、近期用户与团队、需要关注的封禁状态和最近审计事件。
 - 查询用户、脱敏联系方式、团队关系和有效设备；按独立权限使用完整手机或邮箱搜索并查看完整联系方式。
 - 封禁或解封用户、撤销用户全部设备与 refresh token。解封不会恢复旧会话。
-- 查询团队、所有者、成员规模、域名和能力；封禁或解封团队，不修改团队内容，也不影响用户在其他团队的会话。
+- 查询团队、所有者、成员规模、域名和能力；按独立权限为团队开通、调整或续期 Ability；封禁或解封团队不修改团队内容，也不影响用户在其他团队的会话。
 - 维护平台管理员、平台角色及权限并集。
 - 查询集中业务审计事件和经过脱敏的系统健康状态。
 - 维护平台 Ability 权益包、公共体验活动与兑换码；平台权益与团队商家服务权益相互隔离。
 
-首版不提供用户删除、密码重置、身份代办、团队内容编辑、能力授权、域名管理、订单交易管理、审计导出、队列重试或自动修复。
+首版不提供用户删除、密码重置、身份代办、团队内容编辑、Ability 撤销、域名管理、订单交易管理、审计导出、队列重试或自动修复。
 
 ## 鉴权与安全边界
 
@@ -29,7 +29,7 @@ Admin 是不依赖团队上下文的平台治理后台，前端入口为 `admin.
 - `admin.dashboard.read`
 - `admin.user.read`、`admin.user.sensitive.read`
 - `admin.user.moderate`、`admin.user.session.revoke`
-- `admin.team.read`、`admin.team.moderate`
+- `admin.team.read`、`admin.team.moderate`、`admin.team.ability.write`
 - `admin.access.read`、`admin.access.write`
 - `admin.audit.read`、`admin.system.read`
 - `admin.entitlement.read`、`admin.entitlement.write`
@@ -38,7 +38,7 @@ Admin 是不依赖团队上下文的平台治理后台，前端入口为 `admin.
 
 ## 接口与前端
 
-接口契约见 [`admin.openapi.json`](../openapi/admin.openapi.json)。前端路由覆盖平台总览、用户、团队、管理员、角色、审计、系统状态和平台权益；桌面端使用固定资源侧栏与命令搜索，移动端使用导航抽屉、全屏搜索和字段化记录行。
+接口契约见 [`admin.openapi.json`](../openapi/admin.openapi.json)。前端路由覆盖平台总览、用户、团队、团队 Ability 直接授权、管理员、角色、审计、系统状态和平台权益；侧栏“团队能力”允许仅具备写权限的管理员输入准确 slug 完成授权，不读取或枚举团队目录，团队详情中的“开通能力”只负责预填同一表单。提交后替换相同 Ability 的旧手工授权，并保留兑换活动产生的其他有效授权。桌面端使用固定资源侧栏与命令搜索，移动端使用导航抽屉、全屏搜索和字段化记录行。
 
 未登录请求跳转 Account 并保留原地址；已登录但没有平台角色的用户显示明确的 403 页面。前端权限只控制导航和操作入口，服务端中间件始终是授权事实源。
 
