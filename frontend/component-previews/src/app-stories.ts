@@ -27,6 +27,11 @@ import TransactionFlowTrend from "../../apps/transaction/src/components/Transact
 import ShopManageShell from "../../apps/shop/src/components/ShopManageShell.vue";
 import ServiceFieldsEditor from "../../apps/shop/src/components/ServiceFieldsEditor.vue";
 import ResourceOwnerTag from "../../apps/shop/src/components/ResourceOwnerTag.vue";
+import WeiboShell from "../../apps/weibo/src/components/WeiboShell.vue";
+import AccountHealthSummary from "../../apps/weibo/src/components/AccountHealthSummary.vue";
+import TaskStatusSummary from "../../apps/weibo/src/components/TaskStatusSummary.vue";
+import OperationRecordList from "../../apps/weibo/src/components/OperationRecordList.vue";
+import MediaPreparation from "../../apps/weibo/src/components/MediaPreparation.vue";
 import type { ServiceRedemptionFieldDraft } from "../../apps/shop/src/types";
 import type { ServiceField } from "../../apps/transaction/src/types";
 import {
@@ -600,6 +605,28 @@ const shopManageShell = story(
   },
 );
 
+const weiboShell = story("WeiboShell", layout, () => h(WeiboShell, null, {
+  default: () => h("section", { class: "shell-content" }, [h("h2", "调度态势中心"), h("p", "账号健康、任务状态与最近执行在同一工作台中完成。")]),
+}), { disabled: "工作台页面始终可访问。", loading: "页面内容负责加载。", error: "页面内容负责错误恢复。" });
+const accountHealthSummary = story("AccountHealthSummary", layout, () => stage(h(AccountHealthSummary, { accounts: [
+  { id: 1, binding_id: 1, entity_id: 3, uid: "123456", screen_name: "青空账号", health: "Valid", checked_at: 1787500000 },
+  { id: 2, binding_id: 2, entity_id: 3, uid: "654321", screen_name: "备用账号", health: "Unknown", checked_at: 1787500200 },
+] })));
+const taskStatusSummary = story("TaskStatusSummary", layout, () => stage(h(TaskStatusSummary, { tasks: [
+  { id: 1, owner_entity_id: null, operation_type: "Post", topic: { name: "光遇陪玩", display_tag: "#光遇陪玩[超话]#" }, content: "今日排期", account_ids: [1], media_ids: [], start_at: 1787500000, min_interval: 3600, max_interval: 7200, version: 1, status: "Active", block_reason: null, next_run_at: 1787503600 },
+] })));
+const operationRecordList = story("OperationRecordList", layout, () => stage(h(OperationRecordList, { operations: [
+  { id: 1, operation_type: "Post", source: "Schedule", status: "Succeeded", content_summary: "今日排期已更新", target_id: null, reason: "Ok", remote_message: null, started_at: 1787500000, finished_at: 1787500002 },
+  { id: 2, operation_type: "Checkin", source: "Schedule", status: "Succeeded", content_summary: "#光遇陪玩[超话]#", target_id: "100808fixture", reason: "Ok", remote_message: "签到成功", started_at: 1787586400, finished_at: 1787586401 },
+] })));
+const mediaPreparation = story("MediaPreparation", layout, () => stage(h(MediaPreparation, {
+  prefix: "",
+  personal: false,
+  expectedEntityId: 3,
+  accountId: 1,
+  modelValue: [12, 13],
+})));
+
 const resourceOwnerTag = story(
   "ResourceOwnerTag",
   layout,
@@ -727,4 +754,9 @@ export const appStories: Record<string, StoryDefinition> = {
   ServiceFieldsEditor: serviceFieldsEditor,
   ResourceOwnerTag: resourceOwnerTag,
   ShopManageShell: shopManageShell,
+  WeiboShell: weiboShell,
+  AccountHealthSummary: accountHealthSummary,
+  TaskStatusSummary: taskStatusSummary,
+  OperationRecordList: operationRecordList,
+  MediaPreparation: mediaPreparation,
 };

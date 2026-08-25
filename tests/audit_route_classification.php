@@ -97,6 +97,22 @@ $classification = [
             'realtime/subscribe' => '实时订阅控制',
         ],
     ],
+    'weibo' => [
+        'audit' => [
+            'accounts/login/confirm', 'bindings/<id>/remove', 'posts', 'likes', 'comments',
+            'tasks', 'tasks/<id>', 'tasks/<id>/pause', 'tasks/<id>/start', 'tasks/<id>/resume', 'tasks/<id>/cancel',
+            'personal/accounts/login/confirm', 'personal/bindings/<id>/remove', 'personal/posts', 'personal/likes', 'personal/comments',
+            'personal/tasks', 'personal/tasks/<id>', 'personal/tasks/<id>/pause', 'personal/tasks/<id>/start', 'personal/tasks/<id>/resume', 'personal/tasks/<id>/cancel',
+        ],
+        'exclude' => [
+            'accounts/login/start' => '只创建短信挑战，挑战内容不进入审计',
+            'accounts/<id>/check' => '无副作用的远程登录态检查',
+            'media' => '媒体准备，不执行远程业务写入',
+            'personal/accounts/login/start' => '只创建短信挑战',
+            'personal/accounts/<id>/check' => '无副作用的远程登录态检查',
+            'personal/media' => '媒体准备，不执行远程业务写入',
+        ],
+    ],
 ];
 
 foreach ($classification as $application => $groups) {
@@ -124,7 +140,11 @@ foreach ($classification as $application => $groups) {
                 }
             }
         }
-        if (!str_contains((string) file_get_contents($controllerFile), 'BusinessAudit::class')) {
+        $controllerSource = (string) file_get_contents($controllerFile);
+        if (str_contains($controllerSource, 'extends WorkspaceController')) {
+            $controllerSource .= (string) file_get_contents("{$root}/app/{$application}/controller/WorkspaceController.php");
+        }
+        if (!str_contains($controllerSource, 'BusinessAudit::class')) {
             throw new RuntimeException("{$application} {$route} 的控制器未使用 BusinessAudit");
         }
     }

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { chatWorkspaceUrl, identityUrl, shopWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
+import { identityUrl, workspaceAppEntries } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import {
   Bell, BookOpen, Bot, Boxes, ChevronDown, ChevronRight,
-  FileClock, FileText, Files, House, ListPlus, Menu, MessageCircleMore, ReceiptText, Send, Settings, ShieldCheck,
+  FileClock, FileText, Files, House, ListPlus, Menu, MessageCircleMore, Radio, ReceiptText, Send, Settings, ShieldCheck,
   Contact, KeyRound, Store, UserRound, Users, X,
 } from '@lucide/vue'
 import { NButton } from 'naive-ui'
@@ -24,14 +24,6 @@ type NavItem = {
   permission?: string
   ability?: 'doc'
 }
-type AppEntry = {
-  key: 'team' | 'shop' | 'transaction' | 'chat'
-  label: string
-  href: string
-  disabled?: boolean
-  reason?: string
-}
-
 const route = useRoute()
 const router = useRouter()
 const access = useTeamAccess()
@@ -74,19 +66,16 @@ const title = computed(() => String(route.meta.title ?? '工作台'))
 const activeWorkspace = computed(() => route.meta.workspace === 'personal' ? 'personal' : 'team')
 const sidebarPrimary = computed(() => activeWorkspace.value === 'personal' ? personalNav : primary.filter(item => item.to !== '/me'))
 const bottomPrimary = computed(() => activeWorkspace.value === 'personal' ? personalNav : primary.filter(item => !['/members', '/notices/entity'].includes(item.to)))
-const chatUrl = computed(() => chatWorkspaceUrl())
-const appEntries = computed<AppEntry[]>(() => {
+const appEntries = computed(() => {
   const personal = activeWorkspace.value === 'personal'
   const transaction = snapshot.value?.abilities?.transaction
-  return [
-    { key: 'team', label: '团队', href: '/' },
-    { key: 'shop', label: '商品', href: shopWorkspaceUrl(personal ? '/manage/personal' : '/manage') },
-    { key: 'transaction', label: '记账', href: transactionWorkspaceUrl(personal ? '/personal' : '/'), disabled: !transaction?.enabled, reason: transaction ? abilityReason('transaction', transaction.label ?? '记账') : '正在核对 transaction Ability' },
-    { key: 'chat', label: '聊天', href: chatUrl.value },
-  ]
+  return workspaceAppEntries({ personal, states: { transaction: { disabled: !transaction?.enabled, reason: transaction ? abilityReason('transaction', transaction.label ?? '记账') : '正在核对 transaction Ability' } } })
 })
 const headerActions = computed(() => appEntries.value.map(({ key, label, disabled, reason }) => ({ key, label, disabled, reason })))
 const transactionEntry = computed(() => appEntries.value.find(item => item.key === 'transaction'))
+const sidebarUtility = computed(() => activeWorkspace.value === 'personal'
+  ? { label: '使用文档', href: '//doc.lostsky.work', icon: BookOpen, target: '_blank', rel: 'noopener' }
+  : { label: '切换身份', href: identityUrl(), icon: ShieldCheck, target: undefined, rel: undefined })
 
 function handleHeaderAction(key: string) {
   const entry = appEntries.value.find(item => item.key === key)
@@ -193,7 +182,7 @@ watch(
           <ChevronDown :size="18" stroke-width="2.4" />
         </NButton>
       </div>
-      <NButton class="logout" quaternary tag="a" :href="identityUrl()"><template #icon><ShieldCheck :size="18" /></template>切换身份</NButton>
+      <NButton class="logout" quaternary tag="a" :href="sidebarUtility.href" :target="sidebarUtility.target" :rel="sidebarUtility.rel"><template #icon><component :is="sidebarUtility.icon" :size="18" /></template>{{ sidebarUtility.label }}</NButton>
     </aside>
 
     <Transition name="ls-backdrop">
@@ -213,7 +202,8 @@ watch(
             @click="explain(transactionEntry.reason || abilityReason('transaction', '记账'))"
           ><template #icon><ReceiptText :size="17" /></template><span>记账</span></NButton>
           <a v-else class="display-link" :href="transactionEntry?.href"><ReceiptText :size="17" /><span>记账</span></a>
-          <a class="chat-link" :href="chatUrl"><MessageCircleMore :size="19" /><span>聊天</span></a>
+          <a class="chat-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>
+          <a class="chat-link" :href="appEntries[4]?.href"><Radio :size="18" /><span>微博</span></a>
         </template>
       </LsWorkspaceHeader>
       <main id="workspace"><slot /></main>

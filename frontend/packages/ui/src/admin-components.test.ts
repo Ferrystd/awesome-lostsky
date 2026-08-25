@@ -84,6 +84,7 @@ describe('后台设计系统组件契约', () => {
     const source = readFileSync(new URL('./components/LsButton.vue', import.meta.url), 'utf8')
     expect(source).toContain('feedback.info(props.disabledReason.trim())')
     expect(source).toContain('event.preventDefault()')
+    expect(source).not.toContain(':title="disabledReason || undefined"')
   })
 
   it('LsSwitch 是唯一 Naive UI 开关原语且不在轨道内放文字', async () => {
@@ -415,11 +416,11 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain('.ls-responsive-data-table__desktop { display: none; }')
   })
 
-  it('上传和错误状态提供禁用原因，且不渲染刷新或重试按钮', async () => {
+  it('上传禁用入口不常驻渲染原因，错误状态不渲染刷新或重试按钮', async () => {
     const upload = await render(LsUploadField, { disabled: true, disabledReason: '当前团队未开通文件上传', showUrl: false })
     const error = await render(LsAsyncState, { state: 'error', title: '暂时无法读取', description: '网络连接失败' })
     const empty = await render(LsEmptyState, { title: '还没有顾客', description: '顾客领取身份后会出现在这里。' })
-    expect(upload).toContain('当前团队未开通文件上传')
+    expect(upload).not.toContain('当前团队未开通文件上传')
     expect(upload).toContain('disabled')
     expect(upload).not.toContain('ls-upload-field__reason')
     expect(error).toContain('网络连接失败')

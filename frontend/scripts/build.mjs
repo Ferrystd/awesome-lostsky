@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url'
 
 const frontend = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(frontend, '..')
-const apps = ['site', 'account', 'admin', 'team', 'chat', 'transaction', 'display', 'shop']
-const domains = { site: 'www.lostsky.work', account: 'account.lostsky.work', admin: 'admin.lostsky.work', team: 'team.lostsky.work', chat: 'chat.lostsky.work', transaction: 'transaction.lostsky.work', display: 'display.lostsky.work', shop: 'shop.lostsky.work' }
+const apps = ['site', 'account', 'admin', 'team', 'chat', 'transaction', 'display', 'shop', 'weibo']
+const domains = { site: 'www.lostsky.work', account: 'account.lostsky.work', admin: 'admin.lostsky.work', team: 'team.lostsky.work', chat: 'chat.lostsky.work', transaction: 'transaction.lostsky.work', display: 'display.lostsky.work', shop: 'shop.lostsky.work', weibo: 'weibo.lostsky.work' }
 const heroVideo = existsSync(join(frontend, 'media/source/site/lostsky-loop.webm'))
 const removeOptions = { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }
 

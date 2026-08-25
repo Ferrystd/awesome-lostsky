@@ -12,7 +12,7 @@ description: 从用户任务出发了解 LostSky 已提供的功能、操作结�
 1. 在 Account 注册或登录统一账号。
 2. 创建团队，或进入已经加入的团队。
 3. 领取当前团队的成员或顾客实体(Entity)，确认页面显示的当前身份。
-4. 进入 Team、Chat、Transaction、Display 或 Shop 完成任务。
+4. 进入 Team、Chat、Transaction、Display、Shop 或 Weibo 完成任务。
 
 如果对「账号、实体、当前身份、Ability、Permission」仍然陌生，请先读[核心概念](concepts.md)。遇到入口禁用、团队不匹配或无权提示时，直接查看[能力、权限与功能降级](access-and-abilities.md)和[问题排查](troubleshooting.md)。
 
@@ -28,6 +28,7 @@ description: 从用户任务出发了解 LostSky 已提供的功能、操作结�
 | 管理团队资料、成员、权限、内容和加入申请 | [团队工作台](team-workspace.md) |
 | 选择团队并发起会话 | [聊天](chat.md) |
 | 记录流水、查看统计、维护顾客余额 | [记账与顾客余额](transactions.md) |
+| 绑定微博账号、发帖互动或管理持续任务 | [微博工作台](weibo.md) |
 | 展示团队、浏览商品、维护商家顾客资料或以顾客身份购买 | [公开主页与商城](public-pages-and-shop.md) |
 | 领取卡密、查看服务权益、发起或管理服务核销 | [卡密、Ability 与服务核销](service-redemption.md) |
 | 用按量服务实现代招、按时长等业务，或了解履约加价 | [服务业务实现方案](service-business-solutions.md) |

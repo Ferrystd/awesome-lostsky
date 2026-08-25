@@ -11,6 +11,7 @@
 - [`chat.openapi.json`](chat.openapi.json)：聊天身份、会话、消息、实时令牌与应用切换快照
 - [`shop.openapi.json`](shop.openapi.json)：商品、订单、顾客自助中心
 - [`transaction.openapi.json`](transaction.openapi.json)：记账流水、发单人绑定、余额充值
+- [`weibo.openapi.json`](weibo.openapi.json)：微博账号、媒体、单次写操作、自动发帖、每日签到与 30 天执行日志
 - [`common.openapi.json`](common.openapi.json)：公共上传入口
 
 ## 调用入口

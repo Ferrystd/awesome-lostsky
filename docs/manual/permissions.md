@@ -69,6 +69,10 @@ description: 查询 LostSky 当前全部团队权限、动态权限和平台管�
 
 「我的顾客」合并当前归属与协作发单顾客，但不授予顾客资料编辑权限；顾客协作关系仍在团队顾客详情查看和维护，分别沿用顾客读取范围与 `team.customer.manage`，不要求 Transaction Ability。`service.entitlement.grant` 只开放向当前实体顾客范围下发的新动作，不扩大为全团队顾客；团队核销读取由 `service.redemption.read` 或 `service.redemption.manage` 开放，管理动作只接受 `service.redemption.manage`。见[能力、权限与功能降级](access-and-abilities.md)。
 
+## 微博
+
+Weibo 不设置业务 Permission。团队工作台只要通过当前团队上下文即可使用；个人工作台由服务端始终固定为当前 Entity。发帖、点赞、评论和任务开启/恢复改由 Weibo Ability 控制；团队接口不能代建个人任务。
+
 ## 文件、文档与团队设置
 
 | Permission | 允许的操作 |

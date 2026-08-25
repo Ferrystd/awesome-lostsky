@@ -11,7 +11,7 @@ export default defineConfig({
   use: {
     trace: 'on-first-retry',
     launchOptions: {
-      args: ['--host-resolver-rules=MAP www.lostsky.work 127.0.0.1, MAP account.lostsky.work 127.0.0.1, MAP demo.team.lostsky.work 127.0.0.1, MAP demo.chat.lostsky.work 127.0.0.1, MAP demo.transaction.lostsky.work 127.0.0.1, MAP demo.display.lostsky.work 127.0.0.1, MAP demo.shop.lostsky.work 127.0.0.1'],
+      args: ['--host-resolver-rules=MAP www.lostsky.work 127.0.0.1, MAP account.lostsky.work 127.0.0.1, MAP demo.team.lostsky.work 127.0.0.1, MAP demo.chat.lostsky.work 127.0.0.1, MAP demo.transaction.lostsky.work 127.0.0.1, MAP demo.display.lostsky.work 127.0.0.1, MAP demo.shop.lostsky.work 127.0.0.1, MAP demo.weibo.lostsky.work 127.0.0.1'],
     },
   },
   projects: [
@@ -27,5 +27,6 @@ export default defineConfig({
     { command: 'npm run dev:display -- --host 127.0.0.1', url: 'http://127.0.0.1:5178', reuseExistingServer: !process.env.CI },
     { command: 'npm run dev:shop -- --host 127.0.0.1', url: 'http://127.0.0.1:5179', reuseExistingServer: !process.env.CI },
     { command: 'npm run dev:admin -- --host 127.0.0.1', url: 'http://127.0.0.1:5180', reuseExistingServer: !process.env.CI },
+    { command: 'npm run dev:weibo -- --host 127.0.0.1', url: 'http://127.0.0.1:5181', reuseExistingServer: !process.env.CI },
   ],
 })

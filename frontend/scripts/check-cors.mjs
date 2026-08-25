@@ -37,6 +37,7 @@ const htmlRoots = [
   'transaction.lostsky.work',
   'display.lostsky.work',
   'shop.lostsky.work',
+  'weibo.lostsky.work',
 ]
 let checked = 0
 for (const domain of htmlRoots) {

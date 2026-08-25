@@ -10,6 +10,7 @@ $defaultNames = [
     "*.transaction.{$rootDomain}",
     "*.display.{$rootDomain}",
     "*.shop.{$rootDomain}",
+    "*.weibo.{$rootDomain}",
     "*.account.api.{$rootDomain}",
     "*.admin.api.{$rootDomain}",
     "*.common.api.{$rootDomain}",
@@ -18,6 +19,7 @@ $defaultNames = [
     "*.transaction.api.{$rootDomain}",
     "*.display.api.{$rootDomain}",
     "*.shop.api.{$rootDomain}",
+    "*.weibo.api.{$rootDomain}",
 ];
 $configuredNames = trim((string) env('TLS_REQUIRED_NAMES', ''));
 

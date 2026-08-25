@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { formatAbilityDenied, formatPermissionDenied } from '@lostsky/api/error-format'
-import { chatWorkspaceUrl, identityUrl, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
+import { identityUrl, workspaceAppEntries } from '@lostsky/shared/navigation'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
-import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Gift, Handshake, House, ListChecks, Menu, MessageCircleMore, ReceiptText, Store, UserRound, X } from '@lucide/vue'
+import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Gift, Handshake, House, ListChecks, Menu, MessageCircleMore, Radio, ReceiptText, Store, UserRound, X } from '@lucide/vue'
 import { NButton } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -39,12 +39,7 @@ const transactionReason = computed(() => {
 })
 const appEntries = computed(() => {
   const personal = activeWorkspace.value === 'personal'
-  return [
-    { key: 'team', label: '团队', href: teamWorkspaceUrl(personal ? '/personal' : '/') },
-    { key: 'shop', label: '商品', href: shopWorkspaceUrl(personal ? '/manage/personal' : '/manage') },
-    { key: 'transaction', label: '记账', href: transactionWorkspaceUrl('/'), disabled: Boolean(transactionReason.value), reason: transactionReason.value },
-    { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
-  ]
+  return workspaceAppEntries({ personal, states: { transaction: { disabled: Boolean(transactionReason.value), reason: transactionReason.value } } })
 })
 const headerActions = computed(() => appEntries.value.map(({ key, label, disabled, reason }) => ({ key, label, disabled, reason })))
 const transactionEntry = computed(() => appEntries.value.find(item => item.key === 'transaction'))
@@ -98,6 +93,7 @@ function explain(reason: string) { feedback.info(reason) }
           ><template #icon><ReceiptText :size="17" /></template><span>记账</span></NButton>
           <RouterLink v-else class="app-link" to="/"><ReceiptText :size="17" /><span>记账</span></RouterLink>
           <a class="app-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>
+          <a class="app-link" :href="appEntries[4]?.href"><Radio :size="18" /><span>微博</span></a>
         </template>
       </LsWorkspaceHeader>
       <slot />

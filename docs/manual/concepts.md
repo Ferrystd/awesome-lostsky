@@ -62,7 +62,7 @@ Entity 可以理解为「可以拥有资料、接受角色、出现在引用中�
 
 ## 团队上下文
 
-Team、Chat、Transaction、Display 和 Shop 使用带团队 slug 的地址，例如 `demo.team.lostsky.work`。地址里的 `demo` 决定当前团队。
+Team、Chat、Transaction、Display、Shop 和 Weibo 使用带团队 slug 的地址，例如 `demo.team.lostsky.work`。地址里的 `demo` 决定当前团队。
 
 多数团队后台请求同时要求：
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { formatAbilityDenied, formatPermissionDenied } from "@lostsky/api/error-format";
-import { chatWorkspaceUrl, identityUrl, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from "@lostsky/shared/navigation";
+import { identityUrl, workspaceAppEntries } from "@lostsky/shared/navigation";
 import LsPage from "@lostsky/ui/components/LsPage.vue";
 import LsWorkspaceHeader from "@lostsky/ui/components/LsWorkspaceHeader.vue";
 import { feedback } from "@lostsky/ui/feedback";
@@ -11,6 +11,7 @@ import {
   KeyRound,
   MessageCircleMore,
   PackageOpen,
+  Radio,
   ReceiptText,
   ShoppingBag, UserRound,
   Store,
@@ -79,12 +80,7 @@ const currentNav = computed(() => activeWorkspace.value === 'personal'
 const appEntries = computed(() => {
   const personal = activeWorkspace.value === 'personal';
   const transaction = access.value?.abilities?.transaction;
-  return [
-    { key: 'team', label: '团队', href: teamWorkspaceUrl(personal ? '/personal' : '/') },
-    { key: 'shop', label: '商品', href: shopWorkspaceUrl('/manage') },
-    { key: 'transaction', label: '记账', href: transactionWorkspaceUrl(personal ? '/personal' : '/'), disabled: !transaction?.enabled, reason: transaction ? formatAbilityDenied('transaction', transaction.label ?? '记账') : '正在核对 transaction Ability' },
-    { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
-  ];
+  return workspaceAppEntries({ personal, states: { transaction: { disabled: !transaction?.enabled, reason: transaction ? formatAbilityDenied('transaction', transaction.label ?? '记账') : '正在核对 transaction Ability' } } });
 });
 const headerActions = computed(() => appEntries.value.map(({ key, label, disabled, reason }) => ({ key, label, disabled, reason })));
 const transactionEntry = computed(() => appEntries.value.find(item => item.key === 'transaction'));
@@ -178,6 +174,7 @@ function explainPermission(permission: string | null) {
           ><template #icon><ReceiptText :size="17" /></template><span>记账</span></NButton>
           <a v-else class="manage-app-link" :href="transactionEntry?.href"><ReceiptText :size="17" /><span>记账</span></a>
           <a class="manage-app-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>
+          <a class="manage-app-link" :href="appEntries[4]?.href"><Radio :size="18" /><span>微博</span></a>
         </template>
       </LsWorkspaceHeader>
       <LsPage id="shop-manage-main" as="main" :width="width"><div class="manage-page-content"><slot /></div></LsPage>

@@ -69,6 +69,11 @@ class Entity
         return $entity;
     }
 
+    public function idBySubject(string $type, int $id): int
+    {
+        return $this->requireBySubject($type, $id)->id;
+    }
+
     public function subject(int $entityId): array
     {
         $entity = \app\model\Entity::find($entityId);

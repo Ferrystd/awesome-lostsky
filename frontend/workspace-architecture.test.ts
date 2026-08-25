@@ -25,19 +25,19 @@ describe('后台工作台入口架构', () => {
     expect(offenders).toEqual([])
   })
 
-  it('Team、商品与记账统一直显四应用入口，并从团队概览进入个人工作台', () => {
+  it('Team、商品、记账与微博统一使用五应用入口', () => {
+    const navigation = source('frontend/packages/shared/src/navigation.ts')
+    for (const entry of ["key: 'team', label: '团队'", "key: 'shop', label: '商品'", "key: 'transaction', label: '记账'", "key: 'chat', label: '聊天'", "key: 'weibo', label: '微博'"]) expect(navigation).toContain(entry)
     for (const path of [
       'frontend/apps/team/src/components/TeamShell.vue',
       'frontend/apps/shop/src/components/ShopManageShell.vue',
       'frontend/apps/transaction/src/components/TransactionShell.vue',
+      'frontend/apps/weibo/src/components/WeiboShell.vue',
     ]) {
       const shell = source(path)
       expect(shell).not.toContain(':workspace-options=')
       expect(shell).not.toContain(':app-options=')
-      expect(shell).toContain("key: 'team', label: '团队'")
-      expect(shell).toContain("key: 'shop', label: '商品'")
-      expect(shell).toContain("key: 'transaction', label: '记账'")
-      expect(shell).toContain("key: 'chat', label: '聊天'")
+      expect(shell).toContain('workspaceAppEntries(')
     }
     const team = source('frontend/apps/team/src/components/TeamShell.vue')
     expect(team).toContain('context-label="团队工作台"')
@@ -50,10 +50,10 @@ describe('后台工作台入口架构', () => {
     expect(chat).not.toContain('aria-label="切换应用"')
     expect(chat).toContain('class="app-links"')
     expect(chat).toContain('class="app-menu"')
-    expect(chat).toContain("shopWorkspaceUrl('/customer/profile')")
+    expect(chat).toContain("paths: { shop: '/customer/profile' }")
   })
 
-  it('保留 Team 团队概览并用共享组件重做其余五个宽版概览', () => {
+  it('保留 Team 团队概览并用共享组件实现其余宽版概览', () => {
     const dashboard = source('frontend/apps/team/src/views/DashboardView.vue')
     expect(dashboard).not.toContain('LsWorkspaceOverview')
     expect(dashboard).toContain('class="welcome"')
@@ -66,6 +66,7 @@ describe('后台工作台入口架构', () => {
       ['frontend/apps/shop/src/views/manage/PersonalOverviewView.vue', '进入团队工作台'],
       ['frontend/apps/transaction/src/views/TeamOverviewView.vue', '进入个人工作台'],
       ['frontend/apps/transaction/src/views/PersonalOverviewView.vue', '进入团队工作台'],
+      ['frontend/apps/weibo/src/views/OverviewView.vue', '进入个人工作台'],
     ] as const
     for (const [path, switchLabel] of overviews) {
       const overview = source(path)
@@ -73,7 +74,19 @@ describe('后台工作台入口架构', () => {
       expect(overview, `${path} 缺少对向工作台入口`).toContain(switchLabel)
     }
 
-    expect(source('frontend/apps/team/src/views/PersonalView.vue')).toContain('切换身份')
+    const teamPersonal = source('frontend/apps/team/src/views/PersonalView.vue')
+    expect(teamPersonal).toContain("label: '使用文档'")
+    expect(teamPersonal).toContain("href: '//doc.lostsky.work'")
+    expect(teamPersonal).not.toContain("label: '切换身份'")
+    const weiboOverview = source('frontend/apps/weibo/src/views/OverviewView.vue')
+    expect(weiboOverview).toContain('进入团队工作台')
+    expect(weiboOverview).toContain('LsPanel')
+    expect(weiboOverview).toContain('LsAsyncState')
+    expect(weiboOverview).toContain('AccountHealthSummary')
+    expect(weiboOverview).toContain('TaskStatusSummary')
+    expect(weiboOverview).toContain('OperationRecordList')
+    expect(weiboOverview).not.toContain('LsPageHeader')
+    expect(weiboOverview).not.toContain('NSkeleton')
     expect(source('frontend/apps/team/src/router.ts')).toMatch(/path: '\/personal'[^\n]*pageWidth: 'wide'/)
     expect(source('frontend/apps/shop/src/router.ts')).toMatch(/path: '\/manage'[^\n]*width: 'wide'/)
     expect(source('frontend/apps/shop/src/router.ts')).toMatch(/path: '\/manage\/personal'[^\n]*width: 'wide'/)
@@ -136,6 +149,7 @@ describe('后台工作台入口架构', () => {
       'frontend/apps/team/src/components/TeamShell.vue',
       'frontend/apps/shop/src/components/ShopManageShell.vue',
       'frontend/apps/transaction/src/components/TransactionShell.vue',
+      'frontend/apps/weibo/src/components/WeiboShell.vue',
     ]) {
       const shell = source(path)
       expect(shell).toContain('identityUrl()')
@@ -158,6 +172,18 @@ describe('后台工作台入口架构', () => {
     expect(identity).not.toContain('<NButton type="primary" tag="a" :href="returnUrl">')
     expect(identity).toContain('await candidates.refetch()')
     expect(identity).not.toContain('goToSafeRedirect')
+  })
+
+  it('微博侧栏沿用 Team 的品牌、分组、箭头和激活态结构', () => {
+    const shell = source('frontend/apps/weibo/src/components/WeiboShell.vue')
+    const styles = source('frontend/apps/weibo/src/app.css')
+    expect(shell).toContain('<strong>LostSky</strong><span>失落青空</span>')
+    expect(shell).toContain('<p>工作空间</p>')
+    expect(shell).toContain('<ChevronRight :size="15" />')
+    expect(shell).toContain('<ShieldCheck :size="18" />')
+    expect(styles).toMatch(/grid-template-columns:\s*24px\s+minmax\(0,\s*1fr\)\s+auto/)
+    expect(styles).toMatch(/\.weibo-sidebar nav a\.router-link-active svg:last-child\s*\{\s*color:\s*var\(--afterglow\)/)
+    expect(styles).toMatch(/\.weibo-content\s*\{[^}]*width:\s*min\(100%,\s*90rem\)/)
   })
 
   it('商城前台导航标明首页，并从页脚进入身份切换', () => {

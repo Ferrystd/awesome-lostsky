@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
-import { identityUrl } from '@lostsky/shared/navigation'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
@@ -10,7 +9,7 @@ import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
-import { FileText, House, RefreshCw, ShieldCheck, UserRound } from '@lucide/vue'
+import { BookOpen, FileText, House, ShieldCheck, UserRound } from '@lucide/vue'
 import { NInput } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -52,7 +51,7 @@ const overviewDescription = computed(() => query.data.value
   : '资料、对象字段和权限（Permission）入口保持可用；重新进入页面后会再次读取当前身份。')
 const overviewActions = computed(() => [
   { key: 'team', label: '进入团队工作台', to: '/', icon: House, primary: true },
-  { key: 'identity', label: '切换身份', href: identityUrl(), icon: RefreshCw },
+  { key: 'docs', label: '使用文档', href: '//doc.lostsky.work', target: '_blank', rel: 'noopener', icon: BookOpen },
 ])
 const overviewEntries = [
   { key: 'profile', label: '资料', description: '维护当前 Entity 的名称、头像、简介与公开介绍。', to: '/personal/profile', icon: UserRound },

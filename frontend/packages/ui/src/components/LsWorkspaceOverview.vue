@@ -10,6 +10,8 @@ type LsWorkspaceOverviewAction = {
   icon: Component
   to?: RouteLocationRaw
   href?: string
+  target?: string
+  rel?: string
   primary?: boolean
 }
 
@@ -51,6 +53,8 @@ function explainDisabled(reason?: string) {
           <a
             v-if="action.href"
             :href="action.href"
+            :target="action.target"
+            :rel="action.rel"
             :class="['ls-workspace-overview__action', action.primary ? 'primary' : 'secondary']"
           ><component :is="action.icon" :size="18" />{{ action.label }}<ArrowRight :size="18" /></a>
           <RouterLink

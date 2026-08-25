@@ -15,13 +15,13 @@ async function expectHeaderApps(page: Page, headerSelector = '.ls-workspace-head
   await expect(page.getByRole('button', { name: '切换应用' })).toHaveCount(0)
   if ((page.viewportSize()?.width ?? 0) < mobileBreakpoint) {
     await header.getByRole('button', { name: '操作' }).click()
-    for (const label of ['团队', '商品', '记账', '聊天']) {
+    for (const label of ['团队', '商品', '记账', '聊天', '微博']) {
       await expect(page.getByText(new RegExp(`^${label}(?:（.*）)?$`)).last()).toBeVisible()
     }
     await page.keyboard.press('Escape')
     await expect(page.locator('.n-dropdown-menu:visible')).toHaveCount(0)
   } else {
-    for (const label of ['团队', '商品', '记账', '聊天']) {
+    for (const label of ['团队', '商品', '记账', '聊天', '微博']) {
       await expect(header.getByText(label, { exact: true })).toBeVisible()
     }
     if (headerSelector === '.ls-workspace-header') {
@@ -44,10 +44,10 @@ async function expectHeaderApps(page: Page, headerSelector = '.ls-workspace-head
           bodyColor: getComputedStyle(document.body).color,
         }
       })
-      expect(geometry.width).toBe(376)
+      expect(geometry.width).toBe(472)
       expect(geometry.rightInset).toBe(24)
-      expect(geometry.itemWidths).toEqual([88, 88, 88, 88])
-      expect(geometry.gaps).toEqual([8, 8, 8])
+      expect(geometry.itemWidths).toEqual([88, 88, 88, 88, 88])
+      expect(geometry.gaps).toEqual([8, 8, 8, 8])
       expect(new Set(geometry.textStyles.map(style => JSON.stringify(style))).size).toBe(1)
       expect(geometry.textStyles.every(style => style.color === geometry.bodyColor)).toBe(true)
     }
@@ -168,23 +168,25 @@ test('Team keeps its original layout and reaches personal workspace from the ove
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   const personalSidebar = page.locator('.sidebar')
   const personalOverview = page.locator('.ls-workspace-overview')
-  await expect(personalSidebar.getByRole('link', { name: '切换身份' })).toHaveCount(1)
-  await expect(personalOverview.getByRole('link', { name: '切换身份' })).toHaveCount(1)
+  await expect(personalSidebar.getByRole('link', { name: '使用文档' })).toHaveCount(1)
+  await expect(personalOverview.getByRole('link', { name: '使用文档' })).toHaveCount(1)
   await expect(personalOverview.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/')
+  await expect(personalSidebar.getByRole('link', { name: '使用文档' })).toHaveAttribute('target', '_blank')
+  await expect(personalOverview.getByRole('link', { name: '使用文档' })).toHaveAttribute('target', '_blank')
 
   const teamDesktopRect = await personalOverview.getByRole('link', { name: /进入团队工作台/ }).evaluate(element => element.getBoundingClientRect().toJSON())
-  const identityDesktopRect = await personalOverview.getByRole('link', { name: '切换身份' }).evaluate(element => element.getBoundingClientRect().toJSON())
-  expect(teamDesktopRect.width).toBeGreaterThan(identityDesktopRect.width)
-  expect(Math.abs(teamDesktopRect.height - identityDesktopRect.height)).toBeLessThanOrEqual(1)
-  expect(Math.abs(documentDesktopRect.width - identityDesktopRect.width)).toBeLessThanOrEqual(1)
+  const personalDocumentDesktopRect = await personalOverview.getByRole('link', { name: '使用文档' }).evaluate(element => element.getBoundingClientRect().toJSON())
+  expect(teamDesktopRect.width).toBeGreaterThan(personalDocumentDesktopRect.width)
+  expect(Math.abs(teamDesktopRect.height - personalDocumentDesktopRect.height)).toBeLessThanOrEqual(1)
+  expect(Math.abs(documentDesktopRect.width - personalDocumentDesktopRect.width)).toBeLessThanOrEqual(1)
 
   await page.setViewportSize({ width: 375, height: 812 })
-  const identityMobileWidth = await personalOverview.getByRole('link', { name: '切换身份' }).evaluate(element => element.getBoundingClientRect().width)
+  const personalDocumentMobileWidth = await personalOverview.getByRole('link', { name: '使用文档' }).evaluate(element => element.getBoundingClientRect().width)
   await page.goto('http://demo.team.lostsky.work:5175/')
   const personalMobileWidth = await page.getByRole('link', { name: '进入个人工作台' }).evaluate(element => element.getBoundingClientRect().width)
   const documentMobileWidth = await page.getByRole('link', { name: '使用文档' }).evaluate(element => element.getBoundingClientRect().width)
   expect(Math.abs(personalMobileWidth - documentMobileWidth)).toBeLessThanOrEqual(1)
-  expect(Math.abs(documentMobileWidth - identityMobileWidth)).toBeLessThanOrEqual(1)
+  expect(Math.abs(documentMobileWidth - personalDocumentMobileWidth)).toBeLessThanOrEqual(1)
 
   await page.goto('http://demo.team.lostsky.work:5175/personal')
 
@@ -496,7 +498,7 @@ test('missing transaction Ability keeps the app disabled and sends zero business
   expect(businessRequests).toBe(0)
 })
 
-test('Chat keeps the four-app switch for Customer and routes Product to the customer center', async ({ page }) => {
+test('Chat keeps the five-app switch for Customer and routes Product to the customer center', async ({ page }) => {
   await setToken(page, 'teamCustomer', 31)
   let workspaceAccessRequests = 0
   await page.route('http://demo.chat.lostsky.work:5176/api/**', async route => {

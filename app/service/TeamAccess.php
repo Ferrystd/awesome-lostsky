@@ -17,6 +17,7 @@ class TeamAccess
                 'doc' => $this->ability($teamId, 'doc', '文档'),
                 'transaction' => $this->ability($teamId, 'transaction', '记账'),
                 'shop' => $this->ability($teamId, 'shop', '商城'),
+                'weibo' => $this->ability($teamId, 'weibo', '微博'),
             ],
             'file_upload' => app(File::class)->uploadAvailability($teamId),
             'identity' => $this->identitySummary($actingEntity),

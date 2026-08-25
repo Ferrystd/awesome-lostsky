@@ -310,7 +310,7 @@ const workspaceHeader = story('LsWorkspaceHeader', interactive, state => stage(h
     { key: 'chat', label: '聊天' },
   ],
 }, {
-  actions: () => ['团队', '商品', '记账', '聊天'].map(label => h('a', { href: '#', onClick: (event: Event) => event.preventDefault() }, label)),
+  actions: () => ['团队', '商品', '记账', '聊天', '微博'].map(label => h('a', { href: '#', onClick: (event: Event) => event.preventDefault() }, label)),
 })))
 
 const workspaceOverview = story('LsWorkspaceOverview', allInteractive, state => stage(h(LsWorkspaceOverview, {

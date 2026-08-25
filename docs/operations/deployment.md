@@ -62,6 +62,23 @@ stopwaitsecs=120
 
 队列使用业务数据库的 `jobs` 表。部署新代码后执行 `php think queue:restart`，并确认 Supervisor 中进程为 `RUNNING`。公开商城接口始终实时校验 Shop Ability，因此 Worker 延迟不会继续展示或销售商品。
 
+### Weibo Database Worker
+
+首次部署先导入 `sql/patches/20260825_weibo_application.sql`；已经部署首版 Weibo 表后，再导入 `sql/patches/20260826_weibo_checkin_tasks.sql` 增加每日签到任务类型。两类任务共用单独的 Supervisor 进程和 `weibo-schedule` 队列：
+
+```ini
+[program:lostsky-weibo]
+command=php /www/deploy/lostsky/think queue:work database --queue=weibo-schedule --sleep=2 --tries=0 --timeout=110
+directory=/www/deploy/lostsky
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/lostsky/weibo-worker.log
+stopwaitsecs=120
+```
+
+该 Worker 不配置自动重试。每次执行重新校验 Weibo Ability；缺失时不访问微博写接口。每日签到会在请求前按当天调度日志去重，失败也只在次日再次执行。部署后重启队列并确认 `lostsky-weibo` 为 `RUNNING`。
+
 1. 安装生产依赖：
 
    ```bash

@@ -1,0 +1,47 @@
+<?php
+use think\facade\Route;
+
+Route::pattern(['id' => 'int']);
+Route::get('workspace/access', 'Workspace/access')->completeMatch();
+
+Route::get('accounts', 'Team/accounts')->completeMatch();
+Route::get('accounts/<id>', 'Team/account')->completeMatch();
+Route::post('accounts/login/start', 'Team/loginStart')->completeMatch();
+Route::post('accounts/login/confirm', 'Team/loginConfirm')->completeMatch();
+Route::post('accounts/<id>/check', 'Team/accountCheck')->completeMatch();
+Route::post('bindings/<id>/remove', 'Team/unbind')->completeMatch();
+Route::post('media', 'Team/mediaUpload')->completeMatch();
+Route::get('media/<id>/content', 'Team/mediaContent')->completeMatch();
+Route::post('posts', 'Team/post')->completeMatch();
+Route::post('likes', 'Team/like')->completeMatch();
+Route::post('comments', 'Team/comment')->completeMatch();
+Route::get('tasks', 'Team/tasks')->completeMatch();
+Route::get('tasks/<id>', 'Team/task')->completeMatch();
+Route::post('tasks', 'Team/taskCreate')->completeMatch();
+Route::post('tasks/<id>', 'Team/taskEdit')->completeMatch();
+Route::post('tasks/<id>/pause', 'Team/taskPause')->completeMatch();
+Route::post('tasks/<id>/start', 'Team/taskStart')->completeMatch();
+Route::post('tasks/<id>/resume', 'Team/taskResume')->completeMatch();
+Route::post('tasks/<id>/cancel', 'Team/taskCancel')->completeMatch();
+Route::get('operations', 'Team/operations')->completeMatch();
+
+Route::get('personal/accounts', 'Personal/accounts')->completeMatch();
+Route::get('personal/accounts/<id>', 'Personal/account')->completeMatch();
+Route::post('personal/accounts/login/start', 'Personal/loginStart')->completeMatch();
+Route::post('personal/accounts/login/confirm', 'Personal/loginConfirm')->completeMatch();
+Route::post('personal/accounts/<id>/check', 'Personal/accountCheck')->completeMatch();
+Route::post('personal/bindings/<id>/remove', 'Personal/unbind')->completeMatch();
+Route::post('personal/media', 'Personal/mediaUpload')->completeMatch();
+Route::get('personal/media/<id>/content', 'Personal/mediaContent')->completeMatch();
+Route::post('personal/posts', 'Personal/post')->completeMatch();
+Route::post('personal/likes', 'Personal/like')->completeMatch();
+Route::post('personal/comments', 'Personal/comment')->completeMatch();
+Route::get('personal/tasks', 'Personal/tasks')->completeMatch();
+Route::get('personal/tasks/<id>', 'Personal/task')->completeMatch();
+Route::post('personal/tasks', 'Personal/taskCreate')->completeMatch();
+Route::post('personal/tasks/<id>', 'Personal/taskEdit')->completeMatch();
+Route::post('personal/tasks/<id>/pause', 'Personal/taskPause')->completeMatch();
+Route::post('personal/tasks/<id>/start', 'Personal/taskStart')->completeMatch();
+Route::post('personal/tasks/<id>/resume', 'Personal/taskResume')->completeMatch();
+Route::post('personal/tasks/<id>/cancel', 'Personal/taskCancel')->completeMatch();
+Route::get('personal/operations', 'Personal/operations')->completeMatch();

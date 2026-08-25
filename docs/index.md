@@ -31,6 +31,7 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 - [开发须知](development/development.md)
 - [代码更新清单](development/checklist.md)
 - [后端约定](development/backend.md)
+- [外部写操作与日志保留](development/external-write-operations.md)
 - [前端约定](development/frontend.md)
 - [组件代码预览](development/component-previews.md)
 - [测试须知](development/testing.md)

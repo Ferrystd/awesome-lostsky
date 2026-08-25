@@ -266,6 +266,7 @@ aliases: [服务, Service]
 | --- | --- | --- |
 | `optionsForTeam` | `int $teamId`、`bool $canReadAll = false` | `array` |
 | `requireBySubject` | `string $type`、`int $id` | `model\Entity` |
+| `idBySubject` | `string $type`、`int $id` | `int` |
 | `subject` | `int $entityId` | `array` |
 | `assertInTeam` | `int $entityId`、`int $teamId` | `model\Entity` |
 | `assertBelongsToTeam` | `int $entityId`、`int $teamId` | `model\Entity` |
@@ -836,3 +837,62 @@ aliases: [服务, Service]
 | `canView` | `think\Model $model`、`int $actingEntityId`、`bool $isTeamManager`、`bool $isSubject` | `bool` |
 | `syncTargets` | `think\Model $model`、`array $targets`、`int $teamId` | `void` |
 | `normalizeTargets` | `array $targets`、`int $teamId` | `array` |
+
+## WeiboAccounts
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `list` | `int $teamId`、`int $entityId`、`bool $teamScope` | `array` |
+| `detail` | `int $teamId`、`int $entityId`、`int $accountId`、`bool $teamScope` | `array` |
+| `start` | `int $teamId`、`int $entityId`、`string $phone` | `array` |
+| `confirm` | `int $teamId`、`int $entityId`、`string $challengeId`、`string $code` | `array` |
+| `check` | `int $teamId`、`int $entityId`、`int $accountId`、`bool $teamScope` | `array` |
+| `unbind` | `int $teamId`、`int $entityId`、`int $bindingId`、`bool $teamScope` | `void` |
+| `bound` | `int $teamId`、`int $entityId`、`int $accountId`、`bool $teamScope` | `model\WeiboAccount` |
+
+## WeiboMediaLibrary
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `upload` | `int $teamId`、`int $resourceEntityId`、`int $accountId`、`bool $teamScope`、`think\file\UploadedFile $file` | `array` |
+| `content` | `int $teamId`、`int $entityId`、`int $mediaId`、`bool $teamScope` | `array` |
+
+## WeiboOperations
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `execute` | `int $teamId`、`?int $ownerEntityId`、`?int $actorEntityId`、`int $accountId`、`enum\WeiboOperationType $type`、`array $payload`、`enum\WeiboOperationSource $source = app\enum\WeiboOperationSource::Manual`、`?int $taskId = null`、`?int $taskVersion = null`、`?string $dispatchKey = null` | `array` |
+| `list` | `int $teamId`、`int $entityId`、`bool $teamScope`、`int $page = 1`、`int $limit = 20` | `array` |
+| `dto` | `model\WeiboOperationLog $log` | `array` |
+
+## WeiboProtocol
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `generateS` | `string $uid`、`string $from` | `string` |
+| `media` | `array $pids` | `array` |
+| `dynamicFrom` | — | `string` |
+| `sendLoginSms` | `string $phone` | `array` |
+| `login` | `string $phone`、`string $code`、`string $from` | `array` |
+| `check` | `model\WeiboAccount $account` | `array` |
+| `resolveSupertopic` | `string $name` | `array` |
+| `statusIdFromUrl` | `string $url` | `string` |
+| `upload` | `model\WeiboAccount $account`、`string $path`、`string $contentType = 'application/octet-stream'` | `array` |
+| `imageContent` | `string $pid` | `array` |
+| `post` | `model\WeiboAccount $account`、`array $topic`、`string $content`、`array $pids = []` | `array` |
+| `checkin` | `model\WeiboAccount $account`、`array $topic` | `array` |
+| `like` | `model\WeiboAccount $account`、`string $statusId` | `array` |
+| `comment` | `model\WeiboAccount $account`、`string $statusId`、`string $comment` | `array` |
+| `classify` | `array $payload`、`int $httpStatus = 200` | `array` |
+
+## WeiboTasks
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `list` | `int $teamId`、`int $entityId`、`bool $teamScope` | `array` |
+| `get` | `int $teamId`、`int $entityId`、`int $id`、`bool $teamScope` | `array` |
+| `create` | `int $teamId`、`int $actorEntityId`、`?int $ownerEntityId`、`array $data` | `array` |
+| `edit` | `int $teamId`、`int $entityId`、`int $id`、`bool $teamScope`、`array $data` | `array` |
+| `transition` | `int $teamId`、`int $entityId`、`int $id`、`bool $teamScope`、`string $action` | `array` |
+| `enqueue` | `model\WeiboTask $task` | `void` |
+| `dto` | `model\WeiboTask $task` | `array` |

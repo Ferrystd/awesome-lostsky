@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { formatAbilityDenied } from '@lostsky/api/error-format'
-import { chatWorkspaceUrl, shopWorkspaceUrl, teamWorkspaceUrl, transactionWorkspaceUrl } from '@lostsky/shared/navigation'
+import { workspaceAppEntries } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ArrowLeft, Bot, Building2, CheckCheck, CircleX, House, MessageCircleMore, MoreHorizontal, Plus, ReceiptText, Reply, Send, Settings2, Store, UserRound, Users } from '@lucide/vue'
+import { ArrowLeft, Bot, Building2, CheckCheck, CircleX, House, MessageCircleMore, MoreHorizontal, Plus, Radio, ReceiptText, Reply, Send, Settings2, Store, UserRound, Users } from '@lucide/vue'
 import { NButton, NDropdown, NInput, NSelect } from 'naive-ui'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { loadCentrifuge, type CentrifugeClient, type Subscription } from '../lib/centrifuge'
@@ -37,24 +37,11 @@ const workspaceAccess = useQuery({
 })
 const appOptions = computed<AppOption[]>(() => {
   const transaction = workspaceAccess.data.value?.abilities?.transaction
-  if (customerWorkspace.value) return [
-    { key: 'team', label: '团队', disabled: true, reason: '顾客不进入后台工作台' },
-    { key: 'shop', label: '商品', href: shopWorkspaceUrl('/customer/profile') },
-    { key: 'transaction', label: '记账', disabled: true, reason: '顾客不进入后台工作台' },
-    { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
-  ]
-  if (!backendWorkspace.value) return [
-    { key: 'team', label: '团队', disabled: true, reason: '请先领取团队身份' },
-    { key: 'shop', label: '商品', disabled: true, reason: '请先领取团队身份' },
-    { key: 'transaction', label: '记账', disabled: true, reason: '请先领取团队身份' },
-    { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
-  ]
-  return [
-    { key: 'team', label: '团队', href: teamWorkspaceUrl('/') },
-    { key: 'shop', label: '商品', href: shopWorkspaceUrl('/manage') },
-    { key: 'transaction', label: '记账', href: transactionWorkspaceUrl('/'), disabled: !transaction?.enabled, reason: transaction ? formatAbilityDenied('transaction', transaction.label ?? '记账') : '正在核对 transaction Ability' },
-    { key: 'chat', label: '聊天', href: chatWorkspaceUrl('/') },
-  ]
+  if (customerWorkspace.value) return workspaceAppEntries({ paths: { shop: '/customer/profile' }, states: {
+    team: { disabled: true, reason: '顾客不进入后台工作台' }, transaction: { disabled: true, reason: '顾客不进入后台工作台' }, weibo: { disabled: true, reason: '顾客不进入后台工作台' },
+  } })
+  if (!backendWorkspace.value) return workspaceAppEntries({ states: Object.fromEntries(['team', 'shop', 'transaction', 'weibo'].map(key => [key, { disabled: true, reason: '请先领取团队身份' }])) })
+  return workspaceAppEntries({ states: { transaction: { disabled: !transaction?.enabled, reason: transaction ? formatAbilityDenied('transaction', transaction.label ?? '记账') : '正在核对 transaction Ability' } } })
 })
 const appDropdownOptions = computed(() => appOptions.value.map(({ key, label, disabled, reason }) => ({
   key,
@@ -72,6 +59,7 @@ function appIcon(key: string) {
   if (key === 'team') return House
   if (key === 'shop') return Store
   if (key === 'transaction') return ReceiptText
+  if (key === 'weibo') return Radio
   return MessageCircleMore
 }
 interface Participant extends Actor {

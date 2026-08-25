@@ -3,7 +3,7 @@ import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const repository = process.cwd()
-const applicationNames = ['account', 'team', 'chat', 'transaction', 'admin']
+const applicationNames = ['account', 'team', 'chat', 'transaction', 'admin', 'weibo']
 const sourceRoots = [
   ...applicationNames.map(name => join(repository, 'frontend', 'apps', name, 'src')),
   join(repository, 'frontend', 'packages', 'ui', 'src'),
@@ -208,18 +208,19 @@ describe('后台源码设计契约', () => {
     expect(styles).not.toMatch(/html\s*\{[^}]*scrollbar-gutter:/)
   })
 
-  it('三个业务工作台统一使用共享四等宽应用导航', () => {
+  it('业务工作台统一使用共享五等宽应用导航', () => {
     const header = readFileSync(join(repository, 'frontend', 'packages', 'ui', 'src', 'components', 'LsWorkspaceHeader.vue'), 'utf8')
     expect(header).toContain('ls-workspace-header--app-nav')
     expect(header).not.toMatch(/position:(?:sticky|fixed)/)
     expect(header).toMatch(/ls-workspace-header__desktop\{grid-column:3;/)
-    expect(header).toMatch(/grid-template-columns:repeat\(4,5\.5rem\)/)
-    expect(header).toMatch(/width:23\.5rem/)
+    expect(header).toMatch(/grid-template-columns:repeat\(5,88px\)/)
+    expect(header).toMatch(/width:472px/)
     expect(header).toMatch(/color:var\(--ink\);font-size:\.82rem/)
     for (const source of [
       ['team', 'TeamShell.vue'],
       ['shop', 'ShopManageShell.vue'],
       ['transaction', 'TransactionShell.vue'],
+      ['weibo', 'WeiboShell.vue'],
     ] as const) {
       const shell = readFileSync(join(repository, 'frontend', 'apps', source[0], 'src', 'components', source[1]), 'utf8')
       expect(shell, `${source[0]} 未启用共享应用导航`).toMatch(/<LsWorkspaceHeader[^>]*app-navigation/)

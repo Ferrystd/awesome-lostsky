@@ -37,6 +37,7 @@ nav = [
     "manual/team-workspace.md",
     "manual/chat.md",
     "manual/transactions.md",
+    "manual/weibo.md",
     "manual/public-pages-and-shop.md",
     "manual/service-redemption.md",
     "manual/service-business-solutions.md",
@@ -75,7 +76,8 @@ nav = [
     "apps/display.md",
     "apps/shop.md",
     "apps/team.md",
-    "apps/transaction.md"
+    "apps/transaction.md",
+    "apps/weibo.md"
   ]},
   {"架构" = [
     "architecture/routing.md",
@@ -88,6 +90,7 @@ nav = [
     "development/development.md",
     "development/checklist.md",
     "development/backend.md",
+    "development/external-write-operations.md",
     "development/frontend.md",
     "development/component-previews.md",
     "development/testing.md",

@@ -478,5 +478,45 @@
     "story": "frontend/component-previews/src/story-registry.ts#LsSectionHeader",
     "category": "ui",
     "aliases": ["区块标题", "卡片标题"]
+  },
+  {
+    "id": "weibo-shell",
+    "name": "WeiboShell",
+    "source": "frontend/apps/weibo/src/components/WeiboShell.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#WeiboShell",
+    "category": "weibo",
+    "aliases": ["微博工作台", "微博应用壳"]
+  },
+  {
+    "id": "weibo-account-health-summary",
+    "name": "AccountHealthSummary",
+    "source": "frontend/apps/weibo/src/components/AccountHealthSummary.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#AccountHealthSummary",
+    "category": "weibo",
+    "aliases": ["微博账号健康", "账号健康摘要"]
+  },
+  {
+    "id": "weibo-task-status-summary",
+    "name": "TaskStatusSummary",
+    "source": "frontend/apps/weibo/src/components/TaskStatusSummary.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#TaskStatusSummary",
+    "category": "weibo",
+    "aliases": ["微博任务状态", "任务状态摘要"]
+  },
+  {
+    "id": "weibo-operation-record-list",
+    "name": "OperationRecordList",
+    "source": "frontend/apps/weibo/src/components/OperationRecordList.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#OperationRecordList",
+    "category": "weibo",
+    "aliases": ["微博执行记录", "微博日志列表"]
+  },
+  {
+    "id": "weibo-media-preparation",
+    "name": "MediaPreparation",
+    "source": "frontend/apps/weibo/src/components/MediaPreparation.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#MediaPreparation",
+    "category": "weibo",
+    "aliases": ["微博媒体准备", "微博图片上传"]
   }
 ]

@@ -1,6 +1,6 @@
 const ACCOUNT_LOGIN_URL = '//account.lostsky.work/login'
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
-const LOCAL_APP_PORTS = new Set(['5173', '5174', '5175', '5176', '5177', '5178', '5179', '5180'])
+const LOCAL_APP_PORTS = new Set(['5173', '5174', '5175', '5176', '5177', '5178', '5179', '5180', '5181'])
 
 function isLocalDevelopmentHost(hostname: string | undefined) {
   return import.meta.env.DEV && Boolean(hostname && LOCAL_HOSTS.has(hostname))
@@ -79,13 +79,13 @@ export function redirectToLogin(options: LoginRedirectOptions = {}) {
 }
 
 function workspaceUrl(
-  app: 'chat' | 'shop' | 'team' | 'transaction',
+  app: 'chat' | 'shop' | 'team' | 'transaction' | 'weibo',
   developmentPort: number,
   path = '/',
   params: Record<string, string | number | boolean | null | undefined> = {},
 ) {
   const host = location.hostname.replace(
-    /\.(?:account|team|chat|transaction|display|shop|admin)\./,
+    /\.(?:account|team|chat|transaction|display|shop|weibo|admin)\./,
     `.${app}.`,
   )
   const port = import.meta.env.DEV ? `:${developmentPort}` : location.port ? `:${location.port}` : ''
@@ -115,14 +115,44 @@ export function transactionWorkspaceUrl(path = '/') {
   return workspaceUrl('transaction', 5177, path)
 }
 
+export function weiboWorkspaceUrl(path = '/') {
+  return workspaceUrl('weibo', 5181, path)
+}
+
 export function teamScopedAppUrl(
   teamSlug: string,
-  app: 'chat' | 'shop' | 'team' | 'transaction',
+  app: 'chat' | 'shop' | 'team' | 'transaction' | 'weibo',
   path = '/',
 ) {
-  const port = import.meta.env.DEV ? `:${({ team: 5175, chat: 5176, transaction: 5177, shop: 5179 })[app]}` : ''
+  const port = import.meta.env.DEV ? `:${({ team: 5175, chat: 5176, transaction: 5177, shop: 5179, weibo: 5181 })[app]}` : ''
   const host = isLocalDevelopmentHost(location.hostname) ? location.hostname : `${teamSlug}.${app}.lostsky.work`
   return new URL(path, `${location.protocol}//${host}${port}`).href
+}
+
+export type WorkspaceAppKey = 'team' | 'shop' | 'transaction' | 'chat' | 'weibo'
+export interface WorkspaceAppEntry { key: WorkspaceAppKey; label: string; href: string; disabled?: boolean; reason?: string }
+export function workspaceAppEntries(options: {
+  personal?: boolean
+  paths?: Partial<Record<WorkspaceAppKey, string>>
+  states?: Partial<Record<WorkspaceAppKey, { disabled?: boolean; reason?: string }>>
+} = {}): WorkspaceAppEntry[] {
+  const personal = Boolean(options.personal)
+  const paths = {
+    team: personal ? '/personal' : '/',
+    shop: personal ? '/manage/personal' : '/manage',
+    transaction: personal ? '/personal' : '/',
+    chat: '/',
+    weibo: personal ? '/personal' : '/',
+    ...options.paths,
+  }
+  const entries: WorkspaceAppEntry[] = [
+    { key: 'team', label: '团队', href: teamWorkspaceUrl(paths.team) },
+    { key: 'shop', label: '商品', href: shopWorkspaceUrl(paths.shop) },
+    { key: 'transaction', label: '记账', href: transactionWorkspaceUrl(paths.transaction) },
+    { key: 'chat', label: '聊天', href: chatWorkspaceUrl(paths.chat) },
+    { key: 'weibo', label: '微博', href: weiboWorkspaceUrl(paths.weibo) },
+  ]
+  return entries.map(entry => ({ ...entry, ...options.states?.[entry.key] }))
 }
 
 export type EntityCallbackReason = 'missing' | 'team_mismatch'

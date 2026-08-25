@@ -19,6 +19,8 @@ Display 与 Shop 使用标准团队前端 Origin
 `https://{slug}.display.lostsky.work`、`https://{slug}.shop.lostsky.work`。两者都需要有效团队上下文，
 但公开展示控制器不组合登录或实体身份中间件；Shop 的顾客写接口仍按各自路由要求认证。
 
+Weibo 使用 `https://{slug}.weibo.lostsky.work`，开发端口为 `5181`；对应 API Origin 解析为 Weibo 多应用入口，并始终要求团队与当前 Entity 上下文。
+
 域名根和 API 域名由 `config/app.php` 的 `domain.root`、`domain.api` 配置。生产默认值为 `lostsky.work` 和 `api.lostsky.work`。
 
 ## 解析流程

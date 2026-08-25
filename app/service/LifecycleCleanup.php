@@ -9,6 +9,9 @@ use app\model\ExternalCompensation;
 use app\model\File as FileModel;
 use app\model\UserDevice;
 use app\model\UserRefreshToken;
+use app\model\WeiboMedia;
+use app\model\WeiboOperationLog;
+use app\model\WeiboTaskMedia;
 use think\facade\Config;
 
 class LifecycleCleanup
@@ -20,6 +23,7 @@ class LifecycleCleanup
         $devicesBefore = $now - $this->days('device_retention_days') * 86400;
         $refreshBefore = $now - $this->days('refresh_token_retention_days') * 86400;
         $auditBefore = $now - $this->days('business_audit_retention_days') * 86400;
+        $weiboBefore = $now - $this->days('weibo_operation_retention_days') * 86400;
 
         $sessions = 0;
         foreach (EntitySession::withTrashed()
@@ -84,6 +88,21 @@ class LifecycleCleanup
             $businessAuditEvents++;
         }
 
+        $configuredBatchSize = filter_var(Config::get('cleanup.weibo_cleanup_batch_size', 200), FILTER_VALIDATE_INT);
+        $batchSize = max(1, $configuredBatchSize === false ? 200 : $configuredBatchSize);
+        $weiboOperationLogs = 0;
+        foreach (WeiboOperationLog::withTrashed()->where('create_time', '<=', $weiboBefore)->limit($batchSize)->select() as $log) {
+            $log->force(true)->delete();
+            $weiboOperationLogs++;
+        }
+
+        $weiboMedia = 0;
+        foreach (WeiboMedia::withTrashed()->where('create_time', '<=', $weiboBefore)->limit($batchSize)->select() as $media) {
+            if (WeiboTaskMedia::withTrashed()->where('media_id', $media->id)->find()) continue;
+            $media->force(true)->delete();
+            $weiboMedia++;
+        }
+
         $compensations = 0;
         foreach (ExternalCompensation::whereNull('completed_at')
             ->where('available_at', '<=', $now)
@@ -114,6 +133,8 @@ class LifecycleCleanup
             'devices',
             'files',
             'businessAuditEvents',
+            'weiboOperationLogs',
+            'weiboMedia',
             'compensations'
         );
     }

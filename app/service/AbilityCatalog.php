@@ -10,6 +10,7 @@ final class AbilityCatalog
         'file' => ['label' => '文件', 'levels' => [1, 2, 3]],
         'transaction' => ['label' => '流水', 'levels' => [1]],
         'shop' => ['label' => '商城', 'levels' => [1]],
+        'weibo' => ['label' => '微博', 'levels' => [1]],
     ];
 
     public static function all(): array

@@ -39,7 +39,6 @@ function click(event: MouseEvent) {
     :loading="loading"
     :disabled="disabled && !explainableDisabled"
     :aria-disabled="disabled || undefined"
-    :title="disabledReason || undefined"
     @click="click"
   >
     <template v-if="$slots.icon" #icon><slot name="icon" /></template>

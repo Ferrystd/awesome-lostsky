@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__);
-$apps = ['account', 'admin', 'chat', 'common', 'display', 'shop', 'team', 'transaction'];
+$apps = ['account', 'admin', 'chat', 'common', 'display', 'shop', 'team', 'transaction', 'weibo'];
 $errors = [];
 
 foreach ($apps as $app) {
@@ -29,7 +29,7 @@ foreach ($apps as $app) {
         ];
     }
 
-    if (in_array($app, ['shop', 'team', 'transaction'], true)) {
+    if (in_array($app, ['shop', 'team', 'transaction', 'weibo'], true)) {
         foreach ($definitions as $index => $definition) {
             if ($definition['complete']
                 || ($app === 'team' && !str_starts_with($definition['path'], 'customer'))) {
