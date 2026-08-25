@@ -66,7 +66,6 @@ describe('后台工作台入口架构', () => {
       ['frontend/apps/shop/src/views/manage/PersonalOverviewView.vue', '进入团队工作台'],
       ['frontend/apps/transaction/src/views/TeamOverviewView.vue', '进入个人工作台'],
       ['frontend/apps/transaction/src/views/PersonalOverviewView.vue', '进入团队工作台'],
-      ['frontend/apps/weibo/src/views/OverviewView.vue', '进入个人工作台'],
     ] as const
     for (const [path, switchLabel] of overviews) {
       const overview = source(path)
@@ -79,12 +78,16 @@ describe('后台工作台入口架构', () => {
     expect(teamPersonal).toContain("href: '//doc.lostsky.work'")
     expect(teamPersonal).not.toContain("label: '切换身份'")
     const weiboOverview = source('frontend/apps/weibo/src/views/OverviewView.vue')
+    const weiboDashboard = source('frontend/apps/weibo/src/components/TeamOverviewDashboard.vue')
     expect(weiboOverview).toContain('进入团队工作台')
+    expect(weiboOverview).toContain('TeamOverviewDashboard')
+    expect(weiboOverview).toContain('LsWorkspaceOverview')
     expect(weiboOverview).toContain('LsPanel')
     expect(weiboOverview).toContain('LsAsyncState')
-    expect(weiboOverview).toContain('AccountHealthSummary')
-    expect(weiboOverview).toContain('TaskStatusSummary')
-    expect(weiboOverview).toContain('OperationRecordList')
+    expect(weiboDashboard).toContain('AccountHealthSummary')
+    expect(weiboDashboard).toContain('TaskStatusSummary')
+    expect(weiboDashboard).toContain('OperationRecordList')
+    expect(weiboDashboard).not.toContain(':deep(')
     expect(weiboOverview).not.toContain('LsPageHeader')
     expect(weiboOverview).not.toContain('NSkeleton')
     expect(source('frontend/apps/team/src/router.ts')).toMatch(/path: '\/personal'[^\n]*pageWidth: 'wide'/)

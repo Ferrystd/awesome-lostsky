@@ -512,6 +512,14 @@
     "aliases": ["微博执行记录", "微博日志列表"]
   },
   {
+    "id": "weibo-team-overview-dashboard",
+    "name": "TeamOverviewDashboard",
+    "source": "frontend/apps/weibo/src/components/TeamOverviewDashboard.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#TeamOverviewDashboard",
+    "category": "weibo",
+    "aliases": ["微博团队概览", "微博调度 Dashboard", "团队调度态势"]
+  },
+  {
     "id": "weibo-media-preparation",
     "name": "MediaPreparation",
     "source": "frontend/apps/weibo/src/components/MediaPreparation.vue",

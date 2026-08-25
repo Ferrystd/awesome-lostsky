@@ -31,6 +31,7 @@ import WeiboShell from "../../apps/weibo/src/components/WeiboShell.vue";
 import AccountHealthSummary from "../../apps/weibo/src/components/AccountHealthSummary.vue";
 import TaskStatusSummary from "../../apps/weibo/src/components/TaskStatusSummary.vue";
 import OperationRecordList from "../../apps/weibo/src/components/OperationRecordList.vue";
+import TeamOverviewDashboard from "../../apps/weibo/src/components/TeamOverviewDashboard.vue";
 import MediaPreparation from "../../apps/weibo/src/components/MediaPreparation.vue";
 import type { ServiceRedemptionFieldDraft } from "../../apps/shop/src/types";
 import type { ServiceField } from "../../apps/transaction/src/types";
@@ -619,6 +620,23 @@ const operationRecordList = story("OperationRecordList", layout, () => stage(h(O
   { id: 1, operation_type: "Post", source: "Schedule", status: "Succeeded", content_summary: "今日排期已更新", target_id: null, reason: "Ok", remote_message: null, started_at: 1787500000, finished_at: 1787500002 },
   { id: 2, operation_type: "Checkin", source: "Schedule", status: "Succeeded", content_summary: "#光遇陪玩[超话]#", target_id: "100808fixture", reason: "Ok", remote_message: "签到成功", started_at: 1787586400, finished_at: 1787586401 },
 ] })));
+const teamOverviewDashboard = story("TeamOverviewDashboard", layout, state => stage(h(TeamOverviewDashboard, {
+  accounts: [
+    { id: 1, binding_id: 1, entity_id: 3, uid: "123456", screen_name: "青空账号", health: "Valid", checked_at: 1787500000 },
+    { id: 2, binding_id: 2, entity_id: 3, uid: "654321", screen_name: "备用账号", health: "Unknown", checked_at: 1787500200 },
+  ],
+  tasks: [
+    { id: 1, owner_entity_id: null, operation_type: "Post", topic: { name: "光遇陪玩", display_tag: "#光遇陪玩[超话]#" }, content: "今日排期", account_ids: [1], media_ids: [], start_at: 1787500000, min_interval: 3600, max_interval: 7200, version: 1, status: "Active", block_reason: null, next_run_at: 1787503600 },
+    { id: 2, owner_entity_id: null, operation_type: "Checkin", topic: { name: "青空计划", display_tag: "#青空计划[超话]#" }, content: "", account_ids: [2], media_ids: [], start_at: 1787500000, min_interval: 86400, max_interval: 86400, version: 1, status: "BlockedLogin", block_reason: "账号需要重新登录", next_run_at: null },
+  ],
+  operations: [
+    { id: 3, operation_type: "Post", source: "Schedule", status: "Unknown", content_summary: "夜间内容排期", target_id: null, reason: "ResponseUnknown", remote_message: "远端结果未确认", started_at: 1787500000, finished_at: null },
+  ],
+}), state === "mobile" ? "story-stage--mobile" : ""), {
+  disabled: "团队 Dashboard 本身不因 Ability 缺失禁用。",
+  loading: "加载态由 OverviewView 传入并在真实页面覆盖。",
+  error: "错误态由 OverviewView 传入并在真实页面覆盖。",
+});
 const mediaPreparation = story("MediaPreparation", layout, () => stage(h(MediaPreparation, {
   prefix: "",
   personal: false,
@@ -758,5 +776,6 @@ export const appStories: Record<string, StoryDefinition> = {
   AccountHealthSummary: accountHealthSummary,
   TaskStatusSummary: taskStatusSummary,
   OperationRecordList: operationRecordList,
+  TeamOverviewDashboard: teamOverviewDashboard,
   MediaPreparation: mediaPreparation,
 };

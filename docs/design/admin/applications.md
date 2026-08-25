@@ -208,7 +208,7 @@
 
 - Weibo 首页是调度态势中心，固定展示下一次执行、任务状态、账号健康、近期失败和单次操作入口；页面不因 Ability 缺失跳转。
 - 团队与个人工作台均提供概览、账号、发帖、互动、任务和日志；账号绑定及任务创建/编辑使用独立可刷新路由。
-- Weibo 概览必须复用 `LsWorkspaceOverview` 的深色主视觉、工作台切换、白色业务入口卡和范围说明；调度运行态复用 `LsPanel` 与 `LsAsyncState`。页面只负责范围、路由、查询和外层网格，账号健康、任务状态和执行记录分别由 `AccountHealthSummary`、`TaskStatusSummary`、`OperationRecordList` 持有，不得重写同义 Hero、入口卡、加载面板或摘要组件。
+- Weibo 团队概览由应用级 `TeamOverviewDashboard` 持有完整 Dashboard 视觉：深色调度总览同时呈现下一次执行与既有数据派生的有效账号、运行任务、待处理摘要，正文按“运行健康、近期需要关注、工作入口、当前范围”组织；不得为 Dashboard 新增统计接口。个人概览继续复用 `LsWorkspaceOverview` 的深色主视觉、工作台切换、白色业务入口卡和范围说明。`OverviewView` 只负责范围、路由和查询；团队 Dashboard 负责内部布局、加载/错误/空状态、响应式与无障碍，账号健康、任务状态和执行记录仍分别由 `AccountHealthSummary`、`TaskStatusSummary`、`OperationRecordList` 持有。不得由页面穿透 Dashboard 或摘要组件内部，也不得把团队 Dashboard 扩展到个人概览。
 - 壳层统一使用 `WeiboShell`，侧栏沿用 Team 参考结构：横向 `LostSky / 失落青空` 品牌、分组标题、图标/文案/右箭头导航、琥珀激活箭头和底部切换身份；桌面固定 248px，移动端使用抽屉和底部主导航。不得增加父级 CSS 穿透或微博专属视觉参数。
 - 缺少 Weibo Ability 时显示范围说明，只禁用单次远端写入和任务开启/恢复。任务配置、账号管理、图片准备和日志读取保持可用。
 - 图片准备统一由 `MediaPreparation` 持有：复用 `LsUploadField` 选择文件，选中后立即逐张上传，并在同一区域显示准备数量、上传进度、局部错误和已准备图片；账号未选择、达到 9 张或请求失败时必须说明恢复方法。部分上传成功后保留已返回的媒体 ID，不因后续单张失败回滚或丢失。

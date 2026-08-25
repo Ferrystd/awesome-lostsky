@@ -41,15 +41,32 @@ test('Weibo pages stay available without Ability and only remote execution is di
   const requests = await mockApi(page)
 
   await page.goto('http://demo.weibo.lostsky.work:5181/overview')
-  await expect(page.getByRole('heading', { name: '调度态势中心' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '团队微博，保持在可控节奏' })).toBeVisible()
   await expect(page.getByText('当前团队未开通微博 Ability')).toHaveCount(0)
   await expect(page.locator('.n-message')).toHaveCount(0)
-  const hero = page.getByRole('region', { name: '调度态势中心' })
+  const hero = page.getByRole('region', { name: '团队微博，保持在可控节奏' })
   const workEntries = page.getByRole('region', { name: '工作入口' })
   await expect(hero).toBeVisible()
   for (const label of ['账号', '发帖', '互动', '任务', '日志']) {
     await expect(workEntries.getByRole('link', { name: new RegExp(`^${label}`) })).toHaveCount(1)
   }
+  const [introBox, nextBox, firstEntryBox] = await Promise.all([
+    page.locator('.weibo-dashboard__intro').boundingBox(),
+    page.locator('.weibo-dashboard__next').boundingBox(),
+    workEntries.getByRole('link').first().boundingBox(),
+  ])
+  expect(firstEntryBox?.height).toBeGreaterThanOrEqual(44)
+  if ((page.viewportSize()?.width ?? 0) >= 960) {
+    expect(nextBox?.x).toBeGreaterThan((introBox?.x ?? 0) + (introBox?.width ?? 0) - 1)
+  } else {
+    expect(nextBox?.y).toBeGreaterThan((introBox?.y ?? 0) + (introBox?.height ?? 0) - 1)
+  }
+  const originalViewport = page.viewportSize()
+  if ((originalViewport?.width ?? 0) < 900) await page.setViewportSize({ width: 320, height: 900 })
+  await page.evaluate(() => { document.documentElement.style.fontSize = '200%' })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  await page.evaluate(() => { document.documentElement.style.fontSize = '' })
+  if (originalViewport) await page.setViewportSize(originalViewport)
 
   const sidebar = page.getByRole('complementary', { name: '微博导航' })
   await expect(sidebar.getByText('工作空间', { exact: true })).toBeVisible()
@@ -144,12 +161,12 @@ test('Weibo pages stay available without Ability and only remote execution is di
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })
 
-test('overview keeps the shared workspace design when live status is unavailable', async ({ page }) => {
+test('team dashboard keeps work entry structure when live status is unavailable', async ({ page }) => {
   await authenticate(page)
   await mockApi(page, true)
   await page.goto('http://demo.weibo.lostsky.work:5181/overview')
 
-  await expect(page.getByRole('region', { name: '调度态势中心' })).toBeVisible()
+  await expect(page.getByRole('region', { name: '团队微博，保持在可控节奏' })).toBeVisible()
   await expect(page.getByRole('region', { name: '工作入口' })).toBeVisible()
   await expect(page.locator('.ls-async-state')).toContainText('无法读取微博态势')
   await expect(page.locator('.n-skeleton')).toHaveCount(0)

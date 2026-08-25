@@ -352,12 +352,12 @@ describe('后台源码设计契约', () => {
     }
   })
 
-  it('Team 个人概览的身份入口前往 Account 身份页', () => {
+  it('Team 个人概览提供团队入口与使用文档', () => {
     const source = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'views', 'PersonalView.vue'), 'utf8')
-    expect(source).toContain("import { identityUrl } from '@lostsky/shared/navigation'")
-    expect(source).toContain("{ key: 'identity', label: '切换身份', href: identityUrl()")
+    expect(source).toContain("import { BookOpen, FileText, House, ShieldCheck, UserRound } from '@lucide/vue'")
+    expect(source).toContain("{ key: 'docs', label: '使用文档', href: '//doc.lostsky.work'")
     expect(source).toContain("{ key: 'team', label: '进入团队工作台', to: '/'")
-    expect(source).not.toContain('to="/personal/profile">切换身份')
+    expect(source).not.toContain("{ key: 'identity', label: '切换身份'")
   })
 
   it('Team 侧栏禁用入口保持与链接一致的三列布局', () => {
