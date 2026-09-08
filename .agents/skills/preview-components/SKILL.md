@@ -7,6 +7,10 @@ description: Render and attach real LostSky Vue component previews for the human
 
 从项目代码、主题和确定性夹具生成组件状态矩阵 PNG，并把最相关的图片作为只供人类查看的附件展示在对话中。
 
+## 使用限制
+
+本技能仅由 codex 调用。其他 Agent（Claude、Cursor 等）一律禁止调用本技能，也不得按本技能流程生成、读取或处理组件预览。
+
 ## 人类专用输出（硬性规则）
 
 - PNG 是不透明的交付附件，不是 Agent 的输入。禁止调用 `view_image`、截图工具、OCR、图像分析或任何可读取图片内容的工具打开 `frontend/component-previews/generated/*.png`。

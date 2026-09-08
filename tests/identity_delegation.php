@@ -16,9 +16,14 @@ use app\model\UserDevice;
 use app\service\EntityRole;
 use app\service\IdentitySession;
 use app\service\Jwt;
+use app\service\PermissionGate;
 use app\service\RolePermission;
+use app\service\WorkspaceAccess;
+use app\service\WorkspaceWarning;
 use think\App;
 use think\exception\HttpException;
+use think\facade\Cookie;
+use think\Request;
 
 (new App(dirname(__DIR__)))->initialize();
 
@@ -172,6 +177,107 @@ try {
         'identity.customer.*.assume',
         'identity.virtual.*.assume',
     ]);
+    $externalSubject = [
+        'type' => 'teamMember',
+        'id' => (int) $memberA->id,
+        'entity_id' => (int) $memberA->identity->id,
+    ];
+    $workspaceAccess = app(WorkspaceAccess::class)->assert((int) $teamB->id, $externalSubject, (string) $teamB->slug);
+    $assert(
+        ($workspaceAccess['belongs_to_team'] ?? true) === false
+            && ($workspaceAccess['is_external'] ?? false) === true
+            && ($workspaceAccess['has_workspace_role'] ?? false) === true,
+        'an external entity with a target-team role can enter the team workspace'
+    );
+    $externalPermissions = app(PermissionGate::class)->effective((int) $teamB->id, $externalSubject);
+    $assert(
+        in_array('identity.team.assume', $externalPermissions, true),
+        'PermissionGate resolves target-team permissions for a globally valid external entity'
+    );
+    $warning = app(WorkspaceWarning::class)->state(
+        (int) $teamB->id,
+        (int) $memberA->identity->id,
+        true
+    );
+    $assert(
+        ($warning['required'] ?? false) === true
+            && ($warning['kind'] ?? null) === 'external_entity'
+            && (int) ($warning['ttl_seconds'] ?? 0) === (int) config('workspace.external_warning_ttl'),
+        'external workspace entry exposes the configured warning state'
+    );
+    $defaultWarningTtl = (int) config('workspace.external_warning_ttl');
+    $warningRequest = (new Request)->withServer([
+        'HTTP_HOST' => 'api.lostsky.work',
+        'HTTPS' => 'on',
+    ]);
+    $acknowledgement = app(WorkspaceWarning::class)->acknowledge(
+        $warningRequest,
+        (int) $teamB->id,
+        (int) $memberA->identity->id
+    );
+    $warningCookies = array_filter(
+        Cookie::getCookie(),
+        static fn (string $name): bool => str_starts_with($name, 'lostsky_external_warning_'),
+        ARRAY_FILTER_USE_KEY
+    );
+    $warningCookieName = $warningCookies ? array_key_last($warningCookies) : null;
+    $warningCookie = $warningCookieName ? $warningCookies[$warningCookieName] : null;
+    $warningOptions = is_array($warningCookie) ? ($warningCookie[2] ?? []) : [];
+    $acknowledgedWarning = app(WorkspaceWarning::class)->state(
+        (int) $teamB->id,
+        (int) $memberA->identity->id,
+        true,
+        $warningCookieName ? (new Request)->withCookie([$warningCookieName => '1']) : null
+    );
+    $assert(
+        ($acknowledgedWarning['required'] ?? true) === false
+            && ($warningOptions['domain'] ?? null) === '.lostsky.work'
+            && ($warningOptions['path'] ?? null) === '/'
+            && ($warningOptions['secure'] ?? null) === true
+            && ($warningOptions['httponly'] ?? null) === true
+            && ($warningOptions['samesite'] ?? null) === 'lax',
+        'warning acknowledgement uses the shared secure HttpOnly SameSite=Lax cookie and suppresses only the matching pair'
+    );
+
+    $workspaceConfig = config('workspace');
+    $workspaceConfig['external_warning_ttl'] = 120;
+    app()->config->set($workspaceConfig, 'workspace');
+    $acknowledgedRequest = $warningCookieName
+        ? (new Request)->withCookie([$warningCookieName => '1'])
+        : new Request;
+    $configuredWarning = app(WorkspaceWarning::class)->state(
+        (int) $teamB->id,
+        (int) $memberA->identity->id,
+        true,
+        $acknowledgedRequest
+    );
+    $changedEntityWarning = app(WorkspaceWarning::class)->state(
+        (int) $teamB->id,
+        (int) $memberB->identity->id,
+        true,
+        $acknowledgedRequest
+    );
+    $changedTeamWarning = app(WorkspaceWarning::class)->state(
+        (int) $teamA->id,
+        (int) $memberA->identity->id,
+        true,
+        $acknowledgedRequest
+    );
+    $clearedWarning = app(WorkspaceWarning::class)->state(
+        (int) $teamB->id,
+        (int) $memberA->identity->id,
+        true,
+        new Request
+    );
+    $assert(
+        (int) ($acknowledgement['ttl_seconds'] ?? 0) === $defaultWarningTtl
+            && ($configuredWarning['required'] ?? true) === false
+            && (int) ($configuredWarning['ttl_seconds'] ?? 0) === 120
+            && ($changedEntityWarning['required'] ?? false) === true
+            && ($changedTeamWarning['required'] ?? false) === true
+            && ($clearedWarning['required'] ?? false) === true,
+        'warning acknowledgement is isolated by entity and team, re-prompts after a cleared or expired cookie, and honors the configured TTL'
+    );
 
     $root = $identity->receive((int) $user->id, $deviceToken, (string) $memberA->slug);
     $rootToken = app(Jwt::class)->parseToken((string) $root['token']);
@@ -314,6 +420,16 @@ try {
         ->where('role_id', $roleB->id)
         ->find();
     $binding?->delete();
+    try {
+        app(WorkspaceAccess::class)->assert((int) $teamB->id, $externalSubject, (string) $teamB->slug);
+        $failures[] = 'external workspace access must be revoked with the last role binding';
+    } catch (\app\exception\AccessDeniedException $exception) {
+        $assert(
+            $exception->getCode() === 40304
+                && ($exception->data()['kind'] ?? null) === 'team_workspace_role',
+            'role revocation returns the structured team workspace role error'
+        );
+    }
     $assertThrows(
         fn () => $identity->session(
             (int) $user->id,

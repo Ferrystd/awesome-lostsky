@@ -19,6 +19,8 @@ Route::get('identity/candidates', 'identity/candidates');
 Route::post('identity/receive', 'identity/receive');
 Route::post('identity/drop', 'identity/drop');
 Route::post('identity/member', 'identity/member');
+Route::get('identity/workspace-warning', 'identity/workspaceWarning');
+Route::post('identity/workspace-warning/acknowledge', 'identity/acknowledgeWorkspaceWarning');
 Route::get('identity/target', 'identity/target');
 
 // team (JwtAuth + Context)

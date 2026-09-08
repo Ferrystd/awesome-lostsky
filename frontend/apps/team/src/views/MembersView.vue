@@ -30,7 +30,6 @@ const categoryOptions = [
   { label: '未认领 slug', value: 'unclaimed' },
 ]
 const accessUnknown = computed(() => access.isPending.value || access.isError.value)
-const canInvite = computed(() => accessUnknown.value || hasPermission(access.data.value, 'team.member.invite'))
 const canUpdate = computed(() => accessUnknown.value || hasPermission(access.data.value, 'team.member.update'))
 const canRemove = computed(() => accessUnknown.value || hasPermission(access.data.value, 'team.member.remove'))
 const query = useQuery({
@@ -88,7 +87,7 @@ function handleAction(key: string, item: Record<string, unknown>) {
 <template>
   <div class="members-view">
     <AdminPageHeader title="成员" description="浏览团队内可见成员；具有全量读取权限（Permission）时也会列出隐藏或封禁成员。">
-      <template #actions><LsPagePrimaryAction :icon="Plus" label="添加成员" to="/member-add" :disabled="!canInvite" :disabled-reason="canInvite ? '' : permissionReason('team.member.invite')" /></template>
+      <template #actions><LsPagePrimaryAction :icon="Plus" label="添加成员" to="/member-add" /></template>
     </AdminPageHeader>
 
     <LsListToolbar
@@ -105,7 +104,7 @@ function handleAction(key: string, item: Record<string, unknown>) {
     <Transition name="ls-state" mode="out-in">
       <p v-if="query.isError.value" key="error" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
       <div v-else-if="query.isPending.value" key="loading" class="loading"><span v-for="i in 5" :key="i" class="ls-skeleton" /></div>
-      <LsEmptyState
+      <LsEmptyState :source="query.data.value"
         v-else-if="!filtered.length"
         key="empty"
         :title="search || category !== 'all' ? '没有匹配的成员' : '当前没有可查看的成员'"

@@ -50,8 +50,7 @@ const filters = reactive({
   limit: 20,
 })
 const access = useTeamAccess()
-const canReadAll = computed(() => hasPermission(access.data.value, 'team.customer.read')
-  || hasPermission(access.data.value, 'team.customer.manage'))
+const canReadAll = computed(() => hasPermission(access.data.value, 'team.customer.read') || hasPermission(access.data.value, 'team.customer.manage'))
 const params = computed(() => ({
   keyword: filters.keyword.trim() || undefined,
   assignee_entity_id: filters.assignee_entity_id,
@@ -68,69 +67,90 @@ const assignees = useQuery({
   queryFn: () => api.get<EntitySummary[]>('/customer/assignees'),
   enabled: canReadAll,
 })
-const assigneeEntities = computed(() => [
-  { entity_id: 0, type: 'entity', name: '未归属', slug: null },
-  ...(assignees.data.value ?? []),
-])
+const assigneeEntities = computed(() => [{ entity_id: 0, type: 'entity', name: '未归属', slug: null }, ...(assignees.data.value ?? [])])
 const blockedOptions = [
   { label: '正常顾客', value: 0 },
   { label: '已封禁', value: 1 },
 ]
 const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / filters.limit)))
-const money = (value: string) => new Intl.NumberFormat('zh-CN', {
-  style: 'currency',
-  currency: 'CNY',
-}).format(Number(value))
-const date = (value: number) => new Intl.DateTimeFormat('zh-CN', {
-  dateStyle: 'medium',
-}).format(value * 1000)
+const money = (value: string) =>
+  new Intl.NumberFormat('zh-CN', {
+    style: 'currency',
+    currency: 'CNY',
+  }).format(Number(value))
+const date = (value: number) =>
+  new Intl.DateTimeFormat('zh-CN', {
+    dateStyle: 'medium',
+  }).format(value * 1000)
 const columns: DataTableColumns<CustomerRow> = [
-  { title: '顾客', key: 'customer', render: item => h(LsEntityIdentity, { type: 'customer', name: item.name, slug: item.slug, imageUrl: item.avatar ?? null, size: 'sm' }) },
-  { title: '当前归属', key: 'assignee', render: item => item.assignee ? h(LsEntityIdentity, { type: item.assignee.type as EntityType, name: item.assignee.name, slug: item.assignee.slug, imageUrl: item.assignee.avatar ?? null, size: 'sm' }) : '未归属' },
-  { title: '可用余额', key: 'balance', render: item => h('span', { class: 'ls-tabular' }, money(item.balance.balance)) },
-  { title: '创建时间', key: 'create_time', render: item => date(item.create_time) },
-  { title: '状态', key: 'status', render: item => h(LsStatusTag, { label: item.is_blocked ? '已封禁' : '正常', type: item.is_blocked ? 'error' : 'success' }) },
-  { title: '操作', key: 'actions', render: item => h(RouterLink, { to: `/customers/${item.id}` }, { default: () => '查看详情' }) },
+  {
+    title: '顾客',
+    key: 'customer',
+    render: (item) =>
+      h(LsEntityIdentity, {
+        type: 'customer',
+        name: item.name,
+        slug: item.slug,
+        imageUrl: item.avatar ?? null,
+        size: 'sm',
+      }),
+  },
+  {
+    title: '当前归属',
+    key: 'assignee',
+    render: (item) =>
+      item.assignee
+        ? h(LsEntityIdentity, {
+            type: item.assignee.type as EntityType,
+            name: item.assignee.name,
+            slug: item.assignee.slug,
+            imageUrl: item.assignee.avatar ?? null,
+            size: 'sm',
+          })
+        : '未归属',
+  },
+  {
+    title: '可用余额',
+    key: 'balance',
+    render: (item) => h('span', { class: 'ls-tabular' }, money(item.balance.balance)),
+  },
+  {
+    title: '创建时间',
+    key: 'create_time',
+    render: (item) => date(item.create_time),
+  },
+  {
+    title: '状态',
+    key: 'status',
+    render: (item) =>
+      h(LsStatusTag, {
+        label: item.is_blocked ? '已封禁' : '正常',
+        type: item.is_blocked ? 'error' : 'success',
+      }),
+  },
+  {
+    title: '操作',
+    key: 'actions',
+    render: (item) => h(RouterLink, { to: `/customers/${item.id}` }, { default: () => '查看详情' }),
+  },
 ]
 </script>
 
 <template>
   <div class="customers-view">
-    <AdminPageHeader
-      title="顾客"
-      :description="query.data.value?.scope === 'own'
-        ? '这里显示当前归属于你的顾客；完整顾客目录需要顾客读取权限（Permission）。'
-        : '查看团队顾客、当前归属与余额状态，进入详情后执行维护或发起会话。'"
-    />
+    <AdminPageHeader title="顾客" description="查看当前可访问的团队顾客、归属与余额状态，进入详情后执行维护或发起会话。" />
 
     <LsListToolbar v-model="filters.keyword" placeholder="搜索顾客昵称" aria-label="搜索顾客" :count-label="`${query.data.value?.total ?? 0} 位顾客`" @update:model-value="filters.page = 1">
       <template #filters>
-      <LsEntitySelect
-        v-if="canReadAll"
-        v-model="filters.assignee_entity_id"
-        :entities="assigneeEntities"
-        clearable
-        placeholder="全部归属人"
-        @update:model-value="filters.page = 1"
-      />
-      <NSelect
-        v-model:value="filters.blocked"
-        :options="blockedOptions"
-        clearable
-        placeholder="全部状态"
-        @update:value="filters.page = 1"
-      />
+        <LsEntitySelect v-if="canReadAll" v-model="filters.assignee_entity_id" :entities="assigneeEntities" clearable placeholder="全部归属人" @update:model-value="filters.page = 1" />
+        <NSelect v-model:value="filters.blocked" :options="blockedOptions" clearable placeholder="全部状态" @update:value="filters.page = 1" />
       </template>
     </LsListToolbar>
 
     <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取顾客" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
-    <LsEmptyState
-      v-else-if="!query.data.value?.list.length"
-      :title="filters.keyword || filters.assignee_entity_id !== null || filters.blocked !== null ? '没有匹配的顾客' : '还没有可查看的顾客'"
-      :description="query.data.value?.scope === 'own' ? '归属于当前身份的顾客会出现在这里。' : '顾客领取团队商店身份后会进入顾客目录。'"
-    />
-    <LsResponsiveDataTable v-else :columns="columns" :data="query.data.value.list" :row-key="row => row.id" :scroll-x="920">
+    <LsEmptyState :source="query.data.value" v-else-if="!query.data.value?.list.length" :title="filters.keyword || filters.assignee_entity_id !== null || filters.blocked !== null ? '没有匹配的顾客' : '还没有可查看的顾客'" :description="query.data.value?.scope === 'own' ? '归属于当前身份的顾客会出现在这里。' : '顾客领取团队商店身份后会进入顾客目录。'" />
+    <LsResponsiveDataTable v-else :columns="columns" :data="query.data.value.list" :row-key="(row) => row.id" :scroll-x="920">
       <template #mobile-title="{ row: customer }">
         <RouterLink :to="`/customers/${customer.id}`">{{ customer.name }}</RouterLink>
       </template>
@@ -140,9 +160,14 @@ const columns: DataTableColumns<CustomerRow> = [
       <template #mobile="{ row: customer }">
         <LsEntityIdentity type="customer" :name="customer.name" :slug="customer.slug" :image-url="customer.avatar ?? null" size="sm" />
         <dl>
-          <dt>当前归属</dt><dd>{{ customer.assignee ? `${customer.assignee.name} · @${customer.assignee.slug}` : '未归属' }}</dd>
-          <dt>可用余额</dt><dd class="ls-tabular">{{ money(customer.balance.balance) }}</dd>
-          <dt>创建时间</dt><dd>{{ date(customer.create_time) }}</dd>
+          <dt>当前归属</dt>
+          <dd>
+            {{ customer.assignee ? `${customer.assignee.name} · @${customer.assignee.slug}` : '未归属' }}
+          </dd>
+          <dt>可用余额</dt>
+          <dd class="ls-tabular">{{ money(customer.balance.balance) }}</dd>
+          <dt>创建时间</dt>
+          <dd>{{ date(customer.create_time) }}</dd>
         </dl>
       </template>
     </LsResponsiveDataTable>
@@ -154,7 +179,26 @@ const columns: DataTableColumns<CustomerRow> = [
 </template>
 
 <style scoped>
-.customers-view{display:grid;gap:1.5rem}
-.pager{display:flex;align-items:center;justify-content:space-between;gap:1rem;color:var(--muted-ink);font-size:.82rem}
-@media(max-width:760px){.pager{align-items:stretch;flex-direction:column}.pager div{display:grid;grid-template-columns:1fr 1fr}}
+.customers-view {
+  display: grid;
+  gap: 1.5rem;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--muted-ink);
+  font-size: 0.82rem;
+}
+@media (max-width: 760px) {
+  .pager {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .pager div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
 </style>

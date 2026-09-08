@@ -4,6 +4,7 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { CheckCheck, Mail, MailOpen, Pin } from '@lucide/vue'
 import { NSelect } from 'naive-ui'
@@ -30,6 +31,7 @@ interface NoticeList {
 type NoticeScope = 'team' | 'entity'
 
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const client = useQueryClient()
 const filter = ref<'all' | 'unread'>('all')
 const filterOptions = [{ label: '全部', value: 'all' }, { label: '未读', value: 'unread' }]
@@ -53,6 +55,7 @@ const copy = computed(() => scope.value === 'team'
 const query = useQuery({
   queryKey: computed(() => ['notices', scope.value]),
   queryFn: () => api.get<NoticeList>('/notice/index', { scope: scope.value }),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const notices = computed(() => Array.isArray(query.data.value?.list) ? query.data.value.list : [])
 const visible = computed(() => {
@@ -81,18 +84,18 @@ function summary(content: string | null | undefined) {
 
 <template>
   <div class="notices-view">
-    <AdminPageHeader :title="copy.title" :description="`${copy.description}。目前有 ${unreadCount} 条未读。`">
+    <AdminPageHeader :title="copy.title" :description="routeAccess.restricted.value ? `${copy.description}。目前有 0 条未读。` : `${copy.description}。目前有 ${unreadCount} 条未读。`">
       <template #actions>
-        <LsPagePrimaryAction :icon="CheckCheck" label="全部标为已读" :loading="confirmAll.isPending.value" :disabled="unreadCount === 0" disabled-reason="当前没有未读消息" @click="confirmAll.mutate()" />
+        <LsPagePrimaryAction :icon="CheckCheck" label="全部标为已读" :loading="confirmAll.isPending.value" :disabled="routeAccess.restricted.value || unreadCount === 0" :disabled-reason="routeAccess.reason.value || '当前没有未读消息'" @click="confirmAll.mutate()" />
       </template>
     </AdminPageHeader>
 
-    <LsListToolbar v-model="search" :placeholder="`搜索${copy.noun}`" :aria-label="`搜索${copy.noun}`" :count-label="`${visible.length} 条`">
+    <LsListToolbar v-model="search" :placeholder="`搜索${copy.noun}`" :aria-label="`搜索${copy.noun}`" :count-label="routeAccess.restricted.value ? '0 条' : `${visible.length} 条`">
       <template #filters><NSelect v-model:value="filter" class="notice-filter" :options="filterOptions" :aria-label="`${copy.noun}筛选`" /></template>
     </LsListToolbar>
 
-    <p v-if="query.isError.value" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
-    <div v-else-if="query.isPending.value" class="loading" :aria-label="`正在加载${copy.noun}`"><span v-for="i in 4" :key="i" /></div>
+    <p v-if="!routeAccess.restricted.value && query.isError.value" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
+    <div v-else-if="!routeAccess.restricted.value && query.isPending.value" class="loading" :aria-label="`正在加载${copy.noun}`"><span v-for="i in 4" :key="i" /></div>
     <section v-else-if="visible.length" class="notice-list" :aria-label="`${copy.noun}列表`">
       <RouterLink
         v-for="item in visible"
@@ -112,9 +115,9 @@ function summary(content: string | null | undefined) {
         <LsStatusTag v-if="item.is_read !== 1" label="未读" type="info" />
       </RouterLink>
     </section>
-    <LsEmptyState
+    <LsEmptyState :source="query.data.value"
       v-else
-      :title="filter === 'unread' ? `没有未读${copy.noun}` : copy.empty"
+      :title="routeAccess.restricted.value ? `没有可显示的${copy.noun}` : filter === 'unread' ? `没有未读${copy.noun}` : copy.empty"
       :description="filter === 'unread' ? '新的通知会继续显示在这里。' : copy.emptyDescription"
     />
 

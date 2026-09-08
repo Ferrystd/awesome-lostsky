@@ -9,6 +9,7 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { NInput, NInputNumber } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
@@ -16,6 +17,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ServiceCompletionFields from '../components/ServiceCompletionFields.vue'
 import type { ServiceAssignmentOffer, ServiceField, ServiceRedemption, ServiceRedemptionResource } from '../types'
 import { serviceStatusCode } from '../lib'
+import { loadWorkspaceAccess, resolveTransactionAbilityReason } from '../lib/workspace-access'
 
 const route = useRoute()
 const router = useRouter()
@@ -30,6 +32,7 @@ const endpoint = computed(() => kind.value === 'offer'
     ? `/personal/services/available/${id.value}`
     : `/personal/services/${id.value}`)
 const query = useQuery({ queryKey: computed(() => ['personal-service-task', kind.value, id.value]), queryFn: () => api.get<ServiceAssignmentOffer | ServiceRedemption>(endpoint.value) })
+const access = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: () => loadWorkspaceAccess() })
 const action = useMutation({
   mutationFn: (input: { suffix: string; body?: Record<string, unknown>; opensTask?: boolean }) => {
     const base = kind.value === 'offer' ? `/personal/service-offers/${id.value}` : `/personal/services/${id.value}`
@@ -106,7 +109,11 @@ watch(resources, current => {
   claimValues.value = next
 }, { immediate: true })
 const resourcePayload = () => resources.value.map(resource => claimValues.value[resource.index] ?? {})
-const acceptOffer = () => action.mutate({ suffix: 'accept', body: { field_values: resourcePayload() }, opensTask: true })
+const acceptOffer = async () => {
+  const reason = await resolveTransactionAbilityReason(access.data.value)
+  if (reason) return feedback.info(reason)
+  action.mutate({ suffix: 'accept', body: { field_values: resourcePayload() }, opensTask: true })
+}
 const claimTask = () => action.mutate({ suffix: 'claim', body: { quantity: claimQuantity.value, field_values: resourcePayload() }, opensTask: true })
 const completeTask = () => action.mutate({suffix:'complete', body: needsLegacyClaimFields.value ? { field_values: resourcePayload() } : {}})
 </script>
@@ -151,7 +158,7 @@ const completeTask = () => action.mutate({suffix:'complete', body: needsLegacyCl
             </section>
             <section class="field-pane">
               <div class="detail-heading"><h3>接单字段</h3><p>{{ kind === 'assigned' && !needsLegacyClaimFields ? '接单时提交' : '登记信息并接单核销' }}</p></div>
-              <p v-if="!resourceFields(resource, 'manager').length" class="empty">该服务没有配置接单字段。</p>
+              <p v-if="!resourceFields(resource, 'manager').length" class="empty">该权益没有配置接单字段。</p>
               <ServiceCompletionFields
                 v-else-if="kind === 'offer' || kind === 'available' || needsLegacyClaimFields"
                 v-model="claimValues[resource.index]"

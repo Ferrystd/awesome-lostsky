@@ -10,7 +10,7 @@ use think\Request;
 final class Manage
 {
     protected $middleware = [
-        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamVirtual', 'TeamAuth',
+        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual', 'TeamWorkspaceAuth',
         'Permission:' . Permissions::SHOP_PRODUCT_READ => ['only' => ['options', 'services', 'service', 'serviceHandlers', 'packages', 'package', 'campaigns', 'campaign', 'codes']],
         'Permission:' . Permissions::SHOP_PRODUCT_WRITE => ['only' => ['saveService', 'saveServiceHandlers', 'savePackage', 'saveCampaign', 'issueCodes', 'revealCode', 'disableCode']],
         'Permission:' . Permissions::SHOP_PRODUCT_DELETE => ['only' => ['disableService', 'disablePackage', 'disableCampaign']],
@@ -20,7 +20,8 @@ final class Manage
     {
         return success(app(\app\service\TeamAccess::class)->snapshot(
             $request->team_id,
-            $request->acting_entity
+            $request->acting_entity,
+            $request
         ));
     }
 

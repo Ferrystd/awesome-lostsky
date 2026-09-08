@@ -12,14 +12,12 @@ const props = withDefaults(defineProps<{
   buttonLabel?: string
   disabled?: boolean
   disabledReason?: string
-  showReason?: boolean
 }>(), {
   accept: '',
   placeholder: '文件 URL 或选择文件',
   buttonLabel: '选择文件',
   disabled: false,
   disabledReason: '',
-  showReason: false,
 })
 const emit = defineEmits<{
   uploading: [value: boolean]
@@ -65,7 +63,6 @@ async function chooseFile(event: Event) {
       :loading="loading"
       :disabled="disabled || loading || Boolean(disabledReason)"
       :disabled-reason="effectiveDisabledReason"
-      :show-reason="showReason"
       @change="chooseFile"
     />
     <LsInlineError v-if="error" :message="error" />

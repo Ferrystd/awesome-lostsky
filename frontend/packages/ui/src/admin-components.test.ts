@@ -54,20 +54,43 @@ import { lostskyNaiveTheme } from './naive-theme'
 
 async function render(component: Parameters<typeof h>[0], props: Record<string, unknown> = {}, slots: Record<string, () => ReturnType<typeof h>> = {}) {
   const app = createSSRApp({ render: () => h(component, props, slots) })
-  app.component('RouterLink', defineComponent({
-    props: { to: { type: [String, Object], required: true } },
-    setup(linkProps, { slots: linkSlots }) {
-      return () => h('a', { 'data-to': typeof linkProps.to === 'string' ? linkProps.to : JSON.stringify(linkProps.to) }, linkSlots.default?.())
-    },
-  }))
+  app.component(
+    'RouterLink',
+    defineComponent({
+      props: { to: { type: [String, Object], required: true } },
+      setup(linkProps, { slots: linkSlots }) {
+        return () =>
+          h(
+            'a',
+            {
+              'data-to': typeof linkProps.to === 'string' ? linkProps.to : JSON.stringify(linkProps.to),
+            },
+            linkSlots.default?.(),
+          )
+      },
+    }),
+  )
   return renderToString(app)
 }
 
 describe('后台设计系统组件契约', () => {
   it('固定后台控件高度和圆角令牌', () => {
-    expect(lostskyNaiveTheme.Button).toMatchObject({ heightSmall: '40px', heightMedium: '44px', heightLarge: '48px' })
-    expect(lostskyNaiveTheme.Input).toMatchObject({ heightSmall: '40px', heightMedium: '44px', heightLarge: '48px', borderRadius: '10px' })
-    expect(lostskyNaiveTheme.InternalSelection).toMatchObject({ heightSmall: '40px', heightMedium: '44px', heightLarge: '48px' })
+    expect(lostskyNaiveTheme.Button).toMatchObject({
+      heightSmall: '40px',
+      heightMedium: '44px',
+      heightLarge: '48px',
+    })
+    expect(lostskyNaiveTheme.Input).toMatchObject({
+      heightSmall: '40px',
+      heightMedium: '44px',
+      heightLarge: '48px',
+      borderRadius: '10px',
+    })
+    expect(lostskyNaiveTheme.InternalSelection).toMatchObject({
+      heightSmall: '40px',
+      heightMedium: '44px',
+      heightLarge: '48px',
+    })
   })
 
   it('LsButton 保留旧 API 并渲染 Naive UI 按钮', async () => {
@@ -78,9 +101,7 @@ describe('后台设计系统组件契约', () => {
   })
 
   it('LsButton 在公共层统一解释不可用原因', () => {
-    expect(Object.keys((LsButton as any).props).sort()).toEqual([
-      'disabled', 'disabledReason', 'loading', 'size', 'type', 'variant',
-    ])
+    expect(Object.keys((LsButton as any).props).sort()).toEqual(['disabled', 'disabledReason', 'loading', 'size', 'type', 'variant'])
     const source = readFileSync(new URL('./components/LsButton.vue', import.meta.url), 'utf8')
     expect(source).toContain('feedback.info(props.disabledReason.trim())')
     expect(source).toContain('event.preventDefault()')
@@ -94,13 +115,21 @@ describe('后台设计系统组件契约', () => {
     expect(source).not.toMatch(/#(?:checked|unchecked)/)
     expect(source).toContain('feedback.info(props.disabledReason.trim())')
     expect(source).toContain("'ls-switch--explainable-disabled'")
-    expect(source).toContain(':disabled="(disabled && !explainableDisabled) || readOnly"')
+    expect(source).toContain(':disabled="(disabled || readOnly) && !explainableUnavailable"')
+    expect(source).not.toContain(':title=')
     expect(source).toContain(".ls-switch[aria-disabled='true'] :deep(.n-switch__rail)")
     expect(source).toContain(".ls-switch[aria-disabled='true'] :deep(.n-switch__button)")
     expect(source).toContain('background-color: var(--line)')
-    const html = await render(LsSwitch, { modelValue: true, 'aria-label': '公开展示' })
+    const html = await render(LsSwitch, {
+      modelValue: true,
+      'aria-label': '公开展示',
+    })
     expect(html).toContain('n-switch')
-    const readOnlyHtml = await render(LsSwitch, { modelValue: false, readOnly: true, 'aria-label': '固定状态' })
+    const readOnlyHtml = await render(LsSwitch, {
+      modelValue: false,
+      readOnly: true,
+      'aria-label': '固定状态',
+    })
     expect(readOnlyHtml).toContain('aria-disabled="true"')
     expect(readOnlyHtml).toContain('aria-readonly="true"')
   })
@@ -114,11 +143,21 @@ describe('后台设计系统组件契约', () => {
   it('LsPagePrimaryAction 强制图标和标签并统一标题区主操作尺寸', async () => {
     expect((LsPagePrimaryAction as any).props.icon.required).toBe(true)
     expect((LsPagePrimaryAction as any).props.label.required).toBe(true)
-    const html = await render(LsPagePrimaryAction, { icon: Save, label: '保存资料', disabled: true, disabledReason: '当前资料不可保存' })
+    const html = await render(LsPagePrimaryAction, {
+      icon: Save,
+      label: '保存资料',
+      disabled: true,
+      disabledReason: '当前资料不可保存',
+    })
     expect(html).toContain('ls-page-primary-action')
     expect(html).toContain('保存资料')
     expect(html).toContain('aria-disabled="true"')
-    const loadingHtml = await render(LsPagePrimaryAction, { icon: Save, label: '保存资料', loading: true })
+    expect(html).not.toContain('title=')
+    const loadingHtml = await render(LsPagePrimaryAction, {
+      icon: Save,
+      label: '保存资料',
+      loading: true,
+    })
     expect(loadingHtml).toContain('disabled')
     expect(loadingHtml).toContain('aria-busy="true"')
     const source = readFileSync(new URL('./components/LsPagePrimaryAction.vue', import.meta.url), 'utf8')
@@ -135,6 +174,7 @@ describe('后台设计系统组件契约', () => {
     const html = await render(LsInlineError, { message: '保存失败' })
     expect(html).toContain('role="alert"')
     expect(html).toContain('保存失败')
+    expect(await render(LsInlineError, { message: '' })).not.toContain('role="alert"')
   })
 
   it('LsMediaUploadField 强制接收真实上传函数并保留 URL 回填', async () => {
@@ -185,33 +225,45 @@ describe('后台设计系统组件契约', () => {
 
   it('LsPanel 只提供结构插槽，不暴露视觉参数', async () => {
     expect((LsPanel as any).props).toBeUndefined()
-    const html = await render(LsPanel, {}, {
-      header: () => h('h2', '标题'),
-      default: () => h('p', '正文'),
-      footer: () => h('span', '页脚'),
-    })
+    const html = await render(
+      LsPanel,
+      {},
+      {
+        header: () => h('h2', '标题'),
+        default: () => h('p', '正文'),
+        footer: () => h('span', '页脚'),
+      },
+    )
     expect(html).toContain('ls-panel__header')
     expect(html).toContain('ls-panel__body')
     expect(html).toContain('ls-panel__footer')
   })
 
   it('LsSectionHeader 统一标题层级、说明和末端内容', async () => {
-    const html = await render(LsSectionHeader, {
-      id: 'profile-section',
-      title: '公开资料',
-      description: '展示在当前团队中的名称和介绍。',
-      eyebrow: 'ENTITY',
-      headingLevel: 3,
-    }, { aside: () => h('span', '本人可见') })
+    const html = await render(
+      LsSectionHeader,
+      {
+        id: 'profile-section',
+        title: '公开资料',
+        description: '展示在当前团队中的名称和介绍。',
+        eyebrow: 'ENTITY',
+        headingLevel: 3,
+      },
+      { aside: () => h('span', '本人可见') },
+    )
     expect(html).toContain('<h3 id="profile-section"')
     expect(html).toContain('展示在当前团队中的名称和介绍。')
     expect(html).toContain('本人可见')
   })
 
   it('LsFormSection 组合面板和区块标题但不接管表单', async () => {
-    const html = await render(LsFormSection, { id: 'product-basic', title: '基本信息', description: '填写商品资料。' }, {
-      default: () => h('label', '商品名称'),
-    })
+    const html = await render(
+      LsFormSection,
+      { id: 'product-basic', title: '基本信息', description: '填写商品资料。' },
+      {
+        default: () => h('label', '商品名称'),
+      },
+    )
     expect(html).toContain('ls-panel')
     expect(html).toContain('aria-labelledby="product-basic"')
     expect(html).toContain('ls-form-section')
@@ -221,9 +273,13 @@ describe('后台设计系统组件契约', () => {
 
   it('LsField 固定控件轨道并阻止提示文字拉开相邻控件', async () => {
     expect(Object.keys((LsField as any).props).sort()).toEqual(['error', 'forId', 'hint', 'label', 'required'])
-    const html = await render(LsField, { label: '授予额度', forId: 'quantity', hint: '单位：次；最小步长 1' }, {
-      default: () => h('input', { id: 'quantity' }),
-    })
+    const html = await render(
+      LsField,
+      { label: '授予额度', forId: 'quantity', hint: '单位：次；最小步长 1' },
+      {
+        default: () => h('input', { id: 'quantity' }),
+      },
+    )
     expect(html).toContain('ls-field__control')
     expect(html).toContain('单位：次；最小步长 1')
     const source = readFileSync(new URL('./components/LsField.vue', import.meta.url), 'utf8')
@@ -241,7 +297,7 @@ describe('后台设计系统组件契约', () => {
     expect(details).toContain('<dt>状态</dt><dd>正常</dd>')
   })
 
-  it('LsCheckboxGroupField 关联字段提示并显示禁用原因', async () => {
+  it('LsCheckboxGroupField 关联字段提示且不常驻显示禁用原因', async () => {
     const html = await render(LsCheckboxGroupField, {
       id: 'role-options',
       modelValue: [1],
@@ -249,15 +305,25 @@ describe('后台设计系统组件契约', () => {
       required: true,
       hint: '选择一个或多个角色。',
       options: [
-        { value: 1, label: '运营', meta: 'operator', description: '维护日常业务。' },
-        { value: 2, label: '财务', disabled: true, disabledReason: '当前角色不可分配' },
+        {
+          value: 1,
+          label: '运营',
+          meta: 'operator',
+          description: '维护日常业务。',
+        },
+        {
+          value: 2,
+          label: '财务',
+          disabled: true,
+          disabledReason: '当前角色不可分配',
+        },
       ],
     })
     expect(html).toContain('<fieldset')
     expect(html).toContain('<legend id="role-options-label"')
     expect(html).toContain('aria-describedby="role-options-hint"')
     expect(html).toContain('维护日常业务。')
-    expect(html).toContain('当前角色不可分配')
+    expect(html).not.toContain('当前角色不可分配')
     const source = readFileSync(new URL('./components/LsCheckboxGroupField.vue', import.meta.url), 'utf8')
     expect(source).toContain('min-height: 60px')
     expect(source).toContain('@media (max-width: 639px)')
@@ -270,34 +336,49 @@ describe('后台设计系统组件契约', () => {
   })
 
   it('工具栏统一搜索、筛选、动作和结果数量', async () => {
-    const html = await render(LsListToolbar, { modelValue: '天空', placeholder: '搜索成员', countLabel: '2 位成员' }, {
-      filters: () => h('span', '全部成员'),
-      actions: () => h('button', '新建'),
-    })
+    const html = await render(
+      LsListToolbar,
+      { modelValue: '天空', placeholder: '搜索成员', countLabel: '2 位成员' },
+      {
+        filters: () => h('span', '全部成员'),
+        actions: () => h('button', '新建'),
+      },
+    )
     expect(html).toContain('role="search"')
     expect(html).toContain('搜索成员')
     expect(html).toContain('全部成员')
     expect(html).toContain('新建')
     expect(html).toContain('2 位成员')
 
-    const filtersOnly = await render(LsListToolbar, { searchable: false, countLabel: '4 条订单' }, {
-      filters: () => h('span', '全部状态'),
-    })
+    const filtersOnly = await render(
+      LsListToolbar,
+      { searchable: false, countLabel: '4 条订单' },
+      {
+        filters: () => h('span', '全部状态'),
+      },
+    )
     expect(filtersOnly).toContain('ls-list-toolbar--filters-only')
     expect(filtersOnly).not.toContain('ls-search-input')
     expect(filtersOnly).toContain('4 条订单')
   })
 
   it('表单列表提供稳定键值、等价排序动作和只读状态', async () => {
-    const items = [{ key: 1, name: '指南' }, { key: 2, name: '精选' }]
-    const html = await render(LsFormList as any, {
-      modelValue: items,
-      itemKey: (item: typeof items[number]) => item.key,
-      createItem: () => ({ key: 3, name: '' }),
-      itemLabel: '标签',
-      addLabel: '添加标签',
-      disabled: true,
-    }, { item: () => h('span', '标签字段') })
+    const items = [
+      { key: 1, name: '指南' },
+      { key: 2, name: '精选' },
+    ]
+    const html = await render(
+      LsFormList as any,
+      {
+        modelValue: items,
+        itemKey: (item: (typeof items)[number]) => item.key,
+        createItem: () => ({ key: 3, name: '' }),
+        itemLabel: '标签',
+        addLabel: '添加标签',
+        disabled: true,
+      },
+      { item: () => h('span', '标签字段') },
+    )
     expect(html).toContain('标签 1')
     expect(html).toContain('上移标签 1')
     expect(html).toContain('下移标签 2')
@@ -311,7 +392,16 @@ describe('后台设计系统组件契约', () => {
   })
 
   it('主体身份优先真实头像，并保留类型、名称和 slug', async () => {
-    const html = await render(LsEntityIdentity, { type: 'teamMember', name: '青空', slug: 'sky', imageUrl: '/avatar.png' }, { status: () => h('span', '正常') })
+    const html = await render(
+      LsEntityIdentity,
+      {
+        type: 'teamMember',
+        name: '青空',
+        slug: 'sky',
+        imageUrl: '/avatar.png',
+      },
+      { status: () => h('span', '正常') },
+    )
     expect(html).toContain('src="/avatar.png"')
     expect(html).toContain('成员')
     expect(html).toContain('青空')
@@ -320,8 +410,17 @@ describe('后台设计系统组件契约', () => {
   })
 
   it('Entity 胶囊统一显示类型图标、名称和完整身份提示', async () => {
-    const html = await render(LsEntityTag, { type: 'teamMember', name: '青空成员', slug: 'qingkong', closable: true })
-    const virtualHtml = await render(LsEntityTag, { type: 'teamVirtual', name: '协作助手', slug: 'helper' })
+    const html = await render(LsEntityTag, {
+      type: 'teamMember',
+      name: '青空成员',
+      slug: 'qingkong',
+      closable: true,
+    })
+    const virtualHtml = await render(LsEntityTag, {
+      type: 'teamVirtual',
+      name: '协作助手',
+      slug: 'helper',
+    })
     expect(html).toContain('ls-entity-tag')
     expect(html).toContain('data-entity-tone="member"')
     expect(html).toContain('青空成员 · 成员 · @qingkong')
@@ -341,17 +440,30 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain("class: 'ls-entity-select-value'")
     expect(source).toContain(':render-tag="renderTag"')
     expect(source).not.toContain('ls-entity-select-tag__name')
-    expect(source).toContain(":max-tag-count=\"multiple ? 'responsive' : undefined\"")
+    expect(source).toContain(':max-tag-count="multiple ? \'responsive\' : undefined"')
     expect(source).toContain('min-height:54px')
     expect(source).toContain('.n-base-select-option--selected.n-base-select-option--pending')
     expect(source).toContain('color:color-mix(in oklch,var(--ink),transparent 38%)')
   })
 
   it('页面标题、工作区标题和响应式动作始终保留可读文字', async () => {
-    const pageHeader = await render(LsPageHeader, { title: '成员', description: '团队成员目录' })
+    const pageHeader = await render(LsPageHeader, {
+      title: '成员',
+      description: '团队成员目录',
+    })
     const pageHeaderSource = readFileSync(new URL('./components/LsPageHeader.vue', import.meta.url), 'utf8')
-    const workspaceHeader = await render(LsWorkspaceHeader, { contextLabel: 'TEAM WORKSPACE', title: '成员', actions: [{ key: 'notice', label: '通知' }] })
-    const actions = await render(LsResponsiveActions, { primaryKey: 'manage', actions: [{ key: 'manage', label: '管理' }, { key: 'remove', label: '移出' }] })
+    const workspaceHeader = await render(LsWorkspaceHeader, {
+      contextLabel: 'TEAM WORKSPACE',
+      title: '成员',
+      actions: [{ key: 'notice', label: '通知' }],
+    })
+    const actions = await render(LsResponsiveActions, {
+      primaryKey: 'manage',
+      actions: [
+        { key: 'manage', label: '管理' },
+        { key: 'remove', label: '移出' },
+      ],
+    })
     expect(pageHeader).toContain('团队成员目录')
     expect(pageHeader).toContain('ls-page-header__copy')
     expect(pageHeaderSource).toContain('.ls-page-header__copy{display:contents}')
@@ -368,19 +480,48 @@ describe('后台设计系统组件契约', () => {
     expect(actions).not.toContain('n-button--primary-type')
   })
 
-  it('LsWorkspaceOverview 保留双向操作、入口顺序、可解释禁用与区域语义', async () => {
+  it('LsWorkspaceOverview 保留双向操作、入口顺序、开放入口与区域语义', async () => {
     const html = await render(LsWorkspaceOverview, {
       eyebrow: '商品个人工作台',
       title: '管理自己的商品与业务订单',
       description: '当前范围固定为已领取的 Entity。',
       actions: [
-        { key: 'team', label: '进入团队工作台', to: '/manage', icon: House, primary: true },
-        { key: 'identity', label: '切换身份', href: 'https://account.lostsky.work/identity', icon: UserRound },
+        {
+          key: 'team',
+          label: '进入团队工作台',
+          to: '/manage',
+          icon: House,
+          primary: true,
+        },
+        {
+          key: 'identity',
+          label: '切换身份',
+          href: 'https://account.lostsky.work/identity',
+          icon: UserRound,
+        },
       ],
       entries: [
-        { key: 'products', label: '我的商品', description: '管理本人商品。', to: '/manage/personal/products', icon: ShoppingBag },
-        { key: 'orders', label: '我的业务订单', description: '查看关联订单。', to: '/manage/personal/orders', icon: ReceiptText },
-        { key: 'disabled', label: '团队订单', description: '查看全部订单。', to: '/manage/orders', icon: ReceiptText, disabled: true, reason: '缺少 shop.order.read Permission' },
+        {
+          key: 'products',
+          label: '我的商品',
+          description: '管理本人商品。',
+          to: '/manage/personal/products',
+          icon: ShoppingBag,
+        },
+        {
+          key: 'orders',
+          label: '我的业务订单',
+          description: '查看关联订单。',
+          to: '/manage/personal/orders',
+          icon: ReceiptText,
+        },
+        {
+          key: 'team-orders',
+          label: '团队订单',
+          description: '查看全部订单。',
+          to: '/manage/orders',
+          icon: ReceiptText,
+        },
       ],
       scopeNotes: ['服务端按 acting_entity 强制过滤。'],
     })
@@ -392,19 +533,16 @@ describe('后台设计系统组件契约', () => {
     expect(html).toMatch(/secondary[^]*切换身份/)
     expect(html.indexOf('我的商品')).toBeLessThan(html.indexOf('我的业务订单'))
     expect(html.indexOf('我的业务订单')).toBeLessThan(html.indexOf('团队订单'))
-    expect(html).toContain('aria-disabled="true"')
-    expect(html).toContain('缺少 shop.order.read Permission')
-    expect(html).toMatch(/<button[^>]*aria-disabled="true"/)
-    expect(html).toMatch(/<button[^>]*aria-disabled="true"[^]*lucide-arrow-right[^]*<\/button>/)
-    expect(html).toMatch(/lucide-lock-keyhole[^]*不可用/)
+    expect(html).toContain('data-to="/manage/orders"')
+    expect(html).not.toContain('aria-disabled="true"')
+    expect(html).not.toContain('lucide-lock-keyhole')
+    expect(html).not.toContain('title=')
     expect(html).not.toContain('<small')
     expect(html).toContain('aria-labelledby="workspace-scope-title"')
     const source = readFileSync(new URL('./components/LsWorkspaceOverview.vue', import.meta.url), 'utf8')
-    expect(source).toContain('feedback.info(reason.trim())')
-    expect(source).toContain('background:color-mix(in oklch,white,var(--cloud) 34%)')
-    expect(source).toContain('border-style:dashed')
-    expect(source).toContain('opacity:.52')
-    expect(source).toContain('.ls-workspace-overview__hero{block-size:11.75rem;')
+    expect(source).toContain('background: color-mix(in oklch, white, var(--cloud) 28%)')
+    expect(source).not.toContain('border-style: dashed')
+    expect(source).toContain('block-size: 11.75rem')
   })
 
   it('响应式数据表在移动端切换为同一份数据的记录结构', () => {
@@ -417,9 +555,20 @@ describe('后台设计系统组件契约', () => {
   })
 
   it('上传禁用入口不常驻渲染原因，错误状态不渲染刷新或重试按钮', async () => {
-    const upload = await render(LsUploadField, { disabled: true, disabledReason: '当前团队未开通文件上传', showUrl: false })
-    const error = await render(LsAsyncState, { state: 'error', title: '暂时无法读取', description: '网络连接失败' })
-    const empty = await render(LsEmptyState, { title: '还没有顾客', description: '顾客领取身份后会出现在这里。' })
+    const upload = await render(LsUploadField, {
+      disabled: true,
+      disabledReason: '当前团队未开通文件上传',
+      showUrl: false,
+    })
+    const error = await render(LsAsyncState, {
+      state: 'error',
+      title: '暂时无法读取',
+      description: '网络连接失败',
+    })
+    const empty = await render(LsEmptyState, {
+      title: '还没有顾客',
+      description: '顾客领取身份后会出现在这里。',
+    })
     expect(upload).not.toContain('当前团队未开通文件上传')
     expect(upload).toContain('disabled')
     expect(upload).not.toContain('ls-upload-field__reason')
@@ -438,13 +587,41 @@ describe('后台设计系统组件契约', () => {
     expect(button).toContain('feedback.info(props.disabledReason.trim())')
   })
 
-  it('LsEmptyState 只接收标题与提示文案并统一使用 Naive 空状态', async () => {
+  it('响应式操作与复选选项只通过信息弹窗解释禁用原因', () => {
+    const actions = readFileSync(new URL('./components/LsResponsiveActions.vue', import.meta.url), 'utf8')
+    const checkboxes = readFileSync(new URL('./components/LsCheckboxGroupField.vue', import.meta.url), 'utf8')
+    expect(actions).toContain('feedback.info(action.reason.trim())')
+    expect(actions).not.toContain('`${action.label}（${action.reason}）`')
+    expect(actions).not.toContain(':title=')
+    expect(checkboxes).toContain('feedback.info(reason(changed))')
+    expect(checkboxes).not.toContain('ls-checkbox-group-field__reason')
+    expect(checkboxes).not.toContain(':title=')
+  })
+
+  it('LsEmptyState 保留普通空状态并支持语义授权来源', async () => {
     const props = (LsEmptyState as unknown as { props: Record<string, unknown> }).props
-    expect(Object.keys(props).sort()).toEqual(['description', 'title'])
-    const html = await render(LsEmptyState, { title: '没有匹配结果', description: '调整筛选条件后查看。' })
+    expect(Object.keys(props).sort()).toEqual(['accessReason', 'description', 'source', 'title'])
+    const html = await render(LsEmptyState, {
+      title: '没有匹配结果',
+      description: '调整筛选条件后查看。',
+    })
     expect(html).toContain('n-empty')
     expect(html).toContain('没有匹配结果')
     expect(html).toContain('调整筛选条件后查看。')
+  })
+
+  it('LsEmptyState 的受限结果覆盖正常空文案，恢复后保留正常空状态', async () => {
+    const { deniedRead } = await import('@lostsky/api/access-result')
+    for (const reason of ['缺少 Permission：weibo.personal.use', '缺少 Ability：weibo']) {
+      const html = await render(LsEmptyState, {
+        title: '暂无任务', description: '请创建任务', source: deniedRead(reason),
+      })
+      expect(html).toContain(reason)
+      expect(html).not.toContain('暂无任务')
+      expect(html).not.toContain('请创建任务')
+    }
+    const html = await render(LsEmptyState, { title: '暂无任务', description: '请创建任务', source: [] })
+    expect(html).toContain('暂无任务')
   })
 
   it('LsEmptyState 保持 192px 紧凑基准且不随视口宽度增高', () => {
@@ -462,10 +639,8 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain(':animation="animation"')
   })
 
-  it('LsSwitchField 统一标签关联、禁用原因和触控尺寸', async () => {
-    expect(Object.keys((LsSwitchField as any).props).sort()).toEqual([
-      'ariaLabel', 'description', 'disabled', 'disabledReason', 'headingLevel', 'id', 'loading', 'modelValue', 'readOnly', 'label',
-    ].sort())
+  it('LsSwitchField 统一标签关联、弹窗解释禁用原因和触控尺寸', async () => {
+    expect(Object.keys((LsSwitchField as any).props).sort()).toEqual(['ariaLabel', 'description', 'disabled', 'disabledReason', 'headingLevel', 'id', 'loading', 'modelValue', 'readOnly', 'label'].sort())
     const html = await render(LsSwitchField, {
       id: 'product-active',
       modelValue: true,
@@ -480,9 +655,12 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('<h2 id="product-active-label"')
     expect(html).toContain('aria-label="设置商品上架状态"')
     expect(html).not.toContain('aria-labelledby="product-active-label"')
-    expect(html).toContain('aria-describedby="product-active-description product-active-reason"')
-    expect(html).toContain('缺少商品管理权限（Permission）')
+    expect(html).toContain('aria-describedby="product-active-description"')
+    expect(html).not.toContain('缺少商品管理权限（Permission）')
     const source = readFileSync(new URL('./components/LsSwitchField.vue', import.meta.url), 'utf8')
+    expect(source).toContain(':disabled-reason="disabledReason"')
+    expect(source).not.toContain('ls-switch-field__reason')
+    expect(source).not.toContain(':title=')
     expect(source).toContain('min-height:56px')
     expect(source).toContain('min-height:44px')
     expect(source).toContain('@media(max-width:639px)')

@@ -43,7 +43,9 @@ const shopTheme: GlobalThemeOverrides = {
 <template>
   <NConfigProvider :theme="managing ? undefined : darkTheme" :theme-overrides="managing ? lostskyNaiveTheme : shopTheme" :locale="zhCN">
     <NDialogProvider><NMessageProvider>
-    <ShopManageShell v-if="managing"><RouterView /></ShopManageShell>
+    <ShopManageShell v-if="managing">
+      <RouterView />
+    </ShopManageShell>
     <template v-else>
       <a class="skip-link" href="#main-content">跳到主要内容</a>
       <div class="shop-app">

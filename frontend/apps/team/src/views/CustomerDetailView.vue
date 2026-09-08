@@ -19,7 +19,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPage from '../components/AdminPage.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
-import { abilityReason, hasPermission, permissionReason, resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
+import { permissionReason, resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
 interface EntitySummary {
   entity_id: number
@@ -53,19 +53,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isCustomerDetail(value: unknown): value is CustomerDetail {
   if (!isRecord(value) || !isRecord(value.balance) || !isRecord(value.summary)) return false
-  return typeof value.id === 'number'
-    && typeof value.slug === 'string'
-    && typeof value.name === 'string'
-    && typeof value.is_blocked === 'boolean'
-    && typeof value.balance.balance === 'string'
-    && typeof value.balance.recharged === 'string'
-    && typeof value.balance.spent === 'string'
-    && Array.isArray(value.senders)
-    && typeof value.summary.transaction_count === 'number'
-    && typeof value.summary.transaction_total === 'string'
-    && typeof value.summary.order_count === 'number'
-    && typeof value.summary.order_total === 'string'
-    && typeof value.can_manage === 'boolean'
+  return typeof value.id === 'number' && typeof value.slug === 'string' && typeof value.name === 'string' && typeof value.is_blocked === 'boolean' && typeof value.balance.balance === 'string' && typeof value.balance.recharged === 'string' && typeof value.balance.spent === 'string' && Array.isArray(value.senders) && typeof value.summary.transaction_count === 'number' && typeof value.summary.transaction_total === 'string' && typeof value.summary.order_count === 'number' && typeof value.summary.order_total === 'string' && typeof value.can_manage === 'boolean'
 }
 
 const route = useRoute()
@@ -76,7 +64,10 @@ async function loadCustomerDetail() {
   const path = `/customer/${id.value}`
   const value = await api.get<unknown>(path)
   if (!isCustomerDetail(value)) {
-    throw new ApiError('顾客详情数据不完整，请刷新后重试', { method: 'GET', path })
+    throw new ApiError('顾客详情数据不完整，请刷新后重试', {
+      method: 'GET',
+      path,
+    })
   }
   return value
 }
@@ -85,18 +76,15 @@ const query = useQuery({
   queryFn: loadCustomerDetail,
 })
 const canManage = computed(() => Boolean(query.data.value?.can_manage))
+const manageReason = permissionReason('team.customer.manage')
 const avatarUploading = ref(false)
-const avatarUploadDisabledReason = computed(() => !canManage.value
-  ? permissionReason('team.customer.manage')
-  : resourceUploadReason(access.data.value))
+const avatarUploadDisabledReason = computed(() => (!canManage.value ? permissionReason('team.customer.manage') : resourceUploadReason(access.data.value)))
 const assignees = useQuery({
   queryKey: ['team-customer-assignees'],
   queryFn: () => api.get<EntitySummary[]>('/customer/assignees'),
   enabled: canManage,
 })
-const senderOptions = computed(() => canManage.value
-  ? (assignees.data.value ?? [])
-  : (query.data.value?.senders ?? []))
+const senderOptions = computed(() => (canManage.value ? (assignees.data.value ?? []) : (query.data.value?.senders ?? [])))
 const form = reactive({
   name: '',
   avatar: '',
@@ -105,60 +93,48 @@ const form = reactive({
   sender_entity_ids: [] as number[],
   is_blocked: false,
 })
-watch(() => query.data.value, value => {
-  if (!value) return
-  Object.assign(form, {
-    name: value.name,
-    avatar: value.avatar ?? '',
-    description: value.description ?? '',
-    assignee_entity_id: value.assignee?.entity_id ?? null,
-    sender_entity_ids: value.senders.map(sender => sender.entity_id),
-    is_blocked: value.is_blocked,
-  })
-}, { immediate: true })
+watch(
+  () => query.data.value,
+  (value) => {
+    if (!value) return
+    Object.assign(form, {
+      name: value.name,
+      avatar: value.avatar ?? '',
+      description: value.description ?? '',
+      assignee_entity_id: value.assignee?.entity_id ?? null,
+      sender_entity_ids: value.senders.map((sender) => sender.entity_id),
+      is_blocked: value.is_blocked,
+    })
+  },
+  { immediate: true },
+)
 const save = useMutation({
-  mutationFn: () => api.post<void>(`/customer/${id.value}`, {
-    name: form.name.trim(),
-    avatar: form.avatar.trim() || null,
-    description: form.description.trim() || null,
-    assignee_entity_id: form.assignee_entity_id,
-    sender_entity_ids: form.sender_entity_ids,
-    is_blocked: form.is_blocked ? 1 : 0,
-  }),
+  mutationFn: () =>
+    api.post<void>(`/customer/${id.value}`, {
+      name: form.name.trim(),
+      avatar: form.avatar.trim() || null,
+      description: form.description.trim() || null,
+      assignee_entity_id: form.assignee_entity_id,
+      sender_entity_ids: form.sender_entity_ids,
+      is_blocked: form.is_blocked ? 1 : 0,
+    }),
   onSuccess: async () => {
-    await Promise.all([
-      client.invalidateQueries({ queryKey: ['team-customer', id.value] }),
-      client.invalidateQueries({ queryKey: ['team-customers'] }),
-    ])
+    await Promise.all([client.invalidateQueries({ queryKey: ['team-customer', id.value] }), client.invalidateQueries({ queryKey: ['team-customers'] })])
   },
 })
-const chatReason = computed(() => {
-  const snapshot = access.data.value
-  if (!snapshot || !snapshot.permissions) return ''
-  const chat = snapshot.abilities?.chat
-  if (chat && !chat.enabled) return abilityReason('chat', chat.label || '聊天')
-  if (!hasPermission(snapshot, 'chat.conversation.create')) return permissionReason('chat.conversation.create')
-  return ''
-})
-const chatUrl = computed(() => query.data.value?.slug
-  ? chatWorkspaceUrl('/new', { participant: query.data.value.slug })
-  : '')
-const money = (value: string) => new Intl.NumberFormat('zh-CN', {
-  style: 'currency',
-  currency: 'CNY',
-}).format(Number(value))
+const chatUrl = computed(() => chatWorkspaceUrl('/new', query.data.value?.slug ? { participant: query.data.value.slug } : {}))
+const money = (value: string) =>
+  new Intl.NumberFormat('zh-CN', {
+    style: 'currency',
+    currency: 'CNY',
+  }).format(Number(value))
 </script>
 
 <template>
   <AdminPage width="form">
-    <AdminPageHeader
-      :title="query.data.value?.name || '顾客详情'"
-      description="查看顾客归属、余额和经营摘要；历史订单与流水保留创建时的发单归属。"
-      back-to="/customers"
-      back-label="返回顾客列表"
-    >
+    <AdminPageHeader :title="query.data.value?.name || '顾客详情'" description="查看顾客归属、余额和经营摘要；历史订单与流水保留创建时的发单归属。" back-to="/customers" back-label="返回顾客列表">
       <template #actions>
-        <LsPagePrimaryAction :icon="MessageCircleMore" label="发起对话" :href="chatUrl" :disabled="Boolean(chatReason || !chatUrl)" :disabled-reason="chatReason" />
+        <LsPagePrimaryAction :icon="MessageCircleMore" label="发起对话" :href="chatUrl" />
       </template>
     </AdminPageHeader>
 
@@ -167,41 +143,44 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
     <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
     <template v-else-if="query.data.value">
       <section class="summary-grid" aria-label="顾客经营摘要">
-        <article><span>可用余额</span><strong>{{ money(query.data.value.balance.balance) }}</strong><small>累计充值 {{ money(query.data.value.balance.recharged) }}</small></article>
-        <article><span>流水</span><strong>{{ query.data.value.summary.transaction_count }} 笔</strong><small>{{ money(query.data.value.summary.transaction_total) }}</small></article>
-        <article><span>订单</span><strong>{{ query.data.value.summary.order_count }} 笔</strong><small>{{ money(query.data.value.summary.order_total) }}</small></article>
+        <article>
+          <span>可用余额</span><strong>{{ money(query.data.value.balance.balance) }}</strong
+          ><small>累计充值 {{ money(query.data.value.balance.recharged) }}</small>
+        </article>
+        <article>
+          <span>流水</span><strong>{{ query.data.value.summary.transaction_count }} 笔</strong><small>{{ money(query.data.value.summary.transaction_total) }}</small>
+        </article>
+        <article>
+          <span>订单</span><strong>{{ query.data.value.summary.order_count }} 笔</strong><small>{{ money(query.data.value.summary.order_total) }}</small>
+        </article>
       </section>
 
       <LsPanel>
-        <template #header><header class="detail-heading"><div><h3>顾客资料</h3><p>@{{ query.data.value.slug }}</p></div><span>{{ canManage ? '可维护' : '只读' }}</span></header></template>
+        <template #header
+          ><header class="detail-heading">
+            <div>
+              <h3>顾客资料</h3>
+              <p>@{{ query.data.value.slug }}</p>
+            </div>
+            <span>{{ canManage ? '可维护' : '只读' }}</span>
+          </header></template
+        >
         <form @submit.prevent="save.mutate()">
           <LsField label="顾客昵称" for-id="customer-name"><NInput v-model:value="form.name" :input-props="{ id: 'customer-name' }" :disabled="!canManage" maxlength="50" /></LsField>
           <LsField label="头像" for-id="customer-avatar"><LsMediaUploadField id="customer-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(avatarUploadDisabledReason)" :disabled-reason="avatarUploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
           <LsField label="说明" for-id="customer-description"><NInput v-model:value="form.description" :input-props="{ id: 'customer-description' }" :disabled="!canManage" type="textarea" maxlength="500" /></LsField>
           <LsField label="当前归属人" for-id="customer-assignee" hint="变更只影响之后创建的订单和流水，不修改历史发单人。">
-            <LsEntitySelect
-              id="customer-assignee"
-              v-model="form.assignee_entity_id"
-              :entities="assignees.data.value ?? []"
-              :loading="assignees.isPending.value"
-              :disabled="!canManage"
-              clearable
-              placeholder="未归属"
-            />
+            <LsEntitySelect id="customer-assignee" v-model="form.assignee_entity_id" :entities="assignees.data.value ?? []" :loading="assignees.isPending.value" :disabled="!canManage" clearable placeholder="未归属" />
           </LsField>
           <LsField label="协作发单人" for-id="customer-senders" hint="可多选；这些 Entity 仍需具备记账 Ability 与对应 Permission，才能协作处理该顾客。">
-            <LsEntitySelect
-              id="customer-senders"
-              v-model="form.sender_entity_ids"
-              :entities="senderOptions"
-              :loading="canManage && assignees.isPending.value"
-              :disabled="!canManage"
-              multiple
-              placeholder="未绑定协作发单人"
-            />
+            <LsEntitySelect id="customer-senders" v-model="form.sender_entity_ids" :entities="senderOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" multiple placeholder="未绑定协作发单人" />
           </LsField>
           <LsSwitchField v-model="form.is_blocked" label="封禁顾客" description="封禁后顾客现有身份会话不能继续使用。" :disabled="!canManage" />
-          <LsFormActions v-if="canManage"><LsButton type="submit" :loading="save.isPending.value" :disabled="avatarUploading"><template #icon><Save :size="18" /></template>保存顾客资料</LsButton></LsFormActions>
+          <LsFormActions
+            ><LsButton type="submit" :loading="save.isPending.value" :disabled="!canManage || avatarUploading" :disabled-reason="!canManage ? manageReason : undefined"
+              ><template #icon><Save :size="18" /></template>保存顾客资料</LsButton
+            ></LsFormActions
+          >
         </form>
       </LsPanel>
     </template>
@@ -209,6 +188,69 @@ const money = (value: string) => new Intl.NumberFormat('zh-CN', {
 </template>
 
 <style scoped>
-.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden;background:white;border:1px solid var(--line);border-radius:12px}.summary-grid article{display:grid;gap:.25rem;padding:1.1rem;border-right:1px solid var(--line)}.summary-grid article:last-child{border-right:0}.summary-grid span,.summary-grid small{color:var(--muted-ink);font-size:.76rem}.summary-grid strong{font-size:1.1rem;font-variant-numeric:tabular-nums}.detail-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}.detail-heading h3,.detail-heading p{margin:0}.detail-heading p{margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.detail-heading>span{padding:.2rem .5rem;border-radius:999px;background:var(--cloud);font-size:.72rem;font-weight:700}.ls-panel form{max-width:42rem;display:grid;gap:1rem}
-@media(max-width:640px){.summary-grid{grid-template-columns:1fr}.summary-grid article{border-right:0;border-bottom:1px solid var(--line)}.summary-grid article:last-child{border-bottom:0}}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.summary-grid article {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1.1rem;
+  border-right: 1px solid var(--line);
+}
+.summary-grid article:last-child {
+  border-right: 0;
+}
+.summary-grid span,
+.summary-grid small {
+  color: var(--muted-ink);
+  font-size: 0.76rem;
+}
+.summary-grid strong {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+.detail-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.detail-heading h3,
+.detail-heading p {
+  margin: 0;
+}
+.detail-heading p {
+  margin-top: 0.2rem;
+  color: var(--muted-ink);
+  font-size: 0.8rem;
+}
+.detail-heading > span {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: var(--cloud);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.ls-panel form {
+  max-width: 42rem;
+  display: grid;
+  gap: 1rem;
+}
+@media (max-width: 640px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+  .summary-grid article {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .summary-grid article:last-child {
+    border-bottom: 0;
+  }
+}
 </style>

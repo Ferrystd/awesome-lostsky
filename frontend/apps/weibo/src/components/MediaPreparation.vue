@@ -6,13 +6,14 @@ import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { computed, ref } from 'vue'
 
-const props = defineProps<{ prefix: string; personal: boolean; expectedEntityId: number; accountId: number | null; modelValue: number[] }>()
+const props = withDefaults(defineProps<{ prefix: string; personal: boolean; expectedEntityId: number; accountId: number | null; modelValue: number[]; accessDisabledReason?: string }>(), { accessDisabledReason: '' })
 const emit = defineEmits<{ 'update:modelValue': [value: number[]] }>()
 const pending = ref(false)
 const uploadError = ref('')
 const uploadingNames = ref<string[]>([])
 const remaining = computed(() => Math.max(0, 9 - props.modelValue.length))
 const disabledReason = computed(() => {
+  if (props.accessDisabledReason) return props.accessDisabledReason
   if (pending.value) return '图片正在上传，请稍候'
   if (!props.accountId) return '请先选择微博账号，再添加图片'
   if (!remaining.value) return '已准备 9 张图片，请先移除图片再添加'
@@ -25,6 +26,7 @@ async function uploadSelected(event: Event) {
   const selected = Array.from(input.files ?? [])
   input.value = ''
   if (!selected.length) return
+  if (props.accessDisabledReason) return feedback.info(props.accessDisabledReason)
   if (!props.accountId) {
     uploadError.value = '请先选择微博账号，再添加图片'
     return
@@ -81,7 +83,6 @@ function remove(id: number) {
       :loading="pending"
       :disabled="Boolean(disabledReason)"
       :disabled-reason="disabledReason"
-      show-reason
       @change="uploadSelected"
     />
 

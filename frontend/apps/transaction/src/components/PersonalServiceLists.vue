@@ -74,7 +74,7 @@ const closeReturnTask = (id: number) => {
             <span class="task-kind"><ClipboardCheck :size="16" aria-hidden="true" />指定邀请 #{{ offer.id }}</span>
             <RouterLink class="task-title" :to="`/personal/service-offers/${offer.id}`"><strong>{{ offer.service?.name || `邀请 #${offer.id}` }}</strong><ArrowUpRight :size="18" aria-hidden="true" /></RouterLink>
             <dl class="task-metrics">
-              <div><dt>服务量</dt><dd>{{ quantityLabel(offer) }}</dd></div>
+              <div><dt>权益量</dt><dd>{{ quantityLabel(offer) }}</dd></div>
               <div><dt>预计分成</dt><dd>{{ money(offer.handler_cut) }}</dd></div>
               <div><dt>提交时间</dt><dd>{{ dateTime(offer.create_time) }}</dd></div>
             </dl>
@@ -98,7 +98,7 @@ const closeReturnTask = (id: number) => {
           <div class="task-summary">
             <span class="task-kind"><RadioTower :size="16" aria-hidden="true" />公开任务 #{{ row.id }}</span>
             <RouterLink class="task-title" :to="`/personal/services/available/${row.id}`"><strong>{{ row.service?.name || `任务 #${row.id}` }}</strong><ArrowUpRight :size="18" aria-hidden="true" /></RouterLink>
-            <dl class="task-metrics"><div><dt>服务量</dt><dd>{{ quantityLabel(row) }}</dd></div><div><dt>预计分成</dt><dd>{{ money(row.handler_cut) }}</dd></div></dl>
+            <dl class="task-metrics"><div><dt>权益量</dt><dd>{{ quantityLabel(row) }}</dd></div><div><dt>预计分成</dt><dd>{{ money(row.handler_cut) }}</dd></div></dl>
           </div>
           <div class="task-customer"><span class="task-label">顾客</span><LsEntityIdentity type="customer" :name="customerName(row)" size="sm" /></div>
           <div class="task-actions"><RouterLink class="task-detail-link" :to="`/personal/services/available/${row.id}`">查看详情<ArrowUpRight :size="16" aria-hidden="true" /></RouterLink></div>
@@ -119,7 +119,7 @@ const closeReturnTask = (id: number) => {
           <div class="task-summary">
             <span class="task-kind"><ClipboardCheck :size="16" aria-hidden="true" />接单 #{{ row.id }}<LsStatusTag :label="row.status_label || `状态 ${row.status}`" :type="row.status === 3 ? 'success' : 'warning'" /></span>
             <RouterLink class="task-title" :to="`/personal/services/${row.id}`"><strong>{{ row.service?.name || `任务 #${row.id}` }}</strong><ArrowUpRight :size="18" aria-hidden="true" /></RouterLink>
-            <dl class="task-metrics"><div><dt>服务量</dt><dd>{{ quantityLabel(row) }}</dd></div><div><dt>接取时间</dt><dd>{{ dateTime(row.started_at || row.create_time) }}</dd></div></dl>
+            <dl class="task-metrics"><div><dt>权益量</dt><dd>{{ quantityLabel(row) }}</dd></div><div><dt>接取时间</dt><dd>{{ dateTime(row.started_at || row.create_time) }}</dd></div></dl>
           </div>
           <div class="task-customer"><span class="task-label">顾客</span><LsEntityIdentity type="customer" :name="customerName(row)" size="sm" /></div>
           <div v-if="row.status === 2 && !returning[row.id]" class="task-actions"><LsButton variant="secondary" :loading="acting" @click="returning[row.id] = true"><template #icon><RotateCcw :size="16" /></template>退回任务</LsButton></div>

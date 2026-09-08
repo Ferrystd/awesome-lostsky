@@ -164,7 +164,7 @@ test('transaction service redemption supports management and fixed 390px navigat
 
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('http://demo.transaction.lostsky.work:5177/services')
-  await expect(page.locator('#workspace').getByRole('heading', { name: '服务核销', level: 1 }).last()).toBeVisible()
+  await expect(page.locator('#workspace').getByRole('heading', { name: '权益核销', level: 1 }).last()).toBeVisible()
   await expect(page.locator('.service-meta')).toContainText('核销中')
   await page.getByRole('link', { name: /三份独立方案/ }).click()
   const backToServices = page.getByRole('link', { name: '返回核销' })

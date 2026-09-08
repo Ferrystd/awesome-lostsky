@@ -13,8 +13,8 @@ describe('管理员办理成员离职', () => {
     expect(members).toContain("label: '离职'")
     expect(members).toContain("mutate('/memberDeparture/depart'")
     expect(members).toContain('现有会话会立即失效')
-    expect(memberForm).toContain('<div><strong>离职</strong>')
-    expect(memberForm).toContain("confirmAction('/memberDeparture/depart'")
+    expect(memberForm).toMatch(/<div>\s*<strong>离职<\/strong>/)
+    expect(memberForm).toMatch(/confirmAction\(\s*["']\/memberDeparture\/depart["']/)
     expect(memberForm).toContain('不再等待审核')
   })
 

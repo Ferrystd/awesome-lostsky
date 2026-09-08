@@ -449,6 +449,34 @@
           }
         }
       },
+      "WorkspaceWarningContext": {
+        "type": "object",
+        "required": ["team", "identity", "can_continue", "entry_warning"],
+        "properties": {
+          "team": {"$ref": "#/components/schemas/IdentityTeamSummary"},
+          "identity": {
+            "type": "object",
+            "required": ["type", "id", "entity_id", "name"],
+            "properties": {
+              "type": {"type": "string", "enum": ["team", "teamMember", "teamCustomer", "teamVirtual"]},
+              "id": {"type": "integer", "format": "int64"},
+              "entity_id": {"type": "integer", "format": "int64"},
+              "slug": {"type": "string", "nullable": true},
+              "name": {"type": "string"}
+            }
+          },
+          "can_continue": {"type": "boolean"},
+          "entry_warning": {
+            "type": "object",
+            "required": ["required", "kind", "ttl_seconds"],
+            "properties": {
+              "required": {"type": "boolean"},
+              "kind": {"type": "string", "nullable": true, "enum": ["external_entity"]},
+              "ttl_seconds": {"type": "integer", "minimum": 60, "default": 86400}
+            }
+          }
+        }
+      },
       "TeamProfile": {
         "type": "object",
         "properties": {
@@ -1719,6 +1747,46 @@
               }
             }
           }
+        }
+      }
+    },
+    "/identity/workspace-warning": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "读取外部 Entity 工作台警告上下文",
+        "description": "复核当前全局有效 Entity 是否拥有目标团队角色。确认 Cookie 只控制提示，不参与角色或 Permission 授权。",
+        "operationId": "accountWorkspaceWarning",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{
+          "name": "team_slug",
+          "in": "query",
+          "required": true,
+          "schema": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$"}
+        }],
+        "responses": {
+          "200": {"description": "警告上下文", "content": {"application/json": {"schema": {"allOf": [
+            {"$ref": "#/components/schemas/SuccessEnvelope"},
+            {"type": "object", "properties": {"data": {"$ref": "#/components/schemas/WorkspaceWarningContext"}}}
+          ]}}}},
+          "403": {"description": "当前 Entity 未获得目标团队角色（40304 / team_workspace_role）", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorEnvelope"}}}}
+        }
+      }
+    },
+    "/identity/workspace-warning/acknowledge": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "确认外部 Entity 工作台警告",
+        "description": "再次复核目标团队角色后，写入跨 .lostsky.work 子域共享的短期 HttpOnly、SameSite=Lax Cookie。默认 86400 秒，可由环境配置覆盖。",
+        "operationId": "accountWorkspaceWarningAcknowledge",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {
+          "type": "object",
+          "required": ["team_slug"],
+          "properties": {"team_slug": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{1,49}$"}}
+        }}}},
+        "responses": {
+          "200": {"description": "已确认；data 返回 acknowledged 与 ttl_seconds", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/SuccessEnvelope"}}}},
+          "403": {"description": "角色已撤销或从未授予（40304 / team_workspace_role）", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorEnvelope"}}}}
         }
       }
     },

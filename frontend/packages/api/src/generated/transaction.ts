@@ -12,7 +12,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 服务核销列表
+         * 权益核销列表
          * @description 团队全量核销入口，要求 service.redemption.read 或 service.redemption.manage。
          */
         get: operations["serviceRedemptions"];
@@ -34,7 +34,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 服务核销详情
+         * 权益核销详情
          * @description 要求 service.redemption.read 或 service.redemption.manage。
          */
         get: operations["serviceRedemption"];
@@ -147,7 +147,7 @@ export interface paths {
         put?: never;
         /**
          * 通过核销
-         * @description 要求 service.redemption.manage；已开始履约时允许在 Transaction Ability 失效后收口。
+         * @description 要求 service.redemption.manage，不要求 Transaction Ability；Ability 无效时完成状态仍保存，但不生成流水。
          */
         post: operations["completeServiceRedemption"];
         delete?: never;
@@ -232,7 +232,7 @@ export interface paths {
         };
         /**
          * 手动赋予权益候选
-         * @description 返回当前团队启用的服务套餐商品、客户、业务 Entity，以及是否同步服务包收款流水。只要求 Transaction Ability 与 transaction.write，不要求 Shop Ability。
+         * @description 返回当前团队启用的权益套餐商品、客户、业务 Entity，以及是否同步权益包收款流水。要求 transaction.write，不要求 Transaction 或 Shop Ability。
          */
         get: operations["manualEntitlementGrantOptions"];
         put?: never;
@@ -253,8 +253,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 手动赋予客户独立服务权益
-         * @description 从 Shop 服务套餐商品读取冻结权益快照，直接归属 Customer 根 Entity，不创建 Shop 订单。shop.sync_manual_entitlement_transaction 开启且 Transaction Ability 有效时，原子生成服务包收款流水。
+         * 手动赋予客户独立权益
+         * @description 确认提交时要求 Transaction Ability 与 transaction.write；从 Shop 权益套餐商品读取冻结权益快照，直接归属 Customer 根 Entity，不创建 Shop 订单。shop.sync_manual_entitlement_transaction 开启时原子生成权益包收款流水。
          */
         post: operations["manualEntitlementGrant"];
         delete?: never;
@@ -271,8 +271,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * 分页读取本人赠送的服务权益
-         * @description 只按当前 acting_entity 的发单身份返回直接赠送记录，不要求业务 Permission，也不接受 Entity ID 范围参数。商城订单与卡密产生的权益不进入该列表。
+         * 分页读取本人赠送的权益
+         * @description 只按当前 acting_entity 的发单身份返回直接赠送记录，不要求业务 Permission 或 Transaction Ability，也不接受 Entity ID 范围参数。商城订单与卡密产生的权益不进入该列表。
          */
         get: operations["personalEntitlementGrants"];
         put?: never;
@@ -292,7 +292,7 @@ export interface paths {
         };
         /**
          * 读取本人客户权益赠送候选
-         * @description 要求 Transaction Ability 与 service.entitlement.grant，只返回当前 acting_entity 归属或发单绑定的有效客户，不接受 Entity ID 范围参数。
+         * @description 要求 service.entitlement.grant，只返回当前 acting_entity 归属或发单绑定的有效客户，不接受 Entity ID 范围参数；不要求 Transaction Ability。
          */
         get: operations["personalEntitlementGrantOptions"];
         put?: never;
@@ -313,8 +313,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 为本人接待客户赋予服务权益
-         * @description 要求 Transaction Ability 与 service.entitlement.grant。客户必须归属或发单绑定当前 acting_entity，发单人由服务端强制为当前 Entity；不创建 Shop 订单。
+         * 为本人接待客户赋予权益
+         * @description 点击下发时要求 Transaction Ability 与 service.entitlement.grant。客户必须归属或发单绑定当前 acting_entity，发单人由服务端强制为当前 Entity；不创建 Shop 订单。
          */
         post: operations["personalEntitlementGrant"];
         delete?: never;
@@ -332,7 +332,7 @@ export interface paths {
         };
         /**
          * 读取团队摘要、Permission 与 transaction Ability 快照
-         * @description 这是 transaction Ability 缺失时唯一仍可访问的记账接口。
+         * @description 用于工作台权限判断，并在指定提交动作点击后判断 transaction Ability。
          */
         get: operations["transactionWorkspaceAccess"];
         put?: never;
@@ -574,7 +574,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 在详情页逐份填写接单资料并接受邀请 */
+        /**
+         * 在详情页逐份填写接单资料并接受邀请
+         * @description 点击接受时要求有效的 Transaction Ability。
+         */
         post: operations["acceptPersonalServiceOffer"];
         delete?: never;
         options?: never;
@@ -628,7 +631,7 @@ export interface paths {
         };
         /**
          * 读取个人登记流水候选
-         * @description 要求 transaction.write；Team Entity 返回团队全部候选，成员和虚拟 Entity 只返回当前归属或发单绑定客户。
+         * @description 要求 transaction.write；Team Entity 返回团队全部候选，成员和虚拟 Entity 只返回当前归属或发单绑定客户；不要求 Transaction Ability。
          */
         get: operations["transactionPersonalOptions"];
         put?: never;
@@ -651,7 +654,7 @@ export interface paths {
         put?: never;
         /**
          * 创建流水
-         * @description 服务层会校验 total_price = cash + prepaid 且 total_price = cost + handler_cut + sender_cut + cs_cut + team_cut。
+         * @description 保存新流水时要求 Transaction Ability 与 transaction.write；服务层会校验 total_price = cash + prepaid 且 total_price = cost + handler_cut + sender_cut + cs_cut + team_cut。
          */
         post: operations["transactionCreate"];
         delete?: never;
@@ -775,7 +778,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 客户充值 */
+        /**
+         * 客户充值
+         * @description 点击确认充值时要求 Transaction Ability 与 transaction.write。
+         */
         post: operations["transactionBalanceRecharge"];
         delete?: never;
         options?: never;
@@ -811,12 +817,21 @@ export interface components {
             };
             identity: {
                 /** @enum {string} */
-                type: "team" | "teamMember" | "teamVirtual";
+                type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
                 /** Format: int64 */
                 entity_id: number;
                 name: string;
                 slug?: string | null;
                 avatar?: string | null;
+                belongs_to_team: boolean;
+                is_external: boolean;
+            };
+            entry_warning: {
+                required: boolean;
+                /** @enum {string|null} */
+                kind: "external_entity" | null;
+                /** @default 86400 */
+                ttl_seconds: number;
             };
         };
         AnyValue: (string | number | boolean | unknown[] | {
@@ -1596,7 +1611,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Ability 或 Permission 不满足 */
+            /** @description Permission 不满足 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1623,7 +1638,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Ability 或 Permission 不满足 */
+            /** @description Permission 不满足 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1650,7 +1665,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Ability 或 Permission 不满足 */
+            /** @description Permission 不满足 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1847,7 +1862,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Ability 或 Permission 不满足 */
+            /** @description Permission 不满足 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1875,7 +1890,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Ability 或 Permission 不满足 */
+            /** @description Permission 不满足 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1904,7 +1919,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Ability 或 Permission 不满足 */
+            /** @description Permission 不满足 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1978,13 +1993,6 @@ export interface operations {
                     };
                 };
             };
-            /** @description Transaction Ability 不满足 */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
         };
     };
     personalEntitlementGrantOptions: {
@@ -2007,7 +2015,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Ability 或 service.entitlement.grant 不满足 */
+            /** @description service.entitlement.grant 不满足 */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2442,6 +2450,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Transaction Ability 不满足 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description 邀请已处理 */
             409: {
                 headers: {
@@ -2527,7 +2542,7 @@ export interface operations {
                     };
                 };
             };
-            /** @description Transaction Ability 或 transaction.write 不满足 */
+            /** @description transaction.write 不满足 */
             403: {
                 headers: {
                     [name: string]: unknown;

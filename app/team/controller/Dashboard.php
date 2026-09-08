@@ -8,7 +8,7 @@ use think\Request;
 class Dashboard
 {
     protected $middleware = [
-        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual', 'TeamAuth',
+        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual', 'TeamWorkspaceAuth',
     ];
 
     public function index(Request $request)

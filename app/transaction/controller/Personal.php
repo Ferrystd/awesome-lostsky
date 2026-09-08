@@ -13,7 +13,8 @@ use think\Request;
 final class Personal
 {
     protected $middleware = [
-        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamVirtual', 'TeamAuth', 'Ability:transaction',
+        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamVirtual', 'TeamAuth',
+        'Ability:transaction' => ['only' => ['acceptServiceOffer']],
         'Permission:' . Permissions::TRANSACTION_WRITE => ['only' => ['transactionOptions']],
     ];
 

@@ -13,7 +13,7 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <dl class="ls-metric-grid" :aria-label="ariaLabel">
+  <dl :class="['ls-metric-grid', { 'ls-metric-grid--four': items.length === 4 }]" :aria-label="ariaLabel">
     <div v-for="item in items" :key="item.key" class="ls-metric-grid__item">
       <dt>{{ item.label }}</dt>
       <dd class="ls-tabular">{{ item.value }}</dd>
@@ -54,6 +54,9 @@ withDefaults(defineProps<{
   font-weight: 750;
 }
 .ls-metric-grid small { line-height: 1.45; }
+@media (min-width: 1000px) {
+  .ls-metric-grid--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 @media (max-width: 799px) {
   .ls-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

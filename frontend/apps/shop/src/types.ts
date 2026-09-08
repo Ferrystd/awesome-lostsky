@@ -191,7 +191,8 @@ export interface RedemptionCard {
 export interface ManageAccess {
   permissions: string[]
   team?: { id: number; slug: string; name: string } | null
-  identity?: { type: string; entity_id: number; name: string; slug?: string | null; avatar?: string | null }
+  identity?: { type: string; entity_id: number; name: string; slug?: string | null; avatar?: string | null; belongs_to_team: boolean; is_external: boolean }
+  entry_warning?: { required: boolean; kind: string | null; ttl_seconds: number }
   abilities?: {
     file?: { enabled: boolean; reason: string | null; label: string }
     transaction?: { enabled: boolean; reason: string | null; label: string }

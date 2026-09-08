@@ -10,8 +10,10 @@ describe('Team 审计日志', () => {
   it('导航入口、列表和详情路由均受独立页面承载', () => {
     const shell = source('./components/TeamShell.vue')
     const router = source('./router.ts')
-    expect(shell).toContain("permission: 'team.audit.read'")
+    expect(shell).toMatch(/\{\s*to: ["']\/audit["'],\s*label: ["']审计日志["'],\s*icon: FileClock/)
+    expect(shell).not.toContain('nav-disabled')
     expect(router).toContain("path: '/audit'")
+    expect(router).toContain("permission: 'team.audit.read'")
     expect(router).toContain("path: '/audit/:id(\\\\d+)'")
     expect(router).toContain("pageWidth: 'wide'")
   })

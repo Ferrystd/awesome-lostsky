@@ -15,6 +15,25 @@ function filesUnder(directory: string): string[] {
 }
 
 describe('后台工作台入口架构', () => {
+  it('受限路由继续渲染真实页面，只在页面内部降级数据', () => {
+    for (const path of [
+      'frontend/apps/admin/src/App.vue',
+      'frontend/apps/team/src/App.vue',
+      'frontend/apps/shop/src/App.vue',
+      'frontend/apps/transaction/src/App.vue',
+      'frontend/apps/weibo/src/App.vue',
+    ]) {
+      const app = source(path)
+      expect(app).not.toContain('LsAccessState')
+      expect(app).toContain('<RouterView')
+    }
+    const operation = source('frontend/apps/weibo/src/views/OperationView.vue')
+    expect(operation).toContain('useRouteAccess')
+    expect(operation).toContain('enabled: computed(() => !routeAccess.restricted.value)')
+    expect(operation).toContain("routeAccess.restricted.value ? '-'")
+    expect(source('docs/design/admin/states-and-access.md')).toContain('路由壳层不得用统一状态页替换真实业务页')
+  })
+
   it('Permission 与 Ability 禁用原因统一由错误格式化器生成', () => {
     const hardcodedAccessReason = /(?:缺少|当前团队未启用|暂时无法核对)[^\n]{0,120}(?:Permission|Ability)/
     const offenders = filesUnder(resolve(root, 'frontend/apps'))
@@ -53,12 +72,14 @@ describe('后台工作台入口架构', () => {
     expect(chat).toContain("paths: { shop: '/customer/profile' }")
   })
 
-  it('保留 Team 团队概览并用共享组件实现其余宽版概览', () => {
+  it('各应用复用前端库并保持差异化概览与双向入口', () => {
     const dashboard = source('frontend/apps/team/src/views/DashboardView.vue')
-    expect(dashboard).not.toContain('LsWorkspaceOverview')
-    expect(dashboard).toContain('class="welcome"')
-    expect(dashboard).toContain('class="stats"')
-    expect(dashboard).toContain('class="work-grid"')
+    expect(dashboard).toContain('LsWorkspaceOverview')
+    expect(dashboard).toContain('LsMetricGrid')
+    expect(dashboard).not.toContain('class="stats"')
+    expect(dashboard).toContain('class="team-resource-map"')
+    expect(source('frontend/apps/shop/src/components/ShopOverviewWorkspace.vue')).toContain('LsDashboardPath')
+    expect(source('frontend/apps/transaction/src/views/TeamOverviewView.vue')).toContain('class="ledger-workspace"')
 
     const overviews = [
       ['frontend/apps/team/src/views/PersonalView.vue', '进入团队工作台'],
@@ -99,8 +120,8 @@ describe('后台工作台入口架构', () => {
 
   it('六个团队与个人工作台都将无业务 Permission 的概览固定为首个导航入口', () => {
     const team = source('frontend/apps/team/src/components/TeamShell.vue')
-    expect(team).toContain("const primary: NavItem[] = [\n  { to: '/', label: '概览', icon: House }")
-    expect(team).toContain("const personalNav: NavItem[] = [\n  { to: '/personal', label: '概览', icon: House }")
+    expect(team).toMatch(/const primary: NavItem\[\] = \[\s*\{\s*to: ["']\/["'],\s*label: ["']概览["'],\s*icon: House/)
+    expect(team).toMatch(/const personalNav: NavItem\[\] = \[\s*\{\s*to: ["']\/personal["'],\s*label: ["']概览["'],\s*icon: House/)
 
     const shop = source('frontend/apps/shop/src/components/ShopManageShell.vue')
     expect(shop).toMatch(/const nav = \[\s*\{\s*to: "\/manage",\s*label: "概览",\s*icon: House,\s*permission: null,/)
@@ -122,7 +143,9 @@ describe('后台工作台入口架构', () => {
 
     const personalEntitlements = source('frontend/apps/transaction/src/views/PersonalEntitlementsView.vue')
     expect(personalEntitlements).toContain("api.get<Pagination<PersonalEntitlementGrantRecord>>('/personal/entitlements'")
-    expect(personalEntitlements).toContain("hasWorkspacePermission(access.data.value?.permissions ?? [], 'service.entitlement.grant')")
+    expect(personalEntitlements).toContain('label="下发权益" to="/personal/entitlements/new"')
+    expect(personalEntitlements).not.toContain('resolveTransactionAbilityReason')
+    expect(personalEntitlements).not.toContain('hasWorkspacePermission')
     const transactionRouter = source('frontend/apps/transaction/src/router.ts')
     expect(transactionRouter).toContain("path: '/', redirect: '/overview'")
     expect(transactionRouter).toContain("path: '/transactions', component: TransactionsView, meta: { title: '团队流水'")
@@ -196,11 +219,21 @@ describe('后台工作台入口架构', () => {
     expect(storefront).not.toContain('认识 LostSky')
   })
 
-  it('记账先读取访问快照，Ability 缺失时进入零业务请求页面', () => {
+  it('记账入口和读取不受 Ability 限制，指定动作才在点击后提示', () => {
     const router = source('frontend/apps/transaction/src/router.ts')
     expect(router).toContain('await loadWorkspaceAccess()')
-    expect(router).toContain("return '/unavailable'")
-    expect(source('frontend/apps/transaction/src/views/UnavailableView.vue')).not.toContain("api.")
+    expect(router).not.toContain('/unavailable')
+    expect(source('frontend/apps/transaction/src/components/TransactionShell.vue')).not.toContain('states: { transaction')
+    for (const path of [
+      'frontend/apps/transaction/src/views/TransactionFormView.vue',
+      'frontend/apps/transaction/src/views/RechargeView.vue',
+      'frontend/apps/transaction/src/views/EntitlementGrantView.vue',
+      'frontend/apps/transaction/src/views/PersonalServiceTaskView.vue',
+    ]) expect(source(path)).toContain('resolveTransactionAbilityReason')
+
+    const personalEntitlements = source('frontend/apps/transaction/src/views/PersonalEntitlementsView.vue')
+    expect(personalEntitlements).toContain('to="/personal/entitlements/new"')
+    expect(personalEntitlements).not.toContain('resolveTransactionAbilityReason')
   })
 
   it('个人核销始终使用三个具名边界面板承载分组和实时数量', () => {
@@ -276,7 +309,8 @@ describe('后台工作台入口架构', () => {
     expect(shell).toContain("['/stats', '经营统计', BarChart3, 'transaction.report.read']")
     expect(shell).toContain("['/services', '权益核销', BadgeCheck, serviceRedemptionReadPermissions]")
     expect(shell).toContain("['/balances', '顾客余额', CircleDollarSign, 'transaction.read']")
-    expect(overview).toContain("to: '/services', icon: BadgeCheck, permission: serviceRedemptionReadPermissions")
+    expect(overview).toContain("to: '/services', icon: BadgeCheck")
+    expect(overview).not.toContain('permission: serviceRedemptionReadPermissions')
     expect(router).toMatch(/path: '\/services'[^\n]*permission: serviceRedemptionReadPermissions/)
     expect(router).toMatch(/path: '\/services\/:id\(\\\\d\+\)'[^\n]*permission: serviceRedemptionReadPermissions/)
     expect(shell).toContain("['/personal/services', '我的接单', BadgeCheck, null]")
@@ -302,7 +336,7 @@ describe('后台工作台入口架构', () => {
     const filesView = source('frontend/apps/team/src/views/FilesView.vue')
     expect(commonUpload).not.toContain('Permissions::FILE_UPLOAD')
     expect(fileController).toContain("'Permission:' . Permissions::FILE_UPLOAD => ['only' => ['upload']]")
-    expect(filesView).toContain("api.uploadTo(file, '/file/upload')")
+    expect(filesView).toMatch(/api\.uploadTo\(file, ["']\/file\/upload["']\)/)
     expect(source('frontend/apps/team/src/lib/teamAccessReason.ts')).toContain('export function resourceUploadReason')
   })
 

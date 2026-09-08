@@ -8,13 +8,14 @@ import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
 import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
+import { useRouteAccess } from "@lostsky/ui/useRouteAccess";
 import { useQuery } from "@tanstack/vue-query";
 import { Plus } from "@lucide/vue";
 import { NDatePicker, NPagination, NSelect } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { computed, h, reactive } from "vue";
 import { RouterLink } from "vue-router";
-import { canManage, formatDate, formatMoney, manageApi } from "../../lib";
+import { formatDate, formatMoney, manageApi } from "../../lib";
 type Row = {
   id: number;
   product_name: string;
@@ -33,9 +34,11 @@ const filters = reactive({
   page: 1,
   limit: 20,
 });
+const routeAccess = useRouteAccess();
 const options = useQuery({
   queryKey: ["manage-options"],
   queryFn: manageApi.options,
+  enabled: computed(() => !routeAccess.restricted.value),
 });
 const params = computed(() => ({
   status: filters.status ?? undefined,
@@ -51,6 +54,7 @@ const params = computed(() => ({
 const query = useQuery({
   queryKey: computed(() => ["manage-orders", params.value]),
   queryFn: () => manageApi.orders(params.value),
+  enabled: computed(() => !routeAccess.restricted.value),
 });
 const rows = computed(() => (query.data.value?.list ?? []) as Row[]);
 const pages = computed(() =>
@@ -105,11 +109,11 @@ const columns: DataTableColumns<Row> = [
   <div class="manage-page">
     <LsPageHeader title="订单" description="查看销售记录并处理订单完成或取消。"
       ><template #actions>
-        <LsPagePrimaryAction v-if="canManage('shop.order.write')" :icon="Plus" label="新建订单" to="/manage/orders/new" /></template
+        <LsPagePrimaryAction :icon="Plus" label="新建订单" to="/manage/orders/new" /></template
       ></LsPageHeader
     ><LsListToolbar
       :searchable="false"
-      :count-label="`${query.data.value?.total ?? 0} 条订单`"
+      :count-label="routeAccess.restricted.value ? '0 条订单' : `${query.data.value?.total ?? 0} 条订单`"
       ><template #filters
         ><NDatePicker
           v-model:value="filters.range"
@@ -139,17 +143,17 @@ const columns: DataTableColumns<Row> = [
           placeholder="全部接单人"
           @update:model-value="filters.page = 1" /></template></LsListToolbar
     ><LsAsyncState
-      v-if="query.isPending.value"
+      v-if="!routeAccess.restricted.value && query.isPending.value"
       state="loading"
       :rows="6"
     /><LsAsyncState
-      v-else-if="query.isError.value"
+      v-else-if="!routeAccess.restricted.value && query.isError.value"
       state="error"
       title="暂时无法读取订单"
       :description="friendlyError(query.error.value)"
-    /><LsEmptyState
-      v-else-if="!rows.length"
-      title="没有匹配的订单"
+    /><LsEmptyState :source="query.data.value"
+      v-else-if="routeAccess.restricted.value || !rows.length"
+      :title="routeAccess.restricted.value ? '没有可显示的订单' : '没有匹配的订单'"
       description="调整筛选条件，或手动创建订单。"
     /><LsResponsiveDataTable
       v-else

@@ -8,6 +8,7 @@ import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
 import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
+import { useRouteAccess } from "@lostsky/ui/useRouteAccess";
 import { useQuery } from "@tanstack/vue-query";
 import { Plus } from "@lucide/vue";
 import { NPagination } from "naive-ui";
@@ -15,12 +16,13 @@ import type { DataTableColumns } from "naive-ui";
 import { computed, h, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import ResourceOwnerTag from "../../components/ResourceOwnerTag.vue";
-import { canManage, entitlementManagement, formatMoney } from "../../lib";
+import { entitlementManagement, formatMoney } from "../../lib";
 import type { ManageService } from "../../types";
 import type { EntityType } from "@lostsky/ui/entity";
 const keyword = ref("");
 const page = ref(1);
 const route = useRoute();
+const routeAccess = useRouteAccess();
 const scope = computed(() => route.meta.workspace === "personal" ? "personal" : "team");
 const management = computed(() => entitlementManagement(scope.value));
 const personal = computed(() => management.value.personal);
@@ -32,6 +34,7 @@ const query = useQuery({
       page: page.value,
       limit: 20,
     }),
+  enabled: computed(() => !routeAccess.restricted.value),
 });
 const rows = computed(() => query.data.value?.list ?? []);
 const pages = computed(() =>
@@ -105,26 +108,26 @@ const columns = computed<DataTableColumns<ManageService>>(() => [
       :title="personal ? '我的服务' : '服务'"
       :description="personal ? '定义当前 Entity 自己提供的服务、默认金额与接单池。' : '定义可独立核销的服务及默认金额、分成和接单池。'"
       ><template #actions>
-        <LsPagePrimaryAction v-if="canManage(management.permission)" :icon="Plus" label="新建服务" :to="`${management.routePrefix}/services/new`" /></template
+        <LsPagePrimaryAction :icon="Plus" label="新建服务" :to="`${management.routePrefix}/services/new`" /></template
       ></LsPageHeader
     ><LsListToolbar
       v-model="keyword"
       placeholder="搜索服务名称"
       aria-label="搜索服务"
-      :count-label="`${query.data.value?.total ?? 0} 个服务`"
+      :count-label="routeAccess.restricted.value ? '0 个服务' : `${query.data.value?.total ?? 0} 个服务`"
       @update:model-value="page = 1"
     /><LsAsyncState
-      v-if="query.isPending.value"
+      v-if="!routeAccess.restricted.value && query.isPending.value"
       state="loading"
       :rows="5"
     /><LsAsyncState
-      v-else-if="query.isError.value"
+      v-else-if="!routeAccess.restricted.value && query.isError.value"
       state="error"
       title="暂时无法读取服务"
       :description="friendlyError(query.error.value)"
-    /><LsEmptyState
-      v-else-if="!rows.length"
-      title="还没有服务"
+    /><LsEmptyState :source="query.data.value"
+      v-else-if="routeAccess.restricted.value || !rows.length"
+      :title="routeAccess.restricted.value ? '没有可显示的服务' : '还没有服务'"
       description="先定义服务，再把它加入权益包。"
     /><LsResponsiveDataTable
       v-else

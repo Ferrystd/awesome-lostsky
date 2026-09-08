@@ -13,7 +13,7 @@ class Notice
 {
     protected $middleware = [
         'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamAuth',
+        'TeamWorkspaceAuth',
         'Permission:' . Permissions::TEAM_NOTICE_SEND => ['only' => ['send']],
     ];
 

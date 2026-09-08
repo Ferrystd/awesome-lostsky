@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { NCheckbox, NCheckboxGroup } from 'naive-ui'
 import { computed, useId } from 'vue'
+import { feedback } from '../feedback'
 
 export interface LsCheckboxGroupOption {
   value: string | number
@@ -26,6 +27,16 @@ const emit = defineEmits<{ 'update:modelValue': [value: Array<string | number>] 
 const generatedId = useId()
 const fieldId = computed(() => props.id ?? `ls-checkbox-group-${generatedId}`)
 const describedBy = computed(() => [props.error ? `${fieldId.value}-error` : '', !props.error && props.hint ? `${fieldId.value}-hint` : ''].filter(Boolean).join(' ') || undefined)
+const reason = (option: LsCheckboxGroupOption) => option.disabledReason?.trim() ?? ''
+
+function update(value: Array<string | number>) {
+  const changed = props.options.find(option => value.includes(option.value) !== props.modelValue.includes(option.value))
+  if (changed?.disabled && reason(changed)) {
+    feedback.info(reason(changed))
+    return
+  }
+  emit('update:modelValue', value)
+}
 </script>
 
 <template>
@@ -35,21 +46,21 @@ const describedBy = computed(() => [props.error ? `${fieldId.value}-error` : '',
       :value="modelValue"
       :disabled="disabled"
       :aria-labelledby="`${fieldId}-label`"
-      @update:value="value => emit('update:modelValue', value as Array<string | number>)"
+      @update:value="value => update(value as Array<string | number>)"
     >
       <div class="ls-checkbox-group-field__options">
         <NCheckbox
           v-for="option in options"
           :key="String(option.value)"
           :value="option.value"
-          :disabled="disabled || option.disabled"
-          :title="option.disabledReason"
+          :class="{ 'ls-checkbox-group-field__option--explainable-disabled': option.disabled && reason(option) }"
+          :disabled="disabled || (option.disabled && !reason(option))"
+          :aria-disabled="option.disabled || undefined"
         >
           <span class="ls-checkbox-group-field__copy">
             <strong>{{ option.label }}</strong>
             <code v-if="option.meta">{{ option.meta }}</code>
             <small v-if="option.description">{{ option.description }}</small>
-            <small v-if="option.disabledReason && (disabled || option.disabled)" class="ls-checkbox-group-field__reason">{{ option.disabledReason }}</small>
           </span>
         </NCheckbox>
       </div>
@@ -72,7 +83,7 @@ const describedBy = computed(() => [props.error ? `${fieldId.value}-error` : '',
 .ls-checkbox-group-field__copy strong { color: var(--ink); font-size: .875rem; }
 .ls-checkbox-group-field__copy code { align-self: center; color: var(--muted-ink); font-size: .72rem; overflow-wrap: anywhere; }
 .ls-checkbox-group-field__copy small { grid-column: 1 / -1; color: var(--muted-ink); font-size: .75rem; line-height: 1.45; overflow-wrap: anywhere; }
-.ls-checkbox-group-field__reason { color: color-mix(in oklch, var(--warning), black 35%) !important; }
+.ls-checkbox-group-field__option--explainable-disabled { opacity: .5; cursor: not-allowed; }
 .ls-checkbox-group-field__error,
 .ls-checkbox-group-field__hint { margin: .45rem 0 0; font-size: .8125rem; }
 .ls-checkbox-group-field__hint { color: var(--muted-ink); }

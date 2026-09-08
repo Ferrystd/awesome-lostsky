@@ -30,10 +30,20 @@ function accountIdentityUrl() {
   return accountDevelopmentUrl('/identity') || '//account.lostsky.work/identity'
 }
 
+function accountWorkspaceWarningUrl() {
+  return accountDevelopmentUrl('/identity/workspace-warning') || '//account.lostsky.work/identity/workspace-warning'
+}
+
 export interface LoginRedirectOptions {
   redirect?: string
   expired?: boolean
   replace?: boolean
+}
+
+export interface WorkspaceEntrySnapshot {
+  team?: { slug?: string | null } | null
+  identity?: { belongs_to_team?: boolean; is_external?: boolean } | null
+  entry_warning?: { required?: boolean; kind?: string | null; ttl_seconds?: number } | null
 }
 
 export function safeRedirect(value: unknown, fallback = '/teams') {
@@ -164,6 +174,29 @@ export function identityUrl(redirect = location.href, targetSlug = '') {
   if (/^[a-z0-9][a-z0-9_-]{0,49}$/.test(targetSlug)) query.set('target', targetSlug)
   const base = accountIdentityUrl()
   return query.size ? `${base}?${query}` : base
+}
+
+export function workspaceWarningUrl(teamSlug: string, redirect = location.href) {
+  const query = new URLSearchParams({ team_slug: teamSlug })
+  const target = safeRedirect(redirect, '')
+  if (target) query.set('redirect', target)
+  return `${accountWorkspaceWarningUrl()}?${query}`
+}
+
+export function redirectToWorkspaceWarning(access: WorkspaceEntrySnapshot, redirect = location.href) {
+  const teamSlug = String(access.team?.slug ?? '')
+  if (!access.identity?.is_external || !access.entry_warning?.required || !teamSlug) return false
+  location.replace(workspaceWarningUrl(teamSlug, redirect))
+  return true
+}
+
+export function redirectWorkspaceRoleError(error: unknown, redirect = location.href) {
+  if (!error || typeof error !== 'object' || Reflect.get(error, 'code') !== 40304) return false
+  const data = Reflect.get(error, 'data')
+  const teamSlug = data && typeof data === 'object' ? Reflect.get(data, 'team_slug') : ''
+  if (typeof teamSlug !== 'string' || !teamSlug) return false
+  location.replace(workspaceWarningUrl(teamSlug, redirect))
+  return true
 }
 
 export function memberIdentityCallbackUrl(teamSlug: string, reason: EntityCallbackReason) {

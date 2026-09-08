@@ -8,8 +8,10 @@ import { NForm, NFormItem, NInput, NInputNumber } from 'naive-ui'
 import { reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 const router = useRouter()
+const routeAccess = useRouteAccess()
 const form = reactive({ role_key: '', name: '', description: '', sort: 0, is_displayed: false })
 const save = useMutation({
   mutationFn: () => api.post<{ id?: number }>('/role/add', {
@@ -23,6 +25,7 @@ const save = useMutation({
 })
 
 function submit() {
+  if (routeAccess.restricted.value) return
   if (!form.role_key.trim() || !form.name.trim()) return
   save.mutate()
 }
@@ -47,10 +50,10 @@ function submit() {
           <template #feedback>数字越小越靠前。</template>
         </NFormItem>
         <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开实体资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟实体（Virtual Entity）会展示角色名称和说明；角色权限不会公开。" />
-        <p v-if="save.isError.value" class="error" role="alert">{{ friendlyError(save.error.value) }}</p>
+        <p v-if="save.isError.value && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(save.error.value) }}</p>
         <footer>
           <LsButton variant="secondary" @click="router.push('/roles')">取消</LsButton>
-          <LsButton type="submit" :loading="save.isPending.value" :disabled="!form.role_key.trim() || !form.name.trim()">
+          <LsButton type="submit" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || !form.role_key.trim() || !form.name.trim()" :disabled-reason="routeAccess.reason.value">
             <template #icon><Check :size="17" /></template>创建角色
           </LsButton>
         </footer>

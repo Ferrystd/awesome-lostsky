@@ -13,22 +13,24 @@ import { NCheckbox, NEmpty, NInput, NModal } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 interface Task { id?: number; title: string; description?: string | null; is_passed?: 0 | 1; sort?: number }
 const route = useRoute()
 const client = useQueryClient()
+const routeAccess = useRouteAccess()
 const reviewId = computed(() => Number(route.query.id || 0))
 const tasks = ref<Task[]>([])
 const rejectOpen = ref(false)
 const rejectMemo = ref('')
-const detailQuery = useQuery({ queryKey: computed(() => ['join-review', reviewId.value]), queryFn: () => api.get<Record<string, unknown>>('/joinReview/get', { id: reviewId.value }), enabled: computed(() => reviewId.value > 0) })
+const detailQuery = useQuery({ queryKey: computed(() => ['join-review', reviewId.value]), queryFn: () => routeAccess.read(() => api.get<Record<string, unknown>>('/joinReview/get', { id: reviewId.value })), enabled: computed(() => reviewId.value > 0 && !routeAccess.restricted.value) })
 const detail = computed(() => detailQuery.data.value)
 watch(detail, (value) => { tasks.value = Array.isArray(value?.tasks) ? (value.tasks as Task[]).map((item) => ({ ...item })) : [] }, { immediate: true })
 const action = useMutation({
   mutationFn: ({ path, body }: { path: string; body: Record<string, unknown> }) => api.post(path, body),
   onSuccess: async () => { await client.invalidateQueries({ queryKey: ['join-reviews'] }); await detailQuery.refetch() },
 })
-function run(path: string, extra: Record<string, unknown> = {}) { if (reviewId.value) action.mutate({ path, body: { id: reviewId.value, ...extra } }) }
+function run(path: string, extra: Record<string, unknown> = {}) { if (!routeAccess.restricted.value && reviewId.value) action.mutate({ path, body: { id: reviewId.value, ...extra } }) }
 function reject() { rejectMemo.value = ''; rejectOpen.value = true }
 function submitReject() { const memo = rejectMemo.value.trim(); if (!memo) return; run('/joinReview/reject', { memo }); rejectOpen.value = false }
 function addTask() { tasks.value.push({ title: '', description: '', is_passed: 0, sort: tasks.value.length }) }
@@ -44,13 +46,13 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
         <template v-if="detail" #actions><LsStatusTag :label="String(detail.purpose_label || '加入')" type="info" /><LsStatusTag :label="String(detail.status_label || detail.status)" :type="statusType(detail.status_label || detail.status)" /></template>
       </AdminPageHeader>
       <LsInlineError v-if="!reviewId" message="缺少有效的申请编号，请返回列表重新选择。" />
-      <LsAsyncState v-else-if="detailQuery.isError.value" state="error" title="暂时无法读取加入申请" :description="friendlyError(detailQuery.error.value)" />
-      <LsAsyncState v-else-if="detailQuery.isPending.value" state="loading" :rows="6" />
-      <template v-else-if="detail">
-        <LsPanel><section class="summary"><div><small>申请人</small><h3>{{ (detail.user as Record<string, unknown> | undefined)?.name || `用户 #${detail.user_id}` }}</h3><p>{{ detail.memo || '没有补充说明' }}</p></div></section></LsPanel>
-        <LsPanel><section><LsSectionHeader title="申请资料" :heading-level="3" /><LsDescriptionList v-if="(detail.values as unknown[] | undefined)?.length"><template v-for="value in (detail.values as Record<string, unknown>[] ?? [])" :key="String(value.id)"><dt>{{ (value.field as Record<string, unknown> | undefined)?.name || `字段 #${value.field_id}` }}</dt><dd>{{ valueText(value) }}</dd></template></LsDescriptionList><NEmpty v-else description="没有申请字段值" size="small" /></section></LsPanel>
+      <LsAsyncState v-else-if="detailQuery.isError.value && !routeAccess.restricted.value" state="error" title="暂时无法读取加入申请" :description="friendlyError(detailQuery.error.value)" />
+      <LsAsyncState v-else-if="detailQuery.isPending.value && !routeAccess.restricted.value" state="loading" :rows="6" />
+      <template v-else-if="detail || routeAccess.restricted.value">
+        <LsPanel><section class="summary"><div><small>申请人</small><h3>{{ routeAccess.restricted.value ? '-' : (detail?.user as Record<string, unknown> | undefined)?.name || `用户 #${detail?.user_id}` }}</h3><p>{{ routeAccess.restricted.value ? '-' : detail?.memo || '没有补充说明' }}</p></div></section></LsPanel>
+        <LsPanel><section><LsSectionHeader title="申请资料" :heading-level="3" /><LsDescriptionList v-if="routeAccess.restricted.value"><dt>申请资料</dt><dd>-</dd></LsDescriptionList><LsDescriptionList v-else-if="(detail?.values as unknown[] | undefined)?.length"><template v-for="value in (detail?.values as Record<string, unknown>[] ?? [])" :key="String(value.id)"><dt>{{ (value.field as Record<string, unknown> | undefined)?.name || `字段 #${value.field_id}` }}</dt><dd>{{ valueText(value) }}</dd></template></LsDescriptionList><NEmpty v-else description="没有申请字段值" size="small" /></section></LsPanel>
         <LsPanel><section class="task-section">
-          <LsSectionHeader title="审核任务" description="记录加入前需要完成的事项。" :heading-level="3"><template #aside><LsButton variant="secondary" @click="addTask"><template #icon><Plus :size="16" /></template>添加任务</LsButton></template></LsSectionHeader>
+          <LsSectionHeader title="审核任务" description="记录加入前需要完成的事项。" :heading-level="3"><template #aside><LsButton variant="secondary" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" @click="addTask"><template #icon><Plus :size="16" /></template>添加任务</LsButton></template></LsSectionHeader>
           <div v-if="tasks.length" class="tasks">
             <article v-for="(task, index) in tasks" :key="task.id ?? index">
               <span class="task-index">任务 {{ String(index + 1).padStart(2, '0') }}</span>
@@ -58,13 +60,13 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
               <label><span>任务说明</span><NInput v-model:value="task.description" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" placeholder="补充验收标准或负责人" /></label>
               <div class="task-actions"><NCheckbox :checked="task.is_passed === 1" @update:checked="toggleTask(task, $event)">已完成</NCheckbox><LsButton variant="ghost" @click="tasks.splice(index, 1)"><template #icon><X :size="17" /></template>移除</LsButton></div>
             </article>
-            <div class="save-row"><LsButton :loading="action.isPending.value" @click="saveTasks">保存任务</LsButton></div>
+            <div class="save-row"><LsButton :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="action.isPending.value" @click="saveTasks">保存任务</LsButton></div>
           </div>
           <NEmpty v-else description="暂无审核任务，按需添加" size="small" />
         </section></LsPanel>
-        <LsPanel v-if="['applied', 'reviewing', '已申请', '审核中'].includes(String(detail.status_code || detail.status))"><section><LsSectionHeader title="审核决定" description="确认资料与任务后处理本次申请。" :heading-level="3"><template #aside><div class="decision-actions"><LsButton v-if="['applied', '已申请'].includes(String(detail.status_code || detail.status))" variant="secondary" :loading="action.isPending.value" @click="run('/joinReview/review')">进入审核</LsButton><LsButton :loading="action.isPending.value" @click="run('/joinReview/approve')"><template #icon><Check :size="17" /></template>同意{{ detail.purpose_label || '加入' }}</LsButton><LsButton variant="danger" :loading="action.isPending.value" @click="reject">拒绝申请</LsButton></div></template></LsSectionHeader></section></LsPanel>
+        <LsPanel v-if="routeAccess.restricted.value || ['applied', 'reviewing', '已申请', '审核中'].includes(String(detail?.status_code || detail?.status))"><section><LsSectionHeader title="审核决定" description="确认资料与任务后处理本次申请。" :heading-level="3"><template #aside><div class="decision-actions"><LsButton v-if="routeAccess.restricted.value || ['applied', '已申请'].includes(String(detail?.status_code || detail?.status))" variant="secondary" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="action.isPending.value" @click="run('/joinReview/review')">进入审核</LsButton><LsButton :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="action.isPending.value" @click="run('/joinReview/approve')"><template #icon><Check :size="17" /></template>同意{{ detail?.purpose_label || '加入' }}</LsButton><LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="action.isPending.value" @click="reject">拒绝申请</LsButton></div></template></LsSectionHeader></section></LsPanel>
       </template>
-      <LsInlineError v-if="action.isError.value" :message="friendlyError(action.error.value)" />
+      <LsInlineError v-if="action.isError.value && !routeAccess.restricted.value" :message="friendlyError(action.error.value)" />
       <NModal v-model:show="rejectOpen" preset="card" title="拒绝加入申请" :style="{ width: 'min(92vw, 30rem)' }">
         <p class="modal-copy">请填写拒绝原因。该内容会用于审核记录，并帮助申请人理解结果。</p>
         <NInput v-model:value="rejectMemo" aria-label="拒绝原因" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" maxlength="300" show-count placeholder="请输入具体、可理解的拒绝原因" @keydown.ctrl.enter="submitReject" />

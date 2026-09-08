@@ -15,7 +15,7 @@ class Member
         'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
         'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
-        'TeamAuth'     => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
+        'TeamWorkspaceAuth' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
         'MemberAccess' => ['only' => ['add', 'edit', 'block', 'unblock', 'slug', 'search']],
         'Permission:' . Permissions::TEAM_MEMBER_INVITE => ['only' => ['add']],
         'Permission:' . Permissions::TEAM_MEMBER_UPDATE => ['only' => ['edit', 'block', 'unblock', 'slug', 'search']],

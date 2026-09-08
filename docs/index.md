@@ -7,6 +7,8 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 
 `docs/` 是 LostSky 所有项目文档的唯一正文来源。`docs.lostsky.work` 发布完整项目文档；`doc.lostsky.work` 复用 `manual/` 内容，只发布面向用户的使用指南。
 
+`manual/` 是人工编写的用户侧文档；其余是 AI 维护的开发侧文档。AI 可只读参考手册并反馈差异，不自动改写或双向同步。具体分工与核验流程见[文档管理与发布](development/wiki.md)。
+
 ## 项目
 
 - [产品定义](product.md)
@@ -20,7 +22,8 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 
 ## 参考
 
-- [术语索引](manual/glossary/index.md)
+- [开发术语索引](glossary/index.md)
+- [用户术语索引](manual/glossary/index.md)
 - [应用边界](overview.md)
 - [架构说明](architecture/routing.md)
 - [OpenAPI](openapi/README.md)
@@ -36,7 +39,7 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 - [组件代码预览](development/component-previews.md)
 - [测试须知](development/testing.md)
 - [发布须知](development/releasing.md)
-- [公开文档维护](development/wiki.md)
+- [文档管理与发布](development/wiki.md)
 
 ## 运维
 
@@ -50,5 +53,3 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 - [当前待办](TODO.md)
 - [Markdown 编辑器 AI 能力](plans/markdown-ai.md)
 - [卡密、订阅与资产交易](plans/trade.md)
-- [混合服务分项计价与独立加价核销](plans/service-fulfillment-expansion.md)
-- [微博机器人](plans/weibo-bot.md)

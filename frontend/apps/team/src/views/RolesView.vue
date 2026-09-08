@@ -4,6 +4,7 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { ArrowRight, Plus, UserRoundCog } from '@lucide/vue'
 import { NSkeleton } from 'naive-ui'
@@ -18,9 +19,11 @@ interface RoleRecord {
   is_displayed?: number
 }
 
+const routeAccess = useRouteAccess()
 const query = useQuery({
   queryKey: ['roles'],
   queryFn: () => api.get<RoleRecord[]>('/role/index'),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const roles = computed(() => query.data.value ?? [])
 const search = ref('')
@@ -35,13 +38,13 @@ const filtered = computed(() => { const keyword = search.value.trim().toLocaleLo
           <LsPagePrimaryAction :icon="Plus" label="新建角色" to="/roles/new" />
         </template>
       </AdminPageHeader>
-      <LsListToolbar v-model="search" placeholder="搜索角色名称或标识" aria-label="搜索角色" :count-label="`${filtered.length} 个角色`" />
+      <LsListToolbar v-model="search" placeholder="搜索角色名称或标识" aria-label="搜索角色" :count-label="routeAccess.restricted.value ? '0 个角色' : `${filtered.length} 个角色`" />
 
-      <p v-if="query.isError.value" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
-      <section v-else-if="query.isPending.value" class="loading" aria-label="正在加载角色">
+      <p v-if="!routeAccess.restricted.value && query.isError.value" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
+      <section v-else-if="!routeAccess.restricted.value && query.isPending.value" class="loading" aria-label="正在加载角色">
         <div v-for="index in 4" :key="index"><NSkeleton text width="34%" /><NSkeleton text width="58%" /></div>
       </section>
-      <LsEmptyState v-else-if="!filtered.length" title="还没有角色" description="先创建角色，再为它选择完成工作所需的最小权限。" />
+      <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !filtered.length" :title="routeAccess.restricted.value ? '没有可显示的角色' : '还没有角色'" description="先创建角色，再为它选择完成工作所需的最小权限。" />
       <section v-else class="role-list" aria-label="角色列表">
         <RouterLink v-for="role in filtered" :key="role.id" :to="`/roles/${role.id}`">
           <div>

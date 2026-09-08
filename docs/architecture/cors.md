@@ -8,7 +8,7 @@
 
 - 允许来源由 `config/cors.php` 配置。
 - `allowed_headers` 为 `*`；预检响应会回显 `Access-Control-Request-Headers`。
-- CORS 位于全局中间件链首部，预检请求进入应用前返回。
+- CORS 位于 `RequestLog` 之后、`AppResolver` 之前，预检请求进入应用前返回。
 - `app\ExceptionHandle` 也为异常响应补充 CORS 头。
 
 ### 故障定位
@@ -28,12 +28,4 @@ Vite 开发服务器默认代理到 `http://api.lostsky.work`。本地 hosts 将
 
 ## 静态资源
 
-在 `assets.lostsky.work`配置增加：
-
-```ini
-add_header Access-Control-Allow-Origin "*" always;
-add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS" always;
-add_header Access-Control-Allow-Headers "Range, If-None-Match, If-Modified-Since" always;
-add_header Access-Control-Expose-Headers "Content-Length, Content-Range, ETag" always;
-add_header Cross-Origin-Resource-Policy "cross-origin" always;
-```
+静态资源由 Nginx 返回跨域响应头，不经过 API 中间件。配置、预检和验收命令统一见[静态资源 CORS](../operations/assets-cors.md)，不要将资源站规则复制到 API 站点。

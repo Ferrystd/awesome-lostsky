@@ -3,5 +3,19 @@
     "allow": [
       "Bash(npm install *)"
     ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "STAMP=tmp/.wiki-build.stamp; if [ ! -f \"$STAMP\" ] || find docs zensical.toml zensical.guide.toml -newer \"$STAMP\" -print -quit 2>/dev/null | grep -q .; then node frontend/scripts/wiki.mjs build && touch \"$STAMP\"; fi",
+            "timeout": 300,
+            "statusMessage": "检测到文档变更，正在编译文档站点…"
+          }
+        ]
+      }
+    ]
   }
 }

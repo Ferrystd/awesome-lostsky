@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
-import { formatPermissionDenied } from '@lostsky/api/error-format'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
@@ -15,7 +14,6 @@ import { NPagination } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { computed, h, reactive } from 'vue'
 import { dateTime } from '../lib'
-import { hasWorkspacePermission, loadWorkspaceAccess } from '../lib/workspace-access'
 import type { Pagination, PersonalEntitlementGrantRecord } from '../types'
 
 const filters = reactive({ keyword: '', page: 1, limit: 20 })
@@ -28,16 +26,8 @@ const query = useQuery({
   queryKey: computed(() => ['personal-entitlements', params.value]),
   queryFn: () => api.get<Pagination<PersonalEntitlementGrantRecord>>('/personal/entitlements', params.value),
 })
-const access = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: () => loadWorkspaceAccess() })
 const rows = computed(() => query.data.value?.list ?? [])
 const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / filters.limit)))
-const grantReason = computed(() => {
-  if (access.isPending.value) return '正在核对权限：service.entitlement.grant'
-  if (access.isError.value) return friendlyError(access.error.value)
-  return hasWorkspacePermission(access.data.value?.permissions ?? [], 'service.entitlement.grant')
-    ? ''
-    : formatPermissionDenied(['service.entitlement.grant'])
-})
 
 function quantity(value: string, unit: string) {
   return `${value.replace(/\.?0+$/, '') || '0'} ${unit || '次'}`
@@ -47,9 +37,8 @@ function status(row: PersonalEntitlementGrantRecord) {
   if (row.is_exhausted) return { label: '已用完', type: 'default' as const }
   return { label: '可使用', type: 'success' as const }
 }
-
 const columns: DataTableColumns<PersonalEntitlementGrantRecord> = [
-  { title: '权益 / 商品', key: 'service', render: row => h('span', { class: 'entitlement-cell' }, [h('strong', row.service.name || `权益 #${row.id}`), h('small', row.product.name || '服务套餐')]) },
+  { title: '权益 / 商品', key: 'service', render: row => h('span', { class: 'entitlement-cell' }, [h('strong', row.service.name || `权益 #${row.id}`), h('small', row.product.name || '权益套餐')]) },
   { title: '顾客', key: 'customer', render: row => h(LsEntityIdentity, { type: 'customer', name: row.customer.name || `顾客 #${row.customer.id}`, imageUrl: row.customer.avatar ?? null, size: 'sm' }) },
   { title: '额度', key: 'quantity', render: row => h('span', { class: 'entitlement-cell ls-tabular' }, [h('strong', quantity(row.granted_quantity, row.unit_name)), h('small', `剩余 ${quantity(row.available_quantity, row.unit_name)}`)]) },
   { title: '状态', key: 'status', render: row => h(LsStatusTag, status(row)) },
@@ -59,9 +48,9 @@ const columns: DataTableColumns<PersonalEntitlementGrantRecord> = [
 
 <template>
   <div class="personal-entitlements-view">
-    <LsPageHeader title="权益下发" description="查看当前实体（Entity）直接下发给顾客的全部服务权益；每项记录均按本人发单身份固定归档。">
+    <LsPageHeader title="权益下发" description="查看当前实体（Entity）直接下发给顾客的全部权益；每项记录均按本人发单身份固定归档。">
       <template #actions>
-        <LsPagePrimaryAction :icon="Gift" label="下发权益" to="/personal/entitlements/new" :disabled="Boolean(grantReason)" :disabled-reason="grantReason" />
+        <LsPagePrimaryAction :icon="Gift" label="下发权益" to="/personal/entitlements/new" />
       </template>
     </LsPageHeader>
 
@@ -75,17 +64,17 @@ const columns: DataTableColumns<PersonalEntitlementGrantRecord> = [
 
     <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取下发记录" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
-    <LsEmptyState
+    <LsEmptyState :source="query.data.value"
       v-else-if="!rows.length"
       :title="filters.keyword ? '没有匹配的下发记录' : '还没有下发权益'"
-      :description="filters.keyword ? '调整搜索关键词后再试。' : '获得下发权限（Permission）后，可通过页面右上角为自己接待的顾客下发权益。'"
+      :description="filters.keyword ? '调整搜索关键词后再试。' : '下发的顾客权益会显示在这里。'"
     />
     <LsResponsiveDataTable v-else :columns="columns" :data="rows" :row-key="row => Number(row.id)" :scroll-x="900">
       <template #mobile-title="{ row }">{{ row.service.name || `权益 #${row.id}` }}</template>
       <template #mobile-status="{ row }"><LsStatusTag v-bind="status(row)" /></template>
       <template #mobile="{ row }">
         <dl>
-          <dt>来源商品</dt><dd>{{ row.product.name || '服务套餐' }}</dd>
+          <dt>来源商品</dt><dd>{{ row.product.name || '权益套餐' }}</dd>
           <dt>顾客</dt><dd>{{ row.customer.name || `顾客 #${row.customer.id}` }}</dd>
           <dt>下发额度</dt><dd class="ls-tabular">{{ quantity(row.granted_quantity, row.unit_name) }}</dd>
           <dt>剩余额度</dt><dd class="ls-tabular">{{ quantity(row.available_quantity, row.unit_name) }}</dd>

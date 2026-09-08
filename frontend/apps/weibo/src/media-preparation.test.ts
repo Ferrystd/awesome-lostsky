@@ -7,7 +7,7 @@ describe('微博图片准备', () => {
   it('复用上传原语并提供完整的选择、状态和错误反馈', () => {
     expect(source).toContain("import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'")
     expect(source).toContain('button-label="uploadLabel"')
-    expect(source).toContain('show-reason')
+    expect(source).not.toContain('show-reason')
     expect(source).toContain('LsInlineError v-if="uploadError"')
     expect(source).toContain('aria-live="polite"')
     expect(source).not.toContain('<NUpload')

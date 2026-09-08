@@ -19,8 +19,8 @@
 - 只写已经完成且用户或运维者可观察的结果；纯内部重构、测试、文件清单和开发过程不单独成条，除非影响兼容性、安全、迁移或部署。
 - 同一用户目标及其后续调整合并为一条，只保留最终结果；一次任务原则上新增一条，确有互不相关的结果才拆分。
 - 每条只写一个句子，先写结果，再补必要边界；正文原则上不超过 60 个汉字，必要的命令、版本和公开标识不计入。
-- 每个版本原则上保留最高 15 条；超过 15 条时先按用户目标合并，并将实现细节移入提交、手册或专题文档。
-- 不罗列文件、类、接口或测试数量；实现细节归入提交、使用手册、OpenAPI 或对应专题文档。
+- 每个版本原则上保留最高 15 条；超过 15 条时先按用户目标合并，并将实现细节移入提交或开发专题文档。
+- 不罗列文件、类、接口或测试数量；实现细节归入提交、OpenAPI 或开发专题文档。用户手册由人工维护，AI 只报告待更新差异，见[文档维护归属](wiki.md)。
 - 发布前合并重复项并删除中间过程，只按最终性质归入“新增”“变更”或“修复”。
 
 ## 发布前
@@ -50,7 +50,7 @@ git diff --check
 1. 审查并提交完整发布源码、文档和受跟踪生成物；不提交 `www/` 可再生产物。
 2. 产品版本发布创建 `git tag -a vX.Y.Z -m "LostSky vX.Y.Z"`；预发布创建 `git tag -a vX.Y.Z-stage.N -m "LostSky vX.Y.Z-stage.N"`；构建发布创建 `git tag -a build-YYYYMMDD.N -m "LostSky build YYYYMMDD.N (product vX.Y.Z)"`。
 3. 推送提交和本次唯一标签，核对远端标签的 peeled commit 与分支目标。
-4. 发布机检出该不可变标签，依次执行 `npm ci`、`npm run docs:setup`、`npm run build`、`npm run build:docs`，确认完整 `www/` 后再备份数据库、应用补丁并使用 `composer install` 安装锁定依赖。
+4. 发布机在独立目录检出该不可变标签，先运行 `composer install --no-dev --prefer-dist --no-interaction` 安装锁定 PHP 依赖，再执行 `npm ci`、`npm run docs:setup`、`npm run build`、`npm run build:docs`；文档构建会调用 PHP 的 Service 字典检查，不能放在 Composer 安装之前。确认完整 `www/` 后，按[部署指南](../operations/deployment.md)备份数据库、应用适用的增量补丁、切换发布目录并重启后台进程。
 5. 记录标签、commit SHA、环境、时间、执行人和结果，再检查 API、登录、团队解析、前端资源、数据库结构和后台任务。
 
 Git 推送只同步版本，不代替服务器部署。宝塔/Nginx、CDN 缓存和静态资源响应头按运维文档单独应用并验证。

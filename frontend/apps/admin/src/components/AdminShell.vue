@@ -12,7 +12,7 @@ import {
 import { NButton, NModal } from 'naive-ui'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { adminSession, can } from '../session'
+import { adminSession } from '../session'
 import type { TeamSummary, UserSummary } from '../types'
 
 const route = useRoute()
@@ -24,19 +24,18 @@ const searching = ref(false)
 const results = ref<{ users: UserSummary[]; teams: TeamSummary[] }>({ users: [], teams: [] })
 let timer = 0
 
-interface NavItem { to: string; label: string; icon: typeof Gauge; permission: string }
+interface NavItem { to: string; label: string; icon: typeof Gauge }
 const nav: NavItem[] = [
-  { to: '/', label: '平台总览', icon: Gauge, permission: 'admin.dashboard.read' },
-  { to: '/users', label: '用户', icon: Users, permission: 'admin.user.read' },
-  { to: '/teams', label: '团队', icon: ShieldCheck, permission: 'admin.team.read' },
-  { to: '/administrators', label: '平台管理员', icon: UserRoundCog, permission: 'admin.access.read' },
-  { to: '/roles', label: '平台角色', icon: Command, permission: 'admin.access.read' },
-  { to: '/audit', label: '审计日志', icon: FileClock, permission: 'admin.audit.read' },
-  { to: '/system', label: '系统状态', icon: Activity, permission: 'admin.system.read' },
-  { to: '/entitlements/team-abilities', label: '团队能力', icon: ShieldPlus, permission: 'admin.team.ability.write' },
-  { to: '/entitlements/packages', label: '平台权益', icon: KeyRound, permission: 'admin.entitlement.read' },
+  { to: '/', label: '平台总览', icon: Gauge },
+  { to: '/users', label: '用户', icon: Users },
+  { to: '/teams', label: '团队', icon: ShieldCheck },
+  { to: '/administrators', label: '平台管理员', icon: UserRoundCog },
+  { to: '/roles', label: '平台角色', icon: Command },
+  { to: '/audit', label: '审计日志', icon: FileClock },
+  { to: '/system', label: '系统状态', icon: Activity },
+  { to: '/entitlements/team-abilities', label: '团队能力', icon: ShieldPlus },
+  { to: '/entitlements/packages', label: '平台权益', icon: KeyRound },
 ]
-const visibleNav = computed(() => nav.filter((item) => can(item.permission)))
 const title = computed(() => String(route.meta.title ?? '平台管理'))
 
 watch(search, (value) => {
@@ -88,11 +87,11 @@ onBeforeUnmount(() => {
       <NButton class="sidebar-search" quaternary @click="commandOpen=true"><template #icon><Search :size="17" /></template><span>搜索平台资源</span><kbd>⌘ K</kbd></NButton>
       <nav>
         <p>平台资源</p>
-        <RouterLink v-for="item in visibleNav.slice(0,3)" :key="item.to" :to="item.to" @click="drawer=false">
+        <RouterLink v-for="item in nav.slice(0,3)" :key="item.to" :to="item.to" @click="drawer=false">
           <component :is="item.icon" :size="18" /><span>{{ item.label }}</span><ChevronRight :size="14" />
         </RouterLink>
-        <p v-if="visibleNav.length>3">治理与安全</p>
-        <RouterLink v-for="item in visibleNav.slice(3)" :key="item.to" :to="item.to" @click="drawer=false">
+        <p v-if="nav.length>3">治理与安全</p>
+        <RouterLink v-for="item in nav.slice(3)" :key="item.to" :to="item.to" @click="drawer=false">
           <component :is="item.icon" :size="18" /><span>{{ item.label }}</span><ChevronRight :size="14" />
         </RouterLink>
       </nav>

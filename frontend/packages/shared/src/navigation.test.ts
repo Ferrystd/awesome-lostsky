@@ -3,12 +3,15 @@ import {
   chatWorkspaceUrl,
   loginUrl,
   memberIdentityCallbackUrl,
+  redirectToWorkspaceWarning,
+  redirectWorkspaceRoleError,
   redirectToLogin,
   safeRedirect,
   shopWorkspaceUrl,
   teamWorkspaceUrl,
   teamScopedAppUrl,
   transactionWorkspaceUrl,
+  workspaceWarningUrl,
 } from './navigation'
 
 afterEach(() => {
@@ -127,6 +130,29 @@ describe('safeRedirect', () => {
 
     const target = new URL(memberIdentityCallbackUrl('demo', 'missing'), 'https://account.lostsky.work')
     expect(target.searchParams.has('return_to')).toBe(false)
+  })
+
+  it('builds the shared Account warning URL with a safe workspace return', () => {
+    const href = 'https://demo.weibo.lostsky.work/tasks/8'
+    vi.stubGlobal('location', { href })
+
+    const target = new URL(workspaceWarningUrl('demo'), 'https://account.lostsky.work')
+    expect(target.pathname).toBe('/identity/workspace-warning')
+    expect(target.searchParams.get('team_slug')).toBe('demo')
+    expect(target.searchParams.get('redirect')).toBe(href)
+  })
+
+  it('redirects only required external warning snapshots and structured role errors', () => {
+    const replace = vi.fn()
+    vi.stubGlobal('location', { href: 'https://demo.team.lostsky.work/', replace })
+
+    expect(redirectToWorkspaceWarning({
+      team: { slug: 'demo' },
+      identity: { belongs_to_team: false, is_external: true },
+      entry_warning: { required: true, kind: 'external_entity', ttl_seconds: 86400 },
+    })).toBe(true)
+    expect(redirectWorkspaceRoleError({ code: 40304, data: { kind: 'team_workspace_role', team_slug: 'demo' } })).toBe(true)
+    expect(replace).toHaveBeenCalledTimes(2)
   })
 })
 

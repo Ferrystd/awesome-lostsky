@@ -7,6 +7,7 @@ import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { CircleDollarSign } from '@lucide/vue'
 import { NPagination } from 'naive-ui'
@@ -17,14 +18,15 @@ import { balanceLogType, customerName, dateTime, money } from '../lib'
 import type { BalanceLog, Pagination, TransactionOptions } from '../types'
 
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const customerId = computed(() => Number(route.query.customer_id || 0))
 const page = ref(1)
-const options = useQuery({ queryKey: ['transaction-options'], queryFn: () => api.get<TransactionOptions>('/transaction/options') })
+const options = useQuery({ queryKey: ['transaction-options'], queryFn: () => api.get<TransactionOptions>('/transaction/options'), enabled: computed(() => !routeAccess.restricted.value) })
 const customer = computed(() => (options.data.value?.customers ?? []).find(item => Number(item.id) === customerId.value))
 const query = useQuery({
   queryKey: computed(() => ['balance-logs', customerId.value, page.value]),
   queryFn: () => api.get<Pagination<BalanceLog>>('/transaction/balance/logs', { customer_id: customerId.value, page: page.value, limit: 20 }),
-  enabled: computed(() => customerId.value > 0),
+  enabled: computed(() => customerId.value > 0 && !routeAccess.restricted.value),
 })
 const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / 20)))
 const columns: DataTableColumns<BalanceLog> = [
@@ -38,14 +40,14 @@ const columns: DataTableColumns<BalanceLog> = [
 
 <template>
   <div class="balance-logs-view">
-    <LsPageHeader :title="`${customerName(customer, customerId)}的余额明细`" description="按发生时间查看充值、消费、退款和手动调整。" back-to="/balances" back-label="返回顾客余额">
+    <LsPageHeader :title="routeAccess.restricted.value ? '顾客余额明细' : `${customerName(customer, customerId)}的余额明细`" description="按发生时间查看充值、消费、退款和手动调整。" back-to="/balances" back-label="返回顾客余额">
       <template #actions><LsPagePrimaryAction :icon="CircleDollarSign" label="为该顾客充值" :to="`/recharge?customer_id=${customerId}`" /></template>
     </LsPageHeader>
-    <LsPanel v-if="customer"><section class="balance-summary"><span>当前可用余额</span><strong class="ls-tabular">{{ money(customer.balance?.balance) }}</strong><small>累计充值 {{ money(customer.balance?.recharged) }} · 累计消费 {{ money(customer.balance?.spent) }}</small></section></LsPanel>
-    <LsInlineError v-if="!customerId" message="缺少顾客 ID。" />
-    <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取余额明细" :description="friendlyError(query.error.value)" />
-    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
-    <LsEmptyState v-else-if="!query.data.value?.list.length" title="还没有余额变动" description="充值或使用预存款后，记录会出现在这里。" />
+    <LsPanel v-if="customer || routeAccess.restricted.value"><section class="balance-summary"><span>当前可用余额</span><strong class="ls-tabular">{{ routeAccess.restricted.value ? '-' : money(customer?.balance?.balance) }}</strong><small>{{ routeAccess.restricted.value ? '累计充值 - · 累计消费 -' : `累计充值 ${money(customer?.balance?.recharged)} · 累计消费 ${money(customer?.balance?.spent)}` }}</small></section></LsPanel>
+    <LsInlineError v-if="!customerId && !routeAccess.restricted.value" message="缺少顾客 ID。" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取余额明细" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
+    <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !query.data.value?.list.length" :title="routeAccess.restricted.value ? '没有可显示的余额变动' : '还没有余额变动'" description="充值或使用预存款后，记录会出现在这里。" />
     <LsResponsiveDataTable v-else :columns="columns" :data="query.data.value.list" :row-key="row => Number(row.id)" :scroll-x="700">
       <template #mobile-title="{ row }">{{ dateTime(row.create_time) }} · {{ balanceLogType(row.type) }}</template>
       <template #mobile="{ row }">

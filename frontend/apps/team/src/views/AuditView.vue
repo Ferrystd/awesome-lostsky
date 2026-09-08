@@ -5,6 +5,7 @@ import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { NDatePicker, NPagination, NSelect } from 'naive-ui'
 import type { DataTableColumns, SelectOption } from 'naive-ui'
@@ -27,10 +28,12 @@ const filters = reactive({
   limit: 20,
 })
 const showAdvanced = ref(false)
+const routeAccess = useRouteAccess()
 const advancedFilterCount = computed(() => [filters.action, filters.resource_type, filters.period].filter(Boolean).length)
 const catalog = useQuery({
   queryKey: ['team-audit-catalog'],
   queryFn: () => api.get<AuditFilterCatalog>('/audit/catalog'),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const applicationOptions = computed(() => selectOptions(catalog.data.value?.applications ?? []))
 const actionOptions = computed(() => selectOptions(catalog.data.value?.actions ?? []))
@@ -48,6 +51,7 @@ const params = computed(() => ({
 const query = useQuery({
   queryKey: computed(() => ['team-audit', params.value]),
   queryFn: () => api.get<AuditPage>('/audit/index', params.value),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 watch(
   () => [filters.application, filters.action, filters.resource_type, filters.period],
@@ -71,7 +75,7 @@ const columns: DataTableColumns<AuditEventSummary> = [
 <template>
   <div class="audit-view">
     <AdminPageHeader title="审计日志" description="查看本团队内成功完成的管理操作；正文、凭据和联系方式不会写入审计上下文。" />
-    <LsListToolbar v-model="filters.q" class="audit-toolbar" placeholder="搜索执行人、动作、资源或请求 ID" aria-label="搜索审计日志" :count-label="`${query.data.value?.total ?? 0} 条事件`" @update:model-value="filters.page = 1">
+    <LsListToolbar v-model="filters.q" class="audit-toolbar" placeholder="搜索执行人、动作、资源或请求 ID" aria-label="搜索审计日志" :count-label="routeAccess.restricted.value ? '0 条事件' : `${query.data.value?.total ?? 0} 条事件`" @update:model-value="filters.page = 1">
       <template #filters>
         <NSelect v-model:value="filters.application" :options="applicationOptions" clearable placeholder="全部应用" />
       </template>
@@ -84,9 +88,9 @@ const columns: DataTableColumns<AuditEventSummary> = [
       <NSelect v-model:value="filters.resource_type" :options="resourceOptions" clearable filterable placeholder="全部资源" />
       <NDatePicker v-model:value="filters.period" class="period-filter" type="datetimerange" clearable aria-label="审计时间范围" />
     </section>
-    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取审计日志" :description="friendlyError(query.error.value)" />
-    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
-    <LsEmptyState v-else-if="!query.data.value?.list.length" title="没有匹配的审计事件" description="调整搜索条件或时间范围后再试。" />
+    <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取审计日志" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="6" />
+    <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !query.data.value?.list.length" title="没有可显示的审计事件" description="调整搜索条件或时间范围后再试。" />
     <LsResponsiveDataTable v-else :columns="columns" :data="query.data.value.list" :row-key="row => row.id" :scroll-x="980">
       <template #mobile-title="{ row: event }"><RouterLink :to="`/audit/${event.id}`">{{ event.resource_label }} · {{ event.action_label }}</RouterLink></template>
       <template #mobile-status="{ row: event }"><span>{{ event.application_label }}</span></template>

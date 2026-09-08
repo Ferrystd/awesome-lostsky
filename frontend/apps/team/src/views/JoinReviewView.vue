@@ -3,6 +3,7 @@ import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { ArrowRight } from '@lucide/vue'
 import { NSelect, NSkeleton } from 'naive-ui'
@@ -15,7 +16,8 @@ const statusOptions = [
 ]
 const status = ref('')
 const search = ref('')
-const listQuery = useQuery({ queryKey: computed(() => ['join-reviews', status.value]), queryFn: () => api.get<unknown>('/joinReview/index', { status: status.value }) })
+const routeAccess = useRouteAccess()
+const listQuery = useQuery({ queryKey: computed(() => ['join-reviews', status.value]), queryFn: () => api.get<unknown>('/joinReview/index', { status: status.value }), enabled: computed(() => !routeAccess.restricted.value) })
 const rows = computed<Record<string, unknown>[]>(() => {
   const data = listQuery.data.value
   if (Array.isArray(data)) return data
@@ -31,10 +33,10 @@ const visibleRows = computed(() => { const keyword = search.value.trim().toLocal
     <div class="join-review-list-page">
       <AdminPageHeader title="加入审核" description="查看申请状态，选择一条申请进入独立审核页面。">
       </AdminPageHeader>
-      <LsListToolbar v-model="search" placeholder="搜索申请人、编号或说明" aria-label="搜索加入申请" :count-label="`${visibleRows.length} 条申请`"><template #filters><NSelect v-model:value="status" class="status-filter" :options="statusOptions" aria-label="筛选申请状态" /></template></LsListToolbar>
-      <p v-if="listQuery.isError.value" class="error" role="alert">{{ friendlyError(listQuery.error.value) }}</p>
-      <div v-else-if="listQuery.isPending.value" class="loading" aria-label="正在读取申请"><NSkeleton v-for="item in 4" :key="item" height="88px" /></div>
-      <LsEmptyState v-else-if="!visibleRows.length" title="没有匹配的加入申请" description="调整搜索词或申请状态筛选后查看。" />
+      <LsListToolbar v-model="search" placeholder="搜索申请人、编号或说明" aria-label="搜索加入申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visibleRows.length} 条申请`"><template #filters><NSelect v-model:value="status" class="status-filter" :options="statusOptions" aria-label="筛选申请状态" /></template></LsListToolbar>
+      <p v-if="!routeAccess.restricted.value && listQuery.isError.value" class="error" role="alert">{{ friendlyError(listQuery.error.value) }}</p>
+      <div v-else-if="!routeAccess.restricted.value && listQuery.isPending.value" class="loading" aria-label="正在读取申请"><NSkeleton v-for="item in 4" :key="item" height="88px" /></div>
+      <LsEmptyState :source="listQuery.data.value" v-else-if="routeAccess.restricted.value || !visibleRows.length" :title="routeAccess.restricted.value ? '没有可显示的加入申请' : '没有匹配的加入申请'" description="调整搜索词或申请状态筛选后查看。" />
       <div v-else class="review-list" aria-label="加入申请列表">
         <RouterLink v-for="item in visibleRows" :key="String(item.id)" :to="{ path: '/join-review/review', query: { id: String(item.id ?? '') } }">
           <div class="identity"><strong>{{ applicant(item) }}</strong><small>{{ item.purpose_label || '加入' }}申请 #{{ item.id }}</small></div>

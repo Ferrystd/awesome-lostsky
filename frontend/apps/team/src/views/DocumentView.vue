@@ -9,6 +9,7 @@ import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { visibilityOptions } from '../lib/access'
 import { resolveEntities } from '../lib/markdown'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 interface DocumentSubject {
   id?: number
@@ -66,11 +67,12 @@ function formatTime(value: unknown) {
 }
 
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const id = computed(() => Number(route.query.id || 0))
 const query = useQuery({
   queryKey: computed(() => ['doc', id.value]),
-  queryFn: () => api.get<unknown>('/doc/get', { id: id.value }),
-  enabled: computed(() => id.value > 0),
+  queryFn: () => routeAccess.read(() => api.get<unknown>('/doc/get', { id: id.value })),
+  enabled: computed(() => id.value > 0 && !routeAccess.restricted.value),
   select: payload => documentDetail(payload, id.value),
 })
 const document = computed(() => query.data.value)
@@ -95,7 +97,7 @@ const back = computed(() => {
   <article class="document-view">
     <AdminPageHeader title="文档" description="阅读团队沉淀的流程、规范与长期知识。" :back-to="back" back-label="返回文档列表">
       <template #actions>
-        <RouterLink v-if="id && document" class="edit-link" :to="`/doc-edit?id=${id}`">
+        <RouterLink v-if="id" class="edit-link" :to="`/doc-edit?id=${id}`">
           <Pencil :size="17" />编辑文档
         </RouterLink>
       </template>
@@ -106,34 +108,35 @@ const back = computed(() => {
       <div><strong>无法打开文档</strong><p>链接中缺少有效的文档编号，请返回列表重新选择。</p></div>
     </section>
 
-    <section v-else-if="query.isError.value" class="state-panel error" role="alert">
+    <section v-else-if="query.isError.value && !routeAccess.restricted.value" class="state-panel error" role="alert">
       <FileText :size="24" />
       <div><strong>文档加载失败</strong><p>{{ friendlyError(query.error.value) }}</p></div>
     </section>
 
-    <section v-else-if="query.isPending.value" class="document-sheet loading" aria-label="正在加载文档">
+    <section v-else-if="query.isPending.value && !routeAccess.restricted.value" class="document-sheet loading" aria-label="正在加载文档">
       <div class="loading-meta ls-skeleton" />
       <div class="loading-title ls-skeleton" />
       <div class="loading-line ls-skeleton" />
       <div class="loading-body ls-skeleton" />
     </section>
 
-    <section v-else-if="document" class="document-sheet">
+    <section v-else-if="document || routeAccess.restricted.value" class="document-sheet">
       <header class="document-header">
         <div class="document-kicker">
-          <span><BookOpen :size="16" />文档 #{{ id }}</span>
+          <span><BookOpen :size="16" />文档 #{{ routeAccess.restricted.value ? '-' : id }}</span>
           <NTag v-if="visibilityLabel" size="small" :bordered="false">{{ visibilityLabel }}</NTag>
         </div>
-        <h1>{{ title }}</h1>
+        <h1>{{ routeAccess.restricted.value ? '-' : title }}</h1>
         <div class="document-meta">
           <span v-if="subjectName"><UserRound :size="16" />{{ subjectName }}</span>
-          <time :datetime="String(document.update_time ?? document.create_time ?? '')">
-            <Clock3 :size="16" />更新于 {{ updatedAt }}
+          <time :datetime="String(document?.update_time ?? document?.create_time ?? '')">
+            <Clock3 :size="16" />更新于 {{ routeAccess.restricted.value ? '-' : updatedAt }}
           </time>
         </div>
       </header>
 
-      <div v-if="content" class="document-content">
+      <div v-if="routeAccess.restricted.value" class="document-content">-</div>
+      <div v-else-if="content" class="document-content">
         <LsMarkdownRenderer context="document" :content="content" :resolve-entities="resolveEntities" />
       </div>
       <div v-else class="empty-content">

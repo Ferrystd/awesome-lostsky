@@ -364,7 +364,10 @@ class File
             throw new HttpException(422, '当前实体身份不存在或不可用');
         }
         if ($this->identityTeamId($identity) !== $teamId) {
-            throw new HttpException(422, 'team_id 与当前实体身份不匹配');
+            $identity = Entity::team()->where('entityable_id', $teamId)->find();
+            if (!$identity || !$identity->is_valid) {
+                throw new HttpException(404, '团队实体身份不存在或不可用');
+            }
         }
 
         return $identity;

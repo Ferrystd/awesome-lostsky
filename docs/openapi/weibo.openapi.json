@@ -1,9 +1,14 @@
 {
   "openapi": "3.1.0",
-  "info": { "title": "LostSky Weibo API", "version": "0.1.0" },
+  "info": { "title": "LostSky Weibo API", "version": "0.1.1", "description": "团队与个人微博工作台。基础访问快照无需业务 Permission；团队业务数据和本地管理使用 weibo.team.manage，个人业务使用内部 Entity 与 weibo.personal.use；远端发博、点赞、评论及任务启动/恢复还需要 weibo Ability。" },
+  "x-authorization": {
+    "team": { "permission": "weibo.team.manage", "ability_actions": ["post", "like", "comment", "taskStart", "taskResume"] },
+    "personal": { "permission": "weibo.personal.use", "requires_internal_entity": true, "ability_actions": ["post", "like", "comment", "taskStart", "taskResume"] },
+    "worker": { "permission": null, "ability": "weibo" }
+  },
   "servers": [{ "url": "https://{slug}.weibo.api.lostsky.work", "variables": { "slug": { "default": "demo" } } }],
   "paths": {
-    "/workspace/access": { "get": { "operationId": "weiboWorkspaceAccess", "responses": { "200": { "$ref": "#/components/responses/Success" } } } },
+    "/workspace/access": { "get": { "operationId": "weiboWorkspaceAccess", "description": "团队基本概览与授权快照；外部 Entity 必须已获得目标团队至少一个角色。", "responses": { "200": { "$ref": "#/components/responses/WorkspaceAccessSuccess" }, "403": { "$ref": "#/components/responses/PermissionDenied" } } } },
     "/accounts": { "get": { "operationId": "weiboAccounts", "responses": { "200": { "$ref": "#/components/responses/Success" } } } },
     "/accounts/{id}": { "get": { "operationId": "weiboAccount", "parameters": [{ "$ref": "#/components/parameters/Id" }], "responses": { "200": { "$ref": "#/components/responses/Success" } } } },
     "/accounts/login/start": { "post": { "operationId": "weiboLoginStart", "requestBody": { "$ref": "#/components/requestBodies/LoginStart" }, "responses": { "200": { "$ref": "#/components/responses/Success" } } } },
@@ -48,7 +53,9 @@
     },
     "responses": {
       "Success": { "description": "Success", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } },
-      "AbilityDenied": { "description": "Weibo Ability is missing or expired", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AbilityError" } } } }
+      "WorkspaceAccessSuccess": { "description": "Workspace access snapshot", "content": { "application/json": { "schema": { "allOf": [{ "$ref": "#/components/schemas/Envelope" }, { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/WorkspaceAccess" } } }] } } } },
+      "AbilityDenied": { "description": "Weibo Ability is missing or expired", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AbilityError" } } } },
+      "PermissionDenied": { "description": "Required Permission or target-team workspace role is missing", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } } }
     },
     "requestBodies": {
       "LoginStart": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["phone"], "properties": { "phone": { "type": "string" }, "expected_entity_id": { "type": "integer" } } } } } },
@@ -58,6 +65,17 @@
     },
     "schemas": {
       "Envelope": { "type": "object", "required": ["code", "message"], "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": {} } },
+      "WorkspaceAccess": {
+        "type": "object",
+        "required": ["team", "permissions", "abilities", "identity", "entry_warning"],
+        "properties": {
+          "team": { "type": "object", "required": ["id", "slug", "name"], "properties": { "id": { "type": "integer" }, "slug": { "type": "string" }, "name": { "type": "string" } } },
+          "permissions": { "type": "array", "items": { "type": "string" } },
+          "abilities": { "type": "object", "additionalProperties": { "type": "object", "required": ["enabled", "reason", "label"], "properties": { "enabled": { "type": "boolean" }, "reason": { "type": ["string", "null"] }, "label": { "type": "string" } } } },
+          "identity": { "type": "object", "required": ["type", "entity_id", "name", "belongs_to_team", "is_external"], "properties": { "type": { "type": "string", "enum": ["team", "teamMember", "teamCustomer", "teamVirtual"] }, "entity_id": { "type": "integer" }, "name": { "type": "string" }, "slug": { "type": ["string", "null"] }, "avatar": { "type": ["string", "null"] }, "belongs_to_team": { "type": "boolean" }, "is_external": { "type": "boolean" } } },
+          "entry_warning": { "type": "object", "required": ["required", "kind", "ttl_seconds"], "properties": { "required": { "type": "boolean" }, "kind": { "type": ["string", "null"], "enum": ["external_entity", null] }, "ttl_seconds": { "type": "integer", "minimum": 60, "default": 86400 } } }
+        }
+      },
       "AbilityError": { "type": "object", "required": ["code", "message", "data"], "properties": { "code": { "type": "integer", "const": 40303 }, "message": { "type": "string" }, "data": { "type": "object", "required": ["kind", "key", "reason"], "properties": { "kind": { "const": "ability" }, "key": { "const": "weibo" }, "reason": { "type": "string" } } } } },
       "TaskWrite": { "type": "object", "required": ["operation_type", "topic", "account_ids", "start_at", "min_interval", "max_interval"], "properties": { "operation_type": { "type": "string", "enum": ["Post", "Checkin"] }, "topic": { "type": "string" }, "content": { "type": "string" }, "account_ids": { "type": "array", "minItems": 1, "items": { "type": "integer" } }, "media_ids": { "type": "array", "maxItems": 9, "items": { "type": "integer" } }, "start_at": { "type": "integer" }, "min_interval": { "type": "integer", "minimum": 1 }, "max_interval": { "type": "integer", "minimum": 1 }, "expected_version": { "type": "integer" }, "expected_entity_id": { "type": "integer" } } },
       "Task": { "type": "object", "required": ["id", "operation_type", "version", "status", "block_reason", "next_run_at"], "properties": { "id": { "type": "integer" }, "operation_type": { "type": "string", "enum": ["Post", "Checkin"] }, "version": { "type": "integer" }, "status": { "type": "string", "enum": ["Paused", "Active", "BlockedLogin", "BlockedAbility", "Cancelled"] }, "block_reason": { "type": ["string", "null"] }, "next_run_at": { "type": ["integer", "null"] } } }

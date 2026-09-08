@@ -8,13 +8,15 @@ import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { NDatePicker, NInput, NInputNumber, NSelect, useDialog } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { canManage, entitlementManagement, loadManageAccess, resourceOwnerLabel } from '../../lib'
+import { canManage, entitlementManagement, loadManageAccess, managePermissionReason, resourceOwnerLabel } from '../../lib'
 
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const router = useRouter()
 const dialog = useDialog()
 const id = computed(() => Number(route.params.id || 0))
@@ -25,8 +27,8 @@ const personal = computed(() => management.value.personal)
 const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess() })
 const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?? 0)
 const form = reactive({ name: '', package_id: null as number | null, claim_group: '', mode: 1, total_limit: null as number | null, per_target_limit: 1, range: null as [number, number] | null, is_active: 1 })
-const options = useQuery({ queryKey: computed(() => [scope.value, 'manage-options']), queryFn: () => management.value.options() })
-const detail = useQuery({ queryKey: computed(() => [scope.value, 'manage-campaign', id.value]), queryFn: () => management.value.campaign(id.value), enabled: editing })
+const options = useQuery({ queryKey: computed(() => [scope.value, 'manage-options']), queryFn: () => management.value.options(), enabled: computed(() => !routeAccess.restricted.value) })
+const detail = useQuery({ queryKey: computed(() => [scope.value, 'manage-campaign', id.value]), queryFn: () => routeAccess.read(() => management.value.campaign(id.value)), enabled: computed(() => editing.value && !routeAccess.restricted.value) })
 
 watch(() => detail.data.value, data => {
   if (!data) return
@@ -83,10 +85,10 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id))
     >
       <template #actions>
         <RouterLink v-if="editing" class="secondary-link" :to="`${management.routePrefix}/campaigns/${id}/codes`">管理兑换码</RouterLink>
-        <LsButton v-if="editing && canManage(management.disablePermission)" variant="danger" @click="stop">停用活动</LsButton>
+        <LsButton v-if="editing" variant="danger" :disabled="!canManage(management.disablePermission)" :disabled-reason="managePermissionReason(management.disablePermission)" @click="stop">停用活动</LsButton>
       </template>
     </LsPageHeader>
-    <form class="manage-form" @submit.prevent="save.mutate()">
+    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
       <LsFormSection title="活动配置">
         <p v-if="personal" class="form-intro" role="note">此卡活动自动归属当前 Entity，只能绑定本人或团队公用权益包。</p>
         <LsField label="活动名称" for-id="campaign-name" required><NInput id="campaign-name" v-model:value="form.name" maxlength="100" /></LsField>
@@ -98,11 +100,11 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id))
         <LsField label="每个主体上限" for-id="campaign-target-limit"><NInputNumber id="campaign-target-limit" v-model:value="form.per_target_limit" :min="1" /></LsField>
         <LsSwitchField id="campaign-active" :model-value="form.is_active === 1" label="启用状态" description="停用后不能继续领取新的卡密权益。" @update:model-value="value => form.is_active = value ? 1 : 0" />
       </LsFormSection>
-      <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
+      <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
-        <LsButton type="submit" :disabled="!valid || !canManage(management.permission) || (personal && !expectedEntityId)" :loading="save.isPending.value">保存活动</LsButton>
+        <LsButton type="submit" :disabled="routeAccess.restricted.value || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存活动</LsButton>
       </LsFormActions>
     </form>
   </div>

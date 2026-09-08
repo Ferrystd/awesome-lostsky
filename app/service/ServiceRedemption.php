@@ -71,7 +71,7 @@ class ServiceRedemption
             true
         );
         $result['allow_open_dispatch'] = (bool) app(TeamSetting::class)->internal($teamId, 'service')['allow_customer_open_dispatch'];
-        $result['dispatch_available'] = app(AbilityResolver::class)->available($teamId, 'transaction');
+        $result['dispatch_available'] = true;
         $offers = TeamServiceAssignmentOffer::where('team_id', $teamId)
             ->where('customer_id', $customerId)->where('entitlement_id', $id)
             ->with(['targetHandler.profile', 'instance'])->order('id', 'desc')->select()->toArray();
@@ -108,9 +108,6 @@ class ServiceRedemption
         int $actorEntityId,
         string $idempotencyKey = ''
     ): int {
-        if (!app(AbilityResolver::class)->available($teamId, 'transaction')) {
-            throw new HttpException(422, '团队未开通可用的 Transaction Ability，暂不能发起接单邀请');
-        }
         $idempotencyKey = trim($idempotencyKey);
         if (strlen($idempotencyKey) > 100) throw new HttpException(422, 'Idempotency-Key 不能超过 100 个字符');
         if ($idempotencyKey !== '') {
@@ -303,9 +300,6 @@ class ServiceRedemption
             $fieldValues,
             $actorEntityId
         ) {
-            if (!app(AbilityResolver::class)->available($teamId, 'transaction')) {
-                throw new HttpException(422, '团队未开通可用的 Transaction Ability，暂不能发起新的履约');
-            }
             if ($handlerEntityId > 0) throw new HttpException(422, '指定接单人请改用接单邀请');
             $entitlement = $this->lockedEntitlement($teamId, $entitlementId);
             $this->assertCustomerOwns($entitlement, $customerId, $actorEntityId);

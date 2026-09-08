@@ -4,8 +4,11 @@ import { formatAbilityDenied } from '@lostsky/api/error-format'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { Plus } from '@lucide/vue'
 import { NAlert, NButton, NSkeleton } from 'naive-ui'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
@@ -16,8 +19,9 @@ const route = useRoute()
 const personal = computed(() => route.meta.workspace === 'personal')
 const prefix = computed(() => apiPrefix(personal.value))
 const client = useQueryClient()
+const routeAccess = useRouteAccess()
 const access = useQuery({ queryKey: ['weibo-access'], queryFn: () => loadAccess() })
-const query = useQuery({ queryKey: computed(() => ['weibo-tasks', prefix.value]), queryFn: () => api.get<WeiboTask[]>(`${prefix.value}/tasks`) })
+const query = useQuery({ queryKey: computed(() => ['weibo-tasks', prefix.value]), queryFn: () => api.get<WeiboTask[]>(`${prefix.value}/tasks`), enabled: computed(() => !routeAccess.restricted.value) })
 const abilityDisabledReason = computed(() => {
   if (access.isPending.value) return '正在核对微博 Ability，请稍候'
   if (access.isError.value) return friendlyError(access.error.value)
@@ -38,11 +42,11 @@ const label = { Paused: '已暂停', Active: '运行中', BlockedLogin: '登录�
 <template>
   <div class="weibo-stack">
     <LsPageHeader title="持续随机任务" description="首次在开始时间执行；后续时间为上次完成时间加随机间隔。阻塞解除后不会自动恢复。">
-      <template #actions><NButton type="primary" tag="a" :href="`${prefix}/tasks/new`">新建任务</NButton></template>
+      <template #actions><LsPagePrimaryAction :icon="Plus" label="新建任务" :href="`${prefix}/tasks/new`" /></template>
     </LsPageHeader>
     <NAlert v-if="query.isError.value" type="error">{{ friendlyError(query.error.value) }}</NAlert>
-    <NSkeleton v-if="query.isPending.value" text :repeat="5" />
-    <LsEmptyState v-else-if="!query.data.value?.length" title="暂无任务" description="任务新建后统一先保存为暂停，开启时才检查 Ability。" />
+    <NSkeleton v-if="!routeAccess.restricted.value && query.isPending.value" text :repeat="5" />
+    <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !query.data.value?.length" title="暂无任务" description="任务新建后统一先保存为暂停，开启时才检查运行条件。" />
     <div v-else class="weibo-list">
       <article v-for="task in query.data.value" :key="task.id" class="weibo-list-row">
         <div>

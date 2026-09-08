@@ -23,7 +23,7 @@ tags: [glossary]
 ## 访问控制
 
 - [权限（Permission）](permission.md)：团队角色授予的细粒度授权键。
-- [能力（Ability）](ability.md)：应用级功能边界与路由访问能力。
+- [能力（Ability）](ability.md)：团队功能开通、等级与配额的能力标识。
 - [上下文（Context）](context.md)：由当前身份补充到请求的可信业务上下文。
 - [角色（Role）](role.md)：以 role_key 为稳定标识的一组权限载体。
 

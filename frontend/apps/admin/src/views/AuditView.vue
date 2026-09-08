@@ -5,10 +5,11 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { NPagination, NSelect } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
-import { h, ref } from 'vue'
+import { computed, h, ref } from 'vue'
 import type { AuditEvent, Page } from '../types'
 import { formatTime } from '../utils'
 
@@ -16,9 +17,10 @@ const application = ref('')
 const resourceType = ref('')
 const actor = ref('')
 const page = ref(1)
+const routeAccess = useRouteAccess()
 const appOptions = [{ label: '全部应用', value: '' }, { label: 'Admin', value: 'admin' }, { label: 'Team', value: 'team' }, { label: 'Transaction', value: 'transaction' }, { label: 'Shop', value: 'shop' }, { label: 'Chat', value: 'chat' }]
 const resourceOptions = [{ label: '全部资源', value: '' }, { label: '用户', value: 'user' }, { label: '团队', value: 'team' }, { label: '平台角色', value: 'platform_admin_role' }]
-const query = useQuery({ queryKey: ['admin-audit', application, resourceType, actor, page], queryFn: () => api.get<Page<AuditEvent>>('/audit-events', { application: application.value, resource_type: resourceType.value, actor_user_id: actor.value, page: page.value, limit: 20 }) })
+const query = useQuery({ queryKey: ['admin-audit', application, resourceType, actor, page], queryFn: () => api.get<Page<AuditEvent>>('/audit-events', { application: application.value, resource_type: resourceType.value, actor_user_id: actor.value, page: page.value, limit: 20 }), enabled: computed(() => !routeAccess.restricted.value) })
 function context(event: AuditEvent) { const reason = event.context?.reason; return typeof reason === 'string' ? reason : '—' }
 const columns: DataTableColumns<AuditEvent> = [
   { title: '时间', key: 'create_time', render: event => formatTime(event.create_time) },
@@ -32,12 +34,12 @@ const columns: DataTableColumns<AuditEvent> = [
 
 <template>
   <LsPageHeader title="审计日志" description="集中查看平台治理和业务写操作；日志只展示已记录的非敏感上下文。" />
-  <LsListToolbar v-model="actor" placeholder="搜索执行用户 ID" aria-label="搜索审计执行人" :count-label="`${query.data.value?.total ?? 0} 条事件`" @update:model-value="page = 1">
+  <LsListToolbar v-model="actor" placeholder="搜索执行用户 ID" aria-label="搜索审计执行人" :count-label="routeAccess.restricted.value ? '0 条事件' : `${query.data.value?.total ?? 0} 条事件`" @update:model-value="page = 1">
     <template #filters><NSelect v-model:value="application" :options="appOptions" @update:value="page = 1" /><NSelect v-model:value="resourceType" :options="resourceOptions" @update:value="page = 1" /></template>
   </LsListToolbar>
-  <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
-  <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取审计日志" :description="friendlyError(query.error.value)" />
-  <LsEmptyState v-else-if="!query.data.value?.list.length" title="没有匹配的审计事件" description="调整应用、资源或执行人筛选。" />
+  <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
+  <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取审计日志" :description="friendlyError(query.error.value)" />
+  <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !query.data.value?.list.length" title="没有可显示的审计事件" description="调整应用、资源或执行人筛选。" />
   <template v-else>
     <LsResponsiveDataTable :columns="columns" :data="query.data.value.list" :row-key="row => row.id" :scroll-x="920">
       <template #mobile-title="{ row: event }">{{ event.action }}</template>

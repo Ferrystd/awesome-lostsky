@@ -300,53 +300,11 @@ kbd {
 .command-results small {
   color: var(--muted-ink);
 }
-.summary-strip {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
-.summary-strip > div {
-  min-height: 92px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 14px;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-.summary-strip > div:nth-child(2n) {
-  border-right: 0;
-}
-.summary-strip > div:nth-last-child(-n + 2) {
-  border-bottom: 0;
-}
-.summary-strip span {
-  color: var(--muted-ink);
-  font-size: 0.8rem;
-}
-.summary-strip strong {
-  font-size: 1.45rem;
-  font-variant-numeric: tabular-nums;
-}
 .dashboard-grid {
   display: grid;
   gap: 16px;
 }
 @media (min-width: 720px) {
-  .summary-strip {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  .summary-strip > div {
-    border-bottom: 0;
-  }
-  .summary-strip > div:nth-child(2n) {
-    border-right: 1px solid var(--line);
-  }
-  .summary-strip > div:last-child {
-    border-right: 0;
-  }
   .dashboard-grid {
     grid-template-columns: minmax(0, 1fr) minmax(300px, 0.48fr);
   }

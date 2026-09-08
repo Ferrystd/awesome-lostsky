@@ -30,6 +30,7 @@ nav = [
   {"使用手册" = [
     "manual/index.md",
     "manual/concepts.md",
+    "manual/abilities.md",
     "manual/access-and-abilities.md",
     "manual/permissions.md",
     "manual/troubleshooting.md",
@@ -107,9 +108,7 @@ nav = [
   {"计划" = [
     "TODO.md",
     "plans/markdown-ai.md",
-    "plans/trade.md",
-    "plans/service-fulfillment-expansion.md",
-    "plans/weibo-bot.md"
+    "plans/trade.md"
   ]}
 ]
 

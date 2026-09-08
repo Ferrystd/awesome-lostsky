@@ -24,12 +24,14 @@ import {
 } from '../lib/documentTags'
 import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
 import { resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const editor = ref<InstanceType<typeof LsMarkdownEditor> | null>(null)
 const access = useTeamAccess()
+const routeAccess = useRouteAccess()
 const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
 const id = computed(() => Number(route.query.id || 0))
 const editing = computed(() => id.value > 0)
@@ -53,6 +55,7 @@ interface EntityOption {
 const entities = useQuery({
   queryKey: ['entity-options'],
   queryFn: () => api.get<EntityOption[]>('/entity/options'),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 watch(() => entities.data.value, (items) => {
   if (!editing.value && !form.entity_id && items?.length) form.entity_id = items[0].entity_id
@@ -60,8 +63,8 @@ watch(() => entities.data.value, (items) => {
 
 const detail = useQuery({
   queryKey: computed(() => ['doc', id.value]),
-  queryFn: () => api.get<Record<string, unknown>>('/doc/get', { id: id.value }),
-  enabled: editing,
+  queryFn: () => routeAccess.read(() => api.get<Record<string, unknown>>('/doc/get', { id: id.value })),
+  enabled: computed(() => editing.value && !routeAccess.restricted.value),
 })
 
 const managerSelectOptions = managerScopeOptions as SelectOption[]
@@ -101,6 +104,7 @@ const createTag = () => createDocumentTagDraft()
 const tagFieldError = (item: DocumentTagDraft, index: number) => documentTagError(item, form.tags, index, tagValidationSubmitted.value)
 
 async function submit() {
+  if (routeAccess.restricted.value) return
   tagValidationSubmitted.value = true
   if (hasDocumentTagErrors(form.tags)) {
     await nextTick()
@@ -121,12 +125,12 @@ async function submit() {
       back-label="返回文档列表"
     />
 
-    <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
+    <LsInlineError v-if="detail.isError.value && !routeAccess.restricted.value" :message="friendlyError(detail.error.value)" />
     <form v-else class="document-form" @submit.prevent="submit">
       <LsField label="标题" for-id="document-title" required><NInput id="document-title" v-model:value="form.title" placeholder="一句话说明这份文档解决什么问题" maxlength="120" show-count required /></LsField>
 
       <div v-if="!editing" class="field-row">
-        <LsField label="归属对象" for-id="document-entity"><LsEntitySelect id="document-entity" v-model="form.entity_id" :entities="entities.data.value ?? []" :loading="entities.isPending.value" :disabled="entities.isError.value || !entities.data.value?.length" placeholder="选择归属对象" /></LsField>
+        <LsField label="归属对象" for-id="document-entity"><LsEntitySelect id="document-entity" v-model="form.entity_id" :entities="entities.data.value ?? []" :loading="entities.isPending.value" :disabled="routeAccess.restricted.value || entities.isError.value || !entities.data.value?.length" :placeholder="routeAccess.restricted.value ? '-' : '选择归属对象'" /></LsField>
       </div>
 
       <section class="document-tags" aria-labelledby="document-tags-title">
@@ -165,7 +169,7 @@ async function submit() {
 
       <NFormItem label="正文">
         <LsMarkdownEditor
-          v-if="!editing || detail.isSuccess.value"
+          v-if="routeAccess.restricted.value || !editing || detail.isSuccess.value"
           ref="editor"
           v-model="form.content"
           :draft-key="`document:${editing ? id : 'new'}`"
@@ -188,10 +192,10 @@ async function submit() {
         </div>
       </section>
 
-      <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
+      <LsInlineError v-if="save.isError.value && !routeAccess.restricted.value" :message="friendlyError(save.error.value)" />
       <div class="actions">
         <LsButton type="button" variant="secondary" @click="router.push('/docs')">取消</LsButton>
-        <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="!form.title.trim() || (!editing && !form.entity_id)">
+        <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || !form.title.trim() || (!editing && !form.entity_id)" :disabled-reason="routeAccess.reason.value">
           保存文档
         </LsButton>
       </div>

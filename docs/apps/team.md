@@ -9,7 +9,7 @@ Team 是团队工作台的核心应用，负责成员资料、顾客资料与协
 - 个人工作台：Team、成员和虚拟实体维护当前 Entity 的资料、对象字段，并只读查看角色与有效 Permission；侧栏不提供身份切换，内容按实体类型受限。
 - 成员管理：正常、封禁、离队三态，成员资料、任期留存、封禁、离队申请、复职和搜索。
 - 顾客管理：按当前归属或全量 Permission 查看顾客，在顾客详情维护资料、当前归属、协作发单人和封禁状态。
-- 扩展资料：成员自定义字段、字段值和岗位类型。
+- 扩展资料：实体自定义字段与字段值。
 - RBAC：角色、角色权限和成员角色绑定。
 - 团队设置：按应用读取配置，由团队管理者读取配置结构并保存设置。
 - Chat 管理配置：维护统一实体字段、虚拟实体与 Webhook 集成；管理接口记录在 Team OpenAPI。
@@ -28,6 +28,7 @@ Team 应用按操作组合以下中间件：
 - `JwtAuth`：确认登录用户。
 - `Context`：保留真实 `user_id` 用于认证和审计，只从当前 `acting_entity` 填充业务 `member`、`customer` 与实体上下文。
 - `EntityRequired`：要求请求已携带有效实体会话；缺少实体时返回 HTTP 428、`code=42801` 和当前 `team_slug`。
+- `TeamWorkspaceAuth`：要求有效 Entity；本团队实体通过，外部实体必须在目标团队绑定至少一个角色，具体业务再检查 Permission。
 - `TeamAuth`：组合 `EntityRequired` 与 `TeamBelongs`，先要求实体，再校验实体归属。
 - `EntityType`：按接口声明允许的基础用户或实体身份类型；同一声明中的多个类型按 OR 处理。
 - `TeamBelongs`：确认显式实体属于当前域名解析出的团队，不重复处理状态或角色权限。
@@ -39,8 +40,7 @@ Team 应用按操作组合以下中间件：
 控制器仅提取参数、调用服务并返回统一响应；权限判断和跨模型事务由中间件与服务层完成。
 
 团队业务要求 `team`、`teamMember`、`teamCustomer`、`teamVirtual` 四种实体 JWT，不再从基础 JWT 静默领取成员，也不通过响应头换发令牌。
-缺少实体由前端进入 Account 成员回调；实体不属于当前团队时返回 HTTP 403、`code=40301` 和当前 `team_slug`。
-允许跨团队实体的少数接口只声明 `EntityRequired`，要求当前团队归属的接口使用 `TeamAuth`。旧当前成员资料与成员上传兼容接口仍只接受
+缺少实体由前端进入 Account 成员回调。团队管理接口使用 `TeamWorkspaceAuth`，外部实体缺少目标团队角色时返回 HTTP 403 / `40304`；个人、自助和成员本人接口使用 `TeamAuth`，实体不属于当前团队时返回 HTTP 403 / `40301`。旧当前成员资料与成员上传兼容接口仍只接受
 `teamMember`；加入申请人的动作只接受基础用户 JWT，且不经过 `TeamAuth`。
 
 `GET /personal`、`POST /personal/profile|slug|fields|upload` 只接受当前团队的 Team、成员或虚拟实体，并只使用 JWT 的最终叶子 Entity。写请求携带 `expected_entity_id`，身份已切换时返回 `409`。旧 `/me` 页面路由跳转 `/personal/profile`；成员专属 `/me/*` API 暂作兼容，不作为新前端入口。
@@ -82,7 +82,7 @@ Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `sco
 
 发送通知要求 `team.notice.send`。该权限本身定义本通知模型中的上级资格，具备权限的任意当前 Entity 可以向同 Team 任意 Entity 发送，不使用角色排序建立层级。通知始终以当前 Team 名义显示，集中业务审计保留实际 acting Entity 与认证用户。通知是单向通道，不支持回复、抄送、会话、跨 Team 投递或 LostSky 直发 Entity。
 
-加入字段读取和管理分别要求 `team.join_field.read`、`team.join_field.write`；加入申请查看和审核分别要求 `team.join_review.read`、`team.join_review.write`。人员实体字段定义和岗位类型的写操作分别要求 `team.entity.field.manage`、`team.post_type.write`。
+加入字段读取和管理分别要求 `team.join_field.read`、`team.join_field.write`；加入申请查看和审核分别要求 `team.join_review.read`、`team.join_review.write`。人员实体字段定义写操作要求 `team.entity.field.manage`；当前权限字典和路由不提供独立岗位类型管理。
 
 ## 加入申请与审核
 
@@ -108,9 +108,9 @@ Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `sco
 
 ## 文档
 
-团队文档由 `Document` 服务统一处理，可以归属于本团队任意有效实体，并支持管理范围、可见性、指定实体、排序和关键词筛选。`team.document.read` 表示文档全量读取；没有该权限仍可进入文档页，但只返回当前 Entity 按可见性可读取的文档。
+团队文档由 `Document` 服务统一处理，可以归属于本团队任意有效实体，并支持管理范围、可见性、指定实体、排序和关键词筛选。`team.document.read` 表示文档全量读取且始终只读；没有该权限仍可进入文档页，但只返回当前 Entity 按可见性可读取的文档。文档管理员通过 `team.document.team.manage`、`team.document.member|customer|virtual.*.manage` 或对应精确 slug Permission 按归属实体授权；归属实体本人仅可管理 `manager_scope=SubjectTeam` 的文档。
 
-所有文档入口都经过 `JwtAuth`、`Context`、`TeamAuth` 和 `Ability:doc`；归属与指定可见对象只接受全局 `entity_id`。
+团队文档接口经过 `JwtAuth`、`Context`、`TeamWorkspaceAuth` 和 `Ability:doc`；归属与指定可见对象只接受全局 `entity_id`。
 
 ## 前端列表约束
 

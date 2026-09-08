@@ -81,7 +81,8 @@
 }
 .sidebar nav .nav-disabled {
   color: oklch(0.52 0.012 210);
-  cursor: not-allowed;
+  cursor: pointer;
+  opacity: 0.52;
 }
 .sidebar nav .nav-disabled .n-button__content {
   width: 100%;
@@ -206,6 +207,10 @@
 }
 .bottom-nav a.router-link-active {
   color: var(--sky-lost-strong);
+}
+.bottom-nav .nav-disabled {
+  cursor: pointer;
+  opacity: 0.52;
 }
 .primary-link,
 .secondary-link {

@@ -10,7 +10,7 @@ class Doc
 {
     protected $middleware = [
         'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamAuth', 'Ability:doc',
+        'TeamWorkspaceAuth', 'Ability:doc',
     ];
 
     public function index(Request $request)

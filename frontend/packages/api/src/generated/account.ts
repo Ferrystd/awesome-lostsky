@@ -104,6 +104,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/identity/workspace-warning": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取外部 Entity 工作台警告上下文
+         * @description 复核当前全局有效 Entity 是否拥有目标团队角色。确认 Cookie 只控制提示，不参与角色或 Permission 授权。
+         */
+        get: operations["accountWorkspaceWarning"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/workspace-warning/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 确认外部 Entity 工作台警告
+         * @description 再次复核目标团队角色后，写入跨 .lostsky.work 子域共享的短期 HttpOnly、SameSite=Lax Cookie。默认 86400 秒，可由环境配置覆盖。
+         */
+        post: operations["accountWorkspaceWarningAcknowledge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/login/phone": {
         parameters: {
             query?: never;
@@ -391,6 +431,27 @@ export interface components {
             /** @enum {string} */
             kind: "identity" | "team-personal" | "shop-customer";
             team: components["schemas"]["IdentityTeamSummary"] | null;
+        };
+        WorkspaceWarningContext: {
+            team: components["schemas"]["IdentityTeamSummary"];
+            identity: {
+                /** @enum {string} */
+                type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
+                /** Format: int64 */
+                id: number;
+                /** Format: int64 */
+                entity_id: number;
+                slug?: string | null;
+                name: string;
+            };
+            can_continue: boolean;
+            entry_warning: {
+                required: boolean;
+                /** @enum {string|null} */
+                kind: "external_entity" | null;
+                /** @default 86400 */
+                ttl_seconds: number;
+            };
         };
         TeamProfile: {
             /** Format: int64 */
@@ -1010,6 +1071,74 @@ export interface operations {
             };
             /** @description 团队不存在或不可用 */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    accountWorkspaceWarning: {
+        parameters: {
+            query: {
+                team_slug: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 警告上下文 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: components["schemas"]["WorkspaceWarningContext"];
+                    };
+                };
+            };
+            /** @description 当前 Entity 未获得目标团队角色（40304 / team_workspace_role） */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    accountWorkspaceWarningAcknowledge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    team_slug: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 已确认；data 返回 acknowledged 与 ttl_seconds */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"];
+                };
+            };
+            /** @description 角色已撤销或从未授予（40304 / team_workspace_role） */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

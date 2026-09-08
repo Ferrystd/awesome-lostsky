@@ -1,6 +1,6 @@
 ---
 title: 能力（Ability）
-description: 应用级功能边界与路由访问能力。
+description: 团队功能开通、等级与配额的能力标识。
 tags: [glossary]
 status: 已建页
 aliases: [能力, Ability]
@@ -10,7 +10,7 @@ aliases: [能力, Ability]
 
 ## 定义
 
-团队(Team)功能边界的能力标识
+Ability 是团队功能开通、等级与配额的能力标识；实际有效性由授权记录、等级和有效期共同决定。
 
 ## 使用场景
 
@@ -28,4 +28,4 @@ aliases: [能力, Ability]
 
 ## 来源与示例
 
-中间件组合与路由责任见[请求路由与应用解析](../architecture/routing.md)。例如交易应用可在路由上要求对应 Ability，再由后续授权检查约束具体操作。
+中间件组合与路由责任见[请求路由与应用解析](../architecture/routing.md)，具体检查点由各应用说明。Ability 不等于整个应用的入口许可：例如 Transaction 的入口和读取保持可用，只有登记流水、充值、权益下发和接受指定接单邀请等受保护提交检查能力；Shop 后台维护不要求 Shop Ability，公开陈列和购买才要求。File 未升级时仍有基础容量。

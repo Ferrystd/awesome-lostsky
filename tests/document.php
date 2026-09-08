@@ -10,15 +10,18 @@ use app\middleware\Ability;
 use app\model\Document;
 use app\model\Team;
 use app\model\TeamAbility;
+use app\model\TeamCustomer;
 use app\model\TeamEntityRole;
 use app\model\TeamMember;
 use app\model\TeamRole;
 use app\model\TeamRolePermission;
+use app\model\TeamVirtual;
 use app\model\User;
 use app\service\Document as DocumentService;
 use app\service\Entity as EntityService;
 use app\service\EntityProfile;
 use app\service\PermissionDictionary;
+use app\service\RolePermission;
 use app\service\TeamDashboard;
 use think\App;
 use think\exception\HttpException;
@@ -56,7 +59,35 @@ $memberEntity = app(EntityService::class)->claimMember(
     (int) $member->id,
     "doc-member-{$suffix}"
 );
+$customerA = new TeamCustomer;
+$customerA->save(['team_id' => (int) $team->id, 'user_id' => null, 'is_blocked' => 0]);
+$customerAEntity = app(EntityService::class)->claimCustomer(
+    (int) $customerA->id,
+    "doc-customer-a-{$suffix}"
+);
+$customerB = new TeamCustomer;
+$customerB->save(['team_id' => (int) $team->id, 'user_id' => null, 'is_blocked' => 0]);
+$customerBEntity = app(EntityService::class)->claimCustomer(
+    (int) $customerB->id,
+    "doc-customer-b-{$suffix}"
+);
+$virtual = new TeamVirtual;
+$virtual->save(['team_id' => (int) $team->id, 'name' => 'Document virtual', 'is_active' => 1]);
+$virtualEntity = app(EntityService::class)->claimVirtual(
+    $virtual,
+    "doc-virtual-{$suffix}"
+);
+$foreignTeam = new Team;
+$foreignTeam->save(['slug' => "doc-foreign-{$suffix}", 'user_id' => $owner->id]);
+$foreignTeamEntity = app(EntityService::class)->claimTeam($foreignTeam);
+$foreignCustomer = new TeamCustomer;
+$foreignCustomer->save(['team_id' => (int) $foreignTeam->id, 'user_id' => null, 'is_blocked' => 0]);
+$foreignCustomerEntity = app(EntityService::class)->claimCustomer(
+    (int) $foreignCustomer->id,
+    "doc-foreign-customer-{$suffix}"
+);
 $abilityIds = [];
+$managedDocumentIds = [];
 $assertHttpStatus = static function (callable $callback, int $status, string $case): void {
     try {
         $callback();
@@ -98,6 +129,16 @@ try {
         'visibility' => Visibility::SubjectTeam,
         'sort' => 0,
     ]);
+    $customerHiddenDocument = new Document;
+    $customerHiddenDocument->save([
+        'title' => 'Customer hidden document',
+        'content' => null,
+        'entity_id' => $customerAEntity->id,
+        'manager_scope' => ManageScope::Team,
+        'visibility' => Visibility::Custom,
+        'sort' => 0,
+    ]);
+    $managedDocumentIds[] = (int) $customerHiddenDocument->id;
 
     if ((int) $team->documents()->where('document.id', $public->id)->count() !== 1
         || (int) $member->documents()->where('document.id', $entityDocument->id)->count() !== 1) {
@@ -219,6 +260,109 @@ try {
     if ($summary['documents']['count'] !== 2) {
         throw new RuntimeException('Document dashboard metric shows a count with team.document.read');
     }
+
+    $memberActor = [
+        'entity_id' => (int) $memberEntity->id,
+        'type' => 'teamMember',
+        'id' => (int) $member->id,
+    ];
+    app(DocumentService::class)->get(
+        (int) $customerHiddenDocument->id,
+        (int) $team->id,
+        $memberActor
+    );
+    $assertHttpStatus(
+        fn () => app(DocumentService::class)->create((int) $teamEntity->id, [
+            'title' => 'Read is not write',
+        ], (int) $team->id, $memberActor),
+        403,
+        'team.document.read does not grant document management'
+    );
+    app(DocumentService::class)->edit(
+        (int) $entityDocument->id,
+        ['title' => 'Entity document edited by subject'],
+        (int) $team->id,
+        $memberActor
+    );
+    $assertHttpStatus(
+        fn () => app(DocumentService::class)->create((int) $memberEntity->id, [
+            'title' => 'Subject cannot choose manager-only scope',
+            'manager_scope' => ManageScope::Team->value,
+            'visibility' => Visibility::Team->value,
+        ], (int) $team->id, $memberActor),
+        403,
+        'the document subject only manages SubjectTeam documents by default'
+    );
+
+    $documentManagerRole = new TeamRole;
+    $documentManagerRole->save([
+        'team_id' => (int) $team->id,
+        'role_key' => "document_manager_{$suffix}",
+        'name' => 'Document manager',
+        'description' => null,
+        'sort' => 11,
+        'is_displayed' => 0,
+    ]);
+    $documentManagerBinding = new TeamEntityRole;
+    $documentManagerBinding->save([
+        'team_id' => (int) $team->id,
+        'entity_id' => (int) $memberEntity->id,
+        'role_id' => (int) $documentManagerRole->id,
+    ]);
+    $documentManagerTeamBinding = new TeamEntityRole;
+    $documentManagerTeamBinding->save([
+        'team_id' => (int) $team->id,
+        'entity_id' => (int) $teamEntity->id,
+        'role_id' => (int) $documentManagerRole->id,
+    ]);
+    app(RolePermission::class)->save((int) $team->id, (int) $documentManagerRole->id, [
+        PermissionDictionary::documentManage('teamCustomer', (string) $customerAEntity->slug),
+    ]);
+    $assertHttpStatus(
+        fn () => app(RolePermission::class)->save((int) $team->id, (int) $documentManagerRole->id, [
+            PermissionDictionary::documentManage('teamCustomer', (string) $foreignCustomerEntity->slug),
+        ]),
+        422,
+        'specific document management permissions reject cross-team entities'
+    );
+    app(RolePermission::class)->save((int) $team->id, (int) $documentManagerRole->id, [
+        PermissionDictionary::documentManage('teamCustomer', (string) $customerAEntity->slug),
+    ]);
+    $customerSpecificId = app(DocumentService::class)->create((int) $customerAEntity->id, [
+        'title' => 'Specific customer document',
+        'manager_scope' => ManageScope::Team->value,
+        'visibility' => Visibility::Custom->value,
+    ], (int) $team->id, $memberActor);
+    $managedDocumentIds[] = $customerSpecificId;
+    app(DocumentService::class)->get($customerSpecificId, (int) $team->id, $memberActor);
+    app(DocumentService::class)->edit(
+        $customerSpecificId,
+        ['title' => 'Specific customer document edited'],
+        (int) $team->id,
+        $memberActor
+    );
+    app(DocumentService::class)->delete($customerSpecificId, (int) $team->id, $memberActor);
+    $assertHttpStatus(
+        fn () => app(DocumentService::class)->create((int) $customerBEntity->id, [
+            'title' => 'Sibling customer denied',
+        ], (int) $team->id, $memberActor),
+        403,
+        'specific document management permissions do not cover sibling entities'
+    );
+
+    app(RolePermission::class)->save((int) $team->id, (int) $documentManagerRole->id, [
+        PermissionDictionary::TEAM_DOCUMENT_TEAM_MANAGE,
+        PermissionDictionary::TEAM_DOCUMENT_CUSTOMER_ALL_MANAGE,
+        PermissionDictionary::documentManage('teamVirtual', (string) $virtualEntity->slug),
+    ]);
+    $customerWildcardId = app(DocumentService::class)->create((int) $customerBEntity->id, [
+        'title' => 'Wildcard customer document',
+    ], (int) $team->id, $memberActor);
+    $managedDocumentIds[] = $customerWildcardId;
+    $virtualSpecificId = app(DocumentService::class)->create((int) $virtualEntity->id, [
+        'title' => 'Specific virtual document',
+    ], (int) $team->id, $memberActor);
+    $managedDocumentIds[] = $virtualSpecificId;
 
     $teamActor = [
         'entity_id' => (int) $teamEntity->id,
@@ -344,9 +488,10 @@ try {
         ->getDefaultProperties()['middleware'] ?? [];
     $docMiddleware = (new ReflectionClass(\app\team\controller\Doc::class))
         ->getDefaultProperties()['middleware'] ?? [];
-    if (!isset($transactionMiddleware['Ability:transaction'], $balanceMiddleware['Ability:transaction'])
+    if (($transactionMiddleware['Ability:transaction']['only'] ?? null) !== ['create']
+        || ($balanceMiddleware['Ability:transaction']['only'] ?? null) !== ['recharge']
         || !in_array('Ability:doc', $docMiddleware, true)) {
-        throw new RuntimeException('Controllers declare the unified Ability middleware');
+        throw new RuntimeException('Controllers declare action-scoped Ability middleware');
     }
 
     $assertHttpStatus(
@@ -383,18 +528,49 @@ try {
         'Ability rejects an expired capability'
     );
 } finally {
+    if (isset($documentManagerTeamBinding)) TeamEntityRole::destroy((int) $documentManagerTeamBinding->id, true);
+    if (isset($documentManagerBinding)) TeamEntityRole::destroy((int) $documentManagerBinding->id, true);
+    if (isset($documentManagerRole)) {
+        $documentManagerPermissionIds = TeamRolePermission::withTrashed()
+            ->where('role_id', (int) $documentManagerRole->id)
+            ->column('id');
+        if ($documentManagerPermissionIds) TeamRolePermission::destroy($documentManagerPermissionIds, true);
+        TeamRole::destroy((int) $documentManagerRole->id, true);
+    }
     if (isset($documentReaderBinding)) TeamEntityRole::destroy((int) $documentReaderBinding->id, true);
     if (isset($documentReaderPermission)) TeamRolePermission::destroy((int) $documentReaderPermission->id, true);
     if (isset($documentReaderRole)) TeamRole::destroy((int) $documentReaderRole->id, true);
-    Document::destroy([$public->id ?? 0, $hidden->id ?? 0, $entityDocument->id ?? 0, $tagged->id ?? 0], true);
+    Document::destroy(array_merge(
+        [$public->id ?? 0, $hidden->id ?? 0, $entityDocument->id ?? 0, $tagged->id ?? 0],
+        $managedDocumentIds
+    ), true);
     if ($abilityIds) {
         TeamAbility::destroy($abilityIds, true);
     }
     app()->db->name('team_entity_profile')
-        ->whereIn('entity_id', [$teamEntity->id, $memberEntity->id])
+        ->whereIn('entity_id', [
+            $teamEntity->id,
+            $memberEntity->id,
+            $customerAEntity->id,
+            $customerBEntity->id,
+            $virtualEntity->id,
+            $foreignTeamEntity->id,
+            $foreignCustomerEntity->id,
+        ])
         ->delete();
-    \app\model\Entity::destroy([$teamEntity->id, $memberEntity->id], true);
+    \app\model\Entity::destroy([
+        $teamEntity->id,
+        $memberEntity->id,
+        $customerAEntity->id,
+        $customerBEntity->id,
+        $virtualEntity->id,
+        $foreignTeamEntity->id,
+        $foreignCustomerEntity->id,
+    ], true);
+    TeamCustomer::destroy([$customerA->id, $customerB->id, $foreignCustomer->id], true);
+    TeamVirtual::destroy($virtual->id, true);
     TeamMember::destroy($member->id, true);
+    Team::destroy($foreignTeam->id, true);
     Team::destroy($team->id, true);
     User::destroy([$owner->id, $memberUser->id], true);
 }

@@ -1,10 +1,9 @@
 import { api, auth } from '@lostsky/api/client'
-import { identityUrl, redirectToLogin } from '@lostsky/shared/navigation'
-import { feedback } from '@lostsky/ui/feedback'
+import { identityUrl, redirectToLogin, redirectToMemberIdentity, redirectToWorkspaceWarning, redirectWorkspaceRoleError } from '@lostsky/shared/navigation'
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteLocationGeneric } from 'vue-router'
 import { managerScopeOptions, visibilityOptions } from './lib/access'
-import { abilityReason, type TeamAccessSnapshot } from './lib/teamAccess'
+import { abilityReason, hasPermission, permissionReason, type TeamAccessSnapshot } from './lib/teamAccess'
 const DashboardView = () => import('./views/DashboardView.vue')
 const DocumentView = () => import('./views/DocumentView.vue')
 const DocumentsView = () => import('./views/DocumentsView.vue')
@@ -107,44 +106,44 @@ const routes = [
   { path: '/', component: DashboardView, meta: { title: '概览' } },
   { path: '/notices/entity', component: NoticesView, meta: { title: '通知', noticeScope: 'entity' } },
   { path: '/notices/entity/detail', component: NoticeDetailView, meta: { title: '阅读通知', noticeScope: 'entity', pageWidth: 'content' } },
-  { path: '/notices/team', component: NoticesView, meta: { title: '站内通知', noticeScope: 'team' } },
-  { path: '/notices/team/detail', component: NoticeDetailView, meta: { title: '阅读站内通知', noticeScope: 'team', pageWidth: 'content' } },
-  { path: '/notices/send', component: NoticeSendView, meta: { title: '发送通知', pageWidth: 'form' } },
+  { path: '/notices/team', component: NoticesView, meta: { title: '站内通知', noticeScope: 'team', permission: 'team.notice.read', accessMode: 'list' } },
+  { path: '/notices/team/detail', component: NoticeDetailView, meta: { title: '阅读站内通知', noticeScope: 'team', pageWidth: 'content', permission: 'team.notice.read' } },
+  { path: '/notices/send', component: NoticeSendView, meta: { title: '发送通知', pageWidth: 'form', permission: 'team.notice.send' } },
   { path: '/notice', redirect: (to: RouteLocationGeneric) => legacyNoticeRedirect(to) },
   { path: '/notice-detail', redirect: (to: RouteLocationGeneric) => legacyNoticeRedirect(to, true) },
   { path: '/notice-send', redirect: (to: RouteLocationGeneric) => ({ path: '/notices/send', query: to.query, hash: to.hash }) },
-  { path: '/files', component: FilesView, meta: { title: '文件' } },
-  { path: '/settings', component: SettingsView, meta: { title: '团队设置', pageWidth: 'content' } },
-  { path: '/abilities', component: AbilitiesView, meta: { title: '团队能力', pageWidth: 'content' } },
-  { path: '/audit', component: AuditView, meta: { title: '审计日志', pageWidth: 'wide' } },
-  { path: '/audit/:id(\\d+)', component: AuditDetailView, meta: { title: '审计事件', pageWidth: 'content' } },
-  { path: '/chat-virtuals', component: ChatVirtualsView, meta: { title: '虚拟实体' } },
-  { path: '/chat-virtual-new', component: ChatVirtualFormView, meta: { title: '创建虚拟实体', pageWidth: 'content' } },
-  { path: '/chat-virtual', component: ChatVirtualFormView, meta: { title: '编辑虚拟实体', pageWidth: 'content' } },
-  { path: '/chat-integration-new', component: ChatIntegrationFormView, meta: { title: '创建 Webhook 集成', pageWidth: 'form' } },
-  { path: '/chat-integration', component: ChatIntegrationFormView, meta: { title: '编辑 Webhook 集成', pageWidth: 'form' } },
-  { path: '/fields', component: EntityFieldsView, meta: { title: '对象字段' } },
+  { path: '/files', component: FilesView, meta: { title: '文件', permission: 'file.read', accessMode: 'list' } },
+  { path: '/settings', component: SettingsView, meta: { title: '团队设置', pageWidth: 'content', permission: 'team.setting.read' } },
+  { path: '/abilities', component: AbilitiesView, meta: { title: '团队能力', pageWidth: 'content', permission: 'team.ability.redeem' } },
+  { path: '/audit', component: AuditView, meta: { title: '审计日志', pageWidth: 'wide', permission: 'team.audit.read', accessMode: 'list' } },
+  { path: '/audit/:id(\\d+)', component: AuditDetailView, meta: { title: '审计事件', pageWidth: 'content', permission: 'team.audit.read' } },
+  { path: '/chat-virtuals', component: ChatVirtualsView, meta: { title: '虚拟实体', accessMode: 'list' } },
+  { path: '/chat-virtual-new', component: ChatVirtualFormView, meta: { title: '创建虚拟实体', pageWidth: 'content', permission: 'team.entity.virtual.create' } },
+  { path: '/chat-virtual', component: ChatVirtualFormView, meta: { title: '编辑虚拟实体', pageWidth: 'content', permission: 'team.entity.virtual.<slug>.manage' } },
+  { path: '/chat-integration-new', component: ChatIntegrationFormView, meta: { title: '创建 Webhook 集成', pageWidth: 'form', permission: 'team.entity.virtual.<slug>.manage' } },
+  { path: '/chat-integration', component: ChatIntegrationFormView, meta: { title: '编辑 Webhook 集成', pageWidth: 'form', permission: 'team.entity.virtual.<slug>.manage' } },
+  { path: '/fields', component: EntityFieldsView, meta: { title: '对象字段', permission: 'team.entity.field.manage', accessMode: 'list' } },
   { path: '/entities', component: EntitiesView, meta: { title: '实体' } },
   { path: '/entity', component: EntityDetailView, meta: { title: '实体资料', pageWidth: 'form' } },
-  { path: '/field-new', component: EntityFieldFormView, meta: { title: '创建对象字段', pageWidth: 'form' } },
-  { path: '/field-edit', component: EntityFieldFormView, meta: { title: '编辑对象字段', pageWidth: 'form' } },
-  { path: '/roles/new', component: RoleFormView, meta: { title: '新建角色', pageWidth: 'form' } },
-  { path: '/roles/entities', component: EntityRolesView, meta: { title: '实体角色分配', pageWidth: 'content' } },
-  { path: '/roles/:id(\\d+)', component: RoleDetailView, meta: { title: '编辑角色权限', pageWidth: 'content' } },
-  { path: '/roles', component: RolesView, meta: { title: '角色权限' } },
-  { path: '/join-fields/new', component: JoinFieldFormView, meta: { title: '创建申请字段', pageWidth: 'form' } },
-  { path: '/join-fields/:id(\\d+)', component: JoinFieldFormView, meta: { title: '申请字段', pageWidth: 'form' } },
-  { path: '/join-fields', component: JoinFieldsView, meta: { title: '申请字段' } },
-  { path: '/join-review/review', component: JoinReviewDetailView, meta: { title: '审核加入申请', pageWidth: 'content' } },
-  { path: '/join-review', component: JoinReviewView, meta: { title: '加入审核' } },
-  { path: '/departure-review/review', component: MemberDepartureDetailView, meta: { title: '审核离队申请', pageWidth: 'content' } },
-  { path: '/departure-review', component: MemberDepartureView, meta: { title: '离队审核' } },
+  { path: '/field-new', component: EntityFieldFormView, meta: { title: '创建对象字段', pageWidth: 'form', permission: 'team.entity.field.manage' } },
+  { path: '/field-edit', component: EntityFieldFormView, meta: { title: '编辑对象字段', pageWidth: 'form', permission: 'team.entity.field.manage' } },
+  { path: '/roles/new', component: RoleFormView, meta: { title: '新建角色', pageWidth: 'form', permission: 'team.role.write' } },
+  { path: '/roles/entities', component: EntityRolesView, meta: { title: '实体角色分配', pageWidth: 'content', permission: 'team.role.write' } },
+  { path: '/roles/:id(\\d+)', component: RoleDetailView, meta: { title: '编辑角色权限', pageWidth: 'content', permission: 'team.role.read' } },
+  { path: '/roles', component: RolesView, meta: { title: '角色权限', permission: 'team.role.read', accessMode: 'list' } },
+  { path: '/join-fields/new', component: JoinFieldFormView, meta: { title: '创建申请字段', pageWidth: 'form', permission: 'team.join_field.write' } },
+  { path: '/join-fields/:id(\\d+)', component: JoinFieldFormView, meta: { title: '申请字段', pageWidth: 'form', permission: 'team.join_field.read' } },
+  { path: '/join-fields', component: JoinFieldsView, meta: { title: '申请字段', permission: 'team.join_field.read', accessMode: 'list' } },
+  { path: '/join-review/review', component: JoinReviewDetailView, meta: { title: '审核加入申请', pageWidth: 'content', permission: 'team.join_review.read' } },
+  { path: '/join-review', component: JoinReviewView, meta: { title: '加入审核', permission: 'team.join_review.read', accessMode: 'list' } },
+  { path: '/departure-review/review', component: MemberDepartureDetailView, meta: { title: '审核离队申请', pageWidth: 'content', permission: 'team.member.remove' } },
+  { path: '/departure-review', component: MemberDepartureView, meta: { title: '离队审核', permission: 'team.member.remove', accessMode: 'list' } },
   { path: '/members', component: MembersView, meta: { title: '成员' } },
   { path: '/customers', component: CustomersView, meta: { title: '顾客' } },
   { path: '/customers/:id(\\d+)', component: CustomerDetailView, meta: { title: '顾客详情', pageWidth: 'content' } },
   { path: '/member-add', component: MemberFormView, meta: { title: '添加成员', pageWidth: 'form' } },
   { path: '/member-edit', component: MemberFormView, meta: { title: '编辑成员', pageWidth: 'content' } },
-  { path: '/docs', component: DocumentsView, meta: { title: '文档', ability: 'doc' } },
+  { path: '/docs', component: DocumentsView, meta: { title: '文档', ability: 'doc', accessMode: 'list' } },
   { path: '/doc-create', component: DocumentFormView, meta: { title: '新建文档', pageWidth: 'content', ability: 'doc' } },
   { path: '/doc-edit', component: DocumentFormView, meta: { title: '编辑文档', pageWidth: 'content', ability: 'doc' } },
   ...Object.entries(resources).filter(([path]) => !['notice', 'files', 'roles', 'join-review', 'members', 'fields', 'docs'].includes(path)).map(([path, resource]) => ({ path: `/${path}`, component: ResourceView, props: { resource }, meta: { title: resource.title } })),
@@ -166,26 +165,39 @@ router.beforeEach(async (to) => {
     redirectToLogin()
     return false
   }
-  if (!to.meta.public && auth.entity()?.type === 'teamCustomer') {
+  if (to.meta.public) return true
+  if (to.meta.workspace === 'personal' && !['team', 'teamMember', 'teamVirtual'].includes(String(auth.entity()?.type ?? ''))) {
     location.replace(identityUrl(location.href))
     return false
   }
-  if (to.meta.workspace === 'personal' && !['team', 'teamMember', 'teamVirtual'].includes(String(auth.entity()?.type ?? ''))) return '/'
-  if (to.meta.ability === 'doc') {
-    try {
-      if (!routeAccess || routeAccess.expiresAt < Date.now()) {
-        routeAccess = {
-          value: await api.get<TeamAccessSnapshot>('/access'),
-          expiresAt: Date.now() + 30_000,
-        }
+  try {
+    if (!routeAccess || routeAccess.expiresAt < Date.now()) {
+      routeAccess = {
+        value: await api.get<TeamAccessSnapshot>('/access'),
+        expiresAt: Date.now() + 30_000,
       }
-      const state = routeAccess.value.abilities?.doc
-      if (state && !state.enabled) {
-        feedback.warning(abilityReason('doc', state?.label ?? '文档'))
-        return '/'
-      }
-    } catch {
-      // 请求失败时交给页面自己的可恢复错误状态，避免路由守卫形成死路。
     }
+    const access = routeAccess.value
+    if (to.meta.workspace === 'personal' && access.identity?.is_external) {
+      redirectToMemberIdentity(String(access.team?.slug ?? ''), 'team_mismatch')
+      return false
+    }
+    if (to.meta.workspace !== 'personal' && redirectToWorkspaceWarning(access)) return false
+    const permission = String(to.meta.permission ?? '').replace('<slug>', String(to.query.slug ?? '').trim().toLowerCase())
+    if (permission && !hasPermission(access, permission)) {
+      to.meta.accessReason = permissionReason(permission)
+      return true
+    }
+    if (to.meta.ability === 'doc') {
+      const state = access.abilities?.doc
+      if (state && !state.enabled) {
+        to.meta.accessReason = abilityReason('doc', state?.label ?? '文档')
+        return true
+      }
+    }
+    to.meta.accessReason = ''
+  } catch (error) {
+    if (redirectWorkspaceRoleError(error)) return false
+    // 请求失败时交给页面自己的可恢复错误状态，避免路由守卫形成死路。
   }
 })

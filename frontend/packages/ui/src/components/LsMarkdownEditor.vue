@@ -189,8 +189,8 @@ function clearDraft() {
 async function uploadImage(file: File): Promise<string> {
   uploadError.value = ''
   if (props.uploadDisabledReason) {
-    uploadError.value = props.uploadDisabledReason
-    throw new Error(props.uploadDisabledReason)
+    feedback.info(props.uploadDisabledReason)
+    throw new Error()
   }
   try {
     return await props.uploadImage(file)
@@ -205,26 +205,20 @@ function syncUploadControls() {
   const disabled = Boolean(props.uploadDisabledReason)
   for (const input of root.value.querySelectorAll<HTMLInputElement>('input[type="file"]')) {
     input.disabled = disabled
-    if (disabled) input.setAttribute('aria-describedby', 'markdown-upload-reason')
-    else input.removeAttribute('aria-describedby')
   }
   for (const button of root.value.querySelectorAll<HTMLButtonElement>('button')) {
     if (!button.textContent?.includes('上传图片')) continue
     button.disabled = disabled
-    if (disabled) button.setAttribute('aria-describedby', 'markdown-upload-reason')
-    else button.removeAttribute('aria-describedby')
   }
   const imageButton = root.value.querySelector<SVGElement>('svg[data-lostsky-image-upload]')?.closest<HTMLButtonElement>('button')
   if (imageButton) {
     imageButton.disabled = false
-    imageButton.setAttribute('aria-label', disabled ? `插入图片不可用：${props.uploadDisabledReason}` : '插入图片')
-    imageButton.title = disabled ? props.uploadDisabledReason ?? '' : '插入图片'
+    imageButton.setAttribute('aria-label', '插入图片')
+    imageButton.title = '插入图片'
     if (disabled) {
       imageButton.setAttribute('aria-disabled', 'true')
-      imageButton.setAttribute('aria-describedby', 'markdown-upload-reason')
     } else {
       imageButton.removeAttribute('aria-disabled')
-      imageButton.removeAttribute('aria-describedby')
     }
   }
 }
@@ -317,7 +311,6 @@ onBeforeUnmount(() => {
       <button type="button" role="tab" :aria-selected="mode === 'preview'" @click="setMode('preview')"><Eye :size="16" />预览</button>
     </div>
 
-    <p v-if="uploadDisabledReason" id="markdown-upload-reason" class="ls-sr-only">{{ uploadDisabledReason }}；仍可粘贴外部图片 URL。</p>
     <p v-if="uploadError" class="upload-error" role="alert">{{ uploadError }}</p>
 
     <div v-show="mode === 'visual'" class="visual-pane">

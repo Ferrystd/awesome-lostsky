@@ -11,14 +11,16 @@ import { Check, X } from '@lucide/vue'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 const route = useRoute()
 const client = useQueryClient()
+const routeAccess = useRouteAccess()
 const id = computed(() => Number(route.query.id || 0))
 const query = useQuery({
   queryKey: computed(() => ['member-departure', id.value]),
-  queryFn: () => api.get<Record<string, unknown>>('/memberDeparture/get', { id: id.value }),
-  enabled: computed(() => id.value > 0),
+  queryFn: () => routeAccess.read(() => api.get<Record<string, unknown>>('/memberDeparture/get', { id: id.value })),
+  enabled: computed(() => id.value > 0 && !routeAccess.restricted.value),
 })
 const detail = computed(() => query.data.value)
 const member = computed(() => detail.value?.member as Record<string, unknown> | undefined)
@@ -31,7 +33,7 @@ const action = useMutation({
   },
   onError: error => feedback.error(friendlyError(error)),
 })
-function decide(path: string, message: string) { if (confirm(message)) action.mutate(path) }
+function decide(path: string, message: string) { if (!routeAccess.restricted.value && confirm(message)) action.mutate(path) }
 function dateTime(value: unknown): string {
   const seconds = Number(value)
   return seconds ? new Intl.DateTimeFormat('zh-CN', { dateStyle: 'long', timeStyle: 'short' }).format(seconds * 1000) : '—'
@@ -44,12 +46,12 @@ function dateTime(value: unknown): string {
       <template v-if="detail" #actions><LsStatusTag :label="String(detail.status_label || detail.status_code || detail.status)" /></template>
     </AdminPageHeader>
     <LsInlineError v-if="!id" message="缺少有效的离队申请编号。" />
-    <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取离队申请" :description="friendlyError(query.error.value)" />
-    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
-    <template v-else-if="detail">
-      <LsPanel><section><small>目标成员</small><h2>{{ member?.nickname || member?.name || `成员 #${detail.member_id}` }}</h2><p>@{{ member?.slug || '尚无 slug' }} · {{ member?.status_label || '正常' }}</p></section></LsPanel>
-      <LsPanel><dl><div><dt>发起实体</dt><dd>{{ (detail.requester as Record<string, unknown> | undefined)?.name || `Entity #${detail.requester_entity_id}` }}</dd></div><div><dt>申请时间</dt><dd>{{ dateTime(detail.create_time) }}</dd></div><div><dt>决定实体</dt><dd>{{ (detail.decision_entity as Record<string, unknown> | undefined)?.name || '尚未决定' }}</dd></div><div><dt>决定时间</dt><dd>{{ dateTime(detail.decided_at) }}</dd></div></dl></LsPanel>
-      <LsPanel v-if="detail.status_code === 'applied'"><section class="decision"><div><h3>审核决定</h3><p>批准后成员进入已离队状态，现有会话立即失效；资料、角色与业务关系保持不变。</p></div><div><LsButton :loading="action.isPending.value" @click="decide('/memberDeparture/approve', '确认批准该离队申请？')"><template #icon><Check :size="17" /></template>批准离队</LsButton><LsButton variant="danger" :loading="action.isPending.value" @click="decide('/memberDeparture/reject', '确认拒绝该离队申请？')"><template #icon><X :size="17" /></template>拒绝申请</LsButton></div></section></LsPanel>
+    <LsAsyncState v-else-if="query.isError.value && !routeAccess.restricted.value" state="error" title="暂时无法读取离队申请" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="query.isPending.value && !routeAccess.restricted.value" state="loading" :rows="5" />
+    <template v-else-if="detail || routeAccess.restricted.value">
+      <LsPanel><section><small>目标成员</small><h2>{{ routeAccess.restricted.value ? '-' : member?.nickname || member?.name || `成员 #${detail?.member_id}` }}</h2><p>{{ routeAccess.restricted.value ? '-' : `@${member?.slug || '尚无 slug'} · ${member?.status_label || '正常'}` }}</p></section></LsPanel>
+      <LsPanel><dl><div><dt>发起实体</dt><dd>{{ routeAccess.restricted.value ? '-' : (detail?.requester as Record<string, unknown> | undefined)?.name || `Entity #${detail?.requester_entity_id}` }}</dd></div><div><dt>申请时间</dt><dd>{{ routeAccess.restricted.value ? '-' : dateTime(detail?.create_time) }}</dd></div><div><dt>决定实体</dt><dd>{{ routeAccess.restricted.value ? '-' : (detail?.decision_entity as Record<string, unknown> | undefined)?.name || '尚未决定' }}</dd></div><div><dt>决定时间</dt><dd>{{ routeAccess.restricted.value ? '-' : dateTime(detail?.decided_at) }}</dd></div></dl></LsPanel>
+      <LsPanel v-if="routeAccess.restricted.value || detail?.status_code === 'applied'"><section class="decision"><div><h3>审核决定</h3><p>批准后成员进入已离队状态，现有会话立即失效；资料、角色与业务关系保持不变。</p></div><div><LsButton :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="action.isPending.value" @click="decide('/memberDeparture/approve', '确认批准该离队申请？')"><template #icon><Check :size="17" /></template>批准离队</LsButton><LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="action.isPending.value" @click="decide('/memberDeparture/reject', '确认拒绝该离队申请？')"><template #icon><X :size="17" /></template>拒绝申请</LsButton></div></section></LsPanel>
     </template>
   </div>
 </template>

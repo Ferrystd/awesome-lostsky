@@ -12,11 +12,8 @@ class Service
     protected $middleware = [
         'JwtAuth' => ['except' => []],
         'Context' => ['except' => []],
-        'EntityType:team,teamMember,teamVirtual' => ['except' => []],
-        'TeamAuth' => ['except' => []],
-        // 已经开始的履约属于待完成义务。Transaction Ability 失效时仍允许
-        // complete 收口；ServiceRedemption 会跳过流水与加价业绩写入。
-        'Ability:transaction' => ['except' => ['complete']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'TeamWorkspaceAuth' => ['except' => []],
         'Permission:' . Permissions::SERVICE_REDEMPTION_READ . ',' . Permissions::SERVICE_REDEMPTION_MANAGE => ['only' => ['index', 'get', 'handlers']],
         'Permission:' . Permissions::SERVICE_REDEMPTION_MANAGE => ['only' => ['approveCancel', 'rejectCancel', 'reassign', 'complete', 'reject', 'createAdjustment', 'cancelAdjustment']],
     ];

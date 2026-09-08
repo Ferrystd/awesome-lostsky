@@ -7,15 +7,18 @@ import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NDatePicker, NInput, NInputNumber } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { customerName, money, transactionParticipantDefaults } from '../lib'
-import { loadWorkspaceAccess } from '../lib/workspace-access'
+import { loadWorkspaceAccess, resolveTransactionAbilityReason, transactionAbilityReason } from '../lib/workspace-access'
 import type { TransactionOptions, TransactionRecord } from '../types'
 
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const router = useRouter()
 const client = useQueryClient()
 const id = computed(() => Number(route.query.id || 0))
@@ -40,6 +43,7 @@ const form = reactive({
 const optionsQuery = useQuery({
   queryKey: computed(() => ['transaction-options', personal.value ? 'personal' : 'team']),
   queryFn: () => api.get<TransactionOptions>(personal.value ? '/personal/transaction-options' : '/transaction/options'),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const accessQuery = useQuery({
   queryKey: ['transaction-workspace-access'],
@@ -47,8 +51,8 @@ const accessQuery = useQuery({
 })
 const detail = useQuery({
   queryKey: computed(() => ['transaction', id.value]),
-  queryFn: () => api.get<TransactionRecord>(`/transaction/${id.value}`),
-  enabled: editing,
+  queryFn: () => routeAccess.read(() => api.get<TransactionRecord>(`/transaction/${id.value}`)),
+  enabled: computed(() => editing.value && !routeAccess.restricted.value),
 })
 watch(() => detail.data.value, (data) => {
   if (!data) return
@@ -92,6 +96,7 @@ const selectedCustomer = computed(() => customers.value.find(item => Number(item
 const currentEntityId = computed(() => Number(accessQuery.data.value?.identity?.entity_id) || null)
 const balance = computed(() => Number(selectedCustomer.value?.balance?.balance ?? 0))
 const canSubmit = computed(() => Boolean(form.handler_entity_id && form.trans_at && balanced.value && (!form.prepaid || form.customer_id)))
+const operationReason = computed(() => routeAccess.reason.value || (editing.value ? '' : accessQuery.isPending.value ? '正在核对记账能力' : transactionAbilityReason(accessQuery.data.value)))
 const amountProps = { min: 0, precision: 2, step: 1 } as const
 
 function applyCustomerDefaults(value: number | number[] | null) {
@@ -130,6 +135,12 @@ const save = useMutation({
       : `/detail?id=${editing.value ? id.value : Number(data?.id ?? 0)}`)
   },
 })
+async function submit() {
+  if (routeAccess.reason.value) return feedback.info(routeAccess.reason.value)
+  const reason = await resolveTransactionAbilityReason(accessQuery.data.value)
+  if (!editing.value && reason) return feedback.info(reason)
+  save.mutate()
+}
 </script>
 
 <template>
@@ -140,13 +151,13 @@ const save = useMutation({
       :back-to="editing ? `/detail?id=${id}` : personal ? '/personal/transactions' : '/'"
       :back-label="editing ? '返回流水详情' : personal ? '返回我的流水' : '返回流水列表'"
     />
-    <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
-    <form v-else class="transaction-form" @submit.prevent="save.mutate()">
-      <LsInlineError v-if="optionsQuery.isError.value" message="参与方选项暂时无法读取；表单仍可查看，但相关字段已禁用。" />
+    <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
+    <form v-else class="transaction-form" @submit.prevent="submit">
+      <LsInlineError v-if="!routeAccess.restricted.value && optionsQuery.isError.value" message="参与方选项暂时无法读取；表单仍可查看，但相关字段已禁用。" />
       <LsFormSection title="参与方" description="选择接单人、发单人、客服与顾客；顾客为空时不能使用预存款。" :heading-level="3">
         <p v-if="optionsQuery.data.value && !hasEntityOptions" class="hint">当前响应未提供主体选项，主体字段已禁用，其他金额与备注仍可填写。</p>
         <p v-if="optionsQuery.data.value && !hasCustomerOptions" class="hint">当前响应未提供顾客选项，顾客与预存款暂不可用。</p>
-        <LsField label="接单人" for-id="transaction-handler" required><LsEntitySelect id="transaction-handler" v-model="form.handler_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="optionsQuery.isPending.value" :disabled="editing || !hasEntityOptions" placeholder="选择接单人" /></LsField>
+        <LsField label="接单人" for-id="transaction-handler" required><LsEntitySelect id="transaction-handler" v-model="form.handler_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="!routeAccess.restricted.value && optionsQuery.isPending.value" :disabled="routeAccess.restricted.value || editing || !hasEntityOptions" :placeholder="routeAccess.restricted.value ? '-' : '选择接单人'" /></LsField>
         <LsField label="发单人" for-id="transaction-sender"><LsEntitySelect id="transaction-sender" v-model="form.sender_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="optionsQuery.isPending.value" :disabled="!hasEntityOptions" clearable placeholder="可选" /></LsField>
         <LsField label="客服" for-id="transaction-cs"><LsEntitySelect id="transaction-cs" v-model="form.cs_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="optionsQuery.isPending.value" :disabled="!hasEntityOptions" clearable placeholder="可选" /></LsField>
         <LsField label="顾客" for-id="transaction-customer"><LsEntitySelect id="transaction-customer" v-model="form.customer_id" :entities="customerEntities" :loading="optionsQuery.isPending.value" :disabled="!hasCustomerOptions" clearable placeholder="可选；使用预存款时必填" @update:model-value="applyCustomerDefaults" /></LsField>
@@ -174,7 +185,7 @@ const save = useMutation({
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
-        <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="!canSubmit || form.prepaid > balance">保存流水</LsButton>
+        <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="Boolean(operationReason) || !canSubmit || form.prepaid > balance" :disabled-reason="operationReason">保存流水</LsButton>
       </LsFormActions>
     </form>
   </div>

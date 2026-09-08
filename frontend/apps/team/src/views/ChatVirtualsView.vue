@@ -5,6 +5,7 @@ import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { ChevronRight, Plus, Webhook } from '@lucide/vue'
 import { computed, ref } from 'vue'
@@ -19,7 +20,8 @@ interface VirtualEntity {
   is_active: number
   integrations?: Integration[]
 }
-const virtuals = useQuery({ queryKey: ['chat-virtuals'], queryFn: () => api.get<VirtualEntity[]>('/chatVirtual/index') })
+const routeAccess = useRouteAccess()
+const virtuals = useQuery({ queryKey: ['chat-virtuals'], queryFn: () => api.get<VirtualEntity[]>('/chatVirtual/index'), enabled: computed(() => !routeAccess.restricted.value) })
 const search = ref('')
 const rows = computed(() => { const keyword = search.value.trim().toLocaleLowerCase(); return (virtuals.data.value ?? []).filter(item => !keyword || `${item.name} ${item.slug} ${item.description ?? ''}`.toLocaleLowerCase().includes(keyword)) })
 </script>
@@ -29,8 +31,8 @@ const rows = computed(() => { const keyword = search.value.trim().toLocaleLowerC
     <AdminPageHeader title="虚拟实体" description="以同一套通用能力（Ability）承载人工代操作、Webhook，以及未来的 LLM 或工作流。">
       <template #actions><LsPagePrimaryAction :icon="Plus" label="创建虚拟实体" to="/chat-virtual-new" /></template>
     </AdminPageHeader>
-    <LsListToolbar v-model="search" placeholder="搜索虚拟实体名称或 slug" aria-label="搜索虚拟实体" :count-label="`${rows.length} 个虚拟实体`" />
-    <p v-if="virtuals.isError.value" class="state error" role="alert">{{ friendlyError(virtuals.error.value) }}</p>
+    <LsListToolbar v-model="search" placeholder="搜索虚拟实体名称或 slug" aria-label="搜索虚拟实体" :count-label="routeAccess.restricted.value ? '0 个虚拟实体' : `${rows.length} 个虚拟实体`" />
+    <p v-if="!routeAccess.restricted.value && virtuals.isError.value" class="state error" role="alert">{{ friendlyError(virtuals.error.value) }}</p>
     <div v-else-if="rows.length" class="virtual-list">
       <RouterLink v-for="item in rows" :key="item.slug" :to="{ path: '/chat-virtual', query: { slug: item.slug } }">
         <LsEntityIdentity type="teamVirtual" :name="item.name" :slug="item.slug" :image-url="item.avatar" />
@@ -40,7 +42,7 @@ const rows = computed(() => { const keyword = search.value.trim().toLocaleLowerC
         <ChevronRight :size="18" />
       </RouterLink>
     </div>
-    <LsEmptyState v-else title="还没有虚拟实体" description="创建后再通过角色授予全局或指定 slug 的管理、操作与字段权限（Permission）。" />
+    <LsEmptyState :source="virtuals.data.value" v-else :title="routeAccess.restricted.value ? '没有可显示的虚拟实体' : '还没有虚拟实体'" description="创建后可通过角色授予全局或指定 slug 的管理、操作与字段范围。" />
   </div>
 </template>
 

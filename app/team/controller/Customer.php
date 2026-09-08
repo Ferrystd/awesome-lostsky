@@ -12,7 +12,7 @@ class Customer
     protected $middleware = [
         'JwtAuth', 'Context',
         'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamAuth',
+        'TeamWorkspaceAuth',
         'Permission:' . Permissions::TEAM_CUSTOMER_READ . ',' . Permissions::TEAM_CUSTOMER_MANAGE => ['only' => ['assignees']],
         'Permission:' . Permissions::TEAM_CUSTOMER_MANAGE => ['only' => ['update']],
     ];

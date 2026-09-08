@@ -13,7 +13,7 @@ class Order
         'JwtAuth'           => ['except' => []],
         'Context'           => ['except' => []],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
-        'TeamAuth'          => ['except' => []],
+        'TeamWorkspaceAuth' => ['except' => []],
         'Permission:' . Permissions::SHOP_ORDER_READ => ['only' => ['index', 'get']],
         'Permission:' . Permissions::SHOP_ORDER_WRITE => ['only' => ['create', 'cancel', 'complete']],
         'TransactionVerify' => ['only' => ['create']],

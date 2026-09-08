@@ -8,6 +8,7 @@ describe('permission hierarchy', () => {
     expect(permissionCovers('team', 'team.ability.redeem')).toBe(true)
     expect(permissionCovers('team.entity.virtual.*', 'team.entity.virtual.bot.manage')).toBe(true)
     expect(permissionCovers('chat.virtual.*.act', 'chat.virtual.bot.act')).toBe(true)
+    expect(permissionCovers('team.document.customer.*.manage', 'team.document.customer.alice.manage')).toBe(true)
     expect(permissionCovers('team.entity.virtual.bot', 'team.entity.virtual.*.manage')).toBe(false)
     expect(permissionCovers('team.ability', 'team.notice.read')).toBe(false)
   })
@@ -32,9 +33,12 @@ describe('permission hierarchy', () => {
       'team.ability.redeem',
       'team.ability',
       'team.notice.read',
+      'team.document.customer.customer-1.manage',
+      'team.document.customer.*.manage',
     ])).toEqual([
       'identity.member.*.assume',
       'team.ability',
+      'team.document.customer.*.manage',
       'team.notice.read',
     ])
   })

@@ -4,6 +4,8 @@
 
 ## 每次代码改动
 
+- [ ] 按[文档维护归属](wiki.md)同步开发侧文档；`docs/manual/` 仅只读参考，需要人工更新的页面与差异已在交付中说明，未自动改写手册。
+
 - [ ] 按[Changelog 写法](releasing.md#changelog)更新 `docs/changelog.md` 的“未发布”区，不修改已经发布的版本章节。
 - [ ] 更新直接相关测试；输入、结构或示例变化时同步 fixture 和测试数据清理逻辑。
 - [ ] 运行直接相关检查和 `git diff --check`，只记录实际结果。
@@ -34,7 +36,7 @@
 | CORS、域名或静态交付 | 路由/CORS 文档、Nginx 模板、调用方 | `npm run check:cors`、按需 `npm run test:e2e`、`npm run build` |
 | npm 依赖 | `package.json`、`package-lock.json` | `npm ci`、受影响测试与构建 |
 | Composer 依赖 | `composer.json`、`composer.lock` | `composer validate`、`composer check-platform-reqs`、相关测试 |
-| Wiki/文档 | 正文、链接；新增、改名或删除时同步 `zensical.toml` | `npm run build:docs` |
+| Wiki/文档 | 按[文档管理方法](wiki.md)核验事实与生命周期；同步正文、链接、索引和 `zensical.toml`，涉及用户指南结构时同步 `zensical.guide.toml` | `npm run build:docs`（字典检查与双站严格构建） |
 | 文档站依赖 | `docs/requirements.txt` | `npm run docs:setup`、`npm run build:docs` |
 | 配置或部署模板 | `.env.example`、`deploy/`、运维文档 | 对应检查与部署验证 |
 

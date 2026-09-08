@@ -4,88 +4,127 @@ import { describe, expect, it } from 'vitest'
 
 const repository = process.cwd()
 const applicationNames = ['account', 'team', 'chat', 'transaction', 'admin', 'weibo']
-const sourceRoots = [
-  ...applicationNames.map(name => join(repository, 'frontend', 'apps', name, 'src')),
-  join(repository, 'frontend', 'packages', 'ui', 'src'),
-]
+const sourceRoots = [...applicationNames.map((name) => join(repository, 'frontend', 'apps', name, 'src')), join(repository, 'frontend', 'packages', 'ui', 'src')]
 
 function filesUnder(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name)
     return entry.isDirectory() ? filesUnder(path) : [path]
   })
 }
 
 function sourceFiles() {
-  return sourceRoots.flatMap(filesUnder).filter(path => /\.(?:ts|vue|css)$/.test(path) && !path.endsWith('.test.ts'))
+  return sourceRoots.flatMap(filesUnder).filter((path) => /\.(?:ts|vue|css)$/.test(path) && !path.endsWith('.test.ts'))
 }
 
-const componentCallerRoots = readdirSync(join(repository, 'frontend', 'apps'), { withFileTypes: true })
-  .filter(entry => entry.isDirectory())
-  .map(entry => join(repository, 'frontend', 'apps', entry.name, 'src'))
+const componentCallerRoots = readdirSync(join(repository, 'frontend', 'apps'), {
+  withFileTypes: true,
+})
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => join(repository, 'frontend', 'apps', entry.name, 'src'))
 
 describe('后台源码设计契约', () => {
   it('锁定 Naive UI 2.44.1 且不引入其他组件体系', () => {
     const manifest = JSON.parse(readFileSync(join(repository, 'package.json'), 'utf8')) as { dependencies: Record<string, string> }
     expect(manifest.dependencies['naive-ui']).toBe('2.44.1')
-    const sources = sourceFiles().map(path => readFileSync(path, 'utf8')).join('\n')
+    const sources = sourceFiles()
+      .map((path) => readFileSync(path, 'utf8'))
+      .join('\n')
     expect(sources).not.toMatch(/from\s+['"](?:primevue|shadcn-vue|@shadcn)/i)
   })
 
   it('只允许五个应用根节点注入主题 Provider', () => {
     const providerFiles = sourceFiles()
-      .filter(path => readFileSync(path, 'utf8').includes('NConfigProvider'))
-      .map(path => relative(repository, path).replaceAll('\\', '/'))
+      .filter((path) => readFileSync(path, 'utf8').includes('NConfigProvider'))
+      .map((path) => relative(repository, path).replaceAll('\\', '/'))
       .sort()
-    expect(providerFiles).toEqual(applicationNames.map(name => `frontend/apps/${name}/src/App.vue`).sort())
+    expect(providerFiles).toEqual(applicationNames.map((name) => `frontend/apps/${name}/src/App.vue`).sort())
   })
 
   it('原生标准控件只存在于已登记的浏览器实现例外', () => {
-    const controls = sourceFiles().flatMap(path => {
+    const controls = sourceFiles().flatMap((path) => {
       const source = readFileSync(path, 'utf8')
-      return [...source.matchAll(/<(button|input|select|textarea)\b/gi)].map(match => ({
+      return [...source.matchAll(/<(button|input|select|textarea)\b/gi)].map((match) => ({
         file: relative(repository, path).replaceAll('\\', '/'),
         control: match[1].toLowerCase(),
       }))
     })
     expect(controls).toEqual([
-      { file: 'frontend/apps/account/src/views/LoginView.vue', control: 'button' },
-      { file: 'frontend/apps/account/src/views/LoginView.vue', control: 'button' },
-      { file: 'frontend/apps/account/src/views/LoginView.vue', control: 'button' },
-      { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
-      { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
-      { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
-      { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'button' },
-      { file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue', control: 'textarea' },
-      { file: 'frontend/packages/ui/src/components/LsMarkdownRenderer.vue', control: 'button' },
-      { file: 'frontend/packages/ui/src/components/LsPagePrimaryAction.vue', control: 'button' },
-      { file: 'frontend/packages/ui/src/components/LsUploadField.vue', control: 'input' },
-      { file: 'frontend/packages/ui/src/components/LsWorkspaceOverview.vue', control: 'button' },
+      {
+        file: 'frontend/apps/account/src/views/LoginView.vue',
+        control: 'button',
+      },
+      {
+        file: 'frontend/apps/account/src/views/LoginView.vue',
+        control: 'button',
+      },
+      {
+        file: 'frontend/apps/account/src/views/LoginView.vue',
+        control: 'button',
+      },
+      {
+        file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue',
+        control: 'button',
+      },
+      {
+        file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue',
+        control: 'button',
+      },
+      {
+        file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue',
+        control: 'button',
+      },
+      {
+        file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue',
+        control: 'button',
+      },
+      {
+        file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue',
+        control: 'textarea',
+      },
+      {
+        file: 'frontend/packages/ui/src/components/LsMarkdownRenderer.vue',
+        control: 'button',
+      },
+      {
+        file: 'frontend/packages/ui/src/components/LsPagePrimaryAction.vue',
+        control: 'button',
+      },
+      {
+        file: 'frontend/packages/ui/src/components/LsUploadField.vue',
+        control: 'input',
+      },
     ])
   })
 
   it('应用调用方不得穿透公共组件的 ls 私有节点', () => {
-    const offenders = componentCallerRoots.flatMap(filesUnder)
-      .filter(path => /\.(?:vue|css)$/.test(path))
-      .filter(path => readFileSync(path, 'utf8').includes(':deep(.ls-'))
-      .map(path => relative(repository, path).replaceAll('\\', '/'))
+    const offenders = componentCallerRoots
+      .flatMap(filesUnder)
+      .filter((path) => /\.(?:vue|css)$/.test(path))
+      .filter((path) => readFileSync(path, 'utf8').includes(':deep(.ls-'))
+      .map((path) => relative(repository, path).replaceAll('\\', '/'))
     expect(offenders).toEqual([])
   })
 
   it('Entity 候选统一使用公共富选择器', () => {
-    const pages = componentCallerRoots.flatMap(filesUnder).filter(path => path.endsWith('.vue'))
-    const legacy = pages.filter(path => {
-      const source = readFileSync(path, 'utf8')
-      return source.includes('EntitySelectOption') || source.includes('entity-select-menu')
-    }).map(path => relative(repository, path).replaceAll('\\', '/'))
+    const pages = componentCallerRoots.flatMap(filesUnder).filter((path) => path.endsWith('.vue'))
+    const legacy = pages
+      .filter((path) => {
+        const source = readFileSync(path, 'utf8')
+        return source.includes('EntitySelectOption') || source.includes('entity-select-menu')
+      })
+      .map((path) => relative(repository, path).replaceAll('\\', '/'))
     expect(legacy).toEqual([])
 
-    const plainSelects = pages.flatMap(path => {
+    const plainSelects = pages.flatMap((path) => {
       const source = readFileSync(path, 'utf8')
       return [...source.matchAll(/<NSelect\b[^>]*>/gs)]
-        .map(match => match[0])
-        .filter(tag => /(?:handler_entity_id|sender_entity_id|cs_entity_id|assignee_entity_id|targetEntityId|visibility_target_ids)/.test(tag))
-        .map(tag => ({ file: relative(repository, path).replaceAll('\\', '/'), tag }))
+        .map((match) => match[0])
+        .filter((tag) => /(?:handler_entity_id|sender_entity_id|cs_entity_id|assignee_entity_id|targetEntityId|visibility_target_ids)/.test(tag))
+        .map((tag) => ({
+          file: relative(repository, path).replaceAll('\\', '/'),
+          tag,
+        }))
     })
     expect(plainSelects).toEqual([])
   })
@@ -101,10 +140,11 @@ describe('后台源码设计契约', () => {
   })
 
   it('页面标题区主操作全部复用强制图标的统一组件', () => {
-    const usages = componentCallerRoots.flatMap(filesUnder)
-      .filter(path => path.endsWith('.vue'))
-      .flatMap(path => [...readFileSync(path, 'utf8').matchAll(/<LsPagePrimaryAction\b[^>]*>/g)].map(match => ({ path, tag: match[0] })))
-    expect(usages).toHaveLength(31)
+    const usages = componentCallerRoots
+      .flatMap(filesUnder)
+      .filter((path) => path.endsWith('.vue'))
+      .flatMap((path) => [...readFileSync(path, 'utf8').matchAll(/<LsPagePrimaryAction\b[^>]*>/g)].map((match) => ({ path, tag: match[0] })))
+    expect(usages).toHaveLength(34)
     for (const usage of usages) {
       const file = relative(repository, usage.path).replaceAll('\\', '/')
       expect(usage.tag, `${file} 的页面主操作缺少强制 icon`).toMatch(/:icon=/)
@@ -114,9 +154,8 @@ describe('后台源码设计契约', () => {
   })
 
   it('Markdown 与媒体资料字段不能退化成普通输入框', () => {
-    const roots = ['team', 'shop']
-      .map(name => join(repository, 'frontend', 'apps', name, 'src'))
-    const pages = roots.flatMap(filesUnder).filter(path => path.endsWith('.vue'))
+    const roots = ['team', 'shop'].map((name) => join(repository, 'frontend', 'apps', name, 'src'))
+    const pages = roots.flatMap(filesUnder).filter((path) => path.endsWith('.vue'))
     for (const path of pages) {
       const source = readFileSync(path, 'utf8')
       const file = relative(repository, path).replaceAll('\\', '/')
@@ -144,13 +183,7 @@ describe('后台源码设计契约', () => {
   })
 
   it('后台组件化方法由规则入口共同触发', () => {
-    const references = [
-      'AGENTS.md',
-      'docs/design/admin/index.md',
-      'docs/development/frontend.md',
-      'docs/design/admin/checklist.md',
-      'docs/development/checklist.md',
-    ]
+    const references = ['AGENTS.md', 'docs/design/admin/index.md', 'docs/development/frontend.md', 'docs/design/admin/checklist.md', 'docs/development/checklist.md']
     for (const file of references) {
       const source = readFileSync(join(repository, ...file.split('/')), 'utf8')
       expect(source, `${file} 未引用组件化方法`).toContain('componentization.md')
@@ -162,41 +195,27 @@ describe('后台源码设计契约', () => {
   })
 
   it('后台业务页面不恢复已淘汰的结构类名', () => {
-    const roots = ['admin', 'team', 'transaction', 'shop']
-      .map(name => join(repository, 'frontend', 'apps', name, 'src'))
+    const roots = ['admin', 'team', 'transaction', 'shop'].map((name) => join(repository, 'frontend', 'apps', name, 'src'))
     const forbidden = /\b(?:form-panel|form-actions|section-heading|panel-heading|section-title)\b/
-    for (const path of roots.flatMap(filesUnder).filter(path => /\.(?:vue|css)$/.test(path))) {
+    for (const path of roots.flatMap(filesUnder).filter((path) => /\.(?:vue|css)$/.test(path))) {
       const file = relative(repository, path).replaceAll('\\', '/')
       expect(readFileSync(path, 'utf8'), `${file} 恢复了旧结构`).not.toMatch(forbidden)
     }
   })
 
   it('普通复选组统一复用 LsCheckboxGroupField', () => {
-    const allowed = [
-      'frontend/apps/admin/src/views/RoleFormView.vue',
-      'frontend/apps/team/src/views/JoinView.vue',
-      'frontend/packages/ui/src/components/LsCheckboxGroupField.vue',
-    ]
-    const roots = ['admin', 'team', 'transaction', 'shop']
-      .map(name => join(repository, 'frontend', 'apps', name, 'src'))
-      .concat(join(repository, 'frontend', 'packages', 'ui', 'src'))
-    const files = roots.flatMap(filesUnder)
-      .filter(path => path.endsWith('.vue') && readFileSync(path, 'utf8').includes('NCheckboxGroup'))
-      .map(path => relative(repository, path).replaceAll('\\', '/'))
+    const allowed = ['frontend/apps/admin/src/views/RoleFormView.vue', 'frontend/apps/team/src/views/JoinView.vue', 'frontend/packages/ui/src/components/LsCheckboxGroupField.vue']
+    const roots = ['admin', 'team', 'transaction', 'shop'].map((name) => join(repository, 'frontend', 'apps', name, 'src')).concat(join(repository, 'frontend', 'packages', 'ui', 'src'))
+    const files = roots
+      .flatMap(filesUnder)
+      .filter((path) => path.endsWith('.vue') && readFileSync(path, 'utf8').includes('NCheckboxGroup'))
+      .map((path) => relative(repository, path).replaceAll('\\', '/'))
       .sort()
     expect(files).toEqual(allowed.sort())
   })
 
   it('标准详情页面复用 LsDescriptionList', () => {
-    const required = [
-      'frontend/apps/admin/src/views/UserDetailView.vue',
-      'frontend/apps/admin/src/views/TeamDetailView.vue',
-      'frontend/apps/admin/src/views/SystemView.vue',
-      'frontend/apps/team/src/views/DetailView.vue',
-      'frontend/apps/team/src/views/JoinReviewDetailView.vue',
-      'frontend/apps/team/src/views/ResourceView.vue',
-      'frontend/apps/team/src/views/AbilitiesView.vue',
-    ]
+    const required = ['frontend/apps/admin/src/views/UserDetailView.vue', 'frontend/apps/admin/src/views/TeamDetailView.vue', 'frontend/apps/admin/src/views/SystemView.vue', 'frontend/apps/team/src/views/DetailView.vue', 'frontend/apps/team/src/views/JoinReviewDetailView.vue', 'frontend/apps/team/src/views/ResourceView.vue', 'frontend/apps/team/src/views/AbilitiesView.vue']
     for (const file of required) {
       expect(readFileSync(join(repository, ...file.split('/')), 'utf8'), `${file} 未复用标准详情列表`).toContain('LsDescriptionList')
     }
@@ -229,16 +248,16 @@ describe('后台源码设计契约', () => {
 
   it('拖拽实现只存在于公共表单列表组件', () => {
     const imports = sourceFiles()
-      .filter(path => readFileSync(path, 'utf8').includes("from 'vue-draggable-plus'"))
-      .map(path => relative(repository, path).replaceAll('\\', '/'))
+      .filter((path) => readFileSync(path, 'utf8').includes("from 'vue-draggable-plus'"))
+      .map((path) => relative(repository, path).replaceAll('\\', '/'))
     expect(imports).toEqual(['frontend/packages/ui/src/components/LsFormList.vue'])
   })
 
   it('所有布尔控件统一复用 LsSwitch 或 LsSwitchField', () => {
     const switchFiles = componentCallerRoots
       .flatMap(filesUnder)
-      .filter(path => path.endsWith('.vue') && readFileSync(path, 'utf8').includes('<NSwitch'))
-      .map(path => relative(repository, path).replaceAll('\\', '/'))
+      .filter((path) => path.endsWith('.vue') && readFileSync(path, 'utf8').includes('<NSwitch'))
+      .map((path) => relative(repository, path).replaceAll('\\', '/'))
       .sort()
     expect(switchFiles).toEqual([])
     const primitive = readFileSync(join(repository, 'frontend/packages/ui/src/components/LsSwitch.vue'), 'utf8')
@@ -246,8 +265,8 @@ describe('后台源码设计契约', () => {
     expect(primitive).not.toMatch(/#(?:checked|unchecked)/)
     const applicationSource = componentCallerRoots
       .flatMap(filesUnder)
-      .filter(path => path.endsWith('.vue'))
-      .map(path => readFileSync(path, 'utf8'))
+      .filter((path) => path.endsWith('.vue'))
+      .map((path) => readFileSync(path, 'utf8'))
       .join('\n')
     expect(applicationSource).not.toMatch(/class=["'][^"']*\bswitch-(?:row|field)\b/)
     expect(applicationSource).not.toMatch(/\b(?:checked|unchecked)-text=/)
@@ -256,8 +275,8 @@ describe('后台源码设计契约', () => {
 
   it('未保存修改守卫在 Team 应用只有一个实现', () => {
     const files = filesUnder(join(repository, 'frontend/apps/team/src'))
-      .filter(path => /\.(?:ts|vue)$/.test(path) && readFileSync(path, 'utf8').includes('beforeunload'))
-      .map(path => relative(repository, path).replaceAll('\\', '/'))
+      .filter((path) => /\.(?:ts|vue)$/.test(path) && readFileSync(path, 'utf8').includes('beforeunload'))
+      .map((path) => relative(repository, path).replaceAll('\\', '/'))
     expect(files).toEqual(['frontend/apps/team/src/composables/useUnsavedChangesGuard.ts'])
     const detail = readFileSync(join(repository, 'frontend/apps/team/src/views/EntityDetailView.vue'), 'utf8')
     expect(detail).toContain('useUnsavedChangesGuard(hasUnsavedChanges)')
@@ -266,45 +285,78 @@ describe('后台源码设计契约', () => {
   })
 
   it('页面级空数据状态统一复用 LsEmptyState', () => {
-    const requiredPages = [
-      'account/src/views/TeamsView.vue',
-      'account/src/views/IdentityView.vue',
-      'chat/src/views/TeamPickerView.vue',
-      'admin/src/views/UsersView.vue',
-      'admin/src/views/TeamsView.vue',
-      'admin/src/views/AdministratorsView.vue',
-      'admin/src/views/RolesView.vue',
-      'admin/src/views/AuditView.vue',
-      'team/src/views/EntitiesView.vue',
-      'team/src/views/MembersView.vue',
-      'team/src/views/CustomersView.vue',
-      'team/src/views/RolesView.vue',
-      'team/src/views/ChatVirtualsView.vue',
-      'team/src/views/DocumentsView.vue',
-      'team/src/views/FilesView.vue',
-      'team/src/views/EntityFieldsView.vue',
-      'team/src/views/NoticesView.vue',
-      'team/src/views/JoinReviewView.vue',
-      'team/src/views/JoinFieldsView.vue',
-      'team/src/views/ResourceView.vue',
-      'team/src/views/SettingsView.vue',
-      'transaction/src/views/TransactionsView.vue',
-      'transaction/src/views/BalancesView.vue',
-      'transaction/src/views/BalanceLogsView.vue',
-    ]
+    const requiredPages = ['account/src/views/TeamsView.vue', 'account/src/views/IdentityView.vue', 'chat/src/views/TeamPickerView.vue', 'admin/src/views/UsersView.vue', 'admin/src/views/TeamsView.vue', 'admin/src/views/AdministratorsView.vue', 'admin/src/views/RolesView.vue', 'admin/src/views/AuditView.vue', 'team/src/views/EntitiesView.vue', 'team/src/views/MembersView.vue', 'team/src/views/CustomersView.vue', 'team/src/views/RolesView.vue', 'team/src/views/ChatVirtualsView.vue', 'team/src/views/DocumentsView.vue', 'team/src/views/FilesView.vue', 'team/src/views/EntityFieldsView.vue', 'team/src/views/NoticesView.vue', 'team/src/views/JoinReviewView.vue', 'team/src/views/JoinFieldsView.vue', 'team/src/views/ResourceView.vue', 'team/src/views/SettingsView.vue', 'transaction/src/views/TransactionsView.vue', 'transaction/src/views/BalancesView.vue', 'transaction/src/views/BalanceLogsView.vue']
     for (const page of requiredPages) {
       const source = readFileSync(join(repository, 'frontend', 'apps', page), 'utf8')
       expect(source, `${page} 未复用页面级空状态`).toContain('LsEmptyState')
     }
   })
 
+  it('Permission 与 Ability 原因只进入 info 弹窗或按钮权限态', () => {
+    const roots = ['admin', 'team', 'transaction', 'shop', 'weibo']
+      .map((name) => join(repository, 'frontend', 'apps', name, 'src'))
+    const pages = roots.flatMap(filesUnder).filter((path) => path.endsWith('.vue'))
+    const forbiddenAttribute = /:(?:description|empty-description|hint|title|placeholder|count-label)=["'][^"']*(?:routeAccess\.reason\.value|permissionReason\(|abilityReason\()/
+    const forbiddenContent = /<(?:p|span|small|dd|NAlert|NEmpty|LsEmptyState)\b[^>]*>[^<]*(?:routeAccess\.reason\.value|permissionReason\(|abilityReason\()/
+    for (const path of pages) {
+      const source = readFileSync(path, 'utf8')
+      const file = relative(repository, path).replaceAll('\\', '/')
+      expect(source, `${file} 把授权原因写进了页面属性`).not.toMatch(forbiddenAttribute)
+      expect(source, `${file} 把授权原因写进了页面正文`).not.toMatch(forbiddenContent)
+    }
+
+    const client = readFileSync(join(repository, 'frontend', 'packages', 'api', 'src', 'client.ts'), 'utf8')
+    expect(client).toContain('feedback.info(accessReason)')
+    expect(client).toContain("if (method === 'GET') return deniedRead(accessReason) as T")
+    expect(client).toContain("if (accessMessage) return ''")
+
+    const rules = readFileSync(join(repository, 'docs', 'design', 'admin', 'states-and-access.md'), 'utf8')
+    expect(rules).toContain('受限空状态')
+    expect(rules).toContain('LsEmptyState')
+
+    for (const component of ['LsSwitch.vue', 'LsSwitchField.vue', 'LsUploadField.vue', 'LsCheckboxGroupField.vue', 'LsResponsiveActions.vue', 'LsMarkdownEditor.vue']) {
+      const source = readFileSync(join(repository, 'frontend', 'packages', 'ui', 'src', 'components', component), 'utf8')
+      expect(source, `${component} 不得把禁用原因写入 title`).not.toMatch(/:title=["'][^"']*(?:Reason|reason)/)
+    }
+    expect(readFileSync(join(repository, 'frontend/packages/ui/src/components/LsSwitchField.vue'), 'utf8')).not.toContain('ls-switch-field__reason')
+    expect(readFileSync(join(repository, 'frontend/packages/ui/src/components/LsUploadField.vue'), 'utf8')).not.toContain('ls-upload-field__reason')
+    expect(readFileSync(join(repository, 'frontend/packages/ui/src/components/LsCheckboxGroupField.vue'), 'utf8')).not.toContain('ls-checkbox-group-field__reason')
+    expect(readFileSync(join(repository, 'frontend/packages/ui/src/components/LsMarkdownEditor.vue'), 'utf8')).not.toContain('markdown-upload-reason')
+  })
+
+  it('任务页面入口不使用 Permission 或 Ability 禁用态', () => {
+    const roots = ['admin', 'team', 'transaction', 'shop', 'weibo']
+      .map((name) => join(repository, 'frontend', 'apps', name, 'src'))
+    const pages = roots.flatMap(filesUnder).filter((path) => path.endsWith('.vue'))
+    for (const path of pages) {
+      const source = readFileSync(path, 'utf8')
+      const file = relative(repository, path).replaceAll('\\', '/')
+      for (const match of source.matchAll(/<LsPagePrimaryAction\b[\s\S]*?\/>/g)) {
+        const tag = match[0]
+        if (!/(?:\bto=|\bhref=|:to=|:href=)/.test(tag)) continue
+        expect(tag, `${file} 的任务页面入口被设置为禁用`).not.toMatch(/:disabled(?:-reason)?=/)
+      }
+      for (const match of source.matchAll(/<LsButton\b[\s\S]*?>/g)) {
+        const tag = match[0]
+        if (!/@click=["'][^"']*router\.(?:push|replace)\(/.test(tag)) continue
+        expect(tag, `${file} 的路由跳转按钮被设置为禁用`).not.toMatch(/:disabled(?:-reason)?=/)
+      }
+    }
+  })
+
   it('后台页面不恢复已经废弃的页面级皮肤和重复表格', () => {
-    const roots = ['admin', 'team', 'transaction'].map(name => join(repository, 'frontend', 'apps', name, 'src'))
-    const pages = roots.flatMap(filesUnder).filter(path => path.endsWith('.vue'))
+    const roots = ['admin', 'team', 'transaction'].map((name) => join(repository, 'frontend', 'apps', name, 'src'))
+    const pages = roots.flatMap(filesUnder).filter((path) => path.endsWith('.vue'))
     const forbidden = [
       { pattern: /<table\b/i, label: '原生 table' },
-      { pattern: /class=["'][^"']*\bloading-list\b/i, label: '页面级 loading-list' },
-      { pattern: /class=["'][^"']*\bfeedback\s+error\b/i, label: '手写行内错误' },
+      {
+        pattern: /class=["'][^"']*\bloading-list\b/i,
+        label: '页面级 loading-list',
+      },
+      {
+        pattern: /class=["'][^"']*\bfeedback\s+error\b/i,
+        label: '手写行内错误',
+      },
     ]
     for (const path of pages) {
       const source = readFileSync(path, 'utf8')
@@ -320,18 +372,12 @@ describe('后台源码设计契约', () => {
   })
 
   it('直接 NButton 只用于壳层、平台命令搜索和纯图标微操作', () => {
-    const allowed = new Set([
-      'frontend/apps/admin/src/components/AdminShell.vue',
-      'frontend/apps/admin/src/views/DashboardView.vue',
-      'frontend/apps/team/src/components/TeamShell.vue',
-      'frontend/apps/team/src/views/RoleDetailView.vue',
-      'frontend/apps/transaction/src/components/TransactionShell.vue',
-    ])
+    const allowed = new Set(['frontend/apps/admin/src/components/AdminShell.vue', 'frontend/apps/admin/src/views/DashboardView.vue', 'frontend/apps/team/src/components/TeamShell.vue', 'frontend/apps/team/src/views/RoleDetailView.vue', 'frontend/apps/transaction/src/components/TransactionShell.vue'])
     const offenders = ['admin', 'team', 'transaction']
-      .flatMap(name => filesUnder(join(repository, 'frontend', 'apps', name, 'src')))
-      .filter(path => path.endsWith('.vue') && readFileSync(path, 'utf8').includes('<NButton'))
-      .map(path => relative(repository, path).replaceAll('\\', '/'))
-      .filter(path => !allowed.has(path))
+      .flatMap((name) => filesUnder(join(repository, 'frontend', 'apps', name, 'src')))
+      .filter((path) => path.endsWith('.vue') && readFileSync(path, 'utf8').includes('<NButton'))
+      .map((path) => relative(repository, path).replaceAll('\\', '/'))
+      .filter((path) => !allowed.has(path))
     expect(offenders).toEqual([])
   })
 
@@ -344,7 +390,7 @@ describe('后台源码设计契约', () => {
     for (const [name, shellPath, stylePath] of shells) {
       const source = readFileSync(join(repository, shellPath), 'utf8')
       const styles = readFileSync(join(repository, stylePath), 'utf8')
-      expect(source, `${name} 缺少身份入口`).toContain('<NButton class="logout"')
+      expect(source, `${name} 缺少身份入口`).toMatch(/<NButton\s+class=["']logout["']/)
       expect(styles, `${name} 身份入口没有左对齐`).toMatch(/\.logout\s*\{[^}]*justify-content:\s*flex-start/)
       expect(source, `${name} 侧栏应进入身份切换页`).toContain('identityUrl()')
       expect(source, `${name} 侧栏应标明切换身份`).toContain('切换身份')
@@ -360,9 +406,10 @@ describe('后台源码设计契约', () => {
     expect(source).not.toContain("{ key: 'identity', label: '切换身份'")
   })
 
-  it('Team 侧栏禁用入口保持与链接一致的三列布局', () => {
+  it('Team 侧栏全部入口使用可导航链接', () => {
     const source = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'components', 'TeamShell.vue'), 'utf8')
-    expect(source).toMatch(/\.sidebar nav \.nav-disabled :deep\(\.n-button__content\)\{[^}]*grid-column:1\/-1;[^}]*width:100%;[^}]*display:grid;[^}]*grid-template-columns:24px minmax\(0,1fr\) auto/)
+    expect(source).not.toContain('nav-disabled')
+    expect(source).not.toContain('item.permission')
   })
 
   it('Team 设置分组保存按钮由业务组件统一紧凑宽度', () => {

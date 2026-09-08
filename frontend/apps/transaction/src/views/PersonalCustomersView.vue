@@ -54,7 +54,7 @@ const columns: DataTableColumns<PersonalCustomer> = [
     />
     <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取我的顾客" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
-    <LsEmptyState
+    <LsEmptyState :source="query.data.value"
       v-else-if="!rows.length"
       :title="filters.keyword ? '没有匹配的顾客' : '还没有我的顾客'"
       :description="filters.keyword ? '调整搜索关键词后再试。' : '顾客归属当前实体，或将当前实体设为协作发单人后，会显示在这里。'"

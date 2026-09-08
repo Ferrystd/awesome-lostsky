@@ -10,6 +10,7 @@ import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 type EntityType = 'entity' | 'customer' | 'virtual'
 interface EntityField {
@@ -31,6 +32,7 @@ interface EntityField {
 const route = useRoute()
 const router = useRouter()
 const client = useQueryClient()
+const routeAccess = useRouteAccess()
 const id = computed(() => Number(route.query.id ?? 0))
 const editing = computed(() => id.value > 0)
 const form = reactive({
@@ -56,7 +58,7 @@ interface EntityOption {
 const entities = useQuery({
   queryKey: ['entity-options'],
   queryFn: () => api.get<EntityOption[]>('/entity/options'),
-  enabled: computed(() => form.visibility === 6),
+  enabled: computed(() => form.visibility === 6 && !routeAccess.restricted.value),
 })
 const managerScopeOptions = [
   { label: '仅字段管理员', value: 1 },
@@ -71,8 +73,8 @@ const visibilityOptions = [
 ]
 const detail = useQuery({
   queryKey: computed(() => ['entity-field', id.value]),
-  queryFn: () => api.get<EntityField>('/entityField/get', { id: id.value }),
-  enabled: editing,
+  queryFn: () => routeAccess.read(() => api.get<EntityField>('/entityField/get', { id: id.value })),
+  enabled: computed(() => editing.value && !routeAccess.restricted.value),
 })
 watch(() => detail.data.value, value => {
   if (!value) return
@@ -122,14 +124,19 @@ const typeOptions = [{ label: '人员', value: 'entity' }, { label: '顾客', va
 const valueOptions = ['string','text','int','decimal','bool','date','datetime','select','multi_select','json'].map(value => ({ label: value, value }))
 const inputOptions = ['text','textarea','radio','checkbox','select','date','datetime'].map(value => ({ label: value, value }))
 function deleteField() {
+  if (routeAccess.restricted.value) return
   if (confirm('删除字段会同步删除全部对象的对应字段值，确认继续？')) remove.mutate()
+}
+function submit() {
+  if (routeAccess.restricted.value) return
+  save.mutate()
 }
 </script>
 
 <template>
     <div class="field-form-page">
       <AdminPageHeader :title="editing ? '编辑对象字段' : '创建对象字段'" description="字段定义属于团队；值按对象类型与内部 ID 关联，不把数字 ID 暴露到权限（Permission） key。" back-to="/fields" back-label="返回对象字段" />
-      <form @submit.prevent="save.mutate()">
+      <form @submit.prevent="submit">
         <label>对象类型<NSelect v-model:value="form.entity_type" :disabled="editing" :options="typeOptions" /></label>
         <label>字段标识<NInput v-model:value="form.field_key" :disabled="editing" maxlength="64" placeholder="department" /></label>
         <label>字段名称<NInput v-model:value="form.name" maxlength="50" placeholder="部门" /></label>
@@ -158,8 +165,8 @@ function deleteField() {
         </section>
         <LsSwitchField v-model="form.is_required" label="必填" description="在允许编辑该字段的资料保存时校验不能为空。" />
         <label>排序<NInputNumber v-model:value="form.sort" :precision="0" /></label>
-        <p v-if="save.isError.value || remove.isError.value" class="error" role="alert">{{ friendlyError(save.error.value || remove.error.value) }}</p>
-        <div class="actions"><LsButton type="submit" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton></div>
+        <p v-if="(save.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(save.error.value || remove.error.value) }}</p>
+        <div class="actions"><LsButton type="submit" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton></div>
       </form>
     </div>
 </template>

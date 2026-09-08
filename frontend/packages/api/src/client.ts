@@ -1,6 +1,8 @@
 import { redirectToLogin, redirectToMemberIdentity } from '@lostsky/shared/navigation'
+import { feedback } from '@lostsky/ui/feedback'
 import { formatStructuredAccessError } from './error-format'
 import { ERROR_MESSAGES } from './error-messages'
+import { deniedRead } from './access-result'
 
 const API_BASE = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE || '//api.lostsky.work')
 const TOKEN_KEY = 'lostsky_token'
@@ -228,7 +230,7 @@ async function request<T>(method: string, path: string, body?: unknown, options:
         if (body != null && !(body instanceof FormData)) headers['Content-Type'] = 'application/json'
         if (token) headers.Authorization = `Bearer ${token}`
 
-        const response = await fetch(`${API_BASE}${path}`, { method, headers, body: payload, signal: controller.signal })
+        const response = await fetch(`${API_BASE}${path}`, { method, headers, body: payload, signal: controller.signal, credentials: usesSharedAuthCookie() ? 'include' : 'same-origin' })
         let envelope: Partial<ApiEnvelope<T>> = {}
         let parsed = false
         try {
@@ -258,9 +260,15 @@ async function request<T>(method: string, path: string, body?: unknown, options:
           }
         }
         if (!response.ok || envelope.code !== 0) {
-          throw new ApiError(envelope.message || response.statusText || ERROR_MESSAGES.request.failed, {
+          const error = new ApiError(envelope.message || response.statusText || ERROR_MESSAGES.request.failed, {
             status: response.status, code: envelope.code, method, path, data: envelope.data, response: envelope,
           })
+          const accessReason = formatStructuredAccessError(envelope.data)
+          if (accessReason) {
+            feedback.info(accessReason)
+            if (method === 'GET') return deniedRead(accessReason) as T
+          }
+          throw error
         }
         return envelope.data as T
       }
@@ -314,7 +322,7 @@ export async function uploadFileUrl(file: File): Promise<string> {
 export function friendlyError(error: unknown) {
   if (!(error instanceof ApiError)) return ERROR_MESSAGES.friendly.unknown
   const accessMessage = formatStructuredAccessError(error.data)
-  if (accessMessage) return accessMessage
+  if (accessMessage) return ''
   if (error.status === 429) return ERROR_MESSAGES.friendly.tooManyRequests
   if (error.status >= 500) return ERROR_MESSAGES.friendly.serviceUnavailable
   if (error.network) return ERROR_MESSAGES.friendly.networkConnectionFailed

@@ -10,12 +10,13 @@ import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { ChevronDown } from '@lucide/vue'
 import { NInput, NInputNumber, NSelect, useDialog } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { canManage, entitlementManagement, hasManagePermission, loadManageAccess, resourceOwnerLabel } from '../../lib'
+import { canManage, entitlementManagement, hasManagePermission, loadManageAccess, managePermissionReason, resourceOwnerLabel } from '../../lib'
 import { calculateDefaultServiceDistribution, calculateServiceTeamCut } from '../../service-distribution'
 
 type Item = {
@@ -47,6 +48,7 @@ const makeItem = (): Item => ({
 })
 
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const router = useRouter()
 const dialog = useDialog()
 const id = computed(() => Number(route.params.id || 0))
@@ -61,11 +63,11 @@ const copySourceId = computed(() => Number(route.query.copy || 0))
 const copying = computed(() => !editing.value && copySourceId.value > 0)
 const sourceId = computed(() => editing.value ? id.value : copySourceId.value)
 const form = reactive({ name: '', pricing_mode: 2 as 1 | 2, is_active: 1, services: [makeItem()] as Item[] })
-const options = useQuery({ queryKey: computed(() => [scope.value, 'manage-options']), queryFn: () => management.value.options() })
+const options = useQuery({ queryKey: computed(() => [scope.value, 'manage-options']), queryFn: () => management.value.options(), enabled: computed(() => !routeAccess.restricted.value) })
 const detail = useQuery({
   queryKey: computed(() => [scope.value, 'manage-package', sourceId.value]),
-  queryFn: () => management.value.package(sourceId.value),
-  enabled: computed(() => sourceId.value > 0),
+  queryFn: () => routeAccess.read(() => management.value.package(sourceId.value)),
+  enabled: computed(() => sourceId.value > 0 && !routeAccess.restricted.value),
 })
 watch(() => options.data.value?.service_defaults, defaults => {
   if (!defaults) return
@@ -251,11 +253,11 @@ function stop() {
       back-label="返回权益包"
     >
       <template #actions>
-        <LsButton v-if="pricingLocked && canManage(management.permission)" variant="secondary" @click="router.push(`${management.routePrefix}/packages/new?copy=${id}`)">复制为新权益包</LsButton>
-        <LsButton v-if="editing && canManage(management.disablePermission)" variant="danger" @click="stop">停用权益包</LsButton>
+        <LsButton v-if="pricingLocked" variant="secondary" @click="router.push(`${management.routePrefix}/packages/new?copy=${id}`)">复制为新权益包</LsButton>
+        <LsButton v-if="editing" variant="danger" :disabled="!canManage(management.disablePermission)" :disabled-reason="managePermissionReason(management.disablePermission)" @click="stop">停用权益包</LsButton>
       </template>
     </LsPageHeader>
-    <form class="manage-form" @submit.prevent="save.mutate()">
+    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
       <LsFormSection title="基本信息">
         <p v-if="personal" class="form-intro" role="note">此权益包自动归属当前 Entity；可组合本人服务和已启用的团队公用服务。</p>
         <LsField label="权益包名称" for-id="package-name" required><NInput id="package-name" v-model:value="form.name" maxlength="100" /></LsField>
@@ -320,11 +322,11 @@ function stop() {
         </dl>
       </LsFormSection>
 
-      <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
+      <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
-        <LsButton type="submit" :disabled="!valid || !canManage(management.permission) || (personal && !expectedEntityId)" :loading="save.isPending.value">保存权益包</LsButton>
+        <LsButton type="submit" :disabled="routeAccess.restricted.value || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存权益包</LsButton>
       </LsFormActions>
     </form>
   </div>

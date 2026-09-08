@@ -4,11 +4,13 @@ Weibo 是团队上下文的微博账号、自动发帖与每日签到工作台�
 
 ## 鉴权边界
 
-- 应用、全部页面和访问快照不要求 Weibo Ability。
-- Weibo 不设置业务 Permission；团队范围只接受当前团队上下文，个人范围由服务端强制固定为当前 Entity。
+- 基础概览和访问快照不要求 Weibo Permission 或 Ability。
+- 团队业务导航、数据读取与本地管理要求 `weibo.team.manage`；个人对应操作要求内部 Entity 与 `weibo.personal.use`。
+- 团队范围接受本团队 Entity，或获得目标团队角色的外部有效 Entity；个人范围仍由服务端固定为当前团队内的 Entity。
 - 只有手动发帖、点赞、评论，任务开启/恢复和 Worker 实际执行要求 Weibo Ability。
-- Ability 缺失不会在页面加载时常驻报错；受限业务按钮保留禁用样式，用户点击后才说明原因。
+- Permission 或 Ability 缺失不会在页面加载时主动报错，也不会显示常驻原因或悬停提示；受限入口和业务按钮仅做灰度降权，保持可聚焦、可点击，用户点击后才短时说明原因且不发受保护请求。
 - 团队可管理既有个人任务，但团队创建接口只能创建 `owner_entity_id = NULL` 的团队任务。
+- Worker 执行已经运行的任务不回查创建者当前 Permission，只按团队 Weibo Ability 与账号、任务状态执行。
 
 ## 协议与运行边界
 

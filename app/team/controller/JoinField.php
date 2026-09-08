@@ -13,7 +13,7 @@ class JoinField
         'JwtAuth'    => ['only' => ['index', 'transferOptions', 'add', 'edit', 'delete']],
         'Context'    => ['only' => ['index', 'transferOptions', 'add', 'edit', 'delete']],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'transferOptions', 'add', 'edit', 'delete']],
-        'TeamAuth' => ['only' => ['index', 'transferOptions', 'add', 'edit', 'delete']],
+        'TeamWorkspaceAuth' => ['only' => ['index', 'transferOptions', 'add', 'edit', 'delete']],
         'Permission:' . Permissions::TEAM_JOIN_FIELD_READ => ['only' => ['index']],
         'Permission:' . Permissions::TEAM_JOIN_FIELD_WRITE => ['only' => ['transferOptions', 'add', 'edit', 'delete']],
     ];

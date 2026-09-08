@@ -13,7 +13,7 @@ class Product
         'JwtAuth'      => ['except' => []],
         'Context'      => ['except' => []],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
-        'TeamAuth'     => ['except' => []],
+        'TeamWorkspaceAuth' => ['except' => []],
         'Permission:' . Permissions::SHOP_PRODUCT_READ => ['only' => ['index', 'get']],
         'Permission:' . Permissions::SHOP_PRODUCT_WRITE => ['only' => ['create', 'edit', 'setHandlers']],
         'Permission:' . Permissions::SHOP_PRODUCT_DELETE => ['only' => ['delete']],

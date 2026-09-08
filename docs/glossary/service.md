@@ -446,6 +446,7 @@ aliases: [服务, Service]
 | `dynamicDescendant` | `string $key` | `?array` |
 | `virtual` | `string $slug`、`string $action` | `string` |
 | `assume` | `string $type`、`string $slug = '*'` | `string` |
+| `documentManage` | `string $type`、`string $slug = '*'` | `string` |
 | `entityField` | `string $type` | `string` |
 
 ## PermissionGate
@@ -678,7 +679,7 @@ aliases: [服务, Service]
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `snapshot` | `int $teamId`、`array $actingEntity` | `array` |
+| `snapshot` | `int $teamId`、`array $actingEntity`、`?think\Request $request = null` | `array` |
 | `ability` | `int $teamId`、`string $key`、`string $label`、`int $minimumLevel = 1` | `array` |
 | `fileAbility` | `int $teamId` | `array` |
 
@@ -896,3 +897,18 @@ aliases: [服务, Service]
 | `transition` | `int $teamId`、`int $entityId`、`int $id`、`bool $teamScope`、`string $action` | `array` |
 | `enqueue` | `model\WeiboTask $task` | `void` |
 | `dto` | `model\WeiboTask $task` | `array` |
+
+## WorkspaceAccess
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `inspect` | `int $teamId`、`array $subject` | `array` |
+| `assert` | `int $teamId`、`array $subject`、`string $teamSlug` | `array` |
+
+## WorkspaceWarning
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `context` | `string $teamSlug`、`array $subject`、`int $entityId`、`think\Request $request` | `array` |
+| `state` | `int $teamId`、`int $entityId`、`bool $external`、`?think\Request $request = null` | `array` |
+| `acknowledge` | `think\Request $request`、`int $teamId`、`int $entityId` | `array` |

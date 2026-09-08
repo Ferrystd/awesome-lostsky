@@ -17,7 +17,9 @@ const width = computed<'wide' | 'content' | 'form'>(() => ['content', 'form'].in
   <NConfigProvider :theme-overrides="lostskyNaiveTheme" :locale="zhCN">
     <NDialogProvider><NMessageProvider>
       <TransactionShell>
-        <LsPage id="workspace" as="main" :width="width"><RouterView v-slot="{ Component }"><LsRouteErrorBoundary :reset-key="route.fullPath"><component :is="Component" /></LsRouteErrorBoundary></RouterView></LsPage>
+        <LsPage id="workspace" as="main" :width="width">
+          <RouterView v-slot="{ Component }"><LsRouteErrorBoundary :reset-key="route.fullPath"><component :is="Component" /></LsRouteErrorBoundary></RouterView>
+        </LsPage>
       </TransactionShell>
     </NMessageProvider></NDialogProvider>
   </NConfigProvider>

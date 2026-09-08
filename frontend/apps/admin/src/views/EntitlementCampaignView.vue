@@ -11,6 +11,7 @@ import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
 import LsSwitchField from "@lostsky/ui/components/LsSwitchField.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
 import { feedback } from "@lostsky/ui/feedback";
+import { useRouteAccess } from "@lostsky/ui/useRouteAccess";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import {
   NDatePicker,
@@ -21,9 +22,10 @@ import {
 } from "naive-ui";
 import { computed, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { can } from "../session";
+import { can, permissionReason } from "../session";
 type Page<T> = { total: number; list: T[] };
 const route = useRoute();
+const routeAccess = useRouteAccess();
 const router = useRouter();
 const client = useQueryClient();
 const id = computed(() => Number(route.params.id || 0));
@@ -42,11 +44,12 @@ const packageQuery = useQuery({
   queryKey: ["admin-entitlement-package-options"],
   queryFn: () =>
     api.get<Page<any>>("/entitlements/packages", { page: 1, limit: 100 }),
+  enabled: computed(() => !routeAccess.restricted.value),
 });
 const detail = useQuery({
   queryKey: computed(() => ["admin-entitlement-campaign", id.value]),
-  queryFn: () => api.get<any>(`/entitlements/campaigns/${id.value}`),
-  enabled: editing,
+  queryFn: () => routeAccess.read(() => api.get<any>(`/entitlements/campaigns/${id.value}`)),
+  enabled: computed(() => editing.value && !routeAccess.restricted.value),
 });
 watch(
   () => detail.data.value,
@@ -111,7 +114,7 @@ const codes = useQuery({
       page: page.value,
       limit: 20,
     }),
-  enabled: editing,
+  enabled: computed(() => editing.value && !routeAccess.restricted.value),
 });
 const issue = useMutation({
   mutationFn: () =>
@@ -167,7 +170,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
       back-to="/entitlements/campaigns"
       back-label="返回活动"
     />
-    <form class="campaign-form" @submit.prevent="save.mutate()">
+    <form class="campaign-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
       <LsFormSection title="活动配置">
           <LsField label="活动名称" for-id="admin-campaign-name" required
             ><NInput
@@ -221,7 +224,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
             @update:model-value="(v) => (form.is_active = v ? 1 : 0)"
           /></LsFormSection
       ><LsInlineError
-        v-if="detail.isError.value"
+        v-if="!routeAccess.restricted.value && detail.isError.value"
         :message="friendlyError(detail.error.value)"
       />
       <LsFormActions>
@@ -229,14 +232,19 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
           >取消</LsButton
         ><LsButton
           type="submit"
-          :disabled="!valid || !can('admin.entitlement.write')"
+          :disabled="routeAccess.restricted.value || !valid || !can('admin.entitlement.write')"
+          :disabled-reason="
+            routeAccess.reason.value || (!can('admin.entitlement.write')
+              ? permissionReason('admin.entitlement.write')
+              : '')
+          "
           :loading="save.isPending.value"
           >保存活动</LsButton
         >
       </LsFormActions>
     </form>
     <template v-if="editing"
-      ><LsFormSection v-if="can('admin.entitlement.write')" title="发行体验码">
+      ><LsFormSection title="发行体验码">
           <div class="issue-row">
             <NInputNumber
               v-model:value="quantity"
@@ -248,7 +256,15 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
               :min="1"
               placeholder="目标 Team ID"
             /><LsButton
-              :disabled="form.mode === 3 && !targetTeam"
+              :disabled="
+                !can('admin.entitlement.write') ||
+                (form.mode === 3 && !targetTeam)
+              "
+              :disabled-reason="
+                !can('admin.entitlement.write')
+                  ? permissionReason('admin.entitlement.write')
+                  : ''
+              "
               :loading="issue.isPending.value"
               @click="issue.mutate()"
               >发行</LsButton
@@ -269,15 +285,15 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
           </div>
         </LsFormSection
       ><LsAsyncState
-        v-if="codes.isPending.value"
+        v-if="!routeAccess.restricted.value && codes.isPending.value"
         state="loading"
         :rows="4" /><LsAsyncState
-        v-else-if="codes.isError.value"
+        v-else-if="!routeAccess.restricted.value && codes.isError.value"
         state="error"
         title="暂时无法读取体验码"
-        :description="friendlyError(codes.error.value)" /><LsEmptyState
-        v-else-if="!codes.data.value?.list.length"
-        title="还没有体验码"
+        :description="friendlyError(codes.error.value)" /><LsEmptyState :source="codes.data.value"
+        v-else-if="routeAccess.restricted.value || !codes.data.value?.list.length"
+        :title="routeAccess.restricted.value ? '没有可显示的体验码' : '还没有体验码'"
         description="公共活动通常只需发行一个共享代码。" />
       <section v-else class="codes">
         <article v-for="row in codes.data.value.list" :key="row.id">

@@ -7,6 +7,7 @@ import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { BookOpen, Pencil, Plus, Trash2 } from '@lucide/vue'
 import { NPagination, NSelect } from 'naive-ui'
@@ -15,6 +16,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const router = useRouter()
 const client = useQueryClient()
 const page = ref(1)
@@ -45,6 +47,7 @@ const query = useQuery({
     visibility: visibility.value === 'all' ? undefined : visibility.value,
     ...(entityId.value ? { entity_id: entityId.value } : {}),
   }),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const docs = computed<Record<string, unknown>[]>(() => Array.isArray(query.data.value?.list) ? query.data.value.list as Record<string, unknown>[] : [])
 const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? docs.value.length) / 12)))
@@ -99,7 +102,7 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
       v-model="keyword"
       placeholder="搜索标题或正文"
       aria-label="搜索文档"
-      :count-label="`${Number(query.data.value?.total ?? docs.length)} 份文档`"
+      :count-label="routeAccess.restricted.value ? '0 份文档' : `${Number(query.data.value?.total ?? docs.length)} 份文档`"
       @update:model-value="page = 1"
     >
       <template #filters>
@@ -108,12 +111,12 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
     </LsListToolbar>
 
     <Transition name="ls-state" mode="out-in">
-      <LsAsyncState v-if="query.isError.value" key="error" state="error" title="暂时无法读取文档" :description="friendlyError(query.error.value)" />
-      <LsAsyncState v-else-if="query.isPending.value" key="loading" state="loading" :rows="4" />
-      <LsEmptyState
+      <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" key="error" state="error" title="暂时无法读取文档" :description="friendlyError(query.error.value)" />
+      <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" key="loading" state="loading" :rows="4" />
+      <LsEmptyState :source="query.data.value"
         v-else-if="!docs.length"
         key="empty"
-        :title="keyword || visibility !== 'all' ? '没有匹配的文档' : '文档库还是空的'"
+        :title="routeAccess.restricted.value ? '没有可显示的文档' : keyword || visibility !== 'all' ? '没有匹配的文档' : '文档库还是空的'"
         :description="keyword || visibility !== 'all' ? '尝试更短的关键词或切换文档分类。' : '创建第一份文档，编辑时无需手写 Markdown 语法。'"
       />
       <TransitionGroup v-else key="list" name="ls-list" tag="section" class="document-list">

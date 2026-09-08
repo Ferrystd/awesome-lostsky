@@ -1,5 +1,6 @@
 import { auth } from '@lostsky/api/client'
-import { identityUrl, redirectToLogin } from '@lostsky/shared/navigation'
+import { formatPermissionDenied } from '@lostsky/api/error-format'
+import { identityUrl, redirectToLogin, redirectToMemberIdentity, redirectToWorkspaceWarning, redirectWorkspaceRoleError } from '@lostsky/shared/navigation'
 import { syncReferral } from '@lostsky/shared/referral'
 import { createRouter, createWebHistory } from 'vue-router'
 import { hasManagePermission, isCustomerReady, loadManageAccess, verifyCustomer } from './lib'
@@ -20,37 +21,36 @@ export const router = createRouter({
     { path: '/cards', component: () => import('./views/CardsView.vue'), meta: { title: '我的卡密', customer: true } },
     { path: '/manage', component: () => import('./views/manage/ManageOverviewView.vue'), meta: { title: '概览', manage: true, managePublic: true, width: 'wide' } },
     { path: '/manage/personal', component: () => import('./views/manage/PersonalOverviewView.vue'), meta: { title: '概览', manage: true, managePublic: true, workspace: 'personal', width: 'wide' } },
-    { path: '/manage/personal/products', component: () => import('./views/manage/ProductsView.vue'), meta: { title: '我的商品', manage: true, workspace: 'personal', permission: 'shop.product.self.manage' } },
+    { path: '/manage/personal/products', component: () => import('./views/manage/ProductsView.vue'), meta: { title: '我的商品', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', accessMode: 'list' } },
     { path: '/manage/personal/products/new', component: () => import('./views/manage/ProductFormView.vue'), meta: { title: '新建本人商品', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', width: 'form' } },
     { path: '/manage/personal/products/:id(\\d+)', component: () => import('./views/manage/ProductFormView.vue'), meta: { title: '编辑本人商品', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', width: 'form' } },
-    { path: '/manage/personal/services', component: () => import('./views/manage/ServicesView.vue'), meta: { title: '我的服务', manage: true, workspace: 'personal', permission: 'shop.product.self.manage' } },
+    { path: '/manage/personal/services', component: () => import('./views/manage/ServicesView.vue'), meta: { title: '我的服务', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', accessMode: 'list' } },
     { path: '/manage/personal/services/new', component: () => import('./views/manage/ServiceFormView.vue'), meta: { title: '新建本人服务', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', width: 'form' } },
     { path: '/manage/personal/services/:id(\\d+)', component: () => import('./views/manage/ServiceFormView.vue'), meta: { title: '编辑本人服务', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', width: 'form' } },
-    { path: '/manage/personal/packages', component: () => import('./views/manage/PackagesView.vue'), meta: { title: '我的权益包', manage: true, workspace: 'personal', permission: 'shop.product.self.manage' } },
+    { path: '/manage/personal/packages', component: () => import('./views/manage/PackagesView.vue'), meta: { title: '我的权益包', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', accessMode: 'list' } },
     { path: '/manage/personal/packages/new', component: () => import('./views/manage/PackageFormView.vue'), meta: { title: '新建本人权益包', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', width: 'form' } },
     { path: '/manage/personal/packages/:id(\\d+)', component: () => import('./views/manage/PackageFormView.vue'), meta: { title: '编辑本人权益包', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', width: 'form' } },
-    { path: '/manage/personal/campaigns', component: () => import('./views/manage/CampaignsView.vue'), meta: { title: '我的卡活动', manage: true, workspace: 'personal', permission: 'shop.product.self.manage' } },
+    { path: '/manage/personal/campaigns', component: () => import('./views/manage/CampaignsView.vue'), meta: { title: '我的卡活动', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', accessMode: 'list' } },
     { path: '/manage/personal/campaigns/new', component: () => import('./views/manage/CampaignFormView.vue'), meta: { title: '新建本人卡活动', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', width: 'form' } },
     { path: '/manage/personal/campaigns/:id(\\d+)', component: () => import('./views/manage/CampaignFormView.vue'), meta: { title: '编辑本人卡活动', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', width: 'form' } },
-    { path: '/manage/personal/campaigns/:id(\\d+)/codes', component: () => import('./views/manage/CampaignCodesView.vue'), meta: { title: '我的卡密', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', width: 'content' } },
-    { path: '/manage/personal/orders', component: () => import('./views/manage/PersonalOrdersView.vue'), meta: { title: '我的业务订单', manage: true, workspace: 'personal', permission: 'shop.order.read' } },
-    { path: '/manage/products', component: () => import('./views/manage/ProductsView.vue'), meta: { title: '商品', manage: true, permission: 'shop.product.read' } },
+    { path: '/manage/personal/campaigns/:id(\\d+)/codes', component: () => import('./views/manage/CampaignCodesView.vue'), meta: { title: '我的卡密', manage: true, workspace: 'personal', permission: 'shop.product.self.manage', width: 'content', accessMode: 'list' } },
+    { path: '/manage/personal/orders', component: () => import('./views/manage/PersonalOrdersView.vue'), meta: { title: '我的业务订单', manage: true, workspace: 'personal', permission: 'shop.order.read', accessMode: 'list' } },
+    { path: '/manage/products', component: () => import('./views/manage/ProductsView.vue'), meta: { title: '商品', manage: true, permission: 'shop.product.read', accessMode: 'list' } },
     { path: '/manage/products/new', component: () => import('./views/manage/ProductFormView.vue'), meta: { title: '新建商品', manage: true, permission: 'shop.product.write', width: 'form' } },
     { path: '/manage/products/:id(\\d+)', component: () => import('./views/manage/ProductFormView.vue'), meta: { title: '编辑商品', manage: true, permission: 'shop.product.read', width: 'form' } },
-    { path: '/manage/orders', component: () => import('./views/manage/OrdersView.vue'), meta: { title: '订单', manage: true, permission: 'shop.order.read' } },
+    { path: '/manage/orders', component: () => import('./views/manage/OrdersView.vue'), meta: { title: '订单', manage: true, permission: 'shop.order.read', accessMode: 'list' } },
     { path: '/manage/orders/new', component: () => import('./views/manage/OrderFormView.vue'), meta: { title: '新建订单', manage: true, permission: 'shop.order.write', width: 'form' } },
     { path: '/manage/orders/:id(\\d+)', component: () => import('./views/manage/OrderDetailView.vue'), meta: { title: '订单详情', manage: true, permission: 'shop.order.read', width: 'content' } },
-    { path: '/manage/services', component: () => import('./views/manage/ServicesView.vue'), meta: { title: '服务', manage: true, permission: 'shop.product.read' } },
+    { path: '/manage/services', component: () => import('./views/manage/ServicesView.vue'), meta: { title: '服务', manage: true, permission: 'shop.product.read', accessMode: 'list' } },
     { path: '/manage/services/new', component: () => import('./views/manage/ServiceFormView.vue'), meta: { title: '新建服务', manage: true, permission: 'shop.product.write', width: 'form' } },
     { path: '/manage/services/:id(\\d+)', component: () => import('./views/manage/ServiceFormView.vue'), meta: { title: '编辑服务', manage: true, permission: 'shop.product.read', width: 'form' } },
-    { path: '/manage/packages', component: () => import('./views/manage/PackagesView.vue'), meta: { title: '权益包', manage: true, permission: 'shop.product.read' } },
+    { path: '/manage/packages', component: () => import('./views/manage/PackagesView.vue'), meta: { title: '权益包', manage: true, permission: 'shop.product.read', accessMode: 'list' } },
     { path: '/manage/packages/new', component: () => import('./views/manage/PackageFormView.vue'), meta: { title: '新建权益包', manage: true, permission: 'shop.product.write', width: 'form' } },
     { path: '/manage/packages/:id(\\d+)', component: () => import('./views/manage/PackageFormView.vue'), meta: { title: '编辑权益包', manage: true, permission: 'shop.product.read', width: 'form' } },
-    { path: '/manage/campaigns', component: () => import('./views/manage/CampaignsView.vue'), meta: { title: '卡活动', manage: true, permission: 'shop.product.read' } },
+    { path: '/manage/campaigns', component: () => import('./views/manage/CampaignsView.vue'), meta: { title: '卡活动', manage: true, permission: 'shop.product.read', accessMode: 'list' } },
     { path: '/manage/campaigns/new', component: () => import('./views/manage/CampaignFormView.vue'), meta: { title: '新建卡活动', manage: true, permission: 'shop.product.write', width: 'form' } },
     { path: '/manage/campaigns/:id(\\d+)', component: () => import('./views/manage/CampaignFormView.vue'), meta: { title: '编辑卡活动', manage: true, permission: 'shop.product.read', width: 'form' } },
-    { path: '/manage/campaigns/:id(\\d+)/codes', component: () => import('./views/manage/CampaignCodesView.vue'), meta: { title: '兑换码', manage: true, permission: 'shop.product.read', width: 'content' } },
-    { path: '/manage/forbidden', component: () => import('./views/manage/ForbiddenView.vue'), meta: { title: '没有访问权限', manage: true, managePublic: true, width: 'content' } },
+    { path: '/manage/campaigns/:id(\\d+)/codes', component: () => import('./views/manage/CampaignCodesView.vue'), meta: { title: '兑换码', manage: true, permission: 'shop.product.read', width: 'content', accessMode: 'list' } },
     { path: '/:pathMatch(.*)*', component: () => import('./views/NotFoundView.vue'), meta: { title: '页面不存在' } },
   ],
 })
@@ -60,16 +60,30 @@ router.beforeEach(async (to) => {
   if (to.meta.manage) {
     if (!auth.token()) { redirectToLogin({ redirect: location.href }); return false }
     const entityType = String(auth.entity()?.type ?? '')
-    if (!['team', 'teamMember', 'teamVirtual'].includes(entityType)) {
+    if (!['team', 'teamMember', 'teamCustomer', 'teamVirtual'].includes(entityType)) {
       location.replace(identityUrl(location.href))
       return false
     }
-    if (to.meta.managePublic) return true
+    if (to.meta.workspace === 'personal' && !['team', 'teamMember', 'teamVirtual'].includes(entityType)) {
+      location.replace(identityUrl(location.href))
+      return false
+    }
     try {
       const access = await loadManageAccess()
+      if (to.meta.workspace === 'personal' && access.identity?.is_external) {
+        redirectToMemberIdentity(String(access.team?.slug ?? ''), 'team_mismatch')
+        return false
+      }
+      if (to.meta.workspace !== 'personal' && redirectToWorkspaceWarning(access)) return false
+      if (to.meta.managePublic) return true
       const permission = String(to.meta.permission ?? '')
-      if (permission && !hasManagePermission(access.permissions, permission)) return '/manage/forbidden'
-    } catch { return '/manage/forbidden' }
+      to.meta.accessReason = permission && !hasManagePermission(access.permissions, permission)
+        ? formatPermissionDenied([permission])
+        : ''
+    } catch (error) {
+      if (redirectWorkspaceRoleError(error)) return false
+      throw error
+    }
     return true
   }
   const referral = syncReferral(to.query.ref)

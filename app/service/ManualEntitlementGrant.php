@@ -163,9 +163,10 @@ final class ManualEntitlementGrant
             }
 
             $assignedSenderId = app(CustomerAssignment::class)->sender($customer, $teamId);
+            $defaultTeamSenderId = app(Entity::class)->idBySubject('team', $teamId);
             $senderEntityId = $personal
                 ? $actorEntityId
-                : ($assignedSenderId ?: (int) ($data['sender_entity_id'] ?? $actorEntityId));
+                : ($assignedSenderId ?: (int) ($data['sender_entity_id'] ?? $defaultTeamSenderId));
             $senderEntityId = $senderEntityId > 0
                 ? (int) app(Entity::class)->assertInTeam($senderEntityId, $teamId)->id
                 : null;

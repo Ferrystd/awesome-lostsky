@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { api, friendlyError } from "@lostsky/api/client";
 import { quantityScaleForStep } from "@lostsky/shared/quantity";
-import { formatPermissionDenied } from "@lostsky/api/error-format";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
 import LsEntityIdentity from "@lostsky/ui/components/LsEntityIdentity.vue";
@@ -10,6 +9,7 @@ import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
 import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
+import { useRouteAccess } from "@lostsky/ui/useRouteAccess";
 import { useQuery } from "@tanstack/vue-query";
 import { Gift } from "@lucide/vue";
 import { NPagination, NSelect } from "naive-ui";
@@ -18,15 +18,8 @@ import { computed, h, reactive } from "vue";
 import { RouterLink } from "vue-router";
 import { customerName, dateTime, entityName, serviceStatusCode, serviceStatusName } from "../lib";
 import type { Pagination, ServiceRedemption } from "../types";
-import { hasWorkspacePermission, loadWorkspaceAccess } from "../lib/workspace-access";
 
-const access = useQuery({ queryKey: ["transaction-workspace-access"], queryFn: () => loadWorkspaceAccess() });
-const grantReason = computed(() => {
-  if (!access.data.value) return "正在核对权限";
-  return hasWorkspacePermission(access.data.value.permissions, "transaction.write")
-    ? ""
-    : formatPermissionDenied(["transaction.write"]);
-});
+const routeAccess = useRouteAccess();
 
 const filters = reactive({
   keyword: "",
@@ -44,6 +37,7 @@ const query = useQuery({
   queryKey: computed(() => ["service-redemptions", params.value]),
   queryFn: () =>
     api.get<Pagination<ServiceRedemption>>("/service", params.value),
+  enabled: computed(() => !routeAccess.restricted.value),
 });
 const rows = computed(() => query.data.value?.list ?? []);
 const pages = computed(() =>
@@ -59,7 +53,7 @@ const statusType = (value: unknown) =>
   serviceStatusCode(value) === 3 ? "success" : serviceStatusCode(value) === 2 ? "warning" : "default";
 const columns: DataTableColumns<ServiceRedemption> = [
   {
-    title: "服务",
+    title: "权益",
     key: "service",
     render: (r) =>
       h(
@@ -69,7 +63,7 @@ const columns: DataTableColumns<ServiceRedemption> = [
           default: () => [
             h("strong", r.service.name),
             h("span", { class: "service-meta" }, [
-              h("small", `实例 #${r.id}`),
+              h("small", `权益实例 #${r.id}`),
               h(LsStatusTag, {
                 label: serviceStatusName(rowStatus(r)),
                 type: statusType(rowStatus(r)) as any,
@@ -124,17 +118,17 @@ const columns: DataTableColumns<ServiceRedemption> = [
 <template>
   <div class="redemptions-view">
     <LsPageHeader
-      title="服务核销"
+      title="权益核销"
       description="接单实体（Entity）查看自己的任务；管理实体处理改派、取消审批与确认完成。"
     >
       <template #actions>
-        <LsPagePrimaryAction :icon="Gift" label="赋予顾客权益" to="/entitlements/new" :disabled="Boolean(grantReason)" :disabled-reason="grantReason" />
+        <LsPagePrimaryAction :icon="Gift" label="赋予顾客权益" to="/entitlements/new" />
       </template>
     </LsPageHeader><LsListToolbar
       v-model="filters.keyword"
-      placeholder="搜索服务或顾客"
-      aria-label="搜索服务核销"
-      :count-label="`${query.data.value?.total ?? 0} 个服务实例`"
+      placeholder="搜索权益或顾客"
+      aria-label="搜索权益核销"
+      :count-label="routeAccess.restricted.value ? '0 个权益实例' : `${query.data.value?.total ?? 0} 个权益实例`"
       @update:model-value="filters.page = 1"
       ><template #filters
         ><NSelect
@@ -144,25 +138,24 @@ const columns: DataTableColumns<ServiceRedemption> = [
           placeholder="全部状态"
           @update:value="filters.page = 1" /></template></LsListToolbar
     ><LsAsyncState
-      v-if="query.isError.value"
+      v-if="!routeAccess.restricted.value && query.isError.value"
       state="error"
       title="无法读取核销"
       :description="friendlyError(query.error.value)"
     /><LsAsyncState
-      v-else-if="query.isPending.value"
+      v-else-if="!routeAccess.restricted.value && query.isPending.value"
       state="loading"
       :rows="6"
-    /><LsEmptyState
-      v-else-if="!rows.length"
+    /><LsEmptyState :source="query.data.value"
+      v-else-if="routeAccess.restricted.value || !rows.length"
       :title="
-        filters.keyword || filters.status
-          ? '没有匹配的服务'
-          : '没有待处理的服务'
+        routeAccess.restricted.value ? '没有可显示的权益' : filters.keyword || filters.status
+          ? '没有匹配的权益'
+          : '没有待处理的权益'
       "
-      :description="
-        filters.keyword || filters.status
-          ? '调整搜索或状态筛选后再试。'
-          : '顾客发起核销后，任务会出现在这里。'
+      :description="filters.keyword || filters.status
+        ? '调整搜索或状态筛选后再试。'
+        : '顾客发起核销后，任务会出现在这里。'
       "
     /><LsResponsiveDataTable
       v-else

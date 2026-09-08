@@ -3,6 +3,7 @@ import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { ChevronRight, FileText, Plus } from '@lucide/vue'
 import { NRadioButton, NRadioGroup, NTag } from 'naive-ui'
@@ -21,9 +22,11 @@ interface EntityField {
 }
 const type = ref<EntityType>('entity')
 const search = ref('')
+const routeAccess = useRouteAccess()
 const fields = useQuery({
   queryKey: computed(() => ['entity-fields', type.value]),
   queryFn: () => api.get<EntityField[]>('/entityField/index', { entity_type: type.value }),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const labels: Record<EntityType, string> = { entity: '人员', customer: '顾客', virtual: '虚拟实体' }
 const visibleFields = computed(() => { const keyword = search.value.trim().toLocaleLowerCase(); return (fields.data.value ?? []).filter(field => !keyword || `${field.name} ${field.field_key}`.toLocaleLowerCase().includes(keyword)) })
@@ -34,8 +37,8 @@ const visibleFields = computed(() => { const keyword = search.value.trim().toLoc
     <AdminPageHeader title="对象字段" description="统一定义人员、顾客和虚拟实体（Virtual Entity）的团队内部业务资料；顾客公开资料仍由顾客本人维护。">
       <template #actions><LsPagePrimaryAction :icon="Plus" label="创建字段" :to="{ path: '/field-new', query: { type } }" /></template>
     </AdminPageHeader>
-    <LsListToolbar v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索对象字段" :count-label="`${visibleFields.length} 个字段`"><template #filters><NRadioGroup v-model:value="type" class="tabs" name="entity-field-type" aria-label="对象类型"><NRadioButton v-for="item in (['entity','customer','virtual'] as EntityType[])" :key="item" :value="item">{{ labels[item] }}</NRadioButton></NRadioGroup></template></LsListToolbar>
-    <p v-if="fields.isError.value" class="state error" role="alert">{{ friendlyError(fields.error.value) }}</p>
+    <LsListToolbar v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索对象字段" :count-label="routeAccess.restricted.value ? '0 个字段' : `${visibleFields.length} 个字段`"><template #filters><NRadioGroup v-model:value="type" class="tabs" name="entity-field-type" aria-label="对象类型"><NRadioButton v-for="item in (['entity','customer','virtual'] as EntityType[])" :key="item" :value="item">{{ labels[item] }}</NRadioButton></NRadioGroup></template></LsListToolbar>
+    <p v-if="!routeAccess.restricted.value && fields.isError.value" class="state error" role="alert">{{ friendlyError(fields.error.value) }}</p>
     <div v-else-if="visibleFields.length" class="field-list">
       <RouterLink v-for="field in visibleFields" :key="field.id" :to="{ path: '/field-edit', query: { id: field.id } }">
         <span class="field-icon"><FileText :size="20" /></span>
@@ -43,7 +46,7 @@ const visibleFields = computed(() => { const keyword = search.value.trim().toLoc
         <NTag v-if="field.is_required" type="warning" size="small" :bordered="false">必填</NTag><ChevronRight :size="18" />
       </RouterLink>
     </div>
-    <LsEmptyState v-else :title="`还没有${labels[type]}字段`" description="字段值只在团队内部使用，不会自动成为公开资料。" />
+    <LsEmptyState :source="fields.data.value" v-else :title="routeAccess.restricted.value ? `没有可显示的${labels[type]}字段` : `还没有${labels[type]}字段`" description="字段值只在团队内部使用，不会自动成为公开资料。" />
   </div>
 </template>
 

@@ -9,7 +9,7 @@ class EntityField
 {
     protected $middleware = [
         'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamAuth',
+        'TeamWorkspaceAuth',
     ];
 
     public function index(\think\Request $request)

@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { NDatePicker, NInput, NInputNumber, NRadioButton, NRadioGroup, NSelect } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
@@ -21,15 +23,17 @@ const personal = computed(() => route.meta.workspace === 'personal')
 const prefix = computed(() => apiPrefix(personal.value))
 const id = computed(() => Number(route.params.id || 0))
 const editing = computed(() => id.value > 0)
+const routeAccess = useRouteAccess()
 const access = useQuery({ queryKey: ['weibo-access'], queryFn: () => loadAccess() })
 const accounts = useQuery({
   queryKey: computed(() => ['weibo-accounts', prefix.value]),
   queryFn: () => api.get<WeiboAccount[]>(`${prefix.value}/accounts`),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const existing = useQuery({
   queryKey: computed(() => ['weibo-task', prefix.value, id.value]),
-  queryFn: () => api.get<WeiboTask>(`${prefix.value}/tasks/${id.value}`),
-  enabled: editing,
+  queryFn: () => routeAccess.read(() => api.get<WeiboTask>(`${prefix.value}/tasks/${id.value}`)),
+  enabled: computed(() => editing.value && !routeAccess.restricted.value),
 })
 const topic = ref('')
 const content = ref('')
@@ -62,6 +66,7 @@ watch(() => existing.data.value, task => {
 }, { immediate: true })
 
 async function save() {
+  if (routeAccess.reason.value) return feedback.info(routeAccess.reason.value)
   if (!canSave.value || pending.value) return feedback.warning('请完整填写执行安排和发布内容')
   pending.value = true
   try {
@@ -98,6 +103,9 @@ async function save() {
     />
     <LsInlineError v-if="existing.isError.value" :message="friendlyError(existing.error.value)" />
     <form v-else class="weibo-form" @submit.prevent="save">
+      <LsFormSection v-if="editing && routeAccess.restricted.value" title="当前任务" description="页面结构保持可用；无法读取的已保存配置使用横杠表示。">
+        <LsDescriptionList><dt>已保存配置</dt><dd>-</dd></LsDescriptionList>
+      </LsFormSection>
       <LsFormSection title="执行安排" :description="isCheckin ? '选择候选账号和首次签到时间；之后每天同一时间执行。' : '选择每轮可用的候选账号，并设置首次执行时间与随机间隔。'">
         <LsInlineError v-if="accounts.isError.value" message="微博账号暂时无法读取，请稍后重试。" />
         <LsField label="任务类型" for-id="weibo-task-operation" required hint="签到任务每天最多尝试一次，失败不会在当天重试。">
@@ -111,10 +119,10 @@ async function save() {
             id="weibo-task-accounts"
             v-model:value="accountIds"
             multiple
-            :loading="accounts.isPending.value"
-            :disabled="accounts.isError.value"
+            :loading="!routeAccess.restricted.value && accounts.isPending.value"
+            :disabled="routeAccess.restricted.value || accounts.isError.value"
             :options="(accounts.data.value || []).map(account => ({ label: account.screen_name || account.uid, value: account.id }))"
-            placeholder="选择一个或多个账号"
+            :placeholder="routeAccess.restricted.value ? '-' : '选择一个或多个账号'"
           />
         </LsField>
         <LsField label="开始时间" for-id="weibo-task-start" required :hint="isCheckin ? '首次在这个时间签到；之后每天同一时间执行。' : '首次开启后会在这个时间执行；后续按完成时间重新计算。'">
@@ -148,12 +156,13 @@ async function save() {
           :personal="personal"
           :expected-entity-id="access.data.value?.identity.entity_id ?? 0"
           :account-id="accountIds[0] ?? null"
+          :access-disabled-reason="routeAccess.reason.value"
         />
       </LsFormSection>
 
       <LsFormActions>
         <LsButton variant="secondary" @click="router.push(`${prefix}/tasks`)">取消</LsButton>
-        <LsButton type="submit" size="lg" :loading="pending" :disabled="!canSave">保存为暂停</LsButton>
+        <LsButton type="submit" size="lg" :loading="pending" :disabled="routeAccess.restricted.value || !canSave" :disabled-reason="routeAccess.reason.value">保存为暂停</LsButton>
       </LsFormActions>
     </form>
   </div>

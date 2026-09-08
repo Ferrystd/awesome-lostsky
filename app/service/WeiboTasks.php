@@ -32,7 +32,12 @@ final class WeiboTasks
 
     public function create(int $teamId, int $actorEntityId, ?int $ownerEntityId, array $data): array
     {
-        app(Entity::class)->assertInTeam($actorEntityId, $teamId);
+        if ($ownerEntityId === null) {
+            $actor = \app\model\Entity::find($actorEntityId);
+            if (!$actor || !$actor->is_valid) throw new HttpException(422, '当前实体身份不存在或不可用');
+        } else {
+            app(Entity::class)->assertInTeam($actorEntityId, $teamId);
+        }
         if ($ownerEntityId !== null) app(Entity::class)->assertInTeam($ownerEntityId, $teamId);
         $clean = $this->validate($teamId, $ownerEntityId ?? $actorEntityId, $ownerEntityId === null, $data);
         $task = Db::transaction(function () use ($teamId, $actorEntityId, $ownerEntityId, $clean): WeiboTask {

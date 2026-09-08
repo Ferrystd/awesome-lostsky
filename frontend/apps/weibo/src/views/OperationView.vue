@@ -8,6 +8,7 @@ import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { NInput, NRadioButton, NRadioGroup, NSelect } from 'naive-ui'
 import { computed, ref } from 'vue'
@@ -20,8 +21,9 @@ const route = useRoute()
 const personal = computed(() => route.meta.workspace === 'personal')
 const prefix = computed(() => apiPrefix(personal.value))
 const postMode = computed(() => route.meta.operation === 'post')
+const routeAccess = useRouteAccess()
 const access = useQuery({ queryKey: ['weibo-access'], queryFn: () => loadAccess() })
-const accounts = useQuery({ queryKey: computed(() => ['weibo-accounts', prefix.value]), queryFn: () => api.get<WeiboAccount[]>(`${prefix.value}/accounts`) })
+const accounts = useQuery({ queryKey: computed(() => ['weibo-accounts', prefix.value]), queryFn: () => api.get<WeiboAccount[]>(`${prefix.value}/accounts`), enabled: computed(() => !routeAccess.restricted.value) })
 const accountId = ref<number | null>(null)
 const topic = ref('')
 const content = ref('')
@@ -31,6 +33,7 @@ const interaction = ref<'like' | 'comment'>('like')
 const mediaIds = ref<number[]>([])
 const pending = ref(false)
 const operationDisabledReason = computed(() => {
+  if (routeAccess.reason.value) return routeAccess.reason.value
   if (access.isPending.value) return '正在核对微博 Ability，请稍候'
   if (access.isError.value) return friendlyError(access.error.value)
   const ability = access.data.value?.abilities?.weibo
@@ -71,7 +74,7 @@ async function submit() {
     <form class="weibo-form" @submit.prevent="submit">
       <LsFormSection title="执行账号" description="选择本次远端操作使用的已绑定账号。">
         <LsField label="微博账号" for-id="weibo-account" required>
-          <NSelect id="weibo-account" v-model:value="accountId" :loading="accounts.isPending.value" :options="(accounts.data.value || []).map(account => ({ label: account.screen_name || account.uid, value: account.id }))" placeholder="选择账号" />
+          <NSelect id="weibo-account" v-model:value="accountId" :loading="!routeAccess.restricted.value && accounts.isPending.value" :disabled="routeAccess.restricted.value" :options="(accounts.data.value || []).map(account => ({ label: account.screen_name || account.uid, value: account.id }))" :placeholder="routeAccess.restricted.value ? '-' : '选择账号'" />
         </LsField>
       </LsFormSection>
 
@@ -85,7 +88,7 @@ async function submit() {
           </LsField>
         </LsFormSection>
         <LsFormSection title="图片" description="每条最多 9 张；上传后的 pid 可跨账号复用，原文件不持久化。">
-          <MediaPreparation v-model="mediaIds" :prefix="prefix" :personal="personal" :expected-entity-id="access.data.value?.identity.entity_id ?? 0" :account-id="accountId" />
+          <MediaPreparation v-model="mediaIds" :prefix="prefix" :personal="personal" :expected-entity-id="access.data.value?.identity.entity_id ?? 0" :account-id="accountId" :access-disabled-reason="routeAccess.reason.value" />
         </LsFormSection>
       </template>
 
@@ -106,7 +109,7 @@ async function submit() {
 
       <LsFormSection title="执行" description="点击后最多发出一个远端写请求；失败不会自动重试。">
         <LsDescriptionList>
-          <dt>账号</dt><dd>{{ selectedAccount?.screen_name || selectedAccount?.uid || '未选择' }}</dd>
+          <dt>账号</dt><dd>{{ routeAccess.restricted.value ? '-' : selectedAccount?.screen_name || selectedAccount?.uid || '未选择' }}</dd>
           <dt>目标</dt><dd>{{ targetSummary }}</dd>
           <dt>内容</dt><dd>{{ contentSummary }}</dd>
         </LsDescriptionList>

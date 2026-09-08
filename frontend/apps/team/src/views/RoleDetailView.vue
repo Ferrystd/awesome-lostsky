@@ -24,6 +24,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { coveringPermission, permissionsForSave, selectPermissionScope } from '../lib/permissionHierarchy'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 type EntityType = 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'
 interface RoleRecord { id: number; name?: string; role_key?: string; description?: string; sort?: number; is_displayed?: number }
@@ -39,8 +40,8 @@ interface TeamEntityOption {
   name: string
   avatar?: string | null
 }
-type SpecialPermissionGroup = '实体管理' | '实体委托'
-type DynamicPermissionId = 'manage' | 'field-manage' | 'assume'
+type SpecialPermissionGroup = '文档管理' | '实体管理' | '实体委托'
+type DynamicPermissionId = 'document-manage' | 'manage' | 'field-manage' | 'assume'
 interface DynamicPermissionDefinition {
   id: DynamicPermissionId
   label: string
@@ -50,16 +51,19 @@ interface DynamicPermissionDefinition {
 }
 
 const dynamicPermissionDefinitions: DynamicPermissionDefinition[] = [
+  { id: 'document-manage', label: '管理指定实体文档', template: 'team.document.<type>.<slug>.manage', virtualOnly: false, group: '文档管理' },
   { id: 'manage', label: '管理指定虚拟实体', template: 'team.entity.virtual.<slug>.manage', virtualOnly: true, group: '实体管理' },
   { id: 'field-manage', label: '管理指定虚拟实体字段', template: 'team.entity.virtual.<slug>.field.manage', virtualOnly: true, group: '实体管理' },
   { id: 'assume', label: '领取指定实体身份', template: 'identity.<type>.<slug>.assume', virtualOnly: false, group: '实体委托' },
 ]
 const entityDelegationGroupName = '实体委托'
 const entityManagementGroupName = '实体管理'
+const documentManagementGroupName = '文档管理'
 
 const route = useRoute()
 const router = useRouter()
 const client = useQueryClient()
+const routeAccess = useRouteAccess()
 const roleId = computed(() => Number(route.params.id))
 const form = reactive({ name: '', description: '', sort: 0, is_displayed: false })
 const permissionKeys = ref<string[]>([])
@@ -73,24 +77,25 @@ const targetEntities = ref<EntityDisplay[]>([])
 
 const roleQuery = useQuery({
   queryKey: computed(() => ['role', roleId.value]),
-  queryFn: () => api.get<RoleRecord>('/role/get', { id: roleId.value }),
-  enabled: computed(() => roleId.value > 0),
+  queryFn: () => routeAccess.read(() => api.get<RoleRecord>('/role/get', { id: roleId.value })),
+  enabled: computed(() => roleId.value > 0 && !routeAccess.restricted.value),
 })
 const permissionsQuery = useQuery({
   queryKey: computed(() => ['role-permissions', roleId.value]),
   queryFn: () => api.get<Array<{ permission_key?: string; key?: string }>>('/rolePermission/index', { role_id: roleId.value }),
-  enabled: computed(() => roleId.value > 0),
+  enabled: computed(() => roleId.value > 0 && !routeAccess.restricted.value),
 })
 const catalogQuery = useQuery({
   queryKey: ['role-permission-catalog'],
   queryFn: () => api.get<PermissionCatalog>('/rolePermission/catalog'),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const groups = computed(() => Array.isArray(catalogQuery.data.value?.groups) ? catalogQuery.data.value.groups : [])
 const catalogGroupNames = computed(() => new Set(groups.value.map(group => group.name)))
 const staticGroups = computed(() => groups.value.map(group => ({
   ...group,
   items: group.items.filter(item => !isDynamicLeafPermission(item.key)),
-})).filter(group => ![entityManagementGroupName, entityDelegationGroupName].includes(group.name) && group.items.length))
+})).filter(group => ![documentManagementGroupName, entityManagementGroupName, entityDelegationGroupName].includes(group.name) && group.items.length))
 const leafLabels = computed(() => new Map(groups.value.flatMap(group => (
   group.items.map(item => [item.key, item.label] as const)
 ))))
@@ -141,10 +146,12 @@ const dynamicOptions = computed(() => dynamicPermissionDefinitions.map(definitio
     disabled: !key || Boolean(coveredBy),
   }
 }))
-const specialPermissionGroups = computed(() => ([entityManagementGroupName, entityDelegationGroupName] as SpecialPermissionGroup[]).map(name => {
+const specialPermissionGroups = computed(() => ([documentManagementGroupName, entityManagementGroupName, entityDelegationGroupName] as SpecialPermissionGroup[]).map(name => {
   const group = groups.value.find(candidate => candidate.name === name)
   return {
-    id: name === entityManagementGroupName ? 'entity-management' : 'entity-delegation',
+    id: name === documentManagementGroupName
+      ? 'document-management'
+      : name === entityManagementGroupName ? 'entity-management' : 'entity-delegation',
     name,
     items: group?.items.filter(item => !isDynamicLeafPermission(item.key)) ?? [],
     options: dynamicOptions.value.filter(option => option.group === name),
@@ -230,14 +237,17 @@ function selectedCount(items: PermissionItem[]) {
   return items.filter(item => permissionKeys.value.includes(item.key) || coveringParent(item.key)).length
 }
 function requestPermissionSave() {
+  if (routeAccess.restricted.value) return
   pendingPermissionKeys.value = permissionsForSave(permissionKeys.value)
   if (newlyAddedAdvanced.value.length) showAdvancedConfirm.value = true
   else savePermissions.mutate([...pendingPermissionKeys.value])
 }
 function confirmPermissionSave() {
+  if (routeAccess.restricted.value) return
   savePermissions.mutate([...pendingPermissionKeys.value])
 }
 function deleteRole() {
+  if (routeAccess.restricted.value) return
   if (window.confirm(`确认删除角色“${roleQuery.data.value?.name || roleId.value}”？`)) remove.mutate()
 }
 async function searchEntities(_keyword: string): Promise<EntityDisplay[]> {
@@ -258,10 +268,12 @@ function selectTargetEntities(entities: EntityDisplay[]) {
   targetSlug.value = ''
 }
 function isDynamicLeafPermission(key: string) {
-  return /^team\.entity\.virtual\.[a-z0-9][a-z0-9_-]{0,49}\.(?:manage|field\.manage)$/.test(key)
+  return /^team\.document\.(?:member|customer|virtual)\.[a-z0-9][a-z0-9_-]{0,49}\.manage$/.test(key)
+    || /^team\.entity\.virtual\.[a-z0-9][a-z0-9_-]{0,49}\.(?:manage|field\.manage)$/.test(key)
     || /^identity\.(?:member|customer|virtual)\.[a-z0-9][a-z0-9_-]{0,49}\.assume$/.test(key)
 }
 function dynamicPermissionGroup(key: string): SpecialPermissionGroup | null {
+  if (/^team\.document(?:\.|$)/.test(key)) return documentManagementGroupName
   if (/^team\.entity(?:\.|$)/.test(key)) return entityManagementGroupName
   if (/^identity(?:\.|$)/.test(key)) return entityDelegationGroupName
   return null
@@ -273,12 +285,15 @@ function configuredSpecialCount(group: string) {
   return permissionKeys.value.filter(key => leafGroups.value.get(key) === group || dynamicPermissionGroup(key) === group).length
 }
 function dynamicPermissionKey(definition: DynamicPermissionDefinition, entity: EntityDisplay): string | null {
+  const type = ({ teamMember: 'member', teamCustomer: 'customer', teamVirtual: 'virtual' } as const)[entity.type as Exclude<EntityType, 'team'>]
+  if (definition.id === 'document-manage') {
+    return type ? `team.document.${type}.${entity.slug}.manage` : null
+  }
   if (definition.virtualOnly) {
     if (entity.type !== 'teamVirtual') return null
     const action = definition.id === 'field-manage' ? 'field.manage' : definition.id
     return `team.entity.virtual.${entity.slug}.${action}`
   }
-  const type = ({ teamMember: 'member', teamCustomer: 'customer', teamVirtual: 'virtual' } as const)[entity.type as Exclude<EntityType, 'team'>]
   return type ? `identity.${type}.${entity.slug}.assume` : null
 }
 function toggleDynamicPermission(key: string | null, checked: boolean) {
@@ -293,7 +308,8 @@ function toggleDynamicPermission(key: string | null, checked: boolean) {
 }
 function dynamicPermissionLabel(key: string) {
   return leafLabels.value.get(key)
-    || (key.endsWith('.field.manage') ? '管理指定虚拟实体字段'
+    || (key.startsWith('team.document.') ? '管理指定实体文档'
+      : key.endsWith('.field.manage') ? '管理指定虚拟实体字段'
       : key.endsWith('.manage') ? '管理指定虚拟实体'
         : '领取指定实体身份')
 }
@@ -308,15 +324,15 @@ function dynamicPermissionLabel(key: string) {
         back-label="返回角色列表"
       />
 
-      <LsInlineError v-if="requestError" :message="friendlyError(requestError)" />
-      <LsAsyncState v-if="pending" state="loading" :rows="7" />
+      <LsInlineError v-if="requestError && !routeAccess.restricted.value" :message="friendlyError(requestError)" />
+      <LsAsyncState v-if="pending && !routeAccess.restricted.value" state="loading" :rows="7" />
 
       <template v-else>
         <LsPanel>
           <template #header><header>
             <div><h3>角色资料</h3><p>名称和说明帮助管理者理解角色用途，角色标识保持不变。</p></div>
           </header></template>
-          <NForm label-placement="top" @submit.prevent="saveInfo.mutate()">
+          <NForm label-placement="top" @submit.prevent="routeAccess.restricted.value || saveInfo.mutate()">
             <NFormItem label="角色名称" required>
               <NInput v-model:value="form.name" aria-label="角色名称" />
             </NFormItem>
@@ -329,8 +345,8 @@ function dynamicPermissionLabel(key: string) {
             </NFormItem>
             <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开实体资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟实体（Virtual Entity）会展示角色名称和说明；角色权限不会公开。" />
             <footer>
-              <LsButton variant="danger" :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</LsButton>
-              <LsButton type="submit" :loading="saveInfo.isPending.value" :disabled="!form.name.trim()"><template #icon><Save :size="17" /></template>保存资料</LsButton>
+              <LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</LsButton>
+              <LsButton type="submit" :loading="saveInfo.isPending.value" :disabled="routeAccess.restricted.value || !form.name.trim()" :disabled-reason="routeAccess.reason.value"><template #icon><Save :size="17" /></template>保存资料</LsButton>
             </footer>
           </NForm>
         </LsPanel>
@@ -338,7 +354,7 @@ function dynamicPermissionLabel(key: string) {
         <LsPanel><section class="permissions-panel">
           <header>
             <div><h3>角色权限</h3><p>权限按工作领域折叠展示，展开需要调整的分组即可。</p></div>
-            <LsButton :loading="savePermissions.isPending.value" @click="requestPermissionSave">保存权限</LsButton>
+            <LsButton :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="savePermissions.isPending.value" @click="requestPermissionSave">保存权限</LsButton>
           </header>
 
           <NCollapse class="permission-groups" arrow-placement="right">
@@ -376,7 +392,7 @@ function dynamicPermissionLabel(key: string) {
                   <header>
                     <div>
                       <h4 :id="`${specialGroup.id}-static-title`">通用{{ specialGroup.name }}</h4>
-                      <p>通配 Permission 覆盖一类实体（Entity）；保存时会移除已被覆盖的指定 slug。</p>
+                      <p>通用 Permission 可直接授权团队范围或一类实体；保存时会移除已被覆盖的指定 slug。</p>
                     </div>
                   </header>
                   <div class="permission-list">

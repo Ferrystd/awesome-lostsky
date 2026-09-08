@@ -153,7 +153,7 @@ const offerPending = (status: number | string) => status === 1 || status === '�
         </section>
 
         <section class="action-panel" aria-labelledby="action-title">
-          <form v-if="query.data.value.dispatch_available && !query.data.value.is_expired && Number(query.data.value.available_quantity) > 0" @submit.prevent="start.mutate()">
+          <form v-if="!query.data.value.is_expired && Number(query.data.value.available_quantity) > 0" @submit.prevent="start.mutate()">
             <div class="form-heading"><h2 id="action-title">发起一次履约</h2><p>仅占用本次填写的额度，其余仍可继续使用。</p></div>
             <label>履约数量（{{ query.data.value.unit_name }}）<NInputNumber v-model:value="quantity" :min="Number(query.data.value.quantity_step)" :max="Number(query.data.value.available_quantity)" :step="Number(query.data.value.quantity_step)" :precision="quantityScale" size="large" /></label>
             <label>接单方式<NSelect v-model:value="dispatchMode" :options="dispatchOptions" size="large" /></label>
@@ -172,8 +172,7 @@ const offerPending = (status: number | string) => status === 1 || status === '�
           </form>
           <div v-else class="action-unavailable">
             <h2 id="action-title">暂时无法发起履约</h2>
-            <p v-if="!query.data.value.dispatch_available">当前团队未开通可用的 Transaction Ability，暂不能发起新的指定邀请或公开任务。</p>
-            <p v-else-if="query.data.value.is_expired">该权益已过期，无法再发起新的履约。</p>
+            <p v-if="query.data.value.is_expired">该权益已过期，无法再发起新的履约。</p>
             <p v-else>该权益的可用额度已全部使用。</p>
           </div>
         </section>

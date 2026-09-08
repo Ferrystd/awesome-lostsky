@@ -32,11 +32,11 @@ php think team:grant-ability --team=example-team --ability=shop --level=1 --expi
 ```
 
 - `--team`：必填，现有团队 slug。
-- `--ability`：必填，已有能力标识：`doc`（文档）、`file`（文件上传）、`transaction`（交易）或 `shop`（商城）。
+- `--ability`：必填，已有能力标识：`doc`（文档）、`file`（文件上传）、`transaction`（流水）、`shop`（商城）或 `weibo`（微博）；有效键由 `app/service/AbilityCatalog.php` 校验。
 - `--level`：可选，正整数能力等级，默认 `1`。
 - `--expire-time`：可选，Unix 时间戳；默认 `0`，表示永久有效。
 
-同一团队与能力重复授予时会更新等级和有效期；已软删除的记录会恢复。命令变更写入 `business_audit_event`，来源为 `cli`，认证用户与实体为空。
+同一团队与能力重复授予时撤销旧的有效手工 Grant，新增手工 Grant 并同步能力投影；兑换等其他来源授权仍保留参与有效能力计算，有限期授权同时安排到期任务。命令变更写入 `business_audit_event`，来源为 `cli`，认证用户与实体为空。
 
 首次发布 Database Ability 到期队列前，在导入数据库补丁后为已有有限期 Grant 补投一次任务：
 
@@ -60,6 +60,19 @@ php think notice:send "通知标题" --team_id=123 --content="通知正文" --pi
 - `--pinned`：可选开关，传入后将通知置顶。
 
 命令执行前会确认目标 Team 有效。成功后，Team 身份可以通过原有通知接口读取并确认公告。
+
+## 后台任务与清理
+
+应用命令注册于 `config/console.php`；`queue:*` 来自队列依赖。以下命令会处理任务或修改数据，不是只读健康探测：
+
+| 命令 | 当前职责 |
+| --- | --- |
+| `php think chat:worker` | 常驻处理聊天事件和 Webhook；`--once` 处理一批后退出，仍会真实投递 |
+| `php think chat:cleanup` | 关闭过期临时会话并执行聊天消息保留策略 |
+| `php think system:cleanup` | 清理过期实体会话、设备、刷新令牌、审计和微博日志，处理文件与外部补偿 |
+| `php think queue:restart` | 通知 Database Worker 重启；不重启独立的 `chat:worker` |
+
+启动顺序、队列名、进程管理和验收方法见[部署指南](deployment.md)。清理保留期分别由 `config/cleanup.php` 与 `config/chat.php` 定义；未登记的定时任务不会因部署代码而自动运行。
 
 ## 通用 Service 调用
 
@@ -93,7 +106,7 @@ php think service:call Pagination normalize '--params={\"page\":0,\"limit\":200}
 
 该命令信任服务器终端权限，不执行 HTTP 路由、中间件、身份鉴权、请求去重或控制器业务审计。调用写方法可能直接修改数据库、删除数据、发起网络请求或签发令牌，使用前应确认目标 Service 的实际行为。
 
-尚未实现的控制台设想统一放在 [`docs/plans/`](../plans/)；微博机器人计划见 [`weibo-bot.md`](../plans/weibo-bot.md)。
+微博自动发帖和每日签到已由 Database Worker 执行，启动与恢复说明见[部署指南](deployment.md#weibo-database-worker)；未实现事项见[待办](../TODO.md)。
 
 ## 统一部署所有域名证书
 
@@ -122,6 +135,7 @@ lostsky.work
 *.transaction.lostsky.work
 *.display.lostsky.work
 *.shop.lostsky.work
+*.weibo.lostsky.work
 *.account.api.lostsky.work
 *.admin.api.lostsky.work
 *.common.api.lostsky.work
@@ -130,6 +144,7 @@ lostsky.work
 *.transaction.api.lostsky.work
 *.display.api.lostsky.work
 *.shop.api.lostsky.work
+*.weibo.api.lostsky.work
 ```
 
 `*.lostsky.work` 只覆盖 `api.lostsky.work` 这类单层域名，不覆盖 `demo.display.lostsky.work`，所以动态前端和 API 域名需要各自的嵌套通配符。非默认部署可用逗号分隔的 `TLS_REQUIRED_NAMES` 覆盖清单。

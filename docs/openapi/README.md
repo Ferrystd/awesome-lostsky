@@ -10,17 +10,19 @@
 - [`team.openapi.json`](team.openapi.json)：团队工作台与 Team/成员/虚拟 Entity 个人工作台
 - [`chat.openapi.json`](chat.openapi.json)：聊天身份、会话、消息、实时令牌与应用切换快照
 - [`shop.openapi.json`](shop.openapi.json)：商品、订单、顾客自助中心
-- [`transaction.openapi.json`](transaction.openapi.json)：记账流水、发单人绑定、余额充值
+- [`transaction.openapi.json`](transaction.openapi.json)：记账流水、余额充值、统计、权益下发与核销；发单协作关系由 Team 顾客接口维护
 - [`weibo.openapi.json`](weibo.openapi.json)：微博账号、媒体、单次写操作、自动发帖、每日签到与 30 天执行日志
 - [`common.openapi.json`](common.openapi.json)：公共上传入口
 
 ## 调用入口
 
-每个 Swagger 文件都声明了三类 server：
+团队应用可通过以下三类入口解析上下文；各文件实际声明的 server 以其 `servers` 为准，不能假定每个应用都支持全部示例：
 
 - `https://api.lostsky.work`：通过 `Origin: https://{slug}.{app}.lostsky.work` 解析团队和 app
 - `https://{slug}.{app}.api.lostsky.work`：通过 Host 直接解析团队和 app
 - `https://{customDomain}`：通过 `team_domain` 反查团队和 app
+
+Account 与 Admin 是无团队应用，使用公共 API 时分别发送 `Origin: https://account.lostsky.work` 或 `Origin: https://admin.lostsky.work`，不要求团队 slug。完整解析规则见[请求路由与应用解析](../architecture/routing.md)。
 
 ## 通用约定
 

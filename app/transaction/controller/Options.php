@@ -11,9 +11,8 @@ class Options
     protected $middleware = [
         'JwtAuth'      => ['except' => []],
         'Context'      => ['except' => []],
-        'EntityType:team,teamMember,teamVirtual' => ['except' => []],
-        'TeamAuth'     => ['except' => []],
-        'Ability:transaction' => ['except' => []],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'TeamWorkspaceAuth' => ['except' => []],
         'Permission:' . Permissions::TRANSACTION_READ => ['only' => ['index']],
         'Permission:' . Permissions::TRANSACTION_REPORT_READ => ['only' => ['invite']],
     ];

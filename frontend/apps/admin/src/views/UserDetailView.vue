@@ -9,12 +9,13 @@ import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { NTag } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import ReasonDialog from '../components/ReasonDialog.vue'
-import { can } from '../session'
+import { can, permissionReason } from '../session'
 import { adminStatusLabel, adminStatusType, type AdminStatus } from '../status'
 import type { AuditEvent, UserSummary } from '../types'
 import { formatTime } from '../utils'
@@ -28,9 +29,10 @@ interface UserDetail extends UserSummary {
 }
 const route = useRoute()
 const id = Number(route.params.id)
+const routeAccess = useRouteAccess()
 const dialog = ref(false)
 const action = ref<'ban' | 'unban' | 'revoke-sessions'>('ban')
-const query = useQuery({ queryKey: ['admin-user', id], queryFn: () => api.get<UserDetail>(`/users/${id}`) })
+const query = useQuery({ queryKey: ['admin-user', id], queryFn: () => routeAccess.read(() => api.get<UserDetail>(`/users/${id}`)), enabled: computed(() => !routeAccess.restricted.value) })
 const mutation = useMutation({ mutationFn: (reason: string) => api.post(`/users/${id}/${action.value}`, { reason }), onSuccess: async () => { feedback.success(action.value === 'ban' ? '用户已封禁' : action.value === 'unban' ? '用户已解封' : '用户会话已撤销'); dialog.value = false; await query.refetch() }, onError: error => feedback.error(friendlyError(error)) })
 const dialogTitle = computed(() => action.value === 'ban' ? '封禁这个用户？' : action.value === 'unban' ? '解封这个用户？' : '撤销全部会话？')
 const consequence = computed(() => action.value === 'ban' ? '用户将立即退出全部设备，并无法重新登录。' : action.value === 'unban' ? '用户可以重新登录，但旧会话不会恢复。' : '所有设备和刷新令牌都会失效，用户需要重新登录。')
@@ -42,20 +44,24 @@ function open(next: typeof action.value) { action.value = next; dialog.value = t
 <template>
   <LsPageHeader title="用户详情" description="核对身份、团队与设备后再执行治理操作。" back-to="/users">
     <template #actions>
-      <LsButton v-if="can('admin.user.session.revoke')" variant="secondary" @click="open('revoke-sessions')">撤销全部会话</LsButton>
-      <LsButton v-if="can('admin.user.moderate') && query.data.value" :variant="query.data.value.is_banned ? 'primary' : 'danger'" @click="open(query.data.value.is_banned ? 'unban' : 'ban')">{{ query.data.value.is_banned ? '解封用户' : '封禁用户' }}</LsButton>
+      <LsButton variant="secondary" :disabled="routeAccess.restricted.value || !can('admin.user.session.revoke')" :disabled-reason="routeAccess.reason.value || permissionReason('admin.user.session.revoke')" @click="open('revoke-sessions')">撤销全部会话</LsButton>
+      <LsButton :variant="query.data.value?.is_banned ? 'primary' : 'danger'" :disabled="routeAccess.restricted.value || !can('admin.user.moderate')" :disabled-reason="routeAccess.reason.value || permissionReason('admin.user.moderate')" @click="open(query.data.value?.is_banned ? 'unban' : 'ban')">{{ query.data.value?.is_banned ? '解封用户' : '封禁用户' }}</LsButton>
     </template>
   </LsPageHeader>
-  <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
-  <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取用户详情" :description="friendlyError(query.error.value)" />
+  <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
+  <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取用户详情" :description="friendlyError(query.error.value)" />
+  <template v-else-if="routeAccess.restricted.value">
+    <LsPanel><template #header><LsSectionHeader title="-" description="-" /></template><LsDescriptionList><dt>手机</dt><dd>-</dd><dt>邮箱</dt><dd>-</dd><dt>平台角色</dt><dd>-</dd><dt>注册时间</dt><dd>-</dd></LsDescriptionList></LsPanel>
+    <div class="detail-grid detail-grid--two"><LsPanel><template #header><div><h2>所属团队</h2><p>0 个团队关系</p></div></template><LsEmptyState :source="query.data.value" title="没有可显示的团队" description="当前没有团队关系数据。" /></LsPanel><LsPanel><template #header><div><h2>已授权设备</h2><p>0 个有效会话</p></div></template><LsEmptyState :source="query.data.value" title="没有可显示的设备" description="当前没有设备会话数据。" /></LsPanel></div>
+  </template>
   <template v-else-if="query.data.value">
     <LsPanel>
       <template #header><LsSectionHeader :title="query.data.value.nickname || query.data.value.username" :description="`#${query.data.value.id} · @${query.data.value.username}`"><template #aside><LsStatusTag :label="adminStatusLabel(query.data.value.is_banned ? 'banned' : 'active')" :type="adminStatusType(query.data.value.is_banned ? 'banned' : 'active')" /></template></LsSectionHeader></template>
       <LsDescriptionList><dt>手机</dt><dd>{{ query.data.value.phone || query.data.value.phone_masked || '—' }}</dd><dt>邮箱</dt><dd>{{ query.data.value.email || query.data.value.email_masked || '—' }}</dd><dt>平台角色</dt><dd class="role-tags"><NTag v-for="role in query.data.value.roles" :key="role.id" size="small">{{ role.name }}</NTag><span v-if="!query.data.value.roles.length">非平台管理员</span></dd><dt>注册时间</dt><dd>{{ formatTime(query.data.value.create_time) }}</dd></LsDescriptionList>
     </LsPanel>
     <div class="detail-grid detail-grid--two">
-      <LsPanel><template #header><div><h2>所属团队</h2><p>{{ query.data.value.teams.length }} 个团队关系</p></div></template><LsEmptyState v-if="!query.data.value.teams.length" title="尚未加入团队" description="该用户当前没有任何团队关系。" /><div v-else class="simple-list"><RouterLink v-for="team in query.data.value.teams" :key="team.id" :to="`/teams/${team.id}`"><span><strong>{{ team.slug }}</strong><small>#{{ team.id }} · {{ formatTime(team.create_time) }}</small></span><LsStatusTag :label="adminStatusLabel(teamStatus(team))" :type="adminStatusType(teamStatus(team))" /></RouterLink></div></LsPanel>
-      <LsPanel><template #header><div><h2>已授权设备</h2><p>{{ query.data.value.devices.length }} 个有效会话</p></div></template><LsEmptyState v-if="!query.data.value.devices.length" title="当前没有有效设备" description="用户下次登录后，已授权设备会显示在这里。" /><div v-else class="simple-list"><div v-for="device in query.data.value.devices" :key="device.id"><span><strong>{{ device.device_name || '未命名设备' }}</strong><small>{{ device.ua || '未知顾客端' }}</small></span><time>{{ formatTime(device.last_active_time) }}</time></div></div></LsPanel>
+      <LsPanel><template #header><div><h2>所属团队</h2><p>{{ query.data.value.teams.length }} 个团队关系</p></div></template><LsEmptyState :source="query.data.value" v-if="!query.data.value.teams.length" title="尚未加入团队" description="该用户当前没有任何团队关系。" /><div v-else class="simple-list"><RouterLink v-for="team in query.data.value.teams" :key="team.id" :to="`/teams/${team.id}`"><span><strong>{{ team.slug }}</strong><small>#{{ team.id }} · {{ formatTime(team.create_time) }}</small></span><LsStatusTag :label="adminStatusLabel(teamStatus(team))" :type="adminStatusType(teamStatus(team))" /></RouterLink></div></LsPanel>
+      <LsPanel><template #header><div><h2>已授权设备</h2><p>{{ query.data.value.devices.length }} 个有效会话</p></div></template><LsEmptyState :source="query.data.value" v-if="!query.data.value.devices.length" title="当前没有有效设备" description="用户下次登录后，已授权设备会显示在这里。" /><div v-else class="simple-list"><div v-for="device in query.data.value.devices" :key="device.id"><span><strong>{{ device.device_name || '未命名设备' }}</strong><small>{{ device.ua || '未知顾客端' }}</small></span><time>{{ formatTime(device.last_active_time) }}</time></div></div></LsPanel>
     </div>
   </template>
   <ReasonDialog v-model:show="dialog" :title="dialogTitle" :consequence="consequence" :action-label="actionLabel" :danger="action === 'ban' || action === 'revoke-sessions'" :loading="mutation.isPending.value" @confirm="mutation.mutate" />

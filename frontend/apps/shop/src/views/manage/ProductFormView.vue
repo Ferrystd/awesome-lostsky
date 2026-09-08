@@ -13,13 +13,14 @@ import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { Eye } from '@lucide/vue'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
 import type { SelectOption, SelectRenderLabel } from 'naive-ui'
 import { computed, h, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { canManage, fileUploadReason, loadManageAccess, productManagement, resourceOwnerLabel } from '../../lib'
+import { canManage, fileUploadReason, loadManageAccess, managePermissionReason, productManagement, resourceOwnerLabel } from '../../lib'
 import { calculateDefaultServiceDistribution, calculateServiceTeamCut } from '../../service-distribution'
 import type { ManagePricingSummary } from '../../types'
 
@@ -47,6 +48,7 @@ interface ResourceSelectOption extends SelectOption {
 }
 
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const router = useRouter()
 const id = computed(() => Number(route.params.id || 0))
 const editing = computed(() => id.value > 0)
@@ -74,11 +76,12 @@ let hydratingAmounts = false
 const options = useQuery({
   queryKey: computed(() => ['manage-product-options', scope.value]),
   queryFn: () => management.value.options(),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const detail = useQuery({
   queryKey: computed(() => ['manage-product', scope.value, id.value]),
-  queryFn: () => management.value.product(id.value),
-  enabled: editing,
+  queryFn: () => routeAccess.read(() => management.value.product(id.value)),
+  enabled: computed(() => editing.value && !routeAccess.restricted.value),
 })
 function kindNumber(value: unknown) {
   if (typeof value === 'number') return value
@@ -268,7 +271,7 @@ const valid = computed(() => Boolean(
         <LsPagePrimaryAction v-if="editing" :icon="Eye" label="预览前台" :href="`/product/${id}`" target="_blank" rel="noopener noreferrer" />
       </template>
     </LsPageHeader>
-    <form class="manage-form" @submit.prevent="save.mutate()">
+    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
       <LsFormSection title="基本信息">
           <LsField label="商品名称" for-id="product-name" required><NInput id="product-name" v-model:value="form.name" maxlength="100" /></LsField>
           <LsField label="简短说明" for-id="product-description"><NInput id="product-description" v-model:value="form.description" type="textarea" maxlength="500" show-count /></LsField>
@@ -302,12 +305,12 @@ const valid = computed(() => Boolean(
           <LsField label="客服分成" for-id="product-cs-cut"><NInputNumber id="product-cs-cut" v-model:value="form.cs_cut" :min="0" :precision="2" clearable /></LsField>
           <LsField label="团队分成" for-id="product-team-cut" :hint="teamCutHint"><NInputNumber id="product-team-cut" :value="teamCut" :precision="2" disabled /></LsField>
       </LsFormSection>
-      <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
-      <LsInlineError v-if="options.isError.value" :message="friendlyError(options.error.value)" />
+      <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
+      <LsInlineError v-if="!routeAccess.restricted.value && options.isError.value" :message="friendlyError(options.error.value)" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
-        <LsButton type="submit" :disabled="Boolean(uploading) || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :loading="save.isPending.value">保存商品</LsButton>
+        <LsButton type="submit" :disabled="routeAccess.restricted.value || Boolean(uploading) || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存商品</LsButton>
       </LsFormActions>
     </form>
   </div>

@@ -26,7 +26,8 @@ export interface TeamAccessSnapshot {
   team?: { id: number; slug: string; name: string } | null
   permissions?: string[]
   abilities?: Record<string, TeamAbilityState>
-  identity?: { type: string }
+  identity?: { type: string; entity_id: number; name: string; slug?: string | null; avatar?: string | null; belongs_to_team: boolean; is_external: boolean }
+  entry_warning?: { required: boolean; kind: string | null; ttl_seconds: number }
   file_upload?: FileUploadAvailability
 }
 

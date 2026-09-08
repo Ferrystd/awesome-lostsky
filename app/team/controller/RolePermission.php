@@ -10,7 +10,7 @@ class RolePermission
 {
     protected $middleware = [
         'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamAuth',
+        'TeamWorkspaceAuth',
         'Permission:' . Permissions::TEAM_ROLE_READ => ['only' => ['index', 'catalog']],
         'Permission:' . Permissions::TEAM_ROLE_WRITE => ['only' => ['save']],
     ];

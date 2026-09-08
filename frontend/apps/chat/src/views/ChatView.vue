@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { api, auth, friendlyError } from '@lostsky/api/client'
-import { formatAbilityDenied } from '@lostsky/api/error-format'
 import { workspaceAppEntries } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -30,18 +29,12 @@ const identityManagement = identityManagementLink()
 const identityType = computed(() => String(auth.entity()?.type ?? ''))
 const backendWorkspace = computed(() => ['team', 'teamMember', 'teamVirtual'].includes(identityType.value))
 const customerWorkspace = computed(() => identityType.value === 'teamCustomer')
-const workspaceAccess = useQuery({
-  queryKey: ['chat-workspace-access'],
-  queryFn: () => api.get<{ abilities?: { transaction?: { enabled: boolean; label: string } } }>('/workspace/access'),
-  enabled: backendWorkspace,
-})
 const appOptions = computed<AppOption[]>(() => {
-  const transaction = workspaceAccess.data.value?.abilities?.transaction
   if (customerWorkspace.value) return workspaceAppEntries({ paths: { shop: '/customer/profile' }, states: {
     team: { disabled: true, reason: '顾客不进入后台工作台' }, transaction: { disabled: true, reason: '顾客不进入后台工作台' }, weibo: { disabled: true, reason: '顾客不进入后台工作台' },
   } })
   if (!backendWorkspace.value) return workspaceAppEntries({ states: Object.fromEntries(['team', 'shop', 'transaction', 'weibo'].map(key => [key, { disabled: true, reason: '请先领取团队身份' }])) })
-  return workspaceAppEntries({ states: { transaction: { disabled: !transaction?.enabled, reason: transaction ? formatAbilityDenied('transaction', transaction.label ?? '记账') : '正在核对 transaction Ability' } } })
+  return workspaceAppEntries()
 })
 const appDropdownOptions = computed(() => appOptions.value.map(({ key, label, disabled, reason }) => ({
   key,

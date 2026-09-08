@@ -16,7 +16,9 @@ const width = computed<'wide' | 'content' | 'form'>(() => ['content', 'form'].in
   <NConfigProvider :theme-overrides="lostskyNaiveTheme" :locale="zhCN">
     <NDialogProvider><NMessageProvider>
       <AdminShell>
-        <LsPage id="admin-main" as="main" :width="width"><RouterView /></LsPage>
+        <LsPage id="admin-main" as="main" :width="width">
+          <RouterView />
+        </LsPage>
       </AdminShell>
     </NMessageProvider></NDialogProvider>
   </NConfigProvider>

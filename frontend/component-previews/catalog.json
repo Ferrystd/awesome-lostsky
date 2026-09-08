@@ -526,5 +526,26 @@
     "story": "frontend/component-previews/src/app-stories.ts#MediaPreparation",
     "category": "weibo",
     "aliases": ["微博媒体准备", "微博图片上传"]
+  },
+  {
+    "id": "ui-ls-dashboard-path",
+    "name": "LsDashboardPath",
+    "source": "frontend/packages/ui/src/components/LsDashboardPath.vue",
+    "story": "frontend/component-previews/src/ui-stories.ts#LsDashboardPath",
+    "category": "ui",
+    "aliases": [
+      "业务路径",
+      "概览配置链"
+    ]
+  },
+  {
+    "id": "app-shop-overview-workspace",
+    "name": "ShopOverviewWorkspace",
+    "source": "frontend/apps/shop/src/components/ShopOverviewWorkspace.vue",
+    "story": "frontend/component-previews/src/ui-stories.ts#ShopOverviewWorkspace",
+    "category": "app",
+    "aliases": [
+      "商品概览工作区"
+    ]
   }
 ]

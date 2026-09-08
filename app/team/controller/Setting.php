@@ -13,7 +13,7 @@ class Setting
         'JwtAuth'    => ['except' => []],
         'Context'    => ['except' => []],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
-        'TeamAuth' => ['except' => []],
+        'TeamWorkspaceAuth' => ['except' => []],
         'Permission:' . Permissions::TEAM_SETTING_READ => ['only' => ['index', 'schema']],
         'Permission:' . Permissions::TEAM_SETTING_UPDATE => ['only' => ['save']],
     ];

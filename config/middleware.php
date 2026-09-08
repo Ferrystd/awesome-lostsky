@@ -11,6 +11,8 @@ return [
         'EntityType'         => \app\middleware\EntityType::class,
         'TeamBelongs'        => \app\middleware\TeamBelongs::class,
         'TeamAuth'           => ['EntityRequired', 'TeamBelongs'],
+        'TeamWorkspaceAccess'=> \app\middleware\TeamWorkspaceAccess::class,
+        'TeamWorkspaceAuth'  => ['EntityRequired', 'TeamWorkspaceAccess'],
         'TeamGuest'          => \app\middleware\TeamGuest::class,
         'TeamMember'         => \app\middleware\TeamMember::class,
         'MemberAccess'       => \app\middleware\MemberAccess::class,
@@ -34,5 +36,6 @@ return [
         \app\middleware\EntityRequired::class,
         \app\middleware\EntityType::class,
         \app\middleware\TeamBelongs::class,
+        \app\middleware\TeamWorkspaceAccess::class,
     ],
 ];

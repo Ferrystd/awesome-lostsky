@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -88,7 +89,15 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
         :actions="overviewActions"
         :entries="overviewEntries"
         :scope-notes="['所有资料和业务范围都以当前已领取的 Entity 为主体。', '切换身份后，系统会重新核对 Entity 类型、角色与有效权限。']"
-      />
+      >
+        <template #summary>
+          <LsMetricGrid aria-label="个人身份摘要" :items="[
+            { key: 'roles', label: '已分配角色', value: query.isSuccess.value && query.data.value?.role_assignments ? query.data.value.role_assignments.length : '-' },
+            { key: 'fields', label: '资料字段', value: query.isSuccess.value && query.data.value?.custom_fields ? query.data.value.custom_fields.length : '-' },
+            { key: 'permissions', label: '有效权限', value: query.isSuccess.value && query.data.value?.effective_permissions ? query.data.value.effective_permissions.length : '-' },
+          ]" />
+        </template>
+      </LsWorkspaceOverview>
       <LsInlineError v-if="query.isError.value" :message="friendlyError(query.error.value)" />
     </template>
     <template v-else>

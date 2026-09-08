@@ -360,6 +360,22 @@ try {
         403,
         'unbound entity cannot operate for a customer'
     );
+    $externalRequest = $verifyRequest(
+        $fixture['team'],
+        (int) $fixture['foreignMemberEntity']->id,
+        (int) $fixture['foreignMember']->id,
+        $customerId
+    );
+    $externalRequest->workspace_access = [
+        'belongs_to_team' => false,
+        'is_external' => true,
+        'has_workspace_role' => true,
+    ];
+    $assertSame(
+        'allowed',
+        (new TransactionVerify)->handle($externalRequest, static fn (): string => 'allowed'),
+        'an external workspace operator is governed by its target-team role and action permission'
+    );
     $fixture['customer']->assignee_entity_id = $memberId;
     $fixture['customer']->save();
     $personalOptions = $transactionService->options($teamId, $memberId);

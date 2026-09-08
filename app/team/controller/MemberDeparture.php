@@ -14,7 +14,8 @@ class MemberDeparture
         'Context' => ['except' => []],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'depart', 'approve', 'reject']],
         'EntityType:teamMember' => ['only' => ['mine', 'apply', 'cancel']],
-        'TeamAuth' => ['except' => []],
+        'TeamWorkspaceAuth' => ['only' => ['index', 'get', 'depart', 'approve', 'reject']],
+        'TeamAuth' => ['only' => ['mine', 'apply', 'cancel']],
         'Permission:' . Permissions::TEAM_MEMBER_REMOVE => ['only' => ['index', 'get', 'depart', 'approve', 'reject']],
     ];
 

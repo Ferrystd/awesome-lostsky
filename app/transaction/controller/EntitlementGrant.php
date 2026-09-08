@@ -12,9 +12,10 @@ final class EntitlementGrant
     protected $middleware = [
         'JwtAuth' => ['except' => []],
         'Context' => ['except' => []],
-        'EntityType:team,teamMember,teamVirtual' => ['except' => []],
-        'TeamAuth' => ['except' => []],
-        'Ability:transaction' => ['except' => []],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'TeamWorkspaceAuth' => ['only' => ['options', 'create']],
+        'TeamAuth' => ['only' => ['personalHistory', 'personalOptions', 'personalCreate']],
+        'Ability:transaction' => ['only' => ['create', 'personalCreate']],
         'Permission:' . Permissions::TRANSACTION_WRITE => ['only' => ['options', 'create']],
         'Permission:' . Permissions::SERVICE_ENTITLEMENT_GRANT => ['only' => ['personalOptions', 'personalCreate']],
         'TransactionVerify' => ['only' => ['create']],

@@ -44,7 +44,9 @@ LostSky 将认证主体与业务主体分离：`user` 负责登录、设备、�
 | `identity.virtual.*.assume` | 当前授权团队全部有效虚拟实体 |
 | `identity.virtual.<slug>.assume` | 当前授权团队指定有效虚拟实体 |
 
-精确 slug 保存时必须属于当前授权团队；通配权限不会扩散到其他团队。普通业务权限仍经过 `TeamBelongs`，因此跨团队角色授权只允许来源实体领取目标身份，不允许来源实体直接带着原身份操作目标团队业务。
+精确 slug 保存时必须属于当前授权团队；通配权限不会扩散到其他团队。Team、Shop、Transaction 与 Weibo 的团队范围使用 `TeamWorkspaceAuth`：来源实体只要全局有效且获得目标团队至少一个角色，就可保持原身份进入基础概览，再按该目标团队角色计算业务 Permission。个人工作台、自助接口、成员本人接口和 Chat 仍使用 `TeamAuth`，必须切换到归属于地址团队的内部 Entity。
+
+外部 Entity 进入团队工作台时，访问快照返回 `belongs_to_team=false`、`is_external=true` 和警告状态。Account 的确认 Cookie 只按当前 Entity 与目标团队组合抑制短期提示；角色撤销后即使 Cookie 尚在，`TeamWorkspaceAuth` 和每次业务 Permission 校验仍立即拒绝。业务资源的 owner、账号绑定对象、顾客、接单人、发单人等仍必须属于目标团队；外部 Entity 只作为操作者、创建者或审计主体留痕。
 
 例如团队 B 把含 `identity.member.bob.assume` 的角色授予团队 A 的 `bot-a`，`bot-a` 可以领取团队 B 的 `@bob`。领取后业务 actor 是 Bob 的成员实体，而真实 user 与设备审计保持不变。
 

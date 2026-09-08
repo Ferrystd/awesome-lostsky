@@ -6,7 +6,6 @@ namespace app\service;
 use app\exception\AccessDeniedException;
 use app\model\Entity;
 use app\model\TeamEntityRole;
-use app\model\TeamMember;
 use app\model\TeamRolePermission;
 use think\exception\HttpException;
 use think\Request;
@@ -23,7 +22,7 @@ class PermissionGate
     public function effective(int $teamId, int|array $subject): array
     {
         $subject = $this->subject($subject);
-        if (!$this->validSubject($teamId, $subject)) {
+        if (!$this->validGlobalSubject($subject)) {
             return [];
         }
 
@@ -45,7 +44,7 @@ class PermissionGate
     public function allows(int $teamId, int|array $subject, array $permissionKeys): bool
     {
         $subject = $this->subject($subject);
-        if (!$this->validSubject($teamId, $subject)) {
+        if (!$this->validGlobalSubject($subject)) {
             return false;
         }
 
@@ -87,23 +86,6 @@ class PermissionGate
             throw new HttpException(500, 'Permission subject has no entity');
         }
         return ['type' => $type, 'id' => $id, 'entity_id' => (int) $entity->id];
-    }
-
-    private function validSubject(int $teamId, array $subject): bool
-    {
-        return match ($subject['type']) {
-            'teamMember' => $this->validTeamMember($teamId, (int) $subject['id']),
-            'teamCustomer' => (bool) \app\model\TeamCustomer::where('team_id', $teamId)->where('id', $subject['id'])->where('is_blocked', 0)->find(),
-            'team' => (bool) \app\model\Team::active()->where('id', $teamId)->where('id', $subject['id'])->find(),
-            'teamVirtual' => (bool) \app\model\TeamVirtual::where('team_id', $teamId)->where('id', $subject['id'])->where('is_active', 1)->find(),
-            default => false,
-        };
-    }
-
-    private function validTeamMember(int $teamId, int $memberId): bool
-    {
-        $member = TeamMember::where('team_id', $teamId)->find($memberId);
-        return $member ? (bool) $member->is_valid : false;
     }
 
     private function validGlobalSubject(array $subject): bool

@@ -1,4 +1,5 @@
 import { api, ApiError } from '@lostsky/api/client'
+import { formatPermissionDenied } from '@lostsky/api/error-format'
 import { reactive } from 'vue'
 import type { AdminSession } from './types'
 
@@ -22,6 +23,10 @@ export async function loadAdminSession() {
 
 export function can(permission: string) {
   return Boolean(adminSession.data?.is_super_admin || adminSession.data?.permissions.includes(permission))
+}
+
+export function permissionReason(permission: string) {
+  return formatPermissionDenied([permission])
 }
 
 export function isForbidden(error: unknown) {

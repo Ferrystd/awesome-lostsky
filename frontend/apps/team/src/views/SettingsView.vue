@@ -5,6 +5,7 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NRadio, NRadioGroup, NSelect } from 'naive-ui'
 import type { SelectOption } from 'naive-ui'
@@ -57,11 +58,13 @@ interface SettingSchema {
 }
 
 const client = useQueryClient()
+const routeAccess = useRouteAccess()
 const values = reactive<Record<string, Record<string, SettingValue>>>({})
 const savedApp = ref('')
 const query = useQuery({
   queryKey: ['settings', 'schema'],
   queryFn: () => api.get<SettingSchema>('/setting/schema'),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const apps = computed(() => query.data.value?.apps ?? [])
 
@@ -126,9 +129,9 @@ function switchDisabled(appName: string, setting: SettingField): boolean {
       description="配置团队级行为。设置项、输入类型和可选值均由服务端统一定义。"
     />
 
-    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取团队设置" :description="friendlyError(query.error.value)" />
-    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="4" />
-    <LsEmptyState v-else-if="!apps.length" title="当前没有可配置项" description="应用登记团队设置后会自动显示在这里。" />
+    <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取团队设置" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="4" />
+    <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !apps.length" :title="routeAccess.restricted.value ? '没有可显示的团队设置' : '当前没有可配置项'" description="应用登记团队设置后会自动显示在这里。" />
 
     <template v-else>
       <form

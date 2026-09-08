@@ -11,16 +11,18 @@ import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { shopWorkspaceUrl } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { customerOptions, money } from '../lib'
-import { loadWorkspaceAccess } from '../lib/workspace-access'
+import { loadWorkspaceAccess, resolveTransactionAbilityReason, transactionAbilityReason } from '../lib/workspace-access'
 import type { ManualEntitlementGrantOptions, ManualEntitlementGrantResult } from '../types'
 
 const router = useRouter()
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const personal = computed(() => route.meta.workspace === 'personal')
 const grantBase = computed(() => personal.value ? '/personal/entitlement-grant' : '/entitlement-grant')
 const form = reactive({
@@ -34,6 +36,7 @@ const result = ref<ManualEntitlementGrantResult | null>(null)
 const options = useQuery({
   queryKey: computed(() => ['manual-entitlement-grant-options', personal.value ? 'personal' : 'team']),
   queryFn: () => api.get<ManualEntitlementGrantOptions>(`${grantBase.value}/options`),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const access = useQuery({
   queryKey: ['transaction-workspace-access'],
@@ -56,6 +59,7 @@ const valid = computed(() => Boolean(
   && (personal.value || form.sender_entity_id)
   && quantityValid.value,
 ))
+const operationReason = computed(() => routeAccess.reason.value || (access.isPending.value ? '正在核对记账能力' : transactionAbilityReason(access.data.value)))
 const shopProductsUrl = shopWorkspaceUrl('/manage/products')
 
 const save = useMutation({
@@ -75,30 +79,36 @@ const save = useMutation({
     feedback.success('顾客权益已赋予')
   },
 })
+async function submit() {
+  if (routeAccess.reason.value) return feedback.info(routeAccess.reason.value)
+  const reason = await resolveTransactionAbilityReason(access.data.value)
+  if (reason) return feedback.info(reason)
+  save.mutate()
+}
 </script>
 
 <template>
   <div class="entitlement-grant-view">
     <LsPageHeader
       :title="personal ? '下发顾客权益' : '赋予顾客权益'"
-      :description="personal ? '为当前实体（Entity）接待的顾客直接交付 Shop 服务套餐权益；本操作不创建商城订单。' : '从 Shop 服务套餐读取权益快照并直接交付给顾客；本操作不创建商城订单。'"
+      :description="personal ? '为当前实体（Entity）接待的顾客直接交付 Shop 权益套餐；本操作不创建商城订单。' : '从 Shop 权益套餐读取权益快照并直接交付给顾客；本操作不创建商城订单。'"
       :back-to="personal ? '/personal/entitlements' : '/services'"
-      :back-label="personal ? '返回权益下发' : '返回服务核销'"
+      :back-label="personal ? '返回权益下发' : '返回权益核销'"
     />
-    <LsAsyncState v-if="options.isPending.value" state="loading" :rows="5" />
-    <LsAsyncState v-else-if="options.isError.value" state="error" title="暂时无法读取赋予候选" :description="friendlyError(options.error.value)" />
-    <LsEmptyState v-else-if="!products.length" title="没有可赋予的服务套餐" description="先在 Shop 创建并启用关联权益包的服务套餐商品。">
+    <LsAsyncState v-if="!routeAccess.restricted.value && options.isPending.value" state="loading" :rows="5" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && options.isError.value" state="error" title="暂时无法读取赋予候选" :description="friendlyError(options.error.value)" />
+    <LsEmptyState :source="options.data.value" v-else-if="!routeAccess.restricted.value && !products.length" title="没有可赋予的权益套餐" description="先在 Shop 创建并启用关联权益包的权益套餐商品。">
       <template #action><a class="primary-link" :href="shopProductsUrl">前往商品管理</a></template>
     </LsEmptyState>
-    <form v-else @submit.prevent="save.mutate()">
+    <form v-else @submit.prevent="submit">
       <LsFormSection title="赋予内容" :description="personal ? '商品、本人接待顾客、客服和份数会作为同一次原子操作保存；发单人固定为当前实体。' : '商品、顾客、业务归属和份数会作为同一次原子操作保存。'">
-        <LsField label="服务套餐商品" for-id="grant-product" required hint="只显示 Shop 中已启用且关联有效权益包的服务套餐。">
-          <NSelect id="grant-product" v-model:value="form.product_id" :options="productOptions" filterable placeholder="选择服务套餐商品" />
+        <LsField label="权益套餐商品" for-id="grant-product" required hint="只显示 Shop 中已启用且关联有效权益包的权益套餐。">
+          <NSelect id="grant-product" v-model:value="form.product_id" :options="productOptions" filterable :disabled="routeAccess.restricted.value" :placeholder="routeAccess.restricted.value ? '-' : '选择权益套餐商品'" />
         </LsField>
         <LsField label="顾客" for-id="grant-customer" required>
           <NSelect id="grant-customer" v-model:value="form.customer_id" :options="customerOptions(options.data.value)" filterable placeholder="选择顾客" />
         </LsField>
-        <LsField label="赋予份数" for-id="grant-quantity" required hint="每份包含该商品权益包中的全部服务权益。">
+        <LsField label="赋予份数" for-id="grant-quantity" required hint="每份包含该商品权益包中的全部权益。">
           <NInputNumber id="grant-quantity" v-model:value="form.quantity" :min="1" :max="999" :precision="0" />
         </LsField>
         <LsField v-if="!personal" label="发单人" for-id="grant-sender" required hint="顾客已有当前归属时，服务端优先使用该归属。">
@@ -109,7 +119,7 @@ const save = useMutation({
         </LsField>
         <p class="grant-note" role="note">
           <template v-if="selectedProduct">当前商品单份 {{ money(selectedProduct.price) }}；</template>
-          {{ options.data.value?.sync_transaction ? '提交后会同步一笔服务包收款流水。' : '当前设置只赋予权益，不同步流水。' }}
+          {{ options.data.value?.sync_transaction ? '提交后会同步一笔权益包收款流水。' : '当前设置只赋予权益，不同步流水。' }}
         </p>
         <p v-if="!customerOptions(options.data.value).length" class="grant-note" role="note">当前没有可用顾客，请先建立并启用顾客资料。</p>
         <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
@@ -119,7 +129,7 @@ const save = useMutation({
       </LsFormSection>
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
-        <LsButton type="submit" :loading="save.isPending.value" :disabled="!valid">确认赋予</LsButton>
+        <LsButton type="submit" :loading="save.isPending.value" :disabled="Boolean(operationReason) || !valid" :disabled-reason="operationReason">{{ personal ? '下发权益' : '确认提交' }}</LsButton>
       </LsFormActions>
     </form>
   </div>

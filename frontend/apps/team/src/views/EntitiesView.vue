@@ -66,7 +66,7 @@ function handleAction(key: string, entity: Entity) {
     <LsListToolbar v-model="search" placeholder="搜索实体名称或 slug" aria-label="搜索实体" :count-label="`${rows.length} 个实体`"><template #filters><NSelect v-model:value="type" :options="options" clearable placeholder="全部类型" /></template></LsListToolbar>
     <NSpin v-if="query.isPending.value" size="large" />
     <p v-else-if="query.isError.value" class="feedback" role="alert">{{ friendlyError(query.error.value) }}</p>
-    <LsEmptyState v-else-if="!rows.length" title="没有可查看的实体" description="调整搜索词或实体类型筛选后查看。" />
+    <LsEmptyState :source="query.data.value" v-else-if="!rows.length" title="没有可查看的实体" description="调整搜索词或实体类型筛选后查看。" />
     <div v-else class="entity-list">
       <article
         v-for="entity in rows"

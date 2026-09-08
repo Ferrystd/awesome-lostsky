@@ -53,7 +53,6 @@ function click(event: MouseEvent) {
     :disabled="loading || (disabled && !explainableDisabled)"
     :aria-disabled="disabled || loading || undefined"
     :aria-busy="loading || undefined"
-    :title="disabledReason || undefined"
     @click="click"
   >
     <span v-if="loading" class="ls-page-primary-action__spinner" aria-hidden="true" />
@@ -131,7 +130,7 @@ function click(event: MouseEvent) {
   outline-offset: 3px;
 }
 .ls-page-primary-action__icon { flex: none; }
-.ls-page-primary-action--disabled { opacity: .5; cursor: not-allowed; }
+.ls-page-primary-action--disabled { opacity: .5; cursor: pointer; }
 .ls-page-primary-action__spinner { width: 1rem; height: 1rem; flex: none; border: 2px solid color-mix(in oklch, white, transparent 55%); border-top-color: white; border-radius: 50%; animation: ls-page-primary-action-spin .8s linear infinite; }
 @keyframes ls-page-primary-action-spin { to { transform: rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) {

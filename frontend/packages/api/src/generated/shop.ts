@@ -1358,12 +1358,21 @@ export interface components {
             file_upload: components["schemas"]["FileUsage"];
             identity: {
                 /** @enum {string} */
-                type: "team" | "teamMember" | "teamVirtual";
+                type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
                 /** Format: int64 */
                 entity_id: number;
                 name: string;
                 slug?: string | null;
                 avatar?: string | null;
+                belongs_to_team: boolean;
+                is_external: boolean;
+            };
+            entry_warning: {
+                required: boolean;
+                /** @enum {string|null} */
+                kind: "external_entity" | null;
+                /** @default 86400 */
+                ttl_seconds: number;
             };
         };
         PersonalProductWriteInput: {

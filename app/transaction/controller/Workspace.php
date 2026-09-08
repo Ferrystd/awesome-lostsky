@@ -8,14 +8,15 @@ use think\Request;
 final class Workspace
 {
     protected $middleware = [
-        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamVirtual', 'TeamAuth',
+        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual', 'TeamWorkspaceAuth',
     ];
 
     public function access(Request $request)
     {
         return success(app(\app\service\TeamAccess::class)->snapshot(
             $request->team_id,
-            $request->acting_entity
+            $request->acting_entity,
+            $request
         ));
     }
 }

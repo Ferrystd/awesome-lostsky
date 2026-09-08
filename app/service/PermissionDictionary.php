@@ -39,6 +39,10 @@ final class PermissionDictionary
     public const FILE_UPLOAD = 'file.upload';
     public const FILE_DELETE = 'file.delete';
     public const TEAM_DOCUMENT_READ = 'team.document.read';
+    public const TEAM_DOCUMENT_TEAM_MANAGE = 'team.document.team.manage';
+    public const TEAM_DOCUMENT_MEMBER_ALL_MANAGE = 'team.document.member.*.manage';
+    public const TEAM_DOCUMENT_CUSTOMER_ALL_MANAGE = 'team.document.customer.*.manage';
+    public const TEAM_DOCUMENT_VIRTUAL_ALL_MANAGE = 'team.document.virtual.*.manage';
     public const TEAM_SETTING_READ = 'team.setting.read';
     public const TEAM_SETTING_UPDATE = 'team.setting.update';
     public const TEAM_ABILITY_REDEEM = 'team.ability.redeem';
@@ -56,6 +60,8 @@ final class PermissionDictionary
     public const CHAT_TEMPORARY_CREATE = 'chat.temporary.create';
     public const CHAT_MESSAGE_MODERATE = 'chat.message.moderate';
     public const CHAT_VIRTUAL_ALL_ACT = 'chat.virtual.*.act';
+    public const WEIBO_PERSONAL_USE = 'weibo.personal.use';
+    public const WEIBO_TEAM_MANAGE = 'weibo.team.manage';
     public const TEAM_ENTITY_VIRTUAL_CREATE = 'team.entity.virtual.create';
     public const TEAM_ENTITY_VIRTUAL_ALL_MANAGE = 'team.entity.virtual.*.manage';
     public const TEAM_ENTITY_VIRTUAL_ALL_FIELD_MANAGE = 'team.entity.virtual.*.field.manage';
@@ -118,11 +124,17 @@ final class PermissionDictionary
             self::SERVICE_REDEMPTION_READ => '查看全部服务核销',
             self::SERVICE_REDEMPTION_MANAGE => '管理服务核销',
         ],
+        '文档管理' => [
+            self::TEAM_DOCUMENT_READ => '查看全部文档（含当前 Entity 不可见文档）',
+            self::TEAM_DOCUMENT_TEAM_MANAGE => '管理团队实体文档',
+            self::TEAM_DOCUMENT_MEMBER_ALL_MANAGE => '管理全部成员文档',
+            self::TEAM_DOCUMENT_CUSTOMER_ALL_MANAGE => '管理全部顾客文档',
+            self::TEAM_DOCUMENT_VIRTUAL_ALL_MANAGE => '管理全部虚拟实体文档',
+        ],
         '文件与设置' => [
             self::FILE_READ => '查看文件',
             self::FILE_UPLOAD => '上传文件',
             self::FILE_DELETE => '删除文件',
-            self::TEAM_DOCUMENT_READ => '查看全部文档（含当前 Entity 不可见文档）',
             self::TEAM_SETTING_READ => '查看设置',
             self::TEAM_SETTING_UPDATE => '编辑设置',
             self::TEAM_ABILITY_REDEEM => '兑换团队能力',
@@ -155,6 +167,10 @@ final class PermissionDictionary
             self::CHAT_TEMPORARY_CREATE => '创建临时会话',
             self::CHAT_MESSAGE_MODERATE => '审核与撤回消息',
             self::CHAT_VIRTUAL_ALL_ACT => '代表全部虚拟实体参与聊天',
+        ],
+        '微博' => [
+            self::WEIBO_PERSONAL_USE => '使用个人微博工作台',
+            self::WEIBO_TEAM_MANAGE => '查看并管理团队微博工作台',
         ],
     ];
 
@@ -233,7 +249,7 @@ final class PermissionDictionary
     }
 
     /**
-     * @return array{kind: 'virtual', slug: string, action: string}|array{kind: 'act', slug: string}|array{kind: 'assume', type: string, slug: string}|null
+     * @return array{kind: 'virtual', slug: string, action: string}|array{kind: 'document', type: string, slug: string}|array{kind: 'act', slug: string}|array{kind: 'assume', type: string, slug: string}|null
      */
     public static function dynamic(string $key): ?array
     {
@@ -254,6 +270,14 @@ final class PermissionDictionary
         }
 
         if (preg_match(
+            '/^team\.document\.(member|customer|virtual)\.([a-z0-9][a-z0-9_-]{0,49})\.manage$/',
+            $key,
+            $match
+        )) {
+            return ['kind' => 'document', 'type' => $match[1], 'slug' => $match[2]];
+        }
+
+        if (preg_match(
             '/^identity\.(member|customer|virtual)\.([a-z0-9][a-z0-9_-]{0,49})\.assume$/',
             $key,
             $match
@@ -267,7 +291,7 @@ final class PermissionDictionary
     /**
      * 返回动态权限的直接或间接父键所对应的一个叶子权限。
      *
-     * @return array{kind: 'virtual', slug: string, action: string}|array{kind: 'act', slug: string}|array{kind: 'assume', type: string, slug: string}|null
+     * @return array{kind: 'virtual', slug: string, action: string}|array{kind: 'document', type: string, slug: string}|array{kind: 'act', slug: string}|array{kind: 'assume', type: string, slug: string}|null
      */
     public static function dynamicDescendant(string $key): ?array
     {
@@ -293,6 +317,17 @@ final class PermissionDictionary
     public static function assume(string $type, string $slug = '*'): string
     {
         return "identity.{$type}.{$slug}.assume";
+    }
+
+    public static function documentManage(string $type, string $slug = '*'): string
+    {
+        return match ($type) {
+            'team' => self::TEAM_DOCUMENT_TEAM_MANAGE,
+            'teamMember' => "team.document.member.{$slug}.manage",
+            'teamCustomer' => "team.document.customer.{$slug}.manage",
+            'teamVirtual' => "team.document.virtual.{$slug}.manage",
+            default => throw new \InvalidArgumentException("Unsupported document entity type: {$type}"),
+        };
     }
 
     public static function entityField(string $type): string

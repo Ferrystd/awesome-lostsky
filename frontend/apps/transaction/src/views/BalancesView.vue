@@ -7,6 +7,7 @@ import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { CircleDollarSign } from '@lucide/vue'
 import type { DataTableColumns } from 'naive-ui'
@@ -16,7 +17,8 @@ import { customerName, money } from '../lib'
 import type { Customer, TransactionOptions } from '../types'
 
 const search = ref('')
-const query = useQuery({ queryKey: ['transaction-options'], queryFn: () => api.get<TransactionOptions>('/transaction/options') })
+const routeAccess = useRouteAccess()
+const query = useQuery({ queryKey: ['transaction-options'], queryFn: () => api.get<TransactionOptions>('/transaction/options'), enabled: computed(() => !routeAccess.restricted.value) })
 const customers = computed(() => {
   const term = search.value.trim().toLowerCase()
   return (query.data.value?.customers ?? []).filter(item => !term || String(item.nickname ?? item.id).toLowerCase().includes(term))
@@ -35,10 +37,10 @@ const columns: DataTableColumns<Customer> = [
     <LsPageHeader title="顾客余额" description="查看顾客的可用预存款、累计充值与累计消费；充值和明细使用独立任务页。">
       <template #actions><LsPagePrimaryAction :icon="CircleDollarSign" label="顾客充值" to="/recharge" /></template>
     </LsPageHeader>
-    <LsListToolbar v-model="search" placeholder="搜索顾客昵称" aria-label="搜索顾客余额" :count-label="`${customers.length} 位顾客`" />
-    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取顾客余额" :description="friendlyError(query.error.value)" />
-    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
-    <LsEmptyState v-else-if="!customers.length" :title="search ? '没有匹配的顾客' : '还没有顾客余额'" description="顾客产生充值记录后，可在这里查看余额及完整变动明细。" />
+    <LsListToolbar v-model="search" placeholder="搜索顾客昵称" aria-label="搜索顾客余额" :count-label="routeAccess.restricted.value ? '0 位顾客' : `${customers.length} 位顾客`" />
+    <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取顾客余额" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
+    <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !customers.length" :title="routeAccess.restricted.value ? '没有可显示的顾客余额' : search ? '没有匹配的顾客' : '还没有顾客余额'" description="顾客产生充值记录后，可在这里查看余额及完整变动明细。" />
     <LsResponsiveDataTable v-else :columns="columns" :data="customers" :row-key="row => Number(row.id)" :scroll-x="720">
       <template #mobile-title="{ row }">{{ customerName(row, row.id) }}</template>
       <template #mobile="{ row }">

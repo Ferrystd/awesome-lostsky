@@ -17,7 +17,7 @@ LostSky 使用 ThinkPHP 日志基础设施记录应用运行状态。日志覆�
 
 系统运行日志采用 JSON Lines：每一行都是独立 JSON 对象，至少包含 `time`、`level` 和 `event`。HTTP 请求使用 `http.request`，未处理异常使用 `exception.unhandled`，控制台命令使用 `console.command`。业务写操作的审计记录与运行日志共用 `request_id`，可跨两套记录关联排查。
 
-Team 管理者只在具备 `team.audit.read` 时通过“审计日志”读取当前 Team 的成功业务事件。失败请求、授权失败、通知已读、普通聊天消息、预检和实时连接只保留在系统运行日志；平台审计与其他 Team 的事件不会进入 Team 查询结果。业务审计按 `config/cleanup.php` 的 `business_audit_days=730` 清理，不用于保存请求正文或凭据，也不承担密码学防篡改、SIEM 推送或失败授权告警。
+Team 管理者只在具备 `team.audit.read` 时通过“审计日志”读取当前 Team 的成功业务事件。失败请求、授权失败、通知已读、普通聊天消息、预检和实时连接只保留在系统运行日志；平台审计与其他 Team 的事件不会进入 Team 查询结果。业务审计按 `config/cleanup.php` 的 `business_audit_retention_days=730` 清理，不用于保存请求正文或凭据，也不承担密码学防篡改、SIEM 推送或失败授权告警。
 
 请求日志只记录方法、Host、不含查询串的路径、HTTP 状态、耗时、应用，以及已经解析出的 `team_id`、`authenticated_user_id`、`entity_id`。系统不记录请求体、查询参数、Authorization、Cookie、密码、验证码或令牌；主动日志中的敏感键、Bearer Token 和敏感 URL 参数也会脱敏。
 

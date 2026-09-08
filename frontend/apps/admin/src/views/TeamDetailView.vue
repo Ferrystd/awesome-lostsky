@@ -10,6 +10,7 @@ import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { NDataTable, NTag } from 'naive-ui'
 import { ShieldPlus } from '@lucide/vue'
@@ -17,7 +18,7 @@ import type { DataTableColumns } from 'naive-ui'
 import { computed, h, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import ReasonDialog from '../components/ReasonDialog.vue'
-import { can } from '../session'
+import { can, permissionReason } from '../session'
 import { adminStatusLabel, adminStatusType, type AdminStatus } from '../status'
 import type { AuditEvent, TeamSummary } from '../types'
 import { formatTime } from '../utils'
@@ -26,8 +27,9 @@ interface Domain { id: number; domain: string; app: string; create_time: number 
 interface TeamDetail extends TeamSummary { domains: Domain[]; abilities: Array<{ id: number; ability_key: string; level: number; expire_time: number }>; audit_events: AuditEvent[] }
 const route = useRoute()
 const id = Number(route.params.id)
+const routeAccess = useRouteAccess()
 const dialog = ref(false)
-const query = useQuery({ queryKey: ['admin-team', id], queryFn: () => api.get<TeamDetail>(`/teams/${id}`) })
+const query = useQuery({ queryKey: ['admin-team', id], queryFn: () => routeAccess.read(() => api.get<TeamDetail>(`/teams/${id}`)), enabled: computed(() => !routeAccess.restricted.value) })
 const action = computed(() => query.data.value?.is_banned ? 'unban' : 'ban')
 const teamStatus = computed<AdminStatus>(() => query.data.value?.is_cancelled ? 'cancelled' : query.data.value?.is_banned ? 'banned' : 'active')
 const mutation = useMutation({ mutationFn: (reason: string) => api.post(`/teams/${id}/${action.value}`, { reason }), onSuccess: async () => { feedback.success(action.value === 'ban' ? '团队已封禁' : '团队已解封'); dialog.value = false; await query.refetch() }, onError: error => feedback.error(friendlyError(error)) })
@@ -41,12 +43,17 @@ const domainColumns: DataTableColumns<Domain> = [
 <template>
   <LsPageHeader title="团队详情" description="查看平台层面的团队状态、域名和能力（Ability），不进入团队内部修改内容。" back-to="/teams">
     <template #actions>
-      <LsPagePrimaryAction v-if="can('admin.team.ability.write') && query.data.value && !query.data.value.is_cancelled" :icon="ShieldPlus" label="开通能力" :to="{ path: '/entitlements/team-abilities', query: { team: query.data.value.slug, return: `/teams/${id}` } }" />
-      <LsButton v-if="can('admin.team.moderate') && query.data.value && !query.data.value.is_cancelled" :variant="query.data.value.is_banned ? 'primary' : 'danger'" @click="dialog = true">{{ query.data.value.is_banned ? '解封团队' : '封禁团队' }}</LsButton>
+      <LsPagePrimaryAction v-if="!query.data.value?.is_cancelled" :icon="ShieldPlus" label="开通能力" :to="{ path: '/entitlements/team-abilities', query: { team: query.data.value?.slug, return: `/teams/${id}` } }" />
+      <LsButton v-if="!query.data.value?.is_cancelled" :variant="query.data.value?.is_banned ? 'primary' : 'danger'" :disabled="routeAccess.restricted.value || !can('admin.team.moderate')" :disabled-reason="routeAccess.reason.value || permissionReason('admin.team.moderate')" @click="dialog = true">{{ query.data.value?.is_banned ? '解封团队' : '封禁团队' }}</LsButton>
     </template>
   </LsPageHeader>
-  <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
-  <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取团队详情" :description="friendlyError(query.error.value)" />
+  <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
+  <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取团队详情" :description="friendlyError(query.error.value)" />
+  <template v-else-if="routeAccess.restricted.value">
+    <LsPanel><template #header><LsSectionHeader title="-" description="-" /></template><LsDescriptionList><dt>所有者</dt><dd>-</dd><dt>成员数量</dt><dd>-</dd><dt>创建时间</dt><dd>-</dd><dt>最近更新</dt><dd>-</dd></LsDescriptionList></LsPanel>
+    <LsPanel><template #header><div><h2>域名绑定</h2><p>只读平台配置</p></div></template><LsEmptyState :source="query.data.value" title="没有可显示的域名" description="当前没有域名数据。" /></LsPanel>
+    <LsPanel><template #header><div><h2>已启用能力</h2><p>团队能力配置</p></div></template><LsEmptyState :source="query.data.value" title="暂无可显示的数据" description="当前列表为空。" /></LsPanel>
+  </template>
   <template v-else-if="query.data.value">
     <LsPanel>
       <template #header><LsSectionHeader :title="query.data.value.name || query.data.value.slug" :description="`#${query.data.value.id} · ${query.data.value.slug}`"><template #aside><LsStatusTag :label="adminStatusLabel(teamStatus)" :type="adminStatusType(teamStatus)" /></template></LsSectionHeader></template>
@@ -54,12 +61,12 @@ const domainColumns: DataTableColumns<Domain> = [
     </LsPanel>
     <LsPanel>
       <template #header><div><h2>域名绑定</h2><p>只读平台配置</p></div></template>
-      <LsEmptyState v-if="!query.data.value.domains.length" title="没有自定义域名" description="团队尚未绑定额外访问域名。" />
+      <LsEmptyState :source="query.data.value" v-if="!query.data.value.domains.length" title="没有自定义域名" description="团队尚未绑定额外访问域名。" />
       <NDataTable v-else :columns="domainColumns" :data="query.data.value.domains" :row-key="row => row.id" />
     </LsPanel>
     <LsPanel>
       <template #header><div><h2>已启用能力</h2><p>具有团队能力管理权限的平台管理员可开通、调整或续期</p></div></template>
-      <LsEmptyState v-if="!query.data.value.abilities.length" title="没有额外能力" description="当前团队仅使用默认能力。" />
+      <LsEmptyState :source="query.data.value" v-if="!query.data.value.abilities.length" title="没有额外能力" description="当前团队仅使用默认能力。" />
       <div v-else class="ability-list"><div v-for="ability in query.data.value.abilities" :key="ability.id"><strong>{{ ability.ability_key }}</strong><span>等级 {{ ability.level }} · {{ ability.expire_time ? formatTime(ability.expire_time) : '永久' }}</span></div></div>
     </LsPanel>
   </template>

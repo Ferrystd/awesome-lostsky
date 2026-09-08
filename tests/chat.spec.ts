@@ -296,19 +296,75 @@ test('confirmed team mismatch switches member and missing identity recovers auto
 })
 
 test('member callback keeps the previous token when member receipt fails', async ({ page }) => {
+  let receiveCount = 0
   await setToken(page, 'old-entity-token')
   await page.route('http://account.lostsky.work:5174/api/identity/member', async route => {
+    receiveCount++
     await route.fulfill({
       status: 403,
       contentType: 'application/json',
       body: JSON.stringify({ code: 1, message: '你不是该团队的有效成员', data: null }),
     })
   })
+  await page.route('http://account.lostsky.work:5174/api/team/index', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ code: 0, message: 'ok', data: [] }),
+  }))
 
   await page.goto('http://account.lostsky.work:5174/identity/member-callback?team_slug=demo&reason=missing&return_to=%2Fteams')
-  await expect(page.getByRole('heading', { name: '暂时无法领取成员身份' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '无法领取成员身份' })).toBeVisible()
   await expect(page.getByRole('alert')).toContainText('你不是该团队的有效成员')
   await expect.poll(() => token(page)).toBe('old-entity-token')
-  await page.getByRole('button', { name: '返回' }).click()
+  await page.reload()
+  await expect(page.getByRole('alert')).toContainText('本次浏览会话已经尝试过自动领取')
+  expect(receiveCount).toBe(1)
+  await page.getByRole('button', { name: '切换团队' }).click()
   await expect(page).toHaveURL('http://account.lostsky.work:5174/teams')
+})
+
+test('external workspace warning confirms once and preserves only a safe return URL', async ({ page }) => {
+  await setToken(page, 'external-entity-token')
+  let acknowledgeCount = 0
+  await page.route('http://account.lostsky.work:5174/api/identity/workspace-warning**', async route => {
+    const url = new URL(route.request().url())
+    if (url.pathname.endsWith('/acknowledge')) {
+      acknowledgeCount++
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data: { acknowledged: true, ttl_seconds: 86400 } }) })
+      return
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 0, message: 'ok', data: {
+        team: { id: 2, slug: 'target', name: '目标团队' },
+        identity: { type: 'teamMember', id: 7, entity_id: 70, slug: 'outside', name: '外部成员' },
+        can_continue: true,
+        entry_warning: { required: true, kind: 'external_entity', ttl_seconds: 86400 },
+      } }),
+    })
+  })
+  await page.route('http://account.lostsky.work:5174/api/team/index', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ code: 0, message: 'ok', data: [] }),
+  }))
+
+  const safe = 'http://demo.team.lostsky.work:5175/members'
+  await page.goto(`http://account.lostsky.work:5174/identity/workspace-warning?team_slug=target&redirect=${encodeURIComponent(safe)}`)
+  await expect(page.getByRole('heading', { name: '你正在使用外部身份' })).toBeVisible()
+  await expect(page.getByText('外部成员')).toBeVisible()
+  await expect(page.getByText('目标团队', { exact: true })).toBeVisible()
+  await page.route('http://demo.team.lostsky.work:5175/api/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    const data = path.endsWith('/access') ? {
+      team: { id: 2, slug: 'demo', name: '目标团队' }, permissions: [], abilities: {},
+      identity: { type: 'teamMember', entity_id: 70, name: '外部成员', slug: 'outside', belongs_to_team: false, is_external: true },
+      entry_warning: { required: false, kind: 'external_entity', ttl_seconds: 86400 },
+    } : []
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
+  })
+  await page.getByRole('button', { name: '继续前往' }).click()
+  await expect.poll(() => acknowledgeCount).toBe(1)
+  await expect(page).toHaveURL(safe)
 })

@@ -10,6 +10,7 @@ import { Bot, Building2, Handshake, UserRound } from '@lucide/vue'
 import { NCheckbox, NFormItem, NInput, NSelect } from 'naive-ui'
 import type { SelectOption, SelectRenderLabel } from 'naive-ui'
 import { computed, h, reactive, ref } from 'vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
 import { resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
@@ -43,6 +44,7 @@ const recipientMenuProps = { class: 'recipient-select-menu' }
 const client = useQueryClient()
 const editor = ref<InstanceType<typeof LsMarkdownEditor> | null>(null)
 const access = useTeamAccess()
+const routeAccess = useRouteAccess()
 const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
 const success = ref('')
 const form = reactive({
@@ -55,6 +57,7 @@ const form = reactive({
 const entities = useQuery({
   queryKey: ['entity-options'],
   queryFn: () => api.get<EntityOption[]>('/entity/options'),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const recipients = computed(() => entities.data.value ?? [])
 const recipientOptions = computed<RecipientSelectOption[]>(() => recipients.value.map((entity) => ({
@@ -104,6 +107,11 @@ const send = useMutation({
     success.value = ''
   },
 })
+
+function submit() {
+  if (routeAccess.restricted.value) return
+  send.mutate()
+}
 </script>
 
 <template>
@@ -115,7 +123,7 @@ const send = useMutation({
       back-label="返回通知"
     />
 
-    <form class="notice-form" @submit.prevent="send.mutate()">
+    <form class="notice-form" @submit.prevent="submit">
       <section class="delivery-note" aria-labelledby="delivery-note-title">
         <strong id="delivery-note-title">单向、同 Team 送达</strong>
         <p>通知只进入所选实体的收件箱，不支持回复、抄送或会话；发送方统一显示为当前 Team。</p>
@@ -129,14 +137,14 @@ const send = useMutation({
           :options="recipientOptions"
           :render-label="renderRecipientLabel"
           :menu-props="recipientMenuProps"
-          :loading="entities.isPending.value"
+          :loading="!routeAccess.restricted.value && entities.isPending.value"
           :disabled="entities.isError.value || !recipientOptions.length"
           :virtual-scroll="false"
           filterable
-          placeholder="选择本 Team 内的实体"
+          :placeholder="routeAccess.restricted.value ? '-' : '选择本 Team 内的实体'"
         />
       </LsField>
-      <LsInlineError v-if="entities.isError.value" :message="`收件对象加载失败：${friendlyError(entities.error.value)}`" />
+      <LsInlineError v-if="entities.isError.value && !routeAccess.restricted.value" :message="`收件对象加载失败：${friendlyError(entities.error.value)}`" />
       <p v-else-if="entities.isSuccess.value && !recipientOptions.length" class="feedback empty" role="status">
         当前团队还没有可接收通知的 Entity。
       </p>
@@ -167,7 +175,7 @@ const send = useMutation({
       <NFormItem label="列表位置"><NCheckbox v-model:checked="form.is_pinned">在收件人的通知列表中置顶</NCheckbox></NFormItem>
 
       <p v-if="success" class="feedback success" role="status" aria-live="polite">{{ success }}</p>
-      <LsInlineError v-if="send.isError.value" :message="`发送失败：${friendlyError(send.error.value)}。请检查收件对象和内容后重试。`" />
+      <LsInlineError v-if="send.isError.value && !routeAccess.restricted.value" :message="`发送失败：${friendlyError(send.error.value)}。请检查收件对象和内容后重试。`" />
 
       <div class="actions">
         <RouterLink class="cancel" to="/notices/entity">取消</RouterLink>
@@ -175,7 +183,8 @@ const send = useMutation({
           type="submit"
           size="lg"
           :loading="send.isPending.value"
-          :disabled="!form.entity_id || !form.title.trim() || entities.isError.value"
+          :disabled="routeAccess.restricted.value || !form.entity_id || !form.title.trim() || entities.isError.value"
+          :disabled-reason="routeAccess.reason.value"
         >
           发送通知
         </LsButton>

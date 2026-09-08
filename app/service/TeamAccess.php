@@ -4,11 +4,15 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\model\Entity;
+use think\Request;
 
 class TeamAccess
 {
-    public function snapshot(int $teamId, array $actingEntity): array
+    public function snapshot(int $teamId, array $actingEntity, ?Request $request = null): array
     {
+        $workspace = app(WorkspaceAccess::class)->inspect($teamId, $actingEntity);
+        $entityId = (int) ($actingEntity['entity_id'] ?? 0);
+
         return [
             'team' => app(IdentitySession::class)->teamSummary($teamId),
             'permissions' => app(PermissionGate::class)->effective($teamId, $actingEntity),
@@ -20,11 +24,17 @@ class TeamAccess
                 'weibo' => $this->ability($teamId, 'weibo', '微博'),
             ],
             'file_upload' => app(File::class)->uploadAvailability($teamId),
-            'identity' => $this->identitySummary($actingEntity),
+            'identity' => $this->identitySummary($actingEntity, $workspace),
+            'entry_warning' => app(WorkspaceWarning::class)->state(
+                $teamId,
+                $entityId,
+                (bool) $workspace['is_external'],
+                $request
+            ),
         ];
     }
 
-    private function identitySummary(array $actingEntity): array
+    private function identitySummary(array $actingEntity, array $workspace): array
     {
         $type = (string) ($actingEntity['type'] ?? '');
         $entityId = (int) ($actingEntity['entity_id'] ?? 0);
@@ -39,6 +49,8 @@ class TeamAccess
             )),
             'slug' => $entity?->slug ?: null,
             'avatar' => $entity?->profile?->avatar ?: null,
+            'belongs_to_team' => (bool) $workspace['belongs_to_team'],
+            'is_external' => (bool) $workspace['is_external'],
         ];
     }
 

@@ -10,6 +10,7 @@ nav = [
   {"开始使用" = [
     "index.md",
     "concepts.md",
+    "abilities.md",
     "access-and-abilities.md",
     "permissions.md",
     "troubleshooting.md"

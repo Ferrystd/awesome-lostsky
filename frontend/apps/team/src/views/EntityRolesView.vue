@@ -12,6 +12,7 @@ import { NEmpty, NSkeleton, NTag } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 type EntityType = 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'
 interface RoleRecord { id: number; name?: string; role_key?: string; description?: string }
@@ -34,6 +35,7 @@ interface SearchEntitySummary {
 
 const route = useRoute()
 const router = useRouter()
+const routeAccess = useRouteAccess()
 const sourceSlug = ref('')
 const selectedEntity = ref<EntitySummary | null>(null)
 const inputEntities = ref<EntityDisplay[]>([])
@@ -43,6 +45,7 @@ const roleIds = ref<number[]>([])
 const rolesQuery = useQuery({
   queryKey: ['roles'],
   queryFn: () => api.get<RoleRecord[]>('/role/index'),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const roles = computed(() => rolesQuery.data.value ?? [])
 const roleOptions = computed(() => roles.value.map(role => ({
@@ -79,6 +82,7 @@ const save = useMutation({
 const requestError = computed(() => rolesQuery.error.value || resolveEntity.error.value)
 
 watch(() => route.query.slug, (value) => {
+  if (routeAccess.restricted.value) return
   if (typeof value !== 'string' || !value.trim()) return
   const slug = value.trim().toLowerCase()
   sourceSlug.value = slug
@@ -86,6 +90,7 @@ watch(() => route.query.slug, (value) => {
 }, { immediate: true })
 
 function submit() {
+  if (routeAccess.restricted.value) return
   const slug = sourceSlug.value.trim().toLowerCase()
   if (!slug) return
   selectedEntity.value = null
@@ -148,14 +153,14 @@ function entityTypeLabel(type: EntityType) {
             @chat="startChat"
             @profile="openProfile"
           />
-          <LsButton type="submit" :loading="resolveEntity.isPending.value" :disabled="!sourceSlug.trim()">
+          <LsButton type="submit" :loading="resolveEntity.isPending.value" :disabled="routeAccess.restricted.value || !sourceSlug.trim()" :disabled-reason="routeAccess.reason.value">
             <template #icon><Search :size="17" /></template>查找实体
           </LsButton>
         </div>
       </form>
 
-      <p v-if="requestError" class="error" role="alert">{{ friendlyError(requestError) }}</p>
-      <section v-if="resolveEntity.isPending.value || rolesQuery.isPending.value" class="loading" aria-label="正在加载实体角色">
+      <p v-if="requestError && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(requestError) }}</p>
+      <section v-if="!routeAccess.restricted.value && (resolveEntity.isPending.value || rolesQuery.isPending.value)" class="loading" aria-label="正在加载实体角色">
         <NSkeleton text width="38%" /><NSkeleton text width="55%" />
         <NSkeleton v-for="index in 3" :key="index" height="58px" />
       </section>
@@ -173,7 +178,7 @@ function entityTypeLabel(type: EntityType) {
 
         <div class="assignment-heading">
           <div><h3>当前团队角色</h3><p>勾选后保存完整角色集合；未勾选表示撤销该角色。</p></div>
-          <LsButton :loading="save.isPending.value" :disabled="!roles.length" @click="save.mutate()">保存分配</LsButton>
+          <LsButton :loading="save.isPending.value" :disabled="routeAccess.restricted.value || !roles.length" :disabled-reason="routeAccess.reason.value" @click="save.mutate()">保存分配</LsButton>
         </div>
         <LsCheckboxGroupField v-if="roles.length" v-model="roleIds" label="当前团队角色" :options="roleOptions" />
         <NEmpty v-else description="还没有可分配的角色">

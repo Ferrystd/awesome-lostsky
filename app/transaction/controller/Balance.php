@@ -12,9 +12,9 @@ class Balance
     protected $middleware = [
         'JwtAuth'            => ['except' => []],
         'Context'            => ['except' => []],
-        'EntityType:team,teamMember,teamVirtual' => ['except' => []],
-        'TeamAuth'           => ['except' => []],
-        'Ability:transaction' => ['except' => []],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
+        'TeamWorkspaceAuth'  => ['except' => []],
+        'Ability:transaction' => ['only' => ['recharge']],
         'Permission:' . Permissions::TRANSACTION_READ => ['only' => ['logs']],
         'Permission:' . Permissions::TRANSACTION_WRITE => ['only' => ['recharge']],
     ];

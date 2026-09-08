@@ -10,7 +10,7 @@ use think\Request;
 class AbilityCard
 {
     protected $middleware = [
-        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual', 'TeamAuth',
+        'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual', 'TeamWorkspaceAuth',
         'Permission:' . Permissions::TEAM_ABILITY_REDEEM,
     ];
 

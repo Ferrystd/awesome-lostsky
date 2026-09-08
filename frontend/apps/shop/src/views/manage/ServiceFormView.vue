@@ -11,13 +11,14 @@ import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Eye } from '@lucide/vue'
 import { NInput, NInputNumber } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ServiceFieldsEditor from '../../components/ServiceFieldsEditor.vue'
-import { canManage, entitlementManagement, loadManageAccess } from '../../lib'
+import { canManage, entitlementManagement, loadManageAccess, managePermissionReason } from '../../lib'
 import { calculateDefaultServiceDistribution, calculateServiceTeamCut } from '../../service-distribution'
 import { hydrateServiceRedemptionFields, serializeServiceRedemptionFields, validServiceRedemptionFields } from '../../service-redemption-fields'
 import type { ServiceRedemptionFieldDraft } from '../../types'
@@ -36,6 +37,7 @@ type ServiceFormState = {
 }
 
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const router = useRouter()
 const client = useQueryClient()
 const id = computed(() => Number(route.params.id || 0))
@@ -54,8 +56,8 @@ const distributionRates = reactive({ handler: 80, sender: 15, customerService: 0
 let hydratingAmounts = false
 const handlerIds = ref<number[]>([])
 const redemptionFields = ref<ServiceRedemptionFieldDraft[]>([])
-const options = useQuery({ queryKey: computed(() => [scope.value, 'manage-options']), queryFn: () => management.value.options() })
-const detail = useQuery({ queryKey: computed(() => [scope.value, 'manage-service', id.value]), queryFn: () => management.value.service(id.value), enabled: editing })
+const options = useQuery({ queryKey: computed(() => [scope.value, 'manage-options']), queryFn: () => management.value.options(), enabled: computed(() => !routeAccess.restricted.value) })
+const detail = useQuery({ queryKey: computed(() => [scope.value, 'manage-service', id.value]), queryFn: () => routeAccess.read(() => management.value.service(id.value)), enabled: computed(() => editing.value && !routeAccess.restricted.value) })
 
 watch(() => detail.data.value, data => {
   if (!data) return
@@ -168,7 +170,7 @@ const valid = computed(() => Boolean(
       </template>
     </LsPageHeader>
 
-    <form class="manage-form" @submit.prevent="save.mutate()">
+    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
       <LsFormSection title="基本信息">
         <p v-if="personal" class="form-intro" role="note">此服务自动归属当前已领取的 Entity，个人工作台不能转移归属。</p>
         <LsField label="服务名称" for-id="service-name" required><NInput id="service-name" v-model:value="form.name" maxlength="100" /></LsField>
@@ -193,10 +195,10 @@ const valid = computed(() => Boolean(
         </LsField>
       </LsFormSection>
       <ServiceFieldsEditor v-model="redemptionFields" />
-      <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
-      <LsInlineError v-if="options.isError.value" :message="`接单 Entity 暂时无法读取：${friendlyError(options.error.value)}`" />
+      <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
+      <LsInlineError v-if="!routeAccess.restricted.value && options.isError.value" :message="`接单 Entity 暂时无法读取：${friendlyError(options.error.value)}`" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
-      <LsFormActions><LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton><LsButton type="submit" :disabled="!valid || !canManage(management.permission) || (personal && !expectedEntityId)" :loading="save.isPending.value">保存服务</LsButton></LsFormActions>
+      <LsFormActions><LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton><LsButton type="submit" :disabled="routeAccess.restricted.value || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存服务</LsButton></LsFormActions>
     </form>
   </div>
 </template>

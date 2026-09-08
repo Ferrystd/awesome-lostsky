@@ -1,5 +1,6 @@
 import { ApiError, api, auth, friendlyError } from '@lostsky/api/client'
 import { ERROR_MESSAGES } from '@lostsky/api/error-messages'
+import { formatPermissionDenied } from '@lostsky/api/error-format'
 import { storedReferral } from '@lostsky/shared/referral'
 import type { Balance, BindResult, Customer, EntitlementManageOptions, FileUploadAvailability, ManageAccess, ManageCampaign, ManageCode, ManageEntityOption, ManageOptions, ManageOwnedResource, ManagePackage, ManageService, Order, Page, ProductDetail, ProductManageOptions, ProductSummary, RedemptionCard, ServiceEntitlement, ServiceInstance, StoreProfile } from './types'
 
@@ -88,6 +89,7 @@ export function hasManagePermission(permissions: string[], required: string) {
   return permissions.some(granted => required === granted || required.startsWith(`${granted}.`))
 }
 export function canManage(permission: string) { return Boolean(manageAccess && hasManagePermission(manageAccess.permissions, permission)) }
+export function managePermissionReason(permission: string) { return formatPermissionDenied([permission]) }
 export function resourceOwnerLabel(resource: ManageOwnedResource, currentEntityId = 0) {
   if (resource.owner_entity_id == null) return '团队公用'
   if (currentEntityId > 0 && resource.owner_entity_id === currentEntityId) return '本人'

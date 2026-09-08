@@ -1009,7 +1009,7 @@ export interface paths {
         };
         /**
          * 文档列表
-         * @description 不以 team.document.read 作为入口门票。无该权限时仅返回当前 Entity 按可见性可读取的文档；有该权限时可读取团队全部文档。
+         * @description 不以 team.document.read 作为入口门票。team.document.read 可读取团队全部文档；目标实体对应的 team.document.{type}.*.manage 或精确 slug manage 权限可读取该实体全部文档；否则仅返回当前 Entity 按可见性可读取的文档。
          */
         get: operations["teamDocIndex"];
         put?: never;
@@ -1029,7 +1029,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 创建文档 */
+        /**
+         * 创建文档
+         * @description Doc Ability 必须有效。目标实体本人仅可创建 manager_scope=2 的本人文档；文档管理员需要目标对应的 team.document.team.manage、类型通配 manage 或精确 slug manage 权限。
+         */
         post: operations["teamDocCreate"];
         delete?: never;
         options?: never;
@@ -1046,7 +1049,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 编辑文档 */
+        /**
+         * 编辑文档
+         * @description Doc Ability 必须有效。manager_scope=2 时归属实体本人可编辑；目标实体对应的文档管理 Permission 可编辑两种管理范围。team.document.read 不授予编辑权限。
+         */
         post: operations["teamDocEdit"];
         delete?: never;
         options?: never;
@@ -1063,7 +1069,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 删除文档 */
+        /**
+         * 删除文档
+         * @description Doc Ability 必须有效。manager_scope=2 时归属实体本人可删除；目标实体对应的文档管理 Permission 可删除两种管理范围。team.document.read 不授予删除权限。
+         */
         post: operations["teamDocDelete"];
         delete?: never;
         options?: never;
@@ -1080,7 +1089,7 @@ export interface paths {
         };
         /**
          * 文档详情
-         * @description 当前 Entity 可见的文档可直接读取；team.document.read 可读取团队内全部文档。
+         * @description 当前 Entity 可见的文档可直接读取；team.document.read 可读取团队内全部文档；目标实体对应的文档管理 Permission 可读取该实体全部文档。
          */
         get: operations["teamDocGetByQuery"];
         put?: never;
@@ -1783,7 +1792,7 @@ export interface paths {
         };
         /**
          * 加载固定权限、父级范围权限及当前团队动态权限目录
-         * @description 要求 team.role.read 权限。实体创建、维护和字段管理归入实体管理组；身份领取归入实体委托组；仅限聊天的虚拟实体代操作归入聊天组。advanced_items 从固定权限和当前团队动态权限生成合法父级，并列出当前覆盖的叶子权限。当前团队有效实体必须通过真实 slug 保存对应叶子或父级权限，不接受旧权限别名。
+         * @description 要求 team.role.read 权限。按归属实体管理文档归入文档管理组；实体创建、维护和字段管理归入实体管理组；身份领取归入实体委托组；仅限聊天的虚拟实体代操作归入聊天组。advanced_items 从固定权限和当前团队动态权限生成合法父级，并列出当前覆盖的叶子权限。当前团队有效实体必须通过真实 slug 保存对应叶子或父级权限，不接受旧权限别名。
          */
         get: operations["teamRolePermissionCatalog"];
         put?: never;
@@ -2059,16 +2068,26 @@ export interface components {
                 doc: components["schemas"]["TeamAbilityState"];
                 transaction: components["schemas"]["TeamAbilityState"];
                 shop: components["schemas"]["TeamAbilityState"];
+                weibo: components["schemas"]["TeamAbilityState"];
             };
             file_upload: components["schemas"]["FileUsage"];
             identity: {
                 /** @enum {string} */
-                type: "team" | "teamMember" | "teamVirtual";
+                type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
                 /** Format: int64 */
                 entity_id: number;
                 name: string;
                 slug?: string | null;
                 avatar?: string | null;
+                belongs_to_team: boolean;
+                is_external: boolean;
+            };
+            entry_warning: {
+                required: boolean;
+                /** @enum {string|null} */
+                kind: "external_entity" | null;
+                /** @default 86400 */
+                ttl_seconds: number;
             };
         };
         AuditOption: {

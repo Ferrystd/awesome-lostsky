@@ -17,11 +17,11 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
-const explainableDisabled = computed(() => props.disabled && Boolean(props.disabledReason.trim()))
+const explainableUnavailable = computed(() => (props.disabled || props.readOnly) && Boolean(props.disabledReason.trim()))
 
 function update(value: boolean): void {
-  if (props.disabled) {
-    if (explainableDisabled.value) feedback.info(props.disabledReason.trim())
+  if (props.disabled || props.readOnly) {
+    if (explainableUnavailable.value) feedback.info(props.disabledReason.trim())
     return
   }
   emit('update:modelValue', value)
@@ -30,13 +30,12 @@ function update(value: boolean): void {
 
 <template>
   <NSwitch
-    :class="['ls-switch', { 'ls-switch--explainable-disabled': explainableDisabled }]"
+    :class="['ls-switch', { 'ls-switch--explainable-disabled': explainableUnavailable }]"
     :value="modelValue"
-    :disabled="(disabled && !explainableDisabled) || readOnly"
+    :disabled="(disabled || readOnly) && !explainableUnavailable"
     :loading="loading"
     :aria-disabled="disabled || readOnly || undefined"
     :aria-readonly="readOnly || undefined"
-    :title="(disabled || readOnly) && disabledReason ? disabledReason : undefined"
     @update:value="update"
   />
 </template>

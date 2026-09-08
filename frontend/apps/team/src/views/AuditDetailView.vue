@@ -4,6 +4,7 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
@@ -11,10 +12,12 @@ import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { actorLabel, displayAuditValue, formatAuditTime, type AuditChange, type AuditEventDetail } from '../lib/audit'
 
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const id = computed(() => Number(route.params.id))
 const query = useQuery({
   queryKey: computed(() => ['team-audit-detail', id.value]),
-  queryFn: () => api.get<AuditEventDetail>('/audit/get', { id: id.value }),
+  queryFn: () => routeAccess.read(() => api.get<AuditEventDetail>('/audit/get', { id: id.value })),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const changes = computed<AuditChange[]>(() => {
   const value = query.data.value?.context?.changes
@@ -39,8 +42,12 @@ const metadata = computed(() => Object.entries(query.data.value?.context ?? {}).
 <template>
   <div class="audit-detail">
     <AdminPageHeader :title="query.data.value ? `${query.data.value.resource_label} · ${query.data.value.action_label}` : '审计事件'" description="审计事件为只读记录；敏感字段只显示发生过变更，不保存原始内容。" back-to="/audit" back-label="返回审计日志" />
-    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取审计事件" :description="friendlyError(query.error.value)" />
-    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
+    <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取审计事件" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
+    <template v-else-if="routeAccess.restricted.value">
+      <LsPanel><template #header><LsSectionHeader title="事件信息" /></template><LsDescriptionList><dt>应用</dt><dd>-</dd><dt>动作</dt><dd>-</dd><dt>执行 Entity</dt><dd>-</dd><dt>认证账号 ID</dt><dd>-</dd><dt>目标资源</dt><dd>-</dd><dt>发生时间</dt><dd>-</dd><dt>请求 ID</dt><dd>-</dd><dt>是否产生变更</dt><dd>-</dd></LsDescriptionList></LsPanel>
+      <LsPanel><template #header><LsSectionHeader title="变更内容" description="只展示允许进入审计记录的字段和安全值。" /></template><p class="muted">-</p></LsPanel>
+    </template>
     <template v-else-if="query.data.value">
       <LsPanel>
         <template #header><LsSectionHeader title="事件信息" /></template>

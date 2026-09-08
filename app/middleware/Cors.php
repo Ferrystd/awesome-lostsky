@@ -73,12 +73,8 @@ class Cors
     {
         $allowedOrigins = config('cors.allowed_origins', []);
 
-        if (in_array('*', $allowedOrigins, true)) {
-            return '*';
-        }
-
         if (!$origin) {
-            return null;
+            return in_array('*', $allowedOrigins, true) ? '*' : null;
         }
 
         if (in_array($origin, $allowedOrigins, true)) {
@@ -91,7 +87,7 @@ class Cors
             }
         }
 
-        return null;
+        return in_array('*', $allowedOrigins, true) ? '*' : null;
     }
 
     private function allowHeaders(Request $request): string

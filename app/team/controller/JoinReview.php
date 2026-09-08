@@ -13,7 +13,7 @@ class JoinReview
         'JwtAuth'    => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
         'Context'    => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
-        'TeamAuth' => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
+        'TeamWorkspaceAuth' => ['only' => ['index', 'get', 'review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
         'Permission:' . Permissions::TEAM_JOIN_REVIEW_READ => ['only' => ['index', 'get']],
         'Permission:' . Permissions::TEAM_JOIN_REVIEW_WRITE => ['only' => ['review', 'reject', 'approve', 'saveTasks', 'setTaskPassed']],
     ];

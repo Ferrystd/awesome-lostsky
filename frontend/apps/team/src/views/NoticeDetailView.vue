@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { MailOpen, Pin } from '@lucide/vue'
 import { computed, watch } from 'vue'
@@ -21,6 +22,7 @@ interface NoticeDetail {
 type NoticeScope = 'team' | 'entity'
 
 const route = useRoute()
+const routeAccess = useRouteAccess()
 const client = useQueryClient()
 const noticeId = computed(() => Number(route.query.id || 0))
 const scope = computed<NoticeScope>(() => route.meta.noticeScope === 'team' ? 'team' : 'entity')
@@ -42,8 +44,8 @@ const copy = computed(() => scope.value === 'team'
 const confirmed = new Set<string>()
 const detailQuery = useQuery({
   queryKey: computed(() => ['notice', scope.value, noticeId.value]),
-  queryFn: () => api.get<NoticeDetail>('/notice/get', { scope: scope.value, id: noticeId.value }),
-  enabled: computed(() => noticeId.value > 0),
+  queryFn: () => routeAccess.read(() => api.get<NoticeDetail>('/notice/get', { scope: scope.value, id: noticeId.value })),
+  enabled: computed(() => noticeId.value > 0 && !routeAccess.restricted.value),
 })
 const confirmNotice = useMutation({
   mutationFn: ({ id, noticeScope }: { id: number; noticeScope: NoticeScope }) => api.post('/notice/confirm', { id, scope: noticeScope }),
@@ -74,9 +76,10 @@ function time(value: unknown) {
   <article class="notice-detail-view">
     <AdminPageHeader :title="copy.title" :description="copy.description" :back-to="copy.backTo" :back-label="copy.backLabel" />
 
-    <p v-if="!noticeId" class="error" role="alert">缺少有效的{{ copy.noun }}编号，请返回列表重新选择。</p>
-    <p v-else-if="detailQuery.isError.value" class="error" role="alert">{{ friendlyError(detailQuery.error.value) }}</p>
-    <div v-else-if="detailQuery.isPending.value" class="loading" :aria-label="`正在读取${copy.noun}`"><span /><span /><span /></div>
+    <p v-if="!noticeId && !routeAccess.restricted.value" class="error" role="alert">缺少有效的{{ copy.noun }}编号，请返回列表重新选择。</p>
+    <p v-else-if="!routeAccess.restricted.value && detailQuery.isError.value" class="error" role="alert">{{ friendlyError(detailQuery.error.value) }}</p>
+    <div v-else-if="!routeAccess.restricted.value && detailQuery.isPending.value" class="loading" :aria-label="`正在读取${copy.noun}`"><span /><span /><span /></div>
+    <template v-else-if="routeAccess.restricted.value"><header class="notice-header"><div class="notice-meta"><time>-</time><span class="read-state"><MailOpen :size="15" />-</span></div><h1>-</h1></header><section class="notice-content" :aria-label="`${copy.noun}正文`">-</section></template>
     <template v-else-if="detailQuery.data.value">
       <header class="notice-header">
         <div class="notice-meta">

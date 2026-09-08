@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { formatPermissionDenied } from '../frontend/packages/api/src/error-format'
 
 const session = {
   user: { id: 1, username: 'platform-owner', phone_masked: '138****8000', email_masked: 'p***@example.test' },
@@ -181,7 +182,7 @@ test('Admin preserves the return URL when an unauthenticated user is sent to Acc
   expect(redirect).toBe('http://127.0.0.1:5180/users/23')
 })
 
-test('Admin navigation and route guards follow the current permission set', async ({ page }) => {
+test('Admin keeps navigation and routes open, then degrades data for the current permission set', async ({ page }) => {
   const limited = {
     ...session,
     roles: [{ id: 2, role_key: 'user_reader', name: '用户只读', description: '只读用户', is_system: 0 }],
@@ -192,9 +193,12 @@ test('Admin navigation and route guards follow the current permission set', asyn
   await page.goto('http://127.0.0.1:5180/')
 
   await expect(page.getByRole('link', { name: '用户' })).toBeVisible()
-  await expect(page.getByRole('link', { name: '团队' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: '团队' }).first()).toBeVisible()
   await page.goto('http://127.0.0.1:5180/teams')
-  await expect(page).toHaveURL(/\/forbidden$/)
+  await expect(page).toHaveURL(/\/teams$/)
+  await expect(page.locator('#admin-main').getByRole('heading', { name: '团队', level: 1 })).toBeVisible()
+  await expect(page.locator('.ls-empty-state')).toContainText('admin.team.read')
+  await expect(page.locator('.n-message').filter({ hasText: formatPermissionDenied(['admin.team.read']) })).toHaveCount(1)
 })
 
 test('Admin grants a Team Ability by exact slug without Team read access', async ({ page }) => {
@@ -240,7 +244,7 @@ test('Admin prefills the exact slug when granting from a readable Team detail', 
   await expect(page.getByLabel('团队 slug')).toHaveValue('demo')
 })
 
-test('Admin hides and guards the Team Ability grant entry without its dedicated permission', async ({ page }) => {
+test('Admin keeps the Team Ability task page open and restricts only its submit action', async ({ page }) => {
   const limited = {
     ...session,
     roles: [{ id: 3, role_key: 'team_reader', name: '团队只读', description: '只读团队', is_system: 0 }],
@@ -250,10 +254,18 @@ test('Admin hides and guards the Team Ability grant entry without its dedicated 
   await mockAdminApi(page, { session: limited })
   await page.goto('http://127.0.0.1:5180/teams/7')
 
-  await expect(page.getByRole('link', { name: '开通能力' })).toHaveCount(0)
-  await expect(page.getByRole('link', { name: '团队能力' })).toHaveCount(0)
-  await page.goto('http://127.0.0.1:5180/entitlements/team-abilities')
-  await expect(page).toHaveURL(/\/forbidden$/)
+  const grant = page.getByRole('link', { name: '开通能力' })
+  await expect(grant).not.toHaveAttribute('aria-disabled', 'true')
+  await grant.click()
+  await expect(page).toHaveURL(/\/entitlements\/team-abilities\?team=demo&return=\/teams\/7$/)
+  await expect(page.locator('#admin-main').getByRole('heading', { name: '开通团队能力', level: 1 })).toBeVisible()
+  await expect(page.locator('#admin-main')).not.toContainText('admin.team.ability.write')
+  await expect(page.locator('.n-message').filter({ hasText: formatPermissionDenied(['admin.team.ability.write']) })).toHaveCount(1)
+  const submit = page.getByRole('button', { name: '开通能力' })
+  await expect(submit).toHaveAttribute('aria-disabled', 'true')
+  await expect(submit).not.toHaveAttribute('title')
+  await submit.click({ force: true })
+  await expect(page.locator('.n-message').filter({ hasText: formatPermissionDenied(['admin.team.ability.write']) })).toHaveCount(1)
 })
 
 test('Admin role creation route is refreshable and submits the permission selection', async ({ page }) => {

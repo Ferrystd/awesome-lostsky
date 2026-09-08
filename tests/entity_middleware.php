@@ -6,6 +6,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 use app\middleware\EntityType;
 use app\middleware\EntityRequired;
 use app\middleware\TeamBelongs;
+use app\middleware\TeamWorkspaceAccess;
 use app\exception\EntityContextException;
 use think\exception\HttpException;
 use think\Request;
@@ -167,14 +168,17 @@ $assert(
     ($aliases['alias']['EntityType'] ?? null) === EntityType::class
         && ($aliases['alias']['EntityRequired'] ?? null) === EntityRequired::class
         && ($aliases['alias']['TeamBelongs'] ?? null) === TeamBelongs::class
+        && ($aliases['alias']['TeamWorkspaceAccess'] ?? null) === TeamWorkspaceAccess::class
         && !isset($aliases['alias']['AutoMember'])
-        && ($aliases['alias']['TeamAuth'] ?? null) === ['EntityRequired', 'TeamBelongs'],
-    'middleware aliases expose entity checks and the TeamAuth group'
+        && ($aliases['alias']['TeamAuth'] ?? null) === ['EntityRequired', 'TeamBelongs']
+        && ($aliases['alias']['TeamWorkspaceAuth'] ?? null) === ['EntityRequired', 'TeamWorkspaceAccess'],
+    'middleware aliases expose strict and cross-team workspace authorization groups'
 );
 $priority = $aliases['priority'] ?? [];
 $assert(
     array_search(EntityRequired::class, $priority, true) < array_search(EntityType::class, $priority, true)
-        && array_search(EntityType::class, $priority, true) < array_search(TeamBelongs::class, $priority, true),
+        && array_search(EntityType::class, $priority, true) < array_search(TeamBelongs::class, $priority, true)
+        && array_search(EntityType::class, $priority, true) < array_search(TeamWorkspaceAccess::class, $priority, true),
     'middleware priority requires an entity before entity type and team checks'
 );
 
@@ -191,6 +195,7 @@ $has = static function (array $middleware, string $name): bool {
 };
 $generic = 'EntityType:team,teamMember,teamCustomer,teamVirtual';
 $backendEntities = 'EntityType:team,teamMember,teamVirtual';
+$workspaceEntities = 'EntityType:team,teamMember,teamCustomer,teamVirtual';
 $assert(
     !$has($middleware(\app\account\controller\Team::class), 'EntityType:teamless')
         && $has($middleware(\app\account\controller\Team::class), 'JwtAuth'),
@@ -236,27 +241,55 @@ foreach ($shopBackendControllers as $controller) {
         "{$controller} keeps Shop Ability outside backend product and order management"
     );
 }
-$assert(
-    $has($middleware(\app\transaction\controller\Transaction::class), $backendEntities)
-        && $has($middleware(\app\transaction\controller\Transaction::class), 'TeamAuth'),
-    'transaction backend accepts Team, member and virtual identities while customers stay in Shop'
-);
-$transactionBusinessControllers = [
+$transactionTeamControllers = [
     \app\transaction\controller\Transaction::class,
     \app\transaction\controller\Options::class,
     \app\transaction\controller\Service::class,
     \app\transaction\controller\Balance::class,
-    \app\transaction\controller\Personal::class,
-    \app\transaction\controller\EntitlementGrant::class,
 ];
-foreach ($transactionBusinessControllers as $controller) {
+foreach ($transactionTeamControllers as $controller) {
     $assert(
-        $has($middleware($controller), $backendEntities)
-            && $has($middleware($controller), 'TeamAuth')
-            && $has($middleware($controller), 'Ability:transaction'),
-        "{$controller} requires a backend Entity, current team and transaction Ability"
+        $has($middleware($controller), $workspaceEntities)
+            && $has($middleware($controller), 'TeamWorkspaceAuth'),
+        "{$controller} accepts globally valid entities with a target-team role"
     );
 }
+$assert(
+    $has($middleware(\app\transaction\controller\Personal::class), $backendEntities)
+        && $has($middleware(\app\transaction\controller\Personal::class), 'TeamAuth'),
+    'personal transaction endpoints remain limited to an internal backend Entity'
+);
+$assert(
+    $has($middleware(\app\transaction\controller\EntitlementGrant::class), $workspaceEntities)
+        && $has($middleware(\app\transaction\controller\EntitlementGrant::class), 'TeamWorkspaceAuth')
+        && $has($middleware(\app\transaction\controller\EntitlementGrant::class), 'TeamAuth'),
+    'entitlement grants use cross-team authorization only for team-scoped actions'
+);
+$assertSame(
+    ['create'],
+    $middleware(\app\transaction\controller\Transaction::class)['Ability:transaction']['only'] ?? null,
+    'transaction Ability is checked only when a new manual transaction is saved'
+);
+$assertSame(
+    ['recharge'],
+    $middleware(\app\transaction\controller\Balance::class)['Ability:transaction']['only'] ?? null,
+    'transaction Ability is checked only when a recharge is confirmed'
+);
+$assertSame(
+    ['create', 'personalCreate'],
+    $middleware(\app\transaction\controller\EntitlementGrant::class)['Ability:transaction']['only'] ?? null,
+    'transaction Ability is checked only when a team or personal entitlement grant is submitted'
+);
+$assertSame(
+    ['acceptServiceOffer'],
+    $middleware(\app\transaction\controller\Personal::class)['Ability:transaction']['only'] ?? null,
+    'transaction Ability is checked only when an assignment invitation is accepted'
+);
+$assert(
+    !isset($middleware(\app\transaction\controller\Options::class)['Ability:transaction'])
+        && !isset($middleware(\app\transaction\controller\Service::class)['Ability:transaction']),
+    'transaction reads and redemption management do not require transaction Ability'
+);
 $assert(
     $has(
         $middleware(\app\transaction\controller\EntitlementGrant::class),
@@ -319,8 +352,8 @@ $identityMiddleware = $middleware(\app\account\controller\Identity::class);
 $assert(
     isset($identityMiddleware['EntityType:teamless,team,teamMember,teamCustomer,teamVirtual'])
         && ($identityMiddleware['EntityType:teamless,team,teamMember,teamCustomer,teamVirtual']['only'] ?? null) === ['candidates', 'receive', 'target']
-        && ($identityMiddleware[$generic]['only'] ?? null) === ['drop'],
-    'Account identity candidates, receive and migration target accept roots or entities while drop requires an entity'
+        && ($identityMiddleware[$generic]['only'] ?? null) === ['drop', 'workspaceWarning', 'acknowledgeWorkspaceWarning'],
+    'Account identity selection accepts roots while drop and workspace warning actions require an entity'
 );
 $integrationMiddleware = $middleware(\app\chat\controller\Integration::class);
 $assert(
@@ -343,9 +376,9 @@ $assert(
     'member directory is a base read surface and team.member.read only expands the result set'
 );
 $assert(
-    $has($middleware(\app\team\controller\Access::class), 'TeamAuth')
-        && $has($middleware(\app\team\controller\Dashboard::class), 'TeamAuth'),
-    'access snapshot and dashboard are available to every entity belonging to the team'
+    $has($middleware(\app\team\controller\Access::class), 'TeamWorkspaceAuth')
+        && $has($middleware(\app\team\controller\Dashboard::class), 'TeamWorkspaceAuth'),
+    'access snapshot and dashboard accept internal entities or external entities with a target-team role'
 );
 
 if ($failures) {

@@ -61,6 +61,16 @@ $assertSame(
     'dynamic permission parents resolve to their leaf permission'
 );
 $assertSame(
+    ['kind' => 'document', 'type' => 'customer', 'slug' => 'customer-one'],
+    PermissionDictionary::dynamic('team.document.customer.customer-one.manage'),
+    'specific document management permissions resolve their entity type and slug'
+);
+$assertSame(
+    ['kind' => 'document', 'type' => 'member', 'slug' => 'alice'],
+    PermissionDictionary::dynamicDescendant('team.document.member.alice'),
+    'specific document management parents resolve to their leaf permission'
+);
+$assertSame(
     ['chat.group.manage', 'chat.message.moderate'],
     $gate->candidates(new Request, 'chat.group.manage,chat.message.moderate'),
     'comma-separated permission arguments form an OR candidate set'
@@ -201,6 +211,34 @@ $assertSame(
     'document read permission uses the documented dotted key'
 );
 $assertSame(
+    [
+        'team.document.team.manage',
+        'team.document.member.*.manage',
+        'team.document.customer.*.manage',
+        'team.document.virtual.*.manage',
+    ],
+    [
+        PermissionDictionary::TEAM_DOCUMENT_TEAM_MANAGE,
+        PermissionDictionary::TEAM_DOCUMENT_MEMBER_ALL_MANAGE,
+        PermissionDictionary::TEAM_DOCUMENT_CUSTOMER_ALL_MANAGE,
+        PermissionDictionary::TEAM_DOCUMENT_VIRTUAL_ALL_MANAGE,
+    ],
+    'document management permissions cover the Team entity and every non-Team entity type'
+);
+$assertSame(
+    [
+        'team.document.member.alice.manage',
+        'team.document.customer.*.manage',
+        'team.document.virtual.helper.manage',
+    ],
+    [
+        PermissionDictionary::documentManage('teamMember', 'alice'),
+        PermissionDictionary::documentManage('teamCustomer'),
+        PermissionDictionary::documentManage('teamVirtual', 'helper'),
+    ],
+    'document management candidates use canonical type aliases'
+);
+$assertSame(
     ['team.customer.read', 'team.customer.manage'],
     [PermissionDictionary::TEAM_CUSTOMER_READ, PermissionDictionary::TEAM_CUSTOMER_MANAGE],
     'customer read and manage permissions use documented dotted keys'
@@ -214,6 +252,11 @@ $assertSame(
     ['service.entitlement.grant'],
     [PermissionDictionary::SERVICE_ENTITLEMENT_GRANT],
     'personal entitlement grants use the documented service permission key'
+);
+$assertSame(
+    ['weibo.personal.use', 'weibo.team.manage'],
+    [PermissionDictionary::WEIBO_PERSONAL_USE, PermissionDictionary::WEIBO_TEAM_MANAGE],
+    'Weibo personal use and team management permissions use separate documented keys'
 );
 $assertSame(
     [true, true],
@@ -233,6 +276,20 @@ $assertSame(
         str_contains($entitlementGrantPatch, "`role`.`role_key` = 'owner'"),
     ],
     'existing owner roles receive the personal entitlement grant permission'
+);
+$documentManagePatch = (string) file_get_contents(
+    dirname(__DIR__) . '/sql/patches/20260905_team_document_manage_permissions.sql'
+);
+$assertSame(
+    [true, true, true, true, true],
+    [
+        str_contains($documentManagePatch, "'team.document.team.manage'"),
+        str_contains($documentManagePatch, "'team.document.member.*.manage'"),
+        str_contains($documentManagePatch, "'team.document.customer.*.manage'"),
+        str_contains($documentManagePatch, "'team.document.virtual.*.manage'"),
+        str_contains($documentManagePatch, "`role`.`role_key` = 'owner'"),
+    ],
+    'existing owner roles receive every document management permission'
 );
 $assertSame(
     [true, true, true],

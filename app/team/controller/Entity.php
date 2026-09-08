@@ -12,7 +12,7 @@ class Entity
     protected $middleware = [
         'JwtAuth', 'Context',
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['search', 'resolve', 'options', 'index', 'get', 'profile', 'display', 'visibility', 'presentation']],
-        'TeamAuth' => ['only' => ['search', 'resolve', 'options', 'index', 'get', 'profile', 'display', 'visibility', 'presentation']],
+        'TeamWorkspaceAuth' => ['only' => ['search', 'resolve', 'options', 'index', 'get', 'profile', 'display', 'visibility', 'presentation']],
         'Permission:' . Permissions::TEAM_ENTITY_PROFILE_MANAGE => ['only' => ['profile', 'display', 'visibility', 'presentation']],
     ];
 

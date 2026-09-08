@@ -12,7 +12,7 @@ class Upload
         'JwtAuth'      => ['except' => []],
         'Context'      => ['except' => []],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['except' => []],
-        'TeamAuth'     => ['except' => []],
+        'TeamWorkspaceAuth' => ['except' => []],
     ];
 
     public function upload(Request $request)

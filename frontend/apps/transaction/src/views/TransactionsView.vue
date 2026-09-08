@@ -8,6 +8,7 @@ import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { SlidersHorizontal } from '@lucide/vue'
 import { NDatePicker, NPagination, NSelect } from 'naive-ui'
@@ -26,9 +27,11 @@ const filters = reactive({
   page: 1,
   limit: 20,
 })
+const routeAccess = useRouteAccess()
 const optionsQuery = useQuery({
   queryKey: ['transaction-options'],
   queryFn: () => api.get<TransactionOptions>('/transaction/options'),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const params = computed(() => ({
   keyword: filters.keyword.trim() || undefined,
@@ -43,11 +46,12 @@ const params = computed(() => ({
 const query = useQuery({
   queryKey: computed(() => ['transactions', params.value]),
   queryFn: () => api.get<Pagination<TransactionRecord>>('/transaction', params.value),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const rows = computed(() => query.data.value?.list ?? [])
 const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / filters.limit)))
 const hasFilters = computed(() => Boolean(filters.keyword || filters.type || filters.handler_entity_id || filters.customer_id || filters.range))
-const typeOptions = [{ label: '商城订单', value: 1 }, { label: '记账登记', value: 2 }, { label: '服务包收款', value: 3 }, { label: '服务核销', value: 4 }]
+const typeOptions = [{ label: '商城订单', value: 1 }, { label: '记账登记', value: 2 }, { label: '权益包收款', value: 3 }, { label: '权益核销', value: 4 }]
 
 function reset() {
   Object.assign(filters, { keyword: '', type: null, handler_entity_id: null, customer_id: null, range: null, page: 1 })
@@ -66,7 +70,7 @@ const columns: DataTableColumns<TransactionRecord> = [
   <div class="transactions-view">
     <LsPageHeader title="流水" description="通过对流水的实时查看，您可对商业状态了如指掌。" />
 
-    <LsListToolbar v-model="filters.keyword" placeholder="搜索顾客昵称" aria-label="搜索流水顾客" :count-label="`${query.data.value?.total ?? 0} 条流水`" @update:model-value="filters.page = 1">
+    <LsListToolbar v-model="filters.keyword" placeholder="搜索顾客昵称" aria-label="搜索流水顾客" :count-label="routeAccess.restricted.value ? '0 条流水' : `${query.data.value?.total ?? 0} 条流水`" @update:model-value="filters.page = 1">
       <template #filters>
       <NDatePicker v-model:value="filters.range" type="daterange" clearable start-placeholder="开始日期" end-placeholder="结束日期" @update:value="filters.page = 1" />
       <NSelect v-model:value="filters.type" :options="typeOptions" clearable placeholder="全部类型" @update:value="filters.page = 1" />
@@ -76,11 +80,11 @@ const columns: DataTableColumns<TransactionRecord> = [
       <template v-if="hasFilters" #actions><LsButton variant="secondary" size="sm" @click="reset"><template #icon><SlidersHorizontal :size="17" /></template>清除筛选</LsButton></template>
     </LsListToolbar>
 
-    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取流水" :description="friendlyError(query.error.value)" />
-    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
-    <LsEmptyState
-      v-else-if="!rows.length"
-      :title="hasFilters ? '没有匹配的流水' : '还没有流水'"
+    <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取流水" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="6" />
+    <LsEmptyState :source="query.data.value"
+      v-else-if="routeAccess.restricted.value || !rows.length"
+      :title="routeAccess.restricted.value ? '没有可显示的流水' : hasFilters ? '没有匹配的流水' : '还没有流水'"
       :description="hasFilters ? '调整筛选条件后再试。' : '登记第一笔流水后，这里会按交易时间展示记录。'"
     />
     <LsResponsiveDataTable v-else :columns="columns" :data="rows" :row-key="row => Number(row.id)" :scroll-x="940">

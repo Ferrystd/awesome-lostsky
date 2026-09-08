@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { formatAbilityDenied, formatPermissionDenied } from "@lostsky/api/error-format";
 import { identityUrl, workspaceAppEntries } from "@lostsky/shared/navigation";
 import LsPage from "@lostsky/ui/components/LsPage.vue";
 import LsWorkspaceHeader from "@lostsky/ui/components/LsWorkspaceHeader.vue";
-import { feedback } from "@lostsky/ui/feedback";
 import {
   Boxes,
   ChevronRight,
@@ -20,14 +18,10 @@ import {
 import { NButton } from "naive-ui";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { hasManagePermission, loadManageAccess } from "../lib";
-import type { ManageAccess } from "../types";
 
 const route = useRoute();
 const router = useRouter();
 const drawer = ref(false);
-const access = ref<ManageAccess | null>(null);
-void loadManageAccess().then(value => { access.value = value }).catch(() => undefined);
 const nav = [
   {
     to: "/manage",
@@ -79,11 +73,9 @@ const currentNav = computed(() => activeWorkspace.value === 'personal'
   : nav);
 const appEntries = computed(() => {
   const personal = activeWorkspace.value === 'personal';
-  const transaction = access.value?.abilities?.transaction;
-  return workspaceAppEntries({ personal, states: { transaction: { disabled: !transaction?.enabled, reason: transaction ? formatAbilityDenied('transaction', transaction.label ?? '记账') : '正在核对 transaction Ability' } } });
+  return workspaceAppEntries({ personal });
 });
 const headerActions = computed(() => appEntries.value.map(({ key, label, disabled, reason }) => ({ key, label, disabled, reason })));
-const transactionEntry = computed(() => appEntries.value.find(item => item.key === 'transaction'));
 const title = computed(() => String(route.meta.title ?? "商城管理"));
 const width = computed<"wide" | "content" | "form">(() =>
   ["content", "form"].includes(String(route.meta.width))
@@ -95,14 +87,6 @@ function handleHeaderAction(key: string) {
   if (!entry || entry.disabled) return;
   if (entry.key === 'shop') void router.push('/manage');
   else window.location.href = entry.href;
-}
-function disabledReason(permission: string | null) {
-  if (!permission) return '';
-  if (!access.value) return '正在核对 Permission';
-  return hasManagePermission(access.value.permissions, permission) ? '' : formatPermissionDenied([permission]);
-}
-function explainPermission(permission: string | null) {
-  feedback.info(disabledReason(permission));
 }
 </script>
 
@@ -123,17 +107,7 @@ function explainPermission(permission: string | null) {
       <nav>
         <p>{{ activeWorkspace === 'personal' ? '当前 Entity' : '销售与履约' }}</p>
         <template v-for="item in currentNav" :key="item.to">
-          <NButton
-            v-if="disabledReason(item.permission)"
-            quaternary
-            class="manage-nav-disabled"
-            :aria-label="`${item.label}不可用：${disabledReason(item.permission)}`"
-            :title="disabledReason(item.permission)"
-            @click="explainPermission(item.permission)"
-          ><component :is="item.icon" :size="19" /><span>{{ item.label }}</span><ChevronRight :size="15" /></NButton>
           <RouterLink
-          v-else
-          :key="item.to"
           :to="item.to"
           @click="drawer = false"
           ><component :is="item.icon" :size="19" /><span>{{ item.label }}</span
@@ -164,15 +138,7 @@ function explainPermission(permission: string | null) {
         <template #actions>
           <a class="manage-app-link" :href="appEntries[0]?.href"><House :size="17" /><span>团队</span></a>
           <RouterLink class="manage-app-link" to="/manage"><Store :size="17" /><span>商品</span></RouterLink>
-          <NButton
-            v-if="transactionEntry?.disabled"
-            class="manage-app-link manage-app-disabled"
-            quaternary
-            :title="transactionEntry.reason"
-            :aria-label="`记账不可用：${transactionEntry.reason}`"
-            @click="feedback.info(transactionEntry.reason || formatAbilityDenied('transaction', '记账'))"
-          ><template #icon><ReceiptText :size="17" /></template><span>记账</span></NButton>
-          <a v-else class="manage-app-link" :href="transactionEntry?.href"><ReceiptText :size="17" /><span>记账</span></a>
+          <a class="manage-app-link" :href="appEntries[2]?.href"><ReceiptText :size="17" /><span>记账</span></a>
           <a class="manage-app-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>
           <a class="manage-app-link" :href="appEntries[4]?.href"><Radio :size="18" /><span>微博</span></a>
         </template>
@@ -253,8 +219,7 @@ function explainPermission(permission: string | null) {
   font-weight: 750;
   letter-spacing: 0.06em;
 }
-.manage-sidebar nav a,
-.manage-sidebar nav .manage-nav-disabled {
+.manage-sidebar nav a {
   width: 100%;
   min-height: 44px;
   display: grid;
@@ -267,8 +232,6 @@ function explainPermission(permission: string | null) {
   font-size: 0.9rem;
   text-align: left;
 }
-.manage-sidebar nav .manage-nav-disabled { color:oklch(.52 .012 210);cursor:not-allowed }
-.manage-sidebar nav .manage-nav-disabled :deep(.n-button__content){grid-column:1/-1;width:100%;display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:.55rem}
 .manage-sidebar nav a:hover,
 .manage-sidebar nav a.router-link-active {
   color: white;

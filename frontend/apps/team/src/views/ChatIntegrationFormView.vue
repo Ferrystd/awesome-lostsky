@@ -9,6 +9,7 @@ import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsCheckboxGroupField from '@lostsky/ui/components/LsCheckboxGroupField.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 interface Integration {
   id: number
@@ -31,6 +32,7 @@ interface Credentials {
 const route = useRoute()
 const router = useRouter()
 const client = useQueryClient()
+const routeAccess = useRouteAccess()
 const slug = computed(() => String(route.query.slug ?? ''))
 const id = computed(() => Number(route.query.id ?? 0))
 const editing = computed(() => id.value > 0)
@@ -43,8 +45,8 @@ const form = reactive({
 const credentials = reactive<Credentials>({ token: '', signing_secret: '' })
 const detail = useQuery({
   queryKey: computed(() => ['chat-virtual', slug.value]),
-  queryFn: () => api.get<VirtualEntity>('/chatVirtual/get', { slug: slug.value }),
-  enabled: computed(() => Boolean(slug.value)),
+  queryFn: () => routeAccess.read(() => api.get<VirtualEntity>('/chatVirtual/get', { slug: slug.value })),
+  enabled: computed(() => Boolean(slug.value) && !routeAccess.restricted.value),
 })
 const current = computed(() => detail.data.value?.integrations?.find(item => item.id === id.value))
 
@@ -106,7 +108,16 @@ const eventOptions = [
 ]
 
 function deleteIntegration() {
+  if (routeAccess.restricted.value) return
   if (confirm('确认删除这个 Webhook 集成？')) remove.mutate()
+}
+function submit() {
+  if (routeAccess.restricted.value) return
+  save.mutate()
+}
+function rotateCredentials() {
+  if (routeAccess.restricted.value) return
+  rotate.mutate()
 }
 </script>
 
@@ -119,24 +130,24 @@ function deleteIntegration() {
         back-label="返回虚拟实体"
       >
         <template v-if="editing" #actions>
-          <LsButton variant="danger" :loading="remove.isPending.value" @click="deleteIntegration">
+          <LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteIntegration">
             <Trash2 :size="16" />删除集成
           </LsButton>
         </template>
       </AdminPageHeader>
 
-      <p v-if="detail.isError.value" class="error" role="alert">{{ friendlyError(detail.error.value) }}</p>
-      <form v-else @submit.prevent="save.mutate()">
+      <p v-if="detail.isError.value && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(detail.error.value) }}</p>
+      <form v-else @submit.prevent="submit">
         <label>集成名称<NInput v-model:value="form.name" maxlength="50" placeholder="CRM 工作流" /></label>
         <label>HTTPS Webhook 地址<NInput v-model:value="form.endpoint_url" maxlength="1000" placeholder="https://example.com/lostsky/events" /></label>
         <LsCheckboxGroupField v-model="form.events" label="订阅事件" :options="eventOptions" />
         <LsSwitchField v-if="editing" v-model="form.is_active" label="启用集成" description="停用后不再接收事件，也不能使用 API Token 发送消息。" />
-        <p v-if="save.isError.value || rotate.isError.value || remove.isError.value" class="error" role="alert">
+        <p v-if="(save.isError.value || rotate.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">
           {{ friendlyError(save.error.value || rotate.error.value || remove.error.value) }}
         </p>
         <div class="actions">
-          <LsButton type="submit" :loading="save.isPending.value">保存集成</LsButton>
-          <LsButton v-if="editing" type="button" variant="secondary" :loading="rotate.isPending.value" @click="rotate.mutate()">
+          <LsButton type="submit" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存集成</LsButton>
+          <LsButton v-if="editing" type="button" variant="secondary" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="rotate.isPending.value" @click="rotateCredentials">
             <RotateCw :size="16" />轮换凭据
           </LsButton>
         </div>

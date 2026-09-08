@@ -2,12 +2,14 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQueries, useQuery } from '@tanstack/vue-query'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import {
@@ -43,6 +45,7 @@ const page = ref(1)
 const limit = 20
 const sortBy = ref<SortKey>('handler_performance_total')
 const sortOrder = ref<'asc' | 'desc'>('desc')
+const routeAccess = useRouteAccess()
 const range = computed(() => periodRange(periodAnchor.value, period.value))
 const params = computed(() => ({
   start_time: Math.floor(range.value[0] / 1000),
@@ -66,6 +69,7 @@ const queries = useQueries({
     {
       queryKey: ['transaction-stats', 'summary', params.value],
       queryFn: () => api.get<StatsSummary>('/transaction/stats', { ...params.value, type: 'summary' }),
+      enabled: !routeAccess.restricted.value,
     },
     {
       queryKey: ['transaction-stats', 'timeline', timelineGranularity.value, params.value],
@@ -74,18 +78,22 @@ const queries = useQueries({
         type: 'timeline',
         granularity: timelineGranularity.value,
       }),
+      enabled: !routeAccess.restricted.value,
     },
     {
       queryKey: ['transaction-stats', 'entities', params.value],
       queryFn: () => api.get<EntityStat[]>('/transaction/stats', { ...params.value, type: 'byEntity', role: 'handler' }),
+      enabled: !routeAccess.restricted.value,
     },
     {
       queryKey: ['transaction-stats', 'customers', params.value],
       queryFn: () => api.get<CustomerStat[]>('/transaction/stats', { ...params.value, type: 'byCustomer' }),
+      enabled: !routeAccess.restricted.value,
     },
     {
       queryKey: ['transaction-stats', 'assignees', params.value],
       queryFn: () => api.get<AssigneeStat[]>('/transaction/stats', { ...params.value, type: 'byAssignee' }),
+      enabled: !routeAccess.restricted.value,
     },
   ]),
 })
@@ -99,6 +107,7 @@ const personQuery = useQuery({
     sort_by: sortBy.value,
     sort_order: sortOrder.value,
   }),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const rankingQuery = useQuery({
   queryKey: computed(() => ['transaction-stats', 'people-ranking', params.value, sortBy.value]),
@@ -110,6 +119,7 @@ const rankingQuery = useQuery({
     sort_by: sortBy.value,
     sort_order: 'desc',
   }),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 
 const summary = computed(() => queries.value[0]?.data as StatsSummary | undefined)
@@ -117,26 +127,26 @@ const timeline = computed(() => (queries.value[1]?.data ?? []) as TimelineStat[]
 const entities = computed(() => (queries.value[2]?.data ?? []) as EntityStat[])
 const customers = computed(() => (queries.value[3]?.data ?? []) as CustomerStat[])
 const assignees = computed(() => (queries.value[4]?.data ?? []) as AssigneeStat[])
-const summaryPending = computed(() => queries.value[0]?.isPending ?? true)
-const summaryError = computed(() => queries.value[0]?.error)
-const timelinePending = computed(() => queries.value[1]?.isPending ?? true)
+const summaryPending = computed(() => !routeAccess.restricted.value && (queries.value[0]?.isPending ?? true))
+const summaryError = computed(() => routeAccess.restricted.value ? null : queries.value[0]?.error)
+const timelinePending = computed(() => !routeAccess.restricted.value && (queries.value[1]?.isPending ?? true))
 const timelineError = computed(() => queries.value[1]?.error)
-const entitiesPending = computed(() => queries.value[2]?.isPending ?? true)
+const entitiesPending = computed(() => !routeAccess.restricted.value && (queries.value[2]?.isPending ?? true))
 const entitiesError = computed(() => queries.value[2]?.error)
-const customersPending = computed(() => queries.value[3]?.isPending ?? true)
+const customersPending = computed(() => !routeAccess.restricted.value && (queries.value[3]?.isPending ?? true))
 const customersError = computed(() => queries.value[3]?.error)
-const assigneesPending = computed(() => queries.value[4]?.isPending ?? true)
+const assigneesPending = computed(() => !routeAccess.restricted.value && (queries.value[4]?.isPending ?? true))
 const assigneesError = computed(() => queries.value[4]?.error)
 const people = computed(() => personQuery.data.value?.list ?? [])
 const pageCount = computed(() => Math.max(1, Math.ceil((personQuery.data.value?.total ?? 0) / limit)))
 
 const summaryItems = computed(() => [
-  { key: 'performance', label: '履约业绩', value: money(summary.value?.performance_total), hint: `${integer(summary.value?.service_redemption_count)} 次服务核销` },
-  { key: 'receipt', label: '实际流水', value: money(summary.value?.receipt_total ?? summary.value?.total_price), hint: `${integer(summary.value?.service_receipt_count)} 笔服务包收款` },
-  { key: 'recharge', label: '新增预存', value: money(summary.value?.recharge_total), hint: '顾客充值' },
-  { key: 'cash', label: '现款', value: money(summary.value?.cash_total), hint: '实时支付' },
-  { key: 'prepaid', label: '预存款', value: money(summary.value?.prepaid_total), hint: '余额支付' },
-  { key: 'cost', label: '成本', value: money(summary.value?.total_cost), hint: '直接成本' },
+  { key: 'performance', label: '履约业绩', value: routeAccess.restricted.value ? '-' : money(summary.value?.performance_total), hint: routeAccess.restricted.value ? '-' : `${integer(summary.value?.service_redemption_count)} 次权益核销` },
+  { key: 'receipt', label: '实际流水', value: routeAccess.restricted.value ? '-' : money(summary.value?.receipt_total ?? summary.value?.total_price), hint: routeAccess.restricted.value ? '-' : `${integer(summary.value?.service_receipt_count)} 笔服务包收款` },
+  { key: 'recharge', label: '新增预存', value: routeAccess.restricted.value ? '-' : money(summary.value?.recharge_total), hint: '顾客充值' },
+  { key: 'cash', label: '现款', value: routeAccess.restricted.value ? '-' : money(summary.value?.cash_total), hint: '实时支付' },
+  { key: 'prepaid', label: '预存款', value: routeAccess.restricted.value ? '-' : money(summary.value?.prepaid_total), hint: '余额支付' },
+  { key: 'cost', label: '成本', value: routeAccess.restricted.value ? '-' : money(summary.value?.total_cost), hint: '直接成本' },
 ])
 const filledTimeline = computed(() => fillTimeline(timeline.value, range.value[0], range.value[1], period.value))
 const flowPoints = computed(() => filledTimeline.value.map(item => ({
@@ -231,19 +241,21 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
       <LsPanel>
         <LsAsyncState v-if="timelinePending" state="loading" :rows="4" />
         <LsAsyncState v-else-if="timelineError" state="error" title="暂时无法读取实际流水趋势" :description="friendlyError(timelineError)" />
+        <LsEmptyState v-else-if="routeAccess.restricted.value" title="没有可显示的流水趋势" description="当前没有趋势数据。" />
         <TransactionFlowTrend v-else :points="flowPoints" :period-label="periodLabel" />
       </LsPanel>
 
       <LsPanel>
-        <LsAsyncState v-if="rankingQuery.isPending.value" state="loading" :rows="4" />
-        <LsAsyncState v-else-if="rankingQuery.isError.value" state="error" title="暂时无法读取人员排行" :description="friendlyError(rankingQuery.error.value)" />
+        <LsAsyncState v-if="!routeAccess.restricted.value && rankingQuery.isPending.value" state="loading" :rows="4" />
+        <LsAsyncState v-else-if="!routeAccess.restricted.value && rankingQuery.isError.value" state="error" title="暂时无法读取人员排行" :description="friendlyError(rankingQuery.error.value)" />
         <PersonTickRanking v-else-if="rankingRows.length" :rows="rankingRows" :metric-label="sortLabels[sortBy]" :money-metric="moneySort" />
+        <LsEmptyState v-else-if="routeAccess.restricted.value" title="没有可显示的人员排行" description="当前没有排行数据。" />
         <p v-else class="hint">所选时间内暂无人员业绩。</p>
       </LsPanel>
 
       <LsPanel>
         <section class="person-performance">
-          <LsSectionHeader title="人员业绩明细" :description="`共 ${integer(personQuery.data.value?.total)} 人 · 可切换排序指标，排行榜同步切换指标`" :heading-level="3" />
+          <LsSectionHeader title="人员业绩明细" :description="routeAccess.restricted.value ? '共 0 人 · 可切换排序指标，排行榜同步切换指标' : `共 ${integer(personQuery.data.value?.total)} 人 · 可切换排序指标，排行榜同步切换指标`" :heading-level="3" />
           <div class="mobile-sort" aria-label="人员明细排序">
             <label for="person-sort-metric">排序指标</label>
             <NSelect id="person-sort-metric" v-model:value="sortBy" :options="sortOptions" />
@@ -252,8 +264,8 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
               <NRadioButton value="asc">从低到高</NRadioButton>
             </NRadioGroup>
           </div>
-          <LsAsyncState v-if="personQuery.isPending.value" state="loading" :rows="5" />
-          <LsAsyncState v-else-if="personQuery.isError.value" state="error" title="暂时无法读取人员明细" :description="friendlyError(personQuery.error.value)" />
+          <LsAsyncState v-if="!routeAccess.restricted.value && personQuery.isPending.value" state="loading" :rows="5" />
+          <LsAsyncState v-else-if="!routeAccess.restricted.value && personQuery.isError.value" state="error" title="暂时无法读取人员明细" :description="friendlyError(personQuery.error.value)" />
           <template v-else-if="people.length">
             <LsResponsiveDataTable :columns="personColumns" :data="people" :row-key="row => row.entity_id" :scroll-x="940" @update:sorter="updateSorter">
               <template #mobile-title="{ row }"><span>{{ row.name || `主体 #${row.entity_id}` }}</span></template>
@@ -272,6 +284,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
               <NPagination v-model:page="page" :page-count="pageCount" />
             </footer>
           </template>
+          <LsEmptyState v-else-if="routeAccess.restricted.value" title="没有可显示的人员明细" description="当前没有人员数据。" />
           <p v-else class="hint">所选时间内暂无人员参与流水。</p>
         </section>
       </LsPanel>
@@ -284,6 +297,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
           <ol v-else-if="entities.length">
             <li v-for="item in entities" :key="String(item.entity_id)"><span>{{ item.name || '团队主体' }}</span><strong>{{ integer(item.count) }} 笔</strong></li>
           </ol>
+          <LsEmptyState v-else-if="routeAccess.restricted.value" title="没有可显示的接单统计" description="当前没有接单数据。" />
           <p v-else class="hint">暂无接单人统计。</p>
         </article></LsPanel>
         <LsPanel><article>
@@ -293,6 +307,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
           <ol v-else-if="customers.length">
             <li v-for="item in customers" :key="String(item.customer_id)"><span>{{ item.customer_name || '未关联顾客' }}<small>{{ item.count }} 笔</small></span><strong>{{ money(item.amount) }}</strong></li>
           </ol>
+          <LsEmptyState v-else-if="routeAccess.restricted.value" title="没有可显示的顾客统计" description="当前没有顾客数据。" />
           <p v-else class="hint">暂无顾客统计。</p>
         </article></LsPanel>
       </section>
@@ -302,6 +317,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
         <LsAsyncState v-if="assigneesPending" state="loading" :rows="3" />
         <LsAsyncState v-else-if="assigneesError" state="error" title="暂时无法读取发单业绩" :description="friendlyError(assigneesError)" />
         <NDataTable v-else-if="assignees.length" :columns="assigneeColumns" :data="assignees" :row-key="row => row.entity_id" :scroll-x="760" />
+        <LsEmptyState v-else-if="routeAccess.restricted.value" title="没有可显示的发单业绩" description="当前没有业绩数据。" />
         <p v-else class="hint">所选时间内暂无带发单人的成交。</p>
       </section></LsPanel>
     </template>

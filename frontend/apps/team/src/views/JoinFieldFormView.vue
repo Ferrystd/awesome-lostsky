@@ -14,15 +14,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { hasPermission, permissionReason, useTeamAccess } from '../lib/teamAccess'
-import {
-  inputTypeOptions,
-  normalizeJoinOptions,
-  type JoinField,
-  type JoinFieldOption,
-  type JoinTransferOption,
-  usesJoinOptions,
-  valueTypeOptions,
-} from '../lib/joinFields'
+import { inputTypeOptions, normalizeJoinOptions, type JoinField, type JoinFieldOption, type JoinTransferOption, usesJoinOptions, valueTypeOptions } from '../lib/joinFields'
 
 const route = useRoute()
 const router = useRouter()
@@ -32,8 +24,6 @@ const editing = computed(() => id.value > 0)
 const access = useTeamAccess()
 const canRead = computed(() => hasPermission(access.data.value, 'team.join_field.read'))
 const canWrite = computed(() => hasPermission(access.data.value, 'team.join_field.write'))
-const pageAllowed = computed(() => editing.value ? canRead.value : canWrite.value)
-const requiredPermission = computed(() => editing.value ? 'team.join_field.read' : 'team.join_field.write')
 let optionSequence = 0
 const nextOptionKey = () => `join-option-${++optionSequence}`
 
@@ -51,49 +41,75 @@ const form = reactive({
   is_active: true,
   sort: 0,
 })
-const errors = reactive({ field_key: '', name: '', options: '', default_value: '', entity_field_id: '' })
+const errors = reactive({
+  field_key: '',
+  name: '',
+  options: '',
+  default_value: '',
+  entity_field_id: '',
+})
 
 const fieldsQuery = useQuery({
   queryKey: ['join-fields'],
   queryFn: () => api.get<JoinField[]>('/joinField/index'),
   enabled: computed(() => editing.value && canRead.value),
 })
-const detail = computed(() => (fieldsQuery.data.value ?? []).find(field => Number(field.id) === id.value))
+const detail = computed(() => (fieldsQuery.data.value ?? []).find((field) => Number(field.id) === id.value))
 const transferQuery = useQuery({
   queryKey: ['join-field-transfer-options'],
   queryFn: () => api.get<JoinTransferOption[]>('/joinField/transferOptions'),
   enabled: computed(() => canWrite.value && form.is_transfer_entity_field),
 })
 const transferSelectOptions = computed(() => {
-  const result = (transferQuery.data.value ?? []).map(field => ({
+  const result = (transferQuery.data.value ?? []).map((field) => ({
     label: `${field.name} (${field.field_key} · ${field.value_type})`,
     value: Number(field.id),
   }))
   const current = detail.value?.entity_field
-  if (current && !result.some(option => option.value === Number(current.id))) {
-    result.push({ label: `${current.name} (${current.field_key} · ${current.value_type})`, value: Number(current.id) })
+  if (current && !result.some((option) => option.value === Number(current.id))) {
+    result.push({
+      label: `${current.name} (${current.field_key} · ${current.value_type})`,
+      value: Number(current.id),
+    })
   }
   return result
 })
 
-watch(detail, (field) => {
-  if (!field) return
-  form.field_key = field.field_key
-  form.name = field.name
-  form.value_type = field.value_type
-  form.input_type = field.input_type
-  form.options = normalizeJoinOptions(field.options).map(option => ({ key: nextOptionKey(), ...option }))
-  form.default_value = field.default_value ?? ''
-  form.is_apply_fillable = Boolean(field.is_apply_fillable)
-  form.is_apply_required = Boolean(field.is_apply_required)
-  form.is_transfer_entity_field = Boolean(field.is_transfer_entity_field)
-  form.entity_field_id = field.entity_field_id ? Number(field.entity_field_id) : null
-  form.is_active = Boolean(field.is_active)
-  form.sort = Number(field.sort ?? 0)
-}, { immediate: true })
+watch(
+  detail,
+  (field) => {
+    if (!field) return
+    form.field_key = field.field_key
+    form.name = field.name
+    form.value_type = field.value_type
+    form.input_type = field.input_type
+    form.options = normalizeJoinOptions(field.options).map((option) => ({
+      key: nextOptionKey(),
+      ...option,
+    }))
+    form.default_value = field.default_value ?? ''
+    form.is_apply_fillable = Boolean(field.is_apply_fillable)
+    form.is_apply_required = Boolean(field.is_apply_required)
+    form.is_transfer_entity_field = Boolean(field.is_transfer_entity_field)
+    form.entity_field_id = field.entity_field_id ? Number(field.entity_field_id) : null
+    form.is_active = Boolean(field.is_active)
+    form.sort = Number(field.sort ?? 0)
+  },
+  { immediate: true },
+)
 
-watch(() => form.is_apply_fillable, value => { if (!value) form.is_apply_required = false })
-watch(() => form.is_transfer_entity_field, value => { if (!value) form.entity_field_id = null })
+watch(
+  () => form.is_apply_fillable,
+  (value) => {
+    if (!value) form.is_apply_required = false
+  },
+)
+watch(
+  () => form.is_transfer_entity_field,
+  (value) => {
+    if (!value) form.entity_field_id = null
+  },
+)
 
 function resetErrors() {
   errors.field_key = ''
@@ -112,10 +128,13 @@ function validateForm() {
   if (form.name.trim().length > 50) errors.name = '字段名称不能超过 50 个字符。'
   if (form.default_value.length > 500) errors.default_value = '默认值不能超过 500 个字符。'
   if (usesJoinOptions(form.input_type)) {
-    const normalized = form.options.map(option => ({ label: option.label.trim(), value: option.value.trim() }))
+    const normalized = form.options.map((option) => ({
+      label: option.label.trim(),
+      value: option.value.trim(),
+    }))
     if (!normalized.length) errors.options = '当前输入控件至少需要一个选项。'
-    else if (normalized.some(option => !option.label || !option.value)) errors.options = '每个选项都需要显示名称和提交值。'
-    else if (new Set(normalized.map(option => option.value)).size !== normalized.length) errors.options = '选项的提交值不能重复。'
+    else if (normalized.some((option) => !option.label || !option.value)) errors.options = '每个选项都需要显示名称和提交值。'
+    else if (new Set(normalized.map((option) => option.value)).size !== normalized.length) errors.options = '选项的提交值不能重复。'
   }
   if (form.is_transfer_entity_field && !form.entity_field_id) errors.entity_field_id = '请选择审批通过后的转存目标。'
   return !Object.values(errors).some(Boolean)
@@ -127,7 +146,10 @@ function payload() {
     value_type: form.value_type,
     input_type: form.input_type,
     options: usesJoinOptions(form.input_type)
-      ? form.options.map(option => ({ label: option.label.trim(), value: option.value.trim() }))
+      ? form.options.map((option) => ({
+          label: option.label.trim(),
+          value: option.value.trim(),
+        }))
       : null,
     default_value: form.default_value || null,
     is_apply_fillable: form.is_apply_fillable ? 1 : 0,
@@ -140,9 +162,13 @@ function payload() {
 }
 
 const save = useMutation({
-  mutationFn: () => editing.value
-    ? api.post('/joinField/edit', { id: id.value, ...payload() })
-    : api.post('/joinField/add', { field_key: form.field_key.trim(), ...payload() }),
+  mutationFn: () =>
+    editing.value
+      ? api.post('/joinField/edit', { id: id.value, ...payload() })
+      : api.post('/joinField/add', {
+          field_key: form.field_key.trim(),
+          ...payload(),
+        }),
   onSuccess: async () => {
     feedback.success(editing.value ? '申请字段已更新' : '申请字段已创建')
     await client.invalidateQueries({ queryKey: ['join-fields'] })
@@ -171,18 +197,12 @@ function deleteField() {
 
 <template>
   <div class="join-field-form-page">
-    <AdminPageHeader
-      :title="editing ? (canWrite ? '编辑申请字段' : '查看申请字段') : '创建申请字段'"
-      description="字段标识创建后保持不变；停用字段不会出现在新的加入申请表中。"
-      back-to="/join-fields"
-      back-label="返回申请字段"
-    />
+    <AdminPageHeader :title="editing ? (canWrite ? '编辑申请字段' : '查看申请字段') : '创建申请字段'" description="字段标识创建后保持不变；停用字段不会出现在新的加入申请表中。" back-to="/join-fields" back-label="返回申请字段" />
 
     <LsAsyncState v-if="access.isPending.value" state="loading" :rows="5" />
     <LsAsyncState v-else-if="access.isError.value" state="error" title="暂时无法确认申请字段权限" :description="friendlyError(access.error.value)" />
-    <NAlert v-else-if="!pageAllowed" type="warning" title="申请字段不可用">{{ permissionReason(requiredPermission) }}</NAlert>
-    <LsAsyncState v-else-if="editing && fieldsQuery.isPending.value" state="loading" :rows="7" />
-    <LsAsyncState v-else-if="editing && fieldsQuery.isError.value" state="error" title="暂时无法读取申请字段" :description="friendlyError(fieldsQuery.error.value)" />
+    <LsAsyncState v-else-if="editing && canRead && fieldsQuery.isPending.value" state="loading" :rows="7" />
+    <LsAsyncState v-else-if="editing && canRead && fieldsQuery.isError.value" state="error" title="暂时无法读取申请字段" :description="friendlyError(fieldsQuery.error.value)" />
     <NAlert v-else-if="editing && !detail" type="warning" title="申请字段不存在">该字段可能已删除，或不属于当前团队。</NAlert>
     <form v-else @submit.prevent="submit">
       <LsField label="字段标识" for-id="join-field-key" :required="!editing" :error="errors.field_key" hint="创建后不可修改；用于稳定识别提交数据。">
@@ -199,7 +219,7 @@ function deleteField() {
       </LsField>
 
       <NFormItem v-if="usesJoinOptions(form.input_type)" label="选项" :validation-status="errors.options ? 'error' : undefined" :feedback="errors.options || '申请人看到显示名称，提交时保存对应的提交值。'">
-        <LsFormList v-model="form.options" :item-key="option => option.key" :create-item="() => ({ key: nextOptionKey(), label: '', value: '' })" item-label="选项" add-label="添加选项" empty-text="尚未添加选项" :disabled="!canWrite">
+        <LsFormList v-model="form.options" :item-key="(option) => option.key" :create-item="() => ({ key: nextOptionKey(), label: '', value: '' })" item-label="选项" add-label="添加选项" empty-text="尚未添加选项" :disabled="!canWrite">
           <template #item="{ item, index }">
             <div class="option-grid">
               <label><span>显示名称</span><NInput :id="index === 0 ? 'join-field-options' : undefined" v-model:value="item.label" :disabled="!canWrite" placeholder="例如：有相关经验" :aria-label="`选项 ${index + 1} 显示名称`" /></label>
@@ -233,14 +253,67 @@ function deleteField() {
         <NInputNumber id="join-field-sort" v-model:value="form.sort" :disabled="!canWrite" :precision="0" aria-label="排序" />
       </LsField>
       <LsInlineError v-if="save.isError.value || remove.isError.value" :message="friendlyError(save.error.value || remove.error.value)" />
-      <div v-if="canWrite" class="actions">
-        <LsButton type="submit" :loading="save.isPending.value">保存字段</LsButton>
-        <LsButton v-if="editing" type="button" variant="danger" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton>
+      <div class="actions">
+        <LsButton type="submit" :loading="save.isPending.value" :disabled="!canWrite" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined">保存字段</LsButton>
+        <LsButton v-if="editing" type="button" variant="danger" :loading="remove.isPending.value" :disabled="!canWrite" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined" @click="deleteField">删除字段</LsButton>
       </div>
     </form>
   </div>
 </template>
 
 <style scoped>
-.join-field-form-page{display:grid;gap:1.5rem}form{display:grid;gap:1.25rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.settings{display:grid;gap:1rem;padding-top:1.25rem;border-top:1px solid var(--line)}.option-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.75rem}.option-grid label{display:grid;gap:.35rem}.option-grid label span{color:var(--muted-ink);font-size:.76rem}.actions{display:flex;flex-wrap:wrap;gap:.75rem;padding-top:.25rem}@media(max-width:639px){.join-field-form-page{gap:1rem}form{padding:1rem}.option-grid{grid-template-columns:1fr}.actions{display:grid}.actions>*{width:100%}}
+.join-field-form-page {
+  display: grid;
+  gap: 1.5rem;
+}
+form {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.settings {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+.option-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+.option-grid label {
+  display: grid;
+  gap: 0.35rem;
+}
+.option-grid label span {
+  color: var(--muted-ink);
+  font-size: 0.76rem;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+@media (max-width: 639px) {
+  .join-field-form-page {
+    gap: 1rem;
+  }
+  form {
+    padding: 1rem;
+  }
+  .option-grid {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    display: grid;
+  }
+  .actions > * {
+    width: 100%;
+  }
+}
 </style>

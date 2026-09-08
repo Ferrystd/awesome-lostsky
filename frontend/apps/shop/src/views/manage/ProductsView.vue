@@ -7,13 +7,14 @@ import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
 import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
+import { useRouteAccess } from "@lostsky/ui/useRouteAccess";
 import { useQuery } from "@tanstack/vue-query";
 import { Plus } from "@lucide/vue";
 import { NPagination, NSelect } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { computed, h, reactive } from "vue";
 import { RouterLink, useRoute } from "vue-router";
-import { canManage, formatMoney, productManagement } from "../../lib";
+import { formatMoney, productManagement } from "../../lib";
 type Row = {
   id: number;
   name: string;
@@ -23,6 +24,7 @@ type Row = {
   handlers?: unknown[];
 };
 const route = useRoute();
+const routeAccess = useRouteAccess();
 const scope = computed(() => route.meta.workspace === "personal" ? "personal" : "team");
 const management = computed(() => productManagement(scope.value));
 const personal = computed(() => management.value.personal);
@@ -40,6 +42,7 @@ const params = computed(() => ({
 const query = useQuery({
   queryKey: computed(() => ["manage-products", scope.value, params.value]),
   queryFn: () => management.value.products(params.value),
+  enabled: computed(() => !routeAccess.restricted.value),
 });
 const rows = computed(() => (query.data.value?.list ?? []) as Row[]);
 const pages = computed(() =>
@@ -84,13 +87,13 @@ const columns: DataTableColumns<Row> = [
       :title="personal ? '我的商品' : '商品'"
       :description="personal ? '只管理专属 Entity 为当前身份的商品、履约方式与接单配置。' : '维护公开售卖内容、价格、履约方式与接单配置。'"
       ><template #actions>
-        <LsPagePrimaryAction v-if="canManage(management.permission)" :icon="Plus" label="新建商品" :to="`${management.routeBase}/new`" /></template
+        <LsPagePrimaryAction :icon="Plus" label="新建商品" :to="`${management.routeBase}/new`" /></template
       ></LsPageHeader
     ><LsListToolbar
       v-model="filters.keyword"
       placeholder="搜索商品名称"
       aria-label="搜索商品"
-      :count-label="`${query.data.value?.total ?? 0} 个商品`"
+      :count-label="routeAccess.restricted.value ? '0 个商品' : `${query.data.value?.total ?? 0} 个商品`"
       @update:model-value="filters.page = 1"
       ><template #filters
         ><NSelect
@@ -103,17 +106,17 @@ const columns: DataTableColumns<Row> = [
           placeholder="全部状态"
           @update:value="filters.page = 1" /></template></LsListToolbar
     ><LsAsyncState
-      v-if="query.isPending.value"
+      v-if="!routeAccess.restricted.value && query.isPending.value"
       state="loading"
       :rows="6"
     /><LsAsyncState
-      v-else-if="query.isError.value"
+      v-else-if="!routeAccess.restricted.value && query.isError.value"
       state="error"
       title="暂时无法读取商品"
       :description="friendlyError(query.error.value)"
-    /><LsEmptyState
-      v-else-if="!rows.length"
-      :title="personal ? '还没有匹配的本人商品' : '还没有匹配的商品'"
+    /><LsEmptyState :source="query.data.value"
+      v-else-if="routeAccess.restricted.value || !rows.length"
+      :title="routeAccess.restricted.value ? '没有可显示的商品' : personal ? '还没有匹配的本人商品' : '还没有匹配的商品'"
       :description="personal ? '新建商品后会自动归属当前 Entity，并可在这里配置销售与履约方式。' : '新建商品后可在这里配置销售与履约方式。'"
     /><LsResponsiveDataTable
       v-else

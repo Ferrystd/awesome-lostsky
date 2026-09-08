@@ -1,17 +1,24 @@
 <script setup lang="ts">
 import { NEmpty } from 'naive-ui'
+import { computed, inject } from 'vue'
+import { routeLocationKey } from 'vue-router'
+import { readAccessReason } from '@lostsky/api/access-result'
 
-defineProps<{
+const props = defineProps<{
   title: string
   description: string
+  source?: unknown
+  accessReason?: string
 }>()
+const route = inject(routeLocationKey, undefined)
+const reason = computed(() => props.accessReason || readAccessReason(props.source) || String(route?.meta.accessReason ?? ''))
 </script>
 
 <template>
   <section class="ls-empty-state" role="status">
-    <NEmpty :description="title">
+    <NEmpty :description="reason ? '无法读取数据' : title">
       <template #extra>
-        <p class="ls-empty-state__description">{{ description }}</p>
+        <p class="ls-empty-state__description">{{ reason || description }}</p>
       </template>
     </NEmpty>
   </section>

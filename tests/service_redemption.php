@@ -82,6 +82,9 @@ try {
     $team = new Team;
     $team->save(['slug' => "service-{$suffix}", 'user_id' => $owner->id, 'is_banned' => 0, 'is_cancelled' => 0]);
     $teamEntity = app(EntityService::class)->claimTeam($team);
+    $foreignTeam = new Team;
+    $foreignTeam->save(['slug' => "service-foreign-{$suffix}", 'user_id' => $owner->id, 'is_banned' => 0, 'is_cancelled' => 0]);
+    $foreignTeamEntity = app(EntityService::class)->claimTeam($foreignTeam);
     $virtual = new TeamVirtual;
     $virtual->save(['team_id' => $team->id, 'name' => '服务机器人', 'is_active' => 1]);
     $virtualEntity = app(EntityService::class)->claimVirtual($virtual, "service-virtual-{$suffix}");
@@ -757,6 +760,20 @@ try {
             && (int) $row->holder_entity_id === (int) $customerEntity->id, true),
         'manual entitlements retain product provenance and Customer root ownership without order provenance'
     );
+    $externalDefaultGrant = app(ManualEntitlementGrant::class)->grant(
+        (int) $team->id,
+        (int) $foreignTeamEntity->id,
+        [
+            'product_id' => $productId,
+            'customer_id' => (int) $customer->id,
+            'quantity' => 1,
+        ]
+    );
+    $externalDefaultRow = TeamServiceEntitlement::find((int) $externalDefaultGrant['entitlement_ids'][0]);
+    $assert(
+        (int) $externalDefaultRow->sender_entity_id === (int) $teamEntity->id,
+        'external operators are audited as actors but never become a target-team entitlement owner by default'
+    );
 
     $senderBinding = new TeamCustomerSender;
     $senderBinding->save([
@@ -1046,18 +1063,19 @@ try {
     );
 
     $ability->delete();
-    $throws(fn () => app(ServiceRedemption::class)->start(
+    $missingAbilityOpenId = app(ServiceRedemption::class)->start(
         (int) $team->id, (int) $customer->id, (int) $cardEntitlement->id,
-        '0.5', 0, '', [], (int) $customerEntity->id
-    ), 422, 'missing transaction ability blocks new open dispatch');
-    $throws(fn () => app(ServiceRedemption::class)->createOffer(
+        '0.5', 0, '', [$customerField => 'ability-missing-open'], (int) $customerEntity->id
+    );
+    $missingAbilityOfferId = app(ServiceRedemption::class)->createOffer(
         (int) $team->id, (int) $customer->id, (int) $cardEntitlement->id,
-        '0.5', (int) $handlerA->id, '', [], (int) $customerEntity->id, 'ability-missing'
-    ), 422, 'missing transaction ability blocks new assignment offer');
+        '0.5', (int) $handlerA->id, '', [$customerField => 'ability-missing-offer'], (int) $customerEntity->id, 'ability-missing'
+    );
+    $assert($missingAbilityOpenId > 0 && $missingAbilityOfferId > 0, 'missing transaction ability no longer blocks customer dispatch');
     $serviceController = file_get_contents(dirname(__DIR__) . '/app/transaction/controller/Service.php');
     $assert(
-        str_contains((string) $serviceController, "'Ability:transaction' => ['except' => ['complete']]") ,
-        'transaction service completion remains reachable after ability expiry'
+        !str_contains((string) $serviceController, "'Ability:transaction'") ,
+        'transaction redemption management remains reachable after ability expiry'
     );
     app(ServiceRedemption::class)->complete(
         (int) $team->id,

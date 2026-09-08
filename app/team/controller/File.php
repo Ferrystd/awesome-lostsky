@@ -12,7 +12,7 @@ class File
         'JwtAuth'      => ['only' => ['index', 'get', 'upload', 'delete', 'usage']],
         'Context'      => ['only' => ['index', 'get', 'upload', 'delete', 'usage']],
         'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'upload', 'delete', 'usage']],
-        'TeamAuth'     => ['only' => ['index', 'get', 'upload', 'delete', 'usage']],
+        'TeamWorkspaceAuth' => ['only' => ['index', 'get', 'upload', 'delete', 'usage']],
         'Permission:' . Permissions::FILE_READ => ['only' => ['index', 'get', 'usage']],
         'Permission:' . Permissions::FILE_UPLOAD => ['only' => ['upload']],
         'Permission:' . Permissions::FILE_DELETE => ['only' => ['delete']],

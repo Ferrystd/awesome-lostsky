@@ -7,6 +7,7 @@ import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
 import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
+import { useRouteAccess } from "@lostsky/ui/useRouteAccess";
 import { useQuery } from "@tanstack/vue-query";
 import { Plus } from "@lucide/vue";
 import { NPagination } from "naive-ui";
@@ -14,11 +15,12 @@ import type { DataTableColumns } from "naive-ui";
 import { computed, h, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import ResourceOwnerTag from "../../components/ResourceOwnerTag.vue";
-import { canManage, entitlementManagement } from "../../lib";
+import { entitlementManagement } from "../../lib";
 import type { ManagePackage } from "../../types";
 const keyword = ref("");
 const page = ref(1);
 const route = useRoute();
+const routeAccess = useRouteAccess();
 const scope = computed(() => route.meta.workspace === "personal" ? "personal" : "team");
 const management = computed(() => entitlementManagement(scope.value));
 const personal = computed(() => management.value.personal);
@@ -30,6 +32,7 @@ const query = useQuery({
       page: page.value,
       limit: 20,
     }),
+  enabled: computed(() => !routeAccess.restricted.value),
 });
 const rows = computed(() => query.data.value?.list ?? []);
 const pages = computed(() =>
@@ -76,26 +79,26 @@ const columns = computed<DataTableColumns<ManagePackage>>(() => [
       :title="personal ? '我的权益包' : '权益包'"
       :description="personal ? '组合本人服务与已启用的团队公用服务，形成可售卖或发卡的权益。' : '把一个或多个服务组合成商品或卡密可交付的权益。'"
       ><template #actions>
-        <LsPagePrimaryAction v-if="canManage(management.permission)" :icon="Plus" label="新建权益包" :to="`${management.routePrefix}/packages/new`" /></template
+        <LsPagePrimaryAction :icon="Plus" label="新建权益包" :to="`${management.routePrefix}/packages/new`" /></template
       ></LsPageHeader
     ><LsListToolbar
       v-model="keyword"
       placeholder="搜索权益包"
       aria-label="搜索权益包"
-      :count-label="`${query.data.value?.total ?? 0} 个权益包`"
+      :count-label="routeAccess.restricted.value ? '0 个权益包' : `${query.data.value?.total ?? 0} 个权益包`"
       @update:model-value="page = 1"
     /><LsAsyncState
-      v-if="query.isPending.value"
+      v-if="!routeAccess.restricted.value && query.isPending.value"
       state="loading"
       :rows="5"
     /><LsAsyncState
-      v-else-if="query.isError.value"
+      v-else-if="!routeAccess.restricted.value && query.isError.value"
       state="error"
       title="暂时无法读取权益包"
       :description="friendlyError(query.error.value)"
-    /><LsEmptyState
-      v-else-if="!rows.length"
-      title="还没有权益包"
+    /><LsEmptyState :source="query.data.value"
+      v-else-if="routeAccess.restricted.value || !rows.length"
+      :title="routeAccess.restricted.value ? '没有可显示的权益包' : '还没有权益包'"
       description="先建立服务，再组合第一份权益包。"
     /><LsResponsiveDataTable
       v-else

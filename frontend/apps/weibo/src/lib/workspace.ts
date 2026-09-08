@@ -8,5 +8,8 @@ export async function loadAccess(force = false) {
   cache = { value, expires: Date.now() + 30_000 }
   return value
 }
+export function hasWeiboPermission(access: WorkspaceAccess | undefined, permission: 'weibo.personal.use' | 'weibo.team.manage') {
+  return Boolean(access?.permissions.some(granted => permission === granted || permission.startsWith(`${granted}.`)))
+}
 export function apiPrefix(personal: boolean) { return personal ? '/personal' : '' }
 export function expectedEntity(access: WorkspaceAccess | undefined, personal: boolean) { return personal ? { expected_entity_id: access?.identity.entity_id ?? 0 } : {} }

@@ -1,32 +1,18 @@
 <script setup lang="ts">
 import { identityUrl, workspaceAppEntries } from '@lostsky/shared/navigation'
-import { feedback } from '@lostsky/ui/feedback'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
-import {
-  Bell, BookOpen, Bot, Boxes, ChevronDown, ChevronRight,
-  FileClock, FileText, Files, House, ListPlus, Menu, MessageCircleMore, Radio, ReceiptText, Send, Settings, ShieldCheck,
-  Contact, KeyRound, Store, UserRound, Users, X,
-} from '@lucide/vue'
+import { Bell, BookOpen, Bot, Boxes, ChevronDown, ChevronRight, FileClock, FileText, Files, House, ListPlus, Menu, MessageCircleMore, Radio, ReceiptText, Send, Settings, ShieldCheck, Contact, KeyRound, Store, UserRound, Users, X } from '@lucide/vue'
 import { NButton } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  abilityReason,
-  hasPermission,
-  permissionReason,
-  useTeamAccess,
-} from '../lib/teamAccess'
 
 type NavItem = {
   to: string
   label: string
   icon: typeof House
-  permission?: string
-  ability?: 'doc'
 }
 const route = useRoute()
 const router = useRouter()
-const access = useTeamAccess()
 const drawer = ref(false)
 const menuScroll = ref<HTMLElement | null>(null)
 const canScrollDown = ref(false)
@@ -37,7 +23,7 @@ const primary: NavItem[] = [
   { to: '/members', label: '成员', icon: Users },
   { to: '/customers', label: '顾客', icon: Contact },
   { to: '/notices/entity', label: '通知', icon: Bell },
-  { to: '/docs', label: '文档', icon: BookOpen, ability: 'doc' },
+  { to: '/docs', label: '文档', icon: BookOpen },
   { to: '/me', label: '当前实体', icon: UserRound },
 ]
 const personalNav: NavItem[] = [
@@ -47,57 +33,59 @@ const personalNav: NavItem[] = [
   { to: '/personal/access', label: '角色与权限', icon: ShieldCheck },
 ]
 const secondary: NavItem[] = [
-  { to: '/files', label: '文件管理', icon: Files, permission: 'file.read' },
-  { to: '/fields', label: '对象字段', icon: FileText, permission: 'team.entity.field.manage' },
-  { to: '/chat-virtuals', label: '虚拟实体', icon: Bot, permission: 'team.entity.virtual.*.manage' },
-  { to: '/roles', label: '角色权限', icon: ShieldCheck, permission: 'team.role.read' },
-  { to: '/join-fields', label: '申请字段', icon: ListPlus, permission: 'team.join_field.read' },
-  { to: '/join-review', label: '加入审核', icon: Users, permission: 'team.join_review.read' },
-  { to: '/departure-review', label: '离队审核', icon: UserRound, permission: 'team.member.remove' },
-  { to: '/notices/team', label: '站内通知', icon: Bell, permission: 'team.notice.read' },
-  { to: '/notices/send', label: '发送通知', icon: Send, permission: 'team.notice.send' },
-  { to: '/settings', label: '团队设置', icon: Settings, permission: 'team.setting.read' },
-  { to: '/abilities', label: '团队能力', icon: KeyRound, permission: 'team.ability.redeem' },
-  { to: '/audit', label: '审计日志', icon: FileClock, permission: 'team.audit.read' },
+  { to: '/files', label: '文件管理', icon: Files },
+  { to: '/fields', label: '对象字段', icon: FileText },
+  { to: '/chat-virtuals', label: '虚拟实体', icon: Bot },
+  { to: '/roles', label: '角色权限', icon: ShieldCheck },
+  { to: '/join-fields', label: '申请字段', icon: ListPlus },
+  { to: '/join-review', label: '加入审核', icon: Users },
+  { to: '/departure-review', label: '离队审核', icon: UserRound },
+  { to: '/notices/team', label: '站内通知', icon: Bell },
+  { to: '/notices/send', label: '发送通知', icon: Send },
+  { to: '/settings', label: '团队设置', icon: Settings },
+  { to: '/abilities', label: '团队能力', icon: KeyRound },
+  { to: '/audit', label: '审计日志', icon: FileClock },
 ]
 
-const snapshot = computed(() => access.data.value)
 const title = computed(() => String(route.meta.title ?? '工作台'))
-const activeWorkspace = computed(() => route.meta.workspace === 'personal' ? 'personal' : 'team')
-const sidebarPrimary = computed(() => activeWorkspace.value === 'personal' ? personalNav : primary.filter(item => item.to !== '/me'))
-const bottomPrimary = computed(() => activeWorkspace.value === 'personal' ? personalNav : primary.filter(item => !['/members', '/notices/entity'].includes(item.to)))
+const activeWorkspace = computed(() => (route.meta.workspace === 'personal' ? 'personal' : 'team'))
+const sidebarPrimary = computed(() => (activeWorkspace.value === 'personal' ? personalNav : primary.filter((item) => item.to !== '/me')))
+const bottomPrimary = computed(() => (activeWorkspace.value === 'personal' ? personalNav : primary.filter((item) => !['/members', '/notices/entity'].includes(item.to))))
 const appEntries = computed(() => {
   const personal = activeWorkspace.value === 'personal'
-  const transaction = snapshot.value?.abilities?.transaction
-  return workspaceAppEntries({ personal, states: { transaction: { disabled: !transaction?.enabled, reason: transaction ? abilityReason('transaction', transaction.label ?? '记账') : '正在核对 transaction Ability' } } })
+  return workspaceAppEntries({ personal })
 })
-const headerActions = computed(() => appEntries.value.map(({ key, label, disabled, reason }) => ({ key, label, disabled, reason })))
-const transactionEntry = computed(() => appEntries.value.find(item => item.key === 'transaction'))
-const sidebarUtility = computed(() => activeWorkspace.value === 'personal'
-  ? { label: '使用文档', href: '//doc.lostsky.work', icon: BookOpen, target: '_blank', rel: 'noopener' }
-  : { label: '切换身份', href: identityUrl(), icon: ShieldCheck, target: undefined, rel: undefined })
+const headerActions = computed(() =>
+  appEntries.value.map(({ key, label, disabled, reason }) => ({
+    key,
+    label,
+    disabled,
+    reason,
+  })),
+)
+const sidebarUtility = computed(() =>
+  activeWorkspace.value === 'personal'
+    ? {
+        label: '使用文档',
+        href: '//doc.lostsky.work',
+        icon: BookOpen,
+        target: '_blank',
+        rel: 'noopener',
+      }
+    : {
+        label: '切换身份',
+        href: identityUrl(),
+        icon: ShieldCheck,
+        target: undefined,
+        rel: undefined,
+      },
+)
 
 function handleHeaderAction(key: string) {
-  const entry = appEntries.value.find(item => item.key === key)
+  const entry = appEntries.value.find((item) => item.key === key)
   if (!entry || entry.disabled) return
   if (entry.key === 'team') void router.push('/')
   else window.location.href = entry.href
-}
-
-function disabledReason(item: NavItem): string {
-  if (access.isPending.value || access.isError.value) return ''
-  if (item.ability) {
-    const state = snapshot.value?.abilities?.[item.ability]
-    if (state && !state.enabled) return abilityReason(item.ability, state.label ?? '文档')
-  }
-  if (item.permission && snapshot.value?.permissions && !hasPermission(snapshot.value, item.permission)) {
-    return permissionReason(item.permission)
-  }
-  return ''
-}
-
-function explain(reason: string) {
-  feedback.info(reason)
 }
 
 function updateMenuScroll() {
@@ -121,7 +109,9 @@ onMounted(() => {
 onBeforeUnmount(() => window.removeEventListener('resize', updateMenuScroll))
 watch(
   () => [secondary.length, drawer.value],
-  () => { void nextTick(updateMenuScroll) },
+  () => {
+    void nextTick(updateMenuScroll)
+  },
   { flush: 'post' },
 )
 </script>
@@ -132,25 +122,15 @@ watch(
     <aside :class="['sidebar', { open: drawer }]" aria-label="团队导航">
       <div class="sidebar-head">
         <a href="/" class="wordmark"><strong>LostSky</strong><span>失落青空</span></a>
-        <NButton quaternary aria-label="关闭导航" @click="drawer = false"><template #icon><X /></template></NButton>
+        <NButton quaternary aria-label="关闭导航" @click="drawer = false"
+          ><template #icon><X /></template
+        ></NButton>
       </div>
       <div :class="['menu-scroll', { 'has-more': canScrollDown }]">
         <nav ref="menuScroll" @scroll="updateMenuScroll">
           <p>工作空间</p>
           <template v-for="item in sidebarPrimary" :key="item.to">
-            <NButton
-              v-if="disabledReason(item)"
-              quaternary
-              class="nav-disabled"
-              :aria-label="`${item.label}不可用：${disabledReason(item)}`"
-              :title="disabledReason(item)"
-              @click="explain(disabledReason(item))"
-            >
-              <component :is="item.icon" :size="19" />
-              <span>{{ item.label }}</span>
-              <ChevronRight :size="15" />
-            </NButton>
-            <RouterLink v-else :to="item.to" @click="drawer = false">
+            <RouterLink :to="item.to" @click="drawer = false">
               <component :is="item.icon" :size="19" />
               <span>{{ item.label }}</span>
               <ChevronRight :size="15" />
@@ -159,19 +139,7 @@ watch(
 
           <p v-if="activeWorkspace === 'team'">管理</p>
           <template v-for="item in activeWorkspace === 'team' ? secondary : []" :key="item.to">
-            <NButton
-              v-if="disabledReason(item)"
-              quaternary
-              class="nav-disabled"
-              :aria-label="`${item.label}不可用：${disabledReason(item)}`"
-              :title="disabledReason(item)"
-              @click="explain(disabledReason(item))"
-            >
-              <component :is="item.icon" :size="19" />
-              <span>{{ item.label }}</span>
-              <ChevronRight :size="15" />
-            </NButton>
-            <RouterLink v-else :to="item.to" @click="drawer = false">
+            <RouterLink :to="item.to" @click="drawer = false">
               <component :is="item.icon" :size="19" />
               <span>{{ item.label }}</span>
               <ChevronRight :size="15" />
@@ -182,7 +150,9 @@ watch(
           <ChevronDown :size="18" stroke-width="2.4" />
         </NButton>
       </div>
-      <NButton class="logout" quaternary tag="a" :href="sidebarUtility.href" :target="sidebarUtility.target" :rel="sidebarUtility.rel"><template #icon><component :is="sidebarUtility.icon" :size="18" /></template>{{ sidebarUtility.label }}</NButton>
+      <NButton class="logout" quaternary tag="a" :href="sidebarUtility.href" :target="sidebarUtility.target" :rel="sidebarUtility.rel"
+        ><template #icon><component :is="sidebarUtility.icon" :size="18" /></template>{{ sidebarUtility.label }}</NButton
+      >
     </aside>
 
     <Transition name="ls-backdrop">
@@ -193,15 +163,7 @@ watch(
         <template #actions>
           <RouterLink class="display-link" to="/"><House :size="17" /><span>团队</span></RouterLink>
           <a class="display-link" :href="appEntries[1]?.href"><Store :size="17" /><span>商品</span></a>
-          <NButton
-            v-if="transactionEntry?.disabled"
-            class="display-link app-disabled"
-            quaternary
-            :title="transactionEntry.reason"
-            :aria-label="`记账不可用：${transactionEntry.reason}`"
-            @click="explain(transactionEntry.reason || abilityReason('transaction', '记账'))"
-          ><template #icon><ReceiptText :size="17" /></template><span>记账</span></NButton>
-          <a v-else class="display-link" :href="transactionEntry?.href"><ReceiptText :size="17" /><span>记账</span></a>
+          <a class="display-link" :href="appEntries[2]?.href"><ReceiptText :size="17" /><span>记账</span></a>
           <a class="chat-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>
           <a class="chat-link" :href="appEntries[4]?.href"><Radio :size="18" /><span>微博</span></a>
         </template>
@@ -209,27 +171,303 @@ watch(
       <main id="workspace"><slot /></main>
       <nav class="bottom-nav" aria-label="移动端导航">
         <template v-for="item in bottomPrimary" :key="item.to">
-          <NButton
-            v-if="disabledReason(item)"
-            quaternary
-            :aria-label="`${item.label}不可用：${disabledReason(item)}`"
-            :title="disabledReason(item)"
-            @click="explain(disabledReason(item))"
-          >
-            <component :is="item.icon" :size="20" /><span>{{ item.label }}</span>
-          </NButton>
-          <RouterLink v-else :to="item.to">
+          <RouterLink :to="item.to">
             <component :is="item.icon" :size="20" /><span>{{ item.label }}</span>
           </RouterLink>
         </template>
-        <NButton quaternary @click="drawer = true"><template #icon><Menu :size="20" /></template><span>更多</span></NButton>
+        <NButton quaternary @click="drawer = true"
+          ><template #icon><Menu :size="20" /></template><span>更多</span></NButton
+        >
       </nav>
     </section>
   </div>
 </template>
 
 <style scoped>
-.team-shell{min-height:100dvh;background:var(--cloud)}.skip{position:fixed;left:1rem;top:-4rem;z-index:100;padding:.7rem 1rem;background:white}.skip:focus{top:1rem}.sidebar{position:fixed;z-index:var(--z-modal);inset:0 auto 0 0;width:min(86vw,320px);display:flex;flex-direction:column;padding:1rem;background:var(--sky-void);color:white;transform:translateX(-101%);transition:transform .22s cubic-bezier(.22,1,.36,1)}.sidebar.open{transform:translateX(0)}.sidebar-head{height:52px;display:flex;align-items:center;justify-content:space-between}.sidebar-head button{width:44px;height:44px;display:grid;place-items:center;color:white;background:transparent;border:0}.wordmark{display:flex;align-items:baseline;gap:.45rem}.wordmark strong{font-family:'Barlow Condensed';font-size:1.45rem}.wordmark span{color:oklch(.68 .015 210);font-size:.68rem}.menu-scroll{position:relative;min-height:0;flex:1}.sidebar nav{height:100%;min-height:0;overflow-y:auto;padding-right:.25rem;scrollbar-width:thin;scrollbar-color:color-mix(in oklch,var(--sky-lost),white 18%) transparent}.menu-scroll.has-more::after{content:'';position:absolute;z-index:1;inset:auto 0 0;height:72px;pointer-events:none;background:linear-gradient(to bottom,transparent,var(--sky-void) 82%)}.menu-scroll.has-more nav{padding-bottom:3.25rem}.menu-more{position:absolute;z-index:2;left:50%;bottom:.4rem;width:34px;height:34px;display:grid;place-items:center;padding:0;color:oklch(.82 .14 185);background:color-mix(in oklch,var(--sky-void),var(--sky-lost) 18%);border:1px solid color-mix(in oklch,var(--sky-lost),white 16%);border-radius:50%;transform:translateX(-50%);cursor:pointer}nav p{margin:1.35rem .65rem .45rem;color:var(--sky-lost);font-size:.7rem;font-weight:750;letter-spacing:.06em}.sidebar nav a,.sidebar nav .nav-disabled{width:100%;min-height:44px;display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:.5rem;padding:0 .75rem;color:oklch(.76 .012 210);background:transparent;border:0;border-radius:8px;font-size:.9rem;text-align:left}.sidebar nav .nav-disabled :deep(.n-button__content){grid-column:1/-1;width:100%;display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:.5rem}.sidebar nav a:hover,.sidebar nav a.router-link-active{color:white;background:color-mix(in oklch,var(--sky-lost),transparent 78%)}.sidebar nav a.router-link-active svg:last-child{color:var(--afterglow)}.sidebar nav .nav-disabled{color:oklch(.52 .012 210);cursor:not-allowed}.sidebar nav .nav-disabled:focus-visible{outline:2px solid var(--afterglow);outline-offset:-2px}.logout{min-height:44px;display:flex;align-items:center;justify-content:flex-start;gap:.55rem;margin-top:auto;padding:0 .65rem;color:oklch(.72 .012 210);background:transparent;border:0}.backdrop{position:fixed;z-index:var(--z-backdrop);inset:0;background:oklch(.06 0 0/.66)}.workspace{min-height:100dvh;padding-bottom:72px}.topbar{height:68px;display:grid;grid-template-columns:44px minmax(0,1fr) repeat(3,44px);align-items:center;gap:.35rem;padding:0 .75rem;background:white;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:var(--z-sticky)}.topbar>button,.topbar>a{min-width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--muted-ink);background:transparent;border:0;border-radius:8px}.topbar>a:hover{color:var(--sky-lost-strong);background:var(--cloud)}.topbar div{min-width:0}.topbar p{margin:0;color:var(--sky-lost-strong);font-family:'Barlow Condensed';font-size:.68rem;font-weight:700;letter-spacing:.08em}.topbar h1{margin:0;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.display-link span,.chat-link span{display:none}.display-link.app-disabled{opacity:.48;cursor:not-allowed}.display-link.app-disabled:hover{opacity:.48}.workspace main{width:min(100%,90rem);margin:0 auto;padding:1rem}.bottom-nav{position:fixed;z-index:var(--z-sticky);inset:auto 0 0;min-height:64px;display:grid;grid-template-columns:repeat(6,1fr);padding-bottom:env(safe-area-inset-bottom);background:white;border-top:1px solid var(--line)}.bottom-nav a,.bottom-nav button{min-width:0;min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;color:var(--muted-ink);background:transparent;border:0;font-size:.65rem}.bottom-nav button[title]{opacity:.45;cursor:not-allowed}.bottom-nav a.router-link-active{color:var(--sky-lost-strong)}
-.sidebar{transition-duration:var(--motion-slow);transition-timing-function:var(--ease-out)}.sidebar nav a,.sidebar nav .nav-disabled{transition:color var(--motion-fast) var(--ease-standard),background-color var(--motion-fast) var(--ease-standard)}
-@media(min-width:900px){.team-shell{display:grid;grid-template-columns:248px minmax(0,1fr)}.sidebar{position:sticky;top:0;width:248px;height:100dvh;transform:none}.sidebar-head button{display:none}.workspace{padding-bottom:0}.topbar{grid-template-columns:1fr auto auto 44px;height:72px;padding-inline:1.5rem}.topbar>button{display:none}.topbar div{grid-column:1}.display-link span,.chat-link span{display:inline}.workspace main{padding:1.75rem}.bottom-nav{display:none}}
+.team-shell {
+  min-height: 100dvh;
+  background: var(--cloud);
+}
+.skip {
+  position: fixed;
+  left: 1rem;
+  top: -4rem;
+  z-index: 100;
+  padding: 0.7rem 1rem;
+  background: white;
+}
+.skip:focus {
+  top: 1rem;
+}
+.sidebar {
+  position: fixed;
+  z-index: var(--z-modal);
+  inset: 0 auto 0 0;
+  width: min(86vw, 320px);
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: var(--sky-void);
+  color: white;
+  transform: translateX(-101%);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sidebar.open {
+  transform: translateX(0);
+}
+.sidebar-head {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sidebar-head button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: transparent;
+  border: 0;
+}
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+.wordmark strong {
+  font-family: 'Barlow Condensed';
+  font-size: 1.45rem;
+}
+.wordmark span {
+  color: oklch(0.68 0.015 210);
+  font-size: 0.68rem;
+}
+.menu-scroll {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+}
+.sidebar nav {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--sky-lost), white 18%) transparent;
+}
+.menu-scroll.has-more::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: auto 0 0;
+  height: 72px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--sky-void) 82%);
+}
+.menu-scroll.has-more nav {
+  padding-bottom: 3.25rem;
+}
+.menu-more {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 0.4rem;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: oklch(0.82 0.14 185);
+  background: color-mix(in oklch, var(--sky-void), var(--sky-lost) 18%);
+  border: 1px solid color-mix(in oklch, var(--sky-lost), white 16%);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+nav p {
+  margin: 1.35rem 0.65rem 0.45rem;
+  color: var(--sky-lost);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+}
+.sidebar nav a {
+  width: 100%;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  color: oklch(0.76 0.012 210);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: left;
+}
+.sidebar nav a:hover,
+.sidebar nav a.router-link-active {
+  color: white;
+  background: color-mix(in oklch, var(--sky-lost), transparent 78%);
+}
+.sidebar nav a.router-link-active svg:last-child {
+  color: var(--afterglow);
+}
+.logout {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  margin-top: auto;
+  padding: 0 0.65rem;
+  color: oklch(0.72 0.012 210);
+  background: transparent;
+  border: 0;
+}
+.backdrop {
+  position: fixed;
+  z-index: var(--z-backdrop);
+  inset: 0;
+  background: oklch(0.06 0 0/0.66);
+}
+.workspace {
+  min-height: 100dvh;
+  padding-bottom: 72px;
+}
+.topbar {
+  height: 68px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) repeat(3, 44px);
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.75rem;
+  background: white;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+.topbar > button,
+.topbar > a {
+  min-width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-ink);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+}
+.topbar > a:hover {
+  color: var(--sky-lost-strong);
+  background: var(--cloud);
+}
+.topbar div {
+  min-width: 0;
+}
+.topbar p {
+  margin: 0;
+  color: var(--sky-lost-strong);
+  font-family: 'Barlow Condensed';
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.topbar h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.display-link span,
+.chat-link span {
+  display: none;
+}
+.workspace main {
+  width: min(100%, 90rem);
+  margin: 0 auto;
+  padding: 1rem;
+}
+.bottom-nav {
+  position: fixed;
+  z-index: var(--z-sticky);
+  inset: auto 0 0;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: white;
+  border-top: 1px solid var(--line);
+}
+.bottom-nav a,
+.bottom-nav button {
+  min-width: 0;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  color: var(--muted-ink);
+  background: transparent;
+  border: 0;
+  font-size: 0.65rem;
+}
+.bottom-nav a.router-link-active {
+  color: var(--sky-lost-strong);
+}
+.sidebar {
+  transition-duration: var(--motion-slow);
+  transition-timing-function: var(--ease-out);
+}
+.sidebar nav a {
+  transition:
+    color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard);
+}
+@media (min-width: 900px) {
+  .team-shell {
+    display: grid;
+    grid-template-columns: 248px minmax(0, 1fr);
+  }
+  .sidebar {
+    position: sticky;
+    top: 0;
+    width: 248px;
+    height: 100dvh;
+    transform: none;
+  }
+  .sidebar-head button {
+    display: none;
+  }
+  .workspace {
+    padding-bottom: 0;
+  }
+  .topbar {
+    grid-template-columns: 1fr auto auto 44px;
+    height: 72px;
+    padding-inline: 1.5rem;
+  }
+  .topbar > button {
+    display: none;
+  }
+  .topbar div {
+    grid-column: 1;
+  }
+  .display-link span,
+  .chat-link span {
+    display: inline;
+  }
+  .workspace main {
+    padding: 1.75rem;
+  }
+  .bottom-nav {
+    display: none;
+  }
+}
 </style>

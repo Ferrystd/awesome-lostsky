@@ -16,8 +16,7 @@ const props = withDefaults(defineProps<{
   accept?: string
   multiple?: boolean
   showUrl?: boolean
-  showReason?: boolean
-}>(), { modelValue: '', placeholder: '图片 URL 或选择文件', buttonLabel: '选择文件', disabledReason: '', progress: null, accept: '', multiple: false, showUrl: true, showReason: false })
+}>(), { modelValue: '', placeholder: '图片 URL 或选择文件', buttonLabel: '选择文件', disabledReason: '', progress: null, accept: '', multiple: false, showUrl: true })
 const emit = defineEmits<{ 'update:modelValue': [value: string]; choose: []; change: [event: Event] }>()
 const input = ref<HTMLInputElement | null>(null)
 function choose() {
@@ -37,12 +36,11 @@ function choose() {
       <input ref="input" :id="id ? `${id}-file` : undefined" class="ls-upload-field__input" type="file" :accept="accept" :multiple="multiple" :disabled="disabled" @change="emit('change', $event)">
     </div>
     <NProgress v-if="progress !== null" type="line" :percentage="progress" :show-indicator="true" />
-    <small v-if="showReason && disabled && disabledReason" class="ls-upload-field__reason">{{ disabledReason }}</small>
   </div>
 </template>
 
 <style scoped>
-.ls-upload-field{display:grid;gap:.5rem}.ls-upload-field__controls{display:grid;grid-template-columns:minmax(0,1fr) 8.5rem;gap:.75rem}.ls-upload-field__controls :deep(.ls-button){width:100%}.ls-upload-field__reason{color:var(--text-secondary)}
+.ls-upload-field{display:grid;gap:.5rem}.ls-upload-field__controls{display:grid;grid-template-columns:minmax(0,1fr) 8.5rem;gap:.75rem}.ls-upload-field__controls :deep(.ls-button){width:100%}
 .ls-upload-field__input{display:none}
 .ls-upload-field__controls--without-url{grid-template-columns:8.5rem}
 .ls-upload-field__controls--custom-trigger{grid-template-columns:minmax(0,1fr) max-content}

@@ -1,4 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+const feedback = vi.hoisted(() => ({ info: vi.fn() }))
+
+vi.mock('@lostsky/ui/feedback', () => ({ feedback }))
+
 import { ApiError, api, auth, friendlyError } from './client'
 
 function storage(entries: Record<string, string> = {}) {
@@ -10,9 +15,28 @@ function storage(entries: Record<string, string> = {}) {
   }
 }
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  feedback.info.mockClear()
+})
 
 describe('auth', () => {
+  it.each([
+    ['account.lostsky.work', 'include'],
+    ['demo.team.lostsky.work', 'include'],
+    ['lostsky.work.example.test', 'same-origin'],
+    ['custom.example.test', 'same-origin'],
+  ])('uses the expected credential mode for %s', async (hostname, credentials) => {
+    vi.stubGlobal('location', { hostname, protocol: 'https:' })
+    vi.stubGlobal('document', { cookie: '' })
+    vi.stubGlobal('localStorage', storage())
+    vi.stubGlobal('sessionStorage', storage())
+    const fetch = vi.fn().mockImplementation(async () => new Response(JSON.stringify({ code: 0, data: {} })))
+    vi.stubGlobal('fetch', fetch)
+    await api.post('/identity/workspace-warning/acknowledge', { team_slug: 'demo' })
+    await api.get('/access')
+    for (const [, init] of fetch.mock.calls) expect(init.credentials).toBe(credentials)
+  })
   it('does not revive a stale subdomain token when the shared production cookie is gone', () => {
     vi.stubGlobal('location', { hostname: 'account.lostsky.work', protocol: 'https:' })
     vi.stubGlobal('document', { cookie: '' })
@@ -247,17 +271,17 @@ describe('friendlyError', () => {
     expect(friendlyError(new ApiError(''))).toBe('请求失败')
   })
 
-  it('formats structured access errors before using the server message', () => {
+  it('does not turn structured access errors into inline error copy', () => {
     expect(friendlyError(new ApiError('server permission message', {
       status: 403,
       code: 40302,
       data: { kind: 'permission', required_any: ['file.upload'] },
-    }))).toBe('您缺少该团队权限（Permission）: file.upload,请联系团队管理员开通。')
+    }))).toBe('')
     expect(friendlyError(new ApiError('server ability message', {
       status: 403,
       code: 40303,
       data: { kind: 'ability', key: 'file', label: '文件上传', reason: 'missing' },
-    }))).toBe('该团队能力（Ability）缺失: 文件上传(File),管理员可按需购买。')
+    }))).toBe('')
   })
 
   it('keeps the server message when structured access details are incomplete', () => {
@@ -268,4 +292,43 @@ describe('friendlyError', () => {
     }))).toBe('服务端具体原因')
   })
 
+})
+
+describe('structured access responses', () => {
+  function response(kind: 'permission' | 'ability') {
+    const data = kind === 'permission'
+      ? { kind, required_any: ['file.read'] }
+      : { kind, key: 'file', label: '文件上传', reason: 'missing' }
+    return new Response(JSON.stringify({ code: kind === 'permission' ? 40302 : 40303, message: 'forbidden', data }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  it.each(['permission', 'ability'] as const)('degrades denied GET %s responses to an empty collection and only uses info feedback', async (kind) => {
+    vi.stubGlobal('location', { hostname: '127.0.0.1', protocol: 'http:' })
+    vi.stubGlobal('document', { cookie: '' })
+    vi.stubGlobal('localStorage', storage())
+    vi.stubGlobal('sessionStorage', storage())
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(kind)))
+
+    const result = await api.get<unknown[]>('/protected')
+    expect(Array.isArray(result)).toBe(true)
+    expect(result).toHaveLength(0)
+    expect(Reflect.get(result, 'accessDenialReason')).toEqual(expect.stringContaining(kind === 'permission' ? 'Permission' : 'Ability'))
+    expect(feedback.info).toHaveBeenCalledOnce()
+  })
+
+  it('keeps denied writes failed while suppressing duplicate inline copy', async () => {
+    vi.stubGlobal('location', { hostname: '127.0.0.1', protocol: 'http:' })
+    vi.stubGlobal('document', { cookie: '' })
+    vi.stubGlobal('localStorage', storage())
+    vi.stubGlobal('sessionStorage', storage())
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response('permission')))
+
+    const result = api.post('/protected', { value: 1 })
+    await expect(result).rejects.toMatchObject({ code: 40302 })
+    await result.catch((error) => expect(friendlyError(error)).toBe(''))
+    expect(feedback.info).toHaveBeenCalledOnce()
+  })
 })

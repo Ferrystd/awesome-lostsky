@@ -37,7 +37,7 @@ Weibo 使用 `https://{slug}.weibo.lostsky.work`，开发端口为 `5181`；对�
 
 `AppResolver` 通过 `Team::active()` 查询团队，并将 `team`、`team_id` 和 `slug` 写入请求。团队查询按 slug 或 ID 缓存 3600 秒。
 
-应用控制器随后按需要组合 `JwtAuth`、`Context`、`EntityRequired`、`TeamAuth`、实体类型、能力和普通权限中间件。`TeamAuth` 组合 `EntityRequired → TeamBelongs`：缺少实体返回 HTTP 428 / `42801`，团队不匹配返回 HTTP 403 / `40301`，两者都携带当前 `team_slug`。允许跨团队实体的接口只使用 `EntityRequired`，要求当前团队归属的接口使用 `TeamAuth`。`Context` 依赖 JWT 与团队解析结果，只负责补充真实用户、实体、成员和顾客上下文，不负责授权。
+应用控制器随后按需要组合 `JwtAuth`、`Context`、`EntityRequired`、`TeamAuth`、`TeamWorkspaceAuth`、实体类型、Ability 和 Permission 中间件。`TeamAuth` 组合 `EntityRequired → TeamBelongs`，用于个人、自助、成员本人和 Chat：缺少实体返回 HTTP 428 / `42801`，团队不匹配返回 HTTP 403 / `40301`。`TeamWorkspaceAuth` 组合 `EntityRequired → TeamWorkspaceAccess`，用于 Team、Shop、Transaction、Weibo 的团队范围：本团队 Entity 通过，外部有效 Entity 只有在目标团队至少绑定一个角色时通过，否则返回 HTTP 403 / `40304` 与 `kind=team_workspace_role`。`Context` 只补充真实用户与实体上下文，不负责授权。
 
 ## 无团队应用
 
@@ -47,7 +47,7 @@ Weibo 使用 `https://{slug}.weibo.lostsky.work`，开发端口为 `5181`；对�
 'teamless_apps' => ['account', 'admin'],
 ```
 
-Account 负责登录、注册、设备、用户团队入口和所有实体会话签发/撤销；Admin 负责平台级 RBAC、用户与团队治理、审计和系统状态。两者均不接收团队上下文。选定团队后，团队业务应用再使用包含 slug 的域名。业务应用的共享顾客端收到 `42801` 或 `40301` 时进入 Account 成员回调，显式按 `team_slug` 领取身份后返回原深链接。`X-LostSky-App` 的显式白名单仍只包含 `common`。
+Account 负责登录、注册、设备、用户团队入口和所有实体会话签发/撤销；Admin 负责平台级 RBAC、用户与团队治理、审计和系统状态。两者均不接收团队上下文。团队业务应用收到 `42801` 时进入 Account 成员回调，并在一次浏览会话内按“user + team”自动领取一次；`40301` 仍用于个人工作台与 Chat 的团队归属恢复。团队工作台外部 Entity 的首次入口转到 Account 外部身份警告页，确认 Cookie 跨 `.lostsky.work` 子域共享但不参与授权。`X-LostSky-App` 的显式白名单仍只包含 `common`。
 
 ## 自定义域名
 
@@ -93,7 +93,7 @@ Route::post('product/<id>', 'Product/edit');
 3. 仅当应用确实不依赖团队时，才把应用名加入 `teamless_apps`。
 4. 标准 LostSky 域名无需增加静态 `domain_bind`；自定义域名通过 `team_domain` 数据管理。
 5. 在 `docs/openapi/` 增加或更新对应 OpenAPI 文件，并同步生成前端 API 类型。
-6. 在 [`docs/apps/`](../apps/) 增加应用职责和鉴权边界概览。
+6. 在 `docs/apps/` 增加应用职责和鉴权边界概览。
 
 ## 前端单入口
 

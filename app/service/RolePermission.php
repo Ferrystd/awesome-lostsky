@@ -193,6 +193,10 @@ class RolePermission
             $this->assertAssumeKey($teamId, $dynamic['type'], $dynamic['slug']);
             return;
         }
+        if ($dynamic['kind'] === 'document') {
+            $this->assertDocumentManageKey($teamId, $dynamic['type'], $dynamic['slug']);
+            return;
+        }
 
         $identity = \app\model\Entity::virtual()->where('slug', $dynamic['slug'])->find();
         $virtual = $identity ? \app\model\TeamVirtual::where('team_id', $teamId)->find($identity->entityable_id) : null;
@@ -217,6 +221,25 @@ class RolePermission
                 (int) $identity->entityable_id
             ) !== $teamId) {
             throw new HttpException(422, '委托目标不属于当前团队或不可用');
+        }
+    }
+
+    private function assertDocumentManageKey(int $teamId, string $type, string $slug): void
+    {
+        $expectedType = match ($type) {
+            'member' => 'teamMember',
+            'customer' => 'teamCustomer',
+            'virtual' => 'teamVirtual',
+        };
+        $identity = \app\model\Entity::where('slug', $slug)
+            ->where('entityable_type', $expectedType)
+            ->find();
+        if (!$identity || !$identity->is_valid
+            || app(IdentitySession::class)->entityTeamId(
+                $expectedType,
+                (int) $identity->entityable_id
+            ) !== $teamId) {
+            throw new HttpException(422, '文档管理目标不属于当前团队或不可用');
         }
     }
 

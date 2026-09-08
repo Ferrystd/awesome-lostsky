@@ -10,7 +10,7 @@ class Audit
 {
     protected $middleware = [
         'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamAuth',
+        'TeamWorkspaceAuth',
         'Permission:' . Permissions::TEAM_AUDIT_READ,
     ];
 

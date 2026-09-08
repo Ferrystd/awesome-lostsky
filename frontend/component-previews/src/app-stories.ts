@@ -400,7 +400,7 @@ const roles = [
     description: "维护团队内容",
     permissions: [
       { permission_key: "team.document.read" },
-      { permission_key: "team.document.write" },
+      { permission_key: "team.document.customer.*.manage" },
       { permission_key: "team.customer.read" },
       { permission_key: "chat.conversation.create" },
       { permission_key: "chat.virtual.*.act" },
@@ -441,8 +441,8 @@ const entityPermissionsCard = story(
         ],
         roles,
         effectivePermissions: [
-          { key: "team.document.read", label: "查看文档", group: "内容" },
-          { key: "team.document.write", label: "维护文档", group: "内容" },
+          { key: "team.document.read", label: "查看全部文档", group: "文档管理" },
+          { key: "team.document.customer.*.manage", label: "管理全部顾客文档", group: "文档管理" },
           { key: "team.customer.read", label: "查看顾客", group: "顾客" },
           { key: "team.customer.read", label: "查看顾客", group: "顾客" },
           { key: "chat.conversation.create", label: "创建会话", group: "聊天" },
@@ -455,10 +455,10 @@ const entityPermissionsCard = story(
         ],
         catalog: [
           {
-            name: "内容",
+            name: "文档管理",
             items: [
-              { key: "team.document.read", label: "查看文档" },
-              { key: "team.document.write", label: "维护文档" },
+              { key: "team.document.read", label: "查看全部文档" },
+              { key: "team.document.customer.*.manage", label: "管理全部顾客文档" },
             ],
           },
           { name: "顾客", items: [{ key: "team.customer.read", label: "查看顾客" }] },

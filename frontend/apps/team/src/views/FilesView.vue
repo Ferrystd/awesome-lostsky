@@ -8,6 +8,7 @@ import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import { feedback } from '@lostsky/ui/feedback'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { File, Trash2, Upload } from '@lucide/vue'
 import { NPagination } from 'naive-ui'
@@ -17,6 +18,7 @@ import { fileUploadReason, hasPermission, permissionReason, useTeamAccess, type 
 
 const client = useQueryClient()
 const access = useTeamAccess()
+const routeAccess = useRouteAccess()
 const page = ref(1)
 const keyword = ref('')
 const uploading = ref(false)
@@ -24,55 +26,47 @@ const uploadError = ref('')
 const usage = useQuery({
   queryKey: ['file-usage'],
   queryFn: () => api.get<FileUploadAvailability>('/file/usage'),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const query = useQuery({
   queryKey: computed(() => ['files', page.value, keyword.value]),
-  queryFn: () => api.get<Record<string, unknown>>('/file/index', {
-    page: page.value,
-    limit: 18,
-    keyword: keyword.value,
-  }),
+  queryFn: () =>
+    api.get<Record<string, unknown>>('/file/index', {
+      page: page.value,
+      limit: 18,
+      keyword: keyword.value,
+    }),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
-const files = computed<Record<string, unknown>[]>(() => (
-  Array.isArray(query.data.value?.list) ? query.data.value.list as Record<string, unknown>[] : []
-))
+const files = computed<Record<string, unknown>[]>(() => (Array.isArray(query.data.value?.list) ? (query.data.value.list as Record<string, unknown>[]) : []))
 const total = computed(() => Number(query.data.value?.total ?? files.value.length))
 const pages = computed(() => Math.max(1, Math.ceil(total.value / 18)))
 const uploadReason = computed(() => {
+  if (routeAccess.reason.value) return routeAccess.reason.value
   if (access.isPending.value || access.isError.value) return ''
   return fileUploadReason({
     ...access.data.value,
     file_upload: usage.data.value ?? access.data.value?.file_upload,
   })
 })
-const canUpgrade = computed(() => (
-  (usage.data.value ?? access.data.value?.file_upload)?.reason === 'quota'
-  && hasPermission(access.data.value, 'team.ability.redeem')
-))
+const canUpgrade = computed(() => (usage.data.value ?? access.data.value?.file_upload)?.reason === 'quota' && hasPermission(access.data.value, 'team.ability.redeem'))
 const usageSummary = computed(() => {
   const state = usage.data.value
+  if (routeAccess.restricted.value) return '已使用 - / 容量 - · 0 个文件'
   if (!state) return `正在读取容量 · ${total.value} 个文件`
   const used = size(state?.total_size ?? 0)
   const capacity = state?.size_limit == null ? '不限容量' : `容量 ${size(state.size_limit)}`
   return `已使用 ${used} / ${capacity} · ${state?.count ?? total.value} 个文件`
 })
-const deleteReason = computed(() => (
-  access.isPending.value || access.isError.value || hasPermission(access.data.value, 'file.delete')
-    ? ''
-    : permissionReason('file.delete')
-))
+const deleteReason = computed(() => routeAccess.reason.value || (access.isPending.value || access.isError.value || hasPermission(access.data.value, 'file.delete') ? '' : permissionReason('file.delete')))
 
 const remove = useMutation({
   mutationFn: (id: number) => api.post('/file/delete', { id }),
   onSuccess: async () => {
     feedback.success('文件已删除')
-    await Promise.all([
-      client.invalidateQueries({ queryKey: ['files'] }),
-      client.invalidateQueries({ queryKey: ['file-usage'] }),
-      client.invalidateQueries({ queryKey: ['team-access'] }),
-    ])
+    await Promise.all([client.invalidateQueries({ queryKey: ['files'] }), client.invalidateQueries({ queryKey: ['file-usage'] }), client.invalidateQueries({ queryKey: ['team-access'] })])
   },
-  onError: error => feedback.error(friendlyError(error)),
+  onError: (error) => feedback.error(friendlyError(error)),
 })
 
 async function upload(event: Event) {
@@ -82,11 +76,7 @@ async function upload(event: Event) {
   uploadError.value = ''
   try {
     for (const file of list) await api.uploadTo(file, '/file/upload')
-    await Promise.all([
-      client.invalidateQueries({ queryKey: ['files'] }),
-      client.invalidateQueries({ queryKey: ['file-usage'] }),
-      client.invalidateQueries({ queryKey: ['team-access'] }),
-    ])
+    await Promise.all([client.invalidateQueries({ queryKey: ['files'] }), client.invalidateQueries({ queryKey: ['file-usage'] }), client.invalidateQueries({ queryKey: ['team-access'] })])
     feedback.success(list.length > 1 ? `${list.length} 个文件已上传` : '文件已上传')
   } catch (error) {
     uploadError.value = friendlyError(error)
@@ -110,7 +100,14 @@ function removeFile(id: number) {
 function fileActions(item: Record<string, unknown>) {
   return [
     ...(item.url ? [{ key: 'open', label: '打开', icon: File }] : []),
-    { key: 'delete', label: '删除', icon: Trash2, danger: true, disabled: Boolean(deleteReason.value), reason: deleteReason.value },
+    {
+      key: 'delete',
+      label: '删除',
+      icon: Trash2,
+      danger: true,
+      disabled: Boolean(deleteReason.value),
+      reason: deleteReason.value,
+    },
   ]
 }
 function runFileAction(key: string, item: Record<string, unknown>) {
@@ -135,22 +132,11 @@ function runFileAction(key: string, item: Record<string, unknown>) {
     </header>
     <LsInlineError v-if="uploadError" :message="uploadError" />
 
-    <LsListToolbar
-      v-model="keyword"
-      placeholder="按文件名称搜索"
-      aria-label="搜索文件"
-      :count-label="`${total} 个文件`"
-      @update:model-value="page = 1"
-    />
+    <LsListToolbar v-model="keyword" placeholder="按文件名称搜索" aria-label="搜索文件" :count-label="routeAccess.restricted.value ? '0 个文件' : `${total} 个文件`" @update:model-value="page = 1" />
     <Transition name="ls-state" mode="out-in">
-      <LsAsyncState v-if="query.isError.value" key="error" state="error" title="暂时无法读取文件" :description="friendlyError(query.error.value)" />
-      <LsAsyncState v-else-if="query.isPending.value" key="loading" state="loading" :rows="6" />
-      <LsEmptyState
-        v-else-if="!files.length"
-        key="empty"
-        title="还没有文件"
-        :description="uploadReason ? '当前可查看团队文件，但不能上传本地文件。' : '上传团队需要共享的第一份资料。'"
-      />
+      <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" key="error" state="error" title="暂时无法读取文件" :description="friendlyError(query.error.value)" />
+      <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" key="loading" state="loading" :rows="6" />
+      <LsEmptyState :source="query.data.value" v-else-if="!files.length" key="empty" :title="routeAccess.restricted.value ? '没有可显示的文件' : '还没有文件'" description="上传团队需要共享的第一份资料。" />
       <TransitionGroup v-else key="list" name="ls-list" tag="div" class="file-list">
         <article v-for="item in files" :key="String(item.id)">
           <div class="file-icon"><File /></div>
@@ -162,10 +148,102 @@ function runFileAction(key: string, item: Record<string, unknown>) {
         </article>
       </TransitionGroup>
     </Transition>
-    <footer v-if="pages > 1"><NPagination v-model:page="page" :page-count="pages" /></footer>
+    <footer v-if="pages > 1">
+      <NPagination v-model:page="page" :page-count="pages" />
+    </footer>
   </div>
 </template>
 
 <style scoped>
-.files{display:grid;gap:1rem}header{display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap}header p,header h2{margin:0}header p{color:var(--muted-ink);font-size:.82rem}header h2{margin-top:.2rem}.header-actions{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}.secondary-link{min-height:40px;display:inline-flex;align-items:center;color:var(--sky-lost-strong);font-weight:650}.file-list{display:grid;gap:0;overflow:hidden;background:white;border:1px solid var(--line);border-radius:10px}.file-list article{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:.75rem;padding:.85rem;border-bottom:1px solid var(--line);background:white;transition:background-color var(--motion-fast) var(--ease-standard),opacity var(--motion-base) var(--ease-out),transform var(--motion-base) var(--ease-out)}.file-list article:last-child{border-bottom:0}.file-list article:hover{background:var(--cloud)}.file-icon{width:44px;height:44px;display:grid;place-items:center;color:var(--sky-lost-strong);background:var(--cloud);border-radius:8px}.file-list strong,.file-list small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.file-list small{margin-top:.2rem;color:var(--muted-ink);font-size:.75rem}footer{display:flex;align-items:center;justify-content:center;gap:1rem;color:var(--muted-ink);font-size:.8rem}
+.files {
+  display: grid;
+  gap: 1rem;
+}
+header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+header p,
+header h2 {
+  margin: 0;
+}
+header p {
+  color: var(--muted-ink);
+  font-size: 0.82rem;
+}
+header h2 {
+  margin-top: 0.2rem;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.secondary-link {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--sky-lost-strong);
+  font-weight: 650;
+}
+.file-list {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.file-list article {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-bottom: 1px solid var(--line);
+  background: white;
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    opacity var(--motion-base) var(--ease-out),
+    transform var(--motion-base) var(--ease-out);
+}
+.file-list article:last-child {
+  border-bottom: 0;
+}
+.file-list article:hover {
+  background: var(--cloud);
+}
+.file-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--sky-lost-strong);
+  background: var(--cloud);
+  border-radius: 8px;
+}
+.file-list strong,
+.file-list small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-list small {
+  margin-top: 0.2rem;
+  color: var(--muted-ink);
+  font-size: 0.75rem;
+}
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--muted-ink);
+  font-size: 0.8rem;
+}
 </style>

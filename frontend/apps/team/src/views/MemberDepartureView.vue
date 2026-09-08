@@ -3,6 +3,7 @@ import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { ArrowRight } from '@lucide/vue'
 import { NSelect, NSkeleton } from 'naive-ui'
@@ -11,6 +12,7 @@ import AdminPageHeader from '../components/AdminPageHeader.vue'
 
 const status = ref('')
 const search = ref('')
+const routeAccess = useRouteAccess()
 const statusOptions = [
   { label: '全部状态', value: '' },
   { label: '申请中', value: '1' },
@@ -21,6 +23,7 @@ const statusOptions = [
 const query = useQuery({
   queryKey: computed(() => ['member-departures', status.value]),
   queryFn: () => api.get<Record<string, unknown>>('/memberDeparture/index', { status: status.value || undefined }),
+  enabled: computed(() => !routeAccess.restricted.value),
 })
 const rows = computed(() => (query.data.value?.list ?? []) as Record<string, unknown>[])
 function memberName(item: Record<string, unknown>): string {
@@ -41,12 +44,12 @@ function statusType(code: unknown): 'success' | 'error' | 'warning' | 'info' {
 <template>
   <div class="departure-list">
     <AdminPageHeader title="离队审核" description="处理成员自助提交的离队申请；管理员办理离职时不再进入审核。" />
-    <LsListToolbar v-model="search" placeholder="搜索成员或申请编号" aria-label="搜索离队申请" :count-label="`${visible.length} 条申请`">
+    <LsListToolbar v-model="search" placeholder="搜索成员或申请编号" aria-label="搜索离队申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visible.length} 条申请`">
       <template #filters><NSelect v-model:value="status" class="status-filter" :options="statusOptions" aria-label="筛选申请状态" /></template>
     </LsListToolbar>
-    <p v-if="query.isError.value" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
-    <div v-else-if="query.isPending.value" class="loading"><NSkeleton v-for="item in 4" :key="item" height="82px" /></div>
-    <LsEmptyState v-else-if="!visible.length" title="没有匹配的离队申请" description="调整状态或搜索条件后再查看。" />
+    <p v-if="!routeAccess.restricted.value && query.isError.value" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
+    <div v-else-if="!routeAccess.restricted.value && query.isPending.value" class="loading"><NSkeleton v-for="item in 4" :key="item" height="82px" /></div>
+    <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !visible.length" :title="routeAccess.restricted.value ? '没有可显示的离队申请' : '没有匹配的离队申请'" description="调整状态或搜索条件后再查看。" />
     <section v-else class="rows">
       <RouterLink v-for="item in visible" :key="String(item.id)" :to="{ path: '/departure-review/review', query: { id: String(item.id ?? '') } }">
         <div><strong>{{ memberName(item) }}</strong><small>申请 #{{ item.id }} · 成员 #{{ item.member_id }}</small></div>

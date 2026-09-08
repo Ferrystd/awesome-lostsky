@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { api } from '@lostsky/api/client'
+import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
+import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import { api, friendlyError } from '@lostsky/api/client'
 import { useQuery } from '@tanstack/vue-query'
-import { ArrowRight, Bell, BookOpen, Boxes, UserRound, Users } from '@lucide/vue'
+import { ArrowRight, Bell, BookOpen, Boxes, UserRound, Users, ShieldCheck, FolderOpen } from '@lucide/vue'
 import { computed } from 'vue'
-import { abilityReason } from '../lib/teamAccess'
-import { feedback } from '@lostsky/ui/feedback'
 
 type MetricReason = { kind: 'ability'; key: string; label: string } | null
 type DashboardMetric = {
@@ -26,86 +30,75 @@ const query = useQuery({
 })
 
 const stats = computed(() => [
-  { key: 'entities', label: '实体', icon: Boxes, to: '/entities', metric: query.data.value?.entities },
-  { key: 'members', label: '成员', icon: Users, to: '/members', metric: query.data.value?.members },
-  { key: 'documents', label: '文档', icon: BookOpen, to: '/docs', metric: query.data.value?.documents },
-  { key: 'notices', label: '通知', icon: Bell, to: '/notices/entity', metric: query.data.value?.notices },
+  {
+    key: 'entities',
+    label: '实体',
+    icon: Boxes,
+    to: '/entities',
+    metric: query.data.value?.entities,
+  },
+  {
+    key: 'members',
+    label: '成员',
+    icon: Users,
+    to: '/members',
+    metric: query.data.value?.members,
+  },
+  {
+    key: 'documents',
+    label: '文档',
+    icon: BookOpen,
+    to: '/docs',
+    metric: query.data.value?.documents,
+  },
+  {
+    key: 'notices',
+    label: '通知',
+    icon: Bell,
+    to: '/notices/entity',
+    metric: query.data.value?.notices,
+  },
 ])
-function reason(metric: DashboardMetric | undefined) {
-  if (metric?.reason?.kind !== 'ability') return ''
-  return abilityReason(metric.reason.key, metric.reason.label)
-}
+const metricItems = computed(() => stats.value.map(item => ({ key: item.key, label: item.label, value: !query.isPending.value && !query.isError.value && item.metric?.available && item.metric.count != null ? item.metric.count : '-', hint: item.metric?.error || '当前可见范围' })))
+const resourceGroups = [
+  { key: 'organization', title: '组织与访问', description: '从主体资料到角色授权，维护团队的协作边界。', icon: ShieldCheck, links: [
+    { label: '实体列表', to: '/entities', note: '统一维护业务主体' }, { label: '成员管理', to: '/members', note: '查看团队成员状态' }, { label: '角色权限', to: '/roles', note: '分配职责与访问范围' }, { label: '加入审核', to: '/join-review', note: '处理新的加入申请' },
+  ] },
+  { key: 'knowledge', title: '资料与协作', description: '把规范、文件与通知连接到日常工作。', icon: FolderOpen, links: [
+    { label: '文档库', to: '/docs', note: '沉淀规范与工作资料' }, { label: '文件空间', to: '/files', note: '管理团队文件' }, { label: '人员字段', to: '/fields', note: '维护资料采集字段' }, { label: '实体通知', to: '/notices/entity', note: '查看团队通知记录' },
+  ] },
+]
 </script>
 
+
 <template>
-  <div class="dashboard">
-    <section class="welcome">
-      <div>
-        <p>团队运行概览</p>
-        <h2>今天要处理什么？</h2>
-        <span>先看状态，再进入具体工作。</span>
+  <LsWorkspaceOverview eyebrow="团队运行概览" title="组织有序，协作有据" description="先确认团队资源，再进入组织管理或资料协作。" :actions="[{ key: 'personal', label: '进入个人工作台', to: '/personal', icon: UserRound, primary: true }, { key: 'manual', label: '使用文档', href: '//doc.lostsky.work', target: '_blank', rel: 'noopener', icon: BookOpen }]" :entries="[]">
+    <template #summary>
+      <LsMetricGrid :items="metricItems" aria-label="团队资源摘要" />
+      <LsAsyncState v-if="query.isPending.value" state="loading" :rows="2" />
+      <LsInlineError v-else-if="query.isError.value" :message="friendlyError(query.error.value)" />
+    </template>
+    <template #workspace>
+      <div class="team-resource-map">
+        <LsPanel v-for="group in resourceGroups" :key="group.key">
+          <template #header><LsSectionHeader :title="group.title" :description="group.description"><template #aside><component :is="group.icon" :size="24" aria-hidden="true" /></template></LsSectionHeader></template>
+          <nav class="team-resource-links" :aria-label="group.title">
+            <RouterLink v-for="link in group.links" :key="link.to" :to="link.to"><span><strong>{{ link.label }}</strong><small>{{ link.note }}</small></span><ArrowRight :size="18" aria-hidden="true" /></RouterLink>
+          </nav>
+        </LsPanel>
       </div>
-      <div class="welcome-actions">
-        <RouterLink class="welcome-chat" to="/personal"><UserRound :size="18" />进入个人工作台 <ArrowRight :size="18" /></RouterLink>
-        <a class="welcome-doc" href="//doc.lostsky.work" target="_blank" rel="noopener"><BookOpen :size="18" />使用文档 <ArrowRight :size="18" /></a>
-      </div>
-    </section>
-
-    <section class="stats" aria-label="团队入口">
-      <template v-for="item in stats" :key="item.key">
-        <div
-          v-if="item.metric && !item.metric.available"
-          class="stat-card disabled"
-          role="button"
-          tabindex="0"
-          :title="reason(item.metric)"
-          :aria-label="`${item.label}，${reason(item.metric)}`"
-          @click="feedback.info(reason(item.metric))"
-          @keydown.enter.prevent="feedback.info(reason(item.metric))"
-          @keydown.space.prevent="feedback.info(reason(item.metric))"
-        >
-          <component :is="item.icon" :size="20" />
-          <span>{{ item.label }}</span>
-          <strong>—</strong>
-        </div>
-        <RouterLink v-else :to="item.to" class="stat-card">
-          <component :is="item.icon" :size="20" />
-          <span>{{ item.label }}</span>
-          <strong v-if="query.isPending.value">—</strong>
-          <strong v-else-if="item.metric?.error" aria-hidden="true">!</strong>
-          <strong v-else-if="item.metric?.count === null"><ArrowRight :size="25" /></strong>
-          <strong v-else>{{ item.metric?.count ?? 0 }}</strong>
-          <small v-if="item.metric?.error" role="status">{{ item.metric.error }}</small>
-        </RouterLink>
-      </template>
-    </section>
-
-    <p v-if="query.isError.value" class="dashboard-error" role="alert">
-      概览暂时无法读取，请稍后重试。各工作入口仍可正常使用。
-    </p>
-
-    <section class="work-grid">
-      <article>
-        <div><h3>实体与权限</h3><p>维护实体资料、角色和访问范围。</p></div>
-        <nav>
-          <RouterLink to="/entities">实体列表<ArrowRight :size="17" /></RouterLink>
-          <RouterLink to="/roles">角色权限<ArrowRight :size="17" /></RouterLink>
-          <RouterLink to="/join-review">加入审核<ArrowRight :size="17" /></RouterLink>
-        </nav>
-      </article>
-      <article>
-        <div><h3>团队资料</h3><p>让文件和规范出现在需要它们的地方。</p></div>
-        <nav>
-          <RouterLink to="/docs">文档库<ArrowRight :size="17" /></RouterLink>
-          <RouterLink to="/files">文件空间<ArrowRight :size="17" /></RouterLink>
-          <RouterLink to="/fields">人员字段<ArrowRight :size="17" /></RouterLink>
-        </nav>
-      </article>
-    </section>
-  </div>
+    </template>
+  </LsWorkspaceOverview>
 </template>
-
 <style scoped>
-.dashboard{display:grid;gap:1rem}.welcome{padding:1.25rem;color:white;background:var(--sky-night);border-radius:12px}.welcome p{margin:0;color:var(--sky-lost);font-size:.76rem;font-weight:750}.welcome h2{margin:.35rem 0 0;font-size:1.65rem}.welcome span{display:block;margin-top:.35rem;color:oklch(.72 .014 210);font-size:.9rem}.welcome-actions{display:flex;align-items:start;flex-wrap:wrap;gap:.5rem;margin-top:1.25rem}.welcome-actions a{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:0 .9rem;border:0;border-radius:8px;font-weight:700}.welcome-chat{color:var(--sky-void);background:var(--afterglow)}.welcome-doc{color:white;background:color-mix(in oklch,var(--sky-night),white 8%);box-shadow:inset 0 0 0 1px color-mix(in oklch,var(--sky-lost),transparent 52%)}.welcome-doc:hover{background:color-mix(in oklch,var(--sky-night),white 14%)}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem}.stat-card{min-height:132px;display:grid;grid-template-columns:1fr auto;align-content:space-between;padding:1rem;color:var(--ink);text-align:left;background:white;border:1px solid var(--line);border-radius:10px;transition:border-color .18s ease,background .18s ease}.stat-card:not(.disabled):hover{border-color:var(--sky-lost);background:color-mix(in oklch,white,var(--cloud) 28%)}.stat-card:focus-visible{outline:3px solid color-mix(in oklch,var(--sky-lost),transparent 72%);outline-offset:2px}.stat-card>svg{color:var(--sky-lost-strong)}.stat-card>span{grid-column:1;color:var(--muted-ink);font-size:.82rem}.stat-card>strong{grid-column:2;grid-row:1/3;align-self:end;display:grid;place-items:center;font-size:1.8rem}.stat-card>small{grid-column:1/-1;margin-top:.7rem;color:var(--muted-ink);font-size:.7rem;line-height:1.45;overflow-wrap:anywhere}.stat-card.disabled{color:var(--muted-ink);background:color-mix(in oklch,white,var(--cloud) 50%);cursor:not-allowed}.stat-card.disabled>svg{color:var(--muted-ink)}.dashboard-error{margin:0;padding:.8rem;color:var(--danger);background:white;border:1px solid color-mix(in oklch,var(--danger),white 70%);border-radius:8px}.work-grid{display:grid;gap:.75rem}.work-grid article{padding:1.1rem;background:white;border:1px solid var(--line);border-radius:10px}.work-grid h3{margin:0}.work-grid p{margin:.35rem 0 1rem;color:var(--muted-ink);font-size:.88rem}.work-grid nav{border-top:1px solid var(--line)}.work-grid nav a{min-height:46px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);font-size:.9rem}
-@media(max-width:639px){.welcome-actions{display:grid}.welcome-actions a{width:100%}}@media(min-width:640px){.stats{grid-template-columns:repeat(4,1fr)}.work-grid{grid-template-columns:repeat(2,1fr)}}@media(min-width:900px){.welcome{display:flex;align-items:end;justify-content:space-between;padding:1.75rem}.welcome-actions{margin:0}.stat-card{min-height:150px;padding:1.25rem}.work-grid article{padding:1.5rem}}
+.team-resource-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.team-resource-links { display: grid; }
+.team-resource-links a { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 68px; padding: .75rem .25rem; border-bottom: 1px solid var(--line); color: var(--ink); }
+.team-resource-links a:last-child { border-bottom: 0; }
+.team-resource-links strong,.team-resource-links small { display: block; }
+.team-resource-links small { margin-top: .3rem; color: var(--muted-ink); font-size: .8rem; }
+.team-resource-links svg { flex-shrink: 0; color: var(--sky-lost-strong); }
+.team-resource-links a:hover { background: var(--cloud); }
+.team-resource-links a:focus-visible { outline: 2px solid var(--sky-lost-strong); outline-offset: 2px; }
+@media (max-width: 799px) { .team-resource-map { grid-template-columns: minmax(0, 1fr); } }
 </style>

@@ -43,6 +43,14 @@ class AccessDeniedException extends HttpException
         ]);
     }
 
+    public static function teamWorkspaceRole(string $teamSlug): self
+    {
+        return new self(40304, '当前实体未获得该团队的工作台角色', [
+            'kind' => 'team_workspace_role',
+            'team_slug' => $teamSlug,
+        ]);
+    }
+
     public function data(): array
     {
         return $this->details;

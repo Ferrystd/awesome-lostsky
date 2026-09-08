@@ -3,7 +3,7 @@ defineProps<{ message: string }>()
 </script>
 
 <template>
-  <p class="ls-inline-error" role="alert">{{ message }}</p>
+  <p v-if="message.trim()" class="ls-inline-error" role="alert">{{ message }}</p>
 </template>
 
 <style scoped>

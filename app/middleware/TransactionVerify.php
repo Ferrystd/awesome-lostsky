@@ -28,6 +28,12 @@ class TransactionVerify
             throw new HttpException(403, '当前实体无效');
         }
 
+        // 外部 Entity 已由 TeamWorkspaceAccess 复核目标团队角色，并由当前动作的
+        // Permission 中间件决定是否可操作。它不应被目标团队内部的“自有顾客”规则再次限制。
+        if ((bool) (($request->workspace_access['is_external'] ?? false))) {
+            return $next($request);
+        }
+
         // 规则 A：团队实体
         if (($actingEntity['type'] ?? '') === 'team') {
             return $next($request);

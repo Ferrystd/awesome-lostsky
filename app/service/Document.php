@@ -14,10 +14,9 @@ class Document
     public function list(int $entityId, array $filters, int $page, int $limit, int $teamId, array $actingEntity): array
     {
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
-        app(Entity::class)->assertInTeam($entityId, $teamId);
-        $guard = app(Visibility::class);
-        $isTeamManager = $guard->isTeamManager($teamId, $actingEntity);
+        $entity = app(Entity::class)->assertInTeam($entityId, $teamId);
         $canReadAll = $this->canReadAll($teamId, $actingEntity);
+        $canManage = $this->canManageSubject($teamId, $actingEntity, $entity);
         $isSubject = $entityId === (int) $actingEntity['entity_id'];
 
         $query = DocumentModel::with(['subject'])->where('entity_id', $entityId);
@@ -35,7 +34,9 @@ class Document
             });
         }
 
-        $query->visibleTo((int) $actingEntity['entity_id'], $isTeamManager || $canReadAll, $isSubject);
+        if (!$canReadAll && !$canManage) {
+            $query->visibleTo((int) $actingEntity['entity_id'], false, $isSubject);
+        }
         $paginator = $query->order('sort', 'asc')->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
         $total = $paginator->total();
@@ -81,12 +82,12 @@ class Document
         $guard = app(Visibility::class);
         $guard->assertManage(
             $managerScope,
-            $guard->isTeamManager($teamId, $actingEntity),
+            $this->canManageSubject($teamId, $actingEntity, $entity),
             $entityId === (int) $actingEntity['entity_id']
         );
 
         $doc = \think\facade\Db::transaction(function () use ($entityId, $data, $teamId, $managerScope, $visibility, $guard) {
-            $doc = app(DocumentModel::class);
+            $doc = app(DocumentModel::class, [], true);
             $doc->save([
                 'title' => $data['title'],
                 'content' => $data['content'] ?? null,
@@ -112,12 +113,12 @@ class Document
         if (!$doc) {
             throw new HttpException(404, '文档不存在');
         }
-        $this->guardAccess($doc, $teamId);
+        $entity = $this->guardAccess($doc, $teamId);
 
         $guard = app(Visibility::class);
         $guard->assertManage(
             $doc->enumCase('manager_scope'),
-            $guard->isTeamManager($teamId, $actingEntity),
+            $this->canManageSubject($teamId, $actingEntity, $entity),
             (int) $doc->entity_id === (int) $actingEntity['entity_id']
         );
 
@@ -166,15 +167,15 @@ class Document
 
     public function delete(int $id, int $teamId, array $actingEntity): void
     {
-        $doc = DocumentModel::with(['subject'])->find($id);
+        $doc = DocumentModel::find($id);
         if (!$doc) {
             throw new HttpException(404, '文档不存在');
         }
-        $this->guardAccess($doc, $teamId);
+        $entity = $this->guardAccess($doc, $teamId);
         $guard = app(Visibility::class);
         $guard->assertManage(
             $doc->enumCase('manager_scope'),
-            $guard->isTeamManager($teamId, $actingEntity),
+            $this->canManageSubject($teamId, $actingEntity, $entity),
             (int) $doc->entity_id === (int) $actingEntity['entity_id']
         );
 
@@ -186,20 +187,23 @@ class Document
         });
     }
 
-    private function guardAccess(DocumentModel $doc, int $teamId): void
+    private function guardAccess(DocumentModel $doc, int $teamId): \app\model\Entity
     {
-        app(Entity::class)->assertInTeam((int) $doc->entity_id, $teamId);
+        return app(Entity::class)->assertInTeam((int) $doc->entity_id, $teamId);
     }
 
     private function guardView(DocumentModel $doc, int $teamId, array $actingEntity): void
     {
-        $this->guardAccess($doc, $teamId);
+        $entity = $this->guardAccess($doc, $teamId);
+        if ($this->canReadAll($teamId, $actingEntity)
+            || $this->canManageSubject($teamId, $actingEntity, $entity)) {
+            return;
+        }
         $visibility = app(Visibility::class);
         $visibility->assertView(
             $doc,
             (int) $actingEntity['entity_id'],
-            $visibility->isTeamManager($teamId, $actingEntity)
-                || $this->canReadAll($teamId, $actingEntity),
+            false,
             (int) $doc->entity_id === (int) $actingEntity['entity_id']
         );
     }
@@ -211,6 +215,19 @@ class Document
             $actingEntity,
             [PermissionDictionary::TEAM_DOCUMENT_READ]
         );
+    }
+
+    private function canManageSubject(int $teamId, array $actingEntity, \app\model\Entity $entity): bool
+    {
+        $keys = [PermissionDictionary::documentManage(
+            (string) $entity->entityable_type,
+            (string) $entity->slug
+        )];
+        if ($entity->entityable_type !== 'team') {
+            $keys[] = PermissionDictionary::documentManage((string) $entity->entityable_type);
+        }
+
+        return app(PermissionGate::class)->allows($teamId, $actingEntity, $keys);
     }
 
     private function assertPolicy(bool $isTeamSubject, ManageScope $managerScope, VisibilityEnum $visibility): void

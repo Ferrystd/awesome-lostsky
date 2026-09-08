@@ -86,9 +86,17 @@ $teamController = file_get_contents($root . '/app/weibo/controller/Team.php');
 $personalController = file_get_contents($root . '/app/weibo/controller/Personal.php');
 foreach (['post', 'like', 'comment', 'taskStart', 'taskResume'] as $abilityAction) $assert(str_contains($teamController, "'{$abilityAction}'") && str_contains($personalController, "'{$abilityAction}'"), "Ability boundary missing for {$abilityAction}");
 foreach (['loginStart', 'loginConfirm', 'accountCheck', 'mediaUpload', 'taskCreate', 'taskEdit', 'taskPause', 'taskCancel'] as $unprotectedAction) $assert(!preg_match("/'Ability:weibo'[^;]+\\b{$unprotectedAction}\\b/s", $teamController), "{$unprotectedAction} must not require Ability");
-$assert(!str_contains($teamController, 'Permission:'), 'Weibo team routes must not require business Permission');
+$assert(str_contains($teamController, 'Permission:') && str_contains($teamController, 'WEIBO_TEAM_MANAGE'), 'Weibo team routes require the team management Permission');
+$assert(str_contains($personalController, 'Permission:') && str_contains($personalController, 'WEIBO_PERSONAL_USE'), 'Weibo personal routes require the personal use Permission');
 $permissionDictionary = file_get_contents($root . '/app/service/PermissionDictionary.php');
-$assert(!str_contains($permissionDictionary, 'WEIBO_') && !str_contains($permissionDictionary, "'weibo."), 'Weibo must not publish unused Permission keys');
+$assert(str_contains($permissionDictionary, 'WEIBO_TEAM_MANAGE') && str_contains($permissionDictionary, 'WEIBO_PERSONAL_USE'), 'Weibo publishes both workspace Permission keys');
+$weiboPermissionPatch = file_get_contents($root . '/sql/patches/20260905_weibo_permissions.sql');
+$assert(
+    str_contains($weiboPermissionPatch, "'weibo.team.manage'")
+        && str_contains($weiboPermissionPatch, "'weibo.personal.use'")
+        && str_contains($weiboPermissionPatch, "`role`.`role_key` = 'owner'"),
+    'existing owner roles receive both Weibo permissions without changing custom roles'
+);
 
 $workspace = file_get_contents($root . '/app/weibo/controller/WorkspaceController.php');
 $assert(str_contains($workspace, "taskCreate(") && str_contains($workspace, '$this->teamScope() ? null : $request->entity_id'), 'team task creation must not create a personal task');

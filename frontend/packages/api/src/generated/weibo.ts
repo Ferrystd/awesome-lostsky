@@ -11,6 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description 团队基本概览与授权快照；外部 Entity 必须已获得目标团队至少一个角色。 */
         get: operations["weiboWorkspaceAccess"];
         put?: never;
         post?: never;
@@ -605,6 +606,38 @@ export interface components {
             message: string;
             data?: unknown;
         };
+        WorkspaceAccess: {
+            team: {
+                id: number;
+                slug: string;
+                name: string;
+            };
+            permissions: string[];
+            abilities: {
+                [key: string]: {
+                    enabled: boolean;
+                    reason: string | null;
+                    label: string;
+                };
+            };
+            identity: {
+                /** @enum {string} */
+                type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
+                entity_id: number;
+                name: string;
+                slug?: string | null;
+                avatar?: string | null;
+                belongs_to_team: boolean;
+                is_external: boolean;
+            };
+            entry_warning: {
+                required: boolean;
+                /** @enum {string|null} */
+                kind: "external_entity" | null;
+                /** @default 86400 */
+                ttl_seconds: number;
+            };
+        };
         AbilityError: {
             /** @constant */
             code: 40303;
@@ -651,6 +684,17 @@ export interface components {
                 "application/json": components["schemas"]["Envelope"];
             };
         };
+        /** @description Workspace access snapshot */
+        WorkspaceAccessSuccess: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Envelope"] & {
+                    data?: components["schemas"]["WorkspaceAccess"];
+                };
+            };
+        };
         /** @description Weibo Ability is missing or expired */
         AbilityDenied: {
             headers: {
@@ -658,6 +702,15 @@ export interface components {
             };
             content: {
                 "application/json": components["schemas"]["AbilityError"];
+            };
+        };
+        /** @description Required Permission or target-team workspace role is missing */
+        PermissionDenied: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Envelope"];
             };
         };
     };
@@ -719,7 +772,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Success"];
+            200: components["responses"]["WorkspaceAccessSuccess"];
+            403: components["responses"]["PermissionDenied"];
         };
     };
     weiboAccounts: {
