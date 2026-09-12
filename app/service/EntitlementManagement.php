@@ -50,9 +50,11 @@ final class EntitlementManagement
 
     public function productOptions(int $teamId, ?int $ownerEntityId = null): array
     {
+        $productQuery = TeamProduct::where('team_id', $teamId)->where('is_active', 1);
         $packageQuery = BenefitPackage::where('issuer_team_id', $teamId)->where('is_active', 1);
         $campaignQuery = RedemptionCampaign::where('issuer_team_id', $teamId)->where('is_active', 1);
         if ($ownerEntityId !== null) {
+            $productQuery->where(fn ($query) => $query->whereNull('entity_id')->whereOr('entity_id', $ownerEntityId));
             $packageQuery->where(fn ($query) => $query->whereNull('owner_entity_id')->whereOr('owner_entity_id', $ownerEntityId));
             $campaignQuery->where(fn ($query) => $query->whereNull('owner_entity_id')->whereOr('owner_entity_id', $ownerEntityId));
         }
@@ -68,6 +70,7 @@ final class EntitlementManagement
             }
         }
         return [
+            'products' => $productQuery->field(['id', 'team_id', 'entity_id', 'name', 'kind', 'price', 'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'is_active'])->order('id', 'desc')->select()->toArray(),
             'entities' => app(Entity::class)->optionsForTeam($teamId, true),
             'packages' => $packages,
             'campaigns' => $campaigns,

@@ -131,18 +131,20 @@ class ChatOutbox
                 ]);
                 continue;
             }
-            $body = json_encode([
-                'delivery_id' => (int) $delivery->id, 'event' => $event->event_type,
-                'created_at' => (int) $event->getData('create_time'), 'data' => $event->payload,
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $timestamp = (string) time();
-            $signature = hash_hmac('sha256', "{$timestamp}.{$delivery->id}.{$body}", (string) $integration->signing_secret);
             try {
+                $body = json_encode([
+                    'type' => $event->event_type,
+                    'timestamp' => gmdate('Y-m-d\TH:i:s\Z', (int) $event->getData('create_time')),
+                    'data' => $event->payload,
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+                $timestamp = (string) time();
+                $signature = (new \StandardWebhooks\Webhook((string) $integration->signing_secret))
+                    ->sign((string) $delivery->id, $timestamp, $body);
                 $resolution = app(ChatIntegration::class)->endpointResolution((string) $integration->endpoint_url);
                 $response = app(ChatRealtime::class)->request((string) $integration->endpoint_url, $body, [
-                    'X-LostSky-Delivery: ' . $delivery->id,
-                    'X-LostSky-Timestamp: ' . $timestamp,
-                    'X-LostSky-Signature: sha256=' . $signature,
+                    'webhook-id: ' . $delivery->id,
+                    'webhook-timestamp: ' . $timestamp,
+                    'webhook-signature: ' . $signature,
                 ], [$resolution['curl_resolve']]);
                 $updated = $this->updateClaimedDelivery($delivery, $deliveryToken, [
                     'status' => ChatDeliveryStatus::Delivered, 'delivered_at' => time(),

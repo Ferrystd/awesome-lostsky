@@ -1,7 +1,7 @@
 import type { PublicField } from './types'
 
 export function entityTypeLabel(type: string) {
-  return type === 'teamVirtual' ? '虚拟实体' : type === 'teamMember' ? '成员' : '团队'
+  return type === 'teamVirtual' ? '虚拟人员' : type === 'teamMember' ? '成员' : '团队'
 }
 
 export function formatMoney(value: string | number) {

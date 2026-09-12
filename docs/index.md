@@ -34,6 +34,7 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 - [开发须知](development/development.md)
 - [代码更新清单](development/checklist.md)
 - [后端约定](development/backend.md)
+- [Webhook 协议](development/webhooks.md) · [最小 SDK 接入](development/webhook-quickstart.md)
 - [外部写操作与日志保留](development/external-write-operations.md)
 - [前端约定](development/frontend.md)
 - [组件代码预览](development/component-previews.md)
@@ -51,5 +52,6 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 ## 计划
 
 - [当前待办](TODO.md)
+- [Shop 统一商品实施计划](plans/unified-products.md)
 - [Markdown 编辑器 AI 能力](plans/markdown-ai.md)
 - [卡密、订阅与资产交易](plans/trade.md)

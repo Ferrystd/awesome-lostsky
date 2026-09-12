@@ -10,19 +10,21 @@ import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
-import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
-import { useMutation, useQuery } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Eye } from '@lucide/vue'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
-import type { SelectOption, SelectRenderLabel } from 'naive-ui'
-import { computed, h, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { canManage, fileUploadReason, loadManageAccess, managePermissionReason, productManagement, resourceOwnerLabel } from '../../lib'
+import { canManage, fileUploadReason, loadManageAccess, managePermissionReason, productManagement } from '../../lib'
 import { calculateDefaultServiceDistribution, calculateServiceTeamCut } from '../../service-distribution'
 import type { ManagePricingSummary } from '../../types'
+import { personalDistributionLocked, withoutPersonnelCuts } from '../../personal-pricing'
+import ServiceFieldsEditor from '../../components/ServiceFieldsEditor.vue'
+import { hydrateServiceRedemptionFields, serializeServiceRedemptionFields, validServiceRedemptionFields } from '../../service-redemption-fields'
+import type { ServiceRedemptionFieldDraft } from '../../types'
 
 type ProductFormState = {
   name: string
@@ -42,14 +44,10 @@ type ProductFormState = {
   handler_entity_ids: number[]
 }
 
-interface ResourceSelectOption extends SelectOption {
-  ownerLabel: string
-  resourceName: string
-}
-
 const route = useRoute()
 const routeAccess = useRouteAccess()
 const router = useRouter()
+const queryClient = useQueryClient()
 const id = computed(() => Number(route.params.id || 0))
 const editing = computed(() => id.value > 0)
 const scope = computed(() => route.meta.workspace === 'personal' ? 'personal' : 'team')
@@ -57,6 +55,7 @@ const management = computed(() => productManagement(scope.value))
 const personal = computed(() => management.value.personal)
 const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess(true) })
 const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?? 0)
+const distributionLocked = computed(() => personalDistributionLocked(personal.value, access.data.value?.permissions))
 const uploading = ref<'cover' | 'markdown' | ''>('')
 const uploadDisabledReason = computed(() => {
   if (access.isPending.value) return '正在核对文件上传能力'
@@ -72,6 +71,17 @@ const form = reactive<ProductFormState>({
   handler_entity_ids: [] as number[],
 })
 const distributionRates = reactive({ handler: 80, sender: 15, customerService: 0 })
+const redemption = reactive({ unit_name: '次', quantity: 1 as number | null, quantity_step: 1 as number | null, valid_days: 0 as number | null })
+const redemptionFields = ref<ServiceRedemptionFieldDraft[]>([])
+const itemMoneyFields = [
+  { key: 'unit_price', label: '每份售价' }, { key: 'unit_cost', label: '每份成本' },
+  { key: 'unit_handler_cut', label: '每份接单分成' }, { key: 'unit_sender_cut', label: '每份发单分成' },
+  { key: 'unit_cs_cut', label: '每份客服分成' },
+] as const
+type ItemMoneyField = typeof itemMoneyFields[number]['key']
+type CompositionItem = { product_id: number | null; quantity: number | null } & Partial<Record<ItemMoneyField, string | number | null>>
+const compositionItems = ref<CompositionItem[]>([])
+const useComposition = computed(() => [2, 3].includes(form.kind))
 let hydratingAmounts = false
 const options = useQuery({
   queryKey: computed(() => ['manage-product-options', scope.value]),
@@ -85,7 +95,7 @@ const detail = useQuery({
 })
 function kindNumber(value: unknown) {
   if (typeof value === 'number') return value
-  const mapped: Record<string, number> = { '普通商品': 1, '服务套餐': 2, '权益卡密': 3 }
+  const mapped: Record<string, number> = { '普通商品': 1, '套餐': 2, '卡密': 3, '核销商品': 4 }
   return mapped[String(value)] ?? (Number(value) || 1)
 }
 watch(() => detail.data.value, data => {
@@ -103,60 +113,84 @@ watch(() => detail.data.value, data => {
     cs_cut: data.cs_cut == null ? null : Number(data.cs_cut),
     handler_entity_ids: (data.handlers ?? []).map((handler: any) => Number(handler.entity_id)),
   })
+  if (data.redemption) {
+    redemptionFields.value = hydrateServiceRedemptionFields(data.redemption.redemption_fields)
+    Object.assign(redemption, { unit_name: data.redemption.unit_name, quantity: Number(data.redemption.quantity),
+      quantity_step: Number(data.redemption.quantity_step), valid_days: Number(data.redemption.valid_days) })
+    form.handler_entity_ids = [...(data.redemption.handler_entity_ids ?? [])]
+  }
+  compositionItems.value = (data.items ?? []).map((item: CompositionItem) => ({ ...item }))
   hydratingAmounts = false
 }, { immediate: true })
 const entities = computed(() => options.data.value?.entities ?? [])
 const resourceOwnerEntityId = computed(() => personal.value ? expectedEntityId.value : form.entity_id)
 const compatibleOwner = (ownerEntityId?: number | null) => ownerEntityId == null || ownerEntityId === resourceOwnerEntityId.value
-const availablePackages = computed(() => {
-  const items = [...(options.data.value?.packages ?? [])]
-  const linked = detail.data.value?.benefit_package
-  if (linked && !items.some(item => item.id === linked.id)) items.push(linked)
-  return items.filter(item => item.id === form.benefit_package_id || compatibleOwner(item.owner_entity_id))
-})
-const availableCampaigns = computed(() => {
-  const items = [...(options.data.value?.campaigns ?? [])]
-  const linked = detail.data.value?.redemption_campaign
-  if (linked && !items.some(item => item.id === linked.id)) items.push(linked)
-  return items.filter(item => item.id === form.redemption_campaign_id || compatibleOwner(item.owner_entity_id))
-})
-const packages = computed(() => availablePackages.value.map(item => ({
-  label: `${item.name} · ${resourceOwnerLabel(item, expectedEntityId.value)}`,
-  value: item.id,
-  disabled: !item.is_active,
-  ownerLabel: resourceOwnerLabel(item, expectedEntityId.value),
-  resourceName: item.name,
-})))
-const campaigns = computed(() => availableCampaigns.value.map(item => ({
-  label: `${item.name} · ${resourceOwnerLabel(item, expectedEntityId.value)}`,
-  value: item.id,
-  disabled: !item.is_active,
-})))
-const renderResourceLabel: SelectRenderLabel = option => {
-  const resourceOption = option as ResourceSelectOption
-  return h('span', { class: 'product-resource-option' }, [
-    h('span', { class: 'product-resource-option__name' }, resourceOption.resourceName),
-    h(LsStatusTag, { label: resourceOption.ownerLabel, type: 'info' }),
-  ])
+const productCandidates = computed(() => (options.data.value?.products ?? []).filter(product => product.id !== id.value && compatibleOwner(product.entity_id)))
+const productChoices = computed(() => productCandidates.value.map(product => ({ value: product.id,
+  label: `${product.name} · ${product.entity_id === null ? '团队公用' : '本人'} · #${product.id}` })))
+function chooseCompositionProduct(index: number, productId: number | null) {
+  compositionItems.value[index] = { product_id: productId, quantity: 1 }
 }
-watch(resourceOwnerEntityId, () => {
-  const selectedPackage = availablePackages.value.find(item => item.id === form.benefit_package_id)
-  if (selectedPackage && !compatibleOwner(selectedPackage.owner_entity_id)) form.benefit_package_id = null
-  const selectedCampaign = availableCampaigns.value.find(item => item.id === form.redemption_campaign_id)
-  if (selectedCampaign && !compatibleOwner(selectedCampaign.owner_entity_id)) form.redemption_campaign_id = null
+const compositionNested = computed(() => compositionItems.value.some(item => {
+  const product = productCandidates.value.find(product => product.id === item.product_id)
+  return product && [2, 3].includes(kindNumber(product.kind))
+}))
+function compositionAmount(item: CompositionItem, field: ItemMoneyField): number | null {
+  if (item[field] !== undefined) return item[field] === null ? null : Number(item[field])
+  const product = productCandidates.value.find(product => product.id === item.product_id)
+  if (!product) return null
+  const defaults = calculateDefaultServiceDistribution(Number(product.price), Number(product.cost), distributionRates)
+  const amounts = { unit_price: product.price, unit_cost: product.cost,
+    unit_handler_cut: product.handler_cut ?? defaults.handler,
+    unit_sender_cut: product.sender_cut ?? defaults.sender, unit_cs_cut: product.cs_cut ?? defaults.customerService }
+  return Number(amounts[field])
+}
+function compositionMoneyLocked(item: CompositionItem, field: ItemMoneyField) {
+  if (compositionNested.value || access.isPending.value || access.isError.value) return true
+  const product = productCandidates.value.find(product => product.id === item.product_id)
+  if (!product) return true
+  return distributionLocked.value && (product.entity_id === null || !['unit_price', 'unit_cost'].includes(field))
+}
+function compositionTeamCut(item: CompositionItem) {
+  return calculateServiceTeamCut(...itemMoneyFields.map(field => compositionAmount(item, field.key)) as [number | null, number | null, number | null, number | null, number | null])
+}
+function compositionMoneyValid(item: CompositionItem) {
+  return itemMoneyFields.every(field => nonNegative(compositionAmount(item, field.key))) && compositionTeamCut(item) >= 0
+}
+watch(compositionNested, nested => {
+  if (!nested) return
+  // 加入嵌套项时回到服务端保存基线；重复引用按出现顺序匹配，与保存接口一致。
+  const occurrence = new Map<number, number>()
+  for (const item of compositionItems.value) {
+    if (item.product_id === null) continue
+    const index = occurrence.get(item.product_id) ?? 0
+    occurrence.set(item.product_id, index + 1)
+    const saved = (detail.data.value?.items ?? []).filter((entry: CompositionItem) => entry.product_id === item.product_id)[index]
+    for (const field of itemMoneyFields) {
+      if (saved?.[field.key] !== undefined) item[field.key] = saved[field.key]
+      else delete item[field.key]
+    }
+  }
 })
 const benefitPricingSummary = computed<ManagePricingSummary | null>(() => {
-  if (form.kind === 2) {
-    return availablePackages.value.find(item => item.id === form.benefit_package_id)?.pricing_summary ?? null
-  }
-  if (form.kind === 3) {
-    return availableCampaigns.value.find(item => item.id === form.redemption_campaign_id)?.package?.pricing_summary ?? null
+  if (useComposition.value) {
+    const cents = { price: 0, cost: 0, handler_cut: 0, sender_cut: 0, cs_cut: 0, team_cut: 0 }
+    for (const item of compositionItems.value) {
+      const product = productCandidates.value.find(product => product.id === item.product_id)
+      if (!product || item.quantity === null) continue
+      for (const field of itemMoneyFields) {
+        const key = field.key.slice(5) as Exclude<keyof typeof cents, 'team_cut'>
+        cents[key] += Math.round((compositionAmount(item, field.key) ?? 0) * 100) * item.quantity
+      }
+    }
+    cents.team_cut = cents.price - cents.cost - cents.handler_cut - cents.sender_cut - cents.cs_cut
+    return Object.fromEntries(Object.entries(cents).map(([key, value]) => [key, (value / 100).toFixed(2)])) as unknown as ManagePricingSummary
   }
   return null
 })
 const pricingLocked = computed(() => benefitPricingSummary.value !== null)
 function recalculatePersonnelCuts() {
-  if (hydratingAmounts || pricingLocked.value) return
+  if (hydratingAmounts || pricingLocked.value || (editing.value && distributionLocked.value)) return
   const distribution = calculateDefaultServiceDistribution(form.price, form.cost, distributionRates)
   Object.assign(form, {
     handler_cut: distribution.handler,
@@ -213,6 +247,7 @@ async function uploadMarkdownImage(file: File) {
 }
 const save = useMutation({
   mutationFn: async () => {
+    if (!valid.value) throw new Error('请检查商品必填项、金额和核销额度')
     const body: Record<string, unknown> = {
       name: form.name,
       description: form.description.trim() || null,
@@ -228,15 +263,29 @@ const save = useMutation({
       benefit_package_id: form.benefit_package_id,
       redemption_campaign_id: form.redemption_campaign_id,
       is_active: form.is_active,
+      handler_entity_ids: [...form.handler_entity_ids],
+    }
+    if (form.kind === 4) {
+      delete body.benefit_package_id
+      delete body.redemption_campaign_id
+      delete body.handler_entity_ids
+      body.redemption = { ...redemption, quantity: String(redemption.quantity), quantity_step: String(redemption.quantity_step),
+        handler_entity_ids: [...form.handler_entity_ids], redemption_fields: serializeServiceRedemptionFields(redemptionFields.value) }
+    }
+    if (useComposition.value) {
+      for (const key of ['price', 'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'benefit_package_id', 'redemption_campaign_id', 'handler_entity_ids']) delete body[key]
+      body.items = compositionItems.value.map(item => ({ ...item, ...Object.fromEntries(itemMoneyFields
+        .filter(field => item[field.key] !== undefined)
+        .map(field => [field.key, Number(item[field.key]).toFixed(2)])) }))
     }
     if (!personal.value) body.entity_id = form.entity_id || null
     const result = await management.value.saveProduct(
       editing.value ? id.value : null,
-      body,
+      distributionLocked.value && !editing.value ? withoutPersonnelCuts(body) : body,
       expectedEntityId.value,
     )
     const productId = editing.value ? id.value : result.id
-    await management.value.setProductHandlers(productId, form.handler_entity_ids, expectedEntityId.value)
+    await queryClient.invalidateQueries({ queryKey: ['manage-product-options'] })
     return { id: productId }
   },
   onSuccess: data => {
@@ -248,14 +297,21 @@ const finite = (value: number | null) => typeof value === 'number' && Number.isF
 const nonNegative = (value: number | null) => finite(value) && (value as number) >= 0
 const valid = computed(() => Boolean(
   form.name.trim() && form.cover_image.trim()
+  && !options.isPending.value && !options.isError.value && !access.isPending.value && !access.isError.value
   && nonNegative(form.price) && nonNegative(form.cost)
   && (form.cost as number) <= (form.price as number)
   && (pricingLocked.value || (
     nonNegative(form.handler_cut) && nonNegative(form.sender_cut)
     && nonNegative(form.cs_cut) && teamCut.value >= 0
   ))
-  && (form.kind !== 2 || form.benefit_package_id)
-  && (form.kind !== 3 || form.redemption_campaign_id),
+  && (!useComposition.value || (compositionItems.value.length > 0 && (form.kind !== 3 || compositionItems.value.length === 1)
+    && compositionItems.value.every(item => compositionMoneyValid(item) && productCandidates.value.some(product => product.id === item.product_id)
+      && item.quantity !== null && Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 10000)))
+  && (useComposition.value || form.kind !== 2 || form.benefit_package_id)
+  && (useComposition.value || form.kind !== 3 || form.redemption_campaign_id)
+  && (form.kind !== 4 || (validServiceRedemptionFields(redemptionFields.value) && redemption.unit_name.trim() && finite(redemption.quantity) && (redemption.quantity as number) > 0
+    && finite(redemption.quantity_step) && (redemption.quantity_step as number) > 0
+    && nonNegative(redemption.valid_days) && Number.isInteger(redemption.valid_days))),
 ))
 </script>
 
@@ -280,16 +336,39 @@ const valid = computed(() => Boolean(
           <LsSwitchField id="product-active" :model-value="form.is_active === 1" label="上架状态" description="关闭后商品不会在商城展示。" @update:model-value="value => form.is_active = value ? 1 : 0" />
       </LsFormSection>
       <LsFormSection title="销售与履约">
-          <p v-if="personal" class="form-intro" role="note">此商品自动归属当前已领取的 Entity，个人工作台不能转移归属。</p>
-          <LsField label="商品类型" for-id="product-kind" required><NSelect id="product-kind" v-model:value="form.kind" :options="[{ label: '普通商品', value: 1 }, { label: '服务套餐', value: 2 }, { label: '权益卡密', value: 3 }]" /></LsField>
-          <LsField v-if="form.kind === 2" label="服务权益包" for-id="product-package" required><NSelect id="product-package" v-model:value="form.benefit_package_id" :options="packages" :render-label="renderResourceLabel" filterable /></LsField>
-          <LsField v-if="form.kind === 3" label="卡密活动" for-id="product-campaign" required><NSelect id="product-campaign" v-model:value="form.redemption_campaign_id" :options="campaigns" filterable /></LsField>
-          <p v-if="pricingLocked" class="form-intro" role="note">售价、成本和分成由所选权益包的服务项目自动汇总。若要调整，请新建或修改尚未被引用的权益包。</p>
-          <LsField label="售价" for-id="product-price" required :hint="pricingLocked ? '由权益包自动汇总' : undefined"><NInputNumber id="product-price" v-model:value="form.price" :min="0" :step="0.01" :precision="2" :disabled="pricingLocked" /></LsField>
-          <LsField v-if="!personal" label="专属 Entity" for-id="product-owner"><LsEntitySelect id="product-owner" v-model="form.entity_id" :entities="entities" :loading="options.isPending.value" :disabled="options.isError.value" clearable placeholder="留空表示团队公用商品" /></LsField>
-          <LsField label="可选接单人" for-id="product-handlers" hint="普通商品用于下单选择；服务商品的核销接单池由服务定义控制。"><LsEntitySelect id="product-handlers" v-model="form.handler_entity_ids" :entities="entities" :loading="options.isPending.value" :disabled="options.isError.value" multiple clearable placeholder="选择可选接单人" /></LsField>
+          <p v-if="personal" class="form-intro" role="note">此商品自动归属当前已领取的人员，个人工作台不能转移归属。</p>
+          <LsField label="商品类型" for-id="product-kind" required><NSelect id="product-kind" v-model:value="form.kind" :disabled="editing" :options="[{ label: '普通商品', value: 1 }, { label: '核销商品', value: 4 }, { label: '套餐', value: 2 }, { label: '卡密', value: 3 }]" /></LsField>
+          <template v-if="form.kind === 4">
+            <LsField label="计量单位" for-id="product-unit" required><NInput id="product-unit" v-model:value="redemption.unit_name" maxlength="20" /></LsField>
+            <LsField label="每份核销额度" for-id="product-quota" required><NInputNumber id="product-quota" v-model:value="redemption.quantity" :min="0.0001" :precision="4" /></LsField>
+            <LsField label="最小核销步长" for-id="product-step" required><NInputNumber id="product-step" v-model:value="redemption.quantity_step" :min="0.0001" :precision="4" /></LsField>
+            <LsField label="有效天数" for-id="product-days" hint="从权益发放时起计算，0 表示不限期。"><NInputNumber id="product-days" v-model:value="redemption.valid_days" :min="0" :precision="0" /></LsField>
+          </template>
+          <template v-if="useComposition">
+            <p class="form-intro">普通子项不核销；核销子项发放可核销权益。卡密子项等待单独兑换。</p>
+            <p v-if="compositionNested" class="form-intro" role="note">包含套餐或卡密，所有分项金额均锁定。加入嵌套项会恢复已保存金额或源商品金额。</p>
+            <template v-for="(item, index) in compositionItems" :key="index">
+              <LsField :label="`子项 ${index + 1}`" :for-id="`product-item-${index}`" required>
+                <NSelect :id="`product-item-${index}`" :value="item.product_id" :options="productChoices" :loading="options.isPending.value" :disabled="options.isError.value" filterable @update:value="value => chooseCompositionProduct(index, value)" />
+              </LsField>
+              <LsField label="份数" :for-id="`product-item-quantity-${index}`" required><NInputNumber :id="`product-item-quantity-${index}`" v-model:value="item.quantity" :min="1" :max="10000" :precision="0" /></LsField>
+              <LsField v-for="field in itemMoneyFields" :key="field.key" :label="field.label" :for-id="`product-item-${field.key}-${index}`" required>
+                <NInputNumber :id="`product-item-${field.key}-${index}`" :value="compositionAmount(item, field.key)" :min="0" :precision="2" :step="0.01" :disabled="compositionMoneyLocked(item, field.key)" @update:value="value => item[field.key] = value" />
+              </LsField>
+              <LsField label="每份团队分成" :for-id="`product-item-team-cut-${index}`" :hint="compositionMoneyValid(item) ? '每份售价扣除成本及人员分成后的余额。' : '请填写完整金额，成本与人员分成之和不能超过每份售价。'">
+                <NInputNumber :id="`product-item-team-cut-${index}`" :value="compositionTeamCut(item)" :precision="2" disabled />
+              </LsField>
+              <LsButton type="button" variant="secondary" @click="compositionItems.splice(index, 1)">移除子项 {{ index + 1 }}</LsButton>
+            </template>
+            <LsButton v-if="form.kind === 2 || compositionItems.length === 0" type="button" variant="secondary" :disabled="options.isPending.value || options.isError.value" @click="compositionItems.push({ product_id: null, quantity: 1 })">添加商品</LsButton>
+          </template>
+          <p v-if="pricingLocked" class="form-intro" role="note">售价、成本和分成由子项自动汇总。</p>
+          <LsField label="售价" for-id="product-price" required :hint="pricingLocked ? '由子项自动汇总' : undefined"><NInputNumber id="product-price" v-model:value="form.price" :min="0" :step="0.01" :precision="2" :disabled="pricingLocked" /></LsField>
+          <LsField v-if="!personal" label="专属人员" for-id="product-owner"><LsEntitySelect id="product-owner" v-model="form.entity_id" :entities="entities" :loading="options.isPending.value" :disabled="options.isError.value" clearable placeholder="留空表示团队公用商品" /></LsField>
+          <LsField v-if="[1, 4].includes(form.kind)" label="可选接单人" for-id="product-handlers" hint="普通商品用于下单选择；核销商品用于核销接单。"><LsEntitySelect id="product-handlers" v-model="form.handler_entity_ids" :entities="entities" :loading="options.isPending.value" :disabled="options.isError.value" multiple clearable placeholder="选择可选接单人" /></LsField>
       </LsFormSection>
-      <LsFormSection v-if="pricingLocked" title="权益包分成汇总" description="订单创建后，实际金额继续按每个服务项冻结，不会平均分摊。">
+      <ServiceFieldsEditor v-if="form.kind === 4" v-model="redemptionFields" />
+      <LsFormSection v-if="pricingLocked" title="分项金额汇总" description="按子项份数汇总，订单创建后冻结交付配置和金额。">
           <dl class="pricing-breakdown">
             <div><dt>成本</dt><dd>¥{{ benefitPricingSummary?.cost }}</dd></div>
             <div><dt>接单分成</dt><dd>¥{{ benefitPricingSummary?.handler_cut }}</dd></div>
@@ -298,11 +377,11 @@ const valid = computed(() => Boolean(
             <div><dt>团队分成</dt><dd>¥{{ benefitPricingSummary?.team_cut }}</dd></div>
           </dl>
       </LsFormSection>
-      <LsFormSection v-else title="默认分成" description="修改售价或成本后，将按团队设置重算人员分成；订单创建时冻结当前金额。">
+      <LsFormSection v-else title="默认分成" :description="distributionLocked ? (editing ? '人员分成沿用已保存金额，团队分成取余额。' : '人员分成按团队默认比例生成，团队分成取余额。') : '修改售价或成本后，将按团队设置重算人员分成；订单创建时冻结当前金额。'">
           <LsField label="成本" for-id="product-cost"><NInputNumber id="product-cost" v-model:value="form.cost" :min="0" :step="0.01" :precision="2" /></LsField>
-          <LsField label="接单分成" for-id="product-handler-cut"><NInputNumber id="product-handler-cut" v-model:value="form.handler_cut" :min="0" :precision="2" clearable /></LsField>
-          <LsField label="发单分成" for-id="product-sender-cut"><NInputNumber id="product-sender-cut" v-model:value="form.sender_cut" :min="0" :precision="2" clearable /></LsField>
-          <LsField label="客服分成" for-id="product-cs-cut"><NInputNumber id="product-cs-cut" v-model:value="form.cs_cut" :min="0" :precision="2" clearable /></LsField>
+          <LsField label="接单分成" for-id="product-handler-cut"><NInputNumber id="product-handler-cut" v-model:value="form.handler_cut" :min="0" :precision="2" :disabled="distributionLocked" clearable /></LsField>
+          <LsField label="发单分成" for-id="product-sender-cut"><NInputNumber id="product-sender-cut" v-model:value="form.sender_cut" :min="0" :precision="2" :disabled="distributionLocked" clearable /></LsField>
+          <LsField label="客服分成" for-id="product-cs-cut"><NInputNumber id="product-cs-cut" v-model:value="form.cs_cut" :min="0" :precision="2" :disabled="distributionLocked" clearable /></LsField>
           <LsField label="团队分成" for-id="product-team-cut" :hint="teamCutHint"><NInputNumber id="product-team-cut" :value="teamCut" :precision="2" disabled /></LsField>
       </LsFormSection>
       <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
@@ -315,11 +394,6 @@ const valid = computed(() => Boolean(
     </form>
   </div>
 </template>
-
-<style>
-.product-resource-option { min-width: 0; display: flex; align-items: center; gap: .45rem; }
-.product-resource-option__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-</style>
 
 <style scoped>
 .pricing-breakdown { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin: 0; }

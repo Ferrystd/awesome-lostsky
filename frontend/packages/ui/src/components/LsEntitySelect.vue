@@ -34,7 +34,7 @@ const props = withDefaults(defineProps<{
   clearable: false,
   disabled: false,
   loading: false,
-  placeholder: '选择 Entity',
+  placeholder: '选择人员',
 })
 
 const emit = defineEmits<{

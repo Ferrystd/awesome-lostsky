@@ -75,8 +75,8 @@ function stop(codeId: number) {
       <div class="inline-fields">
         <label>数量<NInputNumber v-model:value="quantity" :min="1" :max="100" /></label>
         <label v-if="Number(campaign.data.value?.mode) === 3">
-          定向 Entity
-          <LsEntitySelect v-model="targetEntityId" :entities="options.data.value?.entities ?? []" :loading="options.isPending.value" :disabled="options.isError.value" placeholder="选择受益 Entity" />
+          定向人员
+          <LsEntitySelect v-model="targetEntityId" :entities="options.data.value?.entities ?? []" :loading="options.isPending.value" :disabled="options.isError.value" placeholder="选择受益人员" />
         </label>
       </div>
       <LsButton :disabled="routeAccess.restricted.value || !canManage(management.permission) || (Number(campaign.data.value?.mode) === 3 && !targetEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="issue.isPending.value" @click="issue.mutate()">发行兑换码</LsButton>

@@ -29,7 +29,7 @@ class CustomerBinding
         if ($current) {
             $source = $current->subject;
             if (!$source || !$source->is_valid) {
-                throw new HttpException(401, '当前实体身份会话已失效');
+                throw new HttpException(401, '当前人员身份会话已失效');
             }
             if ((string) $source->entityable_type === 'teamCustomer'
                 && app(IdentitySession::class)->entityTeamId(

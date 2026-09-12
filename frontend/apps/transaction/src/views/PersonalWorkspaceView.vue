@@ -48,7 +48,7 @@ const personalMetricItems = computed(() => [
 
 <template>
   <div class="personal-workspace">
-    <LsPageHeader :title="title" :description="section === 'services' ? '确认指定邀请，登记信息并接单核销，并管理当前实体（Entity）已结单的履约任务。' : '集中查看当前实体的角色笔数、月度数据与参与流水。'">
+    <LsPageHeader :title="title" :description="section === 'services' ? '确认指定邀请，登记信息并接单核销，并管理当前人员已结单的履约任务。' : '集中查看当前人员的角色笔数、月度数据与参与流水。'">
       <template v-if="section === 'transactions'" #actions>
         <LsPagePrimaryAction :icon="CirclePlus" label="登记流水" to="/personal/transactions/new" />
       </template>
@@ -66,7 +66,7 @@ const personalMetricItems = computed(() => [
       <LsPanel>
         <LsMetricGrid :items="personalMetricItems" aria-label="个人流水统计" />
       </LsPanel>
-      <LsEmptyState :source="query.data.value" v-if="!rows.length" title="暂无相关记录" description="当前实体参与业务后，流水会显示在这里。" />
+      <LsEmptyState :source="query.data.value" v-if="!rows.length" title="暂无相关记录" description="当前人员参与业务后，流水会显示在这里。" />
       <div v-else class="record-list">
         <article v-for="(row, index) in rows" :key="row.id ?? index">
           <strong>{{ row.product_name || row.customer?.profile?.name || row.customer?.nickname || `记录 #${row.id ?? index + 1}` }}</strong>

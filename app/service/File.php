@@ -361,12 +361,12 @@ class File
             ->where('entityable_id', (int) ($actor['id'] ?? 0))
             ->find();
         if (!$identity || !$identity->is_valid) {
-            throw new HttpException(422, '当前实体身份不存在或不可用');
+            throw new HttpException(422, '当前人员身份不存在或不可用');
         }
         if ($this->identityTeamId($identity) !== $teamId) {
             $identity = Entity::team()->where('entityable_id', $teamId)->find();
             if (!$identity || !$identity->is_valid) {
-                throw new HttpException(404, '团队实体身份不存在或不可用');
+                throw new HttpException(404, '团队身份不存在或不可用');
             }
         }
 
@@ -377,7 +377,7 @@ class File
     {
         $identity = Entity::find($entityId);
         if (!$identity || !$identity->is_valid) {
-            throw new HttpException(404, '实体身份不存在或不可用');
+            throw new HttpException(404, '人员身份不存在或不可用');
         }
 
         return $identity;
@@ -387,7 +387,7 @@ class File
     {
         $entity = $identity->entityable;
         if (!$entity) {
-            throw new HttpException(404, '实体身份对象不存在');
+            throw new HttpException(404, '人员身份对象不存在');
         }
 
         return $identity->entityable_type === 'team'

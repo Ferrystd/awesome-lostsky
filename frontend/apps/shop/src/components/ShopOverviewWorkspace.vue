@@ -13,7 +13,7 @@ defineProps<{ personal: boolean; access?: ManageAccess; steps: { key: string; la
 <template>
       <div class="shop-overview-workspace">
         <LsPanel>
-          <LsDashboardPath :title="personal ? '搭建我的商品' : '商品配置链'" description="先定义服务，再组合权益与领取方式，最后维护商品。" :steps="steps" />
+          <LsDashboardPath :title="personal ? '管理我的商品' : '管理商品'" description="直接创建商品；套餐和卡密可以选择其他商品作为子项。" :steps="steps" />
         </LsPanel>
         <div class="shop-overview-followup">
           <LsPanel>
@@ -23,7 +23,7 @@ defineProps<{ personal: boolean; access?: ManageAccess; steps: { key: string; la
           <LsPanel>
             <template #header><LsSectionHeader :title="personal ? '我的资源边界' : '当前工作身份'" description="确认当前身份与资源归属。" /></template>
             <LsDescriptionList><dt>当前身份</dt><dd>{{ access?.identity?.name || '-' }}</dd><dt>所属工作台</dt><dd>{{ access?.team?.name || '-' }}</dd></LsDescriptionList>
-            <p class="shop-context-note">{{ personal ? '可组合本人和已启用的团队公用资源；个人资源只可停用，不能转移归属或永久删除。' : '商品、服务与权益配置在团队范围管理，个人工作台用于维护自己的资源。' }}</p>
+            <p class="shop-context-note">{{ personal ? '可组合本人和已启用的团队公用商品；个人商品不能转移归属或永久删除。' : '商品在团队范围管理，个人工作台用于维护自己的商品。' }}</p>
           </LsPanel>
         </div>
       </div>

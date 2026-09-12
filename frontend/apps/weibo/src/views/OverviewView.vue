@@ -45,7 +45,7 @@ const query = useQuery({
 
 const next = computed(() => query.data.value?.tasks.filter((item) => item.next_run_at).sort((a, b) => (a.next_run_at || 0) - (b.next_run_at || 0))[0])
 const failures = computed(() => (query.data.value?.operations ?? []).filter((item) => ['Failed', 'Unknown'].includes(item.status)))
-const identityType = computed(() => ({ team: '团队实体', teamMember: '团队成员', teamVirtual: '虚拟实体' })[access.data.value?.identity.type ?? ''] || '当前 Entity')
+const identityType = computed(() => ({ team: '团队身份', teamMember: '团队成员', teamVirtual: '虚拟人员' })[access.data.value?.identity.type ?? ''] || '当前人员')
 const entries = computed(() => [
   {
     key: 'accounts',
@@ -98,7 +98,7 @@ const actions = computed(() => [
     icon: Send,
   },
 ])
-const scopeNotes = ['账号、任务和日志固定在当前 Entity 范围，页面不提供跨 Entity 筛选。', '远端写入和任务开启/恢复会在用户提交动作时核对 Weibo Ability。']
+const scopeNotes = ['账号、任务和日志固定在当前人员范围，页面不提供跨人员筛选。', '远端写入和任务开启/恢复会在用户提交动作时核对 Weibo Ability。']
 </script>
 
 <template>
@@ -106,7 +106,7 @@ const scopeNotes = ['账号、任务和日志固定在当前 Entity 范围，页
     <TeamOverviewDashboard v-if="!personal" :accounts="query.data.value?.accounts" :tasks="query.data.value?.tasks" :operations="query.data.value?.operations" :state="access.isPending.value ? 'loading' : !canRead ? 'restricted' : query.isPending.value ? 'loading' : query.isError.value ? 'error' : 'ready'" :error-description="query.isError.value ? friendlyError(query.error.value) : ''" />
 
     <template v-else>
-      <LsWorkspaceOverview :eyebrow="`${identityType} · 微博个人工作台`" :title="access.data.value?.identity.name || '当前 Entity 调度态势'" description="围绕当前身份准备内容、管理任务并追踪执行结果。" :actions="actions" :entries="entries" :scope-notes="scopeNotes" />
+      <LsWorkspaceOverview :eyebrow="`${identityType} · 微博个人工作台`" :title="access.data.value?.identity.name || '当前人员调度态势'" description="围绕当前身份准备内容、管理任务并追踪执行结果。" :actions="actions" :entries="entries" :scope-notes="scopeNotes" />
 
       <LsAsyncState v-if="access.isPending.value || (canRead && query.isPending.value)" state="loading" :rows="3" />
       <LsPanel v-else-if="!canRead">

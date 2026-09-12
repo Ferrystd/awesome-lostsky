@@ -25,7 +25,7 @@
 | 商店 | `shop.product.write` | 创建、编辑商品和配置处理人 |
 | 商店 | `shop.product.delete` | 删除商品 |
 | 商店 | `shop.product.self.manage` | 管理当前 Entity 本人服务、权益包、卡活动、卡密与商品 |
-| 商店 | `shop.product.self.package.reprice` | 调整本人权益包内团队公用服务的商业金额；不由本人资源管理权限隐式包含 |
+| 商店 | `shop.product.self.reprice` | 调整本人商品、服务及权益包服务项的人员分成，并调整本人权益包内公用服务的价格、成本；不由本人资源管理权限隐式包含 |
 | 商店 | `shop.order.read` | 查看订单 |
 | 商店 | `shop.order.write` | 创建、取消和完成订单 |
 | 交易 | `transaction.read` | 查看 Team 全量流水、余额日志、发单人和交易选项；本人相关读取不依赖此权限 |

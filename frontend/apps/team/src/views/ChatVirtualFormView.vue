@@ -66,8 +66,8 @@ function submit() {
 
 <template>
     <div class="virtual-form-page">
-      <AdminPageHeader :title="editing ? '编辑虚拟实体' : '创建虚拟实体'" description="slug 用于 URL、权限（Permission）和集成身份；确定后不可修改或复用。" back-to="/chat-virtuals" back-label="返回虚拟实体">
-        <template v-if="editing" #actions><LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteVirtual"><Trash2 :size="16" />删除实体</LsButton></template>
+      <AdminPageHeader :title="editing ? '编辑虚拟人员' : '创建虚拟人员'" description="slug 用于 URL、权限（Permission）和集成身份；确定后不可修改或复用。" back-to="/chat-virtuals" back-label="返回虚拟人员">
+        <template v-if="editing" #actions><LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteVirtual"><Trash2 :size="16" />删除人员</LsButton></template>
       </AdminPageHeader>
       <form @submit.prevent="submit"><LsPanel><div class="virtual-fields">
         <h3>基本信息</h3>
@@ -75,15 +75,15 @@ function submit() {
         <LsField label="显示名称" for-id="virtual-name" required><NInput id="virtual-name" v-model:value="form.name" maxlength="50" placeholder="销售助手" /></LsField>
         <LsField label="头像" for-id="virtual-avatar"><LsMediaUploadField id="virtual-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
         <LsField label="简介" for-id="virtual-description"><NInput id="virtual-description" v-model:value="form.description" type="textarea" maxlength="500" :autosize="{ minRows: 3, maxRows: 7 }" /></LsField>
-        <LsSwitchField v-if="editing" v-model="form.is_active" label="启用实体" description="停用后不能参与新操作。" />
+        <LsSwitchField v-if="editing" v-model="form.is_active" label="启用人员" description="停用后不能参与新操作。" />
         <LsInlineError v-if="(save.isError.value || remove.isError.value) && !routeAccess.restricted.value" :message="friendlyError(save.error.value || remove.error.value)" />
-        <LsButton type="submit" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || avatarUploading" :disabled-reason="routeAccess.reason.value">保存实体</LsButton>
+        <LsButton type="submit" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || avatarUploading" :disabled-reason="routeAccess.reason.value">保存人员</LsButton>
       </div></LsPanel></form>
 
       <template v-if="editing">
         <LsPanel>
           <template #header><header>
-            <div><h3>Webhook 集成</h3><p>同一虚拟实体（Virtual Entity）可以同时由成员操作并连接多个外部系统。</p></div>
+            <div><h3>Webhook 集成</h3><p>同一虚拟人员可以同时由成员操作并连接多个外部系统。</p></div>
             <LsButton v-if="routeAccess.restricted.value" size="sm" :disabled="true" :disabled-reason="routeAccess.reason.value"><Plus :size="16" />创建集成</LsButton>
             <RouterLink v-else :to="{ path: '/chat-integration-new', query: { slug } }">
               <LsButton size="sm"><Plus :size="16" />创建集成</LsButton>

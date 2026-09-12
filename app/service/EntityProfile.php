@@ -77,7 +77,7 @@ class EntityProfile
                 && $entity->entityable_type !== 'team'
                 && ($entity->entityable_type === 'teamCustomer'
                     || (int) $entity->is_internal_visible !== 1))) {
-            throw new HttpException(404, '实体不存在');
+            throw new HttpException(404, '人员不存在');
         }
         return $this->data($entity);
     }

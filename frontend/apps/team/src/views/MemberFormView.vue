@@ -331,7 +331,7 @@ useUnsavedChangesGuard(hasUnsavedChanges)
 
     <LsPanel v-if="editing && detail.data.value" aria-labelledby="member-management-title">
       <section class="management">
-        <LsSectionHeader id="member-management-title" title="管理操作" description="成员状态、搜索范围与实体身份操作。"
+        <LsSectionHeader id="member-management-title" title="管理操作" description="成员状态、搜索范围与人员身份操作。"
           ><template #aside
             ><span class="section-state">{{ memberStatusLabel(detail.data.value) }}</span></template
           ></LsSectionHeader
@@ -351,9 +351,9 @@ useUnsavedChangesGuard(hasUnsavedChanges)
         </form>
 
         <div class="management-actions">
-          <LsButton v-if="lifecycleStatus === 'active'" type="button" variant="secondary" :loading="memberAction.isPending.value" :disabled="!capabilities.member_block" :disabled-reason="!capabilities.member_block ? permissionReason('team.member.update') : undefined" @click="confirmAction('/member/block', '确认封禁该成员？封禁后该实体暂时无法使用。')"> 封禁成员 </LsButton>
+          <LsButton v-if="lifecycleStatus === 'active'" type="button" variant="secondary" :loading="memberAction.isPending.value" :disabled="!capabilities.member_block" :disabled-reason="!capabilities.member_block ? permissionReason('team.member.update') : undefined" @click="confirmAction('/member/block', '确认封禁该成员？封禁后该人员暂时无法使用。')"> 封禁成员 </LsButton>
           <LsButton v-if="lifecycleStatus === 'blocked'" type="button" variant="secondary" :loading="memberAction.isPending.value" :disabled="!capabilities.member_block" :disabled-reason="!capabilities.member_block ? permissionReason('team.member.update') : undefined" @click="confirmAction('/member/unblock', '确认解除该成员的封禁？')"> 解除封禁 </LsButton>
-          <LsButton v-if="memberSlug" type="button" variant="secondary" :disabled="!capabilities.identity_assume" :disabled-reason="!capabilities.identity_assume ? permissionReason(`identity.member.${memberSlug}.assume`) : undefined" @click="switchIdentity"> 切换为该实体 </LsButton>
+          <LsButton v-if="memberSlug" type="button" variant="secondary" :disabled="!capabilities.identity_assume" :disabled-reason="!capabilities.identity_assume ? permissionReason(`identity.member.${memberSlug}.assume`) : undefined" @click="switchIdentity"> 切换为该人员 </LsButton>
         </div>
 
         <div v-if="lifecycleStatus !== 'departed'" class="danger-zone">

@@ -21,3 +21,5 @@ Chat 只负责团队会话、消息、参与身份选择、实时订阅和 Webho
 ## 接口契约
 
 具体路径、请求字段和响应结构见 [`chat.openapi.json`](../openapi/chat.openapi.json)。
+
+出站集成使用 [Standard Webhooks 协议](../development/webhooks.md)，外部开发者可从[最小 SDK 接入](../development/webhook-quickstart.md)开始。

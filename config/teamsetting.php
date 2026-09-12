@@ -7,7 +7,7 @@ use app\enum\TeamMemberDepartureMode;
 
 return [
     'entity' => [
-        'label'       => '实体',
+        'label'       => '人员',
         'description' => '控制团队和成员是否可以通过对象标识被搜索。',
         'order'       => 10,
         'settings'    => [
@@ -40,7 +40,7 @@ return [
     ],
     'member' => [
         'label'       => '成员',
-        'description' => '配置成员离队、复职与非正常状态实体的处理方式。',
+        'description' => '配置成员离队、复职与非正常状态人员的处理方式。',
         'order'       => 15,
         'settings'    => [
             'departure_mode' => [
@@ -53,8 +53,8 @@ return [
                 'order'       => 10,
             ],
             'inactive_entity_available' => [
-                'label'       => '封禁或离队后仍可代管实体',
-                'description' => '开启后，有代入权限的实体仍可以进入并使用其完整业务能力；成员本人始终无法直接登录。',
+                'label'       => '封禁或离队后仍可代管人员',
+                'description' => '开启后，有代入权限的人员仍可以进入并使用其完整业务能力；成员本人始终无法直接登录。',
                 'type'        => 'boolean',
                 'control'     => 'switch',
                 'default'     => false,
@@ -77,7 +77,7 @@ return [
         'settings'    => [
             'customer_direct_start' => [
                 'label'       => '客户可发起单聊',
-                'description' => '允许客户主动联系团队公开的成员或虚拟实体。',
+                'description' => '允许客户主动联系团队公开的成员或虚拟人员。',
                 'type'        => 'boolean',
                 'control'     => 'switch',
                 'default'     => true,
@@ -214,41 +214,41 @@ return [
                 'order'       => 10,
             ],
             'homepage_entities_link' => [
-                'label'       => '实体入口文案',
-                'description' => '主页首屏中跳转到公开实体区域的链接文案。',
+                'label'       => '人员入口文案',
+                'description' => '主页首屏中跳转到公开人员区域的链接文案。',
                 'type'        => 'string',
                 'control'     => 'input',
-                'default'     => '浏览公开实体',
+                'default'     => '浏览公开人员',
                 'min_length'  => 1,
                 'max_length'  => 100,
                 'order'       => 20,
             ],
             'homepage_entities_title' => [
-                'label'       => '实体区域标题',
-                'description' => '主页公开实体预览区域的标题。',
+                'label'       => '人员区域标题',
+                'description' => '主页公开人员预览区域的标题。',
                 'type'        => 'string',
                 'control'     => 'input',
-                'default'     => '公开实体',
+                'default'     => '公开人员',
                 'min_length'  => 1,
                 'max_length'  => 100,
                 'order'       => 30,
             ],
             'homepage_entities_description' => [
-                'label'       => '实体区域说明',
-                'description' => '主页公开实体预览区域的辅助说明。',
+                'label'       => '人员区域说明',
+                'description' => '主页公开人员预览区域的辅助说明。',
                 'type'        => 'string',
                 'control'     => 'input',
-                'default'     => '团队成员与虚拟实体',
+                'default'     => '团队成员与虚拟人员',
                 'min_length'  => 1,
                 'max_length'  => 100,
                 'order'       => 40,
             ],
             'homepage_entities_empty' => [
-                'label'       => '实体空状态文案',
-                'description' => '团队没有可公开实体时显示的提示。',
+                'label'       => '人员空状态文案',
+                'description' => '团队没有可公开人员时显示的提示。',
                 'type'        => 'string',
                 'control'     => 'input',
-                'default'     => '团队暂时没有公开实体',
+                'default'     => '团队暂时没有公开人员',
                 'min_length'  => 1,
                 'max_length'  => 100,
                 'order'       => 50,

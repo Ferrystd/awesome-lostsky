@@ -23,7 +23,7 @@ class MemberAccess
         if (!is_array($acting)
             || ($acting['type'] ?? '') !== 'teamMember'
             || (int) ($acting['id'] ?? 0) !== ($request->member_id ?? 0)) {
-            throw new HttpException(403, '当前实体不是该团队成员');
+            throw new HttpException(403, '当前人员不是该团队成员');
         }
 
         if (!isset($request->member)) {
@@ -31,7 +31,7 @@ class MemberAccess
         }
 
         if (!(bool) $request->member->is_valid) {
-            throw new HttpException(403, '当前成员实体不可用');
+            throw new HttpException(403, '当前成员身份不可用');
         }
 
         return $next($request);

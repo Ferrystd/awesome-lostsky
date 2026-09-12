@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import TeamSectionNav from '../components/TeamSectionNav.vue'
+import { reviewSections } from '../lib/workspaceNavigation'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
-import { ArrowRight } from '@lucide/vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
+import { Settings, ArrowRight } from '@lucide/vue'
 import { NSelect, NSkeleton } from 'naive-ui'
 import { computed, ref } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -31,8 +34,10 @@ const visibleRows = computed(() => { const keyword = search.value.trim().toLocal
 
 <template>
     <div class="join-review-list-page">
-      <AdminPageHeader title="加入审核" description="查看申请状态，选择一条申请进入独立审核页面。">
+      <AdminPageHeader title="人事审核" description="查看申请状态，选择一条申请进入独立审核页面。">
+      <template #actions><LsPagePrimaryAction :icon="Settings" label="申请表配置" to="/join-fields" /></template>
       </AdminPageHeader>
+      <TeamSectionNav label="审核分类" :items="reviewSections" />
       <LsListToolbar v-model="search" placeholder="搜索申请人、编号或说明" aria-label="搜索加入申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visibleRows.length} 条申请`"><template #filters><NSelect v-model:value="status" class="status-filter" :options="statusOptions" aria-label="筛选申请状态" /></template></LsListToolbar>
       <p v-if="!routeAccess.restricted.value && listQuery.isError.value" class="error" role="alert">{{ friendlyError(listQuery.error.value) }}</p>
       <div v-else-if="!routeAccess.restricted.value && listQuery.isPending.value" class="loading" aria-label="正在读取申请"><NSkeleton v-for="item in 4" :key="item" height="88px" /></div>

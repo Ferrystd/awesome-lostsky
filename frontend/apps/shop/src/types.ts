@@ -12,6 +12,7 @@ export interface StoreProfile {
 }
 
 export interface ProductSummary {
+  kind?: 1 | 2 | 3 | 4
   id: number
   name: string
   description?: string | null
@@ -27,6 +28,8 @@ export interface Handler {
 }
 
 export interface ProductDetail extends ProductSummary {
+  handler_groups?: Array<{ product_id: number; name: string; handlers: Handler[] }>
+  inclusions?: Array<{ kind: 1 | 3 | 4; name: string; quantity: string; unit_name: string; quantity_step?: string; valid_days?: number }>
   introduction_markdown?: string | null
   handlers: Handler[]
   benefit_package?: {
@@ -228,6 +231,20 @@ export interface ManageServiceDefaults {
   default_unit_name: string; default_quantity_step: string; default_valid_days: number
   allow_customer_open_dispatch: boolean; default_handler_rate_percent: number; default_sender_rate_percent: number; default_cs_rate_percent: number
 }
-export interface ProductManageOptions { entities: ManageEntityOption[]; packages: ManagePackage[]; campaigns: ManageCampaign[]; service_defaults: ManageServiceDefaults }
+export interface ManageProductCandidate {
+  id: number
+  team_id: number
+  entity_id: number | null
+  name: string
+  kind: number | string
+  price: string
+  cost: string
+  handler_cut: string | null
+  sender_cut: string | null
+  cs_cut: string | null
+  team_cut: string | null
+  is_active: 0 | 1
+}
+export interface ProductManageOptions { entities: ManageEntityOption[]; products?: ManageProductCandidate[]; packages: ManagePackage[]; campaigns: ManageCampaign[]; service_defaults: ManageServiceDefaults }
 export interface EntitlementManageOptions extends ProductManageOptions { services: ManageService[] }
 export interface ManageOptions extends EntitlementManageOptions { customers: ManageCustomerOption[] }

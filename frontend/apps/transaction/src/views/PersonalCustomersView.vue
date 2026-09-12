@@ -44,7 +44,7 @@ const columns: DataTableColumns<PersonalCustomer> = [
 
 <template>
   <div class="personal-customers-view">
-    <LsPageHeader title="我的顾客" description="汇总当前实体（Entity）负责或协作发单的顾客；同一顾客只显示一次，并标明每种关系。" />
+    <LsPageHeader title="我的顾客" description="汇总当前人员负责或协作发单的顾客；同一顾客只显示一次，并标明每种关系。" />
     <LsListToolbar
       v-model="filters.keyword"
       placeholder="搜索顾客名称"
@@ -57,7 +57,7 @@ const columns: DataTableColumns<PersonalCustomer> = [
     <LsEmptyState :source="query.data.value"
       v-else-if="!rows.length"
       :title="filters.keyword ? '没有匹配的顾客' : '还没有我的顾客'"
-      :description="filters.keyword ? '调整搜索关键词后再试。' : '顾客归属当前实体，或将当前实体设为协作发单人后，会显示在这里。'"
+      :description="filters.keyword ? '调整搜索关键词后再试。' : '顾客归属当前人员，或将当前人员设为协作发单人后，会显示在这里。'"
     />
     <LsResponsiveDataTable v-else :columns="columns" :data="rows" :row-key="row => Number(row.id)" :scroll-x="760">
       <template #mobile-title="{ row }">{{ row.name || `顾客 #${row.id}` }}</template>

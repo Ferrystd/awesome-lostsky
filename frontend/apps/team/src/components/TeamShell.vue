@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { teamNavigation, teamNavigationOwner } from '../lib/workspaceNavigation'
 import { identityUrl, workspaceAppEntries } from '@lostsky/shared/navigation'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
-import { Bell, BookOpen, Bot, Boxes, ChevronDown, ChevronRight, FileClock, FileText, Files, House, ListPlus, Menu, MessageCircleMore, Radio, ReceiptText, Send, Settings, ShieldCheck, Contact, KeyRound, Store, UserRound, Users, X } from '@lucide/vue'
+import { BookOpen, ChevronDown, ChevronRight, FileText, House, Menu, MessageCircleMore, Radio, ReceiptText, ShieldCheck, Store, UserRound, X } from '@lucide/vue'
 import { NButton } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -17,40 +18,17 @@ const drawer = ref(false)
 const menuScroll = ref<HTMLElement | null>(null)
 const canScrollDown = ref(false)
 
-const primary: NavItem[] = [
-  { to: '/', label: '概览', icon: House },
-  { to: '/entities', label: '实体', icon: Boxes },
-  { to: '/members', label: '成员', icon: Users },
-  { to: '/customers', label: '顾客', icon: Contact },
-  { to: '/notices/entity', label: '通知', icon: Bell },
-  { to: '/docs', label: '文档', icon: BookOpen },
-  { to: '/me', label: '当前实体', icon: UserRound },
-]
+const primary: NavItem[] = [{ to: '/', label: '概览', icon: House }]
 const personalNav: NavItem[] = [
   { to: '/personal', label: '概览', icon: House },
   { to: '/personal/profile', label: '资料', icon: UserRound },
   { to: '/personal/fields', label: '对象字段', icon: FileText },
   { to: '/personal/access', label: '角色与权限', icon: ShieldCheck },
 ]
-const secondary: NavItem[] = [
-  { to: '/files', label: '文件管理', icon: Files },
-  { to: '/fields', label: '对象字段', icon: FileText },
-  { to: '/chat-virtuals', label: '虚拟实体', icon: Bot },
-  { to: '/roles', label: '角色权限', icon: ShieldCheck },
-  { to: '/join-fields', label: '申请字段', icon: ListPlus },
-  { to: '/join-review', label: '加入审核', icon: Users },
-  { to: '/departure-review', label: '离队审核', icon: UserRound },
-  { to: '/notices/team', label: '站内通知', icon: Bell },
-  { to: '/notices/send', label: '发送通知', icon: Send },
-  { to: '/settings', label: '团队设置', icon: Settings },
-  { to: '/abilities', label: '团队能力', icon: KeyRound },
-  { to: '/audit', label: '审计日志', icon: FileClock },
-]
-
 const title = computed(() => String(route.meta.title ?? '工作台'))
 const activeWorkspace = computed(() => (route.meta.workspace === 'personal' ? 'personal' : 'team'))
-const sidebarPrimary = computed(() => (activeWorkspace.value === 'personal' ? personalNav : primary.filter((item) => item.to !== '/me')))
-const bottomPrimary = computed(() => (activeWorkspace.value === 'personal' ? personalNav : primary.filter((item) => !['/members', '/notices/entity'].includes(item.to))))
+const sidebarPrimary = computed(() => (activeWorkspace.value === 'personal' ? personalNav : primary))
+const bottomPrimary = computed(() => (activeWorkspace.value === 'personal' ? personalNav : [...primary, ...teamNavigation[0].links.filter(item => ['/entities', '/customers'].includes(item.to))]))
 const appEntries = computed(() => {
   const personal = activeWorkspace.value === 'personal'
   return workspaceAppEntries({ personal })
@@ -108,7 +86,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => window.removeEventListener('resize', updateMenuScroll))
 watch(
-  () => [secondary.length, drawer.value],
+  () => [drawer.value, route.path],
   () => {
     void nextTick(updateMenuScroll)
   },
@@ -137,13 +115,13 @@ watch(
             </RouterLink>
           </template>
 
-          <p v-if="activeWorkspace === 'team'">管理</p>
-          <template v-for="item in activeWorkspace === 'team' ? secondary : []" :key="item.to">
-            <RouterLink :to="item.to" @click="drawer = false">
-              <component :is="item.icon" :size="19" />
-              <span>{{ item.label }}</span>
-              <ChevronRight :size="15" />
-            </RouterLink>
+          <template v-if="activeWorkspace === 'team'">
+            <template v-for="group in teamNavigation" :key="group.key">
+              <p>{{ group.title }}</p>
+              <RouterLink v-for="item in group.links" :key="item.to" :to="item.to" :class="{ 'router-link-active': teamNavigationOwner(route.path) === item.to }" :aria-current="teamNavigationOwner(route.path) === item.to ? 'page' : undefined" @click="drawer = false">
+                <component :is="item.icon" :size="19" /><span>{{ item.label }}</span><ChevronRight :size="15" />
+              </RouterLink>
+            </template>
           </template>
         </nav>
         <NButton v-if="canScrollDown" class="menu-more" quaternary circle aria-label="向下查看更多菜单" @click="scrollMenuDown">
@@ -399,7 +377,8 @@ nav p {
   inset: auto 0 0;
   min-height: 64px;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   padding-bottom: env(safe-area-inset-bottom);
   background: white;
   border-top: 1px solid var(--line);

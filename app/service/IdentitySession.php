@@ -86,7 +86,7 @@ class IdentitySession
             if ($targetTeamId < 1
                 || (!app(PermissionGate::class)->delegatedAllows($targetTeamId, $source, $identity)
                     && !$this->boundCustomerAllows((int) $sourceEntity->id, $identity))) {
-                throw new HttpException(403, '当前实体没有领取该身份的权限');
+                throw new HttpException(403, '当前人员没有领取该身份的权限');
             }
             $issued = $this->issueDelegated(
                 $userId,
@@ -146,7 +146,7 @@ class IdentitySession
 
         if ($current) {
             if ((int) ($customer->owner_entity_id ?? 0) !== (int) $current->entity_id) {
-                throw new HttpException(403, '当前实体不能领取该顾客身份');
+                throw new HttpException(403, '当前人员不能领取该顾客身份');
             }
             return $this->publicIssue($this->issueDelegated(
                 $userId,
@@ -207,7 +207,7 @@ class IdentitySession
     ): EntitySession {
         $entity = Entity::where('entityable_type', $type)->where('entityable_id', $id)->find();
         if (!$entity) {
-            throw new HttpException(401, '实体身份会话已失效');
+            throw new HttpException(401, '人员身份会话已失效');
         }
         $session = EntitySession::where('user_id', $userId)
             ->where('device_token', $deviceToken)
@@ -219,7 +219,7 @@ class IdentitySession
             ->find();
 
         if (!$session || !$this->validChain($session, $userId, $deviceToken)) {
-            throw new HttpException(401, '实体身份会话已失效');
+            throw new HttpException(401, '人员身份会话已失效');
         }
 
         return $session;
@@ -264,10 +264,10 @@ class IdentitySession
     {
         $fallback = match ($type) {
             'team' => '团队',
-            'teamVirtual' => '虚拟实体',
+            'teamVirtual' => '虚拟人员',
             'teamMember' => "成员 #{$id}",
             'teamCustomer' => "顾客 #{$id}",
-            default => '实体',
+            default => '人员',
         };
 
         $entity = Entity::with('profile')
@@ -301,7 +301,7 @@ class IdentitySession
         $type = (string) ($actingEntity['type'] ?? '');
         $teamId = $this->entityTeamId($type, (int) ($actingEntity['id'] ?? 0));
         if ($teamId < 1) {
-            throw new HttpException(401, '当前实体所属团队不可用');
+            throw new HttpException(401, '当前人员所属团队不可用');
         }
 
         return [
@@ -471,12 +471,12 @@ class IdentitySession
     {
         $slug = strtolower(trim($slug));
         if (!preg_match('/^[a-z][a-z0-9_-]{1,49}$/', $slug)) {
-            throw new HttpException(422, '实体 slug 格式不正确');
+            throw new HttpException(422, '人员 slug 格式不正确');
         }
 
         $identity = Entity::where('slug', $slug)->find();
         if (!$identity || !$identity->is_valid) {
-            throw new HttpException(404, '实体身份不存在或不可用');
+            throw new HttpException(404, '人员身份不存在或不可用');
         }
 
         return $identity;
@@ -637,7 +637,7 @@ class IdentitySession
                 ->lock(true)
                 ->find();
             if (!$locked || !$this->validChain($locked, $userId, $deviceToken)) {
-                throw new HttpException(401, '当前实体身份会话已失效');
+                throw new HttpException(401, '当前人员身份会话已失效');
             }
 
             $locked->superseded_at = time();

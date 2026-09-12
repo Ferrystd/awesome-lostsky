@@ -53,7 +53,7 @@ class Entity
     public function index(Request $request)
     {
         $type = $request->get('type');
-        if (!in_array($type, [null, '', 'team', 'teamMember', 'teamCustomer', 'teamVirtual'], true)) return error('实体类型不正确', 1, 422);
+        if (!in_array($type, [null, '', 'team', 'teamMember', 'teamCustomer', 'teamVirtual'], true)) return error('人员类型不正确', 1, 422);
         return success(app(EntityProfile::class)->listing(
             $request->team_id,
             $type ?: null,
@@ -86,7 +86,7 @@ class Entity
             $request, 'team', 'update', 'entity', $entityId,
             ['changed_fields' => array_keys($data), 'changed' => $data !== []]
         );
-        return message('实体资料已更新');
+        return message('人员资料已更新');
     }
 
     public function display(Request $request)

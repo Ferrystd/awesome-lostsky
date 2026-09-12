@@ -3,7 +3,7 @@
   "info": {
     "title": "LostSky Chat API",
     "version": "0.1.1",
-    "description": "LostSky 团队聊天、通用虚拟实体、Webhook 集成、统一对象字段与 Centrifugo 订阅令牌。"
+    "description": "LostSky 团队聊天、通用虚拟实体、Webhook 集成、统一对象字段与 Centrifugo 订阅令牌。 出站事件遵循 Standard Webhooks v1；见 WebhookEvent 和 development/webhooks.md。"
   },
   "x-entity-auth": {
     "team_business_default": [
@@ -96,6 +96,271 @@
       }
     },
     "schemas": {
+      "IntegrationCredentials": {
+        "type": "object",
+        "required": [
+          "token",
+          "signing_secret"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "仅创建时返回"
+          },
+          "token": {
+            "type": "string",
+            "description": "调用消息 API 的 Bearer 令牌，仅返回一次"
+          },
+          "signing_secret": {
+            "type": "string",
+            "pattern": "^whsec_[A-Za-z0-9+/]{43}=$",
+            "description": "Standard Webhooks v1 密钥：32 随机字节的标准 Base64 编码；仅返回一次"
+          }
+        }
+      },
+      "IntegrationCredentialsEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Envelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/IntegrationCredentials"
+              }
+            }
+          }
+        ]
+      },
+      "WebhookEvent": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "timestamp",
+              "data"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "conversation.created"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "事件创建时刻，UTC RFC 3339"
+              },
+              "data": {
+                "type": "object",
+                "required": [
+                  "conversation",
+                  "kind"
+                ],
+                "properties": {
+                  "conversation": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "direct",
+                      "group"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "timestamp",
+              "data"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "conversation.closed"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "事件创建时刻，UTC RFC 3339"
+              },
+              "data": {
+                "type": "object",
+                "required": [
+                  "conversation"
+                ],
+                "properties": {
+                  "conversation": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "timestamp",
+              "data"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "conversation.participants.added"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "事件创建时刻，UTC RFC 3339"
+              },
+              "data": {
+                "type": "object",
+                "required": [
+                  "conversation",
+                  "participants"
+                ],
+                "properties": {
+                  "conversation": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "participants": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Actor"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "timestamp",
+              "data"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "conversation.participant.removed"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "事件创建时刻，UTC RFC 3339"
+              },
+              "data": {
+                "type": "object",
+                "required": [
+                  "conversation",
+                  "participant"
+                ],
+                "properties": {
+                  "conversation": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "participant": {
+                    "$ref": "#/components/schemas/Actor"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "timestamp",
+              "data"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "message.created"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "事件创建时刻，UTC RFC 3339"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ChatMessage"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "timestamp",
+              "data"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "message.updated"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "事件创建时刻，UTC RFC 3339"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ChatMessage"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "timestamp",
+              "data"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "message.revoked"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "事件创建时刻，UTC RFC 3339"
+              },
+              "data": {
+                "$ref": "#/components/schemas/ChatMessage"
+              }
+            }
+          }
+        ],
+        "description": "Standard Webhooks 出站事件信封；请求头 webhook-id 为稳定投递 ID 字符串，webhook-timestamp 为发送时刻 Unix 秒，webhook-signature 为 v1,Base64签名。使用原始请求体验签。"
+      },
       "Envelope": {
         "type": "object",
         "required": [
@@ -817,12 +1082,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope"
+                  "$ref": "#/components/schemas/IntegrationCredentialsEnvelope"
                 }
               }
             }
           }
-        }
+        },
+        "description": "Standard Webhooks v1。创建或轮换后凭据明文仅返回一次；轮换立即替换 API Token 与签名密钥。"
       }
     },
     "/integration/update": {
@@ -923,12 +1189,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope"
+                  "$ref": "#/components/schemas/IntegrationCredentialsEnvelope"
                 }
               }
             }
           }
-        }
+        },
+        "description": "Standard Webhooks v1。创建或轮换后凭据明文仅返回一次；轮换立即替换 API Token 与签名密钥。"
       }
     },
     "/integration/delete": {

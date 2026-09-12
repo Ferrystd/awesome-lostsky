@@ -132,7 +132,7 @@ class Entity extends Base
 
     public function getNameAttr(): string
     {
-        return (string) (TeamEntityProfile::where('entity_id', $this->id)->value('name') ?: '实体');
+        return (string) (TeamEntityProfile::where('entity_id', $this->id)->value('name') ?: '人员');
     }
 
     public function getAvatarAttr(): ?string

@@ -60,6 +60,7 @@ class Storefront
             'description' => $product->description ?: null,
             'cover_image' => $product->cover_image ?: null,
             'price' => (string) $product->price,
+            'kind' => $product->enumCase('kind')->value,
         ];
         if (!$detail) {
             return $data;
@@ -81,6 +82,43 @@ class Storefront
 
         $data['introduction_markdown'] = $product->introduction_markdown ?: null;
         $data['handlers'] = $handlers;
+        $snapshot = \think\facade\Db::transaction(fn () => app(BenefitFulfillment::class)->snapshotProduct($product));
+        $groups = [];
+        $collectHandlers = function (array $node) use (&$collectHandlers, &$groups, $product): void {
+            foreach ($node['ordinary'] ?? [] as $entry) {
+                $id = (int) $entry['product_id'];
+                if (isset($groups[$id])) continue;
+                $child = TeamProduct::where('team_id', $product->team_id)->with(['handlers.subject.profile'])->find($id);
+                if (!$child) throw new HttpException(422, '套餐普通商品不可用');
+                $options = [];
+                foreach ($child->handlers as $handler) {
+                    $subject = $handler->subject;
+                    if (!$subject || !$subject->is_valid) continue;
+                    $options[] = ['entity_id' => (int) $subject->id, 'slug' => (string) $subject->slug,
+                        'name' => (string) ($subject->profile?->name ?: $subject->slug), 'avatar' => $subject->profile?->avatar ?: null];
+                }
+                $groups[$id] = ['product_id' => $id, 'name' => (string) $entry['product_name'], 'handlers' => $options];
+            }
+            if (isset($node['target'])) $collectHandlers($node['target']);
+            foreach ($node['cards'] ?? [] as $card) $collectHandlers($card['target']);
+        };
+        $collectHandlers($snapshot);
+        $data['handler_groups'] = array_values($groups);
+        $contents = $snapshot['target'] ?? $snapshot;
+        $data['inclusions'] = [];
+        foreach ($contents['items'] ?? [] as $item) {
+            $data['inclusions'][] = [
+                'kind' => 4, 'name' => (string) ($item['service']['name'] ?? ''),
+                'quantity' => (string) $item['quantity'], 'unit_name' => $item['service']['unit_name'],
+                'quantity_step' => $item['service']['quantity_step'], 'valid_days' => (int) $item['valid_days'],
+            ];
+        }
+        foreach (['ordinary' => 1, 'cards' => 3] as $collection => $kind) {
+            foreach ($contents[$collection] ?? [] as $item) {
+                $data['inclusions'][] = ['kind' => $kind, 'name' => (string) $item['product_name'],
+                    'quantity' => (string) $item['quantity'], 'unit_name' => $kind === 3 ? '张' : '件'];
+            }
+        }
         $packageId = (int) ($product->benefit_package_id ?? 0);
         $package = $packageId > 0
             ? BenefitPackage::where('issuer_team_id', (int) $product->team_id)

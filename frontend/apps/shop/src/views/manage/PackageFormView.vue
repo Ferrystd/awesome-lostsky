@@ -16,7 +16,8 @@ import { ChevronDown } from '@lucide/vue'
 import { NInput, NInputNumber, NSelect, useDialog } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { canManage, entitlementManagement, hasManagePermission, loadManageAccess, managePermissionReason, resourceOwnerLabel } from '../../lib'
+import { canManage, entitlementManagement, loadManageAccess, managePermissionReason, resourceOwnerLabel } from '../../lib'
+import { personalDistributionLocked } from '../../personal-pricing'
 import { calculateDefaultServiceDistribution, calculateServiceTeamCut } from '../../service-distribution'
 
 type Item = {
@@ -58,7 +59,7 @@ const management = computed(() => entitlementManagement(scope.value))
 const personal = computed(() => management.value.personal)
 const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess() })
 const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?? 0)
-const canRepriceSharedService = computed(() => hasManagePermission(access.data.value?.permissions ?? [], 'shop.product.self.package.reprice'))
+const distributionLocked = computed(() => personalDistributionLocked(personal.value, access.data.value?.permissions))
 const copySourceId = computed(() => Number(route.query.copy || 0))
 const copying = computed(() => !editing.value && copySourceId.value > 0)
 const sourceId = computed(() => editing.value ? id.value : copySourceId.value)
@@ -120,11 +121,27 @@ const serviceOptions = computed(() => availableServices.value.map(service => ({
   disabled: !service.is_active,
 })))
 const selectedService = (item: Item) => availableServices.value.find(service => service.id === item.service_id)
-const sharedPricingLocked = (item: Item) => Boolean(personal.value && selectedService(item)?.owner_entity_id == null && !canRepriceSharedService.value)
+watch([availableServices, distributionLocked, copying], () => {
+  if (!copying.value || !distributionLocked.value) return
+  for (const item of form.services) {
+    const service = selectedService(item)
+    if (!service) continue
+    Object.assign(item, {
+      unit_handler_cut: Number(service.default_handler_cut ?? 0),
+      unit_sender_cut: Number(service.default_sender_cut ?? 0),
+      unit_cs_cut: Number(service.default_cs_cut ?? 0),
+      ...(service.owner_entity_id == null ? {
+        unit_price: Number(service.default_total_price ?? 0),
+        unit_cost: Number(service.default_cost ?? 0),
+      } : {}),
+    })
+  }
+}, { immediate: true })
+const sharedPricingLocked = (item: Item) => Boolean(distributionLocked.value && selectedService(item)?.owner_entity_id == null)
 const moneyLocked = (item: Item) => pricingLocked.value || sharedPricingLocked(item)
 const sharedPricingHint = (item: Item) => sharedPricingLocked(item)
-  ? '团队公用服务的价格、成本与分成沿用服务定义；需要 shop.product.self.package.reprice 才能调整。'
-  : '默认使用服务价格；修改后按团队默认比例重算人员分成。'
+  ? '团队公用服务的价格、成本与分成沿用服务默认值或已保存金额。'
+  : distributionLocked.value ? '价格与成本可调整，人员分成沿用服务默认值或已保存金额。' : '默认使用服务价格；修改后按团队默认比例重算人员分成。'
 const quantityScale = (item: Item) => quantityScaleForStep(selectedService(item)?.quantity_step)
 const quantityStep = (item: Item) => Number(selectedService(item)?.quantity_step ?? 1)
 const itemized = computed(() => form.pricing_mode === 2)
@@ -162,6 +179,7 @@ function selectService(item: Item, serviceId: number | null) {
 }
 function updateItemMoney(item: Item, field: 'unit_price' | 'unit_cost', value: number | null) {
   item[field] = value
+  if (distributionLocked.value) return
   const distribution = calculateDefaultServiceDistribution(item.unit_price, item.unit_cost, {
     handler: itemDefaults.handlerRate,
     sender: itemDefaults.senderRate,
@@ -259,7 +277,7 @@ function stop() {
     </LsPageHeader>
     <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
       <LsFormSection title="基本信息">
-        <p v-if="personal" class="form-intro" role="note">此权益包自动归属当前 Entity；可组合本人服务和已启用的团队公用服务。</p>
+        <p v-if="personal" class="form-intro" role="note">此权益包自动归属当前人员；可组合本人服务和已启用的团队公用服务。</p>
         <LsField label="权益包名称" for-id="package-name" required><NInput id="package-name" v-model:value="form.name" maxlength="100" /></LsField>
         <LsField v-if="form.pricing_mode === 1" label="计价方式" for-id="package-pricing-mode" hint="历史权益包继续按订单总额均摊；如需分项计价，请新建权益包。"><NInput id="package-pricing-mode" value="历史均摊" disabled /></LsField>
         <LsSwitchField id="package-active" :model-value="form.is_active === 1" label="启用状态" description="停用后不能用于新的卡活动或商品配置。" @update:model-value="value => form.is_active = value ? 1 : 0" />
@@ -299,9 +317,9 @@ function stop() {
                   </section>
                   <section class="package-field-group" data-package-group="distribution" :aria-labelledby="`package-group-distribution-title-${item.key}`">
                     <h4 :id="`package-group-distribution-title-${item.key}`">分成</h4>
-                    <LsField label="单位接单分成" :for-id="`package-handler-cut-${item.key}`"><NInputNumber :id="`package-handler-cut-${item.key}`" v-model:value="item.unit_handler_cut" :min="0" :precision="2" :disabled="moneyLocked(item)" /></LsField>
-                    <LsField label="单位发单分成" :for-id="`package-sender-cut-${item.key}`"><NInputNumber :id="`package-sender-cut-${item.key}`" v-model:value="item.unit_sender_cut" :min="0" :precision="2" :disabled="moneyLocked(item)" /></LsField>
-                    <LsField label="单位客服分成" :for-id="`package-cs-cut-${item.key}`"><NInputNumber :id="`package-cs-cut-${item.key}`" v-model:value="item.unit_cs_cut" :min="0" :precision="2" :disabled="moneyLocked(item)" /></LsField>
+                    <LsField label="单位接单分成" :for-id="`package-handler-cut-${item.key}`"><NInputNumber :id="`package-handler-cut-${item.key}`" v-model:value="item.unit_handler_cut" :min="0" :precision="2" :disabled="pricingLocked || distributionLocked" /></LsField>
+                    <LsField label="单位发单分成" :for-id="`package-sender-cut-${item.key}`"><NInputNumber :id="`package-sender-cut-${item.key}`" v-model:value="item.unit_sender_cut" :min="0" :precision="2" :disabled="pricingLocked || distributionLocked" /></LsField>
+                    <LsField label="单位客服分成" :for-id="`package-cs-cut-${item.key}`"><NInputNumber :id="`package-cs-cut-${item.key}`" v-model:value="item.unit_cs_cut" :min="0" :precision="2" :disabled="pricingLocked || distributionLocked" /></LsField>
                     <LsField label="单位团队分成" :for-id="`package-team-cut-${item.key}`" hint="自动取单位价格扣除成本与人员分成后的余额。"><NInputNumber :id="`package-team-cut-${item.key}`" :value="itemTeamCut(item)" :precision="2" disabled /></LsField>
                   </section>
                 </template>

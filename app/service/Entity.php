@@ -63,7 +63,7 @@ class Entity
             ->where('entityable_id', $id)
             ->find();
         if (!$entity || !$entity->is_valid) {
-            throw new HttpException(404, '实体不存在或不可用');
+            throw new HttpException(404, '人员不存在或不可用');
         }
 
         return $entity;
@@ -78,7 +78,7 @@ class Entity
     {
         $entity = \app\model\Entity::find($entityId);
         if (!$entity || !$entity->is_valid) {
-            throw new HttpException(404, '实体不存在或不可用');
+            throw new HttpException(404, '人员不存在或不可用');
         }
 
         return [
@@ -94,7 +94,7 @@ class Entity
         $subject = $this->subject($entityId);
         $actualTeamId = app(IdentitySession::class)->entityTeamId($subject['type'], $subject['id']);
         if ($actualTeamId !== $teamId) {
-            throw new HttpException(422, '实体不属于当前团队');
+            throw new HttpException(422, '人员不属于当前团队');
         }
 
         return $subject['entity'];
@@ -104,7 +104,7 @@ class Entity
     {
         $entity = \app\model\Entity::find($entityId);
         if (!$entity) {
-            throw new HttpException(404, '实体不存在');
+            throw new HttpException(404, '人员不存在');
         }
         $actualTeamId = match ((string) $entity->entityable_type) {
             'team' => (int) $entity->entityable_id,
@@ -114,7 +114,7 @@ class Entity
             default => 0,
         };
         if ($actualTeamId !== $teamId) {
-            throw new HttpException(422, '实体不属于当前团队');
+            throw new HttpException(422, '人员不属于当前团队');
         }
         return $entity;
     }
@@ -180,7 +180,7 @@ class Entity
                 ->where('entityable_id', (int) $virtual->id)
                 ->find();
             if ($existing) {
-                throw new HttpException(409, "虚拟实体标识已经确定：{$existing->slug}");
+                throw new HttpException(409, "虚拟人员标识已经确定：{$existing->slug}");
             }
 
             return $this->create('teamVirtual', (int) $virtual->id, $slug);
@@ -214,7 +214,7 @@ class Entity
 
         $entity = $this->assertInTeam($entityId, $teamId);
         if (!in_array($entity->entityable_type, ['teamMember', 'teamVirtual'], true)) {
-            throw new HttpException(422, '该实体类型不支持公开展示');
+            throw new HttpException(422, '该人员类型不支持公开展示');
         }
 
         $entity->save(['is_displayed' => (int) (bool) $isDisplayed]);
@@ -232,7 +232,7 @@ class Entity
                 422,
                 $entity->entityable_type === 'teamCustomer'
                     ? 'Customer 始终需要 team.entity.read，不支持团队内可见设置'
-                    : 'Team 实体始终在团队内部可见'
+                    : 'Team 人员始终在团队内部可见'
             );
         }
 
@@ -254,7 +254,7 @@ class Entity
 
         $entity = $this->assertInTeam($entityId, $teamId);
         if (!in_array($entity->entityable_type, ['teamMember', 'teamVirtual'], true)) {
-            throw new HttpException(422, '该实体类型不支持调整可见性');
+            throw new HttpException(422, '该人员类型不支持调整可见性');
         }
 
         $result = [

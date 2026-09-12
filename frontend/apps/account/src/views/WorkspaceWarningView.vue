@@ -61,7 +61,7 @@ function continueToWorkspace() {
     <section v-else-if="context.isPending.value" class="warning-card" aria-busy="true">
       <LoaderCircle class="spinner" :size="32" aria-hidden="true" />
       <h1>正在核对工作台访问资格</h1>
-      <p>我们正在确认当前 Entity 是否获得了 {{ teamSlug }} 的团队角色。</p>
+      <p>我们正在确认当前人员是否获得了 {{ teamSlug }} 的团队角色。</p>
     </section>
 
     <section v-else-if="context.isError.value" class="warning-card">
@@ -76,7 +76,7 @@ function continueToWorkspace() {
       <AlertTriangle class="warning-icon" :size="32" aria-hidden="true" />
       <div>
         <h1>你正在使用外部身份</h1>
-        <p>当前代表的是其他团队的 Entity。继续后，业务操作将使用目标团队授予该 Entity 的 Permission。</p>
+        <p>当前代表的是其他团队的人员。继续后，业务操作将使用目标团队授予该人员的 Permission。</p>
       </div>
       <div class="identity-pair" aria-label="当前身份与目标团队">
         <LsEntityIdentity
@@ -88,7 +88,7 @@ function continueToWorkspace() {
         <ArrowRight :size="20" aria-hidden="true" />
         <LsEntityIdentity type="team" :name="context.data.value.team.name" :slug="context.data.value.team.slug" fallback="initial" />
       </div>
-      <p class="assurance">确认只会在当前 Entity 与目标团队组合下免提示 {{ Math.round(context.data.value.entry_warning.ttl_seconds / 3600) }} 小时，不会改变角色或权限。</p>
+      <p class="assurance">确认只会在当前人员与目标团队组合下免提示 {{ Math.round(context.data.value.entry_warning.ttl_seconds / 3600) }} 小时，不会改变角色或权限。</p>
       <p v-if="acknowledge.isError.value" class="error" role="alert">{{ friendlyError(acknowledge.error.value) }}</p>
       <div class="actions">
         <LsButton variant="ghost" @click="switchTeam">切换团队</LsButton>

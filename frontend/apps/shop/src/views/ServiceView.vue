@@ -63,7 +63,7 @@ const startDisabledReason = computed(() => {
   if (missingRequired) return '请完整填写每份履约资源的必填字段'
   if (dispatchMode.value !== 'direct') return ''
   if (handlers.isError.value) return '可选接单人读取失败，请重试'
-  if (handler.value === null) return '请选择接单 Entity'
+  if (handler.value === null) return '请选择接单人员'
   return ''
 })
 const customerFields = computed(() => (query.data.value?.redemption_fields ?? []).filter(field => field.fill_stage === 'customer'))
@@ -157,8 +157,8 @@ const offerPending = (status: number | string) => status === 1 || status === '�
             <div class="form-heading"><h2 id="action-title">发起一次履约</h2><p>仅占用本次填写的额度，其余仍可继续使用。</p></div>
             <label>履约数量（{{ query.data.value.unit_name }}）<NInputNumber v-model:value="quantity" :min="Number(query.data.value.quantity_step)" :max="Number(query.data.value.available_quantity)" :step="Number(query.data.value.quantity_step)" :precision="quantityScale" size="large" /></label>
             <label>接单方式<NSelect v-model:value="dispatchMode" :options="dispatchOptions" size="large" /></label>
-            <label v-if="dispatchMode==='direct'">指定接单 Entity<LsEntitySelect v-model="handler" :entities="handlerEntities" :loading="handlers.isPending.value" :disabled="handlers.isError.value" placeholder="选择接单 Entity" size="large" /></label>
-            <p v-else class="privacy-note">公开召唤提交后立即进入核销中；配置接单池时向池内 Entity 开放，接单池留空时向团队内全部有效接单 Entity 开放，领取前均可查看本次填写的完整核销字段。</p>
+            <label v-if="dispatchMode==='direct'">指定接单人员<LsEntitySelect v-model="handler" :entities="handlerEntities" :loading="handlers.isPending.value" :disabled="handlers.isError.value" placeholder="选择接单人员" size="large" /></label>
+            <p v-else class="privacy-note">公开召唤提交后立即进入核销中；配置接单池时向池内人员开放，接单池留空时向团队内全部有效接单人员开放，领取前均可查看本次填写的完整核销字段。</p>
             <p v-if="handlers.isError.value" class="error" role="alert">暂时无法读取可选接单人：{{ friendlyError(handlers.error.value) }} <NButton text @click="handlers.refetch()">重试</NButton></p>
             <div v-if="customerFields.length" class="resource-fields">
               <section v-for="resourceIndex in resourceIndexes" :key="resourceIndex">
@@ -181,7 +181,7 @@ const offerPending = (status: number | string) => status === 1 || status === '�
       <section v-if="query.data.value.assignment_offers?.length" class="history offers">
         <div class="history-heading"><h2>指定接单邀请</h2><p>待确认邀请不会自动过期；对方处理前，你可以随时取消。</p></div>
         <section v-for="offer in query.data.value.assignment_offers" :key="offer.id" class="history-row">
-          <div class="history-head"><div><strong>{{ Number(offer.quantity).toFixed(quantityScale) }} {{ query.data.value.unit_name }}</strong><span>#{{ offer.id }} · {{ offerStatus(offer.status) }} · {{ offer.target_handler?.name || offer.target_handler?.profile?.name || '指定 Entity' }}</span></div></div>
+          <div class="history-head"><div><strong>{{ Number(offer.quantity).toFixed(quantityScale) }} {{ query.data.value.unit_name }}</strong><span>#{{ offer.id }} · {{ offerStatus(offer.status) }} · {{ offer.target_handler?.name || offer.target_handler?.profile?.name || '指定人员' }}</span></div></div>
           <p v-if="offer.decision_reason" class="form-hint">{{ offer.decision_reason }}</p>
           <NButton v-if="offerPending(offer.status)" secondary size="large" :loading="withdrawOffer.isPending.value" @click="withdrawOffer.mutate(offer.id)">取消邀请</NButton>
         </section>

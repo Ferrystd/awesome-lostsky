@@ -20,7 +20,13 @@ class Redemption
 {
     public function issueForOrder(TeamOrder $order, TeamProduct $product): array
     {
-        if ($product->enumCase('kind') !== ProductKind::RedemptionCard || !$product->redemption_campaign_id) {
+        $snapshot = $order->fulfillment_snapshot;
+        $campaignId = $snapshot['campaign_id'] ?? $product->redemption_campaign_id;
+        $kind = isset($snapshot['kind']) ? ProductKind::from($snapshot['kind']) : $product->enumCase('kind');
+        $cards = $kind === ProductKind::RedemptionCard && $campaignId
+            ? [['campaign_id' => $campaignId, 'quantity' => 1, 'target' => $snapshot['target'] ?? null]]
+            : ($snapshot['cards'] ?? []);
+        if (!$cards) {
             throw new HttpException(422, '商品未配置卡密活动');
         }
         if (!$order->customer_id) throw new HttpException(422, '卡密订单必须关联顾客');
@@ -28,26 +34,59 @@ class Redemption
         if ($holderId < 1) throw new HttpException(422, '订单顾客Entity不存在');
 
         $ids = [];
-        for ($ordinal = 1; $ordinal <= (int) $order->quantity; $ordinal++) {
-            $existing = RedemptionCode::where('source_order_id', $order->id)->where('ordinal', $ordinal)->find();
-            if ($existing) { $ids[] = (int) $existing->id; continue; }
-            $ids[] = (int) $this->issue((int) $product->redemption_campaign_id, $holderId, [
-                'source_order_id' => $order->id,
-                'ordinal' => $ordinal,
-            ])->id;
+        $ordinal = 0;
+        for ($copy = 0; $copy < (int) $order->quantity; ++$copy) {
+            foreach ($cards as $card) {
+                for ($unit = 0; $unit < $card['quantity']; ++$unit) {
+                    ++$ordinal;
+                    $existing = RedemptionCode::where('source_order_id', $order->id)->where('ordinal', $ordinal)->find();
+                    if ($existing) { $ids[] = (int) $existing->id; continue; }
+                    $targetSnapshot = $card['target'];
+                    if (is_array($targetSnapshot)) {
+                        $targetSnapshot['settlement_source'] = [
+                            'product_id' => (int) $order->product_id,
+                            'sender_entity_id' => $order->sender_entity_id,
+                            'cs_entity_id' => $order->cs_entity_id,
+                        ];
+                    }
+                    $ids[] = (int) $this->issue((int) $card['campaign_id'], $holderId, [
+                        'source_order_id' => $order->id,
+                        'fulfillment_snapshot' => $targetSnapshot,
+                        'ordinal' => $ordinal,
+                    ])->id;
+                }
+            }
         }
         return $ids;
     }
 
     public function issue(int $campaignId, ?int $holderEntityId = null, array $target = []): RedemptionCode
     {
-        $campaign = RedemptionCampaign::find($campaignId);
+        return Db::transaction(fn () => $this->issueLocked($campaignId, $holderEntityId, $target));
+    }
+
+    private function issueLocked(int $campaignId, ?int $holderEntityId, array $target): RedemptionCode
+    {
+        $campaign = RedemptionCampaign::where('id', $campaignId)->lock(true)->find();
         if (!$campaign || !(bool) $campaign->is_active) throw new HttpException(422, '卡密活动不可用');
+        if (!isset($target['fulfillment_snapshot']) && $campaign->issuer_team_id !== null) {
+            $product = TeamProduct::where('team_id', $campaign->issuer_team_id)
+                ->where('kind', ProductKind::RedemptionCard->value)
+                ->where('redemption_campaign_id', $campaignId)->lock(true)->find();
+            if ($product) {
+                if (!$product->is_active) throw new HttpException(422, '卡密商品已停用');
+                $snapshot = app(BenefitFulfillment::class)->snapshotProduct($product);
+                app(Order::class)->freezeOrdinaryHandlers((int) $product->team_id, $snapshot, $target['handler_entity_id'] ?? null);
+                $target['fulfillment_snapshot'] = $snapshot['target'];
+            }
+        }
         $plain = app(RedemptionCrypto::class)->generate();
         $code = new RedemptionCode;
         $code->save([
             'campaign_id' => $campaignId,
             'source_order_id' => $target['source_order_id'] ?? null,
+            'source_claim_id' => $target['source_claim_id'] ?? null,
+            'fulfillment_snapshot' => $target['fulfillment_snapshot'] ?? null,
             'ordinal' => $target['ordinal'] ?? 1,
             'holder_entity_id' => $holderEntityId,
             'target_team_id' => $target['target_team_id'] ?? null,
@@ -82,10 +121,18 @@ class Redemption
             ->with(['campaign.package.abilities', 'campaign.package.services.service'])->find();
         $this->assertCode($code);
         $this->assertCampaign($code->campaign);
+        $snapshot = $code->fulfillment_snapshot ?: ($code->sourceOrder?->fulfillment_snapshot['target'] ?? null);
+        $services = is_array($snapshot) && isset($snapshot['items'])
+            ? array_map(static function (array $item): array {
+                $result = array_intersect_key($item, array_flip(['id', 'service_id', 'quantity', 'valid_days']));
+                $result['service'] = array_intersect_key($item['service'], array_flip(['id', 'name', 'unit_name', 'quantity_step']));
+                return $result;
+            }, $snapshot['items'])
+            : ($code->campaign->package->services?->toArray() ?? []);
         return [
             'campaign' => ['id' => (int) $code->campaign->id, 'name' => $code->campaign->name, 'mode' => $code->campaign->mode],
             'abilities' => $code->campaign->package->abilities?->toArray() ?? [],
-            'services' => $code->campaign->package->services?->toArray() ?? [],
+            'services' => $services,
         ];
     }
 
@@ -109,7 +156,12 @@ class Redemption
             if ((int) $campaign->issuer_team_id !== $teamId) throw new HttpException(403, '卡密不属于当前商家');
             if ($code->holder_entity_id !== null && (int) $code->holder_entity_id !== $holderEntityId) throw new HttpException(403, '卡密不属于当前Customer Entity');
             if ($code->target_entity_id !== null && (int) $code->target_entity_id !== $holderEntityId) throw new HttpException(403, '卡密不适用于当前Entity');
-            if (!BenefitPackageService::where('package_id', $campaign->package_id)->find()) throw new HttpException(422, '卡密不包含服务权益');
+            $snapshot = $code->fulfillment_snapshot ?: ($code->sourceOrder?->fulfillment_snapshot['target'] ?? null);
+            $hasSnapshot = is_array($snapshot) && isset($snapshot['items'], $snapshot['pricing_mode']);
+            $hasDelivery = $hasSnapshot
+                ? !empty($snapshot['items']) || !empty($snapshot['ordinary']) || !empty($snapshot['cards'])
+                : (bool) BenefitPackageService::where('package_id', $campaign->package_id)->find();
+            if (!$hasDelivery) throw new HttpException(422, '卡密不包含可交付商品');
             $claim = $this->claim($code, $campaign, 'entity', $holderEntityId, $holderEntityId);
             app(BenefitFulfillment::class)->servicesFromClaim($claim, $teamId, $customerId, $holderEntityId);
             return (int) $claim->id;

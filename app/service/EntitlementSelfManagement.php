@@ -30,6 +30,17 @@ final class EntitlementSelfManagement
     {
         $ownerEntityId = $this->writableEntityId($actingEntity, $expectedEntityId);
         if ($id) $this->assertOwnService($teamId, $ownerEntityId, $id);
+        $pricing = app(PersonalPricing::class);
+        if (!$pricing->allows($teamId, $actingEntity)) {
+            $existing = $id ? TeamService::where('team_id', $teamId)->find($id) : null;
+            $baseline = $existing
+                ? array_intersect_key($existing->toArray(), array_flip(['default_handler_cut', 'default_sender_cut', 'default_cs_cut']))
+                : $pricing->defaults($teamId, $data['default_total_price'] ?? 0, $data['default_cost'] ?? 0, 'default_');
+            $data = $pricing->preserve($data, $baseline);
+            if ($existing) {
+                $data += ['default_total_price' => $existing->default_total_price, 'default_cost' => $existing->default_cost];
+            }
+        }
         $data['owner_entity_id'] = $ownerEntityId;
         unset($data['expected_entity_id']);
         return app(EntitlementManagement::class)->saveService($teamId, $id, $data);
@@ -71,12 +82,8 @@ final class EntitlementSelfManagement
     {
         $ownerEntityId = $this->writableEntityId($actingEntity, $expectedEntityId);
         if ($id) app(EntitlementManagement::class)->package($teamId, $id, $ownerEntityId);
-        if (!app(PermissionGate::class)->allows(
-            $teamId,
-            $actingEntity,
-            [PermissionDictionary::SHOP_PRODUCT_SELF_PACKAGE_REPRICE]
-        )) {
-            $this->assertSharedServicePricingUnchanged($teamId, $id, $data, $actingEntity);
+        if (!app(PersonalPricing::class)->allows($teamId, $actingEntity)) {
+            $data = $this->preservePackagePricing($teamId, $id, $data);
         }
         $data['owner_entity_id'] = $ownerEntityId;
         unset($data['expected_entity_id']);
@@ -150,8 +157,13 @@ final class EntitlementSelfManagement
         );
     }
 
-    private function assertSharedServicePricingUnchanged(int $teamId, ?int $packageId, array $data, array $actingEntity): void
+    private function preservePackagePricing(int $teamId, ?int $packageId, array $data): array
     {
+        $package = $packageId ? \app\model\BenefitPackage::where('issuer_team_id', $teamId)->find($packageId) : null;
+        $mode = $package?->enumCase('pricing_mode')->value ?? 2;
+        if ((int) ($data['pricing_mode'] ?? $mode) !== $mode) {
+            throw \app\exception\AccessDeniedException::permission([PermissionDictionary::SHOP_PRODUCT_SELF_REPRICE]);
+        }
         $existing = [];
         if ($packageId) {
             foreach (BenefitPackageService::where('package_id', $packageId)->select() as $item) {
@@ -165,28 +177,28 @@ final class EntitlementSelfManagement
             'unit_sender_cut' => 'default_sender_cut',
             'unit_cs_cut' => 'default_cs_cut',
         ];
-        foreach (is_array($data['services'] ?? null) ? $data['services'] : [] as $item) {
+        $items = is_array($data['services'] ?? null) ? $data['services'] : [];
+        foreach ($items as &$item) {
             $service = TeamService::where('team_id', $teamId)->find((int) ($item['service_id'] ?? 0));
-            if (!$service || $service->owner_entity_id !== null) continue;
+            if (!$service) continue;
             $baseline = $existing[(int) $service->id] ?? $service;
+            $protected = [];
             foreach ($fieldDefaults as $field => $defaultField) {
-                if (!array_key_exists($field, $item)) continue;
+                if ($service->owner_entity_id !== null && in_array($field, ['unit_price', 'unit_cost'], true)) continue;
                 $baselineField = $baseline instanceof BenefitPackageService ? $field : $defaultField;
-                if ($this->moneyCents($item[$field]) !== $this->moneyCents($baseline->{$baselineField})) {
-                    app(PermissionGate::class)->assert(
-                        $teamId,
-                        $actingEntity,
-                        [PermissionDictionary::SHOP_PRODUCT_SELF_PACKAGE_REPRICE]
-                    );
-                }
+                $protected[$field] = $baseline->{$baselineField};
             }
+            $item = app(PersonalPricing::class)->preserve($item, $protected);
         }
+        unset($item);
+        $data['services'] = $items;
+        return $data;
     }
 
     private function entityId(array $actingEntity): int
     {
         $entityId = (int) ($actingEntity['entity_id'] ?? 0);
-        if ($entityId < 1) throw new HttpException(401, '当前实体身份会话已失效');
+        if ($entityId < 1) throw new HttpException(401, '当前人员身份会话已失效');
         return $entityId;
     }
 
@@ -206,9 +218,4 @@ final class EntitlementSelfManagement
         }
     }
 
-    private function moneyCents(mixed $value): int
-    {
-        if (!is_numeric($value)) return PHP_INT_MIN;
-        return (int) round((float) $value * 100);
-    }
 }

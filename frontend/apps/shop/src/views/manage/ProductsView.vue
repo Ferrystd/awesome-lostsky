@@ -49,7 +49,7 @@ const pages = computed(() =>
   Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / filters.limit)),
 );
 const kind = (value: unknown) =>
-  ({ 1: "普通商品", 2: "服务套餐", 3: "权益卡密" })[Number(value)] ??
+  ({ 1: "普通商品", 2: "套餐", 3: "卡密", 4: "核销商品" })[Number(value)] ??
   String(value);
 const columns: DataTableColumns<Row> = [
   { title: "商品", key: "name", render: (r) => h("strong", r.name) },
@@ -85,7 +85,7 @@ const columns: DataTableColumns<Row> = [
   <div class="manage-page">
     <LsPageHeader
       :title="personal ? '我的商品' : '商品'"
-      :description="personal ? '只管理专属 Entity 为当前身份的商品、履约方式与接单配置。' : '维护公开售卖内容、价格、履约方式与接单配置。'"
+      :description="personal ? '只管理专属人员为当前身份的商品、履约方式与接单配置。' : '维护公开售卖内容、价格、履约方式与接单配置。'"
       ><template #actions>
         <LsPagePrimaryAction :icon="Plus" label="新建商品" :to="`${management.routeBase}/new`" /></template
       ></LsPageHeader
@@ -117,7 +117,7 @@ const columns: DataTableColumns<Row> = [
     /><LsEmptyState :source="query.data.value"
       v-else-if="routeAccess.restricted.value || !rows.length"
       :title="routeAccess.restricted.value ? '没有可显示的商品' : personal ? '还没有匹配的本人商品' : '还没有匹配的商品'"
-      :description="personal ? '新建商品后会自动归属当前 Entity，并可在这里配置销售与履约方式。' : '新建商品后可在这里配置销售与履约方式。'"
+      :description="personal ? '新建商品后会自动归属当前人员，并可在这里配置销售与履约方式。' : '新建商品后可在这里配置销售与履约方式。'"
     /><LsResponsiveDataTable
       v-else
       :columns="columns"

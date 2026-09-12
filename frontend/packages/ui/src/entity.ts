@@ -14,9 +14,9 @@ export const entityTypeLabel = (type: EntityType) => ({
   customer: '顾客',
   teamCustomer: '顾客',
   team: '团队',
-  virtual: '虚拟实体',
-  teamVirtual: '虚拟实体',
-  unknown: '实体',
+  virtual: '虚拟人员',
+  teamVirtual: '虚拟人员',
+  unknown: '人员',
 })[type]
 
 export const entityTypeTone = (type: EntityType): EntityTone => ({

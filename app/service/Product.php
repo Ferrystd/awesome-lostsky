@@ -49,10 +49,161 @@ class Product
         $result = $product->toArray();
         $rows = [&$result];
         $this->attachRelations($rows, true);
+        if (in_array($product->enumCase('kind'), [ProductKind::ServiceBundle, ProductKind::RedemptionCard], true)) {
+            $packageId = $product->enumCase('kind') === ProductKind::ServiceBundle ? (int) $product->benefit_package_id
+                : (int) RedemptionCampaign::where('issuer_team_id', $teamId)->find((int) $product->redemption_campaign_id)?->package_id;
+            $items = \app\model\BenefitPackageService::where('package_id', $packageId)->whereNotNull('product_id')->order('sort')->select();
+            if (!$items->isEmpty()) {
+                $result['items'] = [];
+                foreach ($items as $item) {
+                    $row = array_intersect_key($item->toArray(), array_flip(['product_id', 'unit_price', 'unit_cost', 'unit_handler_cut', 'unit_sender_cut', 'unit_cs_cut']));
+                    $row['quantity'] = intdiv(app(ServiceQuantity::class)->toMinor($item->quantity), ServiceQuantity::FACTOR);
+                    $result['items'][] = $row;
+                }
+            }
+        }
+        if ($product->enumCase('kind') === ProductKind::Redeemable) {
+            $item = \app\model\BenefitPackageService::where('package_id', $product->benefit_package_id)->find();
+            if (!$item || !$item->service_id) throw new HttpException(422, '核销商品内部配置缺失');
+            $service = app(EntitlementManagement::class)->service($teamId, (int) $item->service_id);
+            $result['redemption'] = [
+                'unit_name' => $service['unit_name'], 'quantity_step' => $service['quantity_step'],
+                'quantity' => $item->quantity, 'valid_days' => $item->valid_days,
+                'handler_entity_ids' => array_map(fn ($handler) => (int) $handler['entity_id'], $service['handlers'] ?? []),
+                'redemption_fields' => $service['redemption_fields'],
+            ];
+        }
         return $result;
     }
 
-    public function create(int $teamId, array $data): int
+    public function create(int $teamId, array $data, bool $canReprice = true): int
+    {
+        if (array_key_exists('items', $data)) {
+            if (!in_array((int) ($data['kind'] ?? 1), [ProductKind::ServiceBundle->value, ProductKind::RedemptionCard->value], true)) throw new HttpException(422, '只有套餐和卡密可以配置商品子项');
+            return \think\facade\Db::transaction(fn () => $this->createRecord($teamId, $this->compositionConfiguration($teamId, $data, $canReprice)));
+        }
+        if ((int) ($data['kind'] ?? 1) !== ProductKind::Redeemable->value) {
+            return $this->createRecord($teamId, $data);
+        }
+        return \think\facade\Db::transaction(function () use ($teamId, $data) {
+            $validator = app(\app\validate\Product::class);
+            if (!$validator->scene('create')->check($data)) throw new HttpException(422, $validator->getError());
+            $configuration = $data['redemption'] ?? null;
+            if (!is_array($configuration)) throw new HttpException(422, '核销商品必须提供核销配置');
+            if (!empty($data['benefit_package_id']) || !empty($data['redemption_campaign_id'])) {
+                throw new HttpException(422, '核销商品的内部权益配置由系统维护');
+            }
+            try {
+                $money = (new TeamProduct)->normalizeMoneyFields($data);
+            } catch (\InvalidArgumentException) {
+                throw new HttpException(422, '商品金额格式不正确');
+            }
+            $defaults = app(PersonalPricing::class)->defaults($teamId, $money['price'] ?? 0, $money['cost'] ?? 0);
+            $serviceData = array_intersect_key($configuration, array_flip([
+                'unit_name', 'quantity_step', 'handler_entity_ids', 'redemption_fields',
+            ]));
+            $serviceData = array_merge($serviceData, [
+                'name' => $data['name'] ?? '',
+                'description' => $data['description'] ?? null,
+                'owner_entity_id' => $data['entity_id'] ?? null,
+                'default_total_price' => $money['price'] ?? 0,
+                'default_cost' => $money['cost'] ?? 0,
+                'default_handler_cut' => $money['handler_cut'] ?? $defaults['handler_cut'],
+                'default_sender_cut' => $money['sender_cut'] ?? $defaults['sender_cut'],
+                'default_cs_cut' => $money['cs_cut'] ?? $defaults['cs_cut'],
+            ]);
+            $management = app(EntitlementManagement::class);
+            $serviceId = $management->saveService($teamId, null, $serviceData);
+            // 单商品售价是整份金额，不把分币精度强行除以可为小数的核销额度。
+            $data['benefit_package_id'] = $management->savePackage($teamId, null, [
+                'name' => $data['name'],
+                'owner_entity_id' => $data['entity_id'] ?? null,
+                'pricing_mode' => \app\enum\BenefitPricingMode::LegacyEqualSplit->value,
+                'services' => [[
+                    'service_id' => $serviceId,
+                    'quantity' => $configuration['quantity'] ?? 1,
+                    'valid_days' => $configuration['valid_days'] ?? app(TeamSetting::class)->internal($teamId, 'service')['default_valid_days'],
+                ]],
+            ]);
+            foreach (['handler_cut', 'sender_cut', 'cs_cut'] as $field) {
+                $data[$field] = $money[$field] ?? $defaults[$field];
+            }
+            $price = app(BenefitPackagePricing::class);
+            $teamCents = $price->toCents((string) ($money['price'] ?? '0')) - $price->toCents((string) ($money['cost'] ?? '0'));
+            foreach (['handler_cut', 'sender_cut', 'cs_cut'] as $field) $teamCents -= $price->toCents((string) $data[$field]);
+            if ($teamCents < 0) throw new HttpException(422, '成本与人员分成不能超过售价');
+            $data['team_cut'] = $price->fromCents($teamCents);
+            return $this->createRecord($teamId, $data);
+        });
+    }
+
+    private function compositionConfiguration(int $teamId, array $data, bool $canReprice, int $productId = 0): array
+    {
+        return \think\facade\Db::transaction(function () use ($teamId, $data, $canReprice, $productId) {
+            \app\model\Team::where('id', $teamId)->lock(true)->find();
+            if (!is_array($data['items']) || !array_is_list($data['items'])) throw new HttpException(422, '套餐组成必须为列表');
+            if (!empty($data['benefit_package_id']) || !empty($data['redemption_campaign_id'])) throw new HttpException(422, '套餐内部配置由系统维护');
+            $owner = $data['entity_id'] ?? null;
+            if ($owner !== null) app(Entity::class)->assertInTeam((int) $owner, $teamId);
+            $tree = app(ProductComposition::class)->inspectStored([
+                'id' => $productId, 'team_id' => $teamId, 'entity_id' => $owner, 'kind' => ProductKind::from((int) $data['kind']),
+                'is_active' => 1, 'items' => $data['items'],
+            ]);
+            $pricing = app(BenefitPackagePricing::class);
+            $normalized = [];
+            $previous = [];
+            if ($productId > 0) {
+                $existing = TeamProduct::where('team_id', $teamId)->lock(true)->find($productId);
+                $packageId = $existing->enumCase('kind') === ProductKind::ServiceBundle ? (int) $existing->benefit_package_id
+                    : (int) RedemptionCampaign::where('issuer_team_id', $teamId)->find((int) $existing->redemption_campaign_id)?->package_id;
+                foreach (\app\model\BenefitPackageService::where('package_id', $packageId)->whereNotNull('product_id')->order('sort')->order('id')->lock(true)->select() as $saved) {
+                    $previous[(int) $saved->product_id][] = $saved->toArray();
+                }
+            }
+            foreach ($data['items'] as $sort => $item) {
+                $child = TeamProduct::where('team_id', $teamId)->lock(true)->find((int) $item['product_id']);
+                $defaults = app(PersonalPricing::class)->defaults($teamId, $child->price, $child->cost);
+                $baseline = ['unit_price' => $child->price, 'unit_cost' => $child->cost];
+                foreach (['handler_cut', 'sender_cut', 'cs_cut'] as $field) $baseline['unit_' . $field] = $child->{$field} ?? $defaults[$field];
+                if (!empty($previous[(int) $child->id])) {
+                    $saved = array_shift($previous[(int) $child->id]);
+                    $baseline = array_replace($baseline, array_intersect_key($saved, $baseline));
+                }
+                $locked = $tree['pricing_locked'] ? $baseline : (!$canReprice
+                    ? ($child->entity_id === null ? $baseline : array_diff_key($baseline, array_flip(['unit_price', 'unit_cost'])))
+                    : []);
+                foreach ($locked as $field => $amount) {
+                    if (array_key_exists($field, $item) && (!is_scalar($item[$field]) || $pricing->toCents((string) $item[$field]) !== $pricing->toCents((string) $amount))) {
+                        throw new HttpException(422, '当前套餐子项金额不允许调整');
+                    }
+                }
+                $normalized[] = $pricing->normalizeItem(array_merge($baseline, $item, $locked), $sort);
+            }
+            $package = new BenefitPackage;
+            $package->save(['issuer_team_id' => $teamId, 'owner_entity_id' => $owner, 'name' => $data['name'] ?? '',
+                'pricing_mode' => \app\enum\BenefitPricingMode::Itemized, 'is_active' => 1]);
+            foreach ($normalized as $item) (new \app\model\BenefitPackageService)->save(['package_id' => $package->id] + $item);
+            $totals = $pricing->summary($package);
+            if ($tree['pricing_locked']) {
+                foreach ($totals as $field => $amount) {
+                    if (array_key_exists($field, $data) && $data[$field] !== null && $pricing->toCents((string) $data[$field]) !== $pricing->toCents($amount)) {
+                        throw new HttpException(422, '嵌套套餐必须使用子项汇总金额');
+                    }
+                }
+            }
+            $data = array_merge($data, $totals, ['benefit_package_id' => (int) $package->id]);
+            if ((int) $data['kind'] === ProductKind::RedemptionCard->value) {
+                $campaign = new RedemptionCampaign;
+                $campaign->save(['issuer_team_id' => $teamId, 'owner_entity_id' => $owner, 'package_id' => $package->id,
+                    'name' => $data['name'], 'mode' => 1, 'claim_group' => '', 'is_active' => 1]);
+                $data['redemption_campaign_id'] = (int) $campaign->id;
+                $data['benefit_package_id'] = null;
+            }
+            return $data;
+        });
+    }
+
+    private function createRecord(int $teamId, array $data): int
     {
         $validator = app(\app\validate\Product::class);
         if (!$validator->scene('create')->check($data)) {
@@ -106,15 +257,48 @@ class Product
                 ]);
             }
 
+            if (array_key_exists('handler_entity_ids', $data)) {
+                if (!is_array($data['handler_entity_ids'])) throw new HttpException(422, '接单人配置必须为列表');
+                $this->setHandlers($teamId, (int) $product->id, $data['handler_entity_ids']);
+            }
             return (int) $product->id;
         });
     }
 
-    public function edit(int $teamId, int $id, array $data): void
+    public function edit(int $teamId, int $id, array $data, bool $canReprice = true): void
     {
-        $product = TeamProduct::where('team_id', $teamId)->find($id);
+        \think\facade\Db::transaction(fn () => $this->editRecord($teamId, $id, $data, $canReprice));
+    }
+
+    private function editRecord(int $teamId, int $id, array $data, bool $canReprice): void
+    {
+        $product = TeamProduct::where('team_id', $teamId)->lock(true)->find($id);
         if (!$product) {
             throw new HttpException(404, '商品不存在');
+        }
+
+        $kind = $product->enumCase('kind');
+        if (isset($data['kind']) && (int) $data['kind'] !== $kind->value) {
+            throw new HttpException(422, '商品类型不能修改，请新建商品');
+        }
+        if (!array_key_exists('items', $data)
+            && (array_key_exists('benefit_package_id', $data) || array_key_exists('redemption_campaign_id', $data))
+            && in_array($kind, [ProductKind::ServiceBundle, ProductKind::RedemptionCard], true)) {
+            $packageId = $kind === ProductKind::ServiceBundle ? (int) $product->benefit_package_id
+                : (int) RedemptionCampaign::where('issuer_team_id', $teamId)->find((int) $product->redemption_campaign_id)?->package_id;
+            if (\app\model\BenefitPackageService::where('package_id', $packageId)->whereNotNull('product_id')->count()) {
+                throw new HttpException(422, '组合商品请通过商品子项修改，不能替换内部权益配置');
+            }
+        }
+        if (array_key_exists('items', $data)) {
+            if (!in_array($kind, [ProductKind::ServiceBundle, ProductKind::RedemptionCard], true)) {
+                throw new HttpException(422, '只能编辑套餐或卡密的组成');
+            }
+            $candidate = array_merge(['name' => $product->name], $data, ['entity_id' => $product->entity_id, 'kind' => $kind->value]);
+            $data = $this->compositionConfiguration($teamId, $candidate, $canReprice, $id);
+        }
+        if ($kind === ProductKind::Redeemable && (array_key_exists('benefit_package_id', $data) || array_key_exists('redemption_campaign_id', $data))) {
+            throw new HttpException(422, '核销商品的内部权益配置由系统维护');
         }
 
         $validator = app(\app\validate\Product::class);
@@ -139,6 +323,12 @@ class Product
             throw new HttpException(422, '商品金额格式不正确');
         }
         $configuration = array_merge($product->toArray(), $update);
+        if ($kind === ProductKind::Redeemable) {
+            $update = $this->updateRedemption($teamId, $product, $configuration, $data, $update);
+            $configuration = array_merge($configuration, $update);
+        } elseif (array_key_exists('redemption', $data)) {
+            throw new HttpException(422, '只有核销商品可以配置核销信息');
+        }
         if (!array_key_exists('kind', $update)) {
             $configuration['kind'] = $product->enumCase('kind')->value;
         }
@@ -147,6 +337,10 @@ class Product
             $update = array_merge($update, app(BenefitPackagePricing::class)->summary($benefitPackage));
         }
 
+        if (array_key_exists('handler_entity_ids', $data)) {
+            if (!is_array($data['handler_entity_ids'])) throw new HttpException(422, '接单人配置必须为列表');
+            $this->setHandlers($teamId, $id, $data['handler_entity_ids']);
+        }
         if ($update) {
             \think\facade\Db::transaction(function () use ($product, $update) {
                 $product->save($update);
@@ -159,6 +353,49 @@ class Product
                 }
             });
         }
+    }
+
+    private function updateRedemption(int $teamId, TeamProduct $product, array $configuration, array $data, array $update): array
+    {
+        $redemption = $data['redemption'] ?? [];
+        if (!is_array($redemption) || (array_key_exists('redemption', $data) && $data['redemption'] === null)) {
+            throw new HttpException(422, '核销配置格式不正确');
+        }
+        $package = BenefitPackage::where('issuer_team_id', $teamId)->lock(true)->find((int) $product->benefit_package_id);
+        $items = $package ? \app\model\BenefitPackageService::where('package_id', $package->id)->lock(true)->select() : null;
+        if (!$items || $items->count() !== 1 || !$items[0]->service_id) throw new HttpException(422, '核销商品内部配置缺失');
+        $item = $items[0];
+        $service = \app\model\TeamService::where('team_id', $teamId)->lock(true)->find((int) $item->service_id);
+        if (!$service || (int) $service->owner_entity_id !== (int) $product->entity_id) {
+            throw new HttpException(422, '核销商品内部归属不匹配');
+        }
+        $serviceData = array_merge($service->toArray(), array_intersect_key($redemption, array_flip([
+            'unit_name', 'quantity_step', 'handler_entity_ids', 'redemption_fields',
+        ])), [
+            'name' => $configuration['name'], 'description' => $configuration['description'] ?? null,
+            'default_total_price' => $configuration['price'], 'default_cost' => $configuration['cost'] ?? '0.00',
+            'default_handler_cut' => $configuration['handler_cut'] ?? '0.00',
+            'default_sender_cut' => $configuration['sender_cut'] ?? '0.00',
+            'default_cs_cut' => $configuration['cs_cut'] ?? '0.00',
+        ]);
+        $quantity = app(ServiceQuantity::class)->normalize($redemption['quantity'] ?? $item->quantity, $serviceData['quantity_step']);
+        $days = $redemption['valid_days'] ?? $item->valid_days;
+        if (filter_var($days, FILTER_VALIDATE_INT) === false || (int) $days < 0) throw new HttpException(422, '有效天数不正确');
+        app(EntitlementManagement::class)->saveService($teamId, (int) $service->id, $serviceData);
+        if ($quantity !== (string) $item->quantity || (int) $days !== (int) $item->valid_days) {
+            // 已售权益仍引用旧明细ID；新配置只用于后续订单。
+            $update['benefit_package_id'] = app(EntitlementManagement::class)->savePackage($teamId, null, [
+                'name' => $configuration['name'], 'owner_entity_id' => $product->entity_id,
+                'pricing_mode' => \app\enum\BenefitPricingMode::LegacyEqualSplit->value,
+                'services' => [['service_id' => $service->id, 'quantity' => $quantity, 'valid_days' => (int) $days]],
+            ]);
+        }
+        $price = app(BenefitPackagePricing::class);
+        $teamCents = $price->toCents((string) $configuration['price']) - $price->toCents((string) ($configuration['cost'] ?? '0.00'));
+        foreach (['handler_cut', 'sender_cut', 'cs_cut'] as $field) $teamCents -= $price->toCents((string) ($configuration[$field] ?? '0.00'));
+        if ($teamCents < 0) throw new HttpException(422, '成本与人员分成不能超过售价');
+        $update['team_cut'] = $price->fromCents($teamCents);
+        return $update;
     }
 
     public function delete(int $teamId, int $id): void
@@ -224,7 +461,7 @@ class Product
     {
         $ownerEntityId = (int) ($data['entity_id'] ?? 0) ?: null;
         $kind = ProductKind::from((int) ($data['kind'] ?? ProductKind::Standard->value));
-        if ($kind === ProductKind::ServiceBundle) {
+        if (in_array($kind, [ProductKind::ServiceBundle, ProductKind::Redeemable], true)) {
             $package = BenefitPackage::where('issuer_team_id', $teamId)->find((int) ($data['benefit_package_id'] ?? 0));
             if (!$package) throw new HttpException(422, '服务套餐必须关联当前团队的权益套餐');
             $this->assertCompatibleBenefitOwner($ownerEntityId, $package->owner_entity_id);

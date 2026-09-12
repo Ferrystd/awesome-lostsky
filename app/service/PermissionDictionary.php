@@ -23,7 +23,7 @@ final class PermissionDictionary
     public const SHOP_PRODUCT_WRITE = 'shop.product.write';
     public const SHOP_PRODUCT_DELETE = 'shop.product.delete';
     public const SHOP_PRODUCT_SELF_MANAGE = 'shop.product.self.manage';
-    public const SHOP_PRODUCT_SELF_PACKAGE_REPRICE = 'shop.product.self.package.reprice';
+    public const SHOP_PRODUCT_SELF_REPRICE = 'shop.product.self.reprice';
     public const SHOP_ORDER_READ = 'shop.order.read';
     public const SHOP_ORDER_WRITE = 'shop.order.write';
     public const SERVICE_REDEMPTION_READ = 'service.redemption.read';
@@ -111,7 +111,7 @@ final class PermissionDictionary
             self::SHOP_PRODUCT_WRITE => '编辑商品',
             self::SHOP_PRODUCT_DELETE => '删除商品',
             self::SHOP_PRODUCT_SELF_MANAGE => '管理本人商品与服务资源',
-            self::SHOP_PRODUCT_SELF_PACKAGE_REPRICE => '调整本人权益包中的团队公用服务计价',
+            self::SHOP_PRODUCT_SELF_REPRICE => '调整本人商品与服务分成及权益包公用服务计价',
             self::SHOP_ORDER_READ => '查看订单',
             self::SHOP_ORDER_WRITE => '处理订单',
         ],
@@ -126,10 +126,10 @@ final class PermissionDictionary
         ],
         '文档管理' => [
             self::TEAM_DOCUMENT_READ => '查看全部文档（含当前 Entity 不可见文档）',
-            self::TEAM_DOCUMENT_TEAM_MANAGE => '管理团队实体文档',
+            self::TEAM_DOCUMENT_TEAM_MANAGE => '管理团队文档',
             self::TEAM_DOCUMENT_MEMBER_ALL_MANAGE => '管理全部成员文档',
             self::TEAM_DOCUMENT_CUSTOMER_ALL_MANAGE => '管理全部顾客文档',
-            self::TEAM_DOCUMENT_VIRTUAL_ALL_MANAGE => '管理全部虚拟实体文档',
+            self::TEAM_DOCUMENT_VIRTUAL_ALL_MANAGE => '管理全部虚拟人员文档',
         ],
         '文件与设置' => [
             self::FILE_READ => '查看文件',
@@ -146,27 +146,27 @@ final class PermissionDictionary
         '安全与审计' => [
             self::TEAM_AUDIT_READ => '查看团队审计日志',
         ],
-        '实体管理' => [
-            self::TEAM_ENTITY_READ => '查看全部实体（含团队内隐藏）',
-            self::TEAM_ENTITY_PROFILE_MANAGE => '管理实体资料与展示状态',
-            self::TEAM_ENTITY_VIRTUAL_CREATE => '创建虚拟实体',
-            self::TEAM_ENTITY_VIRTUAL_ALL_MANAGE => '管理全部虚拟实体',
-            self::TEAM_ENTITY_VIRTUAL_ALL_FIELD_MANAGE => '管理全部虚拟实体字段',
+        '人员管理' => [
+            self::TEAM_ENTITY_READ => '查看全部人员（含团队内隐藏）',
+            self::TEAM_ENTITY_PROFILE_MANAGE => '管理人员资料与展示状态',
+            self::TEAM_ENTITY_VIRTUAL_CREATE => '创建虚拟人员',
+            self::TEAM_ENTITY_VIRTUAL_ALL_MANAGE => '管理全部虚拟人员',
+            self::TEAM_ENTITY_VIRTUAL_ALL_FIELD_MANAGE => '管理全部虚拟人员字段',
             self::TEAM_ENTITY_FIELD_MANAGE => '管理团队与成员字段',
             self::TEAM_ENTITY_FIELD_CUSTOMER_MANAGE => '管理顾客字段',
         ],
-        '实体委托' => [
+        '人员委托' => [
             self::IDENTITY_TEAM_ASSUME => '领取团队身份',
             self::IDENTITY_MEMBER_ALL_ASSUME => '领取全部成员身份',
             self::IDENTITY_CUSTOMER_ALL_ASSUME => '领取全部顾客身份',
-            self::IDENTITY_VIRTUAL_ALL_ASSUME => '领取全部虚拟实体身份',
+            self::IDENTITY_VIRTUAL_ALL_ASSUME => '领取全部虚拟人员身份',
         ],
         '聊天' => [
             self::CHAT_CONVERSATION_CREATE => '创建会话',
             self::CHAT_GROUP_MANAGE => '管理群聊',
             self::CHAT_TEMPORARY_CREATE => '创建临时会话',
             self::CHAT_MESSAGE_MODERATE => '审核与撤回消息',
-            self::CHAT_VIRTUAL_ALL_ACT => '代表全部虚拟实体参与聊天',
+            self::CHAT_VIRTUAL_ALL_ACT => '代表全部虚拟人员参与聊天',
         ],
         '微博' => [
             self::WEIBO_PERSONAL_USE => '使用个人微博工作台',

@@ -25,7 +25,7 @@ class TransactionVerify
         $actingEntity = ($request->acting_entity ?? []);
         $entityId = (int) ($actingEntity['entity_id'] ?? 0);
         if (!$team || $entityId < 1) {
-            throw new HttpException(403, '当前实体无效');
+            throw new HttpException(403, '当前人员无效');
         }
 
         // 外部 Entity 已由 TeamWorkspaceAccess 复核目标团队角色，并由当前动作的

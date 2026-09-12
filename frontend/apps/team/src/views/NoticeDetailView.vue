@@ -36,7 +36,7 @@ const copy = computed(() => scope.value === 'team'
     }
   : {
       title: '阅读通知',
-      description: '查看 Team 发给当前实体的完整通知。',
+      description: '查看 Team 发给当前人员的完整通知。',
       noun: '通知',
       backTo: '/notices/entity',
       backLabel: '返回通知列表',

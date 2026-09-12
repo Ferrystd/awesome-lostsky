@@ -110,7 +110,7 @@ watch(() => profile.data.value?.profile.name, (name) => {
         <p>{{ profile.data.value.settings.homepage_entities_description }}</p>
       </header>
       <div v-if="entities.isPending.value" class="entity-skeleton entity-skeleton-preview"><span v-for="item in 6" :key="item" /></div>
-      <div v-else-if="entities.isError.value" class="inline-error"><span>实体列表加载失败。</span><button type="button" @click="entities.refetch()">重试</button></div>
+      <div v-else-if="entities.isError.value" class="inline-error"><span>人员列表加载失败。</span><button type="button" @click="entities.refetch()">重试</button></div>
       <EntityList v-else-if="entities.data.value?.list.length" :entities="entities.data.value.list" preview />
       <p v-else class="empty-state">{{ profile.data.value.settings.homepage_entities_empty }}</p>
     </section>

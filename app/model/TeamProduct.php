@@ -66,6 +66,11 @@ class TeamProduct extends Base
         return $this->belongsTo(RedemptionCampaign::class, 'redemption_campaign_id');
     }
 
+    public function compositionReferences()
+    {
+        return $this->hasMany(BenefitPackageService::class, 'product_id');
+    }
+
     public function markdownReferences()
     {
         return $this->morphMany(MarkdownReference::class, 'referenceable', 'teamProduct');

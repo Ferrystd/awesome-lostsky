@@ -53,7 +53,7 @@ const shopTheme: GlobalThemeOverrides = {
         <RouterLink class="brand" to="/" aria-label="返回商城首页"><span>LostSky</span><small>团队商城</small></RouterLink>
         <nav aria-label="商城导航">
           <RouterLink to="/"><House :size="17" aria-hidden="true" />商城首页</RouterLink>
-          <RouterLink to="/customer/profile"><UserRound :size="17" aria-hidden="true" />当前实体</RouterLink>
+          <RouterLink to="/customer/profile"><UserRound :size="17" aria-hidden="true" />当前人员</RouterLink>
           <RouterLink to="/orders"><ShoppingBag :size="17" aria-hidden="true" />我的订单</RouterLink>
           <RouterLink to="/services"><BadgeCheck :size="17" aria-hidden="true" />我的服务</RouterLink>
           <RouterLink to="/cards"><KeyRound :size="17" aria-hidden="true" />我的卡密</RouterLink>

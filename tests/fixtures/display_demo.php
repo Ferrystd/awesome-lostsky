@@ -29,18 +29,18 @@ $portrait = '//assets.lostsky.work/images/hero-bg.png';
 $team = Team::active()->where('slug', $teamSlug)->find();
 $entity = Entity::where('slug', $entitySlug)->find();
 if (!$team || !$entity) {
-    fwrite(STDERR, "找不到有效团队 {$teamSlug} 或实体 {$entitySlug}\n");
+    fwrite(STDERR, "找不到有效团队 {$teamSlug} 或人员 {$entitySlug}\n");
     exit(1);
 }
 if (!in_array((string) $entity->entityable_type, ['teamMember', 'teamVirtual'], true)) {
-    fwrite(STDERR, "测试实体必须是成员或虚拟实体\n");
+    fwrite(STDERR, "测试人员必须是成员或虚拟人员\n");
     exit(1);
 }
 
 try {
     app(EntityService::class)->assertInTeam((int) $entity->id, (int) $team->id);
 } catch (Throwable) {
-    fwrite(STDERR, "实体 {$entitySlug} 不属于团队 {$teamSlug}\n");
+    fwrite(STDERR, "人员 {$entitySlug} 不属于团队 {$teamSlug}\n");
     exit(1);
 }
 
@@ -280,7 +280,7 @@ MARKDOWN,
         ],
         [
             'name' => '内部下架商品',
-            'description' => '用于验证下架商品不会出现在公开实体资料。',
+            'description' => '用于验证下架商品不会出现在公开人员资料。',
             'cover_image' => null,
             'price' => '99.00',
             'cost' => '1.00',
@@ -297,7 +297,7 @@ MARKDOWN,
             'entity_id' => (int) $entity->id,
             'name' => $name,
         ], array_merge($productData, [
-            'introduction_markdown' => "## {$name}\n\n这是用于验证实体专属商品公开陈列的演示内容。",
+            'introduction_markdown' => "## {$name}\n\n这是用于验证人员专属商品公开陈列的演示内容。",
             'sender_cut' => null,
             'cs_cut' => null,
             'team_cut' => null,
@@ -344,7 +344,7 @@ MARKDOWN,
 - [x] 选择语音或文字沟通
 - [ ] 补充希望重点体验的内容
 
-如需引用团队公开资料，可以直接查看 `@member-2` 的实体主页。
+如需引用团队公开资料，可以直接查看 `@member-2` 的人员主页。
 MARKDOWN,
             'visibility' => Visibility::Public,
             'sort' => 10,

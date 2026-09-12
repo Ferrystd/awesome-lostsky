@@ -36,7 +36,7 @@ class TeamJoinField extends Validate
         'is_apply_fillable.in'             => '申请可填写状态格式不正确',
         'is_apply_required.in'             => '申请必填状态格式不正确',
         'is_transfer_entity_field.in'      => '转存状态格式不正确',
-        'entity_field_id.integer'          => '转存实体字段 ID 格式不正确',
+        'entity_field_id.integer'          => '转存人员字段 ID 格式不正确',
         'is_active.in'                     => '启用状态格式不正确',
         'sort.integer'                     => '排序格式不正确',
     ];

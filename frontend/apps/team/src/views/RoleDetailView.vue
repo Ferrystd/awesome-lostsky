@@ -40,7 +40,7 @@ interface TeamEntityOption {
   name: string
   avatar?: string | null
 }
-type SpecialPermissionGroup = '文档管理' | '实体管理' | '实体委托'
+type SpecialPermissionGroup = '文档管理' | '人员管理' | '人员委托'
 type DynamicPermissionId = 'document-manage' | 'manage' | 'field-manage' | 'assume'
 interface DynamicPermissionDefinition {
   id: DynamicPermissionId
@@ -51,13 +51,13 @@ interface DynamicPermissionDefinition {
 }
 
 const dynamicPermissionDefinitions: DynamicPermissionDefinition[] = [
-  { id: 'document-manage', label: '管理指定实体文档', template: 'team.document.<type>.<slug>.manage', virtualOnly: false, group: '文档管理' },
-  { id: 'manage', label: '管理指定虚拟实体', template: 'team.entity.virtual.<slug>.manage', virtualOnly: true, group: '实体管理' },
-  { id: 'field-manage', label: '管理指定虚拟实体字段', template: 'team.entity.virtual.<slug>.field.manage', virtualOnly: true, group: '实体管理' },
-  { id: 'assume', label: '领取指定实体身份', template: 'identity.<type>.<slug>.assume', virtualOnly: false, group: '实体委托' },
+  { id: 'document-manage', label: '管理指定人员文档', template: 'team.document.<type>.<slug>.manage', virtualOnly: false, group: '文档管理' },
+  { id: 'manage', label: '管理指定虚拟人员', template: 'team.entity.virtual.<slug>.manage', virtualOnly: true, group: '人员管理' },
+  { id: 'field-manage', label: '管理指定虚拟人员字段', template: 'team.entity.virtual.<slug>.field.manage', virtualOnly: true, group: '人员管理' },
+  { id: 'assume', label: '领取指定人员身份', template: 'identity.<type>.<slug>.assume', virtualOnly: false, group: '人员委托' },
 ]
-const entityDelegationGroupName = '实体委托'
-const entityManagementGroupName = '实体管理'
+const entityDelegationGroupName = '人员委托'
+const entityManagementGroupName = '人员管理'
 const documentManagementGroupName = '文档管理'
 
 const route = useRoute()
@@ -308,10 +308,10 @@ function toggleDynamicPermission(key: string | null, checked: boolean) {
 }
 function dynamicPermissionLabel(key: string) {
   return leafLabels.value.get(key)
-    || (key.startsWith('team.document.') ? '管理指定实体文档'
-      : key.endsWith('.field.manage') ? '管理指定虚拟实体字段'
-      : key.endsWith('.manage') ? '管理指定虚拟实体'
-        : '领取指定实体身份')
+    || (key.startsWith('team.document.') ? '管理指定人员文档'
+      : key.endsWith('.field.manage') ? '管理指定虚拟人员字段'
+      : key.endsWith('.manage') ? '管理指定虚拟人员'
+        : '领取指定人员身份')
 }
 </script>
 
@@ -343,7 +343,7 @@ function dynamicPermissionLabel(key: string) {
               <NInputNumber v-model:value="form.sort" aria-label="显示顺序" :min="0" :show-button="false" />
               <template #feedback>数字越小越靠前。</template>
             </NFormItem>
-            <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开实体资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟实体（Virtual Entity）会展示角色名称和说明；角色权限不会公开。" />
+            <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开人员资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟人员会展示角色名称和说明；角色权限不会公开。" />
             <footer>
               <LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</LsButton>
               <LsButton type="submit" :loading="saveInfo.isPending.value" :disabled="routeAccess.restricted.value || !form.name.trim()" :disabled-reason="routeAccess.reason.value"><template #icon><Save :size="17" /></template>保存资料</LsButton>
@@ -392,7 +392,7 @@ function dynamicPermissionLabel(key: string) {
                   <header>
                     <div>
                       <h4 :id="`${specialGroup.id}-static-title`">通用{{ specialGroup.name }}</h4>
-                      <p>通用 Permission 可直接授权团队范围或一类实体；保存时会移除已被覆盖的指定 slug。</p>
+                      <p>通用 Permission 可直接授权团队范围或一类人员；保存时会移除已被覆盖的指定 slug。</p>
                     </div>
                   </header>
                   <div class="permission-list">
@@ -415,8 +415,8 @@ function dynamicPermissionLabel(key: string) {
                 <section class="dynamic-target" :aria-labelledby="`${specialGroup.id}-target-title`">
                   <header>
                     <div>
-                      <h4 :id="`${specialGroup.id}-target-title`">指定实体</h4>
-                      <p>选择实体后可配置精确权限；选择目标本身不会产生授权。</p>
+                      <h4 :id="`${specialGroup.id}-target-title`">指定人员</h4>
+                      <p>选择人员后可配置精确权限；选择目标本身不会产生授权。</p>
                     </div>
                     <span v-if="selectedTarget" class="dynamic-target__status">当前目标 @{{ selectedTarget.slug }}</span>
                   </header>
@@ -427,14 +427,14 @@ function dynamicPermissionLabel(key: string) {
                       :query="targetSlug"
                       :search-entities="searchEntities"
                       :input-id="`${specialGroup.id}-target-slug`"
-                      placeholder="按名称或 slug 搜索当前团队实体"
+                      placeholder="按名称或 slug 搜索当前团队人员"
                       @update:model-value="selectTargetEntities"
                       @update:query="targetSlug = $event"
                     />
                   </div>
                 </section>
                 <p class="dynamic-guidance">
-                  {{ selectedTarget ? `正在为 @${selectedTarget.slug} 配置${specialGroup.name}，勾选后立即进入角色权限草稿。` : `请先选择目标实体，再配置${specialGroup.name}。` }}
+                  {{ selectedTarget ? `正在为 @${selectedTarget.slug} 配置${specialGroup.name}，勾选后立即进入角色权限草稿。` : `请先选择目标人员，再配置${specialGroup.name}。` }}
                 </p>
                 <div class="permission-list dynamic-permission-list">
                   <NCheckbox
@@ -449,8 +449,8 @@ function dynamicPermissionLabel(key: string) {
                       <strong>{{ option.label }}</strong>
                       <code>{{ option.key || option.template }}</code>
                       <small v-if="option.coveredBy">由 {{ option.coveredBy }} 覆盖</small>
-                      <small v-else-if="!selectedTarget">先选择目标实体</small>
-                      <small v-else-if="!option.key">仅适用于虚拟实体</small>
+                      <small v-else-if="!selectedTarget">先选择目标人员</small>
+                      <small v-else-if="!option.key">仅适用于虚拟人员</small>
                     </span>
                   </NCheckbox>
                 </div>
@@ -458,7 +458,7 @@ function dynamicPermissionLabel(key: string) {
                   <header>
                     <div>
                       <h4 :id="`${specialGroup.id}-assigned-title`">已进入角色草稿</h4>
-                      <p>如需调整，请在上方重新选择对应实体。</p>
+                      <p>如需调整，请在上方重新选择对应人员。</p>
                     </div>
                     <span>{{ assignedDynamicKeys(specialGroup.name).length }} 项</span>
                   </header>

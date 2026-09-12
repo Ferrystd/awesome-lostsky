@@ -45,7 +45,7 @@ const metadata = computed(() => Object.entries(query.data.value?.context ?? {}).
     <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取审计事件" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
     <template v-else-if="routeAccess.restricted.value">
-      <LsPanel><template #header><LsSectionHeader title="事件信息" /></template><LsDescriptionList><dt>应用</dt><dd>-</dd><dt>动作</dt><dd>-</dd><dt>执行 Entity</dt><dd>-</dd><dt>认证账号 ID</dt><dd>-</dd><dt>目标资源</dt><dd>-</dd><dt>发生时间</dt><dd>-</dd><dt>请求 ID</dt><dd>-</dd><dt>是否产生变更</dt><dd>-</dd></LsDescriptionList></LsPanel>
+      <LsPanel><template #header><LsSectionHeader title="事件信息" /></template><LsDescriptionList><dt>应用</dt><dd>-</dd><dt>动作</dt><dd>-</dd><dt>执行人员</dt><dd>-</dd><dt>认证账号 ID</dt><dd>-</dd><dt>目标资源</dt><dd>-</dd><dt>发生时间</dt><dd>-</dd><dt>请求 ID</dt><dd>-</dd><dt>是否产生变更</dt><dd>-</dd></LsDescriptionList></LsPanel>
       <LsPanel><template #header><LsSectionHeader title="变更内容" description="只展示允许进入审计记录的字段和安全值。" /></template><p class="muted">-</p></LsPanel>
     </template>
     <template v-else-if="query.data.value">
@@ -54,7 +54,7 @@ const metadata = computed(() => Object.entries(query.data.value?.context ?? {}).
         <LsDescriptionList>
           <dt>应用</dt><dd>{{ query.data.value.application_label }}</dd>
           <dt>动作</dt><dd>{{ query.data.value.action_label }}</dd>
-          <dt>执行 Entity</dt><dd>{{ actorLabel(query.data.value.actor) }}</dd>
+          <dt>执行人员</dt><dd>{{ actorLabel(query.data.value.actor) }}</dd>
           <dt>认证账号 ID</dt><dd>#{{ query.data.value.actor.authenticated_user_id }}</dd>
           <dt>目标资源</dt><dd>{{ query.data.value.resource_label }}{{ query.data.value.resource_id ? ` #${query.data.value.resource_id}` : '' }}</dd>
           <dt>发生时间</dt><dd>{{ formatAuditTime(query.data.value.create_time) }}</dd>

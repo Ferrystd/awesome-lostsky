@@ -134,8 +134,8 @@ test('direct conversation submits a single selected participant as an array', as
 
   await page.goto('http://demo.chat.lostsky.work:5176/new')
   await page.getByRole('textbox', { name: '聊天对象' }).fill('missing')
-  await expect(page.getByText('没有匹配的可搜索实体')).toBeVisible()
-  await expect(page.getByText('匹配的实体', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('没有匹配的可搜索人员')).toBeVisible()
+  await expect(page.getByText('匹配的人员', { exact: true })).toHaveCount(0)
   await page.getByRole('textbox', { name: '聊天对象' }).fill('sales')
   await page.getByRole('option').filter({ hasText: '@sales-assistant' }).click()
   await expect(page.getByRole('button', { name: '创建会话' })).toBeEnabled()
@@ -221,7 +221,7 @@ test('Account identity picker shows cross-team candidates and preserves the curr
   })
 
   await page.goto('http://account.lostsky.work:5174/identity')
-  await expect(page.getByText('当前正在使用实体身份')).toBeVisible()
+  await expect(page.getByText('当前正在使用人员身份')).toBeVisible()
   await expect(page.getByRole('heading', { name: '可切换身份' })).toBeVisible()
   await expect(page.getByText('团队 B · team-b')).toBeVisible()
   await page.getByRole('button', { name: '切换' }).click()

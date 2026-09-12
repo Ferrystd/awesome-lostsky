@@ -24,8 +24,22 @@ final class BenefitPackagePricing
             throw new HttpException(422, '服务数量或有效天数不正确');
         }
 
+        $serviceId = $item['service_id'] ?? null;
+        $productId = $item['product_id'] ?? null;
+        if (($serviceId === null) === ($productId === null)) {
+            throw new HttpException(422, '组成项必须且只能指定服务或商品');
+        }
+        $target = $productId === null ? $serviceId : $productId;
+        if ((!is_int($target) && !is_string($target))
+            || !preg_match('/^[1-9][0-9]*$/D', (string) $target)
+            || filter_var($target, FILTER_VALIDATE_INT) === false) {
+            throw new HttpException(422, '组成项关联标识不正确');
+        }
+        if ($productId !== null && $quantityMinor % ServiceQuantity::FACTOR !== 0) {
+            throw new HttpException(422, '商品份数必须为正整数');
+        }
         $normalized = [
-            'service_id' => (int) ($item['service_id'] ?? 0),
+            $productId === null ? 'service_id' : 'product_id' => (int) $target,
             'quantity' => $quantity,
             'valid_days' => $validDays,
             'sort' => $sort,
@@ -102,6 +116,7 @@ final class BenefitPackagePricing
         foreach ($items as $index => $item) {
             $result[] = $this->normalizeItem([
                 'service_id' => $item->service_id,
+                'product_id' => $item->product_id,
                 'quantity' => $item->quantity,
                 'valid_days' => $item->valid_days,
                 'unit_price' => $item->unit_price,

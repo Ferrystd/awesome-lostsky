@@ -14,6 +14,7 @@ class TransactionStats
 
     public function personal(int $teamId, int $actorEntityId, int $startTime, int $endTime): array
     {
+        $senderCount = $this->senderCountExpression('team_transaction');
         $query = static fn(int $from, int $to) => TeamTransaction::where('team_id', $teamId)
             ->where('trans_at', '>=', $from)
             ->where('trans_at', '<', $to)
@@ -24,7 +25,7 @@ class TransactionStats
             });
         $row = $query($startTime, $endTime)->field([
             "SUM(CASE WHEN handler_entity_id = {$actorEntityId} AND type IN (1, 2, 4) THEN 1 ELSE 0 END) as handler_count",
-            "SUM(CASE WHEN sender_entity_id = {$actorEntityId} AND type IN (1, 2, 3) THEN 1 ELSE 0 END) as sender_count",
+            "SUM(CASE WHEN sender_entity_id = {$actorEntityId} THEN {$senderCount} ELSE 0 END) as sender_count",
             "SUM(CASE WHEN cs_entity_id = {$actorEntityId} AND type NOT IN (3, 5) THEN 1 ELSE 0 END) as cs_count",
             "COALESCE(SUM(CASE WHEN handler_entity_id = {$actorEntityId} AND type IN (1, 2, 4, 6) THEN total_price ELSE 0 END), 0) as performance_total",
         ])->find();
@@ -199,7 +200,7 @@ class TransactionStats
             $name = $role['role'];
             $column = $role['column'];
             $handlerCount = $name === 'handler' ? 'CASE WHEN t.type IN (1, 2, 4) THEN 1 ELSE 0 END' : '0';
-            $senderCount = $name === 'sender' ? 'CASE WHEN t.type IN (1, 2, 3) THEN 1 ELSE 0 END' : '0';
+            $senderCount = $name === 'sender' ? $this->senderCountExpression('t') : '0';
             $handlerPerformance = $name === 'handler' ? 'CASE WHEN t.type IN (1, 2, 4, 6) THEN t.total_price ELSE 0 END' : '0';
             $senderPerformance = $name === 'sender' ? 'CASE WHEN t.type IN (1, 2, 3, 5) THEN t.cash + t.prepaid ELSE 0 END' : '0';
             $income = match ($name) {
@@ -308,6 +309,19 @@ SQL;
             ->toArray();
 
         return array_values($this->withEntitySummaries($rows));
+    }
+
+    private function senderCountExpression(string $alias): string
+    {
+        return "CASE WHEN {$alias}.type IN (1, 2, 3) AND NOT EXISTS (
+            SELECT 1 FROM team_order counted_order
+            WHERE counted_order.team_id = {$alias}.team_id
+              AND counted_order.delete_time IS NULL
+              AND ((counted_order.source_claim_id IS NOT NULL AND counted_order.trans_id = {$alias}.id)
+                OR (counted_order.trans_id <> {$alias}.id AND JSON_CONTAINS(
+                    COALESCE(JSON_EXTRACT(counted_order.fulfillment_snapshot, '$.transaction_ids'), '[]'),
+                    JSON_ARRAY({$alias}.id))))
+        ) THEN 1 ELSE 0 END";
     }
 
     private function withEntitySummaries(array $rows): array

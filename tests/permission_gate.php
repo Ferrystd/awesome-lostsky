@@ -244,9 +244,9 @@ $assertSame(
     'customer read and manage permissions use documented dotted keys'
 );
 $assertSame(
-    ['shop.product.self.manage', 'shop.product.self.package.reprice'],
-    [PermissionDictionary::SHOP_PRODUCT_SELF_MANAGE, PermissionDictionary::SHOP_PRODUCT_SELF_PACKAGE_REPRICE],
-    'self product resource management and shared service repricing use independent documented keys'
+    ['shop.product.self.manage', 'shop.product.self.reprice'],
+    [PermissionDictionary::SHOP_PRODUCT_SELF_MANAGE, PermissionDictionary::SHOP_PRODUCT_SELF_REPRICE],
+    'self resource management and unified personal repricing use independent documented keys'
 );
 $assertSame(
     ['service.entitlement.grant'],

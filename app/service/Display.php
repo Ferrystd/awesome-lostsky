@@ -51,7 +51,7 @@ class Display
     {
         $this->team($teamId);
         if ($type !== null && !in_array($type, self::PUBLIC_TYPES, true)) {
-            throw new HttpException(422, '实体类型不正确');
+            throw new HttpException(422, '人员类型不正确');
         }
         $keyword = trim($keyword);
         if (mb_strlen($keyword, 'UTF-8') > 100) {
@@ -232,7 +232,7 @@ class Display
             ->whereIn('entityable_type', self::PUBLIC_TYPES)
             ->find();
         if (!$entity || !$this->isPublicSubject($entity, $teamId)) {
-            throw new HttpException(404, '实体不存在');
+            throw new HttpException(404, '人员不存在');
         }
 
         return $entity;

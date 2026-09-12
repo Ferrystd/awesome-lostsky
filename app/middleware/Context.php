@@ -26,7 +26,7 @@ class Context
         if ($request->entity_session) {
             $entity = $request->entity_session->subject;
             if (!$entity) {
-                throw new \think\exception\HttpException(401, '实体会话无效');
+                throw new \think\exception\HttpException(401, '人员会话无效');
             }
             $request->acting_entity = [
                 'entity_id' => (int) $entity->id,

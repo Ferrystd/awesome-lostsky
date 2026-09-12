@@ -34,6 +34,7 @@ class TeamCustomer
             'product_id' => $data['product_id'] ?? null,
             'customer_id' => $customerId,
             'handler_entity_id' => $data['handler_entity_id'] ?? null,
+            'product_handlers' => $data['product_handlers'] ?? [],
             'quantity' => $data['quantity'] ?? 1,
             'memo' => $data['memo'] ?? null,
         ]);

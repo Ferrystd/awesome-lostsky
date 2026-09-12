@@ -50,6 +50,7 @@ class Order
             'product_id'  => $request->post('product_id'),
             'customer_id' => $request->post('customer_id', null),
             'handler_entity_id'  => $request->post('handler_entity_id', null),
+            'product_handlers'   => $request->post('product_handlers', []),
             'sender_entity_id'   => $request->post('sender_entity_id', null),
             'cs_entity_id'       => $request->post('cs_entity_id', null),
             'quantity'    => $request->post('quantity', 1),

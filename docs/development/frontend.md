@@ -7,6 +7,10 @@
 - 新增或修改后台页面结构前，必须按[后台页面组件化方法](../design/admin/componentization.md)搜索现有实现并在 commentary 给出组件化盘点；同时执行其中的[封闭组件契约](../design/admin/componentization.md#closed-component-contract)，明确唯一视觉所有者、参数准入和父级穿透；达到阈值时在同一变更中提取组件、迁移全部同义用法并删除旧 CSS。
 - 使用 `karpathy-guidelines` 控制范围，`impeccable` 负责设计，`ui-ux-pro-max` 只做专项检查；不得使用 `lostsky-frontend`。
 
+## 用户术语
+
+网站用户可见的 Entity 统一称为“人员”，Virtual Entity 称为“虚拟人员”。导航、标题、表单、搜索、无障碍名称、空状态、操作反馈以及服务端提供的权限名称和设置文案保持一致，不再附加 Entity 英文括注。类型标签仍区分团队、成员、顾客和虚拟人员；内部类名、字段、路由、权限键及技术文档中的 Entity 保持原有语义。团队自行保存的展示文案由团队维护，不自动覆盖。桌面和移动端使用相同术语，状态与权限行为不变；通过现有组件测试、页面文案断言及完整静态构建验证。
+
 ## 实现
 
 - 标准控件只使用 Naive UI 2.44.1 和 `@lostsky/ui`；不得引入 PrimeVue 或复制 shadcn-vue 组件。完整边界见[公共组件](../design/admin/components.md)。

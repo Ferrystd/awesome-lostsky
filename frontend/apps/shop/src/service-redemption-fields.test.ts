@@ -65,10 +65,10 @@ describe('service redemption fields', () => {
     expect(first).not.toHaveProperty('field_key')
   })
 
-  it('keeps the editor and payload on the service form only', () => {
+  it('saves redemption fields inside the unified product form', () => {
     expect(serviceFormSource).toContain('<ServiceFieldsEditor v-model="redemptionFields" />')
     expect(serviceFormSource).toContain('redemption_fields: serializeServiceRedemptionFields(redemptionFields.value)')
-    expect(productFormSource).not.toContain('FieldsEditor')
+    expect(productFormSource).toContain('<ServiceFieldsEditor v-if="form.kind === 4" v-model="redemptionFields" />')
     expect(routerSource).not.toContain('/products/:id(\\d+)/fields')
   })
 })

@@ -178,7 +178,7 @@ class TeamCustomerManagement
                 ->where('entityable_id', $customerId)
                 ->find();
             if (!$entity) {
-                throw new HttpException(404, '顾客实体不存在');
+                throw new HttpException(404, '顾客身份不存在');
             }
             $customerChanged = false;
             if (array_key_exists('assignee_entity_id', $data)) {

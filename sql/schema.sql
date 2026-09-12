@@ -341,7 +341,8 @@ CREATE TABLE `team_service_handler` (
 CREATE TABLE `benefit_package_service` (
     `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `package_id`  INT UNSIGNED NOT NULL COMMENT '权益套餐ID',
-    `service_id`  INT UNSIGNED NOT NULL COMMENT '服务ID',
+    `service_id`  INT UNSIGNED NULL DEFAULT NULL COMMENT '历史服务ID，与商品ID二选一',
+    `product_id`  INT UNSIGNED NULL DEFAULT NULL COMMENT '组成商品ID，与历史服务ID二选一',
     `quantity`    DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '授予服务额度',
     `valid_days`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '领取后有效天数 0=永久',
     `unit_price`  DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '单实例价格',
@@ -354,7 +355,9 @@ CREATE TABLE `benefit_package_service` (
     `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time` INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_package_service` (`package_id`, `service_id`)
+    UNIQUE KEY `uk_package_service` (`package_id`, `service_id`),
+    KEY `idx_package_item_product` (`product_id`),
+    CONSTRAINT `chk_package_item_target` CHECK ((`service_id` IS NULL) <> (`product_id` IS NULL))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='权益套餐服务项';
 
 -- ----------------------------
@@ -391,6 +394,8 @@ CREATE TABLE `redemption_code` (
     `id`               INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `campaign_id`      INT UNSIGNED NOT NULL COMMENT '活动ID',
     `source_order_id`  INT UNSIGNED NULL DEFAULT NULL COMMENT '来源订单ID',
+    `source_claim_id`  INT UNSIGNED NULL DEFAULT NULL COMMENT '来源兑换记录ID',
+    `fulfillment_snapshot` JSON NULL COMMENT '发行时目标快照，仅内部使用',
     `ordinal`          INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '订单内序号',
     `holder_entity_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '持有Entity ID',
     `target_team_id`   INT UNSIGNED NULL DEFAULT NULL COMMENT '定向Team ID',
@@ -408,6 +413,7 @@ CREATE TABLE `redemption_code` (
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_redemption_code_hash` (`code_hash`),
     UNIQUE KEY `uk_redemption_order_ordinal` (`source_order_id`, `ordinal`),
+    UNIQUE KEY `uk_redemption_claim_ordinal` (`source_claim_id`, `ordinal`),
     KEY `idx_redemption_holder` (`holder_entity_id`, `is_active`),
     KEY `idx_redemption_campaign_code` (`campaign_id`, `is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='卡密';
@@ -616,7 +622,7 @@ CREATE TABLE `team_product` (
     `sender_cut`  DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '发单人默认抽成',
     `cs_cut`      DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '客服默认抽成',
     `team_cut`    DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '团队默认抽成',
-    `kind`        TINYINT      NOT NULL DEFAULT 1 COMMENT '商品类型 1-普通 2-服务套餐 3-权益卡密',
+    `kind`        TINYINT      NOT NULL DEFAULT 1 COMMENT '商品类型 1-普通 2-套餐 3-卡密 4-核销商品',
     `benefit_package_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '服务套餐权益ID',
     `redemption_campaign_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '卡密活动ID',
     `is_active`   TINYINT      NOT NULL DEFAULT 1 COMMENT '是否上架 0-下架 1-上架',
@@ -675,6 +681,9 @@ CREATE TABLE `team_service_redemption_field` (
 -- ----------------------------
 CREATE TABLE `team_order` (
     `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `source_claim_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '来源卡密兑换',
+    `claim_ordinal` INT UNSIGNED NULL DEFAULT NULL COMMENT '兑换交付序号',
+    UNIQUE KEY `uk_order_claim_ordinal` (`source_claim_id`, `claim_ordinal`),
     `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
     `customer_id` INT UNSIGNED NULL     DEFAULT NULL COMMENT '客户ID(NULL=匿名客户)',
     `handler_entity_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '接单实体ID，服务套餐/卡密可为空',
@@ -683,6 +692,7 @@ CREATE TABLE `team_order` (
     `product_id`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '商品ID',
     `product_name` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '下单时商品名称',
     `product_cover_image` VARCHAR(500) NULL DEFAULT NULL COMMENT '下单时商品封面',
+    `fulfillment_snapshot` JSON NULL COMMENT '下单时履约配置快照，仅内部使用',
     `quantity`    INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '数量',
     `unit_price`  DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '下单时单价',
     `total_price` DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '总价',
@@ -1289,7 +1299,7 @@ CREATE TABLE `team_virtual_integration` (
     `endpoint_url`   VARCHAR(1000) NULL    DEFAULT NULL COMMENT 'Webhook地址',
     `events`         JSON         NULL COMMENT '订阅事件',
     `token_hash`     CHAR(64)     NOT NULL DEFAULT '' COMMENT '入站令牌SHA-256',
-    `signing_secret` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '出站签名密钥',
+    `signing_secret` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'Standard Webhooks whsec_ Base64出站签名密钥',
     `is_active`      TINYINT      NOT NULL DEFAULT 1 COMMENT '是否启用',
     `last_error_at`  INT UNSIGNED NULL     DEFAULT NULL COMMENT '最近错误时间',
     `create_time`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
@@ -1569,7 +1579,9 @@ ALTER TABLE `benefit_package` ADD CONSTRAINT `fk_benefit_package_issuer` FOREIGN
 ALTER TABLE `benefit_package_ability` ADD CONSTRAINT `fk_package_ability_package` FOREIGN KEY (`package_id`) REFERENCES `benefit_package` (`id`);
 ALTER TABLE `team_service` ADD CONSTRAINT `fk_team_service_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_team_service_owner` FOREIGN KEY (`owner_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `team_service_handler` ADD CONSTRAINT `fk_service_handler_service` FOREIGN KEY (`service_id`) REFERENCES `team_service` (`id`), ADD CONSTRAINT `fk_service_handler_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
-ALTER TABLE `benefit_package_service` ADD CONSTRAINT `fk_package_service_package` FOREIGN KEY (`package_id`) REFERENCES `benefit_package` (`id`), ADD CONSTRAINT `fk_package_service_service` FOREIGN KEY (`service_id`) REFERENCES `team_service` (`id`);
+ALTER TABLE `benefit_package_service` ADD CONSTRAINT `fk_package_service_package` FOREIGN KEY (`package_id`) REFERENCES `benefit_package` (`id`), ADD CONSTRAINT `fk_package_service_service` FOREIGN KEY (`service_id`) REFERENCES `team_service` (`id`), ADD CONSTRAINT `fk_package_item_product` FOREIGN KEY (`product_id`) REFERENCES `team_product` (`id`);
+ALTER TABLE `redemption_code` ADD CONSTRAINT `fk_redemption_code_claim` FOREIGN KEY (`source_claim_id`) REFERENCES `redemption_claim` (`id`);
+ALTER TABLE `team_order` ADD CONSTRAINT `fk_order_claim` FOREIGN KEY (`source_claim_id`) REFERENCES `redemption_claim` (`id`);
 ALTER TABLE `redemption_campaign` ADD CONSTRAINT `fk_redemption_campaign_package` FOREIGN KEY (`package_id`) REFERENCES `benefit_package` (`id`), ADD CONSTRAINT `fk_redemption_campaign_issuer` FOREIGN KEY (`issuer_team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_redemption_campaign_owner` FOREIGN KEY (`owner_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `redemption_code` ADD CONSTRAINT `fk_redemption_code_campaign` FOREIGN KEY (`campaign_id`) REFERENCES `redemption_campaign` (`id`), ADD CONSTRAINT `fk_redemption_code_order` FOREIGN KEY (`source_order_id`) REFERENCES `team_order` (`id`), ADD CONSTRAINT `fk_redemption_code_holder` FOREIGN KEY (`holder_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_redemption_code_target_team` FOREIGN KEY (`target_team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_redemption_code_target_entity` FOREIGN KEY (`target_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `redemption_claim` ADD CONSTRAINT `fk_redemption_claim_campaign` FOREIGN KEY (`campaign_id`) REFERENCES `redemption_campaign` (`id`), ADD CONSTRAINT `fk_redemption_claim_code` FOREIGN KEY (`code_id`) REFERENCES `redemption_code` (`id`), ADD CONSTRAINT `fk_redemption_claim_target_team` FOREIGN KEY (`target_team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_redemption_claim_target_entity` FOREIGN KEY (`target_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_redemption_claim_actor` FOREIGN KEY (`claimed_by_entity_id`) REFERENCES `entity` (`id`);

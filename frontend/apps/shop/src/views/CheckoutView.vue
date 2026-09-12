@@ -13,14 +13,18 @@ const balance = useQuery({ queryKey: ['shop-balance'], queryFn: shopApi.balance 
 const quantity = ref(1); const handlerId = ref<number | null>(null); const memo = ref(''); const pending = ref(false); const error = ref('')
 const total = computed(() => Number(product.data.value?.price ?? 0) * quantity.value)
 const insufficient = computed(() => Number(balance.data.value?.balance ?? 0) < total.value)
-const handlers = computed(() => product.data.value?.handlers ?? [])
+const handlers = computed(() => !product.data.value?.kind || product.data.value.kind === 1 ? product.data.value?.handlers ?? [] : [])
 const needsHandler = computed(() => handlers.value.length > 1)
+const productHandlers = ref<Record<number, number | null>>({})
+const handlerGroups = computed(() => product.data.value?.handler_groups ?? [])
+const missingProductHandler = computed(() => handlerGroups.value.some(group => group.handlers.length > 1 && !productHandlers.value[group.product_id]))
 
 async function submit() {
-  if (insufficient.value || (needsHandler.value && !handlerId.value)) return
+  if (pending.value || !quantity.value || insufficient.value || missingProductHandler.value || (needsHandler.value && !handlerId.value)) return
   pending.value = true; error.value = ''
   try {
-    const result = await shopApi.purchase({ product_id: id, quantity: quantity.value, ...(handlerId.value ? { handler_entity_id: handlerId.value } : {}), ...(memo.value.trim() ? { memo: memo.value.trim() } : {}) })
+    const selections = Object.fromEntries(Object.entries(productHandlers.value).filter((entry): entry is [string, number] => entry[1] !== null))
+    const result = await shopApi.purchase({ product_id: id, quantity: quantity.value, ...(handlerId.value ? { handler_entity_id: handlerId.value } : {}), ...(Object.keys(selections).length ? { product_handlers: selections } : {}), ...(memo.value.trim() ? { memo: memo.value.trim() } : {}) })
     await router.replace(`/orders/${result.id}`)
   } catch (reason) { error.value = friendlyError(reason); void balance.refetch() } finally { pending.value = false }
 }
@@ -36,9 +40,10 @@ async function submit() {
       <div class="checkout-fields">
         <label>数量<NInputNumber v-model:value="quantity" :min="1" :max="999" size="large" /></label>
         <label v-if="handlers.length">接单人<LsEntitySelect v-model="handlerId" :entities="handlers" :placeholder="needsHandler ? '请选择接单人' : '默认接单人'" clearable /></label>
+        <label v-for="group in handlerGroups.filter(group => group.handlers.length)" :key="group.product_id">{{ group.name }}接单人<LsEntitySelect v-model="productHandlers[group.product_id]" :entities="group.handlers" :placeholder="group.handlers.length > 1 ? '请选择接单人' : '默认接单人'" clearable /></label>
         <label>给商家的备注<NInput v-model:value="memo" type="textarea" maxlength="1000" show-count placeholder="可选" /></label>
       </div>
-      <aside class="checkout-summary"><div><span>当前余额</span><strong>{{ formatMoney(balance.data.value.balance) }}</strong></div><div><span>应付总额</span><strong>{{ formatMoney(total) }}</strong></div><p v-if="insufficient" class="form-error" role="alert">余额不足，请联系商家充值后再购买。</p><p v-if="error" class="form-error" role="alert">{{ error }}</p><NButton attr-type="submit" type="primary" size="large" block :loading="pending" :disabled="insufficient || (needsHandler && !handlerId)">使用余额购买</NButton><RouterLink :to="`/product/${id}`">返回商品详情</RouterLink></aside>
+      <aside class="checkout-summary"><div><span>当前余额</span><strong>{{ formatMoney(balance.data.value.balance) }}</strong></div><div><span>应付总额</span><strong>{{ formatMoney(total) }}</strong></div><p v-if="insufficient" class="form-error" role="alert">余额不足，请联系商家充值后再购买。</p><p v-if="error" class="form-error" role="alert">{{ error }}</p><NButton attr-type="submit" type="primary" size="large" block :loading="pending" :disabled="!quantity || insufficient || missingProductHandler || (needsHandler && !handlerId)">使用余额购买</NButton><RouterLink :to="`/product/${id}`">返回商品详情</RouterLink></aside>
     </form>
   </section>
 </template>

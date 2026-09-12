@@ -91,7 +91,7 @@ final class ManualEntitlementGrant
     public function options(int $teamId, array $actingEntity, int $actorEntityId, bool $personal = false): array
     {
         $products = TeamProduct::where('team_id', $teamId)
-            ->where('kind', ProductKind::ServiceBundle->value)
+            ->whereIn('kind', [ProductKind::ServiceBundle->value, ProductKind::Redeemable->value])
             ->where('is_active', 1)
             ->whereNotNull('benefit_package_id')
             ->order('id', 'desc')
@@ -149,7 +149,7 @@ final class ManualEntitlementGrant
 
         return \think\facade\Db::transaction(function () use ($teamId, $actorEntityId, $data, $productId, $customerId, $quantity, $personal) {
             $product = TeamProduct::where('team_id', $teamId)->lock(true)->find($productId);
-            if (!$product || !(bool) $product->is_active || $product->enumCase('kind') !== ProductKind::ServiceBundle) {
+            if (!$product || !(bool) $product->is_active || !in_array($product->enumCase('kind'), [ProductKind::ServiceBundle, ProductKind::Redeemable], true)) {
                 throw new HttpException(422, '服务套餐商品不存在或已停用');
             }
 

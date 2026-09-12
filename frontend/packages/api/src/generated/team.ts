@@ -1656,7 +1656,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 团队后台创建 Webhook 集成 */
+        /**
+         * 团队后台创建 Webhook 集成
+         * @description Standard Webhooks v1。创建或轮换后凭据明文仅返回一次；轮换立即替换 API Token 与签名密钥。
+         */
         post: operations["teamChatIntegrationCreate"];
         delete?: never;
         options?: never;
@@ -1690,7 +1693,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 团队后台轮换 Webhook 凭据 */
+        /**
+         * 团队后台轮换 Webhook 凭据
+         * @description Standard Webhooks v1。创建或轮换后凭据明文仅返回一次；轮换立即替换 API Token 与签名密钥。
+         */
         post: operations["teamChatIntegrationRotate"];
         delete?: never;
         options?: never;
@@ -2010,6 +2016,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        IntegrationCredentials: {
+            /** @description 仅创建时返回 */
+            id?: number;
+            /** @description 调用消息 API 的 Bearer 令牌，仅返回一次 */
+            token: string;
+            /** @description Standard Webhooks v1 密钥：32 随机字节的标准 Base64 编码；仅返回一次 */
+            signing_secret: string;
+        };
+        IntegrationCredentialsEnvelope: components["schemas"]["Envelope"] & {
+            data?: components["schemas"]["IntegrationCredentials"];
+        };
         AnyObject: {
             [key: string]: unknown;
         };
@@ -7585,7 +7602,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Envelope"];
+                    "application/json": components["schemas"]["IntegrationCredentialsEnvelope"];
                 };
             };
         };
@@ -7629,7 +7646,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Envelope"];
+                    "application/json": components["schemas"]["IntegrationCredentialsEnvelope"];
                 };
             };
         };

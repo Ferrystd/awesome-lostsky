@@ -72,18 +72,18 @@ class EntityRole
                 $metadata = [
                     'label' => $key,
                     'group' => match ($dynamic['kind']) {
-                        'virtual' => '实体管理',
+                        'virtual' => '人员管理',
                         'act' => '聊天',
-                        default => '实体委托',
+                        default => '人员委托',
                     },
                 ];
             } elseif ($metadata === null && ($descendant = PermissionDictionary::dynamicDescendant($key)) !== null) {
                 $metadata = [
                     'label' => "覆盖 {$key} 下全部权限",
                     'group' => match ($descendant['kind']) {
-                        'virtual' => '实体管理',
+                        'virtual' => '人员管理',
                         'act' => '聊天',
-                        default => '实体委托',
+                        default => '人员委托',
                     },
                 ];
             }

@@ -1,0 +1,7 @@
+{
+  "secret": "whsec_YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=",
+  "id": "123",
+  "timestamp": "1788825600",
+  "body": "{\"type\":\"conversation.closed\",\"timestamp\":\"2026-09-08T00:00:00Z\",\"data\":{\"conversation\":\"00000000-0000-4000-8000-000000000001\"}}",
+  "signature": "v1,EihjubRk9fdnGH/UCZhFHJh8e4cztc2BUBCTL1Bfh08="
+}

@@ -109,6 +109,16 @@ class Order
             }
 
             $kind = $product->enumCase('kind') ?? ProductKind::Standard;
+            $fulfillmentSnapshot = app(BenefitFulfillment::class)->snapshotProduct($product);
+            $productHandlers = $data['product_handlers'] ?? [];
+            if (!is_array($productHandlers)) throw new HttpException(422, '商品接单人配置格式不正确');
+            foreach ($productHandlers as $productId => $entityId) {
+                if (!ctype_digit((string) $productId) || (int) $productId < 1 || !is_int($entityId) || $entityId < 1) {
+                    throw new HttpException(422, '商品接单人配置格式不正确');
+                }
+            }
+            $usedProductIds = $this->freezeOrdinaryHandlers($teamId, $fulfillmentSnapshot, $data['handler_entity_id'] ?? null, $productHandlers);
+            if (array_diff(array_keys($productHandlers), $usedProductIds)) throw new HttpException(422, '接单人配置包含非本次购买的普通商品');
             $handlerId = $kind === ProductKind::Standard
                 ? $this->resolveHandler($product, $data['handler_entity_id'] ?? null)
                 : null;
@@ -124,6 +134,9 @@ class Order
             $overrides = [];
             foreach (['handler_cut', 'sender_cut', 'cs_cut', 'team_cut'] as $field) {
                 if (array_key_exists($field, $data) && $data[$field] !== null) {
+                    if (!empty($fulfillmentSnapshot['pricing_locked'])) {
+                        throw new HttpException(422, '嵌套商品不支持下单时修改分成');
+                    }
                     $overrides[$field] = $data[$field];
                 }
             }
@@ -174,8 +187,12 @@ class Order
             ];
 
             $transId = null;
+            $transactionRows = $this->compositionTransactions($teamId, $fulfillmentSnapshot, $transData, $quantity, $data['handler_entity_id'] ?? null);
             if ($this->shouldSyncTransaction($teamId)) {
-                $transId = app(Transaction::class)->create($teamId, $transData);
+                $transactionIds = [];
+                foreach ($transactionRows as $row) $transactionIds[] = app(Transaction::class)->create($teamId, $row);
+                $transId = $transactionIds[0] ?? null;
+                if (!empty($fulfillmentSnapshot['composition'])) $fulfillmentSnapshot['transaction_ids'] = $transactionIds;
             } else {
                 $this->consumePrepaid($customerId, $quote['prepaid']);
             }
@@ -189,6 +206,7 @@ class Order
             $order->product_id  = (int) $data['product_id'];
             $order->product_name = (string) $product->name;
             $order->product_cover_image = $product->cover_image ?: null;
+            $order->fulfillment_snapshot = $fulfillmentSnapshot;
             $order->quantity    = $quantity;
             $order->unit_price  = $quote['unit_price'];
             $order->total_price = $quote['total_price'];
@@ -246,10 +264,11 @@ class Order
             }
 
             // 软删除关联流水
-            if ($order->trans_id) {
+            $transactionIds = $order->fulfillment_snapshot['transaction_ids'] ?? [$order->trans_id];
+            foreach (array_filter($transactionIds) as $transactionId) {
                 $trans = TeamTransaction::where('team_id', $teamId)
                     ->lock(true)
-                    ->find($order->trans_id);
+                    ->find($transactionId);
                 if ($trans) {
                     $trans->delete();
                 }
@@ -275,6 +294,101 @@ class Order
             $order->status = OrderStatus::Completed;
             $order->save();
         });
+    }
+
+    /** 卡密已收款，普通商品兑换只交付和记业绩，不再次扣款或创建核销任务。 */
+    public function deliverClaimProduct(\app\model\RedemptionClaim $claim, \app\model\TeamCustomer $customer, array $entry, int $ordinal, ?int $senderId, ?int $csId): int
+    {
+        return \think\facade\Db::transaction(function () use ($claim, $customer, $entry, $ordinal, $senderId, $csId) {
+            \app\model\RedemptionClaim::where('id', $claim->id)->lock(true)->find();
+            $existing = TeamOrder::where('source_claim_id', $claim->id)->where('claim_ordinal', $ordinal)->find();
+            if ($existing) return (int) $existing->id;
+            $teamId = (int) $customer->team_id;
+            if ((int) $claim->target_entity_id !== (int) $customer->root_entity_id || (int) $claim->campaign->issuer_team_id !== $teamId) {
+                throw new HttpException(403, '兑换交付主体不匹配');
+            }
+            $product = TeamProduct::withTrashed()->where('team_id', $teamId)->find($entry['product_id']);
+            if (!$product) throw new HttpException(422, '兑换商品不存在');
+            $handlerId = isset($entry['handler_entity_id'])
+                ? (int) app(Entity::class)->assertInTeam((int) $entry['handler_entity_id'], $teamId)->id
+                : $this->resolveHandler($product, null);
+            $pricing = app(BenefitPackagePricing::class);
+            $money = [];
+            foreach ($entry['money'] as $field => $amount) $money[$field] = $pricing->fromCents($pricing->toCents($amount) * $entry['quantity']);
+            foreach (['sender_cut' => $senderId, 'cs_cut' => $csId] as $field => $entityId) {
+                if (!$entityId) {
+                    $money['team_cut'] = $pricing->fromCents($pricing->toCents($money['team_cut']) + $pricing->toCents($money[$field]));
+                    $money[$field] = '0.00';
+                }
+            }
+            $data = $money + ['handler_entity_id' => $handlerId, 'sender_entity_id' => $senderId, 'cs_entity_id' => $csId,
+                'customer_id' => (int) $customer->id, 'cash' => '0.00', 'prepaid' => '0.00'];
+            $transId = $this->shouldSyncTransaction($teamId) ? app(Transaction::class)->create($teamId,
+                $data + ['type' => TransactionType::ShopOrder, 'service_credit' => $money['total_price'], 'memo' => '卡密兑换普通商品']) : null;
+            $order = new TeamOrder;
+            $order->save($data + ['team_id' => $teamId, 'source_claim_id' => (int) $claim->id, 'claim_ordinal' => $ordinal,
+                'product_id' => (int) $product->id, 'product_name' => $entry['product_name'] ?? $product->name,
+                'product_cover_image' => $entry['product_cover_image'] ?? $product->cover_image,
+                'quantity' => $entry['quantity'], 'unit_price' => $entry['money']['total_price'],
+                'fulfillment_snapshot' => ['version' => 1, 'kind' => ProductKind::Standard->value],
+                'trans_id' => $transId, 'status' => OrderStatus::Completed, 'memo' => '卡密兑换普通商品']);
+            return (int) $order->id;
+        });
+    }
+
+    public function freezeOrdinaryHandlers(int $teamId, array &$snapshot, $handlerEntityId, array $productHandlers = []): array
+    {
+        $usedProductIds = [];
+        foreach ($snapshot['ordinary'] ?? [] as $index => $entry) {
+            $product = TeamProduct::where('team_id', $teamId)->lock(true)->find($entry['product_id']);
+            if (!$product) throw new HttpException(422, '套餐普通子项不存在');
+            $snapshot['ordinary'][$index]['handler_entity_id'] = $this->resolveHandler($product, $productHandlers[$entry['product_id']] ?? $handlerEntityId);
+            $usedProductIds[] = (int) $entry['product_id'];
+        }
+        if (isset($snapshot['target'])) $usedProductIds = array_merge($usedProductIds, $this->freezeOrdinaryHandlers($teamId, $snapshot['target'], $handlerEntityId, $productHandlers));
+        foreach ($snapshot['cards'] ?? [] as $index => $card) {
+            $usedProductIds = array_merge($usedProductIds, $this->freezeOrdinaryHandlers($teamId, $snapshot['cards'][$index]['target'], $handlerEntityId, $productHandlers));
+        }
+        return array_values(array_unique($usedProductIds));
+    }
+
+    /** 普通子项直接成交，剩余金额只预收；全部流水共享外层下单事务。 */
+    private function compositionTransactions(int $teamId, array &$snapshot, array $receipt, int $quantity, $handlerEntityId): array
+    {
+        if (empty($snapshot['ordinary'])) return [$receipt];
+        $pricing = app(BenefitPackagePricing::class);
+        $remaining = $pricing->toCents($receipt['total_price']);
+        $rows = [];
+        foreach ($snapshot['ordinary'] as &$entry) {
+            $product = TeamProduct::where('team_id', $teamId)->lock(true)->find($entry['product_id']);
+            if (!$product) throw new HttpException(422, '套餐普通子项不存在');
+            $entry['handler_entity_id'] ??= $this->resolveHandler($product, $handlerEntityId);
+            $row = $receipt;
+            $row['type'] = TransactionType::ShopOrder->value;
+            $row['handler_entity_id'] = $entry['handler_entity_id'];
+            foreach ($entry['money'] as $field => $amount) {
+                $row[$field] = $pricing->fromCents($pricing->toCents($amount) * $entry['quantity'] * $quantity);
+            }
+            foreach (['sender' => 'sender_cut', 'cs' => 'cs_cut'] as $role => $field) {
+                if (empty($row[$role . '_entity_id'])) {
+                    $row['team_cut'] = $pricing->fromCents($pricing->toCents($row['team_cut']) + $pricing->toCents($row[$field]));
+                    $row[$field] = '0.00';
+                }
+            }
+            $row['cash'] = $receipt['customer_id'] === null ? $row['total_price'] : '0.00';
+            $row['prepaid'] = $receipt['customer_id'] === null ? '0.00' : $row['total_price'];
+            $remaining -= $pricing->toCents($row['total_price']);
+            $rows[] = $row;
+        }
+        unset($entry);
+        if ($remaining < 0) throw new HttpException(422, '套餐子项金额超过订单金额');
+        if ($remaining > 0 || !empty($snapshot['items'])) {
+            $receipt['total_price'] = $pricing->fromCents($remaining);
+            $receipt['cash'] = $receipt['customer_id'] === null ? $receipt['total_price'] : '0.00';
+            $receipt['prepaid'] = $receipt['customer_id'] === null ? '0.00' : $receipt['total_price'];
+            array_unshift($rows, $receipt);
+        }
+        return $rows;
     }
 
     private function resolveHandler(TeamProduct $product, $handlerEntityId): int

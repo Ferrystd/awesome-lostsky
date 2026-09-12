@@ -151,7 +151,7 @@ const checkboxGroupField = story(
       h(LsCheckboxGroupField, {
         modelValue: state === 'active' ? [1, 2] : [1],
         label: '可分配角色',
-        hint: state === 'default' ? '保存后立即应用到当前实体。' : undefined,
+        hint: state === 'default' ? '保存后立即应用到当前人员。' : undefined,
         error: state === 'error' ? '请至少选择一个角色。' : undefined,
         disabled: state === 'disabled',
         options: [
@@ -345,7 +345,7 @@ const entitySelect = story(
         entities: selectEntities,
         multiple: true,
         clearable: true,
-        placeholder: '选择接单 Entity',
+        placeholder: '选择接单人员',
         disabled: state === 'disabled',
         loading: state === 'loading',
         show: state === 'active',
@@ -524,7 +524,7 @@ const markdownRenderer = story(
     ),
   {
     disabled: '只读渲染器没有禁用状态。',
-    loading: '实体解析在内容内渐进完成。',
+    loading: '人员解析在内容内渐进完成。',
     error: '无效 Markdown 会安全降级为可读内容。',
   },
 )
@@ -548,7 +548,7 @@ const pageHeader = story(
         LsPageHeader,
         {
           title: '对象字段',
-          description: '统一定义人员、顾客和虚拟实体的团队内部资料。',
+          description: '统一定义人员、顾客和虚拟人员的团队内部资料。',
           backTo: '/',
           backLabel: '返回工作台',
         },

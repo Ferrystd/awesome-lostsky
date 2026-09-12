@@ -34,7 +34,7 @@ final class WeiboTasks
     {
         if ($ownerEntityId === null) {
             $actor = \app\model\Entity::find($actorEntityId);
-            if (!$actor || !$actor->is_valid) throw new HttpException(422, '当前实体身份不存在或不可用');
+            if (!$actor || !$actor->is_valid) throw new HttpException(422, '当前人员身份不存在或不可用');
         } else {
             app(Entity::class)->assertInTeam($actorEntityId, $teamId);
         }

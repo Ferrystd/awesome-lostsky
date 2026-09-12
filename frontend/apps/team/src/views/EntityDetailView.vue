@@ -82,7 +82,7 @@ const manageReason = permissionReason('team.entity.profile.manage')
 const canDisplay = computed(() => ['teamMember', 'teamVirtual'].includes(String(detail.data.value?.entityable_type ?? '')))
 const supportsPublicDocuments = computed(() => ['team', 'teamMember', 'teamVirtual'].includes(String(detail.data.value?.entityable_type ?? '')))
 const canToggleInternal = computed(() => ['teamMember', 'teamVirtual'].includes(String(detail.data.value?.entityable_type ?? '')))
-const internalFixedMessage = computed(() => (detail.data.value?.entityable_type === 'teamCustomer' ? 'Customer 属于敏感目录，始终需要 team.entity.read 才能查看。' : 'Team 实体始终在团队内部可见。'))
+const internalFixedMessage = computed(() => (detail.data.value?.entityable_type === 'teamCustomer' ? 'Customer 属于敏感目录，始终需要 team.entity.read 才能查看。' : '团队身份始终在团队内部可见。'))
 const publicFixedMessage = computed(() => (detail.data.value?.entityable_type === 'teamCustomer' ? 'Customer 包含敏感资料，不支持互联网公开主页。' : 'Team 主页由团队公开入口管理，此处不单独设置。'))
 const entityTypeLabel = computed(
   () =>
@@ -91,9 +91,9 @@ const entityTypeLabel = computed(
         team: '团队',
         teamMember: '成员',
         teamCustomer: '顾客',
-        teamVirtual: '虚拟实体',
+        teamVirtual: '虚拟人员',
       }) as Record<string, string>
-    )[String(detail.data.value?.entityable_type ?? '')] ?? '实体',
+    )[String(detail.data.value?.entityable_type ?? '')] ?? '人员',
 )
 const displayUrl = computed(() => (detail.data.value?.is_displayed && canDisplay.value ? `//${window.location.hostname.split('.')[0]}.display.lostsky.work/entity/${detail.data.value.slug}` : ''))
 const chatUrl = computed(() => (detail.data.value?.slug ? chatWorkspaceUrl('/new', { participant: detail.data.value.slug }) : ''))
@@ -144,7 +144,7 @@ const profileSave = useMutation({
   onSuccess: (_, payload) => {
     profileSnapshot.value = profileFingerprint(payload)
     if (!profileDirty.value) editor.value?.clearDraft()
-    feedback.success('实体资料已保存')
+    feedback.success('人员资料已保存')
     return client.invalidateQueries({ queryKey: ['entity', id.value] })
   },
   onError: (error) => feedback.error(friendlyError(error)),
@@ -220,18 +220,18 @@ async function submitProfile() {
 
 <template>
   <div class="entity-detail">
-    <AdminPageHeader :title="canManage ? '管理实体资料' : '查看实体资料'" description="团队内可见、全局搜索和公开主页是三套互相独立的展示范围。" back-to="/entities" back-label="返回实体">
+    <AdminPageHeader :title="canManage ? '管理人员资料' : '查看人员资料'" description="团队内可见、全局搜索和公开主页是三套互相独立的展示范围。" back-to="/entities" back-label="返回人员">
       <template #actions>
         <LsPagePrimaryAction v-if="chatUrl" :icon="MessageCircleMore" label="发起对话" :href="chatUrl" />
       </template>
     </AdminPageHeader>
     <LsAsyncState v-if="detail.isPending.value" state="loading" :rows="5" />
-    <LsAsyncState v-else-if="detail.isError.value" state="error" title="暂时无法读取实体资料" :description="friendlyError(detail.error.value)" />
+    <LsAsyncState v-else-if="detail.isError.value" state="error" title="暂时无法读取人员资料" :description="friendlyError(detail.error.value)" />
     <template v-else-if="detail.data.value">
       <form @submit.prevent="submitProfile">
         <LsPanel
           ><div class="profile-panel">
-            <LsSectionHeader :title="`${entityTypeLabel} · @${detail.data.value.slug}`" description="这些资料用于实体（Entity）详情；公开页面仍受“公开主页展示”控制。">
+            <LsSectionHeader :title="`${entityTypeLabel} · @${detail.data.value.slug}`" description="这些资料用于人员详情；公开页面仍受“公开主页展示”控制。">
               <template v-if="displayUrl" #aside
                 ><a class="public-link" :href="displayUrl" target="_blank" rel="noopener noreferrer">查看公开主页<ExternalLink :size="16" /></a
               ></template>
@@ -240,7 +240,7 @@ async function submitProfile() {
             <section v-if="supportsPublicDocuments" class="document-tag-groups" aria-labelledby="document-tag-groups-title">
               <div>
                 <h3 id="document-tag-groups-title">公开文档分组</h3>
-                <p>按这里的顺序组织该实体的公开文档；说明会显示在对应分组标题下方。</p>
+                <p>按这里的顺序组织该人员的公开文档；说明会显示在对应分组标题下方。</p>
               </div>
               <LsFormList v-model="form.document_tags" :item-key="tagKey" :create-item="createTagGroup" item-label="展示标签" add-label="添加展示标签" empty-text="尚未配置公开文档分组" :disabled="!canManage">
                 <template #item="{ item, index }">
@@ -283,11 +283,11 @@ async function submitProfile() {
         ><section class="visibility-settings">
           <LsSectionHeader title="可见性设置" description="分别控制团队工作空间与互联网公开主页中的发现范围。" :heading-level="2" />
           <div class="visibility-list">
-            <LsSwitchField v-if="canToggleInternal" v-model="isInternalVisible" label="团队内可见" :heading-level="3" description="控制普通成员是否能在当前团队工作空间发现该实体；具有 team.entity.read 的角色仍可查看。它不影响全局搜索或公开主页。" :disabled="!canManage" :loading="visibilitySave.isPending.value" :disabled-reason="!canManage ? manageReason : ''" />
-            <LsSwitchField v-else :model-value="detail.data.value.entityable_type === 'team'" label="团队内可见" :heading-level="3" description="控制普通成员是否能在当前团队工作空间发现该实体；它不影响全局搜索或公开主页。" read-only :disabled-reason="internalFixedMessage" />
+            <LsSwitchField v-if="canToggleInternal" v-model="isInternalVisible" label="团队内可见" :heading-level="3" description="控制普通成员是否能在当前团队工作空间发现该人员；具有 team.entity.read 的角色仍可查看。它不影响全局搜索或公开主页。" :disabled="!canManage" :loading="visibilitySave.isPending.value" :disabled-reason="!canManage ? manageReason : ''" />
+            <LsSwitchField v-else :model-value="detail.data.value.entityable_type === 'team'" label="团队内可见" :heading-level="3" description="控制普通成员是否能在当前团队工作空间发现该人员；它不影响全局搜索或公开主页。" read-only :disabled-reason="internalFixedMessage" />
 
-            <LsSwitchField v-if="canDisplay" v-model="isDisplayed" label="公开主页展示" :heading-level="3" description="控制互联网访客能否在 Display 公开主页浏览该实体。它不影响团队内目录或全局搜索。" :disabled="!canManage" :loading="visibilitySave.isPending.value" :disabled-reason="!canManage ? manageReason : ''" />
-            <LsSwitchField v-else :model-value="detail.data.value.entityable_type === 'team'" label="公开主页展示" :heading-level="3" description="控制互联网访客能否在 Display 公开主页浏览该实体。" read-only :disabled-reason="publicFixedMessage" />
+            <LsSwitchField v-if="canDisplay" v-model="isDisplayed" label="公开主页展示" :heading-level="3" description="控制互联网访客能否在 Display 公开主页浏览该人员。它不影响团队内目录或全局搜索。" :disabled="!canManage" :loading="visibilitySave.isPending.value" :disabled-reason="!canManage ? manageReason : ''" />
+            <LsSwitchField v-else :model-value="detail.data.value.entityable_type === 'team'" label="公开主页展示" :heading-level="3" description="控制互联网访客能否在 Display 公开主页浏览该人员。" read-only :disabled-reason="publicFixedMessage" />
           </div>
           <LsFormActions v-if="canToggleInternal">
             <LsButton variant="secondary" :disabled="!canManage || !visibilityDirty" :disabled-reason="!canManage ? manageReason : ''" :loading="visibilitySave.isPending.value" @click="visibilitySave.mutate(buildVisibilityPayload())">保存可见性</LsButton>

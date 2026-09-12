@@ -165,7 +165,7 @@ class TeamJoin
             ? (int) (\app\model\Entity::member()->where('entityable_id', (int) $member->id)->value('id') ?? 0)
             : 0;
         if ($member && $entityId < 1) {
-            throw new HttpException(409, '原成员实体不存在，无法申请复职');
+            throw new HttpException(409, '原成员身份不存在，无法申请复职');
         }
 
         return \think\facade\Db::transaction(function () use (
@@ -332,7 +332,7 @@ class TeamJoin
 
             $entity ??= \app\model\Entity::member()->where('entityable_id', (int) $member->id)->find();
             if (!$entity) {
-                throw new HttpException(409, '成员实体不存在');
+                throw new HttpException(409, '成员身份不存在');
             }
             $application->entity_id = (int) $entity->id;
             $application->status = TeamJoinStatus::Joined;
@@ -485,12 +485,12 @@ class TeamJoin
         }
         $entityFieldId = (int) ($data['entity_field_id'] ?? 0);
         if (!$entityFieldId) {
-            throw new HttpException(422, '转存实体字段不能为空');
+            throw new HttpException(422, '转存人员字段不能为空');
         }
         if (!\app\model\TeamEntityField::where('team_id', $teamId)
             ->where('entity_type', \app\enum\TeamEntityType::Entity->value)
             ->find($entityFieldId)) {
-            throw new HttpException(404, '转存实体字段不存在');
+            throw new HttpException(404, '转存人员字段不存在');
         }
     }
 
@@ -540,7 +540,7 @@ class TeamJoin
             ->where('entityable_id', $memberId)
             ->value('id') ?? 0);
         if ($entityId < 1) {
-            throw new HttpException(409, '成员实体不存在');
+            throw new HttpException(409, '成员身份不存在');
         }
         $values = TeamJoinFieldValue::where('application_id', $applicationId)
             ->with(['field'])

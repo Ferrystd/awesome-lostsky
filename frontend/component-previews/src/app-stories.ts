@@ -1,3 +1,4 @@
+import TeamSectionNav from '../../apps/team/src/components/TeamSectionNav.vue';
 import { defineComponent, h, ref } from "vue";
 import { NInput } from "naive-ui";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
@@ -222,7 +223,7 @@ const entityList = story(
         preview: true,
       }),
     ),
-  { disabled: "公开实体列表只读。", loading: "加载由页面表达。" },
+  { disabled: "公开人员列表只读。", loading: "加载由页面表达。" },
 );
 
 const productList = story(
@@ -446,11 +447,11 @@ const entityPermissionsCard = story(
           { key: "team.customer.read", label: "查看顾客", group: "顾客" },
           { key: "team.customer.read", label: "查看顾客", group: "顾客" },
           { key: "chat.conversation.create", label: "创建会话", group: "聊天" },
-          { key: "chat.virtual.*.act", label: "代表全部虚拟实体参与聊天", group: "聊天" },
-          { key: "identity.member.*.assume", label: "领取全部成员身份", group: "实体委托" },
-          { key: "identity.member.member-2.assume", label: "领取成员二号身份", group: "实体委托" },
-          { key: "identity.member.member-2.assume", label: "领取成员二号身份", group: "实体委托" },
-          { key: "identity.member.member-2", label: "覆盖 identity.member.member-2 下全部权限", group: "实体委托" },
+          { key: "chat.virtual.*.act", label: "代表全部虚拟人员参与聊天", group: "聊天" },
+          { key: "identity.member.*.assume", label: "领取全部成员身份", group: "人员委托" },
+          { key: "identity.member.member-2.assume", label: "领取成员二号身份", group: "人员委托" },
+          { key: "identity.member.member-2.assume", label: "领取成员二号身份", group: "人员委托" },
+          { key: "identity.member.member-2", label: "覆盖 identity.member.member-2 下全部权限", group: "人员委托" },
           { key: "team.ability", label: "覆盖 team.ability 下全部权限", group: "高级范围" },
         ],
         catalog: [
@@ -466,11 +467,11 @@ const entityPermissionsCard = story(
             name: "聊天",
             items: [
               { key: "chat.conversation.create", label: "创建会话" },
-              { key: "chat.virtual.*.act", label: "代表全部虚拟实体参与聊天" },
+              { key: "chat.virtual.*.act", label: "代表全部虚拟人员参与聊天" },
             ],
           },
           {
-            name: "实体委托",
+            name: "人员委托",
             items: [
               { key: "identity.member.*.assume", label: "领取全部成员身份" },
               { key: "identity.member.member-2.assume", label: "领取成员二号身份" },
@@ -526,7 +527,7 @@ const teamShell = story(
       default: () =>
         h("section", { class: "shell-content" }, [
           h("h2", "团队概览"),
-          h("p", "实体、成员、通知和文档集中在同一工作台。"),
+          h("p", "人员、成员、通知和文档集中在同一工作台。"),
           h(
             LsButton,
             { "data-preview-target": "" },
@@ -656,7 +657,7 @@ const resourceOwnerTag = story(
   {
     disabled: "归属标签不提供禁用交互。",
     loading: "归属数据由所属列表负责加载。",
-    error: "缺失 Owner 摘要时组件使用 Entity ID 作为可识别回退。",
+    error: "缺失 Owner 摘要时组件使用人员ID 作为可识别回退。",
   },
 );
 
@@ -763,6 +764,12 @@ export const appStories: Record<string, StoryDefinition> = {
   EntityFieldsCard: entityFieldsCard,
   EntityPermissionsCard: entityPermissionsCard,
   EntityProfileFields: entityProfileFields,
+  TeamSectionNav: {
+    name: 'TeamSectionNav',
+    supported: ['default', 'hover', 'focus', 'active', 'mobile'],
+    reason: { disabled: '入口始终可用。', loading: '加载由列表承载。', error: '错误由列表承载。' },
+    render: () => h(TeamSectionNav, { label: '审核分类', items: [{ to: '/', label: '加入与复职' }, { to: '/departure-review', label: '离队' }] }),
+  },
   TeamShell: teamShell,
   TransactionShell: transactionShell,
   PersonalServiceLists: personalServiceLists,

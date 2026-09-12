@@ -90,7 +90,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id))
     </LsPageHeader>
     <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
       <LsFormSection title="活动配置">
-        <p v-if="personal" class="form-intro" role="note">此卡活动自动归属当前 Entity，只能绑定本人或团队公用权益包。</p>
+        <p v-if="personal" class="form-intro" role="note">此卡活动自动归属当前人员，只能绑定本人或团队公用权益包。</p>
         <LsField label="活动名称" for-id="campaign-name" required><NInput id="campaign-name" v-model:value="form.name" maxlength="100" /></LsField>
         <LsField label="权益包" for-id="campaign-package" required><NSelect id="campaign-package" v-model:value="form.package_id" :options="packageOptions" filterable :disabled="editing" /></LsField>
         <LsField label="发行模式" for-id="campaign-mode" required><NSelect id="campaign-mode" v-model:value="form.mode" :options="[{ label: '独立卡密', value: 1 }, { label: '公共活动码', value: 2 }, { label: '定向卡密', value: 3 }]" :disabled="editing" /></LsField>

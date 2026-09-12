@@ -241,7 +241,7 @@ function deleteField() {
       </section>
 
       <section class="settings" aria-labelledby="transfer-settings-title">
-        <LsSectionHeader id="transfer-settings-title" title="审批后转存" description="申请通过并创建成员后，可把该值写入一个人员对象字段。" />
+        <LsSectionHeader id="transfer-settings-title" title="审批后转存" description="申请通过并创建成员后，可把该值写入一位人员对象字段。" />
         <LsSwitchField v-model="form.is_transfer_entity_field" label="自动转存" description="目标必须是当前团队的人员对象字段。" :disabled="!canWrite" />
         <LsField v-if="form.is_transfer_entity_field" label="转存目标" for-id="join-field-transfer" required :error="errors.entity_field_id">
           <NSelect id="join-field-transfer" v-model:value="form.entity_field_id" :disabled="!canWrite || transferQuery.isError.value" :loading="transferQuery.isPending.value" :options="transferSelectOptions" filterable placeholder="选择人员对象字段" aria-label="转存目标" />

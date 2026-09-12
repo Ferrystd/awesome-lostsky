@@ -45,6 +45,7 @@ aliases: [服务, Service]
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
+| `snapshotProduct` | `model\TeamProduct $product`、`array $path = []` | `array` |
 | `fulfillOrder` | `model\TeamOrder $order` | `array` |
 | `servicesFromClaim` | `model\RedemptionClaim $claim`、`int $teamId`、`int $customerId`、`int $holderEntityId` | `array` |
 | `grantProduct` | `model\TeamProduct $product`、`model\TeamCustomer $customer`、`int $quantity`、`?int $senderEntityId`、`?int $csEntityId` | `array` |
@@ -425,6 +426,8 @@ aliases: [服务, Service]
 | `create` | `int $teamId`、`array $data` | `int` |
 | `cancel` | `int $teamId`、`int $id` | `void` |
 | `complete` | `int $teamId`、`int $id` | `void` |
+| `deliverClaimProduct` | `model\RedemptionClaim $claim`、`model\TeamCustomer $customer`、`array $entry`、`int $ordinal`、`?int $senderId`、`?int $csId` | `int` |
+| `freezeOrdinaryHandlers` | `int $teamId`、`array $snapshot`、`mixed $handlerEntityId`、`array $productHandlers = []` | `array` |
 
 ## Pagination
 
@@ -459,6 +462,14 @@ aliases: [服务, Service]
 | `delegatedAllows` | `int $targetTeamId`、`array $source`、`model\Entity $target` | `bool` |
 | `candidates` | `think\Request $request`、`string ...$templates` | `array` |
 | `assertKey` | `string $key` | `void` |
+
+## PersonalPricing
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `allows` | `int $teamId`、`array $actingEntity` | `bool` |
+| `preserve` | `array $data`、`array $baseline` | `array` |
+| `defaults` | `int $teamId`、`mixed $price`、`mixed $cost`、`string $prefix = ''` | `array` |
 
 ## PlatformAdmin
 
@@ -505,10 +516,18 @@ aliases: [服务, Service]
 | --- | --- | --- |
 | `list` | `int $teamId`、`array $filters`、`int $page = 1`、`int $limit = 20` | `array` |
 | `get` | `int $teamId`、`int $id` | `array` |
-| `create` | `int $teamId`、`array $data` | `int` |
-| `edit` | `int $teamId`、`int $id`、`array $data` | `void` |
+| `create` | `int $teamId`、`array $data`、`bool $canReprice = true` | `int` |
+| `edit` | `int $teamId`、`int $id`、`array $data`、`bool $canReprice = true` | `void` |
 | `delete` | `int $teamId`、`int $id` | `void` |
 | `setHandlers` | `int $teamId`、`int $productId`、`array $entityIds` | `void` |
+
+## ProductComposition
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `inspectStored` | `array $root` | `array` |
+| `inspect` | `array $root`、`callable $load` | `array` |
+| `deliveries` | `array $root`、`callable $load`、`bool $redeemCard = false` | `array` |
 
 ## ProductSelfManagement
 

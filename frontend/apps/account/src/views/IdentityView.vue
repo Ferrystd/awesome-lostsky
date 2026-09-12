@@ -49,7 +49,7 @@ const orderedCandidates = computed(() => [...(candidates.data.value ?? [])].sort
 }))
 const targetAvailable = computed(() => !targetSlug.value || orderedCandidates.value.some(item => item.slug === targetSlug.value))
 function label(type: Identity['type']) {
-  return ({ teamMember: '成员', teamCustomer: '顾客', team: '团队', teamVirtual: '虚拟实体' })[type]
+  return ({ teamMember: '成员', teamCustomer: '顾客', team: '团队', teamVirtual: '虚拟人员' })[type]
 }
 async function logout() {
   try { await api.post('/devices/quit', {}) } catch { /* local logout still continues */ }
@@ -67,11 +67,11 @@ async function logout() {
       <header>
         <p class="eyebrow">身份</p>
         <h1>选择当前身份</h1>
-        <p>业务操作将使用所领取实体（Entity）的角色与权限（Permission）；账号和设备设置始终使用你的真实用户身份。</p>
+        <p>业务操作将使用所领取人员的角色与权限（Permission）；账号和设备设置始终使用你的真实用户身份。</p>
       </header>
 
       <section v-if="activeEntity" class="active-card">
-        <div><strong>当前正在使用实体身份</strong><p>{{ activeEntity.type }} · #{{ activeEntity.id }}</p></div>
+        <div><strong>当前正在使用人员身份</strong><p>{{ activeEntity.type }} · #{{ activeEntity.id }}</p></div>
         <NButton type="primary" secondary :loading="drop.isPending.value" @click="drop.mutate()">放弃身份</NButton>
       </section>
       <p v-if="drop.isError.value" class="error" role="alert">{{ friendlyError(drop.error.value) }}</p>
@@ -79,7 +79,7 @@ async function logout() {
       <section class="candidate-heading">
         <div>
           <h2>{{ activeEntity ? '可切换身份' : '可领取身份' }}</h2>
-          <p>{{ activeEntity ? '列表由其他团队或当前团队授予该实体的身份委托权限决定。' : '先领取与你的账号直接关联的成员或顾客根身份。' }}</p>
+          <p>{{ activeEntity ? '列表由其他团队或当前团队授予该人员的身份委托权限决定。' : '先领取与你的账号直接关联的成员或顾客根身份。' }}</p>
         </div>
       </section>
       <p v-if="targetSlug && targetAvailable" class="target-note">请确认切换为 <strong>@{{ targetSlug }}</strong>。切换后可继续选择其他身份。</p>
@@ -101,14 +101,14 @@ async function logout() {
               <small v-if="item.team" class="team-name">{{ item.team.name }} · {{ item.team.slug }}</small>
             </div>
             <NButton type="primary" :loading="receive.isPending.value" @click="receive.mutate(item.slug)">
-              <template #icon><BadgeCheck :size="17" /></template>{{ item.slug === targetSlug ? '切换为此实体' : activeEntity ? '切换' : '领取' }}
+              <template #icon><BadgeCheck :size="17" /></template>{{ item.slug === targetSlug ? '切换为此人员' : activeEntity ? '切换' : '领取' }}
             </NButton>
           </article>
         </section>
         <LsEmptyState
           v-else
           :title="activeEntity ? '暂无可切换身份' : '暂无可领取身份'"
-          :description="activeEntity ? '当前实体尚未获得任何团队授予的身份委托权限。' : '成员或顾客需先完成全局 slug 设置，才能作为根身份领取。'"
+          :description="activeEntity ? '当前人员尚未获得任何团队授予的身份委托权限。' : '成员或顾客需先完成全局 slug 设置，才能作为根身份领取。'"
         />
         <p v-if="receive.isError.value" class="error" role="alert">{{ friendlyError(receive.error.value) }}</p>
       </div>

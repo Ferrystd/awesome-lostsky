@@ -30,7 +30,7 @@ class TeamMemberDeparture
             || (int) $member->user_id !== $authenticatedUserId
             || !$session
             || (int) ($session->parent_session_id ?? 0) > 0) {
-            throw new HttpException(403, '离队自助操作必须使用成员本人直接登录的实体');
+            throw new HttpException(403, '离队自助操作必须使用成员本人直接登录的人员');
         }
         return (int) $member->id;
     }
@@ -311,7 +311,7 @@ class TeamMemberDeparture
         return [
             'entity_id' => (int) $entity->id,
             'slug' => (string) $entity->slug,
-            'name' => (string) ($entity->profile?->name ?: '实体'),
+            'name' => (string) ($entity->profile?->name ?: '人员'),
         ];
     }
 }

@@ -156,7 +156,7 @@ class ChatActor
                 ChatActorType::Entity => $model->nickname ?: '人员',
                 ChatActorType::Customer => $model->nickname ?: '顾客',
                 ChatActorType::Team => $model->display_name ?: '团队',
-                ChatActorType::Virtual => $model->name ?: '虚拟实体',
+                ChatActorType::Virtual => $model->name ?: '虚拟人员',
             },
             'avatar' => $type === ChatActorType::Team ? null : ($model->avatar ?: null),
             'status_code' => $type === ChatActorType::Entity ? $model->status_code : null,
@@ -172,7 +172,7 @@ class ChatActor
             return [
                 'type' => 'entity',
                 'slug' => null,
-                'name' => '已失效实体',
+                'name' => '已失效人员',
                 'avatar' => null,
                 'status_code' => null,
                 'status_label' => null,

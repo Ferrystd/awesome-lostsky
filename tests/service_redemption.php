@@ -241,7 +241,7 @@ try {
     (new TeamRolePermission)->save([
         'team_id' => $team->id,
         'role_id' => $repriceRole->id,
-        'permission_key' => PermissionDictionary::SHOP_PRODUCT_SELF_PACKAGE_REPRICE,
+        'permission_key' => PermissionDictionary::SHOP_PRODUCT_SELF_REPRICE,
     ]);
     (new TeamEntityRole)->save([
         'team_id' => $team->id,

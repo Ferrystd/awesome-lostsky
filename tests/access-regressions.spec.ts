@@ -20,7 +20,7 @@ test('virtual creation uses create permission independently of management', asyn
   await page.goto('http://demo.team.lostsky.work:5175/chat-virtual-new')
   await page.locator('#virtual-slug input').fill('created-bot')
   await page.locator('#virtual-name input').fill('新建机器人')
-  await page.getByRole('button', { name: '保存实体', exact: true }).click()
+  await page.getByRole('button', { name: '保存人员', exact: true }).click()
   await expect(page).toHaveURL(/\/chat-virtual\?slug=created-bot$/)
   expect(writes).toHaveLength(1)
 })
@@ -41,11 +41,11 @@ test('specific virtual permission allows its list and detail but not another slu
   await page.goto('http://demo.team.lostsky.work:5175/chat-virtuals')
   await page.locator('a[href="/chat-virtual?slug=bot"]').click()
   await expect(page.locator('#virtual-name input')).toHaveValue('指定机器人')
-  await page.getByRole('button', { name: '保存实体', exact: true }).click()
+  await page.getByRole('button', { name: '保存人员', exact: true }).click()
   await expect.poll(() => updates).toBe(1)
-  await expect(page.getByRole('button', { name: '保存实体', exact: true })).not.toHaveClass(/n-button--loading/)
+  await expect(page.getByRole('button', { name: '保存人员', exact: true })).not.toHaveClass(/n-button--loading/)
   await page.goto('http://demo.team.lostsky.work:5175/chat-virtual?slug=other')
-  await expect(page.getByRole('button', { name: '保存实体', exact: true })).toHaveAttribute('aria-disabled', 'true')
+  await expect(page.getByRole('button', { name: '保存人员', exact: true })).toHaveAttribute('aria-disabled', 'true')
 })
 
 test('a stale access snapshot cannot render a denied team detail as a record', async ({ page }) => {

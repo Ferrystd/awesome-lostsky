@@ -48,7 +48,7 @@ const columns: DataTableColumns<PersonalEntitlementGrantRecord> = [
 
 <template>
   <div class="personal-entitlements-view">
-    <LsPageHeader title="权益下发" description="查看当前实体（Entity）直接下发给顾客的全部权益；每项记录均按本人发单身份固定归档。">
+    <LsPageHeader title="权益下发" description="查看当前人员直接下发给顾客的全部权益；每项记录均按本人发单身份固定归档。">
       <template #actions>
         <LsPagePrimaryAction :icon="Gift" label="下发权益" to="/personal/entitlements/new" />
       </template>

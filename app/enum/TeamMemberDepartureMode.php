@@ -24,7 +24,7 @@ enum TeamMemberDepartureMode: string implements EnumTransform
     {
         return match ($this) {
             self::Disabled => '成员无法自助发起离队，管理员仍可代提。',
-            self::Review => '成员提交后由具备移出权限的实体审核。',
+            self::Review => '成员提交后由具备移出权限的人员审核。',
             self::Auto => '成员提交后立即完成离队。',
         };
     }

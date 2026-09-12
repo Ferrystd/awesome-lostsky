@@ -4,7 +4,7 @@ import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import { friendlyError } from '@lostsky/api/client'
 
 import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
-import { Boxes, KeyRound, PackageOpen, ReceiptText, ShoppingBag, UserRound } from '@lucide/vue'
+import { ReceiptText, ShoppingBag, UserRound } from '@lucide/vue'
 import { computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { loadManageAccess } from '../../lib'
@@ -14,18 +14,15 @@ const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadM
 const entries = [
   { key: 'products', label: '商品', description: '维护可售商品、处理人和核销字段。', to: '/manage/products', icon: ShoppingBag },
   { key: 'orders', label: '订单', description: '查看团队订单并持续推进履约状态。', to: '/manage/orders', icon: ReceiptText },
-  { key: 'services', label: '服务', description: '配置服务内容、价格与处理关系。', to: '/manage/services', icon: Boxes },
-  { key: 'packages', label: '权益包', description: '组合服务权益、数量与有效期限。', to: '/manage/packages', icon: PackageOpen },
-  { key: 'campaigns', label: '卡活动', description: '管理卡活动、发行批次与卡密。', to: '/manage/campaigns', icon: KeyRound },
 ]
-const configurationSteps = computed(() => ['services', 'packages', 'campaigns', 'products'].map(key => entries.find(entry => entry.key === key)!))
+const configurationSteps = computed(() => [{ key: 'create', label: '创建商品', description: '选择普通商品、核销商品、卡密或套餐。', to: '/manage/products/new', icon: ShoppingBag }, entries[0]])
 </script>
 
 <template>
   <LsWorkspaceOverview
     eyebrow="商品团队工作台"
     :title="access.data.value?.team?.name || (access.isError.value ? '团队摘要暂时不可用' : '正在读取当前团队…')"
-    description="把服务组合成可售商品，在订单中跟进每一次履约。"
+    description="统一管理普通商品、核销商品、卡密和套餐，在订单中跟进交付。"
     :actions="[{ key: 'personal', label: '进入个人工作台', to: '/manage/personal', icon: UserRound, primary: true }]"
     :entries="entries"
   >

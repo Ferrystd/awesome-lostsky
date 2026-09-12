@@ -66,9 +66,9 @@ class RolePermission
             ];
         }
         foreach ($groups as $index => $group) {
-            if ($group['name'] === '实体管理') {
+            if ($group['name'] === '人员管理') {
                 $groups[$index]['items'] = array_merge($group['items'], $virtualManagementItems);
-            } elseif ($group['name'] === '实体委托') {
+            } elseif ($group['name'] === '人员委托') {
                 $groups[$index]['items'] = array_merge($group['items'], $virtualDelegationItems);
             } elseif ($group['name'] === '聊天') {
                 $groups[$index]['items'] = array_merge($group['items'], $virtualChatItems);

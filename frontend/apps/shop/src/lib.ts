@@ -62,7 +62,7 @@ export const shopApi = {
   balance: () => api.get<Balance>('/customer/balance'),
   orders: (page = 1, limit = 20) => pageRequest<Order>('/customer/orders', { page, limit }, '订单列表'),
   order: (id: number) => api.get<Order>(`/customer/orders/${id}`),
-  purchase: (body: { product_id: number; quantity: number; handler_entity_id?: number; memo?: string }) =>
+  purchase: (body: { product_id: number; quantity: number; handler_entity_id?: number; product_handlers?: Record<number, number>; memo?: string }) =>
     api.post<{ id: number }>('/customer/orders', body),
   cancel: (id: number) => api.post<void>(`/customer/orders/${id}/cancel`, {}),
   services: (page = 1, limit = 20) => pageRequest<ServiceEntitlement>('/customer/services', { page, limit }, '服务权益列表'),
@@ -93,7 +93,7 @@ export function managePermissionReason(permission: string) { return formatPermis
 export function resourceOwnerLabel(resource: ManageOwnedResource, currentEntityId = 0) {
   if (resource.owner_entity_id == null) return '团队公用'
   if (currentEntityId > 0 && resource.owner_entity_id === currentEntityId) return '本人'
-  return resource.owner?.name || `Entity #${resource.owner_entity_id}`
+  return resource.owner?.name || `人员 #${resource.owner_entity_id}`
 }
 export function fileUploadReason(
   state: FileUploadAvailability | undefined,

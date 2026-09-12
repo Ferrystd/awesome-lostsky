@@ -119,7 +119,7 @@ try {
         (int) $team->id,
         (int) $teamEntity->id,
         'Team 通知',
-        'Team 实体收件箱与共享站内通知相互独立',
+        'Team 人员收件箱与共享站内通知相互独立',
         false
     );
     $noticeIds[] = (int) $teamEntityNotice['id'];

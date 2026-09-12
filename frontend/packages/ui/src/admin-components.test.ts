@@ -427,7 +427,7 @@ describe('后台设计系统组件契约', () => {
     expect(html).toContain('ls-entity-tag__name')
     expect(html).toContain('n-tag__close')
     expect(virtualHtml).toContain('data-entity-tone="virtual"')
-    expect(virtualHtml).toContain('协作助手 · 虚拟实体 · @helper')
+    expect(virtualHtml).toContain('协作助手 · 虚拟人员 · @helper')
   })
 
   it('Entity 下拉统一提供类型、slug 与多字段搜索', () => {
@@ -484,7 +484,7 @@ describe('后台设计系统组件契约', () => {
     const html = await render(LsWorkspaceOverview, {
       eyebrow: '商品个人工作台',
       title: '管理自己的商品与业务订单',
-      description: '当前范围固定为已领取的 Entity。',
+      description: '当前范围固定为已领取的人员。',
       actions: [
         {
           key: 'team',

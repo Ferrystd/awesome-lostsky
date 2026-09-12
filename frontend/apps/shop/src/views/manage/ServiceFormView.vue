@@ -22,6 +22,7 @@ import { canManage, entitlementManagement, loadManageAccess, managePermissionRea
 import { calculateDefaultServiceDistribution, calculateServiceTeamCut } from '../../service-distribution'
 import { hydrateServiceRedemptionFields, serializeServiceRedemptionFields, validServiceRedemptionFields } from '../../service-redemption-fields'
 import type { ServiceRedemptionFieldDraft } from '../../types'
+import { personalDistributionLocked, withoutPersonnelCuts } from '../../personal-pricing'
 
 type ServiceFormState = {
   name: string
@@ -47,6 +48,7 @@ const management = computed(() => entitlementManagement(scope.value))
 const personal = computed(() => management.value.personal)
 const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess() })
 const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?? 0)
+const distributionLocked = computed(() => personalDistributionLocked(personal.value, access.data.value?.permissions))
 const form = reactive<ServiceFormState>({
   name: '', description: '', unit_name: '次', quantity_step: 1,
   default_total_price: 0, default_cost: 0, default_handler_cut: 0,
@@ -94,7 +96,7 @@ watch(() => options.data.value?.service_defaults, defaults => {
 }, { immediate: true })
 
 function recalculatePersonnelCuts() {
-  if (hydratingAmounts) return
+  if (hydratingAmounts || (editing.value && distributionLocked.value)) return
   const distribution = calculateDefaultServiceDistribution(
     form.default_total_price,
     form.default_cost,
@@ -129,7 +131,7 @@ const handlerEntities = computed(() => (options.data.value?.entities ?? []).filt
 ))
 const save = useMutation({
   mutationFn: () => management.value.saveService(editing.value ? id.value : null, {
-    ...form,
+    ...(distributionLocked.value && !editing.value ? withoutPersonnelCuts(form, 'default_') : form),
     default_team_cut: teamCut.value,
     handler_entity_ids: handlerIds.value,
     redemption_fields: serializeServiceRedemptionFields(redemptionFields.value),
@@ -172,7 +174,7 @@ const valid = computed(() => Boolean(
 
     <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
       <LsFormSection title="基本信息">
-        <p v-if="personal" class="form-intro" role="note">此服务自动归属当前已领取的 Entity，个人工作台不能转移归属。</p>
+        <p v-if="personal" class="form-intro" role="note">此服务自动归属当前已领取的人员，个人工作台不能转移归属。</p>
         <LsField label="服务名称" for-id="service-name" required><NInput id="service-name" v-model:value="form.name" maxlength="100" /></LsField>
         <LsField label="说明" for-id="service-description"><NInput id="service-description" v-model:value="form.description" type="textarea" maxlength="1000" show-count /></LsField>
         <LsSwitchField id="service-active" :model-value="form.is_active === 1" label="启用状态" description="停用后不能用于新的权益配置或发起新任务。" @update:model-value="value => form.is_active = value ? 1 : 0" />
@@ -181,22 +183,22 @@ const valid = computed(() => Boolean(
         <LsField label="计量单位" for-id="service-unit" required hint="例如：人、次、小时"><NInput id="service-unit" v-model:value="form.unit_name" maxlength="20" /></LsField>
         <LsField label="最小核销步长" for-id="service-step" required hint="最多四位小数；数量精度自动确定，每次履约数量必须是该步长的整数倍。"><NInputNumber id="service-step" v-model:value="form.quantity_step" :min="0.0001" :step="0.0001" :validator="isValidQuantityStep" /></LsField>
       </LsFormSection>
-      <LsFormSection title="默认单位金额与分成" description="修改服务价值或成本后，将按团队设置重算人员分成；团队分成始终取余额。">
+      <LsFormSection title="默认单位金额与分成" :description="distributionLocked ? (editing ? '人员分成沿用已保存金额，团队分成取余额。' : '人员分成按团队默认比例生成，团队分成取余额。') : '修改服务价值或成本后，将按团队设置重算人员分成；团队分成始终取余额。'">
         <LsField label="单位服务价值" for-id="service-price"><NInputNumber id="service-price" v-model:value="form.default_total_price" :min="0" :step="0.01" :precision="2" /></LsField>
         <LsField label="单位成本" for-id="service-cost"><NInputNumber id="service-cost" v-model:value="form.default_cost" :min="0" :step="0.01" :precision="2" /></LsField>
-        <LsField label="单位接单分成" for-id="service-handler-cut"><NInputNumber id="service-handler-cut" v-model:value="form.default_handler_cut" :min="0" :precision="2" /></LsField>
-        <LsField label="单位发单分成" for-id="service-sender-cut"><NInputNumber id="service-sender-cut" v-model:value="form.default_sender_cut" :min="0" :precision="2" /></LsField>
-        <LsField label="单位客服分成" for-id="service-cs-cut"><NInputNumber id="service-cs-cut" v-model:value="form.default_cs_cut" :min="0" :precision="2" /></LsField>
+        <LsField label="单位接单分成" for-id="service-handler-cut"><NInputNumber id="service-handler-cut" v-model:value="form.default_handler_cut" :min="0" :precision="2" :disabled="distributionLocked" /></LsField>
+        <LsField label="单位发单分成" for-id="service-sender-cut"><NInputNumber id="service-sender-cut" v-model:value="form.default_sender_cut" :min="0" :precision="2" :disabled="distributionLocked" /></LsField>
+        <LsField label="单位客服分成" for-id="service-cs-cut"><NInputNumber id="service-cs-cut" v-model:value="form.default_cs_cut" :min="0" :precision="2" :disabled="distributionLocked" /></LsField>
         <LsField label="单位团队分成" for-id="service-team-cut" :hint="teamCutHint"><NInputNumber id="service-team-cut" :value="teamCut" :precision="2" disabled /></LsField>
       </LsFormSection>
-      <LsFormSection title="接单池" description="留空表示不限接单人；指定名单后，只有名单内的有效 Entity 可以接受邀请或领取新任务。">
-        <LsField label="可接单 Entity" for-id="service-handlers" hint="仅可选择当前团队内有效的 Team、TeamMember 或 TeamVirtual Entity。">
+      <LsFormSection title="接单池" description="留空表示不限接单人；指定名单后，只有名单内的有效人员可以接受邀请或领取新任务。">
+        <LsField label="可接单人员" for-id="service-handlers" hint="仅可选择当前团队内有效的 Team、TeamMember 或 TeamVirtual Entity。">
           <LsEntitySelect id="service-handlers" v-model="handlerIds" :entities="handlerEntities" :loading="options.isPending.value" :disabled="options.isError.value" multiple clearable placeholder="不限接单人" />
         </LsField>
       </LsFormSection>
       <ServiceFieldsEditor v-model="redemptionFields" />
       <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
-      <LsInlineError v-if="!routeAccess.restricted.value && options.isError.value" :message="`接单 Entity 暂时无法读取：${friendlyError(options.error.value)}`" />
+      <LsInlineError v-if="!routeAccess.restricted.value && options.isError.value" :message="`接单人员暂时无法读取：${friendlyError(options.error.value)}`" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions><LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton><LsButton type="submit" :disabled="routeAccess.restricted.value || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存服务</LsButton></LsFormActions>
     </form>

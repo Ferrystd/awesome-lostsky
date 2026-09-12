@@ -18,7 +18,7 @@ const ownerType = computed<EntityType>(() => {
   <LsEntityTag
     v-else
     :type="ownerType"
-    :name="resource.owner?.name || `Entity #${resource.owner_entity_id}`"
+    :name="resource.owner?.name || `人员 #${resource.owner_entity_id}`"
     :slug="resource.owner?.slug || ''"
   />
 </template>

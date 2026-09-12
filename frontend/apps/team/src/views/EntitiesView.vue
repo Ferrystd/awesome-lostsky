@@ -6,7 +6,8 @@ import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { MessageCircleMore, Pencil } from '@lucide/vue'
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
+import { Bot, FileText, MessageCircleMore, Pencil } from '@lucide/vue'
 import { NSelect, NSpin } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
@@ -17,6 +18,7 @@ type Entity = {
   id: number
   slug: string
   entityable_type: string
+  entityable_id: number
   is_internal_visible: number
   profile?: { name?: string; avatar?: string }
 }
@@ -37,10 +39,10 @@ const labels: Record<string, string> = {
   team: '团队',
   teamMember: '成员',
   teamCustomer: '顾客',
-  teamVirtual: '虚拟实体',
+  teamVirtual: '虚拟人员',
 }
 const options = [
-  { label: '全部实体', value: '' },
+  { label: '全部人员', value: '' },
   ...Object.entries(labels).map(([value, label]) => ({ label, value })),
 ]
 const rows = computed(() => {
@@ -56,25 +58,30 @@ function entityActions(entity: Entity) {
 }
 function handleAction(key: string, entity: Entity) {
   if (key === 'chat') window.location.href = chatWorkspaceUrl('/new', { participant: entity.slug })
-  else void router.push({ path: '/entity', query: { id: entity.id } })
+  else void router.push(entityLocation(entity, true))
+}
+function entityLocation(entity: Entity, manage = false) {
+  return entity.entityable_type === 'teamMember'
+    ? { path: manage ? '/member-edit' : '/member-detail', query: { id: entity.entityable_id } }
+    : { path: '/entity', query: { id: entity.id } }
 }
 </script>
 
 <template>
   <div class="entities-view">
-    <AdminPageHeader title="实体" description="浏览团队、成员、顾客与虚拟实体（Virtual Entity）。具有全量读取权限（Permission）时也会列出团队内隐藏实体。" />
-    <LsListToolbar v-model="search" placeholder="搜索实体名称或 slug" aria-label="搜索实体" :count-label="`${rows.length} 个实体`"><template #filters><NSelect v-model:value="type" :options="options" clearable placeholder="全部类型" /></template></LsListToolbar>
+    <AdminPageHeader title="人员" description="浏览团队、成员、顾客与虚拟人员。具有全量读取权限（Permission）时也会列出团队内隐藏人员。"><template #actions><LsPagePrimaryAction :icon="FileText" label="对象字段" to="/fields" /><LsPagePrimaryAction :icon="Bot" label="虚拟人员" to="/chat-virtuals" /></template></AdminPageHeader>
+    <LsListToolbar v-model="search" placeholder="搜索人员名称或 slug" aria-label="搜索人员" :count-label="`${rows.length} 位人员`"><template #filters><NSelect v-model:value="type" :options="options" clearable placeholder="全部类型" /></template></LsListToolbar>
     <NSpin v-if="query.isPending.value" size="large" />
     <p v-else-if="query.isError.value" class="feedback" role="alert">{{ friendlyError(query.error.value) }}</p>
-    <LsEmptyState :source="query.data.value" v-else-if="!rows.length" title="没有可查看的实体" description="调整搜索词或实体类型筛选后查看。" />
+    <LsEmptyState :source="query.data.value" v-else-if="!rows.length" title="没有可查看的人员" description="调整搜索词或人员类型筛选后查看。" />
     <div v-else class="entity-list">
       <article
         v-for="entity in rows"
         :key="entity.id"
         class="entity-row"
       >
-        <RouterLink :to="{ path: '/entity', query: { id: entity.id } }" class="entity-main">
-          <LsEntityIdentity :type="entity.entityable_type as 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'" :name="entity.profile?.name || '未命名实体'" :slug="entity.slug" :image-url="entity.profile?.avatar" />
+        <RouterLink :to="entityLocation(entity)" class="entity-main">
+          <LsEntityIdentity :type="entity.entityable_type as 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'" :name="entity.profile?.name || '未命名人员'" :slug="entity.slug" :image-url="entity.profile?.avatar" />
         </RouterLink>
         <LsResponsiveActions :actions="entityActions(entity)" primary-key="manage" @select="handleAction($event, entity)" />
       </article>

@@ -26,7 +26,7 @@ class ChatIntegration
         $events = $this->events($data['events'] ?? ['message.created']);
         $virtual = app(ChatVirtual::class)->model($teamId, $slug);
         $token = bin2hex(random_bytes(32));
-        $secret = bin2hex(random_bytes(32));
+        $secret = 'whsec_' . base64_encode(random_bytes(32));
 
         $integration = app(TeamVirtualIntegration::class, [], true);
         $integration->save([
@@ -57,7 +57,7 @@ class ChatIntegration
     {
         $integration = $this->integration($teamId, $slug, $id);
         $token = bin2hex(random_bytes(32));
-        $secret = bin2hex(random_bytes(32));
+        $secret = 'whsec_' . base64_encode(random_bytes(32));
         $integration->save(['token_hash' => hash('sha256', $token), 'signing_secret' => $secret]);
         return ['token' => $token, 'signing_secret' => $secret];
     }
@@ -84,7 +84,7 @@ class ChatIntegration
             ->where('team_id', $integration->team_id)
             ->find($integration->virtual_id);
         if (!$virtual || !$virtual->slug) {
-            throw new HttpException(401, '集成对应的虚拟实体不可用');
+            throw new HttpException(401, '集成对应的虚拟人员不可用');
         }
 
         return ['integration' => $integration, 'virtual' => $virtual];
@@ -96,7 +96,7 @@ class ChatIntegration
         $integration = TeamVirtualIntegration::where('team_id', $teamId)
             ->where('virtual_id', $virtual->id)->find($id);
         if (!$integration) {
-            throw new HttpException(404, '虚拟实体集成不存在');
+            throw new HttpException(404, '虚拟人员集成不存在');
         }
         return $integration;
     }

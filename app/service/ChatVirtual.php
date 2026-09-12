@@ -117,7 +117,7 @@ class ChatVirtual
             ? TeamVirtualModel::where('team_id', $teamId)->with(['profile'])->find($identity->entityable_id)
             : null;
         if (!$virtual) {
-            throw new HttpException(404, '虚拟实体不存在');
+            throw new HttpException(404, '虚拟人员不存在');
         }
         return $virtual;
     }

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import TeamSectionNav from '../components/TeamSectionNav.vue'
+import { reviewSections } from '../lib/workspaceNavigation'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
@@ -43,7 +45,8 @@ function statusType(code: unknown): 'success' | 'error' | 'warning' | 'info' {
 
 <template>
   <div class="departure-list">
-    <AdminPageHeader title="离队审核" description="处理成员自助提交的离队申请；管理员办理离职时不再进入审核。" />
+    <AdminPageHeader title="人事审核" description="处理成员自助提交的离队申请；管理员办理离职时不再进入审核。" />
+    <TeamSectionNav label="审核分类" :items="reviewSections" />
     <LsListToolbar v-model="search" placeholder="搜索成员或申请编号" aria-label="搜索离队申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visible.length} 条申请`">
       <template #filters><NSelect v-model:value="status" class="status-filter" :options="statusOptions" aria-label="筛选申请状态" /></template>
     </LsListToolbar>

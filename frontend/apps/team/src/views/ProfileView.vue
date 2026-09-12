@@ -124,7 +124,7 @@ useUnsavedChangesGuard(hasUnsavedChanges)
     </section>
 
     <LsPanel><section class="self-identity" aria-labelledby="self-identity-title">
-      <LsSectionHeader id="self-identity-title" title="我的对象标识" description="用于对象引用和实体身份切换。"><template #aside><span class="section-state">本人可见</span></template></LsSectionHeader>
+      <LsSectionHeader id="self-identity-title" title="我的对象标识" description="用于对象引用和人员身份切换。"><template #aside><span class="section-state">本人可见</span></template></LsSectionHeader>
       <p class="muted">设置后，其他成员可以在 Markdown 中通过 @slug 引用你。标识首次确认后永久不变。</p>
       <div v-if="query.data.value?.slug" class="claimed"><span>已认领</span><strong>@{{ query.data.value.slug }}</strong><small>不可修改或释放</small></div>
       <form v-else class="claim-form" @submit.prevent="claim.mutate()">

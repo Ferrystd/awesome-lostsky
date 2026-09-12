@@ -317,7 +317,7 @@ class TeamEntityField
             \app\enum\ChatActorType::Entity, \app\enum\ChatActorType::Team => TeamEntityType::Entity,
             \app\enum\ChatActorType::Customer => TeamEntityType::Customer,
             \app\enum\ChatActorType::Virtual => TeamEntityType::Virtual,
-            default => throw new HttpException(422, '该实体类型不支持自定义字段'),
+            default => throw new HttpException(422, '该人员类型不支持自定义字段'),
         };
     }
 

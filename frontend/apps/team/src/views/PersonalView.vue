@@ -44,9 +44,9 @@ watch(() => query.data.value, data => {
 }, { immediate: true })
 const expectedEntityId = computed(() => query.data.value?.identity.entity_id ?? 0)
 const identityType = computed(() => query.data.value?.identity.type === 'team'
-  ? '团队实体'
-  : query.data.value?.identity.type === 'teamVirtual' ? '虚拟实体' : '团队成员')
-const overviewTitle = computed(() => query.data.value?.identity.name || (query.isError.value ? '当前 Entity 摘要暂时不可用' : '正在读取当前 Entity…'))
+  ? '团队身份'
+  : query.data.value?.identity.type === 'teamVirtual' ? '虚拟人员' : '团队成员')
+const overviewTitle = computed(() => query.data.value?.identity.name || (query.isError.value ? '当前人员摘要暂时不可用' : '正在读取当前人员…'))
 const overviewDescription = computed(() => query.data.value
   ? `${identityType.value} · 所属团队 ${query.data.value.identity.team.name}`
   : '资料、对象字段和权限（Permission）入口保持可用；重新进入页面后会再次读取当前身份。')
@@ -55,8 +55,8 @@ const overviewActions = computed(() => [
   { key: 'docs', label: '使用文档', href: '//doc.lostsky.work', target: '_blank', rel: 'noopener', icon: BookOpen },
 ])
 const overviewEntries = [
-  { key: 'profile', label: '资料', description: '维护当前 Entity 的名称、头像、简介与公开介绍。', to: '/personal/profile', icon: UserRound },
-  { key: 'fields', label: '对象字段', description: '填写当前 Entity 类型允许维护的团队自定义字段。', to: '/personal/fields', icon: FileText },
+  { key: 'profile', label: '资料', description: '维护当前人员的名称、头像、简介与公开介绍。', to: '/personal/profile', icon: UserRound },
+  { key: 'fields', label: '对象字段', description: '填写当前人员类型允许维护的团队自定义字段。', to: '/personal/fields', icon: FileText },
   { key: 'access', label: '角色与权限', description: '只读查看角色来源与当前实际生效的 Permission。', to: '/personal/access', icon: ShieldCheck },
 ]
 
@@ -88,7 +88,7 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
         :description="overviewDescription"
         :actions="overviewActions"
         :entries="overviewEntries"
-        :scope-notes="['所有资料和业务范围都以当前已领取的 Entity 为主体。', '切换身份后，系统会重新核对 Entity 类型、角色与有效权限。']"
+        :scope-notes="['所有资料和业务范围都以当前已领取的人员为主体。', '切换身份后，系统会重新核对人员类型、角色与有效权限。']"
       >
         <template #summary>
           <LsMetricGrid aria-label="个人身份摘要" :items="[
@@ -101,9 +101,9 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
       <LsInlineError v-if="query.isError.value" :message="friendlyError(query.error.value)" />
     </template>
     <template v-else>
-      <AdminPageHeader :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的 Entity；切换身份后会自动重新核对。" />
+      <AdminPageHeader :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的人员；切换身份后会自动重新核对。" />
       <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
-      <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取当前实体" :description="friendlyError(query.error.value)" />
+      <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取当前人员" :description="friendlyError(query.error.value)" />
       <template v-else-if="query.data.value">
       <form v-if="section === 'profile'" class="profile-form" @submit.prevent="saveProfile.mutate()">
         <LsPanel>

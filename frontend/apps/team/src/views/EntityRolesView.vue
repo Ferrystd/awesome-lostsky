@@ -76,7 +76,7 @@ const save = useMutation({
     slug: selectedEntity.value?.slug,
     role_ids: roleIds.value,
   }),
-  onSuccess: () => feedback.success('实体角色已保存'),
+  onSuccess: () => feedback.success('人员角色已保存'),
   onError: error => feedback.error(friendlyError(error)),
 })
 const requestError = computed(() => rolesQuery.error.value || resolveEntity.error.value)
@@ -125,42 +125,42 @@ function openProfile(entity: EntityDisplay) {
   if (href) location.assign(href)
 }
 function entityTypeLabel(type: EntityType) {
-  return ({ team: '团队', teamMember: '成员', teamCustomer: '顾客', teamVirtual: '虚拟实体' })[type]
+  return ({ team: '团队', teamMember: '成员', teamCustomer: '顾客', teamVirtual: '虚拟人员' })[type]
 }
 </script>
 
 <template>
     <div class="entity-roles">
       <AdminPageHeader
-        title="实体角色分配"
-        description="按名称或全局 slug 搜索实体（Entity）并授予当前团队角色。成员、顾客、团队和虚拟实体（Virtual Entity）在这里使用同一套分配流程。"
+        title="人员角色分配"
+        description="按名称或全局 slug 搜索人员并授予当前团队角色。成员、顾客、团队和虚拟人员在这里使用同一套分配流程。"
         back-to="/roles"
         back-label="返回角色列表"
       />
 
       <form class="lookup" @submit.prevent="submit">
-        <label for="source-slug">搜索实体</label>
-        <p>输入名称或 slug 查看带类型与全局标识的候选；也可直接提交准确 slug 查找未公开搜索的实体。</p>
+        <label for="source-slug">搜索人员</label>
+        <p>输入名称或 slug 查看带类型与全局标识的候选；也可直接提交准确 slug 查找未公开搜索的人员。</p>
         <div class="lookup-control">
           <LsEntityInput
             :model-value="inputEntities"
             :query="sourceSlug"
             :search-entities="searchEntities"
             input-id="source-slug"
-            placeholder="按名称或 slug 搜索实体"
+            placeholder="按名称或 slug 搜索人员"
             @update:model-value="selectInputEntities"
             @update:query="sourceSlug = $event"
             @chat="startChat"
             @profile="openProfile"
           />
           <LsButton type="submit" :loading="resolveEntity.isPending.value" :disabled="routeAccess.restricted.value || !sourceSlug.trim()" :disabled-reason="routeAccess.reason.value">
-            <template #icon><Search :size="17" /></template>查找实体
+            <template #icon><Search :size="17" /></template>查找人员
           </LsButton>
         </div>
       </form>
 
       <p v-if="requestError && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(requestError) }}</p>
-      <section v-if="!routeAccess.restricted.value && (resolveEntity.isPending.value || rolesQuery.isPending.value)" class="loading" aria-label="正在加载实体角色">
+      <section v-if="!routeAccess.restricted.value && (resolveEntity.isPending.value || rolesQuery.isPending.value)" class="loading" aria-label="正在加载人员角色">
         <NSkeleton text width="38%" /><NSkeleton text width="55%" />
         <NSkeleton v-for="index in 3" :key="index" height="58px" />
       </section>
@@ -172,7 +172,7 @@ function entityTypeLabel(type: EntityType) {
             <p>@{{ selectedEntity.slug }} · {{ entityTypeLabel(selectedEntity.type) }}</p>
             <small v-if="selectedEntity.team">{{ selectedEntity.team.name }} · @{{ selectedEntity.team.slug }}</small>
           </div>
-          <NTag v-if="selectedEntity.is_external" type="warning" round><template #icon><ExternalLink :size="14" /></template>跨团队实体</NTag>
+          <NTag v-if="selectedEntity.is_external" type="warning" round><template #icon><ExternalLink :size="14" /></template>跨团队身份</NTag>
           <NTag v-else type="success" round>当前团队</NTag>
         </header>
 
@@ -186,7 +186,7 @@ function entityTypeLabel(type: EntityType) {
         </NEmpty>
       </section>
       <section v-else class="empty">
-        <NEmpty description="输入实体 slug 后，可查看归属并分配角色" />
+        <NEmpty description="输入人员 slug 后，可查看归属并分配角色" />
       </section>
     </div>
 </template>

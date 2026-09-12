@@ -70,7 +70,7 @@ const redemptionStatus = computed(() => rowStatus.value === 3
   : { label: '未结单', type: 'warning' as const })
 const money = (value: unknown) => `¥${Number(value || 0).toFixed(2)}`
 const dateTime = (value: number | null | undefined) => value ? new Date(value * 1000).toLocaleString() : '—'
-const handlerName = computed(() => kind.value === 'assigned' ? row.value?.handler?.name || '当前 Entity' : '—')
+const handlerName = computed(() => kind.value === 'assigned' ? row.value?.handler?.name || '当前人员' : '—')
 const hasValue = (value: unknown) => Array.isArray(value) ? value.length > 0 : typeof value === 'string' ? value.trim() !== '' : value !== null && value !== undefined && value !== ''
 const storedValue = (field: ServiceField) => {
   if (!field.value || typeof field.value !== 'object' || Array.isArray(field.value)) return field.value

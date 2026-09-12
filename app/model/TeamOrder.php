@@ -34,18 +34,21 @@ class TeamOrder extends Base
         // 'trans_id'    => 'integer|null',
         'status'      => OrderStatus::class,
         'memo'        => 'string',
+        'fulfillment_snapshot' => 'array',
         'create_time' => 'integer',
         'update_time' => 'integer',
         'delete_time' => 'integer',
     ];
 
-    protected $json = [];
+    protected $json = ['fulfillment_snapshot'];
 
-    protected $hidden = ['delete_time'];
+    protected $hidden = ['delete_time', 'fulfillment_snapshot', 'source_claim_id', 'claim_ordinal'];
 
     protected $append = [];
 
     protected $readonly = [
+        'source_claim_id',
+        'claim_ordinal',
         'team_id',
         'customer_id',
         'handler_entity_id',
@@ -54,6 +57,7 @@ class TeamOrder extends Base
         'product_id',
         'product_name',
         'product_cover_image',
+        'fulfillment_snapshot',
         'quantity',
         'unit_price',
         'total_price',

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
+import { KeyRound } from '@lucide/vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
@@ -127,7 +129,7 @@ function switchDisabled(appName: string, setting: SettingField): boolean {
     <AdminPageHeader
       title="团队设置"
       description="配置团队级行为。设置项、输入类型和可选值均由服务端统一定义。"
-    />
+    ><template #actions><LsPagePrimaryAction :icon="KeyRound" label="团队能力" to="/abilities" /></template></AdminPageHeader>
 
     <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取团队设置" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="4" />

@@ -76,7 +76,7 @@ export interface paths {
         put?: never;
         /**
          * 创建本人服务及核销字段
-         * @description 服务端强制写入当前 acting_entity 作为 Owner；服务资料、接单池与核销字段原子保存。
+         * @description 服务资料、接单池与核销字段原子保存，归属当前 acting_entity。缺少 shop.product.self.reprice 时人员分成由服务端按团队默认比例生成。
          */
         post: operations["shopPersonalServiceCreate"];
         delete?: never;
@@ -99,7 +99,7 @@ export interface paths {
         put?: never;
         /**
          * 更新本人服务及核销字段
-         * @description 服务资料、接单池与当前服务的核销字段原子保存。
+         * @description 服务资料、接单池与核销字段原子保存。缺少 shop.product.self.reprice 时保留已保存人员分成，售价与成本可改；省略金额字段不重置分成。
          */
         post: operations["shopPersonalServiceUpdate"];
         delete?: never;
@@ -163,7 +163,7 @@ export interface paths {
         put?: never;
         /**
          * 创建本人权益包
-         * @description 只能组合本人或团队公用服务。公用服务商业金额默认锁定；拥有 shop.product.self.package.reprice 时可调整。
+         * @description 只能组合本人或团队公用服务。缺少 shop.product.self.reprice 时所有服务项人员分成沿用服务默认值，公用服务还锁定价格与成本。
          */
         post: operations["shopPersonalPackageCreate"];
         delete?: never;
@@ -184,7 +184,10 @@ export interface paths {
         /** 读取本人权益包详情 */
         get: operations["shopPersonalPackageGet"];
         put?: never;
-        /** 更新本人权益包 */
+        /**
+         * 更新本人权益包
+         * @description 缺少 shop.product.self.reprice 时人员分成沿用原服务项金额，公用服务还锁定价格与成本，省略字段不重算；已引用权益包计价冻结继续生效。
+         */
         post: operations["shopPersonalPackageUpdate"];
         delete?: never;
         options?: never;
@@ -342,7 +345,7 @@ export interface paths {
         put?: never;
         /**
          * 为当前 Entity 创建本人商品
-         * @description 服务端强制使用当前 acting_entity 作为专属 Entity，不接受 entity_id。
+         * @description 服务端强制归属当前 acting_entity。缺少 shop.product.self.reprice 时人员分成由团队默认比例生成；分项权益包商品使用上游汇总。
          */
         post: operations["shopPersonalProductCreate"];
         delete?: never;
@@ -383,7 +386,10 @@ export interface paths {
         /** 读取本人商品详情 */
         get: operations["shopPersonalProductGet"];
         put?: never;
-        /** 编辑或上下架本人商品 */
+        /**
+         * 编辑或上下架本人商品
+         * @description 缺少 shop.product.self.reprice 时保留本人商品人员分成，售价与成本可改；团队分成取余额。分项权益包商品强制使用上游汇总。
+         */
         post: operations["shopPersonalProductEdit"];
         delete?: never;
         options?: never;
@@ -1388,14 +1394,43 @@ export interface components {
             sender_cut?: string | null;
             cs_cut?: string | null;
             team_cut?: string | null;
-            /** @enum {integer} */
-            kind?: 1 | 2 | 3;
+            /**
+             * @description 1 普通商品；2 服务套餐；3 卡密；4 核销商品。核销商品不允许通过编辑类型转换。
+             * @enum {integer}
+             */
+            kind?: 1 | 2 | 3 | 4;
+            redemption?: components["schemas"]["ProductRedemptionInput"];
+            items?: components["schemas"]["ProductCompositionItems"];
+            /** @description 与商品原子保存，省略保留原接单池 */
+            handler_entity_ids?: number[];
             benefit_package_id?: number | null;
             redemption_campaign_id?: number | null;
             /** @enum {integer} */
             is_active?: 0 | 1;
         };
-        PersonalProductCreateInput: components["schemas"]["PersonalProductWriteInput"] & Record<string, never>;
+        PersonalProductCreateInput: components["schemas"]["PersonalProductWriteInput"] & (unknown | unknown);
+        /** @description 套餐或卡密的完整组成；编辑时省略保留原组成，提交则替换。卡密只接受一个目标商品。仅可引用本人或团队公用商品；数量为整数。嵌套组合不支持调价。 */
+        ProductCompositionItems: {
+            product_id: number;
+            quantity: number;
+            unit_price?: string;
+            unit_cost?: string;
+            unit_handler_cut?: string;
+            unit_sender_cut?: string;
+            unit_cs_cut?: string;
+        }[];
+        /** @description 创建 kind=4 时必填；编辑时可部分提交，省略配置保留原值。商品与核销配置原子保存，不需单独维护服务或权益包；金额只读取商品顶层字段。额度/有效期变更保留旧明细，已有订单按快照履约。 */
+        ProductRedemptionInput: {
+            unit_name?: string;
+            /** @description 必须大于零；省略使用团队默认步长 */
+            quantity_step?: string;
+            /** @description 每份商品的核销额度，必须为步长的正整数倍；默认 1 */
+            quantity?: string;
+            /** @description 0 为永久；省略使用团队默认值 */
+            valid_days?: number;
+            handler_entity_ids?: number[];
+            redemption_fields?: components["schemas"]["ServiceRedemptionFieldInput"][];
+        };
         ExpectedEntityInput: {
             /** Format: int64 */
             expected_entity_id: number;
@@ -1665,6 +1700,10 @@ export interface components {
             is_active: 0 | 1;
         };
         Product: {
+            /** @description 仅核销商品的管理详情返回；列表不返回 */
+            redemption?: components["schemas"]["ProductRedemptionInput"];
+            /** @description 商品组合管理详情返回，数量为商品份数 */
+            items?: components["schemas"]["ProductCompositionItems"];
             /** Format: int64 */
             id?: number;
             /** Format: int64 */
@@ -2125,6 +2164,11 @@ export interface components {
             product_count: number;
         };
         StorefrontProduct: {
+            /**
+             * @description 普通商品、套餐、卡密、核销商品。
+             * @enum {integer}
+             */
+            kind?: 1 | 2 | 3 | 4;
             /** Format: int64 */
             id: number;
             name: string;
@@ -2141,6 +2185,22 @@ export interface components {
             avatar?: string | null;
         };
         StorefrontProductDetail: components["schemas"]["StorefrontProduct"] & {
+            /** @description 套餐展开后的交付摘要；卡密显示一次兑换的内容，遇到子卡密停止展开。无内部结算金额。 */
+            inclusions?: {
+                /** @enum {integer} */
+                kind: 1 | 3 | 4;
+                name: string;
+                quantity: string;
+                unit_name: string;
+                quantity_step?: string;
+                valid_days?: number;
+            }[];
+            /** @description 按普通子商品去重的接单候选，包含嵌套卡密最终交付的普通商品。 */
+            handler_groups?: {
+                product_id: number;
+                name: string;
+                handlers: components["schemas"]["StorefrontHandler"][];
+            }[];
             introduction_markdown?: string | null;
             handlers?: components["schemas"]["StorefrontHandler"][];
             benefit_package?: components["schemas"]["StorefrontBenefitPackage"] | null;
@@ -2334,6 +2394,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description 缺少本人管理或统一调价 Permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description 当前身份与 expected_entity_id 不一致 */
             409: {
                 headers: {
@@ -2387,6 +2454,13 @@ export interface operations {
         responses: {
             /** @description 已保存 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 缺少本人管理或统一调价 Permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3052,6 +3126,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description 缺少本人管理或统一调价 Permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description 当前身份与 expected_entity_id 不一致 */
             409: {
                 headers: {
@@ -3123,6 +3204,13 @@ export interface operations {
         responses: {
             /** @description 已保存 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 缺少本人管理或统一调价 Permission */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4118,10 +4206,18 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    /**
+                     * @default 1
+                     * @enum {integer}
+                     */
+                    kind?: 1 | 2 | 3 | 4;
+                    redemption?: components["schemas"]["ProductRedemptionInput"];
+                    items?: components["schemas"]["ProductCompositionItems"];
+                    handler_entity_ids?: number[];
                     name: string;
                     description?: string | null;
                     /** @description Exact decimal string. */
-                    price: string;
+                    price?: string;
                     /** @description Exact decimal string. */
                     cost?: string;
                     /** Format: int64 */
@@ -4136,7 +4232,7 @@ export interface operations {
                     team_cut?: string | null;
                     cover_image: string | null;
                     introduction_markdown?: string | null;
-                };
+                } | unknown | unknown;
             };
         };
         responses: {
@@ -4321,6 +4417,9 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    redemption?: components["schemas"]["ProductRedemptionInput"];
+                    items?: components["schemas"]["ProductCompositionItems"];
+                    handler_entity_ids?: number[];
                     name?: string;
                     description?: string | null;
                     /** @description Exact decimal string. */
@@ -4720,6 +4819,10 @@ export interface operations {
                      * @description 传入时从该客户预存款支付；不传时创建现金订单。
                      */
                     customer_id?: number | null;
+                    /** @description 普通子商品 ID 到接单 Entity ID 的映射；重复引用同一商品共用选择，无关商品 ID 被拒绝。 */
+                    product_handlers?: {
+                        [key: string]: number;
+                    };
                     /** Format: int64 */
                     handler_entity_id?: number | null;
                     /** Format: int64 */
@@ -5511,6 +5614,10 @@ export interface operations {
                     product_id: number;
                     /** @default 1 */
                     quantity?: number;
+                    /** @description 普通子商品 ID 到接单 Entity ID 的映射；重复引用同一商品共用选择，无关商品 ID 被拒绝。 */
+                    product_handlers?: {
+                        [key: string]: number;
+                    };
                     /** Format: int64 */
                     handler_entity_id?: number | null;
                     memo?: string | null;

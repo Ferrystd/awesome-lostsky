@@ -19,13 +19,142 @@ class BenefitFulfillment
 {
     private const MONEY_FIELDS = ['total_price', 'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut'];
 
+    /** 下单事务内冻结核销商品的承诺，不将内部金额快照暴露给顾客。 */
+    public function snapshotProduct(TeamProduct $product, array $path = []): array
+    {
+        if (count($path) > 3 || in_array((int) $product->id, $path, true)) throw new HttpException(422, '商品组合存在循环或超过嵌套上限');
+        $path[] = (int) $product->id;
+        $kind = $product->enumCase('kind');
+        $snapshot = ['version' => 1, 'kind' => $kind->value];
+        if ($kind === ProductKind::RedemptionCard) {
+            $campaign = \app\model\RedemptionCampaign::where('issuer_team_id', $product->team_id)->lock(true)->find((int) $product->redemption_campaign_id);
+            if (!$campaign || !$campaign->is_active || ($campaign->owner_entity_id !== null && (int) $campaign->owner_entity_id !== (int) $product->entity_id)) {
+                throw new HttpException(422, '卡密活动不可用或归属不匹配');
+            }
+            $target = new TeamProduct(['id' => $product->id, 'team_id' => $product->team_id, 'entity_id' => $product->entity_id,
+                'kind' => ProductKind::ServiceBundle, 'benefit_package_id' => $campaign->package_id]);
+            array_pop($path);
+            $snapshot['campaign_id'] = (int) $campaign->id;
+            $snapshot['target'] = $this->snapshotProduct($target, $path);
+            $snapshot['pricing_locked'] = !empty($snapshot['target']['pricing_locked']);
+            return $snapshot;
+        }
+        if (!in_array($kind, [ProductKind::Redeemable, ProductKind::ServiceBundle], true)) return $snapshot;
+        $package = BenefitPackage::where('issuer_team_id', $product->team_id)->lock(true)->find((int) $product->benefit_package_id);
+        if (!$package || !$package->is_active || ($package->owner_entity_id !== null && (int) $package->owner_entity_id !== (int) $product->entity_id)) {
+            throw new HttpException(422, '商品权益配置不可用或归属不匹配');
+        }
+        $snapshot['pricing_mode'] = $package->enumCase('pricing_mode')->value;
+        $snapshot['items'] = [];
+        $productItems = BenefitPackageService::where('package_id', $package->id)->whereNotNull('product_id')->order('sort')->lock(true)->select();
+        if (!$productItems->isEmpty()) {
+            $snapshot['composition'] = true;
+            $snapshot['ordinary'] = [];
+            $snapshot['cards'] = [];
+            $expandedUnits = 0;
+            foreach ($productItems as $item) {
+                $child = TeamProduct::where('team_id', $product->team_id)->lock(true)->find((int) $item->product_id);
+                if (!$child || !$child->is_active || ($child->entity_id !== null && (int) $child->entity_id !== (int) $product->entity_id)) throw new HttpException(422, '套餐子项不可用');
+                $minor = app(ServiceQuantity::class)->toMinor($item->quantity);
+                if ($minor % ServiceQuantity::FACTOR !== 0 || $minor < 1 || $minor > 10000 * ServiceQuantity::FACTOR) throw new HttpException(422, '套餐数量不正确');
+                $copies = intdiv($minor, ServiceQuantity::FACTOR);
+                $childSnapshot = $this->snapshotProduct($child, $path);
+                $expandedUnits += $copies * $this->snapshotUnits($childSnapshot);
+                if ($expandedUnits > 10000) throw new HttpException(422, '商品组合超过最大展开规模');
+                if (in_array($child->enumCase('kind'), [ProductKind::ServiceBundle, ProductKind::RedemptionCard], true)) {
+                    $snapshot['pricing_locked'] = true;
+                }
+                $money = app(BenefitPackagePricing::class)->itemMoney($item);
+                if ($child->enumCase('kind') === ProductKind::RedemptionCard) {
+                    $target = $childSnapshot['target'];
+                    if (!isset($target['composition'])) {
+                        $allocated = $this->allocateMoney($money,
+                            array_map(fn ($entry) => app(ServiceQuantity::class)->toMinor($entry['quantity']), $target['items']));
+                        foreach ($target['items'] as $index => &$entry) $entry['allocated_money'] = $allocated[$index];
+                        unset($entry);
+                        $target['composition'] = true;
+                        $target['ordinary'] = [];
+                        $target['cards'] = [];
+                    }
+                    $snapshot['cards'][] = ['product_id' => (int) $child->id, 'quantity' => $copies, 'money' => $money,
+                        'product_name' => (string) $child->name,
+                        'campaign_id' => $childSnapshot['campaign_id'], 'target' => $target];
+                    continue;
+                }
+                if ($child->enumCase('kind') === ProductKind::Standard) {
+                    $snapshot['ordinary'][] = ['product_id' => (int) $child->id, 'quantity' => $copies, 'money' => $money,
+                        'product_name' => $child->name, 'product_cover_image' => $child->cover_image];
+                    continue;
+                }
+                $childItems = $childSnapshot['items'];
+                if (isset($childSnapshot['composition'])) {
+                    $pricing = app(BenefitPackagePricing::class);
+                    $totals = array_fill_keys(self::MONEY_FIELDS, 0);
+                    foreach ($childItems as $entry) {
+                        foreach (self::MONEY_FIELDS as $field) $totals[$field] += $pricing->toCents($entry['allocated_money'][$field]);
+                    }
+                    foreach ($childSnapshot['ordinary'] as $entry) {
+                        foreach (self::MONEY_FIELDS as $field) $totals[$field] += $pricing->toCents($entry['money'][$field]) * $entry['quantity'];
+                    }
+                    foreach ($childSnapshot['cards'] ?? [] as $entry) {
+                        foreach (self::MONEY_FIELDS as $field) $totals[$field] += $pricing->toCents($entry['money'][$field]) * $entry['quantity'];
+                    }
+                    foreach ($totals as $field => $cents) {
+                        if ($cents !== $pricing->toCents($money[$field])) throw new HttpException(422, '嵌套来源计价已变化，请重新配置套餐');
+                    }
+                }
+                $allocated = isset($childSnapshot['composition']) ? null : $this->allocateMoney($money,
+                    array_map(fn ($entry) => app(ServiceQuantity::class)->toMinor($entry['quantity']), $childItems));
+                for ($copy = 0; $copy < $copies; ++$copy) {
+                    foreach ($childItems as $index => $values) {
+                        if ($allocated !== null) $values['allocated_money'] = $allocated[$index];
+                        $snapshot['items'][] = $values;
+                    }
+                    foreach ($childSnapshot['ordinary'] ?? [] as $ordinary) $snapshot['ordinary'][] = $ordinary;
+                    foreach ($childSnapshot['cards'] ?? [] as $card) $snapshot['cards'][] = $card;
+                }
+            }
+            return $snapshot;
+        }
+        foreach ($this->packageItems((int) $package->id, (int) $product->team_id) as $item) {
+            $values = array_intersect_key($item->toArray(), array_flip([
+                'id', 'service_id', 'quantity', 'valid_days', 'unit_price', 'unit_cost',
+                'unit_handler_cut', 'unit_sender_cut', 'unit_cs_cut',
+            ]));
+            $service = TeamService::where('team_id', $product->team_id)->lock(true)->find((int) $item->service_id);
+            if (!$service || !$service->is_active || ($service->owner_entity_id !== null && (int) $service->owner_entity_id !== (int) $product->entity_id)) {
+                throw new HttpException(422, '商品核销配置不可用或归属不匹配');
+            }
+            $values['service'] = ['id' => (int) $service->id, 'name' => (string) $service->name, 'unit_name' => (string) $service->unit_name, 'quantity_step' => (string) $service->quantity_step];
+            foreach (self::MONEY_FIELDS as $field) {
+                $values['service']['default_' . $field] = (string) $service->{'default_' . $field};
+            }
+            $snapshot['items'][] = $values;
+        }
+        return $snapshot;
+    }
+
+    /** 计算最终基础项份数；核销额度不是商品份数，卡密目标仍计入展开上限。 */
+    private function snapshotUnits(array $snapshot): int
+    {
+        if (isset($snapshot['target'])) return $this->snapshotUnits($snapshot['target']);
+        $units = count($snapshot['items'] ?? []);
+        foreach ($snapshot['ordinary'] ?? [] as $entry) $units += $entry['quantity'];
+        foreach ($snapshot['cards'] ?? [] as $entry) $units += $entry['quantity'] * $this->snapshotUnits($entry['target']);
+        return max(1, $units);
+    }
+
     public function fulfillOrder(TeamOrder $order): array
     {
-        $product = TeamProduct::find($order->product_id);
+        $product = TeamProduct::withTrashed()->find($order->product_id);
         if (!$product) throw new HttpException(422, '订单商品不存在');
 
-        return match ($product->enumCase('kind')) {
-            ProductKind::ServiceBundle => ['services' => $this->servicesFromOrder($order, $product)],
+        $snapshot = $order->fulfillment_snapshot;
+        if (!empty($snapshot['cards'])) {
+            return ['services' => $this->servicesFromOrder($order, $product), 'cards' => app(Redemption::class)->issueForOrder($order, $product)];
+        }
+        return match (is_array($snapshot) && isset($snapshot['kind']) ? ProductKind::from($snapshot['kind']) : $product->enumCase('kind')) {
+            ProductKind::ServiceBundle, ProductKind::Redeemable => ['services' => $this->servicesFromOrder($order, $product)],
             ProductKind::RedemptionCard => ['cards' => app(Redemption::class)->issueForOrder($order, $product)],
             default => [],
         };
@@ -37,19 +166,62 @@ class BenefitFulfillment
         if ($existing) return $existing;
 
         $campaign = $claim->campaign;
-        $package = BenefitPackage::find((int) $campaign->package_id);
-        if (!$package) throw new HttpException(422, '卡密权益包不存在');
-        $items = $this->packageItems((int) $campaign->package_id, $teamId);
+        $sourceOrder = $claim->code?->sourceOrder;
+        $snapshot = $claim->code?->fulfillment_snapshot ?: ($sourceOrder?->fulfillment_snapshot['target'] ?? null);
+        if (is_array($snapshot) && isset($snapshot['items'], $snapshot['pricing_mode'])) {
+            $package = new BenefitPackage(['pricing_mode' => $snapshot['pricing_mode']]);
+            $items = [];
+            foreach ($snapshot['items'] as $values) {
+                $serviceValues = $values['service'];
+                unset($values['service']);
+                $item = new BenefitPackageService($values);
+                $item->setRelation('service', new TeamService($serviceValues));
+                $items[] = $item;
+            }
+        } else {
+            $package = BenefitPackage::find((int) $campaign->package_id);
+            if (!$package) throw new HttpException(422, '卡密权益包不存在');
+            $items = $this->packageItems((int) $campaign->package_id, $teamId);
+        }
         $customer = TeamCustomer::where('team_id', $teamId)->find($customerId);
         if (!$customer || (int) $customer->root_entity_id !== $holderEntityId) {
             throw new HttpException(403, '服务受益Entity无效');
         }
 
-        $sourceOrder = $claim->code?->sourceOrder;
-        $sourceProductId = (int) ($sourceOrder?->product_id ?? 0);
-        $senderId = (int) ($sourceOrder?->sender_entity_id ?: app(CustomerAssignment::class)->sender($customer, $teamId));
-        $csId = (int) ($sourceOrder?->cs_entity_id ?? 0);
-        $moneyRows = $this->claimMoney(
+        $settlementSource = $snapshot['settlement_source'] ?? null;
+        if ($settlementSource === null) {
+            $settlementSource = [
+                'product_id' => (int) ($sourceOrder?->product_id ?? 0),
+                'sender_entity_id' => $sourceOrder
+                    ? $sourceOrder->sender_entity_id
+                    : app(CustomerAssignment::class)->sender($customer, $teamId),
+                'cs_entity_id' => $sourceOrder?->cs_entity_id,
+            ];
+        }
+        $ordinal = 0;
+        foreach ($snapshot['cards'] ?? [] as $card) {
+            for ($copy = 0; $copy < $card['quantity']; ++$copy) {
+                ++$ordinal;
+                if (!\app\model\RedemptionCode::where('source_claim_id', $claim->id)->where('ordinal', $ordinal)->find()) {
+                    $targetSnapshot = $card['target'];
+                    $targetSnapshot['settlement_source'] = $settlementSource;
+                    app(Redemption::class)->issue($card['campaign_id'], $holderEntityId, [
+                        'source_claim_id' => (int) $claim->id, 'ordinal' => $ordinal, 'fulfillment_snapshot' => $targetSnapshot,
+                    ]);
+                }
+            }
+        }
+
+        $sourceProductId = (int) $settlementSource['product_id'];
+        $senderId = (int) ($settlementSource['sender_entity_id'] ?? 0);
+        $csId = (int) ($settlementSource['cs_entity_id'] ?? 0);
+        foreach ($snapshot['ordinary'] ?? [] as $index => $entry) {
+            app(Order::class)->deliverClaimProduct($claim, $customer, $entry, $index + 1, $senderId ?: null, $csId ?: null);
+        }
+        $moneyRows = isset($snapshot['composition']) ? array_map(
+            fn (array $values): array => $this->applyRoleAvailability($values['allocated_money'], $senderId > 0, $csId > 0),
+            $snapshot['items']
+        ) : $this->claimMoney(
             $package,
             $items,
             $sourceOrder,
@@ -84,7 +256,7 @@ class BenefitFulfillment
         ?int $senderEntityId,
         ?int $csEntityId
     ): array {
-        if ($product->enumCase('kind') !== ProductKind::ServiceBundle || !$product->benefit_package_id) {
+        if (!in_array($product->enumCase('kind'), [ProductKind::ServiceBundle, ProductKind::Redeemable], true) || !$product->benefit_package_id) {
             throw new HttpException(422, '商品不是可直接赋予的服务套餐');
         }
         if ((int) $customer->team_id !== (int) $product->team_id || !$customer->root_entity_id) {
@@ -98,13 +270,29 @@ class BenefitFulfillment
         if (!$package || !(bool) $package->is_active) {
             throw new HttpException(422, '服务套餐权益包不可用');
         }
-        $items = $this->packageItems((int) $product->benefit_package_id, (int) $product->team_id);
+        $snapshot = $this->snapshotProduct($product);
+        if (!empty($snapshot['ordinary']) || !empty($snapshot['cards'])) {
+            throw new HttpException(422, '套餐包含普通商品或卡密，请通过订单交付，不能仅赋予核销权益');
+        }
+        $items = [];
+        foreach ($snapshot['items'] as $values) {
+            $serviceValues = $values['service'];
+            unset($values['service']);
+            $item = new BenefitPackageService($values);
+            $item->setRelation('service', new TeamService($serviceValues));
+            $items[] = $item;
+        }
         $specs = [];
         for ($copy = 0; $copy < $quantity; $copy++) {
             foreach ($items as $item) $specs[] = $item;
         }
 
-        if (app(BenefitPackagePricing::class)->isItemized($package)) {
+        if (isset($snapshot['composition'])) {
+            $moneyRows = [];
+            for ($copy = 0; $copy < $quantity; ++$copy) {
+                foreach ($snapshot['items'] as $values) $moneyRows[] = $values['allocated_money'];
+            }
+        } elseif (app(BenefitPackagePricing::class)->isItemized($package)) {
             $moneyRows = array_map(
                 fn (BenefitPackageService $item): array => app(BenefitPackagePricing::class)->itemTotalMoney($item),
                 $specs
@@ -112,7 +300,8 @@ class BenefitFulfillment
         } else {
             $totals = [];
             foreach (self::MONEY_FIELDS as $field) {
-                $totals[$field] = $this->fromCents($this->toCents((string) ($product->{$field} ?? 0)) * $quantity);
+                $sourceField = $field === 'total_price' ? 'price' : $field;
+                $totals[$field] = $this->fromCents($this->toCents((string) ($product->{$sourceField} ?? 0)) * $quantity);
             }
             $moneyRows = $this->allocateMoney(
                 $totals,
@@ -144,11 +333,24 @@ class BenefitFulfillment
         $existing = TeamServiceEntitlement::where('source_order_id', $order->id)->column('id');
         if ($existing) return $existing;
         if (!$order->customer_id) throw new HttpException(422, '服务套餐订单必须关联顾客');
-        if (!$product->benefit_package_id) throw new HttpException(422, '服务套餐未配置权益');
 
-        $package = BenefitPackage::find((int) $product->benefit_package_id);
-        if (!$package) throw new HttpException(422, '服务套餐权益包不存在');
-        $items = $this->packageItems((int) $product->benefit_package_id, (int) $order->team_id);
+        $snapshot = $order->fulfillment_snapshot;
+        if (is_array($snapshot) && isset($snapshot['items'], $snapshot['pricing_mode'])) {
+            $package = new BenefitPackage(['pricing_mode' => $snapshot['pricing_mode']]);
+            $items = [];
+            foreach ($snapshot['items'] as $values) {
+                $serviceValues = $values['service'];
+                unset($values['service']);
+                $item = new BenefitPackageService($values);
+                $item->setRelation('service', new TeamService($serviceValues));
+                $items[] = $item;
+            }
+        } else {
+            if (!$product->benefit_package_id) throw new HttpException(422, '服务套餐未配置权益');
+            $package = BenefitPackage::find((int) $product->benefit_package_id);
+            if (!$package) throw new HttpException(422, '服务套餐权益包不存在');
+            $items = $this->packageItems((int) $product->benefit_package_id, (int) $order->team_id);
+        }
         $customer = TeamCustomer::where('team_id', $order->team_id)->find($order->customer_id);
         if (!$customer || !$customer->root_entity_id) throw new HttpException(422, '订单顾客Entity不存在');
 
@@ -156,7 +358,12 @@ class BenefitFulfillment
         for ($copy = 0; $copy < (int) $order->quantity; $copy++) {
             foreach ($items as $item) $specs[] = $item;
         }
-        if (app(BenefitPackagePricing::class)->isItemized($package)) {
+        if (isset($snapshot['composition'])) {
+            $moneyRows = [];
+            for ($copy = 0; $copy < (int) $order->quantity; ++$copy) {
+                foreach ($snapshot['items'] as $values) $moneyRows[] = $values['allocated_money'];
+            }
+        } elseif (app(BenefitPackagePricing::class)->isItemized($package)) {
             $moneyRows = array_map(
                 fn (BenefitPackageService $item): array => app(BenefitPackagePricing::class)->itemTotalMoney($item),
                 $specs

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import TeamSectionNav from '../components/TeamSectionNav.vue'
+import { noticeSections } from '../lib/workspaceNavigation'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
@@ -6,7 +8,7 @@ import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { CheckCheck, Mail, MailOpen, Pin } from '@lucide/vue'
+import { Send, CheckCheck, Mail, MailOpen, Pin } from '@lucide/vue'
 import { NSelect } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
@@ -47,10 +49,10 @@ const copy = computed(() => scope.value === 'team'
     }
   : {
       title: '通知',
-      description: '当前实体收到的 Team 单向通知',
+      description: '当前人员收到的 Team 单向通知',
       noun: '通知',
       empty: '目前没有通知',
-      emptyDescription: 'Team 发给当前实体的通知会显示在这里。',
+      emptyDescription: 'Team 发给当前人员的通知会显示在这里。',
     })
 const query = useQuery({
   queryKey: computed(() => ['notices', scope.value]),
@@ -84,11 +86,13 @@ function summary(content: string | null | undefined) {
 
 <template>
   <div class="notices-view">
-    <AdminPageHeader :title="copy.title" :description="routeAccess.restricted.value ? `${copy.description}。目前有 0 条未读。` : `${copy.description}。目前有 ${unreadCount} 条未读。`">
+    <AdminPageHeader title="通知中心" :description="routeAccess.restricted.value ? `${copy.description}。目前有 0 条未读。` : `${copy.description}。目前有 ${unreadCount} 条未读。`">
       <template #actions>
+        <LsPagePrimaryAction :icon="Send" label="发送通知" to="/notices/send" />
         <LsPagePrimaryAction :icon="CheckCheck" label="全部标为已读" :loading="confirmAll.isPending.value" :disabled="routeAccess.restricted.value || unreadCount === 0" :disabled-reason="routeAccess.reason.value || '当前没有未读消息'" @click="confirmAll.mutate()" />
       </template>
     </AdminPageHeader>
+    <TeamSectionNav label="通知分类" :items="noticeSections" />
 
     <LsListToolbar v-model="search" :placeholder="`搜索${copy.noun}`" :aria-label="`搜索${copy.noun}`" :count-label="routeAccess.restricted.value ? '0 条' : `${visible.length} 条`">
       <template #filters><NSelect v-model:value="filter" class="notice-filter" :options="filterOptions" :aria-label="`${copy.noun}筛选`" /></template>

@@ -5,9 +5,10 @@ import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import { teamNavigation } from '../lib/workspaceNavigation'
 import { api, friendlyError } from '@lostsky/api/client'
 import { useQuery } from '@tanstack/vue-query'
-import { ArrowRight, Bell, BookOpen, Boxes, UserRound, Users, ShieldCheck, FolderOpen } from '@lucide/vue'
+import { ArrowRight, Bell, BookOpen, Boxes, UserRound, Users } from '@lucide/vue'
 import { computed } from 'vue'
 
 type MetricReason = { kind: 'ability'; key: string; label: string } | null
@@ -32,7 +33,7 @@ const query = useQuery({
 const stats = computed(() => [
   {
     key: 'entities',
-    label: '实体',
+    label: '人员',
     icon: Boxes,
     to: '/entities',
     metric: query.data.value?.entities,
@@ -60,19 +61,12 @@ const stats = computed(() => [
   },
 ])
 const metricItems = computed(() => stats.value.map(item => ({ key: item.key, label: item.label, value: !query.isPending.value && !query.isError.value && item.metric?.available && item.metric.count != null ? item.metric.count : '-', hint: item.metric?.error || '当前可见范围' })))
-const resourceGroups = [
-  { key: 'organization', title: '组织与访问', description: '从主体资料到角色授权，维护团队的协作边界。', icon: ShieldCheck, links: [
-    { label: '实体列表', to: '/entities', note: '统一维护业务主体' }, { label: '成员管理', to: '/members', note: '查看团队成员状态' }, { label: '角色权限', to: '/roles', note: '分配职责与访问范围' }, { label: '加入审核', to: '/join-review', note: '处理新的加入申请' },
-  ] },
-  { key: 'knowledge', title: '资料与协作', description: '把规范、文件与通知连接到日常工作。', icon: FolderOpen, links: [
-    { label: '文档库', to: '/docs', note: '沉淀规范与工作资料' }, { label: '文件空间', to: '/files', note: '管理团队文件' }, { label: '人员字段', to: '/fields', note: '维护资料采集字段' }, { label: '实体通知', to: '/notices/entity', note: '查看团队通知记录' },
-  ] },
-]
+const resourceGroups = teamNavigation
 </script>
 
 
 <template>
-  <LsWorkspaceOverview eyebrow="团队运行概览" title="组织有序，协作有据" description="先确认团队资源，再进入组织管理或资料协作。" :actions="[{ key: 'personal', label: '进入个人工作台', to: '/personal', icon: UserRound, primary: true }, { key: 'manual', label: '使用文档', href: '//doc.lostsky.work', target: '_blank', rel: 'noopener', icon: BookOpen }]" :entries="[]">
+  <LsWorkspaceOverview eyebrow="团队运行概览" title="团队工作台" description="管理团队资源，处理成员与人事事务。" :actions="[{ key: 'personal', label: '进入个人工作台', to: '/personal', icon: UserRound, primary: true }, { key: 'manual', label: '使用文档', href: '//doc.lostsky.work', target: '_blank', rel: 'noopener', icon: BookOpen }]" :entries="[]">
     <template #summary>
       <LsMetricGrid :items="metricItems" aria-label="团队资源摘要" />
       <LsAsyncState v-if="query.isPending.value" state="loading" :rows="2" />

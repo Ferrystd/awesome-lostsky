@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<{
   multiple?: boolean
   inputId?: string
   placeholder?: string
-}>(), { modelValue: () => [], query: '', recent: () => [], candidates: () => [], multiple: false, placeholder: '输入实体 slug 搜索' })
+}>(), { modelValue: () => [], query: '', recent: () => [], candidates: () => [], multiple: false, placeholder: '输入人员 slug 搜索' })
 const emit = defineEmits<{ 'update:modelValue': [value: EntityDisplay[]]; 'update:query': [value: string]; chat: [entity: EntityDisplay]; profile: [entity: EntityDisplay] }>()
 const keyword = ref(props.query)
 const focused = ref(Boolean(props.query.trim()))
@@ -38,11 +38,11 @@ const results = computed(() => {
     .slice(0, 6)
 })
 const menuHint = computed(() => {
-  if (!normalizedKeyword.value) return results.value.length ? '最近聊天的实体' : ''
+  if (!normalizedKeyword.value) return results.value.length ? '最近聊天的人员' : ''
   if (normalizedKeyword.value.length < 2) return '继续输入至少 2 个字符'
-  if (searching.value) return '正在搜索实体…'
+  if (searching.value) return '正在搜索人员…'
   if (searchError.value) return searchError.value
-  return results.value.length ? '匹配的实体' : ''
+  return results.value.length ? '匹配的人员' : ''
 })
 const showResults = computed(() => focused.value && (normalizedKeyword.value.length > 0 || props.recent.length > 0))
 
@@ -82,7 +82,7 @@ watch(normalizedKeyword, value => {
       const found = await props.searchEntities!(value)
       if (version === searchVersion) searched.value = found
     } catch {
-      if (version === searchVersion) searchError.value = '暂时无法搜索实体'
+      if (version === searchVersion) searchError.value = '暂时无法搜索人员'
     } finally {
       if (version === searchVersion) searching.value = false
     }
@@ -103,13 +103,13 @@ onBeforeUnmount(() => {
     <div v-if="multiple || !selected.length" class="entity-input__search">
       <NInput v-model:value="keyword" :placeholder="placeholder" autocomplete="off" :input-props="{ id: inputId, autocapitalize: 'none', spellcheck: false }" @focus="focus" @blur="blur"><template #prefix><Search :size="17" aria-hidden="true" /></template></NInput>
       <Transition name="ls-popover">
-        <div v-if="showResults" class="entity-input__menu" role="listbox" :aria-label="normalizedKeyword ? '实体搜索结果' : '最近聊天的实体'">
+        <div v-if="showResults" class="entity-input__menu" role="listbox" :aria-label="normalizedKeyword ? '人员搜索结果' : '最近聊天的人员'">
           <p v-if="menuHint" class="entity-input__hint">{{ menuHint }}</p>
           <NButton v-for="entity in results" :key="entity.slug" quaternary role="option" @mousedown.prevent="choose(entity)">
             <span><Users :size="16" /></span><span><strong>{{ entity.name }}</strong><small>@{{ entity.slug }} · {{ entityTypeLabel(entity.type) }}</small></span>
           </NButton>
-          <p v-if="normalizedKeyword.length >= 2 && !searching && !searchError && !results.length" class="entity-input__empty">没有匹配的可搜索实体</p>
-          <p v-else-if="!normalizedKeyword && !results.length" class="entity-input__empty">暂无最近聊天的实体</p>
+          <p v-if="normalizedKeyword.length >= 2 && !searching && !searchError && !results.length" class="entity-input__empty">没有匹配的可搜索人员</p>
+          <p v-else-if="!normalizedKeyword && !results.length" class="entity-input__empty">暂无最近聊天的人员</p>
         </div>
       </Transition>
     </div>

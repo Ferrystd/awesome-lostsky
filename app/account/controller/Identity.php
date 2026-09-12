@@ -74,7 +74,7 @@ class Identity
     {
         $context = $this->workspaceWarningContext($request);
         if (!$context['is_external']) {
-            throw new HttpException(409, '当前实体已属于目标团队，无需确认外部身份警告');
+            throw new HttpException(409, '当前人员已属于目标团队，无需确认外部身份警告');
         }
 
         return success(app(WorkspaceWarning::class)->acknowledge(

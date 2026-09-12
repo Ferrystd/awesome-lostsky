@@ -350,10 +350,10 @@ $assertSame(
 $assertSame(
     [
         'homepage_welcome' => '欢迎来到我们的公开主页',
-        'homepage_entities_link' => '浏览公开实体',
-        'homepage_entities_title' => '公开实体',
-        'homepage_entities_description' => '团队成员与虚拟实体',
-        'homepage_entities_empty' => '团队暂时没有公开实体',
+        'homepage_entities_link' => '浏览公开人员',
+        'homepage_entities_title' => '公开人员',
+        'homepage_entities_description' => '团队成员与虚拟人员',
+        'homepage_entities_empty' => '团队暂时没有公开人员',
     ],
     $profile['settings'],
     'display profile exposes the default homepage copy settings'

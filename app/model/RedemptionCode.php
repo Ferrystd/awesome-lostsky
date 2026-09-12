@@ -28,19 +28,20 @@ class RedemptionCode extends Base
         'use_count' => 'integer',
         'expire_time' => 'integer',
         'is_active' => 'integer',
+        'fulfillment_snapshot' => 'array',
     ];
 
     /** JSON 字段 */
-    protected $json = [];
+    protected $json = ['fulfillment_snapshot'];
 
     /** 输出隐藏 */
-    protected $hidden = ['delete_time', 'code_hash', 'code_ciphertext'];
+    protected $hidden = ['delete_time', 'code_hash', 'code_ciphertext', 'fulfillment_snapshot', 'source_claim_id'];
 
     /** 计算属性 */
     protected $append = [];
 
     /** 只读字段 */
-    protected $readonly = ['campaign_id', 'source_order_id', 'ordinal', 'holder_entity_id', 'target_team_id', 'target_entity_id', 'code_hash'];
+    protected $readonly = ['campaign_id', 'source_order_id', 'source_claim_id', 'fulfillment_snapshot', 'ordinal', 'holder_entity_id', 'target_team_id', 'target_entity_id', 'code_hash'];
 
     public function campaign() { return $this->belongsTo(RedemptionCampaign::class, 'campaign_id'); }
     public function sourceOrder() { return $this->belongsTo(TeamOrder::class, 'source_order_id'); }

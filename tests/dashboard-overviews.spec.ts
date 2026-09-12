@@ -24,10 +24,10 @@ async function mockOverview(page: Page) {
 }
 
 const surfaces = [
-  ['team', 'http://demo.team.lostsky.work:5175/', '组织与访问'],
+  ['team', 'http://demo.team.lostsky.work:5175/', '团队工作台'],
   ['team-personal', 'http://demo.team.lostsky.work:5175/personal', '资料'],
-  ['shop', 'http://demo.shop.lostsky.work:5179/manage', '商品配置链'],
-  ['shop-personal', 'http://demo.shop.lostsky.work:5179/manage/personal', '搭建我的商品'],
+  ['shop', 'http://demo.shop.lostsky.work:5179/manage', '青空协作组'],
+  ['shop-personal', 'http://demo.shop.lostsky.work:5179/manage/personal', '青空协作组'],
   ['transaction', 'http://demo.transaction.lostsky.work:5177/overview', '收支核对'],
   ['transaction-personal', 'http://demo.transaction.lostsky.work:5177/personal', '我的业务表现'],
   ['admin', 'http://127.0.0.1:5180/', '平台总览'],

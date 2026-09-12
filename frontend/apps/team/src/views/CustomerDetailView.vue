@@ -172,7 +172,7 @@ const money = (value: string) =>
           <LsField label="当前归属人" for-id="customer-assignee" hint="变更只影响之后创建的订单和流水，不修改历史发单人。">
             <LsEntitySelect id="customer-assignee" v-model="form.assignee_entity_id" :entities="assignees.data.value ?? []" :loading="assignees.isPending.value" :disabled="!canManage" clearable placeholder="未归属" />
           </LsField>
-          <LsField label="协作发单人" for-id="customer-senders" hint="可多选；这些 Entity 仍需具备记账 Ability 与对应 Permission，才能协作处理该顾客。">
+          <LsField label="协作发单人" for-id="customer-senders" hint="可多选；这些人员仍需具备记账 Ability 与对应 Permission，才能协作处理该顾客。">
             <LsEntitySelect id="customer-senders" v-model="form.sender_entity_ids" :entities="senderOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" multiple placeholder="未绑定协作发单人" />
           </LsField>
           <LsSwitchField v-model="form.is_blocked" label="封禁顾客" description="封禁后顾客现有身份会话不能继续使用。" :disabled="!canManage" />

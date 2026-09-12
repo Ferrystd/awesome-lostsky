@@ -14,14 +14,14 @@ describe('资料表单布局契约', () => {
     expect(view).not.toContain('/transaction/sender')
   })
 
-  it('实体（Entity）资料使用表单容器、语义命令尺寸和唯一原子可见性保存', () => {
+  it('人员资料使用表单容器、语义命令尺寸和唯一原子可见性保存', () => {
     const view = source('./views/EntityDetailView.vue')
     const router = source('./router.ts')
     const formList = source('../../../packages/ui/src/components/LsFormList.vue')
     const formActions = source('../../../packages/ui/src/components/LsFormActions.vue')
     expect(view).toContain('<LsFormActions>')
     expect(view).not.toContain(':deep(.ls-')
-    expect(router).toContain("path: '/entity', component: EntityDetailView, meta: { title: '实体资料', pageWidth: 'form' }")
+    expect(router).toContain("path: '/entity', component: EntityDetailView, meta: { title: '人员资料', pageWidth: 'form' }")
     expect(formList).toContain('.ls-form-list__add { justify-self: start;')
     expect(formActions).toContain('.ls-form-actions :deep(.ls-button) { min-width: 7rem; }')
     expect(view).toContain('class="visibility-settings"')

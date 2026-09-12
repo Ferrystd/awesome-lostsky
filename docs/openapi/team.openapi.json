@@ -212,6 +212,43 @@
       }
     },
     "schemas": {
+      "IntegrationCredentials": {
+        "type": "object",
+        "required": [
+          "token",
+          "signing_secret"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "仅创建时返回"
+          },
+          "token": {
+            "type": "string",
+            "description": "调用消息 API 的 Bearer 令牌，仅返回一次"
+          },
+          "signing_secret": {
+            "type": "string",
+            "pattern": "^whsec_[A-Za-z0-9+/]{43}=$",
+            "description": "Standard Webhooks v1 密钥：32 随机字节的标准 Base64 编码；仅返回一次"
+          }
+        }
+      },
+      "IntegrationCredentialsEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Envelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/IntegrationCredentials"
+              }
+            }
+          }
+        ]
+      },
       "AnyObject": {
         "type": "object",
         "additionalProperties": true
@@ -9436,12 +9473,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope"
+                  "$ref": "#/components/schemas/IntegrationCredentialsEnvelope"
                 }
               }
             }
           }
-        }
+        },
+        "description": "Standard Webhooks v1。创建或轮换后凭据明文仅返回一次；轮换立即替换 API Token 与签名密钥。"
       }
     },
     "/chatIntegration/update": {
@@ -9488,12 +9526,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope"
+                  "$ref": "#/components/schemas/IntegrationCredentialsEnvelope"
                 }
               }
             }
           }
-        }
+        },
+        "description": "Standard Webhooks v1。创建或轮换后凭据明文仅返回一次；轮换立即替换 API Token 与签名密钥。"
       }
     },
     "/chatIntegration/delete": {

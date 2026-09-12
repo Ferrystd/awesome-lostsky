@@ -3,12 +3,9 @@ import { identityUrl, workspaceAppEntries } from "@lostsky/shared/navigation";
 import LsPage from "@lostsky/ui/components/LsPage.vue";
 import LsWorkspaceHeader from "@lostsky/ui/components/LsWorkspaceHeader.vue";
 import {
-  Boxes,
   ChevronRight,
   House,
-  KeyRound,
   MessageCircleMore,
-  PackageOpen,
   Radio,
   ReceiptText,
   ShoppingBag, UserRound,
@@ -41,33 +38,12 @@ const nav = [
     icon: ReceiptText,
     permission: "shop.order.read",
   },
-  {
-    to: "/manage/services",
-    label: "服务",
-    icon: Boxes,
-    permission: "shop.product.read",
-  },
-  {
-    to: "/manage/packages",
-    label: "权益包",
-    icon: PackageOpen,
-    permission: "shop.product.read",
-  },
-  {
-    to: "/manage/campaigns",
-    label: "卡活动",
-    icon: KeyRound,
-    permission: "shop.product.read",
-  },
 ];
 const activeWorkspace = computed(() => route.meta.workspace === 'personal' ? 'personal' : 'team');
 const currentNav = computed(() => activeWorkspace.value === 'personal'
   ? [
       { to: '/manage/personal', label: '概览', icon: House, permission: null },
       { to: '/manage/personal/products', label: '我的商品', icon: ShoppingBag, permission: 'shop.product.self.manage' },
-      { to: '/manage/personal/services', label: '我的服务', icon: Boxes, permission: 'shop.product.self.manage' },
-      { to: '/manage/personal/packages', label: '我的权益包', icon: PackageOpen, permission: 'shop.product.self.manage' },
-      { to: '/manage/personal/campaigns', label: '我的卡活动', icon: KeyRound, permission: 'shop.product.self.manage' },
       { to: '/manage/personal/orders', label: '我的业务订单', icon: UserRound, permission: 'shop.order.read' },
     ]
   : nav);
@@ -105,7 +81,7 @@ function handleHeaderAction(key: string) {
         ></NButton>
       </div>
       <nav>
-        <p>{{ activeWorkspace === 'personal' ? '当前 Entity' : '销售与履约' }}</p>
+        <p>{{ activeWorkspace === 'personal' ? '当前人员' : '销售与履约' }}</p>
         <template v-for="item in currentNav" :key="item.to">
           <RouterLink
           :to="item.to"

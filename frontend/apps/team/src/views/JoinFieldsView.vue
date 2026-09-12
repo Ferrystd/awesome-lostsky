@@ -43,7 +43,7 @@ const statusOptions = [
 
 <template>
   <div class="join-fields-page">
-    <AdminPageHeader title="申请字段" description="配置申请人需要填写的资料，以及审批通过后需要转存的人员字段。">
+    <AdminPageHeader back-to="/join-review" back-label="返回人事审核" title="申请字段" description="配置申请人需要填写的资料，以及审批通过后需要转存的人员字段。">
       <template #actions>
         <LsPagePrimaryAction :icon="Plus" label="创建字段" to="/join-fields/new" />
       </template>

@@ -121,7 +121,7 @@ try {
         $settingApps[$settingApp['app_name']] = $settingApp;
     }
     $assertSame(['entity', 'member', 'chat', 'shop', 'service', 'display'], array_keys($settingApps), 'team setting apps keep their configured order');
-    $assertSame('实体', $settingApps['entity']['label'] ?? null, 'entity settings use the concise visible group label');
+    $assertSame('人员', $settingApps['entity']['label'] ?? null, 'entity settings use the concise visible group label');
     $assertSame('成员', $settingApps['member']['label'] ?? null, 'member settings use the concise visible group label');
     $assertSame('服务', $settingApps['service']['label'] ?? null, 'service settings use the concise visible group label');
     $assertSame('展示', $settingApps['display']['label'] ?? null, 'display settings use the concise visible group label');
@@ -183,10 +183,10 @@ try {
     $assertSame(
         [
             'homepage_welcome' => '欢迎来到我们的公开主页',
-            'homepage_entities_link' => '浏览公开实体',
-            'homepage_entities_title' => '公开实体',
-            'homepage_entities_description' => '团队成员与虚拟实体',
-            'homepage_entities_empty' => '团队暂时没有公开实体',
+            'homepage_entities_link' => '浏览公开人员',
+            'homepage_entities_title' => '公开人员',
+            'homepage_entities_description' => '团队成员与虚拟人员',
+            'homepage_entities_empty' => '团队暂时没有公开人员',
         ],
         array_map(static fn (array $field): mixed => $field['default'], $displaySettingFields),
         'display homepage copy settings expose their configured defaults'
@@ -397,7 +397,7 @@ try {
     $assert(
         count($dynamicParentEffective) === 1
             && $dynamicParentEffective[0]['label'] === "覆盖 {$dynamicMemberParent} 下全部权限"
-            && $dynamicParentEffective[0]['group'] === '实体委托',
+            && $dynamicParentEffective[0]['group'] === '人员委托',
         'member permission summary keeps exact dynamic parent scopes in entity delegation'
     );
     $assertSame(
@@ -412,7 +412,7 @@ try {
         count(array_filter(
             $parentSummary['effective_permissions'],
             static fn (array $item): bool => $item['key'] === "{$dynamicMemberParent}.assume"
-                && $item['group'] === '实体委托'
+                && $item['group'] === '人员委托'
         )) === 2,
         'member permission summary groups every exact delegation row as entity delegation'
     );
@@ -478,11 +478,11 @@ try {
     }
     $virtualCatalog = $permissions->catalog((int) $team->id);
     $virtualGroupNames = array_column($virtualCatalog['groups'], 'name');
-    $assertSame(1, count(array_filter($virtualGroupNames, static fn (string $name): bool => $name === '实体委托')), 'permission catalog exposes one entity delegation group');
-    $assert(!in_array('身份委托', $virtualGroupNames, true) && !in_array('指定虚拟实体', $virtualGroupNames, true), 'permission catalog removes legacy delegation groups');
+    $assertSame(1, count(array_filter($virtualGroupNames, static fn (string $name): bool => $name === '人员委托')), 'permission catalog exposes one entity delegation group');
+    $assert(!in_array('身份委托', $virtualGroupNames, true) && !in_array('指定虚拟人员', $virtualGroupNames, true), 'permission catalog removes legacy delegation groups');
     $virtualItems = [];
     foreach ($virtualCatalog['groups'] as $group) {
-        if (in_array($group['name'], ['实体管理', '实体委托', '聊天'], true)) {
+        if (in_array($group['name'], ['人员管理', '人员委托', '聊天'], true)) {
             $virtualItems += array_column($group['items'], null, 'key');
         }
     }
@@ -1275,6 +1275,115 @@ try {
         ) === false,
         'worker that lost its lease cannot confirm an outbox event'
     );
+    // Exercise the real delivery serializer and signer without external HTTP writes.
+    $integrationService = new class extends \app\service\ChatIntegration {
+        public function endpointResolution(string $url): array
+        {
+            return ['curl_resolve' => 'example.com:443:93.184.216.34'];
+        }
+    };
+    app()->instance(\app\service\ChatIntegration::class, $integrationService);
+    $virtualSlug = "webhook-{$suffix}";
+    app(ChatVirtual::class)->create((int) $team->id, ['slug' => $virtualSlug, 'name' => 'Webhook Virtual']);
+    $credentials = $integrationService->create((int) $team->id, $virtualSlug, [
+        'name' => 'Webhook test', 'endpoint_url' => 'https://example.com/hook',
+        'events' => ['message.created'],
+    ]);
+    $assert((bool) preg_match('/^whsec_[A-Za-z0-9+\/]{43}=$/', $credentials['signing_secret']), 'standard secret format');
+    $transport = new class extends \app\service\ChatRealtime {
+        public array $requests = [];
+        public bool $fail = true;
+        public function request(string $url, string $body, array $headers = [], array $resolve = []): array
+        {
+            $this->requests[] = compact('body', 'headers');
+            if ($this->fail) throw new RuntimeException('HTTP请求失败：503');
+            return ['code' => 204, 'body' => ''];
+        }
+    };
+    app()->instance(\app\service\ChatRealtime::class, $transport);
+    // Exclude unrelated pending deliveries inside this rollback-only test transaction.
+    \app\model\ChatWebhookDelivery::where('status', 'pending')->update(['available_at' => time() + 86400]);
+    $webhookEvent = new ChatEventOutbox;
+    $webhookEvent->save(['team_id' => $team->id, 'aggregate_type' => 'message',
+        'aggregate_id' => $sent['id'], 'event_type' => 'message.created',
+        'payload' => ['content' => "你好\n世界"], 'available_at' => time()]);
+    $delivery = new \app\model\ChatWebhookDelivery;
+    $delivery->save(['team_id' => $team->id, 'outbox_id' => $webhookEvent->id,
+        'integration_id' => $credentials['id'], 'status' => \app\enum\ChatDeliveryStatus::Pending, 'attempts' => 0, 'available_at' => time()]);
+    $deliver = new ReflectionMethod(\app\service\ChatOutbox::class, 'deliverPending');
+    $deliver->invoke(app(\app\service\ChatOutbox::class), 20);
+    $first = $transport->requests[0];
+    $headerMap = static function (array $lines): array {
+        $result = [];
+        foreach ($lines as $line) { [$key, $value] = explode(': ', $line, 2); $result[$key] = $value; }
+        return $result;
+    };
+    $headers = $headerMap($first['headers']);
+    $verified = (new \StandardWebhooks\Webhook($credentials['signing_secret']))->verify($first['body'], $headers);
+    $assertSame(['type', 'timestamp', 'data'], array_keys($verified), 'standard event envelope');
+    $assertSame("你好\n世界", $verified['data']['content'], 'raw UTF-8 payload verifies');
+    $assertSame(['webhook-id', 'webhook-timestamp', 'webhook-signature'], array_keys($headers), 'only standard signature headers');
+    $assertSame(1, (int) \app\model\ChatWebhookDelivery::find($delivery->id)->attempts, 'failed attempt persisted');
+    $assertSame(null, $delivery->processing_token, 'failed delivery releases lease');
+    \app\model\ChatWebhookDelivery::where('id', $delivery->id)->update(['available_at' => time()]);
+    $transport->fail = false;
+    $deliver->invoke(app(\app\service\ChatOutbox::class), 20);
+    $assertSame($headers['webhook-id'], $headerMap($transport->requests[1]['headers'])['webhook-id'], 'retry ID stable');
+    $assertSame($first['body'], $transport->requests[1]['body'], 'retry body stable');
+    $assertSame(204, (int) \app\model\ChatWebhookDelivery::find($delivery->id)->response_code, '204 accepted');
+    $transport->fail = true;
+    for ($attempt = 0; $attempt < 6; $attempt++) {
+        \app\model\ChatWebhookDelivery::where('id', $delivery->id)->update([
+            'status' => 'pending', 'attempts' => $attempt, 'available_at' => time(),
+        ]);
+        $deliver->invoke(app(\app\service\ChatOutbox::class), 20);
+        $row = \app\model\ChatWebhookDelivery::find($delivery->id);
+        $assertSame($attempt + 1, (int) $row->attempts, 'failed attempts increment');
+        $assertSame($attempt === 5 ? 'failed' : 'pending', \think\facade\Db::name('chat_webhook_delivery')->where('id', $delivery->id)->value('status'), 'six attempts then terminal failure');
+        $assertSame(null, $row->processing_token, 'failure releases delivery lease');
+        if ($attempt < 5) {
+            $delay = (int) $row->available_at - time();
+            $assert(abs($delay - 5 * 3 ** ($attempt + 1)) <= 2, 'retry backoff follows contract');
+        }
+    }
+    $rotated = $integrationService->rotate((int) $team->id, $virtualSlug, $credentials['id']);
+    $assert($rotated['signing_secret'] !== $credentials['signing_secret'], 'rotation replaces signing secret');
+    $assertThrows(fn () => $integrationService->authenticate($credentials['token']), 401, 'rotation revokes old API token');
+    \app\model\ChatWebhookDelivery::where('id', $delivery->id)->update(['status' => 'pending', 'available_at' => time()]);
+    $claimDeliveries = new ReflectionMethod(\app\service\ChatOutbox::class, 'claimDeliveries');
+    $leaseA = bin2hex(random_bytes(16));
+    $leaseB = bin2hex(random_bytes(16));
+    $claimedA = $claimDeliveries->invoke(app(\app\service\ChatOutbox::class), 20, $leaseA);
+    $claimedB = $claimDeliveries->invoke(app(\app\service\ChatOutbox::class), 20, $leaseB);
+    $assertSame(1, count($claimedA), 'first worker claims delivery');
+    $assertSame(0, count($claimedB), 'second worker cannot claim leased delivery');
+    \app\model\ChatWebhookDelivery::where('id', $delivery->id)->update(['processing_token' => $leaseB]);
+    $confirmDelivery = new ReflectionMethod(\app\service\ChatOutbox::class, 'updateClaimedDelivery');
+    $assertSame(false, $confirmDelivery->invoke(app(\app\service\ChatOutbox::class), $claimedA->first(), $leaseA, ['delivered_at' => time()]), 'stale worker cannot acknowledge delivery');
+    $participantEntity = Entity::where('slug', $virtualSlug)->find();
+    \think\facade\Db::name('chat_participant')->insert([
+        'team_id' => $team->id, 'conversation_id' => $conversationId,
+        'entity_id' => $participantEntity->id, 'joined_at' => time(),
+    ]);
+    $filterEvent = new ChatEventOutbox;
+    $filterEvent->save(['team_id' => $team->id, 'aggregate_type' => 'message',
+        'aggregate_id' => $sent['id'], 'event_type' => 'message.created',
+        'payload' => ['content' => 'filter test'], 'available_at' => time()]);
+    $prepare = new ReflectionMethod(\app\service\ChatOutbox::class, 'prepareDeliveries');
+    $conversationModel = \app\model\ChatConversation::find($conversationId);
+    $deliveryCount = static fn () => \app\model\ChatWebhookDelivery::where('outbox_id', $filterEvent->id)->where('integration_id', $credentials['id'])->count();
+    $prepare->invoke(app(\app\service\ChatOutbox::class), $filterEvent, $conversationModel, $credentials['id']);
+    $assertSame(0, $deliveryCount(), 'origin integration excluded');
+    $integrationService->update((int) $team->id, $virtualSlug, $credentials['id'], ['events' => ['message.updated']]);
+    $prepare->invoke(app(\app\service\ChatOutbox::class), $filterEvent, $conversationModel, null);
+    $assertSame(0, $deliveryCount(), 'unsubscribed event excluded');
+    $integrationService->update((int) $team->id, $virtualSlug, $credentials['id'], ['events' => ['message.created']]);
+    $foreignConversation = new \app\model\ChatConversation(['id' => $conversationId, 'team_id' => $foreignTeam->id]);
+    $prepare->invoke(app(\app\service\ChatOutbox::class), $filterEvent, $foreignConversation, null);
+    $assertSame(0, $deliveryCount(), 'cross-team virtual excluded');
+    $prepare->invoke(app(\app\service\ChatOutbox::class), $filterEvent, $conversationModel, null);
+    $prepare->invoke(app(\app\service\ChatOutbox::class), $filterEvent, $conversationModel, null);
+    $assertSame(1, $deliveryCount(), 'subscribed event prepared only once');
 } finally {
     $db->rollback();
 }

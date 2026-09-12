@@ -44,7 +44,7 @@ class Product
     public function create(Request $request)
     {
         $service = app(ProductService::class);
-        $id = $service->create($request->team_id, [
+        $data = [
             'name'        => $request->post('name'),
             'description' => $request->post('description', null),
             'cover_image' => $request->post('cover_image', null),
@@ -57,9 +57,18 @@ class Product
             'cs_cut'      => $request->post('cs_cut', null),
             'team_cut'    => $request->post('team_cut', null),
             'kind'        => $request->post('kind', 1),
+            'redemption'  => $request->post('redemption', null),
             'benefit_package_id' => $request->post('benefit_package_id', null),
             'redemption_campaign_id' => $request->post('redemption_campaign_id', null),
-        ]);
+        ];
+        if ($request->has('items', 'post')) {
+            $data['items'] = $request->post('items');
+            foreach (['price', 'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut'] as $field) {
+                if (!$request->has($field, 'post')) unset($data[$field]);
+            }
+        }
+        if ($request->has('handler_entity_ids', 'post')) $data['handler_entity_ids'] = $request->post('handler_entity_ids');
+        $id = $service->create($request->team_id, $data);
         app(\app\service\BusinessAudit::class)->record($request, 'shop', 'create', 'product', $id);
 
         return success(['id' => $id], '商品已创建');
@@ -72,7 +81,7 @@ class Product
         $data = [];
         foreach (['name', 'price', 'cost', 'description', 'cover_image', 'introduction_markdown', 'is_active',
             'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'kind',
-            'benefit_package_id', 'redemption_campaign_id'] as $field) {
+            'benefit_package_id', 'redemption_campaign_id', 'redemption', 'items', 'handler_entity_ids'] as $field) {
             if ($request->has($field, 'post')) {
                 $data[$field] = $request->post($field);
             }

@@ -17,7 +17,7 @@ const normalizedKeyword = computed(() => debouncedKeyword.value.trim())
 const filters = [
   { label: '全部', value: undefined },
   { label: '成员', value: 'teamMember' as const },
-  { label: '虚拟实体', value: 'teamVirtual' as const },
+  { label: '虚拟人员', value: 'teamVirtual' as const },
 ]
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined
@@ -44,18 +44,18 @@ const hasFilters = computed(() => Boolean(normalizedKeyword.value || type.value)
   <article class="entity-directory-page">
     <header class="entity-directory-header">
       <RouterLink class="back-link" to="/"><ArrowLeft :size="18" aria-hidden="true" />返回团队主页</RouterLink>
-      <h1 tabindex="-1">公开实体</h1>
-      <p>浏览团队公开展示的成员与虚拟实体（Virtual Entity）。</p>
+      <h1 tabindex="-1">公开人员</h1>
+      <p>浏览团队公开展示的成员与虚拟人员。</p>
     </header>
 
-    <section class="entity-directory-content" aria-label="公开实体目录">
+    <section class="entity-directory-content" aria-label="公开人员目录">
       <div class="entity-directory-toolbar">
         <label class="entity-search">
-          <span class="visually-hidden">搜索实体名称或 Slug</span>
+          <span class="visually-hidden">搜索人员名称或 Slug</span>
           <Search :size="19" aria-hidden="true" />
           <input v-model="keyword" type="search" maxlength="100" placeholder="搜索名称或 Slug" autocomplete="off">
         </label>
-        <div class="entity-type-filter" role="group" aria-label="按实体类型筛选">
+        <div class="entity-type-filter" role="group" aria-label="按人员类型筛选">
           <button
             v-for="option in filters"
             :key="option.label"
@@ -69,20 +69,20 @@ const hasFilters = computed(() => Boolean(normalizedKeyword.value || type.value)
       </div>
 
       <p class="entity-directory-count" aria-live="polite">
-        {{ entities.isPending.value ? '正在读取公开实体' : entities.isError.value ? '暂时无法读取公开实体' : `共 ${total} 个公开实体` }}
+        {{ entities.isPending.value ? '正在读取公开人员' : entities.isError.value ? '暂时无法读取公开人员' : `共 ${total} 位公开人员` }}
       </p>
 
       <div v-if="entities.isPending.value" class="entity-skeleton"><span v-for="item in 6" :key="item" /></div>
       <div v-else-if="entities.isError.value" class="inline-error" role="alert">
-        <span>实体列表加载失败。</span>
+        <span>人员列表加载失败。</span>
         <button type="button" @click="entities.refetch()">重试</button>
       </div>
       <EntityList v-else-if="entities.data.value?.list.length" :entities="entities.data.value.list" />
       <p v-else class="empty-state">
-        {{ hasFilters ? '没有符合条件的公开实体。' : '团队暂时没有公开实体。' }}
+        {{ hasFilters ? '没有符合条件的公开人员。' : '团队暂时没有公开人员。' }}
       </p>
 
-      <nav v-if="!entities.isPending.value && !entities.isError.value && pageCount > 1" class="pager" aria-label="实体列表分页">
+      <nav v-if="!entities.isPending.value && !entities.isError.value && pageCount > 1" class="pager" aria-label="人员列表分页">
         <button type="button" :disabled="page <= 1" @click="page -= 1"><ArrowLeft :size="17" aria-hidden="true" />上一页</button>
         <span>第 {{ page }} / {{ pageCount }} 页</span>
         <button type="button" :disabled="page >= pageCount" @click="page += 1">下一页<ArrowRight :size="17" aria-hidden="true" /></button>

@@ -28,7 +28,7 @@ class EntitySelfManagement
             return [
                 'identity' => $identity,
                 'supported' => false,
-                'unsupported_reason' => '当前实体类型不进入后台个人工作台，请使用对应的业务中心。',
+                'unsupported_reason' => '当前人员类型不进入后台个人工作台，请使用对应的业务中心。',
             ];
         }
 
@@ -87,7 +87,7 @@ class EntitySelfManagement
     {
         $context = $this->writableContext($actingEntity, $expectedEntityId);
         if ($context['type'] !== 'teamMember') {
-            throw new HttpException(422, '当前实体类型不支持补全标识');
+            throw new HttpException(422, '当前人员类型不支持补全标识');
         }
         $entity = $context['entity'];
         if ((string) $entity->slug !== '') {
@@ -139,7 +139,7 @@ class EntitySelfManagement
         }
         $context = $this->context($actingEntity, true);
         if (!in_array($context['type'], self::SUPPORTED_TYPES, true)) {
-            throw new HttpException(403, '当前实体类型不支持自我管理');
+            throw new HttpException(403, '当前人员类型不支持自我管理');
         }
         return $context;
     }
@@ -151,14 +151,14 @@ class EntitySelfManagement
         $id = (int) ($actingEntity['id'] ?? 0);
         $entity = EntityModel::with(['profile'])->find($entityId);
         if (!$entity || (string) $entity->entityable_type !== $type || (int) $entity->entityable_id !== $id) {
-            throw new HttpException(401, '当前实体身份会话已失效');
+            throw new HttpException(401, '当前人员身份会话已失效');
         }
         if ($requireValid && !$entity->is_valid) {
-            throw new HttpException(401, '当前实体身份会话已失效');
+            throw new HttpException(401, '当前人员身份会话已失效');
         }
         $teamId = app(IdentitySession::class)->entityTeamId($type, $id);
         if ($teamId < 1) {
-            throw new HttpException(401, '当前实体所属团队不可用');
+            throw new HttpException(401, '当前人员所属团队不可用');
         }
         return compact('entity', 'type', 'id', 'teamId') + ['team_id' => $teamId];
     }
@@ -196,7 +196,7 @@ class EntitySelfManagement
             'team' => 'entity',
             'teamMember' => 'entity',
             'teamVirtual' => 'virtual',
-            default => throw new HttpException(422, '当前实体类型不支持对象字段'),
+            default => throw new HttpException(422, '当前人员类型不支持对象字段'),
         };
     }
 

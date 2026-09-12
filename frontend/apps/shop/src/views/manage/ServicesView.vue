@@ -43,7 +43,7 @@ const pages = computed(() =>
 const handlerSummary = (service: ManageService) => {
   const handlers = service.handlers ?? [];
   if (!handlers.length) return "不限";
-  return handlers.map((handler) => handler.subject?.name || `Entity #${handler.entity_id}`).join("、");
+  return handlers.map((handler) => handler.subject?.name || `人员 #${handler.entity_id}`).join("、");
 };
 const knownEntityTypes: EntityType[] = ["entity", "customer", "team", "virtual", "teamMember", "teamCustomer", "teamVirtual"];
 const handlerType = (service: NonNullable<ManageService["handlers"]>[number]): EntityType =>
@@ -60,7 +60,7 @@ const renderHandlerTags = (service: ManageService) => h("div", {
       ...visibleHandlers(service).map(handler => h("span", { key: handler.entity_id, class: "service-handler-item" }, [
         h(LsEntityTag, {
           type: handlerType(handler),
-          name: handler.subject?.name || `Entity #${handler.entity_id}`,
+          name: handler.subject?.name || `人员 #${handler.entity_id}`,
           slug: handler.subject?.slug || "",
         }),
       ])),
@@ -106,7 +106,7 @@ const columns = computed<DataTableColumns<ManageService>>(() => [
   <div class="manage-page">
     <LsPageHeader
       :title="personal ? '我的服务' : '服务'"
-      :description="personal ? '定义当前 Entity 自己提供的服务、默认金额与接单池。' : '定义可独立核销的服务及默认金额、分成和接单池。'"
+      :description="personal ? '定义当前人员自己提供的服务、默认金额与接单池。' : '定义可独立核销的服务及默认金额、分成和接单池。'"
       ><template #actions>
         <LsPagePrimaryAction :icon="Plus" label="新建服务" :to="`${management.routePrefix}/services/new`" /></template
       ></LsPageHeader
@@ -152,7 +152,7 @@ const columns = computed<DataTableColumns<ManageService>>(() => [
                 <span v-for="handler in visibleHandlers(row)" :key="handler.entity_id" class="service-handler-item">
                   <LsEntityTag
                     :type="handlerType(handler)"
-                    :name="handler.subject?.name || `Entity #${handler.entity_id}`"
+                    :name="handler.subject?.name || `人员 #${handler.entity_id}`"
                     :slug="handler.subject?.slug || ''"
                   />
                 </span>

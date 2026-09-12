@@ -119,7 +119,7 @@ const columns: DataTableColumns<ServiceRedemption> = [
   <div class="redemptions-view">
     <LsPageHeader
       title="权益核销"
-      description="接单实体（Entity）查看自己的任务；管理实体处理改派、取消审批与确认完成。"
+      description="接单人员查看自己的任务；管理人员处理改派、取消审批与确认完成。"
     >
       <template #actions>
         <LsPagePrimaryAction :icon="Gift" label="赋予顾客权益" to="/entitlements/new" />

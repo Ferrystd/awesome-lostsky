@@ -47,7 +47,7 @@ class ChatVirtual
             $request, 'team', 'create', 'virtualEntity', (int) ($result['id'] ?? 0),
             ['changed_fields' => ['slug', 'name', 'avatar', 'description']]
         );
-        return success($result, '虚拟实体已创建');
+        return success($result, '虚拟人员已创建');
     }
 
     public function update(\think\Request $request)
@@ -67,7 +67,7 @@ class ChatVirtual
             $request, 'team', 'update', 'virtualEntity', $entityId,
             ['changed_fields' => array_keys($data), 'changed' => $data !== []]
         );
-        return message('虚拟实体已更新');
+        return message('虚拟人员已更新');
     }
 
     public function delete(\think\Request $request)
@@ -78,6 +78,6 @@ class ChatVirtual
             $slug
         );
         app(\app\service\BusinessAudit::class)->record($request, 'team', 'delete', 'virtualEntity', $entityId);
-        return message('虚拟实体已删除');
+        return message('虚拟人员已删除');
     }
 }

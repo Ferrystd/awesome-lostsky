@@ -87,7 +87,7 @@ onMounted(() => {
       <template v-else-if="reason === 'team_mismatch' && !receive.isPending.value && !receive.isError.value">
         <AlertTriangle class="status-icon warning" :size="30" aria-hidden="true" />
         <h1>切换到 {{ teamSlug }} 的成员身份？</h1>
-        <p class="description">继续将放弃当前实体（Entity）身份，并领取该团队内与你账号关联的有效成员身份。</p>
+        <p class="description">继续将放弃当前人员身份，并领取该团队内与你账号关联的有效成员身份。</p>
         <div class="actions">
           <LsButton variant="secondary" @click="returnToOrigin">取消并保留当前身份</LsButton>
           <LsButton autofocus @click="retry">确认切换</LsButton>

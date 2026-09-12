@@ -19,7 +19,7 @@ final class WorkspaceAccess
         if (!$entity || !$entity->is_valid
             || (string) $entity->entityable_type !== $type
             || (int) $entity->entityable_id !== $id) {
-            throw new HttpException(401, '实体身份无效');
+            throw new HttpException(401, '人员身份无效');
         }
 
         $belongs = app(IdentitySession::class)->entityTeamId($type, $id) === $teamId;

@@ -127,9 +127,10 @@ describe('后台工作台入口架构', () => {
     expect(shop).toMatch(/const nav = \[\s*\{\s*to: "\/manage",\s*label: "概览",\s*icon: House,\s*permission: null,/)
     expect(shop).toContain("{ to: '/manage/personal', label: '概览', icon: House, permission: null }")
     expect(shop.indexOf("label: '概览'")).toBeLessThan(shop.indexOf("label: '我的商品'"))
-    expect(shop).toContain("label: '我的服务'")
-    expect(shop).toContain("label: '我的权益包'")
-    expect(shop).toContain("label: '我的卡活动'")
+    expect(shop).not.toContain("label: '我的服务'")
+    expect(shop).not.toContain("label: '我的权益包'")
+    expect(shop).not.toContain("label: '我的卡活动'")
+    expect(source('frontend/apps/shop/src/router.ts')).not.toMatch(/path: '\/manage\/(?:personal\/)?(?:services|packages|campaigns)(?:\/|')/)
     expect(shop).toContain("permission: 'shop.product.self.manage'")
 
     const transaction = source('frontend/apps/transaction/src/components/TransactionShell.vue')
@@ -277,7 +278,7 @@ describe('后台工作台入口架构', () => {
     expect(personalProducts).not.toMatch(/(?:get|post)\(['"]entity_id(?:\/|['"])/)
   })
 
-  it('Team Entity 与成员、虚拟实体使用同一套个人工作台准入', () => {
+  it('团队身份 与成员、虚拟人员使用同一套个人工作台准入', () => {
     for (const path of [
       'frontend/apps/team/src/router.ts',
       'frontend/apps/shop/src/router.ts',
@@ -370,7 +371,7 @@ describe('后台工作台入口架构', () => {
       .toContain("personalSection: 'services' }")
   })
 
-  it('新增工作台接口均声明认证，个人查询不接受 Entity 范围参数', () => {
+  it('新增工作台接口均声明认证，个人查询不接受人员范围参数', () => {
     const contracts = [
       ['docs/openapi/team.openapi.json', ['/personal', '/personal/profile', '/personal/fields']],
       ['docs/openapi/shop.openapi.json', [

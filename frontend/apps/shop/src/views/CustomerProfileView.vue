@@ -179,7 +179,7 @@ const save = useMutation({
         </div>
         <div class="profile-fields">
           <label for="customer-assignee">
-            当前归属实体
+            当前归属人员
             <NSelect
               v-model:value="assigneeEntityId"
               :options="assigneeOptions"
@@ -188,9 +188,9 @@ const save = useMutation({
               filterable
               size="large"
               placeholder="未归属"
-              aria-label="当前归属实体"
+              aria-label="当前归属人员"
             />
-            <small>可以选择当前团队的 Team、成员或虚拟实体（Virtual Entity），Customer 不能成为归属人。</small>
+            <small>可以选择当前团队的 Team、成员或虚拟人员，Customer 不能成为归属人。</small>
           </label>
         </div>
       </section>

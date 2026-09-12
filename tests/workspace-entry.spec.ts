@@ -100,7 +100,7 @@ function personalResult(type: 'team' | 'teamMember' | 'teamVirtual' = 'team') {
     profile: {
       name: isTeam ? '青空协作组' : '青空成员',
       avatar: null,
-      description: '当前 Entity 的团队内资料',
+      description: '当前人员的团队内资料',
       intro_image: null,
       intro_video: null,
       introduction_markdown: null,
@@ -125,7 +125,7 @@ function personalResult(type: 'team' | 'teamMember' | 'teamVirtual' = 'team') {
       { key: 'chat.message.moderate', label: '审核与撤回消息', group: '聊天' },
       {
         key: 'chat.virtual.*.act',
-        label: '代表全部虚拟实体参与聊天',
+        label: '代表全部虚拟人员参与聊天',
         group: '聊天',
       },
       { key: 'team.document.read', label: '查看全部文档', group: '文档管理' },
@@ -210,7 +210,7 @@ test('Team resource dashboard reaches personal workspace from the overview CTA',
   await expect(page).toHaveURL(/\/personal$/)
   await expect.poll(() => pageErrors).toEqual([])
   await expect(page.getByRole('heading', { name: '概览', level: 1 })).toBeVisible()
-  await expect(page.getByText(/个人工作台 · 团队实体/)).toBeVisible()
+  await expect(page.getByText(/个人工作台 · 团队身份/)).toBeVisible()
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   const personalSidebar = page.locator('.sidebar')
   const personalOverview = page.locator('.ls-workspace-overview')
@@ -377,7 +377,7 @@ test('team workspaces keep all entries open and degrade protected pages by data 
   await expect(page.getByRole('heading', { name: '概览', level: 1 })).toBeVisible()
   await expect(page.locator('.manage-sidebar').getByRole('link', { name: '切换身份' })).toHaveCSS('justify-content', 'flex-start')
   await expect(page.locator('#shop-manage-main').getByRole('heading', { name: '青空协作组', exact: true })).toBeVisible()
-  const productsEntry = page.locator('.ls-workspace-overview__entry, .ls-dashboard-path a').filter({ hasText: '商品' })
+  const productsEntry = page.locator('.ls-dashboard-path a[href="/manage/products"]')
   await expect(productsEntry).toHaveAttribute('href', '/manage/products')
   await expect(productsEntry.locator('.lucide-arrow-up-right')).toBeVisible()
   await expect(page.getByRole('link', { name: '进入个人工作台' })).toHaveAttribute('href', '/manage/personal')

@@ -28,13 +28,13 @@ const fields = useQuery({
   queryFn: () => api.get<EntityField[]>('/entityField/index', { entity_type: type.value }),
   enabled: computed(() => !routeAccess.restricted.value),
 })
-const labels: Record<EntityType, string> = { entity: '人员', customer: '顾客', virtual: '虚拟实体' }
+const labels: Record<EntityType, string> = { entity: '人员', customer: '顾客', virtual: '虚拟人员' }
 const visibleFields = computed(() => { const keyword = search.value.trim().toLocaleLowerCase(); return (fields.data.value ?? []).filter(field => !keyword || `${field.name} ${field.field_key}`.toLocaleLowerCase().includes(keyword)) })
 </script>
 
 <template>
   <div class="fields-page">
-    <AdminPageHeader title="对象字段" description="统一定义人员、顾客和虚拟实体（Virtual Entity）的团队内部业务资料；顾客公开资料仍由顾客本人维护。">
+    <AdminPageHeader back-to="/entities" back-label="返回人员" title="对象字段" description="统一定义人员、顾客和虚拟人员的团队内部业务资料；顾客公开资料仍由顾客本人维护。">
       <template #actions><LsPagePrimaryAction :icon="Plus" label="创建字段" :to="{ path: '/field-new', query: { type } }" /></template>
     </AdminPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索对象字段" :count-label="routeAccess.restricted.value ? '0 个字段' : `${visibleFields.length} 个字段`"><template #filters><NRadioGroup v-model:value="type" class="tabs" name="entity-field-type" aria-label="对象类型"><NRadioButton v-for="item in (['entity','customer','virtual'] as EntityType[])" :key="item" :value="item">{{ labels[item] }}</NRadioButton></NRadioGroup></template></LsListToolbar>
