@@ -11,7 +11,7 @@ import { Save } from '@lucide/vue'
 import { NInput } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
-import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import EntityFieldsCard, { type EntityFieldDefinition } from '../components/EntityFieldsCard.vue'
 import EntityPermissionsCard, {
   type EffectivePermission,

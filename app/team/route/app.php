@@ -27,6 +27,8 @@ Route::post('me/fields', 'me/fields');
 Route::get('member/index', 'member/index');
 Route::get('member/get', 'member/get');
 Route::post('member/add', 'member/add');
+Route::get('member/joinForm', 'member/joinForm');
+Route::post('member/joinUpload', 'member/joinUpload');
 Route::post('member/edit', 'member/edit');
 Route::post('member/block', 'member/block');
 Route::post('member/unblock', 'member/unblock');

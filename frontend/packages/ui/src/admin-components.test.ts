@@ -626,9 +626,19 @@ describe('后台设计系统组件契约', () => {
 
   it('LsEmptyState 保持 192px 紧凑基准且不随视口宽度增高', () => {
     const source = readFileSync(new URL('./components/LsEmptyState.vue', import.meta.url), 'utf8')
+    expect(source).toContain("textColor: 'var(--text-secondary)'")
     expect(source).toContain('min-height: 12rem')
     expect(source).toContain('padding: 2rem 1.25rem')
     expect(source).not.toMatch(/padding:\s*clamp\([^;]*vw/)
+  })
+
+  it('LsFormList 封闭契约只接受业务内容与可解释禁用状态', () => {
+    expect(Object.keys((LsFormList as any).props).sort()).toEqual(['modelValue', 'modelModifiers', 'itemKey', 'createItem', 'itemLabel', 'addLabel', 'emptyText', 'disabled', 'disabledReason'].sort())
+    const source = readFileSync(new URL('./components/LsFormList.vue', import.meta.url), 'utf8')
+    expect(source).not.toContain('NButton')
+    expect(source.match(/:disabled-reason=/g)).toHaveLength(4)
+    expect(source).toContain('已经是第一项')
+    expect(source).toContain('已经是最后一项')
   })
 
   it('LsFormList 固定触控尺寸、移动换行和减少动态', () => {

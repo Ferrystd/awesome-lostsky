@@ -1,6 +1,10 @@
 [features]
 multi_agent = true
 
+[agents]
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "medium"
+
 [mcp_servers.shadcn-vue]
 command = "npx.cmd"
 args = ["--yes", "shadcn-vue@latest", "mcp"]

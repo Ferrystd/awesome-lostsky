@@ -4,25 +4,30 @@ import { identityUrl } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
+import LsInput from '@lostsky/ui/components/LsInput.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
+import JoinApplicationFields, { type JoinField, type FieldValue } from '../components/JoinApplicationFields.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Save, UserPlus } from '@lucide/vue'
-import { NInput, NInputNumber, NSelect } from 'naive-ui'
+import { NFlex, NInput, NSelect } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
-import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import EntityFieldsCard, { type EntityFieldDefinition } from '../components/EntityFieldsCard.vue'
 import EntityPermissionsCard, { type AdvancedPermissionItem, type PermissionGroup, type RoleAssignment, type RoleRecord } from '../components/EntityPermissionsCard.vue'
 import EntityProfileFields from '../components/EntityProfileFields.vue'
 import { memberStatusCode, memberStatusLabel } from '../lib/memberStatus'
-import { permissionReason, resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
+import { fileAvailabilityReason, type FileUploadAvailability, hasPermission, permissionReason, resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 interface MemberCapabilities {
@@ -46,7 +51,7 @@ const uploadDisabledReason = computed(() => resourceUploadReason(access.data.val
 const id = computed(() => Number(route.query.id || 0))
 const editing = computed(() => id.value > 0)
 const form = reactive({
-  user_id: null as number | null,
+  join_code: '',
   nickname: '',
   avatar: '',
   description: '',
@@ -86,6 +91,27 @@ const capabilities = computed<MemberCapabilities>(() => ({
   identity_assume: Boolean((detail.data.value?.capabilities as Partial<MemberCapabilities> | undefined)?.identity_assume),
 }))
 const canEditProfile = computed(() => !editing.value || capabilities.value.member_edit)
+const canInvite = computed(() => hasPermission(access.data.value, 'team.member.invite'))
+const validJoinCode = computed(() => /^[A-F0-9]{20}$/i.test(form.join_code.trim()))
+const fillJoinForm = ref(false)
+const joinValues = ref<Record<string, FieldValue>>({})
+const joinForm = useQuery({
+  queryKey: ['member-join-form'],
+  queryFn: () => api.get<{ fields: JoinField[]; file_upload: FileUploadAvailability }>('/member/joinForm'),
+  enabled: computed(() => !editing.value && fillJoinForm.value && canInvite.value),
+})
+const joinFormReady = computed(() => !fillJoinForm.value || (joinForm.isSuccess.value && !joinForm.isFetching.value && !(joinForm.data.value?.fields ?? []).some(field => {
+  if (!field.is_apply_required) return false
+  const value = joinValues.value[field.field_key || String(field.id ?? '')]
+  return Array.isArray(value) ? value.length === 0 : value == null || String(value).trim() === ''
+})))
+async function uploadJoinFile(file: File) {
+  const body = new FormData()
+  body.append('file', file)
+  const result = await api.post<{ id: number }>('/member/joinUpload', body)
+  await joinForm.refetch()
+  return String(result.id)
+}
 useRouteAccess(computed(() => editing.value && detail.data.value?.capabilities && !detail.isError.value && !capabilities.value.role_read ? permissionReason('team.role.read') : ''))
 const fields = useQuery({
   queryKey: ['entity-fields', 'entity'],
@@ -138,13 +164,12 @@ function profileState() {
   return JSON.stringify(form)
 }
 const profileDirty = computed(() => Boolean(profileSnapshot.value) && profileState() !== profileSnapshot.value)
-const hasUnsavedChanges = computed(() => profileDirty.value || fieldsDirty.value || rolesDirty.value)
+const hasUnsavedChanges = computed(() => (!editing.value && Boolean(form.join_code || fillJoinForm.value || Object.keys(joinValues.value).length) && !save.isSuccess.value) || profileDirty.value || fieldsDirty.value || rolesDirty.value)
 
 watch(
   () => detail.data.value,
   (data) => {
     if (!data) return
-    form.user_id = Number(data.user_id || 0) || null
     form.nickname = String(data.nickname ?? '')
     form.avatar = String(data.avatar ?? '')
     form.description = String(data.description ?? '')
@@ -160,17 +185,22 @@ watch(
 
 const save = useMutation({
   mutationFn: () =>
-    api.post(editing.value ? '/member/edit' : '/member/add', {
-      ...(editing.value ? { member_id: id.value } : { user_id: form.user_id }),
+    api.post(editing.value ? '/member/edit' : '/member/add', editing.value ? {
+      member_id: id.value,
       nickname: form.nickname.trim(),
       avatar: form.avatar || null,
       description: form.description || null,
       intro_image: form.intro_image || null,
       intro_video: form.intro_video || null,
       introduction_markdown: form.introduction_markdown || null,
-    }),
+    } : { join_code: form.join_code.trim().toUpperCase(), ...(fillJoinForm.value ? { join_form: { values: { ...joinValues.value } } } : {}) }),
   onSuccess: async () => {
     editor.value?.clearDraft()
+    if (!editing.value) {
+      form.join_code = ''
+      fillJoinForm.value = false
+      joinValues.value = {}
+    }
     profileSnapshot.value = profileState()
     await queryClient.invalidateQueries({ queryKey: ['members'] })
     feedback.success(editing.value ? '成员资料已保存' : '成员已添加')
@@ -258,18 +288,32 @@ useUnsavedChangesGuard(hasUnsavedChanges)
 
 <template>
   <div class="member-form-view">
-    <AdminPageHeader :title="editing ? '编辑成员' : '添加成员'" :description="editing ? '维护成员资料、对象字段、角色权限（Permission）与管理状态。' : '先将已有用户加入当前团队，再维护其公开资料。'" back-to="/members" back-label="返回成员列表">
+    <AdminPageHeader :title="editing ? '编辑成员' : '添加成员'" :description="editing ? '维护成员资料、对象字段、角色权限（Permission）与管理状态。' : '填写对方的个人入队码，直接加入当前团队。'" back-to="/members" back-label="返回成员列表">
       <template #actions>
-        <div class="member-primary-actions">
+        <LsFormActions class="member-primary-actions">
           <LsButton type="button" variant="secondary" @click="router.push('/members')">取消</LsButton>
-          <LsPagePrimaryAction :icon="editing ? Save : UserPlus" :label="editing ? '保存成员' : '添加成员'" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="!canEditProfile || !form.nickname.trim() || (!editing && !form.user_id) || Boolean(uploading)" :disabled-reason="!canEditProfile ? permissionReason('team.member.update') : undefined" />
-        </div>
+          <LsPagePrimaryAction :icon="editing ? Save : UserPlus" :label="editing ? '保存成员' : '添加成员'" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="(editing ? !canEditProfile || !form.nickname.trim() : !canInvite || !validJoinCode || !joinFormReady) || Boolean(uploading)" :disabled-reason="editing ? (!canEditProfile ? permissionReason('team.member.update') : undefined) : (!canInvite ? permissionReason('team.member.invite') : undefined)" />
+        </LsFormActions>
       </template>
     </AdminPageHeader>
 
     <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
-    <form v-else id="member-profile-form" class="member-form" @submit.prevent="canEditProfile && save.mutate()">
-      <LsPanel
+    <form v-else id="member-profile-form" class="member-form" @submit.prevent="!save.isPending.value && !uploading && (editing ? canEditProfile : canInvite && validJoinCode && joinFormReady) && save.mutate()">
+      <LsPanel v-if="!editing">
+        <NFlex vertical size="large">
+        <LsField label="个人入队码" for-id="member-join-code" hint="请对方在账号的团队选择页生成入队码，30 分钟内有效，成功加入后失效。" required><LsInput id="member-join-code" v-model="form.join_code" :disabled="save.isPending.value" autocomplete="off" spellcheck="false" placeholder="粘贴对方的个人入队码" required /></LsField>
+        <LsSwitchField v-model="fillJoinForm" label="代填入职表单" description="可选。填写后随成员一并保存，无需再次审核；不代填也可直接添加成员。" :disabled="save.isPending.value || uploading" />
+        <template v-if="fillJoinForm">
+          <LsAsyncState v-if="joinForm.isPending.value" state="loading" aria-label="正在读取入职表单" />
+          <LsInlineError v-else-if="joinForm.isError.value" :message="friendlyError(joinForm.error.value)" />
+          <template v-else>
+            <LsEmptyState v-if="!joinForm.data.value?.fields.length" :source="joinForm.data.value?.fields" title="暂无可代填的入职字段" description="可以直接添加成员。需要收集资料时，请先在入职字段中配置。" />
+            <JoinApplicationFields v-else v-model="joinValues" v-model:uploading="uploading" :fields="joinForm.data.value?.fields ?? []" :upload-file="uploadJoinFile" :upload-disabled-reason="fileAvailabilityReason(joinForm.data.value?.file_upload)" :disabled="save.isPending.value" />
+          </template>
+        </template>
+        </NFlex>
+      </LsPanel>
+      <LsPanel v-else
         ><section class="member-profile-section">
           <LsSectionHeader title="成员公开资料" description="展示在当前团队中的名称、头像和介绍。"
             ><template v-if="editing" #aside
@@ -278,7 +322,6 @@ useUnsavedChangesGuard(hasUnsavedChanges)
           >
 
           <template v-if="canEditProfile">
-            <LsField v-if="!editing" label="用户 ID" for-id="member-user-id" required><NInputNumber id="member-user-id" v-model:value="form.user_id" :min="1" :precision="0" class="control" placeholder="输入 LostSky 用户 ID" /></LsField>
             <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" :draft-key="`member-profile:${editing ? id : 'new'}`" id-prefix="member-profile" name-key="nickname" name-label="团队昵称" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" :editor-ready="!editing || detail.isSuccess.value" />
           </template>
           <dl v-else class="readonly-profile">
@@ -543,13 +586,13 @@ useUnsavedChangesGuard(hasUnsavedChanges)
 }
 @media (max-width: 680px) {
   .member-form-view {
-    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    padding-bottom: calc(140px + env(safe-area-inset-bottom));
   }
   .member-primary-actions {
     position: fixed;
     z-index: 20;
     right: 0;
-    bottom: 0;
+    bottom: calc(64px + env(safe-area-inset-bottom));
     left: 0;
     display: grid;
     grid-template-columns: 1fr 1.4fr;

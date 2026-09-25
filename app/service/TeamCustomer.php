@@ -35,6 +35,7 @@ class TeamCustomer
             'customer_id' => $customerId,
             'handler_entity_id' => $data['handler_entity_id'] ?? null,
             'product_handlers' => $data['product_handlers'] ?? [],
+            'purchase_values' => array_key_exists('purchase_values', $data) ? $data['purchase_values'] : [],
             'quantity' => $data['quantity'] ?? 1,
             'memo' => $data['memo'] ?? null,
         ]);
@@ -139,6 +140,7 @@ class TeamCustomer
             'product_id' => (int) $order->product_id,
             'product_name' => (string) $order->product_name,
             'product_cover_image' => $order->product_cover_image ?: null,
+            'purchase_fields' => $order->purchase_fields ?? [],
             'quantity' => (int) $order->quantity,
             'unit_price' => (string) $order->unit_price,
             'total_price' => (string) $order->total_price,

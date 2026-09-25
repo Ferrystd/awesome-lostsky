@@ -22,6 +22,7 @@ final class ProductComposition
             if (isset($virtual[$id])) return $virtual[$id];
             $product = \app\model\TeamProduct::where('team_id', $teamId)->lock(true)->find($id);
             if (!$product) return null;
+            app(ProductVariant::class)->assertAvailable($product);
             $kind = $product->enumCase('kind');
             $result = ['id' => (int) $product->id, 'team_id' => $teamId, 'entity_id' => $product->entity_id,
                 'kind' => $kind, 'is_active' => $product->is_active, 'items' => []];
@@ -151,6 +152,7 @@ final class ProductComposition
             $kind = ProductKind::tryFrom($this->positiveInteger($kind, '商品类型不正确'));
         }
         if ($kind === null) throw new HttpException(422, '商品类型不正确');
+        if ($kind === ProductKind::MultiVariant) throw new HttpException(422, '组合必须选择具体规格，不能引用多规格主商品');
         $items = $product['items'] ?? [];
         if (!is_array($items) || !array_is_list($items)) {
             throw new HttpException(422, '商品组成必须为列表');

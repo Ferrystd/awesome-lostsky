@@ -219,7 +219,7 @@ function deleteField() {
       </LsField>
 
       <NFormItem v-if="usesJoinOptions(form.input_type)" label="选项" :validation-status="errors.options ? 'error' : undefined" :feedback="errors.options || '申请人看到显示名称，提交时保存对应的提交值。'">
-        <LsFormList v-model="form.options" :item-key="(option) => option.key" :create-item="() => ({ key: nextOptionKey(), label: '', value: '' })" item-label="选项" add-label="添加选项" empty-text="尚未添加选项" :disabled="!canWrite">
+        <LsFormList v-model="form.options" :item-key="(option) => option.key" :create-item="() => ({ key: nextOptionKey(), label: '', value: '' })" item-label="选项" add-label="添加选项" empty-text="尚未添加选项" :disabled="!canWrite" :disabled-reason="permissionReason('team.join_field.write')">
           <template #item="{ item, index }">
             <div class="option-grid">
               <label><span>显示名称</span><NInput :id="index === 0 ? 'join-field-options' : undefined" v-model:value="item.label" :disabled="!canWrite" placeholder="例如：有相关经验" :aria-label="`选项 ${index + 1} 显示名称`" /></label>

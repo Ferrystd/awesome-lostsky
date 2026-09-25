@@ -354,6 +354,9 @@ final class ServiceRedemptionField
         $check = $data + ['entity_type' => 'entity', 'source' => 'custom'];
         if ($data['name'] === '' || mb_strlen($data['name']) > 50) throw new HttpException(422, '字段名称长度需在 1-50 位之间');
         if (!$validator->scene('update')->check($check)) throw new HttpException(422, $validator->getError());
+        if (($data['value_type'] ?? '') === 'image' && ($data['input_type'] ?? '') !== 'upload') {
+            throw new HttpException(422, '图片字段必须使用图片上传控件');
+        }
         if (isset($data['fill_stage']) && !in_array($data['fill_stage'], ['customer', 'manager'], true)) throw new HttpException(422, '填写阶段无效');
         foreach (['is_customer_visible', 'is_required', 'is_active'] as $key) {
             if (isset($data[$key]) && !in_array((int) $data[$key], [0, 1], true)) throw new HttpException(422, "{$key} 格式无效");

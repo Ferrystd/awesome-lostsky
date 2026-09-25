@@ -65,6 +65,11 @@ jobs:
     - name: Verify static outputs
       shell: bash
       run: |
+        test -s docs/dev/index.md
+        test -s docs/user/index.md
+        test -s docs/user/.obsidian/app.json
+        test ! -e .obsidian
+        test ! -e docs/manual
         for domain in www account admin team chat transaction display shop; do
           test -s "www/${domain}.lostsky.work/index.html"
           test -n "$(find "www/assets.lostsky.work/build/${domain}" -type f -print -quit)"

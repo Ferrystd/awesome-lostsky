@@ -91,6 +91,7 @@ $legacyColumns = [
     'chat_participant' => ['actor_type', 'actor_id'],
     'chat_message' => ['sender_type', 'sender_id'],
     'team_join_field' => ['is_transfer_member_field', 'member_field_id'],
+    'team_entity_field' => ['is_editable'],
 ];
 
 foreach ($legacyColumns as $table => $columns) {

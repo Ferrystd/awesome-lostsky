@@ -145,6 +145,7 @@ class Customer
                 'quantity' => $request->post('quantity', 1),
                 'handler_entity_id' => $request->post('handler_entity_id', null),
                 'product_handlers' => $request->post('product_handlers', []),
+                'purchase_values' => $request->post('purchase_values', []),
                 'memo' => $request->post('memo', null),
             ]
         );

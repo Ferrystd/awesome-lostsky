@@ -344,6 +344,9 @@ class TeamSetting
         }
 
         $label = (string) ($definition['label'] ?? $key);
+        if (($definition['nullable'] ?? false) === true && ($value === null || $value === '')) {
+            return '';
+        }
         return match ($definition['type'] ?? 'string') {
             'boolean' => $this->normalizeBoolean($value, $label),
             'integer' => $this->normalizeInteger($value, $definition, $label),
@@ -447,6 +450,9 @@ class TeamSetting
             'default'     => $this->typedValue($this->normalize($appName, $key, $definition['default']), $definition),
             'value'       => $this->typedValue($value, $definition),
         ];
+        if (($definition['nullable'] ?? false) === true) {
+            $field['nullable'] = true;
+        }
 
         if ($type === 'enum') {
             $field['options'] = $this->enumOptions($definition);
@@ -474,6 +480,9 @@ class TeamSetting
 
     private function typedValue(string $value, array $definition): mixed
     {
+        if (($definition['nullable'] ?? false) === true && $value === '') {
+            return null;
+        }
         return match ($definition['type'] ?? 'string') {
             'boolean' => $value === '1',
             'integer' => (int) $value,

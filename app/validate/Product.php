@@ -21,7 +21,7 @@ class Product extends Validate
         'entity_id'   => 'integer',
         'entity_ids'  => 'require|array',
         'is_active'   => 'in:0,1',
-        'kind'        => 'in:1,2,3,4',
+        'kind'        => 'in:1,2,3,4,5',
         'benefit_package_id' => 'integer',
         'redemption_campaign_id' => 'integer',
     ];

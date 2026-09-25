@@ -35,12 +35,13 @@ class TeamOrder extends Base
         'status'      => OrderStatus::class,
         'memo'        => 'string',
         'fulfillment_snapshot' => 'array',
+        'purchase_fields' => 'array',
         'create_time' => 'integer',
         'update_time' => 'integer',
         'delete_time' => 'integer',
     ];
 
-    protected $json = ['fulfillment_snapshot'];
+    protected $json = ['fulfillment_snapshot', 'purchase_fields'];
 
     protected $hidden = ['delete_time', 'fulfillment_snapshot', 'source_claim_id', 'claim_ordinal'];
 
@@ -58,6 +59,7 @@ class TeamOrder extends Base
         'product_name',
         'product_cover_image',
         'fulfillment_snapshot',
+        'purchase_fields',
         'quantity',
         'unit_price',
         'total_price',

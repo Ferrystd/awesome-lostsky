@@ -11,6 +11,7 @@ import { resolveEntities } from '../lib/markdown'
 
 interface NoticeDetail {
   id: number
+  entity_id?: number | null
   title?: string | null
   content?: string | null
   is_pinned?: number
@@ -19,14 +20,16 @@ interface NoticeDetail {
   created_at?: number | string | null
 }
 
-type NoticeScope = 'team' | 'entity'
+type NoticeScope = 'team' | 'entity' | 'sent'
 
 const route = useRoute()
 const routeAccess = useRouteAccess()
 const client = useQueryClient()
 const noticeId = computed(() => Number(route.query.id || 0))
-const scope = computed<NoticeScope>(() => route.meta.noticeScope === 'team' ? 'team' : 'entity')
-const copy = computed(() => scope.value === 'team'
+const scope = computed<NoticeScope>(() => route.meta.noticeScope as NoticeScope)
+const copy = computed(() => scope.value === 'sent'
+  ? { title: '通知查看情况', description: '查看通知正文及收件人的已读状态。', noun: '通知', backTo: '/notices/sent', backLabel: '返回已发送通知' }
+  : scope.value === 'team'
   ? {
       title: '阅读站内通知',
       description: '查看 LostSky 发给 Team 的完整通知。',
@@ -38,7 +41,7 @@ const copy = computed(() => scope.value === 'team'
       title: '阅读通知',
       description: '查看 Team 发给当前人员的完整通知。',
       noun: '通知',
-      backTo: '/notices/entity',
+      backTo: '/personal/notices',
       backLabel: '返回通知列表',
     })
 const confirmed = new Set<string>()
@@ -58,7 +61,7 @@ const confirmNotice = useMutation({
 
 watch(() => detailQuery.data.value, (notice) => {
   const key = `${scope.value}:${notice?.id ?? 0}`
-  if (!notice || notice.is_read === 1 || confirmed.has(key)) return
+  if (scope.value === 'sent' || !notice || notice.is_read === 1 || confirmed.has(key)) return
   confirmed.add(key)
   confirmNotice.mutate({ id: notice.id, noticeScope: scope.value })
 }, { immediate: true })
@@ -85,7 +88,8 @@ function time(value: unknown) {
         <div class="notice-meta">
           <span v-if="detailQuery.data.value.is_pinned === 1" class="pinned"><Pin :size="15" />置顶消息</span>
           <time>{{ time(detailQuery.data.value.create_time ?? detailQuery.data.value.created_at) }}</time>
-          <span class="read-state"><MailOpen :size="15" />{{ detailQuery.data.value.is_read === 1 ? '已读' : '正在标记已读' }}</span>
+          <span v-if="scope === 'sent'">收件人员 #{{ detailQuery.data.value.entity_id }}</span>
+          <span class="read-state"><MailOpen :size="15" />{{ detailQuery.data.value.is_read === 1 ? '已读' : scope === 'sent' ? '未读' : '正在标记已读' }}</span>
         </div>
         <h1>{{ detailQuery.data.value.title || '无标题消息' }}</h1>
       </header>

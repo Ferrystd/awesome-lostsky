@@ -78,6 +78,16 @@ class Notice
         return $this->listing('entity_id', $entityId, $filters, $page, $limit);
     }
 
+    public function listSent(int $teamId, array $filters = [], int $page = 1, int $limit = 20): array
+    {
+        return $this->listing('sender_team_id', $teamId, $filters, $page, $limit);
+    }
+
+    public function getSent(int $teamId, int $id): array
+    {
+        return $this->notice('sender_team_id', $teamId, $id)->toArray();
+    }
+
     public function get(int $teamId, int $id): array
     {
         return $this->notice('team_id', $teamId, $id)->toArray();

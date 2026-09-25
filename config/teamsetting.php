@@ -161,12 +161,17 @@ return [
                 'type' => 'string', 'control' => 'input', 'default' => '次', 'min_length' => 1, 'max_length' => 20, 'order' => 10,
             ],
             'default_quantity_step' => [
-                'label' => '默认最小核销步长', 'description' => '新建服务默认的最小履约单位，最多四位小数；数量精度由步长自动确定。',
+                'label' => '默认最小核销单位', 'description' => '新建服务默认的最小履约单位，最多四位小数；数量精度由核销单位自动确定。',
                 'type' => 'string', 'control' => 'input', 'default' => '1', 'min_length' => 1, 'max_length' => 20, 'order' => 30,
             ],
             'default_valid_days' => [
                 'label' => '默认权益有效天数', 'description' => '新建权益项默认的有效期；0 表示永久有效。',
                 'type' => 'integer', 'control' => 'number', 'default' => 30, 'min' => 0, 'max' => 3650, 'order' => 40,
+            ],
+            'default_auto_complete_after_minutes' => [
+                'label' => '默认自动结单时长（分钟）', 'description' => '新建核销商品、规格或服务时默认填入；从开始核销起连续计时，留空则不自动结单。',
+                'type' => 'integer', 'control' => 'number', 'default' => null, 'nullable' => true,
+                'min' => 1, 'max' => 5256000, 'step' => 1, 'order' => 45,
             ],
             'allow_customer_open_dispatch' => [
                 'label' => '允许 Customer 公开召唤接单人', 'description' => '开启后，Customer 可不指定具体接单人，把已填写完整的履约任务公开给该服务接单池。',

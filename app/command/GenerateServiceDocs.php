@@ -30,6 +30,7 @@ class GenerateServiceDocs extends Command
     {
         try {
             $target = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'docs'
+                . DIRECTORY_SEPARATOR . 'dev'
                 . DIRECTORY_SEPARATOR . 'glossary'
                 . DIRECTORY_SEPARATOR . 'service.md';
             $content = $this->render();
@@ -53,7 +54,7 @@ class GenerateServiceDocs extends Command
                 throw new RuntimeException('无法写入 Service 字典');
             }
 
-            $output->writeln('<info>Service 字典已更新：docs/glossary/service.md</info>');
+            $output->writeln('<info>Service 字典已更新：docs/dev/glossary/service.md</info>');
             return 0;
         } catch (Throwable $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
@@ -70,22 +71,7 @@ class GenerateServiceDocs extends Command
         }
         sort($files, SORT_STRING);
 
-        $lines = [
-            '---',
-            'title: Service 字典',
-            'description: 由代码生成的 Service public 方法字典。',
-            'tags: [glossary]',
-            'status: 生成文档',
-            'aliases: [服务, Service]',
-            '---',
-            '',
-            '# Service 字典',
-            '',
-            '> 本页由 `php think docs:services` 生成。修改 Service 后运行该命令，使用 `--check` 可只校验是否最新。',
-            '',
-            '列出 `app/service` 中各类直接声明的 public 方法。`?类型` 表示可空，`= 值` 表示默认值；类型名称省略 `app\\` 前缀。',
-            '',
-        ];
+        $lines = [];
 
         foreach ($files as $file) {
             $shortName = pathinfo($file, PATHINFO_FILENAME);
@@ -130,7 +116,10 @@ class GenerateServiceDocs extends Command
             $lines[] = '';
         }
 
-        return implode("\n", $lines);
+        return DictionaryTemplate::render(
+            dirname(__DIR__, 2) . '/Templates/dictionaries/services.md',
+            ['services.methods' => rtrim(implode("\n", $lines))]
+        );
     }
 
     private function formatParameter(ReflectionParameter $parameter): string

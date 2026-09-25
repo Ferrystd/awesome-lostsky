@@ -96,7 +96,7 @@ const resources: Record<string, ResourceMeta> = {
 function legacyNoticeRedirect(to: RouteLocationGeneric, detail = false) {
   const scope = auth.entity()?.type === 'team' ? 'team' : 'entity'
   return {
-    path: `/notices/${scope}${detail ? '/detail' : ''}`,
+    path: `${scope === 'entity' ? '/personal/notices' : '/notices/team'}${detail ? '/detail' : ''}`,
     query: to.query,
     hash: to.hash,
   }
@@ -104,8 +104,10 @@ function legacyNoticeRedirect(to: RouteLocationGeneric, detail = false) {
 
 const routes = [
   { path: '/', component: DashboardView, meta: { title: '概览' } },
-  { path: '/notices/entity', component: NoticesView, meta: { title: '通知中心', noticeScope: 'entity' } },
-  { path: '/notices/entity/detail', component: NoticeDetailView, meta: { title: '阅读通知', noticeScope: 'entity', pageWidth: 'content' } },
+  { path: '/personal/notices', component: NoticesView, meta: { title: '收件箱', noticeScope: 'entity', workspace: 'personal' } },
+  { path: '/personal/notices/detail', component: NoticeDetailView, meta: { title: '阅读通知', noticeScope: 'entity', workspace: 'personal', pageWidth: 'content' } },
+  { path: '/notices/sent', component: NoticesView, meta: { title: '通知中心', noticeScope: 'sent', permission: 'team.notice.send', accessMode: 'list' } },
+  { path: '/notices/sent/detail', component: NoticeDetailView, meta: { title: '通知查看情况', noticeScope: 'sent', permission: 'team.notice.send', pageWidth: 'content' } },
   { path: '/notices/team', component: NoticesView, meta: { title: '通知中心', noticeScope: 'team', permission: 'team.notice.read', accessMode: 'list' } },
   { path: '/notices/team/detail', component: NoticeDetailView, meta: { title: '阅读站内通知', noticeScope: 'team', pageWidth: 'content', permission: 'team.notice.read' } },
   { path: '/notices/send', component: NoticeSendView, meta: { title: '发送通知', pageWidth: 'form', permission: 'team.notice.send' } },

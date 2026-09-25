@@ -724,7 +724,6 @@ try {
         'input_type' => 'text',
         'options' => null,
         'is_required' => 0,
-        'is_editable' => 1,
         'is_searchable' => 0,
         'manager_scope' => \app\enum\ManageScope::Team->value,
         'visibility' => \app\enum\Visibility::Team->value,
@@ -739,7 +738,6 @@ try {
         'input_type' => 'select',
         'options' => ['alpha', 'beta'],
         'is_required' => 1,
-        'is_editable' => 1,
         'is_searchable' => 0,
         'manager_scope' => \app\enum\ManageScope::Team->value,
         'visibility' => \app\enum\Visibility::Team->value,
@@ -755,7 +753,6 @@ try {
         'input_type' => 'text',
         'options' => null,
         'is_required' => 0,
-        'is_editable' => 1,
         'is_searchable' => 0,
         'manager_scope' => \app\enum\ManageScope::SubjectTeam->value,
         'visibility' => \app\enum\Visibility::SubjectTeam->value,
@@ -769,24 +766,9 @@ try {
         'input_type' => 'text',
         'options' => null,
         'is_required' => 0,
-        'is_editable' => 1,
         'is_searchable' => 0,
         'manager_scope' => \app\enum\ManageScope::Team->value,
         'visibility' => \app\enum\Visibility::Team->value,
-        'sort' => 0,
-    ]);
-    $entityFields->create((int) $team->id, [
-        'entity_type' => 'entity',
-        'field_key' => "self_readonly_{$suffix}",
-        'name' => 'Self Readonly',
-        'value_type' => 'string',
-        'input_type' => 'text',
-        'options' => null,
-        'is_required' => 0,
-        'is_editable' => 0,
-        'is_searchable' => 0,
-        'manager_scope' => \app\enum\ManageScope::SubjectTeam->value,
-        'visibility' => \app\enum\Visibility::SubjectTeam->value,
         'sort' => 0,
     ]);
     $entityFields->create((int) $team->id, [
@@ -797,7 +779,6 @@ try {
         'input_type' => 'text',
         'options' => null,
         'is_required' => 0,
-        'is_editable' => 1,
         'is_searchable' => 0,
         'manager_scope' => \app\enum\ManageScope::Team->value,
         'visibility' => \app\enum\Visibility::Team->value,
@@ -807,8 +788,6 @@ try {
         ->where('field_key', "self_note_{$suffix}")->find();
     $selfHiddenField = \app\model\TeamEntityField::where('team_id', $team->id)
         ->where('field_key', "self_hidden_{$suffix}")->find();
-    $selfReadonlyField = \app\model\TeamEntityField::where('team_id', $team->id)
-        ->where('field_key', "self_readonly_{$suffix}")->find();
     $customerOnlyField = \app\model\TeamEntityField::where('team_id', $team->id)
         ->where('field_key', "self_customer_{$suffix}")->find();
     $entityFields->create((int) $team->id, [
@@ -817,7 +796,6 @@ try {
         'name' => 'Team Visible',
         'manager_scope' => \app\enum\ManageScope::Team->value,
         'visibility' => \app\enum\Visibility::Entity->value,
-        'is_editable' => 1,
     ]);
     $entityFields->create((int) $team->id, [
         'entity_type' => 'entity',
@@ -825,7 +803,6 @@ try {
         'name' => 'Public Visible',
         'manager_scope' => \app\enum\ManageScope::Team->value,
         'visibility' => \app\enum\Visibility::Public->value,
-        'is_editable' => 1,
     ]);
     $customFieldKey = "custom_visible_{$suffix}";
     $assertThrows(
@@ -846,7 +823,6 @@ try {
         'manager_scope' => \app\enum\ManageScope::Team->value,
         'visibility' => \app\enum\Visibility::Custom->value,
         'visibility_targets' => [['entity_id' => (int) $customerEntity->id]],
-        'is_editable' => 1,
     ]);
     $customField = \app\model\TeamEntityField::where('team_id', $team->id)
         ->where('field_key', $customFieldKey)->find();
@@ -870,7 +846,6 @@ try {
     $selfVisibleKeys = $fieldKeys($selfVisibleFields);
     $assert(
         in_array("self_note_{$suffix}", $selfVisibleKeys, true)
-            && in_array("self_readonly_{$suffix}", $selfVisibleKeys, true)
             && in_array("team_visible_{$suffix}", $selfVisibleKeys, true)
             && in_array("public_visible_{$suffix}", $selfVisibleKeys, true)
             && !in_array("self_hidden_{$suffix}", $selfVisibleKeys, true)
@@ -882,9 +857,8 @@ try {
         $selfFieldMap[$field['field_key']] = $field;
     }
     $assert(
-        ($selfFieldMap["self_note_{$suffix}"]['can_edit'] ?? false) === true
-            && ($selfFieldMap["self_readonly_{$suffix}"]['can_edit'] ?? true) === false,
-        'self edit capability combines management scope and editable state'
+        ($selfFieldMap["self_note_{$suffix}"]['can_edit'] ?? false) === true,
+        'self edit capability follows the subject-team management scope'
     );
     $targetVisibleKeys = $fieldKeys($entityFields->visibleFields(
         (int) $team->id,
@@ -963,11 +937,6 @@ try {
         'rejected self field batch does not partially update stored values'
     );
     $assertThrows(
-        fn () => $entityFields->saveOwnValues((int) $team->id, $memberSlug, [(int) $selfReadonlyField->id => 'readonly value']),
-        403,
-        'member cannot write a visible readonly entity field'
-    );
-    $assertThrows(
         fn () => $entityFields->saveOwnValues((int) $team->id, $memberSlug, [(int) $customerOnlyField->id => 'wrong type']),
         422,
         'member cannot write a different entity type field'
@@ -988,6 +957,17 @@ try {
             ->where('entity_id', $memberEntity->id)
             ->count(),
         'unified entity field stores member value'
+    );
+    $entityFields->saveValues(
+        (int) $team->id,
+        $memberSlug,
+        [(int) $selfNoteField->id => 'manager override']
+    );
+    $assertSame(
+        'manager override',
+        \app\model\TeamEntityFieldValue::where('field_id', $selfNoteField->id)
+            ->where('entity_id', $memberEntity->id)->value('value_string'),
+        'field managers can update subject-managed field values'
     );
     $assertThrows(
         fn () => $entityFields->saveValues(

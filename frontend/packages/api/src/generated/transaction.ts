@@ -1564,8 +1564,6 @@ export interface components {
             /** @enum {integer} */
             is_required?: 0 | 1;
             /** @enum {integer} */
-            is_editable?: 0 | 1;
-            /** @enum {integer} */
             is_searchable?: 0 | 1;
             sort?: number;
             /** @enum {string} */

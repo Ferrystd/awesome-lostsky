@@ -29,6 +29,7 @@ const nav = computed(
   () =>
     [
       [base.value || "/overview", "概览", House],
+      ...(personal.value ? [["/personal/feed", "点单信息流", Radio] as const] : []),
       [`${base.value}/accounts`, "账号", Users],
       [`${base.value}/compose`, "发帖", Send],
       [`${base.value}/interactions`, "互动", MessageCircleMore],
@@ -40,7 +41,7 @@ const mobileNav = computed(() =>
   nav.value.filter((item) =>
     [
       base.value || "/overview",
-      `${base.value}/accounts`,
+      personal.value ? "/personal/feed" : "/accounts",
       `${base.value}/tasks`,
     ].includes(item[0]),
   ),
@@ -85,7 +86,7 @@ function switchApp(key: string) {
       <nav>
         <p>工作空间</p>
         <template v-for="item in nav" :key="item[0]">
-          <RouterLink :to="item[0]" @click="drawer = false">
+          <RouterLink :to="item[0]" :class="{ 'router-link-active': (item[0] !== (base || '/overview') && route.path.startsWith(`${item[0]}/`)) }" :aria-current="(item[0] !== (base || '/overview') && route.path.startsWith(`${item[0]}/`)) ? 'page' : undefined" @click="drawer = false">
             <component :is="item[2]" :size="19" />
             <span>{{ item[1] }}</span>
             <ChevronRight :size="15" />

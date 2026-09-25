@@ -49,16 +49,16 @@ const pages = computed(() =>
   Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / filters.limit)),
 );
 const kind = (value: unknown) =>
-  ({ 1: "普通商品", 2: "套餐", 3: "卡密", 4: "核销商品" })[Number(value)] ??
+  ({ 1: "普通商品", 2: "套餐", 3: "卡密", 4: "核销商品", 5: "多规格商品" })[Number(value)] ??
   String(value);
 const columns: DataTableColumns<Row> = [
   { title: "商品", key: "name", render: (r) => h("strong", r.name) },
   { title: "类型", key: "kind", render: (r) => kind(r.kind) },
-  { title: "售价", key: "price", render: (r) => formatMoney(r.price) },
+  { title: "售价", key: "price", render: (r) => kind(r.kind) === "多规格商品" ? "按规格定价" : formatMoney(r.price) },
   {
     title: "接单人",
     key: "handlers",
-    render: (r) => `${r.handlers?.length ?? 0} 位`,
+    render: (r) => kind(r.kind) === "多规格商品" ? "按规格配置" : `${r.handlers?.length ?? 0} 位`,
   },
   {
     title: "状态",

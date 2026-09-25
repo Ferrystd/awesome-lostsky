@@ -12,7 +12,7 @@ $classification = [
         'audit' => [
             'personal/profile', 'personal/slug', 'personal/fields', 'personal/upload',
             'ability/card/redeem', 'me/edit', 'me/slug', 'me/fields', 'member/add',
-            'member/edit', 'member/block', 'member/unblock', 'member/slug',
+            'member/edit', 'member/block', 'member/unblock', 'member/slug', 'member/joinUpload',
             'memberDeparture/apply', 'memberDeparture/depart', 'memberDeparture/cancel',
             'memberDeparture/approve', 'memberDeparture/reject', 'entity/profile',
             'entity/display', 'entity/visibility', 'entity/presentation', 'customer/<id>', 'role/add', 'role/edit',
@@ -99,9 +99,10 @@ $classification = [
     ],
     'weibo' => [
         'audit' => [
-            'accounts/login/confirm', 'bindings/<id>/remove', 'posts', 'likes', 'comments',
+            'accounts/login/confirm', 'bindings/<id>/remove', 'posts', 'likes', 'comments', 'comment-presets',
             'tasks', 'tasks/<id>', 'tasks/<id>/pause', 'tasks/<id>/start', 'tasks/<id>/resume', 'tasks/<id>/cancel',
             'personal/accounts/login/confirm', 'personal/bindings/<id>/remove', 'personal/posts', 'personal/likes', 'personal/comments',
+            'personal/comment-presets', 'personal/feed/<id>/comments',
             'personal/tasks', 'personal/tasks/<id>', 'personal/tasks/<id>/pause', 'personal/tasks/<id>/start', 'personal/tasks/<id>/resume', 'personal/tasks/<id>/cancel',
         ],
         'exclude' => [

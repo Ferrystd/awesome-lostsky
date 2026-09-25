@@ -285,7 +285,7 @@ function stop() {
 
       <LsFormSection title="服务权益" description="为每项服务设置授予额度；额度可按服务定义的最小步长分多次履约。">
         <p v-if="pricingLocked" class="form-intro" role="note">该权益包已被商品或兑换活动引用，服务项目和计价已冻结。请复制为新权益包后调整。</p>
-        <LsFormList v-model="form.services" :item-key="item => item.key" :create-item="makeItem" item-label="服务" add-label="添加服务" :disabled="pricingLocked">
+        <LsFormList v-model="form.services" :item-key="item => item.key" :create-item="makeItem" item-label="服务" add-label="添加服务" :disabled="pricingLocked" disabled-reason="该权益包已被引用，服务项目已冻结；请复制为新权益包后调整。">
           <template #item="{ item }">
             <div class="package-item-fields">
               <button

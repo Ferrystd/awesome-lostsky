@@ -33,10 +33,10 @@ description: >
 开始实现前，从仓库根目录读取：
 
 1. `AGENTS.md` 及其直接引用的相关文档；
-2. `docs/development/development.md`；
-3. `docs/development/backend.md`；
-4. `docs/development/checklist.md`；
-5. `docs/development/testing.md`；
+2. `docs/dev/development/development.md`；
+3. `docs/dev/development/backend.md`；
+4. `docs/dev/development/checklist.md`；
+5. `docs/dev/development/testing.md`；
 6. 与本次能力有关的架构、应用和 OpenAPI 文档；
 7. 当前代码中最接近的应用、模型、服务、控制器和测试。
 
@@ -103,10 +103,10 @@ description: >
 - 新增权限时以 `app/service/PermissionDictionary.php` 为代码事实源，不创建空权限；
 - 数据结构变化同时维护 `sql/schema.sql` 和日期补丁；
 - 路由、请求或响应变化同步 OpenAPI、调用方和相关测试；
-- 每次应用实现都更新 `docs/changelog.md` 的当前版本，只记录实际完成的用户可见变化；
+- 每次应用实现都更新 `docs/dev/changelog.md` 的当前版本，只记录实际完成的用户可见变化；
 - 不手工修改生成的 API 类型、Service 字典或 `www/` 构建产物，应运行项目生成命令。只要本任务改变了对应源文件或构建配置，就必须重新生成并验证产物；API 类型与 Service 字典保留生成差异，`www/` 可再生产物不纳入 Git。
 
-只在用户要求或完整闭环确实需要时实现前端。前端实现遵循 `docs/development/frontend.md` 和项目设计系统。
+只在用户要求或完整闭环确实需要时实现前端。前端实现遵循 `docs/dev/development/frontend.md` 和项目设计系统。
 
 ### 4. 自审
 
@@ -122,7 +122,7 @@ description: >
 
 ### 5. 验证
 
-按照 `docs/development/checklist.md` 和 `docs/development/testing.md`，从最小相关范围开始：
+按照 `docs/dev/development/checklist.md` 和 `docs/dev/development/testing.md`，从最小相关范围开始：
 
 - 对所有新增或修改的 PHP 文件运行 `php -l`；
 - 运行直接相关的 PHP 测试；

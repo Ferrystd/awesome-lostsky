@@ -158,7 +158,17 @@ try {
     if ((int) $service->get((int) $team->id, (int) $teamNotice['id'])['is_read'] !== 1) {
         throw new RuntimeException('Team must retain its original notice confirmation behavior');
     }
+    $sent = $service->listSent((int) $team->id);
+    if ($sent['total'] !== 2 || $service->listSent((int) $otherTeam->id)['total'] !== 0
+        || (int) $service->getSent((int) $team->id, (int) $entityNotice['id'])['is_read'] !== 0) {
+        throw new RuntimeException('Sent notices must be team scoped and querying must not mark recipients read');
+    }
+    $assertHttpStatus(fn () => $service->getSent((int) $otherTeam->id, (int) $entityNotice['id']), 404, 'Other team cannot inspect sent notices');
     $service->confirmForEntity((int) $customerEntity->id, (int) $entityNotice['id']);
+    if ((int) $service->getSent((int) $team->id, (int) $entityNotice['id'])['is_read'] !== 1
+        || $service->listSent((int) $team->id, ['is_read' => 0])['total'] !== 1) {
+        throw new RuntimeException('Sender must see the real recipient read state');
+    }
     if ((int) $service->getForEntity((int) $customerEntity->id, (int) $entityNotice['id'])['is_read'] !== 1) {
         throw new RuntimeException('Recipient must be able to mark its notice read');
     }
@@ -223,6 +233,14 @@ try {
         'invalid notice scope is rejected'
     );
 
+    $assertHttpStatus(fn () => $controller->index($request(
+        ['type' => 'teamCustomer', 'id' => (int) $customer->id],
+        (int) $customerEntity->id, (int) $team->id, ['scope' => 'sent']
+    )), 403, 'Sent notices require send permission');
+    $assertHttpStatus(fn () => $controller->confirm($request(
+        ['type' => 'team', 'id' => (int) $team->id],
+        (int) $teamEntity->id, (int) $team->id, ['scope' => 'sent', 'id' => $entityNotice['id']]
+    )), 422, 'Sent scope cannot mutate recipient state');
     $noticeRole = new TeamRole;
     $noticeRole->save([
         'team_id' => (int) $team->id,
@@ -263,6 +281,11 @@ try {
     if ($teamScope['total'] !== 1 || (int) $teamScope['list'][0]['id'] !== (int) $teamNotice['id']) {
         throw new RuntimeException('Permissioned Entity must be able to read the Team shared inbox explicitly');
     }
+    $sentScope = $responseData($controller->index($request(
+        ['type' => 'teamCustomer', 'id' => (int) $customer->id],
+        (int) $customerEntity->id, (int) $team->id, ['scope' => 'sent']
+    )));
+    if ($sentScope['total'] !== 2) throw new RuntimeException('Permissioned sender sees sent notices');
     $teamActorCapabilities = $responseData($controller->capabilities($request(
         ['type' => 'team', 'id' => (int) $team->id],
         (int) $teamEntity->id,

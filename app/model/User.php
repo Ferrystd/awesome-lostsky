@@ -22,12 +22,13 @@ class User extends Base
         'password' => 'string',
         'username' => 'string',
         'is_banned' => 'integer',
+        'member_join_code_expires_at' => 'integer',
     ];
 
     protected $json = [];
 
     /** 密码永不出现在输出中 */
-    protected $hidden = ['password', 'delete_time'];
+    protected $hidden = ['password', 'delete_time', 'member_join_code_hash', 'member_join_code_expires_at'];
 
     public function profile()
     {

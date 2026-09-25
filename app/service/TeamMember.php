@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\enum\TeamMemberStatus;
-use app\model\TeamEntityProfile;
 use app\model\TeamMemberTenure;
 use app\validate\Member as MemberValidator;
 use think\exception\HttpException;
@@ -180,27 +179,10 @@ class TeamMember
                 'user_id' => $userId,
                 'status' => TeamMemberStatus::Active,
             ]);
-            $entity = app(\app\service\Entity::class)->claimMember(
+            app(\app\service\Entity::class)->claimMember(
                 $teamId,
                 (int) $member->id,
                 "member-{$member->id}"
-            );
-
-            $profile = new TeamEntityProfile;
-            $profile->save(array_merge([
-                'entity_id' => $entity->id,
-                'name' => '',
-                'avatar' => '',
-                'description' => null,
-                'intro_image' => null,
-                'intro_video' => null,
-                'introduction_markdown' => null,
-            ]));
-
-            app(\app\service\Markdown::class)->sync(
-                $profile,
-                'introduction_markdown',
-                $profile->introduction_markdown
             );
 
             $tenure = new TeamMemberTenure;

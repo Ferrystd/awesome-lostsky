@@ -110,7 +110,6 @@ try {
         'input_type' => 'text',
         'manager_scope' => ManageScope::SubjectTeam->value,
         'visibility' => Visibility::SubjectTeam->value,
-        'is_editable' => 1,
         'is_required' => 0,
     ]);
     $field = \app\model\TeamEntityField::where('team_id', $team->id)
@@ -130,7 +129,6 @@ try {
         'input_type' => 'text',
         'manager_scope' => ManageScope::SubjectTeam->value,
         'visibility' => Visibility::SubjectTeam->value,
-        'is_editable' => 1,
         'is_required' => 0,
     ]);
     $teamField = \app\model\TeamEntityField::where('team_id', $team->id)

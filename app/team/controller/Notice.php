@@ -20,24 +20,18 @@ class Notice
     public function index(Request $request)
     {
         $service = app(NoticeService::class);
-        $scope = $this->scope($request);
+        $scope = $this->scope($request, true);
         $filters = [
             'is_read' => $request->get('is_read', ''),
             'keyword' => $request->get('keyword', ''),
         ];
-        $result = $scope === 'team'
-            ? $service->list(
-                $request->team_id,
-                $filters,
-                $request->get('page/d', 1),
-                $request->get('limit/d', 20)
-            )
-            : $service->listForEntity(
-                $request->entity_id,
-                $filters,
-                $request->get('page/d', 1),
-                $request->get('limit/d', 20)
-            );
+        $method = match ($scope) { 'team' => 'list', 'sent' => 'listSent', default => 'listForEntity' };
+        $result = $service->$method(
+            $scope === 'entity' ? $request->entity_id : $request->team_id,
+            $filters,
+            $request->get('page/d', 1),
+            $request->get('limit/d', 20)
+        );
         $result['can_send'] = app(PermissionGate::class)->allows(
             $request->team_id,
             $request->acting_entity,
@@ -50,9 +44,12 @@ class Notice
     public function get(Request $request)
     {
         $service = app(NoticeService::class);
-        $result = $this->scope($request) === 'team'
-            ? $service->get($request->team_id, $request->get('id/d', 0))
-            : $service->getForEntity($request->entity_id, $request->get('id/d', 0));
+        $scope = $this->scope($request, true);
+        $method = match ($scope) { 'team' => 'get', 'sent' => 'getSent', default => 'getForEntity' };
+        $result = $service->$method(
+            $scope === 'entity' ? $request->entity_id : $request->team_id,
+            $request->get('id/d', 0)
+        );
 
         return success($result);
     }
@@ -156,7 +153,7 @@ class Notice
         return ($request->acting_entity['type'] ?? '') === 'team';
     }
 
-    private function scope(Request $request): string
+    private function scope(Request $request, bool $allowSent = false): string
     {
         $scope = trim((string) (
             $request->isGet()
@@ -166,14 +163,22 @@ class Notice
         if ($scope === '') {
             $scope = $this->isTeam($request) ? 'team' : 'entity';
         }
-        if (!in_array($scope, ['team', 'entity'], true)) {
-            throw new HttpException(422, '通知收件箱 scope 必须为 team 或 entity');
+        if (!in_array($scope, $allowSent ? ['team', 'entity', 'sent'] : ['team', 'entity'], true)) {
+            throw new HttpException(422, '通知 scope 不支持此操作');
         }
         if ($scope === 'team') {
             app(PermissionGate::class)->assert(
                 $request->team_id,
                 $request->acting_entity,
                 [Permissions::TEAM_NOTICE_READ]
+            );
+        }
+
+        if ($scope === 'sent') {
+            app(PermissionGate::class)->assert(
+                $request->team_id,
+                $request->acting_entity,
+                [Permissions::TEAM_NOTICE_SEND]
             );
         }
 

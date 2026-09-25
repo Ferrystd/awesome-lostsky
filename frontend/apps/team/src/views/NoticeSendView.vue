@@ -119,7 +119,7 @@ function submit() {
     <AdminPageHeader
       title="发送通知"
       description="由有权限（Permission）的当前人员代表 Team，向同 Team 的一位人员发送单向通知。"
-      back-to="/notices/entity"
+      back-to="/notices/sent"
       back-label="返回通知"
     />
 
@@ -178,7 +178,7 @@ function submit() {
       <LsInlineError v-if="send.isError.value && !routeAccess.restricted.value" :message="`发送失败：${friendlyError(send.error.value)}。请检查收件对象和内容后重试。`" />
 
       <div class="actions">
-        <RouterLink class="cancel" to="/notices/entity">取消</RouterLink>
+        <RouterLink class="cancel" to="/notices/sent">取消</RouterLink>
         <LsButton
           type="submit"
           size="lg"

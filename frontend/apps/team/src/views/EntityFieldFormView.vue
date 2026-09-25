@@ -25,7 +25,6 @@ interface EntityField {
   visibility: number
   visibility_targets?: Array<{ entity_id: number }>
   is_required: number
-  is_editable: number
   is_searchable: number
   sort: number
 }
@@ -46,7 +45,6 @@ const form = reactive({
   visibility: 1,
   visibility_target_ids: [] as number[],
   is_required: false,
-  is_editable: true,
   sort: 0,
 })
 interface EntityOption {
@@ -88,7 +86,6 @@ watch(() => detail.data.value, value => {
   form.visibility = enumOptionValue(value.visibility, visibilityOptions, 1)
   form.visibility_target_ids = (value.visibility_targets ?? []).map(target => Number(target.entity_id))
   form.is_required = Boolean(value.is_required)
-  form.is_editable = Boolean(value.is_editable)
   form.sort = value.sort
 }, { immediate: true })
 const payload = () => ({
@@ -104,7 +101,6 @@ const payload = () => ({
     ? form.visibility_target_ids.map(entity_id => ({ entity_id }))
     : [],
   is_required: form.is_required ? 1 : 0,
-  is_editable: form.is_editable ? 1 : 0,
   sort: form.sort,
 })
 const save = useMutation({
@@ -121,8 +117,16 @@ const remove = useMutation({
   onSuccess: () => router.replace('/fields'),
 })
 const typeOptions = [{ label: '人员', value: 'entity' }, { label: '顾客', value: 'customer' }, { label: '虚拟人员', value: 'virtual' }]
-const valueOptions = ['string','text','int','decimal','bool','date','datetime','select','multi_select','json'].map(value => ({ label: value, value }))
-const inputOptions = ['text','textarea','radio','checkbox','select','date','datetime'].map(value => ({ label: value, value }))
+const valueOptions = [
+  ['string', '短文本'], ['text', '长文本'], ['int', '整数'], ['decimal', '小数'],
+  ['bool', '布尔值'], ['date', '日期'], ['datetime', '日期时间'], ['select', '单选值'],
+  ['multi_select', '多选值'], ['json', 'JSON'],
+].map(([value, label]) => ({ value, label }))
+const inputOptions = [
+  ['text', '单行输入'], ['textarea', '多行输入'], ['radio', '单选按钮'],
+  ['checkbox', '复选项'], ['select', '下拉选择'], ['date', '日期选择'],
+  ['datetime', '日期时间选择'],
+].map(([value, label]) => ({ value, label }))
 function deleteField() {
   if (routeAccess.restricted.value) return
   if (confirm('删除字段会同步删除全部对象的对应字段值，确认继续？')) remove.mutate()
@@ -161,7 +165,6 @@ function submit() {
             <small>所选对象可在其原本有权打开的所有对象资料中查看该字段。</small>
           </label>
           <p v-if="form.visibility === 5" class="policy-note">公开字段只有在所属人员有效且已开启公开主页展示时，才会向未登录访客显示。</p>
-          <LsSwitchField v-model="form.is_editable" label="允许修改字段值" description="关闭后，字段管理员和对象本人都只能查看，不能手动修改。" />
         </section>
         <LsSwitchField v-model="form.is_required" label="必填" description="在允许编辑该字段的资料保存时校验不能为空。" />
         <label>排序<NInputNumber v-model:value="form.sort" :precision="0" /></label>

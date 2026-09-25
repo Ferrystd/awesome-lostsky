@@ -1,10 +1,10 @@
 [project]
-site_name = "LostSky 文档"
+site_name = "LostSky 开发文档"
 site_url = "https://docs.lostsky.work"
 site_description = "LostSky 的公开术语、架构与开发文档。"
 site_author = "LostSky"
 copyright = "Copyright &copy; 2026 LostSky"
-docs_dir = "docs"
+docs_dir = "docs/dev"
 site_dir = "www/docs.lostsky.work"
 nav = [
   {"首页" = "index.md"},
@@ -27,23 +27,6 @@ nav = [
     "updates.md",
     "changelog.md"
   ]},
-  {"使用手册" = [
-    "manual/index.md",
-    "manual/concepts.md",
-    "manual/abilities.md",
-    "manual/access-and-abilities.md",
-    "manual/permissions.md",
-    "manual/troubleshooting.md",
-    "manual/account-and-identity.md",
-    "manual/team-workspace.md",
-    "manual/chat.md",
-    "manual/transactions.md",
-    "manual/weibo.md",
-    "manual/public-pages-and-shop.md",
-    "manual/service-redemption.md",
-    "manual/service-business-solutions.md",
-    "manual/platform-admin.md"
-  ]},
   {"术语" = [
     "glossary/index.md",
     "glossary/registry.md",
@@ -65,7 +48,6 @@ nav = [
     ]},
     {"系统与通信" = [
       "glossary/service.md",
-      "manual/glossary/notice.md",
       "glossary/team-domain.md"
     ]}
   ]},
@@ -82,6 +64,7 @@ nav = [
   ]},
   {"架构" = [
     "architecture/routing.md",
+    "architecture/frontend-navigation.md",
     "architecture/entity-authorization.md",
     "architecture/permissions.md",
     "architecture/cors.md"
@@ -91,6 +74,8 @@ nav = [
     "development/development.md",
     "development/checklist.md",
     "development/backend.md",
+    "development/webhooks.md",
+    "development/webhook-quickstart.md",
     "development/external-write-operations.md",
     "development/frontend.md",
     "development/component-previews.md",
@@ -107,8 +92,7 @@ nav = [
   {"API" = ["openapi/README.md"]},
   {"计划" = [
     "TODO.md",
-    "plans/markdown-ai.md",
-    "plans/trade.md"
+    "plans/markdown-ai.md"
   ]}
 ]
 

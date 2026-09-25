@@ -2,6 +2,8 @@
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsEntityTag from '@lostsky/ui/components/LsEntityTag.vue'
+import type { EntityType } from '@lostsky/ui/entity'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
@@ -14,6 +16,7 @@ import { File, Trash2, Upload } from '@lucide/vue'
 import { NPagination } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { fileSourceLabel } from '../lib/fileSource'
 import { fileUploadReason, hasPermission, permissionReason, useTeamAccess, type FileUploadAvailability } from '../lib/teamAccess'
 
 const client = useQueryClient()
@@ -22,6 +25,9 @@ const routeAccess = useRouteAccess()
 const page = ref(1)
 const keyword = ref('')
 const uploading = ref(false)
+type FileRecord = Record<string, unknown> & {
+  subject?: { name?: string; slug?: string; avatar?: string; entityable_type: EntityType } | null
+}
 const uploadError = ref('')
 const usage = useQuery({
   queryKey: ['file-usage'],
@@ -38,7 +44,7 @@ const query = useQuery({
     }),
   enabled: computed(() => !routeAccess.restricted.value),
 })
-const files = computed<Record<string, unknown>[]>(() => (Array.isArray(query.data.value?.list) ? (query.data.value.list as Record<string, unknown>[]) : []))
+const files = computed<FileRecord[]>(() => (Array.isArray(query.data.value?.list) ? (query.data.value.list as FileRecord[]) : []))
 const total = computed(() => Number(query.data.value?.total ?? files.value.length))
 const pages = computed(() => Math.max(1, Math.ceil(total.value / 18)))
 const uploadReason = computed(() => {
@@ -93,6 +99,13 @@ function size(value: unknown) {
   return `${(bytes / 1048576).toFixed(1)} MB`
 }
 
+function uploadTime(value: unknown) {
+  const seconds = Number(value)
+  const date = new Date(seconds * 1000)
+  if (!Number.isFinite(seconds) || seconds <= 0 || Number.isNaN(date.getTime())) return '未记录'
+  return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+}
+
 function removeFile(id: number) {
   if (!deleteReason.value && window.confirm('确认删除此文件？')) remove.mutate(id)
 }
@@ -140,9 +153,19 @@ function runFileAction(key: string, item: Record<string, unknown>) {
       <TransitionGroup v-else key="list" name="ls-list" tag="div" class="file-list">
         <article v-for="item in files" :key="String(item.id)">
           <div class="file-icon"><File /></div>
-          <div>
+          <div class="file-content">
             <strong>{{ item.name || item.original_name || '未命名文件' }}</strong>
-            <small>{{ item.mime_type || item.ext || '未知格式' }} · {{ size(item.size) }}</small>
+            <small>{{ fileSourceLabel(item.source) }} · {{ item.mime_type || item.ext || '未知格式' }} · {{ size(item.size) }}</small>
+            <dl class="file-metadata">
+              <div>
+                <dt>来源人员</dt>
+                <dd>
+                  <LsEntityTag v-if="item.subject" :type="item.subject.entityable_type || 'unknown'" :name="item.subject.name || '未命名人员'" :slug="item.subject.slug" />
+                  <span v-else>{{ item.entity_id ? `人员 #${item.entity_id}（资料不可用）` : '未记录' }}</span>
+                </dd>
+              </div>
+              <div><dt>上传时间</dt><dd>{{ uploadTime(item.create_time) }}</dd></div>
+            </dl>
           </div>
           <LsResponsiveActions :actions="fileActions(item)" :primary-key="item.url ? 'open' : ''" @select="runFileAction($event, item)" />
         </article>
@@ -226,17 +249,28 @@ header h2 {
   background: var(--cloud);
   border-radius: 8px;
 }
-.file-list strong,
-.file-list small {
+.file-content > strong,
+.file-content > small {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.file-list small {
+.file-content > small {
   margin-top: 0.2rem;
   color: var(--muted-ink);
   font-size: 0.75rem;
+}
+.file-content { min-width: 0; }
+.file-metadata { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 1.25rem; margin: 0.4rem 0 0; }
+.file-metadata > div { display: flex; align-items: center; gap: 0.4rem; min-width: 0; max-width: 100%; }
+.file-metadata > div:first-child { max-width: min(15rem, 100%); }
+.file-metadata dt { flex-shrink: 0; color: var(--muted-ink); font-size: 0.75rem; }
+.file-metadata dd { min-width: 0; margin: 0; color: var(--muted-ink); font-size: 0.75rem; overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+  .file-list article { grid-template-columns: 44px minmax(0, 1fr); }
+  .file-list article > :last-child { grid-column: 2; justify-self: end; }
+  .file-metadata { align-items: flex-start; }
 }
 footer {
   display: flex;

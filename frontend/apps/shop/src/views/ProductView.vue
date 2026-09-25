@@ -2,7 +2,8 @@
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { ArrowLeft, ArrowRight } from '@lucide/vue'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { NSelect } from 'naive-ui'
 import { friendlyError } from '@lostsky/api/client'
 import { RouterLink, useRoute } from 'vue-router'
 import { formatMoney, shopApi } from '../lib'
@@ -10,6 +11,12 @@ import { formatMoney, shopApi } from '../lib'
 const route = useRoute()
 const id = computed(() => Number(route.params.id))
 const product = useQuery({ queryKey: computed(() => ['shop-product', id.value]), queryFn: () => shopApi.product(id.value) })
+const variantId = ref<number | null>(null)
+const variants = computed(() => product.data.value?.variants ?? [])
+watch(variants, rows => { if (!rows.some(row => row.id === variantId.value)) variantId.value = rows.length === 1 ? rows[0].id : null }, { immediate: true })
+const selected = computed(() => product.data.value?.kind === 5 ? variants.value.find(row => row.id === variantId.value) : product.data.value)
+const displayed = computed(() => selected.value ?? product.data.value)
+const checkoutTarget = computed(() => ({ path: `/product/${id.value}/checkout`, query: variantId.value ? { variant: String(variantId.value) } : {} }))
 </script>
 
 <template>
@@ -19,18 +26,18 @@ const product = useQuery({ queryKey: computed(() => ['shop-product', id.value]),
     <RouterLink class="back-link" to="/"><ArrowLeft :size="18" aria-hidden="true" />返回陈列</RouterLink>
     <div class="product-hero">
       <div class="detail-media">
-        <img v-if="product.data.value.cover_image" :src="product.data.value.cover_image" :alt="product.data.value.name">
+        <img v-if="displayed?.cover_image" :src="displayed?.cover_image" :alt="product.data.value.name">
         <span v-else class="type-cover"><small>LOSTSKY SELECT</small><strong>{{ product.data.value.name.slice(0, 1) }}</strong></span>
       </div>
-      <div class="detail-copy"><p class="eyebrow">商品 / {{ product.data.value.id }}</p><h1 tabindex="-1">{{ product.data.value.name }}</h1><p>{{ product.data.value.description }}</p><strong class="detail-price">{{ formatMoney(product.data.value.price) }}</strong><RouterLink class="primary-link" :to="`/product/${id}/checkout`">确认购买 <ArrowRight :size="18" aria-hidden="true" /></RouterLink><small>使用商家预存余额支付</small></div>
+      <div class="detail-copy"><p class="eyebrow">商品 / {{ product.data.value.id }}</p><h1 tabindex="-1">{{ product.data.value.name }}</h1><p>{{ product.data.value.description }}</p><label v-if="product.data.value.kind === 5">规格<NSelect v-model:value="variantId" :options="variants.map(row => ({ label: row.name, value: row.id }))" placeholder="请选择规格" /></label><p v-if="selected && product.data.value.kind === 5">{{ selected.description }}</p><strong class="detail-price">{{ formatMoney(displayed?.price ?? 0) }}<small v-if="product.data.value.kind === 5 && !selected"> 起</small></strong><RouterLink class="primary-link" :to="checkoutTarget">确认购买 <ArrowRight :size="18" aria-hidden="true" /></RouterLink><small>使用商家预存余额支付</small></div>
     </div>
-    <section v-if="product.data.value.inclusions?.length" class="product-inclusions" aria-labelledby="product-inclusions-title">
+    <section v-if="displayed?.inclusions?.length" class="product-inclusions" aria-labelledby="product-inclusions-title">
       <div>
         <h2 id="product-inclusions-title">{{ product.data.value.kind === 3 ? '兑换内容' : '商品内容' }}</h2>
         <p>普通商品无需核销；核销商品发放可用额度；卡密需另行兑换，不会自动连续兑换。</p>
       </div>
       <div class="inclusion-list">
-        <article v-for="(item, index) in product.data.value.inclusions" :key="index" class="inclusion-item">
+        <article v-for="(item, index) in displayed?.inclusions" :key="index" class="inclusion-item">
           <span>{{ String(index + 1).padStart(2, '0') }}</span>
           <div>
             <h3>{{ item.name }}</h3>
@@ -44,6 +51,7 @@ const product = useQuery({ queryKey: computed(() => ['shop-product', id.value]),
         </article>
       </div>
     </section>
+    <section v-if="selected?.introduction_markdown && product.data.value.kind === 5" class="product-story"><h2>规格说明</h2><LsMarkdownRenderer class="shop-markdown" :content="selected.introduction_markdown" :chat-enabled="false" /></section>
     <section v-if="product.data.value.introduction_markdown" class="product-story"><p class="section-index">商品详情</p><LsMarkdownRenderer class="shop-markdown" :content="product.data.value.introduction_markdown" :chat-enabled="false" /></section>
   </article>
 </template>

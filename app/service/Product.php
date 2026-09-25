@@ -15,7 +15,7 @@ class Product
     public function list(int $teamId, array $filters, int $page = 1, int $limit = 20): array
     {
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
-        $query = TeamProduct::where('team_id', $teamId);
+        $query = TeamProduct::where('team_id', $teamId)->whereNull('parent_product_id');
 
         if (isset($filters['entity_id'])) {
             $query->where('entity_id', (int) $filters['entity_id']);
@@ -49,6 +49,12 @@ class Product
         $result = $product->toArray();
         $rows = [&$result];
         $this->attachRelations($rows, true);
+        if ($product->enumCase('kind') === ProductKind::MultiVariant) {
+            $result['variants'] = [];
+            foreach ($product->variants as $variant) {
+                $result['variants'][] = $this->get($teamId, (int) $variant->id);
+            }
+        }
         if (in_array($product->enumCase('kind'), [ProductKind::ServiceBundle, ProductKind::RedemptionCard], true)) {
             $packageId = $product->enumCase('kind') === ProductKind::ServiceBundle ? (int) $product->benefit_package_id
                 : (int) RedemptionCampaign::where('issuer_team_id', $teamId)->find((int) $product->redemption_campaign_id)?->package_id;
@@ -68,6 +74,7 @@ class Product
             $service = app(EntitlementManagement::class)->service($teamId, (int) $item->service_id);
             $result['redemption'] = [
                 'unit_name' => $service['unit_name'], 'quantity_step' => $service['quantity_step'],
+                'auto_complete_after_minutes' => $service['auto_complete_after_minutes'] ?? null,
                 'quantity' => $item->quantity, 'valid_days' => $item->valid_days,
                 'handler_entity_ids' => array_map(fn ($handler) => (int) $handler['entity_id'], $service['handlers'] ?? []),
                 'redemption_fields' => $service['redemption_fields'],
@@ -78,6 +85,14 @@ class Product
 
     public function create(int $teamId, array $data, bool $canReprice = true): int
     {
+        if ((int) ($data['kind'] ?? 1) === ProductKind::MultiVariant->value) {
+            return \think\facade\Db::transaction(function () use ($teamId, $data, $canReprice) {
+                $id = $this->createRecord($teamId, $this->containerData($data));
+                $this->saveVariants($teamId, TeamProduct::find($id), $data['variants'] ?? null, $canReprice);
+                return $id;
+            });
+        }
+        if (array_key_exists('variants', $data)) throw new HttpException(422, '只有多规格商品可以配置规格');
         if (array_key_exists('items', $data)) {
             if (!in_array((int) ($data['kind'] ?? 1), [ProductKind::ServiceBundle->value, ProductKind::RedemptionCard->value], true)) throw new HttpException(422, '只有套餐和卡密可以配置商品子项');
             return \think\facade\Db::transaction(fn () => $this->createRecord($teamId, $this->compositionConfiguration($teamId, $data, $canReprice)));
@@ -100,7 +115,7 @@ class Product
             }
             $defaults = app(PersonalPricing::class)->defaults($teamId, $money['price'] ?? 0, $money['cost'] ?? 0);
             $serviceData = array_intersect_key($configuration, array_flip([
-                'unit_name', 'quantity_step', 'handler_entity_ids', 'redemption_fields',
+                'unit_name', 'quantity_step', 'auto_complete_after_minutes', 'handler_entity_ids', 'redemption_fields',
             ]));
             $serviceData = array_merge($serviceData, [
                 'name' => $data['name'] ?? '',
@@ -233,6 +248,7 @@ class Product
                 'description' => $data['description'] ?? null,
                 'cover_image' => $data['cover_image'] ?? null,
                 'introduction_markdown' => $data['introduction_markdown'] ?? null,
+                'purchase_fields' => app(ProductPurchaseField::class)->normalize(array_key_exists('purchase_fields', $data) ? $data['purchase_fields'] : []),
                 'price' => $money['price'],
                 'cost' => $money['cost'] ?? '0.00',
                 'handler_cut' => $money['handler_cut'] ?? null,
@@ -249,7 +265,7 @@ class Product
                 $data['introduction_markdown'] ?? null
             );
 
-            if ($entityId) {
+            if ($entityId && $product->enumCase('kind') !== ProductKind::MultiVariant) {
                 $handler = new TeamProductHandler;
                 $handler->save([
                     'product_id' => $product->id,
@@ -267,7 +283,11 @@ class Product
 
     public function edit(int $teamId, int $id, array $data, bool $canReprice = true): void
     {
-        \think\facade\Db::transaction(fn () => $this->editRecord($teamId, $id, $data, $canReprice));
+        \think\facade\Db::transaction(function () use ($teamId, $id, $data, $canReprice) {
+            $product = TeamProduct::where('team_id', $teamId)->lock(true)->find($id);
+            if ($product && $product->parent_product_id !== null) throw new HttpException(422, '请在所属商品中编辑规格');
+            $this->editRecord($teamId, $id, $data, $canReprice);
+        });
     }
 
     private function editRecord(int $teamId, int $id, array $data, bool $canReprice): void
@@ -281,6 +301,18 @@ class Product
         if (isset($data['kind']) && (int) $data['kind'] !== $kind->value) {
             throw new HttpException(422, '商品类型不能修改，请新建商品');
         }
+        if ($kind === ProductKind::MultiVariant) {
+            $configuration = $this->containerData(array_merge($product->toArray(), $data));
+            $configuration['kind'] = ProductKind::MultiVariant->value;
+            $validator = app(\app\validate\Product::class);
+            if (!$validator->scene('edit')->check($configuration)) throw new HttpException(422, $validator->getError());
+            $product->save(array_intersect_key($configuration, array_flip(['name', 'description', 'cover_image', 'introduction_markdown', 'is_active'])));
+            if (array_key_exists('introduction_markdown', $data)) app(Markdown::class)->sync($product, 'introduction_markdown', $data['introduction_markdown']);
+            if (array_key_exists('variants', $data)) $this->saveVariants($teamId, $product, $data['variants'], $canReprice);
+            if ($product->is_active && !$product->variants()->where('is_active', 1)->count()) throw new HttpException(422, '上架商品至少需要一个启用规格');
+            return;
+        }
+        if (array_key_exists('variants', $data)) throw new HttpException(422, '只有多规格商品可以配置规格');
         if (!array_key_exists('items', $data)
             && (array_key_exists('benefit_package_id', $data) || array_key_exists('redemption_campaign_id', $data))
             && in_array($kind, [ProductKind::ServiceBundle, ProductKind::RedemptionCard], true)) {
@@ -311,6 +343,9 @@ class Product
             'kind', 'benefit_package_id', 'redemption_campaign_id'];
 
         $update = [];
+        if (array_key_exists('purchase_fields', $data)) {
+            $update['purchase_fields'] = app(ProductPurchaseField::class)->normalize($data['purchase_fields'], $product->purchase_fields ?? []);
+        }
         foreach ($allow as $k) {
             if (array_key_exists($k, $data)) {
                 $update[$k] = $data[$k];
@@ -323,6 +358,17 @@ class Product
             throw new HttpException(422, '商品金额格式不正确');
         }
         $configuration = array_merge($product->toArray(), $update);
+        if ($product->parent_product_id !== null && $kind === ProductKind::Standard) {
+            $pricing = app(BenefitPackagePricing::class);
+            $defaults = app(PersonalPricing::class)->defaults($teamId, $configuration['price'], $configuration['cost']);
+            $remaining = $pricing->toCents((string) $configuration['price']) - $pricing->toCents((string) $configuration['cost']);
+            foreach (['handler_cut', 'sender_cut', 'cs_cut'] as $field) {
+                $remaining -= $pricing->toCents((string) ($configuration[$field] ?? $defaults[$field]));
+            }
+            if ($remaining < 0) throw new HttpException(422, '成本与人员分成不能超过售价');
+            $update['team_cut'] = $pricing->fromCents($remaining);
+            $configuration['team_cut'] = $update['team_cut'];
+        }
         if ($kind === ProductKind::Redeemable) {
             $update = $this->updateRedemption($teamId, $product, $configuration, $data, $update);
             $configuration = array_merge($configuration, $update);
@@ -370,7 +416,7 @@ class Product
             throw new HttpException(422, '核销商品内部归属不匹配');
         }
         $serviceData = array_merge($service->toArray(), array_intersect_key($redemption, array_flip([
-            'unit_name', 'quantity_step', 'handler_entity_ids', 'redemption_fields',
+            'unit_name', 'quantity_step', 'auto_complete_after_minutes', 'handler_entity_ids', 'redemption_fields',
         ])), [
             'name' => $configuration['name'], 'description' => $configuration['description'] ?? null,
             'default_total_price' => $configuration['price'], 'default_cost' => $configuration['cost'] ?? '0.00',
@@ -381,13 +427,37 @@ class Product
         $quantity = app(ServiceQuantity::class)->normalize($redemption['quantity'] ?? $item->quantity, $serviceData['quantity_step']);
         $days = $redemption['valid_days'] ?? $item->valid_days;
         if (filter_var($days, FILTER_VALIDATE_INT) === false || (int) $days < 0) throw new HttpException(422, '有效天数不正确');
-        app(EntitlementManagement::class)->saveService($teamId, (int) $service->id, $serviceData);
-        if ($quantity !== (string) $item->quantity || (int) $days !== (int) $item->valid_days) {
+        $serviceId = (int) $service->id;
+        if ($product->parent_product_id !== null) {
+            // 规格内部定义使用新版本，已售订单和已发权益仍关联旧服务及其字段。
+            $savedFields = app(ServiceRedemptionField::class)->list($teamId, $serviceId);
+            $fieldIds = array_column($savedFields, 'id');
+            $fields = array_key_exists('redemption_fields', $redemption) ? $redemption['redemption_fields'] : $savedFields;
+            if (!is_array($fields) || !array_is_list($fields)) throw new HttpException(422, '核销字段必须为列表');
+            $submittedFieldIds = [];
+            foreach ($fields as &$field) {
+                if (!is_array($field)) throw new HttpException(422, '核销字段格式无效');
+                if (isset($field['id'])) {
+                    if ((!is_int($field['id']) && !is_string($field['id'])) || !ctype_digit((string) $field['id'])
+                        || !in_array((int) $field['id'], $fieldIds, true)) throw new HttpException(422, '核销字段不属于当前规格');
+                    if (isset($submittedFieldIds[(int) $field['id']])) throw new HttpException(422, '核销字段不能重复提交');
+                    $submittedFieldIds[(int) $field['id']] = true;
+                }
+                unset($field['id']);
+            }
+            unset($field);
+            $serviceData['redemption_fields'] = $fields;
+            $serviceData['handler_entity_ids'] ??= \app\model\TeamServiceHandler::where('service_id', $serviceId)->column('entity_id');
+            $serviceId = app(EntitlementManagement::class)->saveService($teamId, null, $serviceData);
+        } else {
+            app(EntitlementManagement::class)->saveService($teamId, $serviceId, $serviceData);
+        }
+        if ($serviceId !== (int) $service->id || $quantity !== (string) $item->quantity || (int) $days !== (int) $item->valid_days) {
             // 已售权益仍引用旧明细ID；新配置只用于后续订单。
             $update['benefit_package_id'] = app(EntitlementManagement::class)->savePackage($teamId, null, [
                 'name' => $configuration['name'], 'owner_entity_id' => $product->entity_id,
                 'pricing_mode' => \app\enum\BenefitPricingMode::LegacyEqualSplit->value,
-                'services' => [['service_id' => $service->id, 'quantity' => $quantity, 'valid_days' => (int) $days]],
+                'services' => [['service_id' => $serviceId, 'quantity' => $quantity, 'valid_days' => (int) $days]],
             ]);
         }
         $price = app(BenefitPackagePricing::class);
@@ -404,9 +474,16 @@ class Product
         if (!$product) {
             throw new HttpException(404, '商品不存在');
         }
+        if ($product->parent_product_id !== null) throw new HttpException(422, '请在所属商品中删除规格');
 
         \think\facade\Db::transaction(function () use ($product) {
+            foreach (TeamProduct::where('parent_product_id', (int) $product->id)->select() as $variant) {
+                app(Markdown::class)->deleteSource($variant, 'introduction_markdown');
+                $variant->delete();
+            }
             app(Markdown::class)->deleteSource($product, 'introduction_markdown');
+            // 规格已显式软删除，避免 ORM 对已加载的关系再次级联删除。
+            unset($product->variants);
             $product->delete();
         });
     }
@@ -455,6 +532,83 @@ class Product
                 $handler->save();
             }
         });
+    }
+
+    private function containerData(array $data): array
+    {
+        foreach (['items', 'redemption', 'benefit_package_id', 'redemption_campaign_id', 'handler_entity_ids', 'purchase_fields'] as $field) {
+            if (!empty($data[$field])) throw new HttpException(422, '多规格商品的交付配置必须填写在规格中');
+            unset($data[$field]);
+        }
+        foreach (['price', 'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut'] as $field) {
+            if (isset($data[$field]) && (!is_scalar($data[$field]) || !is_numeric($data[$field]) || (float) $data[$field] !== 0.0)) {
+                throw new HttpException(422, '多规格商品的价格和分成必须填写在规格中');
+            }
+            $data[$field] = '0.00';
+        }
+        return $data;
+    }
+
+    /** 规格列表为完整替换，缺省整个列表则保留；修改失败时连同内部资源回滚。 */
+    private function saveVariants(int $teamId, TeamProduct $parent, mixed $rows, bool $canReprice): void
+    {
+        if (!is_array($rows) || !array_is_list($rows) || count($rows) < 1 || count($rows) > 50) {
+            throw new HttpException(422, '多规格商品必须配置 1 至 50 个规格');
+        }
+        $existing = [];
+        foreach ($parent->variants()->lock(true)->select() as $variant) $existing[(int) $variant->id] = $variant;
+        $kept = [];
+        $names = [];
+        foreach ($rows as $sort => $row) {
+            if (!is_array($row)) throw new HttpException(422, '规格格式不正确');
+            $id = $row['id'] ?? null;
+            if ($id !== null && ((!is_int($id) && !is_string($id)) || !ctype_digit((string) $id) || !isset($existing[(int) $id]))) {
+                throw new HttpException(422, '规格不属于当前商品');
+            }
+            $id = (int) $id;
+            if ($id && isset($kept[$id])) throw new HttpException(422, '规格不能重复提交');
+            $name = $row['name'] ?? ($existing[$id]->name ?? null);
+            if (!is_string($name) || trim($name) === '') throw new HttpException(422, '规格名称不能为空');
+            $key = mb_strtolower(trim($name));
+            if (isset($names[$key])) throw new HttpException(422, '规格名称不能重复');
+            $names[$key] = true;
+            $kind = $row['kind'] ?? (isset($existing[$id]) ? $existing[$id]->enumCase('kind')->value : 1);
+            if (!in_array($kind, [1, 2, 3, 4, '1', '2', '3', '4'], true) || array_key_exists('variants', $row)) {
+                throw new HttpException(422, '规格只能使用普通、核销、卡密或套餐类型');
+            }
+            if (array_key_exists('entity_id', $row) && $row['entity_id'] !== $parent->entity_id) throw new HttpException(422, '规格归属必须跟随主商品');
+            if (array_key_exists('parent_product_id', $row) && (int) $row['parent_product_id'] !== (int) $parent->id) throw new HttpException(422, '不能转移规格所属商品');
+            $row['name'] = trim($name);
+            $row['kind'] = (int) $kind;
+            if ($id) {
+                $this->editRecord($teamId, $id, $row, $canReprice);
+            } else {
+                $row['entity_id'] = $parent->entity_id;
+                $row['cover_image'] ??= $parent->cover_image;
+                $id = $this->create($teamId, $row, $canReprice);
+                if (array_key_exists('is_active', $row)) $this->editRecord($teamId, $id, ['is_active' => $row['is_active']], $canReprice);
+            }
+            TeamProduct::where('id', $id)->update(['parent_product_id' => $parent->id, 'variant_sort' => $sort]);
+            if (!isset($existing[$id]) && (int) $kind === ProductKind::Standard->value) {
+                $this->editRecord($teamId, $id, [], $canReprice);
+            }
+            $kept[$id] = true;
+        }
+        foreach ($existing as $id => $variant) {
+            if (isset($kept[$id])) continue;
+            app(Markdown::class)->deleteSource($variant, 'introduction_markdown');
+            $variant->delete();
+        }
+        if ($parent->is_active && !$parent->variants()->where('is_active', 1)->count()) throw new HttpException(422, '上架商品至少需要一个启用规格');
+        // 完整替换后复核，防止前面的规格引用本次后面才删除或停用的规格。
+        if ($parent->is_active) {
+            foreach ($parent->variants()->where('is_active', 1)->select() as $variant) {
+                if (!in_array($variant->enumCase('kind'), [ProductKind::ServiceBundle, ProductKind::RedemptionCard], true)) continue;
+                $definition = $this->get($teamId, (int) $variant->id);
+                $definition['kind'] = $variant->enumCase('kind');
+                app(ProductComposition::class)->inspectStored($definition);
+            }
+        }
     }
 
     private function assertBenefitConfiguration(int $teamId, array $data): ?BenefitPackage

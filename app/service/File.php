@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace app\service;
 
+use app\enum\FileSource;
 use app\model\ExternalCompensation;
 use app\model\Entity;
 use OSS\OssClient;
@@ -16,7 +17,7 @@ class File
 {
     private const QUOTA_MESSAGE = '该团队文件已达到上限，请联系团队管理员。';
 
-    public function upload(UploadedFile $file, int $teamId, array $actor): array
+    public function upload(UploadedFile $file, int $teamId, array $actor, FileSource $source = FileSource::Manual): array
     {
         $identity = $this->identityForActor($actor, $teamId);
 
@@ -25,7 +26,8 @@ class File
             $teamId,
             (int) $identity->id,
             true,
-            true
+            true,
+            $source
         );
 
         return $this->apiResult($result);
@@ -33,14 +35,14 @@ class File
 
     public function uploadForJoin(UploadedFile $file, int $teamId): array
     {
-        $result = $this->store($file, $teamId, null, true, true);
+        $result = $this->store($file, $teamId, null, true, true, FileSource::Join);
 
         return $this->apiResult($result);
     }
 
     public function uploadSystem(UploadedFile $file): array
     {
-        return $this->store($file, null, null, false, false);
+        return $this->store($file, null, null, false, false, FileSource::System);
     }
 
     public function uploadByCommand(string $localPath, ?int $entityId = null, ?int $teamId = null, ?string $originalName = null): array
@@ -54,14 +56,14 @@ class File
                 throw new HttpException(422, 'team_id 与 entity_id 不匹配');
             }
 
-            return $this->store($file, $entityTeamId, $entityId, true, true);
+            return $this->store($file, $entityTeamId, $entityId, true, true, FileSource::Command);
         }
 
         if ($teamId !== null) {
-            return $this->store($file, $teamId, null, true, true);
+            return $this->store($file, $teamId, null, true, true, FileSource::Command);
         }
 
-        return $this->uploadSystem($file);
+        return $this->store($file, null, null, false, false, FileSource::Command);
     }
 
     public function list(int $teamId, array $filters, int $page = 1, int $limit = 20): array
@@ -230,7 +232,7 @@ class File
         }
     }
 
-    private function store(UploadedFile $file, ?int $teamId, ?int $entityId, bool $checkAbility, bool $dedupe): array
+    private function store(UploadedFile $file, ?int $teamId, ?int $entityId, bool $checkAbility, bool $dedupe, FileSource $source): array
     {
         $validator = app(\app\validate\File::class);
         if (!$validator->upload($file)) {
@@ -279,7 +281,7 @@ class File
         $this->putOss($path, $file->getPathname());
 
         try {
-            return Db::transaction(function () use ($file, $hash, $path, $teamId, $entityId, $dedupe, $checkAbility) {
+            return Db::transaction(function () use ($file, $hash, $path, $teamId, $entityId, $dedupe, $checkAbility, $source) {
                 if ($teamId !== null) {
                     $this->lockTeam($teamId);
                 }
@@ -316,6 +318,7 @@ class File
                 $record->mime_type = $file->getOriginalMime();
                 $record->team_id   = $teamId;
                 $record->entity_id = $entityId;
+                $record->source    = $source;
                 $record->save();
 
                 return $this->storedResult($record);

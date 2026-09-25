@@ -1,5 +1,5 @@
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, rmSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -21,22 +21,25 @@ function commandWorks(command, args) {
 function findPython() {
   const candidates = process.env.PYTHON ? [process.env.PYTHON] : process.platform === 'win32'
     ? [
-        join(process.env.LOCALAPPDATA ?? '', 'Programs/Python/Python311/python.exe'),
+        join(process.env.LOCALAPPDATA ?? '', 'Programs/Python/Python312/python.exe'),
         'python',
       ]
     : ['python3', 'python']
 
   for (const candidate of candidates) {
-    if (candidate && commandWorks(candidate, ['-c', 'import sys; assert sys.version_info >= (3, 10)'])) return candidate
+    if (candidate && commandWorks(candidate, ['-c', 'import sys; assert sys.version_info >= (3, 12)'])) return candidate
   }
 
-  throw new Error('Zensical 需要 Python 3.10+。请安装后设置 PYTHON 环境变量，再运行 npm run docs:setup。')
+  throw new Error('Zensical glossary 需要 Python 3.12+。请安装后设置 PYTHON 环境变量，再运行 npm run docs:setup。')
 }
 
 function setup() {
   const python = findPython()
+  if (existsSync(venvPython) && !commandWorks(venvPython, ['-c', 'import sys; assert sys.version_info >= (3, 12)'])) {
+    rmSync(venv, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
+  }
   if (!existsSync(venvPython)) execFileSync(python, ['-m', 'venv', venv], { cwd: root, stdio: 'inherit' })
-  execFileSync(venvPython, ['-m', 'pip', 'install', '--requirement', 'docs/requirements.txt'], { cwd: root, stdio: 'inherit' })
+  execFileSync(venvPython, ['-m', 'pip', 'install', '--requirement', 'docs/dev/requirements.txt'], { cwd: root, stdio: 'inherit' })
 }
 
 function serve() {

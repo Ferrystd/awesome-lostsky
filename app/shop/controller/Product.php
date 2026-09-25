@@ -68,6 +68,8 @@ class Product
             }
         }
         if ($request->has('handler_entity_ids', 'post')) $data['handler_entity_ids'] = $request->post('handler_entity_ids');
+        if ($request->has('variants', 'post')) $data['variants'] = $request->post('variants');
+        if ($request->has('purchase_fields', 'post')) $data['purchase_fields'] = $request->post('purchase_fields');
         $id = $service->create($request->team_id, $data);
         app(\app\service\BusinessAudit::class)->record($request, 'shop', 'create', 'product', $id);
 
@@ -81,7 +83,7 @@ class Product
         $data = [];
         foreach (['name', 'price', 'cost', 'description', 'cover_image', 'introduction_markdown', 'is_active',
             'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'kind',
-            'benefit_package_id', 'redemption_campaign_id', 'redemption', 'items', 'handler_entity_ids'] as $field) {
+            'benefit_package_id', 'redemption_campaign_id', 'redemption', 'items', 'handler_entity_ids', 'variants', 'purchase_fields'] as $field) {
             if ($request->has($field, 'post')) {
                 $data[$field] = $request->post($field);
             }

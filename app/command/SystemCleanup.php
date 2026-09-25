@@ -12,7 +12,7 @@ class SystemCleanup extends Command
     protected function configure()
     {
         $this->setName('system:cleanup')
-            ->setDescription('清理过期会话、已退出设备、软删除文件并重试外部补偿');
+            ->setDescription('执行核销自动结单、生命周期清理并重试外部补偿');
     }
 
     protected function execute(Input $input, Output $output)

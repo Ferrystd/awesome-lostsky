@@ -6,6 +6,24 @@ const repository = process.cwd()
 const source = (path: string) => readFileSync(join(repository, path), 'utf8')
 
 describe('管理员办理成员离职', () => {
+  it('自助离职只保留公共按钮和确认框，不再渲染独立卡片', () => {
+    const content = source('frontend/apps/team/src/components/MemberSelfDeparture.vue')
+    expect(content).toContain('<LsButton')
+    expect(content).not.toContain('<LsPanel')
+    expect(content).not.toContain('<LsSectionHeader')
+    expect(content).toContain('dialog.warning(')
+    expect(content).not.toContain('window.confirm')
+    expect(content).not.toContain('<style')
+  })
+  it('个人资料与本人详情共用自助离职组件，不复制请求或样式', () => {
+    for (const view of ['PersonalView', 'MemberDetailView']) {
+      const content = source(`frontend/apps/team/src/views/${view}.vue`)
+      expect(content).toContain('<MemberSelfDeparture v-if=')
+      expect(content).toMatch(/<template #actions>[\s\S]*?<MemberSelfDeparture[\s\S]*?<\/template>/)
+      expect(content).not.toContain('/memberDeparture/apply')
+      expect(content).not.toContain('.self-departure{')
+    }
+  })
   it('列表与详情统一直接办理离职', () => {
     const members = source('frontend/apps/team/src/views/MembersView.vue')
     const memberForm = source('frontend/apps/team/src/views/MemberFormView.vue')

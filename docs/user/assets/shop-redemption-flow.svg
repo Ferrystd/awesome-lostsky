@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1040" role="img" aria-labelledby="title description">
+  <title id="title">核销商品流程</title>
+  <desc id="description">主流程从设置核销商品开始，依次经过上架、下单、余额划扣、获取权益、邀请接单、核销中和结单。自动记账、公开接单、拒绝接单和加价确认作为支线连接到对应主流程节点。</desc>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --background: #ffffff;
+      --main-fill: #eef2ff;
+      --main-stroke: #526cff;
+      --main-line: #4056d6;
+      --branch-fill: #f8fafc;
+      --branch-stroke: #94a3b8;
+      --branch-line: #64748b;
+      --text: #253047;
+      --muted: #526078;
+      --label-fill: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #1e2129;
+        --main-fill: #242b45;
+        --main-stroke: #8295ff;
+        --main-line: #9aa8ff;
+        --branch-fill: #252a33;
+        --branch-stroke: #718096;
+        --branch-line: #a0aec0;
+        --text: #eef2ff;
+        --muted: #c2cad8;
+        --label-fill: #1e2129;
+      }
+    }
+    text {
+      fill: var(--text);
+      font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      font-size: 18px;
+      text-anchor: middle;
+    }
+    .caption { fill: var(--muted); font-size: 15px; }
+    .main-node { fill: var(--main-fill); stroke: var(--main-stroke); stroke-width: 2; }
+    .branch-node { fill: var(--branch-fill); stroke: var(--branch-stroke); stroke-width: 1.5; }
+    .main-edge, .branch-edge, .optional-edge {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .main-edge { stroke: var(--main-line); stroke-width: 2.25; marker-end: url(#main-arrow); }
+    .branch-edge { stroke: var(--branch-line); stroke-width: 1.75; marker-end: url(#branch-arrow); }
+    .optional-edge { stroke: var(--branch-line); stroke-width: 1.75; stroke-dasharray: 6 6; marker-end: url(#branch-arrow); }
+    .label-bg { fill: var(--label-fill); }
+  </style>
+  <defs>
+    <marker id="main-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--main-line)"/>
+    </marker>
+    <marker id="branch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--branch-line)"/>
+    </marker>
+  </defs>
+
+  <!-- 主线：所有节点中心固定在 x=500 -->
+  <path class="main-edge" d="M500 110 V145"/>
+  <path class="main-edge" d="M500 205 V240"/>
+  <path class="main-edge" d="M500 300 V335"/>
+  <path class="main-edge" d="M500 395 V430"/>
+  <path class="main-edge" d="M500 490 V550"/>
+  <rect class="label-bg" x="507" y="505" width="106" height="24" rx="4"/>
+  <text class="caption" x="560" y="522">指定接单人</text>
+  <path class="main-edge" d="M500 610 V690"/>
+  <rect class="label-bg" x="507" y="630" width="46" height="24" rx="4"/>
+  <text class="caption" x="530" y="647">同意</text>
+  <path class="main-edge" d="M500 760 V870"/>
+
+  <!-- 支线：自动记账 -->
+  <path class="optional-edge" d="M660 365 H745"/>
+  <rect class="label-bg" x="670" y="337" width="66" height="24" rx="4"/>
+  <text class="caption" x="703" y="354">可选开启</text>
+
+  <!-- 支线：未指定接单人进入接单池，再汇入核销中 -->
+  <path class="branch-edge" d="M340 460 H205 Q175 460 175 490 V550"/>
+  <rect class="label-bg" x="191" y="472" width="106" height="24" rx="4"/>
+  <text class="caption" x="244" y="489">未指定接单人</text>
+  <path class="branch-edge" d="M175 610 V725 H340"/>
+  <rect class="label-bg" x="203" y="696" width="76" height="24" rx="4"/>
+  <text class="caption" x="241" y="713">有人接单</text>
+
+  <!-- 支线：拒绝接单 -->
+  <path class="branch-edge" d="M660 580 H745"/>
+  <rect class="label-bg" x="681" y="552" width="46" height="24" rx="4"/>
+  <text class="caption" x="704" y="569">拒绝</text>
+
+  <!-- 支线：核销中加价并返回核销 -->
+  <path class="branch-edge" d="M660 710 H700 Q725 710 745 735"/>
+  <rect class="label-bg" x="674" y="680" width="76" height="24" rx="4"/>
+  <text class="caption" x="712" y="697">如需加价</text>
+  <path class="branch-edge" d="M745 795 Q720 820 690 820 H675 Q660 820 660 805 V748"/>
+  <rect class="label-bg" x="682" y="809" width="98" height="24" rx="4"/>
+  <text class="caption" x="731" y="826">同意或拒绝</text>
+
+  <!-- 主线节点 -->
+  <g>
+    <rect class="main-node" x="320" y="50" width="360" height="60" rx="8"/>
+    <text x="500" y="87">设置最小核销单位、分成、价格数量</text>
+  </g>
+  <g>
+    <rect class="main-node" x="390" y="145" width="220" height="60" rx="8"/>
+    <text x="500" y="182">上架商品</text>
+  </g>
+  <g>
+    <rect class="main-node" x="390" y="240" width="220" height="60" rx="8"/>
+    <text x="500" y="277">顾客下单</text>
+  </g>
+  <g>
+    <rect class="main-node" x="340" y="335" width="320" height="60" rx="8"/>
+    <text x="500" y="372">余额被划扣</text>
+  </g>
+  <g>
+    <rect class="main-node" x="340" y="430" width="320" height="60" rx="8"/>
+    <text x="500" y="467">顾客获取权益</text>
+  </g>
+  <g>
+    <rect class="main-node" x="340" y="550" width="320" height="60" rx="8"/>
+    <text x="500" y="587">邀请接单人接单</text>
+  </g>
+  <g>
+    <rect class="main-node" x="340" y="690" width="320" height="70" rx="8"/>
+    <text x="500" y="718"><tspan x="500">填写核销信息</tspan><tspan x="500" dy="25">核销中</tspan></text>
+  </g>
+  <g>
+    <rect class="main-node" x="340" y="870" width="320" height="60" rx="8"/>
+    <text x="500" y="907">顾客或管理员结单</text>
+  </g>
+
+  <!-- 支线节点 -->
+  <g>
+    <rect class="branch-node" x="745" y="335" width="210" height="60" rx="8"/>
+    <text x="850" y="372">下单自动记账</text>
+  </g>
+  <g>
+    <rect class="branch-node" x="40" y="550" width="270" height="60" rx="8"/>
+    <text x="175" y="587">进入接单池</text>
+  </g>
+  <g>
+    <rect class="branch-node" x="745" y="550" width="210" height="60" rx="8"/>
+    <text x="850" y="587">退回权益</text>
+  </g>
+  <g>
+    <rect class="branch-node" x="745" y="735" width="210" height="60" rx="8"/>
+    <text x="850" y="772">等待顾客确认</text>
+  </g>
+</svg>

@@ -15,8 +15,9 @@ import { computed, reactive, ref, watch } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { abilityReason } from '../lib/teamAccessReason'
 import SettingsSaveButton from './settings/SettingsSaveButton.vue'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 
-type SettingValue = string | number | boolean
+type SettingValue = string | number | boolean | null
 
 interface SettingOption extends SelectOption {
   value: string | number
@@ -38,6 +39,7 @@ interface SettingField {
   max?: number
   step?: number
   max_length?: number
+  nullable?: boolean
   ability_requirement?: {
     key: string
     label: string
@@ -62,6 +64,9 @@ interface SettingSchema {
 const client = useQueryClient()
 const routeAccess = useRouteAccess()
 const values = reactive<Record<string, Record<string, SettingValue>>>({})
+const baselines = reactive<Record<string, string>>({})
+const appDirty = (appName: string) => JSON.stringify(values[appName]) !== baselines[appName]
+useUnsavedChangesGuard(computed(() => Object.keys(values).some(appDirty)))
 const savedApp = ref('')
 const query = useQuery({
   queryKey: ['settings', 'schema'],
@@ -71,33 +76,48 @@ const query = useQuery({
 const apps = computed(() => query.data.value?.apps ?? [])
 
 watch(apps, (groups) => {
-  Object.keys(values).forEach(key => delete values[key])
   groups.forEach((group) => {
+    if (values[group.app_name] && appDirty(group.app_name)) return
     values[group.app_name] = Object.fromEntries(group.settings.map(setting => [setting.key, setting.value]))
+    baselines[group.app_name] = JSON.stringify(values[group.app_name])
   })
 }, { immediate: true })
 
 const save = useMutation({
-  mutationFn: (app: SettingApp) => api.post('/setting', {
-    app_name: app.app_name,
-    settings: { ...values[app.app_name] },
-  }),
+  mutationFn: async (app: SettingApp) => {
+    if (!validApp(app)) throw new Error('请填写符合范围的整数；只有允许留空的设置可以清空。')
+    const settings = { ...values[app.app_name] }
+    await api.post('/setting', { app_name: app.app_name, settings })
+    return JSON.stringify(settings)
+  },
   onMutate: () => { savedApp.value = '' },
-  onSuccess: async (_, app) => {
+  onSuccess: async (submitted, app) => {
+    baselines[app.app_name] = submitted
     savedApp.value = app.app_name
     await client.invalidateQueries({ queryKey: ['settings', 'schema'] })
   },
 })
 
 function settingValue(appName: string, setting: SettingField): SettingValue {
-  return values[appName]?.[setting.key] ?? setting.default
+  return values[appName]?.[setting.key] === undefined ? setting.default : values[appName][setting.key]
 }
 
 function setSettingValue(appName: string, key: string, value: SettingValue | null): void {
-  if (value !== null && values[appName]) values[appName][key] = value
+  if (values[appName]) values[appName][key] = value
 }
 
-function choiceValue(appName: string, setting: SettingField): string | number {
+function validApp(app: SettingApp): boolean {
+  return app.settings.every(setting => {
+    const value = settingValue(app.app_name, setting)
+    if (value === null) return setting.nullable === true
+    if (setting.type !== 'integer') return true
+    return typeof value === 'number' && Number.isSafeInteger(value)
+      && (setting.min === undefined || value >= setting.min)
+      && (setting.max === undefined || value <= setting.max)
+  })
+}
+
+function choiceValue(appName: string, setting: SettingField): string | number | null {
   const value = settingValue(appName, setting)
   return typeof value === 'boolean' ? String(Number(value)) : value
 }
@@ -140,11 +160,11 @@ function switchDisabled(appName: string, setting: SettingField): boolean {
         v-for="app in apps"
         :key="app.app_name"
         class="settings-panel"
-        @submit.prevent="save.mutate(app)"
+        @submit.prevent="!save.isPending.value && validApp(app) && appDirty(app.app_name) && save.mutate(app)"
       >
       <header class="settings-header">
         <LsSectionHeader :eyebrow="app.app_name.toUpperCase()" :title="app.label" :description="app.description">
-          <template #aside><SettingsSaveButton :loading="isSaving(app.app_name)" :disabled="save.isPending.value">保存{{ app.label }}设置</SettingsSaveButton></template>
+          <template #aside><SettingsSaveButton :loading="isSaving(app.app_name)" :disabled="save.isPending.value || !validApp(app) || !appDirty(app.app_name)">保存{{ app.label }}设置</SettingsSaveButton></template>
         </LsSectionHeader>
       </header>
 
@@ -198,7 +218,9 @@ function switchDisabled(appName: string, setting: SettingField): boolean {
 
           <NInputNumber
             v-else-if="setting.control === 'number'"
-            :value="Number(settingValue(app.app_name, setting))"
+            :value="settingValue(app.app_name, setting) === null ? null : Number(settingValue(app.app_name, setting))"
+            :clearable="setting.nullable === true"
+            :precision="0"
             :min="setting.min"
             :max="setting.max"
             :step="setting.step"

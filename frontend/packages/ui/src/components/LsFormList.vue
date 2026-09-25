@@ -1,6 +1,5 @@
 <script setup lang="ts" generic="T">
 import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2 } from '@lucide/vue'
-import { NButton } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { DraggableEvent } from 'vue-draggable-plus'
 import { VueDraggable } from 'vue-draggable-plus'
@@ -14,12 +13,14 @@ const props = withDefaults(defineProps<{
   itemLabel?: string
   addLabel?: string
   emptyText?: string
+  disabledReason?: string
   disabled?: boolean
 }>(), {
   itemLabel: '项目',
   addLabel: '添加一项',
   emptyText: '尚未添加项目',
   disabled: false,
+  disabledReason: '当前列表只读，无法修改',
 })
 
 const root = ref<HTMLElement | null>(null)
@@ -115,31 +116,30 @@ function finishDrag(event: DraggableEvent<T>) {
         </span>
         <strong class="ls-form-list__label">{{ itemLabel }} {{ index + 1 }}</strong>
         <div class="ls-form-list__actions" :aria-label="`${itemLabel} ${index + 1} 操作`">
-          <NButton
-            quaternary
-            circle
+          <LsButton
+            variant="ghost"
             :disabled="disabled || index === 0"
+            :disabled-reason="disabled ? disabledReason : '已经是第一项'"
             :aria-label="`上移${itemLabel} ${index + 1}`"
             :title="`上移${itemLabel} ${index + 1}`"
             @click="moveItem(index, index - 1, $event)"
-          ><template #icon><ArrowUp :size="18" /></template></NButton>
-          <NButton
-            quaternary
-            circle
+          ><template #icon><ArrowUp :size="18" /></template></LsButton>
+          <LsButton
+            variant="ghost"
             :disabled="disabled || index === items.length - 1"
+            :disabled-reason="disabled ? disabledReason : '已经是最后一项'"
             :aria-label="`下移${itemLabel} ${index + 1}`"
             :title="`下移${itemLabel} ${index + 1}`"
             @click="moveItem(index, index + 1, $event)"
-          ><template #icon><ArrowDown :size="18" /></template></NButton>
-          <NButton
-            quaternary
-            circle
-            type="error"
+          ><template #icon><ArrowDown :size="18" /></template></LsButton>
+          <LsButton
+            variant="ghost"
             :disabled="disabled"
+            :disabled-reason="disabledReason"
             :aria-label="`删除${itemLabel} ${index + 1}`"
             :title="`删除${itemLabel} ${index + 1}`"
             @click="removeItem(index)"
-          ><template #icon><Trash2 :size="18" /></template></NButton>
+          ><template #icon><Trash2 :size="18" /></template></LsButton>
         </div>
         <div class="ls-form-list__content">
           <slot name="item" :item="item" :index="index" />
@@ -147,7 +147,7 @@ function finishDrag(event: DraggableEvent<T>) {
       </li>
     </VueDraggable>
     <div class="ls-form-list__add">
-      <LsButton type="button" variant="secondary" size="sm" :disabled="disabled" @click="addItem">
+      <LsButton type="button" variant="secondary" size="sm" :disabled="disabled" :disabled-reason="disabledReason" @click="addItem">
         <template #icon><Plus :size="17" /></template>{{ addLabel }}
       </LsButton>
     </div>
@@ -169,7 +169,7 @@ function finishDrag(event: DraggableEvent<T>) {
 .ls-form-list__content { min-width: 0; grid-column: 2 / -1; display: grid; gap: .625rem; }
 .ls-form-list__label { align-self: center; color: var(--muted-ink); font-size: .75rem; font-weight: 650; }
 .ls-form-list__actions { grid-column: 3; display: flex; align-items: center; justify-content: flex-end; gap: .125rem; }
-.ls-form-list__actions :deep(.n-button) { width: 44px; height: 44px; }
+.ls-form-list__actions :deep(.ls-button) { width: 44px; height: 44px; }
 .ls-form-list__add { justify-self: start; }
 .ls-form-list__add :deep(.ls-button) { min-width: 7rem; }
 @media (max-width: 639px) {

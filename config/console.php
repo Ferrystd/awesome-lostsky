@@ -13,6 +13,7 @@ return [
         'system:cleanup' => \app\command\SystemCleanup::class,
         'service:call' => \app\command\CallService::class,
         'docs:services' => \app\command\GenerateServiceDocs::class,
+        'docs:permissions' => \app\command\GeneratePermissionDocs::class,
         'admin:grant' => \app\command\AdminGrant::class,
         'admin:revoke' => \app\command\AdminRevoke::class,
         'team:grant-ability' => \app\command\TeamGrantAbility::class,
@@ -21,5 +22,6 @@ return [
         'oss:fallback:deploy' => \app\command\DeployOssFallback::class,
         'oss:fallback:configure' => \app\command\ConfigureOssFallback::class,
         'oss:fallback:publish' => \app\command\PublishOssFallback::class,
+        'weibo:feed-poll' => \app\command\WeiboFeedPoll::class,
     ],
 ];

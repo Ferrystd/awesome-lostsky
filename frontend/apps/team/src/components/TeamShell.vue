@@ -2,7 +2,7 @@
 import { teamNavigation, teamNavigationOwner } from '../lib/workspaceNavigation'
 import { identityUrl, workspaceAppEntries } from '@lostsky/shared/navigation'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
-import { BookOpen, ChevronDown, ChevronRight, FileText, House, Menu, MessageCircleMore, Radio, ReceiptText, ShieldCheck, Store, UserRound, X } from '@lucide/vue'
+import { Bell, ChevronDown, ChevronRight, FileText, House, Menu, MessageCircleMore, Radio, ReceiptText, ShieldCheck, Store, UserRound, X } from '@lucide/vue'
 import { NButton } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -21,6 +21,7 @@ const canScrollDown = ref(false)
 const primary: NavItem[] = [{ to: '/', label: '概览', icon: House }]
 const personalNav: NavItem[] = [
   { to: '/personal', label: '概览', icon: House },
+  { to: '/personal/notices', label: '收件箱', icon: Bell },
   { to: '/personal/profile', label: '资料', icon: UserRound },
   { to: '/personal/fields', label: '对象字段', icon: FileText },
   { to: '/personal/access', label: '角色与权限', icon: ShieldCheck },
@@ -44,16 +45,16 @@ const headerActions = computed(() =>
 const sidebarUtility = computed(() =>
   activeWorkspace.value === 'personal'
     ? {
-        label: '使用文档',
-        href: '//doc.lostsky.work',
-        icon: BookOpen,
-        target: '_blank',
-        rel: 'noopener',
+        label: '切换身份',
+        href: identityUrl(),
+        icon: UserRound,
+        target: undefined,
+        rel: undefined,
       }
     : {
         label: '切换身份',
         href: identityUrl(),
-        icon: ShieldCheck,
+        icon: UserRound,
         target: undefined,
         rel: undefined,
       },

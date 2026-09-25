@@ -57,8 +57,9 @@ class TeamDashboard
                     )['total'];
                 })
                     : $this->direction()),
-            'notices' => $this->metric(fn (): int => (int) app(Notice::class)
-                ->listForEntity((int) $actingEntity['entity_id'], ['is_read' => 0], 1, 1)['total']),
+            'notices' => $gate->allows($teamId, $actingEntity, [PermissionDictionary::TEAM_NOTICE_SEND])
+                ? $this->metric(fn (): int => (int) app(Notice::class)->listSent($teamId, [], 1, 1)['total'])
+                : $this->direction(),
         ];
     }
 

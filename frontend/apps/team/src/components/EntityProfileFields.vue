@@ -22,7 +22,7 @@ const uploading = defineModel<boolean>('uploading', { default: false })
 const props = withDefaults(defineProps<{
   draftKey: string
   idPrefix: string
-  uploadFile: (file: File) => Promise<string>
+  uploadFile: (file: File, source?: 'attachment' | 'markdown') => Promise<string>
   nameKey?: 'name' | 'nickname'
   nameLabel?: string
   uploadDisabledReason?: string
@@ -58,7 +58,7 @@ async function uploadMarkdownImage(file: File) {
   if (disabledReason.value) throw new Error(disabledReason.value)
   uploading.value = true
   try {
-    return await props.uploadFile(file)
+    return await props.uploadFile(file, 'markdown')
   } finally {
     uploading.value = false
   }

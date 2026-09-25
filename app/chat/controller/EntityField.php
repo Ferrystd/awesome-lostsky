@@ -29,7 +29,7 @@ class EntityField
             'entity_type' => $type, 'field_key' => $input['field_key'] ?? '',
             'name' => $input['name'] ?? '', 'value_type' => $input['value_type'] ?? 'string',
             'input_type' => $input['input_type'] ?? 'text', 'options' => $input['options'] ?? null,
-            'is_required' => $input['is_required'] ?? 0, 'is_editable' => $input['is_editable'] ?? 1,
+            'is_required' => $input['is_required'] ?? 0,
             'is_searchable' => $input['is_searchable'] ?? 0,
             'sort' => $input['sort'] ?? 0,
         ];

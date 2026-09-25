@@ -3,23 +3,32 @@ import { formatPermissionDenied } from '@lostsky/api/error-format'
 import { identityUrl, redirectToLogin, redirectToMemberIdentity, redirectToWorkspaceWarning, redirectWorkspaceRoleError } from '@lostsky/shared/navigation'
 import { createRouter, createWebHistory } from 'vue-router'
 import { hasWeiboPermission, loadAccess } from './lib/workspace'
+import { clearInteractionDrafts } from './lib/interactionDraft'
 
 const Overview = () => import('./views/OverviewView.vue')
 const Accounts = () => import('./views/AccountsView.vue')
 const AccountBinding = () => import('./views/AccountBindingView.vue')
+const Interaction = () => import('./views/InteractionView.vue')
 const Operation = () => import('./views/OperationView.vue')
 const Tasks = () => import('./views/TasksView.vue')
 const TaskForm = () => import('./views/TaskFormView.vue')
 const Logs = () => import('./views/LogsView.vue')
+const Feed = () => import('./views/FeedView.vue')
+const CommentPresetForm = () => import('./views/CommentPresetFormView.vue')
+const CommentPresets = () => import('./views/CommentPresetsView.vue')
 
 const scoped = (prefix: '' | '/personal', workspace: 'team' | 'personal') => {
   const permission = workspace === 'team' ? 'weibo.team.manage' : 'weibo.personal.use'
   return [
     { path: prefix || '/overview', component: Overview, meta: { title: '概览', workspace, pageWidth: 'wide', accessPublic: true } },
+    ...(workspace === 'personal' ? [{ path: '/personal/feed', component: Feed, meta: { title: '点单信息流', workspace, pageWidth: 'content', accessPublic: true } }] : []),
+    { path: `${prefix}/interactions/comment-presets`, component: CommentPresets, meta: { title: '预设评论', workspace, pageWidth: 'content', permission, accessMode: 'list' } },
+    { path: `${prefix}/interactions/comment-presets/new`, component: CommentPresetForm, meta: { title: '添加预设', workspace, pageWidth: 'form', permission, presetMode: 'new' } },
+    { path: `${prefix}/interactions/comment-presets/edit`, component: CommentPresetForm, meta: { title: '编辑预设', workspace, pageWidth: 'form', permission, presetMode: 'edit' } },
     { path: `${prefix}/accounts`, component: Accounts, meta: { title: '账号', workspace, pageWidth: 'wide', permission, accessMode: 'list' } },
     { path: `${prefix}/accounts/bind`, component: AccountBinding, meta: { title: '绑定账号', workspace, pageWidth: 'form', permission } },
     { path: `${prefix}/compose`, component: Operation, meta: { title: '超话发帖', workspace, operation: 'post', pageWidth: 'form', permission } },
-    { path: `${prefix}/interactions`, component: Operation, meta: { title: '点赞与评论', workspace, operation: 'interaction', pageWidth: 'form', permission } },
+    { path: `${prefix}/interactions`, component: Interaction, meta: { title: '互动', workspace, operation: 'interaction', pageWidth: 'form', permission } },
     { path: `${prefix}/tasks`, component: Tasks, meta: { title: '持续任务', workspace, pageWidth: 'wide', permission, accessMode: 'list' } },
     { path: `${prefix}/tasks/new`, component: TaskForm, meta: { title: '新建任务', workspace, pageWidth: 'form', permission } },
     { path: `${prefix}/tasks/:id(\\d+)`, component: TaskForm, meta: { title: '编辑任务', workspace, pageWidth: 'form', permission } },
@@ -27,9 +36,12 @@ const scoped = (prefix: '' | '/personal', workspace: 'team' | 'personal') => {
   ]
 }
 
-export const router = createRouter({ history: createWebHistory(), scrollBehavior: () => ({ top: 0 }), routes: [
+export const router = createRouter({ history: createWebHistory(), scrollBehavior: (_to, _from, saved) => saved ?? ({ top: 0 }), routes: [
   { path: '/', redirect: '/overview' }, ...scoped('', 'team'), ...scoped('/personal', 'personal'),
 ] })
+router.afterEach((to, _from, failure) => {
+  if (!failure && !/^\/(?:personal\/)?interactions(?:\/comment-presets(?:\/(?:new|edit))?)?$/.test(to.path)) clearInteractionDrafts()
+})
 router.beforeEach(async (to) => {
   document.title = `${String(to.meta.title ?? '微博')} · LostSky`
   if (!auth.token()) { redirectToLogin(); return false }

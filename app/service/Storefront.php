@@ -14,6 +14,7 @@ class Storefront
         $profile = app(Display::class)->profile($teamId);
         $profile['product_count'] = app(ShopAvailability::class)->open($teamId)
             ? TeamProduct::where('team_id', $teamId)
+            ->whereNull('parent_product_id')
             ->where('is_active', 1)
             ->count()
             : 0;
@@ -27,7 +28,7 @@ class Storefront
         if (!app(ShopAvailability::class)->open($teamId)) {
             return ['total' => 0, 'list' => [], 'page' => $page, 'limit' => $limit];
         }
-        $query = TeamProduct::where('team_id', $teamId)->where('is_active', 1);
+        $query = TeamProduct::where('team_id', $teamId)->whereNull('parent_product_id')->where('is_active', 1);
         $paginator = $query->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
         $total = $paginator->total();
         $rows = $paginator->getCollection();
@@ -42,6 +43,7 @@ class Storefront
     {
         app(ShopAvailability::class)->assertOpen($teamId);
         $product = TeamProduct::where('team_id', $teamId)
+            ->whereNull('parent_product_id')
             ->where('is_active', 1)
             ->with(['handlers.subject.profile'])
             ->find($id);
@@ -62,6 +64,24 @@ class Storefront
             'price' => (string) $product->price,
             'kind' => $product->enumCase('kind')->value,
         ];
+        if ($product->enumCase('kind') === \app\enum\ProductKind::MultiVariant) {
+            $variants = $product->variants()->where('is_active', 1)->select();
+            $data['price'] = null;
+            foreach ($variants as $variant) {
+                if ($data['price'] === null || app(BenefitPackagePricing::class)->toCents($variant->price) < app(BenefitPackagePricing::class)->toCents($data['price'])) {
+                    $data['price'] = (string) $variant->price;
+                }
+            }
+            if ($detail) {
+                $data['introduction_markdown'] = $product->introduction_markdown ?: null;
+                $data['variants'] = array_map(fn (TeamProduct $variant): array => $this->productData($variant, true), $variants->all());
+                $data['handlers'] = [];
+                $data['handler_groups'] = [];
+                $data['inclusions'] = [];
+                $data['benefit_package'] = null;
+            }
+            return $data;
+        }
         if (!$detail) {
             return $data;
         }
@@ -104,6 +124,7 @@ class Storefront
         };
         $collectHandlers($snapshot);
         $data['handler_groups'] = array_values($groups);
+        $data['purchase_fields'] = $product->purchase_fields ?? [];
         $contents = $snapshot['target'] ?? $snapshot;
         $data['inclusions'] = [];
         foreach ($contents['items'] ?? [] as $item) {

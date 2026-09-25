@@ -47,6 +47,7 @@ const next = computed(() => query.data.value?.tasks.filter((item) => item.next_r
 const failures = computed(() => (query.data.value?.operations ?? []).filter((item) => ['Failed', 'Unknown'].includes(item.status)))
 const identityType = computed(() => ({ team: '团队身份', teamMember: '团队成员', teamVirtual: '虚拟人员' })[access.data.value?.identity.type ?? ''] || '当前人员')
 const entries = computed(() => [
+  ...(personal.value ? [{ key: 'feed', label: '点单信息流', description: '查看最新点单微博并选择账号评论。', to: '/personal/feed', icon: MessageCircleMore }] : []),
   {
     key: 'accounts',
     label: '账号',

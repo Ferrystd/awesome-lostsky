@@ -8,6 +8,15 @@ use think\Validate;
 
 class File extends Validate
 {
+    public function attachmentSource(string $source): \app\enum\FileSource
+    {
+        return match ($source) {
+            'attachment' => \app\enum\FileSource::Attachment,
+            'markdown' => \app\enum\FileSource::Markdown,
+            default => throw new \think\exception\HttpException(422, '上传来源类别无效'),
+        };
+    }
+
     protected $message = [
         'file.require' => '请选择文件',
         'file.fileSize' => '文件大小超出限制',

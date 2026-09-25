@@ -1,6 +1,6 @@
 ALTER TABLE `team_service`
     ADD COLUMN `unit_name` VARCHAR(20) NOT NULL DEFAULT '次' COMMENT '计量单位名称' AFTER `description`,
-    ADD COLUMN `quantity_step` DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '最小核销步长' AFTER `unit_name`;
+    ADD COLUMN `quantity_step` DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '最小核销单位' AFTER `unit_name`;
 
 ALTER TABLE `benefit_package_service`
     MODIFY COLUMN `quantity` DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '授予服务额度';

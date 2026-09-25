@@ -8,6 +8,8 @@ use app\service\BusinessAudit;
 use app\service\Entity;
 use app\service\TeamAccess;
 use app\service\WeiboAccounts;
+use app\service\WeiboCommentPresets;
+use app\service\WeiboFeed;
 use app\service\WeiboMediaLibrary;
 use app\service\WeiboOperations;
 use app\service\WeiboProtocol;
@@ -53,6 +55,51 @@ abstract class WorkspaceController
     public function taskResume(Request $request) { return $this->transition($request, 'resume'); }
     public function taskCancel(Request $request) { return $this->transition($request, 'cancel'); }
     public function operations(Request $request) { return success(app(WeiboOperations::class)->list($request->team_id, $request->entity_id, $this->teamScope(), $request->get('page/d', 1), $request->get('limit/d', 20))); }
+
+    public function feed(Request $request)
+    {
+        return success(app(WeiboFeed::class)->list(
+            $request->team_id,
+            $request->acting_entity,
+            $request->get('page/d', 1),
+            $request->get('limit/d', 20)
+        ));
+    }
+
+    public function commentPresets(Request $request)
+    {
+        $service = app(WeiboCommentPresets::class);
+        return success($this->teamScope()
+            ? $service->teamList($request->team_id)
+            : $service->personalList($request->team_id, $request->entity_id));
+    }
+
+    public function commentPresetsReplace(Request $request)
+    {
+        $this->expected($request);
+        $service = app(WeiboCommentPresets::class);
+        $contents = $request->post('contents/a', []);
+        $result = $this->teamScope()
+            ? $service->replaceTeam($request->team_id, $contents)
+            : $service->replacePersonal($request->team_id, $request->entity_id, $contents);
+        app(BusinessAudit::class)->record($request, 'weibo', 'replace', 'weiboCommentPreset', null, ['count' => count($contents), 'scope' => $this->teamScope() ? 'team' : 'personal']);
+        return success($result);
+    }
+
+    public function feedComment(Request $request)
+    {
+        $this->expected($request);
+        $postId = $request->route('id/d', 0);
+        $result = app(WeiboFeed::class)->comment(
+            $request->team_id,
+            $request->entity_id,
+            $postId,
+            $request->post('account_id/d', 0),
+            $request->post('comment/s', '')
+        );
+        app(BusinessAudit::class)->record($request, 'weibo', 'comment', 'weiboFeedPost', $postId, ['result' => $result['status']]);
+        return success($result);
+    }
 
     private function manual(Request $request, WeiboOperationType $type)
     {

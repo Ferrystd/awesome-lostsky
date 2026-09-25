@@ -15,13 +15,16 @@ CREATE TABLE `user` (
     `password`    VARCHAR(255) NOT NULL DEFAULT '' COMMENT '密码',
     `username`    VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '用户名',
     `is_banned`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否被平台封禁 0-否 1-是',
+    `member_join_code_hash` CHAR(64) NULL DEFAULT NULL COMMENT '个人一次性入队码 SHA-256',
+    `member_join_code_expires_at` INT UNSIGNED NULL DEFAULT NULL COMMENT '个人入队码过期时间',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
     `update_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
     `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_phone` (`phone`),
     UNIQUE KEY `uk_email` (`email`),
-    UNIQUE KEY `uk_username` (`username`)
+    UNIQUE KEY `uk_username` (`username`),
+    UNIQUE KEY `uk_member_join_code_hash` (`member_join_code_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- ----------------------------
@@ -302,7 +305,8 @@ CREATE TABLE `team_service` (
     `name`                VARCHAR(100) NOT NULL DEFAULT '' COMMENT '服务名称',
     `description`         TEXT         NULL COMMENT '服务说明',
     `unit_name`           VARCHAR(20)  NOT NULL DEFAULT '次' COMMENT '计量单位名称',
-    `quantity_step`       DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '最小核销步长',
+    `quantity_step`       DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '最小核销单位',
+    `auto_complete_after_minutes` INT UNSIGNED NULL DEFAULT NULL COMMENT '开始核销后自动结单分钟数 NULL=关闭',
     `default_total_price` DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '卡密领取时单次默认价值',
     `default_cost`        DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '单次默认成本',
     `default_handler_cut` DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '单次默认接单分成',
@@ -610,6 +614,9 @@ CREATE TABLE `team_customer_sender` (
 -- ----------------------------
 CREATE TABLE `team_product` (
     `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `parent_product_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '所属多规格主商品，非空为隐藏规格',
+    `variant_sort` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '规格排序',
+    `purchase_fields` JSON NULL COMMENT '购买资料字段定义',
     `team_id`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
     `entity_id`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '专属实体ID(NULL=团队公用)',
     `name`        VARCHAR(100) NOT NULL DEFAULT '' COMMENT '商品名称',
@@ -622,7 +629,7 @@ CREATE TABLE `team_product` (
     `sender_cut`  DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '发单人默认抽成',
     `cs_cut`      DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '客服默认抽成',
     `team_cut`    DECIMAL(12,2) NULL     DEFAULT NULL COMMENT '团队默认抽成',
-    `kind`        TINYINT      NOT NULL DEFAULT 1 COMMENT '商品类型 1-普通 2-套餐 3-卡密 4-核销商品',
+    `kind`        TINYINT      NOT NULL DEFAULT 1 COMMENT '商品类型 1-普通 2-套餐 3-卡密 4-核销商品 5-多规格商品',
     `benefit_package_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '服务套餐权益ID',
     `redemption_campaign_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '卡密活动ID',
     `is_active`   TINYINT      NOT NULL DEFAULT 1 COMMENT '是否上架 0-下架 1-上架',
@@ -631,7 +638,10 @@ CREATE TABLE `team_product` (
     `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
     KEY `idx_team_id` (`team_id`),
-    KEY `idx_entity_id` (`entity_id`)
+    KEY `idx_entity_id` (`entity_id`),
+    KEY `idx_product_parent_sort` (`parent_product_id`, `variant_sort`),
+    CONSTRAINT `fk_product_parent` FOREIGN KEY (`parent_product_id`) REFERENCES `team_product` (`id`),
+    CONSTRAINT `chk_product_variant_parent` CHECK (`parent_product_id` IS NULL OR `kind` <> 5)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品表';
 
 -- ----------------------------
@@ -691,6 +701,7 @@ CREATE TABLE `team_order` (
     `cs_entity_id`      INT UNSIGNED NULL DEFAULT NULL COMMENT '客服实体ID(NULL=未知)',
     `product_id`  INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '商品ID',
     `product_name` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '下单时商品名称',
+    `purchase_fields` JSON NULL COMMENT '下单时购买资料定义和值的快照',
     `product_cover_image` VARCHAR(500) NULL DEFAULT NULL COMMENT '下单时商品封面',
     `fulfillment_snapshot` JSON NULL COMMENT '下单时履约配置快照，仅内部使用',
     `quantity`    INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '数量',
@@ -735,7 +746,7 @@ CREATE TABLE `team_service_entitlement` (
     `source_package_item_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '来源权益服务项ID',
     `ordinal`                INT UNSIGNED NOT NULL COMMENT '来源内序号',
     `unit_name`              VARCHAR(20) NOT NULL DEFAULT '次' COMMENT '冻结计量单位',
-    `quantity_step`          DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '冻结最小核销步长',
+    `quantity_step`          DECIMAL(18,4) NOT NULL DEFAULT 1.0000 COMMENT '冻结最小核销单位',
     `granted_quantity`       DECIMAL(18,4) NOT NULL DEFAULT 0.0000 COMMENT '授予额度',
     `reserved_quantity`      DECIMAL(18,4) NOT NULL DEFAULT 0.0000 COMMENT '待确认邀请与核销中实例预占额度',
     `consumed_quantity`      DECIMAL(18,4) NOT NULL DEFAULT 0.0000 COMMENT '已核销额度',
@@ -822,6 +833,7 @@ CREATE TABLE `team_service_instance` (
     `team_cut`            DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '该次团队分成',
     `expire_time`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '到期时间 0=永久',
     `started_at`          INT UNSIGNED NULL DEFAULT NULL COMMENT '开始核销时间',
+    `auto_complete_after_minutes` INT UNSIGNED NULL DEFAULT NULL COMMENT '本次核销自动结单分钟数快照 NULL=关闭',
     `completed_at`        INT UNSIGNED NULL DEFAULT NULL COMMENT '完成核销时间',
     `trans_id`            INT UNSIGNED NULL DEFAULT NULL COMMENT '核销流水ID',
     `memo`                TEXT         NULL COMMENT '客户备注',
@@ -835,6 +847,7 @@ CREATE TABLE `team_service_instance` (
     KEY `idx_service_customer_status` (`customer_id`, `status`, `id`),
     KEY `idx_service_handler_status` (`handler_entity_id`, `status`, `id`),
     KEY `idx_service_team_status` (`team_id`, `status`, `id`),
+    KEY `idx_service_auto_complete` (`status`, `auto_complete_after_minutes`, `started_at`, `id`),
     UNIQUE KEY `uk_service_instance_trans` (`trans_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='独立可核销服务实例';
 
@@ -888,7 +901,7 @@ CREATE TABLE `team_service_cancel_request` (
 CREATE TABLE `team_service_event` (
     `id`                     INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
     `service_instance_id`    INT UNSIGNED NOT NULL COMMENT '服务实例ID',
-    `actor_entity_id`        INT UNSIGNED NOT NULL COMMENT '操作Entity ID',
+    `actor_entity_id`        INT UNSIGNED NULL DEFAULT NULL COMMENT '操作Entity ID NULL=系统自动操作',
     `event_type`             VARCHAR(30)  NOT NULL DEFAULT '' COMMENT '事件类型',
     `from_handler_entity_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '原接单Entity ID',
     `to_handler_entity_id`   INT UNSIGNED NULL DEFAULT NULL COMMENT '新接单Entity ID',
@@ -968,6 +981,7 @@ CREATE TABLE `file` (
     `path`        VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'OSS存储路径',
     `size`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '文件大小(字节)',
     `mime_type`   VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'MIME类型',
+    `source`      VARCHAR(20) NOT NULL DEFAULT 'unknown' COMMENT '首次入库来源: unknown/manual/markdown/attachment/join/command/system',
     `team_id`     INT UNSIGNED NULL     DEFAULT NULL COMMENT 'team id (NULL=system file)',
     `entity_id`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '实体身份ID，引用entity.id(NULL=无实体上传)',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
@@ -1328,7 +1342,6 @@ CREATE TABLE `team_entity_field` (
     `manager_scope` TINYINT      NOT NULL DEFAULT 1 COMMENT '管理范围 1-team 2-subject_team',
     `visibility`    TINYINT      NOT NULL DEFAULT 1 COMMENT '可见范围 1-team 3-subject_team 4-entity 5-public 6-custom',
     `is_required`   TINYINT      NOT NULL DEFAULT 0 COMMENT '是否必填',
-    `is_editable`   TINYINT      NOT NULL DEFAULT 1 COMMENT '是否可编辑',
     `is_searchable` TINYINT      NOT NULL DEFAULT 0 COMMENT '是否可搜索（预留，当前未接入字段值搜索）',
     `is_system`     TINYINT      NOT NULL DEFAULT 0 COMMENT '是否系统字段',
     `sort`          INT          NOT NULL DEFAULT 0 COMMENT '排序',
@@ -1690,9 +1703,35 @@ CREATE TABLE `weibo_operation_log` (
   PRIMARY KEY (`id`), UNIQUE KEY `uk_weibo_dispatch` (`dispatch_key`), KEY `idx_weibo_operation_scope` (`team_id`,`owner_entity_id`,`create_time`), KEY `idx_weibo_operation_task` (`task_id`,`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='寰崥鏈€灏忕粨鏋勫寲鎿嶄綔鏃ュ織';
 
+CREATE TABLE `weibo_feed_post` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `status_id` VARCHAR(32) NOT NULL, `text` TEXT NOT NULL, `author_name` VARCHAR(100) NOT NULL DEFAULT '',
+  `posted_at` INT UNSIGNED NOT NULL, `classification_status` TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  `classification_attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0, `classifier_model` VARCHAR(100) NULL,
+  `intent_score` DECIMAL(6,5) NULL, `classification_error` VARCHAR(500) NULL, `classified_at` INT UNSIGNED NULL,
+  `create_time` INT UNSIGNED NOT NULL DEFAULT 0, `update_time` INT UNSIGNED NOT NULL DEFAULT 0, `delete_time` INT UNSIGNED NULL,
+  PRIMARY KEY (`id`), UNIQUE KEY `uk_weibo_feed_status` (`status_id`),
+  KEY `idx_weibo_feed_listing` (`classification_status`,`posted_at`),
+  KEY `idx_weibo_feed_retry` (`classification_status`,`classification_attempts`,`posted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='全局微博陪玩点单信息流';
+
+CREATE TABLE `weibo_comment_preset` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, `team_id` INT UNSIGNED NOT NULL, `entity_id` INT UNSIGNED NULL,
+  `content` VARCHAR(500) NOT NULL, `sort` TINYINT UNSIGNED NOT NULL,
+  `create_time` INT UNSIGNED NOT NULL DEFAULT 0, `update_time` INT UNSIGNED NOT NULL DEFAULT 0, `delete_time` INT UNSIGNED NULL,
+  PRIMARY KEY (`id`), UNIQUE KEY `uk_weibo_preset_scope_sort` (`team_id`,`entity_id`,`sort`), KEY `idx_weibo_preset_entity` (`entity_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='团队及个人微博评论预设';
+
+CREATE TABLE `weibo_feed_poll_state` (
+  `id` TINYINT UNSIGNED NOT NULL, `last_attempt_at` INT UNSIGNED NULL, `last_success_at` INT UNSIGNED NULL, `last_error` VARCHAR(500) NULL,
+  `create_time` INT UNSIGNED NOT NULL DEFAULT 0, `update_time` INT UNSIGNED NOT NULL DEFAULT 0, `delete_time` INT UNSIGNED NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='微博信息流轮询状态';
+
 ALTER TABLE `weibo_account_binding` ADD CONSTRAINT `fk_weibo_binding_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_weibo_binding_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_weibo_binding_account` FOREIGN KEY (`account_id`) REFERENCES `weibo_account` (`id`);
 ALTER TABLE `weibo_media` ADD CONSTRAINT `fk_weibo_media_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_weibo_media_owner` FOREIGN KEY (`owner_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `weibo_task` ADD CONSTRAINT `fk_weibo_task_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_weibo_task_owner` FOREIGN KEY (`owner_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_weibo_task_creator` FOREIGN KEY (`creator_entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `weibo_task_account` ADD CONSTRAINT `fk_weibo_task_account_task` FOREIGN KEY (`task_id`) REFERENCES `weibo_task` (`id`), ADD CONSTRAINT `fk_weibo_task_account_account` FOREIGN KEY (`account_id`) REFERENCES `weibo_account` (`id`);
 ALTER TABLE `weibo_task_media` ADD CONSTRAINT `fk_weibo_task_media_task` FOREIGN KEY (`task_id`) REFERENCES `weibo_task` (`id`), ADD CONSTRAINT `fk_weibo_task_media_media` FOREIGN KEY (`media_id`) REFERENCES `weibo_media` (`id`);
 ALTER TABLE `weibo_operation_log` ADD CONSTRAINT `fk_weibo_operation_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_weibo_operation_owner` FOREIGN KEY (`owner_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_weibo_operation_actor` FOREIGN KEY (`actor_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_weibo_operation_account` FOREIGN KEY (`account_id`) REFERENCES `weibo_account` (`id`), ADD CONSTRAINT `fk_weibo_operation_task` FOREIGN KEY (`task_id`) REFERENCES `weibo_task` (`id`);
+ALTER TABLE `weibo_comment_preset` ADD CONSTRAINT `fk_weibo_preset_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_weibo_preset_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);

@@ -23,12 +23,15 @@ import { calculateDefaultServiceDistribution, calculateServiceTeamCut } from '..
 import { hydrateServiceRedemptionFields, serializeServiceRedemptionFields, validServiceRedemptionFields } from '../../service-redemption-fields'
 import type { ServiceRedemptionFieldDraft } from '../../types'
 import { personalDistributionLocked, withoutPersonnelCuts } from '../../personal-pricing'
+import { validAutoCompleteAfterMinutes } from '../../product-variants'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 
 type ServiceFormState = {
   name: string
   description: string
   unit_name: string
   quantity_step: number | null
+  auto_complete_after_minutes: number | null
   default_total_price: number | null
   default_cost: number | null
   default_handler_cut: number | null
@@ -50,25 +53,38 @@ const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadM
 const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?? 0)
 const distributionLocked = computed(() => personalDistributionLocked(personal.value, access.data.value?.permissions))
 const form = reactive<ServiceFormState>({
-  name: '', description: '', unit_name: '次', quantity_step: 1,
+  name: '', description: '', unit_name: '次', quantity_step: 1, auto_complete_after_minutes: null,
   default_total_price: 0, default_cost: 0, default_handler_cut: 0,
   default_sender_cut: 0, default_cs_cut: 0, is_active: 1,
 })
 const distributionRates = reactive({ handler: 80, sender: 15, customerService: 0 })
+let autoCompleteDefaultApplied = false
+let autoCompleteTouched = false
+function updateAutoComplete(value: number | null) {
+  autoCompleteTouched = true
+  form.auto_complete_after_minutes = value
+}
 let hydratingAmounts = false
 const handlerIds = ref<number[]>([])
 const redemptionFields = ref<ServiceRedemptionFieldDraft[]>([])
+const draftSnapshot = () => JSON.stringify({ form, handlerIds: handlerIds.value, redemptionFields: redemptionFields.value })
+const savedSnapshot = ref(draftSnapshot())
+const hasUnsavedChanges = computed(() => draftSnapshot() !== savedSnapshot.value)
+useUnsavedChangesGuard(hasUnsavedChanges)
+let detailHydrated = false
+let submittedSnapshot = ''
 const options = useQuery({ queryKey: computed(() => [scope.value, 'manage-options']), queryFn: () => management.value.options(), enabled: computed(() => !routeAccess.restricted.value) })
 const detail = useQuery({ queryKey: computed(() => [scope.value, 'manage-service', id.value]), queryFn: () => routeAccess.read(() => management.value.service(id.value)), enabled: computed(() => editing.value && !routeAccess.restricted.value) })
 
 watch(() => detail.data.value, data => {
-  if (!data) return
+  if (!data || (detailHydrated && hasUnsavedChanges.value)) return
   hydratingAmounts = true
   Object.assign(form, {
     name: data.name,
     description: data.description ?? '',
     unit_name: data.unit_name,
     quantity_step: Number(data.quantity_step),
+    auto_complete_after_minutes: data.auto_complete_after_minutes ?? null,
     default_total_price: Number(data.default_total_price),
     default_cost: Number(data.default_cost),
     default_handler_cut: Number(data.default_handler_cut),
@@ -79,6 +95,8 @@ watch(() => detail.data.value, data => {
   handlerIds.value = (data.handlers ?? []).map(item => Number(item.entity_id))
   redemptionFields.value = hydrateServiceRedemptionFields(data.redemption_fields)
   hydratingAmounts = false
+  savedSnapshot.value = draftSnapshot()
+  detailHydrated = true
 }, { immediate: true })
 watch(() => options.data.value?.service_defaults, defaults => {
   if (!defaults) return
@@ -88,6 +106,10 @@ watch(() => options.data.value?.service_defaults, defaults => {
     customerService: defaults.default_cs_rate_percent,
   })
   if (editing.value) return
+  if (!autoCompleteDefaultApplied) {
+    if (!autoCompleteTouched) form.auto_complete_after_minutes = defaults.default_auto_complete_after_minutes ?? null
+    autoCompleteDefaultApplied = true
+  }
   Object.assign(form, {
     unit_name: defaults.default_unit_name,
     quantity_step: Number(defaults.default_quantity_step),
@@ -130,29 +152,37 @@ const handlerEntities = computed(() => (options.data.value?.entities ?? []).filt
   ['team', 'teamMember', 'teamVirtual'].includes(String(entity.type)),
 ))
 const save = useMutation({
-  mutationFn: () => management.value.saveService(editing.value ? id.value : null, {
+  mutationFn: () => {
+    if (!valid.value) throw new Error('请完整填写服务信息并检查自动结单时长。')
+    submittedSnapshot = draftSnapshot()
+    return management.value.saveService(editing.value ? id.value : null, {
     ...(distributionLocked.value && !editing.value ? withoutPersonnelCuts(form, 'default_') : form),
     default_team_cut: teamCut.value,
     handler_entity_ids: handlerIds.value,
     redemption_fields: serializeServiceRedemptionFields(redemptionFields.value),
-  }, expectedEntityId.value),
+    }, expectedEntityId.value)
+  },
   onSuccess: async data => {
+    savedSnapshot.value = submittedSnapshot
     await Promise.all([
       client.invalidateQueries({ queryKey: [scope.value, 'manage-options'] }),
       client.invalidateQueries({ queryKey: [scope.value, 'manage-services'] }),
       client.invalidateQueries({ queryKey: [scope.value, 'manage-service', data.id] }),
     ])
     feedback.success('服务已保存')
-    await router.push(`${management.value.routePrefix}/services/${data.id}`)
+    if (!hasUnsavedChanges.value) await router.push(`${management.value.routePrefix}/services/${data.id}`)
   },
 })
 const finite = (value: number | null) => typeof value === 'number' && Number.isFinite(value)
 const nonNegative = (value: number | null) => finite(value) && (value as number) >= 0
 const valid = computed(() => Boolean(
-  form.name.trim()
+  !options.isPending.value && !options.isError.value
+  && (!editing.value || (!detail.isPending.value && !detail.isError.value))
+  && form.name.trim()
   && form.unit_name.trim()
   && finite(form.quantity_step)
   && isValidQuantityStep(form.quantity_step as number)
+  && validAutoCompleteAfterMinutes(form.auto_complete_after_minutes)
   && nonNegative(form.default_total_price)
   && nonNegative(form.default_cost)
   && (form.default_cost as number) <= (form.default_total_price as number)
@@ -172,7 +202,7 @@ const valid = computed(() => Boolean(
       </template>
     </LsPageHeader>
 
-    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
+    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : !save.isPending.value && hasUnsavedChanges && valid && save.mutate()">
       <LsFormSection title="基本信息">
         <p v-if="personal" class="form-intro" role="note">此服务自动归属当前已领取的人员，个人工作台不能转移归属。</p>
         <LsField label="服务名称" for-id="service-name" required><NInput id="service-name" v-model:value="form.name" maxlength="100" /></LsField>
@@ -180,8 +210,9 @@ const valid = computed(() => Boolean(
         <LsSwitchField id="service-active" :model-value="form.is_active === 1" label="启用状态" description="停用后不能用于新的权益配置或发起新任务。" @update:model-value="value => form.is_active = value ? 1 : 0" />
       </LsFormSection>
       <LsFormSection title="计量规则" description="同一套模型可表达按人、按次、按小时或其他可计量服务。">
+        <LsField label="自动结单时长（分钟）" for-id="service-auto-complete" hint="留空不自动结单。从开始核销起计时；撤销申请期间不结单，计时仍继续。"><NInputNumber id="service-auto-complete" :value="form.auto_complete_after_minutes" :min="1" :max="5256000" :precision="0" clearable placeholder="不自动结单" @update:value="updateAutoComplete" /></LsField>
         <LsField label="计量单位" for-id="service-unit" required hint="例如：人、次、小时"><NInput id="service-unit" v-model:value="form.unit_name" maxlength="20" /></LsField>
-        <LsField label="最小核销步长" for-id="service-step" required hint="最多四位小数；数量精度自动确定，每次履约数量必须是该步长的整数倍。"><NInputNumber id="service-step" v-model:value="form.quantity_step" :min="0.0001" :step="0.0001" :validator="isValidQuantityStep" /></LsField>
+        <LsField label="最小核销单位" for-id="service-step" required hint="最多四位小数；数量精度自动确定，每次履约数量必须是该核销单位的整数倍。"><NInputNumber id="service-step" v-model:value="form.quantity_step" :min="0.0001" :step="0.0001" :validator="isValidQuantityStep" /></LsField>
       </LsFormSection>
       <LsFormSection title="默认单位金额与分成" :description="distributionLocked ? (editing ? '人员分成沿用已保存金额，团队分成取余额。' : '人员分成按团队默认比例生成，团队分成取余额。') : '修改服务价值或成本后，将按团队设置重算人员分成；团队分成始终取余额。'">
         <LsField label="单位服务价值" for-id="service-price"><NInputNumber id="service-price" v-model:value="form.default_total_price" :min="0" :step="0.01" :precision="2" /></LsField>
@@ -200,7 +231,7 @@ const valid = computed(() => Boolean(
       <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
       <LsInlineError v-if="!routeAccess.restricted.value && options.isError.value" :message="`接单人员暂时无法读取：${friendlyError(options.error.value)}`" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
-      <LsFormActions><LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton><LsButton type="submit" :disabled="routeAccess.restricted.value || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存服务</LsButton></LsFormActions>
+      <LsFormActions><LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton><LsButton type="submit" :disabled="routeAccess.restricted.value || !hasUnsavedChanges || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存服务</LsButton></LsFormActions>
     </form>
   </div>
 </template>

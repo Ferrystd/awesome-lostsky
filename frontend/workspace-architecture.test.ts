@@ -31,7 +31,7 @@ describe('后台工作台入口架构', () => {
     expect(operation).toContain('useRouteAccess')
     expect(operation).toContain('enabled: computed(() => !routeAccess.restricted.value)')
     expect(operation).toContain("routeAccess.restricted.value ? '-'")
-    expect(source('docs/design/admin/states-and-access.md')).toContain('路由壳层不得用统一状态页替换真实业务页')
+    expect(source('docs/dev/design/admin/states-and-access.md')).toContain('路由壳层不得用统一状态页替换真实业务页')
   })
 
   it('Permission 与 Ability 禁用原因统一由错误格式化器生成', () => {
@@ -251,7 +251,7 @@ describe('后台工作台入口架构', () => {
     expect(component).not.toContain('class="task-main"')
     expect(component).not.toContain('class="return-action"')
     expect(component).not.toContain(':deep(.ls-')
-    expect(source('docs/design/admin/applications.md')).toContain('Transaction 个人接单队列')
+    expect(source('docs/dev/design/admin/applications.md')).toContain('Transaction 个人接单队列')
   })
 
   it('Account 只保留旧深链跳转，顾客资料留在商城顾客中心', () => {
@@ -261,7 +261,7 @@ describe('后台工作台入口架构', () => {
     expect(accountRouter).not.toContain('CurrentEntityProfileView')
     expect(shopRouter).toContain("path: '/customer/profile'")
     expect(shopRouter).not.toContain('currentEntityUrl')
-    const accountOpenApi = JSON.parse(source('docs/openapi/account.openapi.json'))
+    const accountOpenApi = JSON.parse(source('docs/dev/openapi/account.openapi.json'))
     expect(accountOpenApi.components.schemas.IdentityTarget.properties.kind.enum)
       .toEqual(['identity', 'team-personal', 'shop-customer'])
     expect(accountOpenApi.components.schemas.CurrentIdentityResult).toBeUndefined()
@@ -350,7 +350,7 @@ describe('后台工作台入口架构', () => {
     expect(controller).toContain('app(\\app\\service\\File::class)->upload(')
     expect(form).toContain(':upload="shopApi.uploadCustomerFile"')
     expect(form).not.toMatch(/<NInput\b[^>]*avatar[^>]*>/i)
-    const contract = JSON.parse(source('docs/openapi/shop.openapi.json'))
+    const contract = JSON.parse(source('docs/dev/openapi/shop.openapi.json'))
     expect(contract.paths['/customer/upload'].post.security).toEqual([{ bearerAuth: [] }])
     expect(contract.paths['/customer/upload'].post.requestBody.content['multipart/form-data']).toBeDefined()
   })
@@ -373,13 +373,13 @@ describe('后台工作台入口架构', () => {
 
   it('新增工作台接口均声明认证，个人查询不接受人员范围参数', () => {
     const contracts = [
-      ['docs/openapi/team.openapi.json', ['/personal', '/personal/profile', '/personal/fields']],
-      ['docs/openapi/shop.openapi.json', [
+      ['docs/dev/openapi/team.openapi.json', ['/personal', '/personal/profile', '/personal/fields']],
+      ['docs/dev/openapi/shop.openapi.json', [
         '/manage/access', '/personal/orders', '/personal/orders/{id}', '/personal/products',
         '/personal/products/{id}', '/personal/products/{id}/handlers',
         '/personal/services/{id}',
       ]],
-      ['docs/openapi/transaction.openapi.json', [
+      ['docs/dev/openapi/transaction.openapi.json', [
         '/workspace/access', '/personal/transaction-options', '/personal/transactions', '/personal/transactions/{id}', '/personal/stats',
         '/personal/services', '/personal/services/{id}', '/personal/customers', '/personal/entitlements',
         '/personal/entitlement-grant/options', '/personal/entitlement-grant',
@@ -394,7 +394,7 @@ describe('后台工作台入口架构', () => {
           .not.toContain('entity_id')
       }
     }
-    const team = JSON.parse(source('docs/openapi/team.openapi.json'))
+    const team = JSON.parse(source('docs/dev/openapi/team.openapi.json'))
     expect(team.paths['/personal/profile'].post.requestBody.content['application/json'].schema.required)
       .toContain('expected_entity_id')
   })

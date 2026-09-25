@@ -1,54 +1,52 @@
 [project]
 site_name = "LostSky 使用指南"
 site_url = "https://doc.lostsky.work"
-site_description = "从用户任务出发，了解 LostSky 的功能、操作结果与使用边界。"
+site_description = "了解 Lostsky 的功能。"
 site_author = "LostSky"
 copyright = "Copyright &copy; 2026 LostSky"
-docs_dir = "docs/manual"
+docs_dir = "docs/user"
 site_dir = "www/doc.lostsky.work"
+extra_javascript = [
+  { path = "javascripts/mermaid.js", type = "module" },
+]
 nav = [
   {"开始使用" = [
     "index.md",
-    "concepts.md",
-    "abilities.md",
-    "access-and-abilities.md",
-    "permissions.md",
-    "troubleshooting.md"
-  ]},
-  {"账号与协作" = [
-    "account-and-identity.md",
-    "team-workspace.md",
-    "chat.md"
-  ]},
-  {"业务使用" = [
-    "transactions.md",
-    "public-pages-and-shop.md",
-    "service-redemption.md"
-  ]},
-  {"业务实现方案" = [
-    "service-business-solutions.md"
-  ]},
-  {"平台管理" = "platform-admin.md"},
-  {"名词解释" = [
-    {"核心主体与标识" = [
-      "glossary/entity.md",
-      "glossary/slug.md",
-      "glossary/team.md",
-      "glossary/customer.md",
-      "glossary/virtual.md",
-      "glossary/team-member.md",
-      "glossary/team-customer.md"
-    ]},
-    {"访问控制" = [
-      "glossary/role.md",
-      "glossary/permission.md",
-      "glossary/ability.md",
-      "glossary/context.md"
-    ]},
-    {"系统与通信" = [
-      "glossary/notice.md",
-      "glossary/team-domain.md"
+    {"快速开始" = [
+      {"团队" = "quickstart/team.md"}
     ]}
+  ]},
+  {"使用应用" = [
+    "app/team.md",
+    "app/chat.md",
+    "app/shop.md",
+    "app/display.md",
+    "app/weibo.md",
+    "app/team/webhook.md"
+  ]},
+  {"平台管理" = "app/admin.md"},
+  {"概念与规则" = [
+    {"人员与组织" = [
+      "concept/user.md",
+      "concept/entity.md",
+      "concept/member.md",
+      "concept/team.md",
+      "concept/customer.md",
+      "concept/virtual.md"
+    ]},
+    {"访问控制与标识" = [
+      "concept/role.md",
+      "concept/permission.md",
+      "concept/ability.md",
+      "concept/slug.md"
+    ]},
+    "glossarys.md"
+  ]},
+  {"参考与支持" = [
+    "dictionary/abilities.md",
+    "dictionary/permissions.md",
+    "support.md",
+    {"鸣谢" = "CONTRIBUTING.md"}
   ]}
 ]
 
@@ -59,5 +57,25 @@ features = [
   "navigation.path",
   "navigation.top",
   "search.highlight",
+  "content.tooltips",
   "content.code.copy"
 ]
+
+[project.markdown_extensions]
+attr_list = {}
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" }
+]
+pymdownx.snippets.auto_append = [
+  "docs/user/includes/apps.txt",
+  "docs/user/includes/misc.txt",
+  "docs/user/includes/references.txt"
+]
+
+[project.markdown_extensions.zensical_glossary_zh]
+glossary_file = "glossarys.md"
+inline_definitions = true
+first_only = true
+
+[[project.markdown_extensions.zensical.extensions.preview.configurations]]
+targets.include = ["*.md", "**/*.md"]

@@ -6,8 +6,8 @@ Thumbs.db
 /.idea
 /.vscode
 /.claude/settings.local.json
-/.obsidian/
 /.impeccable/
+/docs/user/.obsidian/plugins/
 /vendor
 /.settings
 /.buildpath

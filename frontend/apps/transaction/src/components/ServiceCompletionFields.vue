@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { uploadFileUrl } from '@lostsky/api/client'
 import LsField from '@lostsky/ui/components/LsField.vue'
+import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import { NCheckbox, NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
 import type { ServiceField } from '../types'
 
@@ -11,6 +13,14 @@ withDefaults(defineProps<{
 })
 
 const values = defineModel<Record<number, unknown>>({ required: true })
+const emit = defineEmits<{ uploading: [value: boolean] }>()
+let uploads = 0
+async function upload(file: File) {
+  uploads++
+  emit('uploading', true)
+  try { return await uploadFileUrl(file) }
+  finally { uploads--; emit('uploading', uploads > 0) }
+}
 const choices = (field: ServiceField) => (field.options ?? []).map(value => ({ label: value, value }))
 const update = (fieldId: number, value: unknown) => {
   values.value = { ...values.value, [fieldId]: value }
@@ -26,8 +36,18 @@ const update = (fieldId: number, value: unknown) => {
       :for-id="`${idPrefix}-${field.id}`"
       :required="Boolean(field.is_required)"
     >
+      <LsMediaUploadField
+        v-if="field.value_type === 'image'"
+        :id="`${idPrefix}-${field.id}`"
+        :model-value="String(values[field.id] ?? '')"
+        :upload="upload"
+        accept="image/*"
+        placeholder="图片地址或上传图片"
+        button-label="上传图片"
+        @update:model-value="value => update(field.id, value)"
+      />
       <NInput
-        v-if="field.input_type === 'textarea' || field.value_type === 'text' || field.value_type === 'json'"
+        v-else-if="field.input_type === 'textarea' || field.value_type === 'text' || field.value_type === 'json'"
         :id="`${idPrefix}-${field.id}`"
         :value="values[field.id] as string | undefined"
         type="textarea"

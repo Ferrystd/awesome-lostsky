@@ -712,11 +712,6 @@ export interface components {
             /** @enum {integer} */
             is_required?: 0 | 1;
             /**
-             * @description 是否允许手动修改字段值；关闭后字段管理员和对象本人均只读
-             * @enum {integer}
-             */
-            is_editable?: 0 | 1;
-            /**
              * @description 预留字段；当前版本未接入字段值搜索，不参与可见性判断
              * @enum {integer}
              */

@@ -423,7 +423,7 @@ export interface paths {
         };
         /**
          * 商城管理候选项
-         * @description 返回服务默认计量规则与金额分配比例；数量精度由最小核销步长推导。
+         * @description 返回服务默认计量规则、可空的 default_auto_complete_after_minutes 与金额分配比例；数量精度由最小核销单位推导。
          */
         get: operations["shopManageOptions"];
         put?: never;
@@ -1395,10 +1395,10 @@ export interface components {
             cs_cut?: string | null;
             team_cut?: string | null;
             /**
-             * @description 1 普通商品；2 服务套餐；3 卡密；4 核销商品。核销商品不允许通过编辑类型转换。
+             * @description 1 普通商品；2 套餐；3 卡密；4 核销商品；5 多规格主商品。主商品必须选择具体规格后购买或引用。
              * @enum {integer}
              */
-            kind?: 1 | 2 | 3 | 4;
+            kind?: 1 | 2 | 3 | 4 | 5;
             redemption?: components["schemas"]["ProductRedemptionInput"];
             items?: components["schemas"]["ProductCompositionItems"];
             /** @description 与商品原子保存，省略保留原接单池 */
@@ -1407,9 +1407,16 @@ export interface components {
             redemption_campaign_id?: number | null;
             /** @enum {integer} */
             is_active?: 0 | 1;
+            /** @description 仅多规格商品使用。完整原子保存，省略整个列表保留；移除的规格软删除。 */
+            variants?: components["schemas"]["ProductVariantInput"][];
+            /** @description 完整替换购买资料字段；省略保留，空数组清空。多规格主商品不能配置，填写在具体规格中。 */
+            purchase_fields?: components["schemas"]["ProductPurchaseFieldInput"][];
         };
-        PersonalProductCreateInput: components["schemas"]["PersonalProductWriteInput"] & (unknown | unknown);
-        /** @description 套餐或卡密的完整组成；编辑时省略保留原组成，提交则替换。卡密只接受一个目标商品。仅可引用本人或团队公用商品；数量为整数。嵌套组合不支持调价。 */
+        PersonalProductCreateInput: components["schemas"]["PersonalProductWriteInput"] & (unknown | unknown | {
+            /** @enum {unknown} */
+            kind: 5;
+        });
+        /** @description 套餐或卡密的完整组成；编辑时省略保留原组成，提交则替换。卡密只接受一个目标商品。仅可引用本人或团队公用商品；数量为整数。嵌套组合不支持调价。 多规格商品必须引用具体隐藏规格的 ID，不能引用主商品 ID。 */
         ProductCompositionItems: {
             product_id: number;
             quantity: number;
@@ -1428,6 +1435,8 @@ export interface components {
             quantity?: string;
             /** @description 0 为永久；省略使用团队默认值 */
             valid_days?: number;
+            /** @description 从开始核销起连续计时；null 表示不自动结单。待处理撤销申请期间跳过结单，但不暂停或重置计时。 */
+            auto_complete_after_minutes?: number | null;
             handler_entity_ids?: number[];
             redemption_fields?: components["schemas"]["ServiceRedemptionFieldInput"][];
         };
@@ -1611,6 +1620,8 @@ export interface components {
             description?: string | null;
             unit_name: string;
             quantity_step: number | string;
+            /** @description 从开始核销起连续计时；null 表示不自动结单。 */
+            auto_complete_after_minutes?: number | null;
             default_total_price?: number;
             default_cost?: number;
             default_handler_cut?: number;
@@ -1743,6 +1754,17 @@ export interface components {
             handlers?: components["schemas"]["ProductHandler"][];
             cover_image?: string | null;
             introduction_markdown?: string | null;
+            /**
+             * @description 1 普通商品；2 套餐；3 卡密；4 核销商品；5 多规格主商品。主商品必须选择具体规格后购买或引用。
+             * @enum {integer}
+             */
+            kind?: 1 | 2 | 3 | 4 | 5;
+            /** @description 隐藏规格所属主商品 ID；主商品或独立商品为 null。 */
+            parent_product_id?: number | null;
+            variant_sort?: number;
+            /** @description 仅多规格主商品管理详情返回。 */
+            variants?: components["schemas"]["Product"][];
+            purchase_fields?: components["schemas"]["ProductPurchaseField"][];
         };
         ProductHandler: {
             /** Format: int64 */
@@ -1818,6 +1840,8 @@ export interface components {
             transaction?: components["schemas"]["Transaction"];
             product_name?: string;
             product_cover_image?: string | null;
+            /** @description 独立于当前商品配置的历史购买资料快照。 */
+            purchase_fields?: components["schemas"]["OrderPurchaseField"][];
         };
         Customer: {
             /** Format: int64 */
@@ -2134,8 +2158,6 @@ export interface components {
             /** @enum {integer} */
             is_required?: 0 | 1;
             /** @enum {integer} */
-            is_editable?: 0 | 1;
-            /** @enum {integer} */
             is_searchable?: 0 | 1;
             sort?: number;
             /** @enum {string} */
@@ -2165,17 +2187,17 @@ export interface components {
         };
         StorefrontProduct: {
             /**
-             * @description 普通商品、套餐、卡密、核销商品。
+             * @description 1 普通商品；2 套餐；3 卡密；4 核销商品；5 多规格主商品。主商品必须选择具体规格后购买或引用。
              * @enum {integer}
              */
-            kind?: 1 | 2 | 3 | 4;
+            kind?: 1 | 2 | 3 | 4 | 5;
             /** Format: int64 */
             id: number;
             name: string;
             description?: string | null;
             cover_image?: string | null;
-            /** @description Exact decimal string. */
-            price: string;
+            /** @description 独立商品为售价，多规格商品为启用规格最低售价。 */
+            price: string | null;
         };
         StorefrontHandler: {
             /** Format: int64 */
@@ -2204,6 +2226,9 @@ export interface components {
             introduction_markdown?: string | null;
             handlers?: components["schemas"]["StorefrontHandler"][];
             benefit_package?: components["schemas"]["StorefrontBenefitPackage"] | null;
+            /** @description 主商品的启用规格安全投影；购买提交选中规格的 id。 */
+            variants?: components["schemas"]["StorefrontProductDetail"][];
+            purchase_fields?: components["schemas"]["ProductPurchaseField"][];
         };
         StorefrontBenefitPackage: {
             name: string;
@@ -2258,6 +2283,86 @@ export interface components {
              */
             update_time: number;
             handler?: components["schemas"]["StorefrontHandler"] | null;
+            /** @description 独立于当前商品配置的历史购买资料快照。 */
+            purchase_fields?: components["schemas"]["OrderPurchaseField"][];
+        };
+        /** @description 隐藏规格，沿用商品配置。新建必须提供名称及对应类型的价格或组成；封面省略继承主商品。 */
+        ProductVariantInput: {
+            name?: string;
+            description?: string | null;
+            cover_image?: string;
+            introduction_markdown?: string | null;
+            price?: string;
+            cost?: string;
+            handler_cut?: string | null;
+            sender_cut?: string | null;
+            cs_cut?: string | null;
+            team_cut?: string | null;
+            /** @enum {integer} */
+            kind?: 1 | 2 | 3 | 4;
+            redemption?: components["schemas"]["ProductRedemptionInput"];
+            items?: components["schemas"]["ProductCompositionItems"];
+            /** @description 与商品原子保存，省略保留原接单池 */
+            handler_entity_ids?: number[];
+            benefit_package_id?: number | null;
+            redemption_campaign_id?: number | null;
+            /** @enum {integer} */
+            is_active?: 0 | 1;
+            /** @description 编辑已有规格时提交，必须属于当前主商品；新规格省略。 */
+            id?: number;
+            /** @description 完整替换购买资料字段；省略保留，空数组清空。多规格主商品不能配置，填写在具体规格中。 */
+            purchase_fields?: components["schemas"]["ProductPurchaseFieldInput"][];
+        };
+        /** @description 购买时填写的资料。新字段省略 id，更新时提交所属商品返回的 id；每笔订单填写一份。 */
+        ProductPurchaseFieldInput: {
+            id?: number;
+            name: string;
+            /**
+             * @default string
+             * @enum {string}
+             */
+            value_type: "string" | "text" | "int" | "decimal" | "bool" | "date" | "datetime" | "select" | "multi_select" | "json" | "image";
+            /**
+             * @default text
+             * @enum {string}
+             */
+            input_type: "text" | "textarea" | "radio" | "checkbox" | "select" | "date" | "datetime" | "upload";
+            options?: string[];
+            /** @description 省略购买值时使用的默认值；必须符合 value_type，可为 null。 */
+            default_value?: unknown;
+            /**
+             * @default 0
+             * @enum {integer}
+             */
+            is_required: 0 | 1;
+        };
+        /** @description 购买时填写的资料。新字段省略 id，更新时提交所属商品返回的 id；每笔订单填写一份。 */
+        ProductPurchaseField: {
+            id: number;
+            name: string;
+            /**
+             * @default string
+             * @enum {string}
+             */
+            value_type: "string" | "text" | "int" | "decimal" | "bool" | "date" | "datetime" | "select" | "multi_select" | "json" | "image";
+            /**
+             * @default text
+             * @enum {string}
+             */
+            input_type: "text" | "textarea" | "radio" | "checkbox" | "select" | "date" | "datetime" | "upload";
+            options: string[];
+            /** @description 省略购买值时使用的默认值；必须符合 value_type，可为 null。 */
+            default_value?: unknown;
+            /**
+             * @default 0
+             * @enum {integer}
+             */
+            is_required: 0 | 1;
+            sort: number;
+        };
+        OrderPurchaseField: components["schemas"]["ProductPurchaseField"] & {
+            /** @description 订单创建时校验并冻结的值；未填写的可选字段为 null。 */
+            value: unknown;
         };
     };
     responses: never;
@@ -3839,7 +3944,7 @@ export interface operations {
                      */
                     handler_entity_id?: 0;
                     memo?: string;
-                    /** @description 按最小核销步长逐份提交，数组顺序即履约资源序号 */
+                    /** @description 按最小核销单位逐份提交，数组顺序即履约资源序号 */
                     field_values?: {
                         [key: string]: unknown;
                     }[];
@@ -3887,7 +3992,7 @@ export interface operations {
                     quantity: string;
                     handler_entity_id: number;
                     memo?: string;
-                    /** @description 按最小核销步长逐份提交，数组顺序即履约资源序号 */
+                    /** @description 按最小核销单位逐份提交，数组顺序即履约资源序号 */
                     field_values?: {
                         [key: string]: unknown;
                     }[];
@@ -4207,10 +4312,10 @@ export interface operations {
             content: {
                 "application/json": {
                     /**
-                     * @default 1
+                     * @description 1 普通商品；2 套餐；3 卡密；4 核销商品；5 多规格主商品。主商品必须选择具体规格后购买或引用。
                      * @enum {integer}
                      */
-                    kind?: 1 | 2 | 3 | 4;
+                    kind?: 1 | 2 | 3 | 4 | 5;
                     redemption?: components["schemas"]["ProductRedemptionInput"];
                     items?: components["schemas"]["ProductCompositionItems"];
                     handler_entity_ids?: number[];
@@ -4232,7 +4337,14 @@ export interface operations {
                     team_cut?: string | null;
                     cover_image: string | null;
                     introduction_markdown?: string | null;
-                } | unknown | unknown;
+                    /** @description 仅多规格商品使用。完整原子保存，省略整个列表保留；移除的规格软删除。 */
+                    variants?: components["schemas"]["ProductVariantInput"][];
+                    /** @description 完整替换购买资料字段；省略保留，空数组清空。多规格主商品不能配置，填写在具体规格中。 */
+                    purchase_fields?: components["schemas"]["ProductPurchaseFieldInput"][];
+                } | unknown | unknown | {
+                    /** @enum {unknown} */
+                    kind: 5;
+                };
             };
         };
         responses: {
@@ -4441,6 +4553,15 @@ export interface operations {
                     team_cut?: string | null;
                     cover_image?: string | null;
                     introduction_markdown?: string | null;
+                    /** @description 仅多规格商品使用。完整原子保存，省略整个列表保留；移除的规格软删除。 */
+                    variants?: components["schemas"]["ProductVariantInput"][];
+                    /**
+                     * @description 1 普通商品；2 套餐；3 卡密；4 核销商品；5 多规格主商品。主商品必须选择具体规格后购买或引用。
+                     * @enum {integer}
+                     */
+                    kind?: 1 | 2 | 3 | 4 | 5;
+                    /** @description 完整替换购买资料字段；省略保留，空数组清空。多规格主商品不能配置，填写在具体规格中。 */
+                    purchase_fields?: components["schemas"]["ProductPurchaseFieldInput"][];
                 };
             };
         };
@@ -4840,6 +4961,10 @@ export interface operations {
                     /** @description 显式传入时表示整单分成；省略时取总价减成本及其他分成后的余额。 Exact decimal string. */
                     team_cut?: string | null;
                     memo?: string | null;
+                    /** @description 字段 id 到资料值的映射。仅接受当前购买商品的字段，每笔订单一份；必填字段不可缺失。 */
+                    purchase_values?: {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -5621,6 +5746,10 @@ export interface operations {
                     /** Format: int64 */
                     handler_entity_id?: number | null;
                     memo?: string | null;
+                    /** @description 字段 id 到资料值的映射。仅接受当前购买商品的字段，每笔订单一份；必填字段不可缺失。 */
+                    purchase_values?: {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

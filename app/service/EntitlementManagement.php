@@ -69,8 +69,18 @@ final class EntitlementManagement
                 $this->attachPricingSummaries($rows);
             }
         }
+        $products = [];
+        foreach ($productQuery->where('kind', '<>', \app\enum\ProductKind::MultiVariant->value)->with(['parentProduct'])->order('id', 'desc')->select() as $product) {
+            $parent = $product->parentProduct;
+            if ($product->parent_product_id !== null && (!$parent || !$parent->is_active
+                || $parent->enumCase('kind') !== \app\enum\ProductKind::MultiVariant
+                || $parent->team_id !== $product->team_id || $parent->entity_id !== $product->entity_id)) continue;
+            $row = array_intersect_key($product->toArray(), array_flip(['id', 'team_id', 'entity_id', 'name', 'kind', 'price', 'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'is_active', 'parent_product_id', 'purchase_fields']));
+            if ($parent) $row['name'] = $parent->name . ' · ' . $product->name;
+            $products[] = $row;
+        }
         return [
-            'products' => $productQuery->field(['id', 'team_id', 'entity_id', 'name', 'kind', 'price', 'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'is_active'])->order('id', 'desc')->select()->toArray(),
+            'products' => $products,
             'entities' => app(Entity::class)->optionsForTeam($teamId, true),
             'packages' => $packages,
             'campaigns' => $campaigns,
@@ -119,6 +129,9 @@ final class EntitlementManagement
             $quantityStepInput,
             $quantityStepInput
         );
+        $autoCompleteAfterMinutes = $this->normalizeAutoCompleteAfterMinutes(
+            $data['auto_complete_after_minutes'] ?? null
+        );
         $money = [];
         foreach (['default_total_price', 'default_cost', 'default_handler_cut', 'default_sender_cut', 'default_cs_cut'] as $field) {
             $value = $data[$field] ?? 0;
@@ -139,7 +152,7 @@ final class EntitlementManagement
         $redemptionFields = is_array($data['redemption_fields'] ?? null) ? $data['redemption_fields'] : [];
         if ($hasRedemptionFields && !is_array($data['redemption_fields'])) throw new HttpException(422, '核销字段格式无效');
 
-        return Db::transaction(function () use ($teamId, $id, $data, $name, $unitName, $quantityStep, $money, $handlerIds, $hasHandlers, $redemptionFields, $hasRedemptionFields, $ownerEntityId) {
+        return Db::transaction(function () use ($teamId, $id, $data, $name, $unitName, $quantityStep, $autoCompleteAfterMinutes, $money, $handlerIds, $hasHandlers, $redemptionFields, $hasRedemptionFields, $ownerEntityId) {
             $service = $id ? TeamService::where('team_id', $teamId)->find($id) : new TeamService;
             if (!$service) throw new HttpException(404, '服务不存在');
             $values = array_merge($money, [
@@ -148,6 +161,7 @@ final class EntitlementManagement
                 'description' => trim((string) ($data['description'] ?? '')) ?: null,
                 'unit_name' => $unitName,
                 'quantity_step' => $quantityStep,
+                'auto_complete_after_minutes' => $autoCompleteAfterMinutes,
                 'is_active' => (int) ($data['is_active'] ?? 1) === 1 ? 1 : 0,
             ]);
             if (!$id) $values['owner_entity_id'] = $ownerEntityId;
@@ -201,6 +215,19 @@ final class EntitlementManagement
         if (!$entity || !$entity->is_valid || !in_array((string) $entity->entityable_type, ['team', 'teamMember', 'teamVirtual'], true)) {
             throw new HttpException(422, '接单池只允许当前团队内有效的 Team、Member 或 Virtual Entity');
         }
+    }
+
+    private function normalizeAutoCompleteAfterMinutes(mixed $value): ?int
+    {
+        if ($value === null || $value === '') return null;
+        if (filter_var($value, FILTER_VALIDATE_INT) === false) {
+            throw new HttpException(422, '自动结单时长必须是整数分钟');
+        }
+        $minutes = (int) $value;
+        if ($minutes < 1 || $minutes > 5256000) {
+            throw new HttpException(422, '自动结单时长必须在 1 至 5256000 分钟之间');
+        }
+        return $minutes;
     }
 
     public function disableService(int $teamId, int $id, ?int $ownerEntityId = null): void

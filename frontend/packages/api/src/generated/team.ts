@@ -537,7 +537,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 添加成员 */
+        /**
+         * 添加成员
+         * @description 使用对方在 Account 团队选择页生成的个人一次性入队码直接添加成员。成功消费与成员创建同事务，失败保留码；不接受 user_id。已有、封禁或离队成员不重复创建，不自动授予角色。沿用 MemberAccess 与 team.member.invite。 可选 join_form：省略或 null 时直接添加、不创建申请；提供对象时校验必填字段并保存已加入的申请记录，转存配置字段，创建任期并消费入队码，全部同事务，无需另行审核。有待处理申请时返回 409，保留原申请与码。
+         */
         post: operations["teamMemberAdd"];
         delete?: never;
         options?: never;
@@ -762,7 +765,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 按 scope 列出 Team 共享站内通知或当前 Entity 通知；省略时兼容原身份默认值 */
+        /** 按 scope 列出 Team 共享站内通知或当前 Entity 通知；省略时兼容原身份默认值；sent 查看本团队已发送通知及收件人已读状态（只读） */
         get: operations["teamNoticeIndex"];
         put?: never;
         post?: never;
@@ -779,7 +782,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 按 scope 读取 Team 共享站内通知或当前 Entity 通知详情 */
+        /** 按 scope 读取 Team 共享站内通知或当前 Entity 通知详情；sent 查看本团队已发送通知及收件人已读状态（只读） */
         get: operations["teamNoticeGet"];
         put?: never;
         post?: never;
@@ -2012,6 +2015,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/member/joinForm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 获取新增成员可代填的入职表单
+         * @description 沿用 MemberAccess 与 team.member.invite，仅返回当前团队启用且允许申请人填写的字段和文件上传可用状态，不要求加入字段管理权限。
+         */
+        get: operations["teamMemberJoinForm"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/member/joinUpload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 代填入职表单上传文件
+         * @description 沿用 MemberAccess 与 team.member.invite，使用申请文件上传校验及配额，文件 source 固定为 join。
+         */
+        post: operations["teamMemberJoinUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2607,6 +2650,11 @@ export interface components {
             size?: number;
             mime_type?: string;
             /**
+             * @description 首次入库来源：未知来源、手动上传、Markdown 上传、表单附件、加入申请、命令上传、系统上传。历史记录为 unknown；内容去重和恢复保留原来源。
+             * @enum {string}
+             */
+            source?: "unknown" | "manual" | "markdown" | "attachment" | "join" | "command" | "system";
+            /**
              * Format: int64
              * @description Unix timestamp, seconds
              */
@@ -2990,7 +3038,7 @@ export interface components {
             href?: string | null;
         };
         /** @description 按设置定义返回的真实类型值 */
-        TeamSettingValue: boolean | number | string;
+        TeamSettingValue: (boolean | number | string) | null;
         TeamSettingOption: {
             value: number | string;
             label: string;
@@ -3013,6 +3061,8 @@ export interface components {
             /** @enum {string} */
             control: "switch" | "radio" | "select" | "number" | "input";
             order: number;
+            /** @description 为 true 时允许提交 null 或空值，并按 null 返回。 */
+            nullable?: boolean;
             default: components["schemas"]["TeamSettingValue"];
             value: components["schemas"]["TeamSettingValue"];
             options?: components["schemas"]["TeamSettingOption"][];
@@ -3052,11 +3102,6 @@ export interface components {
             options?: unknown[] | null;
             /** @enum {integer} */
             is_required?: 0 | 1;
-            /**
-             * @description 是否允许手动修改字段值；关闭后字段管理员和对象本人均只读
-             * @enum {integer}
-             */
-            is_editable?: 0 | 1;
             /**
              * @description 预留字段；当前版本未接入字段值搜索，不参与可见性判断
              * @enum {integer}
@@ -4353,15 +4398,19 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** Format: int64 */
-                    user_id: number;
-                    nickname?: string;
-                    avatar?: string;
-                    description?: string | null;
-                    intro_image?: string | null;
-                    intro_video?: string | null;
-                    introduction_markdown?: string | null;
-                    post_type_ids?: number[];
+                    /**
+                     * @description 个人入队码，服务端去除首尾空白并转为大写后验证 20 位十六进制格式
+                     * @example A12BC34DE56FA78BC90D
+                     */
+                    join_code: string;
+                    /** @description 可选代填入职表单；仅提交当前团队启用且可由申请人填写的字段。空对象也会执行必填校验。 */
+                    join_form?: {
+                        /** @description 按申请字段 field_key 或 ID 提交字段值 */
+                        values?: {
+                            [key: string]: unknown;
+                        };
+                        memo?: string | null;
+                    } | null;
                 };
             };
         };
@@ -5003,8 +5052,8 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 limit?: components["parameters"]["Limit"];
-                /** @description team 需要 team.notice.read；省略时 Team 身份默认 team，其他身份默认 entity */
-                scope?: "team" | "entity";
+                /** @description team 需要 team.notice.read；省略时 Team 身份默认 team，其他身份默认 entity；sent 需要 team.notice.send，按 sender_team_id 限定当前团队，不标记收件人已读 */
+                scope?: "team" | "entity" | "sent";
                 is_read?: 0 | 1;
                 keyword?: string;
             };
@@ -5079,8 +5128,8 @@ export interface operations {
         parameters: {
             query?: {
                 id?: components["parameters"]["IdQuery"];
-                /** @description team 需要 team.notice.read；省略时兼容原身份默认值 */
-                scope?: "team" | "entity";
+                /** @description team 需要 team.notice.read；省略时兼容原身份默认值；sent 需要 team.notice.send，按 sender_team_id 限定当前团队，不标记收件人已读 */
+                scope?: "team" | "entity" | "sent";
             };
             header?: {
                 /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
@@ -8288,6 +8337,63 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    teamMemberJoinForm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Field contract for 200. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: {
+                            fields: components["schemas"]["JoinField"][];
+                            file_upload: components["schemas"]["FileUsage"];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    teamMemberJoinUpload: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。 */
+                "X-Page-Id"?: components["parameters"]["PageId"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Field contract for 200. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: unknown;
+                    };
                 };
             };
         };

@@ -103,7 +103,7 @@ $assert(str_contains($workspace, "taskCreate(") && str_contains($workspace, '$th
 $assert(str_contains($workspace, "expected_entity_id/d"), 'personal writes must enforce expected_entity_id');
 $assert(!str_contains($workspace, 'confirmation') && !str_contains($workspace, 'POST_ONCE') && !str_contains($workspace, 'LIKE_ONCE') && !str_contains($workspace, 'COMMENT_ONCE'), 'manual writes must not require typed confirmation words');
 $assert(str_contains($workspace, "post('status_url/s'") && !str_contains($workspace, "post('status_id/s'"), 'manual interactions must accept a status URL instead of a status ID');
-$openapi = file_get_contents($root . '/docs/openapi/weibo.openapi.json');
+$openapi = file_get_contents($root . '/docs/dev/openapi/weibo.openapi.json');
 $assert(!str_contains($openapi, 'confirmation') && !str_contains($openapi, 'POST_ONCE') && !str_contains($openapi, 'LIKE_ONCE') && !str_contains($openapi, 'COMMENT_ONCE'), 'manual write OpenAPI contract must not expose typed confirmation words');
 $assert(str_contains($openapi, 'status_url') && !str_contains($openapi, 'statuses/{status_id}/images') && !str_contains($openapi, 'StatusId'), 'OpenAPI must accept status URLs and omit status image lookup');
 $assert(str_contains($openapi, '"Checkin"') && str_contains($openapi, '"operation_type"'), 'OpenAPI must expose the automatic check-in task type');

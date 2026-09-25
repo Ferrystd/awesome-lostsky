@@ -1,0 +1,47 @@
+name: Bug 上报
+description: 报告可复现的异常行为或功能故障
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你帮助改进 LostSky。请提供足够的信息，以便我们稳定复现并定位问题。
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 问题影响
+      description: 问题影响
+      placeholder: 写下bug造成的影响
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 列出步骤
+      placeholder: |
+        1. 进入……
+        2. 点击……
+        3. 查看……
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+      description: 本应发生
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: 实际发生
+    validations:
+      required: true

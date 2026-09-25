@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" role="img" aria-labelledby="title description">
+  <title id="title">普通商品流程</title>
+  <desc id="description">主流程从设置价格及分成开始，依次经过上架商品、顾客下单和余额划扣。开启自动记账后，顾客下单同时进入自动记账支线。</desc>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --main-fill: #eef2ff;
+      --main-stroke: #526cff;
+      --main-line: #4056d6;
+      --branch-fill: #f8fafc;
+      --branch-stroke: #94a3b8;
+      --branch-line: #64748b;
+      --text: #253047;
+      --muted: #526078;
+      --label-fill: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --main-fill: #242b45;
+        --main-stroke: #8295ff;
+        --main-line: #9aa8ff;
+        --branch-fill: #252a33;
+        --branch-stroke: #718096;
+        --branch-line: #a0aec0;
+        --text: #eef2ff;
+        --muted: #c2cad8;
+        --label-fill: #1e2129;
+      }
+    }
+    text {
+      fill: var(--text);
+      font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      font-size: 18px;
+      text-anchor: middle;
+    }
+    .caption { fill: var(--muted); font-size: 15px; }
+    .main-node { fill: var(--main-fill); stroke: var(--main-stroke); stroke-width: 2; }
+    .branch-node { fill: var(--branch-fill); stroke: var(--branch-stroke); stroke-width: 1.5; }
+    .main-edge, .optional-edge {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .main-edge { stroke: var(--main-line); stroke-width: 2.25; marker-end: url(#main-arrow); }
+    .optional-edge { stroke: var(--branch-line); stroke-width: 1.75; stroke-dasharray: 6 6; marker-end: url(#branch-arrow); }
+    .label-bg { fill: var(--label-fill); }
+  </style>
+  <defs>
+    <marker id="main-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--main-line)"/>
+    </marker>
+    <marker id="branch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--branch-line)"/>
+    </marker>
+  </defs>
+
+  <!-- 主线：所有节点中心固定在 x=430 -->
+  <path class="main-edge" d="M430 105 V145"/>
+  <path class="main-edge" d="M430 205 V245"/>
+  <path class="main-edge" d="M430 305 V345"/>
+
+  <!-- 自动记账支线从顾客下单节点右侧引出 -->
+  <path class="optional-edge" d="M570 275 H720"/>
+  <rect class="label-bg" x="602" y="245" width="76" height="24" rx="4"/>
+  <text class="caption" x="640" y="262">自由开启</text>
+
+  <g>
+    <rect class="main-node" x="270" y="45" width="320" height="60" rx="8"/>
+    <text x="430" y="82">设置价格及分成</text>
+  </g>
+  <g>
+    <rect class="main-node" x="320" y="145" width="220" height="60" rx="8"/>
+    <text x="430" y="182">上架商品</text>
+  </g>
+  <g>
+    <rect class="main-node" x="290" y="245" width="280" height="60" rx="8"/>
+    <text x="430" y="282">顾客下单</text>
+  </g>
+  <g>
+    <rect class="main-node" x="270" y="345" width="320" height="60" rx="8"/>
+    <text x="430" y="382">顾客余额被划扣</text>
+  </g>
+  <g>
+    <rect class="branch-node" x="720" y="245" width="220" height="60" rx="8"/>
+    <text x="830" y="282">自动记账</text>
+  </g>
+</svg>

@@ -28,12 +28,14 @@ class TeamProduct extends Base
         'team_cut'    => 'string',
         'kind'        => ProductKind::class,
         'is_active'   => 'integer',
+        'variant_sort' => 'integer',
+        'purchase_fields' => 'array',
         'create_time' => 'integer',
         'update_time' => 'integer',
         'delete_time' => 'integer',
     ];
 
-    protected $json = [];
+    protected $json = ['purchase_fields'];
 
     protected $hidden = ['delete_time'];
 
@@ -54,6 +56,16 @@ class TeamProduct extends Base
     public function handlers()
     {
         return $this->hasMany(TeamProductHandler::class, 'product_id');
+    }
+
+    public function parentProduct()
+    {
+        return $this->belongsTo(self::class, 'parent_product_id');
+    }
+
+    public function variants()
+    {
+        return $this->hasMany(self::class, 'parent_product_id')->order('variant_sort')->order('id');
     }
 
     public function benefitPackage()

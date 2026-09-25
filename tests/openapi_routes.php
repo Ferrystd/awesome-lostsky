@@ -7,7 +7,7 @@ $errors = [];
 
 foreach ($apps as $app) {
     $routeFile = "{$root}/app/{$app}/route/app.php";
-    $openApiFile = "{$root}/docs/openapi/{$app}.openapi.json";
+    $openApiFile = "{$root}/docs/dev/openapi/{$app}.openapi.json";
     $source = file_get_contents($routeFile);
     $document = json_decode((string) file_get_contents($openApiFile), true, 512, JSON_THROW_ON_ERROR);
     $routes = [];
@@ -62,8 +62,8 @@ foreach ($apps as $app) {
     }
 }
 
-$teamOpenApi = json_decode((string) file_get_contents("{$root}/docs/openapi/team.openapi.json"), true, 512, JSON_THROW_ON_ERROR);
-$shopOpenApi = json_decode((string) file_get_contents("{$root}/docs/openapi/shop.openapi.json"), true, 512, JSON_THROW_ON_ERROR);
+$teamOpenApi = json_decode((string) file_get_contents("{$root}/docs/dev/openapi/team.openapi.json"), true, 512, JSON_THROW_ON_ERROR);
+$shopOpenApi = json_decode((string) file_get_contents("{$root}/docs/dev/openapi/shop.openapi.json"), true, 512, JSON_THROW_ON_ERROR);
 $requiredUsage = ['count', 'total_size', 'size_limit', 'remaining_size', 'available', 'reason'];
 foreach (['team' => $teamOpenApi, 'shop' => $shopOpenApi] as $app => $document) {
     $required = $document['components']['schemas']['FileUsage']['required'] ?? [];

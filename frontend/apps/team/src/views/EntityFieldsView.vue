@@ -9,6 +9,7 @@ import { ChevronRight, FileText, Plus } from '@lucide/vue'
 import { NRadioButton, NRadioGroup, NTag } from 'naive-ui'
 import { computed, ref } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import { inputTypeLabel, valueTypeLabel } from '../lib/joinFields'
 
 type EntityType = 'entity' | 'customer' | 'virtual'
 interface EntityField {
@@ -42,7 +43,7 @@ const visibleFields = computed(() => { const keyword = search.value.trim().toLoc
     <div v-else-if="visibleFields.length" class="field-list">
       <RouterLink v-for="field in visibleFields" :key="field.id" :to="{ path: '/field-edit', query: { id: field.id } }">
         <span class="field-icon"><FileText :size="20" /></span>
-        <div><strong>{{ field.name }}</strong><small>{{ field.field_key }} · {{ field.value_type }} / {{ field.input_type }}</small></div>
+        <div><strong>{{ field.name }}</strong><small>{{ field.field_key }} · {{ valueTypeLabel(field.value_type) }} / {{ inputTypeLabel(field.input_type) }}</small></div>
         <NTag v-if="field.is_required" type="warning" size="small" :bordered="false">必填</NTag><ChevronRight :size="18" />
       </RouterLink>
     </div>

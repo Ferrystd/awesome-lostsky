@@ -18,7 +18,7 @@ import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import EntityProfileFields from '../components/EntityProfileFields.vue'
-import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { createDocumentTagGroupDraft, documentTagDescriptionError, documentTagError, documentTagGroupDrafts, documentTagGroupsPayload, hasDocumentTagGroupErrors, type DocumentTagGroupDraft } from '../lib/documentTags'
 import { permissionReason, resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
@@ -242,7 +242,7 @@ async function submitProfile() {
                 <h3 id="document-tag-groups-title">公开文档分组</h3>
                 <p>按这里的顺序组织该人员的公开文档；说明会显示在对应分组标题下方。</p>
               </div>
-              <LsFormList v-model="form.document_tags" :item-key="tagKey" :create-item="createTagGroup" item-label="展示标签" add-label="添加展示标签" empty-text="尚未配置公开文档分组" :disabled="!canManage">
+              <LsFormList v-model="form.document_tags" :item-key="tagKey" :create-item="createTagGroup" item-label="展示标签" add-label="添加展示标签" empty-text="尚未配置公开文档分组" :disabled="!canManage" :disabled-reason="manageReason">
                 <template #item="{ item, index }">
                   <div class="document-tag-group-fields">
                     <LsField label="标签" :for-id="`entity-document-tag-${item.key}`" :error="tagFieldError(item, index)" required>

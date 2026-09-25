@@ -1,4 +1,7 @@
 export interface AbilityState { enabled: boolean; reason: string | null; label: string }
+export interface WeiboFeedItem { id: number; text: string; author_name?: string; posted_at: number; status_url?: string; app_url?: string; restricted: boolean }
+export interface WeiboFeedPage { list: WeiboFeedItem[]; total: number; page: number; limit: number; restricted: boolean; updated_at: number; poll_status: 'unconfigured' | 'failed' | 'ready'; last_error: string | null }
+export interface WeiboCommentPreset { id: number; content: string; scope: 'team' | 'personal' }
 export interface WorkspaceAccess {
   team?: { id: number; slug: string; name: string } | null
   permissions: string[]

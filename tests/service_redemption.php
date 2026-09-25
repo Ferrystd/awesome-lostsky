@@ -26,6 +26,7 @@ use app\model\TeamService;
 use app\model\TeamServiceAdjustment;
 use app\model\TeamServiceAssignmentOffer;
 use app\model\TeamServiceEntitlement;
+use app\model\TeamServiceEvent;
 use app\model\TeamServiceHandler;
 use app\model\TeamServiceInstance;
 use app\model\TeamServiceRedemptionField;
@@ -136,10 +137,12 @@ try {
         422,
         'service quantity still rejects values that are not step multiples'
     );
-    $serviceDefaults = app(TeamSetting::class)->internal((int) $team->id, 'service');
+    $serviceDefaults = app(TeamSetting::class)->internalTyped((int) $team->id, 'service');
     $assert(
         !array_key_exists('default_quantity_scale', $serviceDefaults)
-            && !array_key_exists('assignment_offer_timeout_minutes', $serviceDefaults),
+            && !array_key_exists('assignment_offer_timeout_minutes', $serviceDefaults)
+            && array_key_exists('default_auto_complete_after_minutes', $serviceDefaults)
+            && $serviceDefaults['default_auto_complete_after_minutes'] === null,
         'service settings no longer expose configurable quantity scale or assignment timeout'
     );
     $teamSettings = app(TeamSetting::class);
@@ -459,12 +462,31 @@ try {
         'fill_stage' => 'manager',
         'is_customer_visible' => 0,
         'is_required' => 1,
+    ], [
+        'name' => '需求截图',
+        'value_type' => 'image',
+        'input_type' => 'upload',
+        'fill_stage' => 'customer',
+        'is_customer_visible' => 1,
+        'is_required' => 0,
     ]]);
     $customerField = (int) $savedFields[0]['id'];
     $managerField = (int) $savedFields[1]['id'];
+    $imageField = (int) $savedFields[2]['id'];
     $assert(
         (int) TeamServiceRedemptionField::find($customerField)->service_id === (int) $service->id,
         'redemption fields belong to the service definition'
+    );
+    $assert(
+        TeamServiceRedemptionField::find($imageField)->value_type === 'image',
+        'redemption fields support image uploads'
+    );
+    $throws(
+        fn () => app(ServiceRedemptionField::class)->sync((int) $team->id, (int) $service->id, [[
+            'name' => '不合规图片字段', 'value_type' => 'image', 'input_type' => 'text',
+        ]]),
+        422,
+        'image redemption fields require the upload input control'
     );
     $orderId = app(Order::class)->create((int) $team->id, [
         'product_id' => $productId,
@@ -1086,6 +1108,85 @@ try {
     );
     $noLedger = TeamServiceInstance::find($noLedgerId);
     $assert($noLedger->enumCase('status') === ServiceStatus::Redeemed && $noLedger->trans_id === null, 'missing ability completes without creating transaction');
+
+    // 自动结单冻结开始时配置；撤销待审只跳过本轮，不暂停或重置计时。
+    $autoProductId = app(Product::class)->create((int) $team->id, [
+        'name' => '自动结单核销',
+        'cover_image' => 'https://assets.lostsky.work/auto-complete-service.webp',
+        'price' => '0.01',
+        'cost' => '0.00',
+        'handler_cut' => '0.00',
+        'sender_cut' => '0.00',
+        'cs_cut' => '0.00',
+        'kind' => 4,
+        'redemption' => [
+            'unit_name' => '次',
+            'quantity_step' => '1',
+            'quantity' => '2',
+            'valid_days' => 30,
+            'auto_complete_after_minutes' => 10,
+            'handler_entity_ids' => [],
+            'redemption_fields' => [[
+                'name' => '人工结单结果',
+                'value_type' => 'text',
+                'input_type' => 'textarea',
+                'fill_stage' => 'manager',
+                'is_required' => 1,
+            ]],
+        ],
+    ]);
+    $autoOrderId = app(Order::class)->create((int) $team->id, [
+        'product_id' => $autoProductId,
+        'customer_id' => $customer->id,
+        'quantity' => 1,
+    ]);
+    app(Order::class)->complete((int) $team->id, $autoOrderId);
+    $autoEntitlement = TeamServiceEntitlement::where('source_order_id', $autoOrderId)->find();
+    $autoFirstId = app(ServiceRedemption::class)->start(
+        (int) $team->id, (int) $customer->id, (int) $autoEntitlement->id,
+        '1', 0, '', [], (int) $customerEntity->id
+    );
+    $autoSecondId = app(ServiceRedemption::class)->start(
+        (int) $team->id, (int) $customer->id, (int) $autoEntitlement->id,
+        '1', 0, '', [], (int) $customerEntity->id
+    );
+    $autoStartedAt = time() - 601;
+    TeamServiceInstance::whereIn('id', [$autoFirstId, $autoSecondId])->update(['started_at' => $autoStartedAt]);
+    app(Product::class)->edit((int) $team->id, $autoProductId, [
+        'redemption' => ['auto_complete_after_minutes' => 20],
+    ]);
+    $assert(
+        (int) TeamServiceInstance::find($autoFirstId)->auto_complete_after_minutes === 10,
+        'started redemption keeps its automatic completion duration snapshot'
+    );
+    app(ServiceRedemption::class)->requestCancel(
+        (int) $team->id, (int) $customer->id, $autoSecondId, '先暂停结单', (int) $customerEntity->id
+    );
+    $firstAutoRun = app(ServiceRedemption::class)->autoCompleteDue(time());
+    $assert(
+        $firstAutoRun['completed'] === 1
+            && TeamServiceInstance::find($autoFirstId)->enumCase('status') === ServiceStatus::Redeemed
+            && TeamServiceInstance::find($autoSecondId)->enumCase('status') === ServiceStatus::Processing,
+        'automatic completion skips a redemption with a pending cancellation request'
+    );
+    $assert(
+        TeamServiceEvent::where('service_instance_id', $autoFirstId)
+            ->where('event_type', 'auto_completed')->whereNull('actor_entity_id')->find() !== null,
+        'automatic completion records a system event without impersonating an Entity'
+    );
+    app(ServiceRedemption::class)->rejectCancel(
+        (int) $team->id, $subjectManager, (int) $teamEntity->id, $autoSecondId, '继续履约'
+    );
+    $assert(
+        (int) TeamServiceInstance::find($autoSecondId)->started_at === $autoStartedAt,
+        'rejecting cancellation does not reset or pause the automatic completion clock'
+    );
+    $secondAutoRun = app(ServiceRedemption::class)->autoCompleteDue(time());
+    $assert(
+        $secondAutoRun['completed'] === 1
+            && TeamServiceInstance::find($autoSecondId)->enumCase('status') === ServiceStatus::Redeemed,
+        'automatic completion becomes immediately eligible after cancellation rejection'
+    );
 } catch (Throwable $exception) {
     $failures[] = (string) $exception;
 } finally {

@@ -94,7 +94,7 @@ www/
 
 > 使用更廉价的模型
 
-读取 `/docs/openapi/` 中的 JSON 文件，分析该页面所需的 API 接口。输出。
+读取 `/docs/dev/openapi/` 中的 JSON 文件，分析该页面所需的 API 接口。输出。
 ---
 
 ## 阶段二：设计确认

@@ -24,6 +24,8 @@ Route::post('tasks/<id>/start', 'Team/taskStart')->completeMatch();
 Route::post('tasks/<id>/resume', 'Team/taskResume')->completeMatch();
 Route::post('tasks/<id>/cancel', 'Team/taskCancel')->completeMatch();
 Route::get('operations', 'Team/operations')->completeMatch();
+Route::get('comment-presets', 'Team/commentPresets')->completeMatch();
+Route::post('comment-presets', 'Team/commentPresetsReplace')->completeMatch();
 
 Route::get('personal/accounts', 'Personal/accounts')->completeMatch();
 Route::get('personal/accounts/<id>', 'Personal/account')->completeMatch();
@@ -45,3 +47,8 @@ Route::post('personal/tasks/<id>/start', 'Personal/taskStart')->completeMatch();
 Route::post('personal/tasks/<id>/resume', 'Personal/taskResume')->completeMatch();
 Route::post('personal/tasks/<id>/cancel', 'Personal/taskCancel')->completeMatch();
 Route::get('personal/operations', 'Personal/operations')->completeMatch();
+Route::get('personal/feed', 'Personal/feed')->completeMatch();
+Route::get('personal/feed/<id>', 'Personal/feedItem')->completeMatch();
+Route::post('personal/feed/<id>/comments', 'Personal/feedComment')->completeMatch();
+Route::get('personal/comment-presets', 'Personal/commentPresets')->completeMatch();
+Route::post('personal/comment-presets', 'Personal/commentPresetsReplace')->completeMatch();

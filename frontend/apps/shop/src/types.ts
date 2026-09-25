@@ -12,7 +12,7 @@ export interface StoreProfile {
 }
 
 export interface ProductSummary {
-  kind?: 1 | 2 | 3 | 4
+  kind?: 1 | 2 | 3 | 4 | 5
   id: number
   name: string
   description?: string | null
@@ -28,6 +28,8 @@ export interface Handler {
 }
 
 export interface ProductDetail extends ProductSummary {
+  purchase_fields?: import('./purchase-fields').PurchaseField[]
+  variants?: ProductDetail[]
   handler_groups?: Array<{ product_id: number; name: string; handlers: Handler[] }>
   inclusions?: Array<{ kind: 1 | 3 | 4; name: string; quantity: string; unit_name: string; quantity_step?: string; valid_days?: number }>
   introduction_markdown?: string | null
@@ -81,6 +83,7 @@ export interface Customer {
 export interface BindResult { token?: string | null; customer: Customer; created: boolean }
 
 export interface Order {
+  purchase_fields?: import('./purchase-fields').OrderPurchaseField[]
   id: number
   product_id: number
   product_name: string
@@ -206,6 +209,7 @@ export interface ManageAccess {
 export interface ManageEntityOption { id?: number; entity_id?: number; slug: string; type?: string; entityable_type?: string; name: string; avatar?: string | null }
 export interface ManageOwnedResource { owner_entity_id?: number | null; owner?: ManageEntityOption | null }
 export interface ManageService extends ManageOwnedResource {
+  auto_complete_after_minutes?: number | null
   id: number; team_id: number; name: string; description?: string | null; is_active: 0 | 1
   unit_name: string; quantity_step: string
   default_total_price: string; default_cost: string; default_handler_cut: string; default_sender_cut: string; default_cs_cut: string; default_team_cut: string
@@ -228,10 +232,12 @@ export interface ManageCampaign extends ManageOwnedResource { id: number; packag
 export interface ManageCode { id: number; campaign_id: number; code_hint: string; use_count: number; max_uses?: number | null; expire_time: number; is_active: 0 | 1; create_time: number }
 export interface ManageCustomerOption { id: number; nickname?: string; name?: string; is_blocked: 0 | 1; balance?: Balance | null }
 export interface ManageServiceDefaults {
+  default_auto_complete_after_minutes?: number | null
   default_unit_name: string; default_quantity_step: string; default_valid_days: number
   allow_customer_open_dispatch: boolean; default_handler_rate_percent: number; default_sender_rate_percent: number; default_cs_rate_percent: number
 }
 export interface ManageProductCandidate {
+  purchase_fields?: import('./purchase-fields').PurchaseField[]
   id: number
   team_id: number
   entity_id: number | null

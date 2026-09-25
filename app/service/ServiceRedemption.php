@@ -243,6 +243,7 @@ class ServiceRedemption
                 'cs_cut' => $offer->cs_cut,
                 'team_cut' => $offer->team_cut,
                 'expire_time' => $entitlement->expire_time,
+                'auto_complete_after_minutes' => $this->serviceAutoCompleteAfterMinutes((int) $offer->service_id),
                 'started_at' => time(),
                 'memo' => $offer->memo,
             ]);
@@ -335,6 +336,7 @@ class ServiceRedemption
                 'sender_entity_id' => $entitlement->sender_entity_id,
                 'cs_entity_id' => $entitlement->cs_entity_id,
                 'expire_time' => $entitlement->expire_time,
+                'auto_complete_after_minutes' => $this->serviceAutoCompleteAfterMinutes((int) $entitlement->service_id),
                 'started_at' => time(),
                 'memo' => trim($memo),
             ] + $money);
@@ -373,6 +375,7 @@ class ServiceRedemption
             $money = $this->allocateMoney($entitlement, $quantityMinor);
             $instance->status = ServiceStatus::Processing;
             $instance->handler_entity_id = $handlerEntityId;
+            $instance->auto_complete_after_minutes = $this->serviceAutoCompleteAfterMinutes((int) $instance->service_id);
             $instance->started_at = time();
             $instance->completed_at = null;
             $instance->memo = trim($memo);
@@ -569,6 +572,7 @@ class ServiceRedemption
                     'sender_entity_id' => $instance->sender_entity_id,
                     'cs_entity_id' => $instance->cs_entity_id,
                     'expire_time' => $instance->expire_time,
+                    'auto_complete_after_minutes' => $instance->auto_complete_after_minutes,
                     'started_at' => $instance->started_at,
                     'memo' => $instance->memo,
                 ] + $remainderMoney);
@@ -772,45 +776,111 @@ class ServiceRedemption
             }
             if ($instance->enumCase('status') === ServiceStatus::Redeemed) return;
             $this->assertProcessing($instance);
-            if ($this->pendingCancel((int) $instance->id, true)) throw new HttpException(409, '待处理取消申请存在时不可完成');
-            if (TeamServiceAdjustment::where('service_instance_id', $id)
-                ->where('status', ServiceAdjustmentStatus::Pending->value)->lock(true)->find()) {
-                throw new HttpException(409, '仍有待顾客确认的加价费用');
-            }
-            app(ServiceRedemptionField::class)->saveResourcesForStage($instance, 'manager', $fieldValues);
-            $transId = null;
-            if (app(AbilityResolver::class)->available($teamId, 'transaction')) {
-                $transId = app(Transaction::class)->createServiceRedemption($teamId, [
-                    'handler_entity_id' => $instance->handler_entity_id,
-                    'sender_entity_id' => $instance->sender_entity_id,
-                    'cs_entity_id' => $instance->cs_entity_id,
-                    'customer_id' => $instance->customer_id,
-                    'service_instance_id' => $instance->id,
-                    'total_price' => $instance->total_price,
-                    'cost' => $instance->cost,
-                    'handler_cut' => $instance->handler_cut,
-                    'sender_cut' => $instance->sender_cut,
-                    'cs_cut' => $instance->cs_cut,
-                    'team_cut' => $instance->team_cut,
-                    'trans_at' => time(),
-                    'memo' => '服务核销 #' . $instance->id,
-                ]);
-                app(ServiceAdjustment::class)->createPerformancesForInstance($instance);
-            }
-            $quantityMinor = app(ServiceQuantity::class)->toMinor($instance->quantity);
-            $reserved = app(ServiceQuantity::class)->toMinor($entitlement->reserved_quantity);
-            if ($reserved < $quantityMinor) throw new HttpException(409, '服务权益预占数量异常');
-            $entitlement->reserved_quantity = app(ServiceQuantity::class)->fromMinor($reserved - $quantityMinor);
-            $entitlement->consumed_quantity = app(ServiceQuantity::class)->fromMinor(
-                app(ServiceQuantity::class)->toMinor($entitlement->consumed_quantity) + $quantityMinor
-            );
-            $entitlement->save();
-            $instance->status = ServiceStatus::Redeemed;
-            $instance->completed_at = time();
-            $instance->trans_id = $transId;
-            $instance->save();
-            $this->event((int) $instance->id, $actorEntityId, 'completed', null, null, ['transaction_id' => $transId]);
+            $this->completeLocked($entitlement, $instance, $actorEntityId, $fieldValues, false);
         });
+    }
+
+    public function autoCompleteDue(?int $now = null, int $limit = 100): array
+    {
+        $now ??= time();
+        $limit = max(1, min(1000, $limit));
+        $ids = Db::name('team_service_instance')->alias('instance')
+            ->leftJoin('team_service_cancel_request cancel_request', 'cancel_request.service_instance_id = instance.id AND cancel_request.status = 1 AND cancel_request.delete_time IS NULL')
+            ->leftJoin('team_service_adjustment adjustment', 'adjustment.service_instance_id = instance.id AND adjustment.status = 1 AND adjustment.delete_time IS NULL')
+            ->where('instance.status', ServiceStatus::Processing->value)
+            ->whereNotNull('instance.started_at')
+            ->whereNotNull('instance.auto_complete_after_minutes')
+            ->whereNull('cancel_request.id')
+            ->whereNull('adjustment.id')
+            ->whereRaw('instance.started_at + instance.auto_complete_after_minutes * 60 <= :now', ['now' => $now])
+            ->order('instance.started_at', 'asc')->limit($limit)->column('instance.id');
+
+        $completed = 0;
+        $failed = 0;
+        foreach ($ids as $id) {
+            try {
+                $didComplete = Db::transaction(function () use ($id, $now): bool {
+                    $reference = TeamServiceInstance::find((int) $id);
+                    if (!$reference) return false;
+                    [$entitlement, $instance] = $this->lockedPair((int) $reference->team_id, (int) $id);
+                    if ($instance->enumCase('status') !== ServiceStatus::Processing
+                        || $instance->started_at === null
+                        || $instance->auto_complete_after_minutes === null
+                        || (int) $instance->started_at + (int) $instance->auto_complete_after_minutes * 60 > $now
+                        || $this->pendingCancel((int) $instance->id, true)
+                        || TeamServiceAdjustment::where('service_instance_id', $instance->id)
+                            ->where('status', ServiceAdjustmentStatus::Pending->value)->lock(true)->find()) {
+                        return false;
+                    }
+                    $this->completeLocked($entitlement, $instance, null, [], true, $now);
+                    return true;
+                });
+                if ($didComplete) $completed++;
+            } catch (\Throwable) {
+                $failed++;
+            }
+        }
+        return compact('completed', 'failed');
+    }
+
+    private function completeLocked(
+        TeamServiceEntitlement $entitlement,
+        TeamServiceInstance $instance,
+        ?int $actorEntityId,
+        array $fieldValues,
+        bool $automatic,
+        ?int $completedAt = null
+    ): void {
+        if ($this->pendingCancel((int) $instance->id, true)) {
+            throw new HttpException(409, '待处理取消申请存在时不可完成');
+        }
+        if (TeamServiceAdjustment::where('service_instance_id', $instance->id)
+            ->where('status', ServiceAdjustmentStatus::Pending->value)->lock(true)->find()) {
+            throw new HttpException(409, '仍有待顾客确认的加价费用');
+        }
+        if (!$automatic) {
+            app(ServiceRedemptionField::class)->saveResourcesForStage($instance, 'manager', $fieldValues);
+        }
+        $completedAt ??= time();
+        $transId = null;
+        if (app(AbilityResolver::class)->available((int) $instance->team_id, 'transaction')) {
+            $transId = app(Transaction::class)->createServiceRedemption((int) $instance->team_id, [
+                'handler_entity_id' => $instance->handler_entity_id,
+                'sender_entity_id' => $instance->sender_entity_id,
+                'cs_entity_id' => $instance->cs_entity_id,
+                'customer_id' => $instance->customer_id,
+                'service_instance_id' => $instance->id,
+                'total_price' => $instance->total_price,
+                'cost' => $instance->cost,
+                'handler_cut' => $instance->handler_cut,
+                'sender_cut' => $instance->sender_cut,
+                'cs_cut' => $instance->cs_cut,
+                'team_cut' => $instance->team_cut,
+                'trans_at' => $completedAt,
+                'memo' => '服务核销 #' . $instance->id,
+            ]);
+            app(ServiceAdjustment::class)->createPerformancesForInstance($instance);
+        }
+        $quantityMinor = app(ServiceQuantity::class)->toMinor($instance->quantity);
+        $reserved = app(ServiceQuantity::class)->toMinor($entitlement->reserved_quantity);
+        if ($reserved < $quantityMinor) throw new HttpException(409, '服务权益预占数量异常');
+        $entitlement->reserved_quantity = app(ServiceQuantity::class)->fromMinor($reserved - $quantityMinor);
+        $entitlement->consumed_quantity = app(ServiceQuantity::class)->fromMinor(
+            app(ServiceQuantity::class)->toMinor($entitlement->consumed_quantity) + $quantityMinor
+        );
+        $entitlement->save();
+        $instance->status = ServiceStatus::Redeemed;
+        $instance->completed_at = $completedAt;
+        $instance->trans_id = $transId;
+        $instance->save();
+        $this->event(
+            (int) $instance->id,
+            $actorEntityId,
+            $automatic ? 'auto_completed' : 'completed',
+            null,
+            null,
+            ['transaction_id' => $transId, 'automatic' => $automatic]
+        );
     }
 
     private function customerEntitlement(int $teamId, int $customerId, int $id): TeamServiceEntitlement
@@ -1059,7 +1129,7 @@ class ServiceRedemption
         app(PermissionGate::class)->assert($teamId, $subject, [PermissionDictionary::SERVICE_REDEMPTION_MANAGE]);
     }
 
-    private function event(int $instanceId, int $actorId, string $type, ?int $from, ?int $to, array $detail): void
+    private function event(int $instanceId, ?int $actorId, string $type, ?int $from, ?int $to, array $detail): void
     {
         $event = new TeamServiceEvent;
         $event->save([
@@ -1070,6 +1140,12 @@ class ServiceRedemption
             'to_handler_entity_id' => $to,
             'detail' => $detail ?: null,
         ]);
+    }
+
+    private function serviceAutoCompleteAfterMinutes(int $serviceId): ?int
+    {
+        $value = TeamService::where('id', $serviceId)->value('auto_complete_after_minutes');
+        return $value === null ? null : (int) $value;
     }
 
     private function attachEntities(array &$rows, array $relations): void

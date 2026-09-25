@@ -249,7 +249,6 @@ MARKDOWN,
             'default_value' => null,
             'manager_scope' => ManageScope::Team,
             'is_required' => 0,
-            'is_editable' => 1,
             'is_searchable' => 0,
             'is_system' => 0,
         ]));

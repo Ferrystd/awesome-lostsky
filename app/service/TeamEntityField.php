@@ -71,7 +71,6 @@ class TeamEntityField
                 'manager_scope' => ManageScope::from((int) ($data['manager_scope'] ?? ManageScope::Team->value)),
                 'visibility' => $visibility,
                 'is_required' => (int) ($data['is_required'] ?? 0),
-                'is_editable' => (int) ($data['is_editable'] ?? 1),
                 'is_searchable' => (int) ($data['is_searchable'] ?? 0),
                 'is_system' => 0, 'sort' => (int) ($data['sort'] ?? 0),
             ]);
@@ -90,7 +89,7 @@ class TeamEntityField
         $this->validate('update', $this->validationData($data));
         $allow = array_intersect_key($data, array_flip([
             'name', 'source', 'value_type', 'input_type', 'options', 'default_value',
-            'manager_scope', 'visibility', 'is_required', 'is_editable',
+            'manager_scope', 'visibility', 'is_required',
             'is_searchable', 'sort',
         ]));
         if (array_key_exists('manager_scope', $allow)) {
@@ -171,12 +170,9 @@ class TeamEntityField
                 continue;
             }
             $item = $field->toArray();
-            $item['can_edit'] = (bool) $field->is_editable && (
-                $isFieldManager
-                || (
-                    $actingEntityId === $subjectEntityId
-                    && $field->enumCase('manager_scope') === ManageScope::SubjectTeam
-                )
+            $item['can_edit'] = $isFieldManager || (
+                $actingEntityId === $subjectEntityId
+                && $field->enumCase('manager_scope') === ManageScope::SubjectTeam
             );
             $result[] = $item;
         }
@@ -243,12 +239,8 @@ class TeamEntityField
             if ($ownOnly && (
                 !$this->canView($field, (int) $actor['entity_id'], (int) $actor['entity_id'], false)
                 || $field->enumCase('manager_scope') !== ManageScope::SubjectTeam
-                || !(int) $field->is_editable
             )) {
                 throw new HttpException(403, "字段 {$field->name} 不允许本人编辑");
-            }
-            if (!$ownOnly && !$field->is_editable) {
-                throw new HttpException(422, "字段 {$field->name} 不允许编辑");
             }
             if ($field->is_required && $this->isEmptyValue($rawValue)) {
                 throw new HttpException(422, "字段 {$field->name} 不能为空");
@@ -292,7 +284,6 @@ class TeamEntityField
             if ($ownOnly && (
                 !$this->canView($field, (int) $actor['entity_id'], (int) $actor['entity_id'], false)
                 || $field->enumCase('manager_scope') !== ManageScope::SubjectTeam
-                || !(int) $field->is_editable
             )) {
                 continue;
             }

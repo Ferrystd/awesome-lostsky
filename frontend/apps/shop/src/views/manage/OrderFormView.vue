@@ -11,22 +11,28 @@ import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { manageApi } from '../../lib'
+import ServiceCompletionFields from '../../../../transaction/src/components/ServiceCompletionFields.vue'
+import { purchaseInputFields, purchaseDefaults, purchaseValuesValid, serializePurchaseValues } from '../../purchase-fields'
 
 const router = useRouter()
 const routeAccess = useRouteAccess()
 const form = reactive({ product_id: null as number | null, customer_id: null as number | null, handler_entity_id: null as number | null, sender_entity_id: null as number | null, cs_entity_id: null as number | null, quantity: 1, memo: '' })
 const options = useQuery({ queryKey: ['manage-options'], queryFn: manageApi.options, enabled: computed(() => !routeAccess.restricted.value) })
-const products = useQuery({ queryKey: ['manage-product-options'], queryFn: () => manageApi.products({ page: 1, limit: 100, is_active: 1 }), enabled: computed(() => !routeAccess.restricted.value) })
 const entities = computed(() => options.data.value?.entities ?? [])
 const customers = computed(() => (options.data.value?.customers ?? []).map(c => ({ label: c.nickname || c.name || `顾客 #${c.id}`, value: c.id })))
-const productOptions = computed(() => (products.data.value?.list ?? []).map((product: any) => ({ label: `${product.name} · ¥${Number(product.price).toFixed(2)}`, value: Number(product.id) })))
-const save = useMutation({ mutationFn: () => manageApi.createOrder({ ...form, memo: form.memo.trim() || null }), onSuccess: data => router.push(`/manage/orders/${data.id}`) })
-const valid = computed(() => Boolean(form.product_id && form.quantity >= 1))
+const productOptions = computed(() => (options.data.value?.products ?? []).map(product => ({ label: `${product.name} · ¥${Number(product.price).toFixed(2)}`, value: product.id })))
+const purchaseFields = computed(() => options.data.value?.products?.find(product => product.id === form.product_id)?.purchase_fields ?? [])
+const purchaseValues = ref<Record<number, unknown>>({})
+const purchaseUploading = ref(false)
+watch(purchaseFields, fields => { purchaseValues.value = purchaseDefaults(fields) }, { immediate: true })
+const save = useMutation({ mutationFn: () => manageApi.createOrder({ ...form, purchase_values: serializePurchaseValues(purchaseFields.value, purchaseValues.value), memo: form.memo.trim() || null }), onSuccess: data => router.push(`/manage/orders/${data.id}`) })
+const valid = computed(() => Boolean(form.product_id && form.quantity >= 1 && !purchaseUploading.value && !options.isPending.value && !options.isError.value && purchaseValuesValid(purchaseFields.value, purchaseValues.value)))
 function submit() {
   if (routeAccess.reason.value) return feedback.info(routeAccess.reason.value)
+  if (!valid.value || save.isPending.value) return
   save.mutate()
 }
 </script>
@@ -40,6 +46,7 @@ function submit() {
         <LsField label="数量" for-id="order-quantity" required><NInputNumber id="order-quantity" v-model:value="form.quantity" :min="1" :max="999" /></LsField>
         <LsField label="顾客" for-id="order-customer" hint="使用顾客预存款或交付服务权益时选择。"><NSelect id="order-customer" v-model:value="form.customer_id" :options="customers" filterable clearable :disabled="routeAccess.restricted.value" :placeholder="routeAccess.restricted.value ? '-' : '可选'" /></LsField>
       </LsFormSection>
+      <LsFormSection v-if="purchaseFields.length" title="购买资料"><ServiceCompletionFields v-model="purchaseValues" :fields="purchaseInputFields(purchaseFields)" id-prefix="order-purchase-field" @uploading="purchaseUploading = $event" /></LsFormSection>
       <LsFormSection title="参与方">
         <LsField label="接单人" for-id="order-handler"><LsEntitySelect id="order-handler" v-model="form.handler_entity_id" :entities="entities" :loading="!routeAccess.restricted.value && options.isPending.value" :disabled="routeAccess.restricted.value || options.isError.value" clearable :placeholder="routeAccess.restricted.value ? '-' : '普通商品可选'" /></LsField>
         <LsField label="发单人" for-id="order-sender"><LsEntitySelect id="order-sender" v-model="form.sender_entity_id" :entities="entities" :loading="!routeAccess.restricted.value && options.isPending.value" :disabled="routeAccess.restricted.value || options.isError.value" clearable :placeholder="routeAccess.restricted.value ? '-' : '可选'" /></LsField>

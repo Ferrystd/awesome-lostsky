@@ -20,9 +20,15 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { canManage, fileUploadReason, loadManageAccess, managePermissionReason, productManagement } from '../../lib'
 import { calculateDefaultServiceDistribution, calculateServiceTeamCut } from '../../service-distribution'
+import { hydratePurchaseFields, serializePurchaseFields, validPurchaseFields, type PurchaseFieldDraft } from '../../purchase-fields'
+import { compositionMoneyFields, compositionIsNested, compositionItemAmount, compositionItemLocked, compositionItemTeamCut, compositionItemValid, restoreCompositionAmounts, type CompositionMoneyField, type CompositionDraftItem } from '../../composition-pricing'
 import type { ManagePricingSummary } from '../../types'
 import { personalDistributionLocked, withoutPersonnelCuts } from '../../personal-pricing'
 import ServiceFieldsEditor from '../../components/ServiceFieldsEditor.vue'
+import ProductVariantEditor from '../../components/ProductVariantEditor.vue'
+import { hydrateProductVariant, serializeProductVariant, validProductVariant, newProductVariant, validAutoCompleteAfterMinutes } from '../../product-variants'
+import type { ProductVariantDraft } from '../../product-variants'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { hydrateServiceRedemptionFields, serializeServiceRedemptionFields, validServiceRedemptionFields } from '../../service-redemption-fields'
 import type { ServiceRedemptionFieldDraft } from '../../types'
 
@@ -71,16 +77,29 @@ const form = reactive<ProductFormState>({
   handler_entity_ids: [] as number[],
 })
 const distributionRates = reactive({ handler: 80, sender: 15, customerService: 0 })
-const redemption = reactive({ unit_name: '次', quantity: 1 as number | null, quantity_step: 1 as number | null, valid_days: 0 as number | null })
+const redemption = reactive({ unit_name: '次', quantity: 1 as number | null, quantity_step: 1 as number | null, valid_days: 0 as number | null, auto_complete_after_minutes: null as number | null })
+let autoCompleteDefaultApplied = false
+let autoCompleteTouched = false
+function updateAutoComplete(value: number | null) {
+  autoCompleteTouched = true
+  redemption.auto_complete_after_minutes = value
+}
 const redemptionFields = ref<ServiceRedemptionFieldDraft[]>([])
-const itemMoneyFields = [
-  { key: 'unit_price', label: '每份售价' }, { key: 'unit_cost', label: '每份成本' },
-  { key: 'unit_handler_cut', label: '每份接单分成' }, { key: 'unit_sender_cut', label: '每份发单分成' },
-  { key: 'unit_cs_cut', label: '每份客服分成' },
-] as const
-type ItemMoneyField = typeof itemMoneyFields[number]['key']
-type CompositionItem = { product_id: number | null; quantity: number | null } & Partial<Record<ItemMoneyField, string | number | null>>
+const purchaseFields = ref<PurchaseFieldDraft[]>([])
+const variants = ref<ProductVariantDraft[]>([])
+function addVariant() {
+  variants.value.push(newProductVariant(options.data.value?.service_defaults.default_auto_complete_after_minutes ?? null))
+}
+const itemMoneyFields = compositionMoneyFields
+type ItemMoneyField = CompositionMoneyField
+type CompositionItem = CompositionDraftItem
 const compositionItems = ref<CompositionItem[]>([])
+const draftSnapshot = () => JSON.stringify({ form, redemption, redemptionFields: redemptionFields.value, purchaseFields: purchaseFields.value, items: compositionItems.value, variants: variants.value })
+const savedSnapshot = ref(draftSnapshot())
+const hasUnsavedChanges = computed(() => draftSnapshot() !== savedSnapshot.value)
+useUnsavedChangesGuard(hasUnsavedChanges)
+let submittedSnapshot = ''
+let detailHydrated = false
 const useComposition = computed(() => [2, 3].includes(form.kind))
 let hydratingAmounts = false
 const options = useQuery({
@@ -95,11 +114,14 @@ const detail = useQuery({
 })
 function kindNumber(value: unknown) {
   if (typeof value === 'number') return value
-  const mapped: Record<string, number> = { '普通商品': 1, '套餐': 2, '卡密': 3, '核销商品': 4 }
+  const mapped: Record<string, number> = { '普通商品': 1, '套餐': 2, '卡密': 3, '核销商品': 4, '多规格商品': 5 }
   return mapped[String(value)] ?? (Number(value) || 1)
 }
 watch(() => detail.data.value, data => {
   if (!data) return
+  if (detailHydrated && hasUnsavedChanges.value) return
+  variants.value = (data.variants ?? []).map(hydrateProductVariant)
+  purchaseFields.value = hydratePurchaseFields(data.purchase_fields ?? [])
   hydratingAmounts = true
   Object.assign(form, data, {
     description: data.description ?? '',
@@ -116,11 +138,14 @@ watch(() => detail.data.value, data => {
   if (data.redemption) {
     redemptionFields.value = hydrateServiceRedemptionFields(data.redemption.redemption_fields)
     Object.assign(redemption, { unit_name: data.redemption.unit_name, quantity: Number(data.redemption.quantity),
-      quantity_step: Number(data.redemption.quantity_step), valid_days: Number(data.redemption.valid_days) })
+      quantity_step: Number(data.redemption.quantity_step), valid_days: Number(data.redemption.valid_days),
+      auto_complete_after_minutes: data.redemption.auto_complete_after_minutes ?? null })
     form.handler_entity_ids = [...(data.redemption.handler_entity_ids ?? [])]
   }
   compositionItems.value = (data.items ?? []).map((item: CompositionItem) => ({ ...item }))
   hydratingAmounts = false
+  savedSnapshot.value = draftSnapshot()
+  detailHydrated = true
 }, { immediate: true })
 const entities = computed(() => options.data.value?.entities ?? [])
 const resourceOwnerEntityId = computed(() => personal.value ? expectedEntityId.value : form.entity_id)
@@ -131,46 +156,22 @@ const productChoices = computed(() => productCandidates.value.map(product => ({ 
 function chooseCompositionProduct(index: number, productId: number | null) {
   compositionItems.value[index] = { product_id: productId, quantity: 1 }
 }
-const compositionNested = computed(() => compositionItems.value.some(item => {
-  const product = productCandidates.value.find(product => product.id === item.product_id)
-  return product && [2, 3].includes(kindNumber(product.kind))
-}))
+const compositionNested = computed(() => compositionIsNested(compositionItems.value, productCandidates.value))
 function compositionAmount(item: CompositionItem, field: ItemMoneyField): number | null {
-  if (item[field] !== undefined) return item[field] === null ? null : Number(item[field])
-  const product = productCandidates.value.find(product => product.id === item.product_id)
-  if (!product) return null
-  const defaults = calculateDefaultServiceDistribution(Number(product.price), Number(product.cost), distributionRates)
-  const amounts = { unit_price: product.price, unit_cost: product.cost,
-    unit_handler_cut: product.handler_cut ?? defaults.handler,
-    unit_sender_cut: product.sender_cut ?? defaults.sender, unit_cs_cut: product.cs_cut ?? defaults.customerService }
-  return Number(amounts[field])
+  return compositionItemAmount(item, field, productCandidates.value, distributionRates)
 }
 function compositionMoneyLocked(item: CompositionItem, field: ItemMoneyField) {
-  if (compositionNested.value || access.isPending.value || access.isError.value) return true
-  const product = productCandidates.value.find(product => product.id === item.product_id)
-  if (!product) return true
-  return distributionLocked.value && (product.entity_id === null || !['unit_price', 'unit_cost'].includes(field))
+  return access.isPending.value || access.isError.value || compositionItemLocked(item, field, productCandidates.value, compositionNested.value, distributionLocked.value)
 }
 function compositionTeamCut(item: CompositionItem) {
-  return calculateServiceTeamCut(...itemMoneyFields.map(field => compositionAmount(item, field.key)) as [number | null, number | null, number | null, number | null, number | null])
+  return compositionItemTeamCut(item, productCandidates.value, distributionRates)
 }
 function compositionMoneyValid(item: CompositionItem) {
-  return itemMoneyFields.every(field => nonNegative(compositionAmount(item, field.key))) && compositionTeamCut(item) >= 0
+  return compositionItemValid(item, productCandidates.value, distributionRates)
 }
 watch(compositionNested, nested => {
   if (!nested) return
-  // 加入嵌套项时回到服务端保存基线；重复引用按出现顺序匹配，与保存接口一致。
-  const occurrence = new Map<number, number>()
-  for (const item of compositionItems.value) {
-    if (item.product_id === null) continue
-    const index = occurrence.get(item.product_id) ?? 0
-    occurrence.set(item.product_id, index + 1)
-    const saved = (detail.data.value?.items ?? []).filter((entry: CompositionItem) => entry.product_id === item.product_id)[index]
-    for (const field of itemMoneyFields) {
-      if (saved?.[field.key] !== undefined) item[field.key] = saved[field.key]
-      else delete item[field.key]
-    }
-  }
+  restoreCompositionAmounts(compositionItems.value, detail.data.value?.items ?? [])
 })
 const benefitPricingSummary = computed<ManagePricingSummary | null>(() => {
   if (useComposition.value) {
@@ -200,6 +201,10 @@ function recalculatePersonnelCuts() {
 }
 watch(() => options.data.value?.service_defaults, defaults => {
   if (!defaults) return
+  if (!editing.value && !autoCompleteDefaultApplied) {
+    if (!autoCompleteTouched) redemption.auto_complete_after_minutes = defaults.default_auto_complete_after_minutes ?? null
+    autoCompleteDefaultApplied = true
+  }
   Object.assign(distributionRates, {
     handler: defaults.default_handler_rate_percent,
     sender: defaults.default_sender_rate_percent,
@@ -238,7 +243,7 @@ async function uploadMarkdownImage(file: File) {
   if (uploadDisabledReason.value) throw new Error(uploadDisabledReason.value)
   uploading.value = 'markdown'
   try {
-    const url = await uploadFileUrl(file)
+    const url = await uploadFileUrl(file, 'markdown')
     await access.refetch()
     return url
   } finally {
@@ -248,8 +253,10 @@ async function uploadMarkdownImage(file: File) {
 const save = useMutation({
   mutationFn: async () => {
     if (!valid.value) throw new Error('请检查商品必填项、金额和核销额度')
+    submittedSnapshot = draftSnapshot()
     const body: Record<string, unknown> = {
       name: form.name,
+      ...(form.kind !== 5 ? { purchase_fields: serializePurchaseFields(purchaseFields.value) } : {}),
       description: form.description.trim() || null,
       cover_image: form.cover_image,
       introduction_markdown: form.introduction_markdown || null,
@@ -279,6 +286,10 @@ const save = useMutation({
         .map(field => [field.key, Number(item[field.key]).toFixed(2)])) }))
     }
     if (!personal.value) body.entity_id = form.entity_id || null
+    if (form.kind === 5) {
+      for (const key of ['price', 'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'benefit_package_id', 'redemption_campaign_id', 'handler_entity_ids']) delete body[key]
+      body.variants = variants.value.map(serializeProductVariant)
+    }
     const result = await management.value.saveProduct(
       editing.value ? id.value : null,
       distributionLocked.value && !editing.value ? withoutPersonnelCuts(body) : body,
@@ -289,7 +300,9 @@ const save = useMutation({
     return { id: productId }
   },
   onSuccess: data => {
+    savedSnapshot.value = submittedSnapshot
     feedback.success('商品已保存')
+    if (hasUnsavedChanges.value) return
     void router.push(`${management.value.routeBase}/${data.id}`)
   },
 })
@@ -297,8 +310,12 @@ const finite = (value: number | null) => typeof value === 'number' && Number.isF
 const nonNegative = (value: number | null) => finite(value) && (value as number) >= 0
 const valid = computed(() => Boolean(
   form.name.trim() && form.cover_image.trim()
+  && (form.kind === 5 || validPurchaseFields(serializePurchaseFields(purchaseFields.value)))
   && !options.isPending.value && !options.isError.value && !access.isPending.value && !access.isError.value
-  && nonNegative(form.price) && nonNegative(form.cost)
+  && (form.kind === 5 ? variants.value.length > 0 && variants.value.every(variant => validProductVariant(variant)
+    && (![2, 3].includes(variant.kind) || (variant.items ?? []).every(compositionMoneyValid)))
+    && (form.is_active === 0 || variants.value.some(variant => variant.is_active !== 0)) : (
+  nonNegative(form.price) && nonNegative(form.cost)
   && (form.cost as number) <= (form.price as number)
   && (pricingLocked.value || (
     nonNegative(form.handler_cut) && nonNegative(form.sender_cut)
@@ -311,7 +328,8 @@ const valid = computed(() => Boolean(
   && (useComposition.value || form.kind !== 3 || form.redemption_campaign_id)
   && (form.kind !== 4 || (validServiceRedemptionFields(redemptionFields.value) && redemption.unit_name.trim() && finite(redemption.quantity) && (redemption.quantity as number) > 0
     && finite(redemption.quantity_step) && (redemption.quantity_step as number) > 0
-    && nonNegative(redemption.valid_days) && Number.isInteger(redemption.valid_days))),
+    && nonNegative(redemption.valid_days) && Number.isInteger(redemption.valid_days)
+    && validAutoCompleteAfterMinutes(redemption.auto_complete_after_minutes))))),
 ))
 </script>
 
@@ -327,7 +345,8 @@ const valid = computed(() => Boolean(
         <LsPagePrimaryAction v-if="editing" :icon="Eye" label="预览前台" :href="`/product/${id}`" target="_blank" rel="noopener noreferrer" />
       </template>
     </LsPageHeader>
-    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
+    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : !save.isPending.value && save.mutate()">
+      <fieldset class="product-edit-fields" :disabled="save.isPending.value" :inert="save.isPending.value">
       <LsFormSection title="基本信息">
           <LsField label="商品名称" for-id="product-name" required><NInput id="product-name" v-model:value="form.name" maxlength="100" /></LsField>
           <LsField label="简短说明" for-id="product-description"><NInput id="product-description" v-model:value="form.description" type="textarea" maxlength="500" show-count /></LsField>
@@ -337,11 +356,12 @@ const valid = computed(() => Boolean(
       </LsFormSection>
       <LsFormSection title="销售与履约">
           <p v-if="personal" class="form-intro" role="note">此商品自动归属当前已领取的人员，个人工作台不能转移归属。</p>
-          <LsField label="商品类型" for-id="product-kind" required><NSelect id="product-kind" v-model:value="form.kind" :disabled="editing" :options="[{ label: '普通商品', value: 1 }, { label: '核销商品', value: 4 }, { label: '套餐', value: 2 }, { label: '卡密', value: 3 }]" /></LsField>
+          <LsField label="商品类型" for-id="product-kind" required><NSelect id="product-kind" v-model:value="form.kind" :disabled="editing" :options="[{ label: '普通商品', value: 1 }, { label: '核销商品', value: 4 }, { label: '套餐', value: 2 }, { label: '卡密', value: 3 }, { label: '多规格商品', value: 5 }]" /></LsField>
           <template v-if="form.kind === 4">
+            <LsField label="自动结单时长（分钟）" for-id="product-auto-complete" hint="留空不自动结单。从开始核销起计时；撤销申请期间不结单，计时仍继续。"><NInputNumber id="product-auto-complete" :value="redemption.auto_complete_after_minutes" :min="1" :max="5256000" :precision="0" clearable placeholder="不自动结单" @update:value="updateAutoComplete" /></LsField>
             <LsField label="计量单位" for-id="product-unit" required><NInput id="product-unit" v-model:value="redemption.unit_name" maxlength="20" /></LsField>
             <LsField label="每份核销额度" for-id="product-quota" required><NInputNumber id="product-quota" v-model:value="redemption.quantity" :min="0.0001" :precision="4" /></LsField>
-            <LsField label="最小核销步长" for-id="product-step" required><NInputNumber id="product-step" v-model:value="redemption.quantity_step" :min="0.0001" :precision="4" /></LsField>
+            <LsField label="最小核销单位" for-id="product-step" required><NInputNumber id="product-step" v-model:value="redemption.quantity_step" :min="0.0001" :precision="4" /></LsField>
             <LsField label="有效天数" for-id="product-days" hint="从权益发放时起计算，0 表示不限期。"><NInputNumber id="product-days" v-model:value="redemption.valid_days" :min="0" :precision="0" /></LsField>
           </template>
           <template v-if="useComposition">
@@ -363,10 +383,18 @@ const valid = computed(() => Boolean(
             <LsButton v-if="form.kind === 2 || compositionItems.length === 0" type="button" variant="secondary" :disabled="options.isPending.value || options.isError.value" @click="compositionItems.push({ product_id: null, quantity: 1 })">添加商品</LsButton>
           </template>
           <p v-if="pricingLocked" class="form-intro" role="note">售价、成本和分成由子项自动汇总。</p>
-          <LsField label="售价" for-id="product-price" required :hint="pricingLocked ? '由子项自动汇总' : undefined"><NInputNumber id="product-price" v-model:value="form.price" :min="0" :step="0.01" :precision="2" :disabled="pricingLocked" /></LsField>
+          <LsField v-if="form.kind !== 5" label="售价" for-id="product-price" required :hint="pricingLocked ? '由子项自动汇总' : undefined"><NInputNumber id="product-price" v-model:value="form.price" :min="0" :step="0.01" :precision="2" :disabled="pricingLocked" /></LsField>
           <LsField v-if="!personal" label="专属人员" for-id="product-owner"><LsEntitySelect id="product-owner" v-model="form.entity_id" :entities="entities" :loading="options.isPending.value" :disabled="options.isError.value" clearable placeholder="留空表示团队公用商品" /></LsField>
           <LsField v-if="[1, 4].includes(form.kind)" label="可选接单人" for-id="product-handlers" hint="普通商品用于下单选择；核销商品用于核销接单。"><LsEntitySelect id="product-handlers" v-model="form.handler_entity_ids" :entities="entities" :loading="options.isPending.value" :disabled="options.isError.value" multiple clearable placeholder="选择可选接单人" /></LsField>
       </LsFormSection>
+      <ServiceFieldsEditor v-if="form.kind !== 5" v-model="purchaseFields" purpose="purchase" />
+      <template v-if="form.kind === 5">
+        <template v-for="(variant, index) in variants" :key="variant.draftKey">
+          <ProductVariantEditor v-model="variants[index]" :prefix="`variant-${index}`" :products="productCandidates" :entities="entities" :distribution-locked="distributionLocked" :distribution-rates="distributionRates" :upload="uploadMarkdownImage" :upload-disabled-reason="uploadDisabledReason" />
+          <LsButton type="button" variant="secondary" @click="variants.splice(index, 1)">移除规格 {{ index + 1 }}</LsButton>
+        </template>
+        <LsButton type="button" variant="secondary" :disabled="variants.length >= 50 || options.isPending.value || options.isError.value" @click="addVariant">添加规格</LsButton>
+      </template>
       <ServiceFieldsEditor v-if="form.kind === 4" v-model="redemptionFields" />
       <LsFormSection v-if="pricingLocked" title="分项金额汇总" description="按子项份数汇总，订单创建后冻结交付配置和金额。">
           <dl class="pricing-breakdown">
@@ -377,7 +405,7 @@ const valid = computed(() => Boolean(
             <div><dt>团队分成</dt><dd>¥{{ benefitPricingSummary?.team_cut }}</dd></div>
           </dl>
       </LsFormSection>
-      <LsFormSection v-else title="默认分成" :description="distributionLocked ? (editing ? '人员分成沿用已保存金额，团队分成取余额。' : '人员分成按团队默认比例生成，团队分成取余额。') : '修改售价或成本后，将按团队设置重算人员分成；订单创建时冻结当前金额。'">
+      <LsFormSection v-else-if="form.kind !== 5" title="默认分成" :description="distributionLocked ? (editing ? '人员分成沿用已保存金额，团队分成取余额。' : '人员分成按团队默认比例生成，团队分成取余额。') : '修改售价或成本后，将按团队设置重算人员分成；订单创建时冻结当前金额。'">
           <LsField label="成本" for-id="product-cost"><NInputNumber id="product-cost" v-model:value="form.cost" :min="0" :step="0.01" :precision="2" /></LsField>
           <LsField label="接单分成" for-id="product-handler-cut"><NInputNumber id="product-handler-cut" v-model:value="form.handler_cut" :min="0" :precision="2" :disabled="distributionLocked" clearable /></LsField>
           <LsField label="发单分成" for-id="product-sender-cut"><NInputNumber id="product-sender-cut" v-model:value="form.sender_cut" :min="0" :precision="2" :disabled="distributionLocked" clearable /></LsField>
@@ -389,13 +417,15 @@ const valid = computed(() => Boolean(
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
-        <LsButton type="submit" :disabled="routeAccess.restricted.value || Boolean(uploading) || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存商品</LsButton>
+        <LsButton type="submit" :disabled="routeAccess.restricted.value || !hasUnsavedChanges || Boolean(uploading) || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存商品</LsButton>
       </LsFormActions>
+      </fieldset>
     </form>
   </div>
 </template>
 
 <style scoped>
+.product-edit-fields { display: contents; border: 0; padding: 0; margin: 0; min-width: 0; }
 .pricing-breakdown { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin: 0; }
 .pricing-breakdown div { padding: .8rem; background: var(--cloud); border-radius: 10px; }
 .pricing-breakdown dt { color: var(--muted-ink); font-size: .75rem; }

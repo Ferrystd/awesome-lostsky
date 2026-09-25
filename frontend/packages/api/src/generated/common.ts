@@ -564,8 +564,6 @@ export interface components {
             /** @enum {integer} */
             is_required?: 0 | 1;
             /** @enum {integer} */
-            is_editable?: 0 | 1;
-            /** @enum {integer} */
             is_searchable?: 0 | 1;
             sort?: number;
             /** @enum {string} */
@@ -617,6 +615,12 @@ export interface operations {
                      * @description 最大 50 MiB；扩展名必须属于服务端 file.allowed_extensions 白名单。
                      */
                     file: string;
+                    /**
+                     * @description 首次入库来源类别。Markdown 编辑器上传传 markdown，其余表单附件默认 attachment；仅作来源展示，不用于授权。相同内容去重保留原记录类别。其他值返回 422。
+                     * @default attachment
+                     * @enum {string}
+                     */
+                    source?: "attachment" | "markdown";
                 };
             };
         };

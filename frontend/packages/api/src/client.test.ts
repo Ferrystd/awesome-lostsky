@@ -4,7 +4,7 @@ const feedback = vi.hoisted(() => ({ info: vi.fn() }))
 
 vi.mock('@lostsky/ui/feedback', () => ({ feedback }))
 
-import { ApiError, api, auth, friendlyError } from './client'
+import { ApiError, api, auth, friendlyError, uploadFileUrl } from './client'
 
 function storage(entries: Record<string, string> = {}) {
   const values = new Map(Object.entries(entries))
@@ -21,6 +21,18 @@ afterEach(() => {
 })
 
 describe('auth', () => {
+  it.each(['attachment', 'markdown'] as const)('sends the %s source through common upload', async (source) => {
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 0, data: { url: 'https://example.com/file.png' } }), { headers: { 'Content-Type': 'application/json' } }))
+    vi.stubGlobal('location', { hostname: '127.0.0.1', protocol: 'http:' })
+    vi.stubGlobal('document', { cookie: '' })
+    vi.stubGlobal('localStorage', storage())
+    vi.stubGlobal('sessionStorage', storage())
+    vi.stubGlobal('fetch', fetch)
+    expect(await uploadFileUrl(new Blob(['fixture']) as File, source)).toBe('https://example.com/file.png')
+    const init = fetch.mock.calls[0][1] as RequestInit
+    expect((init.body as FormData).get('source')).toBe(source)
+    expect(new Headers(init.headers).get('X-LostSky-App')).toBe('common')
+  })
   it.each([
     ['account.lostsky.work', 'include'],
     ['demo.team.lostsky.work', 'include'],

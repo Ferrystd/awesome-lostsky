@@ -54,6 +54,8 @@ describe('service redemption fields', () => {
     expect(editorSource).toContain("label: '核销接单时'")
     expect(editorSource).toContain('顾客可见</label>')
     expect(editorSource).not.toContain('Customer 可见</label>')
+    expect(editorSource).toContain("{ label: '图片', value: 'image' }")
+    expect(editorSource).toContain("{ label: '图片上传', value: 'upload' }")
   })
 
   it('creates list drafts with UI-only keys and no persisted field identifier', () => {

@@ -65,7 +65,7 @@ try {
         'file model and schema reference entity'
     );
     $exceptionHandle = file_get_contents(dirname(__DIR__) . '/app/ExceptionHandle.php');
-    $deployment = file_get_contents(dirname(__DIR__) . '/docs/operations/deployment.md');
+    $deployment = file_get_contents(dirname(__DIR__) . '/docs/dev/operations/deployment.md');
     $productionIni = file_get_contents(dirname(__DIR__) . '/deploy/php/lostsky-production.ini');
     $tiers = require dirname(__DIR__) . '/config/file.php';
     $cleanup = require dirname(__DIR__) . '/config/cleanup.php';

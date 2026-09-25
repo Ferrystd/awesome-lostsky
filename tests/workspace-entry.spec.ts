@@ -214,10 +214,10 @@ test('Team resource dashboard reaches personal workspace from the overview CTA',
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
   const personalSidebar = page.locator('.sidebar')
   const personalOverview = page.locator('.ls-workspace-overview')
-  await expect(personalSidebar.getByRole('link', { name: '使用文档' })).toHaveCount(1)
+  await expect(personalSidebar.getByRole('link', { name: '切换身份' })).toHaveCount(1)
   await expect(personalOverview.getByRole('link', { name: '使用文档' })).toHaveCount(1)
   await expect(personalOverview.getByRole('link', { name: /进入团队工作台/ })).toHaveAttribute('href', '/')
-  await expect(personalSidebar.getByRole('link', { name: '使用文档' })).toHaveAttribute('target', '_blank')
+  await expect(personalSidebar.getByRole('link', { name: '切换身份' })).toHaveAttribute('href', /^http:\/\/account\.lostsky\.work:5174\/identity\?/)
   await expect(personalOverview.getByRole('link', { name: '使用文档' })).toHaveAttribute('target', '_blank')
 
   const teamDesktopRect = await personalOverview.getByRole('link', { name: /进入团队工作台/ }).evaluate((element) => element.getBoundingClientRect().toJSON())

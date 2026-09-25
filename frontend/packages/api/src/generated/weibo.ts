@@ -309,6 +309,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/comment-presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["weiboTeamCommentPresets"];
+        put?: never;
+        post: operations["weiboTeamCommentPresetsReplace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/personal/accounts": {
         parameters: {
             query?: never;
@@ -597,6 +613,72 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/personal/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 内部 Entity 可读取。缺少 weibo.personal.use 或 Weibo Ability 时只返回不可复原的安全预览。 */
+        get: operations["weiboPersonalFeed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/feed/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 按本地信息流帖子 ID 读取完整条目。要求当前内部 Entity 持有 weibo.personal.use 且团队 Weibo Ability 可用；帖子必须已接受判定且未过期。 */
+        get: operations["weiboPersonalFeedItem"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/feed/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["weiboPersonalFeedComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personal/comment-presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["weiboPersonalCommentPresets"];
+        put?: never;
+        post: operations["weiboPersonalCommentPresetsReplace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -673,6 +755,33 @@ export interface components {
             block_reason: string | null;
             next_run_at: number | null;
         };
+        FeedPost: {
+            id: number;
+            text: string;
+            author_name?: string;
+            posted_at: number;
+            /** Format: uri */
+            status_url?: string;
+            app_url?: string;
+            restricted: boolean;
+        };
+        FeedList: {
+            list: components["schemas"]["FeedPost"][];
+            total: number;
+            page: number;
+            limit: number;
+            restricted: boolean;
+            updated_at: number;
+            /** @enum {string} */
+            poll_status: "unconfigured" | "failed" | "ready";
+            last_error: string | null;
+        };
+        CommentPreset: {
+            id: number;
+            content: string;
+            /** @enum {string} */
+            scope: "team" | "personal";
+        };
     };
     responses: {
         /** @description Success */
@@ -711,6 +820,48 @@ export interface components {
             };
             content: {
                 "application/json": components["schemas"]["Envelope"];
+            };
+        };
+        /** @description Global order-intent feed */
+        FeedSuccess: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Envelope"] & {
+                    data: components["schemas"]["FeedList"];
+                };
+            };
+        };
+        /** @description Complete order-intent feed item */
+        FeedItemSuccess: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Envelope"] & {
+                    data: components["schemas"]["FeedPost"];
+                };
+            };
+        };
+        /** @description Personal feed Permission or Weibo Ability is missing */
+        FeedItemDenied: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Envelope"] | components["schemas"]["AbilityError"];
+            };
+        };
+        /** @description Comment presets */
+        CommentPresetsSuccess: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Envelope"] & {
+                    data: components["schemas"]["CommentPreset"][];
+                };
             };
         };
     };
@@ -755,6 +906,30 @@ export interface components {
         TaskWrite: {
             content: {
                 "application/json": components["schemas"]["TaskWrite"];
+            };
+        };
+        CommentPresetsReplace: {
+            content: {
+                "application/json": {
+                    contents: string[];
+                };
+            };
+        };
+        CommentPresetsReplacePersonal: {
+            content: {
+                "application/json": {
+                    contents: string[];
+                    expected_entity_id: number;
+                };
+            };
+        };
+        FeedComment: {
+            content: {
+                "application/json": {
+                    account_id: number;
+                    comment: string;
+                    expected_entity_id: number;
+                };
             };
         };
     };
@@ -1064,6 +1239,30 @@ export interface operations {
             200: components["responses"]["Success"];
         };
     };
+    weiboTeamCommentPresets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["CommentPresetsSuccess"];
+        };
+    };
+    weiboTeamCommentPresetsReplace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["CommentPresetsReplace"];
+        responses: {
+            200: components["responses"]["CommentPresetsSuccess"];
+        };
+    };
     weiboPersonalAccounts: {
         parameters: {
             query?: never;
@@ -1335,6 +1534,76 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: components["responses"]["Success"];
+        };
+    };
+    weiboPersonalFeed: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["FeedSuccess"];
+        };
+    };
+    weiboPersonalFeedItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["FeedItemSuccess"];
+            403: components["responses"]["FeedItemDenied"];
+            404: components["responses"]["Success"];
+        };
+    };
+    weiboPersonalFeedComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["FeedComment"];
+        responses: {
+            200: components["responses"]["Success"];
+            403: components["responses"]["AbilityDenied"];
+        };
+    };
+    weiboPersonalCommentPresets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["CommentPresetsSuccess"];
+        };
+    };
+    weiboPersonalCommentPresetsReplace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["CommentPresetsReplacePersonal"];
+        responses: {
+            200: components["responses"]["CommentPresetsSuccess"];
         };
     };
 }

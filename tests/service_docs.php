@@ -32,6 +32,7 @@ if ($exit !== 0 || $stderr !== '') {
 }
 
 $document = file_get_contents($root . DIRECTORY_SEPARATOR . 'docs'
+    . DIRECTORY_SEPARATOR . 'dev'
     . DIRECTORY_SEPARATOR . 'glossary'
     . DIRECTORY_SEPARATOR . 'service.md');
 if ($document === false) {

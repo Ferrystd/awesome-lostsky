@@ -22,6 +22,15 @@ class Team
     }
 
     /**
+     * 生成真实登录用户的个人一次性入队码
+     */
+    public function joinCode(Request $request)
+    {
+        $result = app(\app\service\MemberJoinCode::class)->issue($request->user_id);
+        return success($result)->header(['Cache-Control' => 'no-store']);
+    }
+
+    /**
      * 新增团队
      */
     public function add(Request $request)

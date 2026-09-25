@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { setTimeout as delay } from 'node:timers/promises'
 
 const frontend = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(frontend, '..')
@@ -9,6 +10,19 @@ const apps = ['site', 'account', 'admin', 'team', 'chat', 'transaction', 'displa
 const domains = { site: 'www.lostsky.work', account: 'account.lostsky.work', admin: 'admin.lostsky.work', team: 'team.lostsky.work', chat: 'chat.lostsky.work', transaction: 'transaction.lostsky.work', display: 'display.lostsky.work', shop: 'shop.lostsky.work', weibo: 'weibo.lostsky.work' }
 const heroVideo = existsSync(join(frontend, 'media/source/site/lostsky-loop.webm'))
 const removeOptions = { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }
+
+async function createOutputDirectory(path) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      mkdirSync(path, { recursive: true })
+      return
+    } catch (error) {
+      // Windows may briefly retain a directory after rmSync has returned.
+      if (process.platform !== 'win32' || !['EPERM', 'EBUSY'].includes(error.code) || attempt >= 5) throw error
+      await delay(100 * (attempt + 1))
+    }
+  }
+}
 
 for (const app of apps) {
   execFileSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['vite', 'build', '--config', `frontend/vite.${app}.ts`], {
@@ -19,14 +33,14 @@ for (const app of apps) {
   const dist = join(frontend, `.dist/${app}`)
   const assetOut = join(root, `www/assets.lostsky.work/build/${app}`)
   rmSync(assetOut, removeOptions)
-  mkdirSync(assetOut, { recursive: true })
+  await createOutputDirectory(assetOut)
   for (const entry of readdirSync(dist)) {
     if (entry !== 'index.html') cpSync(join(dist, entry), join(assetOut, entry), { recursive: true })
   }
   const html = readFileSync(join(dist, 'index.html'), 'utf8')
   const domainOut = join(root, 'www', domains[app])
   rmSync(domainOut, removeOptions)
-  mkdirSync(domainOut, { recursive: true })
+  await createOutputDirectory(domainOut)
   writeFileSync(join(domainOut, 'index.html'), html, 'utf8')
 }
 

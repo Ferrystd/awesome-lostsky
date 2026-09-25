@@ -419,6 +419,7 @@ const formList = story(
           addLabel: '添加标签',
           emptyText: '还没有标签',
           disabled: state === 'disabled',
+          disabledReason: '当前列表只读，无法修改',
         },
         {
           item: ({ item, index }: { item: { name: string }; index: number }) => h(NInput, { value: item.name, placeholder: `标签 ${index + 1}` }),

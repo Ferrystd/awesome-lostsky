@@ -26,6 +26,7 @@ Route::get('identity/target', 'identity/target');
 // team (JwtAuth + Context)
 Route::get('team/index', 'team/index');
 Route::post('team/add', 'team/add');
+Route::post('team/join-code', 'team/joinCode');
 
 // register
 Route::post('register/phone', 'register/phone');

@@ -63,6 +63,7 @@ const server = await createServer({
 
 const apiData = (pathname) => {
   if (pathname.endsWith('/access')) return {
+    team: { id: 1, slug: 'demo', name: '青空团队' },
     permissions: ['file.read', 'file.upload', 'team.entity.field.manage', 'team.role.read', 'team.join_field.read', 'team.join_review.read', 'team.notice.read', 'team.notice.send', 'team.setting.read', 'team.entity.virtual.*.manage'],
     abilities: { doc: { enabled: true, level: 1, expire_time: 0, reason: null, label: '文档' } },
   }
@@ -79,6 +80,12 @@ await page.addInitScript(() => {
   localStorage.setItem('lostsky_token', 'component-preview-token')
 })
 await page.route('http://127.0.0.1:5191/api/**', async route => {
+  if (new URL(route.request().url()).pathname.endsWith('/memberDeparture/mine')) {
+    const state = new URL(route.request().frame().url()).searchParams.get('state')
+    if (state === 'loading') return
+    if (state === 'error') return route.fulfill({ json: { code: 1, message: '离队自助操作必须使用成员本人直接登录的人员' } })
+    return route.fulfill({ json: { code: 0, data: state === 'active' ? [{ id: 31, status_code: 'applied' }] : [] } })
+  }
   const data = apiData(new URL(route.request().url()).pathname)
   await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 0, message: 'ok', data }) })
 })

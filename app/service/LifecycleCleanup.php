@@ -19,6 +19,7 @@ class LifecycleCleanup
     public function run(): array
     {
         $now = time();
+        $autoCompletion = app(ServiceRedemption::class)->autoCompleteDue($now);
         $sessionsBefore = $now - $this->days('entity_session_retention_days') * 86400;
         $devicesBefore = $now - $this->days('device_retention_days') * 86400;
         $refreshBefore = $now - $this->days('refresh_token_retention_days') * 86400;
@@ -128,6 +129,7 @@ class LifecycleCleanup
         }
 
         return compact(
+            'autoCompletion',
             'sessions',
             'refreshTokens',
             'devices',

@@ -1,12 +1,43 @@
 [
-  { "id": "team-section-nav", "name": "TeamSectionNav", "source": "frontend/apps/team/src/components/TeamSectionNav.vue", "story": "frontend/component-previews/src/story-registry.ts#TeamSectionNav", "category": "team", "aliases": ["团队业务页签"] },
+  {"id":"team-join-application-fields","name":"JoinApplicationFields","source":"frontend/apps/team/src/components/JoinApplicationFields.vue","story":"frontend/component-previews/src/story-registry.ts#JoinApplicationFields","category":"team","aliases":["入职表单字段"]},
+  {
+    "id": "team-share-links",
+    "name": "TeamShareLinks",
+    "source": "frontend/apps/team/src/components/TeamShareLinks.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#TeamShareLinks",
+    "category": "team",
+    "aliases": ["团队链接", "分享链接"]
+  },
+  {
+    "id": "team-member-self-departure",
+    "name": "MemberSelfDeparture",
+    "source": "frontend/apps/team/src/components/MemberSelfDeparture.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#MemberSelfDeparture",
+    "category": "team",
+    "aliases": [
+      "成员自助离职"
+    ]
+  },
+  {
+    "id": "team-section-nav",
+    "name": "TeamSectionNav",
+    "source": "frontend/apps/team/src/components/TeamSectionNav.vue",
+    "story": "frontend/component-previews/src/story-registry.ts#TeamSectionNav",
+    "category": "team",
+    "aliases": [
+      "团队业务页签"
+    ]
+  },
   {
     "id": "account-auth-shell",
     "name": "AuthShell",
     "source": "frontend/apps/account/src/components/AuthShell.vue",
     "story": "frontend/component-previews/src/story-registry.ts#AuthShell",
     "category": "account",
-    "aliases": ["认证壳层", "登录壳层"]
+    "aliases": [
+      "认证壳层",
+      "登录壳层"
+    ]
   },
   {
     "id": "account-sms-code-field",
@@ -14,7 +45,10 @@
     "source": "frontend/apps/account/src/components/SmsCodeField.vue",
     "story": "frontend/component-previews/src/story-registry.ts#SmsCodeField",
     "category": "account",
-    "aliases": ["短信验证码", "验证码字段"]
+    "aliases": [
+      "短信验证码",
+      "验证码字段"
+    ]
   },
   {
     "id": "admin-admin-shell",
@@ -22,7 +56,10 @@
     "source": "frontend/apps/admin/src/components/AdminShell.vue",
     "story": "frontend/component-previews/src/story-registry.ts#AdminShell",
     "category": "admin",
-    "aliases": ["平台管理壳层", "后台壳层"]
+    "aliases": [
+      "平台管理壳层",
+      "后台壳层"
+    ]
   },
   {
     "id": "admin-reason-dialog",
@@ -30,7 +67,10 @@
     "source": "frontend/apps/admin/src/components/ReasonDialog.vue",
     "story": "frontend/component-previews/src/story-registry.ts#ReasonDialog",
     "category": "admin",
-    "aliases": ["原因对话框", "操作原因"]
+    "aliases": [
+      "原因对话框",
+      "操作原因"
+    ]
   },
   {
     "id": "display-document-list",
@@ -38,7 +78,10 @@
     "source": "frontend/apps/display/src/components/DocumentList.vue",
     "story": "frontend/component-previews/src/story-registry.ts#DocumentList",
     "category": "display",
-    "aliases": ["公开文档列表", "文档列表"]
+    "aliases": [
+      "公开文档列表",
+      "文档列表"
+    ]
   },
   {
     "id": "display-entity-list",
@@ -46,7 +89,10 @@
     "source": "frontend/apps/display/src/components/EntityList.vue",
     "story": "frontend/component-previews/src/story-registry.ts#EntityList",
     "category": "display",
-    "aliases": ["公开人员列表", "人员列表"]
+    "aliases": [
+      "公开人员列表",
+      "人员列表"
+    ]
   },
   {
     "id": "display-product-list",
@@ -54,7 +100,10 @@
     "source": "frontend/apps/display/src/components/ProductList.vue",
     "story": "frontend/component-previews/src/story-registry.ts#ProductList",
     "category": "display",
-    "aliases": ["公开商品列表", "商品列表"]
+    "aliases": [
+      "公开商品列表",
+      "商品列表"
+    ]
   },
   {
     "id": "display-profile-media",
@@ -62,7 +111,10 @@
     "source": "frontend/apps/display/src/components/ProfileMedia.vue",
     "story": "frontend/component-previews/src/story-registry.ts#ProfileMedia",
     "category": "display",
-    "aliases": ["资料媒体", "简介媒体"]
+    "aliases": [
+      "资料媒体",
+      "简介媒体"
+    ]
   },
   {
     "id": "display-public-document-section",
@@ -70,7 +122,10 @@
     "source": "frontend/apps/display/src/components/PublicDocumentSection.vue",
     "story": "frontend/component-previews/src/story-registry.ts#PublicDocumentSection",
     "category": "display",
-    "aliases": ["公开文档区", "文档分组"]
+    "aliases": [
+      "公开文档区",
+      "文档分组"
+    ]
   },
   {
     "id": "display-public-fields",
@@ -78,7 +133,10 @@
     "source": "frontend/apps/display/src/components/PublicFields.vue",
     "story": "frontend/component-previews/src/story-registry.ts#PublicFields",
     "category": "display",
-    "aliases": ["公开字段", "资料字段"]
+    "aliases": [
+      "公开字段",
+      "资料字段"
+    ]
   },
   {
     "id": "team-admin-page",
@@ -86,7 +144,10 @@
     "source": "frontend/apps/team/src/components/AdminPage.vue",
     "story": "frontend/component-previews/src/story-registry.ts#AdminPage",
     "category": "team",
-    "aliases": ["团队后台页面", "团队页面容器"]
+    "aliases": [
+      "团队后台页面",
+      "团队页面容器"
+    ]
   },
   {
     "id": "team-admin-page-header",
@@ -94,7 +155,10 @@
     "source": "frontend/apps/team/src/components/AdminPageHeader.vue",
     "story": "frontend/component-previews/src/story-registry.ts#AdminPageHeader",
     "category": "team",
-    "aliases": ["团队页面标题", "团队标题栏"]
+    "aliases": [
+      "团队页面标题",
+      "团队标题栏"
+    ]
   },
   {
     "id": "team-entity-fields-card",
@@ -102,7 +166,10 @@
     "source": "frontend/apps/team/src/components/EntityFieldsCard.vue",
     "story": "frontend/component-previews/src/story-registry.ts#EntityFieldsCard",
     "category": "team",
-    "aliases": ["对象字段卡片", "自定义字段"]
+    "aliases": [
+      "对象字段卡片",
+      "自定义字段"
+    ]
   },
   {
     "id": "team-entity-permissions-card",
@@ -110,7 +177,10 @@
     "source": "frontend/apps/team/src/components/EntityPermissionsCard.vue",
     "story": "frontend/component-previews/src/story-registry.ts#EntityPermissionsCard",
     "category": "team",
-    "aliases": ["人员权限卡片", "角色权限"]
+    "aliases": [
+      "人员权限卡片",
+      "角色权限"
+    ]
   },
   {
     "id": "team-entity-profile-fields",
@@ -118,7 +188,11 @@
     "source": "frontend/apps/team/src/components/EntityProfileFields.vue",
     "story": "frontend/component-previews/src/story-registry.ts#EntityProfileFields",
     "category": "team",
-    "aliases": ["人员资料字段", "成员资料表单", "个人资料表单"]
+    "aliases": [
+      "人员资料字段",
+      "成员资料表单",
+      "个人资料表单"
+    ]
   },
   {
     "id": "team-team-shell",
@@ -126,7 +200,10 @@
     "source": "frontend/apps/team/src/components/TeamShell.vue",
     "story": "frontend/component-previews/src/story-registry.ts#TeamShell",
     "category": "team",
-    "aliases": ["团队工作台壳层", "团队壳层"]
+    "aliases": [
+      "团队工作台壳层",
+      "团队壳层"
+    ]
   },
   {
     "id": "shop-shop-manage-shell",
@@ -134,7 +211,10 @@
     "source": "frontend/apps/shop/src/components/ShopManageShell.vue",
     "story": "frontend/component-previews/src/story-registry.ts#ShopManageShell",
     "category": "shop",
-    "aliases": ["商城管理壳层", "商家后台壳层"]
+    "aliases": [
+      "商城管理壳层",
+      "商家后台壳层"
+    ]
   },
   {
     "id": "shop-resource-owner-tag",
@@ -142,7 +222,10 @@
     "source": "frontend/apps/shop/src/components/ResourceOwnerTag.vue",
     "story": "frontend/component-previews/src/story-registry.ts#ResourceOwnerTag",
     "category": "shop",
-    "aliases": ["资源归属标签", "团队公用标签"]
+    "aliases": [
+      "资源归属标签",
+      "团队公用标签"
+    ]
   },
   {
     "id": "shop-service-fields-editor",
@@ -150,7 +233,10 @@
     "source": "frontend/apps/shop/src/components/ServiceFieldsEditor.vue",
     "story": "frontend/component-previews/src/story-registry.ts#ServiceFieldsEditor",
     "category": "shop",
-    "aliases": ["服务核销字段编辑器", "核销字段配置"]
+    "aliases": [
+      "服务核销字段编辑器",
+      "核销字段配置"
+    ]
   },
   {
     "id": "transaction-service-completion-fields",
@@ -158,7 +244,10 @@
     "source": "frontend/apps/transaction/src/components/ServiceCompletionFields.vue",
     "story": "frontend/component-previews/src/story-registry.ts#ServiceCompletionFields",
     "category": "transaction",
-    "aliases": ["接单核销字段", "完成核销字段"]
+    "aliases": [
+      "接单核销字段",
+      "完成核销字段"
+    ]
   },
   {
     "id": "transaction-transaction-shell",
@@ -166,7 +255,10 @@
     "source": "frontend/apps/transaction/src/components/TransactionShell.vue",
     "story": "frontend/component-previews/src/story-registry.ts#TransactionShell",
     "category": "transaction",
-    "aliases": ["记账工作台壳层", "交易壳层"]
+    "aliases": [
+      "记账工作台壳层",
+      "交易壳层"
+    ]
   },
   {
     "id": "transaction-personal-service-lists",
@@ -174,7 +266,11 @@
     "source": "frontend/apps/transaction/src/components/PersonalServiceLists.vue",
     "story": "frontend/component-previews/src/story-registry.ts#PersonalServiceLists",
     "category": "transaction",
-    "aliases": ["个人核销列表", "公开任务列表", "履约记录列表"]
+    "aliases": [
+      "个人核销列表",
+      "公开任务列表",
+      "履约记录列表"
+    ]
   },
   {
     "id": "transaction-person-tick-ranking",
@@ -182,7 +278,10 @@
     "source": "frontend/apps/transaction/src/components/PersonTickRanking.vue",
     "story": "frontend/component-previews/src/story-registry.ts#PersonTickRanking",
     "category": "transaction",
-    "aliases": ["人员刻度排行", "人员业绩排行榜"]
+    "aliases": [
+      "人员刻度排行",
+      "人员业绩排行榜"
+    ]
   },
   {
     "id": "transaction-flow-trend",
@@ -190,7 +289,10 @@
     "source": "frontend/apps/transaction/src/components/TransactionFlowTrend.vue",
     "story": "frontend/component-previews/src/story-registry.ts#TransactionFlowTrend",
     "category": "transaction",
-    "aliases": ["实际流水趋势", "流水折线图"]
+    "aliases": [
+      "实际流水趋势",
+      "流水折线图"
+    ]
   },
   {
     "id": "ui-ls-async-state",
@@ -198,7 +300,10 @@
     "source": "frontend/packages/ui/src/components/LsAsyncState.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsAsyncState",
     "category": "ui",
-    "aliases": ["异步状态", "加载错误状态"]
+    "aliases": [
+      "异步状态",
+      "加载错误状态"
+    ]
   },
   {
     "id": "ui-ls-button",
@@ -206,7 +311,11 @@
     "source": "frontend/packages/ui/src/components/LsButton.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsButton",
     "category": "ui",
-    "aliases": ["按钮", "主按钮", "危险按钮"]
+    "aliases": [
+      "按钮",
+      "主按钮",
+      "危险按钮"
+    ]
   },
   {
     "id": "ui-ls-empty-state",
@@ -214,7 +323,10 @@
     "source": "frontend/packages/ui/src/components/LsEmptyState.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsEmptyState",
     "category": "ui",
-    "aliases": ["空状态", "无数据"]
+    "aliases": [
+      "空状态",
+      "无数据"
+    ]
   },
   {
     "id": "ui-ls-entity-card",
@@ -222,7 +334,10 @@
     "source": "frontend/packages/ui/src/components/LsEntityCard.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsEntityCard",
     "category": "ui",
-    "aliases": ["人员卡片", "对象卡片"]
+    "aliases": [
+      "人员卡片",
+      "对象卡片"
+    ]
   },
   {
     "id": "ui-ls-entity-identity",
@@ -230,7 +345,10 @@
     "source": "frontend/packages/ui/src/components/LsEntityIdentity.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsEntityIdentity",
     "category": "ui",
-    "aliases": ["人员身份", "对象身份"]
+    "aliases": [
+      "人员身份",
+      "对象身份"
+    ]
   },
   {
     "id": "ui-ls-entity-select",
@@ -238,7 +356,11 @@
     "source": "frontend/packages/ui/src/components/LsEntitySelect.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsEntitySelect",
     "category": "ui",
-    "aliases": ["人员选择器", "对象下拉列表", "接单人选择"]
+    "aliases": [
+      "人员选择器",
+      "对象下拉列表",
+      "接单人选择"
+    ]
   },
   {
     "id": "ui-ls-entity-tag",
@@ -246,7 +368,11 @@
     "source": "frontend/packages/ui/src/components/LsEntityTag.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsEntityTag",
     "category": "ui",
-    "aliases": ["人员胶囊", "人员标签", "对象胶囊"]
+    "aliases": [
+      "人员胶囊",
+      "人员标签",
+      "对象胶囊"
+    ]
   },
   {
     "id": "ui-ls-entity-input",
@@ -254,7 +380,10 @@
     "source": "frontend/packages/ui/src/components/LsEntityInput.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsEntityInput",
     "category": "ui",
-    "aliases": ["人员输入", "对象选择器"]
+    "aliases": [
+      "人员输入",
+      "对象选择器"
+    ]
   },
   {
     "id": "ui-ls-field",
@@ -262,7 +391,10 @@
     "source": "frontend/packages/ui/src/components/LsField.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsField",
     "category": "ui",
-    "aliases": ["表单字段", "字段容器"]
+    "aliases": [
+      "表单字段",
+      "字段容器"
+    ]
   },
   {
     "id": "ui-ls-form-list",
@@ -270,7 +402,10 @@
     "source": "frontend/packages/ui/src/components/LsFormList.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsFormList",
     "category": "ui",
-    "aliases": ["表单列表", "可排序字段"]
+    "aliases": [
+      "表单列表",
+      "可排序字段"
+    ]
   },
   {
     "id": "ui-ls-inline-error",
@@ -278,7 +413,10 @@
     "source": "frontend/packages/ui/src/components/LsInlineError.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsInlineError",
     "category": "ui",
-    "aliases": ["行内错误", "错误提示"]
+    "aliases": [
+      "行内错误",
+      "错误提示"
+    ]
   },
   {
     "id": "ui-ls-input",
@@ -286,7 +424,10 @@
     "source": "frontend/packages/ui/src/components/LsInput.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsInput",
     "category": "ui",
-    "aliases": ["输入框", "文本输入"]
+    "aliases": [
+      "输入框",
+      "文本输入"
+    ]
   },
   {
     "id": "ui-ls-list-toolbar",
@@ -294,7 +435,10 @@
     "source": "frontend/packages/ui/src/components/LsListToolbar.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsListToolbar",
     "category": "ui",
-    "aliases": ["列表工具栏", "搜索筛选栏"]
+    "aliases": [
+      "列表工具栏",
+      "搜索筛选栏"
+    ]
   },
   {
     "id": "ui-ls-media-upload-field",
@@ -302,7 +446,11 @@
     "source": "frontend/packages/ui/src/components/LsMediaUploadField.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsMediaUploadField",
     "category": "ui",
-    "aliases": ["媒体上传字段", "单文件上传", "图片上传"]
+    "aliases": [
+      "媒体上传字段",
+      "单文件上传",
+      "图片上传"
+    ]
   },
   {
     "id": "ui-ls-metric-grid",
@@ -310,7 +458,11 @@
     "source": "frontend/packages/ui/src/components/LsMetricGrid.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsMetricGrid",
     "category": "ui",
-    "aliases": ["指标网格", "统计摘要", "数据指标"]
+    "aliases": [
+      "指标网格",
+      "统计摘要",
+      "数据指标"
+    ]
   },
   {
     "id": "ui-ls-markdown-editor",
@@ -318,7 +470,10 @@
     "source": "frontend/packages/ui/src/components/LsMarkdownEditor.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsMarkdownEditor",
     "category": "ui",
-    "aliases": ["Markdown编辑器", "文档编辑器"]
+    "aliases": [
+      "Markdown编辑器",
+      "文档编辑器"
+    ]
   },
   {
     "id": "ui-ls-markdown-renderer",
@@ -326,7 +481,10 @@
     "source": "frontend/packages/ui/src/components/LsMarkdownRenderer.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsMarkdownRenderer",
     "category": "ui",
-    "aliases": ["Markdown渲染器", "文档渲染"]
+    "aliases": [
+      "Markdown渲染器",
+      "文档渲染"
+    ]
   },
   {
     "id": "ui-ls-page",
@@ -334,7 +492,10 @@
     "source": "frontend/packages/ui/src/components/LsPage.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsPage",
     "category": "ui",
-    "aliases": ["公共页面容器", "后台页面"]
+    "aliases": [
+      "公共页面容器",
+      "后台页面"
+    ]
   },
   {
     "id": "ui-ls-page-header",
@@ -342,7 +503,10 @@
     "source": "frontend/packages/ui/src/components/LsPageHeader.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsPageHeader",
     "category": "ui",
-    "aliases": ["公共页面标题", "标题栏"]
+    "aliases": [
+      "公共页面标题",
+      "标题栏"
+    ]
   },
   {
     "id": "ui-ls-page-primary-action",
@@ -350,7 +514,11 @@
     "source": "frontend/packages/ui/src/components/LsPagePrimaryAction.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsPagePrimaryAction",
     "category": "ui",
-    "aliases": ["页面主操作", "标题区主按钮", "右上角主按钮"]
+    "aliases": [
+      "页面主操作",
+      "标题区主按钮",
+      "右上角主按钮"
+    ]
   },
   {
     "id": "ui-ls-panel",
@@ -358,7 +526,10 @@
     "source": "frontend/packages/ui/src/components/LsPanel.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsPanel",
     "category": "ui",
-    "aliases": ["面板", "内容面板"]
+    "aliases": [
+      "面板",
+      "内容面板"
+    ]
   },
   {
     "id": "ui-ls-responsive-actions",
@@ -366,7 +537,10 @@
     "source": "frontend/packages/ui/src/components/LsResponsiveActions.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsResponsiveActions",
     "category": "ui",
-    "aliases": ["响应式操作", "更多操作"]
+    "aliases": [
+      "响应式操作",
+      "更多操作"
+    ]
   },
   {
     "id": "ui-ls-responsive-data-table",
@@ -374,7 +548,10 @@
     "source": "frontend/packages/ui/src/components/LsResponsiveDataTable.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsResponsiveDataTable",
     "category": "ui",
-    "aliases": ["响应式数据表", "移动记录表"]
+    "aliases": [
+      "响应式数据表",
+      "移动记录表"
+    ]
   },
   {
     "id": "ui-ls-route-error-boundary",
@@ -382,7 +559,10 @@
     "source": "frontend/packages/ui/src/components/LsRouteErrorBoundary.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsRouteErrorBoundary",
     "category": "ui",
-    "aliases": ["路由错误边界", "页面错误边界"]
+    "aliases": [
+      "路由错误边界",
+      "页面错误边界"
+    ]
   },
   {
     "id": "ui-ls-search-input",
@@ -390,7 +570,10 @@
     "source": "frontend/packages/ui/src/components/LsSearchInput.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsSearchInput",
     "category": "ui",
-    "aliases": ["搜索框", "列表搜索"]
+    "aliases": [
+      "搜索框",
+      "列表搜索"
+    ]
   },
   {
     "id": "ui-ls-status-tag",
@@ -398,7 +581,10 @@
     "source": "frontend/packages/ui/src/components/LsStatusTag.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsStatusTag",
     "category": "ui",
-    "aliases": ["状态标签", "状态徽标"]
+    "aliases": [
+      "状态标签",
+      "状态徽标"
+    ]
   },
   {
     "id": "ui-ls-switch",
@@ -406,7 +592,11 @@
     "source": "frontend/packages/ui/src/components/LsSwitch.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsSwitch",
     "category": "ui",
-    "aliases": ["开关", "布尔控件", "开关原语"]
+    "aliases": [
+      "开关",
+      "布尔控件",
+      "开关原语"
+    ]
   },
   {
     "id": "ui-ls-switch-field",
@@ -414,7 +604,10 @@
     "source": "frontend/packages/ui/src/components/LsSwitchField.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsSwitchField",
     "category": "ui",
-    "aliases": ["布尔设置字段", "开关设置行"]
+    "aliases": [
+      "布尔设置字段",
+      "开关设置行"
+    ]
   },
   {
     "id": "ui-ls-upload-field",
@@ -422,7 +615,10 @@
     "source": "frontend/packages/ui/src/components/LsUploadField.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsUploadField",
     "category": "ui",
-    "aliases": ["上传字段", "文件上传"]
+    "aliases": [
+      "上传字段",
+      "文件上传"
+    ]
   },
   {
     "id": "ui-ls-workspace-header",
@@ -430,7 +626,10 @@
     "source": "frontend/packages/ui/src/components/LsWorkspaceHeader.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsWorkspaceHeader",
     "category": "ui",
-    "aliases": ["工作区标题", "顶栏"]
+    "aliases": [
+      "工作区标题",
+      "顶栏"
+    ]
   },
   {
     "id": "ui-ls-workspace-overview",
@@ -438,7 +637,11 @@
     "source": "frontend/packages/ui/src/components/LsWorkspaceOverview.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsWorkspaceOverview",
     "category": "ui",
-    "aliases": ["工作台概览", "概览主视觉", "业务入口概览"]
+    "aliases": [
+      "工作台概览",
+      "概览主视觉",
+      "业务入口概览"
+    ]
   },
   {
     "id": "ui-ls-checkbox-group-field",
@@ -446,7 +649,10 @@
     "source": "frontend/packages/ui/src/components/LsCheckboxGroupField.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsCheckboxGroupField",
     "category": "ui",
-    "aliases": ["复选组字段", "多选字段"]
+    "aliases": [
+      "复选组字段",
+      "多选字段"
+    ]
   },
   {
     "id": "ui-ls-description-list",
@@ -454,7 +660,10 @@
     "source": "frontend/packages/ui/src/components/LsDescriptionList.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsDescriptionList",
     "category": "ui",
-    "aliases": ["详情键值列表", "说明列表"]
+    "aliases": [
+      "详情键值列表",
+      "说明列表"
+    ]
   },
   {
     "id": "ui-ls-form-actions",
@@ -462,7 +671,10 @@
     "source": "frontend/packages/ui/src/components/LsFormActions.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsFormActions",
     "category": "ui",
-    "aliases": ["表单命令区", "表单动作"]
+    "aliases": [
+      "表单命令区",
+      "表单动作"
+    ]
   },
   {
     "id": "ui-ls-form-section",
@@ -470,7 +682,10 @@
     "source": "frontend/packages/ui/src/components/LsFormSection.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsFormSection",
     "category": "ui",
-    "aliases": ["表单区块", "表单面板"]
+    "aliases": [
+      "表单区块",
+      "表单面板"
+    ]
   },
   {
     "id": "ui-ls-section-header",
@@ -478,7 +693,10 @@
     "source": "frontend/packages/ui/src/components/LsSectionHeader.vue",
     "story": "frontend/component-previews/src/story-registry.ts#LsSectionHeader",
     "category": "ui",
-    "aliases": ["区块标题", "卡片标题"]
+    "aliases": [
+      "区块标题",
+      "卡片标题"
+    ]
   },
   {
     "id": "weibo-shell",
@@ -486,7 +704,10 @@
     "source": "frontend/apps/weibo/src/components/WeiboShell.vue",
     "story": "frontend/component-previews/src/app-stories.ts#WeiboShell",
     "category": "weibo",
-    "aliases": ["微博工作台", "微博应用壳"]
+    "aliases": [
+      "微博工作台",
+      "微博应用壳"
+    ]
   },
   {
     "id": "weibo-account-health-summary",
@@ -494,7 +715,10 @@
     "source": "frontend/apps/weibo/src/components/AccountHealthSummary.vue",
     "story": "frontend/component-previews/src/app-stories.ts#AccountHealthSummary",
     "category": "weibo",
-    "aliases": ["微博账号健康", "账号健康摘要"]
+    "aliases": [
+      "微博账号健康",
+      "账号健康摘要"
+    ]
   },
   {
     "id": "weibo-task-status-summary",
@@ -502,7 +726,10 @@
     "source": "frontend/apps/weibo/src/components/TaskStatusSummary.vue",
     "story": "frontend/component-previews/src/app-stories.ts#TaskStatusSummary",
     "category": "weibo",
-    "aliases": ["微博任务状态", "任务状态摘要"]
+    "aliases": [
+      "微博任务状态",
+      "任务状态摘要"
+    ]
   },
   {
     "id": "weibo-operation-record-list",
@@ -510,7 +737,10 @@
     "source": "frontend/apps/weibo/src/components/OperationRecordList.vue",
     "story": "frontend/component-previews/src/app-stories.ts#OperationRecordList",
     "category": "weibo",
-    "aliases": ["微博执行记录", "微博日志列表"]
+    "aliases": [
+      "微博执行记录",
+      "微博日志列表"
+    ]
   },
   {
     "id": "weibo-team-overview-dashboard",
@@ -518,7 +748,11 @@
     "source": "frontend/apps/weibo/src/components/TeamOverviewDashboard.vue",
     "story": "frontend/component-previews/src/app-stories.ts#TeamOverviewDashboard",
     "category": "weibo",
-    "aliases": ["微博团队概览", "微博调度 Dashboard", "团队调度态势"]
+    "aliases": [
+      "微博团队概览",
+      "微博调度 Dashboard",
+      "团队调度态势"
+    ]
   },
   {
     "id": "weibo-media-preparation",
@@ -526,7 +760,10 @@
     "source": "frontend/apps/weibo/src/components/MediaPreparation.vue",
     "story": "frontend/component-previews/src/app-stories.ts#MediaPreparation",
     "category": "weibo",
-    "aliases": ["微博媒体准备", "微博图片上传"]
+    "aliases": [
+      "微博媒体准备",
+      "微博图片上传"
+    ]
   },
   {
     "id": "ui-ls-dashboard-path",
@@ -547,6 +784,16 @@
     "category": "app",
     "aliases": [
       "商品概览工作区"
+    ]
+  },
+  {
+    "id": "app-shop-product-variant-editor",
+    "name": "ProductVariantEditor",
+    "source": "frontend/apps/shop/src/components/ProductVariantEditor.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#ProductVariantEditor",
+    "category": "app",
+    "aliases": [
+      "商品规格编辑器"
     ]
   }
 ]

@@ -110,6 +110,7 @@ class Order
 
             $kind = $product->enumCase('kind') ?? ProductKind::Standard;
             $fulfillmentSnapshot = app(BenefitFulfillment::class)->snapshotProduct($product);
+            $purchaseFields = app(ProductPurchaseField::class)->snapshot($product->purchase_fields ?? [], array_key_exists('purchase_values', $data) ? $data['purchase_values'] : []);
             $productHandlers = $data['product_handlers'] ?? [];
             if (!is_array($productHandlers)) throw new HttpException(422, '商品接单人配置格式不正确');
             foreach ($productHandlers as $productId => $entityId) {
@@ -204,9 +205,10 @@ class Order
             $order->sender_entity_id   = $data['sender_entity_id'] ?? null;
             $order->cs_entity_id       = $data['cs_entity_id'] ?? null;
             $order->product_id  = (int) $data['product_id'];
-            $order->product_name = (string) $product->name;
+            $order->product_name = app(ProductVariant::class)->displayName($product);
             $order->product_cover_image = $product->cover_image ?: null;
             $order->fulfillment_snapshot = $fulfillmentSnapshot;
+            $order->purchase_fields = $purchaseFields;
             $order->quantity    = $quantity;
             $order->unit_price  = $quote['unit_price'];
             $order->total_price = $quote['total_price'];

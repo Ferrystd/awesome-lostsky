@@ -1,4 +1,7 @@
+import JoinApplicationFields from '../../apps/team/src/components/JoinApplicationFields.vue';
 import TeamSectionNav from '../../apps/team/src/components/TeamSectionNav.vue';
+import TeamShareLinks from '../../apps/team/src/components/TeamShareLinks.vue';
+import MemberSelfDeparture from '../../apps/team/src/components/MemberSelfDeparture.vue';
 import { defineComponent, h, ref } from "vue";
 import { NInput } from "naive-ui";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
@@ -27,6 +30,8 @@ import ServiceCompletionFields from "../../apps/transaction/src/components/Servi
 import TransactionFlowTrend from "../../apps/transaction/src/components/TransactionFlowTrend.vue";
 import ShopManageShell from "../../apps/shop/src/components/ShopManageShell.vue";
 import ServiceFieldsEditor from "../../apps/shop/src/components/ServiceFieldsEditor.vue";
+import ProductVariantEditor from "../../apps/shop/src/components/ProductVariantEditor.vue";
+import { newProductVariant, type ProductVariantDraft } from "../../apps/shop/src/product-variants";
 import ResourceOwnerTag from "../../apps/shop/src/components/ResourceOwnerTag.vue";
 import WeiboShell from "../../apps/weibo/src/components/WeiboShell.vue";
 import AccountHealthSummary from "../../apps/weibo/src/components/AccountHealthSummary.vue";
@@ -348,7 +353,6 @@ const fieldDefinitions = [
     value_type: "string",
     input_type: "text",
     is_required: 1,
-    is_editable: 1,
     can_edit: true,
   },
   {
@@ -361,7 +365,6 @@ const fieldDefinitions = [
       { label: "可接单", value: "available" },
       { label: "忙碌", value: "busy" },
     ],
-    is_editable: 1,
     can_edit: true,
   },
 ];
@@ -694,6 +697,22 @@ const serviceFieldsEditor = story(
   },
 );
 
+const ProductVariantEditorHost = defineComponent({
+  setup() {
+    const draft = ref<ProductVariantDraft>({ ...newProductVariant(60), name: '体验规格', kind: 4, price: '30.00', handler_cut: '24.00', sender_cut: '4.50' });
+    return () => h(ProductVariantEditor, {
+      modelValue: draft.value,
+      'onUpdate:modelValue': value => draft.value = value,
+      prefix: 'preview-variant', products: [], entities: [], distributionLocked: false,
+      distributionRates: { handler: 80, sender: 15, customerService: 0 },
+      upload: async () => '/fixture.webp',
+    });
+  },
+});
+const productVariantEditor = story('ProductVariantEditor', ['default', 'hover', 'focus', 'active', 'mobile'],
+  state => stage(h(ProductVariantEditorHost), state === 'mobile' ? 'story-stage--mobile' : ''),
+  { disabled: '保存权限由主商品页面控制。', loading: '数据加载由主商品页面表达。', error: '提交错误由主商品页面表达。' });
+
 const ServiceCompletionFieldsHost = defineComponent({
   setup() {
     const values = ref<Record<number, unknown>>({ 42: "已完成服务并回访" });
@@ -749,6 +768,12 @@ const transactionFlowTrend = story(
 );
 
 export const appStories: Record<string, StoryDefinition> = {
+  JoinApplicationFields: story('JoinApplicationFields', ['default', 'hover', 'focus', 'active', 'disabled', 'mobile'], (state) => h(defineComponent({ setup() {
+    const values = ref({ nickname: '青空' });
+    return () => h(JoinApplicationFields, { fields: [{ id: 1, field_key: 'nickname', name: '团队昵称', input_type: 'text', is_apply_required: 1 }, { id: 2, field_key: 'intro', name: '入职介绍', input_type: 'textarea' }], modelValue: values.value, 'onUpdate:modelValue': value => { values.value = value as typeof values.value }, uploadFile: async () => '1', disabled: state === 'disabled' });
+  }})), { loading: '字段加载由页面承担，上传期间由上传控件显示忙碌状态。', error: '字段读取失败由页面呈现；上传失败在字段末尾显示。' }),
+  TeamShareLinks: story('TeamShareLinks', ['default', 'hover', 'focus', 'active', 'mobile'], () => h(TeamShareLinks), { disabled: '公开链接不按业务权限禁用。', loading: '团队快照就绪后显示链接。', error: '复制失败使用全局短时反馈。' }),
+  MemberSelfDeparture: story('MemberSelfDeparture', ['default', 'hover', 'focus', 'active', 'loading', 'error', 'mobile'], () => h(AdminPageHeader, { title: '资料', description: '所有内容均属于当前已领取的人员；切换身份后会自动重新核对。' }, { actions: () => h(MemberSelfDeparture) }), { disabled: '加载时阻止提交；身份与团队设置限制由服务端返回。' }),
   AuthShell: authShell,
   SmsCodeField: smsCodeField,
   AdminShell: adminShell,
@@ -777,6 +802,7 @@ export const appStories: Record<string, StoryDefinition> = {
   ServiceCompletionFields: serviceCompletionFields,
   TransactionFlowTrend: transactionFlowTrend,
   ServiceFieldsEditor: serviceFieldsEditor,
+  ProductVariantEditor: productVariantEditor,
   ResourceOwnerTag: resourceOwnerTag,
   ShopManageShell: shopManageShell,
   WeiboShell: weiboShell,

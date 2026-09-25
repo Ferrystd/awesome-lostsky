@@ -13,6 +13,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { CheckCheck } from "@lucide/vue";
 import { computed } from "vue";
 import { useRoute } from "vue-router";
+import { formatPurchaseValue } from '../../purchase-fields';
 import {
   canManage,
   formatDate,
@@ -93,7 +94,7 @@ function run(name: "cancel" | "complete") {
       state="error"
       title="暂时无法读取订单"
       :description="friendlyError(query.error.value)"
-    /><template v-else-if="routeAccess.restricted.value"><LsPanel><dl class="manage-facts"><div><dt>状态</dt><dd>-</dd></div><div><dt>数量</dt><dd>-</dd></div><div><dt>单价</dt><dd>-</dd></div><div><dt>总价</dt><dd>-</dd></div><div><dt>现金</dt><dd>-</dd></div><div><dt>预存款</dt><dd>-</dd></div><div><dt>成本</dt><dd>-</dd></div><div><dt>关联流水</dt><dd>-</dd></div></dl></LsPanel><LsPanel><div class="manage-detail"><h2>参与方与冻结分配</h2><dl class="manage-facts"><div><dt>顾客</dt><dd>-</dd></div><div><dt>接单人</dt><dd>-</dd></div><div><dt>接单分配</dt><dd>-</dd></div><div><dt>发单分配</dt><dd>-</dd></div><div><dt>客服分配</dt><dd>-</dd></div><div><dt>团队分配</dt><dd>-</dd></div></dl></div></LsPanel></template><template v-else-if="query.data.value"
+    /><template v-else-if="routeAccess.restricted.value"><LsPanel><dl class="manage-facts"><div><dt>状态</dt><dd>-</dd></div><div><dt>数量</dt><dd>-</dd></div><div><dt>单价</dt><dd>-</dd></div><div><dt>总价</dt><dd>-</dd></div><div><dt>现金</dt><dd>-</dd></div><div><dt>预存款</dt><dd>-</dd></div><div><dt>成本</dt><dd>-</dd></div><div><dt>关联流水</dt><dd>-</dd></div></dl></LsPanel><LsPanel><div class="manage-detail"><h2>参与方与冻结分成</h2><dl class="manage-facts"><div><dt>顾客</dt><dd>-</dd></div><div><dt>接单人</dt><dd>-</dd></div><div><dt>接单分成</dt><dd>-</dd></div><div><dt>发单分成</dt><dd>-</dd></div><div><dt>客服分成</dt><dd>-</dd></div><div><dt>团队分成</dt><dd>-</dd></div></dl></div></LsPanel></template><template v-else-if="query.data.value"
       ><LsPanel
         ><dl class="manage-facts">
           <div>
@@ -148,7 +149,7 @@ function run(name: "cancel" | "complete") {
         </dl></LsPanel
       ><LsPanel
         ><div class="manage-detail">
-          <h2>参与方与冻结分配</h2>
+          <h2>参与方与冻结分成</h2>
           <dl class="manage-facts">
             <div>
               <dt>顾客</dt>
@@ -159,23 +160,24 @@ function run(name: "cancel" | "complete") {
               <dd>{{ query.data.value.handler?.name ?? "团队" }}</dd>
             </div>
             <div>
-              <dt>接单分配</dt>
+              <dt>接单分成</dt>
               <dd>{{ formatMoney(query.data.value.handler_cut) }}</dd>
             </div>
             <div>
-              <dt>发单分配</dt>
+              <dt>发单分成</dt>
               <dd>{{ formatMoney(query.data.value.sender_cut) }}</dd>
             </div>
             <div>
-              <dt>客服分配</dt>
+              <dt>客服分成</dt>
               <dd>{{ formatMoney(query.data.value.cs_cut) }}</dd>
             </div>
             <div>
-              <dt>团队分配</dt>
+              <dt>团队分成</dt>
               <dd>{{ formatMoney(query.data.value.team_cut) }}</dd>
             </div>
           </dl>
           <p v-if="query.data.value.memo">{{ query.data.value.memo }}</p>
+          <section v-if="query.data.value.purchase_fields?.length"><h2>购买资料</h2><dl class="manage-facts"><div v-for="field in query.data.value.purchase_fields" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ formatPurchaseValue(field) }}</dd></div></dl></section>
         </div></LsPanel
       ></template
     >

@@ -26,7 +26,8 @@ class Upload
         $result  = $service->upload(
             $file,
             $request->team_id,
-            $request->acting_entity
+            $request->acting_entity,
+            app(\app\validate\File::class)->attachmentSource($request->post('source/s', 'attachment'))
         );
         app(\app\service\BusinessAudit::class)->record(
             $request,

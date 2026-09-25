@@ -17,7 +17,6 @@ export interface EntityFieldDefinition {
   options?: unknown
   default_value?: unknown
   is_required?: number
-  is_editable?: number
   can_edit?: boolean
 }
 
@@ -80,7 +79,7 @@ watch(() => props.success, (success) => {
 })
 
 function editable(field: EntityFieldDefinition) {
-  if (props.mode === 'manager') return Number(field.is_editable) === 1
+  if (props.mode === 'manager') return true
   if (props.mode === 'self') return field.can_edit === true
   return false
 }

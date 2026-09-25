@@ -1,0 +1,3446 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LostSky Transaction API",
+    "version": "0.0.9",
+    "description": "记账流水、客户发单人绑定和预存款管理。"
+  },
+  "x-entity-auth": {
+    "authenticated_default": [
+      "team",
+      "teamMember",
+      "teamVirtual"
+    ],
+    "base_login_auto_member": false,
+    "team_belongs": true
+  },
+  "servers": [
+    {
+      "url": "https://api.lostsky.work",
+      "description": "统一 API 域名；通过 Origin 头解析 {slug}.{app}.lostsky.work"
+    },
+    {
+      "url": "https://{slug}.{app}.api.lostsky.work",
+      "description": "API 子域名；Host 直接解析 slug 与 app",
+      "variables": {
+        "slug": {
+          "default": "team-a",
+          "description": "Team.slug"
+        },
+        "app": {
+          "default": "transaction",
+          "description": "应用名"
+        }
+      }
+    },
+    {
+      "url": "https://{customDomain}",
+      "description": "团队自定义域名；从 team_domain 表反查团队和应用",
+      "variables": {
+        "customDomain": {
+          "default": "example.com"
+        }
+      }
+    }
+  ],
+  "tags": [
+    {
+      "name": "Transaction"
+    },
+    {
+      "name": "Sender"
+    },
+    {
+      "name": "Balance"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Authorization: Bearer {token}"
+      }
+    },
+    "parameters": {
+      "PageId": {
+        "name": "X-Page-Id",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": "前端页面 UUID。Dedup 优先使用 X-Request-Id；缺省请求标识时仍按登录主体、请求路径和请求内容生成短期防重键。"
+      },
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "IdPath": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "IdQuery": {
+        "name": "id",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "CustomerIdQuery": {
+        "name": "customer_id",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "schemas": {
+      "AnyObject": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "WorkspaceAccessSnapshot": {
+        "type": "object",
+        "required": ["team", "permissions", "abilities", "identity", "entry_warning"],
+        "properties": {
+          "team": {
+            "type": "object",
+            "required": ["id", "slug", "name"],
+            "properties": {
+              "id": {"type": "integer", "format": "int64"},
+              "slug": {"type": "string"},
+              "name": {"type": "string"}
+            }
+          },
+          "permissions": {"type": "array", "items": {"type": "string"}},
+          "abilities": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["enabled", "level", "expire_time", "reason", "label"],
+              "properties": {
+                "enabled": {"type": "boolean"},
+                "level": {"type": "integer"},
+                "expire_time": {"type": "integer", "format": "int64"},
+                "reason": {"type": "string", "nullable": true, "enum": ["missing", "level", "expired"]},
+                "label": {"type": "string"}
+              }
+            }
+          },
+          "identity": {
+            "type": "object",
+            "required": ["type", "entity_id", "name", "belongs_to_team", "is_external"],
+            "properties": {
+              "type": {"type": "string", "enum": ["team", "teamMember", "teamCustomer", "teamVirtual"]},
+              "entity_id": {"type": "integer", "format": "int64"},
+              "name": {"type": "string"},
+              "slug": {"type": "string", "nullable": true},
+              "avatar": {"type": "string", "nullable": true},
+              "belongs_to_team": {"type": "boolean"},
+              "is_external": {"type": "boolean"}
+            }
+          },
+          "entry_warning": {
+            "type": "object",
+            "required": ["required", "kind", "ttl_seconds"],
+            "properties": {
+              "required": {"type": "boolean"},
+              "kind": {"type": "string", "nullable": true, "enum": ["external_entity"]},
+              "ttl_seconds": {"type": "integer", "minimum": 60, "default": 86400}
+            }
+          }
+        }
+      },
+      "AnyValue": {
+        "nullable": true,
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "array",
+            "items": {}
+          },
+          {
+            "type": "object",
+            "additionalProperties": true
+          }
+        ]
+      },
+      "SuccessEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": "ok"
+          },
+          "data": {}
+        }
+      },
+      "MessageEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": "操作成功"
+          },
+          "data": {
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 1
+          },
+          "message": {
+            "type": "string",
+            "example": "参数错误"
+          },
+          "data": {
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "PaginationBase": {
+        "type": "object",
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "list": {
+            "type": "array",
+            "items": {}
+          },
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          }
+        }
+      },
+      "IdResult": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UserSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "LoginResult": {
+        "type": "object",
+        "required": [
+          "token",
+          "user"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserSummary"
+          }
+        }
+      },
+      "LoginEnvelope": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SuccessEnvelope"
+          },
+          {
+            "type": "object",
+            "required": ["status_code", "status_label"],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/LoginResult"
+              }
+            }
+          }
+        ]
+      },
+      "TeamSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "is_owner": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TeamProfile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "introduction": {
+            "type": "string",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          }
+        }
+      },
+      "MemberProfileFields": {
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "avatar": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "intro_image": {
+            "type": "string",
+            "nullable": true
+          },
+          "intro_video": {
+            "type": "string",
+            "nullable": true
+          },
+          "introduction_markdown": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Member": {
+        "allOf": [
+          {
+            "type": "object",
+            "required": ["status_code", "status_label"],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "team_id": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "user_id": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "status_code": {
+                "type": "string",
+                "enum": ["active", "blocked", "departed"]
+              },
+              "status_label": {
+                "type": "string"
+              },
+              "create_time": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Unix timestamp, seconds"
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/MemberProfileFields"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "posts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MemberPost"
+                }
+              },
+              "fieldValues": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/EntityFieldValue"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "MemberPost": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "post_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "$ref": "#/components/schemas/PostType"
+          }
+        }
+      },
+      "PostType": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "post_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "price": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "cost": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "handler_cut": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "sender_cut": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "cs_cut": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "team_cut": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "is_active": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "0=false, 1=true"
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
+          },
+          "handlers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductHandler"
+            }
+          }
+        }
+      },
+      "ProductHandler": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "product_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "handler_entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "sender_entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "cs_entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "product_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "unit_price": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "total_price": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "cost": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "handler_cut": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "sender_cut": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "cs_cut": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "team_cut": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "cash": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "prepaid": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "trans_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ],
+            "description": "1=处理中, 2=已完成"
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "handler": {
+            "$ref": "#/components/schemas/Entity"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/Entity"
+          },
+          "cs": {
+            "$ref": "#/components/schemas/Entity"
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/Transaction"
+          }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "user_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "is_blocked": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "0=false, 1=true"
+          },
+          "assignee_entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "客户当前归属 Entity；为空表示未归属。"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "balance": {
+            "$ref": "#/components/schemas/Balance"
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          }
+        }
+      },
+      "PersonalCustomer": {
+        "type": "object",
+        "required": [
+          "id",
+          "entity_id",
+          "slug",
+          "name",
+          "is_blocked",
+          "balance",
+          "is_assignee",
+          "is_sender"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_blocked": {
+            "type": "boolean"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/Balance"
+          },
+          "assignee": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntitySummary"
+              }
+            ],
+            "nullable": true
+          },
+          "is_assignee": {
+            "type": "boolean",
+            "description": "当前 acting_entity 是否为客户当前归属。"
+          },
+          "is_sender": {
+            "type": "boolean",
+            "description": "当前 acting_entity 是否为客户协作发单人。"
+          }
+        }
+      },
+      "PersonalCustomerPage": {
+        "type": "object",
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalCustomer"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      },
+      "Balance": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "balance": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "recharged": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "spent": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          }
+        }
+      },
+      "BalanceLog": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "description": "1=充值, 2=消费, 3=退款, 4=手动调整"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "balance_after": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "trans_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/Transaction"
+          }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "handler_entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "sender_entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "cs_entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "type": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "description": "1=商城下单, 2=记账登记, 3=服务包收款, 4=服务核销, 5=履约加价收款, 6=履约加价业绩"
+          },
+          "total_price": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "cost": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "cash": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "prepaid": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "service_credit": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "由服务包预付覆盖的履约金额。"
+          },
+          "service_instance_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "handler_cut": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "sender_cut": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "cs_cut": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "team_cut": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "trans_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "handler": {
+            "$ref": "#/components/schemas/Entity"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/Entity"
+          },
+          "cs": {
+            "$ref": "#/components/schemas/Entity"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          }
+        }
+      },
+      "TransactionOptions": {
+        "type": "object",
+        "required": [
+          "entities",
+          "customers"
+        ],
+        "properties": {
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntitySummary"
+            }
+          },
+          "customers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Customer"
+            }
+          }
+        }
+      },
+      "ManualEntitlementProduct": {
+        "type": "object",
+        "required": ["id", "name", "price"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "name": {"type": "string"},
+          "price": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$"}
+        }
+      },
+      "ManualEntitlementGrantOptions": {
+        "type": "object",
+        "required": ["products", "customers", "entities", "sync_transaction"],
+        "properties": {
+          "products": {"type": "array", "items": {"$ref": "#/components/schemas/ManualEntitlementProduct"}},
+          "customers": {"type": "array", "items": {"$ref": "#/components/schemas/Customer"}},
+          "entities": {"type": "array", "items": {"$ref": "#/components/schemas/EntitySummary"}},
+          "sync_transaction": {"type": "boolean"}
+        }
+      },
+      "ManualEntitlementGrantRequest": {
+        "type": "object",
+        "required": ["product_id", "customer_id", "quantity"],
+        "properties": {
+          "product_id": {"type": "integer", "format": "int64"},
+          "customer_id": {"type": "integer", "format": "int64"},
+          "quantity": {"type": "integer", "minimum": 1, "maximum": 999},
+          "sender_entity_id": {"type": "integer", "format": "int64", "nullable": true},
+          "cs_entity_id": {"type": "integer", "format": "int64", "nullable": true}
+        }
+      },
+      "ManualEntitlementGrantResult": {
+        "type": "object",
+        "required": ["entitlement_ids", "entitlement_count", "transaction_id", "order_id"],
+        "properties": {
+          "entitlement_ids": {"type": "array", "items": {"type": "integer", "format": "int64"}},
+          "entitlement_count": {"type": "integer", "minimum": 1},
+          "transaction_id": {"type": "integer", "format": "int64", "nullable": true},
+          "order_id": {"type": "integer", "format": "int64", "nullable": true, "description": "手动赋予固定不创建 Shop 订单，因此始终为 null。"}
+        }
+      },
+      "PersonalEntitlementGrantRecord": {
+        "type": "object",
+        "required": ["id", "create_time", "granted_quantity", "consumed_quantity", "available_quantity", "unit_name", "expire_time", "is_expired", "is_exhausted", "customer", "service", "product"],
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "create_time": {"type": "integer"},
+          "granted_quantity": {"type": "string"},
+          "consumed_quantity": {"type": "string"},
+          "available_quantity": {"type": "string"},
+          "unit_name": {"type": "string"},
+          "expire_time": {"type": "integer", "description": "0 表示永久有效。"},
+          "is_expired": {"type": "boolean"},
+          "is_exhausted": {"type": "boolean"},
+          "customer": {
+            "type": "object",
+            "required": ["id", "name", "avatar"],
+            "properties": {
+              "id": {"type": "integer", "format": "int64"},
+              "name": {"type": "string"},
+              "avatar": {"type": "string", "nullable": true}
+            }
+          },
+          "service": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": {"type": "integer", "format": "int64"},
+              "name": {"type": "string"}
+            }
+          },
+          "product": {
+            "type": "object",
+            "required": ["id", "name"],
+            "properties": {
+              "id": {"type": "integer", "format": "int64"},
+              "name": {"type": "string"}
+            }
+          }
+        }
+      },
+      "PersonalEntitlementGrantPage": {
+        "type": "object",
+        "required": ["total", "list", "page", "limit"],
+        "properties": {
+          "total": {"type": "integer", "minimum": 0},
+          "list": {"type": "array", "items": {"$ref": "#/components/schemas/PersonalEntitlementGrantRecord"}},
+          "page": {"type": "integer", "minimum": 1},
+          "limit": {"type": "integer", "minimum": 1, "maximum": 100}
+        }
+      },
+      "PersonalTransactionStats": {
+        "type": "object",
+        "required": ["handler_count", "sender_count", "cs_count", "monthly_performance_total", "monthly_flow_total", "performance_total"],
+        "properties": {
+          "handler_count": {"type": "integer", "minimum": 0, "description": "当前 Entity 作为接单人的商城订单、记账登记和服务核销笔数；履约加价业绩不增加笔数。"},
+          "sender_count": {"type": "integer", "minimum": 0, "description": "当前 Entity 作为发单人的商城订单、记账登记和服务包收款笔数；服务核销与履约加价不增加笔数。"},
+          "cs_count": {"type": "integer", "minimum": 0, "description": "当前 Entity 作为客服的非纯收款流水笔数。"},
+          "monthly_performance_total": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$", "description": "当月当前 Entity 作为接单人的商城订单、记账登记、服务核销和履约加价业绩金额。"},
+          "monthly_flow_total": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$", "description": "当月当前 Entity 参与流水的现款与预存款收入。"},
+          "performance_total": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$", "description": "当前 Entity 作为接单人的商城订单、记账登记、服务核销和履约加价累计业绩金额。"}
+        }
+      },
+      "TransactionStatsSummary": {
+        "type": "object",
+        "required": [
+          "total_count",
+          "total_price",
+          "total_cost",
+          "total_cut",
+          "cash_total",
+          "prepaid_total",
+          "recharge_total",
+          "receipt_total",
+          "performance_total",
+          "service_receipt_count",
+          "service_redemption_count",
+          "service_adjustment_receipt_count",
+          "service_adjustment_performance_count",
+          "avg_price"
+        ],
+        "properties": {
+          "total_count": {
+            "type": "integer"
+          },
+          "total_price": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "total_cost": {
+            "type": "number"
+          },
+          "total_cut": {
+            "type": "number"
+          },
+          "cash_total": {
+            "type": "number"
+          },
+          "prepaid_total": {
+            "type": "number"
+          },
+          "recharge_total": {
+            "type": "number",
+            "description": "所选时间范围内顾客充值日志的入账金额。"
+          },
+          "receipt_total": {
+            "type": "number",
+            "description": "现金与预存款的实际收款口径。"
+          },
+          "performance_total": {
+            "type": "number",
+            "description": "排除服务包与履约加价收款后的履约业绩口径。"
+          },
+          "service_receipt_count": {
+            "type": "integer"
+          },
+          "service_redemption_count": {
+            "type": "integer"
+          },
+          "service_adjustment_receipt_count": {
+            "type": "integer"
+          },
+          "service_adjustment_performance_count": {
+            "type": "integer"
+          },
+          "avg_price": {
+            "type": "number"
+          }
+        }
+      },
+      "TransactionEntityStat": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "name",
+          "count",
+          "amount"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          }
+        }
+      },
+      "TransactionRoleStats": {
+        "type": "object",
+        "required": [
+          "handler",
+          "sender",
+          "cs"
+        ],
+        "properties": {
+          "handler": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionEntityStat"
+            }
+          },
+          "sender": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionEntityStat"
+            }
+          },
+          "cs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionEntityStat"
+            }
+          }
+        }
+      },
+      "TransactionTimelineStat": {
+        "type": "object",
+        "required": [
+          "date",
+          "count",
+          "amount",
+          "receipt_amount"
+        ],
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "receipt_amount": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "现金与预存款的实际流水金额。"
+          }
+        }
+      },
+      "TransactionCustomerStat": {
+        "type": "object",
+        "required": [
+          "customer_id",
+          "customer_name",
+          "count",
+          "amount"
+        ],
+        "properties": {
+          "customer_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "customer_name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          }
+        }
+      },
+      "TransactionAssigneeStat": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "name",
+          "customer_count",
+          "transaction_count",
+          "total_price",
+          "total_cost",
+          "team_cut"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "customer_count": {
+            "type": "integer"
+          },
+          "transaction_count": {
+            "type": "integer"
+          },
+          "total_price": {
+            "type": "string"
+          },
+          "total_cost": {
+            "type": "string"
+          },
+          "team_cut": {
+            "type": "string"
+          }
+        }
+      },
+      "TransactionPersonStat": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "name",
+          "handler_count",
+          "sender_count",
+          "handler_performance_total",
+          "sender_performance_total",
+          "income_total"
+        ],
+        "properties": {
+          "entity_id": {"type": "integer", "format": "int64"},
+          "slug": {"type": "string", "nullable": true},
+          "name": {"type": "string"},
+          "avatar": {"type": "string", "nullable": true},
+          "handler_count": {"type": "integer", "minimum": 0, "description": "作为接单人的商城订单、记账登记和服务核销笔数；履约加价业绩不增加笔数。"},
+          "sender_count": {"type": "integer", "minimum": 0, "description": "作为发单人的商城订单、记账登记和服务包收款笔数；服务核销与履约加价不增加笔数。"},
+          "handler_performance_total": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$", "description": "作为接单人的商城订单、记账登记、服务核销和履约加价业绩金额。"},
+          "sender_performance_total": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$", "description": "作为发单人的商城订单、记账登记、服务包收款和履约加价收款的现金与预存款实付金额。"},
+          "income_total": {"type": "string", "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$", "description": "作为接单人、发单人或客服取得的全部分成之和；同一笔流水兼任多个角色时累加各角色分成。"}
+        }
+      },
+      "TransactionPersonStatsPage": {
+        "type": "object",
+        "required": ["total", "list", "page", "limit"],
+        "properties": {
+          "total": {"type": "integer", "minimum": 0},
+          "list": {"type": "array", "items": {"$ref": "#/components/schemas/TransactionPersonStat"}},
+          "page": {"type": "integer", "minimum": 1},
+          "limit": {"type": "integer", "minimum": 1, "maximum": 100}
+        }
+      },
+      "TransactionInviteIdentity": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "type",
+          "slug",
+          "name",
+          "display_url"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "team",
+              "teamMember",
+              "teamVirtual"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "display_url": {
+            "type": "string"
+          }
+        }
+      },
+      "TransactionStatsResult": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/TransactionStatsSummary"
+          },
+          {
+            "$ref": "#/components/schemas/TransactionRoleStats"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionEntityStat"
+            }
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionTimelineStat"
+            }
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionCustomerStat"
+            }
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionAssigneeStat"
+            }
+          },
+          {
+            "$ref": "#/components/schemas/TransactionPersonStatsPage"
+          }
+        ]
+      },
+      "File": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "team_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "全局实体身份 ID，引用 entity.id；无实体上传时为 null。"
+          },
+          "entity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Entity"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "FileUploadResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "url": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        }
+      },
+      "FileUsage": {
+        "type": "object",
+        "required": ["count", "total_size", "size_limit", "remaining_size", "available", "reason"],
+        "properties": {
+          "count": {"type": "integer", "minimum": 0},
+          "total_size": {"type": "integer", "format": "int64", "minimum": 0},
+          "size_limit": {"type": "integer", "format": "int64", "minimum": 0, "nullable": true},
+          "remaining_size": {"type": "integer", "format": "int64", "minimum": 0, "nullable": true},
+          "available": {"type": "boolean"},
+          "reason": {"type": "string", "nullable": true, "enum": ["quota"]}
+        }
+      },
+      "Document": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "nullable": true
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "manager_scope": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ],
+            "description": "1=team管理, 2=主体本人和team管理"
+          },
+          "visibility": {
+            "type": "integer",
+            "enum": [
+              1,
+              3,
+              4,
+              5,
+              6
+            ],
+            "description": "1=team管理可见, 3=主体本人和team管理可见, 4=全体member可见, 5=public公开可见, 6=custom指定对象可见"
+          },
+          "visibility_targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VisibilityTarget"
+            },
+            "description": "visibility=6(custom) 时生效"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
+          }
+        },
+        "required": [
+          "id",
+          "entity_id"
+        ]
+      },
+      "VisibilityTarget": {
+        "type": "object",
+        "required": [
+          "entity_id"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Entity"
+          }
+        }
+      },
+      "EntitySummary": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "Entity": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "entityable_type",
+          "entityable_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "entityable_type": {
+            "type": "string",
+            "enum": [
+              "team",
+              "teamMember",
+              "teamCustomer",
+              "teamVirtual"
+            ]
+          },
+          "entityable_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "is_valid": {
+            "type": "boolean"
+          },
+          "is_searchable": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EntityFieldValue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "field_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "value_string": {
+            "type": "string",
+            "nullable": true
+          },
+          "value_text": {
+            "type": "string",
+            "nullable": true
+          },
+          "value_int": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "value_decimal": {
+            "type": "number",
+            "format": "float",
+            "nullable": true
+          },
+          "value_datetime": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "value_json": {
+            "nullable": true
+          },
+          "field": {
+            "$ref": "#/components/schemas/EntityField"
+          }
+        }
+      },
+      "EntityField": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": [
+              "entity",
+              "customer",
+              "virtual"
+            ]
+          },
+          "field_key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value_type": {
+            "type": "string"
+          },
+          "input_type": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {},
+            "nullable": true
+          },
+          "is_required": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_searchable": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "system",
+              "custom"
+            ]
+          },
+          "default_value": {
+            "type": "string",
+            "nullable": true
+          },
+          "manager_scope": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ]
+          },
+          "visibility": {
+            "type": "integer",
+            "enum": [
+              1,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "is_system": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/service": {"get":{"tags":["Transaction"],"operationId":"serviceRedemptions","summary":"权益核销列表","description":"团队全量核销入口，要求 service.redemption.read 或 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Transaction"],"operationId":"serviceRedemption","summary":"权益核销详情","description":"要求 service.redemption.read 或 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}/handlers": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"get":{"tags":["Transaction"],"operationId":"serviceRedemptionHandlers","summary":"核销接单池","description":"要求 service.redemption.read 或 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}/reassign": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"reassignServiceRedemption","summary":"改派接单人","description":"要求 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}/cancel/approve": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"approveServiceCancellation","summary":"同意取消核销","description":"要求 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}/cancel/reject": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"rejectServiceCancellation","summary":"拒绝取消核销","description":"要求 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}/complete": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"completeServiceRedemption","summary":"通过核销","description":"要求 service.redemption.manage，不要求 Transaction Ability；Ability 无效时完成状态仍保存，但不生成流水。","requestBody":{"required":false,"content":{"application/json":{"schema":{"type":"object","properties":{"field_values":{"type":"array","description":"按履约资源序号提交的接单字段","items":{"type":"object","additionalProperties":true}}}}}}},"responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}/reject": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"rejectServiceRedemption","summary":"驳回核销并释放预占额度","description":"要求 service.redemption.manage；已确认加价费用存在时不可驳回。","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["reason"],"properties":{"reason":{"type":"string","minLength":1,"maxLength":500}}}}}},"responses":{"200":{"description":"核销已驳回"},"409":{"description":"任务状态或费用状态不允许驳回"},"422":{"description":"驳回原因为空"}}}},
+    "/service/{id}/adjustments": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"createServiceAdjustment","summary":"创建待客户确认的履约加价费用","description":"要求 service.redemption.manage。","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["name","quantity","unit_price"],"properties":{"name":{"type":"string"},"quantity":{"type":"string"},"unit_price":{"type":"string"},"cost":{"type":"string"},"handler_cut":{"type":"string"},"sender_cut":{"type":"string"},"cs_cut":{"type":"string"},"memo":{"type":"string"}}}}}},"responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/service/{id}/adjustments/{adjustment_id}/cancel": {"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"adjustment_id","in":"path","required":true,"schema":{"type":"integer"}}],"post":{"tags":["Transaction"],"operationId":"cancelServiceAdjustment","summary":"取消待确认的履约加价费用","description":"要求 service.redemption.manage。","responses":{"200":{"description":"成功"},"403":{"description":"Permission 不满足"}}}},
+    "/entitlement-grant/options": {"get":{"tags":["Transaction"],"operationId":"manualEntitlementGrantOptions","summary":"手动赋予权益候选","description":"返回当前团队启用的权益套餐商品、客户、业务 Entity，以及是否同步权益包收款流水。要求 transaction.write，不要求 Transaction 或 Shop Ability。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/ManualEntitlementGrantOptions"}}}]}}}},"403":{"description":"Permission 不满足"}}}},
+    "/entitlement-grant": {"post":{"tags":["Transaction"],"operationId":"manualEntitlementGrant","summary":"手动赋予客户独立权益","description":"确认提交时要求 Transaction Ability 与 transaction.write；从 Shop 权益套餐商品读取冻结权益快照，直接归属 Customer 根 Entity，不创建 Shop 订单。shop.sync_manual_entitlement_transaction 开启时原子生成权益包收款流水。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ManualEntitlementGrantRequest"}}}},"responses":{"200":{"description":"客户权益已赋予","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/ManualEntitlementGrantResult"}}}]}}}},"403":{"description":"Ability 或 Permission 不满足"},"422":{"description":"商品、客户、份数或业务 Entity 无效"}}}},
+    "/personal/entitlements": {"get":{"tags":["Personal"],"operationId":"personalEntitlementGrants","summary":"分页读取本人赠送的权益","description":"只按当前 acting_entity 的发单身份返回直接赠送记录，不要求业务 Permission 或 Transaction Ability，也不接受 Entity ID 范围参数。商城订单与卡密产生的权益不进入该列表。","security":[{"bearerAuth":[]}],"parameters":[{"name":"keyword","in":"query","schema":{"type":"string"},"description":"按权益、来源商品或客户名称搜索。"},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/PersonalEntitlementGrantPage"}}}]}}}}}}},
+    "/personal/entitlement-grant/options": {"get":{"tags":["Personal"],"operationId":"personalEntitlementGrantOptions","summary":"读取本人客户权益赠送候选","description":"要求 service.entitlement.grant，只返回当前 acting_entity 归属或发单绑定的有效客户，不接受 Entity ID 范围参数；不要求 Transaction Ability。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/ManualEntitlementGrantOptions"}}}]}}}},"403":{"description":"service.entitlement.grant 不满足"}}}},
+    "/personal/entitlement-grant": {"post":{"tags":["Personal"],"operationId":"personalEntitlementGrant","summary":"为本人接待客户赋予权益","description":"点击下发时要求 Transaction Ability 与 service.entitlement.grant。客户必须归属或发单绑定当前 acting_entity，发单人由服务端强制为当前 Entity；不创建 Shop 订单。","security":[{"bearerAuth":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/ManualEntitlementGrantRequest"}}}},"responses":{"200":{"description":"客户权益已赋予","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/ManualEntitlementGrantResult"}}}]}}}},"403":{"description":"Ability、Permission 或客户范围不满足"},"422":{"description":"商品、客户、份数或业务 Entity 无效"}}}},
+    "/workspace/access": {"get":{"tags":["Workspace"],"operationId":"transactionWorkspaceAccess","summary":"读取团队摘要、Permission 与 transaction Ability 快照","description":"用于工作台权限判断，并在指定提交动作点击后判断 transaction Ability。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/WorkspaceAccessSnapshot"}}}]}}}}}}},
+    "/personal/transactions": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransactions","summary":"读取当前 Entity 参与的流水","description":"服务端只使用当前 acting_entity；不接受 Entity ID 作为范围参数，也不要求 transaction.read。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}},{"name":"type","in":"query","schema":{"type":"integer"}},{"name":"keyword","in":"query","schema":{"type":"string"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/transactions/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalTransaction","summary":"读取当前 Entity 参与的流水详情","description":"只允许读取当前 acting_entity 参与的记录，不要求 transaction.read。","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"流水不存在或不属于当前个人范围"}}}},
+    "/personal/stats": {"get":{"tags":["Personal"],"operationId":"transactionPersonalStats","summary":"读取当前 Entity 流水页个人统计","description":"返回接单、发单和客服累计笔数，以及月度业绩、月度流水和个人业绩。接单按普通成交与每次服务核销计数，发单按普通成交与服务包收款计数；接单业绩包含履约加价业绩，月度流水汇总本人参与流水的现款与预存款收入。不要求 transaction.report.read。","security":[{"bearerAuth":[]}],"parameters":[{"name":"start_time","in":"query","schema":{"type":"integer"}},{"name":"end_time","in":"query","schema":{"type":"integer"}}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/PersonalTransactionStats"}}}]}}}}}}},
+    "/personal/services": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServices","summary":"读取接单人三组工作台","description":"offers 为待确认指定邀请，available 为当前 Entity 有资格领取的公开任务，list 为当前 Entity 已接取的核销。显式接单池按名单限制，空接单池向全部有效接单 Entity 开放；领取前返回完整 Customer 核销字段。","security":[{"bearerAuth":[]}],"parameters":[{"name":"status","in":"query","schema":{"type":"integer"}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/services/available": {"get":{"tags":["Personal"],"operationId":"transactionPersonalAvailableServices","summary":"分页读取当前 Entity 可以领取的公开任务","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/services/available/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalAvailableService","summary":"读取公开任务及完整核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"任务不存在或已被领取"}}}},
+    "/personal/services/{id}/claim": {"post":{"tags":["Personal"],"operationId":"claimPersonalService","summary":"在详情页填写接单资料并领取公开履约任务","description":"quantity 可小于公开任务数量，但必须符合服务最小步长；已领取部分沿用原任务 ID，剩余数量生成新的未分配公开任务。","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["quantity","field_values"],"properties":{"quantity":{"oneOf":[{"type":"number"},{"type":"string"}]},"field_values":{"type":"array","items":{"type":"object","additionalProperties":true}}}}}}},"responses":{"200":{"description":"成功，返回已领取任务 ID"},"409":{"description":"任务已被领取、正在取消或数量不可拆分"},"422":{"description":"接单资格、数量或接单字段无效"}}}},
+    "/personal/services/{id}/return": {"post":{"tags":["Personal"],"operationId":"returnPersonalService","summary":"主动退回自己未完成的任务至公开接单池","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["reason"],"properties":{"reason":{"type":"string","minLength":1,"maxLength":500}}}}}},"responses":{"200":{"description":"已退回"},"409":{"description":"存在待处理取消申请或任务状态已改变"}}}},
+    "/personal/services/{id}/complete": {"post":{"tags":["Personal"],"operationId":"completePersonalService","summary":"当前接单 Entity 完成自己的任务","description":"接单字段在领取任务时逐份填写；完成操作只允许当前 acting_entity 完成 handler_entity_id 为自身的核销，不要求 service.redemption.manage。field_values 仅为兼容既有任务保留。","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"requestBody":{"required":false,"content":{"application/json":{"schema":{"type":"object","properties":{"field_values":{"type":"array","items":{"type":"object","additionalProperties":true}}}}}}},"responses":{"200":{"description":"服务已核销"},"403":{"description":"任务不属于当前接单 Entity"},"409":{"description":"任务状态或待处理事项不允许完成"},"422":{"description":"既有任务缺少必填接单字段"}}}},
+    "/personal/services/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalService","summary":"读取当前 Entity 处理的核销详情","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"},"404":{"description":"核销不存在或不属于当前个人范围"}}}},
+    "/personal/service-offers": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServiceOffers","summary":"分页读取待当前 Entity 确认的指定邀请","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/service-offers/{id}": {"get":{"tags":["Personal"],"operationId":"transactionPersonalServiceOffer","summary":"读取指定邀请及完整核销字段","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}}],"responses":{"200":{"description":"成功"}}}},
+    "/personal/service-offers/{id}/accept": {"post":{"tags":["Personal"],"operationId":"acceptPersonalServiceOffer","summary":"在详情页逐份填写接单资料并接受邀请","description":"点击接受时要求有效的 Transaction Ability。","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["field_values"],"properties":{"field_values":{"type":"array","items":{"type":"object","additionalProperties":true}}}}}}},"responses":{"200":{"description":"已接受并返回任务 ID"},"403":{"description":"Transaction Ability 不满足"},"409":{"description":"邀请已处理"},"422":{"description":"接单资格已失效或接单字段无效"}}}},
+    "/personal/service-offers/{id}/reject": {"post":{"tags":["Personal"],"operationId":"rejectPersonalServiceOffer","summary":"拒绝邀请并释放预占","security":[{"bearerAuth":[]}],"parameters":[{"name":"id","in":"path","required":true,"schema":{"type":"integer"}},{"name":"Idempotency-Key","in":"header","required":false,"schema":{"type":"string","maxLength":100}}],"responses":{"200":{"description":"已拒绝"}}}},
+    "/personal/customers": {"get":{"tags":["Personal"],"operationId":"transactionPersonalCustomers","summary":"分页读取我的客户","description":"只使用当前 acting_entity，合并当前归属与协作发单客户并去重；同一客户分别返回 is_assignee 与 is_sender 关系标记，不接受 Entity ID，也不要求 Team 全量读取 Permission。","security":[{"bearerAuth":[]}],"parameters":[{"name":"keyword","in":"query","schema":{"type":"string"},"description":"按客户名称搜索。"},{"name":"page","in":"query","schema":{"type":"integer","minimum":1,"default":1}},{"name":"limit","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":20}}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/PersonalCustomerPage"}}}]}}}}}}},
+    "/personal/transaction-options": {"get":{"tags":["Personal"],"operationId":"transactionPersonalOptions","summary":"读取个人登记流水候选","description":"要求 transaction.write；Team Entity 返回团队全部候选，成员和虚拟 Entity 只返回当前归属或发单绑定客户；不要求 Transaction Ability。","security":[{"bearerAuth":[]}],"responses":{"200":{"description":"成功","content":{"application/json":{"schema":{"allOf":[{"$ref":"#/components/schemas/SuccessEnvelope"},{"type":"object","properties":{"data":{"$ref":"#/components/schemas/TransactionOptions"}}}]}}}},"403":{"description":"transaction.write 不满足"}}}},
+    "/transaction": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "流水列表",
+        "operationId": "transactionIndex",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "name": "start_time",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Unix timestamp, seconds"
+            }
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Unix timestamp, seconds"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "enum": [
+                1,
+                2
+              ]
+            }
+          },
+          {
+            "name": "handler_entity_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "sender_entity_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "cs_entity_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/PaginationBase"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "list": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/Transaction"
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "创建流水",
+        "description": "保存新流水时要求 Transaction Ability 与 transaction.write；服务层会校验 total_price = cash + prepaid 且 total_price = cost + handler_cut + sender_cut + cs_cut + team_cut。",
+        "operationId": "transactionCreate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "handler_entity_id",
+                  "total_price"
+                ],
+                "properties": {
+                  "handler_entity_id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "sender_entity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "nullable": true
+                  },
+                  "cs_entity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "nullable": true
+                  },
+                  "customer_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "nullable": true
+                  },
+                  "type": {
+                    "type": "integer",
+                    "enum": [
+                      1,
+                      2
+                    ],
+                    "default": 2
+                  },
+                  "total_price": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "cost": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "cash": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "prepaid": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "handler_cut": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "sender_cut": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "cs_cut": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "team_cut": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "trans_at": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Unix timestamp, seconds"
+                  },
+                  "memo": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/IdResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transaction/options": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "流水表单选项",
+        "description": "返回当前团队可用于流水、发单人绑定和充值表单的成员与客户。",
+        "operationId": "transactionOptions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/TransactionOptions"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "无团队访问权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transaction/stats": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "流水统计",
+        "operationId": "transactionStats",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          },
+          {
+            "name": "start_time",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Unix timestamp, seconds"
+            }
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "description": "Unix timestamp, seconds"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "summary",
+                "byRole",
+                "byEntity",
+                "timeline",
+                "byCustomer",
+                "byAssignee",
+                "byPerson"
+              ],
+              "default": "summary"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "handler",
+                "sender",
+                "cs"
+              ],
+              "default": "handler"
+            }
+          },
+          {
+            "name": "granularity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "hour",
+                "day",
+                "week",
+                "month"
+              ],
+              "default": "day"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "name": "sort_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["handler_performance_total", "handler_count", "sender_count", "sender_performance_total", "income_total"],
+              "default": "handler_performance_total"
+            }
+          },
+          {
+            "name": "sort_order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"],
+              "default": "desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/TransactionStatsResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transaction/invite": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "获取当前实体的客户邀请链接",
+        "operationId": "transactionInvite",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/TransactionInviteIdentity"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "缺少报表权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "当前身份不能成为客户归属人",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transaction/{id}": {
+      "get": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "流水详情",
+        "operationId": "transactionGet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          },
+          {
+            "$ref": "#/components/parameters/IdPath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Transaction"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "编辑流水",
+        "operationId": "transactionEdit",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          },
+          {
+            "$ref": "#/components/parameters/IdPath"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "type": {
+                    "type": "integer",
+                    "enum": [
+                      1,
+                      2
+                    ]
+                  },
+                  "total_price": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "cost": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "cash": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "prepaid": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "sender_entity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "nullable": true
+                  },
+                  "cs_entity_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "nullable": true
+                  },
+                  "customer_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "nullable": true
+                  },
+                  "handler_cut": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "sender_cut": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "cs_cut": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "team_cut": {
+                    "type": "string",
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "trans_at": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Unix timestamp, seconds"
+                  },
+                  "memo": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transaction/{id}/delete": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "summary": "删除流水",
+        "operationId": "transactionDelete",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          },
+          {
+            "$ref": "#/components/parameters/IdPath"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transaction/balance/logs": {
+      "get": {
+        "tags": [
+          "Balance"
+        ],
+        "summary": "客户余额变动日志",
+        "operationId": "transactionBalanceLogs",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          },
+          {
+            "$ref": "#/components/parameters/CustomerIdQuery"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/PaginationBase"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "list": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/BalanceLog"
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transaction/balance/recharge": {
+      "post": {
+        "tags": [
+          "Balance"
+        ],
+        "summary": "客户充值",
+        "description": "点击确认充值时要求 Transaction Ability 与 transaction.write。",
+        "operationId": "transactionBalanceRecharge",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "customer_id",
+                  "amount"
+                ],
+                "properties": {
+                  "customer_id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+                    "description": "Exact decimal string."
+                  },
+                  "memo": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "操作成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

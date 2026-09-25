@@ -10,5 +10,5 @@ export function resolveEntities(slugs: string[]) {
 }
 
 export async function uploadMarkdownImage(file: File) {
-  return uploadFileUrl(file)
+  return uploadFileUrl(file, 'markdown')
 }

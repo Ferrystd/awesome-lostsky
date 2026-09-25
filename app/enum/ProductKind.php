@@ -11,6 +11,7 @@ enum ProductKind: int implements EnumTransform
     case ServiceBundle = 2;
     case RedemptionCard = 3;
     case Redeemable = 4;
+    case MultiVariant = 5;
 
     public function value(): string
     {
@@ -19,6 +20,7 @@ enum ProductKind: int implements EnumTransform
             self::ServiceBundle => '套餐',
             self::RedemptionCard => '卡密',
             self::Redeemable => '核销商品',
+            self::MultiVariant => '多规格商品',
         };
     }
 }

@@ -62,7 +62,7 @@ export const shopApi = {
   balance: () => api.get<Balance>('/customer/balance'),
   orders: (page = 1, limit = 20) => pageRequest<Order>('/customer/orders', { page, limit }, '订单列表'),
   order: (id: number) => api.get<Order>(`/customer/orders/${id}`),
-  purchase: (body: { product_id: number; quantity: number; handler_entity_id?: number; product_handlers?: Record<number, number>; memo?: string }) =>
+  purchase: (body: { product_id: number; quantity: number; handler_entity_id?: number; product_handlers?: Record<number, number>; purchase_values?: Record<number, unknown>; memo?: string }) =>
     api.post<{ id: number }>('/customer/orders', body),
   cancel: (id: number) => api.post<void>(`/customer/orders/${id}/cancel`, {}),
   services: (page = 1, limit = 20) => pageRequest<ServiceEntitlement>('/customer/services', { page, limit }, '服务权益列表'),

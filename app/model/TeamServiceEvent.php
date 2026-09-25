@@ -21,7 +21,6 @@ class TeamServiceEvent extends Base
         'update_time' => 'integer',
         'delete_time' => 'integer',
         'service_instance_id' => 'integer',
-        'actor_entity_id' => 'integer',
         'event_type' => 'string',
     ];
 

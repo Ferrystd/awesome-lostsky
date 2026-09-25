@@ -25,7 +25,6 @@ class TeamEntityField extends Base
         'manager_scope' => ManageScope::class,
         'visibility'    => Visibility::class,
         'is_required'   => 'integer',
-        'is_editable'   => 'integer',
         'is_searchable' => 'integer',
         'is_system'     => 'integer',
         'sort'          => 'integer',

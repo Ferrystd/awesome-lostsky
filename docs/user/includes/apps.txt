@@ -1,0 +1,11 @@
+[团队]: /app/team/
+
+[聊天]: /app/chat/
+
+[商城]: /app/shop/
+
+[微博]: /app/weibo/
+
+[展示]: /app/display/
+
+[管理]: /app/admin/

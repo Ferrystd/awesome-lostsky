@@ -49,6 +49,24 @@ final class ProductSelfManagement
 
     private function protectPricing(int $teamId, array $actingEntity, array $data, ?TeamProduct $product): array
     {
+        if ((int) ($data['kind'] ?? $product?->enumCase('kind')->value ?? 1) === 5) {
+            if (array_key_exists('variants', $data)) {
+                if (!is_array($data['variants']) || !array_is_list($data['variants'])) throw new HttpException(422, '规格必须为列表');
+                foreach ($data['variants'] as &$row) {
+                    if (!is_array($row)) throw new HttpException(422, '规格格式不正确');
+                    $saved = null;
+                    if (isset($row['id'])) {
+                        if (!$product || !is_scalar($row['id'])) throw new HttpException(422, '规格不属于当前商品');
+                        $saved = TeamProduct::where('team_id', $teamId)->where('parent_product_id', $product->id)->find($row['id']);
+                        if (!$saved) throw new HttpException(422, '规格不属于当前商品');
+                    }
+                    if ((int) ($row['kind'] ?? 1) === 5) throw new HttpException(422, '规格不能再包含规格');
+                    $row = $this->protectPricing($teamId, $actingEntity, $row, $saved);
+                }
+                unset($row);
+            }
+            return $data;
+        }
         if ($product === null && array_key_exists('items', $data)) return $data;
         $pricing = app(PersonalPricing::class);
         if ($pricing->allows($teamId, $actingEntity)) return $data;

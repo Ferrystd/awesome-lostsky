@@ -16,7 +16,7 @@ const reason = computed(() => props.accessReason || readAccessReason(props.sourc
 
 <template>
   <section class="ls-empty-state" role="status">
-    <NEmpty :description="reason ? '无法读取数据' : title">
+    <NEmpty :description="reason ? '无法读取数据' : title" :theme-overrides="{ textColor: 'var(--text-secondary)' }">
       <template #extra>
         <p class="ls-empty-state__description">{{ reason || description }}</p>
       </template>

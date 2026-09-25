@@ -9,13 +9,14 @@ import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Send, CheckCheck, Mail, MailOpen, Pin } from '@lucide/vue'
-import { NSelect } from 'naive-ui'
-import { computed, ref } from 'vue'
+import { NPagination, NSelect } from 'naive-ui'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 
 interface NoticeItem {
   id: number
+  entity_id?: number | null
   title?: string | null
   content?: string | null
   is_pinned?: number
@@ -30,7 +31,7 @@ interface NoticeList {
   can_send?: boolean
 }
 
-type NoticeScope = 'team' | 'entity'
+type NoticeScope = 'team' | 'entity' | 'sent'
 
 const route = useRoute()
 const routeAccess = useRouteAccess()
@@ -38,8 +39,12 @@ const client = useQueryClient()
 const filter = ref<'all' | 'unread'>('all')
 const filterOptions = [{ label: '全部', value: 'all' }, { label: '未读', value: 'unread' }]
 const search = ref('')
-const scope = computed<NoticeScope>(() => route.meta.noticeScope === 'team' ? 'team' : 'entity')
-const copy = computed(() => scope.value === 'team'
+const page = ref(1)
+watch([filter, search, () => route.meta.noticeScope], () => { page.value = 1 })
+const scope = computed<NoticeScope>(() => route.meta.noticeScope as NoticeScope)
+const copy = computed(() => scope.value === 'sent'
+  ? { title: '已发送通知', description: '查看团队已发送通知及收件人的查看情况', noun: '已发送通知', empty: '还没有已发送通知', emptyDescription: '团队发送的通知会显示在这里。' }
+  : scope.value === 'team'
   ? {
       title: '站内通知',
       description: 'LostSky 发给 Team 的共享通知',
@@ -55,8 +60,8 @@ const copy = computed(() => scope.value === 'team'
       emptyDescription: 'Team 发给当前人员的通知会显示在这里。',
     })
 const query = useQuery({
-  queryKey: computed(() => ['notices', scope.value]),
-  queryFn: () => api.get<NoticeList>('/notice/index', { scope: scope.value }),
+  queryKey: computed(() => ['notices', scope.value, page.value, search.value, filter.value]),
+  queryFn: () => api.get<NoticeList>('/notice/index', { scope: scope.value, page: page.value, keyword: search.value, is_read: filter.value === 'unread' ? 0 : '' }),
   enabled: computed(() => !routeAccess.restricted.value),
 })
 const notices = computed(() => Array.isArray(query.data.value?.list) ? query.data.value.list : [])
@@ -86,13 +91,13 @@ function summary(content: string | null | undefined) {
 
 <template>
   <div class="notices-view">
-    <AdminPageHeader title="通知中心" :description="routeAccess.restricted.value ? `${copy.description}。目前有 0 条未读。` : `${copy.description}。目前有 ${unreadCount} 条未读。`">
+    <AdminPageHeader :title="scope === 'entity' ? '收件箱' : '通知中心'" :description="scope === 'sent' ? copy.description : routeAccess.restricted.value ? `${copy.description}。目前有 0 条未读。` : `${copy.description}。当前列表有 ${unreadCount} 条未读。`">
       <template #actions>
-        <LsPagePrimaryAction :icon="Send" label="发送通知" to="/notices/send" />
-        <LsPagePrimaryAction :icon="CheckCheck" label="全部标为已读" :loading="confirmAll.isPending.value" :disabled="routeAccess.restricted.value || unreadCount === 0" :disabled-reason="routeAccess.reason.value || '当前没有未读消息'" @click="confirmAll.mutate()" />
+        <LsPagePrimaryAction v-if="scope !== 'entity'" :icon="Send" label="发送通知" to="/notices/send" />
+        <LsPagePrimaryAction v-if="scope !== 'sent'" :icon="CheckCheck" label="全部标为已读" :loading="confirmAll.isPending.value" :disabled="routeAccess.restricted.value || unreadCount === 0" :disabled-reason="routeAccess.reason.value || '当前没有未读消息'" @click="confirmAll.mutate()" />
       </template>
     </AdminPageHeader>
-    <TeamSectionNav label="通知分类" :items="noticeSections" />
+    <TeamSectionNav v-if="scope !== 'entity'" label="通知分类" :items="noticeSections" />
 
     <LsListToolbar v-model="search" :placeholder="`搜索${copy.noun}`" :aria-label="`搜索${copy.noun}`" :count-label="routeAccess.restricted.value ? '0 条' : `${visible.length} 条`">
       <template #filters><NSelect v-model:value="filter" class="notice-filter" :options="filterOptions" :aria-label="`${copy.noun}筛选`" /></template>
@@ -104,19 +109,20 @@ function summary(content: string | null | undefined) {
       <RouterLink
         v-for="item in visible"
         :key="item.id"
-        :to="`/notices/${scope}/detail?id=${item.id}`"
+        :to="`${scope === 'entity' ? '/personal/notices' : `/notices/${scope}`}/detail?id=${item.id}`"
         :class="{ unread: item.is_read !== 1 }"
       >
         <span class="notice-icon" aria-hidden="true"><Mail v-if="item.is_read !== 1" :size="20" /><MailOpen v-else :size="20" /></span>
         <span class="notice-copy">
           <span class="notice-meta">
             <span v-if="item.is_pinned === 1" class="pinned"><Pin :size="14" />置顶</span>
+            <span v-if="scope === 'sent'">收件人员 #{{ item.entity_id }}</span>
             <time>{{ time(item.create_time ?? item.created_at) }}</time>
           </span>
           <strong>{{ item.title || '无标题消息' }}</strong>
           <span class="summary">{{ summary(item.content).slice(0, 120) || `这条${copy.noun}没有正文。` }}</span>
         </span>
-        <LsStatusTag v-if="item.is_read !== 1" label="未读" type="info" />
+        <LsStatusTag :label="item.is_read === 1 ? '已读' : '未读'" :type="item.is_read === 1 ? 'success' : 'info'" />
       </RouterLink>
     </section>
     <LsEmptyState :source="query.data.value"
@@ -124,6 +130,8 @@ function summary(content: string | null | undefined) {
       :title="routeAccess.restricted.value ? `没有可显示的${copy.noun}` : filter === 'unread' ? `没有未读${copy.noun}` : copy.empty"
       :description="filter === 'unread' ? '新的通知会继续显示在这里。' : copy.emptyDescription"
     />
+
+    <NPagination v-if="!routeAccess.restricted.value && (query.data.value?.total ?? 0) > 20" v-model:page="page" :item-count="query.data.value?.total ?? 0" :page-size="20" :page-slot="5" />
 
     <p v-if="confirmAll.isError.value" class="error" role="alert">{{ friendlyError(confirmAll.error.value) }}</p>
   </div>

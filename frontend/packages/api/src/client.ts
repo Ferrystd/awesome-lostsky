@@ -294,7 +294,12 @@ export const api = {
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   delete: <T>(path: string, body?: unknown) => request<T>('DELETE', path, body),
-  upload: <T>(file: File, path = '/upload') => { const body = new FormData(); body.append('file', file); return request<T>('POST', path, body, { timeout: 60000, app: 'common' }) },
+  upload: <T>(file: File, path = '/upload', fields: Record<string, string | number> = {}) => {
+    const body = new FormData()
+    body.append('file', file)
+    Object.entries(fields).forEach(([key, value]) => body.append(key, String(value)))
+    return request<T>('POST', path, body, { timeout: 60000, app: 'common' })
+  },
   uploadTo: <T>(file: File, path: string, fields: Record<string, string | number> = {}) => {
     const body = new FormData()
     body.append('file', file)
@@ -308,9 +313,9 @@ export const api = {
  * Keeping this contract here prevents every form from interpreting upload
  * responses differently.
  */
-export async function uploadFileUrl(file: File): Promise<string> {
+export async function uploadFileUrl(file: File, source: 'attachment' | 'markdown' = 'attachment'): Promise<string> {
   try {
-    const result = await api.upload<Record<string, unknown>>(file)
+    const result = await api.upload<Record<string, unknown>>(file, '/upload', { source })
     const url = String(result.url ?? result.path ?? '')
     if (!url) throw new ApiError('上传结果缺少文件地址', { method: 'POST', path: '/upload', data: result })
     return url

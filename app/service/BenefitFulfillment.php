@@ -22,6 +22,7 @@ class BenefitFulfillment
     /** 下单事务内冻结核销商品的承诺，不将内部金额快照暴露给顾客。 */
     public function snapshotProduct(TeamProduct $product, array $path = []): array
     {
+        app(ProductVariant::class)->assertAvailable($product);
         if (count($path) > 3 || in_array((int) $product->id, $path, true)) throw new HttpException(422, '商品组合存在循环或超过嵌套上限');
         $path[] = (int) $product->id;
         $kind = $product->enumCase('kind');
@@ -32,7 +33,7 @@ class BenefitFulfillment
                 throw new HttpException(422, '卡密活动不可用或归属不匹配');
             }
             $target = new TeamProduct(['id' => $product->id, 'team_id' => $product->team_id, 'entity_id' => $product->entity_id,
-                'kind' => ProductKind::ServiceBundle, 'benefit_package_id' => $campaign->package_id]);
+                'kind' => ProductKind::ServiceBundle, 'is_active' => 1, 'benefit_package_id' => $campaign->package_id]);
             array_pop($path);
             $snapshot['campaign_id'] = (int) $campaign->id;
             $snapshot['target'] = $this->snapshotProduct($target, $path);
@@ -77,13 +78,13 @@ class BenefitFulfillment
                         $target['cards'] = [];
                     }
                     $snapshot['cards'][] = ['product_id' => (int) $child->id, 'quantity' => $copies, 'money' => $money,
-                        'product_name' => (string) $child->name,
+                        'product_name' => app(ProductVariant::class)->displayName($child),
                         'campaign_id' => $childSnapshot['campaign_id'], 'target' => $target];
                     continue;
                 }
                 if ($child->enumCase('kind') === ProductKind::Standard) {
                     $snapshot['ordinary'][] = ['product_id' => (int) $child->id, 'quantity' => $copies, 'money' => $money,
-                        'product_name' => $child->name, 'product_cover_image' => $child->cover_image];
+                        'product_name' => app(ProductVariant::class)->displayName($child), 'product_cover_image' => $child->cover_image];
                     continue;
                 }
                 $childItems = $childSnapshot['items'];

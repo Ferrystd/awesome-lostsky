@@ -10,11 +10,13 @@ import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
-import { BookOpen, FileText, House, ShieldCheck, UserRound } from '@lucide/vue'
+import { Bell, BookOpen, FileText, House, ShieldCheck, UserRound } from '@lucide/vue'
 import { NInput } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
+import MemberSelfDeparture from '../components/MemberSelfDeparture.vue'
+import TeamShareLinks from '../components/TeamShareLinks.vue'
 import EntityProfileFields from '../components/EntityProfileFields.vue'
 import EntityFieldsCard, { type EntityFieldDefinition } from '../components/EntityFieldsCard.vue'
 import EntityPermissionsCard, { type EffectivePermission, type RoleAssignment, type RoleRecord } from '../components/EntityPermissionsCard.vue'
@@ -55,6 +57,7 @@ const overviewActions = computed(() => [
   { key: 'docs', label: '使用文档', href: '//doc.lostsky.work', target: '_blank', rel: 'noopener', icon: BookOpen },
 ])
 const overviewEntries = [
+  { key: 'notices', label: '收件箱', description: '查看发给当前人员的通知并标记已读。', to: '/personal/notices', icon: Bell },
   { key: 'profile', label: '资料', description: '维护当前人员的名称、头像、简介与公开介绍。', to: '/personal/profile', icon: UserRound },
   { key: 'fields', label: '对象字段', description: '填写当前人员类型允许维护的团队自定义字段。', to: '/personal/fields', icon: FileText },
   { key: 'access', label: '角色与权限', description: '只读查看角色来源与当前实际生效的 Permission。', to: '/personal/access', icon: ShieldCheck },
@@ -91,6 +94,7 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
         :scope-notes="['所有资料和业务范围都以当前已领取的人员为主体。', '切换身份后，系统会重新核对人员类型、角色与有效权限。']"
       >
         <template #summary>
+          <TeamShareLinks />
           <LsMetricGrid aria-label="个人身份摘要" :items="[
             { key: 'roles', label: '已分配角色', value: query.isSuccess.value && query.data.value?.role_assignments ? query.data.value.role_assignments.length : '-' },
             { key: 'fields', label: '资料字段', value: query.isSuccess.value && query.data.value?.custom_fields ? query.data.value.custom_fields.length : '-' },
@@ -101,7 +105,9 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
       <LsInlineError v-if="query.isError.value" :message="friendlyError(query.error.value)" />
     </template>
     <template v-else>
-      <AdminPageHeader :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的人员；切换身份后会自动重新核对。" />
+      <AdminPageHeader :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的人员；切换身份后会自动重新核对。">
+        <template #actions><MemberSelfDeparture v-if="section === 'profile' && query.data.value?.identity.type === 'teamMember'" /></template>
+      </AdminPageHeader>
       <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
       <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取当前人员" :description="friendlyError(query.error.value)" />
       <template v-else-if="query.data.value">
@@ -114,7 +120,7 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
         <LsInlineError v-if="saveProfile.isError.value" :message="friendlyError(saveProfile.error.value)" />
         <LsFormActions><LsButton type="submit" :loading="saveProfile.isPending.value" :disabled="uploading || !form.name.trim() || (!query.data.value.identity.slug && !form.slug.trim())">保存资料</LsButton></LsFormActions>
       </form>
-      <EntityFieldsCard v-else-if="section === 'fields'" :fields="query.data.value.custom_fields" :stored-values="query.data.value.custom_field_values" mode="self" :saving="saveFields.isPending.value" :error="saveFields.error.value" :upload-disabled-reason="uploadDisabledReason" @save="saveFields.mutate" />
+      <EntityFieldsCard v-if="section === 'fields'" :fields="query.data.value.custom_fields" :stored-values="query.data.value.custom_field_values" mode="self" :saving="saveFields.isPending.value" :error="saveFields.error.value" :upload-disabled-reason="uploadDisabledReason" @save="saveFields.mutate" />
       <EntityPermissionsCard v-else-if="section === 'access'" :assignments="query.data.value.role_assignments" :roles="roles" :effective-permissions="query.data.value.effective_permissions" />
       </template>
     </template>

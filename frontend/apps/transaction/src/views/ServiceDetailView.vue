@@ -15,7 +15,7 @@ import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NInput, NInputNumber, NSelect, useDialog } from 'naive-ui'
+import { NImage, NInput, NInputNumber, NSelect, useDialog } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { customerName, dateTime, entityName, serviceStatusCode, serviceStatusName } from '../lib'
@@ -235,7 +235,7 @@ function confirmFee() {
                   <dl v-else class="field-summary">
                     <div v-for="field in resourceFields(resource, 'customer')" :key="field.id">
                       <dt>{{ field.name }}</dt>
-                      <dd>{{ fieldValue(field) }}</dd>
+                      <dd><NImage v-if="field.value_type === 'image' && fieldValue(field) !== '—'" :src="fieldValue(field)" :alt="field.name" width="120" object-fit="cover" /><template v-else>{{ fieldValue(field) }}</template></dd>
                     </div>
                   </dl>
                 </section>
@@ -246,7 +246,7 @@ function confirmFee() {
                   <dl v-else class="field-summary">
                     <div v-for="field in resourceFields(resource, 'manager')" :key="field.id">
                       <dt>{{ field.name }}</dt>
-                      <dd>{{ fieldValue(field) }}</dd>
+                      <dd><NImage v-if="field.value_type === 'image' && fieldValue(field) !== '—'" :src="fieldValue(field)" :alt="field.name" width="120" object-fit="cover" /><template v-else>{{ fieldValue(field) }}</template></dd>
                     </div>
                   </dl>
                 </section>

@@ -12,12 +12,12 @@ class Member
     private const PROFILE_FIELDS = [];
 
     protected $middleware = [
-        'JwtAuth'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
-        'Context'      => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
-        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
-        'TeamWorkspaceAuth' => ['only' => ['index', 'get', 'add', 'edit', 'block', 'unblock', 'slug', 'search']],
-        'MemberAccess' => ['only' => ['add', 'edit', 'block', 'unblock', 'slug', 'search']],
-        'Permission:' . Permissions::TEAM_MEMBER_INVITE => ['only' => ['add']],
+        'JwtAuth'      => ['only' => ['index', 'get', 'add', 'joinForm', 'joinUpload', 'edit', 'block', 'unblock', 'slug', 'search']],
+        'Context'      => ['only' => ['index', 'get', 'add', 'joinForm', 'joinUpload', 'edit', 'block', 'unblock', 'slug', 'search']],
+        'EntityType:team,teamMember,teamCustomer,teamVirtual' => ['only' => ['index', 'get', 'add', 'joinForm', 'joinUpload', 'edit', 'block', 'unblock', 'slug', 'search']],
+        'TeamWorkspaceAuth' => ['only' => ['index', 'get', 'add', 'joinForm', 'joinUpload', 'edit', 'block', 'unblock', 'slug', 'search']],
+        'MemberAccess' => ['only' => ['add', 'joinForm', 'joinUpload', 'edit', 'block', 'unblock', 'slug', 'search']],
+        'Permission:' . Permissions::TEAM_MEMBER_INVITE => ['only' => ['add', 'joinForm', 'joinUpload']],
         'Permission:' . Permissions::TEAM_MEMBER_UPDATE => ['only' => ['edit', 'block', 'unblock', 'slug', 'search']],
     ];
 
@@ -58,17 +58,43 @@ class Member
      */
     public function add(Request $request)
     {
-        $userId = $request->post('user_id/d', 0);
-        $data   = $request->only(self::PROFILE_FIELDS, 'post');
-
-        $service = app(TeamMemberService::class);
-        $memberId = $service->add($request->team_id, $userId, $data);
+        $joinForm = $request->post('join_form');
+        if ($joinForm !== null && !is_array($joinForm)) {
+            return error('入职表单数据格式不正确', 1, 422);
+        }
+        $memberId = app(\app\service\MemberJoinCode::class)->addMember(
+            $request->team_id,
+            $request->post('join_code/s', ''),
+            $joinForm
+        );
         app(\app\service\BusinessAudit::class)->record(
             $request, 'team', 'create', 'member', $memberId,
-            ['changed_fields' => ['user_id']]
+            ['changed_fields' => $joinForm === null ? ['user_id'] : ['user_id', 'join_form']]
         );
 
         return message('成员已添加');
+    }
+
+    public function joinForm(Request $request)
+    {
+        return success([
+            'fields' => app(\app\service\TeamJoin::class)->fields($request->team_id, true),
+            'file_upload' => app(\app\service\File::class)->uploadAvailability($request->team_id),
+        ]);
+    }
+
+    public function joinUpload(Request $request)
+    {
+        $file = $request->file('file');
+        if (!$file) {
+            return error('请选择文件', 1, 422);
+        }
+        $result = app(\app\service\TeamJoin::class)->upload($file, $request->team_id);
+        app(\app\service\BusinessAudit::class)->record(
+            $request, 'team', 'upload', 'joinApplicationFile',
+            isset($result['id']) ? (int) $result['id'] : null
+        );
+        return success($result, '上传成功');
     }
 
     /**

@@ -6,6 +6,7 @@ import { NButton, NModal } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { formatDate, formatMoney, orderStatus, shopApi } from '../lib'
+import { formatPurchaseValue } from '../purchase-fields'
 
 const route = useRoute(); const id = computed(() => Number(route.params.id)); const queryClient = useQueryClient()
 const order = useQuery({ queryKey: computed(() => ['shop-order', id.value]), queryFn: () => shopApi.order(id.value) })
@@ -27,6 +28,7 @@ const cancel = useMutation({
       <img v-if="order.data.value.product_cover_image" :src="order.data.value.product_cover_image" :alt="order.data.value.product_name">
       <dl><div><dt>下单时间</dt><dd>{{ formatDate(order.data.value.create_time) }}</dd></div><div><dt>数量</dt><dd>{{ order.data.value.quantity }}</dd></div><div><dt>单价</dt><dd>{{ formatMoney(order.data.value.unit_price) }}</dd></div><div><dt>余额支付</dt><dd>{{ formatMoney(order.data.value.prepaid) }}</dd></div><div v-if="order.data.value.memo"><dt>备注</dt><dd>{{ order.data.value.memo }}</dd></div></dl>
       <div class="order-total"><span>订单总额</span><strong>{{ formatMoney(order.data.value.total_price) }}</strong></div>
+      <section v-if="order.data.value.purchase_fields?.length"><h2>购买资料</h2><dl><div v-for="field in order.data.value.purchase_fields" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ formatPurchaseValue(field) }}</dd></div></dl></section>
       <p v-if="error" class="form-error" role="alert">{{ error }}</p>
       <NButton v-if="order.data.value.status === 1" size="large" secondary type="error" @click="confirm = true">取消订单并退款</NButton>
     </article>
