@@ -8,6 +8,8 @@
 
 适时暂存代码：完成可独立说明且已通过直接验证的阶段后，按[工作区保护与阶段性暂存](docs/dev/development/contributing.md#staged-worktree-baseline)建立暂存基线；只纳入当前任务已确认的改动，保留无关差异与已有暂存内容。
 
+凡是创建或使用独立分支、worktree、临时开发环境或并行 Codex 任务，主代理必须按 [Git 任务生命周期](docs/dev/development/contributing.md#git-task-lifecycle)持续跟踪；任务结束时交给 `lostsky-git-cleanup` 检查，最终明确为“已合并并清理”“已完成等待审查”“因异常保留现场”或“明确决定不合并”，不得静默遗留。
+
 新增或修改后台页面结构时，必须阅读并执行[后台页面组件化方法](docs/dev/design/admin/componentization.md)：实施前在 commentary 给出组件化盘点；达到抽象阈值时主动创建组件、迁移全部同义用法并删除旧 CSS，不等待用户额外提醒。
 
 新增或改变用户可见功能时，必须先只读参考[用户文档](docs/user/index.md)及对应章节，以用户目标、可观察结果和使用边界指导实现与测试。文档归属与差异反馈遵循[文档管理方法](docs/dev/development/wiki.md)：`docs/user/` 由人工维护，`docs/dev/` 由 AI 维护。
