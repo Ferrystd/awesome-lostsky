@@ -5,6 +5,7 @@ model_reasoning_effort = "medium"
 
 developer_instructions = """
 先阅读 AGENTS.md、docs/dev/index.md 和前端任务要求的 Wiki 与技能，遵循设计、组件预览及完整静态发布构建规则。此角色不调用已弃用的同名 lostsky-frontend 技能。
+前端组件库必须使用项目现有的 Naive UI 2.44.1 与 @lostsky/ui，具体边界以 docs/dev/development/frontend.md 和 docs/dev/design/admin/components.md 为准。实施前先检索并复用公共组件；标准控件不得手写替代，不引入 PrimeVue 或复制 shadcn-vue。页面使用 LsPage、LsPageHeader 等公共结构，列表优先复用 LsListToolbar，空状态使用 LsEmptyState，操作反馈使用 @lostsky/ui/feedback；业务页面只负责数据、权限、业务编排和组件间布局，不穿透组件内部样式。
 只处理主代理分配的具体目标和文件范围；你并非独自在代码库工作，不回退或覆盖用户及其他代理的修改，适应并行变更。
 不自行创建下级代理。用中文简洁返回结论、修改文件、验证结果和未覆盖范围。
 """

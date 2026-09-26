@@ -4,13 +4,12 @@ import { formatAbilityDenied, formatPermissionDenied } from '@lostsky/api/error-
 import { ExternalLink, MessageCircle } from '@lucide/vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useQuery } from '@tanstack/vue-query'
-import { NPagination } from 'naive-ui'
+import { NButton, NFlex, NList, NListItem, NPagination } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { queryPositiveInteger } from '@lostsky/shared/routeQuery'
@@ -42,6 +41,8 @@ const feed = useQuery({
   refetchInterval: computed(() => visible.value ? 30_000 : false),
 })
 const displayedItems = computed(() => feed.data.value?.list || [])
+const dateTimeFormat = new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
+const formatTime = (timestamp: number) => dateTimeFormat.format(new Date(timestamp * 1000))
 const actionReason = (item: WeiboFeedItem) => accessReason.value || (item.restricted || feed.data.value?.restricted ? '当前只能查看点单预览，暂不可打开原帖' : '')
 function commentTarget(item: WeiboFeedItem) {
   return { path: '/personal/interactions', query: { action: 'comment', from: 'feed', ...(!actionReason(item) ? { feed_post_id: String(item.id) } : {}) } }
@@ -76,7 +77,7 @@ onBeforeUnmount(() => { cancelFallback(); document.removeEventListener('visibili
 
 <template>
   <div class="weibo-stack">
-    <LsPageHeader title="点单信息流" description="查看最新点单，前往互动页回复。" />
+    <LsPageHeader title="点单信息流" description="浏览最新点单，选择微博继续评论。" />
     <LsAsyncState v-if="feed.isPending.value" state="loading" :rows="8" />
     <template v-else>
       <LsAsyncState v-if="feed.isError.value && !displayedItems.length" state="error" title="点单信息流加载失败" :description="friendlyError(feed.error.value)" />
@@ -89,19 +90,34 @@ onBeforeUnmount(() => { cancelFallback(); document.removeEventListener('visibili
         <LsInlineError v-if="feed.isError.value" :message="`点单更新失败：${friendlyError(feed.error.value)}。已有内容仍可查看。`" />
         <LsInlineError v-else-if="feed.data.value?.poll_status === 'failed'" message="点单来源更新暂时失败，已有内容仍可查看。" />
         <p v-else-if="!feed.isError.value && feed.data.value?.poll_status === 'unconfigured'" class="feed-status" role="status">点单来源尚未配置，已有内容仍可查看。</p>
-        <LsListToolbar :searchable="false" :count-label="`共 ${feed.data.value?.total ?? displayedItems.length} 条`" />
-        <p v-if="feed.data.value?.updated_at" class="feed-status">最近更新：<time :datetime="new Date(feed.data.value.updated_at * 1000).toISOString()">{{ new Date(feed.data.value.updated_at * 1000).toLocaleString() }}</time></p>
-        <section class="ls-list" aria-label="点单微博">
-        <article v-for="item in displayedItems" :key="item.id" class="feed-post">
-          <div class="feed-meta"><strong v-if="item.author_name">{{ item.author_name }}</strong><time :datetime="new Date(item.posted_at * 1000).toISOString()">{{ new Date(item.posted_at * 1000).toLocaleString() }}</time></div>
-          <p class="feed-text">{{ item.text }}</p>
-          <div class="weibo-actions">
-            <LsButton variant="ghost" :disabled="Boolean(actionReason(item))" :disabled-reason="actionReason(item)" @click="openPost(item)"><template #icon><ExternalLink :size="18" /></template>打开微博</LsButton>
-            <RouterLink class="feed-comment-link" :to="commentTarget(item)"><MessageCircle :size="18" />去评论</RouterLink>
-          </div>
-        </article>
-      </section>
-      <NPagination v-if="feed.data.value && feed.data.value.total > 20" :page="page" :page-size="20" :item-count="feed.data.value.total" :page-slot="5" simple @update:page="changePage" />
+        <section class="feed-results" aria-label="点单微博">
+          <NFlex class="feed-summary" justify="space-between" align="center" :size="8">
+            <span role="status">共 <strong>{{ feed.data.value?.total ?? displayedItems.length }}</strong> 条点单</span>
+            <span v-if="feed.data.value?.updated_at">最近更新 <time :datetime="new Date(feed.data.value.updated_at * 1000).toISOString()" :title="new Date(feed.data.value.updated_at * 1000).toLocaleString()">{{ formatTime(feed.data.value.updated_at) }}</time></span>
+          </NFlex>
+          <NList bordered size="small">
+            <NListItem v-for="item in displayedItems" :key="item.id">
+              <article class="feed-post">
+                <div class="feed-content">
+                  <p class="feed-text">{{ item.text }}</p>
+                  <NFlex class="feed-meta" align="center" :size="[12, 4]">
+                    <time :datetime="new Date(item.posted_at * 1000).toISOString()" :title="new Date(item.posted_at * 1000).toLocaleString()">{{ formatTime(item.posted_at) }}</time>
+                    <span v-if="item.author_name">{{ item.author_name }}</span>
+                  </NFlex>
+                </div>
+                <NFlex class="feed-actions" align="center" :size="4">
+                  <LsButton variant="ghost" :disabled="Boolean(actionReason(item))" :disabled-reason="actionReason(item)" @click="openPost(item)"><template #icon><ExternalLink :size="18" aria-hidden="true" /></template>打开微博</LsButton>
+                  <RouterLink v-slot="{ href, navigate }" :to="commentTarget(item)" custom>
+                    <NButton tag="a" :href="href" quaternary @click="navigate"><template #icon><MessageCircle :size="18" aria-hidden="true" /></template>去评论</NButton>
+                  </RouterLink>
+                </NFlex>
+              </article>
+            </NListItem>
+          </NList>
+          <NFlex v-if="feed.data.value && feed.data.value.total > 20" justify="end">
+            <NPagination :page="page" :page-size="20" :item-count="feed.data.value.total" :page-slot="5" simple @update:page="changePage" />
+          </NFlex>
+        </section>
       </template>
     </template>
   </div>
@@ -109,9 +125,15 @@ onBeforeUnmount(() => { cancelFallback(); document.removeEventListener('visibili
 
 <style scoped>
 .feed-status { margin: 0; color: var(--text-secondary); font-size: .875rem; overflow-wrap: anywhere; }
-.feed-comment-link { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; padding-inline: .875rem; font-size: .875rem; font-weight: 650; }
-.feed-comment-link:hover { color: var(--primary); }
-.feed-post { min-width: 0; padding: 1.25rem 1rem; }
-.feed-meta { display: flex; flex-wrap: wrap; gap: .5rem 1rem; color: var(--text-secondary); font-size: .875rem; }
-.feed-text { max-width: 75ch; margin: .75rem 0 1rem; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; }
+.feed-results { display: grid; gap: .75rem; min-width: 0; }
+.feed-summary { color: var(--text-secondary); font-size: .875rem; font-variant-numeric: tabular-nums; }
+.feed-summary strong { color: var(--text); font-weight: 600; }
+.feed-post { display: grid; gap: .5rem 1.5rem; min-width: 0; }
+.feed-content { display: grid; gap: .5rem; min-width: 0; }
+.feed-meta { color: var(--text-secondary); font-size: .875rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.feed-text { max-width: 75ch; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1rem; line-height: 1.65; }
+.feed-actions { justify-self: end; }
+@media (min-width: 768px) {
+  .feed-post { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+}
 </style>

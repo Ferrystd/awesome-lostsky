@@ -236,17 +236,38 @@ async function setup(page: Page, options: { restricted?: boolean; ability?: bool
   return requests
 }
 
-test('feed remains readable at all widths and delegates comments without loading form candidates', async ({ page }) => {
+test('feed remains readable at all widths and delegates comments without loading form candidates', async ({ page }, testInfo) => {
   const requests = await setup(page)
   await page.clock.install()
   await page.goto(`${origin}/personal/feed`)
   await expect(page.locator('.feed-post')).toHaveCount(2)
   await expect(page.locator('.feed-post').first()).toContainText('最新点单信息')
+  await expect(page.locator('.feed-text').first()).toHaveText(`最新点单信息 ${'完整文字内容，'.repeat(30)}`)
+  await expect(page.locator('.ls-list-toolbar')).toHaveCount(0)
+  await expect(page.locator('.feed-summary')).toContainText('共 25 条点单')
   await expect(page.locator('.feed-post img, textarea, #weibo-account')).toHaveCount(0)
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+    const shortRow = page.locator('.n-list-item').nth(1)
+    const row = await shortRow.boundingBox()
+    const content = await shortRow.locator('.feed-content').boundingBox()
+    const actions = await shortRow.locator('.feed-actions').boundingBox()
+    expect(row!.height).toBeLessThan(width >= 768 ? 110 : 160)
+    if (width >= 768) expect(actions!.x).toBeGreaterThanOrEqual(content!.x + content!.width)
+    else expect(actions!.y).toBeGreaterThanOrEqual(content!.y + content!.height)
+    for (const control of await shortRow.locator('button, a').all()) {
+      const box = await control.boundingBox()
+      expect(box!.height).toBeGreaterThanOrEqual(44)
+      expect(box!.width).toBeGreaterThanOrEqual(44)
+    }
+    if (width === 375 || width === 1440) await page.screenshot({ path: testInfo.outputPath(`feed-redesign-${width}.png`), fullPage: true })
   }
+  await page.setViewportSize({ width: 320, height: 900 })
+  const zoom = await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+  await zoom.evaluate(element => element.remove())
+  await page.setViewportSize({ width: 1440, height: 900 })
   expect(requests.candidates).toBe(0)
   expect(requests.comments).toHaveLength(0)
   const reads = requests.feed
@@ -448,7 +469,7 @@ for (const pollStatus of ['unconfigured', 'failed', 'ready']) test(`empty ${poll
   const state = page.locator(pollStatus === 'failed' ? '.ls-async-state' : '.ls-empty-state')
   await expect(state).toBeVisible()
   if (pollStatus === 'unconfigured') await page.screenshot({ path: testInfo.outputPath('feed-unconfigured.png'), fullPage: true })
-  await expect(page.locator('.ls-list, .ls-list-toolbar')).toHaveCount(0)
+  await expect(page.locator('.n-list, .feed-summary, .ls-list-toolbar')).toHaveCount(0)
   await expect(page.getByText('共 0 条')).toHaveCount(0)
   await expect(page.getByText('INTERNAL_SQL_DIAGNOSTIC')).toHaveCount(0)
   for (const width of [320, 375, 768, 1024, 1440]) {
