@@ -9,3 +9,5 @@
 [展示]: /app/display/
 
 [管理]: /app/admin/
+[记账]: /app/transaction/
+

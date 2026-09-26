@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "0937585fbb35e380",
+        "id": "9b140e13561158d7",
         "type": "tabs",
         "children": [
           {
-            "id": "dcd29ed86bfc30d7",
+            "id": "884f8dbca1a63571",
             "type": "leaf",
             "state": {
               "type": "empty",
@@ -178,7 +178,6 @@
     "hiddenItems": {
       "audio-recorder:开始/结束录音": false,
       "workspaces:管理工作区布局": false,
-      "vscode-editor:新建代码文件": false,
       "switcher:打开快速切换": false,
       "graph:查看关系图谱": false,
       "canvas:新建白板": false,
@@ -187,18 +186,23 @@
       "command-palette:打开命令面板": false,
       "bases:新建数据库": false,
       "templater-obsidian:Templater": false,
-      "terminal:Open terminal": false
+      "terminal:Open terminal": false,
+      "vscode-editor:新建代码文件": false
     }
   },
-  "active": "dcd29ed86bfc30d7",
+  "active": "884f8dbca1a63571",
   "lastOpenFiles": [
-    "quickstart/team.md",
-    "index.md",
-    "app/team.md",
     "app/shop.md",
-    "dictionary/abilities.md",
-    "dictionary/permissions.md",
+    "app/transaction.md",
+    "app/chat.md",
+    "quickstart/team.md",
+    "Templates/concept.md",
     "support.md",
-    "CONTRIBUTING.md"
+    "index.md",
+    "Templates/app.md",
+    "CONTRIBUTING.md",
+    "app/team.md",
+    "dictionary/abilities.md",
+    "dictionary/permissions.md"
   ]
 }
