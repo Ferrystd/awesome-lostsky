@@ -1,14 +1,15 @@
 ---
 title: 微博（weibo）
 tags:
-  - app
+  - 应用
 description: 宣传、舆论的多账号矩阵
 audience:
   - member
-  - team
+  - team-admin
 aliases:
   - 微博
   - weibo
+reviewed_at:
 ---
 
 ## 简述

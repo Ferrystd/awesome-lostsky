@@ -2,9 +2,10 @@
 title: 权限字典
 description: 提供全部权限的对照。
 audience:
-  - team
+  - team-admin
 tags:
-  - permission
+  - 权限
+reviewed_at:
 ---
 
 # 权限字典

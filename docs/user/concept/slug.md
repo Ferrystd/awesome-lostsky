@@ -1,13 +1,14 @@
 ---
 title: 标识（slug）
 tags:
-  - concept
+  - 概念
 description: 跨团队唯一的身份标识
 audience:
   - all
 aliases:
   - 标识
   - slug
+reviewed_at:
 ---
 
 ## 定义

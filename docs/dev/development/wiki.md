@@ -26,6 +26,20 @@ npm run docs:setup
 
 ## 本地预览与发布构建
 
+### 用户指南元数据与阅读入口
+
+用户指南使用 Zensical `0.0.65` 的原生 tags，主题名称直接使用中文。受众、状态、主题词表统一定义在 `zensical.guide.toml` 的 `project.extra`，信息栏使用 `guide_theme/` 模板并沿用主题的文字、配色与链接样式。信息栏在标题下集中展示适合读者、内容核对日期、可选页面状态和原生标签，窄屏自动换行；正文不重复展示第二组标签。升级先以 `0.0.58` 独立验证旧配置的双站严格构建，再锁定并验证 `0.0.65`。
+
+- `audience` 必须是非空列表：`all`（所有读者）、`team-admin`（团队管理者）、`member`（团队成员）、`customer`（顾客）、`admin`（平台管理员）。`all` 不与其他值混用；它的文章会出现在每个角色的阅读列表中。阅读分类不构成权限检查。
+- `tags` 必须来自配置中的中文主题词表。`docs/user/tags.md` 使用原生标签索引，标签可跳到相关主题，搜索支持标签筛选。
+- `reviewed_at` 使用 `YYYY-MM-DD` 或空值。只有实际核对业务内容后才填写日期；现有空值显示“待核对”，不能把构建时间或批量迁移日期当作复核日期。非法和未来日期阻止校验；超过 180 天仅提醒维护者。
+- `status` 默认省略；可选 `new`、`beta`、`deprecated`，中文名由配置映射。`beta` 和 `deprecated` 必须同时填写 `status_note`，说明限制或替代方案；信息栏展示这段说明，导航沿用原生状态标记。
+- `title`、`description` 必须是非空文本。`Templates/` 与 `includes/` 不参与元数据和受众索引；模板使用空标签和 `search.exclude` 从主题与搜索结果排除，Templater 创建正式页面时设置中文标签并删除搜索排除属性。Obsidian 模板选择受众并初始化空复核日期，创建后可在属性中增加受众或可选状态。当前构建器的 `exclude_docs` 未可靠排除模板，不能将隐藏索引视作访问控制或承诺模板文件不被输出。
+
+修改文章的标题、描述、受众或增删页面后，运行 `npm run generate:docs:metadata` 更新 `docs/user/audience.md`；该索引只汇总页面元数据，不生成业务正文。`npm run check:docs:metadata` 只读验证全部公开指南元数据与索引是否最新。双站构建和指南预览启动前均执行此检查。编辑权限字典元数据时修改 `Templates/dictionaries/permissions-user.md`，再运行 `php think docs:permissions`，不要直接编辑生成页。
+
+校验脚本的边界回归：`.wiki-venv/Scripts/python.exe frontend/scripts/test_guide_metadata.py`（非 Windows 使用 `.wiki-venv/bin/python`）。自定义主题变动同时检查标签聚合、角色链接、桌面与移动端布局，并运行 `npm run build:docs` 和 `npm run build`。
+
 ```bash
 npm run docs:dev
 npm run docs:dev:guide

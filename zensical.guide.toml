@@ -6,12 +6,15 @@ site_author = "LostSky"
 copyright = "Copyright &copy; 2026 LostSky"
 docs_dir = "docs/user"
 site_dir = "www/doc.lostsky.work"
+extra_css = ["stylesheets/guide.css"]
 extra_javascript = [
   { path = "javascripts/mermaid.js", type = "module" },
 ]
 nav = [
   {"开始使用" = [
     "index.md",
+    "audience.md",
+    "tags.md",
     {"快速开始" = [
       {"团队" = "quickstart/team.md"}
     ]}
@@ -51,6 +54,7 @@ nav = [
 ]
 
 [project.theme]
+custom_dir = "guide_theme"
 language = "zh"
 features = [
   "navigation.sections",
@@ -63,10 +67,38 @@ features = [
 
 [project.markdown_extensions]
 attr_list = {}
-pymdownx.superfences.custom_fences = [
+
+[project.plugins.tags]
+
+[project.extra.audience]
+all = "所有读者"
+team-admin = "团队管理者"
+member = "团队成员"
+customer = "顾客"
+admin = "平台管理员"
+
+[project.extra.status]
+new = "新增内容"
+beta = "试用阶段"
+deprecated = "已弃用"
+
+[project.extra.guide_tags]
+"开始使用" = "quickstart"
+"应用" = "app"
+"概念" = "concept"
+"圈内黑话" = "glossary"
+"支持" = "support"
+"权限" = "permission"
+"能力" = "ability"
+"集成" = "integration"
+"文档导航" = "navigation"
+
+[project.markdown_extensions.pymdownx.superfences]
+custom_fences = [
   { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" }
 ]
-pymdownx.snippets.auto_append = [
+[project.markdown_extensions.pymdownx.snippets]
+auto_append = [
   "docs/user/includes/apps.txt",
   "docs/user/includes/misc.txt",
   "docs/user/includes/references.txt"

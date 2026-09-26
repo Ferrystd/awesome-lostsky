@@ -1,13 +1,14 @@
 ---
 title: 顾客（customer）
 tags:
-  - concept
+  - 概念
 description: 精巧的子人员设计
 audience:
   - all
 aliases:
   - 顾客
   - customer
+reviewed_at:
 ---
 
 ## 定义

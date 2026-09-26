@@ -1,13 +1,14 @@
 ---
 title: 权限（permission）
 tags:
-  - concept
+  - 概念
 description: 团队人员的行为门禁
 audience:
   - all
 aliases:
   - 权限
   - permission
+reviewed_at:
 ---
 
 ## 定义

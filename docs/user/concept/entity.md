@@ -1,13 +1,14 @@
 ---
 title: 人员（entity）
 tags:
-  - concept
+  - 概念
 audience:
   - all
 aliases:
   - 人员
   - entity
 description: 利好团队的独特设计
+reviewed_at:
 ---
 
 ## 定义

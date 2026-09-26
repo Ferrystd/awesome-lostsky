@@ -1,13 +1,14 @@
 ---
 title: 聊天（chat）
 tags:
-  - app
+  - 应用
 description: 支持多独立会话的聊天系统
 audience:
   - all
 aliases:
   - 聊天
   - chat
+reviewed_at:
 ---
 
 ## 简述

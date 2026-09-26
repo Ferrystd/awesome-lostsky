@@ -1,15 +1,16 @@
 ---
 title: 展示（display）
 tags:
-  - app
+  - 应用
 description: 前沿审美的展示页面
 audience:
   - member
-  - team
+  - team-admin
   - customer
 aliases:
   - 展示
   - display
+reviewed_at:
 ---
 
 ## 简述

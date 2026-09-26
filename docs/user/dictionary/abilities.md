@@ -1,11 +1,12 @@
 ---
 title: 能力字典
 tags:
-  - ability
+  - 能力
 description: 了解能力的定义与各个能力的作用。
 audience:
-  - team
+  - team-admin
   - member
+reviewed_at:
 ---
 
 ## 前置工作

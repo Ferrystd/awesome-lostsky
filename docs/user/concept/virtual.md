@@ -1,13 +1,14 @@
 ---
 title: 虚拟人员（virtual）
 tags:
-  - concept
+  - 概念
 description: 虚拟身份让业务更方便
 audience:
   - all
 aliases:
   - 虚拟实体
   - virtual
+reviewed_at:
 ---
 
 ## 定义
