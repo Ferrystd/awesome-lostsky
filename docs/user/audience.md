@@ -36,6 +36,7 @@ guide_index: audience
 - [商城（shop）](app/shop.md) — 支持多种类商品和分步核销的现代化商城系统
 - [通过 Standard Webhooks 接入自定义工作流](app/team/webhook.md) — 与自有系统的深度集成
 - [团队（team）](app/team.md) — 管理/融入您的团队
+- [应用模板](app/transaction.md) — 接单、核销与记账
 - [微博（weibo）](app/weibo.md) — 宣传、舆论的多账号矩阵
 - [能力（ability）](concept/ability.md) — 订阅式能力门禁
 - [顾客（customer）](concept/customer.md) — 精巧的子人员设计
@@ -61,6 +62,7 @@ guide_index: audience
 - [展示（display）](app/display.md) — 前沿审美的展示页面
 - [商城（shop）](app/shop.md) — 支持多种类商品和分步核销的现代化商城系统
 - [团队（team）](app/team.md) — 管理/融入您的团队
+- [应用模板](app/transaction.md) — 接单、核销与记账
 - [微博（weibo）](app/weibo.md) — 宣传、舆论的多账号矩阵
 - [能力（ability）](concept/ability.md) — 订阅式能力门禁
 - [顾客（customer）](concept/customer.md) — 精巧的子人员设计

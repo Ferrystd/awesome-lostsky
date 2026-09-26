@@ -1,11 +1,11 @@
 ---
 title: 应用模板
 tags:
-  - app
+  - 应用
 description: 接单、核销与记账
 audience:
   - member
-  - team
+  - team-admin
 aliases:
   - 记账
   - transaction
