@@ -5,7 +5,7 @@ tags:
 description: 宣传、舆论的多账号矩阵
 audience:
   - member
-  - team-admin
+  - team
 aliases:
   - 微博
   - weibo

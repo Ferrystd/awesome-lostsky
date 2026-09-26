@@ -4,7 +4,10 @@ description: 获取人工协作与支持。
 tags:
   - 支持
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
   - support
 modified_at: 2026-09-27

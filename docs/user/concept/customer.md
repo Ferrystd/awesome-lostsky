@@ -4,7 +4,10 @@ tags:
   - 概念
 description: 精巧的子人员设计
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
   - 顾客
   - customer

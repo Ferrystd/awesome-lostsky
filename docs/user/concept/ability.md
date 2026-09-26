@@ -4,7 +4,7 @@ tags:
   - 概念
 description: 订阅式能力门禁
 audience:
-  - team-admin
+  - team
   - member
 aliases:
   - 能力

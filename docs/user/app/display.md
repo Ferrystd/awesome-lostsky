@@ -5,7 +5,7 @@ tags:
 description: 前沿审美的展示页面
 audience:
   - member
-  - team-admin
+  - team
   - customer
 aliases:
   - 展示

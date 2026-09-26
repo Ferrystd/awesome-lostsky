@@ -4,7 +4,10 @@ tags:
   - 概念
 description: 称号与权限的载体
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
   - 角色
   - role

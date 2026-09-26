@@ -4,7 +4,7 @@ tags:
   - 开始使用
 description: 写给团队的快速上手文档
 audience:
-  - team-admin
+  - team
 modified_at: 2026-09-27
 ---
 ## 写给您的话

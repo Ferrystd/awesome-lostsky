@@ -4,7 +4,7 @@ tags:
   - 应用
 description: 平台治理与管控
 audience:
-  - admin
+  - platform
 aliases:
   - 管理
   - admin

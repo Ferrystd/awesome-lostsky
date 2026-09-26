@@ -3,7 +3,10 @@ title: 人员（entity）
 tags:
   - 概念
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
   - 人员
   - entity

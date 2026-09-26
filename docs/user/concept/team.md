@@ -4,7 +4,10 @@ tags:
   - 概念
 description: 独立的工作空间
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
   - 团队
   - team

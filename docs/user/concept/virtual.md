@@ -4,7 +4,10 @@ tags:
   - 概念
 description: 虚拟身份让业务更方便
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
   - 虚拟实体
   - virtual

@@ -30,7 +30,7 @@ npm run docs:setup
 
 用户指南使用 Zensical `0.0.65` 的原生 tags，主题名称直接使用中文。受众、状态、主题词表统一定义在 `zensical.guide.toml` 的 `project.extra`，信息栏使用 `guide_theme/` 模板并沿用主题的文字、配色与链接样式。信息栏在标题下集中展示面向读者、最后修改日期、可选页面状态和原生标签，窄屏自动换行；正文不重复展示第二组标签。升级先以 `0.0.58` 独立验证旧配置的双站严格构建，再锁定并验证 `0.0.65`。
 
-- `audience` 必须是非空列表：`all`（所有读者）、`team-admin`（团队管理者）、`member`（团队成员）、`customer`（顾客）、`admin`（平台管理员）。`all` 不与其他值混用；阅读分类不构成权限检查。
+- `audience` 必须是非空列表，只能使用 `platform`（平台）、`team`（团队）、`member`（成员）、`customer`（顾客），可按页面受众组合多个值。阅读分类不构成权限检查。原 `all` 页面迁移为四值全选，`admin` 迁移为 `platform`，`team-admin` 迁移为 `team`。
 - `tags` 必须来自配置中的中文主题词表，搜索支持原生标签筛选。
 - `modified_at` 必须是有效且不晚于当天的 `YYYY-MM-DD` 日期，不允许省略或留空。pre-commit 钩子在文档内容进入暂存区并提交时写入提交当天；本次字段迁移也属于文档修改，因此最终日期以迁移提交日为准，不代表人工核对日期。
 - `status` 默认省略；可选 `new`、`beta`、`deprecated`，中文名由配置映射。`beta` 和 `deprecated` 必须同时填写 `status_note`，说明限制或替代方案；信息栏展示这段说明，导航沿用原生状态标记。

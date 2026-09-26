@@ -4,7 +4,10 @@ tags:
   - 开始使用
 description: 平台简介
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
 modified_at: 2026-09-27
 ---
@@ -17,9 +20,9 @@ modified_at: 2026-09-27
 
 > 不久的将来，我们会**开源**本项目。
 
-## 从您的角色开始 {#start-by-role}
+## 选择阅读入口 {#start-by-role}
 
-- [我是团队管理者](quickstart/team.md)：从团队快速开始了解配置与管理。
-- [我是团队成员](app/team.md)：了解团队协作和日常操作。
-- [我是顾客](app/shop.md)：了解商城与购物流程。
-- [我是平台管理员](app/admin.md)：查看平台管理功能。
+- [平台](app/admin.md)：查看平台管理功能。
+- [团队](quickstart/team.md)：从团队快速开始了解配置与管理。
+- [成员](app/team.md)：了解团队协作和日常操作。
+- [顾客](app/shop.md)：了解商城与购物流程。

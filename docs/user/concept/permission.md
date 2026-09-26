@@ -4,7 +4,10 @@ tags:
   - 概念
 description: 团队人员的行为门禁
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
   - 权限
   - permission

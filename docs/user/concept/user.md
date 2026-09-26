@@ -3,7 +3,7 @@ title: 用户（user）
 tags:
   - 概念
 description: 欢迎来到失落青空
-audience: [all]
+audience: [platform, team, member, customer]
 aliases:
   - 用户
   - user

@@ -1,7 +1,7 @@
 ---
 title: 鸣谢
 description: 开源项目与功能建议的致谢。
-audience: [all]
+audience: [platform, team, member, customer]
 tags: [支持]
 modified_at: 2026-09-27
 ---

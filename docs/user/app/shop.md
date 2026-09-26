@@ -4,7 +4,10 @@ tags:
   - 应用
 description: 支持多种类商品和分步核销的现代化商城系统
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
   - 商城
   - shop

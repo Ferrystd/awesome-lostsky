@@ -5,7 +5,7 @@ tags:
 description: 接单、核销与记账
 audience:
   - member
-  - team-admin
+  - team
 aliases:
   - 记账
   - transaction

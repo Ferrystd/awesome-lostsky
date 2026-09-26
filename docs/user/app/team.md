@@ -4,7 +4,7 @@ tags:
   - 应用
 description: 管理/融入您的团队
 audience:
-  - team-admin
+  - team
   - member
 aliases:
   - 团队

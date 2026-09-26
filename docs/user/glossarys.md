@@ -4,7 +4,10 @@ tags:
   - 圈内黑话
 description: 陪玩、美工等业务场景中的常用黑话
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
   - 黑话
   - 术语

@@ -4,7 +4,7 @@ tags:
   - 集成
 description: 与自有系统的深度集成
 audience:
-  - team-admin
+  - team
 aliases:
 modified_at: 2026-09-27
 ---

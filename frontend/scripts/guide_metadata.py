@@ -37,8 +37,6 @@ def validate(meta, config, today=None):
         unknown = set(values) - choices.keys()
         if unknown:
             errors.append(f"{key} 未登记：{', '.join(sorted(unknown))}")
-        if key == "audience" and "all" in values and len(values) > 1:
-            errors.append("audience 的 all 不得与其他角色混用")
     status = meta.get("status")
     if status is not None and (not isinstance(status, str) or status not in config["status"]):
         errors.append("status 必须省略或使用已登记状态")

@@ -4,7 +4,10 @@ tags:
   - 应用
 description: 支持多独立会话的聊天系统
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
   - 聊天
   - chat

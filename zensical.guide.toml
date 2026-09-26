@@ -69,11 +69,10 @@ attr_list = {}
 [project.plugins.tags]
 
 [project.extra.audience]
-all = "所有读者"
-team-admin = "团队管理者"
-member = "团队成员"
+platform = "平台"
+team = "团队"
+member = "成员"
 customer = "顾客"
-admin = "平台管理员"
 
 [project.extra.status]
 new = "新增内容"

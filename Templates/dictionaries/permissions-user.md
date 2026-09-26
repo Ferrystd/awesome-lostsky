@@ -2,7 +2,7 @@
 title: 权限字典
 description: 提供全部权限的对照。
 audience:
-  - team-admin
+  - team
 tags:
   - 权限
 modified_at: 2026-09-27

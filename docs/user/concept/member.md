@@ -4,7 +4,10 @@ tags:
   - 概念
 description: 开始团队协作
 audience:
-  - all
+  - platform
+  - team
+  - member
+  - customer
 aliases:
   - 成员
   - member

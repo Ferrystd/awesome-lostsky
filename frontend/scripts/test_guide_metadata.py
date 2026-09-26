@@ -11,11 +11,11 @@ from guide_modified import update_front_matter, update_staged
 
 
 class MetadataTests(unittest.TestCase):
-    config = {"audience": {"all": "所有读者", "member": "团队成员", "admin": "平台管理员"},
+    config = {"audience": {"platform": "平台", "team": "团队", "member": "成员", "customer": "顾客"},
               "guide_tags": {"概念": "concept"}, "status": {"new": "新增内容", "beta": "试用阶段", "deprecated": "已弃用"}}
 
     def page(self, **overrides):
-        meta = dict(title="页面", description="页面说明", audience=["all"], tags=["概念"], modified_at="2026-09-26")
+        meta = dict(title="页面", description="页面说明", audience=["platform"], tags=["概念"], modified_at="2026-09-26")
         meta.update(overrides)
         return meta
 
@@ -28,7 +28,10 @@ class MetadataTests(unittest.TestCase):
             self.assertTrue(validate(self.page(modified_at=modified), self.config, date(2026, 9, 26))[0])
 
     def test_controlled_lists(self):
-        for values in (["all", "member"], ["unknown"], [], "all", ["member", "member"], [None]):
+        for value in ("platform", "team", "member", "customer"):
+            self.assertFalse(validate(self.page(audience=[value]), self.config)[0])
+        self.assertFalse(validate(self.page(audience=["platform", "team", "member", "customer"]), self.config)[0])
+        for values in (["all"], ["admin"], ["team-admin"], ["unknown"], [], "platform", ["member", "member"], [None]):
             meta = self.page()
             meta["audience"] = values
             self.assertTrue(validate(meta, self.config)[0])
@@ -82,7 +85,8 @@ class MetadataTests(unittest.TestCase):
         env = Environment(loader=FileSystemLoader([root / "guide_theme", native]), autoescape=True)
         env.filters["url"] = lambda value: value
         template = env.get_template("partials/guide-meta.html")
-        html = template.render(page={"meta": self.page(modified_at="2026-09-26", status="beta", status_note="范围有限")}, config={"extra": self.config}, tags=[])
+        html = template.render(page={"meta": self.page(audience=["platform", "team", "member", "customer"], modified_at="2026-09-26", status="beta", status_note="范围有限")}, config={"extra": self.config}, tags=[])
+        self.assertIn("面向：平台、团队、成员、顾客", html)
         self.assertIn('<time datetime="2026-09-26">2026-09-26</time>', html)
         self.assertIn("试用阶段", html)
         self.assertIn("范围有限", html)
