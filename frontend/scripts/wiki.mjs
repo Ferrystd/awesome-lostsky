@@ -56,8 +56,8 @@ function serve() {
   server.on('exit', (code) => process.exit(code ?? 0))
 }
 
-if (action === 'metadata' || action === 'metadata-write') {
-  execFileSync(venvPython, ['frontend/scripts/guide_metadata.py', ...(action === 'metadata-write' ? ['--write-index'] : [])], { cwd: root, stdio: 'inherit' })
+if (action === 'metadata') {
+  execFileSync(venvPython, ['frontend/scripts/guide_metadata.py'], { cwd: root, stdio: 'inherit' })
 } else if (action === 'setup') {
   setup()
 } else if (action === 'build' || action === 'serve') {

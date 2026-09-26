@@ -28,7 +28,7 @@
     "build": "node frontend/scripts/build.mjs",
     "docs:setup": "node frontend/scripts/wiki.mjs setup",
     "check:docs:metadata": "node frontend/scripts/wiki.mjs metadata",
-    "generate:docs:metadata": "node frontend/scripts/wiki.mjs metadata-write",
+    "hooks:install": "node frontend/scripts/install-git-hooks.mjs",
     "docs:dev": "node frontend/scripts/wiki.mjs serve",
     "docs:dev:guide": "node frontend/scripts/wiki.mjs serve guide",
     "generate:docs": "php think docs:services && php think docs:permissions",

@@ -14,8 +14,6 @@
 .guide-meta__status { font-weight: 700; }
 .guide-meta__note { margin: 0.6rem 0 0; }
 .guide-meta time { font-variant-numeric: tabular-nums; }
-.guide-audience__description { display: block; font-size: 0.8em; }
-.md-typeset .guide-audience li { margin-bottom: 0.9em; }
 .guide-meta a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 @media (max-width: 44em) {
   .guide-meta__details { flex-direction: column; gap: 0.5rem; }

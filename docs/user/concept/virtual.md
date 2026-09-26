@@ -8,7 +8,7 @@ audience:
 aliases:
   - 虚拟实体
   - virtual
-reviewed_at:
+modified_at: 2026-09-27
 ---
 
 ## 定义

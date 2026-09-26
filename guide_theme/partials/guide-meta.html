@@ -1,7 +1,7 @@
 <div class="guide-meta" aria-label="文档信息">
   <div class="guide-meta__details">
-    <span>适合：{% for role in page.meta.audience %}{% if not loop.first %}、{% endif %}<a href="{{ ('audience/#' ~ role) | url }}">{{ config.extra.audience[role] }}</a>{% endfor %}</span>
-    <span>内容核对：{% if page.meta.reviewed_at %}<time datetime="{{ page.meta.reviewed_at }}">{{ page.meta.reviewed_at }}</time>{% else %}待核对{% endif %}</span>
+    <span>面向：{% for role in page.meta.audience %}{% if not loop.first %}、{% endif %}{{ config.extra.audience[role] }}{% endfor %}</span>
+    {% if page.meta.modified_at %}<span>最后修改：<time datetime="{{ page.meta.modified_at }}">{{ page.meta.modified_at }}</time></span>{% endif %}
     {% if page.meta.status %}<span class="guide-meta__status">{{ config.extra.status[page.meta.status] }}</span>{% endif %}
   </div>
   {% include "partials/tags.html" %}

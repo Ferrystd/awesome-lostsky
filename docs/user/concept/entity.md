@@ -8,7 +8,7 @@ aliases:
   - 人员
   - entity
 description: 利好团队的独特设计
-reviewed_at:
+modified_at: 2026-09-27
 ---
 
 ## 定义

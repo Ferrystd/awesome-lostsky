@@ -6,7 +6,7 @@ description: 了解能力的定义与各个能力的作用。
 audience:
   - team-admin
   - member
-reviewed_at:
+modified_at: 2026-09-27
 ---
 
 ## 前置工作

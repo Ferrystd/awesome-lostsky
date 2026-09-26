@@ -13,8 +13,6 @@ extra_javascript = [
 nav = [
   {"开始使用" = [
     "index.md",
-    "audience.md",
-    "tags.md",
     {"快速开始" = [
       {"团队" = "quickstart/team.md"}
     ]}

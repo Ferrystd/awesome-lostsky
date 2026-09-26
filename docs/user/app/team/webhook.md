@@ -6,7 +6,7 @@ description: 与自有系统的深度集成
 audience:
   - team-admin
 aliases:
-reviewed_at:
+modified_at: 2026-09-27
 ---
 接入流程：**LostSky 向你的 HTTPS 接口推送事件 → 你的系统验签并处理 → 按需调用 API 回复。**
 

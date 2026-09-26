@@ -1,5 +1,4 @@
-"""Validate the user guide and maintain its audience index from front matter."""
-import argparse
+"""Validate user-guide front matter."""
 from datetime import date
 from pathlib import Path
 import re
@@ -45,49 +44,25 @@ def validate(meta, config, today=None):
         errors.append("status 必须省略或使用已登记状态")
     if status in ("beta", "deprecated") and (not isinstance(meta.get("status_note"), str) or not meta["status_note"].strip()):
         errors.append("beta/deprecated 必须提供 status_note，说明限制或替代方案")
-    reviewed = meta.get("reviewed_at")
-    if reviewed is None:
-        return errors, warnings
+    modified = meta.get("modified_at")
     try:
-        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(reviewed)):
+        if isinstance(modified, bool) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(modified)):
             raise ValueError
-        reviewed = date.fromisoformat(str(reviewed))
-        if reviewed > today:
-            errors.append("reviewed_at 不得晚于今天")
-        elif (today - reviewed).days > 180:
-            warnings.append("内容核对日期已超过 180 天，请复核后更新 reviewed_at")
+        modified = date.fromisoformat(str(modified))
+        if modified > today:
+            errors.append("modified_at 不得晚于今天")
     except (ValueError, TypeError):
-        errors.append("reviewed_at 必须为空或有效的 YYYY-MM-DD 日期")
+        errors.append("modified_at 必须是有效的 YYYY-MM-DD 日期")
     return errors, warnings
-
-
-def audience_index(pages, config):
-    lines = ["---", "title: 按角色阅读", "description: 按照您在 LostSky 中的角色，找到适合的指南。",
-             "audience: [all]", "tags: [文档导航]", "reviewed_at:", "guide_index: audience", "---", "",
-             "<!-- 此页由 npm run generate:docs:metadata 生成；编辑各文章的 audience 来调整分类。 -->", "",
-             "选择您的角色。各组同时收录面向所有读者的通用说明；这只是阅读分类，不改变平台中的实际权限。", ""]
-    for role, label in config["audience"].items():
-        lines.extend([f"## {label} {{#{role}}}", ""])
-        for path, meta in pages:
-            if meta.get("guide_index"):
-                continue
-            if "all" in meta["audience"] or role in meta["audience"]:
-                title = meta["title"].replace("[", r"\[").replace("]", r"\]")
-                lines.append(f"- [{title}]({path}) — {meta['description']}")
-        lines.append("")
-    return "\n".join(lines)
 
 
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--write-index", action="store_true")
-    args = parser.parse_args()
     config = tomllib.loads((ROOT / "zensical.guide.toml").read_text(encoding="utf-8"))["project"]["extra"]
     docs = ROOT / "docs/user"
-    pages, errors, warnings = [], [], []
+    page_count, errors, warnings = 0, [], []
     for path in sorted(docs.rglob("*.md")):
         relative = path.relative_to(docs)
         if any(part in ("Templates", "includes", ".obsidian") for part in relative.parts):
@@ -97,21 +72,14 @@ def main():
             page_errors, page_warnings = validate(meta, config)
             errors.extend(f"{relative}: {message}" for message in page_errors)
             warnings.extend(f"{relative}: {message}" for message in page_warnings)
-            pages.append((relative.as_posix(), meta))
+            page_count += 1
         except (ValueError, yaml.YAMLError) as exc:
             errors.append(f"{relative}: {exc}")
-    if not errors:
-        expected = audience_index(pages, config)
-        output = docs / "audience.md"
-        if args.write_index:
-            output.write_text(expected, encoding="utf-8", newline="\n")
-        elif not output.exists() or output.read_text(encoding="utf-8").replace("\r\n", "\n") != expected:
-            errors.append("audience.md 已过期，请运行 npm run generate:docs:metadata")
     for message in warnings:
         print(f"提醒：{message}")
     for message in errors:
         print(f"错误：{message}", file=sys.stderr)
-    print(f"用户指南元数据：{len(pages)} 页，{len(errors)} 个错误，{len(warnings)} 条复核提醒")
+    print(f"用户指南元数据：{page_count} 页，{len(errors)} 个错误")
     return int(bool(errors))
 
 

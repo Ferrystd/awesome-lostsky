@@ -8,7 +8,7 @@ audience:
 aliases:
   - 权限
   - permission
-reviewed_at:
+modified_at: 2026-09-27
 ---
 
 ## 定义

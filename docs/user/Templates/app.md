@@ -2,7 +2,7 @@
 title: 应用模板
 tags: []
 audience: [all]
-reviewed_at:
+modified_at:
 search:
   exclude: true
 aliases: []
@@ -20,7 +20,7 @@ await app.fileManager.processFrontMatter(tp.config.target_file, (frontmatter) =>
   if (description) frontmatter.description = description;
   else delete frontmatter.description;
   frontmatter.audience = [audience];
-  frontmatter.reviewed_at = null;
+  frontmatter.modified_at = tp.date.now("YYYY-MM-DD");
   delete frontmatter.search;
   delete frontmatter.status;
   delete frontmatter.status_note;

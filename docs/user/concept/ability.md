@@ -9,7 +9,7 @@ audience:
 aliases:
   - 能力
   - ability
-reviewed_at:
+modified_at: 2026-09-27
 ---
 
 ## 定义

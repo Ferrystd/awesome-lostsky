@@ -3,7 +3,7 @@ title: 鸣谢
 description: 开源项目与功能建议的致谢。
 audience: [all]
 tags: [支持]
-reviewed_at:
+modified_at: 2026-09-27
 ---
 
 ## 开源鸣谢 {#open-source-acknowledgements}
