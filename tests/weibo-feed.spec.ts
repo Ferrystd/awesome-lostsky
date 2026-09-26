@@ -640,27 +640,213 @@ test('browser Back from preset management restores an unsent interaction draft',
   await expect(page.getByText('最新点单信息', { exact: true })).toBeVisible()
 })
 
-test('returning from interaction restores feed pagination and scroll position', async ({ page }) => {
+test('returning from interaction restores all loaded feed batches and scroll position without an immediate refetch', async ({ page }) => {
   await setup(page)
   const pages: number[] = []
   await page.route(`${origin}/api/**/personal/feed?**`, route => {
     const number = Number(new URL(route.request().url()).searchParams.get('page'))
     pages.push(number)
     return route.fulfill({ json: { code: 0, message: 'ok', data: {
-      list: Array.from({ length: 20 }, (_, index) => ({ id: index + 1, text: `第 ${number} 页帖子 ${index + 1}`, posted_at: 1789988000, restricted: false })),
-      total: 50, page: number, limit: 20, restricted: false, updated_at: 1789988000, poll_status: 'ready', last_error: null,
+      list: Array.from({ length: 20 }, (_, index) => ({ id: (number - 1) * 20 + index + 1, text: `第 ${number} 批帖子 ${index + 1}`, posted_at: 1789988000, restricted: false })),
+      total: 40, page: number, limit: 20, restricted: false, updated_at: 1789988000, poll_status: 'ready', last_error: null,
     } } })
   })
-  await page.goto(`${origin}/personal/feed?page=2`)
-  const item = page.locator('.feed-post').nth(8)
+  await page.goto(`${origin}/personal/feed`)
+  await expect(page.locator('.feed-post')).toHaveCount(20)
+  await page.locator('.feed-tail').scrollIntoViewIfNeeded()
+  await expect(page.locator('.feed-post')).toHaveCount(40)
+  const item = page.locator('.feed-post').nth(28)
   await item.scrollIntoViewIfNeeded()
   const top = await page.evaluate(() => window.scrollY)
   expect(top).toBeGreaterThan(100)
   await item.getByRole('link', { name: '去评论', exact: true }).click()
   await page.getByRole('link', { name: '返回点单信息流', exact: true }).click()
-  await expect(page.locator('.feed-post').first()).toContainText('第 2 页')
+  await expect(page.locator('.feed-post')).toHaveCount(40)
+  await expect(page.locator('.feed-post').first()).toContainText('第 1 批')
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(top - 100)
-  expect(pages.every(number => number === 2)).toBe(true)
+  expect(pages).toEqual([1, 2])
+})
+
+function infiniteFeedPage(number: number, ids: number[], total: number, restricted = false, prefix = '点单') {
+  return {
+    list: ids.map(id => ({ id, text: `${prefix} ${id}`, posted_at: 1789988000 - id, restricted })),
+    total, page: number, limit: 20, restricted, updated_at: 1789988000, poll_status: 'ready', last_error: null,
+  }
+}
+
+test('infinite feed reports access snapshot failure instead of claiming no posts', async ({ page }) => {
+  const requests = await setup(page)
+  await page.route(`${origin}/api/**/workspace/access`, route => route.fulfill({ status: 400, json: { code: 400, message: '访问快照暂不可用', data: null } }))
+  await page.goto(`${origin}/personal/feed`)
+  await expect(page.locator('.ls-async-state')).toContainText('访问权限加载失败')
+  await expect(page.locator('.ls-empty-state, .feed-post')).toHaveCount(0)
+  expect(requests.feed).toBe(0)
+  const deniedAgain = page.waitForResponse(response => response.url().endsWith('/workspace/access'))
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await deniedAgain
+  await expect(page.locator('.ls-async-state')).toContainText('访问权限加载失败')
+  expect(requests.feed).toBe(0)
+})
+
+test('infinite feed appends unique posts and serializes bottom loading with background polling', async ({ page }) => {
+  await setup(page)
+  await page.clock.install()
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  const reads: number[] = []
+  let concurrent = 0
+  let maximumConcurrent = 0
+  await page.route(`${origin}/api/**/personal/feed?**`, async route => {
+    const number = Number(new URL(route.request().url()).searchParams.get('page'))
+    reads.push(number)
+    maximumConcurrent = Math.max(maximumConcurrent, ++concurrent)
+    if (number === 2) await gate
+    const ids = number === 1 ? Array.from({ length: 20 }, (_, index) => index + 1)
+      : number === 2 ? Array.from({ length: 20 }, (_, index) => index + 20)
+        : [40, 41, 42, 43, 44]
+    await route.fulfill({ json: { code: 0, message: 'ok', data: infiniteFeedPage(number, ids, 45) } })
+    concurrent--
+  })
+  await page.goto(`${origin}/personal/feed?page=9`)
+  await expect(page.locator('.feed-post')).toHaveCount(20)
+  await expect(page.locator('.n-pagination')).toHaveCount(0)
+  await page.clock.fastForward(29_000)
+  await page.locator('.feed-tail').scrollIntoViewIfNeeded()
+  await expect(page.locator('.feed-tail')).toContainText('正在加载更多点单')
+  const readsDuringAppend = reads.length
+  await page.clock.fastForward(2_000)
+  expect(reads).toHaveLength(readsDuringAppend)
+  await expect(page.locator('.feed-post')).toHaveCount(20)
+  release()
+  await expect(page.locator('.feed-post')).toHaveCount(39)
+  await expect(page.locator('.feed-post').first()).toContainText('点单 1')
+  await page.locator('.feed-tail').scrollIntoViewIfNeeded()
+  await expect(page.locator('.feed-post')).toHaveCount(44)
+  await expect(page.locator('.feed-tail')).toContainText('已看完当前点单')
+  expect(reads.filter(number => number === 2)).toHaveLength(1)
+  expect(reads.filter(number => number === 3)).toHaveLength(1)
+  expect(maximumConcurrent).toBe(1)
+})
+
+test('infinite feed preserves loaded posts after an append failure and resumes only on explicit continuation', async ({ page }) => {
+  await setup(page)
+  await page.clock.install()
+  let secondReads = 0
+  await page.route(`${origin}/api/**/personal/feed?**`, route => {
+    const number = Number(new URL(route.request().url()).searchParams.get('page'))
+    if (number === 2 && ++secondReads === 1) return route.fulfill({ status: 400, json: { code: 400, message: '暂时无法加载更多', data: null } })
+    return route.fulfill({ json: { code: 0, message: 'ok', data: infiniteFeedPage(number, Array.from({ length: 20 }, (_, index) => (number - 1) * 20 + index + 1), 40) } })
+  })
+  await page.goto(`${origin}/personal/feed`)
+  await expect(page.locator('.feed-post')).toHaveCount(20)
+  await page.locator('.feed-tail').scrollIntoViewIfNeeded()
+  await expect(page.locator('.feed-tail')).toContainText('更多点单加载失败')
+  await expect(page.locator('.feed-post')).toHaveCount(20)
+  await page.clock.fastForward(31_000)
+  await expect(page.locator('.feed-tail')).toContainText('更多点单加载失败')
+  expect(secondReads).toBe(1)
+  await page.getByRole('button', { name: '继续加载', exact: true }).click()
+  await expect(page.locator('.feed-post')).toHaveCount(40)
+  await expect(page.locator('.feed-tail')).toContainText('已看完当前点单')
+  expect(secondReads).toBe(2)
+})
+
+test('infinite feed fills a short viewport and stops at an empty page even when total is stale', async ({ page }) => {
+  await setup(page)
+  await page.setViewportSize({ width: 1440, height: 1200 })
+  const reads: number[] = []
+  await page.route(`${origin}/api/**/personal/feed?**`, route => {
+    const number = Number(new URL(route.request().url()).searchParams.get('page'))
+    reads.push(number)
+    return route.fulfill({ json: { code: 0, message: 'ok', data: infiniteFeedPage(number, number < 3 ? [number] : [], 100) } })
+  })
+  await page.goto(`${origin}/personal/feed`)
+  await expect(page.locator('.feed-post')).toHaveCount(2)
+  await expect(page.locator('.feed-tail')).toContainText('已看完当前点单')
+  expect(reads).toEqual([1, 2, 3])
+})
+
+test('infinite feed retires a continuation error when a successful refresh reaches the new end', async ({ page }) => {
+  await setup(page)
+  await page.clock.install()
+  let total = 40
+  await page.route(`${origin}/api/**/personal/feed?**`, route => {
+    const number = Number(new URL(route.request().url()).searchParams.get('page'))
+    if (number === 2) return route.fulfill({ status: 400, json: { code: 400, message: '暂时无法加载更多', data: null } })
+    return route.fulfill({ json: { code: 0, message: 'ok', data: infiniteFeedPage(1, Array.from({ length: 20 }, (_, index) => index + 1), total) } })
+  })
+  await page.goto(`${origin}/personal/feed`)
+  await expect(page.locator('.feed-post')).toHaveCount(20)
+  await page.locator('.feed-tail').scrollIntoViewIfNeeded()
+  await expect(page.getByRole('button', { name: '继续加载', exact: true })).toBeVisible()
+  total = 20
+  await page.clock.fastForward(31_000)
+  await expect(page.locator('.feed-tail')).toContainText('已看完当前点单')
+  await expect(page.getByRole('button', { name: '继续加载', exact: true })).toHaveCount(0)
+})
+
+test('infinite feed clears old authorization batches and ignores an in-flight old response', async ({ page }) => {
+  await setup(page)
+  let allowed = true
+  let version = 1
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  const reads: string[] = []
+  await page.route(`${origin}/api/**/workspace/access`, route => route.fulfill({ json: { code: 0, message: 'ok', data: {
+    permissions: allowed ? ['weibo.personal.use'] : [], abilities: { weibo: { enabled: true, label: '微博' } },
+    identity: { entity_id: 11, name: '青空成员', type: 'teamMember', belongs_to_team: true, is_external: false },
+  } } }))
+  await page.route(`${origin}/api/**/personal/feed?**`, async route => {
+    const number = Number(new URL(route.request().url()).searchParams.get('page'))
+    const restricted = !allowed
+    const prefix = restricted ? '安全预览' : `完整正文版本${version}`
+    reads.push(`${prefix}:${number}`)
+    if (number === 2 && !restricted && version === 1) await gate
+    await route.fulfill({ json: { code: 0, message: 'ok', data: infiniteFeedPage(number, Array.from({ length: 20 }, (_, index) => (number - 1) * 20 + index + 1), 40, restricted, prefix) } })
+  })
+  await page.goto(`${origin}/personal/feed`)
+  await expect(page.locator('.feed-post')).toHaveCount(20)
+  await page.locator('.feed-tail').scrollIntoViewIfNeeded()
+  await expect.poll(() => reads.includes('完整正文版本1:2')).toBe(true)
+  allowed = false
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await expect(page.locator('.feed-post').first()).toContainText('安全预览')
+  await expect(page.getByText(/完整正文版本1/)).toHaveCount(0)
+  release()
+  await expect(page.getByRole('button', { name: '打开微博' }).first()).toHaveAttribute('aria-disabled', 'true')
+  const restrictedLink = await page.getByRole('link', { name: '去评论', exact: true }).first().getAttribute('href')
+  expect(restrictedLink).not.toContain('feed_post_id')
+  allowed = true
+  version = 2
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await expect(page.locator('.feed-post').first()).toContainText('完整正文版本2')
+  await expect(page.getByText(/完整正文版本1|安全预览/)).toHaveCount(0)
+  await expect(page.locator('.feed-post')).toHaveCount(20)
+  expect(reads).toContain('完整正文版本2:1')
+})
+
+test('infinite feed discards an obsolete authorization cache when returning from interaction', async ({ page }) => {
+  await setup(page)
+  let allowed = true
+  let version = 1
+  await page.route(`${origin}/api/**/workspace/access`, route => route.fulfill({ json: { code: 0, message: 'ok', data: {
+    permissions: allowed ? ['weibo.personal.use'] : [], abilities: { weibo: { enabled: true, label: '微博' } },
+    identity: { entity_id: 11, name: '青空成员', type: 'teamMember', belongs_to_team: true, is_external: false },
+  } } }))
+  await page.route(`${origin}/api/**/personal/feed?**`, route => route.fulfill({ json: { code: 0, message: 'ok', data:
+    infiniteFeedPage(1, [1, 2], 2, !allowed, allowed ? `返回正文版本${version}` : '返回安全预览'),
+  } }))
+  await page.goto(`${origin}/personal/feed`)
+  await expect(page.locator('.feed-post').first()).toContainText('返回正文版本1')
+  await page.getByRole('link', { name: '去评论', exact: true }).first().click()
+  allowed = false
+  await page.getByRole('link', { name: '返回点单信息流', exact: true }).click()
+  await expect(page.locator('.feed-post').first()).toContainText('返回安全预览')
+  allowed = true
+  version = 2
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await expect(page.locator('.feed-post').first()).toContainText('返回正文版本2')
+  await expect(page.getByText(/返回正文版本1|返回安全预览/)).toHaveCount(0)
 })
 
 for (const query of [
