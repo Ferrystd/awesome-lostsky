@@ -555,6 +555,10 @@ test('preset editor explains disabled reordering and validates the twenty item s
 
 test('cached feed query failure preserves posts and reports only a local error', async ({ page }) => {
   await setup(page)
+  await page.route(`${origin}/api/**/personal/feed?**`, route => route.fulfill({ json: { code: 0, message: 'ok', data: {
+    list: [1, 2].map(id => ({ id, text: `点单 ${id}`, posted_at: 1789988000, restricted: false })),
+    total: 2, page: 1, limit: 20, restricted: false, poll_status: 'ready',
+  } } }))
   await page.clock.install()
   await page.goto(`${origin}/personal/feed`)
   await expect(page.locator('.feed-post')).toHaveCount(2)
@@ -630,15 +634,16 @@ test('late comment success cannot clear a newer target draft after confirmed nav
   await expect(page.locator('.n-message').filter({ hasText: '评论已发表' })).toHaveCount(0)
 })
 
-test('browser Back from preset management restores an unsent interaction draft', async ({ page }) => {
+test('browser Back from preset management restores an unsent feed draft', async ({ page }) => {
   await setup(page)
-  await page.goto(`${origin}/personal/interactions?action=comment&feed_post_id=1&from=feed`)
-  await page.locator('#weibo-comment').fill('浏览器后退仍保留')
+  await page.goto(`${origin}/personal/feed`)
+  await page.getByRole('button', { name: '评论', exact: true }).first().click()
+  await page.locator('#feed-1-comment').fill('浏览器后退仍保留')
   await page.getByRole('button', { name: '管理预设评论', exact: true }).click()
-  await expect(page).toHaveURL(/comment-presets\?/)
+  await expect(page).toHaveURL(`${origin}/personal/interactions/comment-presets`)
   await page.goBack()
-  await expect(page.locator('#weibo-comment')).toHaveValue('浏览器后退仍保留')
-  await expect(page.getByText('最新点单信息', { exact: true })).toBeVisible()
+  await expect(page.locator('#feed-1-comment')).toHaveValue('浏览器后退仍保留')
+  await expect(page.locator('.feed-post').first()).toContainText('最新点单信息')
 })
 
 test('returning from interaction restores all loaded feed batches and scroll position without an immediate refetch', async ({ page }) => {
@@ -909,45 +914,97 @@ for (const status of [403, 404]) test(`feed target ${status} blocks commenting w
   await expect(page).toHaveURL(/\/personal\/feed(?:\?|$)/)
 })
 
-for (const workspace of ['personal', 'team']) test(`preset ${workspace} direct entry returns to its interaction parent and selects only the parent navigation`, async ({ page }) => {
+for (const workspace of ['personal', 'team']) test(`preset ${workspace} direct entry returns to its workspace parent and selects only the parent navigation`, async ({ page }) => {
   await setup(page)
   const prefix = workspace === 'personal' ? '/personal' : ''
   await page.goto(`${origin}${prefix}/interactions/comment-presets`)
   const nav = page.locator('.weibo-sidebar')
   await expect(nav.getByRole('link', { name: '预设评论', exact: true })).toHaveCount(0)
-  await expect(nav.locator(`a[href="${prefix}/interactions"]`)).toHaveAttribute('aria-current', 'page')
+  await expect(nav.locator(`a[href="${workspace === 'personal' ? '/personal/feed' : '/interactions'}"]`)).toHaveAttribute('aria-current', 'page')
   await expect(nav.locator('nav a[aria-current="page"]')).toHaveCount(1)
-  await page.getByRole('link', { name: '返回互动', exact: true }).click()
-  await expect(page).toHaveURL(`${origin}${prefix}/interactions`)
+  await page.getByRole('link', { name: workspace === 'personal' ? '返回点单信息流' : '返回互动', exact: true }).click()
+  await expect(page).toHaveURL(`${origin}${workspace === 'personal' ? '/personal/feed' : '/interactions'}`)
 })
 
-test('preset management round trip restores the account, target and edited comment from an opaque draft token', async ({ page }) => {
+test('preset management round trip restores the account and edited comment on the feed', async ({ page }) => {
   const requests = await setup(page)
-  await page.goto(`${origin}/personal/interactions?action=comment&feed_post_id=1&from=feed`)
-  await page.locator('#weibo-account').click()
+  await page.goto(`${origin}/personal/feed`)
+  await page.getByRole('button', { name: '评论', exact: true }).first().click()
+  await page.locator('#feed-comment-account').click()
   await page.getByText('授权账号', { exact: true }).click()
-  await page.locator('#weibo-comment').fill('进入管理前保留的私密草稿')
+  await page.locator('#feed-1-comment').fill('进入管理前保留的私密草稿')
   let dialogs = 0
   page.on('dialog', async dialog => { dialogs++; await dialog.dismiss() })
   await page.getByRole('button', { name: '管理预设评论', exact: true }).click()
-  await expect(page).toHaveURL(/\/personal\/interactions\/comment-presets\?/)
+  await expect(page).toHaveURL(`${origin}/personal/interactions/comment-presets`)
   const managementUrl = new URL(page.url())
-  expect(managementUrl.searchParams.get('from')).toBe('interaction')
-  expect(managementUrl.searchParams.get('draft')).toMatch(/^[0-9a-f-]{36}$/i)
+  expect(managementUrl.search).toBe('')
   expect(decodeURIComponent(page.url())).not.toContain('私密草稿')
   await page.getByRole('button', { name: '编辑预设', exact: true }).click()
   await page.locator('#preset-0').fill('管理中更新后的个人预设')
   await page.getByRole('button', { name: '保存预设评论' }).click()
   await expect.poll(() => requests.saves.length).toBe(1)
   await page.getByRole('link', { name: '返回预设评论', exact: true }).click()
-  await page.getByRole('link', { name: '返回互动', exact: true }).click()
-  await expect(page.locator('#weibo-comment')).toHaveValue('进入管理前保留的私密草稿')
-  await expect(page.locator('#weibo-account')).toContainText('授权账号')
-  await expect(page.getByText('最新点单信息', { exact: true })).toBeVisible()
-  await page.locator('#weibo-preset').click()
+  await page.getByRole('link', { name: '返回点单信息流', exact: true }).click()
+  await expect(page.locator('#feed-1-comment')).toHaveValue('进入管理前保留的私密草稿')
+  await expect(page.locator('#feed-comment-account')).toContainText('授权账号')
+  await expect(page.locator('.feed-post').first()).toContainText('最新点单信息')
+  await page.locator('#feed-1-preset').click()
   await expect(page.getByText('个人 · 管理中更新后的个人预设', { exact: true })).toBeVisible()
   expect(dialogs).toBe(0)
   expect(requests.comments).toHaveLength(0)
+})
+
+test('preset entry moves only the personal management action and stays available without ability', async ({ page }) => {
+  await setup(page, { ability: false })
+  await page.goto(`${origin}/personal/interactions`)
+  await expect(page.getByRole('button', { name: '管理预设评论', exact: true })).toHaveCount(0)
+  await page.goto(`${origin}/interactions`)
+  await expect(page.getByRole('button', { name: '管理预设评论', exact: true })).toBeVisible()
+  await page.goto(`${origin}/personal/feed`)
+  await page.getByRole('button', { name: '管理预设评论', exact: true }).click()
+  await expect(page).toHaveURL(`${origin}/personal/interactions/comment-presets`)
+  await expect(page.getByText('个人常用评论', { exact: true })).toBeVisible()
+})
+
+test('preset feed return keeps independent collapsed drafts and ordinary leave still confirms', async ({ page }) => {
+  await setup(page)
+  await page.goto(`${origin}/personal/feed`)
+  await page.locator('.feed-post').nth(0).getByRole('button', { name: '评论', exact: true }).click()
+  await page.locator('#feed-1-comment').fill('第一条草稿')
+  await page.locator('.feed-post').nth(0).getByRole('button', { name: '收起评论' }).click()
+  await page.locator('.feed-post').nth(1).getByRole('button', { name: '评论', exact: true }).click()
+  await page.locator('#feed-2-comment').fill('第二条草稿')
+  let dialogs = 0
+  page.on('dialog', async dialog => { dialogs++; await dialog.dismiss() })
+  await page.getByRole('button', { name: '管理预设评论', exact: true }).click()
+  await page.getByRole('link', { name: '返回点单信息流', exact: true }).click()
+  await expect(page.locator('#feed-2-comment')).toHaveValue('第二条草稿')
+  await expect(page.locator('#feed-1-comment')).toHaveCount(0)
+  await page.locator('.feed-post').nth(0).getByRole('button', { name: '评论', exact: true }).click()
+  await expect(page.locator('#feed-1-comment')).toHaveValue('第一条草稿')
+  expect(dialogs).toBe(0)
+  await page.evaluate(async () => {
+    const router = (document.querySelector('#app') as unknown as { __vue_app__: { config: { globalProperties: { $router: { push: (path: string) => Promise<unknown> } } } } }).__vue_app__.config.globalProperties.$router
+    await router.push('/personal/accounts')
+  })
+  expect(dialogs).toBe(1)
+  await expect(page).toHaveURL(`${origin}/personal/feed`)
+  await expect(page.locator('#feed-1-comment')).toHaveValue('第一条草稿')
+})
+
+test('preset feed return discards drafts after access is revoked', async ({ page }) => {
+  const options = { restricted: false }
+  await setup(page, options)
+  await page.goto(`${origin}/personal/feed`)
+  await page.getByRole('button', { name: '评论', exact: true }).first().click()
+  await page.locator('#feed-1-comment').fill('权限撤回前的草稿')
+  await page.getByRole('button', { name: '管理预设评论', exact: true }).click()
+  options.restricted = true
+  await page.getByRole('link', { name: '返回点单信息流', exact: true }).click()
+  await expect(page.locator('.feed-post').first()).toContainText('最新点单……需要陪玩')
+  await expect(page.locator('#feed-1-comment')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '评论', exact: true }).first()).toHaveAttribute('aria-disabled', 'true')
 })
 
 test('cancelling a same-page target switch keeps the URL, target and comment draft', async ({ page }) => {

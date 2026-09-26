@@ -4,6 +4,7 @@ import { identityUrl, redirectToLogin, redirectToMemberIdentity, redirectToWorks
 import { createRouter, createWebHistory } from 'vue-router'
 import { hasWeiboPermission, loadAccess } from './lib/workspace'
 import { clearInteractionDrafts } from './lib/interactionDraft'
+import { clearFeedDraft } from './lib/feedNavigation'
 
 const Overview = () => import('./views/OverviewView.vue')
 const Accounts = () => import('./views/AccountsView.vue')
@@ -40,6 +41,7 @@ export const router = createRouter({ history: createWebHistory(), scrollBehavior
   { path: '/', redirect: '/overview' }, ...scoped('', 'team'), ...scoped('/personal', 'personal'),
 ] })
 router.afterEach((to, _from, failure) => {
+  if (!failure && to.path !== '/personal/feed' && !/^\/personal\/interactions\/comment-presets(?:\/(?:new|edit))?$/.test(to.path)) clearFeedDraft()
   if (!failure && !/^\/(?:personal\/)?interactions(?:\/comment-presets(?:\/(?:new|edit))?)?$/.test(to.path)) clearInteractionDrafts()
 })
 router.beforeEach(async (to) => {

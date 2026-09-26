@@ -17,11 +17,12 @@ import { feedback } from '@lostsky/ui/feedback'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NFlex, NList, NListItem, NSpin } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
-import { feedPosition, saveFeedPosition } from '../lib/feedNavigation'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
+import { clearFeedDraft, feedPosition, saveFeedDraft, saveFeedPosition, takeFeedDraft, type FeedCommentDraft } from '../lib/feedNavigation'
 import { expectedEntity, hasWeiboPermission, loadAccess } from '../lib/workspace'
 import type { WeiboAccount, WeiboCommentPreset, WeiboOperation, WeiboFeedItem, WeiboFeedPage } from '../types'
 
+const router = useRouter()
 const queryClient = useQueryClient()
 const scope = `${location.host}:${auth.entity()?.type}:${auth.entity()?.id}`
 const previous = feedPosition(scope)
@@ -84,7 +85,7 @@ const formatTime = (timestamp: number) => dateTimeFormat.format(new Date(timesta
 const actionReason = (item: WeiboFeedItem) => accessReason.value || (item.restricted || feedRestricted.value ? '当前只能查看点单预览，暂不可打开原帖' : '')
 const commentScope = computed(() => interactionScopeKey(access.data.value, true))
 const accountId = ref<number | null>(null)
-const drafts = reactive<Record<number, { text: string; baseline: string; expanded: boolean; pending: boolean; error: string }>>({})
+const drafts = reactive<Record<number, FeedCommentDraft>>({})
 let commentEpoch = 0
 const accounts = useQuery({
   structuralSharing: false,
@@ -104,7 +105,28 @@ const selectedAccount = computed(() => accountReason.value ? undefined : account
 watch([accountReason, accounts.data], ([reason, candidates]) => {
   if (reason || (candidates && !candidates.some(account => account.id === accountId.value))) accountId.value = null
 })
-useUnsavedChangesGuard(computed(() => Object.values(drafts).some(draft => draft.pending || draft.text !== draft.baseline)))
+let preservingDraft = false
+useUnsavedChangesGuard(computed(() => Object.values(drafts).some(draft => draft.pending || draft.text !== draft.baseline)), {
+  shouldConfirm: to => !(preservingDraft && to.path === '/personal/interactions/comment-presets'),
+})
+watch([commentScope, access.isFetching, feed.isPending, accessMode], () => {
+  if (preservingDraft || !commentScope.value || access.isFetching.value || feed.isPending.value) return
+  const saved = takeFeedDraft(commentScope.value)
+  if (!saved || accessMode.value !== 'full' || feedRestricted.value) return
+  accountId.value = saved.accountId
+  for (const item of displayedItems.value) {
+    if (!item.restricted && saved.drafts[item.id]) drafts[item.id] = saved.drafts[item.id]
+  }
+}, { immediate: true })
+async function managePresets() {
+  if (Object.values(drafts).some(draft => draft.pending)) return feedback.info('正在发表评论，请稍候')
+  if (commentScope.value) saveFeedDraft(commentScope.value, accountId.value, drafts)
+  preservingDraft = true
+  try {
+    const failure = await router.push('/personal/interactions/comment-presets')
+    if (failure) clearFeedDraft()
+  } finally { preservingDraft = false }
+}
 watch(commentScope, (next, previous) => {
   if (previous && next !== previous) {
     commentEpoch++
@@ -220,7 +242,9 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
 
 <template>
   <div class="weibo-stack">
-    <LsPageHeader title="点单信息流" description="浏览最新点单，展开帖子即可发表评论。" />
+    <LsPageHeader title="点单信息流" description="浏览最新点单，展开帖子即可发表评论。">
+      <template #actions><LsButton variant="secondary" @click="managePresets">管理预设评论</LsButton></template>
+    </LsPageHeader>
     <WeiboAccountField id="feed-comment-account" label="评论使用的微博账号" v-model="accountId" :accounts="accounts.data.value || []" :loading="accounts.isPending.value" :error="accounts.isError.value ? friendlyError(accounts.error.value) : ''" :disabled-reason="accountReason" />
     <LsAsyncState v-if="access.isError.value" state="error" title="访问权限加载失败" :description="friendlyError(access.error.value)" />
     <LsAsyncState v-else-if="feed.isPending.value" state="loading" :rows="8" />

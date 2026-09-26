@@ -21,14 +21,14 @@ const { personal, prefix, scope, query, accessReason, restricted } = useCommentP
 const search = ref('')
 const listPath = computed(() => `${prefix.value}/interactions/comment-presets`)
 const presetQuery = computed(() => interactionPresetQuery(route.query))
-const backTo = computed(() => interactionReturnTarget(route.query, access.data.value, personal.value))
+const backTo = computed(() => personal.value ? { path: '/personal/feed' } : interactionReturnTarget(route.query, access.data.value, false))
 const presets = computed(() => restricted.value ? [] : (query.data.value ?? []).filter(item => item.scope === scope.value))
 const filtered = computed(() => presets.value.filter(item => item.content.toLocaleLowerCase().includes(search.value.trim().toLocaleLowerCase())))
 </script>
 
 <template>
   <div class="weibo-stack">
-    <LsPageHeader title="预设评论" :back-to="backTo" back-label="返回互动" :description="personal ? '查看自己的常用评论，团队预设也可在互动页选择。' : '查看团队成员可选用的常用评论。'">
+    <LsPageHeader title="预设评论" :back-to="backTo" :back-label="personal ? '返回点单信息流' : '返回互动'" :description="personal ? '查看自己的常用评论，团队预设也可在互动页选择。' : '查看团队成员可选用的常用评论。'">
       <template #actions><LsPagePrimaryAction :icon="Plus" label="添加预设" :to="{ path: `${listPath}/new`, query: presetQuery }" /></template>
     </LsPageHeader>
     <LsAsyncState v-if="query.isError.value" state="error" title="预设评论加载失败" :description="friendlyError(query.error.value)" />

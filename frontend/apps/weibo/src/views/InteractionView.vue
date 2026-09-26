@@ -146,7 +146,7 @@ onBeforeUnmount(() => { epoch++ })
 <template>
   <div class="weibo-stack">
     <LsPageHeader title="互动" description="选择微博和账号，点赞或填写评论后手动发送。" :back-to="task.fromFeed ? '/personal/feed' : undefined" back-label="返回点单信息流">
-      <template #actions><LsButton variant="secondary" @click="managePresets">管理预设评论</LsButton></template>
+      <template v-if="!personal" #actions><LsButton variant="secondary" @click="managePresets">管理预设评论</LsButton></template>
     </LsPageHeader>
     <form class="weibo-form" @submit.prevent="submit">
       <LsFormSection title="微博互动" description="确认目标、账号和内容后执行一次互动。">

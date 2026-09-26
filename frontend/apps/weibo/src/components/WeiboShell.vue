@@ -21,6 +21,7 @@ import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 const route = useRoute();
+const navigationPath = computed(() => route.path.startsWith('/personal/interactions/comment-presets') ? '/personal/feed' : route.path);
 const router = useRouter();
 const drawer = ref(false);
 const personal = computed(() => route.meta.workspace === "personal");
@@ -86,7 +87,7 @@ function switchApp(key: string) {
       <nav>
         <p>工作空间</p>
         <template v-for="item in nav" :key="item[0]">
-          <RouterLink :to="item[0]" :class="{ 'router-link-active': (item[0] !== (base || '/overview') && route.path.startsWith(`${item[0]}/`)) }" :aria-current="(item[0] !== (base || '/overview') && route.path.startsWith(`${item[0]}/`)) ? 'page' : undefined" @click="drawer = false">
+          <RouterLink :to="item[0]" :class="{ 'router-link-active': (item[0] !== (base || '/overview') && (navigationPath === item[0] || navigationPath.startsWith(`${item[0]}/`))) }" :aria-current="(item[0] !== (base || '/overview') && (navigationPath === item[0] || navigationPath.startsWith(`${item[0]}/`))) ? 'page' : undefined" @click="drawer = false">
             <component :is="item[2]" :size="19" />
             <span>{{ item[1] }}</span>
             <ChevronRight :size="15" />
