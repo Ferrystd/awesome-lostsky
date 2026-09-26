@@ -8,7 +8,7 @@
 
 适时暂存代码：完成可独立说明且已通过直接验证的阶段后，按[工作区保护与阶段性暂存](docs/dev/development/contributing.md#staged-worktree-baseline)建立暂存基线；只纳入当前任务已确认的改动，保留无关差异与已有暂存内容。
 
-凡是创建或使用独立分支、worktree、临时开发环境或并行 Codex 任务，主代理必须按 [Git 任务生命周期](docs/dev/development/contributing.md#git-task-lifecycle)持续跟踪；任务结束时交给 `lostsky-git-cleanup` 检查，最终明确为“已合并并清理”“已完成等待审查”“因异常保留现场”或“明确决定不合并”，不得静默遗留。
+凡是创建或使用独立分支、worktree、临时开发环境或并行 Codex 任务，主代理必须按 [Git 任务生命周期](docs/dev/development/contributing.md#git-task-lifecycle)持续跟踪；任务结束时交给 `lostsky-git` 统一处理提交、验收与 Git 收尾，最终明确为“已合并并清理”“已合并但保留环境”“已完成等待审查”“因异常保留现场”或“明确决定不合并”，不得静默遗留。遇到工作区改动时先核对归属并主动处理，不把清理工作直接交还用户。
 
 新增或修改后台页面结构时，必须阅读并执行[后台页面组件化方法](docs/dev/design/admin/componentization.md)：实施前在 commentary 给出组件化盘点；达到抽象阈值时主动创建组件、迁移全部同义用法并删除旧 CSS，不等待用户额外提醒。
 
