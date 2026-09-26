@@ -12,9 +12,11 @@ import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useQuery } from '@tanstack/vue-query'
-import { NInput, NRadioButton, NRadioGroup, NSelect } from 'naive-ui'
+import { NInput, NRadioButton, NRadioGroup } from 'naive-ui'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import WeiboAccountField from '../components/WeiboAccountField.vue'
+import WeiboCommentFields from '../components/WeiboCommentFields.vue'
 import { apiPrefix, expectedEntity, hasWeiboPermission, loadAccess } from '../lib/workspace'
 import { clearInteractionDrafts, interactionScopeKey, parseInteractionQuery, storeInteractionDraft, takeInteractionDraft, validStatusUrl } from '../lib/interactionDraft'
 import type { WeiboAccount, WeiboCommentPreset, WeiboFeedItem, WeiboOperation } from '../types'
@@ -67,8 +69,6 @@ const presetReason = computed(() => permissionReason.value || readAccessReason(p
 const targetReason = computed(() => task.value.error || (task.value.feedPostId !== null
   ? permissionReason.value || abilityReason.value || readAccessReason(feedPost.data.value) || (feedPost.isError.value ? `点单微博无法读取：${friendlyError(feedPost.error.value)}` : feedPost.isPending.value ? '正在读取点单微博，请稍候' : feedPost.data.value?.restricted ? '当前只能查看点单预览，暂不可评论' : !feedPost.data.value || feedPost.data.value.id !== task.value.feedPostId ? '点单微博已失效，请重新选择' : '') : ''))
 const visiblePost = computed(() => targetReason.value ? undefined : feedPost.data.value)
-const accountOptions = computed(() => accountReason.value ? [] : (accounts.data.value || []).map(item => ({ label: item.screen_name || item.uid, value: item.id })))
-const presetOptions = computed(() => presetReason.value ? [] : (presets.data.value || []).map(item => ({ label: `${item.scope === 'team' ? '团队' : '个人'} · ${item.content}`, value: item.id })))
 const selectedAccount = computed(() => accountReason.value ? undefined : accounts.data.value?.find(item => item.id === draft.accountId))
 const operationLabel = computed(() => draft.action === 'like' ? '点赞微博' : '发表评论')
 const submitReason = computed(() => permissionReason.value || abilityReason.value || targetReason.value || accountReason.value
@@ -112,11 +112,6 @@ watch(permissionReason, (reason, previous) => {
     clearInteractionDrafts()
   }
 })
-function selectPreset(id: number) {
-  if (presetReason.value) return feedback.info(presetReason.value)
-  const preset = presets.data.value?.find(item => item.id === id)
-  if (preset) draft.comment = preset.content
-}
 async function managePresets() {
   if (pending.value) return feedback.info('正在执行互动，请稍候')
   if (!scope.value) return feedback.info(permissionReason.value || '正在核对当前身份，请稍候')
@@ -168,19 +163,8 @@ onBeforeUnmount(() => { epoch++ })
         <LsField v-else label="微博帖子链接" for-id="weibo-status-url" required hint="请粘贴 weibo.com 或 m.weibo.cn 的微博正文页链接。">
           <NInput v-model:value="draft.statusUrl" :maxlength="2048" placeholder="https://weibo.com/..." :input-props="{ id: 'weibo-status-url', 'aria-label': '微博帖子链接' }" />
         </LsField>
-        <LsInlineError v-if="accounts.isError.value && !accountReason" :message="`微博账号加载失败：${friendlyError(accounts.error.value)}`" />
-        <LsField label="微博账号" for-id="weibo-account" required>
-          <NSelect id="weibo-account" v-model:value="draft.accountId" :options="accountOptions" :loading="!accountReason && accounts.isPending.value" :disabled="Boolean(accountReason)" :placeholder="accountReason ? '-' : '选择账号'" />
-        </LsField>
-        <template v-if="draft.action === 'comment'">
-          <LsInlineError v-if="presets.isError.value && !presetReason" :message="`预设评论加载失败，可直接填写评论：${friendlyError(presets.error.value)}`" />
-          <LsField label="预设评论" for-id="weibo-preset" hint="选择团队或个人预设后仍可修改，也可以直接填写评论。">
-            <NSelect id="weibo-preset" :value="null" :options="presetOptions" :loading="!presetReason && presets.isPending.value" :disabled="Boolean(presetReason)" :placeholder="presetReason ? '-' : '选择团队或个人预设'" @update:value="selectPreset" />
-          </LsField>
-          <LsField label="评论内容" for-id="weibo-comment" required>
-            <NInput :input-props="{ id: 'weibo-comment' }" v-model:value="draft.comment" type="textarea" :maxlength="500" show-count placeholder="输入评论内容" :autosize="{ minRows: 4, maxRows: 8 }" />
-          </LsField>
-        </template>
+        <WeiboAccountField id="weibo-account" v-model="draft.accountId" :accounts="accounts.data.value || []" :loading="accounts.isPending.value" :error="accounts.isError.value ? friendlyError(accounts.error.value) : ''" :disabled-reason="accountReason" />
+        <WeiboCommentFields v-if="draft.action === 'comment'" id-prefix="weibo" v-model="draft.comment" :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason" />
         <LsDescriptionList>
           <dt>账号</dt><dd>{{ selectedAccount?.screen_name || selectedAccount?.uid || (accountReason ? '-' : '未选择') }}</dd>
           <dt>目标</dt><dd>{{ task.feedPostId ? (visiblePost?.status_url || '-') : draft.statusUrl || '未填写' }}</dd>

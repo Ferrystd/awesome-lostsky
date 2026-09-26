@@ -236,7 +236,7 @@ async function setup(page: Page, options: { restricted?: boolean; ability?: bool
   return requests
 }
 
-test('feed remains readable at all widths and delegates comments without loading form candidates', async ({ page }, testInfo) => {
+test('feed remains readable at all widths and loads the page account selector', async ({ page }, testInfo) => {
   const requests = await setup(page)
   await page.clock.install()
   await page.goto(`${origin}/personal/feed`)
@@ -245,7 +245,8 @@ test('feed remains readable at all widths and delegates comments without loading
   await expect(page.locator('.feed-text').first()).toHaveText(`最新点单信息 ${'完整文字内容，'.repeat(30)}`)
   await expect(page.locator('.ls-list-toolbar')).toHaveCount(0)
   await expect(page.locator('.feed-summary')).toContainText('共 25 条点单')
-  await expect(page.locator('.feed-post img, textarea, #weibo-account')).toHaveCount(0)
+  await expect(page.locator('.feed-post img, textarea')).toHaveCount(0)
+  await expect(page.locator('#feed-comment-account')).toBeVisible()
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
@@ -268,12 +269,12 @@ test('feed remains readable at all widths and delegates comments without loading
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
   await zoom.evaluate(element => element.remove())
   await page.setViewportSize({ width: 1440, height: 900 })
-  expect(requests.candidates).toBe(0)
+  expect(requests.candidates).toBe(1)
   expect(requests.comments).toHaveLength(0)
   const reads = requests.feed
   await page.clock.fastForward(31_000)
   await expect.poll(() => requests.feed).toBeGreaterThan(reads)
-  await page.locator('.feed-post').first().getByRole('link', { name: '去评论', exact: true }).click()
+  await pushRoute(page, '/personal/interactions?action=comment&feed_post_id=1&from=feed')
   await expect(page).toHaveURL(/\/personal\/interactions\?.*feed_post_id=1/)
   await expect(page.locator('#weibo-comment')).toHaveValue('')
   expect(requests.comments).toHaveLength(0)
@@ -288,7 +289,7 @@ for (const restriction of ['permission', 'ability'] as const) test(`${restrictio
   await expect(page.getByText('最新点单……需要陪玩')).toBeVisible()
   await expect(page.getByText('完整文字内容')).toHaveCount(0)
   await expect(page.locator('.n-message')).toHaveCount(0)
-  const open = page.getByRole('button', { name: '打开微博' }).first()
+  const open = page.getByRole('button', { name: '前往' }).first()
   await expect(open).toHaveAttribute('aria-disabled', 'true')
   await open.focus()
   await expect(open).toBeFocused()
@@ -297,10 +298,9 @@ for (const restriction of ['permission', 'ability'] as const) test(`${restrictio
   expect(requests.candidates).toBe(0)
   expect(requests.comments).toHaveLength(0)
   await expect(page).toHaveURL(/\/personal\/feed$/)
-  await page.getByRole('link', { name: '去评论', exact: true }).first().click()
-  await expect(page).toHaveURL(/\/personal\/interactions\?/)
-  expect(new URL(page.url()).searchParams.has('feed_post_id')).toBe(false)
-  expect(new URL(page.url()).searchParams.has('status_url')).toBe(false)
+  await page.getByRole('button', { name: '评论', exact: true }).first().press('Enter')
+  await expect(page).toHaveURL(/\/personal\/feed$/)
+  await expect(page.locator('.feed-comment')).toHaveCount(0)
   expect(requests.targets).toHaveLength(0)
   expect(requests.comments).toHaveLength(0)
   expect(requests.writes).toHaveLength(0)
@@ -309,7 +309,7 @@ for (const restriction of ['permission', 'ability'] as const) test(`${restrictio
 for (const status of ['Succeeded', 'Failed', 'Unknown', 'Dispatching']) test(`comment handles ${status} and sends selected account and preset`, async ({ page }) => {
   const requests = await setup(page, { status })
   await page.goto(`${origin}/personal/feed`)
-  await page.locator('.feed-post').first().getByRole('link', { name: '去评论', exact: true }).click()
+  await pushRoute(page, '/personal/interactions?action=comment&feed_post_id=1&from=feed')
   await page.locator('#weibo-account').click()
   await page.getByText('授权账号', { exact: true }).click()
   await page.locator('#weibo-preset').click()
@@ -339,7 +339,7 @@ test('query errors are distinct from empty feed and empty account candidates', a
 test('candidate failure prevents submit but keeps comment draft usable', async ({ page }) => {
   await setup(page, { candidateError: true })
   await page.goto(`${origin}/personal/feed`)
-  await page.locator('.feed-post').first().getByRole('link', { name: '去评论', exact: true }).click()
+  await pushRoute(page, '/personal/interactions?action=comment&feed_post_id=1&from=feed')
   await expect(page.getByText(/微博账号加载失败/)).toBeVisible()
   await page.locator('#weibo-comment').fill('保留输入')
   await expect(page.getByRole('button', { name: '发表评论', exact: true })).toHaveAttribute('aria-disabled', 'true')
@@ -381,13 +381,14 @@ test('visibility pauses feed polling and interaction drafts survive visibility c
     Object.defineProperty(document, 'hidden', { configurable: true, value })
     document.dispatchEvent(new Event('visibilitychange'))
   }, hidden)
-  const reads = requests.feed
   await visibility(true)
+  await page.waitForLoadState('networkidle')
+  const reads = requests.feed
   await page.clock.fastForward(31_000)
   expect(requests.feed).toBe(reads)
   await visibility(false)
   await expect.poll(() => requests.feed).toBeGreaterThan(reads)
-  await page.locator('.feed-post').first().getByRole('link', { name: '去评论', exact: true }).click()
+  await pushRoute(page, '/personal/interactions?action=comment&feed_post_id=1&from=feed')
   await page.locator('#weibo-comment').fill('窗口恢复保留草稿')
   const editingReads = requests.feed
   await visibility(true)
@@ -437,7 +438,7 @@ test('an already running feed poll cannot replace the independent interaction ta
   })
   await page.clock.fastForward(31_000)
   await expect.poll(() => started).toBe(true)
-  await page.locator('.feed-post').first().getByRole('link', { name: '去评论', exact: true }).click()
+  await pushRoute(page, '/personal/interactions?action=comment&feed_post_id=1&from=feed')
   await page.locator('#weibo-comment').fill('后台响应不能移动这条草稿')
   release()
   await expect(page).toHaveURL(/\/personal\/interactions\?.*feed_post_id=1/)
@@ -449,7 +450,7 @@ test('Weibo app launch falls back to the web post', async ({ page }) => {
   await setup(page)
   await page.route('https://m.weibo.cn/detail/12345', route => route.fulfill({ body: '<h1>微博正文页</h1>', contentType: 'text/html' }))
   await page.goto(`${origin}/personal/feed`)
-  await page.getByRole('button', { name: '打开微博' }).first().click()
+  await page.getByRole('button', { name: '前往' }).first().click()
   await expect(page).toHaveURL('https://m.weibo.cn/detail/12345')
 })
 
@@ -457,7 +458,7 @@ test('leaving for the app cancels the delayed web fallback', async ({ page }) =>
   await setup(page)
   await page.clock.install()
   await page.goto(`${origin}/personal/feed`)
-  await page.getByRole('button', { name: '打开微博' }).first().click()
+  await page.getByRole('button', { name: '前往' }).first().click()
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')))
   await page.clock.fastForward(2000)
   await expect(page).toHaveURL(/\/personal\/feed$/)
@@ -500,13 +501,13 @@ test('cached posts survive source failure with one inline error and compact acti
   await expect(page.locator('.feed-post')).toHaveCount(2)
   await expect(page.locator('.ls-inline-error')).toHaveCount(1)
   await expect(page.getByText('INTERNAL_SQL_DIAGNOSTIC')).toHaveCount(0)
-  await expect(page.locator('[aria-live="polite"]').filter({ hasText: '共 25 条' })).toHaveCount(1)
+  await expect(page.getByRole('status').filter({ hasText: '共 25 条' })).toHaveCount(1)
   await expect(page.locator('textarea')).toHaveCount(0)
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     for (const post of await page.locator('.feed-post').all()) {
-      await expect(post.getByRole('link', { name: '去评论', exact: true })).toBeVisible()
-      await expect(post.getByRole('button', { name: '打开微博' })).toBeVisible()
+      await expect(post.getByRole('button', { name: '评论', exact: true })).toBeVisible()
+      await expect(post.getByRole('button', { name: '前往' })).toBeVisible()
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }
@@ -659,7 +660,7 @@ test('returning from interaction restores all loaded feed batches and scroll pos
   await item.scrollIntoViewIfNeeded()
   const top = await page.evaluate(() => window.scrollY)
   expect(top).toBeGreaterThan(100)
-  await item.getByRole('link', { name: '去评论', exact: true }).click()
+  await pushRoute(page, '/personal/interactions?action=comment&feed_post_id=29&from=feed')
   await page.getByRole('link', { name: '返回点单信息流', exact: true }).click()
   await expect(page.locator('.feed-post')).toHaveCount(40)
   await expect(page.locator('.feed-post').first()).toContainText('第 1 批')
@@ -813,9 +814,8 @@ test('infinite feed clears old authorization batches and ignores an in-flight ol
   await expect(page.locator('.feed-post').first()).toContainText('安全预览')
   await expect(page.getByText(/完整正文版本1/)).toHaveCount(0)
   release()
-  await expect(page.getByRole('button', { name: '打开微博' }).first()).toHaveAttribute('aria-disabled', 'true')
-  const restrictedLink = await page.getByRole('link', { name: '去评论', exact: true }).first().getAttribute('href')
-  expect(restrictedLink).not.toContain('feed_post_id')
+  await expect(page.getByRole('button', { name: '前往' }).first()).toHaveAttribute('aria-disabled', 'true')
+  await expect(page.getByRole('button', { name: '评论', exact: true }).first()).toHaveAttribute('aria-disabled', 'true')
   allowed = true
   version = 2
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
@@ -838,7 +838,7 @@ test('infinite feed discards an obsolete authorization cache when returning from
   } }))
   await page.goto(`${origin}/personal/feed`)
   await expect(page.locator('.feed-post').first()).toContainText('返回正文版本1')
-  await page.getByRole('link', { name: '去评论', exact: true }).first().click()
+  await pushRoute(page, '/personal/interactions?action=comment&feed_post_id=1&from=feed')
   allowed = false
   await page.getByRole('link', { name: '返回点单信息流', exact: true }).click()
   await expect(page.locator('.feed-post').first()).toContainText('返回安全预览')

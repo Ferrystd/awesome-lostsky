@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { readAccessReason } from '@lostsky/api/access-result'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
+import WeiboAccountField from '../components/WeiboAccountField.vue'
+import WeiboCommentFields from '../components/WeiboCommentFields.vue'
+import { interactionScopeKey } from '../lib/interactionDraft'
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { formatAbilityDenied, formatPermissionDenied } from '@lostsky/api/error-format'
 import { ExternalLink, MessageCircle } from '@lucide/vue'
@@ -9,12 +15,12 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NButton, NFlex, NList, NListItem, NSpin } from 'naive-ui'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { NFlex, NList, NListItem, NSpin } from 'naive-ui'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { feedPosition, saveFeedPosition } from '../lib/feedNavigation'
-import { hasWeiboPermission, loadAccess } from '../lib/workspace'
-import type { WeiboFeedItem, WeiboFeedPage } from '../types'
+import { expectedEntity, hasWeiboPermission, loadAccess } from '../lib/workspace'
+import type { WeiboAccount, WeiboCommentPreset, WeiboOperation, WeiboFeedItem, WeiboFeedPage } from '../types'
 
 const queryClient = useQueryClient()
 const scope = `${location.host}:${auth.entity()?.type}:${auth.entity()?.id}`
@@ -76,8 +82,76 @@ watch(accessMode, mode => {
 const dateTimeFormat = new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
 const formatTime = (timestamp: number) => dateTimeFormat.format(new Date(timestamp * 1000))
 const actionReason = (item: WeiboFeedItem) => accessReason.value || (item.restricted || feedRestricted.value ? '当前只能查看点单预览，暂不可打开原帖' : '')
-function commentTarget(item: WeiboFeedItem) {
-  return { path: '/personal/interactions', query: { action: 'comment', from: 'feed', ...(!actionReason(item) ? { feed_post_id: String(item.id) } : {}) } }
+const commentScope = computed(() => interactionScopeKey(access.data.value, true))
+const accountId = ref<number | null>(null)
+const drafts = reactive<Record<number, { text: string; baseline: string; expanded: boolean; pending: boolean; error: string }>>({})
+let commentEpoch = 0
+const accounts = useQuery({
+  structuralSharing: false,
+  queryKey: computed(() => ['weibo-feed-accounts', commentScope.value]),
+  queryFn: ({ signal }) => api.get<WeiboAccount[]>('/personal/accounts', undefined, { signal }),
+  enabled: computed(() => accessMode.value === 'full'),
+})
+const presets = useQuery({
+  structuralSharing: false,
+  queryKey: computed(() => ['weibo-feed-presets', commentScope.value]),
+  queryFn: ({ signal }) => api.get<WeiboCommentPreset[]>('/personal/comment-presets', undefined, { signal }),
+  enabled: computed(() => accessMode.value === 'full' && Object.values(drafts).some(draft => draft.expanded)),
+})
+const accountReason = computed(() => accessReason.value || readAccessReason(accounts.data.value))
+const presetReason = computed(() => accessReason.value || readAccessReason(presets.data.value))
+const selectedAccount = computed(() => accountReason.value ? undefined : accounts.data.value?.find(account => account.id === accountId.value))
+watch([accountReason, accounts.data], ([reason, candidates]) => {
+  if (reason || (candidates && !candidates.some(account => account.id === accountId.value))) accountId.value = null
+})
+useUnsavedChangesGuard(computed(() => Object.values(drafts).some(draft => draft.pending || draft.text !== draft.baseline)))
+watch(commentScope, (next, previous) => {
+  if (previous && next !== previous) {
+    commentEpoch++
+    accountId.value = null
+    for (const id of Object.keys(drafts)) delete drafts[Number(id)]
+  }
+})
+watch([accessMode, feedRestricted], ([mode, restricted]) => {
+  if (mode !== 'full' || restricted) {
+    for (const draft of Object.values(drafts)) draft.expanded = false
+  }
+})
+function toggleComment(item: WeiboFeedItem) {
+  if (actionReason(item)) return feedback.info(actionReason(item))
+  const draft = drafts[item.id] ??= { text: '', baseline: '', expanded: false, pending: false, error: '' }
+  draft.expanded = !draft.expanded
+}
+function submitReason(item: WeiboFeedItem) {
+  return actionReason(item) || accountReason.value || (drafts[item.id]?.pending ? '正在发表评论，请稍候' : accounts.isError.value ? '微博账号加载失败，请稍后再试' : accounts.isPending.value ? '正在加载微博账号，请稍候' : !selectedAccount.value ? '请选择评论使用的微博账号' : !drafts[item.id]?.text.trim() ? '请输入评论内容' : '')
+}
+async function submitComment(item: WeiboFeedItem) {
+  const reason = submitReason(item)
+  if (reason) return feedback.info(reason)
+  const draft = drafts[item.id]!
+  const submitted = draft.text
+  const epoch = commentEpoch
+  const submittedScope = commentScope.value
+  const payload = { account_id: accountId.value, comment: submitted.trim(), ...expectedEntity(access.data.value, true) }
+  draft.pending = true
+  draft.error = ''
+  try {
+    const result = await api.post<WeiboOperation>(`/personal/feed/${item.id}/comments`, payload)
+    if (!active || epoch !== commentEpoch || submittedScope !== commentScope.value) return
+    if (result.status === 'Succeeded') {
+      draft.baseline = submitted
+      if (draft.text === submitted) { draft.text = ''; draft.baseline = '' }
+      feedback.success('评论已发表')
+    } else if (result.status === 'Failed') {
+      draft.error = result.remote_message || result.reason || '评论未完成，请检查账号和执行日志'
+    } else {
+      draft.error = result.status === 'Unknown' ? '评论结果尚未确认，请先查看微博或执行日志，避免重复发送' : '评论正在处理，请先查看执行日志，避免重复发送'
+    }
+  } catch (error) {
+    if (active && epoch === commentEpoch) draft.error = `${friendlyError(error)}。请先核对微博或执行日志，避免重复发送`
+  } finally {
+    if (epoch === commentEpoch) draft.pending = false
+  }
 }
 watch(() => feed.isPending.value, async pending => {
   if (pending || restoreTop === null) return
@@ -146,7 +220,8 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
 
 <template>
   <div class="weibo-stack">
-    <LsPageHeader title="点单信息流" description="浏览最新点单，选择微博继续评论。" />
+    <LsPageHeader title="点单信息流" description="浏览最新点单，展开帖子即可发表评论。" />
+    <WeiboAccountField id="feed-comment-account" label="评论使用的微博账号" v-model="accountId" :accounts="accounts.data.value || []" :loading="accounts.isPending.value" :error="accounts.isError.value ? friendlyError(accounts.error.value) : ''" :disabled-reason="accountReason" />
     <LsAsyncState v-if="access.isError.value" state="error" title="访问权限加载失败" :description="friendlyError(access.error.value)" />
     <LsAsyncState v-else-if="feed.isPending.value" state="loading" :rows="8" />
     <template v-else>
@@ -176,11 +251,15 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
                   </NFlex>
                 </div>
                 <NFlex class="feed-actions" align="center" :size="4">
-                  <LsButton variant="ghost" :disabled="Boolean(actionReason(item))" :disabled-reason="actionReason(item)" @click="openPost(item)"><template #icon><ExternalLink :size="18" aria-hidden="true" /></template>打开微博</LsButton>
-                  <RouterLink v-slot="{ href, navigate }" :to="commentTarget(item)" custom>
-                    <NButton tag="a" :href="href" quaternary @click="navigate"><template #icon><MessageCircle :size="18" aria-hidden="true" /></template>去评论</NButton>
-                  </RouterLink>
+                  <LsButton variant="ghost" :disabled="Boolean(actionReason(item))" :disabled-reason="actionReason(item)" @click="openPost(item)"><template #icon><ExternalLink :size="18" aria-hidden="true" /></template>前往</LsButton>
+                  <LsButton variant="ghost" :disabled="Boolean(actionReason(item))" :disabled-reason="actionReason(item)" :aria-expanded="Boolean(drafts[item.id]?.expanded)" :aria-controls="`feed-comment-${item.id}`" @click="toggleComment(item)"><template #icon><MessageCircle :size="18" aria-hidden="true" /></template>{{ drafts[item.id]?.expanded ? '收起评论' : '评论' }}</LsButton>
                 </NFlex>
+                <form v-if="drafts[item.id]?.expanded && !actionReason(item)" :id="`feed-comment-${item.id}`" class="feed-comment" aria-label="发表评论" @submit.prevent="submitComment(item)">
+                  <WeiboCommentFields :id-prefix="`feed-${item.id}`" v-model="drafts[item.id]!.text" :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason" />
+                  <p class="feed-status">发送账号：{{ selectedAccount?.screen_name || selectedAccount?.uid || '请在页面上方选择微博账号' }}</p>
+                  <LsInlineError v-if="drafts[item.id]!.error" :message="drafts[item.id]!.error" />
+                  <LsFormActions><LsButton type="submit" :loading="drafts[item.id]!.pending" :disabled="Boolean(submitReason(item))" :disabled-reason="submitReason(item)">发表评论</LsButton></LsFormActions>
+                </form>
               </article>
             </NListItem>
           </NList>
@@ -209,6 +288,7 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
 .feed-meta { color: var(--text-secondary); font-size: .875rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .feed-text { max-width: 75ch; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1rem; line-height: 1.65; }
 .feed-actions { justify-self: end; }
+.feed-comment { display: grid; grid-column: 1 / -1; gap: 1rem; min-width: 0; padding-block-start: 1rem; border-top: 1px solid var(--line); }
 .feed-tail { display: grid; justify-items: center; gap: .5rem; padding-block: .75rem; color: var(--text-secondary); font-size: .875rem; }
 .feed-tail p { margin: 0; }
 @media (min-width: 768px) {

@@ -1,3 +1,5 @@
+import WeiboAccountField from '../../apps/weibo/src/components/WeiboAccountField.vue';
+import WeiboCommentFields from '../../apps/weibo/src/components/WeiboCommentFields.vue';
 import JoinApplicationFields from '../../apps/team/src/components/JoinApplicationFields.vue';
 import TeamSectionNav from '../../apps/team/src/components/TeamSectionNav.vue';
 import TeamShareLinks from '../../apps/team/src/components/TeamShareLinks.vue';
@@ -613,6 +615,17 @@ const shopManageShell = story(
 const weiboShell = story("WeiboShell", layout, () => h(WeiboShell, null, {
   default: () => h("section", { class: "shell-content" }, [h("h2", "调度态势中心"), h("p", "账号健康、任务状态与最近执行在同一工作台中完成。")]),
 }), { disabled: "工作台页面始终可访问。", loading: "页面内容负责加载。", error: "页面内容负责错误恢复。" });
+const weiboAccountField = story("WeiboAccountField", [...interactive, "loading", "error"], state => stage(h(WeiboAccountField, {
+  id: `preview-account-${state}`, modelValue: state === 'active' ? 1 : null,
+  accounts: [{ id: 1, binding_id: 1, entity_id: 11, uid: '10001', screen_name: '当前评论账号', health: 'Valid', checked_at: null }],
+  loading: state === 'loading', error: state === 'error' ? '暂时无法读取账号' : '', disabledReason: state === 'disabled' ? '当前账号不可用' : '',
+})));
+const weiboCommentFields = story("WeiboCommentFields", [...interactive, "loading", "error"], state => stage(h(WeiboCommentFields, {
+  idPrefix: `preview-comment-${state}`, modelValue: state === 'active' ? '已选择的评论，可继续修改。' : '',
+  presets: [{ id: 1, scope: 'team', content: '团队常用评论' }, { id: 2, scope: 'personal', content: '个人常用评论' }],
+  loading: state === 'loading', error: state === 'error' ? '暂时无法读取预设' : '', disabledReason: state === 'disabled' ? '预设读取受限' : '',
+})));
+
 const accountHealthSummary = story("AccountHealthSummary", layout, () => stage(h(AccountHealthSummary, { accounts: [
   { id: 1, binding_id: 1, entity_id: 3, uid: "123456", screen_name: "青空账号", health: "Valid", checked_at: 1787500000 },
   { id: 2, binding_id: 2, entity_id: 3, uid: "654321", screen_name: "备用账号", health: "Unknown", checked_at: 1787500200 },
@@ -806,6 +819,8 @@ export const appStories: Record<string, StoryDefinition> = {
   ResourceOwnerTag: resourceOwnerTag,
   ShopManageShell: shopManageShell,
   WeiboShell: weiboShell,
+  WeiboAccountField: weiboAccountField,
+  WeiboCommentFields: weiboCommentFields,
   AccountHealthSummary: accountHealthSummary,
   TaskStatusSummary: taskStatusSummary,
   OperationRecordList: operationRecordList,
