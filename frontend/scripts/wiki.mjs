@@ -56,10 +56,15 @@ function serve() {
   server.on('exit', (code) => process.exit(code ?? 0))
 }
 
-if (action === 'setup') {
+if (action === 'metadata' || action === 'metadata-write') {
+  execFileSync(venvPython, ['frontend/scripts/guide_metadata.py', ...(action === 'metadata-write' ? ['--write-index'] : [])], { cwd: root, stdio: 'inherit' })
+} else if (action === 'setup') {
   setup()
 } else if (action === 'build' || action === 'serve') {
   if (!existsSync(venvPython)) throw new Error('缺少 Wiki 依赖。请先运行 npm run docs:setup。')
+  if (action === 'build' || target === 'guide') {
+    execFileSync(venvPython, ['frontend/scripts/guide_metadata.py'], { cwd: root, stdio: 'inherit' })
+  }
   if (action === 'serve') {
     serve()
   } else {

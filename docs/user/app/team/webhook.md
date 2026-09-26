@@ -1,11 +1,12 @@
 ---
 title: 通过 Standard Webhooks 接入自定义工作流
 tags:
-  - virtual
+  - 集成
 description: 与自有系统的深度集成
 audience:
-  - team
+  - team-admin
 aliases:
+reviewed_at:
 ---
 接入流程：**LostSky 向你的 HTTPS 接口推送事件 → 你的系统验签并处理 → 按需调用 API 回复。**
 

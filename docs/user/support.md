@@ -1,11 +1,13 @@
 ---
 title: 人工协作
+description: 获取人工协作与支持。
 tags:
-  - support
+  - 支持
 audience:
   - all
 aliases:
   - support
+reviewed_at:
 ---
 ## 联系方式
 

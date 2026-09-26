@@ -1,0 +1,13 @@
+{# Keep native content, tag links and integrations; own only the guide metadata placement. #}
+{% include "partials/actions.html" %}
+{% if "<h1" not in page.content %}
+  <h1 id="__skip">{{ page.title | d(config.site_name, true) }}</h1>
+  {% include "partials/guide-meta.html" %}
+  {{ page.content }}
+{% else %}
+  {% set metadata %}{% include "partials/guide-meta.html" %}{% endset %}
+  {{ page.content | replace('</h1>', '</h1>' ~ metadata) | safe }}
+{% endif %}
+{% include "partials/source-file.html" %}
+{% include "partials/feedback.html" %}
+{% include "partials/comments.html" %}

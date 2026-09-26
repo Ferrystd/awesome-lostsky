@@ -1,13 +1,14 @@
 ---
 title: 管理（admin）
 tags:
-  - app
+  - 应用
 description: 平台治理与管控
 audience:
   - admin
 aliases:
   - 管理
   - admin
+reviewed_at:
 ---
 
 ## 简述

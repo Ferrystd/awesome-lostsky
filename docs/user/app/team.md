@@ -1,14 +1,15 @@
 ---
 title: 团队（team）
 tags:
-  - app
+  - 应用
 description: 管理/融入您的团队
 audience:
-  - team
+  - team-admin
   - member
 aliases:
   - 团队
   - team
+reviewed_at:
 ---
 
 ## 简述

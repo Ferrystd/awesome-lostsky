@@ -1,14 +1,15 @@
 ---
 title: 能力（ability）
 tags:
-  - concept
+  - 概念
 description: 订阅式能力门禁
 audience:
-  - team
+  - team-admin
   - member
 aliases:
   - 能力
   - ability
+reviewed_at:
 ---
 
 ## 定义

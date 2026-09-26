@@ -1,13 +1,14 @@
 ---
 title: 团队（team）
 tags:
-  - concept
+  - 概念
 description: 独立的工作空间
 audience:
   - all
 aliases:
   - 团队
   - team
+reviewed_at:
 ---
 
 ## 定义

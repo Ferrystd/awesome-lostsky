@@ -1,13 +1,14 @@
 ---
 title: 角色（role）
 tags:
-  - concept
+  - 概念
 description: 称号与权限的载体
 audience:
   - all
 aliases:
   - 角色
   - role
+reviewed_at:
 ---
 
 ## 定义

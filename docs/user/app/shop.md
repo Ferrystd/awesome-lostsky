@@ -1,13 +1,14 @@
 ---
 title: 商城（shop）
 tags:
-  - app
+  - 应用
 description: 支持多种类商品和分步核销的现代化商城系统
 audience:
   - all
 aliases:
   - 商城
   - shop
+reviewed_at:
 ---
 
 ## 简述
