@@ -625,7 +625,8 @@ const weiboCommentFields = story("WeiboCommentFields", [...interactive, "loading
   feedRail: true,
   presets: state === 'loading' ? [] : [{ id: 1, scope: 'team', content: '团队常用评论' }, { id: 2, scope: 'personal', content: '个人常用评论' }, { id: 3, scope: 'team', content: '很长的团队预设评论，用来检查气泡截断后仍能选入完整正文' }],
   loading: state === 'loading', error: state === 'error' ? '暂时无法读取预设' : '', disabledReason: state === 'disabled' ? '预设读取受限' : '',
-}, { 'feed-action': () => h(LsButton, { type: 'submit' }, { default: () => '发表评论' }) })));
+  sending: state === 'loading', submitReason: state === 'disabled' ? '请选择评论使用的微博账号' : '',
+})));
 
 const accountHealthSummary = story("AccountHealthSummary", layout, () => stage(h(AccountHealthSummary, { accounts: [
   { id: 1, binding_id: 1, entity_id: 3, uid: "123456", screen_name: "青空账号", health: "Valid", checked_at: 1787500000 },

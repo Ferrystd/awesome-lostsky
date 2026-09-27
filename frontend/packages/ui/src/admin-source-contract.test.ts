@@ -148,6 +148,15 @@ describe('后台源码设计契约', () => {
     expect(offenders).toEqual([])
   })
 
+  it('微博评论栏只允许一个具名圆形发送微操作', () => {
+    const source = readFileSync(join(repository, 'frontend/apps/weibo/src/components/WeiboCommentFields.vue'), 'utf8')
+    expect(source.match(/<NButton\b/g)).toHaveLength(1)
+    expect(source).toContain('<NButton circle type="primary"')
+    expect(source).toContain('aria-label="发表评论"')
+    expect(source).toContain('feedback.info(reason)')
+    expect(source).not.toContain('name="feed-action"')
+  })
+
   it('Entity 候选统一使用公共富选择器', () => {
     const pages = componentCallerRoots.flatMap(filesUnder).filter((path) => path.endsWith('.vue'))
     const legacy = pages

@@ -279,9 +279,7 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
                 </NFlex>
                 <Transition name="feed-rail">
                   <form v-if="drafts[item.id]?.expanded && !actionReason(item)" :id="`feed-comment-${item.id}`" class="feed-comment" aria-label="发表评论" @submit.prevent="submitComment(item)">
-                    <WeiboCommentFields :id-prefix="`feed-${item.id}`" v-model="drafts[item.id]!.text" feed-rail :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason">
-                      <template #feed-action><LsButton type="submit" :loading="drafts[item.id]!.pending" :disabled="Boolean(submitReason(item))" :disabled-reason="submitReason(item)">发表评论</LsButton></template>
-                    </WeiboCommentFields>
+                    <WeiboCommentFields :id-prefix="`feed-${item.id}`" v-model="drafts[item.id]!.text" feed-rail :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason" :sending="drafts[item.id]!.pending" :submit-reason="submitReason(item)" @submit="submitComment(item)" />
                     <LsInlineError v-if="drafts[item.id]!.error" :message="drafts[item.id]!.error" />
                   </form>
                 </Transition>
