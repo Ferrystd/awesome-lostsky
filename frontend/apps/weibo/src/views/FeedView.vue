@@ -2,7 +2,7 @@
 import { readAccessReason } from '@lostsky/api/access-result'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import WeiboAccountField from '../components/WeiboAccountField.vue'
-import WeiboCommentFields from '../components/WeiboCommentFields.vue'
+import WeiboFeedCommentComposer from '../components/WeiboFeedCommentComposer.vue'
 import { interactionScopeKey } from '../lib/interactionDraft'
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { formatAbilityDenied, formatPermissionDenied } from '@lostsky/api/error-format'
@@ -279,7 +279,7 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
                 </NFlex>
                 <Transition name="feed-rail">
                   <form v-if="drafts[item.id]?.expanded && !actionReason(item)" :id="`feed-comment-${item.id}`" class="feed-comment" aria-label="发表评论" @submit.prevent="submitComment(item)">
-                    <WeiboCommentFields :id-prefix="`feed-${item.id}`" v-model="drafts[item.id]!.text" feed-rail :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason" :sending="drafts[item.id]!.pending" :submit-reason="submitReason(item)" @submit="submitComment(item)" />
+                    <WeiboFeedCommentComposer :id-prefix="`feed-${item.id}`" v-model="drafts[item.id]!.text" :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason" :sending="drafts[item.id]!.pending" :submit-reason="submitReason(item)" @submit="submitComment(item)" />
                     <LsInlineError v-if="drafts[item.id]!.error" :message="drafts[item.id]!.error" />
                   </form>
                 </Transition>
@@ -311,7 +311,7 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
 .feed-meta { color: var(--text-secondary); font-size: .875rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .feed-text { max-width: 75ch; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1rem; line-height: 1.65; }
 .feed-actions { justify-self: end; }
-.feed-comment { display: grid; grid-column: 1 / -1; gap: .375rem; min-width: 0; padding-block-start: .5rem; border-top: 1px solid var(--line); }
+.feed-comment { display: grid; grid-column: 1 / -1; gap: .375rem; min-width: 0; padding-block-start: .25rem; }
 .feed-rail-enter-active, .feed-rail-leave-active { transition: opacity var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out); }
 .feed-rail-enter-from, .feed-rail-leave-to { opacity: 0; transform: translateY(-.25rem); }
 .feed-tail { display: grid; justify-items: center; gap: .5rem; padding-block: .75rem; color: var(--text-secondary); font-size: .875rem; }

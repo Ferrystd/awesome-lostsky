@@ -1,5 +1,6 @@
 import WeiboAccountField from '../../apps/weibo/src/components/WeiboAccountField.vue';
 import WeiboCommentFields from '../../apps/weibo/src/components/WeiboCommentFields.vue';
+import WeiboFeedCommentComposer from '../../apps/weibo/src/components/WeiboFeedCommentComposer.vue';
 import JoinApplicationFields from '../../apps/team/src/components/JoinApplicationFields.vue';
 import TeamSectionNav from '../../apps/team/src/components/TeamSectionNav.vue';
 import TeamShareLinks from '../../apps/team/src/components/TeamShareLinks.vue';
@@ -620,12 +621,16 @@ const weiboAccountField = story("WeiboAccountField", [...interactive, "loading",
   accounts: [{ id: 1, binding_id: 1, entity_id: 11, uid: '10001', screen_name: '当前评论账号', health: 'Valid', checked_at: null }],
   loading: state === 'loading', error: state === 'error' ? '暂时无法读取账号' : '', disabledReason: state === 'disabled' ? '当前账号不可用' : '',
 })));
-const weiboCommentFields = story("WeiboCommentFields", [...interactive, "loading", "error"], state => stage(h(WeiboCommentFields, {
+const weiboFeedCommentComposer = story("WeiboFeedCommentComposer", [...interactive, "loading", "error"], state => stage(h(WeiboFeedCommentComposer, {
   idPrefix: `preview-comment-${state}`, modelValue: state === 'active' ? '团队常用评论' : '',
-  feedRail: true,
   presets: state === 'loading' ? [] : [{ id: 1, scope: 'team', content: '团队常用评论' }, { id: 2, scope: 'personal', content: '个人常用评论' }, { id: 3, scope: 'team', content: '很长的团队预设评论，用来检查气泡截断后仍能选入完整正文' }],
   loading: state === 'loading', error: state === 'error' ? '暂时无法读取预设' : '', disabledReason: state === 'disabled' ? '预设读取受限' : '',
   sending: state === 'loading', submitReason: state === 'disabled' ? '请选择评论使用的微博账号' : '',
+})));
+const weiboCommentFields = story("WeiboCommentFields", [...interactive, "loading", "error"], state => stage(h(WeiboCommentFields, {
+  idPrefix: `preview-fields-${state}`, modelValue: state === 'active' ? '可继续修改的评论正文' : '',
+  presets: [{ id: 1, scope: 'team', content: '团队常用评论' }],
+  loading: state === 'loading', error: state === 'error' ? '暂时无法读取预设' : '', disabledReason: state === 'disabled' ? '预设读取受限' : '',
 })));
 
 const accountHealthSummary = story("AccountHealthSummary", layout, () => stage(h(AccountHealthSummary, { accounts: [
@@ -823,6 +828,7 @@ export const appStories: Record<string, StoryDefinition> = {
   WeiboShell: weiboShell,
   WeiboAccountField: weiboAccountField,
   WeiboCommentFields: weiboCommentFields,
+  WeiboFeedCommentComposer: weiboFeedCommentComposer,
   AccountHealthSummary: accountHealthSummary,
   TaskStatusSummary: taskStatusSummary,
   OperationRecordList: operationRecordList,

@@ -1,4 +1,5 @@
 [
+  {"id": "weibo-feed-comment-composer", "name": "WeiboFeedCommentComposer", "source": "frontend/apps/weibo/src/components/WeiboFeedCommentComposer.vue", "story": "frontend/component-previews/src/story-registry.ts#WeiboFeedCommentComposer", "category": "weibo", "aliases": ["信息流快捷评论面板"]},
   {"id": "weibo-account-field", "name": "WeiboAccountField", "source": "frontend/apps/weibo/src/components/WeiboAccountField.vue", "story": "frontend/component-previews/src/story-registry.ts#WeiboAccountField", "category": "weibo", "aliases": ["微博账号字段"]},
   {"id": "weibo-comment-fields", "name": "WeiboCommentFields", "source": "frontend/apps/weibo/src/components/WeiboCommentFields.vue", "story": "frontend/component-previews/src/story-registry.ts#WeiboCommentFields", "category": "weibo", "aliases": ["微博评论字段"]},
   {"id":"team-join-application-fields","name":"JoinApplicationFields","source":"frontend/apps/team/src/components/JoinApplicationFields.vue","story":"frontend/component-previews/src/story-registry.ts#JoinApplicationFields","category":"team","aliases":["入职表单字段"]},

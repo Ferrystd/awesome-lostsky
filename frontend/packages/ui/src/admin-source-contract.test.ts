@@ -57,9 +57,10 @@ describe('后台源码设计契约', () => {
     const interaction = readFileSync(join(repository, 'frontend/apps/weibo/src/views/InteractionView.vue'), 'utf8')
     for (const source of [feed, interaction]) {
       expect(source).toContain('<WeiboAccountField')
-      expect(source).toContain('<WeiboCommentFields')
       expect(source).not.toContain('<NSelect')
     }
+    expect(feed).toContain('<WeiboFeedCommentComposer')
+    expect(interaction).toContain('<WeiboCommentFields')
     expect(presets).not.toContain('<form')
     expect(presets).toContain('path: `${listPath}/new`')
     expect(presets).not.toContain(':disabled=')
@@ -149,12 +150,16 @@ describe('后台源码设计契约', () => {
   })
 
   it('微博评论栏只允许一个具名圆形发送微操作', () => {
-    const source = readFileSync(join(repository, 'frontend/apps/weibo/src/components/WeiboCommentFields.vue'), 'utf8')
+    const source = readFileSync(join(repository, 'frontend/apps/weibo/src/components/WeiboFeedCommentComposer.vue'), 'utf8')
     expect(source.match(/<NButton\b/g)).toHaveLength(1)
     expect(source).toContain('<NButton circle type="primary"')
     expect(source).toContain('aria-label="发表评论"')
     expect(source).toContain('feedback.info(reason)')
     expect(source).not.toContain('name="feed-action"')
+    expect(source).toContain('<NTag')
+    expect(source).not.toContain('LsButton')
+    expect(source).toContain('@keydown.space.prevent=')
+    expect(source).toContain('.preset-chip:focus-visible')
   })
 
   it('Entity 候选统一使用公共富选择器', () => {
