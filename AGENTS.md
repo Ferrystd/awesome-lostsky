@@ -6,7 +6,7 @@
 
 开始任何任务前，必须先阅读 [项目文档索引](docs/dev/index.md)，并继续阅读与当前任务直接相关的 Wiki 页面；Wiki 是项目规则的唯一正文来源。前端任务至少阅读产品定义、设计系统、前端约定、代码更新清单和测试须知，完成后按前端约定执行完整静态发布构建。
 
-适时暂存代码：完成可独立说明且已通过直接验证的阶段后，按[工作区保护与阶段性暂存](docs/dev/development/contributing.md#staged-worktree-baseline)建立暂存基线；只纳入当前任务已确认的改动，保留无关差异与已有暂存内容。
+适时暂存代码：完成可独立说明且已通过直接验证的阶段后，交给 `lostsky-git` 按[工作区保护与阶段性暂存](docs/dev/development/contributing.md#staged-worktree-baseline)建立暂存基线；任务提交也由该子代理执行。只纳入当前任务已确认的改动，保留无关差异与已有暂存内容。
 
 凡是创建或使用独立分支、worktree、临时开发环境或并行 Codex 任务，主代理必须按 [Git 任务生命周期](docs/dev/development/contributing.md#git-task-lifecycle)持续跟踪；任务结束时交给 `lostsky-git` 统一处理提交、验收与 Git 收尾，最终明确为“已合并并清理”“已合并但保留环境”“已完成等待审查”“因异常保留现场”或“明确决定不合并”，不得静默遗留。遇到工作区改动时先核对归属并主动处理，不把清理工作直接交还用户。
 
