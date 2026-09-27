@@ -926,6 +926,19 @@ for (const workspace of ['personal', 'team']) test(`preset ${workspace} direct e
   await expect(page).toHaveURL(`${origin}${workspace === 'personal' ? '/personal/feed' : '/interactions'}`)
 })
 
+test('failed source with cached posts shows one popup and keeps the feed readable', async ({ page }) => {
+  const requests = await setup(page, { pollStatus: 'failed' })
+  await page.goto(`${origin}/personal/feed`)
+  await expect(page.locator('.feed-post')).toHaveCount(2)
+  await expect(page.locator('.n-message').filter({ hasText: '点单来源更新暂时失败' })).toHaveCount(1)
+  await expect(page.locator('.weibo-stack').getByRole('alert')).toHaveCount(0)
+  await expect(page.getByText('INTERNAL_SQL_DIAGNOSTIC')).toHaveCount(0)
+  const reads = requests.feed
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await expect.poll(() => requests.feed).toBeGreaterThan(reads)
+  await expect(page.locator('.n-message').filter({ hasText: '点单来源更新暂时失败' })).toHaveCount(1)
+})
+
 test('preset management round trip restores the account and edited comment on the feed', async ({ page }) => {
   const requests = await setup(page)
   await page.goto(`${origin}/personal/feed`)
