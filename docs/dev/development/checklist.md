@@ -39,7 +39,7 @@
 | CORS、域名或静态交付 | 路由/CORS 文档、Nginx 模板、调用方 | `npm run check:cors`、按需 `npm run test:e2e`、`npm run build` |
 | npm 依赖 | `package.json`、`package-lock.json` | `npm ci`、受影响测试与构建 |
 | Composer 依赖 | `composer.json`、`composer.lock` | `composer validate`、`composer check-platform-reqs`、相关测试 |
-| Wiki/文档 | 按[文档管理方法](wiki.md)核验事实与生命周期；同步正文、链接、索引和 `zensical.toml`，涉及用户指南结构时同步 `zensical.guide.toml` | `npm run build:docs`（字典检查与双站严格构建） |
+| Wiki/文档 | 按[文档管理方法](wiki.md)核验事实与生命周期；按实际变化同步正文、链接、索引和站点配置 | 按测试须知判断；普通文字修改检查差异，站点契约或发布验证运行 `npm run build:docs` |
 | 文档站依赖 | `docs/dev/requirements.txt` | `npm run docs:setup`、`npm run build:docs` |
 | 配置或部署模板 | `.env.example`、`deploy/`、运维文档 | 对应检查与部署验证 |
 

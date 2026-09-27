@@ -21,9 +21,9 @@
 | 前端逻辑 | `npm test`、`npm run typecheck` |
 | 页面、路由、登录 | `npm run test:e2e`、`npm run build` |
 | 媒体、CORS | `npm run check:media`、`npm run check:cors` |
-| 文档 | `npm run build:docs` |
+| 文档站导航、链接、元数据、模板、主题、生成字典或发布验证 | `npm run build:docs` |
 
-纯文档维护（包括设计规范文字）不触发前端或后端业务测试；只有对应源码或契约也被本次修改时才加入相应检查。文档构建含字典只读检查与双站严格构建；遇到不属于当前授权范围的人工手册错误时，按[构建失败与维护边界](wiki.md#build-failure-boundaries)记录阻塞，不能以补充检查代称完整构建通过。
+纯文档维护（包括设计规范文字）不触发前端或后端业务测试；只有对应源码或契约也被本次修改时才加入相应检查。普通规则或正文文字修改先检查差异，不因文件位于 `docs/dev/` 就运行 `npm run build:docs`；只有上表所列站点契约受影响或准备发布文档站时才构建。文档构建含字典只读检查与双站严格构建；遇到不属于当前授权范围的人工手册错误时，按[构建失败与维护边界](wiki.md#build-failure-boundaries)记录阻塞，不能以补充检查代称完整构建通过。
 
 <a id="component-contract-testing"></a>
 
