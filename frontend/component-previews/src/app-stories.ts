@@ -622,6 +622,7 @@ const weiboAccountField = story("WeiboAccountField", [...interactive, "loading",
 })));
 const weiboCommentFields = story("WeiboCommentFields", [...interactive, "loading", "error"], state => stage(h(WeiboCommentFields, {
   idPrefix: `preview-comment-${state}`, modelValue: state === 'active' ? '已选择的评论，可继续修改。' : '',
+  feedRail: true,
   presets: [{ id: 1, scope: 'team', content: '团队常用评论' }, { id: 2, scope: 'personal', content: '个人常用评论' }],
   loading: state === 'loading', error: state === 'error' ? '暂时无法读取预设' : '', disabledReason: state === 'disabled' ? '预设读取受限' : '',
 })));

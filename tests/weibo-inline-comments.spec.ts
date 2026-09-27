@@ -38,8 +38,18 @@ async function expand(page: Page, index = 0) {
 
 test('inline presets, account switching and independent drafts stay on the feed', async ({ page }) => {
   const state = await setup(page)
+  await page.setViewportSize({ width: 1280, height: 900 })
   await account(page)
   await expand(page)
+  const rail = page.locator('#feed-comment-1')
+  const preset = await rail.locator('#feed-1-preset').boundingBox()
+  const input = await rail.locator('#feed-1-comment').boundingBox()
+  const sendButton = await rail.getByRole('button', { name: '发表评论' }).boundingBox()
+  const railBox = await rail.boundingBox()
+  expect(input!.x).toBeGreaterThan(preset!.x + preset!.width)
+  expect(sendButton!.x).toBeGreaterThan(input!.x + input!.width)
+  expect(railBox!.height).toBeLessThan(80)
+  await expect(rail.locator('#feed-1-comment')).toHaveAttribute('aria-label', '评论内容')
   await page.locator('#feed-1-preset').click()
   await page.getByText('团队 · 团队评论', { exact: true }).click()
   await expect(page.locator('#feed-1-comment')).toHaveValue('团队评论')
@@ -62,6 +72,11 @@ test('inline presets, account switching and independent drafts stay on the feed'
     const actions = await page.locator('.feed-actions').first().boundingBox()
     expect(form!.y).toBeGreaterThanOrEqual(Math.max(content!.y + content!.height, actions!.y + actions!.height))
     expect(form!.width).toBeGreaterThanOrEqual(content!.width)
+    if (width < 768) {
+      const presetBox = await page.locator('#feed-1-preset').boundingBox()
+      const inputBox = await page.locator('#feed-1-comment').boundingBox()
+      expect(inputBox!.y).toBeGreaterThanOrEqual(presetBox!.y + presetBox!.height)
+    }
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }
   await page.setViewportSize({ width: 320, height: 900 })
