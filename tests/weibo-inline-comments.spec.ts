@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const origin = 'http://demo.weibo.lostsky.work:5181'
-async function setup(page: Page, options: { status?: string; accountsError?: boolean; presetsError?: boolean; restricted?: boolean } = {}) {
+async function setup(page: Page, options: { status?: string; accountsError?: boolean; presetsError?: boolean; restricted?: boolean; presets?: { id: number; scope: 'team' | 'personal'; content: string }[] } = {}) {
   const token = Buffer.from(JSON.stringify({ sub: 21, act: { type: 'teamMember', id: 11 } })).toString('base64url')
   await page.context().addCookies([{ name: 'lostsky_token', value: `x.${token}.x`, domain: '.lostsky.work', path: '/' }])
   const state = { allowed: !options.restricted, comments: [] as { path: string; body: unknown }[], candidates: 0 }
@@ -17,7 +17,7 @@ async function setup(page: Page, options: { status?: string; accountsError?: boo
     } else if (path.endsWith('/comment-presets')) {
       state.candidates++
       if (options.presetsError) return route.fulfill({ status: 503, json: { code: 503, message: '预设服务不可用', data: null } })
-      data = [{ id: 1, scope: 'team', content: '团队评论' }, { id: 2, scope: 'personal', content: '个人评论' }]
+      data = options.presets ?? [{ id: 1, scope: 'team', content: '团队评论' }, { id: 2, scope: 'personal', content: '个人评论' }]
     } else if (path.endsWith('/comments')) {
       state.comments.push({ path, body: route.request().postDataJSON() })
       data = { id: 1, status: options.status || 'Succeeded' }
@@ -42,16 +42,17 @@ test('inline presets, account switching and independent drafts stay on the feed'
   await account(page)
   await expand(page)
   const rail = page.locator('#feed-comment-1')
-  const preset = await rail.locator('#feed-1-preset').boundingBox()
+  await expect(rail.locator('#feed-1-presets').getByRole('button')).toHaveCount(2)
+  const preset = await rail.locator('#feed-1-presets').boundingBox()
   const input = await rail.locator('#feed-1-comment').boundingBox()
   const sendButton = await rail.getByRole('button', { name: '发表评论' }).boundingBox()
   const railBox = await rail.boundingBox()
-  expect(input!.x).toBeGreaterThan(preset!.x + preset!.width)
+  expect(input!.y).toBeGreaterThanOrEqual(preset!.y + preset!.height)
   expect(sendButton!.x).toBeGreaterThan(input!.x + input!.width)
-  expect(railBox!.height).toBeLessThan(80)
+  expect(Math.abs(sendButton!.y - input!.y)).toBeLessThan(2)
+  expect(railBox!.height).toBeLessThan(125)
   await expect(rail.locator('#feed-1-comment')).toHaveAttribute('aria-label', '评论内容')
-  await page.locator('#feed-1-preset').click()
-  await page.getByText('团队 · 团队评论', { exact: true }).click()
+  await rail.locator('#feed-1-presets').getByRole('button', { name: '团队 · 团队评论' }).click()
   await expect(page.locator('#feed-1-comment')).toHaveValue('团队评论')
   await expand(page, 1)
   await page.locator('#feed-2-comment').fill('第二条草稿')
@@ -72,15 +73,33 @@ test('inline presets, account switching and independent drafts stay on the feed'
     const actions = await page.locator('.feed-actions').first().boundingBox()
     expect(form!.y).toBeGreaterThanOrEqual(Math.max(content!.y + content!.height, actions!.y + actions!.height))
     expect(form!.width).toBeGreaterThanOrEqual(content!.width)
-    if (width < 768) {
-      const presetBox = await page.locator('#feed-1-preset').boundingBox()
-      const inputBox = await page.locator('#feed-1-comment').boundingBox()
-      expect(inputBox!.y).toBeGreaterThanOrEqual(presetBox!.y + presetBox!.height)
-    }
+    const presetBox = await page.locator('#feed-1-presets').boundingBox()
+    const inputBox = await page.locator('#feed-1-comment').boundingBox()
+    const buttonBox = await page.locator('#feed-comment-1').getByRole('button', { name: '发表评论' }).boundingBox()
+    expect(inputBox!.y).toBeGreaterThanOrEqual(presetBox!.y + presetBox!.height)
+    expect(Math.abs(buttonBox!.y - inputBox!.y)).toBeLessThan(2)
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }
   await page.setViewportSize({ width: 320, height: 900 })
   await page.addStyleTag({ content: 'html { font-size: 200% !important }' })
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})
+
+test('all presets scroll horizontally and truncated bubbles insert full comments', async ({ page }) => {
+  const longContent = '这是一条需要完整填入输入框的很长预设评论'.repeat(6)
+  const presets = Array.from({ length: 8 }, (_, index) => ({ id: index + 1, scope: (index % 2 ? 'personal' : 'team') as 'team' | 'personal', content: index === 7 ? longContent : `预设评论 ${index + 1}` }))
+  await setup(page, { presets })
+  await page.setViewportSize({ width: 375, height: 900 })
+  await expand(page)
+  const group = page.locator('#feed-1-presets')
+  await expect(page.locator('#feed-comment-1 .feed-status')).toHaveCount(0)
+  await expect(group.getByRole('button')).toHaveCount(8)
+  expect(await group.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true)
+  await group.getByRole('button', { name: `个人 · ${longContent}` }).click()
+  await expect(page.locator('#feed-1-comment')).toHaveValue(longContent)
+  const bubble = group.getByRole('button', { name: `个人 · ${longContent}` })
+  expect(await bubble.locator('.preset-bubble__label').evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true)
+  await expect(bubble).toHaveAttribute('title', `个人 · ${longContent}`)
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 

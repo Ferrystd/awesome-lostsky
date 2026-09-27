@@ -949,9 +949,11 @@ test('preset management round trip restores the account and edited comment on th
   await expect(page.locator('#feed-1-comment')).toHaveValue('进入管理前保留的私密草稿')
   await expect(page.locator('#feed-comment-account')).toContainText('授权账号')
   await expect(page.locator('.feed-post').first()).toContainText('最新点单信息')
-  await page.locator('#feed-1-preset').click()
-  await expect(page.getByText('个人 · 管理中更新后的个人预设', { exact: true })).toBeVisible()
+  const updatedPreset = page.locator('#feed-1-presets').getByRole('button', { name: '个人 · 管理中更新后的个人预设' })
+  await expect(updatedPreset).toBeVisible()
   expect(dialogs).toBe(0)
+  await updatedPreset.click()
+  await expect(page.locator('#feed-1-comment')).toHaveValue('管理中更新后的个人预设')
   expect(requests.comments).toHaveLength(0)
 })
 

@@ -623,9 +623,9 @@ const weiboAccountField = story("WeiboAccountField", [...interactive, "loading",
 const weiboCommentFields = story("WeiboCommentFields", [...interactive, "loading", "error"], state => stage(h(WeiboCommentFields, {
   idPrefix: `preview-comment-${state}`, modelValue: state === 'active' ? '已选择的评论，可继续修改。' : '',
   feedRail: true,
-  presets: [{ id: 1, scope: 'team', content: '团队常用评论' }, { id: 2, scope: 'personal', content: '个人常用评论' }],
+  presets: [{ id: 1, scope: 'team', content: '团队常用评论' }, { id: 2, scope: 'personal', content: '个人常用评论' }, { id: 3, scope: 'team', content: '很长的团队预设评论，用来检查气泡截断后仍能选入完整正文' }],
   loading: state === 'loading', error: state === 'error' ? '暂时无法读取预设' : '', disabledReason: state === 'disabled' ? '预设读取受限' : '',
-})));
+}, { 'feed-action': () => h(LsButton, { type: 'submit' }, { default: () => '发表评论' }) })));
 
 const accountHealthSummary = story("AccountHealthSummary", layout, () => stage(h(AccountHealthSummary, { accounts: [
   { id: 1, binding_id: 1, entity_id: 3, uid: "123456", screen_name: "青空账号", health: "Valid", checked_at: 1787500000 },

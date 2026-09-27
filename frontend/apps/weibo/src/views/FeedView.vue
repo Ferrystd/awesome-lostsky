@@ -279,9 +279,9 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
                 </NFlex>
                 <Transition name="feed-rail">
                   <form v-if="drafts[item.id]?.expanded && !actionReason(item)" :id="`feed-comment-${item.id}`" class="feed-comment" aria-label="发表评论" @submit.prevent="submitComment(item)">
-                    <WeiboCommentFields :id-prefix="`feed-${item.id}`" v-model="drafts[item.id]!.text" feed-rail :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason" />
-                    <LsButton type="submit" :loading="drafts[item.id]!.pending" :disabled="Boolean(submitReason(item))" :disabled-reason="submitReason(item)">发表评论</LsButton>
-                    <p v-if="!selectedAccount" class="feed-status">请在页面上方选择微博账号</p>
+                    <WeiboCommentFields :id-prefix="`feed-${item.id}`" v-model="drafts[item.id]!.text" feed-rail :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason">
+                      <template #feed-action><LsButton type="submit" :loading="drafts[item.id]!.pending" :disabled="Boolean(submitReason(item))" :disabled-reason="submitReason(item)">发表评论</LsButton></template>
+                    </WeiboCommentFields>
                     <LsInlineError v-if="drafts[item.id]!.error" :message="drafts[item.id]!.error" />
                   </form>
                 </Transition>
@@ -313,16 +313,11 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
 .feed-meta { color: var(--text-secondary); font-size: .875rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .feed-text { max-width: 75ch; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1rem; line-height: 1.65; }
 .feed-actions { justify-self: end; }
-.feed-comment { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: .5rem; min-width: 0; padding-block-start: .5rem; border-top: 1px solid var(--line); }
-.feed-comment > .feed-status, .feed-comment > .ls-inline-error { grid-column: 1 / -1; }
+.feed-comment { display: grid; grid-column: 1 / -1; gap: .375rem; min-width: 0; padding-block-start: .5rem; border-top: 1px solid var(--line); }
 .feed-rail-enter-active, .feed-rail-leave-active { transition: opacity var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out); }
 .feed-rail-enter-from, .feed-rail-leave-to { opacity: 0; transform: translateY(-.25rem); }
 .feed-tail { display: grid; justify-items: center; gap: .5rem; padding-block: .75rem; color: var(--text-secondary); font-size: .875rem; }
 .feed-tail p { margin: 0; }
-@media (max-width: 767px) {
-  .feed-comment { grid-template-columns: minmax(0, 1fr); }
-  .feed-comment > .ls-button { justify-self: end; }
-}
 @media (prefers-reduced-motion: reduce) {
   .feed-rail-enter-active, .feed-rail-leave-active { transition: none; }
 }
