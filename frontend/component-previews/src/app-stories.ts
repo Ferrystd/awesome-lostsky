@@ -621,9 +621,9 @@ const weiboAccountField = story("WeiboAccountField", [...interactive, "loading",
   loading: state === 'loading', error: state === 'error' ? '暂时无法读取账号' : '', disabledReason: state === 'disabled' ? '当前账号不可用' : '',
 })));
 const weiboCommentFields = story("WeiboCommentFields", [...interactive, "loading", "error"], state => stage(h(WeiboCommentFields, {
-  idPrefix: `preview-comment-${state}`, modelValue: state === 'active' ? '已选择的评论，可继续修改。' : '',
+  idPrefix: `preview-comment-${state}`, modelValue: state === 'active' ? '团队常用评论' : '',
   feedRail: true,
-  presets: [{ id: 1, scope: 'team', content: '团队常用评论' }, { id: 2, scope: 'personal', content: '个人常用评论' }, { id: 3, scope: 'team', content: '很长的团队预设评论，用来检查气泡截断后仍能选入完整正文' }],
+  presets: state === 'loading' ? [] : [{ id: 1, scope: 'team', content: '团队常用评论' }, { id: 2, scope: 'personal', content: '个人常用评论' }, { id: 3, scope: 'team', content: '很长的团队预设评论，用来检查气泡截断后仍能选入完整正文' }],
   loading: state === 'loading', error: state === 'error' ? '暂时无法读取预设' : '', disabledReason: state === 'disabled' ? '预设读取受限' : '',
 }, { 'feed-action': () => h(LsButton, { type: 'submit' }, { default: () => '发表评论' }) })));
 
