@@ -75,7 +75,7 @@ php think notice:send "通知标题" --team_id=123 --content="通知正文" --pi
 | --- | --- |
 | `php think chat:worker` | 常驻处理聊天事件和 Webhook；`--once` 处理一批后退出，仍会真实投递 |
 | `php think chat:cleanup` | 关闭过期临时会话并执行聊天消息保留策略 |
-| `php think weibo:feed-poll` | 单轮匿名搜索、帖子去重、Jev 判定及过期信息流清理；由部署环境每分钟调度 |
+| `php think weibo:feed-poll` | 单轮匿名搜索、帖子去重及本地 MacBERT 批量判定；历史记录长期保留，由部署环境每分钟调度 |
 | `php think system:cleanup` | 自动完成已到时且无待处理撤销/加价的核销，并清理过期实体会话、设备、刷新令牌、审计和微博日志，处理文件与外部补偿 |
 | `php think queue:restart` | 通知 Database Worker 重启；不重启独立的 `chat:worker` |
 

@@ -187,25 +187,41 @@ stopwaitsecs=120
 
 ### 微博点单信息流采集
 
-信息流采集与 `weibo-schedule` 写操作队列相互独立。已有库执行 `sql/patches/20260922_weibo_feed.sql`（新建库直接使用当前 Schema），按 `.env.example` 和 `config/weibo_feed.php` 配置 TypeSafe 密钥、关键词、轮询上限与保留时间，然后先运行一轮：
+信息流采集与 `weibo-schedule` 写操作队列相互独立。已有库执行 `sql/patches/20260922_weibo_feed.sql`（新建库直接使用当前 Schema）。分类使用常驻本地 Python 服务，不再需要 TypeSafe 密钥；按 `.env.example` 和 `config/weibo_feed.php` 配置本地服务、关键词、轮询上限与显示窗口。
+
+部署时保留全部训练、测试、人工复核和权重产物；第三轮模型根目录需包含原 `model-lock.json` 及 `model-2e-5/` 中的配置、权重和分词器。权重文件 SHA-256 为 `39ae921da06ce92e41519745a3f6f96e8055f439cbe03f754098a2cb7f6b2a57`，运行资产身份由 `scripts/weibo_feed_classifier/model-manifest.json` 绑定。模型资产位于忽略目录，Git 代码提交不包含权重或训练样本；迁移机器时必须另行完整复制并保留原数据。服务启动只读取本地文件，不从模型仓库下载。
+
+项目根目录下启动本地服务（Linux 将 Python 路径替换为对应虚拟环境）：
+
+```powershell
+runtime/feed-training-20260929/.venv/Scripts/python.exe scripts/weibo_feed_classifier/server.py --model-root runtime/feed-training-round3-20260930 --host 127.0.0.1 --port 8765 --threads 4 --inference-batch-size 16 --max-request-batch 100
+```
+
+依赖和服务协议见 `scripts/weibo_feed_classifier/README.md`。使用系统服务管理器保持进程常驻，并在重启后恢复；仅绑定环回地址，不公开暴露推理端口。先读取 `http://127.0.0.1:8765/health` 确认模型、阈值、预处理和分词器身份，再启动采集。
 
 | 配置 | 默认值与用途 |
 | --- | --- |
-| `TYPESAFE_API_KEY` | 必填；只在服务端配置，不进入前端或日志 |
-| `TYPESAFE_MODEL` | `jev-latest`；生产需要固定判定版本时可指定官方模型版本 |
-| `WEIBO_FEED_KEYWORDS` | `陪玩,点单,找陪玩,找人打游戏`，英文逗号分隔 |
-| `WEIBO_FEED_RETENTION_SECONDS` | `86400`，按发帖时间保留最近一天 |
+| `WEIBO_FEED_CLASSIFIER_URL` | `http://127.0.0.1:8765/classify`，本地批量推理地址 |
+| `WEIBO_FEED_CLASSIFIER_TIMEOUT` | `180`，本地批量推理超时秒数 |
+| `WEIBO_FEED_CLASSIFIER_BATCH_SIZE` | `100`，每次推理请求上限 |
+| `WEIBO_FEED_CLASSIFIER_MODEL` | `weibo-feed-macbert-round3`，与服务 manifest 一致 |
+| `WEIBO_FEED_CLASSIFIER_MODEL_SHA256` | 固定第三轮权重的 SHA-256 |
+| `WEIBO_FEED_CLASSIFIER_MAX_LENGTH` | `160`，与冻结训练规则一致 |
+| `WEIBO_FEED_CLASSIFIER_PREPROCESS_VERSION` | `remove-first-leading-supertopic-v1` |
+| `WEIBO_FEED_CLASSIFIER_PREPROCESS_FINGERPRINT` | 与运行 manifest 一致的预处理指纹 |
+| `WEIBO_FEED_KEYWORDS` | 英文逗号分隔；以当前项目配置与环境变量为准 |
+| `WEIBO_FEED_RETENTION_SECONDS` | `86400`，采集和显示最近一天；不删除数据库历史记录 |
 | `WEIBO_FEED_BATCH_LIMIT` | `100`，单轮处理上限 |
 | `WEIBO_FEED_MAX_PAGES` | `5`，每个关键词有限扫描页数 |
 | `WEIBO_FEED_CLASSIFICATION_RETRIES` | `3`，判定异常的有限尝试次数 |
-| `WEIBO_FEED_INTENT_THRESHOLD` | `0.8`，点单意图概率最低阈值 |
-| `WEIBO_FEED_REQUEST_TIMEOUT` | `15`，单次远端请求超时秒数 |
+| `WEIBO_FEED_INTENT_THRESHOLD` | `0.46`，包含边界值；必须与锁定模型阈值一致 |
+| `WEIBO_FEED_REQUEST_TIMEOUT` | `15`，单次微博搜索请求超时秒数 |
 
 ```bash
 php think weibo:feed-poll
 ```
 
-确认搜索和模型调用结果后，由服务器定时调度每分钟执行一次同一命令。命令只采集与判定，不发送评论；前端的定期读取也不会启动搜索或模型调用。没有配置密钥不能宣称信息流已完成真实判定；数据库迁移、离线测试与静态构建均不等于采集服务已经启用。模型失败保留待重试状态，不作为负面意图结果。
+确认搜索、实际模型调用和数据库落盘结果后，由服务器定时调度每分钟执行一次同一命令。命令只采集与判定，不发送评论；前端的定期读取也不会启动搜索或模型调用。数据库迁移、离线测试与静态构建均不等于采集服务已经启用。本地模型故障或身份不匹配保留 Failed 并有限重试，不作为负面意图结果，也不自动回退 Jev。已有已分类记录保留原判定、原模型身份和分数，不自动重判；所有正文及历史记录继续保存。
 
 匿名接口会受远端可用性、限流与风控影响，有限页数扫描也不能保证覆盖全站每条微博。检查命令结果、最近成功更新时间与有效帖子数量；不记录 Cookie、密钥、完整外部响应或账户凭据。已发布的定时任务与本地 Codex 自动化不是同一调度系统。
 

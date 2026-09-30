@@ -1,0 +1,21 @@
+{
+  "model": "weibo-feed-macbert-round3",
+  "model_directory": "model-2e-5",
+  "model_lock_sha256": "65231e592b0e6598c5e045c982a7721376a32d4e59628c916fabfd669c429c1c",
+  "training_report": "training-2e-5.json",
+  "training_report_sha256": "bf353a843c408ef82d88ab133d6aed30aedf02f9be685a7d3c4fd69dca8b1ce9",
+  "model_sha256": "39ae921da06ce92e41519745a3f6f96e8055f439cbe03f754098a2cb7f6b2a57",
+  "threshold": 0.46,
+  "max_length": 160,
+  "preprocess": {
+    "version": "remove-first-leading-supertopic-v1",
+    "fingerprint": "16d7c94edc197e5620acd410c58f0fbeeff5917e503d88d0c96a0dc461bbb565",
+    "source_sha256": "945d6cb0efedb471cd00530ffc3978fedb377138c738327429db7e159dd35c25"
+  },
+  "assets": {
+    "config.json": "670c6828662f166c8ea598086a0fd12f26243cb892721f1e5dc582dd4cd9febc",
+    "model.safetensors": "39ae921da06ce92e41519745a3f6f96e8055f439cbe03f754098a2cb7f6b2a57",
+    "tokenizer_config.json": "81d76ff64c6837a77a26739668e51d61831f35d35e8a7043673b2c614a43c982",
+    "tokenizer.json": "5220198f4c043e86cfb7d3ebe8be78d481c0848f3b49c5b4331b3caa0f209640"
+  }
+}

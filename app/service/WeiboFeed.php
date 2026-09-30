@@ -23,7 +23,7 @@ final class WeiboFeed
         $total = (clone $query)->count();
         $items = $query->order('posted_at', 'desc')->order('id', 'desc')->page($page, $limit)->select();
         $state = WeiboFeedPollState::where('id', 1)->find();
-        $configured = trim($this->stringConfig('typesafe_api_key')) !== '';
+        $configured = trim($this->stringConfig('classifier_url')) !== '';
         $failed = $state && is_string($state->last_error) && trim($state->last_error) !== '';
         return [
             'list' => array_map(fn (WeiboFeedPost $post): array => $this->dto($post, $full), $items->all()),

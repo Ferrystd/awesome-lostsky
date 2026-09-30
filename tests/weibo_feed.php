@@ -26,8 +26,21 @@ $failures = [];
 $assert = static function (bool $condition, string $case) use (&$failures): void {
     if (!$condition) $failures[] = $case;
 };
+$classifierResponse = static function (array $items, float $score = 0.9, array $overrides = []): array {
+    return $overrides + [
+        'model' => (string) config('weibo_feed.classifier_model'),
+        'model_sha256' => (string) config('weibo_feed.classifier_model_sha256'),
+        'threshold' => (float) config('weibo_feed.intent_threshold'),
+        'max_length' => (int) config('weibo_feed.classifier_max_length'),
+        'preprocess' => [
+            'version' => (string) config('weibo_feed.classifier_preprocess_version'),
+            'fingerprint' => (string) config('weibo_feed.classifier_preprocess_fingerprint'),
+        ],
+        'predictions' => array_map(static fn (array $item): array => ['id' => $item['id'], 'score' => $score], $items),
+    ];
+};
 
-$parser = new WeiboFeedPoller(static fn (): array => [], static fn (): array => ['model' => 'test', 'score' => 1.0]);
+$parser = new WeiboFeedPoller(static fn (): array => []);
 $parsed = $parser->extractSearchStatuses(['statuses' => [
     ['idstr' => 'long-missing', 'isLongText' => true, 'text' => '截断内容', 'created_at' => 'Tue Sep 22 02:04:34 +0800 2026'],
     ['idstr' => 'long-complete', 'isLongText' => true, 'text' => '截断', 'longText' => ['longTextContent' => '<b>完整求单正文</b>'], 'user' => ['screen_name' => 'A'], 'created_at' => 'Tue Sep 22 02:04:34 +0800 2026'],
@@ -70,10 +83,28 @@ try {
         'classification_status' => WeiboFeedClassificationStatus::Pending,
         'classification_attempts' => 0,
     ]);
-    $result = (new WeiboFeedPoller(null, static fn (): array => ['model' => 'jev-test', 'score' => 0.9]))->classifyPending();
+    $result = (new WeiboFeedPoller(null, static fn (array $items): array => $classifierResponse($items, 0.9)))->classifyPending();
     $accepted->refresh();
     $assert($result['succeeded'] >= 1 && $accepted->enumCase('classification_status') === WeiboFeedClassificationStatus::Accepted, 'valid noul above threshold accepts a pending post');
-    $assert((string) $accepted->classifier_model === 'jev-test' && abs((float) $accepted->intent_score - 0.9) < 0.00001, 'classification stores actual model and score');
+    $assert((string) $accepted->classifier_model === config('weibo_feed.classifier_model') && abs((float) $accepted->intent_score - 0.9) < 0.00001, 'classification stores locked local model and score');
+
+    $identityMismatch = new WeiboFeedPost;
+    $identityMismatch->save([
+        'status_id' => $numericBase . '0',
+        'text' => '身份不匹配不能落为分类结果',
+        'author_name' => '',
+        'posted_at' => time(),
+        'classification_status' => WeiboFeedClassificationStatus::Pending,
+        'classification_attempts' => 0,
+        'classifier_model' => 'stale-model',
+        'intent_score' => 0.99,
+        'classified_at' => time() - 60,
+    ]);
+    (new WeiboFeedPoller(null, static fn (array $items): array => $classifierResponse($items, 0.9, ['model_sha256' => str_repeat('0', 64)])))->classifyPending();
+    $identityMismatch->refresh();
+    $assert($identityMismatch->enumCase('classification_status') === WeiboFeedClassificationStatus::Failed, 'model identity mismatch remains retryable instead of accepting a score');
+    $assert(str_contains((string) $identityMismatch->classification_error, '模型身份不匹配'), 'model identity mismatch is recorded');
+    $assert($identityMismatch->classifier_model === null && $identityMismatch->intent_score === null && $identityMismatch->classified_at === null, 'batch validation failure clears stale success fields');
 
     $otherEntityId = (int) EntityModel::where('id', '<>', $entityId)->value('id');
     if ($otherEntityId > 0) {
@@ -200,33 +231,43 @@ try {
         'posted_at' => time(),
         'classification_status' => WeiboFeedClassificationStatus::Pending,
         'classification_attempts' => 0,
+        'classifier_model' => 'stale-model',
+        'intent_score' => 0.99,
+        'classified_at' => time() - 60,
     ]);
-    $failureResult = (new WeiboFeedPoller(null, static function (): array { throw new RuntimeException('temporary'); }))->classifyPending();
+    $failureResult = (new WeiboFeedPoller(null, static function (array $items): array { throw new RuntimeException('temporary'); }))->classifyPending();
     $failed->refresh();
     $assert($failureResult['succeeded'] === 0 && $failed->enumCase('classification_status') === WeiboFeedClassificationStatus::Failed, 'classification failure is retryable and is not a negative label');
     $assert((int) $failed->classification_attempts === 1, 'classification failure increments the bounded retry count once');
+    $assert($failed->classifier_model === null && $failed->intent_score === null && $failed->classified_at === null, 'classification failure clears stale success fields');
 
     $missingKey = new WeiboFeedPost;
     $missingKey->save([
         'status_id' => $numericBase . '4', 'text' => '等待配置', 'author_name' => '', 'posted_at' => time(),
         'classification_status' => WeiboFeedClassificationStatus::Pending, 'classification_attempts' => 0,
     ]);
-    config(['typesafe_api_key' => ''], 'weibo_feed');
+    $classifierUrl = config('weibo_feed.classifier_url');
+    config(['classifier_url' => ''], 'weibo_feed');
     try {
         (new WeiboFeedPoller)->classifyPending();
-        $failures[] = 'missing TypeSafe key must stop the batch';
+        $failures[] = 'missing local classifier URL must stop the batch';
     } catch (RuntimeException) {
         $missingKey->refresh();
-        $assert((int) $missingKey->classification_attempts === 0, 'missing TypeSafe key does not consume per-post retries');
+        $assert((int) $missingKey->classification_attempts === 0, 'missing local classifier URL does not consume per-post retries');
     }
+    $unconfigured = (new WeiboFeed)->list($teamId, ['type' => 'team', 'id' => $teamId], 1, 1);
+    $assert($unconfigured['poll_status'] === 'unconfigured', 'feed reports unconfigured when local classifier URL is empty');
+    config(['classifier_url' => $classifierUrl], 'weibo_feed');
     $maxedWasClassified = false;
     $missingKey->save([
         'classification_status' => WeiboFeedClassificationStatus::Failed,
         'classification_attempts' => (int) config('weibo_feed.classification_retries'),
     ]);
-    (new WeiboFeedPoller(null, static function (string $text) use (&$maxedWasClassified): array {
-        if ($text === '等待配置') $maxedWasClassified = true;
-        return ['model' => 'test', 'score' => 1.0];
+    (new WeiboFeedPoller(null, static function (array $items) use (&$maxedWasClassified, $classifierResponse): array {
+        foreach ($items as $item) {
+            if ($item['text'] === '等待配置') $maxedWasClassified = true;
+        }
+        return $classifierResponse($items, 1.0);
     }))->classifyPending();
     $assert(!$maxedWasClassified, 'failed posts stop retrying at the configured maximum');
 
@@ -251,11 +292,13 @@ try {
             'author_name' => '新作者',
             'created_at' => date('D M d H:i:s O Y'),
         ]],
-        static fn (): array => ['model' => 'jev-test', 'score' => 0.9]
+        static fn (array $items): array => $classifierResponse($items, 0.9)
     );
     $pollResult = $poll->run();
     $assert($pollResult['added'] === 1, 'polling persists one row for duplicate remote ids');
-    $assert(!WeiboFeedPost::withTrashed()->where('id', $old->id)->find(), 'expired feed rows are hard deleted');
+    $assert((bool) WeiboFeedPost::withTrashed()->where('id', $old->id)->find(), 'expired feed rows remain stored outside the display window');
+    $accepted->refresh();
+    $assert((int) $accepted->classification_attempts === 1, 'previously classified rows are not automatically reclassified');
     $assert((int) WeiboFeedPost::where('status_id', $freshStatus)->count() === 1, 'remote status id uniqueness is durable');
     $state = WeiboFeedPollState::where('id', 1)->find();
     $assert($state && (int) $state->last_success_at > 0, 'successful poll persists the upstream success timestamp');
