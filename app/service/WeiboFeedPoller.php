@@ -104,7 +104,7 @@ final class WeiboFeedPoller
                 $items = [];
                 foreach ($batch as $post) {
                     $items[] = [
-                        'id' => (string) $post->id,
+                        'id' => $this->identifier($post->id),
                         'text' => $this->requiredString($post->text, '微博信息流正文必须为字符串'),
                     ];
                 }
@@ -126,7 +126,7 @@ final class WeiboFeedPoller
             }
             foreach ($batch as $post) {
                 if (!is_int($post->classification_attempts)) throw new \RuntimeException('微博信息流分类次数必须为整数');
-                $score = $results[(string) $post->id];
+                $score = $results[$this->identifier($post->id)];
                 $attempts = $post->classification_attempts + 1;
                 try {
                     $post->save([
@@ -242,8 +242,8 @@ final class WeiboFeedPoller
             || ($payload['preprocess']['fingerprint'] ?? null) !== $this->stringConfig('classifier_preprocess_fingerprint')) {
             throw new \RuntimeException('本地分类服务模型身份不匹配');
         }
-        $threshold = $payload['threshold'] ?? null;
-        if ((!is_float($threshold) && !is_int($threshold)) || abs((float) $threshold - $this->floatConfig('intent_threshold')) > 0.000000001) {
+        $threshold = $this->finiteFloat($payload['threshold'] ?? null, '本地分类服务阈值不匹配');
+        if (abs($threshold - $this->floatConfig('intent_threshold')) > 0.000000001) {
             throw new \RuntimeException('本地分类服务阈值不匹配');
         }
         $predictions = $payload['predictions'] ?? null;
@@ -254,11 +254,11 @@ final class WeiboFeedPoller
             if (!is_array($prediction) || !is_string($prediction['id'] ?? null) || !array_key_exists($prediction['id'], $expected) || array_key_exists($prediction['id'], $results)) {
                 throw new \RuntimeException('本地分类服务预测 ID 无效');
             }
-            $score = $prediction['score'] ?? null;
-            if ((!is_float($score) && !is_int($score)) || !is_finite((float) $score) || $score < 0 || $score > 1) {
+            $score = $this->finiteFloat($prediction['score'] ?? null, '本地分类服务分数超出 0..1');
+            if ($score < 0 || $score > 1) {
                 throw new \RuntimeException('本地分类服务分数超出 0..1');
             }
-            $results[$prediction['id']] = (float) $score;
+            $results[$prediction['id']] = $score;
         }
         if (count($results) !== count($expected)) throw new \RuntimeException('本地分类服务预测 ID 不完整');
         return $results;
@@ -347,6 +347,12 @@ final class WeiboFeedPoller
     private function optionalString(mixed $value): string
     {
         return is_string($value) ? $value : '';
+    }
+
+    private function finiteFloat(mixed $value, string $message): float
+    {
+        if ((!is_float($value) && !is_int($value)) || !is_finite($value)) throw new \RuntimeException($message);
+        return $value;
     }
 
     private function identifier(mixed $value): string

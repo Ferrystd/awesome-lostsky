@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const source = readFileSync(new URL('./views/TaskFormView.vue', import.meta.url), 'utf8')
+const source = readFileSync(new URL('./views/TaskFormView.vue', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 
 describe('微博任务表单', () => {
   it('与其他后台表单复用同一分区、字段和操作契约', () => {
