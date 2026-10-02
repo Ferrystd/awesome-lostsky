@@ -15,7 +15,7 @@
 - 详情、编辑、充值页使用实际记录的编号或标识。未编造 demo 数据 ID：不能固定直达的条目链接到列表，并注明打开步骤。只查看文案，不需要完成保存、授权、发送或充值。
 - 已按当前 Wiki、域名生成函数和路由源码核对链接；本次未登录线上逐页验证 demo 的部署、数据或权限，链接不代表已确认线上原文与本地一致。
 
-网址依据：[请求路由与应用解析](C:/awesome-lostsky/docs/dev/architecture/routing.md)、[前端路由与页面导航](C:/awesome-lostsky/docs/dev/architecture/frontend-navigation.md)、[域名生成方法](C:/awesome-lostsky/frontend/packages/shared/src/navigation.ts)。
+网址依据：[请求路由与应用解析](../architecture/routing.md)、[前端路由与页面导航](../architecture/frontend-navigation.md)、[域名生成方法](C:/awesome-lostsky/frontend/packages/shared/src/navigation.ts)。
 
 ## 1. 概览页面的勾选列表
 

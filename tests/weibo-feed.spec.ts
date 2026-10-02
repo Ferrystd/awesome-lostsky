@@ -495,11 +495,14 @@ for (const pollStatus of ['unconfigured', 'failed', 'ready']) test(`empty ${poll
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
-test('cached posts survive source failure with one inline error and compact actions', async ({ page }) => {
+test('cached posts survive source failure with one feedback message and compact actions', async ({ page }) => {
   await setup(page, { pollStatus: 'failed' })
   await page.goto(`${origin}/personal/feed`)
   await expect(page.locator('.feed-post')).toHaveCount(2)
-  await expect(page.locator('.ls-inline-error')).toHaveCount(1)
+  await expect(page.locator('.n-message').filter({ hasText: '点单来源更新暂时失败，已有内容仍可查看。' })).toHaveCount(1)
+  await expect(page.locator('.ls-inline-error')).toHaveCount(0)
+  await expect(page.locator('.feed-post').first()).toContainText('完整文字内容')
+  await expect(page.locator('.feed-post').last()).toContainText('较早的点单')
   await expect(page.getByText('INTERNAL_SQL_DIAGNOSTIC')).toHaveCount(0)
   await expect(page.getByRole('status').filter({ hasText: '共 25 条' })).toHaveCount(1)
   await expect(page.locator('textarea')).toHaveCount(0)
@@ -553,7 +556,7 @@ test('preset editor explains disabled reordering and validates the twenty item s
 })
 
 
-test('cached feed query failure preserves posts and reports only a local error', async ({ page }) => {
+test('cached feed query failure preserves posts and reports a feedback message', async ({ page }) => {
   await setup(page)
   await page.route(`${origin}/api/**/personal/feed?**`, route => route.fulfill({ json: { code: 0, message: 'ok', data: {
     list: [1, 2].map(id => ({ id, text: `点单 ${id}`, posted_at: 1789988000, restricted: false })),
@@ -564,7 +567,10 @@ test('cached feed query failure preserves posts and reports only a local error',
   await expect(page.locator('.feed-post')).toHaveCount(2)
   await page.route(`${origin}/api/**/personal/feed?**`, route => route.fulfill({ status: 400, json: { code: 400, message: '暂时无法更新', data: null } }))
   await page.clock.fastForward(31_000)
-  await expect(page.locator('.ls-inline-error')).toHaveCount(1)
+  await expect(page.locator('.n-message').filter({ hasText: '点单更新失败：暂时无法更新。已有内容仍可查看。' })).toHaveCount(1)
+  await expect(page.locator('.ls-inline-error')).toHaveCount(0)
+  await expect(page.locator('.feed-post').first()).toContainText('点单 1')
+  await expect(page.locator('.feed-post').last()).toContainText('点单 2')
   await expect(page.locator('.ls-async-state, .ls-empty-state')).toHaveCount(0)
   await expect(page.locator('.feed-post')).toHaveCount(2)
 })

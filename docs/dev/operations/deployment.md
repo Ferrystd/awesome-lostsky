@@ -185,6 +185,8 @@ stopwaitsecs=120
 
 该 Worker 使用 `--tries=0`，未捕获异常会由队列继续重试；任务代码对已获得远端结果或远端结果不明的情况会落库并删除当前 Job，不应人工重发同一写操作。每次执行重新校验 Weibo Ability；缺失时不访问微博写接口。每日签到会在请求前按当天调度日志去重，失败也只在次日再次执行。部署后重启队列并确认 `lostsky-weibo` 为 `RUNNING`。
 
+<a id="weibo-feed-polling"></a>
+
 ### 微博点单信息流采集
 
 信息流采集与 `weibo-schedule` 写操作队列相互独立。已有库执行 `sql/patches/20260922_weibo_feed.sql`（新建库直接使用当前 Schema）。分类使用常驻本地 Python 服务，不再需要 TypeSafe 密钥；按 `.env.example` 和 `config/weibo_feed.php` 配置本地服务、关键词、轮询上限与显示窗口。
