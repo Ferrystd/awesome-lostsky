@@ -841,6 +841,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/customer/service-redemptions/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 顾客确认接单人结单请求
+         * @description 仅当前权益持有顾客；确认后消耗权益，重复确认仍校验归属且幂等。拒绝后清请求时间，可重提或申请取消。
+         */
+        post: operations["confirmCustomerServiceCompletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customer/service-redemptions/{id}/completion/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 顾客拒绝结单请求并继续履约
+         * @description 仅当前权益持有顾客；确认后消耗权益，重复确认仍校验归属且幂等。拒绝后清请求时间，可重提或申请取消。
+         */
+        post: operations["rejectCustomerServiceCompletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/customer/service-redemptions/{id}/cancel": {
         parameters: {
             query?: never;
@@ -1339,6 +1379,26 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        UnusedEntitlementClock: {
+            /** @description 权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。 */
+            unused_auto_complete_after_minutes?: number | null;
+            /** @description 权益入账时间加未使用时限；预占不受影响。 */
+            unused_auto_complete_due_at?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        ServiceCompletionState: {
+            /** @description 接单人请求结单Unix秒；null表示未请求或已拒绝。 */
+            completion_requested_at?: number | null;
+            /** @description 请求时间加确认时限；时限关闭时null。 */
+            completion_due_at?: number | null;
+            /** @enum {string} */
+            settlement_kind?: "service" | "unused";
+            settled_handler_cut?: string;
+            settled_team_cut?: string;
+        } & {
+            [key: string]: unknown;
+        };
         AnyObject: {
             [key: string]: unknown;
         };
@@ -1435,7 +1495,9 @@ export interface components {
             quantity?: string;
             /** @description 0 为永久；省略使用团队默认值 */
             valid_days?: number;
-            /** @description 从开始核销起连续计时；null 表示不自动结单。待处理撤销申请期间跳过结单，但不暂停或重置计时。 */
+            /** @description 权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。 */
+            unused_auto_complete_after_minutes?: number | null;
+            /** @description 从接单人请求结单起连续计时；null 表示须顾客或管理员确认。待处理撤销申请期间跳过结单，但不暂停或重置计时。 */
             auto_complete_after_minutes?: number | null;
             handler_entity_ids?: number[];
             redemption_fields?: components["schemas"]["ServiceRedemptionFieldInput"][];
@@ -1620,7 +1682,9 @@ export interface components {
             description?: string | null;
             unit_name: string;
             quantity_step: number | string;
-            /** @description 从开始核销起连续计时；null 表示不自动结单。 */
+            /** @description 权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。 */
+            unused_auto_complete_after_minutes?: number | null;
+            /** @description 从接单人请求结单起连续计时；null 表示须顾客或管理员确认。 */
             auto_complete_after_minutes?: number | null;
             default_total_price?: number;
             default_cost?: number;
@@ -4077,6 +4141,94 @@ export interface operations {
         responses: {
             /** @description 成功 */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    confirmCustomerServiceCompletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 不属于当前顾客 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 任务没有待确认请求或状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 拒绝原因无效 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rejectCustomerServiceCompletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 不属于当前顾客 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 任务没有待确认请求或状态冲突 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 拒绝原因无效 */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

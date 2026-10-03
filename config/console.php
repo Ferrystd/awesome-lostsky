@@ -24,5 +24,6 @@ return [
         'oss:fallback:configure' => \app\command\ConfigureOssFallback::class,
         'oss:fallback:publish' => \app\command\PublishOssFallback::class,
         'weibo:feed-poll' => \app\command\WeiboFeedPoll::class,
+        'weibo:tasks-recover' => \app\command\WeiboRecoverTasks::class,
     ],
 ];

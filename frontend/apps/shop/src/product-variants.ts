@@ -15,7 +15,7 @@ export type ProductVariantDraft = VariantInput & { name: string; kind: 1 | 2 | 3
 let draftSequence = 0
 export function newProductVariant(autoCompleteAfterMinutes: number | null = null): ProductVariantDraft {
   return { draftKey: `variant-new-${++draftSequence}`, name: '', kind: 1, price: '0.00', cost: '0.00', handler_cut: '0.00', sender_cut: '0.00', cs_cut: '0.00', is_active: 1,
-    redemption: { unit_name: '次', quantity: '1', quantity_step: '1', valid_days: 0, auto_complete_after_minutes: autoCompleteAfterMinutes, handler_entity_ids: [], redemption_fields: [] } }
+    redemption: { unit_name: '次', quantity: '1', quantity_step: '1', valid_days: 0, auto_complete_after_minutes: autoCompleteAfterMinutes, unused_auto_complete_after_minutes: null, handler_entity_ids: [], redemption_fields: [] } }
 }
 
 export function validAutoCompleteAfterMinutes(value: unknown): boolean {
@@ -45,7 +45,7 @@ export function validProductVariant(draft: ProductVariantDraft): boolean {
   const stepUnits = Math.round(step * 10000)
   if (!stepUnits || units % stepUnits !== 0) return false
   if (!Number.isInteger(redemption.valid_days) || (redemption.valid_days ?? -1) < 0) return false
-  if (!validAutoCompleteAfterMinutes(redemption.auto_complete_after_minutes)) return false
+  if (!validAutoCompleteAfterMinutes(redemption.unused_auto_complete_after_minutes) || !validAutoCompleteAfterMinutes(redemption.auto_complete_after_minutes)) return false
   return (redemption.redemption_fields ?? []).every(field => field.name.trim())
 }
 

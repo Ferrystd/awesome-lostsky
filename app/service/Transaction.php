@@ -145,6 +145,7 @@ class Transaction
     public function create(int $teamId, array $data): int
     {
         $data['type'] = $this->normalizeType($data['type'] ?? TransactionType::LedgerEntry);
+        if ($data['type'] === TransactionType::UnusedServiceSettlement) throw new HttpException(422, '未使用权益结单只能由系统生成');
         $data = array_merge($data, in_array($data['type'], [
             TransactionType::ServicePackageReceipt,
             TransactionType::ServiceAdjustmentReceipt,
@@ -221,6 +222,21 @@ class Transaction
         $this->assertEntity($teamId, $data['sender_entity_id'] ?? null, '发单人');
         $this->assertEntity($teamId, $data['cs_entity_id'] ?? null, '客服');
 
+        return $this->saveTransaction($teamId, $data);
+    }
+
+    /** 未使用权益结单：无接单人，接单分成归团队，不重复收款。 */
+    public function createUnusedServiceSettlement(int $teamId, array $data): int
+    {
+        $data['type'] = TransactionType::UnusedServiceSettlement;
+        $data['handler_entity_id'] = null;
+        $data['handler_cut'] = '0.00';
+        $data['cash'] = '0.00';
+        $data['prepaid'] = '0.00';
+        $data['service_credit'] = $data['total_price'] ?? '0.00';
+        $data = array_merge($data, $this->validateMath($data));
+        $this->assertEntity($teamId, $data['sender_entity_id'] ?? null, '发单人');
+        $this->assertEntity($teamId, $data['cs_entity_id'] ?? null, '客服');
         return $this->saveTransaction($teamId, $data);
     }
 
@@ -491,6 +507,7 @@ class Transaction
             TransactionType::ServiceRedemption,
             TransactionType::ServiceAdjustmentReceipt,
             TransactionType::ServiceAdjustmentPerformance,
+            TransactionType::UnusedServiceSettlement,
         ], true);
     }
 

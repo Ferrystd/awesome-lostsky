@@ -55,6 +55,7 @@ class TeamServiceEntitlement extends Base
         'source_order_id', 'source_claim_id', 'source_package_item_id', 'ordinal',
         'unit_name', 'quantity_step', 'granted_quantity', 'total_price',
         'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'expire_time',
+        'unused_auto_complete_after_minutes', 'unused_auto_complete_due_at',
     ];
 
     public function getAvailableQuantityAttr(): string

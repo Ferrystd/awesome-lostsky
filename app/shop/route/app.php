@@ -101,6 +101,8 @@ Route::post('customer/services/<id>/offers', 'Customer/createServiceOffer')->com
 Route::post('customer/service-offers/<id>/withdraw', 'Customer/withdrawServiceOffer')->completeMatch();
 Route::post('customer/service-redemptions/<id>/start', 'Customer/restartService')->completeMatch();
 Route::post('customer/service-redemptions/<id>/cancel', 'Customer/cancelService')->completeMatch();
+Route::post('customer/service-redemptions/<id>/complete', 'Customer/confirmServiceCompletion')->completeMatch();
+Route::post('customer/service-redemptions/<id>/completion/reject', 'Customer/rejectServiceCompletion')->completeMatch();
 Route::post('customer/service-redemptions/<id>/adjustments/<adjustment_id>/accept', 'Customer/acceptServiceAdjustment')->completeMatch();
 Route::post('customer/service-redemptions/<id>/adjustments/<adjustment_id>/reject', 'Customer/rejectServiceAdjustment')->completeMatch();
 Route::get('customer/cards', 'Customer/cards')->completeMatch();

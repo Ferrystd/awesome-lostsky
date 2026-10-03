@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { friendlyError } from '@lostsky/api/client'
+import LsButton from '@lostsky/ui/components/LsButton.vue'
+import { feedback } from '@lostsky/ui/feedback'
 import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import { useQuery } from '@tanstack/vue-query'
-import { NButton, NInput, NInputNumber, NSelect } from 'naive-ui'
+import { NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { formatMoney, shopApi } from '../lib'
@@ -12,7 +14,7 @@ import { purchaseInputFields, purchaseDefaults, purchaseValuesValid, serializePu
 const route = useRoute(); const router = useRouter(); const id = Number(route.params.id)
 const product = useQuery({ queryKey: ['shop-product', id], queryFn: () => shopApi.product(id) })
 const balance = useQuery({ queryKey: ['shop-balance'], queryFn: shopApi.balance })
-const quantity = ref(1); const handlerId = ref<number | null>(null); const memo = ref(''); const pending = ref(false); const error = ref('')
+const quantity = ref<number | null>(1); const handlerId = ref<number | null>(null); const memo = ref(''); const pending = ref(false); const error = ref('')
 const requestedVariant = Number(route.query.variant)
 const variantId = ref<number | null>(Number.isInteger(requestedVariant) && requestedVariant > 0 ? requestedVariant : null)
 const variants = computed(() => product.data.value?.variants ?? [])
@@ -29,7 +31,7 @@ watch(() => product.data.value, data => {
   const rows = data.variants ?? []
   if (!rows.some(row => row.id === variantId.value)) variantId.value = rows.length === 1 ? rows[0].id : null
 }, { immediate: true })
-const total = computed(() => Number(selectedProduct.value?.price ?? 0) * quantity.value)
+const total = computed(() => Number(selectedProduct.value?.price ?? 0) * (quantity.value ?? 0))
 const insufficient = computed(() => Number(balance.data.value?.balance ?? 0) < total.value)
 const handlers = computed(() => !selectedProduct.value?.kind || selectedProduct.value.kind === 1 ? selectedProduct.value?.handlers ?? [] : [])
 const needsHandler = computed(() => handlers.value.length > 1)
@@ -38,8 +40,22 @@ const handlerGroups = computed(() => selectedProduct.value?.handler_groups ?? []
 watch(variantId, () => { handlerId.value = null; productHandlers.value = {}; error.value = '' })
 const missingProductHandler = computed(() => handlerGroups.value.some(group => group.handlers.length > 1 && !productHandlers.value[group.product_id]))
 
+const submitReason = computed(() => {
+  if (pending.value) return '正在提交订单，请稍候'
+  if (!selectedProduct.value) return '请选择购买规格'
+  if (purchaseUploading.value) return '购买资料正在上传，请稍候'
+  if (!purchaseValid.value) return '请补齐购买资料必填项'
+  if (quantity.value == null) return '请填写购买数量'
+  if (!Number.isInteger(quantity.value) || quantity.value < 1 || quantity.value > 999) return '购买数量须为 1 至 999 的整数'
+  if (insufficient.value) return '余额不足，请联系商家充值后再购买'
+  if (missingProductHandler.value) return '请选择套餐商品的接单人'
+  if (needsHandler.value && !handlerId.value) return '请选择接单人'
+  return ''
+})
+
 async function submit() {
-  if (pending.value || !selectedProduct.value || !purchaseValid.value || !quantity.value || insufficient.value || missingProductHandler.value || (needsHandler.value && !handlerId.value)) return
+  if (submitReason.value) return feedback.info(submitReason.value)
+  if (!selectedProduct.value || quantity.value == null) return
   pending.value = true; error.value = ''
   try {
     const selections = Object.fromEntries(Object.entries(productHandlers.value).filter((entry): entry is [string, number] => entry[1] !== null))
@@ -65,7 +81,7 @@ async function submit() {
         <label v-for="group in handlerGroups.filter(group => group.handlers.length)" :key="group.product_id">{{ group.name }}接单人<LsEntitySelect v-model="productHandlers[group.product_id]" :entities="group.handlers" :placeholder="group.handlers.length > 1 ? '请选择接单人' : '默认接单人'" clearable /></label>
         <label>给商家的备注<NInput v-model:value="memo" type="textarea" maxlength="1000" show-count placeholder="可选" /></label>
       </div>
-      <aside class="checkout-summary"><div><span>当前余额</span><strong>{{ formatMoney(balance.data.value.balance) }}</strong></div><div><span>应付总额</span><strong>{{ formatMoney(total) }}</strong></div><p v-if="insufficient" class="form-error" role="alert">余额不足，请联系商家充值后再购买。</p><p v-if="error" class="form-error" role="alert">{{ error }}</p><NButton attr-type="submit" type="primary" size="large" block :loading="pending" :disabled="!selectedProduct || !purchaseValid || !quantity || insufficient || missingProductHandler || (needsHandler && !handlerId)">使用余额购买</NButton><RouterLink :to="`/product/${id}`">返回商品详情</RouterLink></aside>
+      <aside class="checkout-summary"><div><span>当前余额</span><strong>{{ formatMoney(balance.data.value.balance) }}</strong></div><div><span>应付总额</span><strong>{{ formatMoney(total) }}</strong></div><p v-if="insufficient" class="form-error" role="alert">余额不足，请联系商家充值后再购买。</p><p v-if="error" class="form-error" role="alert">{{ error }}</p><LsButton type="submit" size="lg" block :loading="pending" :disabled="Boolean(submitReason)" :disabled-reason="submitReason">使用余额购买</LsButton><RouterLink :to="`/product/${id}`">返回商品详情</RouterLink></aside>
     </form>
   </section>
 </template>

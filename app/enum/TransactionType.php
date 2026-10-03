@@ -13,6 +13,7 @@ enum TransactionType: int implements EnumTransform
     case ServiceRedemption = 4;
     case ServiceAdjustmentReceipt = 5;
     case ServiceAdjustmentPerformance = 6;
+    case UnusedServiceSettlement = 7;
 
     public function value(): string
     {
@@ -23,6 +24,7 @@ enum TransactionType: int implements EnumTransform
             self::ServiceRedemption => '服务核销',
             self::ServiceAdjustmentReceipt => '履约加价收款',
             self::ServiceAdjustmentPerformance => '履约加价业绩',
+            self::UnusedServiceSettlement => '未使用权益结单',
         };
     }
 }

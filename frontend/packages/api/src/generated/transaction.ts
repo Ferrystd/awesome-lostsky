@@ -504,8 +504,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * 当前接单 Entity 完成自己的任务
-         * @description 接单字段在领取任务时逐份填写；完成操作只允许当前 acting_entity 完成 handler_entity_id 为自身的核销，不要求 service.redemption.manage。field_values 仅为兼容既有任务保留。
+         * 当前接单 Entity 请求顾客确认结单
+         * @description 接单字段在领取任务时逐份填写；请求只允许当前 acting_entity 操作 handler_entity_id 为自身的核销，不立即消耗权益；重复请求保留首次起点，不要求 service.redemption.manage。field_values 仅为兼容既有任务保留。
          */
         post: operations["completePersonalService"];
         delete?: never;
@@ -793,6 +793,26 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        UnusedEntitlementClock: {
+            /** @description 权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。 */
+            unused_auto_complete_after_minutes?: number | null;
+            /** @description 权益入账时间加未使用时限；预占不受影响。 */
+            unused_auto_complete_due_at?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        ServiceCompletionState: {
+            /** @description 接单人请求结单Unix秒；null表示未请求或已拒绝。 */
+            completion_requested_at?: number | null;
+            /** @description 请求时间加确认时限；时限关闭时null。 */
+            completion_due_at?: number | null;
+            /** @enum {string} */
+            settlement_kind?: "service" | "unused";
+            settled_handler_cut?: string;
+            settled_team_cut?: string;
+        } & {
+            [key: string]: unknown;
+        };
         AnyObject: {
             [key: string]: unknown;
         };
@@ -1199,7 +1219,7 @@ export interface components {
             /** Format: int64 */
             customer_id?: number | null;
             /**
-             * @description 1=商城下单, 2=记账登记, 3=服务包收款, 4=服务核销, 5=履约加价收款, 6=履约加价业绩
+             * @description 1=商城下单, 2=记账登记, 3=服务包收款, 4=服务核销, 5=履约加价收款, 6=履约加价业绩, 7=未使用权益结单（无接单人，接单分成归团队，不重复收款）
              * @enum {integer}
              */
             type?: 1 | 2 | 3 | 4 | 5 | 6;
@@ -2325,7 +2345,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 服务已核销 */
+            /** @description 结单请求已提交顾客确认 */
             200: {
                 headers: {
                     [name: string]: unknown;

@@ -36,11 +36,15 @@ const access = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: (
 const action = useMutation({
   mutationFn: (input: { suffix: string; body?: Record<string, unknown>; opensTask?: boolean }) => {
     const base = kind.value === 'offer' ? `/personal/service-offers/${id.value}` : `/personal/services/${id.value}`
-    return api.post<{ id?: number }>(`${base}/${input.suffix}`, input.body ?? {}).then(result => ({ result, opensTask: input.opensTask }))
+    return api.post<{ id?: number }>(`${base}/${input.suffix}`, input.body ?? {}).then(result => ({ result, opensTask: input.opensTask, suffix: input.suffix }))
   },
-  onSuccess: ({ result, opensTask }) => opensTask && result?.id
-    ? router.push(`/personal/services/${result.id}`)
-    : router.push('/personal/services'),
+  onSuccess: async ({ result, opensTask, suffix }) => {
+    if (suffix === 'complete') {
+      feedback.success('结单请求已提交，请等待顾客确认')
+      await query.refetch()
+    } else if (opensTask && result?.id) await router.push(`/personal/services/${result.id}`)
+    else await router.push('/personal/services')
+  },
 })
 const row = computed(() => query.data.value as (ServiceAssignmentOffer & ServiceRedemption) | undefined)
 const customerName = computed(() => (row.value?.customer as any)?.profile?.name || (row.value?.customer as any)?.name || '顾客')
@@ -65,9 +69,10 @@ const claimStatus = computed(() => kind.value === 'offer'
     ? { label: '待接单', type: 'default' as const }
     : { label: '已接单', type: 'info' as const })
 const rowStatus = computed(() => serviceStatusCode(row.value?.status_code ?? row.value?.status))
+const awaitingConfirmation = computed(() => rowStatus.value === 2 && Boolean(row.value?.completion_requested_at))
 const redemptionStatus = computed(() => rowStatus.value === 3
   ? { label: '已结单', type: 'success' as const }
-  : { label: '未结单', type: 'warning' as const })
+  : { label: awaitingConfirmation.value ? '待顾客确认' : '未结单', type: 'warning' as const })
 const money = (value: unknown) => `¥${Number(value || 0).toFixed(2)}`
 const dateTime = (value: number | null | undefined) => value ? new Date(value * 1000).toLocaleString() : '—'
 const handlerName = computed(() => kind.value === 'assigned' ? row.value?.handler?.name || '当前人员' : '—')
@@ -115,7 +120,11 @@ const acceptOffer = async () => {
   action.mutate({ suffix: 'accept', body: { field_values: resourcePayload() }, opensTask: true })
 }
 const claimTask = () => action.mutate({ suffix: 'claim', body: { quantity: claimQuantity.value, field_values: resourcePayload() }, opensTask: true })
-const completeTask = () => action.mutate({suffix:'complete', body: needsLegacyClaimFields.value ? { field_values: resourcePayload() } : {}})
+const completeReason = computed(() => awaitingConfirmation.value ? '结单请求已提交，请等待顾客确认' : needsLegacyClaimFields.value && !claimReady.value ? '请补齐接单必填字段' : '')
+const completeTask = () => {
+  if (completeReason.value) return feedback.info(completeReason.value)
+  action.mutate({ suffix: 'complete', body: needsLegacyClaimFields.value ? { field_values: resourcePayload() } : {} })
+}
 </script>
 
 <template>
@@ -135,7 +144,7 @@ const completeTask = () => action.mutate({suffix:'complete', body: needsLegacyCl
         <dl class="summary-strip">
           <div><dt>任务编号</dt><dd>#{{ row.id }}</dd></div>
           <div><dt>履约数量</dt><dd>{{ quantityLabel }}</dd></div>
-          <div><dt>预计分成</dt><dd>{{ money(row.handler_cut) }}</dd></div>
+          <div><dt>{{ row.settlement_kind === 'unused' ? '接单实结' : '预计分成' }}</dt><dd>{{ money(row.settlement_kind === 'unused' ? row.settled_handler_cut ?? 0 : row.handler_cut) }}</dd></div>
           <div><dt>任务来源</dt><dd>{{ taskSource }}</dd></div>
           <div><dt>接单人</dt><dd>{{ handlerName }}</dd></div>
         </dl>
@@ -179,8 +188,8 @@ const completeTask = () => action.mutate({suffix:'complete', body: needsLegacyCl
       </div>
 
       <template v-if="kind === 'assigned' && rowStatus === 2">
-        <section class="completion-section"><div class="detail-heading"><h2>完成核销</h2><p>{{ needsLegacyClaimFields ? '补齐旧任务的接单字段后即可核销。' : '接单字段已保存，确认服务完成即可核销。' }}</p></div><LsButton :disabled="needsLegacyClaimFields && !claimReady" :loading="action.isPending.value" @click="completeTask">确认已核销</LsButton></section>
-        <div class="return-form"><LsField label="退回原因" for-id="personal-return-reason" required><NInput id="personal-return-reason" v-model:value="reason" type="textarea" maxlength="500" show-count placeholder="说明无法继续履约的原因" /></LsField><LsButton variant="secondary" :disabled="!reason.trim()" :loading="action.isPending.value" @click="action.mutate({ suffix: 'return', body: { reason } })">退回公开接单池</LsButton></div>
+        <section class="completion-section"><div class="detail-heading"><h2>{{ awaitingConfirmation ? '等待顾客确认' : '请求结单' }}</h2><p v-if="awaitingConfirmation">{{ row.completion_due_at ? `顾客确认截止：${dateTime(row.completion_due_at)}，逾期自动结单。` : '已提交结单请求，须由顾客手动确认。' }}</p><p v-else>{{ needsLegacyClaimFields ? '补齐旧任务的接单字段后，请顾客确认服务完成。' : '服务完成后发送结单请求，由顾客确认或拒绝。' }}</p></div><LsButton :disabled="Boolean(completeReason)" :disabled-reason="completeReason" :loading="action.isPending.value" @click="completeTask">请求结单</LsButton></section>
+        <div v-if="!awaitingConfirmation" class="return-form"><LsField label="退回原因" for-id="personal-return-reason" required><NInput id="personal-return-reason" v-model:value="reason" type="textarea" maxlength="500" show-count placeholder="说明无法继续履约的原因" /></LsField><LsButton variant="secondary" :disabled="!reason.trim()" :loading="action.isPending.value" @click="action.mutate({ suffix: 'return', body: { reason } })">退回公开接单池</LsButton></div>
       </template>
       <section v-else-if="kind === 'assigned' && rowStatus === 3" class="completed-section"><div><LsStatusTag label="已核销" type="success" /><strong>任务已经完成核销</strong><p>核销时间：{{ dateTime(row.completed_at) }}</p></div></section>
       <p v-if="action.isError.value" class="error" role="alert">{{ friendlyError(action.error.value) }}</p>

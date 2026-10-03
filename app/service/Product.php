@@ -75,6 +75,7 @@ class Product
             $result['redemption'] = [
                 'unit_name' => $service['unit_name'], 'quantity_step' => $service['quantity_step'],
                 'auto_complete_after_minutes' => $service['auto_complete_after_minutes'] ?? null,
+                'unused_auto_complete_after_minutes' => $service['unused_auto_complete_after_minutes'] ?? null,
                 'quantity' => $item->quantity, 'valid_days' => $item->valid_days,
                 'handler_entity_ids' => array_map(fn ($handler) => (int) $handler['entity_id'], $service['handlers'] ?? []),
                 'redemption_fields' => $service['redemption_fields'],
@@ -115,7 +116,7 @@ class Product
             }
             $defaults = app(PersonalPricing::class)->defaults($teamId, $money['price'] ?? 0, $money['cost'] ?? 0);
             $serviceData = array_intersect_key($configuration, array_flip([
-                'unit_name', 'quantity_step', 'auto_complete_after_minutes', 'handler_entity_ids', 'redemption_fields',
+                'unit_name', 'quantity_step', 'auto_complete_after_minutes', 'unused_auto_complete_after_minutes', 'handler_entity_ids', 'redemption_fields',
             ]));
             $serviceData = array_merge($serviceData, [
                 'name' => $data['name'] ?? '',
@@ -416,7 +417,7 @@ class Product
             throw new HttpException(422, '核销商品内部归属不匹配');
         }
         $serviceData = array_merge($service->toArray(), array_intersect_key($redemption, array_flip([
-            'unit_name', 'quantity_step', 'auto_complete_after_minutes', 'handler_entity_ids', 'redemption_fields',
+            'unit_name', 'quantity_step', 'auto_complete_after_minutes', 'unused_auto_complete_after_minutes', 'handler_entity_ids', 'redemption_fields',
         ])), [
             'name' => $configuration['name'], 'description' => $configuration['description'] ?? null,
             'default_total_price' => $configuration['price'], 'default_cost' => $configuration['cost'] ?? '0.00',

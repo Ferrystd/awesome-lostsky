@@ -98,7 +98,7 @@ const closeReturnTask = (id: number) => {
           <div class="task-summary">
             <span class="task-kind"><RadioTower :size="16" aria-hidden="true" />公开任务 #{{ row.id }}</span>
             <RouterLink class="task-title" :to="`/personal/services/available/${row.id}`"><strong>{{ row.service?.name || `任务 #${row.id}` }}</strong><ArrowUpRight :size="18" aria-hidden="true" /></RouterLink>
-            <dl class="task-metrics"><div><dt>权益量</dt><dd>{{ quantityLabel(row) }}</dd></div><div><dt>预计分成</dt><dd>{{ money(row.handler_cut) }}</dd></div></dl>
+            <dl class="task-metrics"><div><dt>权益量</dt><dd>{{ quantityLabel(row) }}</dd></div><div><dt>预计分成</dt><dd>{{ money(row.settlement_kind === 'unused' ? row.settled_handler_cut ?? 0 : row.handler_cut) }}</dd></div></dl>
           </div>
           <div class="task-customer"><span class="task-label">顾客</span><LsEntityIdentity type="customer" :name="customerName(row)" size="sm" /></div>
           <div class="task-actions"><RouterLink class="task-detail-link" :to="`/personal/services/available/${row.id}`">查看详情<ArrowUpRight :size="16" aria-hidden="true" /></RouterLink></div>
@@ -117,13 +117,13 @@ const closeReturnTask = (id: number) => {
       <div v-else class="task-list">
         <article v-for="row in assigned" :key="row.id" class="task-row">
           <div class="task-summary">
-            <span class="task-kind"><ClipboardCheck :size="16" aria-hidden="true" />接单 #{{ row.id }}<LsStatusTag :label="row.status_label || `状态 ${row.status}`" :type="row.status === 3 ? 'success' : 'warning'" /></span>
+            <span class="task-kind"><ClipboardCheck :size="16" aria-hidden="true" />接单 #{{ row.id }}<LsStatusTag :label="row.completion_requested_at && row.status === 2 ? '待顾客确认' : row.status_label || `状态 ${row.status}`" :type="row.status === 3 ? 'success' : 'warning'" /></span>
             <RouterLink class="task-title" :to="`/personal/services/${row.id}`"><strong>{{ row.service?.name || `任务 #${row.id}` }}</strong><ArrowUpRight :size="18" aria-hidden="true" /></RouterLink>
             <dl class="task-metrics"><div><dt>权益量</dt><dd>{{ quantityLabel(row) }}</dd></div><div><dt>接取时间</dt><dd>{{ dateTime(row.started_at || row.create_time) }}</dd></div></dl>
           </div>
           <div class="task-customer"><span class="task-label">顾客</span><LsEntityIdentity type="customer" :name="customerName(row)" size="sm" /></div>
-          <div v-if="row.status === 2 && !returning[row.id]" class="task-actions"><LsButton variant="secondary" :loading="acting" @click="returning[row.id] = true"><template #icon><RotateCcw :size="16" /></template>退回任务</LsButton></div>
-          <div v-if="row.status === 2 && returning[row.id]" class="return-composer">
+          <div v-if="row.status === 2 && !row.completion_requested_at && !returning[row.id]" class="task-actions"><LsButton variant="secondary" :loading="acting" @click="returning[row.id] = true"><template #icon><RotateCcw :size="16" /></template>退回任务</LsButton></div>
+          <div v-if="row.status === 2 && !row.completion_requested_at && returning[row.id]" class="return-composer">
             <div><strong>退回公开池</strong><span>说明原因后，任务会重新开放给其他接单人。</span></div>
             <NInput v-model:value="returnReasons[row.id]" placeholder="填写退回原因" maxlength="500" show-count :input-props="{ 'aria-label': '退回原因' }" />
             <div class="return-actions"><LsButton variant="ghost" :disabled="acting" @click="closeReturnTask(row.id)">取消</LsButton><LsButton variant="secondary" :disabled="!returnReasons[row.id]?.trim()" :loading="acting" @click="returnTask(row.id)">确认退回</LsButton></div>

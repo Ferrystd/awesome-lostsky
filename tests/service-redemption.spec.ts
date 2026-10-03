@@ -281,7 +281,7 @@ test('personal handler workspace confirms invitations, claims, completes and ret
     else if (/\/personal\/services\/\d+\/complete$/.test(path)) {
       personalCompletePayload = request.postDataJSON()
       const taskId = Number(path.split('/').at(-2)); const task = assigned.find(item => item.id === taskId)
-      if (task) { task.status = 3; task.completed_at = 1_785_100_000 }
+      if (task) { task.completion_requested_at = 1_785_100_000; task.completion_due_at = 1_785_103_600 }
     }
     else if (/\/personal\/service-offers\/\d+$/.test(path)) data = offers.find(item => item.id === Number(path.split('/').at(-1)))
     else if (/\/personal\/services\/available\/\d+$/.test(path)) data = available.find(item => item.id === Number(path.split('/').at(-1)))
@@ -385,13 +385,14 @@ test('personal handler workspace confirms invitations, claims, completes and ret
   await expect(page.getByText('未结单', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: '接单字段' })).toBeVisible()
   await expect(page.getByText('部分接单资料')).toBeVisible()
-  await page.getByRole('button', { name: '确认已核销' }).click()
+  await page.getByRole('button', { name: '请求结单', exact: true }).click()
   await expect.poll(() => personalCompletePayload).toEqual({})
   await page.goto('http://demo.transaction.lostsky.work:5177/personal/services/81')
-  await expect(page.getByText('已结单', { exact: true })).toBeVisible()
-  await expect(page.getByText('已核销', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('待顾客确认', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '请求结单', exact: true })).toHaveAttribute('aria-disabled', 'true')
+  await expect(page.getByText('顾客确认截止：', { exact: false })).toBeVisible()
   await expect(page.getByRole('heading', { name: '顾客字段' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '接单字段' })).toBeVisible()
   await expect(page.getByText('部分接单资料')).toBeVisible()
-  await expect(page.getByRole('button', { name: '确认已核销' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '退回公开接单池' })).toHaveCount(0)
 })

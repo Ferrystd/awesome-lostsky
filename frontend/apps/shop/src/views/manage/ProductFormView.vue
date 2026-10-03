@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ServiceCompletionSettings from '../../components/ServiceCompletionSettings.vue'
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
@@ -77,7 +78,7 @@ const form = reactive<ProductFormState>({
   handler_entity_ids: [] as number[],
 })
 const distributionRates = reactive({ handler: 80, sender: 15, customerService: 0 })
-const redemption = reactive({ unit_name: '次', quantity: 1 as number | null, quantity_step: 1 as number | null, valid_days: 0 as number | null, auto_complete_after_minutes: null as number | null })
+const redemption = reactive({ unit_name: '次', quantity: 1 as number | null, quantity_step: 1 as number | null, valid_days: 0 as number | null, unused_auto_complete_after_minutes: null as number | null, auto_complete_after_minutes: null as number | null })
 let autoCompleteDefaultApplied = false
 let autoCompleteTouched = false
 function updateAutoComplete(value: number | null) {
@@ -139,6 +140,7 @@ watch(() => detail.data.value, data => {
     redemptionFields.value = hydrateServiceRedemptionFields(data.redemption.redemption_fields)
     Object.assign(redemption, { unit_name: data.redemption.unit_name, quantity: Number(data.redemption.quantity),
       quantity_step: Number(data.redemption.quantity_step), valid_days: Number(data.redemption.valid_days),
+      unused_auto_complete_after_minutes: data.redemption.unused_auto_complete_after_minutes ?? null,
       auto_complete_after_minutes: data.redemption.auto_complete_after_minutes ?? null })
     form.handler_entity_ids = [...(data.redemption.handler_entity_ids ?? [])]
   }
@@ -329,7 +331,7 @@ const valid = computed(() => Boolean(
   && (form.kind !== 4 || (validServiceRedemptionFields(redemptionFields.value) && redemption.unit_name.trim() && finite(redemption.quantity) && (redemption.quantity as number) > 0
     && finite(redemption.quantity_step) && (redemption.quantity_step as number) > 0
     && nonNegative(redemption.valid_days) && Number.isInteger(redemption.valid_days)
-    && validAutoCompleteAfterMinutes(redemption.auto_complete_after_minutes))))),
+    && validAutoCompleteAfterMinutes(redemption.unused_auto_complete_after_minutes) && validAutoCompleteAfterMinutes(redemption.auto_complete_after_minutes))))),
 ))
 </script>
 
@@ -358,7 +360,7 @@ const valid = computed(() => Boolean(
           <p v-if="personal" class="form-intro" role="note">此商品自动归属当前已领取的人员，个人工作台不能转移归属。</p>
           <LsField label="商品类型" for-id="product-kind" required><NSelect id="product-kind" v-model:value="form.kind" :disabled="editing" :options="[{ label: '普通商品', value: 1 }, { label: '核销商品', value: 4 }, { label: '套餐', value: 2 }, { label: '卡密', value: 3 }, { label: '多规格商品', value: 5 }]" /></LsField>
           <template v-if="form.kind === 4">
-            <LsField label="自动结单时长（分钟）" for-id="product-auto-complete" hint="留空不自动结单。从开始核销起计时；撤销申请期间不结单，计时仍继续。"><NInputNumber id="product-auto-complete" :value="redemption.auto_complete_after_minutes" :min="1" :max="5256000" :precision="0" clearable placeholder="不自动结单" @update:value="updateAutoComplete" /></LsField>
+            <ServiceCompletionSettings id-prefix="product" v-model:unused-minutes="redemption.unused_auto_complete_after_minutes" :confirmation-minutes="redemption.auto_complete_after_minutes" @update:confirmation-minutes="updateAutoComplete" />
             <LsField label="计量单位" for-id="product-unit" required><NInput id="product-unit" v-model:value="redemption.unit_name" maxlength="20" /></LsField>
             <LsField label="每份核销额度" for-id="product-quota" required><NInputNumber id="product-quota" v-model:value="redemption.quantity" :min="0.0001" :precision="4" /></LsField>
             <LsField label="最小核销单位" for-id="product-step" required><NInputNumber id="product-step" v-model:value="redemption.quantity_step" :min="0.0001" :precision="4" /></LsField>

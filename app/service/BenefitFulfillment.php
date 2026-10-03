@@ -126,7 +126,7 @@ class BenefitFulfillment
             if (!$service || !$service->is_active || ($service->owner_entity_id !== null && (int) $service->owner_entity_id !== (int) $product->entity_id)) {
                 throw new HttpException(422, '商品核销配置不可用或归属不匹配');
             }
-            $values['service'] = ['id' => (int) $service->id, 'name' => (string) $service->name, 'unit_name' => (string) $service->unit_name, 'quantity_step' => (string) $service->quantity_step];
+            $values['service'] = ['id' => (int) $service->id, 'name' => (string) $service->name, 'unit_name' => (string) $service->unit_name, 'quantity_step' => (string) $service->quantity_step, 'unused_auto_complete_after_minutes' => $service->unused_auto_complete_after_minutes];
             foreach (self::MONEY_FIELDS as $field) {
                 $values['service']['default_' . $field] = (string) $service->{'default_' . $field};
             }
@@ -462,6 +462,7 @@ class BenefitFulfillment
     private function createEntitlement(array $data, BenefitPackageService $item, array $money): int
     {
         $service = $item->service;
+        $unusedMinutes = $service->unused_auto_complete_after_minutes;
         $entitlement = new TeamServiceEntitlement;
         $entitlement->save($data + $money + [
             'unit_name' => $service->unit_name ?: '次',
@@ -469,6 +470,8 @@ class BenefitFulfillment
             'granted_quantity' => $item->quantity,
             'reserved_quantity' => '0.0000',
             'consumed_quantity' => '0.0000',
+            'unused_auto_complete_after_minutes' => $unusedMinutes,
+            'unused_auto_complete_due_at' => $unusedMinutes === null ? null : time() + (int) $unusedMinutes * 60,
         ]);
         return (int) $entitlement->id;
     }

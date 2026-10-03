@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { quantityScaleForStep } from '@lostsky/shared/quantity'
+import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import { feedback } from '@lostsky/ui/feedback'
 import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -21,6 +24,7 @@ const memo = ref('')
 const error = ref('')
 const values = reactive<Record<number, Record<number, any>>>({})
 const cancelReasons = reactive<Record<number, string>>({})
+const completionReasons = reactive<Record<number, string>>({})
 const query = useQuery({ queryKey: computed(() => ['shop-service', id.value]), queryFn: () => shopApi.service(id.value) })
 const quantityScale = computed(() => quantityScaleForStep(query.data.value?.quantity_step))
 const resourceCount = computed(() => {
@@ -107,6 +111,23 @@ const cancel = useMutation({
   onSuccess: async () => { error.value = ''; await refresh() },
   onError: reason => error.value = friendlyError(reason),
 })
+const completion = useMutation({
+  mutationFn: ({ instanceId, reject }: { instanceId: number; reject: boolean }) => reject
+    ? shopApi.rejectServiceCompletion(instanceId, completionReasons[instanceId].trim())
+    : shopApi.confirmServiceCompletion(instanceId),
+  onSuccess: async (_, { instanceId, reject }) => {
+    error.value = ''
+    delete completionReasons[instanceId]
+    feedback.success(reject ? '已拒绝结单，可继续履约或申请取消' : '已确认结单')
+    await refresh()
+  },
+  onError: reason => error.value = friendlyError(reason),
+})
+function submitCompletion(instanceId: number, reject: boolean) {
+  if (completion.isPending.value) return feedback.info('正在处理结单，请稍候')
+  if (reject && !completionReasons[instanceId]?.trim()) return feedback.info('请填写拒绝结单的原因')
+  completion.mutate({ instanceId, reject })
+}
 const adjustment = useMutation({
   mutationFn: (input: { instanceId: number; adjustmentId: number; accept: boolean }) => input.accept
     ? shopApi.acceptServiceAdjustment(input.instanceId, input.adjustmentId)
@@ -150,6 +171,7 @@ const offerPending = (status: number | string) => status === 1 || status === '�
             <div data-quota="consumed"><dt><span />已核销</dt><dd>{{ Number(query.data.value.consumed_quantity).toFixed(quantityScale) }} <small>{{ query.data.value.unit_name }}</small></dd></div>
           </dl>
           <div class="quota-track" :style="quotaStyle" aria-hidden="true"><span class="consumed" /><span class="reserved" /><span class="available" /></div>
+          <p v-if="query.data.value.unused_auto_complete_due_at" class="notice">未发起核销的可用额度将在 {{ formatDate(query.data.value.unused_auto_complete_due_at) }} 自动结单，接单分成归团队；已预占额度不受影响。</p>
           <p class="quota-expiry"><CalendarClock :size="17" aria-hidden="true" /><span>有效期</span><strong>{{ query.data.value.expire_time ? formatDate(query.data.value.expire_time) : '长期有效' }}</strong></p>
         </section>
 
@@ -193,8 +215,18 @@ const offerPending = (status: number | string) => status === 1 || status === '�
         <p v-if="!query.data.value.instances?.length" class="empty">尚未发起履约。</p>
         <section v-for="instance in query.data.value.instances" :key="instance.id" class="history-row">
           <div class="history-head"><div><strong>{{ Number(instance.quantity).toFixed(quantityScale) }} {{ query.data.value.unit_name }}</strong><span>#{{ instance.id }} · {{ serviceStatus(instance.status) }} · {{ instance.handler?.name || instance.handler?.profile?.name || '未分配接单人' }}</span></div><time v-if="instance.create_time">{{ formatDate(instance.create_time) }}</time></div>
-          <div v-if="instance.adjustments?.length" class="adjustments"><div v-for="fee in instance.adjustments" :key="fee.id"><span>{{ fee.name }} · ¥{{ fee.total_price }}</span><small>{{ fee.status===1?'待确认':fee.status===2?'已确认':'已取消' }}</small><div v-if="fee.status===1 && instance.status===2" class="fee-actions"><NButton size="large" type="primary" :loading="adjustment.isPending.value" @click="adjustment.mutate({instanceId:instance.id,adjustmentId:fee.id,accept:true})">确认并支付</NButton><NButton size="large" secondary :loading="adjustment.isPending.value" @click="adjustment.mutate({instanceId:instance.id,adjustmentId:fee.id,accept:false})">拒绝</NButton></div></div></div>
-          <form v-if="instance.status===2 && !pendingCancel(instance)" class="inline-form" @submit.prevent="cancel.mutate(instance.id)"><label>取消原因<NInput v-model:value="cancelReasons[instance.id]" placeholder="例如：未通过、临时无法履约" size="large" /></label><NButton attr-type="submit" secondary type="warning" size="large" :loading="cancel.isPending.value">申请取消</NButton></form>
+          <p v-if="instance.settlement_kind === 'unused'" class="notice">未使用权益已结单，接单实结 ¥{{ instance.settled_handler_cut ?? '0.00' }}，团队实结 ¥{{ instance.settled_team_cut ?? '0.00' }}。</p>
+          <div v-if="instance.adjustments?.length" class="adjustments"><div v-for="fee in instance.adjustments" :key="fee.id"><span>{{ fee.name }} · ¥{{ fee.total_price }}</span><small>{{ fee.status===1?'待确认':fee.status===2?'已确认':'已取消' }}</small><div v-if="fee.status===1 && instance.status===2 && !instance.completion_requested_at" class="fee-actions"><NButton size="large" type="primary" :loading="adjustment.isPending.value" @click="adjustment.mutate({instanceId:instance.id,adjustmentId:fee.id,accept:true})">确认并支付</NButton><NButton size="large" secondary :loading="adjustment.isPending.value" @click="adjustment.mutate({instanceId:instance.id,adjustmentId:fee.id,accept:false})">拒绝</NButton></div></div></div>
+          <section v-if="instance.status===2 && instance.completion_requested_at" class="completion-confirmation">
+            <h3>接单人请求结单</h3>
+            <p class="notice">{{ instance.completion_due_at ? `请在 ${formatDate(instance.completion_due_at)} 前确认或拒绝，逾期自动结单。` : '请确认服务已完成；如有异议可填写原因拒绝。' }} 拒绝后可继续履约或申请取消。</p>
+            <LsButton :loading="completion.isPending.value" @click="submitCompletion(instance.id, false)">确认结单</LsButton>
+            <form class="inline-form" @submit.prevent="submitCompletion(instance.id, true)">
+              <LsField label="拒绝结单原因" :for-id="`completion-reason-${instance.id}`" required><NInput :id="`completion-reason-${instance.id}`" v-model:value="completionReasons[instance.id]" maxlength="500" placeholder="说明仍需处理的问题" /></LsField>
+              <LsButton type="submit" variant="secondary" :loading="completion.isPending.value" :disabled="!completionReasons[instance.id]?.trim()" disabled-reason="请填写拒绝结单的原因">拒绝结单</LsButton>
+            </form>
+          </section>
+          <form v-else-if="instance.status===2 && !pendingCancel(instance)" class="inline-form" @submit.prevent="cancel.mutate(instance.id)"><label>取消原因<NInput v-model:value="cancelReasons[instance.id]" placeholder="例如：未通过、临时无法履约" size="large" /></label><NButton attr-type="submit" secondary type="warning" size="large" :loading="cancel.isPending.value">申请取消</NButton></form>
           <p v-else-if="instance.status===2" class="notice">取消申请正在等待处理，期间不会改派或完成履约。</p>
           <p v-else-if="instance.status===1" class="notice">该切片额度已释放，可在上方重新发送指定邀请或发布公开任务。</p>
         </section>

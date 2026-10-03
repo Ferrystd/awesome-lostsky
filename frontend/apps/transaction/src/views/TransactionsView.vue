@@ -51,7 +51,7 @@ const query = useQuery({
 const rows = computed(() => query.data.value?.list ?? [])
 const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / filters.limit)))
 const hasFilters = computed(() => Boolean(filters.keyword || filters.type || filters.handler_entity_id || filters.customer_id || filters.range))
-const typeOptions = [{ label: '商城订单', value: 1 }, { label: '记账登记', value: 2 }, { label: '权益包收款', value: 3 }, { label: '权益核销', value: 4 }]
+const typeOptions = [{ label: '商城订单', value: 1 }, { label: '记账登记', value: 2 }, { label: '权益包收款', value: 3 }, { label: '权益核销', value: 4 }, { label: '未使用权益结单', value: 7 }]
 
 function reset() {
   Object.assign(filters, { keyword: '', type: null, handler_entity_id: null, customer_id: null, range: null, page: 1 })

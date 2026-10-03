@@ -10,7 +10,6 @@ use app\enum\WeiboOperationType;
 use app\enum\WeiboReason;
 use app\enum\WeiboTaskStatus;
 use app\model\WeiboAccount;
-use app\model\WeiboMedia;
 use app\model\WeiboOperationLog;
 use app\model\WeiboTask;
 use app\model\WeiboTaskAccount;
@@ -21,6 +20,8 @@ use app\service\WeiboOperations;
 use app\service\WeiboProtocol;
 use app\service\WeiboTasks;
 use think\queue\Job;
+use think\facade\Db;
+use think\exception\HttpException;
 
 final class RunWeiboTask
 {
@@ -33,7 +34,7 @@ final class RunWeiboTask
         $task = WeiboTask::find($taskId);
         if (!$task || $task->enumCase('status') !== WeiboTaskStatus::Active || $task->version !== $version || $task->next_run_at !== $plannedAt) { $job->delete(); return; }
         if (!app(AbilityResolver::class)->available($task->team_id, 'weibo')) {
-            $task->save(['status' => WeiboTaskStatus::BlockedAbility->value, 'block_reason' => 'ability_missing', 'next_run_at' => null, 'version' => $version + 1]);
+            if (!$this->current($task)->update(['status' => WeiboTaskStatus::BlockedAbility->value, 'block_reason' => 'ability_missing', 'next_run_at' => null, 'version' => $version + 1])) { $job->delete(); return; }
             app(Notice::class)->sendOnce($task->team_id, '微博任务已阻塞', '团队缺少微博 Ability，续期后请手动恢复任务。', "weibo:task:{$task->id}:blocked-ability:v{$version}");
             $job->delete(); return;
         }
@@ -67,6 +68,7 @@ final class RunWeiboTask
             if ($check['valid'] === true) { $selected = $id; break; }
             if ($check['valid'] === null) $hasUnknown = true;
         }
+        if (!$this->current($task)->find()) { $job->delete(); return; }
         if ($selected === null) {
             if ($hasUnknown) {
                 $log = new WeiboOperationLog;
@@ -84,7 +86,7 @@ final class RunWeiboTask
                 $this->scheduleNext($task);
                 $job->delete(); return;
             }
-            $task->save(['status' => WeiboTaskStatus::BlockedLogin->value, 'block_reason' => 'all_accounts_invalid', 'next_run_at' => null, 'version' => $version + 1]);
+            if (!$this->current($task)->update(['status' => WeiboTaskStatus::BlockedLogin->value, 'block_reason' => 'all_accounts_invalid', 'next_run_at' => null, 'version' => $version + 1])) { $job->delete(); return; }
             app(Notice::class)->sendOnce($task->team_id, '微博任务已阻塞', '所有候选账号均无法确认为有效，重新登录后请手动恢复任务。', "weibo:task:{$task->id}:blocked-login:v{$version}");
             $job->delete(); return;
         }
@@ -93,7 +95,12 @@ final class RunWeiboTask
             $payload['content'] = $task->content;
             $payload['media_ids'] = array_map(static fn(WeiboTaskMedia $relation): int => $relation->media_id, WeiboTaskMedia::where('task_id', $task->id)->order('sort', 'asc')->select()->all());
         }
-        $result = app(WeiboOperations::class)->execute($task->team_id, $task->owner_entity_id ?: null, null, $selected, $operationType, $payload, WeiboOperationSource::Schedule, $task->id, $version, $dispatchKey);
+        try {
+            $result = app(WeiboOperations::class)->execute($task->team_id, $task->owner_entity_id ?: null, null, $selected, $operationType, $payload, WeiboOperationSource::Schedule, $task->id, $version, $dispatchKey, $plannedAt);
+        } catch (HttpException $exception) {
+            if ($exception->getStatusCode() !== 409) throw $exception;
+            $job->delete(); return;
+        }
         if ($result['status'] !== WeiboExecutionStatus::Succeeded->name) app(Notice::class)->sendOnce($task->team_id, '微博任务执行失败', "原因：" . ($result['reason'] ?? WeiboReason::Unknown->name) . '。任务将继续下一周期。', "weibo:operation:{$result['id']}:failed");
         $this->scheduleNext($task);
         $job->delete();
@@ -108,8 +115,16 @@ final class RunWeiboTask
         } else {
             $next = time() + random_int($task->min_interval, $task->max_interval);
         }
-        $task->save(['next_run_at' => $next]);
-        app(WeiboTasks::class)->enqueue($task);
+        Db::transaction(function () use ($task, $next): void {
+            if (!$this->current($task)->update(['next_run_at' => $next])) return;
+            app(WeiboTasks::class)->enqueue(WeiboTask::find($task->id));
+        });
+    }
+
+    private function current(WeiboTask $task): \think\db\Query
+    {
+        return WeiboTask::where('id', $task->id)->where('status', WeiboTaskStatus::Active->value)
+            ->where('version', $task->version)->where('next_run_at', $task->next_run_at);
     }
 
     private function randomize(array $ids): array

@@ -10,6 +10,7 @@ use app\enum\WeiboReason;
 
 final class WeiboOperationLog extends Base
 {
+    protected $enumReadName = false;
     protected $type = [
         'id' => 'integer', 'team_id' => 'integer', 'owner_entity_id' => 'integer',
         'actor_entity_id' => 'integer', 'account_id' => 'integer', 'task_id' => 'integer',

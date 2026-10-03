@@ -137,6 +137,8 @@
       }
     },
     "schemas": {
+      "UnusedEntitlementClock": {"type": "object", "additionalProperties": true, "properties": {"unused_auto_complete_after_minutes": {"type": "integer", "nullable": true, "minimum": 1, "maximum": 5256000, "description": "权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。"}, "unused_auto_complete_due_at": {"type": "integer", "nullable": true, "description": "权益入账时间加未使用时限；预占不受影响。"}}},
+      "ServiceCompletionState": {"type": "object", "additionalProperties": true, "properties": {"completion_requested_at": {"type": "integer", "nullable": true, "description": "接单人请求结单Unix秒；null表示未请求或已拒绝。"}, "completion_due_at": {"type": "integer", "nullable": true, "description": "请求时间加确认时限；时限关闭时null。"}, "settlement_kind": {"type": "string", "enum": ["service", "unused"]}, "settled_handler_cut": {"type": "string"}, "settled_team_cut": {"type": "string"}}},
       "AnyObject": {
         "type": "object",
         "additionalProperties": true
@@ -501,12 +503,13 @@
             "minimum": 0,
             "description": "0 为永久；省略使用团队默认值"
           },
+          "unused_auto_complete_after_minutes": {"type": "integer", "nullable": true, "minimum": 1, "maximum": 5256000, "description": "权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。"},
           "auto_complete_after_minutes": {
             "type": "integer",
             "nullable": true,
             "minimum": 1,
             "maximum": 5256000,
-            "description": "从开始核销起连续计时；null 表示不自动结单。待处理撤销申请期间跳过结单，但不暂停或重置计时。"
+            "description": "从接单人请求结单起连续计时；null 表示须顾客或管理员确认。待处理撤销申请期间跳过结单，但不暂停或重置计时。"
           },
           "handler_entity_ids": {
             "type": "array",
@@ -1097,12 +1100,13 @@
               }
             ]
           },
+          "unused_auto_complete_after_minutes": {"type": "integer", "nullable": true, "minimum": 1, "maximum": 5256000, "description": "权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。"},
           "auto_complete_after_minutes": {
             "type": "integer",
             "nullable": true,
             "minimum": 1,
             "maximum": 5256000,
-            "description": "从开始核销起连续计时；null 表示不自动结单。"
+            "description": "从接单人请求结单起连续计时；null 表示须顾客或管理员确认。"
           },
           "default_total_price": {
             "type": "number",
@@ -5199,6 +5203,8 @@
         }
       }
     },
+    "/customer/service-redemptions/{id}/complete": {"post": {"tags": ["Customer"], "security": [{"bearerAuth": []}], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "成功"}, "403": {"description": "不属于当前顾客"}, "409": {"description": "任务没有待确认请求或状态冲突"}, "422": {"description": "拒绝原因无效"}}, "operationId": "confirmCustomerServiceCompletion", "summary": "顾客确认接单人结单请求", "description": "仅当前权益持有顾客；确认后消耗权益，重复确认仍校验归属且幂等。拒绝后清请求时间，可重提或申请取消。"}},
+    "/customer/service-redemptions/{id}/completion/reject": {"post": {"tags": ["Customer"], "security": [{"bearerAuth": []}], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "成功"}, "403": {"description": "不属于当前顾客"}, "409": {"description": "任务没有待确认请求或状态冲突"}, "422": {"description": "拒绝原因无效"}}, "operationId": "rejectCustomerServiceCompletion", "summary": "顾客拒绝结单请求并继续履约", "description": "仅当前权益持有顾客；确认后消耗权益，重复确认仍校验归属且幂等。拒绝后清请求时间，可重提或申请取消。", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["reason"], "properties": {"reason": {"type": "string", "minLength": 1}}}}}}}},
     "/customer/service-redemptions/{id}/cancel": {
       "parameters": [
         {

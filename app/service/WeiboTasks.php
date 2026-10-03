@@ -57,6 +57,8 @@ final class WeiboTasks
         $scopeEntity = $task->owner_entity_id ?: $entityId;
         $clean = $this->validate($teamId, $scopeEntity, $teamScope, $data);
         Db::transaction(function () use ($task, $clean): void {
+            $current = WeiboTask::where('id', $task->id)->lock(true)->find();
+            if (!$current || $current->version !== $task->version || $current->enumCase('status') === WeiboTaskStatus::Cancelled) throw new HttpException(409, '任务已更新，请刷新后重试');
             $task->save($clean['task'] + ['status' => WeiboTaskStatus::Paused->value, 'block_reason' => null, 'next_run_at' => null, 'version' => $task->version + 1]);
             $this->syncRelations($task->id, $clean['account_ids'], $clean['media_ids']);
         });
@@ -65,25 +67,53 @@ final class WeiboTasks
 
     public function transition(int $teamId, int $entityId, int $id, bool $teamScope, string $action): array
     {
-        $task = $this->find($teamId, $entityId, $id, $teamScope);
-        $status = $task->enumCase('status');
-        if ($action === 'cancel') $next = WeiboTaskStatus::Cancelled;
-        elseif ($action === 'pause') $next = WeiboTaskStatus::Paused;
-        elseif (in_array($action, ['start', 'resume'], true)) {
-            if ($status === WeiboTaskStatus::Cancelled) throw new HttpException(409, '已取消任务不能恢复');
-            if (!app(AbilityResolver::class)->available($teamId, 'weibo')) throw \app\exception\AccessDeniedException::ability('weibo', '微博');
-            $next = WeiboTaskStatus::Active;
-        } else throw new HttpException(422, '不支持的任务操作');
-        $version = $task->version + 1;
-        $nextRun = $next === WeiboTaskStatus::Active ? max(time(), $task->start_at) : null;
-        $task->save(['status' => $next->value, 'block_reason' => null, 'next_run_at' => $nextRun, 'version' => $version]);
-        if ($next === WeiboTaskStatus::Active) $this->enqueue($task);
-        return $this->dto($task);
+        if (in_array($action, ['start', 'resume'], true) && !app(AbilityResolver::class)->available($teamId, 'weibo')) throw \app\exception\AccessDeniedException::ability('weibo', '微博');
+        return Db::transaction(function () use ($teamId, $entityId, $id, $teamScope, $action): array {
+            $task = $this->find($teamId, $entityId, $id, $teamScope, true);
+            $status = $task->enumCase('status');
+            if ($action === 'cancel') $next = WeiboTaskStatus::Cancelled;
+            elseif ($action === 'pause') $next = WeiboTaskStatus::Paused;
+            elseif (in_array($action, ['start', 'resume'], true)) {
+                if ($status === WeiboTaskStatus::Cancelled) throw new HttpException(409, '已取消任务不能恢复');
+                $next = WeiboTaskStatus::Active;
+            } else throw new HttpException(422, '不支持的任务操作');
+            $version = $task->version + 1;
+            $nextRun = $next === WeiboTaskStatus::Active ? max(time(), $task->start_at) : null;
+            $task->save(['status' => $next->value, 'block_reason' => null, 'next_run_at' => $nextRun, 'version' => $version]);
+            if ($next === WeiboTaskStatus::Active) $this->enqueue($task);
+            return $this->dto($task);
+        });
     }
 
     public function enqueue(WeiboTask $task): void
     {
-        Queue::later(max(0, $task->next_run_at - time()), 'RunWeiboTask', ['task_id' => $task->id, 'version' => $task->version, 'planned_at' => $task->next_run_at], self::QUEUE);
+        if (config('queue.connections.database.type') !== 'database' || config('queue.connections.database.connection') !== null) throw new \RuntimeException('微博调度必须使用业务数据库的 database 队列');
+        if (!Queue::connection('database')->later(max(0, $task->next_run_at - time()), 'RunWeiboTask', ['task_id' => $task->id, 'version' => $task->version, 'planned_at' => $task->next_run_at], self::QUEUE)) throw new \RuntimeException('微博任务入队失败');
+    }
+
+    /** 补投缺失 Job，保持原 dispatch key，远端写入仍由 Worker 防重。 */
+    public function recover(?int $taskId = null): int
+    {
+        $count = 0;
+        $query = WeiboTask::where('status', WeiboTaskStatus::Active->value)->whereNotNull('next_run_at');
+        if ($taskId !== null) $query->where('id', $taskId);
+        $query->order('id')->chunk(200, function ($tasks) use (&$count): void {
+            foreach ($tasks as $snapshot) {
+                $count += Db::transaction(function () use ($snapshot): int {
+                    $task = WeiboTask::where('id', $snapshot->id)->lock(true)->find();
+                    if (!$task || $task->enumCase('status') !== WeiboTaskStatus::Active || !$task->next_run_at) return 0;
+                    $exists = Db::name(config('queue.connections.database.table'))->where('queue', self::QUEUE)
+                        ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(payload, '$.job')) = ?", ['RunWeiboTask'])
+                        ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(payload, '$.data.task_id')) = ?", [$task->id])
+                        ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(payload, '$.data.version')) = ?", [$task->version])
+                        ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(payload, '$.data.planned_at')) = ?", [$task->next_run_at])->find();
+                    if ($exists) return 0;
+                    $this->enqueue($task);
+                    return 1;
+                });
+            }
+        });
+        return $count;
     }
 
     public function dto(WeiboTask $task): array
@@ -146,11 +176,11 @@ final class WeiboTasks
         foreach ($media as $sort => $id) (new WeiboTaskMedia)->save(['task_id' => $taskId, 'media_id' => $id, 'sort' => $sort]);
     }
 
-    private function find(int $teamId, int $entityId, int $id, bool $teamScope): WeiboTask
+    private function find(int $teamId, int $entityId, int $id, bool $teamScope, bool $lock = false): WeiboTask
     {
         $query = WeiboTask::where('team_id', $teamId)->where('id', $id);
         if (!$teamScope) $query->where('owner_entity_id', $entityId);
-        $task = $query->find();
+        $task = $query->lock($lock)->find();
         if (!$task) throw new HttpException(404, '微博任务不存在');
         return $task;
     }

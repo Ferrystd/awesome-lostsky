@@ -131,6 +131,11 @@ export interface ServiceRedemptionFieldDraft extends Omit<ServiceRedemptionField
 }
 
 export interface ServiceInstance {
+  settlement_kind?: 'service' | 'unused'
+  settled_handler_cut?: string
+  settled_team_cut?: string
+  completion_requested_at?: number | null
+  completion_due_at?: number | null
   id: number
   status: 1 | 2 | 3
   ordinal: number
@@ -157,6 +162,8 @@ export interface ServiceAdjustment {
 }
 
 export interface ServiceEntitlement {
+  unused_auto_complete_after_minutes?: number | null
+  unused_auto_complete_due_at?: number | null
   id: number
   unit_name: string
   quantity_step: string
@@ -209,6 +216,7 @@ export interface ManageAccess {
 export interface ManageEntityOption { id?: number; entity_id?: number; slug: string; type?: string; entityable_type?: string; name: string; avatar?: string | null }
 export interface ManageOwnedResource { owner_entity_id?: number | null; owner?: ManageEntityOption | null }
 export interface ManageService extends ManageOwnedResource {
+  unused_auto_complete_after_minutes?: number | null
   auto_complete_after_minutes?: number | null
   id: number; team_id: number; name: string; description?: string | null; is_active: 0 | 1
   unit_name: string; quantity_step: string

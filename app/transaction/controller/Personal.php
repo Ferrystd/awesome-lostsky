@@ -169,8 +169,8 @@ final class Personal
             $id,
             $request->post('field_values/a', [])
         );
-        app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'complete', 'serviceInstance', $id);
-        return message('服务已核销');
+        app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'request_completion', 'serviceInstance', $id);
+        return message('结单请求已提交顾客确认');
     }
 
     public function service(Request $request)

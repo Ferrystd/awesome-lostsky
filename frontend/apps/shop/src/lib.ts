@@ -73,6 +73,8 @@ export const shopApi = {
   withdrawServiceOffer: (id: number, reason = '') => api.post(`/customer/service-offers/${id}/withdraw`, { reason }),
   restartService: (id: number, body: { handler_entity_id: number; memo?: string; field_values?: Array<Record<number, unknown>> }) => api.post(`/customer/service-redemptions/${id}/start`, body),
   cancelService: (id: number, reason: string) => api.post(`/customer/service-redemptions/${id}/cancel`, { reason }),
+  confirmServiceCompletion: (id: number) => api.post(`/customer/service-redemptions/${id}/complete`, {}),
+  rejectServiceCompletion: (id: number, reason: string) => api.post(`/customer/service-redemptions/${id}/completion/reject`, { reason }),
   acceptServiceAdjustment: (instanceId: number, adjustmentId: number) => api.post(`/customer/service-redemptions/${instanceId}/adjustments/${adjustmentId}/accept`, {}),
   rejectServiceAdjustment: (instanceId: number, adjustmentId: number) => api.post(`/customer/service-redemptions/${instanceId}/adjustments/${adjustmentId}/reject`, {}),
   cards: () => api.get<RedemptionCard[]>('/customer/cards'),

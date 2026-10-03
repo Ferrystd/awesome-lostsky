@@ -284,6 +284,26 @@ function setRolesDirty(value: boolean) {
 }
 
 useUnsavedChangesGuard(hasUnsavedChanges)
+
+const submitReason = computed(() => {
+  if (editing.value ? !canEditProfile.value : !canInvite.value) return permissionReason(editing.value ? 'team.member.update' : 'team.member.invite')
+  if (save.isPending.value) return '正在保存成员，请稍候'
+  if (uploading.value) return '文件正在上传，请稍候'
+  if (editing.value) return form.nickname.trim() ? '' : '请填写成员昵称'
+  if (!form.join_code.trim()) return '请填写个人入队码'
+  if (!validJoinCode.value) return '请填写有效的 20 位个人入队码'
+  if (fillJoinForm.value) {
+    if (joinForm.isError.value) return '入职表单加载失败，请稍后再试或关闭代填'
+    if (!joinForm.isSuccess.value || joinForm.isFetching.value) return '正在读取入职表单，请稍候'
+    if (!joinFormReady.value) return '请补齐入职表单必填项'
+  }
+  return ''
+})
+
+function submit() {
+  if (submitReason.value) return feedback.info(submitReason.value)
+  save.mutate()
+}
 </script>
 
 <template>
@@ -292,13 +312,13 @@ useUnsavedChangesGuard(hasUnsavedChanges)
       <template #actions>
         <LsFormActions class="member-primary-actions">
           <LsButton type="button" variant="secondary" @click="router.push('/members')">取消</LsButton>
-          <LsPagePrimaryAction :icon="editing ? Save : UserPlus" :label="editing ? '保存成员' : '添加成员'" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="(editing ? !canEditProfile || !form.nickname.trim() : !canInvite || !validJoinCode || !joinFormReady) || Boolean(uploading)" :disabled-reason="editing ? (!canEditProfile ? permissionReason('team.member.update') : undefined) : (!canInvite ? permissionReason('team.member.invite') : undefined)" />
+          <LsPagePrimaryAction :icon="editing ? Save : UserPlus" :label="editing ? '保存成员' : '添加成员'" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason" />
         </LsFormActions>
       </template>
     </AdminPageHeader>
 
     <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
-    <form v-else id="member-profile-form" class="member-form" @submit.prevent="!save.isPending.value && !uploading && (editing ? canEditProfile : canInvite && validJoinCode && joinFormReady) && save.mutate()">
+    <form v-else id="member-profile-form" class="member-form" @submit.prevent="submit">
       <LsPanel v-if="!editing">
         <NFlex vertical size="large">
         <LsField label="个人入队码" for-id="member-join-code" hint="请对方在账号的团队选择页生成入队码，30 分钟内有效，成功加入后失效。" required><LsInput id="member-join-code" v-model="form.join_code" :disabled="save.isPending.value" autocomplete="off" spellcheck="false" placeholder="粘贴对方的个人入队码" required /></LsField>

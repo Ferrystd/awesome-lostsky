@@ -13,9 +13,15 @@ describe('automatic completion configuration', () => {
     draft.name = '小时'
     draft.kind = 4
     expect(draft.redemption?.auto_complete_after_minutes).toBe(60)
+    expect(draft.redemption?.unused_auto_complete_after_minutes).toBeNull()
+    draft.redemption!.unused_auto_complete_after_minutes = 120
     draft.redemption!.auto_complete_after_minutes = null
     expect(validProductVariant(draft)).toBe(true)
     expect(serializeProductVariant(draft).redemption?.auto_complete_after_minutes).toBeNull()
+    expect(serializeProductVariant(draft).redemption?.unused_auto_complete_after_minutes).toBe(120)
+    draft.redemption!.unused_auto_complete_after_minutes = 0
+    expect(validProductVariant(draft)).toBe(false)
+    draft.redemption!.unused_auto_complete_after_minutes = null
     draft.redemption!.auto_complete_after_minutes = 0
     expect(validProductVariant(draft)).toBe(false)
   })
@@ -35,9 +41,14 @@ describe('automatic completion configuration', () => {
       expect(source).toContain('!autoCompleteTouched')
       expect(source).toContain('autoCompleteDefaultApplied = true')
       expect(source).toContain('data.redemption.auto_complete_after_minutes ?? null'.replace('data.redemption', path.includes('Product') ? 'data.redemption' : 'data'))
-      expect(source).toContain('clearable placeholder="不自动结单"')
+      expect(source).toContain('<ServiceCompletionSettings')
+      expect(source).toContain('unused_auto_complete_after_minutes')
       expect(source).toContain('validAutoCompleteAfterMinutes(')
     }
+    const controls = readFileSync(new URL('./components/ServiceCompletionSettings.vue', import.meta.url), 'utf8')
+    expect(controls).toContain('从购买或获赠权益起计时')
+    expect(controls).toContain('从接单人请求结单起计时')
+    expect(controls).toContain('clearable placeholder="不自动结单"')
     const settings = readFileSync(new URL('../../team/src/views/SettingsView.vue', import.meta.url), 'utf8')
     expect(settings).toContain(':clearable="setting.nullable === true"')
     expect(settings).toContain('=== null ? null : Number(')

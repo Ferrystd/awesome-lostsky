@@ -129,7 +129,7 @@ return [
                 'type' => 'integer', 'control' => 'number', 'default' => 30, 'min' => 0, 'max' => 3650, 'order' => 40,
             ],
             'default_auto_complete_after_minutes' => [
-                'label' => '默认自动结单时长（分钟）', 'description' => '新建核销商品、规格或服务时默认填入；从开始核销起连续计时，留空则不自动结单。',
+                'label' => '默认结单确认时限（分钟）', 'description' => '新建核销商品、规格或服务时默认填入；从接单人请求结单起连续计时，留空则须顾客或管理员确认。',
                 'type' => 'integer', 'control' => 'number', 'default' => null, 'nullable' => true,
                 'min' => 1, 'max' => 5256000, 'step' => 1, 'order' => 45,
             ],

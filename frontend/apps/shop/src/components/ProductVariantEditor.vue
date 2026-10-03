@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ServiceCompletionSettings from './ServiceCompletionSettings.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -66,7 +67,7 @@ watch(redemptionFields, fields => {
   if (draft.value.redemption) draft.value.redemption.redemption_fields = serializeServiceRedemptionFields(fields)
 }, { deep: true })
 watch(() => draft.value.kind, kind => {
-  if (kind === 4) draft.value.redemption ??= { unit_name: '次', quantity: '1', quantity_step: '1', valid_days: 0, auto_complete_after_minutes: null, handler_entity_ids: [], redemption_fields: [] }
+  if (kind === 4) draft.value.redemption ??= { unit_name: '次', quantity: '1', quantity_step: '1', valid_days: 0, auto_complete_after_minutes: null, unused_auto_complete_after_minutes: null, handler_entity_ids: [], redemption_fields: [] }
   if (kind === 2 || kind === 3) draft.value.items ??= []
 }, { immediate: true })
 </script>
@@ -82,7 +83,7 @@ watch(() => draft.value.kind, kind => {
   </LsFormSection>
   <ServiceFieldsEditor v-model="purchaseFields" purpose="purchase" />
   <LsFormSection v-if="draft.kind === 4 && draft.redemption" title="规格核销配置">
-    <LsField label="自动结单时长（分钟）" :for-id="`${prefix}-auto-complete`" hint="留空不自动结单。从开始核销起计时；撤销申请期间不结单，计时仍继续。"><NInputNumber :id="`${prefix}-auto-complete`" :value="draft.redemption.auto_complete_after_minutes ?? null" :min="1" :max="5256000" :precision="0" clearable placeholder="不自动结单" @update:value="draft.redemption.auto_complete_after_minutes = $event" /></LsField>
+    <ServiceCompletionSettings :id-prefix="prefix" v-model:unused-minutes="draft.redemption.unused_auto_complete_after_minutes" v-model:confirmation-minutes="draft.redemption.auto_complete_after_minutes" />
     <LsField label="计量单位" :for-id="`${prefix}-unit`" required><NInput :id="`${prefix}-unit`" v-model:value="draft.redemption.unit_name" maxlength="20" /></LsField>
     <LsField label="每份核销额度" :for-id="`${prefix}-quota`" required><NInputNumber :id="`${prefix}-quota`" :value="amount(draft.redemption.quantity)" :min="0.0001" :precision="4" @update:value="draft.redemption.quantity = $event === null ? '' : String($event)" /></LsField>
     <LsField label="最小核销单位" :for-id="`${prefix}-step`" required><NInputNumber :id="`${prefix}-step`" :value="amount(draft.redemption.quantity_step)" :min="0.0001" :precision="4" @update:value="draft.redemption.quantity_step = $event === null ? '' : String($event)" /></LsField>

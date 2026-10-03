@@ -170,6 +170,8 @@ stopwaitsecs=120
 
 ### Weibo Database Worker
 
+开启/恢复与下一周期投递使用业务事务内的 `jobs` 插入；必须保留 `queue.connections.database.connection = null`，`jobs` 与业务表使用同一数据库的 InnoDB 事务。入队失败不提交 Active 或新的 plannedAt，当前 Job 保留供 Worker 重试；已有操作日志阻止远端重写。
+
 已有库按升级起点检查 `sql/patches/20260825_weibo_application.sql` 与 `sql/patches/20260826_weibo_checkin_tasks.sql`；新建库直接使用当前 Schema，不重放历史补丁。依赖、配置和数据库就绪后，两类任务共用单独的 Supervisor 进程和 `weibo-schedule` 队列：
 
 ```ini
@@ -184,6 +186,8 @@ stopwaitsecs=120
 ```
 
 该 Worker 使用 `--tries=0`，未捕获异常会由队列继续重试；任务代码对已获得远端结果或远端结果不明的情况会落库并删除当前 Job，不应人工重发同一写操作。每次执行重新校验 Weibo Ability；缺失时不访问微博写接口。每日签到会在请求前按当天调度日志去重，失败也只在次日再次执行。部署后重启队列并确认 `lostsky-weibo` 为 `RUNNING`。
+
+部署并重启 Worker 后执行 `php think weibo:tasks-recover`，并由服务器调度器每分钟执行一次该命令；它输出 `enqueued` 计数，只为缺失 Job 的 Active 任务补投原 dispatch key，不重投已有待执行或已领取 Job。用于历史缺口和异常清除 Job 后的恢复，不直接调用微博写接口。远端结果不明仍由 Worker 转 unknown 后进入下一周期。命令不会自动安装计划任务，必须核验目标环境的定时调度与消费者。
 
 ### 微博点单信息流采集
 
@@ -360,7 +364,7 @@ Admin 使用同一静态发布结构，将 `admin.lostsky.work` 指向 `/www/dep
 | 聊天事件与 Webhook | 进程管理器常驻 `php think chat:worker` | 检查进程和投递结果；发布后由进程管理器重启，`queue:restart` 不管理此进程 |
 | Ability 到期 | `ability-expiration` Database Worker | 旧 Grant 补投后检查消费者；发布后 `queue:restart` |
 | 微博调度 | `weibo-schedule` Database Worker | 检查消费者与任务日志；远端结果不明时不人工重发写请求 |
-| 自动结单、生命周期与外部补偿清理 | 调度器定期执行 `php think system:cleanup` | 检查 `autoCompletion.completed/failed`、其他 JSON 计数和运行日志；保留期来自 `config/cleanup.php` |
+| 自动结单、生命周期与外部补偿清理 | 调度器定期执行 `php think system:cleanup` | 检查 `autoCompletion.completed/failed`（请求确认超时）与 `unusedCompletion.completed/failed`（未使用权益超时）、其他 JSON 计数和运行日志；保留期来自 `config/cleanup.php` |
 | 聊天保留策略 | 调度器定期执行 `php think chat:cleanup` | 检查临时会话关闭与消息清理结果，消息保留期来自 Team Chat 设置 `retention_days` |
 
 周期按目标环境的数据量和保留要求确定并写入部署配置；命令不会自动安装计划任务。清理可能删除数据或执行外部补偿，先确认目标环境和保留策略。命令边界见[控制台命令](console.md)。
@@ -377,4 +381,8 @@ php think version
 - `.env` 注释使用 `;`，避免复杂内容触发解析警告。
 - Packagist 访问缓慢时可配置可信的 Composer 镜像源。
 - 接口返回 `404` 时，先检查多应用依赖是否完整，再运行 `php think clear`。
+
+## 核销两套超时规则升级（2026-10-04）
+
+按既有数据库升级顺序完成 `20260921_service_auto_complete.sql`，随后依次执行 `sql/patches/20261004_service_completion_confirmation.sql` 与 `sql/patches/20261004_unused_service_settlement.sql`。新补丁可重复执行；确认新增 `completion_requested_at`、权益未使用时限及期限、`settlement_kind`，并检查自动确认索引引用请求时间。部署后旧处理中任务的请求时间保持空，不能把旧 `started_at` 回填成请求时间；旧权益未使用时限为空，不追溯启动惩罚结单。两种规则均由现有 `php think system:cleanup` 调度执行，分别检查 `autoCompletion` 与 `unusedCompletion` 的 completed/failed。先确认目标库，备份后执行补丁；上线复核顾客拒绝/确认入口与商品两项时限同时发布。
 - 出现跨域错误时，先确认请求已进入 ThinkPHP，而不是由 Nginx 提前返回；边界说明见 [CORS 文档](../architecture/cors.md)。

@@ -48,6 +48,11 @@ export interface ServiceRedemptionResource {
 }
 export type ServiceCustomer = Customer & { profile?: { name?: string | null } | null; name?: string | null }
 export interface ServiceRedemption {
+  settlement_kind?: 'service' | 'unused'
+  settled_handler_cut?: string
+  settled_team_cut?: string
+  completion_requested_at?: number | null
+  completion_due_at?: number | null
   id: number; status: 1 | 2 | 3 | string; status_code?: 1 | 2 | 3; expire_time: number; started_at?: number | null; completed_at?: number | null
   quantity: string; create_time?: number; status_label?: string; handler_cut?: string; memo?: string | null
   entitlement?: { id?: number; unit_name?: string; quantity_step?: string } | null

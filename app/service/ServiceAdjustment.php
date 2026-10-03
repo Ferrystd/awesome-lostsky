@@ -27,6 +27,7 @@ class ServiceAdjustment
             if ($instance->enumCase('status') !== ServiceStatus::Processing) {
                 throw new HttpException(409, '只有核销中的履约可以申请加价');
             }
+            if ($instance->completion_requested_at !== null) throw new HttpException(409, '结单请求待顾客确认时不能申请加价');
             if (TeamServiceCancelRequest::where('service_instance_id', $instanceId)
                 ->where('status', ServiceCancelStatus::Pending->value)->lock(true)->find()) {
                 throw new HttpException(409, '存在待处理取消申请时不能申请加价');

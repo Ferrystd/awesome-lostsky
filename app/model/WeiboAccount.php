@@ -7,10 +7,11 @@ use app\enum\WeiboAccountHealth;
 
 final class WeiboAccount extends Base
 {
+    protected $enumReadName = false;
     protected $schema = [
         'id' => 'int', 'phone' => 'string', 'uid' => 'string', 'gsid' => 'string',
         'from_value' => 'string', 'screen_name' => 'string', 'oauth_token' => 'string',
-        'cookie_json' => 'json', 'user_json' => 'json', 'health' => 'int',
+        'cookie_json' => 'json', 'user_json' => 'json', 'health' => WeiboAccountHealth::class,
         'checked_at' => 'int', 'create_time' => 'int', 'update_time' => 'int', 'delete_time' => 'int',
     ];
     protected $type = [

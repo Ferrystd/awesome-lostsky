@@ -23,7 +23,8 @@ final class WeiboOperations
         WeiboOperationSource $source = WeiboOperationSource::Manual,
         ?int $taskId = null,
         ?int $taskVersion = null,
-        ?string $dispatchKey = null
+        ?string $dispatchKey = null,
+        ?int $plannedAt = null
     ): array {
         if (!app(AbilityResolver::class)->available($teamId, 'weibo')) throw \app\exception\AccessDeniedException::ability('weibo', '微博');
         $dispatchKey ??= 'manual:' . bin2hex(random_bytes(20));
@@ -34,7 +35,14 @@ final class WeiboOperations
         $topic = in_array($type, [WeiboOperationType::Post, WeiboOperationType::Checkin], true) ? $this->topic($payload) : null;
         $contentSummary = $type === WeiboOperationType::Checkin ? ($topic['display_tag'] ?? $topic['name'] ?? null) : $content;
         $targetId = $type === WeiboOperationType::Checkin ? null : ($payload['status_id'] ?? null);
-        $log = Db::transaction(function () use ($dispatchKey, $teamId, $ownerEntityId, $actorEntityId, $accountId, $taskId, $taskVersion, $type, $source, $contentSummary, $targetId, $mediaIds, $payload): WeiboOperationLog {
+        $claimed = false;
+        $log = Db::transaction(function () use ($dispatchKey, $teamId, $ownerEntityId, $actorEntityId, $accountId, $taskId, $taskVersion, $plannedAt, $type, $source, $contentSummary, $targetId, $mediaIds, $payload, &$claimed): WeiboOperationLog {
+            if ($source === WeiboOperationSource::Schedule) {
+                $task = \app\model\WeiboTask::where('id', $taskId)->lock(true)->find();
+                if (!$task || $task->team_id !== $teamId || $task->enumCase('status') !== \app\enum\WeiboTaskStatus::Active || $task->version !== $taskVersion || $task->next_run_at !== $plannedAt) throw new \think\exception\HttpException(409, '任务调度已变更');
+                $existing = WeiboOperationLog::where('dispatch_key', $dispatchKey)->find();
+                if ($existing) return $existing;
+            }
             $log = new WeiboOperationLog;
             $log->save([
                 'dispatch_key' => $dispatchKey, 'team_id' => $teamId, 'owner_entity_id' => $ownerEntityId,
@@ -45,11 +53,15 @@ final class WeiboOperations
                 'media_summary' => isset($payload['media_ids']) ? ['count' => count($mediaIds), 'ids' => $mediaIds] : null,
                 'started_at' => time(),
             ]);
+            $claimed = true;
             return $log;
         });
+        if (!$claimed) return $this->dto($log);
         $account = app(WeiboAccounts::class)->bound($teamId, $ownerEntityId ?? $actorEntityId ?? 0, $accountId, $ownerEntityId === null);
         try {
             $protocol = app(WeiboProtocol::class);
+            if ($source === WeiboOperationSource::Schedule && !\app\model\WeiboTask::where('id', $taskId)
+                ->where('status', \app\enum\WeiboTaskStatus::Active->value)->where('version', $taskVersion)->where('next_run_at', $plannedAt)->find()) throw new \think\exception\HttpException(409, '任务调度已变更，本周期未调用远端写接口');
             $result = match ($type) {
                 WeiboOperationType::Post => $protocol->post($account, $topic, $this->requiredText($payload, 'content'), $this->pids($teamId, $ownerEntityId, $mediaIds)),
                 WeiboOperationType::Like => $protocol->like($account, $this->requiredText($payload, 'status_id')),

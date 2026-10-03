@@ -132,6 +132,9 @@ final class EntitlementManagement
         $autoCompleteAfterMinutes = $this->normalizeAutoCompleteAfterMinutes(
             $data['auto_complete_after_minutes'] ?? null
         );
+        $unusedAutoCompleteAfterMinutes = array_key_exists('unused_auto_complete_after_minutes', $data)
+            ? $this->normalizeAutoCompleteAfterMinutes($data['unused_auto_complete_after_minutes'])
+            : ($existingService?->unused_auto_complete_after_minutes ?? null);
         $money = [];
         foreach (['default_total_price', 'default_cost', 'default_handler_cut', 'default_sender_cut', 'default_cs_cut'] as $field) {
             $value = $data[$field] ?? 0;
@@ -152,7 +155,7 @@ final class EntitlementManagement
         $redemptionFields = is_array($data['redemption_fields'] ?? null) ? $data['redemption_fields'] : [];
         if ($hasRedemptionFields && !is_array($data['redemption_fields'])) throw new HttpException(422, '核销字段格式无效');
 
-        return Db::transaction(function () use ($teamId, $id, $data, $name, $unitName, $quantityStep, $autoCompleteAfterMinutes, $money, $handlerIds, $hasHandlers, $redemptionFields, $hasRedemptionFields, $ownerEntityId) {
+        return Db::transaction(function () use ($teamId, $id, $data, $name, $unitName, $quantityStep, $autoCompleteAfterMinutes, $unusedAutoCompleteAfterMinutes, $money, $handlerIds, $hasHandlers, $redemptionFields, $hasRedemptionFields, $ownerEntityId) {
             $service = $id ? TeamService::where('team_id', $teamId)->find($id) : new TeamService;
             if (!$service) throw new HttpException(404, '服务不存在');
             $values = array_merge($money, [
@@ -162,6 +165,7 @@ final class EntitlementManagement
                 'unit_name' => $unitName,
                 'quantity_step' => $quantityStep,
                 'auto_complete_after_minutes' => $autoCompleteAfterMinutes,
+                'unused_auto_complete_after_minutes' => $unusedAutoCompleteAfterMinutes,
                 'is_active' => (int) ($data['is_active'] ?? 1) === 1 ? 1 : 0,
             ]);
             if (!$id) $values['owner_entity_id'] = $ownerEntityId;

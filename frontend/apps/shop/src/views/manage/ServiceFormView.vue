@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ServiceCompletionSettings from '../../components/ServiceCompletionSettings.vue'
 import { friendlyError } from '@lostsky/api/client'
 import { isValidQuantityStep } from '@lostsky/shared/quantity'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -32,6 +33,7 @@ type ServiceFormState = {
   unit_name: string
   quantity_step: number | null
   auto_complete_after_minutes: number | null
+  unused_auto_complete_after_minutes: number | null
   default_total_price: number | null
   default_cost: number | null
   default_handler_cut: number | null
@@ -53,7 +55,7 @@ const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadM
 const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?? 0)
 const distributionLocked = computed(() => personalDistributionLocked(personal.value, access.data.value?.permissions))
 const form = reactive<ServiceFormState>({
-  name: '', description: '', unit_name: '次', quantity_step: 1, auto_complete_after_minutes: null,
+  name: '', description: '', unit_name: '次', quantity_step: 1, auto_complete_after_minutes: null, unused_auto_complete_after_minutes: null,
   default_total_price: 0, default_cost: 0, default_handler_cut: 0,
   default_sender_cut: 0, default_cs_cut: 0, is_active: 1,
 })
@@ -84,6 +86,7 @@ watch(() => detail.data.value, data => {
     description: data.description ?? '',
     unit_name: data.unit_name,
     quantity_step: Number(data.quantity_step),
+    unused_auto_complete_after_minutes: data.unused_auto_complete_after_minutes ?? null,
     auto_complete_after_minutes: data.auto_complete_after_minutes ?? null,
     default_total_price: Number(data.default_total_price),
     default_cost: Number(data.default_cost),
@@ -182,7 +185,7 @@ const valid = computed(() => Boolean(
   && form.unit_name.trim()
   && finite(form.quantity_step)
   && isValidQuantityStep(form.quantity_step as number)
-  && validAutoCompleteAfterMinutes(form.auto_complete_after_minutes)
+  && validAutoCompleteAfterMinutes(form.unused_auto_complete_after_minutes) && validAutoCompleteAfterMinutes(form.auto_complete_after_minutes)
   && nonNegative(form.default_total_price)
   && nonNegative(form.default_cost)
   && (form.default_cost as number) <= (form.default_total_price as number)
@@ -210,7 +213,7 @@ const valid = computed(() => Boolean(
         <LsSwitchField id="service-active" :model-value="form.is_active === 1" label="启用状态" description="停用后不能用于新的权益配置或发起新任务。" @update:model-value="value => form.is_active = value ? 1 : 0" />
       </LsFormSection>
       <LsFormSection title="计量规则" description="同一套模型可表达按人、按次、按小时或其他可计量服务。">
-        <LsField label="自动结单时长（分钟）" for-id="service-auto-complete" hint="留空不自动结单。从开始核销起计时；撤销申请期间不结单，计时仍继续。"><NInputNumber id="service-auto-complete" :value="form.auto_complete_after_minutes" :min="1" :max="5256000" :precision="0" clearable placeholder="不自动结单" @update:value="updateAutoComplete" /></LsField>
+        <ServiceCompletionSettings id-prefix="service" v-model:unused-minutes="form.unused_auto_complete_after_minutes" :confirmation-minutes="form.auto_complete_after_minutes" @update:confirmation-minutes="updateAutoComplete" />
         <LsField label="计量单位" for-id="service-unit" required hint="例如：人、次、小时"><NInput id="service-unit" v-model:value="form.unit_name" maxlength="20" /></LsField>
         <LsField label="最小核销单位" for-id="service-step" required hint="最多四位小数；数量精度自动确定，每次履约数量必须是该核销单位的整数倍。"><NInputNumber id="service-step" v-model:value="form.quantity_step" :min="0.0001" :step="0.0001" :validator="isValidQuantityStep" /></LsField>
       </LsFormSection>

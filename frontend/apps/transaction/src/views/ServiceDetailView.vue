@@ -198,6 +198,15 @@ function confirmFee() {
             <dd>{{ dateTime(query.data.value.started_at) }}</dd>
             <dt>完成时间</dt>
             <dd>{{ dateTime(query.data.value.completed_at) }}</dd>
+            <template v-if="query.data.value.settlement_kind === 'unused'">
+              <dt>结单方式</dt><dd>未使用权益自动结单</dd>
+              <dt>接单实结</dt><dd>¥{{ query.data.value.settled_handler_cut ?? '0.00' }}</dd>
+              <dt>团队实结</dt><dd>¥{{ query.data.value.settled_team_cut ?? '0.00' }}</dd>
+            </template>
+            <template v-else-if="query.data.value.completion_requested_at && statusCode === 2">
+              <dt>结单请求</dt><dd>等待顾客确认</dd>
+              <dt>确认截止</dt><dd>{{ query.data.value.completion_due_at ? dateTime(query.data.value.completion_due_at) : '须由顾客手动确认' }}</dd>
+            </template>
             <dt>履约总量</dt>
             <dd>
               {{ Number(query.data.value.quantity).toFixed(quantityScale) }}

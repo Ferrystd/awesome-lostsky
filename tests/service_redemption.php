@@ -732,6 +732,8 @@ try {
         $remainderSliceId
     );
     app(ServiceRedemption::class)->completeOwn((int) $team->id, (int) $handlerA->id, $sliceBId);
+    app(ServiceRedemption::class)->confirmCompletion((int) $team->id, (int) $customer->id, (int) $customerEntity->id, $remainderSliceId);
+    app(ServiceRedemption::class)->confirmCompletion((int) $team->id, (int) $customer->id, (int) $customerEntity->id, $sliceBId);
     $assert(TeamServiceInstance::find($remainderSliceId)->enumCase('status') === ServiceStatus::Redeemed, 'handler completes own task with fields collected at claim time');
     $adjustment = TeamServiceAdjustment::find($adjustmentId);
     $assert(
@@ -1109,7 +1111,7 @@ try {
     $noLedger = TeamServiceInstance::find($noLedgerId);
     $assert($noLedger->enumCase('status') === ServiceStatus::Redeemed && $noLedger->trans_id === null, 'missing ability completes without creating transaction');
 
-    // 自动结单冻结开始时配置；撤销待审只跳过本轮，不暂停或重置计时。
+    // 自动结单冻结发起时配置，但只从实际接单开始计时。
     $autoProductId = app(Product::class)->create((int) $team->id, [
         'name' => '自动结单核销',
         'cover_image' => 'https://assets.lostsky.work/auto-complete-service.webp',
@@ -1135,6 +1137,209 @@ try {
             ]],
         ],
     ]);
+    foreach ([true, false] as $hasTransactionAbility) {
+        $autoAbility = null;
+        if ($hasTransactionAbility) {
+            $autoAbility = TeamAbility::withTrashed()->where('team_id', $team->id)->where('ability_key', 'transaction')->find();
+            $autoAbility->restore();
+        }
+        $case = $hasTransactionAbility ? 'with transaction ability' : 'without transaction ability';
+        $clockOrderId = app(Order::class)->create((int) $team->id, [
+            'product_id' => $autoProductId,
+            'customer_id' => $customer->id,
+            'quantity' => 2,
+        ]);
+        app(Order::class)->complete((int) $team->id, $clockOrderId);
+        $clockEntitlement = TeamServiceEntitlement::where('source_order_id', $clockOrderId)->find();
+        $clockFieldId = (int) TeamServiceRedemptionField::where('service_id', $clockEntitlement->service_id)->value('id');
+        $clockOpenId = app(ServiceRedemption::class)->start(
+            (int) $team->id, (int) $customer->id, (int) $clockEntitlement->id,
+            '2', 0, '', [], (int) $customerEntity->id
+        );
+        $assert(TeamServiceInstance::find($clockOpenId)->started_at === null, "public dispatch has no clock {$case}");
+        // 升级前公开任务可能已经带有到期时间，必须同样排除。
+        TeamServiceInstance::where('id', $clockOpenId)->update(['started_at' => time() - 601]);
+        $waitingRun = app(ServiceRedemption::class)->autoCompleteDue(time());
+        $clockEntitlement = TeamServiceEntitlement::find($clockEntitlement->id);
+        $assert(
+            $waitingRun['failed'] === 0
+                && TeamServiceInstance::find($clockOpenId)->enumCase('status') === ServiceStatus::Processing
+                && (string) $clockEntitlement->consumed_quantity === '0.0000'
+                && (string) $clockEntitlement->reserved_quantity === '2.0000'
+                && TeamServiceInstance::find($clockOpenId)->trans_id === null
+                && TeamServiceEvent::where('service_instance_id', $clockOpenId)->where('event_type', 'auto_completed')->count() === 0,
+            "cleanup excludes legacy unassigned tasks without consuming entitlement or writing events {$case}"
+        );
+        $claimBefore = time();
+        app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerA->id, $clockOpenId, '1', [$clockFieldId => '部分接单']);
+        $clockRemainder = TeamServiceInstance::where('entitlement_id', $clockEntitlement->id)->whereNull('handler_entity_id')->find();
+        $assert(
+            (int) TeamServiceInstance::find($clockOpenId)->started_at >= $claimBefore
+                && $clockRemainder->started_at === null
+                && (string) $clockRemainder->quantity === '1.0000',
+            "partial claim starts only the claimed portion's clock {$case}"
+        );
+        $oldClock = time() - 601;
+        TeamServiceInstance::where('id', $clockOpenId)->update(['started_at' => $oldClock]);
+        app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerA->id, $clockOpenId);
+        app(ServiceRedemption::class)->reassign((int) $team->id, $subjectManager, (int) $teamEntity->id, $clockOpenId, (int) $handlerB->id, '交接');
+        $assert((int) TeamServiceInstance::find($clockOpenId)->started_at === $oldClock, "idempotent claim and assigned reassignment preserve the clock {$case}");
+        app(ServiceRedemption::class)->returnToPool((int) $team->id, (int) $handlerB->id, $clockOpenId, '退回公开池');
+        $assert(TeamServiceInstance::find($clockOpenId)->started_at === null, "returning to the pool clears the clock {$case}");
+        app(ServiceRedemption::class)->autoCompleteDue(time());
+        $assert(TeamServiceInstance::find($clockOpenId)->enumCase('status') === ServiceStatus::Processing, "returned task cannot automatically complete {$case}");
+        $reclaimBefore = time();
+        app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerA->id, $clockOpenId, null, [$clockFieldId => '重新接单']);
+        TeamServiceInstance::where('id', $clockRemainder->id)->update(['started_at' => $oldClock]);
+        app(ServiceRedemption::class)->reassign((int) $team->id, $subjectManager, (int) $teamEntity->id, (int) $clockRemainder->id, (int) $handlerB->id, '公开池派单');
+        $assert(
+            (int) TeamServiceInstance::find($clockOpenId)->started_at >= $reclaimBefore
+                && (int) TeamServiceInstance::find($clockRemainder->id)->started_at >= $reclaimBefore,
+            "reclaim and assignment from public pool establish a fresh clock {$case}"
+        );
+        app(ServiceRedemption::class)->autoCompleteDue(time());
+        $assert(
+            TeamServiceInstance::find($clockOpenId)->enumCase('status') === ServiceStatus::Processing
+                && TeamServiceInstance::find($clockRemainder->id)->enumCase('status') === ServiceStatus::Processing,
+            "newly assigned portions do not inherit overdue public clocks {$case}"
+        );
+        app(ServiceRedemption::class)->requestCancel((int) $team->id, (int) $customer->id, $clockOpenId, '取消后重启', (int) $customerEntity->id);
+        app(ServiceRedemption::class)->approveCancel((int) $team->id, $subjectManager, (int) $teamEntity->id, $clockOpenId);
+        $assert(TeamServiceInstance::find($clockOpenId)->started_at === null, "approved cancellation clears the clock {$case}");
+        $restartBefore = time();
+        app(ServiceRedemption::class)->restart((int) $team->id, (int) $customer->id, $clockOpenId, (int) $handlerA->id, '', [], (int) $customerEntity->id);
+        $assert((int) TeamServiceInstance::find($clockOpenId)->started_at >= $restartBefore, "restart with an actual handler starts a fresh clock {$case}");
+        app(ServiceRedemption::class)->completeOwn((int) $team->id, (int) $handlerA->id, $clockOpenId, [$clockFieldId => '请求结单']);
+        $requestedAt = (int) TeamServiceInstance::find($clockOpenId)->completion_requested_at;
+        $assert(TeamServiceInstance::find($clockOpenId)->enumCase('status') === ServiceStatus::Processing, "request waits for customer confirmation {$case}");
+        $assert((int) TeamServiceInstance::find($clockOpenId)->completion_due_at === $requestedAt + 600, "confirmation deadline uses request time {$case}");
+        app(ServiceRedemption::class)->completeOwn((int) $team->id, (int) $handlerA->id, $clockOpenId);
+        $assert((int) TeamServiceInstance::find($clockOpenId)->completion_requested_at === $requestedAt, "duplicate request preserves confirmation clock {$case}");
+        $throws(fn () => app(ServiceRedemption::class)->requestCancel((int) $team->id, (int) $customer->id, $clockOpenId, '取消', (int) $customerEntity->id), 409, "customer must reject completion before cancelling {$case}");
+        $throws(fn () => app(ServiceRedemption::class)->returnToPool((int) $team->id, (int) $handlerA->id, $clockOpenId, '退回'), 409, "pending completion prevents returning to pool {$case}");
+        $throws(fn () => app(ServiceRedemption::class)->reassign((int) $team->id, $subjectManager, (int) $teamEntity->id, $clockOpenId, (int) $handlerB->id, '转派'), 409, "pending completion prevents reassignment {$case}");
+        $throws(fn () => app(ServiceRedemption::class)->rejectCompletion((int) $team->id, (int) $customer->id, (int) $customerEntity->id, $clockOpenId, ''), 422, "completion rejection requires a reason {$case}");
+        $throws(fn () => app(ServiceRedemption::class)->confirmCompletion((int) $team->id, (int) $customer->id, (int) $handlerB->id, $clockOpenId), 403, "completion confirmation checks customer ownership {$case}");
+        app(ServiceRedemption::class)->rejectCompletion((int) $team->id, (int) $customer->id, (int) $customerEntity->id, $clockOpenId, '服务尚未完成');
+        $assert(TeamServiceInstance::find($clockOpenId)->completion_requested_at === null, "rejection clears confirmation clock {$case}");
+        $throws(fn () => app(ServiceRedemption::class)->confirmCompletion((int) $team->id, (int) $customer->id, (int) $customerEntity->id, $clockOpenId), 409, "rejected completion cannot be confirmed {$case}");
+        app(ServiceRedemption::class)->completeOwn((int) $team->id, (int) $handlerA->id, $clockOpenId);
+        app(ServiceRedemption::class)->completeOwn((int) $team->id, (int) $handlerB->id, (int) $clockRemainder->id, [$clockFieldId => '请求结单']);
+        TeamServiceInstance::whereIn('id', [$clockOpenId, $clockRemainder->id])->update(['completion_requested_at' => time() - 601]);
+        $assignedRun = app(ServiceRedemption::class)->autoCompleteDue(time());
+        $assert($assignedRun['failed'] === 0, "assigned automatic completion succeeds {$case}");
+        foreach ([$clockOpenId, (int) $clockRemainder->id] as $clockId) {
+            $clockInstance = TeamServiceInstance::find($clockId);
+            $assert(
+                $clockInstance->enumCase('status') === ServiceStatus::Redeemed
+                    && ($hasTransactionAbility ? $clockInstance->trans_id !== null : $clockInstance->trans_id === null),
+                "due assigned task completes with the expected transaction behavior {$case}"
+            );
+            app(ServiceRedemption::class)->confirmCompletion((int) $team->id, (int) $customer->id, (int) $customerEntity->id, $clockId);
+            $throws(fn () => app(ServiceRedemption::class)->confirmCompletion((int) $team->id, (int) $customer->id, (int) $handlerB->id, $clockId), 403, "even idempotent confirmation checks ownership {$case}");
+        }
+        $assert(
+            (string) TeamServiceEntitlement::find($clockEntitlement->id)->consumed_quantity === '2.0000'
+                && (string) TeamServiceEntitlement::find($clockEntitlement->id)->reserved_quantity === '0.0000',
+            "only assigned completed portions consume the entitlement {$case}"
+        );
+        if ($autoAbility) $db->name('team_ability')->where('team_id', $team->id)->where('ability_key', 'transaction')->update(['delete_time' => time()]);
+    }
+    // 未使用权益超时结单必须扣除邀请预占金额，释放后再结也不超分配。
+    $unusedProductId = app(Product::class)->create((int) $team->id, [
+        'name' => '未使用权益结单', 'cover_image' => 'https://assets.lostsky.work/unused-service.webp', 'price' => '10.00', 'cost' => '2.00',
+        'handler_cut' => '4.00', 'sender_cut' => '2.00', 'cs_cut' => '1.00', 'kind' => 4,
+        'redemption' => ['unit_name' => '次', 'quantity_step' => '1', 'quantity' => '2',
+            'valid_days' => 0, 'unused_auto_complete_after_minutes' => 10, 'auto_complete_after_minutes' => null,
+            'handler_entity_ids' => [], 'redemption_fields' => []],
+    ]);
+    $throws(fn () => app(Product::class)->edit((int) $team->id, $unusedProductId, ['redemption' => ['unused_auto_complete_after_minutes' => 0]]), 422, 'unused timeout rejects zero instead of silently disabling');
+    foreach (['accepted', 'withdrawn', 'rejected', 'cancelled', 'no_ability'] as $offerOutcome) {
+        $unusedAbility = null;
+        if ($offerOutcome !== 'no_ability') {
+            $unusedAbility = TeamAbility::withTrashed()->where('team_id', $team->id)->where('ability_key', 'transaction')->find();
+            $unusedAbility->restore();
+        }
+        $unusedOrderId = app(Order::class)->create((int) $team->id, [
+            'product_id' => $unusedProductId, 'customer_id' => $customer->id, 'quantity' => 1,
+            'sender_entity_id' => $handlerA->id, 'cs_entity_id' => $handlerB->id,
+        ]);
+        $issuedBefore = time();
+        app(Order::class)->complete((int) $team->id, $unusedOrderId);
+        $unusedEntitlement = TeamServiceEntitlement::where('source_order_id', $unusedOrderId)->find();
+        $assert((int) $unusedEntitlement->unused_auto_complete_after_minutes === 10
+            && (int) $unusedEntitlement->unused_auto_complete_due_at >= $issuedBefore + 600,
+            "unused clock is frozen from entitlement issuance {$offerOutcome}");
+        $unusedOfferId = app(ServiceRedemption::class)->createOffer(
+            (int) $team->id, (int) $customer->id, (int) $unusedEntitlement->id,
+            '1', (int) $virtualEntity->id, '', [], (int) $customerEntity->id, 'unused-' . $offerOutcome
+        );
+        TeamServiceEntitlement::where('id', $unusedEntitlement->id)->update(['unused_auto_complete_due_at' => time() - 1, 'expire_time' => time() - 1]);
+        $beforeUnusedStats = app(TransactionStats::class)->summary((int) $team->id, 0, time() + 60);
+        $beforeUnusedPersonal = app(TransactionStats::class)->personal((int) $team->id, (int) $virtualEntity->id, 0, time() + 60);
+        $beforeUnusedRoles = app(TransactionStats::class)->byRole((int) $team->id, 0, time() + 60);
+        $unusedRun = app(ServiceRedemption::class)->autoCompleteUnusedDue(time());
+        $unusedSlice = TeamServiceInstance::where('entitlement_id', $unusedEntitlement->id)->where('settlement_kind', 'unused')->find();
+        $assert($unusedRun['failed'] === 0 && $unusedSlice !== null && (string) $unusedSlice->quantity === '1.0000'
+            && (string) $unusedSlice->total_price === '5.00' && $unusedSlice->handler_entity_id === null
+            && $unusedSlice->settled_handler_cut === '0.00' && $unusedSlice->settled_team_cut === '2.50',
+            "unused settlement excludes pending invitation money and transfers handler cut {$offerOutcome}");
+        $assert((string) TeamServiceEntitlement::find($unusedEntitlement->id)->reserved_quantity === '1.0000', "unused settlement preserves reserved quantity {$offerOutcome}");
+        app(ServiceRedemption::class)->autoCompleteUnusedDue(time());
+        $assert(TeamServiceInstance::where('entitlement_id', $unusedEntitlement->id)->where('settlement_kind', 'unused')->count() === 1,
+            "repeated unused cleanup is idempotent {$offerOutcome}");
+        if ($offerOutcome !== 'no_ability') {
+            $unusedTrans = TeamTransaction::find((int) $unusedSlice->trans_id);
+            $assert($unusedTrans->enumCase('type') === TransactionType::UnusedServiceSettlement
+                && (string) $unusedTrans->cash === '0.00' && (string) $unusedTrans->prepaid === '0.00'
+                && (string) $unusedTrans->handler_cut === '0.00' && (string) $unusedTrans->team_cut === '2.50',
+                "unused settlement writes a non-receipt team allocation {$offerOutcome}");
+            $afterUnusedStats = app(TransactionStats::class)->summary((int) $team->id, 0, time() + 60);
+            $afterUnusedPersonal = app(TransactionStats::class)->personal((int) $team->id, (int) $virtualEntity->id, 0, time() + 60);
+            $afterUnusedRoles = app(TransactionStats::class)->byRole((int) $team->id, 0, time() + 60);
+            $assert(abs((float) $afterUnusedStats['receipt_total'] - (float) $beforeUnusedStats['receipt_total']) < 0.001
+                && abs((float) $afterUnusedStats['performance_total'] - (float) $beforeUnusedStats['performance_total'] - 5.0) < 0.001
+                && (int) $afterUnusedPersonal['handler_count'] === (int) $beforeUnusedPersonal['handler_count']
+                && (float) $afterUnusedPersonal['performance_total'] === (float) $beforeUnusedPersonal['performance_total'],
+                "actual team and handler stats avoid duplicate receipts and handler performance {$offerOutcome}");
+            $roleAmount = static fn (array $roles, string $role, int $entityId): float => array_sum(array_map(
+                static fn (array $row): float => (int) $row['entity_id'] === $entityId ? (float) $row['amount'] : 0.0,
+                $roles[$role]
+            ));
+            $assert(abs($roleAmount($afterUnusedRoles, 'sender', (int) $handlerA->id) - $roleAmount($beforeUnusedRoles, 'sender', (int) $handlerA->id) - 1.0) < 0.001
+                && abs($roleAmount($afterUnusedRoles, 'cs', (int) $handlerB->id) - $roleAmount($beforeUnusedRoles, 'cs', (int) $handlerB->id) - 0.5) < 0.001
+                && !in_array(0, array_map(static fn (array $row): int => (int) $row['entity_id'], $afterUnusedRoles['handler']), true),
+                "actual sender and customer-service statistics retain frozen income without phantom handler {$offerOutcome}");
+        } else {
+            $assert($unusedSlice->trans_id === null, 'unused settlement consumes without transaction when ability is absent');
+        }
+        if ($offerOutcome === 'accepted') {
+            $acceptedUnusedId = app(ServiceRedemption::class)->acceptOffer((int) $team->id, (int) $virtualEntity->id, $unusedOfferId);
+            app(ServiceRedemption::class)->completeOwn((int) $team->id, (int) $virtualEntity->id, $acceptedUnusedId);
+            $assert(TeamServiceInstance::find($acceptedUnusedId)->completion_due_at === null, 'null confirmation time disables automatic completion');
+            app(ServiceRedemption::class)->confirmCompletion((int) $team->id, (int) $customer->id, (int) $customerEntity->id, $acceptedUnusedId);
+            app(ServiceRedemption::class)->confirmCompletion((int) $team->id, (int) $customer->id, (int) $customerEntity->id, $acceptedUnusedId);
+        } elseif ($offerOutcome === 'rejected') {
+            app(ServiceRedemption::class)->rejectOffer((int) $team->id, (int) $virtualEntity->id, $unusedOfferId, '无法接单');
+            app(ServiceRedemption::class)->autoCompleteUnusedDue(time());
+        } elseif ($offerOutcome === 'cancelled') {
+            app(ServiceRedemption::class)->withdrawOffer((int) $team->id, (int) $customer->id, (int) $customerEntity->id, $unusedOfferId);
+            TeamServiceEntitlement::where('id', $unusedEntitlement->id)->update(['expire_time' => 0]);
+            $cancelUnusedId = app(ServiceRedemption::class)->start((int) $team->id, (int) $customer->id, (int) $unusedEntitlement->id, '1', 0, '', [], (int) $customerEntity->id);
+            app(ServiceRedemption::class)->requestCancel((int) $team->id, (int) $customer->id, $cancelUnusedId, '不再需要', (int) $customerEntity->id);
+            app(ServiceRedemption::class)->approveCancel((int) $team->id, $subjectManager, (int) $teamEntity->id, $cancelUnusedId);
+            app(ServiceRedemption::class)->autoCompleteUnusedDue(time());
+        } else {
+            app(ServiceRedemption::class)->withdrawOffer((int) $team->id, (int) $customer->id, (int) $customerEntity->id, $unusedOfferId);
+            app(ServiceRedemption::class)->autoCompleteUnusedDue(time());
+        }
+        $unusedSlices = TeamServiceInstance::where('entitlement_id', $unusedEntitlement->id)->where('status', ServiceStatus::Redeemed->value)->select()->all();
+        $assert($sumCents($unusedSlices, 'total_price') === 1000 && $sumCents($unusedSlices, 'sender_cut') === 200
+            && $sumCents($unusedSlices, 'cs_cut') === 100
+            && (string) TeamServiceEntitlement::find($unusedEntitlement->id)->consumed_quantity === '2.0000',
+            "accepted or released invitation never duplicates frozen money {$offerOutcome}");
+        if ($unusedAbility) $db->name('team_ability')->where('team_id', $team->id)->where('ability_key', 'transaction')->update(['delete_time' => time()]);
+    }
     $autoOrderId = app(Order::class)->create((int) $team->id, [
         'product_id' => $autoProductId,
         'customer_id' => $customer->id,
@@ -1150,8 +1355,13 @@ try {
         (int) $team->id, (int) $customer->id, (int) $autoEntitlement->id,
         '1', 0, '', [], (int) $customerEntity->id
     );
+    $autoFieldId = (int) TeamServiceRedemptionField::where('service_id', $autoEntitlement->service_id)->value('id');
+    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerA->id, $autoFirstId, null, [$autoFieldId => '接单确认']);
+    app(ServiceRedemption::class)->claim((int) $team->id, (int) $handlerB->id, $autoSecondId, null, [$autoFieldId => '接单确认']);
     $autoStartedAt = time() - 601;
+    app(ServiceRedemption::class)->completeOwn((int) $team->id, (int) $handlerA->id, $autoFirstId);
     TeamServiceInstance::whereIn('id', [$autoFirstId, $autoSecondId])->update(['started_at' => $autoStartedAt]);
+    TeamServiceInstance::where('id', $autoFirstId)->update(['completion_requested_at' => $autoStartedAt]);
     app(Product::class)->edit((int) $team->id, $autoProductId, [
         'redemption' => ['auto_complete_after_minutes' => 20],
     ]);
@@ -1181,6 +1391,8 @@ try {
         (int) TeamServiceInstance::find($autoSecondId)->started_at === $autoStartedAt,
         'rejecting cancellation does not reset or pause the automatic completion clock'
     );
+    app(ServiceRedemption::class)->completeOwn((int) $team->id, (int) $handlerB->id, $autoSecondId);
+    TeamServiceInstance::where('id', $autoSecondId)->update(['completion_requested_at' => $autoStartedAt]);
     $secondAutoRun = app(ServiceRedemption::class)->autoCompleteDue(time());
     $assert(
         $secondAutoRun['completed'] === 1

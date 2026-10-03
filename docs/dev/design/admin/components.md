@@ -1,5 +1,11 @@
 # 后台公共组件
 
+## Shop 结单时限设置
+
+`ServiceCompletionSettings` 为 Shop 内部业务组件，由商品、规格及兼容服务表单共用；复用 `LsField` 和 `NInputNumber`，不创建新的视觉原语。仅接受 `idPrefix` 与两个可空分钟模型 `unusedMinutes`、`confirmationMinutes`，没有样式、尺寸参数或父级穿透。
+
+两项独立保存：未发起核销时限从购买或赠送权益起计时，仅处理未使用未预占额度；顾客确认时限从接单人请求结单起计时。均为 1–5256000 的整数分钟，清空为 `null`，不互相回填。组件负责标签、说明、可聚焦清空控件；加载、权限和提交错误由表单负责。桌面移动保持标准单列字段结构，无例外。通过 `auto-complete.test.ts`、商品编辑 E2E、真实组件预览验证独立回填、清空与提交。
+
 ## 组件体系边界
 
 后台唯一组件体系是 `Naive UI 2.44.1 + @lostsky/ui`。标准输入、选择、按钮、标签、分页、弹层、提示和日期控件必须使用 Naive UI；业务语义组件放入 `@lostsky/ui`。禁止引入 PrimeVue，禁止复制 shadcn-vue 组件，禁止用原生元素和页面私有 CSS 重造已有控件。

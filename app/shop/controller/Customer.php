@@ -300,6 +300,22 @@ class Customer
         return message('已重新发起核销');
     }
 
+    public function confirmServiceCompletion(Request $request)
+    {
+        $id = $request->route('id/d', 0);
+        app(\app\service\ServiceRedemption::class)->confirmCompletion($request->team_id, $request->customer_id, $request->entity_id, $id);
+        app(\app\service\BusinessAudit::class)->record($request, 'shop', 'confirm_completion', 'serviceInstance', $id);
+        return message('服务已核销');
+    }
+
+    public function rejectServiceCompletion(Request $request)
+    {
+        $id = $request->route('id/d', 0);
+        app(\app\service\ServiceRedemption::class)->rejectCompletion($request->team_id, $request->customer_id, $request->entity_id, $id, $request->post('reason/s', ''));
+        app(\app\service\BusinessAudit::class)->record($request, 'shop', 'reject_completion', 'serviceInstance', $id);
+        return message('已拒绝结单，可继续履约或申请取消');
+    }
+
     public function cancelService(Request $request)
     {
         $id = app(\app\service\ServiceRedemption::class)->requestCancel(

@@ -57,3 +57,7 @@ Weibo 是团队上下文的微博账号、点单信息流、自动发帖与每�
 ## 协议与运行边界
 
 协议服务移植 Weico 6.4.7 的动态 `from`、本地 `s`、超话、图片上传、登录检查、写接口和 `/page/button` 超话签到。首版不提供从已有微博帖子读取或导入图片；普通点赞和评论请求接收微博正文页链接（信息流评论由服务端按本地帖子标识定位），由服务端在远端写入前解析目标 ID。账号凭据开发阶段在数据库明文保存，但模型序列化、响应和日志都排除凭据。真实写操作一次最多调用一个远端写接口且不自动重试。自动发帖和每日签到共用 `weibo-schedule` 队列、Ability/登录阻塞、dispatch 防重与结果日志；签到额外按服务端自然日防止重复尝试。
+
+任务开启/恢复和下一周期安排在同一短事务内更新任务并插入业务数据库 `jobs`，入队失败整体回滚；微博队列固定使用 `database` 连接且其 `connection` 为 `null`，与业务 ORM 共享事务。Worker 在账号检查后、领取 `dispatching` 时及远端写请求前复核 Active、version 和 plannedAt；阻塞与下一周期更新也使用这三个条件，旧 Worker 不覆盖暂停、取消或恢复后的调度。网络请求始终在事务外；暂停无法撤回已发起请求，也不承诺消除最后复核到请求发起之间的瞬时竞态。
+
+`php think weibo:tasks-recover` 为 Active 但缺失对应 Job 的任务补投，包含历史入队缺口；保留原 task/version/plannedAt 和 dispatch key，已有待执行或已领取 Job 不重复投递。已有 `dispatching` 的重投只转为 unknown 并推进下一周期，不重复远端写入。部署后及定时恢复安排见[Weibo Worker](../operations/deployment.md#weibo-database-worker)。

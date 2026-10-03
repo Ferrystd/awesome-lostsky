@@ -704,7 +704,10 @@ aliases: [服务, Service]
 | `reassign` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`int $handlerEntityId`、`string $reason` | `void` |
 | `complete` | `int $teamId`、`array $subject`、`int $actorEntityId`、`int $id`、`array $fieldValues = []` | `void` |
 | `completeOwn` | `int $teamId`、`int $actorEntityId`、`int $id`、`array $fieldValues = []` | `void` |
+| `confirmCompletion` | `int $teamId`、`int $customerId`、`int $actorEntityId`、`int $id` | `void` |
+| `rejectCompletion` | `int $teamId`、`int $customerId`、`int $actorEntityId`、`int $id`、`string $reason` | `void` |
 | `autoCompleteDue` | `?int $now = null`、`int $limit = 100` | `array` |
+| `autoCompleteUnusedDue` | `?int $now = null`、`int $limit = 100` | `array` |
 
 ## ServiceRedemptionField
 
@@ -889,6 +892,7 @@ aliases: [服务, Service]
 | `get` | `int $teamId`、`int $id` | `array` |
 | `create` | `int $teamId`、`array $data` | `int` |
 | `createServiceRedemption` | `int $teamId`、`array $data` | `int` |
+| `createUnusedServiceSettlement` | `int $teamId`、`array $data` | `int` |
 | `createServiceAdjustmentReceipt` | `int $teamId`、`array $data` | `int` |
 | `createServiceAdjustmentPerformance` | `int $teamId`、`array $data` | `int` |
 | `edit` | `int $teamId`、`int $id`、`array $data` | `void` |
@@ -966,7 +970,7 @@ aliases: [服务, Service]
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `execute` | `int $teamId`、`?int $ownerEntityId`、`?int $actorEntityId`、`int $accountId`、`enum\WeiboOperationType $type`、`array $payload`、`enum\WeiboOperationSource $source = app\enum\WeiboOperationSource::Manual`、`?int $taskId = null`、`?int $taskVersion = null`、`?string $dispatchKey = null` | `array` |
+| `execute` | `int $teamId`、`?int $ownerEntityId`、`?int $actorEntityId`、`int $accountId`、`enum\WeiboOperationType $type`、`array $payload`、`enum\WeiboOperationSource $source = app\enum\WeiboOperationSource::Manual`、`?int $taskId = null`、`?int $taskVersion = null`、`?string $dispatchKey = null`、`?int $plannedAt = null` | `array` |
 | `list` | `int $teamId`、`int $entityId`、`bool $teamScope`、`int $page = 1`、`int $limit = 20` | `array` |
 | `dto` | `model\WeiboOperationLog $log` | `array` |
 
@@ -1000,6 +1004,7 @@ aliases: [服务, Service]
 | `edit` | `int $teamId`、`int $entityId`、`int $id`、`bool $teamScope`、`array $data` | `array` |
 | `transition` | `int $teamId`、`int $entityId`、`int $id`、`bool $teamScope`、`string $action` | `array` |
 | `enqueue` | `model\WeiboTask $task` | `void` |
+| `recover` | `?int $taskId = null` | `int` |
 | `dto` | `model\WeiboTask $task` | `array` |
 
 ## WorkspaceAccess

@@ -34,6 +34,7 @@ import TransactionFlowTrend from "../../apps/transaction/src/components/Transact
 import ShopManageShell from "../../apps/shop/src/components/ShopManageShell.vue";
 import ServiceFieldsEditor from "../../apps/shop/src/components/ServiceFieldsEditor.vue";
 import ProductVariantEditor from "../../apps/shop/src/components/ProductVariantEditor.vue";
+import ServiceCompletionSettings from "../../apps/shop/src/components/ServiceCompletionSettings.vue";
 import { newProductVariant, type ProductVariantDraft } from "../../apps/shop/src/product-variants";
 import ResourceOwnerTag from "../../apps/shop/src/components/ResourceOwnerTag.vue";
 import WeiboShell from "../../apps/weibo/src/components/WeiboShell.vue";
@@ -748,6 +749,21 @@ const ServiceCompletionFieldsHost = defineComponent({
   },
 });
 
+const ServiceCompletionSettingsHost = defineComponent({
+  setup() {
+    const unused = ref<number | null>(120);
+    const confirmation = ref<number | null>(60);
+    return () => h(ServiceCompletionSettings, {
+      idPrefix: 'preview-completion', unusedMinutes: unused.value, confirmationMinutes: confirmation.value,
+      'onUpdate:unusedMinutes': value => unused.value = value,
+      'onUpdate:confirmationMinutes': value => confirmation.value = value,
+    });
+  },
+});
+const serviceCompletionSettings = story('ServiceCompletionSettings', ['default', 'hover', 'focus', 'active', 'mobile'],
+  state => stage(h(ServiceCompletionSettingsHost), state === 'mobile' ? 'story-stage--mobile' : ''),
+  { disabled: '权限由所属表单控制。', loading: '配置随表单读取。', error: '非法时长由表单校验并阻止保存。' });
+
 const serviceCompletionFields = story(
   "ServiceCompletionFields",
   ["default", "focus", "mobile"],
@@ -823,6 +839,7 @@ export const appStories: Record<string, StoryDefinition> = {
   TransactionFlowTrend: transactionFlowTrend,
   ServiceFieldsEditor: serviceFieldsEditor,
   ProductVariantEditor: productVariantEditor,
+  ServiceCompletionSettings: serviceCompletionSettings,
   ResourceOwnerTag: resourceOwnerTag,
   ShopManageShell: shopManageShell,
   WeiboShell: weiboShell,

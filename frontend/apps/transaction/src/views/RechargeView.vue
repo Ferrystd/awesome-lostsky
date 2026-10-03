@@ -35,10 +35,19 @@ const save = useMutation({
     await router.push(`/balance?customer_id=${customerId.value}`)
   },
 })
+const submitReason = computed(() => {
+  if (operationReason.value) return operationReason.value
+  if (save.isPending.value) return '正在充值，请稍候'
+  if (!customerId.value) return '请选择充值顾客'
+  if (amount.value == null) return '请填写充值金额'
+  if (!Number.isFinite(amount.value) || amount.value <= 0) return '充值金额必须大于 0'
+  return ''
+})
 async function submit() {
-  if (routeAccess.reason.value) return feedback.info(routeAccess.reason.value)
+  if (submitReason.value) return feedback.info(submitReason.value)
   const reason = await resolveTransactionAbilityReason(access.data.value)
   if (reason) return feedback.info(reason)
+  if (submitReason.value) return feedback.info(submitReason.value)
   save.mutate()
 }
 </script>
@@ -54,7 +63,7 @@ async function submit() {
         <LsField label="备注" for-id="recharge-memo"><NInput id="recharge-memo" v-model:value="memo" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" maxlength="255" show-count placeholder="例如：7 月预存款充值" /></LsField>
         <LsInlineError v-if="(!routeAccess.restricted.value && options.isError.value) || save.isError.value" :message="friendlyError(options.error.value || save.error.value)" />
       </LsFormSection>
-      <LsFormActions><LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton><LsButton type="submit" :loading="save.isPending.value" :disabled="Boolean(operationReason) || !customerId || !amount || amount <= 0" :disabled-reason="operationReason">确认充值</LsButton></LsFormActions>
+      <LsFormActions><LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton><LsButton type="submit" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason">确认充值</LsButton></LsFormActions>
     </form>
   </div>
 </template>

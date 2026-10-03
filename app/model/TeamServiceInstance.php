@@ -46,7 +46,27 @@ class TeamServiceInstance extends Base
     protected $hidden = ['delete_time'];
 
     /** 计算属性 */
-    protected $append = ['is_expired'];
+    protected $append = ['is_expired', 'completion_due_at', 'settled_handler_cut', 'settled_team_cut'];
+
+    public function getSettledHandlerCutAttr(): string
+    {
+        return $this->settlement_kind === 'unused' ? '0.00' : (string) $this->handler_cut;
+    }
+
+    public function getSettledTeamCutAttr(): string
+    {
+        return $this->settlement_kind === 'unused'
+            ? app(\app\service\BenefitPackagePricing::class)->fromCents(
+                app(\app\service\BenefitPackagePricing::class)->toCents((string) $this->team_cut)
+                + app(\app\service\BenefitPackagePricing::class)->toCents((string) $this->handler_cut))
+            : (string) $this->team_cut;
+    }
+
+    public function getCompletionDueAtAttr(): ?int
+    {
+        return $this->completion_requested_at !== null && $this->auto_complete_after_minutes !== null
+            ? (int) $this->completion_requested_at + (int) $this->auto_complete_after_minutes * 60 : null;
+    }
 
     /** 只读字段 */
     protected $readonly = [

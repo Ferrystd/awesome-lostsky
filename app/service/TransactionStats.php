@@ -99,6 +99,7 @@ class TransactionStats
             ->where('t.trans_at', '>=', $startTime)
             ->where('t.trans_at', '<', $endTime)
             ->whereNotIn('t.type', self::RECEIPT_TYPES)
+            ->whereNotNull('t.' . $column)
             ->group("t.{$column}")
             ->field([
                 "t.{$column} as entity_id",

@@ -72,6 +72,10 @@ test(`product kind ${kind} edits quantity in one product request`, async ({ page
   await page.locator('#product-name input').focus()
   if (kind !== 4) await expect(page.locator('#product-price input')).toHaveValue('30.00')
   if (kind === 4) {
+    await page.locator('#product-unused-auto-complete input').fill('120')
+    await page.locator('#product-auto-complete input').fill('60')
+    await page.locator('#product-auto-complete input').fill('')
+    await page.locator('#product-name input').focus()
     await page.getByRole('button', { name: '添加核销字段' }).click()
     await expect(page.getByRole('button', { name: '保存商品' })).toBeDisabled()
     await page.locator('[id^="field-name-"] input').fill('核销备注')
@@ -80,6 +84,8 @@ test(`product kind ${kind} edits quantity in one product request`, async ({ page
   await expect.poll(() => writes.length).toBe(1)
   if (kind === 4) {
     expect(writes[0].body.redemption.quantity).toBe('3')
+    expect(writes[0].body.redemption.unused_auto_complete_after_minutes).toBe(120)
+    expect(writes[0].body.redemption.auto_complete_after_minutes).toBeNull()
     expect(writes[0].body.redemption.redemption_fields).toEqual([expect.objectContaining({ name: '核销备注', value_type: 'string', fill_stage: 'manager' })])
   }
   else {
