@@ -237,6 +237,14 @@ describe('后台工作台入口架构', () => {
     expect(personalEntitlements).not.toContain('resolveTransactionAbilityReason')
   })
 
+  it('权益下发表单不在字段下堆叠静态提示框', () => {
+    const grant = source('frontend/apps/transaction/src/views/EntitlementGrantView.vue')
+    expect(grant).not.toContain('grant-note')
+    expect(grant).toContain(':description="grantDescription"')
+    expect(grant).toContain('请先建立并启用顾客资料')
+    expect(grant).toContain(':disabled-reason="submitDisabledReason"')
+  })
+
   it('个人核销始终使用三个具名边界面板承载分组和实时数量', () => {
     const component = source('frontend/apps/transaction/src/components/PersonalServiceLists.vue')
     expect(component).toContain("import LsPanel from '@lostsky/ui/components/LsPanel.vue'")

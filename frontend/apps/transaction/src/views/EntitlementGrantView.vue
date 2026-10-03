@@ -51,15 +51,15 @@ const productOptions = computed(() => products.value.map(product => ({
   label: `${product.name} · ${money(product.price)}`,
   value: Number(product.id),
 })))
-const selectedProduct = computed(() => products.value.find(product => Number(product.id) === form.product_id))
 const quantityValid = computed(() => Number.isInteger(form.quantity) && Number(form.quantity) >= 1 && Number(form.quantity) <= 999)
-const valid = computed(() => Boolean(
-  form.product_id
-  && form.customer_id
-  && (personal.value || form.sender_entity_id)
-  && quantityValid.value,
-))
 const operationReason = computed(() => routeAccess.reason.value || (access.isPending.value ? '正在核对记账能力' : transactionAbilityReason(access.data.value)))
+const grantDescription = computed(() => {
+  const summary = personal.value
+    ? '商品、本人接待顾客、客服和份数会作为同一次原子操作保存；发单人固定为当前人员。'
+    : '商品、顾客、业务归属和份数会作为同一次原子操作保存。'
+  if (!options.data.value) return summary
+  return `${summary}${options.data.value.sync_transaction ? '提交后会同步一笔权益包收款流水。' : '本次只赋予权益，不同步流水。'}`
+})
 const shopProductsUrl = shopWorkspaceUrl('/manage/products')
 
 const save = useMutation({
@@ -79,6 +79,12 @@ const save = useMutation({
     feedback.success('顾客权益已赋予')
   },
 })
+const submitDisabledReason = computed(() => operationReason.value
+  || (save.isPending.value ? '正在下发权益，请稍候' : '')
+  || (!form.product_id ? '请选择权益套餐商品' : '')
+  || (!form.customer_id ? (customerOptions(options.data.value).length ? '请选择顾客' : '请先建立并启用顾客资料') : '')
+  || (!quantityValid.value ? '请输入 1 至 999 的赋予份数' : '')
+  || (!personal.value && !form.sender_entity_id ? '请选择发单人' : ''))
 async function submit() {
   if (routeAccess.reason.value) return feedback.info(routeAccess.reason.value)
   const reason = await resolveTransactionAbilityReason(access.data.value)
@@ -101,7 +107,7 @@ async function submit() {
       <template #action><a class="primary-link" :href="shopProductsUrl">前往商品管理</a></template>
     </LsEmptyState>
     <form v-else @submit.prevent="submit">
-      <LsFormSection title="赋予内容" :description="personal ? '商品、本人接待顾客、客服和份数会作为同一次原子操作保存；发单人固定为当前人员。' : '商品、顾客、业务归属和份数会作为同一次原子操作保存。'">
+      <LsFormSection title="赋予内容" :description="grantDescription">
         <LsField label="权益套餐商品" for-id="grant-product" required hint="只显示 Shop 中已启用且关联有效权益包的权益套餐。">
           <NSelect id="grant-product" v-model:value="form.product_id" :options="productOptions" filterable :disabled="routeAccess.restricted.value" :placeholder="routeAccess.restricted.value ? '-' : '选择权益套餐商品'" />
         </LsField>
@@ -117,11 +123,6 @@ async function submit() {
         <LsField label="客服" for-id="grant-cs">
           <LsEntitySelect id="grant-cs" v-model="form.cs_entity_id" :entities="options.data.value?.entities ?? []" clearable placeholder="可选" />
         </LsField>
-        <p class="grant-note" role="note">
-          <template v-if="selectedProduct">当前商品单份 {{ money(selectedProduct.price) }}；</template>
-          {{ options.data.value?.sync_transaction ? '提交后会同步一笔权益包收款流水。' : '当前设置只赋予权益，不同步流水。' }}
-        </p>
-        <p v-if="!customerOptions(options.data.value).length" class="grant-note" role="note">当前没有可用顾客，请先建立并启用顾客资料。</p>
         <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
         <p v-if="result" class="grant-result" role="status" aria-live="polite">
           已赋予 {{ result.entitlement_count }} 项权益；未创建商城订单；{{ result.transaction_id ? `已生成流水 #${result.transaction_id}` : '未同步流水' }}。
@@ -129,12 +130,12 @@ async function submit() {
       </LsFormSection>
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
-        <LsButton type="submit" :loading="save.isPending.value" :disabled="Boolean(operationReason) || !valid" :disabled-reason="operationReason">{{ personal ? '下发权益' : '确认提交' }}</LsButton>
+        <LsButton type="submit" :loading="save.isPending.value" :disabled="Boolean(submitDisabledReason)" :disabled-reason="submitDisabledReason">{{ personal ? '下发权益' : '确认提交' }}</LsButton>
       </LsFormActions>
     </form>
   </div>
 </template>
 
 <style scoped>
-.entitlement-grant-view,.entitlement-grant-view form{display:grid;gap:1.25rem}.grant-note,.grant-result{margin:0;padding:.75rem .875rem;border-radius:8px;background:var(--cloud);color:var(--muted-ink);font-size:.875rem;line-height:1.6}.grant-result{color:var(--ink)}
+.entitlement-grant-view,.entitlement-grant-view form{display:grid;gap:1.25rem}.grant-result{margin:0;padding:.75rem .875rem;border-radius:8px;background:var(--cloud);color:var(--ink);font-size:.875rem;line-height:1.6}
 </style>

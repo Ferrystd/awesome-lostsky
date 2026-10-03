@@ -3767,6 +3767,8 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
   await expect(page.locator('#workspace').getByRole('heading', { name: '下发顾客权益', level: 1 })).toBeVisible()
   await expect(page.locator('#grant-sender')).toHaveCount(0)
   await expect(page.getByText('发单人固定为当前人员')).toBeVisible()
+  await expect(page.locator('.entitlement-grant-view form [role="note"]')).toHaveCount(0)
+  await expect(page.getByText('本次只赋予权益，不同步流水。')).toBeVisible()
   await page.locator('#grant-product').click()
   await page.getByText('三小时服务 · ¥300.00', { exact: true }).click()
   await page.locator('#grant-customer').click()
