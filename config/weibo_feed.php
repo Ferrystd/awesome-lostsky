@@ -2,7 +2,7 @@
 
 $keywords = array_values(array_filter(array_map(
     'trim',
-    explode(',', (string) env('WEIBO_FEED_KEYWORDS', '陪玩,点单,找陪玩,找人打游戏'))
+    explode(',', (string) env('WEIBO_FEED_KEYWORDS', '陪玩,荣耀茶话会超话,交易'))
 )));
 
 return [
