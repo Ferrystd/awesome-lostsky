@@ -7,6 +7,7 @@ Thumbs.db
 /.vscode
 /.claude/settings.local.json
 /.impeccable/
+/.codegraph/
 /docs/user/.obsidian/plugins/
 /vendor
 /.settings
