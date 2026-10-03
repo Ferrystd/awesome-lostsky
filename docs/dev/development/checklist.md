@@ -33,7 +33,7 @@
 | 模型、字段、约束或数据语义 | 模型/验证器、`sql/schema.sql`、日期补丁、OpenAPI、fixture | 执行补丁并只读验证、相关集成测试 |
 | 枚举或权限字典 | 枚举/`PermissionDictionary`、验证、OpenAPI、前端选项、权限文档、测试 | `php tests/permission_gate.php`、相关测试 |
 | OpenAPI | `docs/dev/openapi/*.json`、调用方、生成 API 类型 | `php tests/openapi_routes.php`、`npm run typecheck`（包含类型生成） |
-| 前端源码或构建配置 | 前端测试、路由别名、`www/` 构建验证 | `npm test`、`npm run typecheck`、按需 `npm run test:e2e`、`npm run build` |
+| 前端源码或构建配置 | 前端测试、路由别名、`www/` 构建验证 | 按[测试须知](testing.md)运行受影响 Vitest/E2E 用例、`npm run typecheck`、`npm run build`；全量测试仅在扩大条件满足时运行 |
 | 测试 fixture 或演示数据 | 创建、断言、清理逻辑及关联 schema | 直接使用该数据的测试 |
 | 媒体 | `frontend/media/manifest.json`、来源或许可证 | `npm run check:media`、`npm run build` |
 | CORS、域名或静态交付 | 路由/CORS 文档、Nginx 模板、调用方 | `npm run check:cors`、按需 `npm run test:e2e`、`npm run build` |

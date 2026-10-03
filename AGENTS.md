@@ -4,7 +4,7 @@
 
 [开发须知](docs/dev/development/development.md) · [代码更新清单](docs/dev/development/checklist.md) · [测试须知](docs/dev/development/testing.md) · [发布须知](docs/dev/development/releasing.md) · [运维文档](docs/dev/operations/deployment.md)
 
-开始任何任务前，必须先阅读 [项目文档索引](docs/dev/index.md)，并继续阅读与当前任务直接相关的 Wiki 页面；Wiki 是项目规则的唯一正文来源。前端任务至少阅读产品定义、设计系统、前端约定、代码更新清单和测试须知，完成后按前端约定执行完整静态发布构建。
+开始任何任务前，必须先阅读 [项目文档索引](docs/dev/index.md)，并继续阅读与当前任务直接相关的 Wiki 页面；Wiki 是项目规则的唯一正文来源。前端任务至少阅读产品定义、设计系统、前端约定、代码更新清单和测试须知，按[测试须知](docs/dev/development/testing.md)优先运行受影响用例，完成后按前端约定执行完整静态发布构建。
 
 适时暂存代码：完成可独立说明且已通过直接验证的阶段后，主代理主动调用 `lostsky-git` 按[工作区保护与阶段性暂存](docs/dev/development/contributing.md#staged-worktree-baseline)建立暂存基线；当前任务达到可提交状态时，该子代理主动暂存并提交，无需等待另行要求。只纳入当前任务已确认的改动，保留无关差异与已有暂存内容。
 
