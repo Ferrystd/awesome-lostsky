@@ -85,7 +85,7 @@ const columns: DataTableColumns<Row> = [
   <div class="manage-page">
     <LsPageHeader
       :title="personal ? '我的商品' : '商品'"
-      :description="personal ? '只管理专属人员为当前身份的商品、履约方式与接单配置。' : '维护公开售卖内容、价格、履约方式与接单配置。'"
+      :description="personal ? '你可维护你个人的商品。' : '维护公开售卖内容、价格、履约方式与接单配置。'"
       ><template #actions>
         <LsPagePrimaryAction :icon="Plus" label="新建商品" :to="`${management.routeBase}/new`" /></template
       ></LsPageHeader

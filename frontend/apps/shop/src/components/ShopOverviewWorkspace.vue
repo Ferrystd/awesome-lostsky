@@ -18,7 +18,7 @@ defineProps<{ personal: boolean; access?: ManageAccess; steps: { key: string; la
         <div class="shop-overview-followup">
           <LsPanel>
             <template #header><LsSectionHeader :title="personal ? '我的业务订单' : '订单与履约'" :description="personal ? '跟进本人参与接单或发单的订单。' : '商品售出后，在订单中查看状态与履约记录。'" /></template>
-            <div class="shop-order-desk"><ReceiptText :size="40" aria-hidden="true" /><p>从订单确认业务结果，继续处理每一份服务。</p><LsPagePrimaryAction :to="personal ? '/manage/personal/orders' : '/manage/orders'" :icon="ReceiptText" :label="personal ? '查看我的业务订单' : '查看团队订单'" /></div>
+            <div class="shop-order-desk"><ReceiptText :size="40" aria-hidden="true" /><p>继续跟进你的接单与接单情况。</p><LsPagePrimaryAction :to="personal ? '/manage/personal/orders' : '/manage/orders'" :icon="ReceiptText" :label="personal ? '查看我的业务订单' : '查看团队订单'" /></div>
           </LsPanel>
           <LsPanel>
             <template #header><LsSectionHeader :title="personal ? '我的资源边界' : '当前工作身份'" description="确认当前身份与资源归属。" /></template>

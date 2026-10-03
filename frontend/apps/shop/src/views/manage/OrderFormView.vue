@@ -39,7 +39,7 @@ function submit() {
 
 <template>
   <div class="manage-page">
-    <LsPageHeader title="新建订单" description="由服务端重新读取商品并计算价格与分成；服务商品和卡商品无需选择接单人。" back-to="/manage/orders" back-label="返回订单" />
+    <LsPageHeader title="新建订单" description="分成自动根据价格计算，也可手动输入。" back-to="/manage/orders" back-label="返回订单" />
     <form class="manage-form" @submit.prevent="submit">
       <LsFormSection title="商品与顾客">
         <LsField label="商品" for-id="order-product" required><NSelect id="order-product" v-model:value="form.product_id" :options="productOptions" filterable :disabled="routeAccess.restricted.value" :placeholder="routeAccess.restricted.value ? '-' : '选择已上架商品'" /></LsField>

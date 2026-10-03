@@ -319,7 +319,7 @@ function dynamicPermissionLabel(key: string) {
     <div class="role-detail">
       <AdminPageHeader
         :title="roleQuery.data.value?.name || '编辑角色权限'"
-        :description="roleQuery.data.value?.role_key ? `角色标识：${roleQuery.data.value.role_key}` : '维护角色资料与最小权限（Permission）集合。'"
+        :description="roleQuery.data.value?.role_key ? `角色标识：${roleQuery.data.value.role_key}` : '保存角色对外展示资料、权限等。'"
         back-to="/roles"
         back-label="返回角色列表"
       />
@@ -392,7 +392,7 @@ function dynamicPermissionLabel(key: string) {
                   <header>
                     <div>
                       <h4 :id="`${specialGroup.id}-static-title`">通用{{ specialGroup.name }}</h4>
-                      <p>通用 Permission 可直接授权团队范围或一类人员；保存时会移除已被覆盖的指定 slug。</p>
+                      <p>通用权限与所涵盖的专门权限相冲突，保存时会自动覆盖。</p>
                     </div>
                   </header>
                   <div class="permission-list">
@@ -475,7 +475,7 @@ function dynamicPermissionLabel(key: string) {
           <NCollapse class="advanced-permissions" arrow-placement="right">
             <NCollapseItem name="advanced" title="高级范围权限">
               <div class="advanced-content">
-                <p class="advanced-warning">父级 Permission 会覆盖当前及未来新增的同前缀子权限。只在职责边界稳定、确实需要整段授权时使用。</p>
+                <p class="advanced-warning">高级权限会一并覆盖其前缀下的全部权限，请确认确需全部授权再勾选。</p>
                 <NInput
                   v-model:value="advancedSearch"
                   clearable
@@ -531,7 +531,7 @@ function dynamicPermissionLabel(key: string) {
         :mask-closable="false"
         class="advanced-confirm"
       >
-        <p>以下父级 Permission 会同时覆盖当前列出的权限，以及未来新增的同前缀权限：</p>
+        <p>以下权限会覆盖同前缀下的现有权限：</p>
         <ul>
           <li v-for="item in newlyAddedAdvanced" :key="item.key">
             <code>{{ item.key }}</code>

@@ -34,7 +34,7 @@ const visibleRows = computed(() => { const keyword = search.value.trim().toLocal
 
 <template>
     <div class="join-review-list-page">
-      <AdminPageHeader title="人事审核" description="查看申请状态，选择一条申请进入独立审核页面。">
+      <AdminPageHeader title="人事审核" description="查看加入申请，点击进入对应审核页面。">
       <template #actions><LsPagePrimaryAction :icon="Settings" label="申请表配置" to="/join-fields" /></template>
       </AdminPageHeader>
       <TeamSectionNav label="审核分类" :items="reviewSections" />

@@ -47,17 +47,17 @@ const copy = computed(() => scope.value === 'sent'
   : scope.value === 'team'
   ? {
       title: '站内通知',
-      description: 'LostSky 发给 Team 的共享通知',
+      description: 'LostSky 发给团队的共享通知，团队内统一查阅。',
       noun: '站内通知',
       empty: '目前没有站内通知',
-      emptyDescription: 'LostSky 发给 Team 的通知会显示在这里。',
+      emptyDescription: '还没有通知；LostSky 会在这里下发贵团队通知。',
     }
   : {
       title: '通知',
-      description: '当前人员收到的 Team 单向通知',
+      description: '当前人员收到的团队通知。',
       noun: '通知',
       empty: '目前没有通知',
-      emptyDescription: 'Team 发给当前人员的通知会显示在这里。',
+      emptyDescription: '还没有通知；团队发给你后会显示在这里。',
     })
 const query = useQuery({
   queryKey: computed(() => ['notices', scope.value, page.value, search.value, filter.value]),

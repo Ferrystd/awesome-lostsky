@@ -67,7 +67,7 @@ async function logout() {
       <header>
         <p class="eyebrow">身份</p>
         <h1>选择当前身份</h1>
-        <p>业务操作将使用所领取人员的角色与权限（Permission）；账号和设备设置始终使用你的真实用户身份。</p>
+        <p>业务操作使用你登录的人员。</p>
       </header>
 
       <section v-if="activeEntity" class="active-card">
@@ -79,7 +79,7 @@ async function logout() {
       <section class="candidate-heading">
         <div>
           <h2>{{ activeEntity ? '可切换身份' : '可领取身份' }}</h2>
-          <p>{{ activeEntity ? '列表由其他团队或当前团队授予该人员的身份委托权限决定。' : '先领取与你的账号直接关联的成员或顾客根身份。' }}</p>
+          <p>{{ activeEntity ? '列表由其他团队或当前团队授予该人员的身份委托权限决定。' : '您的业务操作需要您领取人员身份。' }}</p>
         </div>
       </section>
       <p v-if="targetSlug && targetAvailable" class="target-note">请确认切换为 <strong>@{{ targetSlug }}</strong>。切换后可继续选择其他身份。</p>
@@ -108,7 +108,7 @@ async function logout() {
         <LsEmptyState
           v-else
           :title="activeEntity ? '暂无可切换身份' : '暂无可领取身份'"
-          :description="activeEntity ? '当前人员尚未获得任何团队授予的身份委托权限。' : '成员或顾客需先完成全局 slug 设置，才能作为根身份领取。'"
+          :description="activeEntity ? '当前人员尚未获得任何团队授予的身份委托权限。' : '使用该人员身份前，需要先补全其全局标识。'"
         />
         <p v-if="receive.isError.value" class="error" role="alert">{{ friendlyError(receive.error.value) }}</p>
       </div>

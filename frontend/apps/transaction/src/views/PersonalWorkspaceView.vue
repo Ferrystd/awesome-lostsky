@@ -48,7 +48,7 @@ const personalMetricItems = computed(() => [
 
 <template>
   <div class="personal-workspace">
-    <LsPageHeader :title="title" :description="section === 'services' ? '确认指定邀请，登记信息并接单核销，并管理当前人员已结单的履约任务。' : '集中查看当前人员的角色笔数、月度数据与参与流水。'">
+    <LsPageHeader :title="title" :description="section === 'services' ? '确认指定邀请，登记信息并接单核销，并管理当前人员已结单的履约任务。' : '汇总当前人员参与的流水与业绩。'">
       <template v-if="section === 'transactions'" #actions>
         <LsPagePrimaryAction :icon="CirclePlus" label="登记流水" to="/personal/transactions/new" />
       </template>

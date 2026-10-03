@@ -38,7 +38,7 @@ const columns: DataTableColumns<Administrator> = [
 </script>
 
 <template>
-  <LsPageHeader title="平台管理员" description="管理员权限（Permission）来自平台角色并集；超级管理员拥有全部平台权限。">
+  <LsPageHeader title="平台管理员" description="管理员的权限是其所有平台角色权限的并集；超级管理员拥有全部平台权限。">
     <template #actions>
       <LsPagePrimaryAction :icon="Plus" label="添加管理员" to="/administrators/new" />
     </template>

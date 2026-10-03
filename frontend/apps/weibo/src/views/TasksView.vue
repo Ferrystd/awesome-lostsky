@@ -41,7 +41,7 @@ const label = { Paused: '已暂停', Active: '运行中', BlockedLogin: '登录�
 
 <template>
   <div class="weibo-stack">
-    <LsPageHeader title="持续随机任务" description="首次在开始时间执行；后续时间为上次完成时间加随机间隔。阻塞解除后不会自动恢复。">
+    <LsPageHeader title="持续随机任务" description="任务从设定的开始时间执行第一轮，之后在上一次完成时间上加随机间隔继续；被阻塞后不会自动恢复。">
       <template #actions><LsPagePrimaryAction :icon="Plus" label="新建任务" :href="`${prefix}/tasks/new`" /></template>
     </LsPageHeader>
     <NAlert v-if="query.isError.value" type="error">{{ friendlyError(query.error.value) }}</NAlert>

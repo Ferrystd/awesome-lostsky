@@ -87,7 +87,7 @@ const nextTime = computed(() => (nextTask.value?.next_run_at ? new Date(nextTask
       <div class="weibo-dashboard__intro">
         <p class="weibo-dashboard__signal" :data-tone="signal.tone" aria-live="polite"><span aria-hidden="true" />{{ signal.label }}</p>
         <h2 id="weibo-team-dashboard-title">团队微博，保持在可控节奏</h2>
-        <p class="weibo-dashboard__lead">把账号健康、持续任务和执行结果放在同一个运行面，先判断状态，再进入具体工作。</p>
+        <p class="weibo-dashboard__lead">在一个页面查看账号健康、任务状态和执行结果；让贵团队能够检查运行状态。</p>
         <nav class="weibo-dashboard__hero-actions" aria-label="团队概览主要操作">
           <RouterLink class="weibo-dashboard__action primary" to="/compose"> <Send :size="18" />单次发帖<ArrowRight :size="18" /> </RouterLink>
           <RouterLink class="weibo-dashboard__action secondary" to="/personal"> 进入个人工作台<ArrowRight :size="18" /> </RouterLink>
@@ -154,7 +154,7 @@ const nextTime = computed(() => (nextTask.value?.next_run_at ? new Date(nextTask
               <div class="weibo-dashboard__section-heading">
                 <div>
                   <h2>运行健康</h2>
-                  <p>账号可用性与任务状态保持并排，异常优先处理。</p>
+                  <p>账号健康和任务状态并列展示，便于优先处理异常。</p>
                 </div>
                 <RadioTower :size="21" aria-hidden="true" />
               </div>
@@ -176,7 +176,7 @@ const nextTime = computed(() => (nextTask.value?.next_run_at ? new Date(nextTask
               <div class="weibo-dashboard__section-heading">
                 <div>
                   <h2>近期需要关注</h2>
-                  <p>只收拢失败与结果未确认记录，避免正常日志干扰判断。</p>
+                  <p>只收拢失败与结果未确认记录；不显示常规运行日志。</p>
                 </div>
                 <span class="weibo-dashboard__count">{{ failures.length }} 项</span>
               </div>
@@ -190,7 +190,7 @@ const nextTime = computed(() => (nextTask.value?.next_run_at ? new Date(nextTask
       <section class="weibo-dashboard__entries" aria-labelledby="weibo-work-entry-title">
         <header>
           <h2 id="weibo-work-entry-title">工作入口</h2>
-          <p>从判断切换到执行。</p>
+          <p>状态确认完毕后，从这里进入账号、发帖、互动和任务等具体工作。</p>
         </header>
         <nav aria-label="工作入口">
           <RouterLink v-for="entry in entries" :key="entry.key" :to="entry.to">
@@ -209,9 +209,9 @@ const nextTime = computed(() => (nextTask.value?.next_run_at ? new Date(nextTask
       <ShieldCheck :size="22" aria-hidden="true" />
       <div>
         <h2 id="weibo-team-scope-title">当前范围</h2>
-        <p>基础概览保持可达；账号、任务、日志与业务操作需要 weibo.team.manage Permission。</p>
+        <p>概览对所有人开放；账号、任务、日志和业务操作需要 weibo.team.manage 权限。</p>
       </div>
-      <p><CheckCircle2 :size="17" />远端写入和任务开启或恢复，会在提交动作时核对 Weibo Ability。</p>
+      <p><CheckCircle2 :size="17" />集中管理团队运行任务，需要购买微博能力方可使用。</p>
     </section>
   </div>
 </template>

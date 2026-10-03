@@ -45,7 +45,7 @@ async function submit() {
 
 <template>
   <div class="recharge-view">
-    <LsPageHeader title="顾客充值" description="充值成功后会增加顾客可用余额，并写入不可遗漏的余额变动记录。" :back-to="customerId ? `/balance?customer_id=${customerId}` : '/balances'" back-label="返回顾客余额" />
+    <LsPageHeader title="顾客充值" description="充值成功后余额立即增加，并写入一条余额变动记录。" :back-to="customerId ? `/balance?customer_id=${customerId}` : '/balances'" back-label="返回顾客余额" />
     <form @submit.prevent="submit">
       <LsFormSection title="充值信息">
         <LsField label="顾客" for-id="recharge-customer" required><NSelect id="recharge-customer" v-model:value="customerId" :options="customerOptions(options.data.value)" filterable :disabled="routeAccess.restricted.value" :placeholder="routeAccess.restricted.value ? '-' : '选择顾客'" /></LsField>

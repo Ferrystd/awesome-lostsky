@@ -15,7 +15,7 @@ const entries = computed(() => [
   {
     key: 'products',
     label: '我的商品',
-    description: '管理专属人员为当前身份的商品、接单人和核销字段。',
+    description: '管理归属当前人员的商品，如价格和核销方式。',
     to: '/manage/personal/products',
     icon: ShoppingBag,
   },
@@ -27,7 +27,7 @@ const entries = computed(() => [
     icon: ReceiptText,
   },
 ])
-const configurationSteps = computed(() => [{ key: 'create', label: '创建商品', description: '选择普通商品、核销商品、卡密或套餐。', to: '/manage/personal/products/new', icon: ShoppingBag }, entries.value[0]])
+const configurationSteps = computed(() => [{ key: 'create', label: '创建商品', description: '四种商品类型：普通商品、核销商品、卡密和套餐。', to: '/manage/personal/products/new', icon: ShoppingBag }, entries.value[0]])
 </script>
 
 <template>

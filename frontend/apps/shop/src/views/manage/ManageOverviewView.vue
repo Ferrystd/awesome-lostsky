@@ -15,14 +15,14 @@ const entries = [
   { key: 'products', label: '商品', description: '维护可售商品、处理人和核销字段。', to: '/manage/products', icon: ShoppingBag },
   { key: 'orders', label: '订单', description: '查看团队订单并持续推进履约状态。', to: '/manage/orders', icon: ReceiptText },
 ]
-const configurationSteps = computed(() => [{ key: 'create', label: '创建商品', description: '选择普通商品、核销商品、卡密或套餐。', to: '/manage/products/new', icon: ShoppingBag }, entries[0]])
+const configurationSteps = computed(() => [{ key: 'create', label: '创建商品', description: '四种商品类型：普通商品、核销商品、卡密和套餐。', to: '/manage/products/new', icon: ShoppingBag }, entries[0]])
 </script>
 
 <template>
   <LsWorkspaceOverview
     eyebrow="商品团队工作台"
     :title="access.data.value?.team?.name || (access.isError.value ? '团队摘要暂时不可用' : '正在读取当前团队…')"
-    description="统一管理普通商品、核销商品、卡密和套餐，在订单中跟进交付。"
+    description="管理团队商品并跟进订单交付，覆盖普通商品、核销商品、卡密和套餐。"
     :actions="[{ key: 'personal', label: '进入个人工作台', to: '/manage/personal', icon: UserRound, primary: true }]"
     :entries="entries"
   >

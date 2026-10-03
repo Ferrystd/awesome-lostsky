@@ -32,14 +32,14 @@ const copy = computed(() => scope.value === 'sent'
   : scope.value === 'team'
   ? {
       title: '阅读站内通知',
-      description: '查看 LostSky 发给 Team 的完整通知。',
+      description: '阅读 LostSky 发给团队的通知，打开后自动标记已读。',
       noun: '站内通知',
       backTo: '/notices/team',
       backLabel: '返回站内通知列表',
     }
   : {
       title: '阅读通知',
-      description: '查看 Team 发给当前人员的完整通知。',
+      description: '阅读团队发给你的完整通知，打开后自动标记已读。',
       noun: '通知',
       backTo: '/personal/notices',
       backLabel: '返回通知列表',

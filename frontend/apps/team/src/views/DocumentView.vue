@@ -95,7 +95,7 @@ const back = computed(() => {
 
 <template>
   <article class="document-view">
-    <AdminPageHeader title="文档" description="阅读团队沉淀的流程、规范与长期知识。" :back-to="back" back-label="返回文档列表">
+    <AdminPageHeader title="文档" description="浏览文档。" :back-to="back" back-label="返回文档列表">
       <template #actions>
         <RouterLink v-if="id" class="edit-link" :to="`/doc-edit?id=${id}`">
           <Pencil :size="17" />编辑文档

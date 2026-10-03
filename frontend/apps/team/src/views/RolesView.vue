@@ -32,7 +32,7 @@ const filtered = computed(() => { const keyword = search.value.trim().toLocaleLo
 
 <template>
     <div class="roles-page">
-      <AdminPageHeader title="角色与权限" description="角色列表只用于查找和进入管理任务；角色资料、权限（Permission）与人员分配分别在独立页面完成。">
+      <AdminPageHeader title="角色与权限" description="角色是权限的载体。">
         <template #actions>
           <RouterLink class="secondary-link" to="/roles/entities"><UserRoundCog :size="17" />人员角色分配</RouterLink>
           <LsPagePrimaryAction :icon="Plus" label="新建角色" to="/roles/new" />

@@ -86,7 +86,7 @@ function handleAction(key: string, item: Record<string, unknown>) {
 
 <template>
   <div class="members-view">
-    <AdminPageHeader title="成员" description="浏览团队内可见成员；具有全量读取权限（Permission）时也会列出隐藏或封禁成员。">
+    <AdminPageHeader title="成员" description="查看团队内有权查看的成员。">
       <template #actions><LsPagePrimaryAction :icon="Plus" label="添加成员" to="/member-add" /></template>
     </AdminPageHeader>
 

@@ -35,7 +35,7 @@ const visibleFields = computed(() => { const keyword = search.value.trim().toLoc
 
 <template>
   <div class="fields-page">
-    <AdminPageHeader back-to="/entities" back-label="返回人员" title="对象字段" description="统一定义人员、顾客和虚拟人员的团队内部业务资料；顾客公开资料仍由顾客本人维护。">
+    <AdminPageHeader back-to="/entities" back-label="返回人员" title="对象字段" description="在业务流程中，创建自定义字段以为不同人员存储业务所需数据。">
       <template #actions><LsPagePrimaryAction :icon="Plus" label="创建字段" :to="{ path: '/field-new', query: { type } }" /></template>
     </AdminPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索对象字段" :count-label="routeAccess.restricted.value ? '0 个字段' : `${visibleFields.length} 个字段`"><template #filters><NRadioGroup v-model:value="type" class="tabs" name="entity-field-type" aria-label="对象类型"><NRadioButton v-for="item in (['entity','customer','virtual'] as EntityType[])" :key="item" :value="item">{{ labels[item] }}</NRadioButton></NRadioGroup></template></LsListToolbar>
@@ -47,7 +47,7 @@ const visibleFields = computed(() => { const keyword = search.value.trim().toLoc
         <NTag v-if="field.is_required" type="warning" size="small" :bordered="false">必填</NTag><ChevronRight :size="18" />
       </RouterLink>
     </div>
-    <LsEmptyState :source="fields.data.value" v-else :title="routeAccess.restricted.value ? `没有可显示的${labels[type]}字段` : `还没有${labels[type]}字段`" description="字段值只在团队内部使用，不会自动成为公开资料。" />
+    <LsEmptyState :source="fields.data.value" v-else :title="routeAccess.restricted.value ? `没有可显示的${labels[type]}字段` : `还没有${labels[type]}字段`" description="暂无字段，请先添加。" />
   </div>
 </template>
 

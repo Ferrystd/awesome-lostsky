@@ -70,7 +70,7 @@ function remove(id: number) {
     <div class="media-preparation__status">
       <div>
         <strong>添加微博图片</strong>
-        <small>选择后立即逐张上传，无需 Weibo Ability。</small>
+        <small>选中图片后逐张上传。</small>
       </div>
       <span aria-live="polite">{{ modelValue.length }} / 9 已准备</span>
     </div>

@@ -288,7 +288,7 @@ useUnsavedChangesGuard(hasUnsavedChanges)
 
 <template>
   <div class="member-form-view">
-    <AdminPageHeader :title="editing ? '编辑成员' : '添加成员'" :description="editing ? '维护成员资料、对象字段、角色权限（Permission）与管理状态。' : '填写对方的个人入队码，直接加入当前团队。'" back-to="/members" back-label="返回成员列表">
+    <AdminPageHeader :title="editing ? '编辑成员' : '添加成员'" :description="editing ? '管理当前成员个人资料。' : '填写对方的个人入队码，直接加入当前团队。'" back-to="/members" back-label="返回成员列表">
       <template #actions>
         <LsFormActions class="member-primary-actions">
           <LsButton type="button" variant="secondary" @click="router.push('/members')">取消</LsButton>

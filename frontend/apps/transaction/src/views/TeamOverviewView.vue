@@ -15,8 +15,8 @@ const access = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: (
 const entries = [
   { key: 'transactions', label: '团队流水', description: '查看团队收入、支出与调整记录。', to: '/transactions', icon: ListChecks },
   { key: 'stats', label: '经营统计', description: '查看团队收入结构与业绩汇总。', to: '/stats', icon: BarChart3 },
-  { key: 'services', label: '权益核销', description: '处理权益实例并记录核销过程。', to: '/services', icon: BadgeCheck },
-  { key: 'balances', label: '顾客余额', description: '查看余额、明细并按权限（Permission）执行充值。', to: '/balances', icon: CircleDollarSign },
+  { key: 'services', label: '权益核销', description: '处理并记录顾客核销。', to: '/services', icon: BadgeCheck },
+  { key: 'balances', label: '顾客余额', description: '查看顾客余额和流水明细；具备权限后可为顾客充值。', to: '/balances', icon: CircleDollarSign },
 ]
 </script>
 

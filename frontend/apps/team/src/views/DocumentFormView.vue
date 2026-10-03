@@ -120,7 +120,7 @@ async function submit() {
   <div class="document-form-view">
     <AdminPageHeader
       :title="editing ? '编辑文档' : '新建文档'"
-      description="使用可视化编辑器整理长期知识；输入 @ 可插入团队或成员对象。"
+      description="用可视化编辑器撰写团队文档，输入 @ 可引用团队或人员。"
       back-to="/docs"
       back-label="返回文档列表"
     />

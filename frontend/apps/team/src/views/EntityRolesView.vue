@@ -133,7 +133,7 @@ function entityTypeLabel(type: EntityType) {
     <div class="entity-roles">
       <AdminPageHeader
         title="人员角色分配"
-        description="按名称或全局 slug 搜索人员并授予当前团队角色。成员、顾客、团队和虚拟人员在这里使用同一套分配流程。"
+        description="人员被授予角色后，获取角色的权限，方可执行特定的业务。"
         back-to="/roles"
         back-label="返回角色列表"
       />

@@ -33,7 +33,7 @@ function submit() {
 
 <template>
     <div class="role-form-page">
-      <AdminPageHeader title="新建角色" description="先建立角色，再为它分配完成工作所需的最小权限（Permission）。" back-to="/roles" back-label="返回角色与权限" />
+      <AdminPageHeader title="新建角色" description="填写角色资料并创建；创建后进入角色页面设置权限。" back-to="/roles" back-label="返回角色与权限" />
       <NForm class="role-form" label-placement="top" :show-require-mark="true" @submit.prevent="submit">
         <NFormItem label="角色标识" required>
           <NInput v-model:value="form.role_key" aria-label="角色标识" autocomplete="off" placeholder="例如 operator" />

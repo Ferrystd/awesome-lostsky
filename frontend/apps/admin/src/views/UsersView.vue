@@ -46,7 +46,7 @@ const columns: DataTableColumns<UserSummary> = [
 </script>
 
 <template>
-  <LsPageHeader title="用户" description="查询平台账号、会话与团队归属；敏感联系方式按当前角色权限（Permission）展示。" />
+  <LsPageHeader title="用户" description="查询平台用户的会话和团队归属；手机号等敏感信息需要相应权限才能查看。" />
   <LsListToolbar v-model="q" placeholder="搜索用户名、手机号、邮箱、昵称或 ID" aria-label="搜索用户" :count-label="routeAccess.restricted.value ? '0 位用户' : `${query.data.value?.total ?? 0} 位用户`" @update:model-value="page = 1">
     <template #filters><NSelect v-model:value="status" :options="options" @update:value="page = 1" /></template>
   </LsListToolbar>

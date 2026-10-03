@@ -22,7 +22,7 @@ const rows = computed(() => {
 </script>
 
 <template>
-  <LsPageHeader title="平台角色" description="权限（Permission）目录由代码维护；自定义角色组合固定权限后分配给平台管理员。">
+  <LsPageHeader title="平台角色" description="可选权限由代码统一维护；自定义角色从固定权限中组合，再分配给平台管理员。">
     <template #actions><LsPagePrimaryAction :icon="Plus" label="创建角色" to="/roles/new" /></template>
   </LsPageHeader>
   <LsListToolbar v-model="search" placeholder="搜索角色名称或标识" aria-label="搜索平台角色" :count-label="routeAccess.restricted.value ? '0 个角色' : `${rows.length} 个角色`" />

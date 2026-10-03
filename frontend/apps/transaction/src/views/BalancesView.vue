@@ -34,7 +34,7 @@ const columns: DataTableColumns<Customer> = [
 
 <template>
   <div class="balances-view">
-    <LsPageHeader title="顾客余额" description="查看顾客的可用预存款、累计充值与累计消费；充值和明细使用独立任务页。">
+    <LsPageHeader title="顾客余额" description="查看每位顾客的可用余额、累计充值和累计消费；充值与明细在各自页面办理。">
       <template #actions><LsPagePrimaryAction :icon="CircleDollarSign" label="顾客充值" to="/recharge" /></template>
     </LsPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索顾客昵称" aria-label="搜索顾客余额" :count-label="routeAccess.restricted.value ? '0 位顾客' : `${customers.length} 位顾客`" />

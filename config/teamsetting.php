@@ -6,7 +6,7 @@ use app\enum\TeamMemberDepartureMode;
 return [
     'entity' => [
         'label'       => '人员',
-        'description' => '控制团队和成员是否可以通过对象标识被搜索。',
+        'description' => '决定团队和成员能否通过 @标识 被搜索到。',
         'order'       => 10,
         'settings'    => [
             'team_searchable' => [
@@ -38,7 +38,7 @@ return [
     ],
     'member' => [
         'label'       => '成员',
-        'description' => '配置成员离队、复职与非正常状态人员的处理方式。',
+        'description' => '管理成员离队与入职相关设置。',
         'order'       => 15,
         'settings'    => [
             'departure_mode' => [
@@ -51,8 +51,8 @@ return [
                 'order'       => 10,
             ],
             'inactive_entity_available' => [
-                'label'       => '封禁或离队后仍可代管人员',
-                'description' => '开启后，有代入权限的人员仍可以进入并使用其完整业务能力；成员本人始终无法直接登录。',
+                'label'       => '成员失效后允许被管理员登录',
+                'description' => '开启后，有权限的人员仍可登录该成员并使用其全部业务功能；成员本人始终无法登录。',
                 'type'        => 'boolean',
                 'control'     => 'switch',
                 'default'     => false,
@@ -81,7 +81,7 @@ return [
     ],
     'shop' => [
         'label'       => '商城',
-        'description' => '控制公开商城开放状态，以及商城订单与其他应用之间的自动联动。',
+        'description' => '控制公开商城是否开放，以及订单与记账应用之间的自动联动。',
         'order'       => 30,
         'settings'    => [
             'enabled' => [
@@ -95,7 +95,7 @@ return [
             ],
             'sync_transaction' => [
                 'label'       => '自动同步记账流水',
-                'description' => '下单时自动生成关联流水；仅在团队已开通且未过期的 Transaction Ability 时生效。',
+                'description' => '下单后于记账应用自动生成对应流水；需要团队记账能力有效。',
                 'type'        => 'boolean',
                 'control'     => 'switch',
                 'default'     => true,
@@ -113,7 +113,7 @@ return [
     ],
     'service' => [
         'label'       => '服务',
-        'description' => '配置新服务、权益额度、公开接单与费用调整使用的团队默认值；单个服务或权益包可以覆盖。',
+        'description' => '设置核销、分成等默认数据。',
         'order'       => 35,
         'settings'    => [
             'default_unit_name' => [
@@ -134,7 +134,7 @@ return [
                 'min' => 1, 'max' => 5256000, 'step' => 1, 'order' => 45,
             ],
             'allow_customer_open_dispatch' => [
-                'label' => '允许 Customer 公开召唤接单人', 'description' => '开启后，Customer 可不指定具体接单人，把已填写完整的履约任务公开给该服务接单池。',
+                'label' => '允许顾客公开征集接单人', 'description' => '开启后，顾客无需指定接单人；核销权益时会进入公开接单池。',
                 'type' => 'boolean', 'control' => 'switch', 'default' => true, 'order' => 50,
             ],
             'default_handler_rate_percent' => [

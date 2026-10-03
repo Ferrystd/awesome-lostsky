@@ -110,7 +110,7 @@ const valid = computed(() =>
   <div class="entitlement-form">
     <LsPageHeader
       :title="editing ? '编辑 Ability 权益包' : '创建 Ability 权益包'"
-      description="Ability 只能从代码目录选择；免费一个月默认填写 30 天。"
+      description="能力只能从代码目录中选择；持续天数填 0 表示永久。"
       back-to="/entitlements/packages"
       back-label="返回权益包"
     />

@@ -60,15 +60,15 @@ async function submit() {
 
 <template>
   <div class="weibo-stack">
-    <LsPageHeader title="超话发帖" description="首版仅支持超话帖，最多 9 张图片。图片上传后的 pid 可跨账号复用。" />
+    <LsPageHeader title="超话发帖" description="在超话内发帖不同步至主页。" />
     <form class="weibo-form" @submit.prevent="submit">
-      <LsFormSection title="执行账号" description="选择本次远端操作使用的已绑定账号。">
+      <LsFormSection title="执行账号" description="选择本次发布使用的已绑定微博账号。">
         <LsField label="微博账号" for-id="weibo-account" required>
           <NSelect id="weibo-account" v-model:value="accountId" :loading="!routeAccess.restricted.value && accounts.isPending.value" :disabled="routeAccess.restricted.value" :options="(accounts.data.value || []).map(account => ({ label: account.screen_name || account.uid, value: account.id }))" :placeholder="routeAccess.restricted.value ? '-' : '选择账号'" />
         </LsField>
       </LsFormSection>
 
-        <LsFormSection title="发布内容" description="填写超话和正文；首版只支持发布到超话。">
+        <LsFormSection title="发布内容" description="填写超话名词和正文。">
           <LsField label="超话" for-id="weibo-topic" required hint="填写超话名称即可，不需要输入井号或“超话”字样。">
             <NInput id="weibo-topic" v-model:value="topic" placeholder="例如：失落青空" />
           </LsField>
@@ -76,11 +76,11 @@ async function submit() {
             <NInput id="weibo-content" v-model:value="content" type="textarea" placeholder="输入微博正文" :autosize="{ minRows: 6, maxRows: 12 }" />
           </LsField>
         </LsFormSection>
-        <LsFormSection title="图片" description="每条最多 9 张；上传后的 pid 可跨账号复用，原文件不持久化。">
+        <LsFormSection title="图片" description="每条帖子最多 9 张图片；不占用团队文件额度。">
           <MediaPreparation v-model="mediaIds" :prefix="prefix" :personal="personal" :expected-entity-id="access.data.value?.identity.entity_id ?? 0" :account-id="accountId" :access-disabled-reason="routeAccess.reason.value" />
         </LsFormSection>
 
-      <LsFormSection title="执行" description="点击后最多发出一个远端写请求；失败不会自动重试。">
+      <LsFormSection title="执行" description="点击发布后发出一次请求；失败后需手动重试。">
         <LsDescriptionList>
           <dt>账号</dt><dd>{{ routeAccess.restricted.value ? '-' : selectedAccount?.screen_name || selectedAccount?.uid || '未选择' }}</dd>
           <dt>目标</dt><dd>{{ targetSummary }}</dd>

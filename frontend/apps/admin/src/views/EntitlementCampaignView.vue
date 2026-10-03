@@ -166,7 +166,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
   <div class="campaign-view">
     <LsPageHeader
       :title="editing ? 'Ability 体验活动' : '创建 Ability 体验活动'"
-      description="公共活动码使用共享代码，但同一个 Team 在相同领取组中只能成功一次。"
+      description="体验码在所有团队之间共享；同一个团队在同一互斥组中只能领取一次。"
       back-to="/entitlements/campaigns"
       back-label="返回活动"
     />

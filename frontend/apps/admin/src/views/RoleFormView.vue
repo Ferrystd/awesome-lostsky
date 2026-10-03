@@ -40,7 +40,7 @@ function confirmDelete() { dialog.warning({ title: '删除这个平台角色？'
 </script>
 
 <template>
-  <LsPageHeader :title="id ? '编辑平台角色' : '创建平台角色'" description="角色标识创建后不可修改；系统角色始终拥有固定的平台权限（Permission）。" back-to="/roles">
+  <LsPageHeader :title="id ? '编辑平台角色' : '创建平台角色'" description="角色标识保存后不能再修改；系统角色的权限固定，不可调整。" back-to="/roles">
     <template #actions><LsButton v-if="id && !role?.is_system" variant="danger" :disabled="!writable" :disabled-reason="permissionReason('admin.access.write')" @click="confirmDelete">删除角色</LsButton></template>
   </LsPageHeader>
   <LsAsyncState v-if="loading" state="loading" :rows="5" />

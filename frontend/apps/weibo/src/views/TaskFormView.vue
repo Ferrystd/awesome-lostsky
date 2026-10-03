@@ -97,13 +97,13 @@ async function save() {
   <div class="weibo-stack">
     <LsPageHeader
       :title="editing ? '编辑微博任务' : '新建微博任务'"
-      description="保存和编辑不需要 Ability。每次编辑都会使旧队列消息失效，并把任务重置为暂停。"
+      description="新建和编辑任务不需要微博能力，仅启用任务需要；修改后任务会回到暂停状态，需重新开启。"
       :back-to="`${prefix}/tasks`"
       back-label="返回任务"
     />
     <LsInlineError v-if="existing.isError.value" :message="friendlyError(existing.error.value)" />
     <form v-else class="weibo-form" @submit.prevent="save">
-      <LsFormSection v-if="editing && routeAccess.restricted.value" title="当前任务" description="页面结构保持可用；无法读取的已保存配置使用横杠表示。">
+      <LsFormSection v-if="editing && routeAccess.restricted.value" title="当前任务" description="列表结构始终可用；暂时无法读取的配置会显示为横杠。">
         <LsDescriptionList><dt>已保存配置</dt><dd>-</dd></LsDescriptionList>
       </LsFormSection>
       <LsFormSection title="执行安排" :description="isCheckin ? '选择候选账号和首次签到时间；之后每天同一时间执行。' : '选择每轮可用的候选账号，并设置首次执行时间与随机间隔。'">

@@ -16,8 +16,8 @@ const access = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: (
 const identityType = computed(() => ({ team: '团队身份', teamMember: '团队成员', teamVirtual: '虚拟人员' })[access.data.value?.identity?.type ?? ''] || '当前人员')
 
 const entries = [
-  { key: 'transactions', label: '我的流水', description: '集中查看当前人员的角色笔数、月度数据与参与流水。', to: '/personal/transactions', icon: ListChecks },
-  { key: 'services', label: '我的接单', description: '查看当前人员作为处理者参与的履约任务。', to: '/personal/services', icon: BadgeCheck },
+  { key: 'transactions', label: '我的流水', description: '汇总当前人员参与的流水与业绩。', to: '/personal/transactions', icon: ListChecks },
+  { key: 'services', label: '我的接单', description: '查看你的接单情况。', to: '/personal/services', icon: BadgeCheck },
   { key: 'customers', label: '我的顾客', description: '查看当前人员负责或协作发单的顾客。', to: '/personal/customers', icon: Handshake },
   { key: 'entitlement-grant', label: '权益下发', description: '查看当前人员已下发的权益，并继续为接待的顾客下发。', to: '/personal/entitlements', icon: Gift },
 ]
@@ -44,11 +44,11 @@ const metrics = computed(() => [
     :description="`查看自己的接单、发单与接待业绩，从参与的业务继续处理顾客和权益。${access.data.value?.identity?.slug ? ` 当前身份 @${access.data.value.identity.slug}` : ''}`"
     :actions="[{ key: 'team', label: '进入团队工作台', to: '/overview', icon: House, primary: true }]"
     :entries="entries"
-    :scope-notes="['仅统计当前身份参与的业务；团队管理权限不会扩大个人数据范围。']"
+    :scope-notes="['团队流水需切换至团队工作台；商品编辑请移步至商城工作台']"
   >
     <template #summary>
       <LsPanel>
-        <template #header><LsSectionHeader title="我的业务表现" description="角色参与笔数与业绩分开呈现，月度指标按本月统计。" /></template>
+        <template #header><LsSectionHeader title="我的业务表现" description="按角色分别统计参与流水与业绩。" /></template>
         <LsMetricGrid :items="metrics" aria-label="个人业务统计" />
         <LsAsyncState v-if="stats.isPending.value" state="loading" :rows="2" />
         <LsInlineError v-else-if="stats.isError.value" :message="friendlyError(stats.error.value)" />

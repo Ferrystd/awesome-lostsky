@@ -337,7 +337,7 @@ const valid = computed(() => Boolean(
   <div class="manage-page">
     <LsPageHeader
       :title="editing ? (personal ? '编辑本人商品' : '编辑商品') : (personal ? '新建本人商品' : '新建商品')"
-      description="商品类型决定订单完成时的履约结果；服务和卡密配置由后端再次校验。"
+      description="商品类型决定订单完成时交付什么；相关配置在保存时由后端再次校验。"
       :back-to="management.routeBase"
       :back-label="personal ? '返回我的商品' : '返回商品'"
     >

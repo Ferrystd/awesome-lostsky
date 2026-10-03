@@ -68,7 +68,7 @@ const columns: DataTableColumns<TransactionRecord> = [
 
 <template>
   <div class="transactions-view">
-    <LsPageHeader title="流水" description="通过对流水的实时查看，您可对商业状态了如指掌。" />
+    <LsPageHeader title="流水" description="实时查看团队流水，随时掌握收支情况。" />
 
     <LsListToolbar v-model="filters.keyword" placeholder="搜索顾客昵称" aria-label="搜索流水顾客" :count-label="routeAccess.restricted.value ? '0 条流水' : `${query.data.value?.total ?? 0} 条流水`" @update:model-value="filters.page = 1">
       <template #filters>

@@ -69,7 +69,7 @@ function entityLocation(entity: Entity, manage = false) {
 
 <template>
   <div class="entities-view">
-    <AdminPageHeader title="人员" description="浏览团队、成员、顾客与虚拟人员。具有全量读取权限（Permission）时也会列出团队内隐藏人员。"><template #actions><LsPagePrimaryAction :icon="FileText" label="对象字段" to="/fields" /><LsPagePrimaryAction :icon="Bot" label="虚拟人员" to="/chat-virtuals" /></template></AdminPageHeader>
+    <AdminPageHeader title="人员" description="查看团队内有权查看的人员。"><template #actions><LsPagePrimaryAction :icon="FileText" label="对象字段" to="/fields" /><LsPagePrimaryAction :icon="Bot" label="虚拟人员" to="/chat-virtuals" /></template></AdminPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索人员名称或 slug" aria-label="搜索人员" :count-label="`${rows.length} 位人员`"><template #filters><NSelect v-model:value="type" :options="options" clearable placeholder="全部类型" /></template></LsListToolbar>
     <NSpin v-if="query.isPending.value" size="large" />
     <p v-else-if="query.isError.value" class="feedback" role="alert">{{ friendlyError(query.error.value) }}</p>

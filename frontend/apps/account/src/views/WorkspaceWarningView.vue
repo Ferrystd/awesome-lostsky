@@ -76,7 +76,7 @@ function continueToWorkspace() {
       <AlertTriangle class="warning-icon" :size="32" aria-hidden="true" />
       <div>
         <h1>你正在使用外部身份</h1>
-        <p>当前代表的是其他团队的人员。继续后，业务操作将使用目标团队授予该人员的 Permission。</p>
+        <p>当前身份不属于目标团队；进入后仅可处理目标团队已授权的业务。</p>
       </div>
       <div class="identity-pair" aria-label="当前身份与目标团队">
         <LsEntityIdentity

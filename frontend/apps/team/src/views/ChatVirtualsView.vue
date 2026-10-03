@@ -28,7 +28,7 @@ const rows = computed(() => { const keyword = search.value.trim().toLocaleLowerC
 
 <template>
   <div class="virtual-list-page">
-    <AdminPageHeader back-to="/entities" back-label="返回人员" title="虚拟人员" description="以同一套通用能力（Ability）承载人工代操作、Webhook，以及未来的 LLM 或工作流。">
+    <AdminPageHeader back-to="/entities" back-label="返回人员" title="虚拟人员" description="为团队建立虚拟人员，分配角色后用于业务操作与外部集成。">
       <template #actions><LsPagePrimaryAction :icon="Plus" label="创建虚拟人员" to="/chat-virtual-new" /></template>
     </AdminPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索虚拟人员名称或 slug" aria-label="搜索虚拟人员" :count-label="routeAccess.restricted.value ? '0 个虚拟人员' : `${rows.length} 个虚拟人员`" />
@@ -42,7 +42,7 @@ const rows = computed(() => { const keyword = search.value.trim().toLocaleLowerC
         <ChevronRight :size="18" />
       </RouterLink>
     </div>
-    <LsEmptyState :source="virtuals.data.value" v-else :title="routeAccess.restricted.value ? '没有可显示的虚拟人员' : '还没有虚拟人员'" description="创建后可通过角色授予全局或指定 slug 的管理、操作与字段范围。" />
+    <LsEmptyState :source="virtuals.data.value" v-else :title="routeAccess.restricted.value ? '没有可显示的虚拟人员' : '还没有虚拟人员'" description="请先创建虚拟人员。" />
   </div>
 </template>
 

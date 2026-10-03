@@ -148,12 +148,12 @@ function switchDisabled(appName: string, setting: SettingField): boolean {
   <div class="settings-view">
     <AdminPageHeader
       title="团队设置"
-      description="配置团队级行为。设置项、输入类型和可选值均由服务端统一定义。"
+      description="配置团队设置，以此更好的贴合贵团队的业务。"
     ><template #actions><LsPagePrimaryAction :icon="KeyRound" label="团队能力" to="/abilities" /></template></AdminPageHeader>
 
     <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取团队设置" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="4" />
-    <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !apps.length" :title="routeAccess.restricted.value ? '没有可显示的团队设置' : '当前没有可配置项'" description="应用登记团队设置后会自动显示在这里。" />
+    <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !apps.length" :title="routeAccess.restricted.value ? '没有可显示的团队设置' : '当前没有可配置项'" description="还没有可配置的设置项。" />
 
     <template v-else>
       <form

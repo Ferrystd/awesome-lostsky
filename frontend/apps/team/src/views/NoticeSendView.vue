@@ -118,7 +118,7 @@ function submit() {
   <div class="notice-send-view">
     <AdminPageHeader
       title="发送通知"
-      description="由有权限（Permission）的当前人员代表 Team，向同 Team 的一位人员发送单向通知。"
+      description="以团队名义向团队内的一位人员发送通知；发送后对方无法回复。"
       back-to="/notices/sent"
       back-label="返回通知"
     />
@@ -126,10 +126,10 @@ function submit() {
     <form class="notice-form" @submit.prevent="submit">
       <section class="delivery-note" aria-labelledby="delivery-note-title">
         <strong id="delivery-note-title">单向、同 Team 送达</strong>
-        <p>通知只进入所选人员的收件箱，不支持回复、抄送或会话；发送方统一显示为当前 Team。</p>
+        <p>此为单向通知，不支持回复或会话；发送方显示为团队本身。</p>
       </section>
 
-      <LsField label="收件人员" for-id="notice-recipient" required hint="可选择 Team、成员、顾客或虚拟人员；结果包含类型与全局标识，避免发给同名对象。">
+      <LsField label="收件人员" for-id="notice-recipient" required hint="在本团队的人员中选择收件人；不会发给同名对象。">
         <NSelect
           id="notice-recipient"
           v-model:value="form.entity_id"

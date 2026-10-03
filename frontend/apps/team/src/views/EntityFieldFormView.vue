@@ -139,7 +139,7 @@ function submit() {
 
 <template>
     <div class="field-form-page">
-      <AdminPageHeader :title="editing ? '编辑对象字段' : '创建对象字段'" description="字段定义属于团队；值按对象类型与内部 ID 关联，不把数字 ID 暴露到权限（Permission） key。" back-to="/fields" back-label="返回对象字段" />
+      <AdminPageHeader :title="editing ? '编辑对象字段' : '创建对象字段'" description="不同字段需要使用不同字段类型，以此更好的适配您的业务。" back-to="/fields" back-label="返回对象字段" />
       <form @submit.prevent="submit">
         <label>对象类型<NSelect v-model:value="form.entity_type" :disabled="editing" :options="typeOptions" /></label>
         <label>字段标识<NInput v-model:value="form.field_key" :disabled="editing" maxlength="64" placeholder="department" /></label>

@@ -169,7 +169,7 @@ const groupedPermissions = computed(() => {
         <div>
           <h2 id="entity-permissions-title">角色与权限</h2>
           <p>
-            {{ canEdit ? '角色决定该人员在当前团队能够执行的操作。' : '以下按当前团队分配角色中的权限（Permission）记录逐条展示。' }}
+            {{ canEdit ? '角色决定该人员在当前团队能够执行的操作。' : '以下权限来自当前团队分配给该身份的角色。' }}
           </p>
         </div>
         <LsButton class="permissions-save" variant="secondary" :loading="saving" :disabled="!canEdit || loading || !isDirty" :disabled-reason="!canEdit ? editReason : undefined" @click="emit('save', selected)"> 保存角色 </LsButton>

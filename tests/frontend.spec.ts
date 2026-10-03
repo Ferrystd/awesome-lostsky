@@ -1926,7 +1926,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
           {
             app_name: 'entity',
             label: '人员',
-            description: '控制团队和成员是否可以通过对象标识被搜索。',
+            description: '决定团队和成员能否通过 @标识 被搜索到。',
             order: 10,
             settings: [
               {
@@ -1976,13 +1976,13 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
           {
             app_name: 'member',
             label: '成员',
-            description: '配置成员离队、复职与非正常状态人员的处理方式。',
+            description: '管理成员离队与入职相关设置。',
             order: 15,
             settings: [
               {
                 key: 'inactive_entity_available',
-                label: '封禁或离队后仍可代管人员',
-                description: '开启后，有代入权限的人员仍可以进入并使用其完整业务能力。',
+                label: '成员失效后允许被管理员登录',
+                description: '开启后，有权限的人员仍可登录该成员并使用其全部业务功能；成员本人始终无法登录。',
                 type: 'boolean',
                 control: 'switch',
                 order: 20,
@@ -2106,7 +2106,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
               {
                 key: 'sync_transaction',
                 label: '自动同步记账流水',
-                description: '下单时自动生成关联流水；仅在团队已开通且未过期的 Transaction Ability 时生效。',
+                description: '下单后于记账应用自动生成对应流水；需要团队记账能力有效。',
                 type: 'boolean',
                 control: 'switch',
                 order: 10,
@@ -2367,7 +2367,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     }
     if (path === '/join-review') {
       await expect(page.getByRole('link', { name: /青空成员/ })).toBeVisible()
-      await expect(page.getByText('查看申请状态，选择一条申请进入独立审核页面。')).toBeVisible()
+      await expect(page.getByText('查看加入申请，点击进入对应审核页面。')).toBeVisible()
     }
     if (path === '/join-fields') {
       await expect(page.getByRole('link', { name: /相关经验/ })).toBeVisible()
@@ -2434,7 +2434,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     }
     if (path === '/notices/send') {
       await expect(page.locator('#workspace').getByRole('heading', { name: '发送通知', level: 1 })).toBeVisible()
-      await expect(page.getByText('通知只进入所选人员的收件箱，不支持回复、抄送或会话；发送方统一显示为当前 Team。')).toBeVisible()
+      await expect(page.getByText('此为单向通知，不支持回复或会话；发送方显示为团队本身。')).toBeVisible()
       await expect(page.getByRole('tab', { name: '可视化' })).toBeVisible()
       await expect(page.getByRole('tab', { name: '源码' })).toBeVisible()
       await expect(page.getByRole('tab', { name: '预览' })).toBeVisible()

@@ -79,7 +79,7 @@ const entries = computed(() => [
   {
     key: 'logs',
     label: '日志',
-    description: '查看最近 30 天的最小结构化执行结果。',
+    description: '查看最近 30 天的执行结果摘要。',
     to: `${prefix.value}/logs`,
     icon: FileClock,
   },
@@ -99,7 +99,7 @@ const actions = computed(() => [
     icon: Send,
   },
 ])
-const scopeNotes = ['账号、任务和日志固定在当前人员范围，页面不提供跨人员筛选。', '远端写入和任务开启/恢复会在用户提交动作时核对 Weibo Ability。']
+const scopeNotes = ['管理当前人员的微博账号与任务', '无权限或能力时可预先配置']
 </script>
 
 <template>

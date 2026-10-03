@@ -97,18 +97,18 @@ async function submit() {
   <div class="entitlement-grant-view">
     <LsPageHeader
       :title="personal ? '下发顾客权益' : '赋予顾客权益'"
-      :description="personal ? '为当前人员接待的顾客直接交付 Shop 权益套餐；本操作不创建商城订单。' : '从 Shop 权益套餐读取权益快照并直接交付给顾客；本操作不创建商城订单。'"
+      :description="personal ? '授予顾客可核销的权益，视同顾客下单核销商品；全程不产生商城订单。' : '按权益套餐的内容把权益直接交付给顾客；不创建商城订单。'"
       :back-to="personal ? '/personal/entitlements' : '/services'"
       :back-label="personal ? '返回权益下发' : '返回权益核销'"
     />
     <LsAsyncState v-if="!routeAccess.restricted.value && options.isPending.value" state="loading" :rows="5" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && options.isError.value" state="error" title="暂时无法读取赋予候选" :description="friendlyError(options.error.value)" />
-    <LsEmptyState :source="options.data.value" v-else-if="!routeAccess.restricted.value && !products.length" title="没有可赋予的权益套餐" description="先在 Shop 创建并启用关联权益包的权益套餐商品。">
+    <LsEmptyState :source="options.data.value" v-else-if="!routeAccess.restricted.value && !products.length" title="没有可赋予的权益套餐" description="请先在商城应用创建并启用核销商品。">
       <template #action><a class="primary-link" :href="shopProductsUrl">前往商品管理</a></template>
     </LsEmptyState>
     <form v-else @submit.prevent="submit">
       <LsFormSection title="赋予内容" :description="grantDescription">
-        <LsField label="权益套餐商品" for-id="grant-product" required hint="只显示 Shop 中已启用且关联有效权益包的权益套餐。">
+        <LsField label="权益套餐商品" for-id="grant-product" required hint="仅列出商城中已启用、且含有核销商品的套餐商品。">
           <NSelect id="grant-product" v-model:value="form.product_id" :options="productOptions" filterable :disabled="routeAccess.restricted.value" :placeholder="routeAccess.restricted.value ? '-' : '选择权益套餐商品'" />
         </LsField>
         <LsField label="顾客" for-id="grant-customer" required>

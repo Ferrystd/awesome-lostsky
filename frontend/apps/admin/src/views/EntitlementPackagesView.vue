@@ -47,7 +47,7 @@ const pages = computed(() =>
   <div class="admin-list-page">
     <LsPageHeader
       title="Ability 权益包"
-      description="平台权益包只组合代码目录中的 Ability、等级和持续天数。"
+      description="权益包从代码目录中的能力里选择，并设定等级和持续天数。"
       ><template #actions
         ><LsPagePrimaryAction
           :icon="Plus"

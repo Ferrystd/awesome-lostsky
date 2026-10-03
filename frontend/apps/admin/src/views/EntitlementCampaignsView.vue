@@ -70,7 +70,7 @@ const mode = (v: number) =>
     /><LsEmptyState :source="query.data.value"
       v-else-if="routeAccess.restricted.value || !query.data.value?.list.length"
       title="没有可显示的体验活动"
-      description="先创建 Ability 权益包，再建立公共体验活动。"
+      description="还没有体验活动；先创建权益包，再建立公共体验活动。"
     />
     <section v-else class="entitlement-list">
       <RouterLink

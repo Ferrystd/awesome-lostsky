@@ -41,7 +41,7 @@ const domainColumns: DataTableColumns<Domain> = [
 </script>
 
 <template>
-  <LsPageHeader title="团队详情" description="查看平台层面的团队状态、域名和能力（Ability），不进入团队内部修改内容。" back-to="/teams">
+  <LsPageHeader title="团队详情" description="查看各团队的所有者、规模和运行状态；平台只做治理，不会改动团队内部业务数据。" back-to="/teams">
     <template #actions>
       <LsPagePrimaryAction v-if="!query.data.value?.is_cancelled" :icon="ShieldPlus" label="开通能力" :to="{ path: '/entitlements/team-abilities', query: { team: query.data.value?.slug, return: `/teams/${id}` } }" />
       <LsButton v-if="!query.data.value?.is_cancelled" :variant="query.data.value?.is_banned ? 'primary' : 'danger'" :disabled="routeAccess.restricted.value || !can('admin.team.moderate')" :disabled-reason="routeAccess.reason.value || permissionReason('admin.team.moderate')" @click="dialog = true">{{ query.data.value?.is_banned ? '解封团队' : '封禁团队' }}</LsButton>

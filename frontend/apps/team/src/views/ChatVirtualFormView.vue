@@ -66,7 +66,7 @@ function submit() {
 
 <template>
     <div class="virtual-form-page">
-      <AdminPageHeader :title="editing ? '编辑虚拟人员' : '创建虚拟人员'" description="slug 用于 URL、权限（Permission）和集成身份；确定后不可修改或复用。" back-to="/chat-virtuals" back-label="返回虚拟人员">
+      <AdminPageHeader :title="editing ? '编辑虚拟人员' : '创建虚拟人员'" description="您需要为虚拟人员设置标识。" back-to="/chat-virtuals" back-label="返回虚拟人员">
         <template v-if="editing" #actions><LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteVirtual"><Trash2 :size="16" />删除人员</LsButton></template>
       </AdminPageHeader>
       <form @submit.prevent="submit"><LsPanel><div class="virtual-fields">
