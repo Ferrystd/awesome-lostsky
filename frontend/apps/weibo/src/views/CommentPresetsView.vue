@@ -27,7 +27,7 @@ const filtered = computed(() => presets.value.filter(item => item.content.toLoca
 </script>
 
 <template>
-  <div class="weibo-stack">
+  <div class="weibo-stack comment-presets-page">
     <LsPageHeader title="预设评论" :back-to="backTo" :back-label="personal ? '返回点单信息流' : '返回互动'" :description="personal ? '查看自己的常用评论，团队预设也可在互动页选择。' : '查看团队成员可选用的常用评论。'">
       <template #actions><LsPagePrimaryAction :icon="Plus" label="添加预设" :to="{ path: `${listPath}/new`, query: presetQuery }" /></template>
     </LsPageHeader>
@@ -46,6 +46,7 @@ const filtered = computed(() => presets.value.filter(item => item.content.toLoca
 </template>
 
 <style scoped>
-.preset-row { padding-block: 1rem; }
-.preset-row p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.comment-presets-page { width: 100%; max-width: 52rem; margin-inline: auto; }
+.preset-row { padding: 1rem 1.25rem; }
+.preset-row p { max-width: 68ch; margin: 0; font-size: .9375rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 </style>
