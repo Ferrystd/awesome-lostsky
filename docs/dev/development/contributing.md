@@ -6,18 +6,19 @@
 
 | 角色 | 模型 | 职责 |
 | --- | --- | --- |
-| `lostsky-explorer` | `gpt-5.6-luna` | 只读检索、调用链定位 |
-| `lostsky-tester` | `gpt-5.6-luna` | 定向测试、复现与失败定位 |
-| `lostsky-worker` | `gpt-5.6-sol` | 非前端代码实现与修复 |
-| `lostsky-team-setting` | `gpt-5.6-sol` | TeamSetting 后端专项实现 |
-| `lostsky-reviewer` | `gpt-5.6-sol` | 复杂逻辑、权限、事务审查 |
+| `lostsky-explorer` | `gpt-6-luna` | 只读检索、调用链定位 |
+| `lostsky-tester` | `gpt-6-luna` | 定向测试、复现与失败定位 |
+| `lostsky-worker` | `gpt-6.1-sol` | 非前端代码实现与修复 |
+| `lostsky-team-setting` | `gpt-6.1-sol` | TeamSetting 后端专项实现 |
+| `lostsky-reviewer` | `gpt-6.1-sol` | 复杂逻辑、权限、事务审查 |
 | `lostsky-frontend` | `gpt-6-astra` | 所有前端相关工作 |
 | `lostsky-git` | `gpt-6-luna` | 阶段性暂存、任务提交、Git 生命周期检查与收尾，以及已授权的发布 |
 
-配置位于 `.codex/agents/*.toml`；`.codex/config.toml` 为未指定模型的子代理设置 Luna 默认值，主对话模型由用户选择。
+模型与推理强度由 `.codex/agents/*.toml` 的各角色配置明确指定，默认使用 `medium`；主对话模型由用户选择。修改角色配置后，在新任务中验证加载结果；已有代理继续使用创建时的配置。
 
 - 前端优先按领域路由：所有前端相关检索、设计、实现、测试、审查和构建均由 Astra 主代理或 `lostsky-frontend` 执行，禁止交给 Luna / Sol。混合任务拆分前后端；不能合理拆分时整体交 Astra。此规则优先于角色和默认模型。所有非前端代码编写（含测试代码）交 Sol；Luna 除检索、执行测试与定位外，仅由 `lostsky-git` 执行 Git 暂存、提交与交付操作，不修改业务代码。
 - 通常只开 1–2 个子代理，仅有独立且有价值的工作时并行，遵守运行时并发上限。
+- 同一模块优先复用已有代理完成实现、修复和收尾，不重复创建职责相同的代理。审查聚焦最终差异和明确风险；只在新变化或失败证据需要时复审。
 - 每次明确目标、文件或模块所有权、验收条件和必要上下文；告知代理共享工作区，不得回退他人改动。子代理不自行继续分派。
 - 优先使用表中自定义角色。当前会话尚未加载角色时，使用通用角色并显式指定对应模型及 medium 推理强度；覆盖模型时使用精简上下文或 `fork_turns="none"` 并提供完整子任务说明，不使用全量历史 fork。
 - 主代理接受有证据的结果，避免重复检索、重跑已通过且无新变化的检查。Luna 遇到能力瓶颈升级 Sol，复杂跨模块问题交 Sol，关键决策与未解决问题交 Astra。

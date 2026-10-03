@@ -1,6 +1,6 @@
 name = "lostsky-worker"
 description = "负责明确分配的前后端实现和修复，遵循项目技能、构建与验证要求。"
-model = "gpt-5.6-sol"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 
 developer_instructions = """

@@ -1,6 +1,6 @@
 name = "lostsky-tester"
 description = "运行定向测试、复现问题并定位失败；默认不改业务代码，测试修改需主代理分配。"
-model = "gpt-5.6-luna"
+model = "gpt-6-luna"
 model_reasoning_effort = "medium"
 
 developer_instructions = """

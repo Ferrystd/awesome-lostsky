@@ -1,6 +1,6 @@
 name = "lostsky-reviewer"
 description = "只读审查指定差异，关注正确性、权限、事务和数据一致性，报告有证据的缺陷。"
-model = "gpt-5.6-sol"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 
 developer_instructions = """

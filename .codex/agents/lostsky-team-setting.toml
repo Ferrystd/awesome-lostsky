@@ -1,6 +1,6 @@
 name = "lostsky-team-setting"
 description = "负责按“定义/枚举 → 校验 → 服务 → 接口/OpenAPI → 前端 → 审查”流程规范化 LostSky TeamSetting。"
-model = "gpt-5.6-sol"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 
