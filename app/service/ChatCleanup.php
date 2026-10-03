@@ -6,7 +6,7 @@ namespace app\service;
 use app\model\ChatConversation;
 use app\model\ChatEventOutbox;
 use app\model\ChatMessage;
-use app\model\Team;
+use app\model\ChatParticipant;
 
 class ChatCleanup
 {
@@ -26,6 +26,8 @@ class ChatCleanup
                     'payload' => [
                         'conversation' => $conversation->uuid,
                         'reason' => 'expired',
+                        'recipient_entity_ids' => ChatParticipant::where('conversation_id', $conversation->id)
+                            ->where('status', 'active')->whereNull('left_at')->column('entity_id'),
                     ],
                     'attempts' => 0,
                     'available_at' => time(),
@@ -35,18 +37,18 @@ class ChatCleanup
         }
 
         $deleted = 0;
-        foreach (Team::active()->select() as $team) {
-            $settings = app(TeamSetting::class)->internal((int) $team->id, 'chat');
+        $teamIds = ChatConversation::where('kind', 'group')->whereNotNull('team_id')->distinct(true)->column('team_id');
+        foreach ($teamIds as $teamId) {
+            $settings = app(TeamSetting::class)->internal((int) $teamId, 'chat');
             $days = (int) ($settings['retention_days'] ?? 0);
             if ($days <= 0) {
                 continue;
             }
             $cutoff = time() - $days * 86400;
-            foreach (ChatMessage::where('team_id', $team->id)->where('create_time', '<', $cutoff)->select() as $message) {
-                $message->save(['content' => null]);
-                $message->delete();
-                $deleted++;
-            }
+            do {
+                $rows = ChatMessage::where('team_id', $teamId)->where('create_time', '<', $cutoff)->limit(500)->select();
+                foreach ($rows as $message) { $message->save(['content' => null]); $message->delete(); $deleted++; }
+            } while (count($rows) === 500);
         }
         return compact('closed', 'deleted');
     }

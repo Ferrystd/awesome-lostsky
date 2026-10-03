@@ -56,6 +56,9 @@ class IdentitySession
             EntitySession::whereIn('id', array_values(array_unique($sessionIds)))
                 ->whereNull('revoked_at')
                 ->update(['revoked_at' => time()]);
+            foreach (array_values(array_unique($sessionIds)) as $sessionId) {
+                app(ChatRealtime::class)->disconnectSession((int) $sessionId);
+            }
         }
     }
     public function candidates(int $userId, ?EntitySession $current = null): array
@@ -187,12 +190,15 @@ class IdentitySession
     public function drop(int $userId, string $deviceToken, string $jti = ''): array
     {
         if ($jti !== '') {
+            $sessionId = (int) (EntitySession::where('user_id', $userId)
+                ->where('device_token', $deviceToken)->where('jti', $jti)->value('id') ?? 0);
             EntitySession::where('user_id', $userId)
                 ->where('device_token', $deviceToken)
                 ->where('jti', $jti)
                 ->whereNull('revoked_at')
                 ->whereNull('superseded_at')
                 ->update(['revoked_at' => time()]);
+            app(ChatRealtime::class)->disconnectSession($sessionId);
         }
 
         return ['token' => app(Jwt::class)->createToken($userId, $deviceToken)];
@@ -590,6 +596,8 @@ class IdentitySession
         Entity $identity
     ): array {
         $expiresAt = time() + (int) config('jwt.ttl');
+        $replacedSessionIds = EntitySession::where('user_id', $userId)
+            ->where('device_token', $deviceToken)->whereNull('revoked_at')->whereNull('superseded_at')->column('id');
         $session = EntitySession::transaction(function () use (
             $userId,
             $deviceToken,
@@ -612,6 +620,7 @@ class IdentitySession
             );
         });
 
+        foreach ($replacedSessionIds as $sessionId) app(ChatRealtime::class)->disconnectSession((int) $sessionId);
         return $this->issued($session, $identity);
     }
 
@@ -652,6 +661,7 @@ class IdentitySession
             );
         });
 
+        app(ChatRealtime::class)->disconnectSession((int) $current->id);
         return $this->issued($session, $identity);
     }
 

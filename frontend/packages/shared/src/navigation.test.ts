@@ -166,7 +166,7 @@ describe('chatWorkspaceUrl', () => {
     })
 
     expect(chatWorkspaceUrl('/new', { participant: 'member-1' }))
-      .toBe('https://demo.chat.lostsky.work/new?participant=member-1')
+      .toBe('https://chat.lostsky.work/new?participant=member-1')
   })
 
   it('uses the Chat development port from a local team workspace', () => {
@@ -177,7 +177,7 @@ describe('chatWorkspaceUrl', () => {
       protocol: 'http:',
     })
 
-    expect(chatWorkspaceUrl()).toBe('http://demo.chat.lostsky.work:5176/')
+    expect(chatWorkspaceUrl()).toBe('http://chat.lostsky.work:5176/')
   })
 })
 

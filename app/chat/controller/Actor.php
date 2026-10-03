@@ -7,14 +7,18 @@ class Actor
 {
     protected $middleware = [
         'JwtAuth', 'Context', 'EntityType:team,teamMember,teamCustomer,teamVirtual',
-        'TeamAuth', 'ChatAccess',
+        'EntityRequired',
     ];
 
     public function index(\think\Request $request)
     {
-        return success(app(\app\service\ChatActor::class)->list(
-            $request->team_id,
-            $request->acting_entity
+        return success(app(\app\service\ChatActor::class)->current($request->acting_entity));
+    }
+
+    public function search(\think\Request $request)
+    {
+        return success(app(\app\service\ChatActor::class)->search(
+            $request->get('q/s', ''), $request->get('slug/s', ''), $request->user_id
         ));
     }
 }

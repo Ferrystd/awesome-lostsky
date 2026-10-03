@@ -110,7 +110,13 @@ export function chatWorkspaceUrl(
   path = '/',
   params: Record<string, string | number | boolean | null | undefined> = {},
 ) {
-  return workspaceUrl('chat', 5176, path, params)
+  const host = isLocalDevelopmentHost(location.hostname) ? location.hostname : 'chat.lostsky.work'
+  const port = import.meta.env.DEV ? ':5176' : location.port ? `:${location.port}` : ''
+  const url = new URL(path, `${location.protocol}//${host}${port}`)
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== null && value !== undefined && value !== '') url.searchParams.set(key, String(value))
+  }
+  return url.href
 }
 
 export function shopWorkspaceUrl(path = '/') {
@@ -134,6 +140,7 @@ export function teamScopedAppUrl(
   app: 'chat' | 'shop' | 'team' | 'transaction' | 'weibo',
   path = '/',
 ) {
+  if (app === 'chat') return chatWorkspaceUrl(path)
   const port = import.meta.env.DEV ? `:${({ team: 5175, chat: 5176, transaction: 5177, shop: 5179, weibo: 5181 })[app]}` : ''
   const host = isLocalDevelopmentHost(location.hostname) ? location.hostname : `${teamSlug}.${app}.lostsky.work`
   return new URL(path, `${location.protocol}//${host}${port}`).href

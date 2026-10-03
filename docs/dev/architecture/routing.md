@@ -15,6 +15,8 @@ LostSky 使用 ThinkPHP 8 多应用模式。API 请求先确定应用，再按�
 
 不依赖团队上下文的应用也可以使用单段前端域名。例如 `Origin: https://account.lostsky.work` 会选择 Account 应用但不会绑定团队；`Origin: https://admin.lostsky.work` 同理选择平台 Admin 应用。
 
+无团队应用也支持 `{app}.api.lostsky.work` 直连 API，例如 `chat.api.lostsky.work`。该入口按 `teamless_apps` 判断，不绑定团队。
+
 Display 与 Shop 使用标准团队前端 Origin
 `https://{slug}.display.lostsky.work`、`https://{slug}.shop.lostsky.work`。两者都需要有效团队上下文，
 但公开展示控制器不组合登录或实体身份中间件；Shop 的顾客写接口仍按各自路由要求认证。
@@ -37,17 +39,19 @@ Weibo 使用 `https://{slug}.weibo.lostsky.work`，开发端口为 `5181`；对�
 
 `AppResolver` 通过 `Team::active()` 查询团队，并将 `team`、`team_id` 和 `slug` 写入请求。团队查询按 slug 或 ID 缓存 3600 秒。
 
-应用控制器随后按需要组合 `JwtAuth`、`Context`、`EntityRequired`、`TeamAuth`、`TeamWorkspaceAuth`、实体类型、Ability 和 Permission 中间件。`TeamAuth` 组合 `EntityRequired → TeamBelongs`，用于个人、自助、成员本人和 Chat：缺少实体返回 HTTP 428 / `42801`，团队不匹配返回 HTTP 403 / `40301`。`TeamWorkspaceAuth` 组合 `EntityRequired → TeamWorkspaceAccess`，用于 Team、Shop、Transaction、Weibo 的团队范围：本团队 Entity 通过，外部有效 Entity 只有在目标团队至少绑定一个角色时通过，否则返回 HTTP 403 / `40304` 与 `kind=team_workspace_role`。`Context` 只补充真实用户与实体上下文，不负责授权。
+应用控制器随后按需要组合 `JwtAuth`、`Context`、`EntityRequired`、`TeamAuth`、`TeamWorkspaceAuth`、实体类型、Ability 和 Permission 中间件。`TeamAuth` 组合 `EntityRequired → TeamBelongs`，用于个人、自助和成员本人：缺少实体返回 HTTP 428 / `42801`，团队不匹配返回 HTTP 403 / `40301`。Chat 仅使用 Entity 检查和会话参与授权。`TeamWorkspaceAuth` 组合 `EntityRequired → TeamWorkspaceAccess`，用于 Team、Shop、Transaction、Weibo 的团队范围：本团队 Entity 通过，外部有效 Entity 只有在目标团队至少绑定一个角色时通过，否则返回 HTTP 403 / `40304` 与 `kind=team_workspace_role`。`Context` 只补充真实用户与实体上下文，不负责授权。
 
 ## 无团队应用
 
 `config/app.php` 的 `teamless_apps` 保存无需团队上下文即可运行的应用。当前配置为：
 
 ```php
-'teamless_apps' => ['account', 'admin'],
+'teamless_apps' => ['account', 'admin', 'chat'],
 ```
 
-Account 负责登录、注册、设备、用户团队入口和所有实体会话签发/撤销；Admin 负责平台级 RBAC、用户与团队治理、审计和系统状态。两者均不接收团队上下文。团队业务应用收到 `42801` 时进入 Account 成员回调，并在一次浏览会话内按“user + team”自动领取一次；`40301` 仍用于个人工作台与 Chat 的团队归属恢复。团队工作台外部 Entity 的首次入口转到 Account 外部身份警告页，确认 Cookie 跨 `.lostsky.work` 子域共享但不参与授权。`X-LostSky-App` 的显式白名单仍只包含 `common`。
+Account 负责登录、注册、设备、用户团队入口和所有实体会话签发/撤销；Admin 负责平台级 RBAC、用户与团队治理、审计和系统状态；Chat 负责当前 Entity 的跨团队会话，入口为 `chat.lostsky.work`。Chat 群聊的所属团队由会话记录决定，旧团队域名中的 slug 不决定聊天主体或会话授权。
+
+`EntityRequired` 只检查当前 Entity，缺少身份统一返回 `42801`。有目标团队时进入 Account 成员回调，并在一次浏览会话内按“user + team”自动领取一次；没有目标团队时进入通用身份选择页。`40301` 用于仍要求身份归属目标团队的个人业务，不再用于 Chat。团队工作台外部 Entity 的首次入口转到 Account 外部身份警告页，确认 Cookie 跨 `.lostsky.work` 子域共享但不参与授权。`X-LostSky-App` 的显式白名单仍只包含 `common`。
 
 ## 自定义域名
 

@@ -409,8 +409,8 @@ const roles = [
       { permission_key: "team.document.read" },
       { permission_key: "team.document.customer.*.manage" },
       { permission_key: "team.customer.read" },
-      { permission_key: "chat.conversation.create" },
-      { permission_key: "chat.virtual.*.act" },
+      { permission_key: "chat.group.manage" },
+      { permission_key: "identity.virtual.*.assume" },
       { permission_key: "identity.member.*.assume" },
       { permission_key: "identity.member.member-2.assume" },
       { permission_key: "identity.member.member-2" },
@@ -452,8 +452,8 @@ const entityPermissionsCard = story(
           { key: "team.document.customer.*.manage", label: "管理全部顾客文档", group: "文档管理" },
           { key: "team.customer.read", label: "查看顾客", group: "顾客" },
           { key: "team.customer.read", label: "查看顾客", group: "顾客" },
-          { key: "chat.conversation.create", label: "创建会话", group: "聊天" },
-          { key: "chat.virtual.*.act", label: "代表全部虚拟人员参与聊天", group: "聊天" },
+          { key: "chat.group.manage", label: "管理团队群聊", group: "聊天" },
+          { key: "identity.virtual.*.assume", label: "切换为虚拟人员身份", group: "聊天" },
           { key: "identity.member.*.assume", label: "领取全部成员身份", group: "人员委托" },
           { key: "identity.member.member-2.assume", label: "领取成员二号身份", group: "人员委托" },
           { key: "identity.member.member-2.assume", label: "领取成员二号身份", group: "人员委托" },
@@ -472,8 +472,8 @@ const entityPermissionsCard = story(
           {
             name: "聊天",
             items: [
-              { key: "chat.conversation.create", label: "创建会话" },
-              { key: "chat.virtual.*.act", label: "代表全部虚拟人员参与聊天" },
+              { key: "chat.group.manage", label: "管理团队群聊" },
+              { key: "identity.virtual.*.assume", label: "切换为虚拟人员身份" },
             ],
           },
           {

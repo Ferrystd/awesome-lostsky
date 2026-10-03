@@ -13,8 +13,9 @@ use think\Request;
  * 在 MultiApp 之前从请求中动态解析 app 名称 + 绑定团队上下文
  *
  * 方式 1：api.lostsky.work — app/slug 取自 Origin 头域名
- * 方式 2：{slug}.{app}.api.lostsky.work — app/slug 取自 Host 头域名
- * 方式 3：自定义域名 — 从 team_domain 表反查
+ * 方式 2：{app}.api.lostsky.work — 无团队应用直接取自 Host
+ * 方式 3：{slug}.{app}.api.lostsky.work — app/slug 取自 Host 头域名
+ * 方式 4：自定义域名 — 从 team_domain 表反查
  */
 class AppResolver
 {
@@ -55,9 +56,17 @@ class AppResolver
                 }
             }
         } else {
-            // 方式 2：Host 为 {slug}.{app}.api.lostsky.work，从 Host 提取 app 和 slug
+            // 方式 2：Host 为 {app}.api.lostsky.work，仅允许无团队应用。
             $rootRx2 = preg_quote($root, '/');
-            if (preg_match("/^([^.]+)\\.([^.]+)\\.api\\.{$rootRx2}$/", $host, $m)) {
+            if (preg_match("/^([^.]+)\\.api\\.{$rootRx2}$/", $host, $m)) {
+                $this->assertTeamlessApp($m[1]);
+                if ($explicitApp === '' && !$this->bound()) {
+                    app('http')->name($m[1]);
+                    app('http')->setBind();
+                }
+            }
+            // 方式 3：Host 为 {slug}.{app}.api.lostsky.work，从 Host 提取 app 和 slug
+            elseif (preg_match("/^([^.]+)\\.([^.]+)\\.api\\.{$rootRx2}$/", $host, $m)) {
                 $slug = $m[1];
                 if ($explicitApp === '') {
                     $this->assertImplicitApp($m[2]);
@@ -128,6 +137,14 @@ class AppResolver
     {
         if (strtolower($appName) === 'common') {
             throw new HttpException(400, '公共应用必须通过 X-LostSky-App 显式选择');
+        }
+    }
+
+    private function assertTeamlessApp(string $appName): void
+    {
+        $this->assertImplicitApp($appName);
+        if (!in_array(strtolower($appName), config('app.teamless_apps', []), true)) {
+            throw new HttpException(404, '该应用需要团队域名');
         }
     }
 }

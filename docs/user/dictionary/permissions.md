@@ -5,7 +5,7 @@ audience:
   - team
 tags:
   - 权限
-modified_at: 2026-09-27
+modified_at: 2026-10-03
 ---
 
 # 权限字典
@@ -70,11 +70,7 @@ modified_at: 2026-09-27
 | 人员委托 | `identity.member.*.assume` | 领取当前授权团队的任意有效成员 |
 | 人员委托 | `identity.customer.*.assume` | 领取当前授权团队的任意有效顾客 |
 | 人员委托 | `identity.virtual.*.assume` | 领取当前授权团队的任意有效虚拟实体 |
-| 聊天 | `chat.conversation.create` | 创建会话 |
 | 聊天 | `chat.group.manage` | 管理群聊 |
-| 聊天 | `chat.temporary.create` | 创建临时会话 |
-| 聊天 | `chat.message.moderate` | 审核或撤回他人消息 |
-| 聊天 | `chat.virtual.*.act` | 代表当前授权团队的任意虚拟实体参与聊天 |
 | 微博 | `weibo.personal.use` | 内部 Entity 使用个人微博业务导航、读取与本地管理 |
 | 微博 | `weibo.team.manage` | 使用团队微博业务导航、读取与本地管理；可由目标团队授予外部 Entity |
 
@@ -86,7 +82,6 @@ modified_at: 2026-09-27
 | --- | --- |
 | `team.entity.virtual.<slug>.manage` | 管理当前团队指定虚拟实体 |
 | `team.entity.virtual.<slug>.field.manage` | 管理当前团队指定虚拟实体字段 |
-| `chat.virtual.<slug>.act` | 代表当前团队指定虚拟实体参与聊天；不切换当前身份，也不授权其他应用 |
 | `identity.member.<slug>.assume` | 领取当前团队指定有效成员 |
 | `identity.customer.<slug>.assume` | 领取当前团队指定有效顾客 |
 | `identity.virtual.<slug>.assume` | 领取当前团队指定有效虚拟实体 |

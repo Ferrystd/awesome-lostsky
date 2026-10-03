@@ -123,14 +123,8 @@ function permissionMetadata(key: string) {
   if (/^identity\.(?:member|customer|virtual)\.[a-z0-9][a-z0-9_-]{0,49}$/.test(key)) {
     return { label: `覆盖 ${key} 下全部权限`, group: '人员委托' }
   }
-  if (/^chat\.virtual\.[a-z0-9][a-z0-9_-]{0,49}$/.test(key)) {
-    return { label: `覆盖 ${key} 下全部权限`, group: '聊天' }
-  }
   if (/^identity\.(?:member|customer|virtual)\.(?:\*|[a-z0-9][a-z0-9_-]{0,49})\.assume$/.test(key)) {
     return { label: key, group: '人员委托' }
-  }
-  if (/^chat\.virtual\.(?:\*|[a-z0-9][a-z0-9_-]{0,49})\.act$/.test(key)) {
-    return { label: key, group: '聊天' }
   }
   if (/^team\.entity\.virtual\.[a-z0-9][a-z0-9_-]{0,49}\.(?:manage|field\.manage)$/.test(key)) {
     return { label: key, group: '人员管理' }
@@ -139,7 +133,7 @@ function permissionMetadata(key: string) {
 }
 
 function isAdvancedPermission(permission: EffectivePermission) {
-  return permission.group === '高级范围' || advancedKeys.value.has(permission.key) || /^identity\.(?:member|customer|virtual)\.[a-z0-9][a-z0-9_-]{0,49}$/.test(permission.key) || /^chat\.virtual\.[a-z0-9][a-z0-9_-]{0,49}$/.test(permission.key) || /^team\.entity\.virtual\.[a-z0-9][a-z0-9_-]{0,49}(?:\.field)?$/.test(permission.key)
+  return permission.group === '高级范围' || advancedKeys.value.has(permission.key) || /^identity\.(?:member|customer|virtual)\.[a-z0-9][a-z0-9_-]{0,49}$/.test(permission.key) || /^team\.entity\.virtual\.[a-z0-9][a-z0-9_-]{0,49}(?:\.field)?$/.test(permission.key)
 }
 
 const permissions = computed<EffectivePermission[]>(() => {

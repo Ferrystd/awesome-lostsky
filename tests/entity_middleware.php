@@ -121,6 +121,13 @@ $assertThrows(
     'EntityRequired rejects a base user without silently receiving a member'
 );
 try {
+    $entityRequired->handle($request(), $next);
+    $failures[] = 'teamless missing entity error exposes the unified contract';
+} catch (EntityContextException $exception) {
+    $assertSame(42801, $exception->getCode(), 'teamless missing entity uses code 42801');
+    $assertSame(null, $exception->data()['team_slug'] ?? null, 'teamless missing entity has no recovery team slug');
+}
+try {
     $entityRequired->handle($request(null, 10), $next);
     $failures[] = 'missing entity error exposes the unified contract';
 } catch (EntityContextException $exception) {
@@ -356,10 +363,13 @@ $assert(
     'Account identity selection accepts roots while drop and workspace warning actions require an entity'
 );
 $integrationMiddleware = $middleware(\app\chat\controller\Integration::class);
+$assert($integrationMiddleware === [], 'external integration endpoint has no user or Entity middleware');
+$chatConversationMiddleware = $middleware(\app\chat\controller\Conversation::class);
 $assert(
-    ($integrationMiddleware[$generic]['except'] ?? null) === ['send']
-        && ($integrationMiddleware['TeamAuth']['except'] ?? null) === ['send'],
-    'external integration send bypasses entity middleware'
+    $has($chatConversationMiddleware, 'EntityRequired')
+        && !$has($chatConversationMiddleware, 'TeamAuth')
+        && !$has($chatConversationMiddleware, 'ChatAccess'),
+    'Chat conversation endpoints require only a current Entity and no team context'
 );
 $entityMiddleware = $middleware(\app\team\controller\Entity::class);
 $memberMiddleware = $middleware(\app\team\controller\Member::class);

@@ -3,6 +3,8 @@ declare (strict_types = 1);
 
 namespace app\model;
 
+use app\enum\ChatParticipantStatus;
+
 class ChatParticipant extends Base
 {
     protected $type = [
@@ -13,6 +15,8 @@ class ChatParticipant extends Base
         'team_id'              => 'integer',
         'conversation_id'      => 'integer',
         'entity_id'            => 'integer',
+        'status'               => ChatParticipantStatus::class,
+        'invited_by_entity_id' => 'integer',
         'joined_at'            => 'integer',
         // 'left_at'              => 'null|integer',
         // 'last_read_message_id' => 'null|integer',

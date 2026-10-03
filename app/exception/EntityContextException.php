@@ -12,12 +12,12 @@ class EntityContextException extends HttpException
         int $errorCode,
         string $message,
         private readonly string $reason,
-        private readonly string $teamSlug
+        private readonly ?string $teamSlug
     ) {
         parent::__construct($statusCode, $message, null, [], $errorCode);
     }
 
-    public static function required(string $teamSlug): self
+    public static function required(?string $teamSlug = null): self
     {
         return new self(428, 42801, '需要先领取人员身份', 'missing', $teamSlug);
     }

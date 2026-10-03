@@ -3,220 +3,115 @@ declare(strict_types=1);
 
 namespace app\service;
 
-use app\enum\ChatActorType;
-use app\enum\ChatConversationKind;
-use app\enum\ChatGroupHistory;
-use app\model\ChatMessage as ChatMessageModel;
+use app\model\ChatMessage as MessageModel;
 use app\model\ChatParticipant;
 use think\exception\HttpException;
+use think\facade\Db;
 
 class ChatMessage
 {
-    public function list(int $teamId, string $uuid, array $actingEntity, int $beforeId = 0, int $limit = 50): array
+    public function list(string $uuid, array $acting, int $beforeId = 0, int $limit = 50): array
     {
-        $conversation = app(ChatConversation::class)->model($teamId, $uuid, true);
-        app(ChatConversation::class)->assertAccess($conversation, $teamId, $actingEntity);
-        $query = ChatMessageModel::where('conversation_id', $conversation->id);
-        if ($conversation->enumCase('kind') === ChatConversationKind::Group) {
-            $settings = app(TeamSetting::class)->internal($teamId, 'chat');
-            if (($settings['group_history'] ?? ChatGroupHistory::FromJoin->value)
-                === ChatGroupHistory::FromJoin->value) {
-                $query->where('create_time', '>=', $this->eligibleJoinTime(
-                    $conversation->participants,
-                    $teamId,
-                    $actingEntity
-                ));
-            }
-        }
-        if ($beforeId > 0) {
-            $query->where('id', '<', $beforeId);
-        }
-        $limit = max(1, min(100, $limit));
-        $rows = $query->with(['reply'])->order('id', 'desc')->limit($limit)->select()->all();
-        $rows = array_reverse($rows);
-        return array_map(fn ($message) => $this->summary($message), $rows);
+        $conversation = app(ChatConversation::class)->model($uuid, true);
+        app(ChatConversation::class)->assertAccess($conversation, $acting);
+        return $this->rows($conversation, $beforeId, $limit);
     }
 
-    public function send(int $teamId, array $actingEntity, array $data, ?int $integrationId = null): array
+    public function teamList(int $teamId, string $uuid, int $beforeId = 0, int $limit = 50): array
     {
-        $data['content'] = trim((string) ($data['content'] ?? ''));
-        $this->validate('send', $data);
-        $conversation = app(ChatConversation::class)->model($teamId, (string) $data['conversation'], true);
-        if ($conversation->is_closed) {
-            throw new HttpException(409, '会话已经关闭');
-        }
+        $conversation = app(ChatConversation::class)->model($uuid);
+        if ((int) $conversation->team_id !== $teamId || $conversation->enumCase('kind')->value !== 'group') throw new HttpException(404, '团队群聊不存在');
+        return $this->rows($conversation, $beforeId, $limit);
+    }
 
-        $actor = app(ChatActor::class)->resolve($teamId, (string) $data['actor_slug']);
-        if ($integrationId === null) {
-            app(ChatActor::class)->assertCanAct($actor, $teamId, $actingEntity);
-        }
-        $participant = ChatParticipant::where('conversation_id', $conversation->id)
-            ->where('entity_id', $actor['entity_id'])
-            ->whereNull('left_at')->find();
-        if (!$participant) {
-            throw new HttpException(403, '该身份不是会话参与者');
-        }
-
+    public function send(array $acting, int $expectedEntityId, array $data, ?int $integrationId = null): array
+    {
+        $entityId = app(ChatIdentity::class)->expected($acting, $expectedEntityId);
+        $content = trim((string) ($data['content'] ?? ''));
+        if ($content === '' || mb_strlen($content) > 5000) throw new HttpException(422, '消息内容应为 1 至 5000 个字符');
+        $conversation = app(ChatConversation::class)->model((string) ($data['conversation'] ?? ''), true);
         $replyId = !empty($data['reply_id']) ? (int) $data['reply_id'] : null;
-        if ($replyId && !ChatMessageModel::where('conversation_id', $conversation->id)->find($replyId)) {
-            throw new HttpException(422, '回复的消息不属于当前会话');
-        }
-
+        if ($replyId && !MessageModel::where('conversation_id', $conversation->id)->find($replyId)) throw new HttpException(422, '回复的消息不属于当前会话');
         $message = null;
-        \think\facade\Db::transaction(function () use (&$message, $teamId, $conversation, $actor, $data, $replyId, $integrationId) {
-            $message = app(ChatMessageModel::class, [], true);
-            $message->save([
-                'team_id' => $teamId, 'conversation_id' => $conversation->id,
-                'entity_id' => $actor['entity_id'], 'reply_id' => $replyId,
-                'origin_integration_id' => $integrationId, 'content' => $data['content'],
-            ]);
-            $conversation->save(['last_message_id' => $message->id, 'last_message_at' => time()]);
-            $this->outbox($teamId, 'message.created', (int) $message->id, $this->summary($message));
+        Db::transaction(function () use (&$message, $conversation, $entityId, $content, $replyId, $integrationId): void {
+            $lockedConversation = \app\model\ChatConversation::where('id', $conversation->id)->lock(true)->find();
+            if (!$lockedConversation || $lockedConversation->is_closed) throw new HttpException(409, '会话已经关闭');
+            $this->lockActiveParticipant((int) $lockedConversation->id, $entityId);
+            if ($lockedConversation->enumCase('kind')->value === 'direct') {
+                $otherEntityId = (int) (ChatParticipant::where('conversation_id', $lockedConversation->id)
+                    ->where('entity_id', '<>', $entityId)->where('status', 'active')->whereNull('left_at')
+                    ->value('entity_id') ?? 0);
+                if ($otherEntityId > 0 && app(ChatBlock::class)->blockedEitherWay($entityId, $otherEntityId)) {
+                    throw new HttpException(403, '当前双方不能继续发送单聊消息');
+                }
+            }
+            $message = app(MessageModel::class, [], true);
+            $message->save(['team_id' => $lockedConversation->team_id, 'conversation_id' => $lockedConversation->id,
+                'entity_id' => $entityId, 'reply_id' => $replyId, 'origin_integration_id' => $integrationId, 'content' => $content]);
+            $lockedConversation->save(['last_message_id' => $message->id, 'last_message_at' => time()]);
+            $this->outbox($lockedConversation, 'message.created', (int) $message->id, $this->summary($message));
         });
-
         return $this->summary($message);
     }
 
-    public function edit(int $teamId, array $actingEntity, int $messageId, string $content): void
+    public function edit(array $acting, int $expectedEntityId, int $messageId, string $content): void
     {
-        $content = trim($content);
-        $this->validate('edit', ['message_id' => $messageId, 'content' => $content]);
-        $message = $this->message($teamId, $messageId);
-        $this->assertMessageAction($message, $teamId, $actingEntity, 'edit');
-        if ($message->revoked_at) {
-            throw new HttpException(409, '已撤回消息不能编辑');
-        }
-        \think\facade\Db::transaction(function () use ($message, $content, $teamId, $messageId) {
+        $entityId = app(ChatIdentity::class)->expected($acting, $expectedEntityId); $content = trim($content);
+        if ($content === '' || mb_strlen($content) > 5000) throw new HttpException(422, '消息内容应为 1 至 5000 个字符');
+        Db::transaction(function () use ($entityId, $messageId, $content): void {
+            $message = $this->message($messageId); if ((int) $message->entity_id !== $entityId) throw new HttpException(403, '只能编辑自己发送的消息');
+            $this->lockActiveParticipant((int) $message->conversation_id, $entityId);
+            if ($message->revoked_at) throw new HttpException(409, '已撤回消息不能编辑');
+            if ((int) $message->create_time < time() - 300) throw new HttpException(403, '消息编辑时间已过');
             $message->save(['content' => $content, 'edited_at' => time()]);
-            $this->outbox($teamId, 'message.updated', $messageId, $this->summary($message));
+            $this->outbox($message->conversation, 'message.updated', $messageId, $this->summary($message));
         });
     }
 
-    public function revoke(int $teamId, array $actingEntity, int $messageId): void
+    public function revoke(array $acting, int $expectedEntityId, int $messageId): void
     {
-        $message = $this->message($teamId, $messageId);
-        $this->assertMessageAction($message, $teamId, $actingEntity, 'revoke');
-        if ($message->revoked_at) {
-            return;
-        }
-        \think\facade\Db::transaction(function () use ($message, $teamId, $messageId) {
-            $message->save(['content' => null, 'revoked_at' => time()]);
-            $this->outbox($teamId, 'message.revoked', $messageId, $this->summary($message));
+        $entityId = app(ChatIdentity::class)->expected($acting, $expectedEntityId);
+        Db::transaction(function () use ($entityId, $messageId): void {
+            $message = $this->message($messageId); if ((int) $message->entity_id !== $entityId) throw new HttpException(403, '只能撤回自己发送的消息');
+            $this->lockActiveParticipant((int) $message->conversation_id, $entityId);
+            if ((int) $message->create_time < time() - 120) throw new HttpException(403, '消息撤回时间已过');
+            $this->revokeModel($message);
         });
     }
 
-    public function read(int $teamId, string $uuid, string $actorSlug, array $actingEntity, int $messageId): void
+    public function teamRevoke(int $teamId, array $acting, int $expected, int $messageId): void
     {
-        $conversation = app(ChatConversation::class)->model($teamId, $uuid, true);
-        app(ChatConversation::class)->assertAccess($conversation, $teamId, $actingEntity);
-        $actor = app(ChatActor::class)->resolve($teamId, $actorSlug);
-        app(ChatActor::class)->assertCanAct($actor, $teamId, $actingEntity);
-        $participant = ChatParticipant::where('conversation_id', $conversation->id)
-            ->where('entity_id', $actor['entity_id'])
-            ->whereNull('left_at')->find();
-        if (!$participant) {
-            throw new HttpException(403, '该身份不是会话参与者');
-        }
-        if (!ChatMessageModel::where('conversation_id', $conversation->id)->find($messageId)) {
-            throw new HttpException(422, '已读消息不属于当前会话');
-        }
-        $settings = app(TeamSetting::class)->internal($teamId, 'chat');
-        if ((string) ($settings['read_receipts'] ?? '1') !== '1') {
-            return;
-        }
-        if ((int) ($participant->last_read_message_id ?? 0) < $messageId) {
-            $participant->save(['last_read_message_id' => $messageId]);
-        }
+        app(ChatIdentity::class)->expected($acting, $expected);
+        app(PermissionGate::class)->assert($teamId, $acting, [PermissionDictionary::CHAT_GROUP_MANAGE]);
+        $message = $this->message($messageId);
+        if ((int) $message->conversation->team_id !== $teamId || $message->conversation->enumCase('kind')->value !== 'group') throw new HttpException(404, '团队群聊消息不存在');
+        $this->revokeModel($message);
     }
 
-    private function assertMessageAction(ChatMessageModel $message, int $teamId, array $actingEntity, string $action): void
+    public function read(array $acting, int $expected, string $uuid, int $messageId): void
     {
-        $summary = app(ChatActor::class)->summaryEntity((int) $message->entity_id);
-        $actor = !empty($summary['slug']) ? app(ChatActor::class)->resolve($teamId, (string) $summary['slug']) : null;
-        $own = $actor && app(ChatActor::class)->canAct($actor, $teamId, $actingEntity);
-        if (!$own && !app(PermissionGate::class)->allows(
-            $teamId,
-            $actingEntity,
-            [PermissionDictionary::CHAT_MESSAGE_MODERATE]
-        )) {
-            throw new HttpException(403, '你不能操作该消息');
-        }
-        if ($own) {
-            $settings = app(TeamSetting::class)->internal($teamId, 'chat');
-            $minutes = (int) ($settings[$action === 'edit' ? 'edit_window_minutes' : 'revoke_window_minutes'] ?? 0);
-            $createdAt = (int) $message->getData('create_time');
-            if ($minutes <= 0 || $createdAt + $minutes * 60 < time()) {
-                throw new HttpException(409, '消息操作窗口已结束');
-            }
-        }
+        $entityId = app(ChatIdentity::class)->expected($acting, $expected); $conversation = app(ChatConversation::class)->model($uuid);
+        app(ChatConversation::class)->assertAccess($conversation, $acting);
+        if (!MessageModel::where('conversation_id', $conversation->id)->find($messageId)) throw new HttpException(422, '已读消息不属于当前会话');
+        ChatParticipant::where('conversation_id', $conversation->id)->where('entity_id', $entityId)->where('status', 'active')->whereNull('left_at')->update(['last_read_message_id' => $messageId]);
     }
 
-    private function message(int $teamId, int $messageId): ChatMessageModel
+    private function rows($conversation, int $beforeId, int $limit): array
     {
-        $message = ChatMessageModel::where('team_id', $teamId)->find($messageId);
-        if (!$message) {
-            throw new HttpException(404, '消息不存在');
-        }
-        return $message;
+        $query = MessageModel::where('conversation_id', $conversation->id); if ($beforeId > 0) $query->where('id', '<', $beforeId);
+        $rows = $query->with(['reply'])->order('id', 'desc')->limit(max(1, min(100, $limit)))->select()->all();
+        return array_map(fn ($row) => $this->summary($row), array_reverse($rows));
     }
 
-    private function summary(ChatMessageModel $message): array
+    private function message(int $id): MessageModel { $row = MessageModel::with(['conversation'])->lock(true)->find($id); if (!$row) throw new HttpException(404, '消息不存在'); return $row; }
+    private function revokeModel(MessageModel $message): void { if ($message->revoked_at) return; $message->save(['content' => null, 'revoked_at' => time()]); $this->outbox($message->conversation, 'message.revoked', (int) $message->id, $this->summary($message)); }
+    private function lockActiveParticipant(int $conversationId, int $entityId): ChatParticipant
     {
-        return [
-            'id' => (int) $message->id,
-            'conversation' => (string) ($message->conversation?->uuid ?? ''),
-            'sender' => app(ChatActor::class)->summaryEntity((int) $message->entity_id),
-            'content' => $message->content, 'reply_id' => $message->reply_id,
-            'edited_at' => $message->edited_at, 'revoked_at' => $message->revoked_at,
-            'create_time' => (int) $message->getData('create_time'),
-        ];
+        $participant = ChatParticipant::where('conversation_id', $conversationId)->where('entity_id', $entityId)
+            ->where('status', 'active')->whereNull('left_at')->lock(true)->find();
+        if (!$participant) throw new HttpException(403, '你不是该会话的参与者');
+        return $participant;
     }
-
-    private function eligibleJoinTime(
-        iterable $participants,
-        int $teamId,
-        array $actingEntity
-    ): int {
-        $joinedAt = [];
-        foreach ($participants as $participant) {
-            if ($participant->left_at) {
-                continue;
-            }
-            $actor = app(ChatActor::class)->actorEntity((int) $participant->entity_id);
-            $eligible = (int) $participant->entity_id === (int) ($actingEntity['entity_id'] ?? 0)
-                || ($actor['type'] === ChatActorType::Virtual
-                    && $this->canOperateVirtual($teamId, $actingEntity, (int) $actor['id']));
-            if ($eligible) {
-                $joinedAt[] = (int) $participant->joined_at;
-            }
-        }
-        return $joinedAt ? min($joinedAt) : time();
-    }
-
-    private function canOperateVirtual(int $teamId, array $actingEntity, int $virtualId): bool
-    {
-        $summary = app(ChatActor::class)->summary(ChatActorType::Virtual, $virtualId);
-        $slug = (string) ($summary['slug'] ?? '');
-        return $slug !== '' && app(PermissionGate::class)->allows($teamId, $actingEntity, [
-            PermissionDictionary::CHAT_VIRTUAL_ALL_ACT,
-            PermissionDictionary::virtual($slug, 'act'),
-        ]);
-    }
-
-    private function outbox(int $teamId, string $eventType, int $id, array $payload): void
-    {
-        $event = app(\app\model\ChatEventOutbox::class, [], true);
-        $event->save([
-            'team_id' => $teamId, 'event_type' => $eventType, 'aggregate_type' => 'message',
-            'aggregate_id' => $id, 'payload' => $payload, 'attempts' => 0, 'available_at' => time(),
-        ]);
-    }
-
-    private function validate(string $scene, array $data): void
-    {
-        $validator = new \app\validate\ChatMessage;
-        if (!$validator->scene($scene)->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
-    }
+    private function summary(MessageModel $message): array { return ['id'=>(int)$message->id,'conversation'=>(string)$message->conversation->uuid,'sender'=>app(ChatActor::class)->summaryEntity((int)$message->entity_id),'content'=>$message->content,'reply_id'=>$message->reply_id===null?null:(int)$message->reply_id,'edited_at'=>$message->edited_at===null?null:(int)$message->edited_at,'revoked_at'=>$message->revoked_at===null?null:(int)$message->revoked_at,'create_time'=>(int)$message->create_time]; }
+    private function outbox($conversation, string $type, int $id, array $payload): void { $payload['recipient_entity_ids']=ChatParticipant::where('conversation_id',$conversation->id)->where('status','active')->whereNull('left_at')->column('entity_id');$event=app(\app\model\ChatEventOutbox::class,[],true);$event->save(['team_id'=>$conversation->team_id,'event_type'=>$type,'aggregate_type'=>'message','aggregate_id'=>$id,'payload'=>$payload,'attempts'=>0,'available_at'=>time()]); }
 }

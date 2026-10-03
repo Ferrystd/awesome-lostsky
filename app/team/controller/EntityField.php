@@ -108,7 +108,14 @@ class EntityField
 
     private function assertEntityPermission(\think\Request $request, string $slug): void
     {
-        $actor = app(\app\service\ChatActor::class)->resolve($request->team_id, $slug);
+        $actor = app(\app\service\ChatActor::class)->resolveGlobal($slug);
+        $identity = \app\model\Entity::find($actor['entity_id']);
+        if (!$identity || app(\app\service\IdentitySession::class)->entityTeamId(
+            $identity->entityable_type,
+            $identity->entityable_id
+        ) !== $request->team_id) {
+            throw new \think\exception\HttpException(404, '人员不存在');
+        }
         $keys = $actor['type'] === \app\enum\ChatActorType::Virtual
             ? [
                 Permissions::TEAM_ENTITY_VIRTUAL_ALL_FIELD_MANAGE,

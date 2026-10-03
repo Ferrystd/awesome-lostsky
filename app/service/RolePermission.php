@@ -32,7 +32,6 @@ class RolePermission
 
         $virtualManagementItems = [];
         $virtualDelegationItems = [];
-        $virtualChatItems = [];
         $virtuals = EntityModel::with(['profile'])
             ->where('entityable_type', 'teamVirtual')
             ->whereIn('entityable_id', TeamVirtual::where('team_id', $teamId)->column('id'))
@@ -54,11 +53,6 @@ class RolePermission
                     'resource_slug' => $slug,
                 ];
             }
-            $virtualChatItems[] = [
-                'key' => PermissionDictionary::virtual($slug, 'act'),
-                'label' => "代表 · {$label} 参与聊天",
-                'resource_slug' => $slug,
-            ];
             $virtualDelegationItems[] = [
                 'key' => PermissionDictionary::assume('virtual', $slug),
                 'label' => "领取 · {$label} 身份",
@@ -70,8 +64,6 @@ class RolePermission
                 $groups[$index]['items'] = array_merge($group['items'], $virtualManagementItems);
             } elseif ($group['name'] === '人员委托') {
                 $groups[$index]['items'] = array_merge($group['items'], $virtualDelegationItems);
-            } elseif ($group['name'] === '聊天') {
-                $groups[$index]['items'] = array_merge($group['items'], $virtualChatItems);
             }
         }
 

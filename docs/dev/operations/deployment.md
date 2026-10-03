@@ -254,6 +254,21 @@ php think oss:fallback:configure
 
 上线后用 GET 而不是仅用 HEAD 验收：占位图返回 `200 image/png`，六种图片后缀的随机不存在路径返回 `302` 且 `Location` 为固定对象，随机 `.pdf` 不返回 `3xx`。
 
+<a id="chat-teamless-upgrade"></a>
+
+## Chat teamless 升级
+
+本次升级把聊天入口统一到 `chat.lostsky.work`，群聊所属团队保留，单聊按双方 Entity 归并。Team 提供所属群聊管理。迁移命令默认只读，结构补丁只执行一次，数据迁移可重复执行。
+
+1. 备份聊天表、`team_role_permission` 和团队设置，保存当前发布标签；暂停 Chat 写入、`chat:worker` 和 `chat:cleanup`。
+2. 在目标发布目录运行 `php think chat:migrate-teamless`，检查结构缺口、异常单聊、重复会话及旧权限数量。异常参与关系须先核对，不能直接丢弃历史记录。
+3. 对尚未升级的库执行 `sql/patches/20261002_chat_teamless.sql`，再运行 `php think chat:migrate-teamless --apply`。迁移保留原消息 ID、作者、时间和回复，建立旧 UUID 映射，补齐待投递事件接收者记录，删除废弃聊天权限但不转换为身份委托权限。
+4. 再次运行只读命令，确认结构就绪、待归并会话和待补快照均为零，并核对群聊、成员、消息数量及外键。备份留存至升级验收结束。
+5. 同步发布后端、Account、Team 和 Chat 前端。新 Chat 域名提供 SPA 与 WebSocket 入口；旧 `*.chat.lostsky.work` 继续提供新 SPA，让前端保留会话定位并跳转统一域名。重启聊天 worker 和 Centrifugo，清除旧账号通道连接。
+6. 验证跨团队单聊、Account 身份切换返回、Team 未入群管理、邀请接受及移除后失权，再恢复写入与清理任务。实时发布使用叶身份会话独立通道，旧共享通道不再承载消息正文。
+
+迁移包含会话归并和权限清理，回退须恢复配套数据库备份及旧发布版本，不能只回滚代码。`tests/chat_migration.php` 使用临时表覆盖归并、UUID 映射、消息与回复保留、已读合并、待投递事件及重复执行；`tests/chat_backend.php` 覆盖身份、参与资格、邀请、屏蔽和集成投递规则。
+
 ## 宝塔静态前端部署
 
 宝塔添加站点时会在根目录生成默认 `index.html` 和 `404.html`。LostSky 的 Vite 应用是单入口 SPA，每个应用域名目录只保留 `index.html`，前端路径统一回退到该文件，因此不要直接在已经发布的 `www/{domain}` 目录上添加站点。

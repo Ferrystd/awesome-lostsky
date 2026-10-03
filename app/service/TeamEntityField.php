@@ -147,7 +147,7 @@ class TeamEntityField
 
     public function values(int $teamId, string $entitySlug): array
     {
-        $actor = app(ChatActor::class)->resolve($teamId, $entitySlug);
+        $actor = $this->teamActor($teamId, $entitySlug);
         return TeamEntityFieldValue::where('team_id', $teamId)
             ->where('entity_id', $actor['entity_id'])->with(['field'])->select()->toArray();
     }
@@ -224,7 +224,7 @@ class TeamEntityField
 
     private function persistValues(int $teamId, string $entitySlug, array $values, bool $ownOnly): int
     {
-        $actor = app(ChatActor::class)->resolve($teamId, $entitySlug);
+        $actor = $this->teamActor($teamId, $entitySlug);
         $normalizedValues = [];
         foreach ($values as $fieldId => $rawValue) {
             $normalizedValues[(int) $fieldId] = $rawValue;
@@ -310,6 +310,19 @@ class TeamEntityField
             \app\enum\ChatActorType::Virtual => TeamEntityType::Virtual,
             default => throw new HttpException(422, '该人员类型不支持自定义字段'),
         };
+    }
+
+    private function teamActor(int $teamId, string $entitySlug): array
+    {
+        $actor = app(ChatActor::class)->resolveGlobal($entitySlug);
+        $identity = \app\model\Entity::find((int) $actor['entity_id']);
+        if (!$identity || app(IdentitySession::class)->entityTeamId(
+            (string) $identity->entityable_type,
+            (int) $identity->entityable_id
+        ) !== $teamId) {
+            throw new HttpException(404, '人员不存在');
+        }
+        return $actor;
     }
 
     private function hasStoredValue(TeamEntityFieldValue $value): bool

@@ -75,13 +75,21 @@ aliases: [服务, Service]
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `list` | `int $teamId`、`array $actingEntity` | `array` |
-| `resolve` | `int $teamId`、`string $slug` | `array` |
-| `assertCanAct` | `array $actor`、`int $teamId`、`array $actingEntity` | `void` |
-| `canAct` | `array $actor`、`int $teamId`、`array $actingEntity` | `bool` |
+| `current` | `array $acting` | `array` |
+| `search` | `string $keyword`、`string $slug`、`int $userId` | `array` |
+| `resolveGlobal` | `string $slug`、`bool $requireSearchable = false` | `array` |
 | `summary` | `enum\ChatActorType\|string $type`、`int $id` | `array` |
 | `summaryEntity` | `int $entityId` | `array` |
 | `actorEntity` | `int $entityId` | `array` |
+
+## ChatBlock
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `list` | `array $actingEntity` | `array` |
+| `create` | `array $actingEntity`、`int $expectedEntityId`、`string $slug` | `void` |
+| `delete` | `array $actingEntity`、`int $expectedEntityId`、`string $slug` | `void` |
+| `blockedEitherWay` | `int $left`、`int $right` | `bool` |
 
 ## ChatCleanup
 
@@ -93,15 +101,29 @@ aliases: [服务, Service]
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `list` | `int $teamId`、`array $actingEntity` | `array` |
-| `get` | `int $teamId`、`string $uuid`、`array $actingEntity` | `array` |
-| `create` | `int $teamId`、`array $actingEntity`、`array $data` | `array` |
-| `close` | `int $teamId`、`string $uuid`、`array $actingEntity` | `void` |
-| `addParticipants` | `int $teamId`、`string $uuid`、`array $actingEntity`、`array $slugs` | `void` |
-| `removeParticipant` | `int $teamId`、`string $uuid`、`array $actingEntity`、`string $slug` | `void` |
-| `model` | `int $teamId`、`string $uuid`、`bool $withParticipants = false` | `model\ChatConversation` |
-| `assertAccess` | `model\ChatConversation $conversation`、`int $teamId`、`array $actingEntity` | `void` |
-| `canAccess` | `model\ChatConversation $conversation`、`int $teamId`、`array $actingEntity` | `bool` |
+| `list` | `array $acting` | `array` |
+| `get` | `string $uuid`、`array $acting` | `array` |
+| `create` | `array $acting`、`int $expectedEntityId`、`array $data` | `array` |
+| `invitations` | `array $acting` | `array` |
+| `respondInvitation` | `array $acting`、`int $expectedEntityId`、`string $uuid`、`bool $accept` | `void` |
+| `leave` | `array $acting`、`int $expectedEntityId`、`string $uuid` | `void` |
+| `teamList` | `int $teamId` | `array` |
+| `teamGet` | `int $teamId`、`string $uuid` | `array` |
+| `teamCreate` | `int $teamId`、`array $acting`、`int $expected`、`string $title`、`array $slugs` | `array` |
+| `teamUpdate` | `int $teamId`、`array $acting`、`int $expected`、`string $uuid`、`string $title` | `void` |
+| `teamInvite` | `int $teamId`、`array $acting`、`int $expected`、`string $uuid`、`array $slugs` | `void` |
+| `teamCancelInvitation` | `int $teamId`、`array $acting`、`int $expected`、`string $uuid`、`string $slug` | `void` |
+| `teamRemove` | `int $teamId`、`array $acting`、`int $expected`、`string $uuid`、`string $slug` | `void` |
+| `teamClose` | `int $teamId`、`array $acting`、`int $expected`、`string $uuid` | `void` |
+| `model` | `string $uuid`、`bool $withParticipants = false` | `model\ChatConversation` |
+| `assertAccess` | `model\ChatConversation $conversation`、`array $acting` | `void` |
+| `canAccess` | `model\ChatConversation $conversation`、`array $acting` | `bool` |
+
+## ChatIdentity
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `expected` | `array $actingEntity`、`int $expectedEntityId` | `int` |
 
 ## ChatIntegration
 
@@ -119,11 +141,21 @@ aliases: [服务, Service]
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `list` | `int $teamId`、`string $uuid`、`array $actingEntity`、`int $beforeId = 0`、`int $limit = 50` | `array` |
-| `send` | `int $teamId`、`array $actingEntity`、`array $data`、`?int $integrationId = null` | `array` |
-| `edit` | `int $teamId`、`array $actingEntity`、`int $messageId`、`string $content` | `void` |
-| `revoke` | `int $teamId`、`array $actingEntity`、`int $messageId` | `void` |
-| `read` | `int $teamId`、`string $uuid`、`string $actorSlug`、`array $actingEntity`、`int $messageId` | `void` |
+| `list` | `string $uuid`、`array $acting`、`int $beforeId = 0`、`int $limit = 50` | `array` |
+| `teamList` | `int $teamId`、`string $uuid`、`int $beforeId = 0`、`int $limit = 50` | `array` |
+| `send` | `array $acting`、`int $expectedEntityId`、`array $data`、`?int $integrationId = null` | `array` |
+| `edit` | `array $acting`、`int $expectedEntityId`、`int $messageId`、`string $content` | `void` |
+| `revoke` | `array $acting`、`int $expectedEntityId`、`int $messageId` | `void` |
+| `teamRevoke` | `int $teamId`、`array $acting`、`int $expected`、`int $messageId` | `void` |
+| `read` | `array $acting`、`int $expected`、`string $uuid`、`int $messageId` | `void` |
+
+## ChatMigration
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `inspect` | — | `array` |
+| `apply` | — | `array` |
+| `directKey` | `int $leftEntityId`、`int $rightEntityId` | `string` |
 
 ## ChatOutbox
 
@@ -135,9 +167,11 @@ aliases: [服务, Service]
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `connectionToken` | `int $userId` | `array` |
-| `subscriptionToken` | `int $teamId`、`int $userId`、`array $actingEntity`、`string $uuid` | `array` |
-| `publish` | `string $uuid`、`array $event` | `void` |
+| `connectionToken` | `int $sessionId`、`array $actingEntity`、`int $expectedEntityId` | `array` |
+| `subscriptionToken` | `int $sessionId`、`array $actingEntity`、`int $expectedEntityId`、`string $uuid` | `array` |
+| `publishToRecipients` | `string $uuid`、`array $event`、`array $entityIds` | `void` |
+| `unsubscribeEntity` | `int $entityId`、`string $uuid` | `void` |
+| `disconnectSession` | `int $sessionId` | `void` |
 | `request` | `string $url`、`string $body`、`array $headers = []`、`array $resolve = []` | `array` |
 
 ## ChatTeam

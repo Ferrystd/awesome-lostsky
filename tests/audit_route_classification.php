@@ -25,6 +25,9 @@ $classification = [
             'joinReview/saveTasks', 'joinReview/setTaskPassed', 'joinField/add',
             'joinField/edit', 'joinField/delete', 'setting', 'file/upload', 'file/delete',
             'doc/create', 'doc/edit', 'doc/delete',
+            'chatGroup/create', 'chatGroup/update', 'chatGroup/invite',
+            'chatGroup/invitation/cancel', 'chatGroup/participant/remove',
+            'chatGroup/message/revoke', 'chatGroup/close',
         ],
         'exclude' => [
             'ability/card/inspect' => '预检请求，不改变业务状态',
@@ -81,12 +84,7 @@ $classification = [
         'exclude' => [],
     ],
     'chat' => [
-        'audit' => [
-            'virtual/create', 'virtual/update', 'virtual/delete', 'integration/create',
-            'integration/update', 'integration/rotate', 'integration/delete',
-            'conversation/create', 'conversation/close', 'conversation/participant/add',
-            'conversation/participant/remove', 'entityField/create', 'entityField/values',
-        ],
+        'audit' => [],
         'exclude' => [
             'integration/message' => '普通聊天消息',
             'message/send' => '普通聊天消息',
@@ -95,6 +93,12 @@ $classification = [
             'message/read' => '消息已读状态',
             'realtime/connect' => '实时连接控制',
             'realtime/subscribe' => '实时订阅控制',
+            'conversation/create' => '普通聊天会话',
+            'conversation/invitation/accept' => '当前人员接受邀请',
+            'conversation/invitation/reject' => '当前人员拒绝邀请',
+            'conversation/leave' => '当前人员退出群聊',
+            'block/create' => '当前人员屏蔽关系',
+            'block/delete' => '当前人员屏蔽关系',
         ],
     ],
     'weibo' => [

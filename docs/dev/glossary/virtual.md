@@ -14,7 +14,7 @@ aliases: [虚拟实体, Virtual]
 
 ## 使用场景
 
-虚拟实体可配置 Webhook 凭据接入 Chat，代表所属虚拟实体参与已加入的会话。其他实体可凭 `identity.virtual.*.assume` 或精确 slug 权限领取虚拟实体身份；仅限 Chat 的虚拟实体代操作使用 `chat.virtual.*.act`，不创建身份会话。
+虚拟实体可配置 Webhook 凭据接入 Chat，以凭据绑定的虚拟实体参与已加入的会话。其他实体可凭 `identity.virtual.*.assume` 或精确 slug 权限在 Account 领取虚拟实体身份；Chat 始终使用当前 Entity，不再提供独立代操作身份。
 
 ## 不包括什么
 
@@ -29,4 +29,4 @@ aliases: [虚拟实体, Virtual]
 
 ## 来源与示例
 
-实体类型与权限见[实体身份与跨团队委托](../architecture/entity-authorization.md)与[权限字典](../architecture/permissions.md)。例如 `identity.virtual.support-bot.assume` 允许成员领取 `@support-bot` 虚拟实体身份；`chat.virtual.<slug>.act` 则允许代表虚拟实体发言而不切换身份。
+实体类型与权限见[实体身份与跨团队委托](../architecture/entity-authorization.md)与[权限字典](../architecture/permissions.md)。例如 `identity.virtual.support-bot.assume` 允许领取 `@support-bot` 虚拟实体身份，再以该身份进入 Chat。

@@ -4,23 +4,6 @@
  */
 
 export interface paths {
-    "/team": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 列出当前用户作为成员或客户加入的团队并集 */
-        get: operations["chatTeamList"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/actor": {
         parameters: {
             query?: never;
@@ -28,169 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 列出当前团队可见聊天身份及通过 chat.virtual.*.act 可操作的虚拟实体 */
-        get: operations["chatActorList"];
+        /** 读取当前 Entity */
+        get: operations["chatActorCurrent"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/virtual": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 按管理权限或 chat.virtual.*.act 列出虚拟实体 */
-        get: operations["chatVirtualList"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/virtual/get": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 读取虚拟实体 */
-        get: operations["chatVirtualGet"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/virtual/create": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 创建虚拟实体 */
-        post: operations["chatVirtualCreate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/virtual/update": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 更新虚拟实体；Permission 中间件从请求体 slug 解析 <slug> 并检查具体 key 与 * key 的并集 */
-        post: operations["chatVirtualUpdate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/virtual/delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 删除虚拟实体并清理具体 slug 权限 */
-        post: operations["chatVirtualDelete"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integration/create": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 创建虚拟实体 Webhook 集成
-         * @description Standard Webhooks v1。创建或轮换后凭据明文仅返回一次；轮换立即替换 API Token 与签名密钥。
-         */
-        post: operations["chatIntegrationCreate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integration/update": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 更新 Webhook 集成 */
-        post: operations["chatIntegrationUpdate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integration/rotate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * 轮换集成 token 与签名密钥
-         * @description Standard Webhooks v1。创建或轮换后凭据明文仅返回一次；轮换立即替换 API Token 与签名密钥。
-         */
-        post: operations["chatIntegrationRotate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/integration/delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 删除集成 */
-        post: operations["chatIntegrationDelete"];
         delete?: never;
         options?: never;
         head?: never;
@@ -214,23 +38,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspace/access": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 读取应用切换所需团队摘要与 Ability 快照 */
-        get: operations["chatWorkspaceAccess"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/conversation": {
         parameters: {
             query?: never;
@@ -238,7 +45,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 列出当前用户任一可用身份参与的会话 */
+        /** 读取当前 Entity 会话 */
         get: operations["chatConversationList"];
         put?: never;
         post?: never;
@@ -255,7 +62,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 读取会话 */
+        /** 读取会话详情 */
         get: operations["chatConversationGet"];
         put?: never;
         post?: never;
@@ -274,59 +81,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 创建普通或临时的单聊/群聊 */
+        /** 创建跨团队单聊 */
         post: operations["chatConversationCreate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/conversation/close": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 手动关闭会话 */
-        post: operations["chatConversationClose"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/conversation/participant/add": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 向群聊添加参与者 */
-        post: operations["chatConversationParticipantAdd"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/conversation/participant/remove": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** 从群聊移除参与者 */
-        post: operations["chatConversationParticipantRemove"];
         delete?: never;
         options?: never;
         head?: never;
@@ -340,7 +96,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 读取消息；群聊按团队历史策略限制到加入时间 */
+        /** 读取消息 */
         get: operations["chatMessageList"];
         put?: never;
         post?: never;
@@ -359,7 +115,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 使用当前身份或通过 chat.virtual.*.act 授权的虚拟实体发送文本 */
+        /** 发送消息 */
         post: operations["chatMessageSend"];
         delete?: never;
         options?: never;
@@ -376,7 +132,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 在团队策略窗口内编辑消息 */
+        /** 编辑消息 */
         post: operations["chatMessageEdit"];
         delete?: never;
         options?: never;
@@ -410,7 +166,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 推进指定身份的已读游标 */
+        /** 更新已读 */
         post: operations["chatMessageRead"];
         delete?: never;
         options?: never;
@@ -427,7 +183,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 签发短期 Centrifugo 连接令牌 */
+        /** 签发当前 EntitySession 连接令牌 */
         post: operations["chatRealtimeConnect"];
         delete?: never;
         options?: never;
@@ -444,7 +200,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 验证参与者或 chat.virtual.*.act 权限后签发频道令牌 */
+        /** 签发当前 EntitySession 会话订阅令牌 */
         post: operations["chatRealtimeSubscribe"];
         delete?: never;
         options?: never;
@@ -452,15 +208,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/entityField": {
+    "/actor/search": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 按对象类型列出字段 */
-        get: operations["chatEntityFieldList"];
+        /** 搜索可联系 Entity */
+        get: operations["chatActorSearch"];
         put?: never;
         post?: never;
         delete?: never;
@@ -469,7 +225,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/entityField/create": {
+    "/conversation/invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取群邀请 */
+        get: operations["chatInvitationList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversation/invitation/accept": {
         parameters: {
             query?: never;
             header?: never;
@@ -478,26 +251,93 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 创建统一对象字段 */
-        post: operations["chatEntityFieldCreate"];
+        /** 接受群邀请 */
+        post: operations["chatInvitationAccept"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/entityField/values": {
+    "/conversation/invitation/reject": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** 读取指定 slug 的团队内部字段值 */
-        get: operations["chatEntityFieldValues"];
+        get?: never;
         put?: never;
-        /** 保存指定 slug 的团队内部字段值 */
-        post: operations["chatEntityFieldSaveValues"];
+        /** 拒绝群邀请 */
+        post: operations["chatInvitationReject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversation/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 退出群聊 */
+        post: operations["chatConversationLeave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 读取屏蔽列表 */
+        get: operations["chatBlockList"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/block/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 屏蔽 Entity */
+        post: operations["chatBlockCreate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/block/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 取消屏蔽 */
+        post: operations["chatBlockDelete"];
         delete?: never;
         options?: never;
         head?: never;
@@ -662,6 +502,26 @@ export interface components {
             last_message?: string | null;
             participants: components["schemas"]["Participant"][];
         };
+        /** @description 待处理群邀请的最小摘要；接受前不返回消息正文、消息时间或参与者列表。 */
+        Invitation: {
+            /** Format: uuid */
+            uuid: string;
+            /** Format: int64 */
+            team_id: number;
+            /** @enum {string} */
+            kind: "group";
+            title: string;
+            is_temporary: boolean;
+            is_closed: boolean;
+            /** Format: int64 */
+            expires_at: number | null;
+            /** Format: int64 */
+            invited_at: number | null;
+            invited_by: components["schemas"]["Actor"] | null;
+        };
+        InvitationListEnvelope: components["schemas"]["Envelope"] & {
+            data?: components["schemas"]["Invitation"][];
+        };
         ChatMessage: {
             /** Format: int64 */
             id: number;
@@ -751,7 +611,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    chatTeamList: {
+    chatActorCurrent: {
         parameters: {
             query?: never;
             header?: never;
@@ -760,281 +620,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 团队列表 */
+            /** @description 成功 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatActorList: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 身份列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatVirtualList: {
-        parameters: {
-            query?: {
-                mode?: "manage" | "operate";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 虚拟实体列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatVirtualGet: {
-        parameters: {
-            query: {
-                slug: components["parameters"]["SlugQuery"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 虚拟实体详情 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatVirtualCreate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    slug: string;
-                    name: string;
-                    avatar?: string | null;
-                    description?: string | null;
-                };
-            };
-        };
-        responses: {
-            /** @description 创建成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatVirtualUpdate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    slug: string;
-                    name?: string;
-                    avatar?: string | null;
-                    description?: string | null;
-                    /** @enum {integer} */
-                    is_active?: 0 | 1;
-                };
-            };
-        };
-        responses: {
-            /** @description 更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    chatVirtualDelete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    slug: string;
-                };
-            };
-        };
-        responses: {
-            /** @description 删除成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    chatIntegrationCreate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    slug: string;
-                    name: string;
-                    /** Format: uri */
-                    endpoint_url: string;
-                    events?: string[];
-                };
-            };
-        };
-        responses: {
-            /** @description 仅此次返回 token 与 signing_secret */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IntegrationCredentialsEnvelope"];
-                };
-            };
-        };
-    };
-    chatIntegrationUpdate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    slug: string;
-                    id: number;
-                    name?: string;
-                    /** Format: uri */
-                    endpoint_url?: string;
-                    events?: string[];
-                    /** @enum {integer} */
-                    is_active?: 0 | 1;
-                };
-            };
-        };
-        responses: {
-            /** @description 更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    chatIntegrationRotate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    slug: string;
-                    id: number;
-                };
-            };
-        };
-        responses: {
-            /** @description 新凭据 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IntegrationCredentialsEnvelope"];
-                };
-            };
-        };
-    };
-    chatIntegrationDelete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    slug: string;
-                    id: number;
-                };
-            };
-        };
-        responses: {
-            /** @description 删除成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
+                content?: never;
             };
         };
     };
@@ -1067,7 +658,247 @@ export interface operations {
             };
         };
     };
-    chatWorkspaceAccess: {
+    chatConversationList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatConversationGet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatConversationCreate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_entity_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatMessageList: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatMessageSend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_entity_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatMessageEdit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_entity_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatMessageRevoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_entity_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatMessageRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_entity_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatRealtimeConnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_entity_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatRealtimeSubscribe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_entity_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatActorSearch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatInvitationList: {
         parameters: {
             query?: never;
             header?: never;
@@ -1082,14 +913,84 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Envelope"] & {
-                        data?: components["schemas"]["WorkspaceAccessSnapshot"];
-                    };
+                    "application/json": components["schemas"]["InvitationListEnvelope"];
                 };
             };
         };
     };
-    chatConversationList: {
+    chatInvitationAccept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_entity_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatInvitationReject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_entity_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatConversationLeave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expected_entity_id: number;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    chatBlockList: {
         parameters: {
             query?: never;
             header?: never;
@@ -1098,40 +999,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 会话列表 */
+            /** @description 成功 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
+                content?: never;
             };
         };
     };
-    chatConversationGet: {
-        parameters: {
-            query: {
-                uuid: components["parameters"]["UuidQuery"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 会话详情 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatConversationCreate: {
+    chatBlockCreate: {
         parameters: {
             query?: never;
             header?: never;
@@ -1141,30 +1018,21 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @enum {string} */
-                    kind: "direct" | "group";
-                    title?: string | null;
-                    actor_slug: string;
-                    participants: string[];
-                    /** @enum {integer} */
-                    is_temporary?: 0 | 1;
-                    expires_at?: number | null;
+                    expected_entity_id: number;
                 };
             };
         };
         responses: {
-            /** @description uuid 及是否命中已有普通单聊 */
+            /** @description 成功 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
+                content?: never;
             };
         };
     };
-    chatConversationClose: {
+    chatBlockDelete: {
         parameters: {
             query?: never;
             header?: never;
@@ -1174,356 +1042,17 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** Format: uuid */
-                    uuid: string;
+                    expected_entity_id: number;
                 };
             };
         };
         responses: {
-            /** @description 关闭成功 */
+            /** @description 成功 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    chatConversationParticipantAdd: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    uuid: string;
-                    participants: string[];
-                };
-            };
-        };
-        responses: {
-            /** @description 添加成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    chatConversationParticipantRemove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    uuid: string;
-                    slug: string;
-                };
-            };
-        };
-        responses: {
-            /** @description 移除成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    chatMessageList: {
-        parameters: {
-            query: {
-                conversation: string;
-                before_id?: number;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 消息列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatMessageSend: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    conversation: string;
-                    actor_slug: string;
-                    content: string;
-                    reply_id?: number | null;
-                };
-            };
-        };
-        responses: {
-            /** @description 消息 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatMessageEdit: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    message_id: number;
-                    content: string;
-                };
-            };
-        };
-        responses: {
-            /** @description 编辑成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    chatMessageRevoke: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    message_id: number;
-                };
-            };
-        };
-        responses: {
-            /** @description 撤回成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    chatMessageRead: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    conversation: string;
-                    actor_slug: string;
-                    message_id: number;
-                };
-            };
-        };
-        responses: {
-            /** @description 更新成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    chatRealtimeConnect: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description token 与客户端 WebSocket URL */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatRealtimeSubscribe: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    conversation: string;
-                };
-            };
-        };
-        responses: {
-            /** @description channel 与 token */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatEntityFieldList: {
-        parameters: {
-            query?: {
-                entity_type?: "member" | "customer" | "virtual";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 字段列表 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatEntityFieldCreate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EntityField"];
-            };
-        };
-        responses: {
-            /** @description 创建成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
-        };
-    };
-    chatEntityFieldValues: {
-        parameters: {
-            query: {
-                slug: components["parameters"]["SlugQuery"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 字段值 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Envelope"];
-                };
-            };
-        };
-    };
-    chatEntityFieldSaveValues: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    slug: string;
-                    values: {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-        responses: {
-            /** @description 保存成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
+                content?: never;
             };
         };
     };

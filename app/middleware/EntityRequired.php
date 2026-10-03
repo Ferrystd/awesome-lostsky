@@ -17,11 +17,7 @@ class EntityRequired
 
         if (!is_array($request->acting_entity ?? null)) {
             $teamSlug = (string) ($request->slug ?? '');
-            if ($teamSlug === '') {
-                throw new HttpException(400, '无法确定团队上下文');
-            }
-
-            throw EntityContextException::required($teamSlug);
+            throw EntityContextException::required($teamSlug !== '' ? $teamSlug : null);
         }
 
         return $next($request);

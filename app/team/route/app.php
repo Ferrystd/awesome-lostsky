@@ -108,6 +108,17 @@ Route::post('chatIntegration/create', 'ChatIntegration/create');
 Route::post('chatIntegration/update', 'ChatIntegration/update');
 Route::post('chatIntegration/rotate', 'ChatIntegration/rotate');
 Route::post('chatIntegration/delete', 'ChatIntegration/delete');
+Route::get('chatGroup/index', 'ChatGroup/index');
+Route::get('chatGroup/get', 'ChatGroup/get');
+Route::get('chatGroup/actors', 'ChatGroup/actors');
+Route::get('chatGroup/messages', 'ChatGroup/messages');
+Route::post('chatGroup/create', 'ChatGroup/create');
+Route::post('chatGroup/update', 'ChatGroup/update');
+Route::post('chatGroup/invite', 'ChatGroup/invite');
+Route::post('chatGroup/invitation/cancel', 'ChatGroup/cancelInvitation');
+Route::post('chatGroup/participant/remove', 'ChatGroup/removeParticipant');
+Route::post('chatGroup/message/revoke', 'ChatGroup/revokeMessage');
+Route::post('chatGroup/close', 'ChatGroup/close');
 
 // join
 Route::get('join/form', 'join/form');

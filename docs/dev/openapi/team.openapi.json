@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "LostSky Team API",
-    "version": "0.0.10",
+    "version": "0.0.11",
     "description": "团队成员、岗位、成员字段、团队设置和团队文件管理。除特别说明外均需要 JWT、显式当前 Entity 与团队上下文；缺少身份时由前端进入 Account 成员身份回调。"
   },
   "x-entity-auth": {
@@ -11854,6 +11854,286 @@
           }
         },
         "description": "沿用 MemberAccess 与 team.member.invite，使用申请文件上传校验及配额，文件 source 固定为 join。"
+      }
+    },
+    "/chatGroup/index": {
+      "get": {
+        "operationId": "teamChatGroupList",
+        "summary": "读取团队所属群聊",
+        "tags": [
+          "ChatGroup"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        }
+      }
+    },
+    "/chatGroup/get": {
+      "get": {
+        "operationId": "teamChatGroupGet",
+        "summary": "读取团队群聊详情",
+        "tags": [
+          "ChatGroup"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        }
+      }
+    },
+    "/chatGroup/actors": {
+      "get": {
+        "operationId": "teamChatGroupActors",
+        "summary": "搜索群邀请人员",
+        "tags": [
+          "ChatGroup"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        }
+      }
+    },
+    "/chatGroup/messages": {
+      "get": {
+        "operationId": "teamChatGroupMessages",
+        "summary": "管理读取群消息",
+        "tags": [
+          "ChatGroup"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        }
+      }
+    },
+    "/chatGroup/create": {
+      "post": {
+        "operationId": "teamChatGroupCreate",
+        "summary": "创建团队群聊",
+        "tags": [
+          "ChatGroup"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "expected_entity_id"
+                ],
+                "properties": {
+                  "expected_entity_id": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        }
+      }
+    },
+    "/chatGroup/update": {
+      "post": {
+        "operationId": "teamChatGroupUpdate",
+        "summary": "更新团队群聊",
+        "tags": [
+          "ChatGroup"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "expected_entity_id"
+                ],
+                "properties": {
+                  "expected_entity_id": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        }
+      }
+    },
+    "/chatGroup/invite": {
+      "post": {
+        "operationId": "teamChatGroupInvite",
+        "summary": "邀请人员",
+        "tags": [
+          "ChatGroup"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "expected_entity_id"
+                ],
+                "properties": {
+                  "expected_entity_id": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        }
+      }
+    },
+    "/chatGroup/invitation/cancel": {
+      "post": {
+        "operationId": "teamChatGroupInvitationCancel",
+        "summary": "撤销邀请",
+        "tags": [
+          "ChatGroup"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "expected_entity_id"
+                ],
+                "properties": {
+                  "expected_entity_id": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        }
+      }
+    },
+    "/chatGroup/participant/remove": {
+      "post": {
+        "operationId": "teamChatGroupParticipantRemove",
+        "summary": "移除参与者",
+        "tags": [
+          "ChatGroup"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "expected_entity_id"
+                ],
+                "properties": {
+                  "expected_entity_id": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        }
+      }
+    },
+    "/chatGroup/message/revoke": {
+      "post": {
+        "operationId": "teamChatGroupMessageRevoke",
+        "summary": "管理撤回消息",
+        "tags": [
+          "ChatGroup"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "expected_entity_id"
+                ],
+                "properties": {
+                  "expected_entity_id": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        }
+      }
+    },
+    "/chatGroup/close": {
+      "post": {
+        "operationId": "teamChatGroupClose",
+        "summary": "关闭团队群聊",
+        "tags": [
+          "ChatGroup"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "expected_entity_id"
+                ],
+                "properties": {
+                  "expected_entity_id": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功"
+          }
+        }
       }
     }
   }

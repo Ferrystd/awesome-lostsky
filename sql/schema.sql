@@ -1382,7 +1382,7 @@ CREATE TABLE `team_entity_field_value` (
 -- ----------------------------
 CREATE TABLE `chat_conversation` (
     `id`              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `team_id`         INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `team_id`         INT UNSIGNED NULL DEFAULT NULL COMMENT '群聊所属团队ID；单聊为空',
     `uuid`            CHAR(36)     NOT NULL DEFAULT '' COMMENT '公开会话标识',
     `kind`            VARCHAR(20)  NOT NULL DEFAULT 'direct' COMMENT 'direct/group',
     `title`           VARCHAR(100) NULL     DEFAULT NULL COMMENT '群聊标题',
@@ -1408,9 +1408,13 @@ CREATE TABLE `chat_conversation` (
 -- ----------------------------
 CREATE TABLE `chat_participant` (
     `id`                   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `team_id`              INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `team_id`              INT UNSIGNED NULL DEFAULT NULL COMMENT '群聊所属团队ID；单聊为空',
     `conversation_id`      BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '会话ID',
     `entity_id`            INT UNSIGNED NOT NULL COMMENT '参与实体ID',
+    `status`               VARCHAR(20)  NOT NULL DEFAULT 'active' COMMENT 'pending/active/rejected',
+    `invited_by_entity_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '邀请人实体ID',
+    `invited_at`           INT UNSIGNED NULL DEFAULT NULL COMMENT '邀请时间',
+    `responded_at`         INT UNSIGNED NULL DEFAULT NULL COMMENT '响应时间',
     `joined_at`            INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '加入时间',
     `left_at`              INT UNSIGNED NULL     DEFAULT NULL COMMENT '退出时间',
     `last_read_message_id` BIGINT UNSIGNED NULL DEFAULT NULL COMMENT '已读消息ID',
@@ -1422,13 +1426,37 @@ CREATE TABLE `chat_participant` (
     KEY `idx_team_entity` (`team_id`, `entity_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天参与者表';
 
+CREATE TABLE `chat_entity_block` (
+    `id`                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `blocker_entity_id` INT UNSIGNED NOT NULL COMMENT '发起屏蔽的实体ID',
+    `blocked_entity_id` INT UNSIGNED NOT NULL COMMENT '被屏蔽的实体ID',
+    `create_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`       INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`       INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_chat_block_pair` (`blocker_entity_id`, `blocked_entity_id`),
+    KEY `idx_chat_blocked` (`blocked_entity_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天实体屏蔽关系';
+
+CREATE TABLE `chat_conversation_alias` (
+    `id`              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `alias_uuid`      CHAR(36) NOT NULL COMMENT '历史会话UUID',
+    `conversation_id` BIGINT UNSIGNED NOT NULL COMMENT '归并后的会话ID',
+    `create_time`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
+    `update_time`     INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新时间',
+    `delete_time`     INT UNSIGNED NULL DEFAULT NULL COMMENT '软删除时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_chat_alias_uuid` (`alias_uuid`),
+    KEY `idx_chat_alias_conversation` (`conversation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='历史聊天会话别名';
+
 -- ----------------------------
 -- Table: chat_message
 -- Model: app\model\ChatMessage
 -- ----------------------------
 CREATE TABLE `chat_message` (
     `id`                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `team_id`               INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `team_id`               INT UNSIGNED NULL DEFAULT NULL COMMENT '群聊所属团队ID；单聊为空',
     `conversation_id`       BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '会话ID',
     `entity_id`             INT UNSIGNED NOT NULL COMMENT '发送实体ID',
     `reply_id`              BIGINT UNSIGNED NULL DEFAULT NULL COMMENT '回复消息ID',
@@ -1450,7 +1478,7 @@ CREATE TABLE `chat_message` (
 -- ----------------------------
 CREATE TABLE `chat_event_outbox` (
     `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
-    `team_id`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '团队ID',
+    `team_id`        INT UNSIGNED NULL DEFAULT NULL COMMENT '群聊所属团队ID；单聊为空',
     `event_type`     VARCHAR(50)  NOT NULL DEFAULT '' COMMENT '事件类型',
     `aggregate_type` VARCHAR(30)  NOT NULL DEFAULT '' COMMENT '聚合类型',
     `aggregate_id`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '聚合ID',
@@ -1636,6 +1664,9 @@ ALTER TABLE `team_entity_field` ADD CONSTRAINT `fk_entity_field_team` FOREIGN KE
 ALTER TABLE `team_entity_field_value` ADD CONSTRAINT `fk_entity_field_value_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_entity_field_value_field` FOREIGN KEY (`field_id`) REFERENCES `team_entity_field` (`id`), ADD CONSTRAINT `fk_entity_field_value_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `chat_conversation` ADD CONSTRAINT `fk_chat_conversation_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_chat_conversation_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
 ALTER TABLE `chat_participant` ADD CONSTRAINT `fk_chat_participant_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_chat_participant_conversation` FOREIGN KEY (`conversation_id`) REFERENCES `chat_conversation` (`id`), ADD CONSTRAINT `fk_chat_participant_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_chat_participant_last_read` FOREIGN KEY (`last_read_message_id`) REFERENCES `chat_message` (`id`);
+ALTER TABLE `chat_participant` ADD CONSTRAINT `fk_chat_participant_inviter` FOREIGN KEY (`invited_by_entity_id`) REFERENCES `entity` (`id`);
+ALTER TABLE `chat_entity_block` ADD CONSTRAINT `fk_chat_blocker_entity` FOREIGN KEY (`blocker_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_chat_blocked_entity` FOREIGN KEY (`blocked_entity_id`) REFERENCES `entity` (`id`);
+ALTER TABLE `chat_conversation_alias` ADD CONSTRAINT `fk_chat_alias_conversation` FOREIGN KEY (`conversation_id`) REFERENCES `chat_conversation` (`id`);
 ALTER TABLE `chat_message` ADD CONSTRAINT `fk_chat_message_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_chat_message_conversation` FOREIGN KEY (`conversation_id`) REFERENCES `chat_conversation` (`id`), ADD CONSTRAINT `fk_chat_message_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_chat_message_reply` FOREIGN KEY (`reply_id`) REFERENCES `chat_message` (`id`), ADD CONSTRAINT `fk_chat_message_integration` FOREIGN KEY (`origin_integration_id`) REFERENCES `team_virtual_integration` (`id`);
 ALTER TABLE `chat_event_outbox` ADD CONSTRAINT `fk_chat_outbox_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`);
 ALTER TABLE `chat_webhook_delivery` ADD CONSTRAINT `fk_webhook_delivery_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_webhook_delivery_outbox` FOREIGN KEY (`outbox_id`) REFERENCES `chat_event_outbox` (`id`), ADD CONSTRAINT `fk_webhook_delivery_integration` FOREIGN KEY (`integration_id`) REFERENCES `team_virtual_integration` (`id`);

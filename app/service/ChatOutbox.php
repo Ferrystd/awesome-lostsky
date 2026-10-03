@@ -27,10 +27,13 @@ class ChatOutbox
         foreach ($events as $event) {
             try {
                 [$conversation, $originIntegrationId] = $this->context($event);
-                app(ChatRealtime::class)->publish((string) $conversation->uuid, [
-                    'id' => (int) $event->id, 'type' => (string) $event->event_type, 'data' => $event->payload,
-                ]);
-                $this->prepareDeliveries($event, $conversation, $originIntegrationId);
+                $recipientIds = $this->currentRecipients($event, $conversation);
+                $publicPayload = (array) $event->payload;
+                unset($publicPayload['recipient_entity_ids']);
+                app(ChatRealtime::class)->publishToRecipients((string) $conversation->uuid, [
+                    'id' => (int) $event->id, 'type' => (string) $event->event_type, 'data' => $publicPayload,
+                ], $recipientIds);
+                $this->prepareDeliveries($event, $conversation, $originIntegrationId, $recipientIds);
                 $updated = $this->updateClaimedEvent($event, $eventToken, [
                     'published_at' => time(),
                     'last_error' => null,
@@ -79,22 +82,21 @@ class ChatOutbox
     private function prepareDeliveries(
         ChatEventOutbox $event,
         ChatConversation $conversation,
-        ?int $originIntegrationId
+        ?int $originIntegrationId,
+        ?array $recipientIds = null
     ): void {
-        $entityIds = ChatParticipant::where('conversation_id', $conversation->id)
-            ->whereNull('left_at')->column('entity_id');
+        $entityIds = $recipientIds ?? $this->currentRecipients($event, $conversation);
         if (!$entityIds) {
             return;
         }
         $virtualIds = Entity::whereIn('id', $entityIds)
             ->where('entityable_type', 'teamVirtual')->column('entityable_id');
-        $virtualIds = TeamVirtual::where('team_id', $conversation->team_id)
-            ->whereIn('id', $virtualIds)->where('is_active', 1)->column('id');
+        $virtualIds = TeamVirtual::whereIn('id', $virtualIds)->where('is_active', 1)->column('id');
         if (!$virtualIds) {
             return;
         }
         $integrations = TeamVirtualIntegration::whereIn('virtual_id', $virtualIds)
-            ->where('team_id', $conversation->team_id)->where('is_active', 1)->select();
+            ->where('is_active', 1)->select();
         foreach ($integrations as $integration) {
             if ($originIntegrationId === (int) $integration->id
                 || !in_array((string) $event->event_type, (array) ($integration->events ?? []), true)) {
@@ -107,7 +109,7 @@ class ChatOutbox
             }
             $delivery = app(ChatWebhookDelivery::class, [], true);
             $delivery->save([
-                'team_id' => $event->team_id, 'outbox_id' => $event->id,
+                'team_id' => $integration->team_id, 'outbox_id' => $event->id,
                 'integration_id' => $integration->id, 'status' => ChatDeliveryStatus::Pending,
                 'attempts' => 0, 'available_at' => time(),
             ]);
@@ -131,11 +133,21 @@ class ChatOutbox
                 ]);
                 continue;
             }
+            [$conversation] = $this->context($event);
+            if (!$this->integrationEligible($integration, $event, $conversation)) {
+                $this->updateClaimedDelivery($delivery, $deliveryToken, [
+                    'status' => ChatDeliveryStatus::Failed, 'last_error' => '集成人员已失去会话资格',
+                    'processing_token' => null, 'processing_until' => null,
+                ]);
+                continue;
+            }
             try {
+                $publicPayload = (array) $event->payload;
+                unset($publicPayload['recipient_entity_ids']);
                 $body = json_encode([
                     'type' => $event->event_type,
                     'timestamp' => gmdate('Y-m-d\TH:i:s\Z', (int) $event->getData('create_time')),
-                    'data' => $event->payload,
+                    'data' => $publicPayload,
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
                 $timestamp = (string) time();
                 $signature = (new \StandardWebhooks\Webhook((string) $integration->signing_secret))
@@ -165,6 +177,28 @@ class ChatOutbox
             }
         }
         return $count;
+    }
+
+    private function currentRecipients(ChatEventOutbox $event, ChatConversation $conversation): array
+    {
+        $snapshot = array_values(array_unique(array_map('intval',
+            is_array($event->payload['recipient_entity_ids'] ?? null) ? $event->payload['recipient_entity_ids'] : []
+        )));
+        if (!$snapshot) return [];
+        $current = ChatParticipant::where('conversation_id', $conversation->id)->where('status', 'active')
+            ->whereNull('left_at')->whereIn('entity_id', $snapshot)->column('entity_id');
+        $valid = [];
+        foreach (Entity::whereIn('id', $current)->select() as $entity) {
+            if ($entity->is_valid) $valid[] = (int) $entity->id;
+        }
+        return array_values(array_unique($valid));
+    }
+
+    private function integrationEligible(TeamVirtualIntegration $integration, ChatEventOutbox $event, ChatConversation $conversation): bool
+    {
+        $entityId = (int) (Entity::where('entityable_type', 'teamVirtual')
+            ->where('entityable_id', $integration->virtual_id)->value('id') ?? 0);
+        return $entityId > 0 && in_array($entityId, $this->currentRecipients($event, $conversation), true);
     }
 
     private function claimEvents(int $limit, string $token)

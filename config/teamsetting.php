@@ -1,8 +1,6 @@
 <?php
 
 use app\enum\MemberSearchPriority;
-use app\enum\ChatCustomerGroupMode;
-use app\enum\ChatGroupHistory;
 use app\enum\TeamMemberDepartureMode;
 
 return [
@@ -72,50 +70,12 @@ return [
     ],
     'chat' => [
         'label'       => '聊天',
-        'description' => '控制客户会话、群历史、已读回执与消息保留策略。',
+        'description' => '控制团队群聊的消息保留策略。',
         'order'       => 20,
         'settings'    => [
-            'customer_direct_start' => [
-                'label'       => '客户可发起单聊',
-                'description' => '允许客户主动联系团队公开的成员或虚拟人员。',
-                'type'        => 'boolean',
-                'control'     => 'switch',
-                'default'     => true,
-                'order'       => 10,
-            ],
-            'customer_group_mode' => [
-                'label'       => '客户群聊权限',
-                'description' => '决定客户是否可以加入或创建群聊。',
-                'type'        => 'enum',
-                'control'     => 'radio',
-                'enum'        => ChatCustomerGroupMode::class,
-                'default'     => ChatCustomerGroupMode::InviteOnly->value,
-                'order'       => 20,
-            ],
-            'group_history' => [
-                'label'       => '新成员可见群历史',
-                'description' => '决定新参与者看到全部历史，还是仅看到加入后的消息。',
-                'type'        => 'enum',
-                'control'     => 'radio',
-                'enum'        => ChatGroupHistory::class,
-                'default'     => ChatGroupHistory::FromJoin->value,
-                'order'       => 30,
-            ],
-            'read_receipts' => [
-                'label' => '显示已读回执', 'description' => '向会话参与者展示已读状态。',
-                'type' => 'boolean', 'control' => 'switch', 'default' => true, 'order' => 40,
-            ],
-            'edit_window_minutes' => [
-                'label' => '消息编辑窗口', 'description' => '发送后允许本人编辑的分钟数。',
-                'type' => 'integer', 'control' => 'number', 'default' => 15, 'min' => 0, 'max' => 1440, 'order' => 50,
-            ],
-            'revoke_window_minutes' => [
-                'label' => '消息撤回窗口', 'description' => '发送后允许本人撤回的分钟数。',
-                'type' => 'integer', 'control' => 'number', 'default' => 2, 'min' => 0, 'max' => 1440, 'order' => 60,
-            ],
             'retention_days' => [
-                'label' => '消息保留天数', 'description' => '0 表示永久保存。',
-                'type' => 'integer', 'control' => 'number', 'default' => 0, 'min' => 0, 'max' => 3650, 'order' => 70,
+                'label' => '群聊消息保留天数', 'description' => '只清理本团队所属群聊；0 表示永久保存。跨团队单聊始终保留。',
+                'type' => 'integer', 'control' => 'number', 'default' => 0, 'min' => 0, 'max' => 3650, 'order' => 10,
             ],
         ],
     ],

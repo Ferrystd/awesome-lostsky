@@ -1,4 +1,4 @@
-import { redirectToLogin, redirectToMemberIdentity } from '@lostsky/shared/navigation'
+import { identityUrl, redirectToLogin, redirectToMemberIdentity } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
 import { formatStructuredAccessError } from './error-format'
 import { ERROR_MESSAGES } from './error-messages'
@@ -257,6 +257,8 @@ async function request<T>(method: string, path: string, body?: unknown, options:
           const teamSlug = Reflect.get(envelope.data, 'team_slug')
           if (typeof teamSlug === 'string' && teamSlug) {
             redirectToMemberIdentity(teamSlug, envelope.code === 42801 ? 'missing' : 'team_mismatch')
+          } else if (envelope.code === 42801) {
+            location.assign(identityUrl())
           }
         }
         if (!response.ok || envelope.code !== 0) {

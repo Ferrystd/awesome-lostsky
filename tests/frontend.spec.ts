@@ -801,7 +801,7 @@ test('team entity detail atomically saves one visibility group for supported ent
   expect(Math.round(avatarField?.width ?? -1)).toBe(Math.round(introImageField?.width ?? -2))
   expect(Math.round(introImageField?.width ?? -1)).toBe(Math.round(introVideoField?.width ?? -2))
   expect((introImageField?.y ?? 0) + (introImageField?.height ?? 0)).toBeLessThanOrEqual(introVideoField?.y ?? -1)
-  await expect(page.getByRole('link', { name: '发起对话' })).toHaveAttribute('href', 'http://demo.chat.lostsky.work:5176/new?participant=alice')
+  await expect(page.getByRole('link', { name: '发起对话' })).toHaveAttribute('href', 'http://chat.lostsky.work:5176/new?participant=alice')
   const displaySwitch = page.getByRole('switch', { name: '公开主页展示' })
   const internalSwitch = page.getByRole('switch', { name: '团队内可见' })
   await expect(displaySwitch).toHaveText('')
@@ -2272,7 +2272,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       } else {
         const header = page.locator('.ls-workspace-header')
         await expect(header.getByRole('button', { name: '操作' })).toBeHidden()
-        await expect(page.getByRole('link', { name: '聊天', exact: true })).toHaveAttribute('href', 'http://demo.chat.lostsky.work:5176/')
+        await expect(page.getByRole('link', { name: '聊天', exact: true })).toHaveAttribute('href', 'http://chat.lostsky.work:5176/')
         const typography = await header.locator('.ls-workspace-header__desktop a').evaluateAll((elements) =>
           elements.map((element) => {
             const style = getComputedStyle(element)
@@ -2363,7 +2363,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await customerSearch.fill('')
     }
     if (path === '/member-detail?id=1') {
-      await expect(page.getByRole('link', { name: '发起对话' })).toHaveAttribute('href', 'http://demo.chat.lostsky.work:5176/new?participant=alice')
+      await expect(page.getByRole('link', { name: '发起对话' })).toHaveAttribute('href', 'http://chat.lostsky.work:5176/new?participant=alice')
     }
     if (path === '/join-review') {
       await expect(page.getByRole('link', { name: /青空成员/ })).toBeVisible()
@@ -3167,8 +3167,8 @@ test('team role tasks use independent routes for entity assignment and permissio
             name: '聊天',
             items: [
               {
-                key: 'chat.virtual.helper.act',
-                label: '代表 · 协作助手参与聊天',
+                key: 'chat.group.manage',
+                label: '管理团队群聊',
               },
             ],
           },
@@ -3373,7 +3373,7 @@ test('team role tasks use independent routes for entity assignment and permissio
   await page.getByText('聊天 · 已选择 0/1', { exact: true }).click()
   await page
     .getByRole('checkbox', {
-      name: /代表 · 协作助手参与聊天.*chat\.virtual\.helper\.act/,
+      name: /管理团队群聊.*chat\.group\.manage/,
     })
     .check()
   await page.getByText('人员委托 · 已配置 1 项', { exact: true }).click()
@@ -3401,7 +3401,7 @@ test('team role tasks use independent routes for entity assignment and permissio
   await expect(page.getByText('人员管理 · 已配置 1 项', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '保存权限' }).click()
   await expect.poll(() => savedPermissions).toContain('team.entity.virtual.helper.manage')
-  expect(savedPermissions).toContain('chat.virtual.helper.act')
+  expect(savedPermissions).toContain('chat.group.manage')
   expect(savedPermissions).toContain('identity.virtual.helper.assume')
 
   await page.goto('http://demo.team.lostsky.work:5175/roles/entities?slug=bob')

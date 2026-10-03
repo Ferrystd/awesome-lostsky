@@ -83,7 +83,7 @@ class ChatIntegration
         $virtual = TeamVirtual::with(['identity'])
             ->where('team_id', $integration->team_id)
             ->find($integration->virtual_id);
-        if (!$virtual || !$virtual->slug) {
+        if (!$virtual || !$virtual->is_valid || !$virtual->identity?->is_valid || !$virtual->slug) {
             throw new HttpException(401, '集成对应的虚拟人员不可用');
         }
 

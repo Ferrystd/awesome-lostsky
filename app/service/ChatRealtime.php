@@ -8,15 +8,14 @@ use think\exception\HttpException;
 
 class ChatRealtime
 {
-    public function connectionToken(int $userId): array
+    public function connectionToken(int $sessionId, array $actingEntity, int $expectedEntityId): array
     {
-        if ($userId < 1) {
-            throw new HttpException(401, '登录状态无效');
-        }
+        app(ChatIdentity::class)->expected($actingEntity, $expectedEntityId);
+        if ($sessionId < 1) throw new HttpException(401, '人员会话无效');
         $secret = $this->tokenSecret();
         $now = time();
         $token = JWT::encode([
-            'sub' => "user:{$userId}", 'iat' => $now, 'exp' => $now + 300,
+            'sub' => $this->subject($sessionId), 'entity_id' => (int) $actingEntity['entity_id'], 'iat' => $now, 'exp' => $now + 300,
         ], $secret, 'HS256');
         $url = trim((string) config('centrifugo.client_url'));
         if ($url === '') {
@@ -26,31 +25,43 @@ class ChatRealtime
     }
 
     public function subscriptionToken(
-        int $teamId,
-        int $userId,
+        int $sessionId,
         array $actingEntity,
+        int $expectedEntityId,
         string $uuid
     ): array {
-        $conversation = app(ChatConversation::class)->model($teamId, $uuid, true);
-        app(ChatConversation::class)->assertAccess($conversation, $teamId, $actingEntity);
-        $channel = $this->channel($uuid);
+        app(ChatIdentity::class)->expected($actingEntity, $expectedEntityId);
+        $conversation = app(ChatConversation::class)->model($uuid, true);
+        app(ChatConversation::class)->assertAccess($conversation, $actingEntity);
+        $channel = $this->channel((string) $conversation->uuid, (int) $actingEntity['entity_id'], $sessionId);
         $now = time();
         $token = JWT::encode([
-            'sub' => "user:{$userId}", 'channel' => $channel, 'iat' => $now, 'exp' => $now + 300,
+            'sub' => $this->subject($sessionId), 'entity_id' => (int) $actingEntity['entity_id'], 'channel' => $channel, 'iat' => $now, 'exp' => $now + 300,
         ], $this->tokenSecret(), 'HS256');
         return compact('token', 'channel');
     }
 
-    public function publish(string $uuid, array $event): void
+    public function publishToRecipients(string $uuid, array $event, array $entityIds): void
     {
-        $url = rtrim((string) config('centrifugo.api_url'), '/') . '/api/publish';
-        $key = (string) config('centrifugo.api_key');
-        if ($url === '/api/publish' || $key === '') {
-            throw new \RuntimeException('Centrifugo尚未配置');
+        $entityIds = array_values(array_unique(array_filter(array_map('intval', $entityIds))));
+        foreach ($entityIds as $entityId) {
+            foreach ($this->activeSessions($entityId) as $session) {
+                $this->publishChannel($this->channel($uuid, $entityId, (int) $session->id), $event);
+            }
         }
-        $this->request($url, json_encode([
-            'channel' => $this->channel($uuid), 'data' => $event,
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ['X-API-Key: ' . $key]);
+    }
+
+    public function unsubscribeEntity(int $entityId, string $uuid): void
+    {
+        foreach ($this->activeSessions($entityId) as $session) {
+            $id = (int) $session->id;
+            $this->serverCommand('unsubscribe', ['user' => $this->subject($id), 'channel' => $this->channel($uuid, $entityId, $id)]);
+        }
+    }
+
+    public function disconnectSession(int $sessionId): void
+    {
+        if ($sessionId > 0) $this->serverCommand('disconnect', ['user' => $this->subject($sessionId)]);
     }
 
     public function request(string $url, string $body, array $headers = [], array $resolve = []): array
@@ -79,9 +90,44 @@ class ChatRealtime
         return ['code' => $code, 'body' => (string) $response];
     }
 
-    private function channel(string $uuid): string
+    private function channel(string $uuid, int $entityId, int $sessionId): string
     {
-        return 'chat:conversation:' . strtolower(trim($uuid));
+        return 'chat.conversation.' . strtolower(trim($uuid)) . ".entity.{$entityId}.session.{$sessionId}";
+    }
+
+    private function publishChannel(string $channel, array $event): void
+    {
+        $url = rtrim((string) config('centrifugo.api_url'), '/') . '/api/publish';
+        $key = (string) config('centrifugo.api_key');
+        if ($url === '/api/publish' || $key === '') throw new \RuntimeException('Centrifugo尚未配置');
+        $this->request($url, json_encode(['channel'=>$channel,'data'=>$event], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), ['X-API-Key: '.$key]);
+    }
+
+    private function subject(int $sessionId): string { return "entity-session:{$sessionId}"; }
+
+    private function activeSessions(int $entityId): array
+    {
+        $entity = \app\model\Entity::find($entityId);
+        if (!$entity || !$entity->is_valid) return [];
+        $valid = [];
+        foreach (\app\model\EntitySession::where('entity_id', $entityId)->whereNull('revoked_at')
+            ->whereNull('superseded_at')->where('expires_at', '>', time())->select() as $session) {
+            try {
+                app(IdentitySession::class)->session((int)$session->user_id,(string)$session->device_token,
+                    (string)$session->getData('jti'),(string)$entity->entityable_type,(int)$entity->entityable_id);
+                $valid[] = $session;
+            } catch (\Throwable) {}
+        }
+        return $valid;
+    }
+
+    private function serverCommand(string $method, array $payload): void
+    {
+        $url = rtrim((string) config('centrifugo.api_url'), '/') . '/api/' . $method;
+        $key = (string) config('centrifugo.api_key');
+        if ($url === "/api/{$method}" || $key === '') return;
+        try { $this->request($url, json_encode($payload, JSON_UNESCAPED_SLASHES), ['X-API-Key: '.$key]); }
+        catch (\Throwable $e) { trace("Centrifugo {$method} failed: {$e->getMessage()}", 'error'); }
     }
 
     private function tokenSecret(): string

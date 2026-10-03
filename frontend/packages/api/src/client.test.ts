@@ -344,3 +344,21 @@ describe('structured access responses', () => {
     expect(feedback.info).toHaveBeenCalledOnce()
   })
 })
+
+
+describe('teamless identity recovery', () => {
+  it('returns missing Entity to generic Account identity selection', async () => {
+    const assign = vi.fn()
+    const href = 'https://chat.lostsky.work/?conversation=abc'
+    vi.stubGlobal('location', { hostname: 'chat.lostsky.work', protocol: 'https:', href, assign })
+    vi.stubGlobal('document', { cookie: 'lostsky_token=base-token' })
+    vi.stubGlobal('localStorage', storage())
+    vi.stubGlobal('sessionStorage', storage())
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 42801, message: 'identity required', data: {} }), { status: 428 })))
+    await expect(api.get('/conversation')).rejects.toMatchObject({ code: 42801 })
+    const target = new URL(String(assign.mock.calls[0]?.[0]), 'https://account.lostsky.work')
+    expect(target.pathname).toBe('/identity')
+    expect(target.searchParams.get('redirect')).toBe(href)
+    expect(target.searchParams.has('team_slug')).toBe(false)
+  })
+})

@@ -36,10 +36,10 @@ $assertSame(
     ),
     'request body slug and wildcard union'
 );
-$assertSame(
-    ['chat.virtual.support_bot.act', 'chat.virtual.*.act'],
-    $gate->candidates((new Request)->withRoute(['slug' => 'support_bot']), 'chat.virtual.<slug>.act'),
-    'route slug and wildcard union'
+$assertThrows(
+    fn () => $gate->candidates((new Request)->withRoute(['slug' => 'support_bot']), 'chat.virtual.<slug>.act'),
+    500,
+    'removed virtual act permission is rejected'
 );
 $assertSame(
     ['team.entity.virtual.create'],
@@ -71,8 +71,8 @@ $assertSame(
     'specific document management parents resolve to their leaf permission'
 );
 $assertSame(
-    ['chat.group.manage', 'chat.message.moderate'],
-    $gate->candidates(new Request, 'chat.group.manage,chat.message.moderate'),
+    ['chat.group.manage', 'team.role.read'],
+    $gate->candidates(new Request, 'chat.group.manage,team.role.read'),
     'comma-separated permission arguments form an OR candidate set'
 );
 $assertSame(
@@ -85,8 +85,8 @@ $assertSame(
     'dynamic and static permission arguments share an OR candidate set'
 );
 $assertSame(
-    ['chat.group.manage', 'chat.message.moderate'],
-    $gate->candidates(new Request, 'chat.group.manage', 'chat.message.moderate'),
+    ['chat.group.manage', 'team.role.read'],
+    $gate->candidates(new Request, 'chat.group.manage', 'team.role.read'),
     'array middleware arguments form the same OR candidate set'
 );
 $assertThrows(
@@ -113,7 +113,7 @@ $assertThrows(
     'permission middleware requires at least one argument'
 );
 $assertThrows(
-    fn () => $gate->candidates(new Request, 'chat.group.manage,,chat.message.moderate'),
+    fn () => $gate->candidates(new Request, 'chat.group.manage,,team.role.read'),
     500,
     'empty comma-separated permission argument is rejected'
 );
@@ -161,11 +161,6 @@ $assertSame(
     [],
     array_values(array_intersect(PermissionDictionary::keys(), PermissionDictionary::adminKeys())),
     'platform administrator permissions are not exposed to team roles'
-);
-$assertSame(
-    ['chat.virtual.support_bot.act'],
-    [PermissionDictionary::virtual('support_bot', 'act')],
-    'chat-only virtual act keys are built by the dictionary'
 );
 $assertSame(
     [PermissionDictionary::TEAM_ENTITY_FIELD_MANAGE],

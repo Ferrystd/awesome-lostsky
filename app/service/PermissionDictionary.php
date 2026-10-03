@@ -55,11 +55,7 @@ final class PermissionDictionary
     public const IDENTITY_CUSTOMER_ALL_ASSUME = 'identity.customer.*.assume';
     public const IDENTITY_VIRTUAL_ALL_ASSUME = 'identity.virtual.*.assume';
 
-    public const CHAT_CONVERSATION_CREATE = 'chat.conversation.create';
     public const CHAT_GROUP_MANAGE = 'chat.group.manage';
-    public const CHAT_TEMPORARY_CREATE = 'chat.temporary.create';
-    public const CHAT_MESSAGE_MODERATE = 'chat.message.moderate';
-    public const CHAT_VIRTUAL_ALL_ACT = 'chat.virtual.*.act';
     public const WEIBO_PERSONAL_USE = 'weibo.personal.use';
     public const WEIBO_TEAM_MANAGE = 'weibo.team.manage';
     public const TEAM_ENTITY_VIRTUAL_CREATE = 'team.entity.virtual.create';
@@ -162,11 +158,7 @@ final class PermissionDictionary
             self::IDENTITY_VIRTUAL_ALL_ASSUME => '领取全部虚拟人员身份',
         ],
         '聊天' => [
-            self::CHAT_CONVERSATION_CREATE => '创建会话',
             self::CHAT_GROUP_MANAGE => '管理群聊',
-            self::CHAT_TEMPORARY_CREATE => '创建临时会话',
-            self::CHAT_MESSAGE_MODERATE => '审核与撤回消息',
-            self::CHAT_VIRTUAL_ALL_ACT => '代表全部虚拟人员参与聊天',
         ],
         '微博' => [
             self::WEIBO_PERSONAL_USE => '使用个人微博工作台',
@@ -258,11 +250,7 @@ final class PermissionDictionary
             'team.entity.virtual.*.field.manage' => '管理当前团队全部虚拟实体字段',
             'team.entity.field.manage' => '管理团队与成员实体字段',
             'team.entity.field.customer.manage' => '管理顾客实体字段',
-            'chat.conversation.create' => '创建会话',
             'chat.group.manage' => '管理群聊',
-            'chat.temporary.create' => '创建临时会话',
-            'chat.message.moderate' => '审核或撤回他人消息',
-            'chat.virtual.*.act' => '代表当前授权团队的任意虚拟实体参与聊天',
             'admin.dashboard.read' => '查看平台总览',
             'admin.system.read' => '查看系统状态',
             'admin.entitlement.read' => '查看 Ability 权益与体验码',
@@ -285,7 +273,6 @@ final class PermissionDictionary
         return [
             'team.entity.virtual.<slug>.manage' => '管理当前团队指定虚拟实体',
             'team.entity.virtual.<slug>.field.manage' => '管理当前团队指定虚拟实体字段',
-            'chat.virtual.<slug>.act' => '代表当前团队指定虚拟实体参与聊天；不切换当前身份，也不授权其他应用',
             'identity.member.<slug>.assume' => '领取当前团队指定有效成员',
             'identity.customer.<slug>.assume' => '领取当前团队指定有效顾客',
             'identity.virtual.<slug>.assume' => '领取当前团队指定有效虚拟实体',
@@ -356,14 +343,6 @@ final class PermissionDictionary
         }
 
         if (preg_match(
-            '/^chat\.virtual\.([a-z0-9][a-z0-9_-]{0,49})\.act$/',
-            $key,
-            $match
-        )) {
-            return ['kind' => 'act', 'slug' => $match[1]];
-        }
-
-        if (preg_match(
             '/^team\.document\.(member|customer|virtual)\.([a-z0-9][a-z0-9_-]{0,49})\.manage$/',
             $key,
             $match
@@ -389,7 +368,7 @@ final class PermissionDictionary
      */
     public static function dynamicDescendant(string $key): ?array
     {
-        foreach (['.manage', '.field.manage', '.act', '.assume'] as $suffix) {
+        foreach (['.manage', '.field.manage', '.assume'] as $suffix) {
             $dynamic = self::dynamic($key . $suffix);
             if ($dynamic !== null) {
                 return $dynamic;
@@ -403,7 +382,6 @@ final class PermissionDictionary
     {
         return match ($action) {
             'manage', 'field.manage' => "team.entity.virtual.{$slug}.{$action}",
-            'act' => "chat.virtual.{$slug}.act",
             default => throw new \InvalidArgumentException("Unsupported virtual permission action: {$action}"),
         };
     }

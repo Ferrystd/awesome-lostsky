@@ -5,205 +5,74 @@ namespace app\service;
 
 use app\enum\ChatActorType;
 use app\model\Entity;
+use app\model\Team;
 use app\model\TeamCustomer;
 use app\model\TeamMember;
-use app\model\Team;
 use app\model\TeamVirtual;
 use think\exception\HttpException;
 
 class ChatActor
 {
-    public function list(int $teamId, array $actingEntity): array
+    public function current(array $acting): array
     {
-        $items = [];
-        $memberQuery = TeamMember::where('team_id', $teamId);
-        $members = $memberQuery->with(['profile', 'identity'])->select();
-        foreach ($members as $member) {
-            if (!$member->is_valid || !$member->slug) {
-                continue;
-            }
-            $summary = $this->summary(ChatActorType::Entity, (int) $member->id);
-            $summary['can_act'] = (int) $member->identity->id === (int) ($actingEntity['entity_id'] ?? 0);
-            $items[$summary['slug']] = $summary;
-        }
-
-        if (($actingEntity['type'] ?? '') === 'teamMember') {
-            $customers = TeamCustomer::where('team_id', $teamId)
-                ->where('is_blocked', 0)
-                ->with(['profile', 'identity'])
-                ->select();
-        } else {
-            $customerId = ($actingEntity['type'] ?? '') === 'teamCustomer'
-                ? (int) ($actingEntity['id'] ?? 0)
-                : 0;
-            $customers = $customerId > 0
-                ? TeamCustomer::where('team_id', $teamId)
-                    ->where('id', $customerId)
-                    ->where('is_blocked', 0)
-                    ->with(['profile', 'identity'])
-                    ->select()
-                : [];
-        }
-        foreach ($customers as $customer) {
-            if (!$customer->slug) {
-                continue;
-            }
-            $summary = $this->summary(ChatActorType::Customer, (int) $customer->id);
-            $summary['can_act'] = (int) $customer->identity->id === (int) ($actingEntity['entity_id'] ?? 0);
-            $items[$summary['slug']] = $summary;
-        }
-
-        $team = Team::active()->where('id', $teamId)->with(['identity'])->find();
-        if ($team && $team->slug) {
-            $summary = $this->summary(ChatActorType::Team, (int) $team->id);
-            $summary['can_act'] = (int) $team->identity->id === (int) ($actingEntity['entity_id'] ?? 0);
-            $items[$summary['slug']] = $summary;
-        }
-
-        foreach (TeamVirtual::where('team_id', $teamId)
-            ->where('is_active', 1)
-            ->with(['identity'])
-            ->select() as $virtual) {
-            if (!$virtual->slug) {
-                continue;
-            }
-            $summary = $this->summary(ChatActorType::Virtual, (int) $virtual->id);
-            $summary['can_act'] = (int) $virtual->identity->id === (int) ($actingEntity['entity_id'] ?? 0)
-                || app(PermissionGate::class)->allows($teamId, $actingEntity, [
-                PermissionDictionary::CHAT_VIRTUAL_ALL_ACT,
-                PermissionDictionary::virtual((string) $virtual->slug, 'act'),
-            ]);
-            $items[$summary['slug']] = $summary;
-        }
-
-        uasort($items, static fn (array $left, array $right): int => strcmp(
-            (string) $left['name'],
-            (string) $right['name']
-        ));
-        return array_values($items);
+        $summary = $this->summaryEntity((int) ($acting['entity_id'] ?? 0));
+        if (!($summary['is_valid'] ?? false)) throw new HttpException(401, '当前人员身份会话已失效');
+        return $summary;
     }
 
-    public function resolve(int $teamId, string $slug): array
+    public function search(string $keyword, string $slug, int $userId): array
     {
-        $slug = strtolower(trim($slug));
-        $identity = Entity::where('slug', $slug)->find();
-        if (!$identity) {
-            throw new HttpException(404, '聊天身份不存在');
+        if (trim($slug) !== '') {
+            try { return [$this->summaryEntity((int) $this->resolveGlobal($slug, false)['entity_id'])]; }
+            catch (HttpException) { return []; }
         }
-
-        [$type, $model] = match ((string) $identity->entityable_type) {
-            'teamMember' => [ChatActorType::Entity, TeamMember::where('team_id', $teamId)->find($identity->entityable_id)],
-            'teamCustomer' => [ChatActorType::Customer, TeamCustomer::where('team_id', $teamId)->find($identity->entityable_id)],
-            'teamVirtual' => [ChatActorType::Virtual, TeamVirtual::where('team_id', $teamId)->find($identity->entityable_id)],
-            'team' => [ChatActorType::Team, Team::active()->where('id', $teamId)->find($identity->entityable_id)],
-            default => [null, null],
-        };
-        if (!$type || !$model || !(bool) $model->is_valid) {
-            throw new HttpException(404, '聊天身份不存在或不可用');
-        }
-
-        return [
-            'entity_id' => (int) $identity->id,
-            'type' => $type,
-            'id' => (int) $model->id,
-            'slug' => $slug,
-            'model' => $model,
-        ];
+        $needle = trim($keyword);
+        if ($needle === '') return [];
+        $results = app(\app\service\Entity::class)->search($needle, 20, $userId);
+        return array_values(array_filter(array_map(function (array $item): ?array {
+            $identity = Entity::where('slug', (string) ($item['slug'] ?? ''))->find();
+            return $identity ? $this->summaryEntity((int) $identity->id) : null;
+        }, $results)));
     }
 
-    public function assertCanAct(array $actor, int $teamId, array $actingEntity): void
+    public function resolveGlobal(string $slug, bool $requireSearchable = false): array
     {
-        if ((int) $actor['entity_id'] === (int) ($actingEntity['entity_id'] ?? 0)) {
-            return;
-        }
-        $allowed = $actor['type'] === ChatActorType::Virtual
-            && app(PermissionGate::class)->allows($teamId, $actingEntity, [
-                PermissionDictionary::CHAT_VIRTUAL_ALL_ACT,
-                PermissionDictionary::virtual((string) $actor['slug'], 'act'),
-            ]);
-        if (!$allowed) {
-            throw new HttpException(403, '你不能使用该聊天身份');
-        }
-    }
-
-    public function canAct(array $actor, int $teamId, array $actingEntity): bool
-    {
-        try {
-            $this->assertCanAct($actor, $teamId, $actingEntity);
-            return true;
-        } catch (HttpException) {
-            return false;
-        }
+        $identity = Entity::where('slug', strtolower(trim($slug)))->find();
+        if (!$identity || !$identity->is_valid || ($requireSearchable && !$identity->is_searchable)) throw new HttpException(404, '聊天人员不存在或不可联系');
+        return $this->actorEntity((int) $identity->id);
     }
 
     public function summary(ChatActorType|string $type, int $id): array
     {
         $type = $type instanceof ChatActorType ? $type : ChatActorType::from($type);
         $model = match ($type) {
-            ChatActorType::Entity => TeamMember::with(['profile', 'identity'])->find($id),
-            ChatActorType::Customer => TeamCustomer::with(['profile', 'identity'])->find($id),
-            ChatActorType::Team => Team::with(['identity', 'profile'])->find($id),
-            ChatActorType::Virtual => TeamVirtual::with(['identity', 'profile'])->find($id),
+            ChatActorType::Entity => TeamMember::with(['profile','identity'])->find($id),
+            ChatActorType::Customer => TeamCustomer::with(['profile','identity'])->find($id),
+            ChatActorType::Team => Team::with(['identity','profile'])->find($id),
+            ChatActorType::Virtual => TeamVirtual::with(['identity','profile'])->find($id),
         };
-        if (!$model) {
-            return ['type' => $type->value, 'slug' => null, 'name' => '已失效身份', 'avatar' => null];
-        }
-
-        return [
-            'type' => $type->value,
-            'slug' => $model->slug ?? null,
-            'name' => match ($type) {
-                ChatActorType::Entity => $model->nickname ?: '人员',
-                ChatActorType::Customer => $model->nickname ?: '顾客',
-                ChatActorType::Team => $model->display_name ?: '团队',
-                ChatActorType::Virtual => $model->name ?: '虚拟人员',
-            },
-            'avatar' => $type === ChatActorType::Team ? null : ($model->avatar ?: null),
-            'status_code' => $type === ChatActorType::Entity ? $model->status_code : null,
-            'status_label' => $type === ChatActorType::Entity ? $model->status_label : null,
-            'is_valid' => (bool) $model->is_valid,
-        ];
+        if (!$model) return ['id'=>0,'entity_id'=>0,'type'=>$type->value,'slug'=>null,'name'=>'已失效人员','avatar'=>null,'is_valid'=>false,'team'=>null];
+        return ['id'=>(int)($model->identity?->id??0),'entity_id'=>(int)($model->identity?->id??0),'type'=>$type->value,
+            'slug'=>$model->slug??null,'name'=>match($type){ChatActorType::Entity=>$model->nickname?:'人员',ChatActorType::Customer=>$model->nickname?:'顾客',ChatActorType::Team=>$model->display_name?:'团队',ChatActorType::Virtual=>$model->name?:'虚拟人员'},
+            'avatar'=>$type===ChatActorType::Team?null:($model->avatar?:null),'status_code'=>$type===ChatActorType::Entity?$model->status_code:null,
+            'status_label'=>$type===ChatActorType::Entity?$model->status_label:null,'is_valid'=>(bool)$model->is_valid];
     }
 
     public function summaryEntity(int $entityId): array
     {
         $identity = Entity::find($entityId);
-        if (!$identity) {
-            return [
-                'type' => 'entity',
-                'slug' => null,
-                'name' => '已失效人员',
-                'avatar' => null,
-                'status_code' => null,
-                'status_label' => null,
-                'is_valid' => false,
-            ];
-        }
-        $type = match ((string) $identity->entityable_type) {
-            'teamMember' => ChatActorType::Entity,
-            'teamCustomer' => ChatActorType::Customer,
-            'teamVirtual' => ChatActorType::Virtual,
-            'team' => ChatActorType::Team,
-        };
-
-        return $this->summary($type, (int) $identity->entityable_id);
+        if (!$identity) return ['id'=>$entityId,'entity_id'=>$entityId,'type'=>'entity','slug'=>null,'name'=>'已失效人员','avatar'=>null,'is_valid'=>false,'team'=>null];
+        $type = match((string)$identity->entityable_type){'teamMember'=>ChatActorType::Entity,'teamCustomer'=>ChatActorType::Customer,'teamVirtual'=>ChatActorType::Virtual,'team'=>ChatActorType::Team};
+        $teamId = app(IdentitySession::class)->entityTeamId((string)$identity->entityable_type,(int)$identity->entityable_id);
+        $team = $teamId > 0 ? Team::find($teamId) : null;
+        return array_merge($this->summary($type,(int)$identity->entityable_id),['id'=>(int)$identity->id,'entity_id'=>(int)$identity->id,
+            'team'=>$team?['id'=>(int)$team->id,'slug'=>(string)$team->slug,'name'=>(string)($team->display_name?:$team->slug)]:null]);
     }
 
     public function actorEntity(int $entityId): array
     {
         $subject = app(\app\service\Entity::class)->subject($entityId);
-        return [
-            'entity_id' => $entityId,
-            'type' => match ($subject['type']) {
-                'teamMember' => ChatActorType::Entity,
-                'teamCustomer' => ChatActorType::Customer,
-                'teamVirtual' => ChatActorType::Virtual,
-                'team' => ChatActorType::Team,
-            },
-            'id' => $subject['id'],
-            'slug' => (string) $subject['entity']->slug,
-            'model' => $subject['entity']->entityable,
-        ];
+        return ['entity_id'=>$entityId,'type'=>match($subject['type']){'teamMember'=>ChatActorType::Entity,'teamCustomer'=>ChatActorType::Customer,'teamVirtual'=>ChatActorType::Virtual,'team'=>ChatActorType::Team},
+            'id'=>$subject['id'],'slug'=>(string)$subject['entity']->slug,'model'=>$subject['entity']->entityable];
     }
-
 }

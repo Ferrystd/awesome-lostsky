@@ -69,6 +69,8 @@ php think notice:send "通知标题" --team_id=123 --content="通知正文" --pi
 
 ## 后台任务与清理
 
+Chat teamless 升级使用 `php think chat:migrate-teamless` 输出只读统计，增加 `--apply` 才执行数据归并和废弃权限清理。先备份并执行结构补丁，再执行数据迁移；完整步骤见[部署与迁移](deployment.md#chat-teamless-upgrade)。
+
 应用命令注册于 `config/console.php`；`queue:*` 来自队列依赖。以下命令会处理任务或修改数据，不是只读健康探测：
 
 | 命令 | 当前职责 |

@@ -200,7 +200,7 @@ describe('后台源码设计契约', () => {
       .flatMap(filesUnder)
       .filter((path) => path.endsWith('.vue'))
       .flatMap((path) => [...readFileSync(path, 'utf8').matchAll(/<LsPagePrimaryAction\b[^>]*>/g)].map((match) => ({ path, tag: match[0] })))
-    expect(usages).toHaveLength(40)
+    expect(usages).toHaveLength(41)
     for (const usage of usages) {
       const file = relative(repository, usage.path).replaceAll('\\', '/')
       expect(usage.tag, `${file} 的页面主操作缺少强制 icon`).toMatch(/:icon=/)
@@ -342,7 +342,7 @@ describe('后台源码设计契约', () => {
   })
 
   it('页面级空数据状态统一复用 LsEmptyState', () => {
-    const requiredPages = ['account/src/views/TeamsView.vue', 'account/src/views/IdentityView.vue', 'chat/src/views/TeamPickerView.vue', 'admin/src/views/UsersView.vue', 'admin/src/views/TeamsView.vue', 'admin/src/views/AdministratorsView.vue', 'admin/src/views/RolesView.vue', 'admin/src/views/AuditView.vue', 'team/src/views/EntitiesView.vue', 'team/src/views/MembersView.vue', 'team/src/views/CustomersView.vue', 'team/src/views/RolesView.vue', 'team/src/views/ChatVirtualsView.vue', 'team/src/views/DocumentsView.vue', 'team/src/views/FilesView.vue', 'team/src/views/EntityFieldsView.vue', 'team/src/views/NoticesView.vue', 'team/src/views/JoinReviewView.vue', 'team/src/views/JoinFieldsView.vue', 'team/src/views/ResourceView.vue', 'team/src/views/SettingsView.vue', 'transaction/src/views/TransactionsView.vue', 'transaction/src/views/BalancesView.vue', 'transaction/src/views/BalanceLogsView.vue']
+    const requiredPages = ['account/src/views/TeamsView.vue', 'account/src/views/IdentityView.vue', 'chat/src/views/RequestsView.vue', 'admin/src/views/UsersView.vue', 'admin/src/views/TeamsView.vue', 'admin/src/views/AdministratorsView.vue', 'admin/src/views/RolesView.vue', 'admin/src/views/AuditView.vue', 'team/src/views/EntitiesView.vue', 'team/src/views/MembersView.vue', 'team/src/views/CustomersView.vue', 'team/src/views/RolesView.vue', 'team/src/views/ChatVirtualsView.vue', 'team/src/views/DocumentsView.vue', 'team/src/views/FilesView.vue', 'team/src/views/EntityFieldsView.vue', 'team/src/views/NoticesView.vue', 'team/src/views/JoinReviewView.vue', 'team/src/views/JoinFieldsView.vue', 'team/src/views/ResourceView.vue', 'team/src/views/SettingsView.vue', 'transaction/src/views/TransactionsView.vue', 'transaction/src/views/BalancesView.vue', 'transaction/src/views/BalanceLogsView.vue']
     for (const page of requiredPages) {
       const source = readFileSync(join(repository, 'frontend', 'apps', page), 'utf8')
       expect(source, `${page} 未复用页面级空状态`).toContain('LsEmptyState')

@@ -91,7 +91,6 @@ class ChatVirtual
             foreach (TeamRolePermission::where('team_id', $teamId)
                 ->whereIn('permission_key', [
                     PermissionDictionary::virtual($slug, 'manage'),
-                    PermissionDictionary::virtual($slug, 'act'),
                     PermissionDictionary::virtual($slug, 'field.manage'),
                 ])->select() as $permission) {
                 $permission->delete();
