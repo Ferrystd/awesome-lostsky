@@ -17,7 +17,7 @@ class File
 {
     private const QUOTA_MESSAGE = '该团队文件已达到上限，请联系团队管理员。';
 
-    public function upload(UploadedFile $file, int $teamId, array $actor, FileSource $source = FileSource::Manual): array
+    public function upload(UploadedFile $file, int $teamId, array $actor, FileSource $source = FileSource::Manual, bool $immediate = false): array
     {
         $identity = $this->identityForActor($actor, $teamId);
 
@@ -27,7 +27,8 @@ class File
             (int) $identity->id,
             true,
             true,
-            $source
+            $source,
+            !$immediate
         );
 
         return $this->apiResult($result);
@@ -35,7 +36,7 @@ class File
 
     public function uploadForJoin(UploadedFile $file, int $teamId): array
     {
-        $result = $this->store($file, $teamId, null, true, true, FileSource::Join);
+        $result = $this->store($file, $teamId, null, true, true, FileSource::Join, true);
 
         return $this->apiResult($result);
     }
@@ -69,7 +70,7 @@ class File
     public function list(int $teamId, array $filters, int $page = 1, int $limit = 20): array
     {
         [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
-        $query = \app\model\File::where('team_id', $teamId);
+        $query = \app\model\File::where('team_id', $teamId)->whereNull('pending_until');
 
         if (!empty($filters['entity_id'])) {
             $query->where('entity_id', (int) $filters['entity_id']);
@@ -111,6 +112,7 @@ class File
     public function get(int $teamId, int $id): array
     {
         $file = \app\model\File::where('team_id', $teamId)
+            ->whereNull('pending_until')
             ->with(['subject'])
             ->find($id);
 
@@ -157,7 +159,7 @@ class File
             return;
         }
 
-        $usage = $this->measure($teamId);
+        $usage = $this->measure($teamId, true);
         if ($usage['total_size'] >= $sizeLimit || $usage['total_size'] + $newSize > $sizeLimit) {
             throw new HttpException(422, self::QUOTA_MESSAGE);
         }
@@ -211,9 +213,16 @@ class File
         ];
     }
 
-    private function measure(int $teamId): array
+    private function measure(int $teamId, bool $current = false): array
     {
+        if ($current) {
+            // Current locking read: prior business SELECTs may have opened an RR snapshot.
+            $rows = \app\model\File::where('team_id', $teamId)->whereNull('pending_until')
+                ->field(['id', 'size'])->lock(true)->select();
+            return ['count' => count($rows), 'total_size' => array_sum(array_column($rows->toArray(), 'size'))];
+        }
         $result = \app\model\File::where('team_id', $teamId)
+            ->whereNull('pending_until')
             ->fieldRaw('COUNT(id) as count, COALESCE(SUM(size), 0) as total_size')
             ->find();
 
@@ -232,7 +241,7 @@ class File
         }
     }
 
-    private function store(UploadedFile $file, ?int $teamId, ?int $entityId, bool $checkAbility, bool $dedupe, FileSource $source): array
+    private function store(UploadedFile $file, ?int $teamId, ?int $entityId, bool $checkAbility, bool $dedupe, FileSource $source, bool $pending = false): array
     {
         $validator = app(\app\validate\File::class);
         if (!$validator->upload($file)) {
@@ -243,45 +252,19 @@ class File
         $path = $this->buildPath($teamId, $hash, $file->getOriginalExtension());
 
         if ($dedupe && $teamId !== null) {
-            $active = \app\model\File::where('team_id', $teamId)
-                ->where('hash', $hash)
-                ->find();
-            if ($active) {
-                return $this->storedResult($active);
-            }
-        }
-
-        if ($checkAbility && $teamId !== null) {
-            $this->checkAbility($teamId, (int) $file->getSize());
-        }
-
-        if ($dedupe && $teamId !== null) {
-            $existing = Db::transaction(function () use ($teamId, $hash) {
+            $existing = Db::transaction(function () use ($teamId, $hash, $pending) {
                 $this->lockTeam($teamId);
-                $existing = \app\model\File::withTrashed()
-                    ->where('team_id', $teamId)
-                    ->where('hash', $hash)
-                    ->lock(true)
-                    ->find();
-                if ($existing?->trashed()) {
-                    $this->checkAbility($teamId, (int) $existing->size);
-                    $existing->restore();
-                    return \app\model\File::where('team_id', $teamId)
-                        ->where('hash', $hash)
-                        ->find();
-                }
-
-                return $existing;
+                $existing = \app\model\File::withTrashed()->where('team_id', $teamId)
+                    ->where('hash', $hash)->lock(true)->find();
+                return $existing ? $this->reuse($existing, $pending) : null;
             });
-            if ($existing) {
-                return $this->storedResult($existing);
-            }
+            if ($existing) return $existing;
         }
 
         $this->putOss($path, $file->getPathname());
 
         try {
-            return Db::transaction(function () use ($file, $hash, $path, $teamId, $entityId, $dedupe, $checkAbility, $source) {
+            $result = Db::transaction(function () use ($file, $hash, $path, $teamId, $entityId, $dedupe, $checkAbility, $source, $pending) {
                 if ($teamId !== null) {
                     $this->lockTeam($teamId);
                 }
@@ -291,24 +274,9 @@ class File
                         ->where('hash', $hash)
                         ->lock(true)
                         ->find();
-                    if ($exist) {
-                        if ($exist->trashed()) {
-                            if ($checkAbility) {
-                                $this->checkAbility($teamId, (int) $exist->size);
-                            }
-                            $exist->restore();
-                            $exist = \app\model\File::where('team_id', $teamId)
-                                ->where('hash', $hash)
-                                ->find();
-                        }
-
-                        return $this->storedResult($exist);
-                    }
+                    if ($exist) return $this->reuse($exist, $pending);
                 }
-
-                if ($checkAbility && $teamId !== null) {
-                    $this->checkAbility($teamId, (int) $file->getSize());
-                }
+                if (!$pending && $checkAbility && $teamId !== null) $this->checkAbility($teamId, (int) $file->getSize());
 
                 $record = new \app\model\File;
                 $record->hash      = $hash;
@@ -319,10 +287,15 @@ class File
                 $record->team_id   = $teamId;
                 $record->entity_id = $entityId;
                 $record->source    = $source;
+                $record->pending_until = $pending ? time() + 43200 : null;
                 $record->save();
 
                 return $this->storedResult($record);
             });
+            if ($result['path'] !== $path) {
+                $this->queueObjectPurge($path, new \RuntimeException('并发去重多余对象'));
+            }
+            return $result;
         } catch (\Throwable $exception) {
             $referenced = \app\model\File::withTrashed()->where('path', $path)->find();
             if (!$referenced) {
@@ -336,6 +309,41 @@ class File
 
             throw $exception;
         }
+    }
+
+    private function reuse(\app\model\File $file, bool $pending): array
+    {
+        if ($file->pending_until !== null && (int) $file->pending_until <= time()) {
+            throw new HttpException(422, '文件已过期，请等待清理后重新上传');
+        }
+        if ($file->trashed()) {
+            $deadline = $pending ? ($file->pending_until ?? time() + 43200) : null;
+            if (!$pending) $this->checkAbility((int) $file->team_id, (int) $file->size);
+            // A trashed model's save still carries the default soft-delete scope.
+            Db::name('file')->where('id', $file->id)->update(['pending_until' => $deadline, 'delete_time' => null]);
+            $file = \app\model\File::where('id', $file->id)->find();
+        } elseif (!$pending && $file->pending_until !== null) {
+            $this->checkAbility((int) $file->team_id, (int) $file->size);
+            $file->save(['pending_until' => null]);
+        }
+        return $this->storedResult($file);
+    }
+
+    public function expirePending(int $now): int
+    {
+        $count = 0;
+        foreach (\app\model\File::withTrashed()->whereNotNull('pending_until')
+            ->where('pending_until', '<=', $now)->limit(200)->select() as $candidate) {
+            $count += Db::transaction(function () use ($candidate, $now): int {
+                $this->lockTeam((int) $candidate->team_id);
+                $file = \app\model\File::withTrashed()->where('id', $candidate->id)->lock(true)->find();
+                if (!$file || $file->pending_until === null || (int) $file->pending_until > $now) return 0;
+                $this->queueObjectPurge((string) $file->path, new \RuntimeException('未使用文件已过期'));
+                $file->force(true)->delete();
+                return 1;
+            });
+        }
+        return $count;
     }
 
     private function storedResult(\app\model\File $file): array
@@ -466,7 +474,7 @@ class File
         $prefix = $teamId === null ? 'system' : (string) $teamId;
         $suffix = $ext === '' ? '' : '.' . $ext;
 
-        return sprintf('%s/%s/%s%s', $prefix, date('Ym'), $hash, $suffix);
+        return sprintf('%s/%s/%s-%s%s', $prefix, date('Ym'), $hash, bin2hex(random_bytes(8)), $suffix);
     }
 
     private function url(string $path): string

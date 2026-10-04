@@ -42,7 +42,7 @@ try {
         'OSS upload streams the local file instead of treating its path as object content'
     );
     $uploadPosition = strpos((string) $source, '$this->putOss($path, $file->getPathname());');
-    $persistPosition = strpos((string) $source, 'return Db::transaction(', (int) $uploadPosition);
+    $persistPosition = strpos((string) $source, '$result = Db::transaction(', (int) $uploadPosition);
     $assert(
         $uploadPosition !== false
             && $persistPosition !== false

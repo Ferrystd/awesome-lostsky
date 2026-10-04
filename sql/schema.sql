@@ -988,6 +988,7 @@ CREATE TABLE `file` (
     `size`        INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '文件大小(字节)',
     `mime_type`   VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'MIME类型',
     `source`      VARCHAR(20) NOT NULL DEFAULT 'unknown' COMMENT '首次入库来源: unknown/manual/markdown/attachment/join/command/system',
+    `pending_until` INT UNSIGNED NULL DEFAULT NULL COMMENT '待使用截止时间(NULL=已生效)',
     `team_id`     INT UNSIGNED NULL     DEFAULT NULL COMMENT 'team id (NULL=system file)',
     `entity_id`   INT UNSIGNED NULL     DEFAULT NULL COMMENT '实体身份ID，引用entity.id(NULL=无实体上传)',
     `create_time` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建时间',
@@ -995,6 +996,7 @@ CREATE TABLE `file` (
     `delete_time` INT UNSIGNED NULL     DEFAULT NULL COMMENT '软删除时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_team_hash` (`team_id`, `hash`),
+    KEY `idx_file_pending` (`pending_until`),
     KEY `idx_team_id` (`team_id`),
     KEY `idx_entity_id` (`entity_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文件表';

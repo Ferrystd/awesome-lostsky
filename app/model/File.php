@@ -22,7 +22,7 @@ class File extends Base
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
+    protected $hidden = ['delete_time', 'pending_until'];
 
     protected $readonly = ['hash', 'team_id', 'entity_id', 'source'];
 

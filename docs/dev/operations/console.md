@@ -176,3 +176,7 @@ php think certificate:update --no-nginx
 ```bash
 certbot renew --deploy-hook 'cd /www/deploy/lostsky && php think certificate:update'
 ```
+
+### 待使用文件清理
+
+`system:cleanup` 每轮处理最多 200 个超过 12 小时仍未被业务使用的文件。记录删除与 OSS 补偿任务在团队行锁事务内完成，OSS 删除在事务外重试。运行既有清理调度即可；升级前执行 `sql/patches/20261004_file_pending.sql`。

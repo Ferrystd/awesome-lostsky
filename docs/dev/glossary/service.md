@@ -349,7 +349,7 @@ aliases: [服务, Service]
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
-| `upload` | `think\file\UploadedFile $file`、`int $teamId`、`array $actor`、`enum\FileSource $source = app\enum\FileSource::Manual` | `array` |
+| `upload` | `think\file\UploadedFile $file`、`int $teamId`、`array $actor`、`enum\FileSource $source = app\enum\FileSource::Manual`、`bool $immediate = false` | `array` |
 | `uploadForJoin` | `think\file\UploadedFile $file`、`int $teamId` | `array` |
 | `uploadSystem` | `think\file\UploadedFile $file` | `array` |
 | `uploadByCommand` | `string $localPath`、`?int $entityId = null`、`?int $teamId = null`、`?string $originalName = null` | `array` |
@@ -362,6 +362,14 @@ aliases: [服务, Service]
 | `uploadAvailability` | `int $teamId` | `array` |
 | `capacityAbility` | `int $teamId` | `array` |
 | `purgeObject` | `string $path` | `void` |
+| `expirePending` | `int $now` | `int` |
+
+## FileUsage
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `tracks` | `model\Base $model` | `bool` |
+| `activateSaved` | `model\Base $model`、`array $changed` | `void` |
 
 ## IdentitySession
 

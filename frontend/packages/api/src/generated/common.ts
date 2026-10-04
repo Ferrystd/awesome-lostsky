@@ -15,7 +15,7 @@ export interface paths {
         put?: never;
         /**
          * 上传文件
-         * @description 用于头像、封面、Markdown 图片等资源附件。资源保存接口继续校验对应资源的编辑 Permission；上传使用团队 File 等级容量，未购买时为 0 级 128 MiB，不要求 file.upload。响应正文始终为合法 JSON。
+         * @description 用于头像、封面、Markdown 图片等资源附件，不要求 file.upload。上传先待使用12小时，不计额度、不在后台文件库显示；获授权业务成功保存真实附件节点时，在同一事务校验团队 File 容量并激活。未购买时容量为0级128MiB。过期未使用自动删除。响应正文始终为合法 JSON。
          */
         post: operations["commonUpload"];
         delete?: never;

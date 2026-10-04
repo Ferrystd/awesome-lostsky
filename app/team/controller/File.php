@@ -52,7 +52,9 @@ class File
         $result = app(\app\service\File::class)->upload(
             $file,
             $request->team_id,
-            $request->acting_entity
+            $request->acting_entity,
+            \app\enum\FileSource::Manual,
+            true
         );
         app(\app\service\BusinessAudit::class)->record(
             $request,

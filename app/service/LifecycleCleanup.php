@@ -75,7 +75,7 @@ class LifecycleCleanup
             $devices++;
         }
 
-        $files = 0;
+        $files = app(File::class)->expirePending($now);
         foreach (FileModel::onlyTrashed()->select() as $file) {
             app(File::class)->purgeObject((string) $file->path);
             $file->force(true)->delete();

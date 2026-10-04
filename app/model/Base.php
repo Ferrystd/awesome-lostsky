@@ -9,6 +9,19 @@ use think\model\contract\EnumTransform;
 
 class Base extends Model
 {
+    /** Attachment activation and the successful resource write share one transaction. */
+    public function save(array | object $data = [], $where = [], bool $refresh = false): bool
+    {
+        $usage = app(\app\service\FileUsage::class);
+        if (!$usage->tracks($this)) return parent::save($data, $where, $refresh);
+        $changed = array_unique(array_merge(array_keys((array) $data), array_keys($this->getChangedData())));
+        return \think\facade\Db::transaction(function () use ($data, $where, $refresh, $usage, $changed): bool {
+            $result = parent::save($data, $where, $refresh);
+            if ($result) $usage->activateSaved($this, $changed);
+            return $result;
+        });
+    }
+
     /**
      * 未实现 EnumTransform 的枚举，读取时自动输出 case name。
      */

@@ -208,7 +208,7 @@ export interface paths {
         put?: never;
         /**
          * 上传当前 Entity 资料媒体
-         * @description 受当前 Entity 和 expected_entity_id 一致性、File 等级容量与文件规则约束；未购买时使用 0 级 128 MiB，不额外要求 file.upload。
+         * @description 受当前 Entity 和 expected_entity_id 一致性、File 等级容量与文件规则约束；未购买时使用 0 级 128 MiB，不额外要求 file.upload。 非文件库上传先待使用12小时，不计额度、不在文件库显示；获授权业务成功保存实际附件时校验额度并激活，过期未使用自动删除。Team /file/upload 受 file.upload 权限保护并立即生效。
          */
         post: operations["teamPersonalUpload"];
         delete?: never;
@@ -960,7 +960,7 @@ export interface paths {
         put?: never;
         /**
          * 上传文件到团队文件库
-         * @description 文件库后台操作；上传同时要求 file.upload Permission 与当前 File 等级仍有剩余容量，未购买时使用 0 级 128 MiB。资源表单中的头像、封面和 Markdown 图片使用公共资源附件上传，不受此 Permission 限制。
+         * @description 文件库后台操作；上传同时要求 file.upload Permission 与当前 File 等级仍有剩余容量，未购买时使用 0 级 128 MiB。资源表单中的头像、封面和 Markdown 图片使用公共资源附件上传，不受此 Permission 限制。 非文件库上传先待使用12小时，不计额度、不在文件库显示；获授权业务成功保存实际附件时校验额度并激活，过期未使用自动删除。Team /file/upload 受 file.upload 权限保护并立即生效。
          */
         post: operations["teamFileUpload"];
         delete?: never;

@@ -57,7 +57,10 @@ try {
     $check($service->get((int) $team->id, $result['id'])['source'] === 'markdown', 'Dedup preserves first source');
     $markdown->delete();
     $result = $service->uploadForJoin($upload, (int) $team->id);
-    $check($service->get((int) $team->id, $result['id'])['source'] === 'markdown', 'Restore preserves first source');
+    $restored = FileModel::find($result['id']);
+    $check($restored->source === 'markdown', 'Restore preserves first source');
+    $check($restored->pending_until !== null, 'Non-background restore returns to pending');
+    $check(count($service->list((int) $team->id, [])['list']) === 6, 'Restored pending file stays hidden');
     $legacy = new FileModel;
     $legacy->save(['team_id' => $team->id, 'entity_id' => $entity->id, 'name' => 'legacy.txt', 'hash' => hash('sha256', 'legacy'), 'path' => 'test/legacy.txt']);
     $check($service->get((int) $team->id, (int) $legacy->id)['source'] === 'unknown', 'Missing source defaults to unknown');
