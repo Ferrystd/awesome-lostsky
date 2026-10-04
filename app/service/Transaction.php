@@ -519,7 +519,7 @@ class Transaction
         if ((int) $entityId < 1) {
             throw new HttpException(422, "{$role}不能为空");
         }
-        app(Entity::class)->assertInTeam((int) $entityId, $teamId);
+        app(Entity::class)->subject((int) $entityId);
     }
 
     private function normalizeType(mixed $type): TransactionType

@@ -493,21 +493,11 @@ try {
         422,
         'non-numeric monetary values are rejected'
     );
-    $assertThrows(
-        fn () => $transactionService->create($teamId, [...$valid, 'handler_entity_id' => $fixture['foreignMemberEntity']->id]),
-        422,
-        'foreign handler is rejected'
-    );
-    $assertThrows(
-        fn () => $transactionService->create($teamId, [...$valid, 'sender_entity_id' => $fixture['foreignMemberEntity']->id]),
-        422,
-        'foreign sender is rejected'
-    );
-    $assertThrows(
-        fn () => $transactionService->create($teamId, [...$valid, 'cs_entity_id' => $fixture['foreignMemberEntity']->id]),
-        422,
-        'foreign customer-service member is rejected'
-    );
+    foreach (['handler_entity_id', 'sender_entity_id', 'cs_entity_id'] as $field) {
+        $foreignId = $transactionService->create($teamId, [...$valid, 'customer_id' => null, $field => $fixture['foreignMemberEntity']->id]);
+        $assertSame((int) $fixture['foreignMemberEntity']->id, (int) TeamTransaction::find($foreignId)->$field, 'valid foreign personnel can participate: ' . $field);
+        $transactionService->delete($teamId, $foreignId);
+    }
     $assertThrows(
         fn () => $transactionService->create($teamId, [...$valid, 'type' => 999]),
         422,

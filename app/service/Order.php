@@ -132,6 +132,11 @@ class Order
                     $data['sender_entity_id'] = $assignedSenderId;
                 }
             }
+            foreach (['sender_entity_id', 'cs_entity_id'] as $field) {
+                if (($data[$field] ?? null) !== null) {
+                    app(Entity::class)->subject((int) $data[$field]);
+                }
+            }
             $overrides = [];
             foreach (['handler_cut', 'sender_cut', 'cs_cut', 'team_cut'] as $field) {
                 if (array_key_exists($field, $data) && $data[$field] !== null) {
@@ -312,8 +317,11 @@ class Order
             $product = TeamProduct::withTrashed()->where('team_id', $teamId)->find($entry['product_id']);
             if (!$product) throw new HttpException(422, '兑换商品不存在');
             $handlerId = isset($entry['handler_entity_id'])
-                ? (int) app(Entity::class)->assertInTeam((int) $entry['handler_entity_id'], $teamId)->id
+                ? (int) app(Entity::class)->subject((int) $entry['handler_entity_id'])['entity']->id
                 : $this->resolveHandler($product, null);
+            foreach ([$senderId, $csId] as $entityId) {
+                if ($entityId !== null) app(Entity::class)->subject($entityId);
+            }
             $pricing = app(BenefitPackagePricing::class);
             $money = [];
             foreach ($entry['money'] as $field => $amount) $money[$field] = $pricing->fromCents($pricing->toCents($amount) * $entry['quantity']);
@@ -400,14 +408,14 @@ class Order
         if (!$exists) {
             return $handlerEntityId === null
                 ? (int) app(Entity::class)->requireBySubject('team', (int) $product->team_id)->id
-                : (int) app(Entity::class)->assertInTeam((int) $handlerEntityId, (int) $product->team_id)->id;
+                : (int) app(Entity::class)->subject((int) $handlerEntityId)['entity']->id;
         }
 
         $handlerEntityId = $handlerEntityId !== null ? (int) $handlerEntityId : null;
         if ($handlerEntityId === null) {
             $ids = TeamProductHandler::where('product_id', $product->id)->column('entity_id');
             if (count($ids) === 1) {
-                return (int) $ids[0];
+                return (int) app(Entity::class)->subject((int) $ids[0])['entity']->id;
             }
 
             throw new HttpException(422, '请选择接单人');
@@ -418,7 +426,7 @@ class Order
             throw new HttpException(422, '该接单人不在此商品的可选范围内');
         }
 
-        return $handlerEntityId;
+        return (int) app(Entity::class)->subject($handlerEntityId)['entity']->id;
     }
 
     private function attachRelations(array &$rows): void
