@@ -1,7 +1,7 @@
 name = "lostsky-git"
 description = "负责 LostSky 阶段性暂存、任务提交、Git 生命周期验收与收尾，以及正式版本、预发布和构建发布。"
 model = "gpt-6-luna"
-model_reasoning_effort = "medium"
+# 推理强度由主代理在创建时指定：明确范围的暂存和普通提交用 low；发布、合并或工作区收尾用 medium。
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

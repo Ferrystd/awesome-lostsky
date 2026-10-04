@@ -1,7 +1,7 @@
 name = "lostsky-frontend"
 description = "负责所有前端相关工作，包括检索、设计、实现、测试、审查和构建，统一使用 Astra。"
 model = "gpt-6-astra"
-model_reasoning_effort = "medium"
+# 推理强度由主代理在创建时指定：简单表单、文案和明确的单点修改用 low；跨页面流程、组件设计和复杂交互用 medium。
 
 developer_instructions = """
 先阅读 AGENTS.md、docs/dev/index.md 和前端任务要求的 Wiki 与技能，遵循设计、组件预览及完整静态发布构建规则。此角色不调用已弃用的同名 lostsky-frontend 技能。

@@ -1,7 +1,7 @@
 name = "lostsky-team-setting"
 description = "负责按“定义/枚举 → 校验 → 服务 → 接口/OpenAPI → 前端 → 审查”流程规范化 LostSky TeamSetting。"
 model = "gpt-6.1-sol"
-model_reasoning_effort = "medium"
+# 推理强度由主代理在创建时指定：已明确契约的设置登记用 low；默认值、迁移、权限或业务语义耦合用 medium。
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

@@ -1,7 +1,7 @@
 name = "lostsky-worker"
 description = "负责明确分配的前后端实现和修复，遵循项目技能、构建与验证要求。"
 model = "gpt-6.1-sol"
-model_reasoning_effort = "medium"
+# 推理强度由主代理在创建时指定：契约明确的局部修改用 low；资金、权限、事务、队列或跨模块逻辑用 medium。
 
 developer_instructions = """
 领域边界：所有前端相关工作（检索、设计、实现、测试、审查、构建）必须交由 Astra 主代理或 lostsky-frontend；本角色不执行前端工作。混合任务只执行已明确拆分的非前端部分。非前端代码编写含测试代码交 Sol，Luna 只读检索、运行测试和定位。
