@@ -312,7 +312,7 @@ class TeamEntityField
         };
     }
 
-    private function teamActor(int $teamId, string $entitySlug): array
+    public function teamActor(int $teamId, string $entitySlug): array
     {
         $actor = app(ChatActor::class)->resolveGlobal($entitySlug);
         $identity = \app\model\Entity::find((int) $actor['entity_id']);

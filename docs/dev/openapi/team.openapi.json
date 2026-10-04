@@ -5044,16 +5044,6 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          },
           "400": {
             "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
             "content": {
@@ -5123,8 +5113,20 @@
                 }
               }
             }
+          },
+          "410": {
+            "description": "旧成员资料编辑接口已停用，请使用 /personal/profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           }
-        }
+        },
+        "deprecated": true,
+        "description": "旧成员资料编辑接口已停用；存在于当前团队的成员返回 HTTP 410，缺失或跨团队成员返回 404。请使用 /personal/profile；管理员资料维护要求 team.entity.profile.manage，个人维护需 expected_entity_id。"
       }
     },
     "/me/fields": {
@@ -5673,16 +5675,6 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "操作成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MessageEnvelope"
-                }
-              }
-            }
-          },
           "400": {
             "description": "业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。",
             "content": {
@@ -5752,8 +5744,20 @@
                 }
               }
             }
+          },
+          "410": {
+            "description": "旧成员资料编辑接口已停用，请使用 /entity/profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           }
-        }
+        },
+        "deprecated": true,
+        "description": "旧成员资料编辑接口已停用；存在于当前团队的成员返回 HTTP 410，缺失或跨团队成员返回 404。请使用 /entity/profile；管理员资料维护要求 team.entity.profile.manage，个人维护需 expected_entity_id。"
       }
     },
     "/member/block": {

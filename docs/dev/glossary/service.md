@@ -827,6 +827,7 @@ aliases: [服务, Service]
 | `visibleValues` | `int $teamId`、`int $subjectEntityId`、`string $entityType`、`array $actingEntity`、`bool $isFieldManager = false` | `array` |
 | `saveValues` | `int $teamId`、`string $entitySlug`、`array $values` | `int` |
 | `saveOwnValues` | `int $teamId`、`string $entitySlug`、`array $values` | `void` |
+| `teamActor` | `int $teamId`、`string $entitySlug` | `array` |
 
 ## TeamJoin
 

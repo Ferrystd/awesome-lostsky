@@ -463,7 +463,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 编辑自己在团队内的资料 */
+        /**
+         * 编辑自己在团队内的资料
+         * @deprecated
+         * @description 旧成员资料编辑接口已停用；存在于当前团队的成员返回 HTTP 410，缺失或跨团队成员返回 404。请使用 /personal/profile；管理员资料维护要求 team.entity.profile.manage，个人维护需 expected_entity_id。
+         */
         post: operations["teamMeEdit"];
         delete?: never;
         options?: never;
@@ -557,7 +561,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 编辑成员资料及岗位 */
+        /**
+         * 编辑成员资料及岗位
+         * @deprecated
+         * @description 旧成员资料编辑接口已停用；存在于当前团队的成员返回 HTTP 410，缺失或跨团队成员返回 404。请使用 /entity/profile；管理员资料维护要求 team.entity.profile.manage，个人维护需 expected_entity_id。
+         */
         post: operations["teamMemberEdit"];
         delete?: never;
         options?: never;
@@ -4251,15 +4259,6 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
             /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
             400: {
                 headers: {
@@ -4298,6 +4297,15 @@ export interface operations {
             };
             /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 旧成员资料编辑接口已停用，请使用 /personal/profile */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4702,15 +4710,6 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 操作成功 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MessageEnvelope"];
-                };
-            };
             /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
             400: {
                 headers: {
@@ -4749,6 +4748,15 @@ export interface operations {
             };
             /** @description 业务错误或异常。项目统一响应信封，部分 HttpException 会使用对应 HTTP 状态码。 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description 旧成员资料编辑接口已停用，请使用 /entity/profile */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };

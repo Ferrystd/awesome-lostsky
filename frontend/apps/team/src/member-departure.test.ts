@@ -46,3 +46,19 @@ describe('管理员办理成员离职', () => {
     expect(sources).not.toContain('发起离队申请')
   })
 })
+
+
+describe('成员资料统一入口', () => {
+  it('管理页不再提交旧资料接口，同时保留入队与成员管理能力', () => {
+    const content = source('frontend/apps/team/src/views/MemberFormView.vue')
+    expect(content).not.toContain("'/member/edit'")
+    expect(content).not.toContain('EntityProfileFields')
+    expect(content).not.toContain('nickname')
+    expect(content).toContain('/entity?id=')
+    expect(content).toContain('detail.data.value.entity_id')
+    expect(content).toContain("api.post('/member/add'")
+    expect(content).toContain('<EntityFieldsCard')
+    expect(content).toContain('<EntityPermissionsCard')
+    expect(content).toContain("'/member/search'")
+  })
+})

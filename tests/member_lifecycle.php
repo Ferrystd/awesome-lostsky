@@ -95,6 +95,43 @@ try {
     $members = app(TeamMemberService::class);
     $join = app(TeamJoin::class);
 
+    foreach ([[], ['nickname' => '不应写入', 'post_type_ids' => [1]]] as $legacyData) {
+        $throwsStatus(
+            fn () => $members->edit((int) $team->id, (int) $member->id, $legacyData),
+            410,
+            'retired member editing never returns a false success'
+        );
+    }
+    $throwsStatus(
+        fn () => $members->edit((int) $team->id, 0, []),
+        404,
+        'retired member editing still rejects a missing member'
+    );
+    $throwsStatus(
+        fn () => $members->edit((int) $team->id + 1000000, (int) $member->id, []),
+        404,
+        'retired member editing still hides members outside the team'
+    );
+    $profiles = app(\app\service\EntityProfile::class);
+    $assert((string) TeamEntityProfile::where('entity_id', $entity->id)->value('name') === '保留资料成员', 'retired editing leaves the persisted profile unchanged');
+    $profiles->update((int) $team->id, (int) $entity->id, ['description' => '持久化资料']);
+    $profiles->update((int) $team->id, (int) $entity->id, ['avatar' => 'avatar.png']);
+    $savedProfile = TeamEntityProfile::where('entity_id', $entity->id)->find();
+    $assert((string) $savedProfile->name === '保留资料成员'
+        && (string) $savedProfile->description === '持久化资料'
+        && (string) $savedProfile->avatar === 'avatar.png', 'unified profile editing persists partial updates without clearing omitted fields');
+    $throwsStatus(
+        fn () => $profiles->update((int) $team->id + 1000000, (int) $entity->id, ['name' => '越界写入']),
+        422,
+        'unified profile editing preserves the existing cross-team rejection'
+    );
+    $throwsStatus(
+        fn () => $profiles->update((int) $team->id, 0, ['name' => '不存在']),
+        404,
+        'unified profile editing rejects a missing entity'
+    );
+    $assert((string) TeamEntityProfile::where('entity_id', $entity->id)->value('name') === '保留资料成员', 'rejected cross-team profile update does not change persisted data');
+
     $settings->set((int) $team->id, 'member', 'departure_mode', 'disabled');
     $throwsStatus(
         fn () => $departures->apply((int) $team->id, (int) $member->id, (int) $entity->id),

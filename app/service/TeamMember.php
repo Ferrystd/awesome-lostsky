@@ -202,18 +202,11 @@ class TeamMember
      */
     public function edit(int $teamId, int $memberId, array $data): void
     {
-        $validator = new MemberValidator;
-        if (!$validator->scene('edit')->check($data)) {
-            throw new HttpException(422, $validator->getError());
+        $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
+        if (!$member) {
+            throw new HttpException(404, '成员不存在');
         }
-
-        \think\facade\Db::transaction(function () use ($teamId, $memberId, $data) {
-            $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
-            if (!$member) {
-                throw new HttpException(404, '成员不存在');
-            }
-
-        });
+        throw new HttpException(410, '旧成员资料编辑接口已停用，请使用人员资料或个人工作台接口');
     }
 
     /**

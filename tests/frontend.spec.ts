@@ -3019,7 +3019,8 @@ test('member task keeps unauthorized operations visible in the shared permission
       ? {
           id: 3,
           user_id: 3,
-          nickname: '只读成员',
+          name: '只读成员',
+          entity_id: 33,
           description: '只能查看这份成员资料',
           slug: 'readonly-member',
           status_code: 'active',
@@ -3047,15 +3048,19 @@ test('member task keeps unauthorized operations visible in the shared permission
 
   await page.goto('http://demo.team.lostsky.work:5175/member-edit?id=3')
   await expect(page.getByText('只读成员', { exact: true })).toBeVisible()
-  const saveMember = page.getByRole('button', { name: '保存成员' })
-  await expect(saveMember).toHaveAttribute('aria-disabled', 'true')
-  await saveMember.dispatchEvent('click')
-  await expect(page.locator('.n-message').filter({ hasText: 'team.member.update' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '保存成员' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '查看人员资料' })).toBeVisible()
   await expect(page.getByRole('heading', { name: '对象字段' })).toBeVisible()
   await expect(page.getByText('-', { exact: true })).toBeVisible()
   await expect(page.locator('.ls-empty-state')).toContainText('team.role.read')
   await expect(page.getByRole('heading', { name: '管理操作' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: '团队昵称' })).toHaveCount(0)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await page.getByRole('button', { name: '查看人员资料' }).click()
+  await expect(page).toHaveURL('http://demo.team.lostsky.work:5175/entity?id=33')
+  await page.goto('http://demo.team.lostsky.work:5175/member-edit')
+  await expect(page.getByRole('alert').filter({ hasText: '缺少有效的成员编号' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '添加成员', exact: true })).toHaveCount(0)
 })
 
 test('team role tasks use independent routes for entity assignment and permission editing', async ({ page }) => {

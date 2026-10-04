@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
-import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
+import { api, friendlyError } from '@lostsky/api/client'
 import { identityUrl } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
@@ -11,7 +11,6 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
@@ -19,7 +18,7 @@ import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import JoinApplicationFields, { type JoinField, type FieldValue } from '../components/JoinApplicationFields.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { Save, UserPlus } from '@lucide/vue'
+import { UserPlus } from '@lucide/vue'
 import { NFlex, NInput, NSelect } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -27,13 +26,11 @@ import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import EntityFieldsCard, { type EntityFieldDefinition } from '../components/EntityFieldsCard.vue'
 import EntityPermissionsCard, { type AdvancedPermissionItem, type PermissionGroup, type RoleAssignment, type RoleRecord } from '../components/EntityPermissionsCard.vue'
-import EntityProfileFields from '../components/EntityProfileFields.vue'
 import { memberStatusCode, memberStatusLabel } from '../lib/memberStatus'
 import { fileAvailabilityReason, type FileUploadAvailability, hasPermission, permissionReason, resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 interface MemberCapabilities {
-  member_edit: boolean
   field_manage: boolean
   role_read: boolean
   role_write: boolean
@@ -47,28 +44,17 @@ interface MemberCapabilities {
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
-const editor = ref<InstanceType<typeof EntityProfileFields> | null>(null)
 const access = useTeamAccess()
 const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
 const id = computed(() => Number(route.query.id || 0))
-const editing = computed(() => id.value > 0)
+const editing = computed(() => route.path === '/member-edit')
 const form = reactive({
   join_code: '',
-  nickname: '',
-  avatar: '',
-  description: '',
-  intro_image: '',
-  intro_video: '',
-  introduction_markdown: '',
 })
 const fillJoinForm = ref(false)
 const joinValues = ref<Record<string, FieldValue>>({})
 const draftKey = () => teamDraftScope('MemberFormView', id.value)
 const draft = useQueryDraft({ key: draftKey, read: () => ({ ...form, fillJoinForm: fillJoinForm.value, joinValues: joinValues.value }), apply: ({ fillJoinForm: fill, joinValues: values, ...value }) => { Object.assign(form, value); fillJoinForm.value = fill; joinValues.value = values } })
-const profileModel = computed({
-  get: () => form,
-  set: (value) => Object.assign(form, value),
-})
 const uploading = ref(false)
 const identityForm = reactive({
   slug: '',
@@ -82,12 +68,11 @@ const rolesDirty = ref(false)
 const detail = useQuery({
   queryKey: computed(() => ['member', id.value]),
   queryFn: () => api.get<Record<string, unknown>>('/member/get', { member_id: id.value }),
-  enabled: editing,
+  enabled: computed(() => editing.value && Number.isInteger(id.value) && id.value > 0),
 })
 const memberSlug = computed(() => String(detail.data.value?.slug ?? ''))
 const lifecycleStatus = computed(() => (detail.data.value ? memberStatusCode(detail.data.value) : 'active'))
 const capabilities = computed<MemberCapabilities>(() => ({
-  member_edit: Boolean((detail.data.value?.capabilities as Partial<MemberCapabilities> | undefined)?.member_edit),
   field_manage: Boolean((detail.data.value?.capabilities as Partial<MemberCapabilities> | undefined)?.field_manage),
   role_read: Boolean((detail.data.value?.capabilities as Partial<MemberCapabilities> | undefined)?.role_read),
   role_write: Boolean((detail.data.value?.capabilities as Partial<MemberCapabilities> | undefined)?.role_write),
@@ -97,7 +82,6 @@ const capabilities = computed<MemberCapabilities>(() => ({
   member_remove: Boolean((detail.data.value?.capabilities as Partial<MemberCapabilities> | undefined)?.member_remove),
   identity_assume: Boolean((detail.data.value?.capabilities as Partial<MemberCapabilities> | undefined)?.identity_assume),
 }))
-const canEditProfile = computed(() => !editing.value || capabilities.value.member_edit)
 const canInvite = computed(() => hasPermission(access.data.value, 'team.member.invite'))
 const validJoinCode = computed(() => /^[A-F0-9]{20}$/i.test(form.join_code.trim()))
 const joinForm = useQuery({
@@ -165,23 +149,14 @@ const rolesWithPermissions = useQuery({
   enabled: computed(() => editing.value && capabilities.value.role_read && Boolean(roles.data.value?.length)),
 })
 
-const profileDirty = draft.dirty
-const hasUnsavedChanges = computed(() => (!editing.value && Boolean(form.join_code || fillJoinForm.value || Object.keys(joinValues.value).length)) || profileDirty.value || slugDraft.dirty.value || searchDraft.dirty.value || fieldsDirty.value || rolesDirty.value)
+const hasUnsavedChanges = computed(() => (!editing.value && Boolean(form.join_code || fillJoinForm.value || Object.keys(joinValues.value).length)) || draft.dirty.value || slugDraft.dirty.value || searchDraft.dirty.value || fieldsDirty.value || rolesDirty.value)
 
 watch(
   () => detail.data.value,
   (data) => {
     if (!data) return
-    const next = { ...form, fillJoinForm: fillJoinForm.value, joinValues: joinValues.value }
-    next.nickname = String(data.nickname ?? '')
-    next.avatar = String(data.avatar ?? '')
-    next.description = String(data.description ?? '')
-    next.intro_image = String(data.intro_image ?? '')
-    next.intro_video = String(data.intro_video ?? '')
-    next.introduction_markdown = String(data.introduction_markdown ?? '')
     slugDraft.hydrate(String(data.slug ?? ''))
     searchDraft.hydrate(data.search_override == null ? 'inherit' : (String(Number(data.search_override)) as '0' | '1'))
-    draft.hydrate(next)
   },
   { immediate: true },
 )
@@ -190,22 +165,11 @@ const save = useMutation({
   mutationFn: async () => {
     const submitted = draft.capture()
     const form = submitted.value
-    await (
-    api.post(editing.value ? '/member/edit' : '/member/add', editing.value ? {
-      member_id: id.value,
-      nickname: form.nickname.trim(),
-      avatar: form.avatar || null,
-      description: form.description || null,
-      intro_image: form.intro_image || null,
-      intro_video: form.intro_video || null,
-      introduction_markdown: form.introduction_markdown || null,
-    } : { join_code: form.join_code.trim().toUpperCase(), ...(form.fillJoinForm ? { join_form: { values: form.joinValues } } : {}) })
-    )
+    await api.post('/member/add', { join_code: form.join_code.trim().toUpperCase(), ...(form.fillJoinForm ? { join_form: { values: form.joinValues } } : {}) })
     return submitted
   },
   onSuccess: async submitted => {
     if (!draft.accept(submitted)) return
-    if (!draft.dirty.value) editor.value?.clearDraft()
     if (!editing.value && !draft.dirty.value) {
       form.join_code = ''
       fillJoinForm.value = false
@@ -214,7 +178,7 @@ const save = useMutation({
     }
     await queryClient.invalidateQueries({ queryKey: ['members'] })
     if (!draft.isCurrent(submitted) || draft.dirty.value) return
-    feedback.success(editing.value ? '成员资料已保存' : '成员已添加')
+    feedback.success('成员已添加')
     if (!hasUnsavedChanges.value) await router.push('/members')
   },
   onError: (error) => feedback.error(friendlyError(error)),
@@ -330,11 +294,10 @@ function setRolesDirty(value: boolean) {
 useUnsavedChangesGuard(hasUnsavedChanges, { shouldConfirm: teamDraftNavigationChanged })
 
 const submitReason = computed(() => {
-  if (editing.value ? !canEditProfile.value : !canInvite.value) return permissionReason(editing.value ? 'team.member.update' : 'team.member.invite')
+  if (editing.value) return '请在人员资料页维护成员资料'
+  if (!canInvite.value) return permissionReason('team.member.invite')
   if (save.isPending.value) return '正在保存成员，请稍候'
   if (uploading.value) return '文件正在上传，请稍候'
-  if (editing.value && !draft.dirty.value) return '没有未保存的成员资料修改'
-  if (editing.value) return form.nickname.trim() ? '' : '请填写成员昵称'
   if (!form.join_code.trim()) return '请填写个人入队码'
   if (!validJoinCode.value) return '请填写有效的 20 位个人入队码'
   if (fillJoinForm.value) {
@@ -353,18 +316,25 @@ function submit() {
 
 <template>
   <div class="member-form-view">
-    <AdminPageHeader :title="editing ? '编辑成员' : '添加成员'" :description="editing ? '管理当前成员个人资料。' : '填写对方的个人入队码，直接加入当前团队。'" back-to="/members" back-label="返回成员列表">
+    <AdminPageHeader :title="editing ? '管理成员' : '添加成员'" :description="editing ? '管理成员状态、对象字段与角色权限。' : '填写对方的个人入队码，直接加入当前团队。'" back-to="/members" back-label="返回成员列表">
       <template #actions>
-        <LsFormActions class="member-primary-actions">
+        <LsFormActions v-if="!editing" class="member-primary-actions">
           <LsButton type="button" variant="secondary" @click="router.push('/members')">取消</LsButton>
-          <LsPagePrimaryAction :icon="editing ? Save : UserPlus" :label="editing ? '保存成员' : '添加成员'" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason" />
+          <LsPagePrimaryAction :icon="UserPlus" label="添加成员" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason" />
         </LsFormActions>
       </template>
     </AdminPageHeader>
 
     <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
-    <form v-else id="member-profile-form" class="member-form" @submit.prevent="submit">
-      <LsPanel v-if="!editing">
+    <LsInlineError v-else-if="editing && (!Number.isInteger(id) || id <= 0)" message="缺少有效的成员编号，请返回成员列表重新选择。" />
+    <LsAsyncState v-else-if="editing && detail.isPending.value" state="loading" aria-label="正在读取成员" />
+    <LsSectionHeader v-else-if="editing && detail.data.value" :title="String(detail.data.value.name || `成员 #${id}`)" description="名称、头像和介绍统一在人员资料页维护。">
+      <template #aside>
+        <LsButton @click="router.push(`/entity?id=${detail.data.value.entity_id}`)" :disabled="!detail.data.value.entity_id" disabled-reason="该成员缺少人员标识，请联系管理员检查。">查看人员资料</LsButton>
+      </template>
+    </LsSectionHeader>
+    <form v-else-if="!editing" id="member-profile-form" class="member-form" @submit.prevent="submit">
+      <LsPanel>
         <NFlex vertical size="large">
         <LsField label="个人入队码" for-id="member-join-code" hint="请对方在账号的团队选择页生成入队码，30 分钟内有效，成功加入后失效。" required><LsInput id="member-join-code" v-model="form.join_code" :disabled="save.isPending.value" autocomplete="off" spellcheck="false" placeholder="粘贴对方的个人入队码" required /></LsField>
         <LsSwitchField v-model="fillJoinForm" label="代填入职表单" description="可选。填写后随成员一并保存，无需再次审核；不代填也可直接添加成员。" :disabled="save.isPending.value || uploading" />
@@ -378,46 +348,6 @@ function submit() {
         </template>
         </NFlex>
       </LsPanel>
-      <LsPanel v-else
-        ><section class="member-profile-section">
-          <LsSectionHeader title="成员公开资料" description="展示在当前团队中的名称、头像和介绍。"
-            ><template v-if="editing" #aside
-              ><span class="section-state">成员 #{{ id }}</span></template
-            ></LsSectionHeader
-          >
-
-          <template v-if="canEditProfile">
-            <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" :draft-key="`member-profile:${editing ? id : 'new'}`" id-prefix="member-profile" name-key="nickname" name-label="团队昵称" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" :editor-ready="!editing || detail.isSuccess.value" />
-          </template>
-          <dl v-else class="readonly-profile">
-            <div>
-              <dt>团队昵称</dt>
-              <dd>{{ form.nickname || '未填写' }}</dd>
-            </div>
-            <div>
-              <dt>头像</dt>
-              <dd>{{ form.avatar || '未填写' }}</dd>
-            </div>
-            <div>
-              <dt>简短介绍</dt>
-              <dd>{{ form.description || '未填写' }}</dd>
-            </div>
-            <div>
-              <dt>介绍图片</dt>
-              <dd>{{ form.intro_image || '未填写' }}</dd>
-            </div>
-            <div>
-              <dt>介绍视频</dt>
-              <dd>{{ form.intro_video || '未填写' }}</dd>
-            </div>
-            <div class="readonly-markdown">
-              <dt>详细介绍</dt>
-              <dd>
-                <LsMarkdownRenderer :content="form.introduction_markdown || '未填写'" />
-              </dd>
-            </div>
-          </dl></section
-      ></LsPanel>
     </form>
 
     <EntityFieldsCard :key="`${draftKey()}:fields`" v-if="editing && capabilities.field_manage && memberSlug" :fields="fields.data.value ?? []" :stored-values="fieldValues.data.value ?? []" mode="manager" :loading="fields.isPending.value || fieldValues.isPending.value" :saving="saveFields.isPending.value" :upload-disabled-reason="uploadDisabledReason" :error="fields.error.value || fieldValues.error.value" :success="saveFields.isSuccess.value" @save="saveFields.mutate" @dirty="setFieldsDirty" />
@@ -487,7 +417,6 @@ function submit() {
   display: flex;
   gap: 10px;
 }
-.member-profile-section,
 .management {
   display: grid;
   gap: 18px;
@@ -495,81 +424,6 @@ function submit() {
 .section-state {
   color: var(--text-tertiary);
   font-size: 0.8rem;
-}
-.control {
-  width: 100%;
-}
-.media-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-.upload-field {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-}
-.upload-action {
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  background: var(--surface-subtle);
-  font-size: 0.85rem;
-  font-weight: 650;
-  cursor: pointer;
-}
-.upload-action:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-.upload-action.disabled {
-  opacity: 0.48;
-  cursor: not-allowed;
-}
-.upload-action:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--primary) 25%, transparent);
-  outline-offset: 2px;
-}
-.upload-action input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-}
-.post-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-.readonly-profile {
-  display: grid;
-  margin: 0;
-  border-top: 1px solid var(--border);
-}
-.readonly-profile > div {
-  display: grid;
-  grid-template-columns: minmax(9rem, 0.36fr) minmax(0, 1fr);
-  gap: 16px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border);
-}
-.readonly-profile dt {
-  color: var(--text-secondary);
-  font-size: 0.82rem;
-  font-weight: 650;
-}
-.readonly-profile dd {
-  min-width: 0;
-  margin: 0;
-  overflow-wrap: anywhere;
-  line-height: 1.55;
-}
-.readonly-markdown {
-  align-items: start;
 }
 .role-summary {
   display: flex;
@@ -669,15 +523,8 @@ function submit() {
   .member-primary-actions > * {
     width: 100%;
   }
-  .media-row,
-  .post-grid,
-  .inline-form,
-  .upload-field {
+  .inline-form {
     grid-template-columns: 1fr;
-  }
-  .readonly-profile > div {
-    grid-template-columns: 1fr;
-    gap: 5px;
   }
   .identity-status {
     align-items: flex-start;

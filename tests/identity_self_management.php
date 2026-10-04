@@ -102,6 +102,20 @@ try {
     $assert(($identitySession->currentTarget($customerActing)['kind'] ?? '') === 'shop-customer', 'legacy customer deep link targets Shop customer center');
 
     $fieldService = app(\app\service\TeamEntityField::class);
+    $assert(
+        (int) $fieldService->teamActor((int) $team->id, (string) $virtualEntity->slug)['entity_id'] === (int) $virtualEntity->id,
+        'entity-field actor lookup preserves the same-team identity'
+    );
+    $assertStatus(
+        fn () => $fieldService->teamActor((int) $team->id + 1000000, (string) $virtualEntity->slug),
+        404,
+        'entity-field actor lookup rejects an identity from another team'
+    );
+    $assertStatus(
+        fn () => $fieldService->teamActor((int) $team->id, "missing-{$suffix}"),
+        404,
+        'entity-field actor lookup rejects a missing identity'
+    );
     $fieldService->create((int) $team->id, [
         'entity_type' => 'virtual',
         'field_key' => "self_note_{$suffix}",

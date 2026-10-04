@@ -45,7 +45,7 @@ Team 应用按操作组合以下中间件：
 缺少实体由前端进入 Account 成员回调。团队管理接口使用 `TeamWorkspaceAuth`，外部实体缺少目标团队角色时返回 HTTP 403 / `40304`；个人、自助和成员本人接口使用 `TeamAuth`，实体不属于当前团队时返回 HTTP 403 / `40301`。旧当前成员资料与成员上传兼容接口仍只接受
 `teamMember`；加入申请人的动作只接受基础用户 JWT，且不经过 `TeamAuth`。
 
-`GET /personal`、`POST /personal/profile|slug|fields|upload` 只接受当前团队的 Team、成员或虚拟实体，并只使用 JWT 的最终叶子 Entity。写请求携带 `expected_entity_id`，身份已切换时返回 `409`。旧 `/me` 页面路由跳转 `/personal/profile`；成员专属 `/me/*` API 暂作兼容，不作为新前端入口。
+`GET /personal`、`POST /personal/profile|slug|fields|upload` 只接受当前团队的 Team、成员或虚拟实体，并只使用 JWT 的最终叶子 Entity。写请求携带 `expected_entity_id`，身份已切换时返回 `409`。旧 `/me` 页面路由跳转 `/personal/profile`；成员专属 `/me/*` API 暂作兼容，不作为新前端入口。其中旧 `POST /me/edit`、`POST /member/edit` 已停用：同团队成员返回 `410`，缺失或跨团队成员返回 `404`，不会返回未写入的成功结果。本人资料改用 `/personal/profile`，管理员资料改用 `/entity/profile` 并要求 `team.entity.profile.manage`；不恢复旧 `nickname`、岗位字段。`/member-edit` 继续提供角色、字段、slug、搜索和生命周期等独立管理动作；固定资料入口链接 `/entity?id=<entity_id>`，资料编辑仍由 `team.entity.profile.manage` 控制，不扩大 `team.member.update` 的授权范围。
 
 `GET /access` 是当前 Entity 的通用访问快照，不依赖成员专属 `/me/get`。`GET /dashboard` 独立计算实体、成员、文档和通知：实体、成员与文档只有在具备相应全量读取 Permission 时返回计数，否则返回 `count=null`；Doc Ability 缺失时只把文档指标标记为不可用；任一指标异常不会把其余指标变成 `0`。
 
