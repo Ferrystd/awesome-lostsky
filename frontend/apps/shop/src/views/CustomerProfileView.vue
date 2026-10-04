@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+
 import { ApiError, friendlyError } from '@lostsky/api/client'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -24,15 +27,26 @@ const assigneeEntityId = ref<number | null>(null)
 const success = ref('')
 const saveError = ref('')
 
+const draft = useQueryDraft({
+  key: () => `customer-profile:${customer.data.value?.team_id ?? 0}:${customer.data.value?.id ?? 0}`,
+  read: () => ({ nickname: nickname.value, avatar: avatar.value, description: description.value, assigneeEntityId: assigneeEntityId.value, newSlug: newSlug.value }),
+  apply: value => {
+    nickname.value = value.nickname
+    avatar.value = value.avatar
+    description.value = value.description
+    assigneeEntityId.value = value.assigneeEntityId
+    newSlug.value = value.newSlug
+  },
+})
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: (to, from) => to.path !== from.path })
+watch([() => customer.data.value?.id, () => customer.data.value?.team_id], () => { claimedSlug.value = ''; success.value = ''; saveError.value = '' }, { flush: 'sync' })
+
 watch(
   () => customer.data.value,
   value => {
     if (!value) return
     rememberCustomer(value.id)
-    nickname.value = value.profile.name
-    avatar.value = value.profile.avatar || ''
-    description.value = value.profile.description || ''
-    assigneeEntityId.value = value.assignee?.entity_id ?? null
+    draft.hydrate({ nickname: value.profile.name, avatar: value.profile.avatar || '', description: value.profile.description || '', assigneeEntityId: value.assignee?.entity_id ?? null, newSlug: '' })
   },
   { immediate: true },
 )
@@ -55,29 +69,38 @@ const assigneeOptions = computed(() => (assignees.data.value ?? []).map(item => 
 
 const save = useMutation({
   mutationFn: async () => {
-    const name = nickname.value.trim()
+    const submission = draft.capture()
+    const values = submission.value
+    const name = values.nickname.trim()
     if (!name) throw new Error('团队内昵称不能为空')
     if (!slug.value) {
-      const claimed = newSlug.value.trim()
+      const claimed = values.newSlug.trim()
       if (!claimed) throw new Error('请先领取顾客标识')
-      claimedSlug.value = (await shopApi.claimSlug(claimed)).slug
+      const result = await shopApi.claimSlug(claimed)
+      if (!draft.isCurrent(submission)) return submission
+      claimedSlug.value = result.slug
     }
     await shopApi.updateProfile({
       nickname: name,
-      avatar: avatar.value.trim() || null,
-      description: description.value.trim() || null,
-      assignee_entity_id: assigneeEntityId.value,
+      avatar: values.avatar.trim() || null,
+      description: values.description.trim() || null,
+      assignee_entity_id: values.assigneeEntityId,
     })
+    return submission
   },
   onMutate: () => {
     success.value = ''
     saveError.value = ''
+    return draft.capture()
   },
-  onSuccess: async () => {
+  onSuccess: async submission => {
+    if (!draft.accept(submission)) return
     await queryClient.invalidateQueries({ queryKey: ['shop-customer'] })
+    if (!draft.isCurrent(submission)) return
     success.value = '资料已保存，仅在当前商家的团队内使用。'
   },
-  onError: error => {
+  onError: (error, _variables, submission) => {
+    if (!submission || !draft.isCurrent(submission)) return
     saveError.value = error instanceof ApiError ? friendlyError(error) : error instanceof Error ? error.message : friendlyError(error)
   },
 })
@@ -123,7 +146,7 @@ const save = useMutation({
       <NButton secondary size="large" @click="customer.refetch()"><RotateCcw :size="17" />重新加载</NButton>
     </div>
 
-    <form v-else class="profile-form" @submit.prevent="save.mutate()">
+    <form v-else class="profile-form" @submit.prevent="draft.dirty.value && !save.isPending.value && !avatarUploading && save.mutate()">
       <section class="profile-section" aria-labelledby="identity-heading">
         <div class="section-copy">
           <span>01</span>
@@ -200,7 +223,7 @@ const save = useMutation({
           <p v-if="success" class="save-success" role="status"><BadgeCheck :size="18" />{{ success }}</p>
           <p v-if="saveError" class="save-error" role="alert">{{ saveError }}</p>
         </div>
-        <NButton attr-type="submit" type="primary" size="large" :loading="save.isPending.value" :disabled="avatarUploading">保存资料</NButton>
+        <NButton attr-type="submit" type="primary" size="large" :loading="save.isPending.value" :disabled="avatarUploading || !draft.dirty.value">保存资料</NButton>
       </div>
     </form>
   </section>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useQueryDraft, type DraftSubmission } from '@lostsky/shared/useQueryDraft'
 import { friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsCheckboxGroupField from '@lostsky/ui/components/LsCheckboxGroupField.vue'
@@ -68,8 +69,13 @@ const emit = defineEmits<{
   dirty: [value: boolean]
 }>()
 const selected = ref<number[]>([])
-const snapshot = ref('')
-const isDirty = computed(() => JSON.stringify([...selected.value].sort((a, b) => a - b)) !== snapshot.value)
+const draft = useQueryDraft({ key: () => 'roles', read: () => [...selected.value].sort((a, b) => a - b), apply: value => { selected.value = value } })
+const isDirty = draft.dirty
+let submitted: DraftSubmission<number[]> | undefined
+function submit() {
+  submitted = draft.capture()
+  emit('save', [...submitted.value])
+}
 const roleOptions = computed(() =>
   props.roles.map((role) => ({
     value: Number(role.id),
@@ -82,19 +88,16 @@ const roleOptions = computed(() =>
 watch(
   () => props.assignments,
   (assignments) => {
-    selected.value = assignments.map((item) => Number(item.role_id ?? item.role?.id)).filter(Boolean)
-    snapshot.value = JSON.stringify([...selected.value].sort((a, b) => a - b))
-    emit('dirty', false)
+    draft.hydrate(assignments.map((item) => Number(item.role_id ?? item.role?.id)).filter(Boolean).sort((a, b) => a - b))
   },
   { immediate: true, deep: true },
 )
-watch(selected, () => emit('dirty', isDirty.value), { deep: true })
+watch(isDirty, value => emit('dirty', value), { immediate: true, flush: 'sync' })
 watch(
   () => props.success,
   (success) => {
     if (!success) return
-    snapshot.value = JSON.stringify([...selected.value].sort((a, b) => a - b))
-    emit('dirty', false)
+    if (submitted) draft.accept(submitted)
   },
 )
 
@@ -172,7 +175,7 @@ const groupedPermissions = computed(() => {
             {{ canEdit ? '角色决定该人员在当前团队能够执行的操作。' : '以下权限来自当前团队分配给该身份的角色。' }}
           </p>
         </div>
-        <LsButton class="permissions-save" variant="secondary" :loading="saving" :disabled="!canEdit || loading || !isDirty" :disabled-reason="!canEdit ? editReason : undefined" @click="emit('save', selected)"> 保存角色 </LsButton>
+        <LsButton class="permissions-save" variant="secondary" :loading="saving" :disabled="!canEdit || loading || !isDirty" :disabled-reason="!canEdit ? editReason : undefined" @click="submit"> 保存角色 </LsButton>
       </header>
 
       <p v-if="loading" class="state">正在读取角色与权限…</p>

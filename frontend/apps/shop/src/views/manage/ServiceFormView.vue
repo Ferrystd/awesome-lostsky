@@ -25,6 +25,7 @@ import { hydrateServiceRedemptionFields, serializeServiceRedemptionFields, valid
 import type { ServiceRedemptionFieldDraft } from '../../types'
 import { personalDistributionLocked, withoutPersonnelCuts } from '../../personal-pricing'
 import { validAutoCompleteAfterMinutes } from '../../product-variants'
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 
 type ServiceFormState = {
@@ -70,16 +71,26 @@ let hydratingAmounts = false
 const handlerIds = ref<number[]>([])
 const redemptionFields = ref<ServiceRedemptionFieldDraft[]>([])
 const draftSnapshot = () => JSON.stringify({ form, handlerIds: handlerIds.value, redemptionFields: redemptionFields.value })
-const savedSnapshot = ref(draftSnapshot())
-const hasUnsavedChanges = computed(() => draftSnapshot() !== savedSnapshot.value)
-useUnsavedChangesGuard(hasUnsavedChanges)
-let detailHydrated = false
-let submittedSnapshot = ''
+const draft = useQueryDraft({
+  key: () => `${access.data.value?.team?.id ?? 0}:${expectedEntityId.value}:${scope.value}:service:${id.value}`,
+  read: draftSnapshot,
+  apply: snapshot => {
+    hydratingAmounts = true
+    const value = JSON.parse(snapshot)
+    Object.assign(form, value.form)
+    handlerIds.value = value.handlerIds
+    redemptionFields.value = value.redemptionFields
+    hydratingAmounts = false
+  },
+})
+const hasUnsavedChanges = draft.dirty
+useUnsavedChangesGuard(hasUnsavedChanges, { shouldConfirm: (to, from) => to.path !== from.path })
+watch([id, scope, expectedEntityId, () => access.data.value?.team?.id], () => { autoCompleteDefaultApplied = false; autoCompleteTouched = false }, { flush: 'sync' })
 const options = useQuery({ queryKey: computed(() => [scope.value, 'manage-options']), queryFn: () => management.value.options(), enabled: computed(() => !routeAccess.restricted.value) })
 const detail = useQuery({ queryKey: computed(() => [scope.value, 'manage-service', id.value]), queryFn: () => routeAccess.read(() => management.value.service(id.value)), enabled: computed(() => editing.value && !routeAccess.restricted.value) })
 
-watch(() => detail.data.value, data => {
-  if (!data || (detailHydrated && hasUnsavedChanges.value)) return
+watch([() => detail.data.value, expectedEntityId, () => access.data.value?.team?.id], ([data]) => {
+  if (!data || data.id !== id.value || hasUnsavedChanges.value) return
   hydratingAmounts = true
   Object.assign(form, {
     name: data.name,
@@ -98,11 +109,10 @@ watch(() => detail.data.value, data => {
   handlerIds.value = (data.handlers ?? []).map(item => Number(item.entity_id))
   redemptionFields.value = hydrateServiceRedemptionFields(data.redemption_fields)
   hydratingAmounts = false
-  savedSnapshot.value = draftSnapshot()
-  detailHydrated = true
+  draft.reset(draftSnapshot())
 }, { immediate: true })
-watch(() => options.data.value?.service_defaults, defaults => {
-  if (!defaults) return
+watch([() => options.data.value?.service_defaults, expectedEntityId, () => access.data.value?.team?.id], ([defaults]) => {
+  if (!defaults || hasUnsavedChanges.value) return
   Object.assign(distributionRates, {
     handler: defaults.default_handler_rate_percent,
     sender: defaults.default_sender_rate_percent,
@@ -118,6 +128,7 @@ watch(() => options.data.value?.service_defaults, defaults => {
     quantity_step: Number(defaults.default_quantity_step),
   })
   recalculatePersonnelCuts()
+  draft.reset(draftSnapshot())
 }, { immediate: true })
 
 function recalculatePersonnelCuts() {
@@ -155,23 +166,25 @@ const handlerEntities = computed(() => (options.data.value?.entities ?? []).filt
   ['team', 'teamMember', 'teamVirtual'].includes(String(entity.type)),
 ))
 const save = useMutation({
-  mutationFn: () => {
+  mutationFn: async () => {
     if (!valid.value) throw new Error('请完整填写服务信息并检查自动结单时长。')
-    submittedSnapshot = draftSnapshot()
-    return management.value.saveService(editing.value ? id.value : null, {
+    const submission = draft.capture()
+    const data = await management.value.saveService(editing.value ? id.value : null, {
     ...(distributionLocked.value && !editing.value ? withoutPersonnelCuts(form, 'default_') : form),
     default_team_cut: teamCut.value,
     handler_entity_ids: handlerIds.value,
     redemption_fields: serializeServiceRedemptionFields(redemptionFields.value),
     }, expectedEntityId.value)
+    return { data, submission }
   },
-  onSuccess: async data => {
-    savedSnapshot.value = submittedSnapshot
+  onSuccess: async ({ data, submission }) => {
+    if (!draft.accept(submission)) return
     await Promise.all([
       client.invalidateQueries({ queryKey: [scope.value, 'manage-options'] }),
       client.invalidateQueries({ queryKey: [scope.value, 'manage-services'] }),
       client.invalidateQueries({ queryKey: [scope.value, 'manage-service', data.id] }),
     ])
+    if (!draft.isCurrent(submission)) return
     feedback.success('服务已保存')
     if (!hasUnsavedChanges.value) await router.push(`${management.value.routePrefix}/services/${data.id}`)
   },

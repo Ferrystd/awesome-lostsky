@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError } from '@lostsky/api/client'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
@@ -47,6 +50,10 @@ const form = reactive({
   is_required: false,
   sort: 0,
 })
+const draftKey = () => teamDraftScope('EntityFieldFormView', id.value)
+const draft = useQueryDraft({ key: draftKey, read: () => form, apply: value => Object.assign(form, value) })
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: teamDraftNavigationChanged })
+
 interface EntityOption {
   entity_id: number
   slug: string
@@ -75,46 +82,63 @@ const detail = useQuery({
   enabled: computed(() => editing.value && !routeAccess.restricted.value),
 })
 watch(() => detail.data.value, value => {
-  if (!value) return
-  form.entity_type = value.entity_type
-  form.field_key = value.field_key
-  form.name = value.name
-  form.value_type = value.value_type
-  form.input_type = value.input_type
-  form.optionsText = Array.isArray(value.options) ? value.options.join('\n') : ''
-  form.manager_scope = enumOptionValue(value.manager_scope, managerScopeOptions, 1)
-  form.visibility = enumOptionValue(value.visibility, visibilityOptions, 1)
-  form.visibility_target_ids = (value.visibility_targets ?? []).map(target => Number(target.entity_id))
-  form.is_required = Boolean(value.is_required)
-  form.sort = value.sort
+  if (!value || value.id !== id.value) return
+    const next = { ...form }
+  next.entity_type = value.entity_type
+  next.field_key = value.field_key
+  next.name = value.name
+  next.value_type = value.value_type
+  next.input_type = value.input_type
+  next.optionsText = Array.isArray(value.options) ? value.options.join('\n') : ''
+  next.manager_scope = enumOptionValue(value.manager_scope, managerScopeOptions, 1)
+  next.visibility = enumOptionValue(value.visibility, visibilityOptions, 1)
+  next.visibility_target_ids = (value.visibility_targets ?? []).map(target => Number(target.entity_id))
+  next.is_required = Boolean(value.is_required)
+  next.sort = value.sort
+  draft.hydrate(next)
 }, { immediate: true })
-const payload = () => ({
-  entity_type: form.entity_type,
-  field_key: form.field_key,
-  name: form.name,
-  value_type: form.value_type,
-  input_type: form.input_type,
-  options: form.optionsText.trim() ? form.optionsText.split('\n').map(item => item.trim()).filter(Boolean) : null,
-  manager_scope: form.manager_scope,
-  visibility: form.visibility,
-  visibility_targets: form.visibility === 6
-    ? form.visibility_target_ids.map(entity_id => ({ entity_id }))
+const payload = (value = form) => ({
+  entity_type: value.entity_type,
+  field_key: value.field_key,
+  name: value.name,
+  value_type: value.value_type,
+  input_type: value.input_type,
+  options: value.optionsText.trim() ? value.optionsText.split('\n').map(item => item.trim()).filter(Boolean) : null,
+  manager_scope: value.manager_scope,
+  visibility: value.visibility,
+  visibility_targets: value.visibility === 6
+    ? value.visibility_target_ids.map(entity_id => ({ entity_id }))
     : [],
-  is_required: form.is_required ? 1 : 0,
-  sort: form.sort,
+  is_required: value.is_required ? 1 : 0,
+  sort: value.sort,
 })
 const save = useMutation({
-  mutationFn: () => editing.value
-    ? api.post('/entityField/update', { id: id.value, ...payload() })
-    : api.post('/entityField/create', payload()),
-  onSuccess: async () => {
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    const form = submitted.value
+    const data = await ( editing.value
+    ? api.post('/entityField/update', { id: id.value, ...payload(form) })
+    : api.post('/entityField/create', payload(form))
+    )
+    return { data, submitted }
+  },
+  onSuccess: async ({ submitted }) => {
+    if (!draft.accept(submitted) || draft.dirty.value) return
     await client.invalidateQueries({ queryKey: ['entity-fields'] })
+    if (!draft.isCurrent(submitted) || draft.dirty.value) return
     router.replace('/fields')
   },
 })
 const remove = useMutation({
-  mutationFn: () => api.post('/entityField/delete', { id: id.value }),
-  onSuccess: () => router.replace('/fields'),
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    await api.post('/entityField/delete', { id: id.value })
+    return submitted
+  },
+  onSuccess: submitted => {
+    if (!draft.accept(submitted) || draft.dirty.value) return
+    return router.replace('/fields')
+  },
 })
 const typeOptions = [{ label: '人员', value: 'entity' }, { label: '顾客', value: 'customer' }, { label: '虚拟人员', value: 'virtual' }]
 const valueOptions = [
@@ -169,7 +193,7 @@ function submit() {
         <LsSwitchField v-model="form.is_required" label="必填" description="在允许编辑该字段的资料保存时校验不能为空。" />
         <label>排序<NInputNumber v-model:value="form.sort" :precision="0" /></label>
         <p v-if="(save.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(save.error.value || remove.error.value) }}</p>
-        <div class="actions"><LsButton type="submit" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton></div>
+        <div class="actions"><LsButton type="submit" :disabled="routeAccess.restricted.value || !draft.dirty.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton></div>
       </form>
     </div>
 </template>

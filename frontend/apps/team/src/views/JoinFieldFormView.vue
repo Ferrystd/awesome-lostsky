@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -41,6 +44,10 @@ const form = reactive({
   is_active: true,
   sort: 0,
 })
+const draftKey = () => teamDraftScope('JoinFieldFormView', id.value)
+const draft = useQueryDraft({ key: draftKey, read: () => form, apply: value => Object.assign(form, value) })
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: teamDraftNavigationChanged })
+
 const errors = reactive({
   field_key: '',
   name: '',
@@ -79,22 +86,24 @@ watch(
   detail,
   (field) => {
     if (!field) return
-    form.field_key = field.field_key
-    form.name = field.name
-    form.value_type = field.value_type
-    form.input_type = field.input_type
-    form.options = normalizeJoinOptions(field.options).map((option) => ({
+    const next = { ...form }
+    next.field_key = field.field_key
+    next.name = field.name
+    next.value_type = field.value_type
+    next.input_type = field.input_type
+    next.options = normalizeJoinOptions(field.options).map((option) => ({
       key: nextOptionKey(),
       ...option,
     }))
-    form.default_value = field.default_value ?? ''
-    form.is_apply_fillable = Boolean(field.is_apply_fillable)
-    form.is_apply_required = Boolean(field.is_apply_required)
-    form.is_transfer_entity_field = Boolean(field.is_transfer_entity_field)
-    form.entity_field_id = field.entity_field_id ? Number(field.entity_field_id) : null
-    form.is_active = Boolean(field.is_active)
-    form.sort = Number(field.sort ?? 0)
-  },
+    next.default_value = field.default_value ?? ''
+    next.is_apply_fillable = Boolean(field.is_apply_fillable)
+    next.is_apply_required = Boolean(field.is_apply_required)
+    next.is_transfer_entity_field = Boolean(field.is_transfer_entity_field)
+    next.entity_field_id = field.entity_field_id ? Number(field.entity_field_id) : null
+    next.is_active = Boolean(field.is_active)
+    next.sort = Number(field.sort ?? 0)
+    draft.hydrate(next)
+},
   { immediate: true },
 )
 
@@ -140,46 +149,60 @@ function validateForm() {
   return !Object.values(errors).some(Boolean)
 }
 
-function payload() {
+function payload(value = form) {
   return {
-    name: form.name.trim(),
-    value_type: form.value_type,
-    input_type: form.input_type,
-    options: usesJoinOptions(form.input_type)
-      ? form.options.map((option) => ({
+    name: value.name.trim(),
+    value_type: value.value_type,
+    input_type: value.input_type,
+    options: usesJoinOptions(value.input_type)
+      ? value.options.map((option) => ({
           label: option.label.trim(),
           value: option.value.trim(),
         }))
       : null,
-    default_value: form.default_value || null,
-    is_apply_fillable: form.is_apply_fillable ? 1 : 0,
-    is_apply_required: form.is_apply_fillable && form.is_apply_required ? 1 : 0,
-    is_transfer_entity_field: form.is_transfer_entity_field ? 1 : 0,
-    entity_field_id: form.is_transfer_entity_field ? form.entity_field_id : null,
-    is_active: form.is_active ? 1 : 0,
-    sort: form.sort,
+    default_value: value.default_value || null,
+    is_apply_fillable: value.is_apply_fillable ? 1 : 0,
+    is_apply_required: value.is_apply_fillable && value.is_apply_required ? 1 : 0,
+    is_transfer_entity_field: value.is_transfer_entity_field ? 1 : 0,
+    entity_field_id: value.is_transfer_entity_field ? value.entity_field_id : null,
+    is_active: value.is_active ? 1 : 0,
+    sort: value.sort,
   }
 }
 
 const save = useMutation({
-  mutationFn: () =>
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    const form = submitted.value
+    const data = await (
     editing.value
-      ? api.post('/joinField/edit', { id: id.value, ...payload() })
+      ? api.post('/joinField/edit', { id: id.value, ...payload(form) })
       : api.post('/joinField/add', {
           field_key: form.field_key.trim(),
-          ...payload(),
-        }),
-  onSuccess: async () => {
+          ...payload(form),
+        })
+    )
+    return { data, submitted }
+  },
+  onSuccess: async ({ submitted }) => {
+    if (!draft.accept(submitted) || draft.dirty.value) return
     feedback.success(editing.value ? '申请字段已更新' : '申请字段已创建')
     await client.invalidateQueries({ queryKey: ['join-fields'] })
+    if (!draft.isCurrent(submitted) || draft.dirty.value) return
     await router.replace('/join-fields')
   },
 })
 const remove = useMutation({
-  mutationFn: () => api.post('/joinField/delete', { id: id.value }),
-  onSuccess: async () => {
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    await api.post('/joinField/delete', { id: id.value })
+    return submitted
+  },
+  onSuccess: async submitted => {
+    if (!draft.accept(submitted) || draft.dirty.value) return
     feedback.success('申请字段已删除')
     await client.invalidateQueries({ queryKey: ['join-fields'] })
+    if (!draft.isCurrent(submitted) || draft.dirty.value) return
     await router.replace('/join-fields')
   },
 })
@@ -254,7 +277,7 @@ function deleteField() {
       </LsField>
       <LsInlineError v-if="save.isError.value || remove.isError.value" :message="friendlyError(save.error.value || remove.error.value)" />
       <div class="actions">
-        <LsButton type="submit" :loading="save.isPending.value" :disabled="!canWrite" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined">保存字段</LsButton>
+        <LsButton type="submit" :loading="save.isPending.value" :disabled="!canWrite || !draft.dirty.value" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined">保存字段</LsButton>
         <LsButton v-if="editing" type="button" variant="danger" :loading="remove.isPending.value" :disabled="!canWrite" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined" @click="deleteField">删除字段</LsButton>
       </div>
     </form>

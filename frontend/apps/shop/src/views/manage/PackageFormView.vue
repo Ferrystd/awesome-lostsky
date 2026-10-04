@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+
 import { friendlyError } from '@lostsky/api/client'
 import { quantityScaleForStep } from '@lostsky/shared/quantity'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -64,6 +67,12 @@ const copySourceId = computed(() => Number(route.query.copy || 0))
 const copying = computed(() => !editing.value && copySourceId.value > 0)
 const sourceId = computed(() => editing.value ? id.value : copySourceId.value)
 const form = reactive({ name: '', pricing_mode: 2 as 1 | 2, is_active: 1, services: [makeItem()] as Item[] })
+const draft = useQueryDraft({
+  key: () => `${access.data.value?.team?.id ?? 0}:${expectedEntityId.value}:${scope.value}:package:${id.value}` + ':' + (copying.value ? copySourceId.value : 'new'),
+  read: () => ({ ...form, services: form.services.map(({ expanded, ...item }) => item) }),
+  apply: value => { Object.assign(form, value, { services: value.services.map(item => ({ ...item, expanded: form.services.find(row => row.key === item.key)?.expanded ?? true })) }) },
+})
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: (to, from) => to.path !== from.path || to.query.copy !== from.query.copy })
 const options = useQuery({ queryKey: computed(() => [scope.value, 'manage-options']), queryFn: () => management.value.options(), enabled: computed(() => !routeAccess.restricted.value) })
 const detail = useQuery({
   queryKey: computed(() => [scope.value, 'manage-package', sourceId.value]),
@@ -78,18 +87,16 @@ watch(() => options.data.value?.service_defaults, defaults => {
     senderRate: defaults.default_sender_rate_percent,
     csRate: defaults.default_cs_rate_percent,
   }
-  if (editing.value || copying.value || form.services.length !== 1 || form.services[0].service_id !== null) return
-  Object.assign(form.services[0], {
-    valid_days: defaults.default_valid_days,
-  })
+  if (draft.dirty.value || editing.value || copying.value || form.services.length !== 1 || form.services[0].service_id !== null) return
+  draft.hydrate({ ...form, services: [{ ...form.services[0], valid_days: defaults.default_valid_days }] })
 }, { immediate: true })
 
 function pricingModeNumber(value: unknown): 1 | 2 {
   return value === 1 || value === '1' || value === '历史均摊' ? 1 : 2
 }
-watch(() => detail.data.value, data => {
-  if (!data) return
-  Object.assign(form, {
+watch([() => detail.data.value, expectedEntityId, () => access.data.value?.team?.id, copying], ([data]) => {
+  if (!data || data.id !== sourceId.value) return
+  draft.hydrate({
     name: copying.value ? `${data.name}（副本）` : data.name,
     pricing_mode: pricingModeNumber(data.pricing_mode),
     is_active: copying.value ? 1 : data.is_active,
@@ -120,10 +127,11 @@ const serviceOptions = computed(() => availableServices.value.map(service => ({
   value: service.id,
   disabled: !service.is_active,
 })))
-const selectedService = (item: Item) => availableServices.value.find(service => service.id === item.service_id)
+const selectedService = (item: Pick<Item, 'service_id'>) => availableServices.value.find(service => service.id === item.service_id)
 watch([availableServices, distributionLocked, copying], () => {
-  if (!copying.value || !distributionLocked.value) return
-  for (const item of form.services) {
+  if (draft.dirty.value || !copying.value || !distributionLocked.value) return
+  const next = draft.capture().value
+  for (const item of next.services) {
     const service = selectedService(item)
     if (!service) continue
     Object.assign(item, {
@@ -136,13 +144,14 @@ watch([availableServices, distributionLocked, copying], () => {
       } : {}),
     })
   }
+  draft.hydrate(next)
 }, { immediate: true })
 const sharedPricingLocked = (item: Item) => Boolean(distributionLocked.value && selectedService(item)?.owner_entity_id == null)
 const moneyLocked = (item: Item) => pricingLocked.value || sharedPricingLocked(item)
 const sharedPricingHint = (item: Item) => sharedPricingLocked(item)
   ? '团队公用服务的价格、成本与分成沿用服务默认值或已保存金额。'
   : distributionLocked.value ? '价格与成本可调整，人员分成沿用服务默认值或已保存金额。' : '默认使用服务价格；修改后按团队默认比例重算人员分成。'
-const quantityScale = (item: Item) => quantityScaleForStep(selectedService(item)?.quantity_step)
+const quantityScale = (item: Pick<Item, 'service_id'>) => quantityScaleForStep(selectedService(item)?.quantity_step)
 const quantityStep = (item: Item) => Number(selectedService(item)?.quantity_step ?? 1)
 const itemized = computed(() => form.pricing_mode === 2)
 const pricingLocked = computed(() => editing.value && Boolean(detail.data.value?.is_pricing_locked))
@@ -229,7 +238,10 @@ const valid = computed(() => {
 })
 
 const save = useMutation({
-  mutationFn: () => management.value.savePackage(editing.value ? id.value : null, {
+  mutationFn: async () => {
+    const submission = draft.capture()
+    const form = submission.value
+    const data = await management.value.savePackage(editing.value ? id.value : null, {
     name: form.name,
     pricing_mode: form.pricing_mode,
     is_active: form.is_active,
@@ -244,9 +256,13 @@ const save = useMutation({
       unit_cs_cut: fixed(item.unit_cs_cut, 2),
       sort,
     })),
-  }, expectedEntityId.value),
-  onSuccess: data => {
+  }, expectedEntityId.value)
+    return { data, submission }
+  },
+  onSuccess: ({ data, submission }) => {
+    if (!draft.accept(submission)) return
     feedback.success('权益包已保存')
+    if (draft.dirty.value) return
     void router.push(`${management.value.routePrefix}/packages/${data.id}`)
   },
 })
@@ -275,7 +291,7 @@ function stop() {
         <LsButton v-if="editing" variant="danger" :disabled="!canManage(management.disablePermission)" :disabled-reason="managePermissionReason(management.disablePermission)" @click="stop">停用权益包</LsButton>
       </template>
     </LsPageHeader>
-    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
+    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : !save.isPending.value && (draft.dirty.value || !editing) && save.mutate()">
       <LsFormSection title="基本信息">
         <p v-if="personal" class="form-intro" role="note">此权益包自动归属当前人员；可组合本人服务和已启用的团队公用服务。</p>
         <LsField label="权益包名称" for-id="package-name" required><NInput id="package-name" v-model:value="form.name" maxlength="100" /></LsField>
@@ -344,7 +360,7 @@ function stop() {
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
-        <LsButton type="submit" :disabled="routeAccess.restricted.value || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存权益包</LsButton>
+        <LsButton type="submit" :disabled="(editing && !draft.dirty.value) || routeAccess.restricted.value || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="(editing && !draft.dirty.value ? '没有未保存的修改' : '') || routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存权益包</LsButton>
       </LsFormActions>
     </form>
   </div>

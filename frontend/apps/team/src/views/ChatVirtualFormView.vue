@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { Plus, Trash2, Webhook } from '@lucide/vue'
@@ -27,32 +30,54 @@ const avatarUploading = ref(false)
 const slug = computed(() => String(route.query.slug ?? ''))
 const editing = computed(() => Boolean(slug.value))
 const form = reactive({ slug: '', name: '', avatar: '', description: '', is_active: true })
+const draftKey = () => teamDraftScope('ChatVirtualFormView', slug.value)
+const draft = useQueryDraft({ key: draftKey, read: () => form, apply: value => Object.assign(form, value) })
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: teamDraftNavigationChanged })
+
 const detail = useQuery({
   queryKey: computed(() => ['chat-virtual', slug.value]),
   queryFn: () => routeAccess.read(() => api.get<VirtualEntity>('/chatVirtual/get', { slug: slug.value })),
   enabled: computed(() => editing.value && !routeAccess.restricted.value),
 })
 watch(() => detail.data.value, value => {
-  if (!value) return
-  form.slug = value.slug
-  form.name = value.name
-  form.avatar = value.avatar ?? ''
-  form.description = value.description ?? ''
-  form.is_active = Boolean(value.is_active)
+  if (!value || value.slug !== slug.value) return
+    const next = { ...form }
+  next.slug = value.slug
+  next.name = value.name
+  next.avatar = value.avatar ?? ''
+  next.description = value.description ?? ''
+  next.is_active = Boolean(value.is_active)
+  draft.hydrate(next)
 }, { immediate: true })
 const save = useMutation({
-  mutationFn: () => editing.value
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    const targetSlug = slug.value
+    const form = submitted.value
+    const data = await ( editing.value
     ? api.post('/chatVirtual/update', { slug: slug.value, name: form.name, avatar: form.avatar || null, description: form.description || null, is_active: form.is_active ? 1 : 0 })
-    : api.post<{ slug: string }>('/chatVirtual/create', { slug: form.slug, name: form.name, avatar: form.avatar || null, description: form.description || null }),
-  onSuccess: async data => {
+    : api.post<{ slug: string }>('/chatVirtual/create', { slug: form.slug, name: form.name, avatar: form.avatar || null, description: form.description || null })
+    )
+    return { data, submitted, targetSlug }
+  },
+  onSuccess: async ({ data, submitted, targetSlug }) => {
+    if (!draft.accept(submitted) || draft.dirty.value) return
     await client.invalidateQueries({ queryKey: ['chat-virtuals'] })
-    if (!editing.value) router.replace({ path: '/chat-virtual', query: { slug: (data as { slug: string }).slug } })
-    else client.invalidateQueries({ queryKey: ['chat-virtual', slug.value] })
+    if (!draft.isCurrent(submitted) || draft.dirty.value) return
+    if (!targetSlug) router.replace({ path: '/chat-virtual', query: { slug: (data as { slug: string }).slug } })
+    else client.invalidateQueries({ queryKey: ['chat-virtual', targetSlug] })
   },
 })
 const remove = useMutation({
-  mutationFn: () => api.post('/chatVirtual/delete', { slug: slug.value }),
-  onSuccess: () => router.replace('/chat-virtuals'),
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    await api.post('/chatVirtual/delete', { slug: slug.value })
+    return submitted
+  },
+  onSuccess: submitted => {
+    if (!draft.accept(submitted) || draft.dirty.value) return
+    return router.replace('/chat-virtuals')
+  },
 })
 function deleteVirtual() {
   if (routeAccess.restricted.value) return
@@ -77,7 +102,7 @@ function submit() {
         <LsField label="简介" for-id="virtual-description"><NInput id="virtual-description" v-model:value="form.description" type="textarea" maxlength="500" :autosize="{ minRows: 3, maxRows: 7 }" /></LsField>
         <LsSwitchField v-if="editing" v-model="form.is_active" label="启用人员" description="停用后不能参与新操作。" />
         <LsInlineError v-if="(save.isError.value || remove.isError.value) && !routeAccess.restricted.value" :message="friendlyError(save.error.value || remove.error.value)" />
-        <LsButton type="submit" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || avatarUploading" :disabled-reason="routeAccess.reason.value">保存人员</LsButton>
+        <LsButton type="submit" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || avatarUploading || !draft.dirty.value" :disabled-reason="routeAccess.reason.value">保存人员</LsButton>
       </div></LsPanel></form>
 
       <template v-if="editing">

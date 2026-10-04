@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useQueryDraft, type DraftSubmission } from '@lostsky/shared/useQueryDraft'
 import { friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
@@ -6,7 +7,7 @@ import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
 import { NCheckbox, NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
-import { computed, reactive, ref, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 
 export interface EntityFieldDefinition {
   id: number
@@ -47,9 +48,13 @@ const emit = defineEmits<{
 }>()
 
 const values = reactive<Record<number, FieldValue>>({})
-const snapshot = ref('')
 const uploading = ref<number | null>(null)
-const isDirty = computed(() => JSON.stringify(values) !== snapshot.value)
+const draft = useQueryDraft({ key: () => 'fields', read: () => values, apply: value => {
+  for (const key of Object.keys(values)) delete values[Number(key)]
+  Object.assign(values, value)
+} })
+const isDirty = draft.dirty
+let submitted: DraftSubmission<Record<number, FieldValue>> | undefined
 
 function storedValue(item: StoredValue): FieldValue {
   const value = item.value_string ?? item.value_text ?? item.value_int
@@ -60,22 +65,20 @@ function storedValue(item: StoredValue): FieldValue {
 
 function hydrate() {
   const stored = new Map(props.storedValues.map(item => [Number(item.field_id), storedValue(item)]))
-  for (const key of Object.keys(values)) delete values[Number(key)]
+  const next: Record<number, FieldValue> = {}
   for (const field of props.fields) {
-    values[field.id] = stored.has(field.id)
+    next[field.id] = stored.has(field.id)
       ? stored.get(field.id) ?? null
       : (field.default_value as FieldValue | undefined) ?? null
   }
-  snapshot.value = JSON.stringify(values)
-  emit('dirty', false)
+  draft.hydrate(next)
 }
 
 watch(() => [props.fields, props.storedValues] as const, hydrate, { immediate: true, deep: true })
-watch(values, () => emit('dirty', isDirty.value), { deep: true })
+watch(isDirty, value => emit('dirty', value), { immediate: true, flush: 'sync' })
 watch(() => props.success, (success) => {
   if (!success) return
-  snapshot.value = JSON.stringify(values)
-  emit('dirty', false)
+  if (submitted) draft.accept(submitted)
 })
 
 function editable(field: EntityFieldDefinition) {
@@ -121,9 +124,10 @@ function displayValue(field: EntityFieldDefinition) {
 }
 
 function submit() {
+  submitted = draft.capture()
   const payload: Record<number, FieldValue> = {}
   for (const field of props.fields) {
-    if (editable(field)) payload[field.id] = values[field.id] ?? null
+    if (editable(field)) payload[field.id] = submitted.value[field.id] ?? null
   }
   emit('save', payload)
 }

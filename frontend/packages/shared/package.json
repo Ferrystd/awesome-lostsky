@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./useQueryDraft": "./src/useQueryDraft.ts",
     "./useUnsavedChangesGuard": "./src/useUnsavedChangesGuard.ts",
     "./routeQuery": "./src/routeQuery.ts",
     "./navigation": "./src/navigation.ts",

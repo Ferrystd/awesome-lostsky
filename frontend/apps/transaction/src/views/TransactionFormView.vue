@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { api, friendlyError } from '@lostsky/api/client'
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+
+import { api, auth, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
@@ -54,9 +57,11 @@ const detail = useQuery({
   queryFn: () => routeAccess.read(() => api.get<TransactionRecord>(`/transaction/${id.value}`)),
   enabled: computed(() => editing.value && !routeAccess.restricted.value),
 })
+const draft = useQueryDraft({ key: () => `${location.host}:${JSON.stringify(auth.entity())}:${personal.value}:${id.value}`, read: () => ({ ...form }), apply: value => Object.assign(form, value) })
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: (to, from) => to.path !== from.path || String(to.query.id ?? '') !== String(from.query.id ?? '') })
 watch(() => detail.data.value, (data) => {
   if (!data) return
-  Object.assign(form, {
+  draft.hydrate({
     handler_entity_id: Number(data.handler_entity_id) || null,
     sender_entity_id: data.sender_entity_id ? Number(data.sender_entity_id) : null,
     cs_entity_id: data.cs_entity_id ? Number(data.cs_entity_id) : null,
@@ -112,27 +117,36 @@ watch(currentEntityId, (entityId) => {
 }, { immediate: true })
 
 const save = useMutation({
-  mutationFn: () => api.post<{ id?: number }>(editing.value ? `/transaction/${id.value}` : '/transaction', {
-    ...(!editing.value ? { handler_entity_id: form.handler_entity_id, type: 2 } : {}),
-    sender_entity_id: form.sender_entity_id,
-    cs_entity_id: form.cs_entity_id,
-    customer_id: form.customer_id,
-    total_price: form.total_price,
-    cost: form.cost,
-    cash: form.cash,
-    prepaid: form.prepaid,
-    handler_cut: form.handler_cut,
-    sender_cut: form.sender_cut,
-    cs_cut: form.cs_cut,
-    team_cut: form.team_cut,
-    trans_at: Math.floor(form.trans_at / 1000),
-    memo: form.memo.trim() || null,
-  }),
-  onSuccess: async (data) => {
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    const targetId = id.value
+    const wasEditing = editing.value
+    const wasPersonal = personal.value
+    const data = await api.post<{ id?: number }>(editing.value ? `/transaction/${id.value}` : '/transaction', {
+    ...(!editing.value ? { handler_entity_id: submitted.value.handler_entity_id, type: 2 } : {}),
+    sender_entity_id: submitted.value.sender_entity_id,
+    cs_entity_id: submitted.value.cs_entity_id,
+    customer_id: submitted.value.customer_id,
+    total_price: submitted.value.total_price,
+    cost: submitted.value.cost,
+    cash: submitted.value.cash,
+    prepaid: submitted.value.prepaid,
+    handler_cut: submitted.value.handler_cut,
+    sender_cut: submitted.value.sender_cut,
+    cs_cut: submitted.value.cs_cut,
+    team_cut: submitted.value.team_cut,
+    trans_at: Math.floor(submitted.value.trans_at / 1000),
+    memo: submitted.value.memo.trim() || null,
+  })
+    return { data, submitted, targetId, wasEditing, wasPersonal }
+  },
+  onSuccess: async ({ data, submitted, targetId, wasEditing, wasPersonal }) => {
+    if (!draft.accept(submitted)) return
     await client.invalidateQueries({ queryKey: ['transactions'] })
-    await router.push(personal.value && !editing.value
+    if (!draft.isCurrent(submitted) || draft.dirty.value) return
+    await router.push(wasPersonal && !wasEditing
       ? '/personal/transactions'
-      : `/detail?id=${editing.value ? id.value : Number(data?.id ?? 0)}`)
+      : `/detail?id=${wasEditing ? targetId : Number(data?.id ?? 0)}`)
   },
 })
 async function submit() {

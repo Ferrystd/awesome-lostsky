@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+
 import { friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
@@ -27,12 +30,18 @@ const personal = computed(() => management.value.personal)
 const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess() })
 const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?? 0)
 const form = reactive({ name: '', package_id: null as number | null, claim_group: '', mode: 1, total_limit: null as number | null, per_target_limit: 1, range: null as [number, number] | null, is_active: 1 })
+const draft = useQueryDraft({
+  key: () => `${access.data.value?.team?.id ?? 0}:${expectedEntityId.value}:${scope.value}:campaign:${id.value}`,
+  read: () => ({ ...form }),
+  apply: value => { Object.assign(form, value) },
+})
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: (to, from) => to.path !== from.path })
 const options = useQuery({ queryKey: computed(() => [scope.value, 'manage-options']), queryFn: () => management.value.options(), enabled: computed(() => !routeAccess.restricted.value) })
 const detail = useQuery({ queryKey: computed(() => [scope.value, 'manage-campaign', id.value]), queryFn: () => routeAccess.read(() => management.value.campaign(id.value)), enabled: computed(() => editing.value && !routeAccess.restricted.value) })
 
-watch(() => detail.data.value, data => {
-  if (!data) return
-  Object.assign(form, {
+watch([() => detail.data.value, expectedEntityId, () => access.data.value?.team?.id], ([data]) => {
+  if (!data || data.id !== id.value) return
+  draft.hydrate({
     name: data.name, package_id: data.package_id, claim_group: data.claim_group,
     mode: Number(data.mode), total_limit: data.total_limit ?? null,
     per_target_limit: data.per_target_limit,
@@ -53,15 +62,22 @@ const packageOptions = computed(() => availablePackages.value.map(item => ({
   disabled: !item.is_active,
 })))
 const save = useMutation({
-  mutationFn: () => management.value.saveCampaign(editing.value ? id.value : null, {
+  mutationFn: async () => {
+    const submission = draft.capture()
+    const form = submission.value
+    const data = await management.value.saveCampaign(editing.value ? id.value : null, {
     name: form.name, package_id: form.package_id, claim_group: form.claim_group || undefined,
     mode: form.mode, total_limit: form.total_limit, per_target_limit: form.per_target_limit,
     redeem_starts_at: form.range ? Math.floor(form.range[0] / 1000) : 0,
     redeem_ends_at: form.range ? Math.floor(form.range[1] / 1000) : 0,
     is_active: form.is_active,
-  }, expectedEntityId.value),
-  onSuccess: data => {
+  }, expectedEntityId.value)
+    return { data, submission }
+  },
+  onSuccess: ({ data, submission }) => {
+    if (!draft.accept(submission)) return
     feedback.success('卡活动已保存')
+    if (draft.dirty.value) return
     void router.push(`${management.value.routePrefix}/campaigns/${data.id}/codes`)
   },
 })
@@ -88,7 +104,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id))
         <LsButton v-if="editing" variant="danger" :disabled="!canManage(management.disablePermission)" :disabled-reason="managePermissionReason(management.disablePermission)" @click="stop">停用活动</LsButton>
       </template>
     </LsPageHeader>
-    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
+    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : !save.isPending.value && (draft.dirty.value || !editing) && save.mutate()">
       <LsFormSection title="活动配置">
         <p v-if="personal" class="form-intro" role="note">此卡活动自动归属当前人员，只能绑定本人或团队公用权益包。</p>
         <LsField label="活动名称" for-id="campaign-name" required><NInput id="campaign-name" v-model:value="form.name" maxlength="100" /></LsField>
@@ -104,7 +120,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id))
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
-        <LsButton type="submit" :disabled="routeAccess.restricted.value || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存活动</LsButton>
+        <LsButton type="submit" :disabled="(editing && !draft.dirty.value) || routeAccess.restricted.value || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="(editing && !draft.dirty.value ? '没有未保存的修改' : '') || routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存活动</LsButton>
       </LsFormActions>
     </form>
   </div>

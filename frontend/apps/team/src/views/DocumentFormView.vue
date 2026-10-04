@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
@@ -44,6 +47,10 @@ const form = reactive({
   sort: 0,
   tags: [] as DocumentTagDraft[],
 })
+const draftKey = () => teamDraftScope('DocumentFormView', id.value)
+const draft = useQueryDraft({ key: draftKey, read: () => form, apply: value => Object.assign(form, value) })
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: teamDraftNavigationChanged })
+
 const tagValidationSubmitted = ref(false)
 
 interface EntityOption {
@@ -58,7 +65,7 @@ const entities = useQuery({
   enabled: computed(() => !routeAccess.restricted.value),
 })
 watch(() => entities.data.value, (items) => {
-  if (!editing.value && !form.entity_id && items?.length) form.entity_id = items[0].entity_id
+  if (!editing.value && !form.entity_id && items?.length) draft.hydrate({ ...form, entity_id: items[0].entity_id })
 }, { immediate: true })
 
 const detail = useQuery({
@@ -72,17 +79,23 @@ const visibilitySelectOptions = visibilityOptions as SelectOption[]
 
 watch(() => detail.data.value, (data) => {
   if (!data) return
-  form.title = String(data.title ?? '')
-  form.content = String(data.content ?? '')
-  form.entity_id = Number(data.entity_id ?? 0)
-  form.manager_scope = enumOptionValue(data.manager_scope, managerScopeOptions, 1)
-  form.visibility = enumOptionValue(data.visibility, visibilityOptions, 1)
-  form.sort = Number(data.sort ?? 0)
-  form.tags = documentTagDrafts(data.tags)
+    const next = { ...form }
+  next.title = String(data.title ?? '')
+  next.content = String(data.content ?? '')
+  next.entity_id = Number(data.entity_id ?? 0)
+  next.manager_scope = enumOptionValue(data.manager_scope, managerScopeOptions, 1)
+  next.visibility = enumOptionValue(data.visibility, visibilityOptions, 1)
+  next.sort = Number(data.sort ?? 0)
+  next.tags = documentTagDrafts(data.tags)
+  draft.hydrate(next)
 }, { immediate: true })
 
 const save = useMutation({
-  mutationFn: () => api.post<{ id?: number }>(editing.value ? '/doc/edit' : '/doc/create', {
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    const targetId = id.value
+    const form = submitted.value
+    const data = await ( api.post<{ id?: number }>(editing.value ? '/doc/edit' : '/doc/create', {
     ...(editing.value ? { id: id.value } : { entity_id: form.entity_id }),
     title: form.title.trim(),
     content: form.content,
@@ -90,11 +103,16 @@ const save = useMutation({
     visibility: form.visibility,
     sort: form.sort,
     tags: documentTagsPayload(form.tags),
-  }),
-  onSuccess: async (result) => {
+  })
+    )
+    return { data, submitted, targetId }
+  },
+  onSuccess: async ({ data: result, submitted, targetId }) => {
+    if (!draft.accept(submitted) || draft.dirty.value) return
     editor.value?.clearDraft()
     await queryClient.invalidateQueries({ queryKey: ['docs'] })
-    const savedId = editing.value ? id.value : Number(result?.id || 0)
+    if (!draft.isCurrent(submitted) || draft.dirty.value) return
+    const savedId = targetId || Number(result?.id || 0)
     await router.push(savedId ? `/doc?id=${savedId}` : '/docs')
   },
 })
@@ -195,7 +213,7 @@ async function submit() {
       <LsInlineError v-if="save.isError.value && !routeAccess.restricted.value" :message="friendlyError(save.error.value)" />
       <div class="actions">
         <LsButton type="button" variant="secondary" @click="router.push('/docs')">取消</LsButton>
-        <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || !form.title.trim() || (!editing && !form.entity_id)" :disabled-reason="routeAccess.reason.value">
+        <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || !draft.dirty.value || !form.title.trim() || (!editing && !form.entity_id)" :disabled-reason="routeAccess.reason.value">
           保存文档
         </LsButton>
       </div>

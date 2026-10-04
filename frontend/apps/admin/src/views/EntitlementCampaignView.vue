@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { api, friendlyError } from "@lostsky/api/client";
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+
+import { api, auth, friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
@@ -51,11 +54,13 @@ const detail = useQuery({
   queryFn: () => routeAccess.read(() => api.get<any>(`/entitlements/campaigns/${id.value}`)),
   enabled: computed(() => editing.value && !routeAccess.restricted.value),
 });
+const draft = useQueryDraft({ key: () => `${location.host}:${JSON.stringify(auth.entity())}:${id.value}`, read: () => ({ ...form }), apply: value => Object.assign(form, value) });
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: (to, from) => to.path !== from.path });
 watch(
   () => detail.data.value,
   (d) => {
     if (d)
-      Object.assign(form, {
+      draft.hydrate({
         name: d.name,
         package_id: d.package_id,
         claim_group: d.claim_group,
@@ -79,26 +84,30 @@ const packages = computed(() =>
   })),
 );
 const save = useMutation({
-  mutationFn: () =>
-    api.post<{ id: number }>(
+  mutationFn: async () => {
+    const submitted = draft.capture();
+    const data = await api.post<{ id: number }>(
       editing.value
         ? `/entitlements/campaigns/${id.value}`
         : "/entitlements/campaigns",
       {
-        name: form.name,
-        package_id: form.package_id,
-        claim_group: form.claim_group || undefined,
-        mode: form.mode,
-        total_limit: form.total_limit,
-        per_target_limit: form.per_target_limit,
-        redeem_starts_at: form.range ? Math.floor(form.range[0] / 1000) : 0,
-        redeem_ends_at: form.range ? Math.floor(form.range[1] / 1000) : 0,
-        is_active: form.is_active,
+        name: submitted.value.name,
+        package_id: submitted.value.package_id,
+        claim_group: submitted.value.claim_group || undefined,
+        mode: submitted.value.mode,
+        total_limit: submitted.value.total_limit,
+        per_target_limit: submitted.value.per_target_limit,
+        redeem_starts_at: submitted.value.range ? Math.floor(submitted.value.range[0] / 1000) : 0,
+        redeem_ends_at: submitted.value.range ? Math.floor(submitted.value.range[1] / 1000) : 0,
+        is_active: submitted.value.is_active,
       },
-    ),
-  onSuccess: (data) => {
+    )
+    return { data, submitted };
+  },
+  onSuccess: ({ data, submitted }) => {
+    if (!draft.accept(submitted)) return;
     feedback.success("体验活动已保存");
-    router.push(`/entitlements/campaigns/${data.id}`);
+    if (!draft.dirty.value) void router.push(`/entitlements/campaigns/${data.id}`);
   },
   onError: (error) => feedback.error(friendlyError(error)),
 });
@@ -232,7 +241,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
           >取消</LsButton
         ><LsButton
           type="submit"
-          :disabled="routeAccess.restricted.value || !valid || !can('admin.entitlement.write')"
+          :disabled="routeAccess.restricted.value || !valid || !can('admin.entitlement.write') || !draft.dirty.value"
           :disabled-reason="
             routeAccess.reason.value || (!can('admin.entitlement.write')
               ? permissionReason('admin.entitlement.write')

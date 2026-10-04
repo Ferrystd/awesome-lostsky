@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { KeyRound, RotateCw, Trash2 } from '@lucide/vue'
@@ -42,6 +45,10 @@ const form = reactive({
   events: ['message.created'] as string[],
   is_active: true,
 })
+const draftKey = () => teamDraftScope('ChatIntegrationFormView', [slug.value, id.value])
+const draft = useQueryDraft({ key: draftKey, read: () => form, apply: value => Object.assign(form, value) })
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: teamDraftNavigationChanged })
+
 const credentials = reactive<Credentials>({ token: '', signing_secret: '' })
 const detail = useQuery({
   queryKey: computed(() => ['chat-virtual', slug.value]),
@@ -52,14 +59,21 @@ const current = computed(() => detail.data.value?.integrations?.find(item => ite
 
 watch(current, value => {
   if (!value) return
-  form.name = value.name
-  form.endpoint_url = value.endpoint_url
-  form.events = Array.isArray(value.events) ? [...value.events] : []
-  form.is_active = Boolean(value.is_active)
+    const next = { ...form }
+  next.name = value.name
+  next.endpoint_url = value.endpoint_url
+  next.events = Array.isArray(value.events) ? [...value.events] : []
+  next.is_active = Boolean(value.is_active)
+  draft.hydrate(next)
 }, { immediate: true })
 
 const save = useMutation({
-  mutationFn: () => editing.value
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    const targetSlug = slug.value
+    const targetId = id.value
+    const form = submitted.value
+    const data = await ( editing.value
     ? api.post('/chatIntegration/update', {
         slug: slug.value,
         id: id.value,
@@ -73,28 +87,45 @@ const save = useMutation({
         name: form.name,
         endpoint_url: form.endpoint_url,
         events: form.events,
-      }),
-  onSuccess: async data => {
-    await client.invalidateQueries({ queryKey: ['chat-virtual', slug.value] })
-    if (!editing.value) {
+      })
+    )
+    return { data, submitted, targetSlug, targetId }
+  },
+  onSuccess: async ({ data, submitted, targetSlug, targetId }) => {
+    if (!draft.accept(submitted) || draft.dirty.value) return
+    await client.invalidateQueries({ queryKey: ['chat-virtual', targetSlug] })
+    if (!draft.isCurrent(submitted) || draft.dirty.value) return
+    if (!targetId) {
       const created = data as Credentials
       credentials.id = created.id
       credentials.token = created.token
       credentials.signing_secret = created.signing_secret
-      await router.replace({ path: '/chat-integration', query: { slug: slug.value, id: created.id } })
+      await router.replace({ path: '/chat-integration', query: { slug: targetSlug, id: created.id } })
     }
   },
 })
 const rotate = useMutation({
-  mutationFn: () => api.post<Credentials>('/chatIntegration/rotate', { slug: slug.value, id: id.value }),
-  onSuccess: data => {
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    const data = await api.post<Credentials>('/chatIntegration/rotate', { slug: slug.value, id: id.value })
+    return { data, submitted }
+  },
+  onSuccess: ({ data, submitted }) => {
+    if (!draft.isCurrent(submitted)) return
     credentials.token = data.token
     credentials.signing_secret = data.signing_secret
   },
 })
 const remove = useMutation({
-  mutationFn: () => api.post('/chatIntegration/delete', { slug: slug.value, id: id.value }),
-  onSuccess: () => router.replace({ path: '/chat-virtual', query: { slug: slug.value } }),
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    await api.post('/chatIntegration/delete', { slug: slug.value, id: id.value })
+    return submitted
+  },
+  onSuccess: submitted => {
+    if (!draft.accept(submitted) || draft.dirty.value) return
+    return router.replace({ path: '/chat-virtual', query: { slug: slug.value } })
+  },
 })
 
 const eventOptions = [
@@ -146,7 +177,7 @@ function rotateCredentials() {
           {{ friendlyError(save.error.value || rotate.error.value || remove.error.value) }}
         </p>
         <div class="actions">
-          <LsButton type="submit" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存集成</LsButton>
+          <LsButton type="submit" :disabled="routeAccess.restricted.value || !draft.dirty.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存集成</LsButton>
           <LsButton v-if="editing" type="button" variant="secondary" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="rotate.isPending.value" @click="rotateCredentials">
             <RotateCw :size="16" />轮换凭据
           </LsButton>

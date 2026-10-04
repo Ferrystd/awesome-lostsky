@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { api, friendlyError } from '@lostsky/api/client'
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+import { api, auth, friendlyError } from '@lostsky/api/client'
 import { quantityScaleForStep } from '@lostsky/shared/quantity'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -26,6 +28,8 @@ const kind = computed(() => String(route.meta.personalTask ?? 'assigned') as 'of
 const reason = ref('')
 const claimValues = ref<Record<number, Record<number, unknown>>>({})
 const claimQuantity = ref<number | null>(null)
+const draft = useQueryDraft({ key: () => `${location.host}:${JSON.stringify(auth.entity())}:${kind.value}:${id.value}`, read: () => ({ quantity: claimQuantity.value, values: claimValues.value, reason: reason.value }), apply: value => { claimQuantity.value = value.quantity; claimValues.value = value.values; reason.value = value.reason } })
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: (to, from) => to.path !== from.path })
 const endpoint = computed(() => kind.value === 'offer'
   ? `/personal/service-offers/${id.value}`
   : kind.value === 'available'
@@ -35,10 +39,12 @@ const query = useQuery({ queryKey: computed(() => ['personal-service-task', kind
 const access = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: () => loadWorkspaceAccess() })
 const action = useMutation({
   mutationFn: (input: { suffix: string; body?: Record<string, unknown>; opensTask?: boolean }) => {
+    const submitted = draft.capture()
     const base = kind.value === 'offer' ? `/personal/service-offers/${id.value}` : `/personal/services/${id.value}`
-    return api.post<{ id?: number }>(`${base}/${input.suffix}`, input.body ?? {}).then(result => ({ result, opensTask: input.opensTask, suffix: input.suffix }))
+    return api.post<{ id?: number }>(`${base}/${input.suffix}`, input.body ?? {}).then(result => ({ result, submitted, opensTask: input.opensTask, suffix: input.suffix }))
   },
-  onSuccess: async ({ result, opensTask, suffix }) => {
+  onSuccess: async ({ result, submitted, opensTask, suffix }) => {
+    if (!draft.accept(submitted) || draft.dirty.value) return
     if (suffix === 'complete') {
       feedback.success('结单请求已提交，请等待顾客确认')
       await query.refetch()
@@ -100,9 +106,10 @@ const fieldValue = (field: ServiceField) => {
 }
 watch([row, kind], ([current, currentKind]) => {
   if (!current || currentKind !== 'available') return
-  claimQuantity.value = Math.min(quantityStep.value, Number(current.quantity))
+  draft.hydrate({ quantity: Math.min(quantityStep.value, Number(current.quantity)), values: claimValues.value, reason: reason.value })
 }, { immediate: true })
 watch(resources, current => {
+  if (draft.dirty.value) return
   const next: Record<number, Record<number, unknown>> = {}
   current.forEach(resource => {
     next[resource.index] = { ...(claimValues.value[resource.index] ?? {}) }
@@ -111,7 +118,7 @@ watch(resources, current => {
       if (!hasValue(next[resource.index][field.id]) && hasValue(value)) next[resource.index][field.id] = value
     })
   })
-  claimValues.value = next
+  draft.hydrate({ quantity: claimQuantity.value, values: next, reason: reason.value })
 }, { immediate: true })
 const resourcePayload = () => resources.value.map(resource => claimValues.value[resource.index] ?? {})
 const acceptOffer = async () => {

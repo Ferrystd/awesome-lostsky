@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+
 import { friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
@@ -13,11 +16,12 @@ import { useMutation, useQuery } from '@tanstack/vue-query'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { manageApi } from '../../lib'
+import { loadManageAccess, manageApi } from '../../lib'
 import ServiceCompletionFields from '../../../../transaction/src/components/ServiceCompletionFields.vue'
-import { purchaseInputFields, purchaseDefaults, purchaseValuesValid, serializePurchaseValues } from '../../purchase-fields'
+import { purchaseInputFields, reconcilePurchaseValues, purchaseValuesValid, serializePurchaseValues } from '../../purchase-fields'
 
 const router = useRouter()
+const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess() })
 const routeAccess = useRouteAccess()
 const form = reactive({ product_id: null as number | null, customer_id: null as number | null, handler_entity_id: null as number | null, sender_entity_id: null as number | null, cs_entity_id: null as number | null, quantity: 1, memo: '' })
 const options = useQuery({ queryKey: ['manage-options'], queryFn: manageApi.options, enabled: computed(() => !routeAccess.restricted.value) })
@@ -27,8 +31,27 @@ const productOptions = computed(() => (options.data.value?.products ?? []).map(p
 const purchaseFields = computed(() => options.data.value?.products?.find(product => product.id === form.product_id)?.purchase_fields ?? [])
 const purchaseValues = ref<Record<number, unknown>>({})
 const purchaseUploading = ref(false)
-watch(purchaseFields, fields => { purchaseValues.value = purchaseDefaults(fields) }, { immediate: true })
-const save = useMutation({ mutationFn: () => manageApi.createOrder({ ...form, purchase_values: serializePurchaseValues(purchaseFields.value, purchaseValues.value), memo: form.memo.trim() || null }), onSuccess: data => router.push(`/manage/orders/${data.id}`) })
+const draft = useQueryDraft({
+  key: () => `${access.data.value?.team?.id ?? 0}:${access.data.value?.identity?.entity_id ?? 0}:order:new`,
+  read: () => ({ form: { ...form }, purchaseValues: purchaseValues.value }),
+  apply: value => { Object.assign(form, value.form); purchaseValues.value = value.purchaseValues },
+})
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: (to, from) => to.path !== from.path })
+watch(purchaseFields, fields => {
+  const clean = !draft.dirty.value
+  purchaseValues.value = reconcilePurchaseValues(fields, purchaseValues.value)
+  if (clean) draft.reset(draft.capture().value)
+}, { immediate: true })
+const save = useMutation({
+  mutationFn: async () => {
+    const submission = draft.capture()
+    const data = await manageApi.createOrder({ ...submission.value.form, purchase_values: serializePurchaseValues(purchaseFields.value, submission.value.purchaseValues), memo: submission.value.form.memo.trim() || null })
+    return { data, submission }
+  },
+  onSuccess: ({ data, submission }) => {
+    if (draft.accept(submission) && !draft.dirty.value) void router.push(`/manage/orders/${data.id}`)
+  },
+})
 const valid = computed(() => Boolean(form.product_id && form.quantity >= 1 && !purchaseUploading.value && !options.isPending.value && !options.isError.value && purchaseValuesValid(purchaseFields.value, purchaseValues.value)))
 function submit() {
   if (routeAccess.reason.value) return feedback.info(routeAccess.reason.value)

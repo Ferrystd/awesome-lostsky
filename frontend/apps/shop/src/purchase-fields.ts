@@ -41,7 +41,26 @@ export function purchaseDefaults(fields: PurchaseField[]): Record<number, unknow
     return [field.id, value]
   }))
 }
-export const purchaseValuesValid = (fields: PurchaseField[], values: Record<number, unknown>) => fields.every(field => !field.is_required || !empty(values[field.id]))
+export function reconcilePurchaseValues(fields: PurchaseField[], values: Record<number, unknown>): Record<number, unknown> {
+  const defaults = purchaseDefaults(fields)
+  return Object.fromEntries(fields.flatMap(field => Object.prototype.hasOwnProperty.call(values, field.id)
+    ? [[field.id, values[field.id]]]
+    : Object.prototype.hasOwnProperty.call(defaults, field.id) ? [[field.id, defaults[field.id]]] : []))
+}
+export const purchaseValuesValid = (fields: PurchaseField[], values: Record<number, unknown>) => fields.every(field => {
+  const value = values[field.id]
+  if (empty(value)) return !field.is_required
+  if (field.value_type === 'select') return field.options.includes(String(value))
+  if (field.value_type === 'multi_select') return Array.isArray(value) && value.every(item => field.options.includes(String(item)))
+  if (field.value_type === 'int') return (typeof value === 'number' || typeof value === 'string') && Number.isSafeInteger(Number(value))
+  if (field.value_type === 'decimal') return (typeof value === 'number' || typeof value === 'string') && Number.isFinite(Number(value))
+  if (field.value_type === 'bool') return [0, 1, '0', '1', false, true].includes(value as number)
+  if (['date', 'datetime'].includes(field.value_type)) return typeof value === 'number' && Number.isFinite(value)
+  if (field.value_type === 'json') {
+    try { JSON.parse(String(value)); return true } catch { return false }
+  }
+  return typeof value === 'string'
+})
 export function serializePurchaseValues(fields: PurchaseField[], values: Record<number, unknown>) {
   return Object.fromEntries(fields.filter(field => Object.prototype.hasOwnProperty.call(values, field.id)).map(field => {
     const value = values[field.id]

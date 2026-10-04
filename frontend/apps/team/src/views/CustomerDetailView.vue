@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { ApiError, api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
@@ -93,11 +96,16 @@ const form = reactive({
   sender_entity_ids: [] as number[],
   is_blocked: false,
 })
+const draftKey = () => teamDraftScope('CustomerDetailView', id.value)
+const draft = useQueryDraft({ key: draftKey, read: () => form, apply: value => Object.assign(form, value) })
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: teamDraftNavigationChanged })
+
 watch(
   () => query.data.value,
   (value) => {
     if (!value) return
-    Object.assign(form, {
+    const next = { ...form }
+    Object.assign(next, {
       name: value.name,
       avatar: value.avatar ?? '',
       description: value.description ?? '',
@@ -105,11 +113,15 @@ watch(
       sender_entity_ids: value.senders.map((sender) => sender.entity_id),
       is_blocked: value.is_blocked,
     })
-  },
+    draft.hydrate(next)
+},
   { immediate: true },
 )
 const save = useMutation({
-  mutationFn: () =>
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    const form = submitted.value
+    const data = await (
     api.post<void>(`/customer/${id.value}`, {
       name: form.name.trim(),
       avatar: form.avatar.trim() || null,
@@ -117,8 +129,12 @@ const save = useMutation({
       assignee_entity_id: form.assignee_entity_id,
       sender_entity_ids: form.sender_entity_ids,
       is_blocked: form.is_blocked ? 1 : 0,
-    }),
-  onSuccess: async () => {
+    })
+    )
+    return { data, submitted }
+  },
+  onSuccess: async ({ submitted }) => {
+    if (!draft.accept(submitted)) return
     await Promise.all([client.invalidateQueries({ queryKey: ['team-customer', id.value] }), client.invalidateQueries({ queryKey: ['team-customers'] })])
   },
 })
@@ -177,7 +193,7 @@ const money = (value: string) =>
           </LsField>
           <LsSwitchField v-model="form.is_blocked" label="封禁顾客" description="封禁后顾客现有身份会话不能继续使用。" :disabled="!canManage" />
           <LsFormActions
-            ><LsButton type="submit" :loading="save.isPending.value" :disabled="!canManage || avatarUploading" :disabled-reason="!canManage ? manageReason : undefined"
+            ><LsButton type="submit" :loading="save.isPending.value" :disabled="!canManage || avatarUploading || !draft.dirty.value" :disabled-reason="!canManage ? manageReason : undefined"
               ><template #icon><Save :size="18" /></template>保存顾客资料</LsButton
             ></LsFormActions
           >

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
@@ -27,58 +29,75 @@ const access = useTeamAccess()
 const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
 const query = useQuery({ queryKey: ['me'], queryFn: () => api.get<Record<string, unknown>>('/me/get') })
 const form = reactive({ nickname: '', avatar: '', description: '', intro_image: '', intro_video: '', introduction_markdown: '' })
+const draftKey = () => teamDraftScope('ProfileView', '')
+const draft = useQueryDraft({ key: draftKey, read: () => form, apply: value => Object.assign(form, value) })
 const profileModel = computed({ get: () => form, set: value => Object.assign(form, value) })
 const slug = ref('')
+const slugDraft = useQueryDraft({ key: draftKey, read: () => slug.value, apply: value => { slug.value = value } })
 const uploading = ref(false)
-const profileSnapshot = ref('')
 const fieldsDirty = ref(false)
 
-function profileState() {
-  return JSON.stringify(form)
-}
-const profileDirty = computed(() => Boolean(profileSnapshot.value) && profileState() !== profileSnapshot.value)
-const hasUnsavedChanges = computed(() => profileDirty.value || fieldsDirty.value)
+const profileDirty = draft.dirty
+const hasUnsavedChanges = computed(() => profileDirty.value || slugDraft.dirty.value || fieldsDirty.value)
 
 watch(() => query.data.value, (data) => {
-  form.nickname = String(data?.nickname ?? '')
-  form.avatar = String(data?.avatar ?? '')
-  form.description = String(data?.description ?? '')
-  form.intro_image = String(data?.intro_image ?? '')
-  form.intro_video = String(data?.intro_video ?? '')
-  form.introduction_markdown = String(data?.introduction_markdown ?? '')
-  if (data?.slug) slug.value = String(data.slug)
-  profileSnapshot.value = profileState()
+  if (!data) return
+    const next = { ...form }
+  next.nickname = String(data?.nickname ?? '')
+  next.avatar = String(data?.avatar ?? '')
+  next.description = String(data?.description ?? '')
+  next.intro_image = String(data?.intro_image ?? '')
+  next.intro_video = String(data?.intro_video ?? '')
+  next.introduction_markdown = String(data?.introduction_markdown ?? '')
+  slugDraft.hydrate(String(data.slug ?? ''))
+  draft.hydrate(next)
 }, { immediate: true })
 
 const save = useMutation({
-  mutationFn: () => api.post('/me/edit', {
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    const form = submitted.value
+    await ( api.post('/me/edit', {
     ...form,
     avatar: form.avatar || null,
     description: form.description || null,
     intro_image: form.intro_image || null,
     intro_video: form.intro_video || null,
     introduction_markdown: form.introduction_markdown || null,
-  }),
-  onSuccess: async () => {
-    editor.value?.clearDraft()
-    profileSnapshot.value = profileState()
+  })
+    )
+    return submitted
+  },
+  onSuccess: async submitted => {
+    if (!draft.accept(submitted)) return
+    if (!draft.dirty.value) editor.value?.clearDraft()
     await client.invalidateQueries({ queryKey: ['me'] })
+    if (!draft.isCurrent(submitted) || draft.dirty.value) return
     feedback.success('资料已保存')
   },
   onError: error => feedback.error(friendlyError(error)),
 })
 const claim = useMutation({
-  mutationFn: () => api.post<{ slug: string }>('/me/slug', { slug: slug.value.trim() }),
-  onSuccess: async () => {
+  mutationFn: async () => { const submitted = slugDraft.capture(); await api.post<{ slug: string }>('/me/slug', { slug: submitted.value.trim() }); return submitted },
+  onSuccess: async submitted => {
+    if (!slugDraft.accept(submitted)) return
     await query.refetch()
+    if (!slugDraft.isCurrent(submitted) || slugDraft.dirty.value) return
     feedback.success('对象标识已认领')
   },
   onError: error => feedback.error(friendlyError(error)),
 })
 const saveFields = useMutation({
-  mutationFn: (values: Record<number, unknown>) => api.post('/me/fields', { values }),
-  onSuccess: async () => {
+  mutationFn: async (values: Record<number, unknown>) => {
+    const submitted = draft.capture()
+    await api.post('/me/fields', { values })
+    return submitted
+  },
+  onSuccess: async submitted => {
+    if (!draft.isCurrent(submitted)) return
+
     await query.refetch()
+    if (!draft.isCurrent(submitted)) return
     feedback.success('对象字段已保存')
   },
   onError: error => feedback.error(friendlyError(error)),
@@ -96,10 +115,10 @@ const effectivePermissions = computed(() => (
 
 function setFieldsDirty(value: boolean) {
   fieldsDirty.value = value
-  if (value) saveFields.reset()
+  if (value && !saveFields.isPending.value) saveFields.reset()
 }
 
-useUnsavedChangesGuard(hasUnsavedChanges)
+useUnsavedChangesGuard(hasUnsavedChanges, { shouldConfirm: teamDraftNavigationChanged })
 </script>
 
 <template>
@@ -113,7 +132,7 @@ useUnsavedChangesGuard(hasUnsavedChanges)
             type="submit"
             form="my-profile-form"
             :loading="save.isPending.value"
-            :disabled="!form.nickname.trim() || Boolean(uploading)"
+            :disabled="!draft.dirty.value || !form.nickname.trim() || Boolean(uploading)"
           />
         </div>
       </template>
@@ -138,7 +157,7 @@ useUnsavedChangesGuard(hasUnsavedChanges)
       <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" draft-key="my-profile" id-prefix="my-profile" name-key="nickname" name-label="团队昵称" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" :editor-ready="query.isSuccess.value" />
     </div></LsPanel></form>
 
-    <EntityFieldsCard
+    <EntityFieldsCard :key="`${draftKey()}:fields`"
       v-if="query.data.value?.slug"
       :fields="customFields"
       :stored-values="customFieldValues"
@@ -151,7 +170,7 @@ useUnsavedChangesGuard(hasUnsavedChanges)
       @dirty="setFieldsDirty"
     />
 
-    <EntityPermissionsCard
+    <EntityPermissionsCard :key="`${draftKey()}:roles`"
       v-if="query.data.value?.slug"
       :assignments="roleAssignments"
       :roles="assignedRoles"

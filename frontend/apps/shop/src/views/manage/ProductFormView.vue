@@ -29,6 +29,7 @@ import ServiceFieldsEditor from '../../components/ServiceFieldsEditor.vue'
 import ProductVariantEditor from '../../components/ProductVariantEditor.vue'
 import { hydrateProductVariant, serializeProductVariant, validProductVariant, newProductVariant, validAutoCompleteAfterMinutes } from '../../product-variants'
 import type { ProductVariantDraft } from '../../product-variants'
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { hydrateServiceRedemptionFields, serializeServiceRedemptionFields, validServiceRedemptionFields } from '../../service-redemption-fields'
 import type { ServiceRedemptionFieldDraft } from '../../types'
@@ -96,13 +97,26 @@ type ItemMoneyField = CompositionMoneyField
 type CompositionItem = CompositionDraftItem
 const compositionItems = ref<CompositionItem[]>([])
 const draftSnapshot = () => JSON.stringify({ form, redemption, redemptionFields: redemptionFields.value, purchaseFields: purchaseFields.value, items: compositionItems.value, variants: variants.value })
-const savedSnapshot = ref(draftSnapshot())
-const hasUnsavedChanges = computed(() => draftSnapshot() !== savedSnapshot.value)
-useUnsavedChangesGuard(hasUnsavedChanges)
-let submittedSnapshot = ''
-let detailHydrated = false
-const useComposition = computed(() => [2, 3].includes(form.kind))
 let hydratingAmounts = false
+const draft = useQueryDraft({
+  key: () => `${access.data.value?.team?.id ?? 0}:${expectedEntityId.value}:${scope.value}:product:${id.value}`,
+  read: draftSnapshot,
+  apply: snapshot => {
+    hydratingAmounts = true
+    const value = JSON.parse(snapshot)
+    Object.assign(form, value.form)
+    Object.assign(redemption, value.redemption)
+    redemptionFields.value = value.redemptionFields
+    purchaseFields.value = value.purchaseFields
+    compositionItems.value = value.items
+    variants.value = value.variants
+    hydratingAmounts = false
+  },
+})
+const hasUnsavedChanges = draft.dirty
+useUnsavedChangesGuard(hasUnsavedChanges, { shouldConfirm: (to, from) => to.path !== from.path })
+watch([id, scope, expectedEntityId, () => access.data.value?.team?.id], () => { autoCompleteDefaultApplied = false; autoCompleteTouched = false }, { flush: 'sync' })
+const useComposition = computed(() => [2, 3].includes(form.kind))
 const options = useQuery({
   queryKey: computed(() => ['manage-product-options', scope.value]),
   queryFn: () => management.value.options(),
@@ -118,13 +132,17 @@ function kindNumber(value: unknown) {
   const mapped: Record<string, number> = { '普通商品': 1, '套餐': 2, '卡密': 3, '核销商品': 4, '多规格商品': 5 }
   return mapped[String(value)] ?? (Number(value) || 1)
 }
-watch(() => detail.data.value, data => {
-  if (!data) return
-  if (detailHydrated && hasUnsavedChanges.value) return
+watch([() => detail.data.value, expectedEntityId, () => access.data.value?.team?.id], ([data]) => {
+  if (!data || data.id !== id.value || hasUnsavedChanges.value) return
   variants.value = (data.variants ?? []).map(hydrateProductVariant)
   purchaseFields.value = hydratePurchaseFields(data.purchase_fields ?? [])
   hydratingAmounts = true
-  Object.assign(form, data, {
+  Object.assign(form, {
+    name: data.name,
+    entity_id: data.entity_id ?? null,
+    benefit_package_id: data.benefit_package_id ?? null,
+    redemption_campaign_id: data.redemption_campaign_id ?? null,
+    is_active: data.is_active,
     description: data.description ?? '',
     cover_image: data.cover_image ?? '',
     introduction_markdown: data.introduction_markdown ?? '',
@@ -146,8 +164,7 @@ watch(() => detail.data.value, data => {
   }
   compositionItems.value = (data.items ?? []).map((item: CompositionItem) => ({ ...item }))
   hydratingAmounts = false
-  savedSnapshot.value = draftSnapshot()
-  detailHydrated = true
+  draft.reset(draftSnapshot())
 }, { immediate: true })
 const entities = computed(() => options.data.value?.entities ?? [])
 const resourceOwnerEntityId = computed(() => personal.value ? expectedEntityId.value : form.entity_id)
@@ -201,8 +218,8 @@ function recalculatePersonnelCuts() {
     cs_cut: distribution.customerService,
   })
 }
-watch(() => options.data.value?.service_defaults, defaults => {
-  if (!defaults) return
+watch([() => options.data.value?.service_defaults, expectedEntityId, () => access.data.value?.team?.id], ([defaults]) => {
+  if (!defaults || hasUnsavedChanges.value) return
   if (!editing.value && !autoCompleteDefaultApplied) {
     if (!autoCompleteTouched) redemption.auto_complete_after_minutes = defaults.default_auto_complete_after_minutes ?? null
     autoCompleteDefaultApplied = true
@@ -212,7 +229,10 @@ watch(() => options.data.value?.service_defaults, defaults => {
     sender: defaults.default_sender_rate_percent,
     customerService: defaults.default_cs_rate_percent,
   })
-  if (!editing.value) recalculatePersonnelCuts()
+  if (!editing.value) {
+    recalculatePersonnelCuts()
+    draft.reset(draftSnapshot())
+  }
 }, { immediate: true })
 watch(
   () => [form.price, form.cost] as const,
@@ -255,7 +275,7 @@ async function uploadMarkdownImage(file: File) {
 const save = useMutation({
   mutationFn: async () => {
     if (!valid.value) throw new Error('请检查商品必填项、金额和核销额度')
-    submittedSnapshot = draftSnapshot()
+    const submission = draft.capture()
     const body: Record<string, unknown> = {
       name: form.name,
       ...(form.kind !== 5 ? { purchase_fields: serializePurchaseFields(purchaseFields.value) } : {}),
@@ -297,12 +317,12 @@ const save = useMutation({
       distributionLocked.value && !editing.value ? withoutPersonnelCuts(body) : body,
       expectedEntityId.value,
     )
-    const productId = editing.value ? id.value : result.id
+    const productId = result.id
     await queryClient.invalidateQueries({ queryKey: ['manage-product-options'] })
-    return { id: productId }
+    return { id: productId, submission }
   },
   onSuccess: data => {
-    savedSnapshot.value = submittedSnapshot
+    if (!draft.accept(data.submission)) return
     feedback.success('商品已保存')
     if (hasUnsavedChanges.value) return
     void router.push(`${management.value.routeBase}/${data.id}`)

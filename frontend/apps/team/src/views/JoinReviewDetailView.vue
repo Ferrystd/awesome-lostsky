@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
@@ -21,20 +24,36 @@ const client = useQueryClient()
 const routeAccess = useRouteAccess()
 const reviewId = computed(() => Number(route.query.id || 0))
 const tasks = ref<Task[]>([])
+const draft = useQueryDraft({ key: () => teamDraftScope('join-review-tasks', reviewId.value), read: () => tasks.value, apply: value => { tasks.value = value } })
+const taskStatuses = computed(() => new Map(((detail.value?.tasks ?? []) as Task[]).map(task => [task.id, task.is_passed])))
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: teamDraftNavigationChanged })
 const rejectOpen = ref(false)
 const rejectMemo = ref('')
 const detailQuery = useQuery({ queryKey: computed(() => ['join-review', reviewId.value]), queryFn: () => routeAccess.read(() => api.get<Record<string, unknown>>('/joinReview/get', { id: reviewId.value })), enabled: computed(() => reviewId.value > 0 && !routeAccess.restricted.value) })
 const detail = computed(() => detailQuery.data.value)
-watch(detail, (value) => { tasks.value = Array.isArray(value?.tasks) ? (value.tasks as Task[]).map((item) => ({ ...item })) : [] }, { immediate: true })
+watch(detail, value => {
+  if (!value) return
+  draft.hydrate(Array.isArray(value.tasks) ? (value.tasks as Task[]).map(({ is_passed: _status, ...task }) => task) : [])
+}, { immediate: true })
 const action = useMutation({
-  mutationFn: ({ path, body }: { path: string; body: Record<string, unknown> }) => api.post(path, body),
-  onSuccess: async () => { await client.invalidateQueries({ queryKey: ['join-reviews'] }); await detailQuery.refetch() },
+  mutationFn: async ({ path, body }: { path: string; body: Record<string, unknown> }) => {
+    const submitted = draft.capture()
+    await api.post(path, body)
+    return { submitted, path }
+  },
+  onSuccess: async ({ submitted, path }) => {
+    if (!draft.isCurrent(submitted)) return
+    if (path === '/joinReview/saveTasks') draft.accept(submitted)
+    await client.invalidateQueries({ queryKey: ['join-reviews'] })
+    if (!draft.isCurrent(submitted)) return
+    await detailQuery.refetch()
+  },
 })
 function run(path: string, extra: Record<string, unknown> = {}) { if (!routeAccess.restricted.value && reviewId.value) action.mutate({ path, body: { id: reviewId.value, ...extra } }) }
 function reject() { rejectMemo.value = ''; rejectOpen.value = true }
 function submitReject() { const memo = rejectMemo.value.trim(); if (!memo) return; run('/joinReview/reject', { memo }); rejectOpen.value = false }
 function addTask() { tasks.value.push({ title: '', description: '', is_passed: 0, sort: tasks.value.length }) }
-function saveTasks() { run('/joinReview/saveTasks', { tasks: tasks.value.map((item, index) => ({ id: item.id, title: item.title, description: item.description || null, is_passed: item.is_passed ? 1 : 0, sort: index })) }) }
+function saveTasks() { run('/joinReview/saveTasks', { tasks: tasks.value.map((item, index) => ({ id: item.id, title: item.title, description: item.description || null, is_passed: (item.id ? taskStatuses.value.get(item.id) : item.is_passed) ? 1 : 0, sort: index })) }) }
 function toggleTask(task: Task, on: boolean) { if (task.id) run('/joinReview/setTaskPassed', { task_id: task.id, is_passed: on ? 1 : 0 }); else task.is_passed = on ? 1 : 0 }
 function valueText(value: unknown) { if (value == null) return '—'; if (typeof value === 'object') { const item = value as Record<string, unknown>; return String(item.value_string ?? item.value_text ?? item.value_int ?? item.value_decimal ?? item.value_datetime ?? JSON.stringify(item.value_json ?? item)) } return String(value) }
 function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { if (value === '已加入') return 'success'; if (value === '已拒绝' || value === '已取消') return 'error'; if (value === '审核中') return 'warning'; return 'info' }
@@ -58,7 +77,7 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
               <span class="task-index">任务 {{ String(index + 1).padStart(2, '0') }}</span>
               <label><span>任务标题</span><NInput v-model:value="task.title" placeholder="例如：确认保密协议" /></label>
               <label><span>任务说明</span><NInput v-model:value="task.description" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" placeholder="补充验收标准或负责人" /></label>
-              <div class="task-actions"><NCheckbox :checked="task.is_passed === 1" @update:checked="toggleTask(task, $event)">已完成</NCheckbox><LsButton variant="ghost" @click="tasks.splice(index, 1)"><template #icon><X :size="17" /></template>移除</LsButton></div>
+              <div class="task-actions"><NCheckbox :checked="(task.id ? taskStatuses.get(task.id) : task.is_passed) === 1" @update:checked="toggleTask(task, $event)">已完成</NCheckbox><LsButton variant="ghost" @click="tasks.splice(index, 1)"><template #icon><X :size="17" /></template>移除</LsButton></div>
             </article>
             <div class="save-row"><LsButton :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="action.isPending.value" @click="saveTasks">保存任务</LsButton></div>
           </div>

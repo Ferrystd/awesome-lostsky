@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useQueryDraft, type DraftSubmission } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
@@ -68,10 +71,20 @@ const roleId = computed(() => Number(route.params.id))
 const form = reactive({ name: '', description: '', sort: 0, is_displayed: false })
 const permissionKeys = ref<string[]>([])
 const initialPermissionKeys = ref<string[]>([])
+const draftKey = () => teamDraftScope('role', roleId.value)
+const draft = useQueryDraft({ key: draftKey, read: () => form, apply: value => Object.assign(form, value) })
+const permissionsDraft = useQueryDraft({ key: draftKey, read: () => [...permissionKeys.value].sort(), apply: value => { permissionKeys.value = value } })
+useUnsavedChangesGuard(computed(() => draft.dirty.value || permissionsDraft.dirty.value), { shouldConfirm: teamDraftNavigationChanged })
 const dynamicAdvancedItems = ref<AdvancedPermissionItem[]>([])
 const advancedSearch = ref('')
 const showAdvancedConfirm = ref(false)
 const pendingPermissionKeys = ref<string[]>([])
+let pendingPermissionSubmission: DraftSubmission<string[]> | undefined
+watch(draftKey, () => {
+  showAdvancedConfirm.value = false
+  pendingPermissionKeys.value = []
+  pendingPermissionSubmission = undefined
+}, { flush: 'sync' })
 const targetSlug = ref('')
 const targetEntities = ref<EntityDisplay[]>([])
 
@@ -160,43 +173,50 @@ const specialPermissionGroups = computed(() => ([documentManagementGroupName, en
 
 watch(() => roleQuery.data.value, (role) => {
   if (!role) return
-  form.name = String(role.name ?? '')
-  form.description = String(role.description ?? '')
-  form.sort = Number(role.sort ?? 0)
-  form.is_displayed = Number(role.is_displayed ?? 0) === 1
+  draft.hydrate({ name: String(role.name ?? ''), description: String(role.description ?? ''), sort: Number(role.sort ?? 0), is_displayed: Number(role.is_displayed ?? 0) === 1 })
 }, { immediate: true })
 watch(() => permissionsQuery.data.value, (items) => {
   if (!items) return
   const keys = items.map(item => String(item.permission_key ?? item.key ?? '')).filter(Boolean)
-  permissionKeys.value = keys
-  initialPermissionKeys.value = [...keys]
+  if (permissionsDraft.hydrate(keys.sort())) initialPermissionKeys.value = [...keys]
 }, { immediate: true })
 
 const saveInfo = useMutation({
-  mutationFn: () => api.post('/role/edit', {
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    const form = submitted.value
+    await api.post('/role/edit', {
     id: roleId.value,
     name: form.name.trim(),
     description: form.description.trim() || null,
     sort: Number(form.sort),
     is_displayed: form.is_displayed ? 1 : 0,
-  }),
-  onSuccess: async () => {
+    })
+    return submitted
+  },
+  onSuccess: async submitted => {
+    if (!draft.accept(submitted)) return
     await Promise.all([
       client.invalidateQueries({ queryKey: ['role', roleId.value] }),
       client.invalidateQueries({ queryKey: ['roles'] }),
     ])
+    if (!draft.isCurrent(submitted) || draft.dirty.value) return
     feedback.success('角色资料已保存')
   },
   onError: error => feedback.error(friendlyError(error)),
 })
 const savePermissions = useMutation({
-  mutationFn: (keys: string[]) => api.post('/rolePermission/save', {
+  mutationFn: async (keys: string[]) => {
+    const submitted = permissionsDraft.capture()
+    await api.post('/rolePermission/save', {
     role_id: roleId.value,
-    permission_keys: keys,
-  }),
-  onSuccess: (_data, keys) => {
-    permissionKeys.value = [...keys]
-    initialPermissionKeys.value = [...keys]
+    permission_keys: [...keys],
+    })
+    return { submitted, keys: [...keys].sort() }
+  },
+  onSuccess: ({ submitted, keys }) => {
+    if (!permissionsDraft.accept(submitted, keys)) return
+    initialPermissionKeys.value = keys
     pendingPermissionKeys.value = []
     showAdvancedConfirm.value = false
     feedback.success('角色权限已保存')
@@ -204,10 +224,16 @@ const savePermissions = useMutation({
   onError: error => feedback.error(friendlyError(error)),
 })
 const remove = useMutation({
-  mutationFn: () => api.post('/role/delete', { id: roleId.value }),
-  onSuccess: async () => {
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    await api.post('/role/delete', { id: roleId.value })
+    return submitted
+  },
+  onSuccess: async submitted => {
+    if (!draft.accept(submitted) || draft.dirty.value) return
     await client.invalidateQueries({ queryKey: ['roles'] })
     feedback.success('角色已删除')
+    if (!draft.isCurrent(submitted) || draft.dirty.value) return
     await router.replace('/roles')
   },
   onError: error => feedback.error(friendlyError(error)),
@@ -238,12 +264,13 @@ function selectedCount(items: PermissionItem[]) {
 }
 function requestPermissionSave() {
   if (routeAccess.restricted.value) return
-  pendingPermissionKeys.value = permissionsForSave(permissionKeys.value)
+  pendingPermissionSubmission = permissionsDraft.capture()
+  pendingPermissionKeys.value = permissionsForSave(pendingPermissionSubmission.value)
   if (newlyAddedAdvanced.value.length) showAdvancedConfirm.value = true
   else savePermissions.mutate([...pendingPermissionKeys.value])
 }
 function confirmPermissionSave() {
-  if (routeAccess.restricted.value) return
+  if (routeAccess.restricted.value || !pendingPermissionSubmission || !permissionsDraft.isCurrent(pendingPermissionSubmission)) return
   savePermissions.mutate([...pendingPermissionKeys.value])
 }
 function deleteRole() {
@@ -346,7 +373,7 @@ function dynamicPermissionLabel(key: string) {
             <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开人员资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟人员会展示角色名称和说明；角色权限不会公开。" />
             <footer>
               <LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</LsButton>
-              <LsButton type="submit" :loading="saveInfo.isPending.value" :disabled="routeAccess.restricted.value || !form.name.trim()" :disabled-reason="routeAccess.reason.value"><template #icon><Save :size="17" /></template>保存资料</LsButton>
+              <LsButton type="submit" :loading="saveInfo.isPending.value" :disabled="routeAccess.restricted.value || !draft.dirty.value || !form.name.trim()" :disabled-reason="routeAccess.reason.value"><template #icon><Save :size="17" /></template>保存资料</LsButton>
             </footer>
           </NForm>
         </LsPanel>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
@@ -13,6 +15,7 @@ import { useMutation, useQuery } from '@tanstack/vue-query'
 import { Bell, BookOpen, FileText, House, ShieldCheck, UserRound } from '@lucide/vue'
 import { NInput } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import MemberSelfDeparture from '../components/MemberSelfDeparture.vue'
@@ -35,14 +38,16 @@ const route = useRoute()
 const section = computed(() => String(route.meta.personalSection ?? 'profile'))
 const query = useQuery({ queryKey: ['team-personal'], queryFn: () => api.get<PersonalResult>('/personal') })
 const form = reactive({ name: '', avatar: '', description: '', intro_image: '', intro_video: '', introduction_markdown: '', slug: '' })
+const draftKey = () => teamDraftScope('PersonalView', section.value)
+const draft = useQueryDraft({ key: draftKey, read: () => form, apply: value => Object.assign(form, value) })
 const profileModel = computed({ get: () => form, set: value => Object.assign(form, value) })
 const editor = ref<InstanceType<typeof EntityProfileFields> | null>(null)
 const uploading = ref(false)
 const access = useTeamAccess()
 const uploadDisabledReason = computed(() => resourceUploadReason(access.data.value))
-watch(() => query.data.value, data => {
+watch([() => query.data.value, section], ([data]) => {
   if (!data) return
-  Object.assign(form, data.profile, { slug: data.identity.slug || '' })
+  draft.hydrate({ name: data.profile.name, avatar: data.profile.avatar || '', description: data.profile.description || '', intro_image: data.profile.intro_image || '', intro_video: data.profile.intro_video || '', introduction_markdown: data.profile.introduction_markdown || '', slug: data.identity.slug || '' })
 }, { immediate: true })
 const expectedEntityId = computed(() => query.data.value?.identity.entity_id ?? 0)
 const identityType = computed(() => query.data.value?.identity.type === 'team'
@@ -63,21 +68,35 @@ const overviewEntries = [
   { key: 'access', label: '角色与权限', description: '查看当前身份所属角色及其实际生效的权限，仅可查看、不可修改。', to: '/personal/access', icon: ShieldCheck },
 ]
 
+const fieldsDirty = ref(false)
+watch(section, () => { fieldsDirty.value = false })
+useUnsavedChangesGuard(computed(() => draft.dirty.value || fieldsDirty.value), { shouldConfirm: teamDraftNavigationChanged })
 const saveProfile = useMutation({
   mutationFn: async () => {
-    if (!query.data.value?.identity.slug) await api.post('/personal/slug', { expected_entity_id: expectedEntityId.value, slug: form.slug.trim() })
+    const submitted = draft.capture()
+    const form = submitted.value
+    const expectedId = expectedEntityId.value
+    if (!query.data.value?.identity.slug) await api.post('/personal/slug', { expected_entity_id: expectedId, slug: form.slug.trim() })
+    if (!draft.isCurrent(submitted)) return submitted
     await api.post('/personal/profile', {
-      expected_entity_id: expectedEntityId.value,
+      expected_entity_id: expectedId,
       name: form.name.trim(), avatar: form.avatar || null, description: form.description || null,
       intro_image: form.intro_image || null, intro_video: form.intro_video || null,
       introduction_markdown: form.introduction_markdown || null,
     })
+    return submitted
   },
-  onSuccess: async () => { editor.value?.clearDraft(); await query.refetch(); feedback.success('个人资料已保存') },
+  onSuccess: async submitted => { if (!draft.accept(submitted)) return; if (!draft.dirty.value) editor.value?.clearDraft(); await query.refetch(); if (!draft.isCurrent(submitted) || draft.dirty.value) return; feedback.success('个人资料已保存') },
 })
 const saveFields = useMutation({
-  mutationFn: (values: Record<number, unknown>) => api.post('/personal/fields', { expected_entity_id: expectedEntityId.value, values }),
-  onSuccess: async () => { await query.refetch(); feedback.success('对象字段已保存') },
+  mutationFn: async (values: Record<number, unknown>) => {
+    const submitted = draft.capture()
+    await api.post('/personal/fields', { expected_entity_id: expectedEntityId.value, values })
+    return submitted
+  },
+  onSuccess: async submitted => {
+    if (!draft.isCurrent(submitted)) return
+ await query.refetch(); if (!draft.isCurrent(submitted)) return; feedback.success('对象字段已保存') },
 })
 const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item => item.role).filter((item): item is RoleRecord => Boolean(item)))
 </script>
@@ -118,9 +137,9 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
           <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" draft-key="personal-profile" id-prefix="personal-profile" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" />
         </LsPanel>
         <LsInlineError v-if="saveProfile.isError.value" :message="friendlyError(saveProfile.error.value)" />
-        <LsFormActions><LsButton type="submit" :loading="saveProfile.isPending.value" :disabled="uploading || !form.name.trim() || (!query.data.value.identity.slug && !form.slug.trim())">保存资料</LsButton></LsFormActions>
+        <LsFormActions><LsButton type="submit" :loading="saveProfile.isPending.value" :disabled="!draft.dirty.value || uploading || !form.name.trim() || (!query.data.value.identity.slug && !form.slug.trim())">保存资料</LsButton></LsFormActions>
       </form>
-      <EntityFieldsCard v-if="section === 'fields'" :fields="query.data.value.custom_fields" :stored-values="query.data.value.custom_field_values" mode="self" :saving="saveFields.isPending.value" :error="saveFields.error.value" :upload-disabled-reason="uploadDisabledReason" @save="saveFields.mutate" />
+      <EntityFieldsCard v-if="section === 'fields'" :fields="query.data.value.custom_fields" :stored-values="query.data.value.custom_field_values" mode="self" :saving="saveFields.isPending.value" :error="saveFields.error.value" :upload-disabled-reason="uploadDisabledReason" :key="draftKey()" :success="saveFields.isSuccess.value" @dirty="fieldsDirty = $event" @save="saveFields.mutate" />
       <EntityPermissionsCard v-else-if="section === 'access'" :assignments="query.data.value.role_assignments" :roles="roles" :effective-permissions="query.data.value.effective_permissions" />
       </template>
     </template>

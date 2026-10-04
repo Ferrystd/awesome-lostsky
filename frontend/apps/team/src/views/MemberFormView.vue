@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { identityUrl } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -59,6 +61,10 @@ const form = reactive({
   intro_video: '',
   introduction_markdown: '',
 })
+const fillJoinForm = ref(false)
+const joinValues = ref<Record<string, FieldValue>>({})
+const draftKey = () => teamDraftScope('MemberFormView', id.value)
+const draft = useQueryDraft({ key: draftKey, read: () => ({ ...form, fillJoinForm: fillJoinForm.value, joinValues: joinValues.value }), apply: ({ fillJoinForm: fill, joinValues: values, ...value }) => { Object.assign(form, value); fillJoinForm.value = fill; joinValues.value = values } })
 const profileModel = computed({
   get: () => form,
   set: (value) => Object.assign(form, value),
@@ -68,7 +74,8 @@ const identityForm = reactive({
   slug: '',
   search_override: 'inherit' as 'inherit' | '0' | '1',
 })
-const profileSnapshot = ref('')
+const slugDraft = useQueryDraft({ key: draftKey, read: () => identityForm.slug, apply: value => { identityForm.slug = value } })
+const searchDraft = useQueryDraft({ key: draftKey, read: () => identityForm.search_override, apply: value => { identityForm.search_override = value } })
 const fieldsDirty = ref(false)
 const rolesDirty = ref(false)
 
@@ -93,8 +100,6 @@ const capabilities = computed<MemberCapabilities>(() => ({
 const canEditProfile = computed(() => !editing.value || capabilities.value.member_edit)
 const canInvite = computed(() => hasPermission(access.data.value, 'team.member.invite'))
 const validJoinCode = computed(() => /^[A-F0-9]{20}$/i.test(form.join_code.trim()))
-const fillJoinForm = ref(false)
-const joinValues = ref<Record<string, FieldValue>>({})
 const joinForm = useQuery({
   queryKey: ['member-join-form'],
   queryFn: () => api.get<{ fields: JoinField[]; file_upload: FileUploadAvailability }>('/member/joinForm'),
@@ -160,31 +165,32 @@ const rolesWithPermissions = useQuery({
   enabled: computed(() => editing.value && capabilities.value.role_read && Boolean(roles.data.value?.length)),
 })
 
-function profileState() {
-  return JSON.stringify(form)
-}
-const profileDirty = computed(() => Boolean(profileSnapshot.value) && profileState() !== profileSnapshot.value)
-const hasUnsavedChanges = computed(() => (!editing.value && Boolean(form.join_code || fillJoinForm.value || Object.keys(joinValues.value).length) && !save.isSuccess.value) || profileDirty.value || fieldsDirty.value || rolesDirty.value)
+const profileDirty = draft.dirty
+const hasUnsavedChanges = computed(() => (!editing.value && Boolean(form.join_code || fillJoinForm.value || Object.keys(joinValues.value).length)) || profileDirty.value || slugDraft.dirty.value || searchDraft.dirty.value || fieldsDirty.value || rolesDirty.value)
 
 watch(
   () => detail.data.value,
   (data) => {
     if (!data) return
-    form.nickname = String(data.nickname ?? '')
-    form.avatar = String(data.avatar ?? '')
-    form.description = String(data.description ?? '')
-    form.intro_image = String(data.intro_image ?? '')
-    form.intro_video = String(data.intro_video ?? '')
-    form.introduction_markdown = String(data.introduction_markdown ?? '')
-    identityForm.slug = String(data.slug ?? '')
-    identityForm.search_override = data.search_override == null ? 'inherit' : (String(Number(data.search_override)) as '0' | '1')
-    profileSnapshot.value = profileState()
+    const next = { ...form, fillJoinForm: fillJoinForm.value, joinValues: joinValues.value }
+    next.nickname = String(data.nickname ?? '')
+    next.avatar = String(data.avatar ?? '')
+    next.description = String(data.description ?? '')
+    next.intro_image = String(data.intro_image ?? '')
+    next.intro_video = String(data.intro_video ?? '')
+    next.introduction_markdown = String(data.introduction_markdown ?? '')
+    slugDraft.hydrate(String(data.slug ?? ''))
+    searchDraft.hydrate(data.search_override == null ? 'inherit' : (String(Number(data.search_override)) as '0' | '1'))
+    draft.hydrate(next)
   },
   { immediate: true },
 )
 
 const save = useMutation({
-  mutationFn: () =>
+  mutationFn: async () => {
+    const submitted = draft.capture()
+    const form = submitted.value
+    await (
     api.post(editing.value ? '/member/edit' : '/member/add', editing.value ? {
       member_id: id.value,
       nickname: form.nickname.trim(),
@@ -193,66 +199,104 @@ const save = useMutation({
       intro_image: form.intro_image || null,
       intro_video: form.intro_video || null,
       introduction_markdown: form.introduction_markdown || null,
-    } : { join_code: form.join_code.trim().toUpperCase(), ...(fillJoinForm.value ? { join_form: { values: { ...joinValues.value } } } : {}) }),
-  onSuccess: async () => {
-    editor.value?.clearDraft()
-    if (!editing.value) {
+    } : { join_code: form.join_code.trim().toUpperCase(), ...(form.fillJoinForm ? { join_form: { values: form.joinValues } } : {}) })
+    )
+    return submitted
+  },
+  onSuccess: async submitted => {
+    if (!draft.accept(submitted)) return
+    if (!draft.dirty.value) editor.value?.clearDraft()
+    if (!editing.value && !draft.dirty.value) {
       form.join_code = ''
       fillJoinForm.value = false
       joinValues.value = {}
+      draft.reset()
     }
-    profileSnapshot.value = profileState()
     await queryClient.invalidateQueries({ queryKey: ['members'] })
+    if (!draft.isCurrent(submitted) || draft.dirty.value) return
     feedback.success(editing.value ? '成员资料已保存' : '成员已添加')
-    await router.push('/members')
+    if (!hasUnsavedChanges.value) await router.push('/members')
   },
   onError: (error) => feedback.error(friendlyError(error)),
 })
 const claim = useMutation({
-  mutationFn: () =>
+  mutationFn: async () => {
+    const submitted = slugDraft.capture()
+    await
     api.post<{ slug: string }>('/member/slug', {
       member_id: id.value,
-      slug: identityForm.slug.trim(),
-    }),
-  onSuccess: async () => {
+      slug: submitted.value.trim(),
+    })
+    return submitted
+  },
+  onSuccess: async submitted => {
+    if (!slugDraft.accept(submitted)) return
     await detail.refetch()
+    if (!slugDraft.isCurrent(submitted) || slugDraft.dirty.value) return
     feedback.success('对象标识已确认')
   },
   onError: (error) => feedback.error(friendlyError(error)),
 })
 const saveSearch = useMutation({
-  mutationFn: () =>
+  mutationFn: async () => {
+    const submitted = searchDraft.capture()
+    await
     api.post('/member/search', {
       member_id: id.value,
-      search_override: identityForm.search_override === 'inherit' ? null : Number(identityForm.search_override),
-    }),
-  onSuccess: async () => {
+      search_override: submitted.value === 'inherit' ? null : Number(submitted.value),
+    })
+    return submitted
+  },
+  onSuccess: async submitted => {
+    if (!searchDraft.accept(submitted)) return
     await detail.refetch()
+    if (!searchDraft.isCurrent(submitted) || searchDraft.dirty.value) return
     feedback.success('成员搜索设置已保存')
   },
   onError: (error) => feedback.error(friendlyError(error)),
 })
 const saveFields = useMutation({
-  mutationFn: (values: Record<number, unknown>) => api.post('/entityField/values', { slug: memberSlug.value, values }),
-  onSuccess: async () => {
+  mutationFn: async (values: Record<number, unknown>) => {
+    const submitted = draft.capture()
+    await api.post('/entityField/values', { slug: memberSlug.value, values })
+    return submitted
+  },
+  onSuccess: async submitted => {
+    if (!draft.isCurrent(submitted)) return
+
     await fieldValues.refetch()
+    if (!draft.isCurrent(submitted)) return
     feedback.success('对象字段已保存')
   },
   onError: (error) => feedback.error(friendlyError(error)),
 })
 const saveRoles = useMutation({
-  mutationFn: (role_ids: number[]) => api.post('/entityRole/save', { slug: memberSlug.value, role_ids }),
-  onSuccess: async () => {
+  mutationFn: async (role_ids: number[]) => {
+    const submitted = draft.capture()
+    await api.post('/entityRole/save', { slug: memberSlug.value, role_ids })
+    return submitted
+  },
+  onSuccess: async submitted => {
+    if (!draft.isCurrent(submitted)) return
+
     await roleAssignments.refetch()
+    if (!draft.isCurrent(submitted)) return
     feedback.success('角色分配已保存')
   },
   onError: (error) => feedback.error(friendlyError(error)),
 })
 const memberAction = useMutation({
-  mutationFn: (endpoint: string) => api.post(endpoint, { member_id: id.value }),
-  onSuccess: async (_, endpoint) => {
+  mutationFn: async (endpoint: string) => {
+    const submitted = draft.capture()
+    await api.post(endpoint, { member_id: id.value })
+    return submitted
+  },
+  onSuccess: async (submitted, endpoint) => {
+    if (!draft.isCurrent(submitted)) return
     await queryClient.invalidateQueries({ queryKey: ['members'] })
+    if (!draft.isCurrent(submitted)) return
     await detail.refetch()
+    if (!draft.isCurrent(submitted)) return
     feedback.success(endpoint === '/memberDeparture/depart' ? '成员已离职' : endpoint === '/member/block' ? '成员已封禁' : '成员封禁已解除')
   },
   onError: (error) => feedback.error(friendlyError(error)),
@@ -275,20 +319,21 @@ function switchIdentity() {
 
 function setFieldsDirty(value: boolean) {
   fieldsDirty.value = value
-  if (value) saveFields.reset()
+  if (value && !saveFields.isPending.value) saveFields.reset()
 }
 
 function setRolesDirty(value: boolean) {
   rolesDirty.value = value
-  if (value) saveRoles.reset()
+  if (value && !saveRoles.isPending.value) saveRoles.reset()
 }
 
-useUnsavedChangesGuard(hasUnsavedChanges)
+useUnsavedChangesGuard(hasUnsavedChanges, { shouldConfirm: teamDraftNavigationChanged })
 
 const submitReason = computed(() => {
   if (editing.value ? !canEditProfile.value : !canInvite.value) return permissionReason(editing.value ? 'team.member.update' : 'team.member.invite')
   if (save.isPending.value) return '正在保存成员，请稍候'
   if (uploading.value) return '文件正在上传，请稍候'
+  if (editing.value && !draft.dirty.value) return '没有未保存的成员资料修改'
   if (editing.value) return form.nickname.trim() ? '' : '请填写成员昵称'
   if (!form.join_code.trim()) return '请填写个人入队码'
   if (!validJoinCode.value) return '请填写有效的 20 位个人入队码'
@@ -375,7 +420,7 @@ function submit() {
       ></LsPanel>
     </form>
 
-    <EntityFieldsCard v-if="editing && capabilities.field_manage && memberSlug" :fields="fields.data.value ?? []" :stored-values="fieldValues.data.value ?? []" mode="manager" :loading="fields.isPending.value || fieldValues.isPending.value" :saving="saveFields.isPending.value" :upload-disabled-reason="uploadDisabledReason" :error="fields.error.value || fieldValues.error.value" :success="saveFields.isSuccess.value" @save="saveFields.mutate" @dirty="setFieldsDirty" />
+    <EntityFieldsCard :key="`${draftKey()}:fields`" v-if="editing && capabilities.field_manage && memberSlug" :fields="fields.data.value ?? []" :stored-values="fieldValues.data.value ?? []" mode="manager" :loading="fields.isPending.value || fieldValues.isPending.value" :saving="saveFields.isPending.value" :upload-disabled-reason="uploadDisabledReason" :error="fields.error.value || fieldValues.error.value" :success="saveFields.isSuccess.value" @save="saveFields.mutate" @dirty="setFieldsDirty" />
     <LsPanel v-else-if="editing && !capabilities.field_manage">
       <LsSectionHeader title="对象字段" description="按当前团队配置维护该成员的对象字段。" />
       <LsDescriptionList
@@ -384,7 +429,7 @@ function submit() {
       >
     </LsPanel>
 
-    <EntityPermissionsCard v-if="editing && capabilities.role_read && memberSlug" :assignments="roleAssignments.data.value ?? []" :roles="rolesWithPermissions.data.value ?? roles.data.value ?? []" :catalog="permissionCatalog.data.value?.groups ?? []" :advanced-catalog="permissionCatalog.data.value?.advanced_items ?? []" :can-edit="capabilities.role_write" :edit-reason="permissionReason('team.role.write')" :loading="roles.isPending.value || (Boolean(roles.data.value?.length) && rolesWithPermissions.isPending.value) || roleAssignments.isPending.value || permissionCatalog.isPending.value" :saving="saveRoles.isPending.value" :error="roles.error.value || rolesWithPermissions.error.value || roleAssignments.error.value || permissionCatalog.error.value" :success="saveRoles.isSuccess.value" @save="saveRoles.mutate" @dirty="setRolesDirty" />
+    <EntityPermissionsCard :key="`${draftKey()}:roles`" v-if="editing && capabilities.role_read && memberSlug" :assignments="roleAssignments.data.value ?? []" :roles="rolesWithPermissions.data.value ?? roles.data.value ?? []" :catalog="permissionCatalog.data.value?.groups ?? []" :advanced-catalog="permissionCatalog.data.value?.advanced_items ?? []" :can-edit="capabilities.role_write" :edit-reason="permissionReason('team.role.write')" :loading="roles.isPending.value || (Boolean(roles.data.value?.length) && rolesWithPermissions.isPending.value) || roleAssignments.isPending.value || permissionCatalog.isPending.value" :saving="saveRoles.isPending.value" :error="roles.error.value || rolesWithPermissions.error.value || roleAssignments.error.value || permissionCatalog.error.value" :success="saveRoles.isSuccess.value" @save="saveRoles.mutate" @dirty="setRolesDirty" />
     <LsEmptyState :source="roles.data.value" :access-reason="permissionReason('team.role.read')" v-else-if="editing && !capabilities.role_read" title="暂无角色与权限" description="当前没有角色数据。" />
 
     <section v-if="editing && !memberSlug && (capabilities.field_manage || capabilities.role_read)" class="identity-required" role="status">

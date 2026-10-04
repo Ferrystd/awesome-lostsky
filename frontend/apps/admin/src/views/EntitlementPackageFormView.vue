@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { api, friendlyError } from "@lostsky/api/client";
+import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
+import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
+
+import { api, auth, friendlyError } from "@lostsky/api/client";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsField from "@lostsky/ui/components/LsField.vue";
 import LsFormList from "@lostsky/ui/components/LsFormList.vue";
@@ -49,11 +52,13 @@ const detail = useQuery({
   queryFn: () => routeAccess.read(() => api.get<any>(`/entitlements/packages/${id.value}`)),
   enabled: computed(() => editing.value && !routeAccess.restricted.value),
 });
+const draft = useQueryDraft({ key: () => `${location.host}:${JSON.stringify(auth.entity())}:${id.value}`, read: () => ({ ...form }), apply: value => Object.assign(form, value) });
+useUnsavedChangesGuard(draft.dirty, { shouldConfirm: (to, from) => to.path !== from.path });
 watch(
   () => detail.data.value,
   (d) => {
     if (d)
-      Object.assign(form, {
+      draft.hydrate({
         name: d.name,
         is_active: d.is_active,
         abilities: (d.abilities ?? []).map((a: any) => ({
@@ -75,15 +80,16 @@ const levels = (key: string | null) =>
     value: v,
   }));
 const save = useMutation({
-  mutationFn: () =>
-    api.post<{ id: number }>(
+  mutationFn: async () => {
+    const submitted = draft.capture();
+    const data = await api.post<{ id: number }>(
       editing.value
         ? `/entitlements/packages/${id.value}`
         : "/entitlements/packages",
       {
-        name: form.name,
-        is_active: form.is_active,
-        abilities: form.abilities.map(
+        name: submitted.value.name,
+        is_active: submitted.value.is_active,
+        abilities: submitted.value.abilities.map(
           ({ ability_key, level, duration_days }) => ({
             ability_key,
             level,
@@ -91,10 +97,13 @@ const save = useMutation({
           }),
         ),
       },
-    ),
-  onSuccess: (data) => {
+    )
+    return { data, submitted };
+  },
+  onSuccess: ({ data, submitted }) => {
+    if (!draft.accept(submitted)) return;
     feedback.success("Ability 权益包已保存");
-    router.push(`/entitlements/packages/${data.id}`);
+    if (!draft.dirty.value) void router.push(`/entitlements/packages/${data.id}`);
   },
   onError: (e) => feedback.error(friendlyError(e)),
 });
@@ -168,7 +177,7 @@ const valid = computed(() =>
           >取消</LsButton
         ><LsButton
           type="submit"
-          :disabled="routeAccess.restricted.value || !valid || !can('admin.entitlement.write')"
+          :disabled="routeAccess.restricted.value || !valid || !can('admin.entitlement.write') || !draft.dirty.value"
           :disabled-reason="
             routeAccess.reason.value || (!can('admin.entitlement.write')
               ? permissionReason('admin.entitlement.write')

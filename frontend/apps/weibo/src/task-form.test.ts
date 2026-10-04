@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const source = readFileSync(new URL('./views/TaskFormView.vue', import.meta.url), 'utf8')
+const source = readFileSync(new URL('./views/TaskFormView.vue', import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 
 describe('微博任务表单', () => {
   it('与其他后台表单复用同一分区、字段和操作契约', () => {
@@ -26,7 +26,7 @@ describe('微博任务表单', () => {
     expect(source).toContain('<NRadioButton value="Checkin">每日签到</NRadioButton>')
     expect(source).toContain('<LsField v-if="!isCheckin" label="正文"')
     expect(source).toContain('<MediaPreparation\n          v-if="!isCheckin"')
-    expect(source).toContain('min_interval: isCheckin.value ? 86400 : min.value')
-    expect(source).toContain('max_interval: isCheckin.value ? 86400 : max.value')
+    expect(source).toContain('min_interval: isCheckin.value ? 86400 : submitted.value.min')
+    expect(source).toContain('max_interval: isCheckin.value ? 86400 : submitted.value.max')
   })
 })
