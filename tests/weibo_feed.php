@@ -50,6 +50,19 @@ $assert(count($parsed) === 2, 'long posts without complete text are skipped');
 $assert(($parsed[0]['text'] ?? '') === '完整求单正文', 'embedded complete long text is preferred');
 $assert(($parsed[1]['text'] ?? '') === '转发人的外层文字', 'repost classification uses only outer author text');
 
+// Numeric scores remain valid without casts; validation must still reject strings and nonfinite values.
+$classifyBatch = new ReflectionMethod(WeiboFeedPoller::class, 'classifyBatch');
+foreach ([0, 1, 0.9] as $score) {
+    $numericClassifier = new WeiboFeedPoller(null, static fn(array $items): array => $classifierResponse($items, 0.9, ['predictions' => [['id' => 'fixture-id', 'score' => $score]]]));
+    $result = $classifyBatch->invoke($numericClassifier, [['id' => 'fixture-id', 'text' => 'fixture']]);
+    $assert($result['fixture-id'] == $score, 'classifier accepts validated integer and floating scores');
+}
+foreach (['0.9', NAN, INF, -1, 2] as $score) {
+    $invalidClassifier = new WeiboFeedPoller(null, static fn(array $items): array => $classifierResponse($items, 0.9, ['predictions' => [['id' => 'fixture-id', 'score' => $score]]]));
+    try { $classifyBatch->invoke($invalidClassifier, [['id' => 'fixture-id', 'text' => 'fixture']]); $failures[] = 'classifier accepted invalid numeric score'; }
+    catch (RuntimeException $exception) { $assert($exception->getMessage() === '本地分类服务分数超出 0..1', 'classifier rejects invalid numeric scores at its boundary'); }
+}
+
 $reflection = new ReflectionMethod(WeiboFeed::class, 'preview');
 $preview = $reflection->invoke(new WeiboFeed, '联系 @seller 看 https://weibo.com/secret 找我点单');
 $assert(!str_contains($preview, 'http') && !str_contains($preview, '@seller') && mb_strlen($preview) < 15, 'restricted preview removes reconstructable links and mentions');

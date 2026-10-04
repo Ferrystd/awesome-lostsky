@@ -104,7 +104,7 @@ final class WeiboFeedPoller
                 $items = [];
                 foreach ($batch as $post) {
                     $items[] = [
-                        'id' => (string) $post->id,
+                        'id' => $this->identifier($post->id),
                         'text' => $this->requiredString($post->text, '微博信息流正文必须为字符串'),
                     ];
                 }
@@ -126,7 +126,7 @@ final class WeiboFeedPoller
             }
             foreach ($batch as $post) {
                 if (!is_int($post->classification_attempts)) throw new \RuntimeException('微博信息流分类次数必须为整数');
-                $score = $results[(string) $post->id];
+                $score = $results[$this->identifier($post->id)];
                 $attempts = $post->classification_attempts + 1;
                 try {
                     $post->save([
@@ -243,7 +243,7 @@ final class WeiboFeedPoller
             throw new \RuntimeException('本地分类服务模型身份不匹配');
         }
         $threshold = $payload['threshold'] ?? null;
-        if ((!is_float($threshold) && !is_int($threshold)) || abs((float) $threshold - $this->floatConfig('intent_threshold')) > 0.000000001) {
+        if ((!is_float($threshold) && !is_int($threshold)) || abs($threshold - $this->floatConfig('intent_threshold')) > 0.000000001) {
             throw new \RuntimeException('本地分类服务阈值不匹配');
         }
         $predictions = $payload['predictions'] ?? null;
@@ -255,10 +255,10 @@ final class WeiboFeedPoller
                 throw new \RuntimeException('本地分类服务预测 ID 无效');
             }
             $score = $prediction['score'] ?? null;
-            if ((!is_float($score) && !is_int($score)) || !is_finite((float) $score) || $score < 0 || $score > 1) {
+            if ((!is_float($score) && !is_int($score)) || !is_finite($score) || $score < 0 || $score > 1) {
                 throw new \RuntimeException('本地分类服务分数超出 0..1');
             }
-            $results[$prediction['id']] = (float) $score;
+            $results[$prediction['id']] = $score;
         }
         if (count($results) !== count($expected)) throw new \RuntimeException('本地分类服务预测 ID 不完整');
         return $results;
