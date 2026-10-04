@@ -115,6 +115,46 @@ async function mockApi(page: Page, failOverview = false, failMedia = false, perm
   }
 }
 
+for (const personal of [false, true]) {
+  for (const result of [
+    { status: 'Succeeded', remote_message: null, reason: null, type: 'success', message: '微博已发布' },
+    { status: 'Failed', remote_message: '登录已失效，请重新登录', reason: 'invalid_session', type: 'error', message: '登录已失效，请重新登录' },
+    { status: 'Failed', remote_message: null, reason: 'account_invalid', type: 'error', message: 'account_invalid' },
+    { status: 'Failed', remote_message: null, reason: null, type: 'error', message: '发帖未完成，请检查账号和执行日志' },
+    { status: 'Unknown', remote_message: null, reason: null, type: 'warning', message: '发帖结果尚未确认，请先查看微博或执行日志，避免重复发送' },
+    { status: 'Dispatching', remote_message: null, reason: null, type: 'warning', message: '发帖正在处理，请先查看执行日志，避免重复发送' },
+  ]) {
+    if (personal && result.reason !== 'invalid_session') continue
+    test(`post result feedback ${personal ? 'personal' : 'team'} ${result.status} ${result.reason || result.type}`, async ({ page }) => {
+      await authenticate(page)
+      await mockApi(page, false, false, ['weibo.team.manage', 'weibo.personal.use'])
+      await page.route('**/api/workspace/access', route => route.fulfill({ json: { code: 0, data: {
+        permissions: ['weibo.team.manage', 'weibo.personal.use'],
+        abilities: { weibo: { enabled: true, label: '微博' } },
+        identity: { entity_id: 11, name: '青空成员', type: 'teamMember', belongs_to_team: true, is_external: false },
+        entry_warning: { required: false, kind: null, ttl_seconds: 86400 },
+      } } }))
+      const writes: unknown[] = []
+      await page.route(personal ? '**/api/personal/posts' : '**/api/posts', async route => {
+        writes.push(route.request().postDataJSON())
+        expect(new URL(route.request().url()).pathname).toBe(personal ? '/api/personal/posts' : '/api/posts')
+        await route.fulfill({ status: 200, json: { code: 0, data: { id: 42, operation_type: 'Post', source: 'Manual', ...result } } })
+      })
+      await page.goto(`http://demo.weibo.lostsky.work:5181/${personal ? 'personal/' : ''}compose`)
+      await page.locator('#weibo-account').click()
+      await page.locator('.n-base-select-option').filter({ hasText: '青空微博' }).click()
+      await page.locator('#weibo-topic input').fill('测试超话')
+      await page.locator('#weibo-content textarea').fill('保留的发帖正文')
+      await page.locator('form button[type="submit"]').click()
+      await expect(page.locator(`.n-message--${result.type}-type`)).toContainText(result.message)
+      if (result.status !== 'Succeeded') await expect(page.locator('.n-message--success-type')).toHaveCount(0)
+      expect(writes).toEqual([{ account_id: 1, topic: '测试超话', content: '保留的发帖正文', media_ids: [], ...(personal ? { expected_entity_id: 11 } : {}) }])
+      await expect(page.locator('#weibo-content textarea')).toHaveValue('保留的发帖正文')
+      await expect(page.locator('form button[type="submit"]')).toBeEnabled()
+    })
+  }
+}
+
 test('missing Permission keeps entries open and degrades target pages without requests', async ({ page }) => {
   await authenticate(page)
   const requests = await mockApi(page, false, false, [])

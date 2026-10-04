@@ -15,7 +15,7 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { apiPrefix, expectedEntity, loadAccess } from '../lib/workspace'
 import MediaPreparation from '../components/MediaPreparation.vue'
-import type { WeiboAccount } from '../types'
+import type { WeiboAccount, WeiboOperation } from '../types'
 
 const route = useRoute()
 const personal = computed(() => route.meta.workspace === 'personal')
@@ -47,8 +47,10 @@ async function submit() {
   pending.value = true
   try {
     const entity = expectedEntity(access.data.value, personal.value)
-    await api.post(`${prefix.value}/posts`, { account_id: accountId.value, topic: topic.value, content: content.value, media_ids: mediaIds.value, ...entity })
-    feedback.success('已完成一次远程操作')
+    const result = await api.post<WeiboOperation>(`${prefix.value}/posts`, { account_id: accountId.value, topic: topic.value, content: content.value, media_ids: mediaIds.value, ...entity })
+    if (result.status === 'Succeeded') feedback.success('微博已发布')
+    else if (result.status === 'Failed') feedback.error(result.remote_message || result.reason || '发帖未完成，请检查账号和执行日志')
+    else feedback.warning(result.status === 'Unknown' ? '发帖结果尚未确认，请先查看微博或执行日志，避免重复发送' : '发帖正在处理，请先查看执行日志，避免重复发送')
   } catch (error) {
     feedback.error(friendlyError(error))
   } finally {
