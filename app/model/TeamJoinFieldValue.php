@@ -23,16 +23,16 @@ class TeamJoinFieldValue extends Base
 
         'application_id' => 'integer',
         'field_id'       => 'integer',
+        'value_json' => 'string',
         'value_string'   => 'string',
         'value_text'     => 'string',
         'value_int'      => 'integer',
         'value_decimal'  => 'float',
         'value_datetime' => 'integer',
-        'value_json'     => 'string',
     ];
 
     /** JSON 字段 */
-    protected $json = ['value_json'];
+    protected $json = [];
 
     /** 输出隐藏 */
     protected $hidden = ['delete_time'];
@@ -92,15 +92,14 @@ class TeamJoinFieldValue extends Base
         return strtotime((string) $value);
     }
 
-    public function setValueJsonAttr($value)
+    // ThinkORM Json 会包装字符串并将 false/0 变为 []；此列需要保留 JSON 标量。
+    public function setValueJsonAttr(mixed $value): ?string
     {
-        if ($value === null || $value === '') {
-            return null;
-        }
-        if (is_array($value)) {
-            return $value;
-        }
+        return $value === null ? null : json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    }
 
-        return json_decode((string) $value, true);
+    public function getValueJsonAttr(mixed $value): mixed
+    {
+        return $value === null ? null : json_decode($value, true, 512, JSON_THROW_ON_ERROR);
     }
 }

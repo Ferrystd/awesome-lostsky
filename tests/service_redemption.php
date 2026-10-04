@@ -54,6 +54,10 @@ use think\App;
 use think\exception\HttpException;
 
 (new App(dirname(__DIR__)))->initialize();
+$grantKey = static function (): string {
+    $hex = bin2hex(random_bytes(16));
+    return substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-' . substr($hex, 12, 4) . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20);
+};
 $failures = [];
 $assert = static function (bool $condition, string $case) use (&$failures): void {
     if (!$condition) $failures[] = $case;
@@ -763,7 +767,7 @@ try {
     );
     $orderCount = TeamOrder::where('team_id', $team->id)->count();
     $transactionCount = TeamTransaction::where('team_id', $team->id)->count();
-    $manualGrant = app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerA->id, [
+    $manualGrant = app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerA->id, ['idempotency_key' => $grantKey(),
         'product_id' => $productId,
         'customer_id' => (int) $customer->id,
         'quantity' => 2,
@@ -787,7 +791,7 @@ try {
     $externalDefaultGrant = app(ManualEntitlementGrant::class)->grant(
         (int) $team->id,
         (int) $foreignTeamEntity->id,
-        [
+        ['idempotency_key' => $grantKey(),
             'product_id' => $productId,
             'customer_id' => (int) $customer->id,
             'quantity' => 1,
@@ -822,7 +826,7 @@ try {
             && !in_array((int) $customer->id, array_map(static fn (array $row): int => (int) $row['id'], $foreignOptions['customers']), true),
         'personal grant options expose only customers served by the current sender entity'
     );
-    $personalGrant = app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerA->id, [
+    $personalGrant = app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerA->id, ['idempotency_key' => $grantKey(),
         'product_id' => $productId,
         'customer_id' => (int) $customer->id,
         'quantity' => 1,
@@ -864,7 +868,7 @@ try {
         'personal entitlement history supports product search without exposing another sender records'
     );
     $throws(
-        fn () => app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerB->id, [
+        fn () => app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerB->id, ['idempotency_key' => $grantKey(),
             'product_id' => $productId,
             'customer_id' => (int) $customer->id,
             'quantity' => 1,
@@ -874,7 +878,7 @@ try {
     );
 
     app(TeamSetting::class)->set((int) $team->id, 'shop', 'sync_manual_entitlement_transaction', true);
-    $syncedGrant = app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerA->id, [
+    $syncedGrant = app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerA->id, ['idempotency_key' => $grantKey(),
         'product_id' => $productId,
         'customer_id' => (int) $customer->id,
         'quantity' => 1,
@@ -972,7 +976,6 @@ try {
         'name' => '独立服务卡',
         'claim_group' => '',
         'mode' => (int) RedemptionMode::Unique->value,
-        'per_target_limit' => 1,
         'redeem_starts_at' => 0,
         'redeem_ends_at' => 0,
         'is_active' => 1,
@@ -1003,7 +1006,6 @@ try {
         'name' => '团队免费月',
         'claim_group' => 'free-month-test',
         'mode' => (int) RedemptionMode::Campaign->value,
-        'per_target_limit' => 1,
         'redeem_starts_at' => 0,
         'redeem_ends_at' => 0,
         'is_active' => 1,

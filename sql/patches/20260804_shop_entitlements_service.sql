@@ -54,7 +54,7 @@ CREATE TABLE `benefit_package_service` (
 CREATE TABLE `redemption_campaign` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT, `package_id` INT UNSIGNED NOT NULL, `issuer_team_id` INT UNSIGNED NULL,
   `name` VARCHAR(100) NOT NULL DEFAULT '', `claim_group` VARCHAR(100) NOT NULL DEFAULT '', `mode` TINYINT NOT NULL DEFAULT 1,
-  `total_limit` INT UNSIGNED NULL, `per_target_limit` INT UNSIGNED NOT NULL DEFAULT 1,
+  `total_limit` INT UNSIGNED NULL,
   `redeem_starts_at` INT UNSIGNED NOT NULL DEFAULT 0, `redeem_ends_at` INT UNSIGNED NOT NULL DEFAULT 0,
   `is_active` TINYINT NOT NULL DEFAULT 1, `create_time` INT UNSIGNED NOT NULL DEFAULT 0,
   `update_time` INT UNSIGNED NOT NULL DEFAULT 0, `delete_time` INT UNSIGNED NULL,

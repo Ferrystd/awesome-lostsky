@@ -441,7 +441,6 @@ final class EntitlementManagement
         $values = [
             'issuer_team_id' => $issuerTeamId, 'package_id' => $packageId, 'name' => $name,
             'total_limit' => ($data['total_limit'] ?? null) === null || $data['total_limit'] === '' ? null : max(1, (int) $data['total_limit']),
-            'per_target_limit' => max(1, (int) ($data['per_target_limit'] ?? 1)),
             'redeem_starts_at' => $starts, 'redeem_ends_at' => $ends,
             'is_active' => (int) ($data['is_active'] ?? 1) === 1 ? 1 : 0,
         ];

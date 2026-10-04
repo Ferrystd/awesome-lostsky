@@ -386,3 +386,7 @@ php think version
 
 按既有数据库升级顺序完成 `20260921_service_auto_complete.sql`，随后依次执行 `sql/patches/20261004_service_completion_confirmation.sql` 与 `sql/patches/20261004_unused_service_settlement.sql`。新补丁可重复执行；确认新增 `completion_requested_at`、权益未使用时限及期限、`settlement_kind`，并检查自动确认索引引用请求时间。部署后旧处理中任务的请求时间保持空，不能把旧 `started_at` 回填成请求时间；旧权益未使用时限为空，不追溯启动惩罚结单。两种规则均由现有 `php think system:cleanup` 调度执行，分别检查 `autoCompletion` 与 `unusedCompletion` 的 completed/failed。先确认目标库，备份后执行补丁；上线复核顾客拒绝/确认入口与商品两项时限同时发布。
 - 出现跨域错误时，先确认请求已进入 ThinkPHP，而不是由 Nginx 提前返回；边界说明见 [CORS 文档](../architecture/cors.md)。
+
+## 2026-10-05 手动发放幂等与领取配置
+
+协调更新后端与静态前端，并执行可重复补丁 `sql/patches/20261005_manual_grant_idempotency.sql`；确认目标库后核验旧 `redemption_campaign.per_target_limit` 列已删除，新账本的 JSON 结果列、团队/全局 Entity 外键及团队/操作者/UUID 唯一约束存在。新接口缺少 UUID 返回 422；旧客户端必须与后端同步更新。账本不自动清理，历史领取和权益记录保留。

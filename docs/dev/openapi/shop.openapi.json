@@ -1381,10 +1381,6 @@
             "minimum": 1,
             "nullable": true
           },
-          "per_target_limit": {
-            "type": "integer",
-            "minimum": 1
-          },
           "redeem_starts_at": {
             "type": "integer",
             "minimum": 0

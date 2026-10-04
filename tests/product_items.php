@@ -9,6 +9,10 @@ use app\service\BenefitPackagePricing;
 use think\exception\HttpException;
 
 (new App(dirname(__DIR__)))->initialize();
+$grantKey = static function (): string {
+    $hex = bin2hex(random_bytes(16));
+    return substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-' . substr($hex, 12, 4) . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20);
+};
 $db = app()->db;
 $checks = 0;
 $check = static function (bool $ok, string $message) use (&$checks): void {
@@ -163,12 +167,12 @@ try {
     $options = $manual->options((int) $team->id, $actor, (int) $teamEntity->id);
     $check(in_array($ownId, array_column($options['products'], 'id'), true), 'Redeemable product appears in direct grant options');
     $ordersBeforeGrant = \app\model\TeamOrder::count();
-    $granted = $manual->grant((int) $team->id, (int) $teamEntity->id, ['product_id' => $ownId, 'customer_id' => $customer->id, 'quantity' => 1]);
+    $granted = $manual->grant((int) $team->id, (int) $teamEntity->id, ['idempotency_key' => $grantKey(), 'product_id' => $ownId, 'customer_id' => $customer->id, 'quantity' => 1]);
     $manualEntitlement = \app\model\TeamServiceEntitlement::find($granted['entitlement_ids'][0]);
     $check($manualEntitlement->granted_quantity === '2.5000' && $manualEntitlement->total_price === '22.00', 'Direct grant uses current redeemable quota and exact price');
     $check(\app\model\TeamOrder::count() === $ordersBeforeGrant, 'Direct grant does not create a shop order');
     $rejected = false;
-    try { $manual->grant((int) $team->id, (int) $teamEntity->id, ['product_id' => $product->id, 'customer_id' => $customer->id]); }
+    try { $manual->grant((int) $team->id, (int) $teamEntity->id, ['idempotency_key' => $grantKey(), 'product_id' => $product->id, 'customer_id' => $customer->id]); }
     catch (HttpException $error) { $rejected = $error->getStatusCode() === 422; }
     $check($rejected, 'Ordinary product cannot be granted as redeemable entitlement');
     $bundleId = $personal->create((int) $team->id, $actor, (int) $teamEntity->id, [
@@ -186,14 +190,14 @@ try {
     }
     $entitlementsBeforeMixedGrant = \app\model\TeamServiceEntitlement::count();
     $rejected = false;
-    try { $manual->grant((int) $team->id, (int) $teamEntity->id, ['product_id' => $bundleId, 'customer_id' => $customer->id]); }
+    try { $manual->grant((int) $team->id, (int) $teamEntity->id, ['idempotency_key' => $grantKey(), 'product_id' => $bundleId, 'customer_id' => $customer->id]); }
     catch (HttpException $error) { $rejected = $error->getStatusCode() === 422 && str_contains($error->getMessage(), '通过订单交付'); }
     $check($rejected && \app\model\TeamServiceEntitlement::count() === $entitlementsBeforeMixedGrant, 'Mixed manual grant rejects atomically without turning ordinary products into entitlements');
     $grantBundleId = $personal->create((int) $team->id, $actor, (int) $teamEntity->id, [
         'name' => 'Redeemable grant bundle', 'kind' => 2, 'cover_image' => '/fixture.webp',
         'items' => [['product_id' => $ownId, 'quantity' => 2]],
     ]);
-    $bundleGrant = $manual->grant((int) $team->id, (int) $teamEntity->id, ['product_id' => $grantBundleId, 'customer_id' => $customer->id, 'quantity' => 2]);
+    $bundleGrant = $manual->grant((int) $team->id, (int) $teamEntity->id, ['idempotency_key' => $grantKey(), 'product_id' => $grantBundleId, 'customer_id' => $customer->id, 'quantity' => 2]);
     $check(count($bundleGrant['entitlement_ids']) === 4, 'Manual grant expands redeemable children and bundle copies');
     foreach ($bundleGrant['entitlement_ids'] as $entitlementId) {
         $issued = \app\model\TeamServiceEntitlement::find($entitlementId);

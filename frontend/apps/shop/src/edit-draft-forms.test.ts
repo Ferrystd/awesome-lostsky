@@ -53,7 +53,7 @@ function setup(kind: 'Campaign' | 'Package', copy = false) {
   const scope = Vue.effectScope()
   const state = scope.run(() => module.exports.default.setup({}, { expose: () => {} }))
   const row = (id: number, name: string) => kind === 'Campaign'
-    ? { id, name, package_id: 1, claim_group: 'group', mode: 1, total_limit: null, per_target_limit: 1, redeem_starts_at: 0, redeem_ends_at: 0, is_active: 1 }
+    ? { id, name, package_id: 1, claim_group: 'group', mode: 1, total_limit: null, redeem_starts_at: 0, redeem_ends_at: 0, is_active: 1 }
     : { id, name, pricing_mode: 2, is_active: 1, services: [{ id: 3, service_id: 2, quantity: 1, valid_days: 30, unit_price: '1', unit_cost: '0', unit_handler_cut: '0', unit_sender_cut: '0', unit_cs_cut: '0' }] }
   return { state, route, records, access, row, pushed, sent, finish: (id = 1) => finishSave?.({ id }), stop: () => scope.stop() }
 }
@@ -88,6 +88,7 @@ describe.each(['Campaign', 'Package'] as const)('%s real setup query draft', kin
     page.finish()
     await save
     expect(page.sent[0].name).toBe('提交值')
+    if (kind === 'Campaign') expect(page.sent[0]).not.toHaveProperty('per_target_limit')
     expect(page.state.form.name).toBe('请求期间输入')
     expect(page.state.draft.dirty.value).toBe(true)
     expect(page.pushed).toEqual([])

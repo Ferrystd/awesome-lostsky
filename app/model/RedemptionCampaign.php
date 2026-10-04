@@ -25,7 +25,6 @@ class RedemptionCampaign extends Base
         'name' => 'string',
         'claim_group' => 'string',
         'mode' => 'integer',
-        'per_target_limit' => 'integer',
         'redeem_starts_at' => 'integer',
         'redeem_ends_at' => 'integer',
         'is_active' => 'integer',

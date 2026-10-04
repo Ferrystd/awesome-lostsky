@@ -1765,7 +1765,6 @@ export interface components {
             /** @enum {integer} */
             mode: 1 | 2 | 3;
             total_limit?: number | null;
-            per_target_limit?: number;
             redeem_starts_at?: number;
             redeem_ends_at?: number;
             /**

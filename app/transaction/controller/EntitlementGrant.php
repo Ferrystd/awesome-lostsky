@@ -69,6 +69,8 @@ final class EntitlementGrant
             $request->post(),
             $personal
         );
+        $replayed = $result['_replayed'];
+        unset($result['_replayed']);
         app(\app\service\BusinessAudit::class)->record(
             $request,
             'transaction',
@@ -77,6 +79,8 @@ final class EntitlementGrant
             (int) ($result['entitlement_ids'][0] ?? 0),
             [
                 'changed_fields' => ['product_id', 'customer_id', 'quantity', 'sender_entity_id', 'cs_entity_id'],
+                'changed' => !$replayed,
+                'replayed' => $replayed,
                 'entitlement_ids' => $result['entitlement_ids'],
                 'transaction_id' => $result['transaction_id'],
             ]

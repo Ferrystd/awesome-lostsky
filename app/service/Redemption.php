@@ -185,7 +185,8 @@ class Redemption
             ? "{$scope}:{$targetType}:{$targetId}"
             : "code:{$code->id}";
         if (RedemptionClaim::where('claim_key', $claimKey)->find()) throw new HttpException(409, '该权益已经领取');
-        if ($campaign->total_limit !== null && RedemptionClaim::where('campaign_id', $campaign->id)->count() >= (int) $campaign->total_limit) {
+        // 在已有 RR 快照的事务内也必须读取最新领取记录；活动行锁负责串行化。
+        if ($campaign->total_limit !== null && RedemptionClaim::where('campaign_id', $campaign->id)->lock(true)->count() >= (int) $campaign->total_limit) {
             throw new HttpException(409, '活动领取名额已用完');
         }
         if ($code->max_uses !== null && (int) $code->use_count >= (int) $code->max_uses) throw new HttpException(409, '卡密已用完');

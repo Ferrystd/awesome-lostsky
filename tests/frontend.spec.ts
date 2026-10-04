@@ -3753,6 +3753,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
       quantity: 1,
       sender_entity_id: 11,
       cs_entity_id: null,
+      idempotency_key: expect.stringMatching(/^[0-9a-f-]{36}$/i),
     })
   await expect(page.locator('.grant-result')).toContainText('未创建商城订单；未同步流水')
   await page.goto('http://demo.transaction.lostsky.work:5177/personal')
@@ -3781,6 +3782,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
       customer_id: 8,
       quantity: 1,
       cs_entity_id: null,
+      idempotency_key: expect.stringMatching(/^[0-9a-f-]{36}$/i),
     })
   await expect(page.locator('.grant-result')).toContainText('未创建商城订单；未同步流水')
   for (const width of [320, 375, 768, 1024, 1440]) {

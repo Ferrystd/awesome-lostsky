@@ -29,7 +29,7 @@ const management = computed(() => entitlementManagement(scope.value))
 const personal = computed(() => management.value.personal)
 const access = useQuery({ queryKey: ['shop-manage-access'], queryFn: () => loadManageAccess() })
 const expectedEntityId = computed(() => access.data.value?.identity?.entity_id ?? 0)
-const form = reactive({ name: '', package_id: null as number | null, claim_group: '', mode: 1, total_limit: null as number | null, per_target_limit: 1, range: null as [number, number] | null, is_active: 1 })
+const form = reactive({ name: '', package_id: null as number | null, claim_group: '', mode: 1, total_limit: null as number | null, range: null as [number, number] | null, is_active: 1 })
 const draft = useQueryDraft({
   key: () => `${access.data.value?.team?.id ?? 0}:${expectedEntityId.value}:${scope.value}:campaign:${id.value}`,
   read: () => ({ ...form }),
@@ -44,7 +44,6 @@ watch([() => detail.data.value, expectedEntityId, () => access.data.value?.team?
   draft.hydrate({
     name: data.name, package_id: data.package_id, claim_group: data.claim_group,
     mode: Number(data.mode), total_limit: data.total_limit ?? null,
-    per_target_limit: data.per_target_limit,
     range: data.redeem_starts_at || data.redeem_ends_at ? [data.redeem_starts_at * 1000, data.redeem_ends_at * 1000] : null,
     is_active: data.is_active,
   })
@@ -67,7 +66,7 @@ const save = useMutation({
     const form = submission.value
     const data = await management.value.saveCampaign(editing.value ? id.value : null, {
     name: form.name, package_id: form.package_id, claim_group: form.claim_group || undefined,
-    mode: form.mode, total_limit: form.total_limit, per_target_limit: form.per_target_limit,
+    mode: form.mode, total_limit: form.total_limit,
     redeem_starts_at: form.range ? Math.floor(form.range[0] / 1000) : 0,
     redeem_ends_at: form.range ? Math.floor(form.range[1] / 1000) : 0,
     is_active: form.is_active,
@@ -113,7 +112,6 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id))
         <LsField label="领取互斥组" for-id="campaign-group" hint="留空时由服务端生成；公共活动可用相同组限制每个主体一次。"><NInput id="campaign-group" v-model:value="form.claim_group" :disabled="editing" maxlength="100" /></LsField>
         <LsField label="领取时间" for-id="campaign-range"><NDatePicker id="campaign-range" v-model:value="form.range" type="datetimerange" clearable /></LsField>
         <LsField label="总领取上限" for-id="campaign-limit" hint="留空表示不限"><NInputNumber id="campaign-limit" v-model:value="form.total_limit" :min="1" clearable /></LsField>
-        <LsField label="每个主体上限" for-id="campaign-target-limit"><NInputNumber id="campaign-target-limit" v-model:value="form.per_target_limit" :min="1" /></LsField>
         <LsSwitchField id="campaign-active" :model-value="form.is_active === 1" label="启用状态" description="停用后不能继续领取新的卡密权益。" @update:model-value="value => form.is_active = value ? 1 : 0" />
       </LsFormSection>
       <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />

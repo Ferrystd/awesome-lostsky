@@ -137,6 +137,11 @@ final class ManualEntitlementGrant
 
     public function grant(int $teamId, int $actorEntityId, array $data, bool $personal = false): array
     {
+        $key = $data['idempotency_key'] ?? null;
+        if (!is_string($key) || !preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iD', $key)) {
+            throw new HttpException(422, '幂等键必须为 UUID');
+        }
+        $key = strtolower($key);
         $productId = (int) ($data['product_id'] ?? 0);
         $customerId = (int) ($data['customer_id'] ?? 0);
         $quantity = (int) ($data['quantity'] ?? 1);
@@ -147,7 +152,28 @@ final class ManualEntitlementGrant
             throw new HttpException(422, '赋予份数必须在 1 到 999 之间');
         }
 
-        return \think\facade\Db::transaction(function () use ($teamId, $actorEntityId, $data, $productId, $customerId, $quantity, $personal) {
+        $requestHash = hash('sha256', json_encode([
+            'personal' => $personal, 'product_id' => $productId, 'customer_id' => $customerId,
+            'quantity' => $quantity, 'sender_entity_id' => $personal ? $actorEntityId : (int) ($data['sender_entity_id'] ?? 0),
+            'cs_entity_id' => (int) ($data['cs_entity_id'] ?? 0),
+        ], JSON_THROW_ON_ERROR));
+        return \think\facade\Db::transaction(function () use ($teamId, $actorEntityId, $data, $productId, $customerId, $quantity, $personal, $key, $requestHash) {
+            $db = \think\facade\Db::class;
+            $table = $db::name('manual_entitlement_grant_operation')->getTable();
+            $now = time();
+            // 唯一键冲突等待首个事务；事务失败时占位和业务数据一起回滚。
+            $db::execute("INSERT INTO `{$table}` (team_id, actor_entity_id, idempotency_key, request_hash, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE id=id", [$teamId, $actorEntityId, $key, $requestHash, $now, $now]);
+            $operation = \app\model\ManualEntitlementGrantOperation::where('team_id', $teamId)
+                ->where('actor_entity_id', $actorEntityId)->where('idempotency_key', $key)->lock(true)->find();
+            if (!hash_equals($operation->request_hash, $requestHash)) {
+                throw new HttpException(409, '幂等键已经用于不同的发放参数');
+            }
+            if ($operation->result !== null) {
+                if ($personal && !$this->servesCustomer($teamId, $actorEntityId, app(CustomerAssignment::class)->customer($teamId, $customerId, true))) {
+                    throw new HttpException(403, '只能为当前 Entity 接待的顾客赋予权益');
+                }
+                return $operation->result + ['_replayed' => true];
+            }
             $product = TeamProduct::where('team_id', $teamId)->lock(true)->find($productId);
             if (!$product || !(bool) $product->is_active || !in_array($product->enumCase('kind'), [ProductKind::ServiceBundle, ProductKind::Redeemable], true)) {
                 throw new HttpException(422, '服务套餐商品不存在或已停用');
@@ -203,12 +229,14 @@ final class ManualEntitlementGrant
                 ]);
             }
 
-            return [
+            $result = [
                 'entitlement_ids' => $entitlementIds,
                 'entitlement_count' => count($entitlementIds),
                 'transaction_id' => $transactionId,
                 'order_id' => null,
             ];
+            $operation->save(['result' => $result]);
+            return $result + ['_replayed' => false];
         });
     }
 

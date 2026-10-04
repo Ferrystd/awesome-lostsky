@@ -14,6 +14,7 @@ class TeamEntityFieldValue extends Base
         'delete_time' => 'integer',
         'team_id'        => 'integer',
         'field_id'       => 'integer',
+        'value_json' => 'string',
         'entity_id'      => 'integer',
         // 'value_string'   => 'null|string',
         // 'value_text'     => 'null|string',
@@ -23,7 +24,7 @@ class TeamEntityFieldValue extends Base
         // 'value_json'     => 'null|json',
     ];
 
-    protected $json = ['value_json'];
+    protected $json = [];
     protected $hidden = ['delete_time'];
     protected $append = [];
     protected $readonly = ['team_id', 'field_id', 'entity_id'];
@@ -36,5 +37,15 @@ class TeamEntityFieldValue extends Base
     public function subject()
     {
         return $this->belongsTo(Entity::class, 'entity_id');
+    }
+    // ThinkORM Json 会包装字符串并将 false/0 变为 []；此列需要保留 JSON 标量。
+    public function setValueJsonAttr(mixed $value): ?string
+    {
+        return $value === null ? null : json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    }
+
+    public function getValueJsonAttr(mixed $value): mixed
+    {
+        return $value === null ? null : json_decode($value, true, 512, JSON_THROW_ON_ERROR);
     }
 }

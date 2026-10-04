@@ -26,7 +26,6 @@ class TeamJoinField extends Base
         'name'                     => 'string',
         'value_type'               => 'string',
         'input_type'               => 'string',
-        'options'                  => 'string',
         'default_value'            => 'string',
         'is_apply_fillable'        => 'integer',
         'is_apply_required'        => 'integer',

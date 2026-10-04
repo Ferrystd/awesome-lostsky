@@ -525,7 +525,7 @@ class TeamJoin
                 $rawValue = $field->default_value;
             }
 
-            [, , $data] = $this->valueData($field->value_type, $rawValue);
+            $data = $this->normalizedFieldValue($field, $rawValue);
             $value = new TeamJoinFieldValue;
             $value->save(array_merge([
                 'application_id' => $applicationId,
@@ -571,41 +571,27 @@ class TeamJoin
                 'field_id' => (int) $entityField->id,
                 'entity_id' => $entityId,
                 'delete_time' => null,
-            ], $this->valuePayload($entityField->value_type, $this->rawValue($field->value_type, $value))));
+            ], $this->normalizedFieldValue($entityField, $this->rawValue($field->value_type, $value), true, $field->value_type === 'json')));
         }
     }
 
-    private function valueData(string $type, $value): array
+    private function normalizedFieldValue($field, mixed $value, bool $target = false, bool $decodedJson = false): array
     {
-        $data = [
-            'value_string' => null,
-            'value_text' => null,
-            'value_int' => null,
-            'value_decimal' => null,
-            'value_datetime' => null,
-            'value_json' => null,
-        ];
-
-        [$column, $scene] = match ($type) {
-            'text' => ['value_text', 'value_text'],
-            'int' => ['value_int', 'value_int'],
-            'bool' => ['value_int', 'value_bool'],
-            'decimal' => ['value_decimal', 'value_decimal'],
-            'date', 'datetime' => ['value_datetime', 'value_datetime'],
-            'multi_select' => ['value_json', 'value_array'],
-            'json' => ['value_json', 'value_json'],
-            default => ['value_string', 'value_string'],
-        };
-        $data[$column] = $value;
-
-        return [$column, $scene, $data];
-    }
-
-    private function valuePayload(string $type, $value): array
-    {
-        [, , $data] = $this->valueData($type, $value);
-
-        return $data;
+        $normalizer = app(TeamEntityField::class);
+        if ($target && $field->is_required && $normalizer->emptyValue($value)) {
+            throw new HttpException(422, "字段 {$field->name} 不能为空");
+        }
+        try {
+            // 转存读取到的是已解码 JSON；重新编码避免把 JSON 字符串标量当成 JSON 源码。
+            if ($decodedJson && $field->value_type === 'json' && $value !== null) $value = json_encode($value, JSON_THROW_ON_ERROR);
+            $payload = $normalizer->normalizeValue($field->value_type, $value, $field->options ?? []);
+            if ($target && $field->is_required && !array_filter($payload, fn ($item) => !$normalizer->emptyValue($item))) {
+                throw new HttpException(422, '不能为空');
+            }
+            return $payload;
+        } catch (HttpException $exception) {
+            throw new HttpException(422, "字段 {$field->name}：{$exception->getMessage()}", $exception);
+        }
     }
 
     private function rawValue(string $type, TeamJoinFieldValue $value)

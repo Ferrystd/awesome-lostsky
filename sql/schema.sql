@@ -378,7 +378,6 @@ CREATE TABLE `redemption_campaign` (
     `claim_group`      VARCHAR(100) NOT NULL DEFAULT '' COMMENT '领取互斥组',
     `mode`             TINYINT      NOT NULL DEFAULT 1 COMMENT '1-独立卡 2-公共活动码 3-定向卡',
     `total_limit`      INT UNSIGNED NULL DEFAULT NULL COMMENT '活动领取总上限 NULL=不限',
-    `per_target_limit` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '每受益主体领取上限',
     `redeem_starts_at` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '领取开始时间 0=不限',
     `redeem_ends_at`   INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '领取结束时间 0=不限',
     `is_active`        TINYINT      NOT NULL DEFAULT 1 COMMENT '是否启用',
@@ -1774,3 +1773,19 @@ ALTER TABLE `weibo_task_account` ADD CONSTRAINT `fk_weibo_task_account_task` FOR
 ALTER TABLE `weibo_task_media` ADD CONSTRAINT `fk_weibo_task_media_task` FOREIGN KEY (`task_id`) REFERENCES `weibo_task` (`id`), ADD CONSTRAINT `fk_weibo_task_media_media` FOREIGN KEY (`media_id`) REFERENCES `weibo_media` (`id`);
 ALTER TABLE `weibo_operation_log` ADD CONSTRAINT `fk_weibo_operation_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_weibo_operation_owner` FOREIGN KEY (`owner_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_weibo_operation_actor` FOREIGN KEY (`actor_entity_id`) REFERENCES `entity` (`id`), ADD CONSTRAINT `fk_weibo_operation_account` FOREIGN KEY (`account_id`) REFERENCES `weibo_account` (`id`), ADD CONSTRAINT `fk_weibo_operation_task` FOREIGN KEY (`task_id`) REFERENCES `weibo_task` (`id`);
 ALTER TABLE `weibo_comment_preset` ADD CONSTRAINT `fk_weibo_preset_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`), ADD CONSTRAINT `fk_weibo_preset_entity` FOREIGN KEY (`entity_id`) REFERENCES `entity` (`id`);
+
+CREATE TABLE IF NOT EXISTS `manual_entitlement_grant_operation` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `team_id` INT UNSIGNED NOT NULL COMMENT '目标团队',
+    `actor_entity_id` INT UNSIGNED NOT NULL COMMENT '当前全局 Entity',
+    `idempotency_key` CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '业务提交 UUID',
+    `request_hash` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '规范化业务请求 SHA256',
+    `result` JSON NULL COMMENT '成功结果；NULL 仅存在于未提交事务',
+    `create_time` INT UNSIGNED NOT NULL,
+    `update_time` INT UNSIGNED NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_manual_grant_operation` (`team_id`, `actor_entity_id`, `idempotency_key`),
+    KEY `idx_manual_grant_actor` (`actor_entity_id`),
+    CONSTRAINT `fk_manual_grant_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`),
+    CONSTRAINT `fk_manual_grant_actor` FOREIGN KEY (`actor_entity_id`) REFERENCES `entity` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='手动发放持久幂等账本，无自动清理';

@@ -1281,6 +1281,11 @@ export interface components {
             sync_transaction: boolean;
         };
         ManualEntitlementGrantRequest: {
+            /**
+             * Format: uuid
+             * @description 同一次业务提交和超时重试使用同一UUID；同键同参数返回首次结果，同键异参数返回409。
+             */
+            idempotency_key: string;
             /** Format: int64 */
             product_id: number;
             /** Format: int64 */
@@ -1977,7 +1982,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description 商品、客户、份数或业务 Entity 无效 */
+            /** @description 幂等键已经用于不同的业务参数 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 商品、客户、份数、业务 Entity 或幂等键无效 */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2073,7 +2085,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description 商品、客户、份数或业务 Entity 无效 */
+            /** @description 幂等键已经用于不同的业务参数 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 商品、客户、份数、业务 Entity 或幂等键无效 */
             422: {
                 headers: {
                     [name: string]: unknown;

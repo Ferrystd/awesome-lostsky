@@ -236,7 +236,7 @@ export interface ManagePackage extends ManageOwnedResource {
   id: number; name: string; pricing_mode: 1 | 2 | '历史均摊' | '分项计价'; is_active: 0 | 1
   is_pricing_locked?: boolean; pricing_summary?: ManagePricingSummary | null; services?: ManagePackageService[]; abilities?: ManageAbilityItem[]
 }
-export interface ManageCampaign extends ManageOwnedResource { id: number; package_id: number; name: string; claim_group: string; mode: 1 | 2 | 3; total_limit?: number | null; per_target_limit: number; redeem_starts_at: number; redeem_ends_at: number; is_active: 0 | 1; package?: ManagePackage | null }
+export interface ManageCampaign extends ManageOwnedResource { id: number; package_id: number; name: string; claim_group: string; mode: 1 | 2 | 3; total_limit?: number | null; redeem_starts_at: number; redeem_ends_at: number; is_active: 0 | 1; package?: ManagePackage | null }
 export interface ManageCode { id: number; campaign_id: number; code_hint: string; use_count: number; max_uses?: number | null; expire_time: number; is_active: 0 | 1; create_time: number }
 export interface ManageCustomerOption { id: number; nickname?: string; name?: string; is_blocked: 0 | 1; balance?: Balance | null }
 export interface ManageServiceDefaults {

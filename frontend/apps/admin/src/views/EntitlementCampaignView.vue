@@ -39,7 +39,6 @@ const form = reactive({
   claim_group: "",
   mode: 2,
   total_limit: null as number | null,
-  per_target_limit: 1,
   range: null as [number, number] | null,
   is_active: 1,
 });
@@ -66,7 +65,6 @@ watch(
         claim_group: d.claim_group,
         mode: Number(d.mode),
         total_limit: d.total_limit ?? null,
-        per_target_limit: d.per_target_limit,
         range:
           d.redeem_starts_at || d.redeem_ends_at
             ? [d.redeem_starts_at * 1000, d.redeem_ends_at * 1000]
@@ -96,7 +94,6 @@ const save = useMutation({
         claim_group: submitted.value.claim_group || undefined,
         mode: submitted.value.mode,
         total_limit: submitted.value.total_limit,
-        per_target_limit: submitted.value.per_target_limit,
         redeem_starts_at: submitted.value.range ? Math.floor(submitted.value.range[0] / 1000) : 0,
         redeem_ends_at: submitted.value.range ? Math.floor(submitted.value.range[1] / 1000) : 0,
         is_active: submitted.value.is_active,
