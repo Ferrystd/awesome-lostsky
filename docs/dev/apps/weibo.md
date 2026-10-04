@@ -60,4 +60,6 @@ Weibo 是团队上下文的微博账号、点单信息流、自动发帖与每�
 
 任务开启/恢复和下一周期安排在同一短事务内更新任务并插入业务数据库 `jobs`，入队失败整体回滚；微博队列固定使用 `database` 连接且其 `connection` 为 `null`，与业务 ORM 共享事务。Worker 在账号检查后、领取 `dispatching` 时及远端写请求前复核 Active、version 和 plannedAt；阻塞与下一周期更新也使用这三个条件，旧 Worker 不覆盖暂停、取消或恢复后的调度。网络请求始终在事务外；暂停无法撤回已发起请求，也不承诺消除最后复核到请求发起之间的瞬时竞态。
 
-`php think weibo:tasks-recover` 为 Active 但缺失对应 Job 的任务补投，包含历史入队缺口；保留原 task/version/plannedAt 和 dispatch key，已有待执行或已领取 Job 不重复投递。已有 `dispatching` 的重投只转为 unknown 并推进下一周期，不重复远端写入。部署后及定时恢复安排见[Weibo Worker](../operations/deployment.md#weibo-database-worker)。
+Worker 使用业务数据库 MySQL 会话级执行锁，按数据库与 task ID 互斥，覆盖账号检查、远端写入、结果回写与下一周期安排，跨版本和周期生效。获取锁后重新读取任务；队列重投遇到仍持锁的执行体只延迟 30 秒，不修改日志、推进周期或发送通知。连接必须为单主库、非持久 PDO 且禁用断线重连；原生 PDO 获取/释放锁，正常结束或异常退出时释放，进程死亡由数据库在会话关闭后释放。网络请求仍在事务外。
+
+`php think weibo:tasks-recover` 为 Active 但缺失对应 Job 的任务补投，包含历史入队缺口；保留原 task/version/plannedAt 和 dispatch key，已有待执行或已领取 Job 不重复投递。取得执行锁后发现已有 `dispatching` 才按失联恢复为 unknown，并推进下一周期，同一 dispatch key 不重复远端写入。Unknown 通知为“结果未确认”，只有明确 Failed 才通知“执行失败”。执行锁保证本地执行体不并发；原执行体死亡前远端已收到的请求仍可能在远端继续处理，不能保证跨周期内容绝不重复。部署后及定时恢复安排见[Weibo Worker](../operations/deployment.md#weibo-database-worker)。

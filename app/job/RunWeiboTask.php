@@ -31,6 +31,49 @@ final class RunWeiboTask
         $version = $data['version'] ?? null;
         $plannedAt = $data['planned_at'] ?? null;
         if (!is_int($taskId) || !is_int($version) || !is_int($plannedAt)) { $job->delete(); return; }
+        try {
+            $this->lockTask($job, $taskId, $version, $plannedAt);
+        } catch (\Throwable $exception) {
+            try {
+                \think\facade\Log::error('微博任务执行锁异常，已退避重试', ['task_id' => $taskId, 'error' => $exception->getMessage()]);
+            } catch (\Throwable) {}
+            if (!$job->isDeleted() && !$job->isReleased()) $job->release(60);
+        }
+    }
+
+    private function lockTask(Job $job, int $taskId, int $version, int $plannedAt): void
+    {
+        $connection = Db::connect();
+        // 锁必须与业务写入共享单主库会话，且不得通过重连悄悄失去锁。
+        if ($connection->getConfig('type') !== 'mysql' || $connection->getConfig('deploy') || $connection->getConfig('break_reconnect') || ($connection->getConfig('params')[\PDO::ATTR_PERSISTENT] ?? false)) {
+            throw new \RuntimeException('微博任务执行锁要求非持久、禁止断线重连的单主库 MySQL 连接');
+        }
+        $pdo = $connection->connect();
+        $lockName = 'weibo_task:' . substr(hash('sha256', $connection->getConfig('database')), 0, 16) . ':' . $taskId;
+        $acquire = $pdo->prepare('SELECT GET_LOCK(?, 0)');
+        $acquire->execute([$lockName]);
+        $acquired = $acquire->fetchColumn();
+        if (!in_array($acquired, [1, '1'], true)) {
+            if ($acquired === null || $acquired === false) throw new \RuntimeException('微博任务执行锁获取失败');
+            $job->release(30);
+            return;
+        }
+        try {
+            // 获取锁后重新读取任务；锁按 task ID 跨版本/周期保护整个执行过程。
+            $this->runLocked($job, $taskId, $version, $plannedAt);
+        } finally {
+            try {
+                $release = $pdo->prepare('SELECT RELEASE_LOCK(?)');
+                $release->execute([$lockName]);
+            } catch (\Throwable $exception) {
+                // 连接断开会由数据库释放会话锁；释放错误不能覆盖原执行异常。
+                try { \think\facade\Log::error('微博任务执行锁释放异常', ['task_id' => $taskId, 'error' => $exception->getMessage()]); } catch (\Throwable) {}
+            }
+        }
+    }
+
+    private function runLocked(Job $job, int $taskId, int $version, int $plannedAt): void
+    {
         $task = WeiboTask::find($taskId);
         if (!$task || $task->enumCase('status') !== WeiboTaskStatus::Active || $task->version !== $version || $task->next_run_at !== $plannedAt) { $job->delete(); return; }
         if (!app(AbilityResolver::class)->available($task->team_id, 'weibo')) {
@@ -41,7 +84,10 @@ final class RunWeiboTask
         $dispatchKey = "task:{$task->id}:v{$version}:at{$plannedAt}";
         $existing = WeiboOperationLog::where('dispatch_key', $dispatchKey)->find();
         if ($existing) {
-            if ($existing->enumCase('status') === WeiboExecutionStatus::Dispatching) $existing->save(['status' => WeiboExecutionStatus::Unknown->value, 'reason' => WeiboReason::Unknown->value, 'remote_message' => '执行进程在远程请求后未回写结果', 'finished_at' => time()]);
+            if ($existing->enumCase('status') === WeiboExecutionStatus::Dispatching) {
+                $existing->save(['status' => WeiboExecutionStatus::Unknown->value, 'reason' => WeiboReason::Unknown->value, 'remote_message' => '执行进程在远程请求后未回写结果', 'finished_at' => time()]);
+                $this->notifyUnknown($task, $existing->id);
+            }
             $this->scheduleNext($task);
             $job->delete(); return;
         }
@@ -101,9 +147,16 @@ final class RunWeiboTask
             if ($exception->getStatusCode() !== 409) throw $exception;
             $job->delete(); return;
         }
-        if ($result['status'] !== WeiboExecutionStatus::Succeeded->name) app(Notice::class)->sendOnce($task->team_id, '微博任务执行失败', "原因：" . ($result['reason'] ?? WeiboReason::Unknown->name) . '。任务将继续下一周期。', "weibo:operation:{$result['id']}:failed");
+        if ($result['status'] === WeiboExecutionStatus::Dispatching->name) { $job->release(30); return; }
+        if ($result['status'] === WeiboExecutionStatus::Unknown->name) $this->notifyUnknown($task, $result['id']);
+        if ($result['status'] === WeiboExecutionStatus::Failed->name) app(Notice::class)->sendOnce($task->team_id, '微博任务执行失败', "原因：" . ($result['reason'] ?? WeiboReason::Unknown->name) . '。任务将继续下一周期。', "weibo:operation:{$result['id']}:failed");
         $this->scheduleNext($task);
         $job->delete();
+    }
+
+    private function notifyUnknown(WeiboTask $task, int|string $operationId): void
+    {
+        app(Notice::class)->sendOnce($task->team_id, '微博任务结果未确认', '本周期远端执行结果无法确认，请查看微博账号核对；本周期不会自动重发，任务将继续下一周期。', "weibo:operation:{$operationId}:unknown");
     }
 
     private function scheduleNext(WeiboTask $task): void
