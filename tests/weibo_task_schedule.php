@@ -10,8 +10,8 @@ use think\App;
 
 (new App(dirname(__DIR__)))->initialize();
 
-$errors = [];
-$assert = static function (bool $condition, string $message) use (&$errors): void { if (!$condition) $errors[] = $message; };
+$errors = []; $assertions = 0;
+$assert = static function (bool $condition, string $message) use (&$errors, &$assertions): void { $assertions++; if (!$condition) $errors[] = $message; };
 
 final class FakeWeiboProtocol extends WeiboProtocol
 {
@@ -71,7 +71,9 @@ try {
     $tasksService = app(\app\service\WeiboTasks::class);
     $worker = new \app\job\RunWeiboTask;
     $jobFactory = static fn() => new class extends \think\queue\Job {
+        public array $releases = [];
         public function __construct() {}
+        public function release($delay = 0) { $this->releases[] = $delay; parent::release($delay); }
         public function getJobId() { return 'weibo-fixture'; }
         public function attempts() { return 1; }
         public function getRawBody() { return '{}'; }
@@ -139,11 +141,12 @@ try {
         if (count($fake->calls) === 2) $tableProperty->setValue($queue, 'missing_weibo_queue_fixture');
     };
     app()->instance(WeiboProtocol::class, $fake);
-    try { $worker->fire($jobFactory(), $data); $errors[] = 'next schedule queue failure must throw'; }
-    catch (\Throwable $exception) {}
+    $failedJob = $jobFactory();
+    try { $worker->fire($failedJob, $data); }
     finally { $tableProperty->setValue($queue, $queueTable); }
     $task->refresh();
     $assert($task->next_run_at === $data['planned_at'], 'failed next enqueue rolls back planned time');
+    $assert($failedJob->releases === [60], 'failed next enqueue safely backs off');
     $before = count($fake->calls);
     $worker->fire($jobFactory(), $data);
     $assert(count($fake->calls) === $before, 'retry after scheduling failure must not repeat remote write');
@@ -159,6 +162,89 @@ try {
     $log->save(['dispatch_key' => "task:{$task->id}:v{$task->version}:at{$task->next_run_at}", 'team_id' => $team->id, 'task_id' => $task->id, 'task_version' => $task->version, 'operation_type' => 1, 'source' => \app\enum\WeiboOperationSource::Schedule->value, 'status' => \app\enum\WeiboExecutionStatus::Dispatching->value, 'started_at' => time()]);
     $worker->fire($jobFactory(), $data);
     $assert($log->refresh()->enumCase('status') === \app\enum\WeiboExecutionStatus::Unknown && count($fake->calls) === $before, 'recovered dispatching becomes unknown without another remote write');
+    // A task referencing a deleted (unbound) account must block, not spin forever.
+    // Each fixture cycle needs a distinct planned time even when executed in the same second.
+    $task->refresh(); $task->save(['next_run_at' => time() - 10]); $data = $payload($task);
+    $staleBinding = \app\model\WeiboAccountBinding::where('team_id', $team->id)->where('account_id', $account->id)->find();
+    $staleBinding->delete();
+    $spinProtocol = new FakeWeiboProtocol;
+    app()->instance(WeiboProtocol::class, $spinProtocol);
+    $worker->fire($jobFactory(), $data);
+    $task->refresh();
+    $assert($task->enumCase('status') === \app\enum\WeiboTaskStatus::BlockedLogin && $task->block_reason === 'all_accounts_invalid' && $task->version === $data['version'] + 1, 'task whose candidates are all unbound blocks as invalid login instead of dispatching');
+    $assert(!$spinProtocol->calls && !\app\model\WeiboOperationLog::where('dispatch_key', "task:{$task->id}:v{$data['version']}:at{$data['planned_at']}")->find(), 'unbound-only selection performs no remote call and writes no dispatch log');
+    // Unbinding an account must immediately block the active tasks that only reference it through this binding.
+    $binding = \app\model\WeiboAccountBinding::withTrashed()->where('team_id', $team->id)->where('account_id', $account->id)->find();
+    $binding->restore();
+    $tasksService->transition($team->id, $entity->id, $task->id, true, 'resume');
+    $task->refresh();
+    $versionBeforeUnbind = $task->version;
+    app(\app\service\WeiboAccounts::class)->unbind($team->id, $entity->id, (int) $binding->id, true);
+    $task->refresh();
+    $assert(\app\model\WeiboAccountBinding::withTrashed()->find($binding->id)->delete_time !== null, 'unbind deletes the binding');
+    $assert($task->enumCase('status') === \app\enum\WeiboTaskStatus::BlockedLogin && $task->block_reason === 'account_unbound' && $task->version === $versionBeforeUnbind + 1 && !$task->next_run_at, 'unbind immediately blocks the referencing active task with account_unbound');
+    $assert(!\think\facade\Db::name($queueTable)->where('queue', \app\service\WeiboTasks::QUEUE)
+        ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(payload, '$.data.task_id')) = ?", [$task->id])
+        ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(payload, '$.data.version')) = ?", [$task->version])->find(), 'unbind schedules no further jobs for the blocked task');
+    // Missing credentials block only when no healthy candidate remains.
+    $binding->restore(); \think\facade\Db::name('weibo_account')->where('id', $account->id)->update(['gsid' => '']);
+    $assert(WeiboAccount::find($account->id)->getData('gsid') === '', 'fixture persists empty credential');
+    $tasksService->transition($team->id, $entity->id, $task->id, true, 'resume');
+    $task->refresh(); $data = $payload($task);
+    $invalidProtocol = new FakeWeiboProtocol; app()->instance(WeiboProtocol::class, $invalidProtocol);
+    $worker->fire($jobFactory(), $data);
+    $assert($task->refresh()->enumCase('status') === \app\enum\WeiboTaskStatus::BlockedLogin && !$invalidProtocol->calls, 'all missing-credential candidates block without remote requests');
+    \think\facade\Db::name('weibo_account')->where('id', $account->id)->update(['gsid' => 'test-only']);
+    $badAccountId = \think\facade\Db::name('weibo_account')->insertGetId(['phone' => '14' . random_int(100000000, 999999999), 'uid' => 'bad-' . $suffix, 'gsid' => '', 'from_value' => '', 'screen_name' => 'invalid fixture']);
+    (new \app\model\WeiboAccountBinding)->save(['team_id' => $team->id, 'entity_id' => $entity->id, 'account_id' => $badAccountId]);
+    (new \app\model\WeiboTaskAccount)->save(['task_id' => $task->id, 'account_id' => $badAccountId]);
+    $tasksService->transition($team->id, $entity->id, $task->id, true, 'resume');
+    $task->refresh(); $data = $payload($task);
+    $mixedProtocol = new FakeWeiboProtocol; $mixedProtocol->responses = [[['idstr' => $account->uid], 200], [['idstr' => 'mixed-fixture'], 200]];
+    app()->instance(WeiboProtocol::class, $mixedProtocol); $worker->fire($jobFactory(), $data);
+    $mixedLog = \app\model\WeiboOperationLog::where('dispatch_key', "task:{$task->id}:v{$data['version']}:at{$data['planned_at']}")->find();
+    $assert($mixedLog->enumCase('status') === \app\enum\WeiboExecutionStatus::Succeeded && $mixedLog->account_id === $account->id && count($mixedProtocol->calls) === 2, 'mixed invalid and healthy candidates use only the healthy account');
+    // Team scope accepts another binding of this account; personal scope requires its owner binding.
+    $otherEntity = new \app\model\Entity; $otherEntity->save(['entityable_type' => 'user', 'entityable_id' => $user->id, 'slug' => 'weibo-other-' . $suffix]);
+    $otherBinding = new \app\model\WeiboAccountBinding; $otherBinding->save(['team_id' => $team->id, 'entity_id' => $otherEntity->id, 'account_id' => $account->id]); $otherBinding->refresh();
+    foreach (['unknown' => '999999', 'invalid' => '21314'] as $case => $code) {
+        $tasksService->transition($team->id, $entity->id, $task->id, true, 'resume'); $task->refresh();
+        $task->save(['next_run_at' => time() - ($case === 'unknown' ? 20 : 30)]); $data = $payload($task);
+        $multiBindingProtocol = new FakeWeiboProtocol; $multiBindingProtocol->responses = [[['errno' => $code, 'errmsg' => 'fixture'], 200], [['errno' => $code, 'errmsg' => 'fixture'], 200]];
+        app()->instance(WeiboProtocol::class, $multiBindingProtocol); $worker->fire($jobFactory(), $data);
+        $assert(count($multiBindingProtocol->calls) === 1, "multiple bindings check the same {$case} account only once");
+    }
+    $tasksService->transition($team->id, $entity->id, $task->id, true, 'resume');
+    $task->refresh(); $teamVersion = $task->version;
+    app(\app\service\WeiboAccounts::class)->unbind($team->id, $entity->id, $binding->id, true);
+    $assert($task->refresh()->enumCase('status') === \app\enum\WeiboTaskStatus::Active && $task->version === $teamVersion, 'team task continues while its referenced account has another team binding');
+    $binding->restore(); $task->save(['owner_entity_id' => $entity->id]);
+    app(\app\service\WeiboAccounts::class)->unbind($team->id, $entity->id, $binding->id, false);
+    $assert($task->refresh()->enumCase('status') === \app\enum\WeiboTaskStatus::BlockedLogin && $task->block_reason === 'account_unbound', 'personal task blocks when its owner binding disappears despite another owner or other candidate');
+    $tasksService->transition($team->id, $entity->id, $task->id, false, 'resume'); $task->refresh(); $data = $payload($task);
+    $ownerProtocol = new FakeWeiboProtocol; app()->instance(WeiboProtocol::class, $ownerProtocol); $worker->fire($jobFactory(), $data);
+    $assert(!$ownerProtocol->calls && $task->refresh()->enumCase('status') === \app\enum\WeiboTaskStatus::BlockedLogin, 'personal candidate filtering never borrows another entity binding');
+    $binding->restore(); $task->save(['owner_entity_id' => null, 'status' => \app\enum\WeiboTaskStatus::Paused->value, 'next_run_at' => null]);
+    $pausedVersion = $task->version;
+    app(\app\service\WeiboAccounts::class)->unbind($team->id, $entity->id, $binding->id, true);
+    $assert($task->refresh()->enumCase('status') === \app\enum\WeiboTaskStatus::Paused && $task->version === $pausedVersion, 'unbind preserves paused task status and version');
+    // A notification failure must roll back both the binding deletion and immediate task block.
+    $binding->restore(); $otherBinding->delete();
+    $tasksService->transition($team->id, $entity->id, $task->id, true, 'resume'); $task->refresh(); $beforeFailedUnbind = $task->version;
+    $originalNotice = app(\app\service\Notice::class);
+    app()->instance(\app\service\Notice::class, new class extends \app\service\Notice {
+        public function sendOnce(int $teamId, string $title, ?string $content, string $dedupKey): array { throw new RuntimeException('fixture notice failure'); }
+    });
+    try { app(\app\service\WeiboAccounts::class)->unbind($team->id, $entity->id, $binding->id, true); $errors[] = 'unbind notice failure must throw'; }
+    catch (RuntimeException $exception) { $assert($exception->getMessage() === 'fixture notice failure', 'unbind reports notification failure'); }
+    finally { app()->instance(\app\service\Notice::class, $originalNotice); }
+    $assert(\app\model\WeiboAccountBinding::find($binding->id) !== null && $task->refresh()->enumCase('status') === \app\enum\WeiboTaskStatus::Active && $task->version === $beforeFailedUnbind, 'failed unbind notification rolls back binding deletion and task block');
+    $data = $payload($task);
+    $raceProtocol = new FakeWeiboProtocol; $raceProtocol->responses = [[['idstr' => $account->uid], 200]];
+    $raceProtocol->onRequest = static function () use ($team, $entity, $binding): void { app(\app\service\WeiboAccounts::class)->unbind($team->id, $entity->id, $binding->id, true); };
+    app()->instance(WeiboProtocol::class, $raceProtocol); $worker->fire($jobFactory(), $data);
+    $assert(count($raceProtocol->calls) === 1 && $task->refresh()->enumCase('status') === \app\enum\WeiboTaskStatus::BlockedLogin && $task->version === $data['version'] + 1, 'unbind during login check stops the stale write and preserves immediate block');
+    $assert(!\app\model\WeiboOperationLog::where('dispatch_key', "task:{$task->id}:v{$data['version']}:at{$data['planned_at']}")->find(), 'unbind before dispatch claim creates no remote operation');
 } catch (Throwable $exception) {
     fwrite(STDERR, get_class($exception) . ": " . $exception->getMessage() . " at " . $exception->getFile() . ":" . $exception->getLine() . PHP_EOL);
     $errors[] = "scheduler regression aborted";
@@ -167,4 +253,4 @@ try {
 }
 
 if ($errors) { fwrite(STDERR, implode(PHP_EOL, $errors) . PHP_EOL); exit(1); }
-echo "Weibo task concurrency and atomic queue regression tests passed\n";
+echo "Weibo task concurrency and atomic queue regression tests passed ({$assertions} assertions)\n";

@@ -10,6 +10,7 @@ use app\enum\WeiboOperationType;
 use app\enum\WeiboReason;
 use app\enum\WeiboTaskStatus;
 use app\model\WeiboAccount;
+use app\model\WeiboAccountBinding;
 use app\model\WeiboOperationLog;
 use app\model\WeiboTask;
 use app\model\WeiboTaskAccount;
@@ -81,6 +82,15 @@ final class RunWeiboTask
             app(Notice::class)->sendOnce($task->team_id, '微博任务已阻塞', '团队缺少微博 Ability，续期后请手动恢复任务。', "weibo:task:{$task->id}:blocked-ability:v{$version}");
             $job->delete(); return;
         }
+        try {
+            $this->attempt($job, $task, $version, $plannedAt);
+        } catch (\Throwable $exception) {
+            $this->retryAbnormal($job, $task, $version, $exception);
+        }
+    }
+
+    private function attempt(Job $job, WeiboTask $task, int $version, int $plannedAt): void
+    {
         $dispatchKey = "task:{$task->id}:v{$version}:at{$plannedAt}";
         $existing = WeiboOperationLog::where('dispatch_key', $dispatchKey)->find();
         if ($existing) {
@@ -104,7 +114,13 @@ final class RunWeiboTask
                 $job->delete(); return;
             }
         }
-        $ids = $this->randomize(array_map(static fn(WeiboTaskAccount $relation): int => $relation->account_id, WeiboTaskAccount::where('task_id', $task->id)->select()->all()));
+        // 只考虑仍绑定的候选账号，口径与 WeiboOperations::bound() 一致：
+        // 个人任务要求绑定到 owner，团队任务只要求团队内存在绑定。
+        $candidateIds = array_map(static fn(WeiboTaskAccount $relation): int => $relation->account_id, WeiboTaskAccount::where('task_id', $task->id)->select()->all());
+        $bindingQuery = WeiboAccountBinding::where('team_id', $task->team_id);
+        if ($task->owner_entity_id !== null) $bindingQuery->where('entity_id', $task->owner_entity_id);
+        $boundIds = array_map(static fn(WeiboAccountBinding $binding): int => $binding->account_id, $bindingQuery->select()->all());
+        $ids = $this->randomize(array_values(array_intersect($candidateIds, $boundIds)));
         $selected = null; $hasUnknown = false;
         foreach ($ids as $id) {
             $account = WeiboAccount::find($id); if (!$account) continue;
@@ -157,6 +173,23 @@ final class RunWeiboTask
     private function notifyUnknown(WeiboTask $task, int|string $operationId): void
     {
         app(Notice::class)->sendOnce($task->team_id, '微博任务结果未确认', '本周期远端执行结果无法确认，请查看微博账号核对；本周期不会自动重发，任务将继续下一周期。', "weibo:operation:{$operationId}:unknown");
+    }
+
+    /** 非预期异常以退避重试兜底并告警一次；部署参数 --tries=0 下直接重抛会让 worker 立即重弹形成热循环。 */
+    private function retryAbnormal(Job $job, WeiboTask $task, int $version, \Throwable $exception): void
+    {
+        try {
+            \think\facade\Log::error('微博任务执行异常，已退避重试', [
+                'task_id' => $task->id,
+                'version' => $version,
+                'attempts' => $job->attempts(),
+                'error' => $exception->getMessage(),
+                'thrown_at' => $exception->getFile() . ':' . $exception->getLine(),
+            ]);
+            app(Notice::class)->sendOnce($task->team_id, '微博任务执行异常', '任务调度遇到非预期异常，已自动延迟重试；若任务持续异常，请检查候选账号数据与执行日志。', "weibo:task:{$task->id}:abnormal:v{$version}");
+        } finally {
+            if (!$job->isDeleted() && !$job->isReleased()) $job->release(min(60 * 2 ** min(4, max(1, $job->attempts()) - 1), 900));
+        }
     }
 
     private function scheduleNext(WeiboTask $task): void

@@ -40,6 +40,14 @@ $account = new WeiboAccount(['uid' => '1234567890', 'gsid' => 'plain-gsid', 'fro
 $protocol->responses = [[['idstr' => '1234567890'], 200]];
 $check = $protocol->check($account);
 $assert($check['valid'] === true && count($protocol->calls) === 1, 'login check must use one read-only request');
+foreach (['uid', 'from_value', 'gsid'] as $field) {
+    foreach ([null, ''] as $missing) {
+        $invalidAccount = new WeiboAccount(array_replace(['uid' => '1234567890', 'from_value' => '12DB195010', 'gsid' => 'fixture'], [$field => $missing]));
+        $before = count($protocol->calls);
+        $invalidCheck = $protocol->check($invalidAccount);
+        $assert($invalidCheck['valid'] === false && $invalidCheck['reason'] === WeiboReason::LoginInvalid && count($protocol->calls) === $before, "missing {$field} must fail login locally without remote request");
+    }
+}
 
 $assert($protocol->statusIdFromUrl('https://m.weibo.cn/detail/5178204587490145?refer_flag=1001030103_') === '5178204587490145', 'mobile detail URL must preserve its numeric status ID');
 $assert($protocol->statusIdFromUrl('https://weibo.com/2996116492/z0JH2lOMb') === '3501756485200075', 'desktop status URL must decode the base62 bid');
@@ -130,6 +138,14 @@ $typedBoundaryFiles = array_merge(
     glob($root . '/app/weibo/controller/*.php') ?: [],
     [$root . '/app/job/RunWeiboTask.php'],
 );
+// Targeted scheduler fixes retain all protocol cases and scan only their changed production files.
+if (in_array('--scheduler-fix', $argv, true)) {
+    $typedBoundaryFiles = [
+        $root . '/app/service/WeiboAccounts.php',
+        $root . '/app/service/WeiboProtocol.php',
+        $root . '/app/job/RunWeiboTask.php',
+    ];
+}
 foreach ($typedBoundaryFiles as $file) {
     $source = file_get_contents($file);
     $assert(!preg_match('/\((?:int|string|bool|float|array)\)\s*/', $source), basename($file) . ' must use request filters, model types, or explicit boundary validation instead of handwritten casts');

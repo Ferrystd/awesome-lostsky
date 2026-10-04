@@ -42,9 +42,10 @@ try {
     app()->instance(WeiboProtocol::class, $protocol);
     $jobFactory = static fn() => new class extends \think\queue\Job {
         public array $releases = [];
+        public int $attemptCount = 1;
         public function __construct() {}
         public function getJobId() { return 'inflight-fixture'; }
-        public function attempts() { return 1; }
+        public function attempts() { return $this->attemptCount; }
         public function getRawBody() { return '{}'; }
         public function release($delay = 0) { $this->releases[] = $delay; parent::release($delay); }
     };
@@ -86,6 +87,12 @@ try {
     $job = $jobFactory(); $writes = $protocol->writes; $worker->fire($job, $data);
     $assert($job->releases === [60] && $protocol->writes === $writes && $task->refresh()->next_run_at === $data['planned_at'], 'unexpected check failure backs off without advancing or writing');
     $probeReleased();
+    $abnormalNoticeCount = TeamNotice::where('dedup_key', "weibo:task:{$task->id}:abnormal:v{$task->version}")->count();
+    foreach ([2 => 120, 5 => 900, PHP_INT_MAX => 900] as $attempts => $delay) {
+        $job = $jobFactory(); $job->attemptCount = $attempts; $worker->fire($job, $data);
+        $assert($job->releases === [$delay], 'unexpected errors use bounded exponential backoff');
+    }
+    $assert($abnormalNoticeCount === 1 && TeamNotice::where('dedup_key', "weibo:task:{$task->id}:abnormal:v{$task->version}")->count() === 1, 'abnormal retry notice is deduplicated per task version');
     $originalNotice = app(\app\service\Notice::class);
     app()->instance(\app\service\Notice::class, new class extends \app\service\Notice {
         public function sendOnce(int $teamId, string $title, ?string $content, string $dedupKey): array { throw new RuntimeException('fixture notice failure'); }

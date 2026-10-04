@@ -4,10 +4,14 @@ declare(strict_types=1);
 namespace app\service;
 
 use app\enum\WeiboAccountHealth;
+use app\enum\WeiboTaskStatus;
 use app\model\WeiboAccount;
 use app\model\WeiboAccountBinding;
+use app\model\WeiboTask;
+use app\model\WeiboTaskAccount;
 use think\exception\HttpException;
 use think\facade\Cache;
+use think\facade\Db;
 
 final class WeiboAccounts
 {
@@ -101,7 +105,32 @@ final class WeiboAccounts
         if (!$teamScope) $query->where('entity_id', $entityId);
         $binding = $query->find();
         if (!$binding) throw new HttpException(404, '账号绑定不存在');
-        $binding->delete();
+        Db::transaction(function () use ($teamId, $binding): void {
+            $accountId = $binding->account_id;
+            $binding->delete();
+            $taskIds = WeiboTaskAccount::where('account_id', $accountId)->column('task_id');
+            if (!$taskIds) return;
+            $tasks = WeiboTask::where('team_id', $teamId)
+                ->whereIn('id', $taskIds)
+                ->where('status', WeiboTaskStatus::Active->value)
+                ->lock(true)
+                ->select();
+            foreach ($tasks as $task) {
+                // 与调度选号同口径：账号在任务范围内仍有其他绑定时不受影响。
+                $remaining = WeiboAccountBinding::where('team_id', $teamId)->where('account_id', $accountId);
+                if ($task->owner_entity_id !== null) $remaining->where('entity_id', $task->owner_entity_id);
+                // 使用当前读，避免等待 task 行锁前创建的事务快照漏掉并行解绑。
+                if ($remaining->lock(true)->find()) continue;
+                $version = $task->version + 1;
+                $updated = WeiboTask::where('id', $task->id)
+                    ->where('status', WeiboTaskStatus::Active->value)
+                    ->where('version', $task->version)
+                    ->update(['status' => WeiboTaskStatus::BlockedLogin->value, 'block_reason' => 'account_unbound', 'next_run_at' => null, 'version' => $version]);
+                if ($updated) {
+                    app(Notice::class)->sendOnce($teamId, '微博任务已阻塞', '任务引用的微博账号已解绑，任务已阻塞；重新绑定账号后请手动恢复任务。', "weibo:task:{$task->id}:unbound:v{$version}");
+                }
+            }
+        });
     }
 
     public function bound(int $teamId, int $entityId, int $accountId, bool $teamScope): WeiboAccount

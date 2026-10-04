@@ -102,6 +102,9 @@ class WeiboProtocol
             return ['valid' => $invalid ? false : null, 'reason' => $result['reason'], 'message' => $result['message'], 'code' => $result['code'], 'http_status' => $status];
         } catch (WeiboRemoteException $exception) {
             return ['valid' => null, 'reason' => $exception->reason, 'message' => $exception->getMessage(), 'code' => $exception->remoteCode, 'http_status' => $exception->httpStatus ?? 0];
+        } catch (\InvalidArgumentException $exception) {
+            // 账号凭据缺失（gsid/from_value/uid 为空等脏数据）必须以登录态无效返回，向调用方抛出会使调度队列热循环
+            return ['valid' => false, 'reason' => WeiboReason::LoginInvalid, 'message' => $exception->getMessage(), 'code' => null, 'http_status' => 0];
         }
     }
 
@@ -298,7 +301,7 @@ class WeiboProtocol
     private function auth(WeiboAccount $account): array
     {
         $from = $this->accountText($account, 'from_value');
-        return ['c' => self::SOURCE, 'from' => $from, 'gsid' => $this->accountText($account, 'gsid'), 'lang' => 'zh_CN', 's' => $this->generateS($account->uid, $from)];
+        return ['c' => self::SOURCE, 'from' => $from, 'gsid' => $this->accountText($account, 'gsid'), 'lang' => 'zh_CN', 's' => $this->generateS($this->accountText($account, 'uid'), $from)];
     }
 
     private function first(array $payload, array $keys): ?string
