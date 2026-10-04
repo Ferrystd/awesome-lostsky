@@ -59,6 +59,8 @@ $classification = [
             'customer/services/<id>/offers', 'customer/service-offers/<id>/withdraw',
             'customer/service-redemptions/<id>/start',
             'customer/service-redemptions/<id>/cancel',
+            'customer/service-redemptions/<id>/complete',
+            'customer/service-redemptions/<id>/completion/reject',
             'customer/service-redemptions/<id>/adjustments/<adjustment_id>/accept',
             'customer/service-redemptions/<id>/adjustments/<adjustment_id>/reject',
             'customer/cards/claim',

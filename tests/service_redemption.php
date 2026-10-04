@@ -507,6 +507,16 @@ try {
     $assert((int) $entitlement->holder_entity_id === (int) $customerEntity->id, 'entitlement belongs to customer root entity');
     $assert(TeamServiceInstance::where('entitlement_id', $entitlement->id)->count() === 0, 'no slices are created before redemption starts');
     $detail = app(ServiceRedemption::class)->customerGet((int) $team->id, (int) $customer->id, (int) $entitlement->id);
+    $noInternalMoney = static function (array $row) use (&$noInternalMoney): bool {
+        foreach ($row as $key => $value) {
+            if (preg_match('/(^|_)(cost|cut)$/', (string) $key)) return false;
+            if (is_array($value) && !$noInternalMoney($value)) return false;
+        }
+        return true;
+    };
+    $assert($noInternalMoney($detail), 'customer entitlement and related service hide internal costs and allocations');
+    $customerList = app(ServiceRedemption::class)->customerList((int) $team->id, (int) $customer->id, []);
+    $assert($noInternalMoney($customerList), 'customer entitlement list hides internal costs and allocations');
     $visibleIds = array_map(static fn (array $field): int => (int) $field['id'], $detail['redemption_fields']);
     $assert(in_array($customerField, $visibleIds, true) && !in_array($managerField, $visibleIds, true), 'customer receives only visible redemption fields');
 
@@ -654,6 +664,10 @@ try {
 
     // 取消释放数量；旧联系方式保留，Customer 从权益重新发起邀请。
     app(ServiceRedemption::class)->requestCancel((int) $team->id, (int) $customer->id, $sliceAId, '未通过', (int) $customerEntity->id);
+    $pendingCancelDetail = app(ServiceRedemption::class)->customerGet((int) $team->id, (int) $customer->id, (int) $entitlement->id);
+    $pendingCancelRows = array_merge(...array_column($pendingCancelDetail['instances'], 'cancel_requests'));
+    $assert(count($pendingCancelRows) > 0 && $pendingCancelRows[0]['status'] === 1,
+        'actual customer cancellation request exposes numeric pending state');
     app(ServiceRedemption::class)->approveCancel((int) $team->id, $subjectHandlerA, (int) $handlerA->id, $sliceAId);
     $cancelled = TeamServiceInstance::find($sliceAId);
     $entitlement = TeamServiceEntitlement::find($entitlement->id);
@@ -717,6 +731,19 @@ try {
         $remainderSliceId,
         $adjustmentId
     );
+    $adjustmentDetail = app(ServiceRedemption::class)->customerGet((int) $team->id, (int) $customer->id, (int) $entitlement->id);
+    $assert($noInternalMoney($adjustmentDetail), 'customer instances offers and adjustments hide all internal money fields');
+    $numericStates = static fn (array $rows, array $allowed): bool => count($rows) > 0
+        && count(array_filter($rows, static fn (array $row): bool => is_int($row['status']) && in_array($row['status'], $allowed, true))) === count($rows);
+    $visibleCancelRequests = array_merge(...array_column($adjustmentDetail['instances'], 'cancel_requests'));
+    $assert($numericStates($adjustmentDetail['instances'], [1, 2, 3])
+        && $numericStates($adjustmentDetail['assignment_offers'], [1, 2, 3, 4, 5])
+        && $numericStates(array_merge(...array_column($adjustmentDetail['instances'], 'adjustments')), [1, 2, 3]),
+        'actual customer instances offers cancellation requests and adjustments expose numeric states');
+    $visibleAdjustments = array_merge(...array_column($adjustmentDetail['instances'], 'adjustments'));
+    $assert(count($adjustmentDetail['instances']) > 0 && count($adjustmentDetail['assignment_offers']) > 0
+        && count($visibleAdjustments) > 0 && $visibleAdjustments[0]['total_price'] === '20.00',
+        'customer projection retains actual instances offers and adjustment confirmation price');
     $adjustment = TeamServiceAdjustment::find($adjustmentId);
     $afterBalance = (float) TeamCustomerBalance::where('customer_id', $customer->id)->value('balance');
     $assert(abs(($beforeBalance - $afterBalance) - 20.0) < 0.001, 'accepted adjustment is charged separately');
@@ -891,6 +918,31 @@ try {
             && TeamOrder::where('team_id', $team->id)->count() === $orderCount,
         'enabled manual grant sync creates a service-package receipt and still no Shop order'
     );
+
+    $customer->assignee_entity_id = (int) $handlerB->id;
+    $customer->save();
+    $collaborative = app(ManualEntitlementGrant::class)->grant((int) $team->id, (int) $handlerA->id, [
+        'idempotency_key' => $grantKey(), 'product_id' => $productId,
+        'customer_id' => (int) $customer->id, 'quantity' => 1,
+    ], true);
+    $collaborativeEntitlement = TeamServiceEntitlement::find($collaborative['entitlement_ids'][0]);
+    $collaborativeReceipt = TeamTransaction::find($collaborative['transaction_id']);
+    $assert((int) $collaborativeEntitlement->sender_entity_id === (int) $handlerA->id
+        && (int) $collaborativeReceipt->sender_entity_id === (int) $handlerA->id,
+        'collaborating sender personal grant and synced receipt keep the same frozen sender');
+    $normalReceiptId = app(\app\service\Transaction::class)->create((int) $team->id, [
+        'type' => TransactionType::ServicePackageReceipt, 'customer_id' => (int) $customer->id,
+        'sender_entity_id' => (int) $handlerA->id, 'useCustomerSender' => false,
+        'total_price' => '1.00', 'cash' => '1.00', 'prepaid' => '0.00', 'memo' => 'customer DTO regression',
+    ]);
+    $assert((int) TeamTransaction::find($normalReceiptId)->sender_entity_id === (int) $handlerB->id,
+        'ordinary receipt still freezes customer assignee despite client override flag');
+    $customerTransactions = app(\app\service\TeamCustomer::class)->transactions((int) $team->id, (int) $customer->id, []);
+    $assert($noInternalMoney($customerTransactions), 'customer transaction list hides internal allocations');
+    $customerBalanceLogs = app(\app\service\TeamCustomer::class)->balanceLogs((int) $team->id, (int) $customer->id);
+    $assert($noInternalMoney($customerBalanceLogs), 'customer balance log linked transactions hide allocations');
+    $customer->assignee_entity_id = null;
+    $customer->save();
 
     // 一个套餐可含两个计量权益，各自保留不同价格与分成规则。
     $recruitA = new TeamService;

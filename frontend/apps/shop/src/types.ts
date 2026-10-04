@@ -1,3 +1,5 @@
+import type { components } from '@lostsky/api/generated/shop'
+
 export interface StoreProfile {
   slug: string
   type: 'team'
@@ -130,68 +132,11 @@ export interface ServiceRedemptionFieldDraft extends Omit<ServiceRedemptionField
   options_text: string
 }
 
-export interface ServiceInstance {
-  settlement_kind?: 'service' | 'unused'
-  settled_handler_cut?: string
-  settled_team_cut?: string
-  completion_requested_at?: number | null
-  completion_due_at?: number | null
-  id: number
-  status: 1 | 2 | 3
-  ordinal: number
-  expire_time: number
-  is_expired: boolean
-  create_time?: number
-  memo?: string | null
-  quantity: string
-  service: { id: number; name: string; description?: string | null }
-  handler?: { name?: string; profile?: { name?: string } } | null
-  cancel_requests?: Array<{ id: number; status: 1 | 2 | 3; reason: string }>
-  adjustments?: ServiceAdjustment[]
-  redemption_fields?: RedemptionField[]
-}
-
-export interface ServiceAdjustment {
-  id: number
-  name: string
-  quantity: string
-  unit_price: string
-  total_price: string
-  status: 1 | 2 | 3
-  memo?: string | null
-}
-
-export interface ServiceEntitlement {
-  unused_auto_complete_after_minutes?: number | null
-  unused_auto_complete_due_at?: number | null
-  id: number
-  unit_name: string
-  quantity_step: string
-  granted_quantity: string
-  reserved_quantity: string
-  consumed_quantity: string
-  available_quantity: string
-  expire_time: number
-  is_expired: boolean
-  is_exhausted: boolean
-  allow_open_dispatch?: boolean
-  dispatch_available?: boolean
-  service: { id: number; name: string; description?: string | null }
-  instances?: ServiceInstance[]
-  assignment_offers?: ServiceAssignmentOffer[]
-  redemption_fields?: RedemptionField[]
-}
-
-export interface ServiceAssignmentOffer {
-  id: number
-  quantity: string
-  status: number | string
-  memo?: string | null
-  decision_reason?: string | null
-  target_handler?: { id: number; name?: string; profile?: { name?: string } } | null
-  service_instance_id?: number | null
-  redemption_fields?: RedemptionField[]
-}
+export type ServiceInstance = components['schemas']['CustomerServiceInstance']
+export type ServiceAdjustment = components['schemas']['CustomerServiceAdjustment']
+export type ServiceEntitlement = components['schemas']['CustomerServiceEntitlement']
+export type ServiceEntitlementDetail = components['schemas']['CustomerServiceEntitlementDetail']
+export type ServiceAssignmentOffer = components['schemas']['CustomerServiceOffer']
 
 export interface RedemptionCard {
   id: number

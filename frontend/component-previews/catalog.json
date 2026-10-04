@@ -791,6 +791,22 @@
     ]
   },
   {
+    "id": "team-chat-group-members",
+    "name": "ChatGroupMembers",
+    "source": "frontend/apps/team/src/components/ChatGroupMembers.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#ChatGroupMembers",
+    "category": "team",
+    "aliases": ["群成员与邀请"]
+  },
+  {
+    "id": "team-chat-group-messages",
+    "name": "ChatGroupMessages",
+    "source": "frontend/apps/team/src/components/ChatGroupMessages.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#ChatGroupMessages",
+    "category": "team",
+    "aliases": ["群历史消息"]
+  },
+  {
     "id": "app-shop-product-variant-editor",
     "name": "ProductVariantEditor",
     "source": "frontend/apps/shop/src/components/ProductVariantEditor.vue",

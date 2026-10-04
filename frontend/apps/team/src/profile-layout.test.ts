@@ -31,6 +31,9 @@ describe('资料表单布局契约', () => {
     expect(view).not.toMatch(/\/entity\/(?:display|visibility)/)
     expect(view).not.toMatch(/checked-text|unchecked-text/)
     expect(source('./views/CustomerDetailView.vue')).toMatch(/<LsFormActions\s*>\s*<LsButton/)
-    expect(source('./views/CustomerDetailView.vue')).toContain(':disabled="!canManage || avatarUploading"')
+    const customer = source('./views/CustomerDetailView.vue')
+    const saveButton = customer.match(/<LsButton\b[^>]*type="submit"[^>]*>/)?.[0]
+    const disabledConditions = saveButton?.match(/:disabled="([^"]+)"/)?.[1].split(/\s*\|\|\s*/)
+    expect(disabledConditions).toEqual(expect.arrayContaining(['!canManage', 'avatarUploading', '!draft.dirty.value']))
   })
 })

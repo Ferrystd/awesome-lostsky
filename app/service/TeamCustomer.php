@@ -81,7 +81,9 @@ class TeamCustomer
     public function transactions(int $teamId, int $customerId, array $filters, int $page = 1, int $limit = 20): array
     {
         $this->customer($teamId, $customerId);
-        return app(Transaction::class)->list($teamId, $filters + ['customer_id' => $customerId], $page, $limit);
+        $result = app(Transaction::class)->list($teamId, array_replace($filters, ['customer_id' => $customerId]), $page, $limit);
+        $result['list'] = array_map($this->customerTransaction(...), $result['list']);
+        return $result;
     }
 
     public function balance(int $teamId, int $customerId): array
@@ -112,10 +114,21 @@ class TeamCustomer
             ->paginate(['list_rows' => $limit, 'page' => $page]);
         $total = $paginator->total();
         $list  = $paginator->getCollection()->toArray();
+        foreach ($list as &$row) {
+            $row['transaction'] = isset($row['transaction']) ? $this->customerTransaction($row['transaction']) : null;
+        }
         $page  = $paginator->currentPage();
         $limit = $paginator->listRows();
 
         return compact('total', 'list', 'page', 'limit');
+    }
+
+    private function customerTransaction(array $transaction): array
+    {
+        return array_intersect_key($transaction, array_flip([
+            'id', 'type', 'trans_at', 'quantity', 'total_price', 'cash', 'prepaid',
+            'service_credit', 'memo', 'create_time', 'update_time',
+        ]));
     }
 
     private function customer(int $teamId, int $customerId): \app\model\TeamCustomer

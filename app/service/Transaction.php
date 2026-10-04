@@ -144,6 +144,22 @@ class Transaction
 
     public function create(int $teamId, array $data): int
     {
+        return $this->createReceiptOrLedger($teamId, $data, true);
+    }
+
+    /** 权益同步收款只采用数据库中冻结的发单人。 */
+    public function createEntitlementReceipt(\app\model\TeamServiceEntitlement $entitlement, array $data): int
+    {
+        $stored = \app\model\TeamServiceEntitlement::find((int) $entitlement->id);
+        if (!$stored) throw new HttpException(404, '服务权益不存在');
+        $data['type'] = TransactionType::ServicePackageReceipt;
+        $data['customer_id'] = (int) $stored->customer_id;
+        $data['sender_entity_id'] = $stored->sender_entity_id;
+        return $this->createReceiptOrLedger((int) $stored->team_id, $data, false);
+    }
+
+    private function createReceiptOrLedger(int $teamId, array $data, bool $useCustomerSender): int
+    {
         $data['type'] = $this->normalizeType($data['type'] ?? TransactionType::LedgerEntry);
         if ($data['type'] === TransactionType::UnusedServiceSettlement) throw new HttpException(422, '未使用权益结单只能由系统生成');
         $data = array_merge($data, in_array($data['type'], [
@@ -162,12 +178,12 @@ class Transaction
         $this->assertEntity($teamId, $data['sender_entity_id'] ?? null, '发单人');
         $this->assertEntity($teamId, $data['cs_entity_id'] ?? null, '客服');
 
-        return \think\facade\Db::transaction(function () use ($teamId, $data) {
+        return \think\facade\Db::transaction(function () use ($teamId, $data, $useCustomerSender) {
             $customerId = empty($data['customer_id']) ? null : (int) $data['customer_id'];
             if ($customerId) {
                 $customer = app(CustomerAssignment::class)->customer($teamId, $customerId, true);
                 $assignedSenderId = app(CustomerAssignment::class)->sender($customer, $teamId);
-                if ($assignedSenderId) {
+                if ($useCustomerSender && $assignedSenderId) {
                     $data['sender_entity_id'] = $assignedSenderId;
                 }
             }

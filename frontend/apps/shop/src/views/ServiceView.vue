@@ -135,7 +135,7 @@ const adjustment = useMutation({
   onSuccess: async () => { error.value = ''; await refresh() },
   onError: reason => error.value = friendlyError(reason),
 })
-const choices = (field: RedemptionField) => (field.options ?? []).map(value => ({ label: value, value }))
+const choices = (field: Pick<RedemptionField, 'options'>) => (field.options ?? []).map(value => ({ label: value, value }))
 const pendingCancel = (instance: ServiceInstance) =>
   (instance.cancel_requests ?? []).some(item => item.status === 1)
 const offerStatus = (status: number | string) => typeof status === 'string' ? status : ({ 1: '待确认', 2: '已接受', 3: '已拒绝', 4: '已取消', 5: '已失效' }[status] ?? '未知')
@@ -150,8 +150,8 @@ const offerPending = (status: number | string) => status === 1 || status === '�
     <article v-else-if="query.data.value" class="service-content">
       <header class="service-intro">
         <div>
-          <h1 tabindex="-1">{{ query.data.value.service.name }}</h1>
-          <p>{{ query.data.value.service.description || '该服务暂无补充说明。' }}</p>
+          <h1 tabindex="-1">{{ query.data.value.service?.name || '服务权益' }}</h1>
+          <p>{{ query.data.value.service?.description || '该服务暂无补充说明。' }}</p>
         </div>
         <span class="status" :data-state="query.data.value.is_expired ? 'expired' : query.data.value.is_exhausted ? 'exhausted' : 'active'">
           <CheckCircle2 :size="17" aria-hidden="true" />
@@ -171,7 +171,7 @@ const offerPending = (status: number | string) => status === 1 || status === '�
             <div data-quota="consumed"><dt><span />已核销</dt><dd>{{ Number(query.data.value.consumed_quantity).toFixed(quantityScale) }} <small>{{ query.data.value.unit_name }}</small></dd></div>
           </dl>
           <div class="quota-track" :style="quotaStyle" aria-hidden="true"><span class="consumed" /><span class="reserved" /><span class="available" /></div>
-          <p v-if="query.data.value.unused_auto_complete_due_at" class="notice">未发起核销的可用额度将在 {{ formatDate(query.data.value.unused_auto_complete_due_at) }} 自动结单，接单分成归团队；已预占额度不受影响。</p>
+          <p v-if="query.data.value.unused_auto_complete_due_at" class="notice">未发起核销的可用额度将在 {{ formatDate(query.data.value.unused_auto_complete_due_at) }} 自动结单；已预占额度不受影响。</p>
           <p class="quota-expiry"><CalendarClock :size="17" aria-hidden="true" /><span>有效期</span><strong>{{ query.data.value.expire_time ? formatDate(query.data.value.expire_time) : '长期有效' }}</strong></p>
         </section>
 
@@ -215,7 +215,7 @@ const offerPending = (status: number | string) => status === 1 || status === '�
         <p v-if="!query.data.value.instances?.length" class="empty">尚未发起履约。</p>
         <section v-for="instance in query.data.value.instances" :key="instance.id" class="history-row">
           <div class="history-head"><div><strong>{{ Number(instance.quantity).toFixed(quantityScale) }} {{ query.data.value.unit_name }}</strong><span>#{{ instance.id }} · {{ serviceStatus(instance.status) }} · {{ instance.handler?.name || instance.handler?.profile?.name || '未分配接单人' }}</span></div><time v-if="instance.create_time">{{ formatDate(instance.create_time) }}</time></div>
-          <p v-if="instance.settlement_kind === 'unused'" class="notice">未使用权益已结单，接单实结 ¥{{ instance.settled_handler_cut ?? '0.00' }}，团队实结 ¥{{ instance.settled_team_cut ?? '0.00' }}。</p>
+          <p v-if="instance.settlement_kind === 'unused'" class="notice">未使用权益已结单。</p>
           <div v-if="instance.adjustments?.length" class="adjustments"><div v-for="fee in instance.adjustments" :key="fee.id"><span>{{ fee.name }} · ¥{{ fee.total_price }}</span><small>{{ fee.status===1?'待确认':fee.status===2?'已确认':'已取消' }}</small><div v-if="fee.status===1 && instance.status===2 && !instance.completion_requested_at" class="fee-actions"><NButton size="large" type="primary" :loading="adjustment.isPending.value" @click="adjustment.mutate({instanceId:instance.id,adjustmentId:fee.id,accept:true})">确认并支付</NButton><NButton size="large" secondary :loading="adjustment.isPending.value" @click="adjustment.mutate({instanceId:instance.id,adjustmentId:fee.id,accept:false})">拒绝</NButton></div></div></div>
           <section v-if="instance.status===2 && instance.completion_requested_at" class="completion-confirmation">
             <h3>接单人请求结单</h3>

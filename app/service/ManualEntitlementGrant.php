@@ -217,7 +217,7 @@ final class ManualEntitlementGrant
                 $totalPrice = app(BenefitPackagePricing::class)->fromCents(
                     app(BenefitPackagePricing::class)->toCents((string) $product->price) * $quantity
                 );
-                $transactionId = app(Transaction::class)->create($teamId, [
+                $transactionId = app(Transaction::class)->createEntitlementReceipt(TeamServiceEntitlement::find($entitlementIds[0]), [
                     'type' => TransactionType::ServicePackageReceipt,
                     'customer_id' => $customerId,
                     'sender_entity_id' => $senderEntityId,

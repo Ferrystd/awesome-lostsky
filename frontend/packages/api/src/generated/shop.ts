@@ -2427,6 +2427,231 @@ export interface components {
             /** @description 订单创建时校验并冻结的值；未填写的可选字段为 null。 */
             value: unknown;
         };
+        CustomerServiceEntity: {
+            id?: number;
+            entity_id?: number;
+            slug?: string;
+            name?: string;
+            avatar?: string | null;
+            type?: string;
+            profile?: {
+                name: string;
+                avatar: string | null;
+            };
+        } | null;
+        CustomerRedemptionField: {
+            id: number;
+            name: string;
+            value_type: string;
+            input_type: string;
+            /** @enum {string} */
+            fill_stage: "customer" | "manager";
+            sort: number;
+            options?: string[] | null;
+            /** @enum {integer} */
+            is_customer_visible: 0 | 1;
+            /** @enum {integer} */
+            is_required: 0 | 1;
+            /** @enum {integer} */
+            is_active: 0 | 1;
+            /** @description Raw invitation field value or persisted instance field-value record; may be scalar, array, object or null. */
+            value?: unknown;
+            team_id?: number;
+            service_id?: number;
+            create_time?: number;
+            update_time?: number;
+            default_value?: unknown;
+        };
+        CustomerRedemptionResource: {
+            index: number;
+            quantity: string;
+            redemption_fields: components["schemas"]["CustomerRedemptionField"][];
+        };
+        CustomerServiceAdjustment: {
+            id: number;
+            service_instance_id: number;
+            name: string;
+            quantity: string;
+            unit_price: string;
+            total_price: string;
+            /** @enum {integer} */
+            status: 1 | 2 | 3;
+            memo: string;
+            decided_at: number | null;
+            create_time: number;
+            update_time: number;
+        };
+        CustomerServiceCancelRequest: {
+            id: number;
+            service_instance_id: number;
+            reason: string;
+            /** @enum {integer} */
+            status: 1 | 2 | 3;
+            decision_reason: string | null;
+            create_time: number;
+            update_time: number;
+            requester: components["schemas"]["CustomerServiceEntity"];
+        };
+        CustomerServiceInstance: {
+            id: number;
+            entitlement_id?: number;
+            ordinal?: number;
+            quantity: string;
+            /** @enum {integer} */
+            status: 1 | 2 | 3;
+            status_code?: number;
+            status_label?: string;
+            total_price: string;
+            expire_time?: number | null;
+            is_expired?: boolean;
+            memo?: string;
+            handler_entity_id?: number | null;
+            started_at?: number | null;
+            completed_at?: number | null;
+            completion_requested_at?: number | null;
+            completion_due_at?: number | null;
+            completion_rejected_at?: number | null;
+            completion_rejection_reason?: string;
+            settlement_kind?: string;
+            create_time?: number;
+            update_time?: number;
+            handler?: components["schemas"]["CustomerServiceEntity"];
+            cancel_requests: components["schemas"]["CustomerServiceCancelRequest"][];
+            adjustments: components["schemas"]["CustomerServiceAdjustment"][];
+            redemption_fields?: components["schemas"]["CustomerRedemptionField"][];
+            redemption_resources?: components["schemas"]["CustomerRedemptionResource"][];
+        };
+        CustomerServiceOffer: {
+            id: number;
+            entitlement_id?: number;
+            service_instance_id?: number | null;
+            target_handler_entity_id?: number;
+            quantity: string;
+            total_price?: string;
+            /** @enum {integer} */
+            status: 1 | 2 | 3 | 4 | 5;
+            memo: string;
+            decided_at?: number | null;
+            create_time?: number;
+            update_time?: number;
+            target_handler: components["schemas"]["CustomerServiceEntity"];
+            instance: components["schemas"]["CustomerServiceInstance"] | null;
+            redemption_fields: components["schemas"]["CustomerRedemptionField"][];
+            redemption_resources: components["schemas"]["CustomerRedemptionResource"][];
+            decision_reason?: string | null;
+        };
+        CustomerServiceEntitlement: {
+            id: number;
+            service_id: number;
+            unit_name: string;
+            quantity_step: string;
+            granted_quantity: string;
+            reserved_quantity: string;
+            consumed_quantity: string;
+            available_quantity: string;
+            total_price: string;
+            expire_time: number | null;
+            is_expired: boolean;
+            is_exhausted: boolean;
+            unused_auto_complete_due_at: number | null;
+            create_time: number;
+            update_time: number;
+            service: {
+                id: number;
+                name: string;
+                description: string;
+                unit_name: string;
+                quantity_step: string;
+                is_active: number;
+            } | null;
+        };
+        CustomerServiceEntitlementDetail: {
+            id: number;
+            service_id: number;
+            unit_name: string;
+            quantity_step: string;
+            granted_quantity: string;
+            reserved_quantity: string;
+            consumed_quantity: string;
+            available_quantity: string;
+            total_price: string;
+            expire_time: number | null;
+            is_expired: boolean;
+            is_exhausted: boolean;
+            unused_auto_complete_due_at: number | null;
+            create_time: number;
+            update_time: number;
+            service: {
+                id: number;
+                name: string;
+                description: string;
+                unit_name: string;
+                quantity_step: string;
+                is_active: number;
+            } | null;
+            instances: components["schemas"]["CustomerServiceInstance"][];
+            assignment_offers: components["schemas"]["CustomerServiceOffer"][];
+            redemption_fields: components["schemas"]["CustomerRedemptionField"][];
+            allow_open_dispatch: boolean;
+            dispatch_available: boolean;
+        };
+        CustomerTransaction: {
+            /** Format: int64 */
+            id: number;
+            type: string;
+            /** @description Exact decimal string. */
+            total_price: string;
+            /** @description Exact decimal string. */
+            cash: string;
+            /** @description Exact decimal string. */
+            prepaid: string;
+            /**
+             * Format: int64
+             * @description Unix timestamp, seconds
+             */
+            trans_at?: number;
+            memo: string | null;
+            /**
+             * Format: int64
+             * @description Unix timestamp, seconds
+             */
+            create_time?: number;
+            /**
+             * Format: int64
+             * @description Unix timestamp, seconds
+             */
+            update_time?: number;
+            service_credit?: string;
+        };
+        CustomerBalanceLog: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            customer_id?: number;
+            /**
+             * @description 1=充值, 2=消费, 3=退款, 4=手动调整
+             * @enum {integer}
+             */
+            type?: 1 | 2 | 3 | 4;
+            /** @description Exact decimal string. */
+            amount?: string;
+            /** @description Exact decimal string. */
+            balance_after?: string;
+            /** Format: int64 */
+            trans_id?: number | null;
+            memo?: string | null;
+            /**
+             * Format: int64
+             * @description Unix timestamp, seconds
+             */
+            create_time?: number;
+            /**
+             * Format: int64
+             * @description Unix timestamp, seconds
+             */
+            update_time?: number;
+            transaction?: components["schemas"]["CustomerTransaction"] | null;
+        };
     };
     responses: never;
     parameters: {
@@ -3938,12 +4163,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功 */
+            /** @description Customer response allowlist; no internal cost or allocations. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data: components["schemas"]["PaginationBase"] & {
+                            list: components["schemas"]["CustomerServiceEntitlement"][];
+                        };
+                    };
+                };
             };
         };
     };
@@ -3958,12 +4189,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功 */
+            /** @description Customer response allowlist; no internal cost or allocations. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data: components["schemas"]["CustomerServiceEntitlementDetail"];
+                    };
+                };
             };
         };
     };
@@ -5999,15 +6234,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功 */
+            /** @description Customer response allowlist; no internal cost or allocations. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["PaginationBase"] & {
-                            list?: components["schemas"]["Transaction"][];
+                        data: components["schemas"]["PaginationBase"] & {
+                            list: components["schemas"]["CustomerTransaction"][];
                         };
                     };
                 };
@@ -6180,15 +6415,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 成功 */
+            /** @description Customer response allowlist; no internal cost or allocations. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope"] & {
-                        data?: components["schemas"]["PaginationBase"] & {
-                            list?: components["schemas"]["BalanceLog"][];
+                        data: components["schemas"]["PaginationBase"] & {
+                            list: components["schemas"]["CustomerBalanceLog"][];
                         };
                     };
                 };

@@ -5,6 +5,8 @@ import JoinApplicationFields from '../../apps/team/src/components/JoinApplicatio
 import TeamSectionNav from '../../apps/team/src/components/TeamSectionNav.vue';
 import TeamShareLinks from '../../apps/team/src/components/TeamShareLinks.vue';
 import MemberSelfDeparture from '../../apps/team/src/components/MemberSelfDeparture.vue';
+import ChatGroupMembers from '../../apps/team/src/components/ChatGroupMembers.vue';
+import ChatGroupMessages from '../../apps/team/src/components/ChatGroupMessages.vue';
 import { defineComponent, h, ref } from "vue";
 import { NInput } from "naive-ui";
 import LsButton from "@lostsky/ui/components/LsButton.vue";
@@ -804,6 +806,24 @@ const transactionFlowTrend = story(
 );
 
 export const appStories: Record<string, StoryDefinition> = {
+  ChatGroupMembers: story('ChatGroupMembers', [...previewStates], state => stage(h(ChatGroupMembers, {
+    participants: state === 'error' ? [] : [
+      { slug: 'qingkong', name: '青空', left_at: null },
+      { slug: 'former-member', name: '已离开成员', left_at: 1788220800 },
+    ],
+    invitations: state === 'error' ? [] : [{ slug: 'xiaoyu', name: '小雨' }],
+    busy: state === 'loading',
+    disabledReason: state === 'disabled' ? '缺少群成员管理权限' : '',
+  }))),
+  ChatGroupMessages: story('ChatGroupMessages', [...previewStates], state => stage(h(ChatGroupMessages, {
+    messages: state === 'error' ? [] : [
+      { id: 1, content: '本周排班已更新，请大家确认。', sender: { name: '青空' }, create_time: 1788220800, revoked_at: null },
+      { id: 2, content: null, sender: { name: '小雨' }, create_time: 1788220860, revoked_at: 1788220920 },
+    ],
+    busy: state === 'loading',
+    disabledReason: state === 'disabled' ? '缺少群消息管理权限' : '',
+    hasOlder: state !== 'error',
+  }))),
   JoinApplicationFields: story('JoinApplicationFields', ['default', 'hover', 'focus', 'active', 'disabled', 'mobile'], (state) => h(defineComponent({ setup() {
     const values = ref({ nickname: '青空' });
     return () => h(JoinApplicationFields, { fields: [{ id: 1, field_key: 'nickname', name: '团队昵称', input_type: 'text', is_apply_required: 1 }, { id: 2, field_key: 'intro', name: '入职介绍', input_type: 'textarea' }], modelValue: values.value, 'onUpdate:modelValue': value => { values.value = value as typeof values.value }, uploadFile: async () => '1', disabled: state === 'disabled' });

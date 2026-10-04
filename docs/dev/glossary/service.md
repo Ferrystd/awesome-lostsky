@@ -900,6 +900,7 @@ aliases: [服务, Service]
 | `getPersonal` | `int $teamId`、`int $actorEntityId`、`int $id` | `array` |
 | `get` | `int $teamId`、`int $id` | `array` |
 | `create` | `int $teamId`、`array $data` | `int` |
+| `createEntitlementReceipt` | `model\TeamServiceEntitlement $entitlement`、`array $data` | `int` |
 | `createServiceRedemption` | `int $teamId`、`array $data` | `int` |
 | `createUnusedServiceSettlement` | `int $teamId`、`array $data` | `int` |
 | `createServiceAdjustmentReceipt` | `int $teamId`、`array $data` | `int` |

@@ -382,6 +382,17 @@ describe('后台源码设计契约', () => {
   })
 
   it('任务页面入口不使用 Permission 或 Ability 禁用态', () => {
+    // A missing identifier may block navigation only when that exact value is
+    // interpolated into the destination; permission and ability guards may not.
+    const missingRouteTarget = (tag: string) => {
+      const condition = tag.match(/:disabled=(["'])(.*?)\1/)?.[2]
+      const target = condition?.match(/^!([\w$]+(?:\.[\w$]+)+)$/)?.[1]
+      const action = tag.match(/@click=(["'])(.*?)\1/)?.[2]
+      return Boolean(target && action?.includes('${' + target + '}') && !/:disabled-reason=/.test(tag))
+    }
+    expect(missingRouteTarget('<LsButton @click="router.push(`/entity?id=${row.entity_id}`)" :disabled="!row.entity_id">')).toBe(true)
+    expect(missingRouteTarget('<LsButton @click="router.push(`/entity?id=${row.entity_id}`)" :disabled="!access.canRead">')).toBe(false)
+    expect(missingRouteTarget('<LsButton @click="router.push(`/entity?id=${row.entity_id}`)" :disabled="!row.entity_id || !canRead">')).toBe(false)
     const roots = ['admin', 'team', 'transaction', 'shop', 'weibo']
       .map((name) => join(repository, 'frontend', 'apps', name, 'src'))
     const pages = roots.flatMap(filesUnder).filter((path) => path.endsWith('.vue'))
@@ -396,6 +407,7 @@ describe('后台源码设计契约', () => {
       for (const match of source.matchAll(/<LsButton\b[\s\S]*?>/g)) {
         const tag = match[0]
         if (!/@click=["'][^"']*router\.(?:push|replace)\(/.test(tag)) continue
+        if (missingRouteTarget(tag)) continue
         expect(tag, `${file} 的路由跳转按钮被设置为禁用`).not.toMatch(/:disabled(?:-reason)?=/)
       }
     }

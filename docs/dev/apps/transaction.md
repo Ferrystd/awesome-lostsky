@@ -61,3 +61,5 @@ Transaction 将“服务包收款”“服务核销”“履约加价收款”�
 核销结单分为接单人请求、顾客确认与完成：`POST /personal/services/{id}/complete` 只请求结单，不消耗权益；顾客以 `POST /customer/service-redemptions/{id}/complete` 确认，或以 `/completion/reject` 提交非空 `reason` 拒绝。处理中切片通过 `completion_requested_at` 与 `completion_due_at` 表示待确认及期限，仍沿用 `status=2`；管理员仍可凭 `service.redemption.manage` 直接完成。`auto_complete_after_minutes` 仅从结单请求起点连续计时，`started_at` 只记录接单时间，无请求不会自动结单。顾客拒绝后可以申请取消，接单人也可重新请求；重复请求不重置首次时钟。待取消或待加价阻止请求；待确认期间不能加价、改派或退回，顾客须先拒绝结单再取消。请求、确认、拒绝和自动结单按权益与实例行锁串行复核。
 
 未使用权益独立配置 `unused_auto_complete_after_minutes`，从购买完成、获赠或兑换实际入账时间冻结期限，只结算未使用未预占余量。类型 7“未使用权益结单”流水无接单人，现金与预存款均为零；接单分成归团队，发单、客服和成本按冻结分摊保留。该流水进入团队履约价值及分成统计，不计接单单数和接单人业绩；重复清理不重复收款或分配。待确认邀请的金额同样计入预占底账，邀请撤回/拒绝或任务取消后释放的余量在下一轮结算。Ability 缺失时仍完成数量消耗，`trans_id=null`。切片 `settlement_kind=unused`，实际展示金额取 `settled_handler_cut=0` 与归集后的 `settled_team_cut`。
+
+个人协作发单人手动赋予权益时，同步服务包收款沿用权益已冻结的发单人，避免被顾客当前归属覆盖；普通手工记账与收款仍按顾客当前归属冻结发单人，HTTP 参数不能关闭该规则。

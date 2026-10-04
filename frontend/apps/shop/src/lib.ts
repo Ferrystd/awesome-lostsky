@@ -2,7 +2,7 @@ import { ApiError, api, auth, friendlyError } from '@lostsky/api/client'
 import { ERROR_MESSAGES } from '@lostsky/api/error-messages'
 import { formatPermissionDenied } from '@lostsky/api/error-format'
 import { storedReferral } from '@lostsky/shared/referral'
-import type { Balance, BindResult, Customer, EntitlementManageOptions, FileUploadAvailability, ManageAccess, ManageCampaign, ManageCode, ManageEntityOption, ManageOptions, ManageOwnedResource, ManagePackage, ManageService, Order, Page, ProductDetail, ProductManageOptions, ProductSummary, RedemptionCard, ServiceEntitlement, ServiceInstance, StoreProfile } from './types'
+import type { Balance, BindResult, Customer, EntitlementManageOptions, FileUploadAvailability, ManageAccess, ManageCampaign, ManageCode, ManageEntityOption, ManageOptions, ManageOwnedResource, ManagePackage, ManageService, Order, Page, ProductDetail, ProductManageOptions, ProductSummary, RedemptionCard, ServiceEntitlement, ServiceEntitlementDetail, ServiceInstance, StoreProfile } from './types'
 
 const readyKey = () => `lostsky_shop_customer:${location.host}`
 
@@ -66,7 +66,7 @@ export const shopApi = {
     api.post<{ id: number }>('/customer/orders', body),
   cancel: (id: number) => api.post<void>(`/customer/orders/${id}/cancel`, {}),
   services: (page = 1, limit = 20) => pageRequest<ServiceEntitlement>('/customer/services', { page, limit }, '服务权益列表'),
-  service: (id: number) => api.get<ServiceEntitlement>(`/customer/services/${id}`),
+  service: (id: number) => api.get<ServiceEntitlementDetail>(`/customer/services/${id}`),
   serviceHandlers: (id: number) => api.get<Array<{ entity_id: number; subject: ManageEntityOption & { entityable_type?: string } }>>(`/customer/services/${id}/handlers`),
   startService: (id: number, body: { quantity: string; handler_entity_id: 0; memo?: string; field_values?: Array<Record<number, unknown>> }) => api.post<{id:number}>(`/customer/services/${id}/start`, body),
   createServiceOffer: (id: number, body: { quantity: string; handler_entity_id: number; memo?: string; field_values?: Array<Record<number, unknown>> }) => api.post<{id:number}>(`/customer/services/${id}/offers`, body),

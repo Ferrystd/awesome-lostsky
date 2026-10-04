@@ -325,7 +325,7 @@ describe('后台工作台入口架构', () => {
     expect(shell).toContain("['/personal/services', '我的接单', BadgeCheck, null]")
     expect(router).toMatch(/path: '\/personal\/services'[^\n]*workspace: 'personal'[^\n]*(?!permission:)/)
     expect(source('app/transaction/route/app.php')).toContain("Route::post('personal/services/<id>/complete', 'Personal/completeService')")
-    expect(source('frontend/apps/transaction/src/views/PersonalServiceTaskView.vue')).toContain("suffix:'complete'")
+    expect(source('frontend/apps/transaction/src/views/PersonalServiceTaskView.vue')).toMatch(/action\.mutate\(\{\s*suffix:\s*['"]complete['"]/)
   })
 
   it('Shop 商品表单通过统一上传接口处理封面与详情图片', () => {

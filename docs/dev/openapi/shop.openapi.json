@@ -137,8 +137,53 @@
       }
     },
     "schemas": {
-      "UnusedEntitlementClock": {"type": "object", "additionalProperties": true, "properties": {"unused_auto_complete_after_minutes": {"type": "integer", "nullable": true, "minimum": 1, "maximum": 5256000, "description": "权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。"}, "unused_auto_complete_due_at": {"type": "integer", "nullable": true, "description": "权益入账时间加未使用时限；预占不受影响。"}}},
-      "ServiceCompletionState": {"type": "object", "additionalProperties": true, "properties": {"completion_requested_at": {"type": "integer", "nullable": true, "description": "接单人请求结单Unix秒；null表示未请求或已拒绝。"}, "completion_due_at": {"type": "integer", "nullable": true, "description": "请求时间加确认时限；时限关闭时null。"}, "settlement_kind": {"type": "string", "enum": ["service", "unused"]}, "settled_handler_cut": {"type": "string"}, "settled_team_cut": {"type": "string"}}},
+      "UnusedEntitlementClock": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "unused_auto_complete_after_minutes": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 5256000,
+            "description": "权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。"
+          },
+          "unused_auto_complete_due_at": {
+            "type": "integer",
+            "nullable": true,
+            "description": "权益入账时间加未使用时限；预占不受影响。"
+          }
+        }
+      },
+      "ServiceCompletionState": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "completion_requested_at": {
+            "type": "integer",
+            "nullable": true,
+            "description": "接单人请求结单Unix秒；null表示未请求或已拒绝。"
+          },
+          "completion_due_at": {
+            "type": "integer",
+            "nullable": true,
+            "description": "请求时间加确认时限；时限关闭时null。"
+          },
+          "settlement_kind": {
+            "type": "string",
+            "enum": [
+              "service",
+              "unused"
+            ]
+          },
+          "settled_handler_cut": {
+            "type": "string"
+          },
+          "settled_team_cut": {
+            "type": "string"
+          }
+        }
+      },
       "AnyObject": {
         "type": "object",
         "additionalProperties": true
@@ -503,7 +548,13 @@
             "minimum": 0,
             "description": "0 为永久；省略使用团队默认值"
           },
-          "unused_auto_complete_after_minutes": {"type": "integer", "nullable": true, "minimum": 1, "maximum": 5256000, "description": "权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。"},
+          "unused_auto_complete_after_minutes": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 5256000,
+            "description": "权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。"
+          },
           "auto_complete_after_minutes": {
             "type": "integer",
             "nullable": true,
@@ -1100,7 +1151,13 @@
               }
             ]
           },
-          "unused_auto_complete_after_minutes": {"type": "integer", "nullable": true, "minimum": 1, "maximum": 5256000, "description": "权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。"},
+          "unused_auto_complete_after_minutes": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 5256000,
+            "description": "权益购买完成或获赠入账后未使用额度的独立结单时长；null关闭。"
+          },
           "auto_complete_after_minutes": {
             "type": "integer",
             "nullable": true,
@@ -3167,6 +3224,825 @@
             }
           }
         ]
+      },
+      "CustomerServiceEntity": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "entity_id": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "avatar": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "name",
+              "avatar"
+            ]
+          }
+        },
+        "required": [],
+        "nullable": true
+      },
+      "CustomerRedemptionField": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "value_type": {
+            "type": "string"
+          },
+          "input_type": {
+            "type": "string"
+          },
+          "fill_stage": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "manager"
+            ]
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "is_customer_visible": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_required": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "is_active": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "value": {
+            "description": "Raw invitation field value or persisted instance field-value record; may be scalar, array, object or null.",
+            "nullable": true
+          },
+          "team_id": {
+            "type": "integer"
+          },
+          "service_id": {
+            "type": "integer"
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "default_value": {}
+        },
+        "required": [
+          "id",
+          "name",
+          "value_type",
+          "input_type",
+          "fill_stage",
+          "sort",
+          "is_customer_visible",
+          "is_required",
+          "is_active"
+        ]
+      },
+      "CustomerRedemptionResource": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "redemption_fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerRedemptionField"
+            }
+          }
+        },
+        "required": [
+          "index",
+          "quantity",
+          "redemption_fields"
+        ]
+      },
+      "CustomerServiceAdjustment": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "service_instance_id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "unit_price": {
+            "type": "string"
+          },
+          "total_price": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ]
+          },
+          "memo": {
+            "type": "string"
+          },
+          "decided_at": {
+            "type": "integer",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "service_instance_id",
+          "name",
+          "quantity",
+          "unit_price",
+          "total_price",
+          "status",
+          "memo",
+          "decided_at",
+          "create_time",
+          "update_time"
+        ]
+      },
+      "CustomerServiceCancelRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "service_instance_id": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ]
+          },
+          "decision_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "requester": {
+            "$ref": "#/components/schemas/CustomerServiceEntity"
+          }
+        },
+        "required": [
+          "id",
+          "service_instance_id",
+          "reason",
+          "status",
+          "decision_reason",
+          "create_time",
+          "update_time",
+          "requester"
+        ]
+      },
+      "CustomerServiceInstance": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "entitlement_id": {
+            "type": "integer"
+          },
+          "ordinal": {
+            "type": "integer"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ]
+          },
+          "status_code": {
+            "type": "integer"
+          },
+          "status_label": {
+            "type": "string"
+          },
+          "total_price": {
+            "type": "string"
+          },
+          "expire_time": {
+            "type": "integer",
+            "nullable": true
+          },
+          "is_expired": {
+            "type": "boolean"
+          },
+          "memo": {
+            "type": "string"
+          },
+          "handler_entity_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "started_at": {
+            "type": "integer",
+            "nullable": true
+          },
+          "completed_at": {
+            "type": "integer",
+            "nullable": true
+          },
+          "completion_requested_at": {
+            "type": "integer",
+            "nullable": true
+          },
+          "completion_due_at": {
+            "type": "integer",
+            "nullable": true
+          },
+          "completion_rejected_at": {
+            "type": "integer",
+            "nullable": true
+          },
+          "completion_rejection_reason": {
+            "type": "string"
+          },
+          "settlement_kind": {
+            "type": "string"
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "handler": {
+            "$ref": "#/components/schemas/CustomerServiceEntity"
+          },
+          "cancel_requests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerServiceCancelRequest"
+            }
+          },
+          "adjustments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerServiceAdjustment"
+            }
+          },
+          "redemption_fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerRedemptionField"
+            }
+          },
+          "redemption_resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerRedemptionResource"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "quantity",
+          "status",
+          "total_price",
+          "cancel_requests",
+          "adjustments"
+        ]
+      },
+      "CustomerServiceOffer": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "entitlement_id": {
+            "type": "integer"
+          },
+          "service_instance_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "target_handler_entity_id": {
+            "type": "integer"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "total_price": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ]
+          },
+          "memo": {
+            "type": "string"
+          },
+          "decided_at": {
+            "type": "integer",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "target_handler": {
+            "$ref": "#/components/schemas/CustomerServiceEntity"
+          },
+          "instance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomerServiceInstance"
+              }
+            ],
+            "nullable": true
+          },
+          "redemption_fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerRedemptionField"
+            }
+          },
+          "redemption_resources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerRedemptionResource"
+            }
+          },
+          "decision_reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "quantity",
+          "status",
+          "memo",
+          "target_handler",
+          "instance",
+          "redemption_fields",
+          "redemption_resources"
+        ]
+      },
+      "CustomerServiceEntitlement": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "service_id": {
+            "type": "integer"
+          },
+          "unit_name": {
+            "type": "string"
+          },
+          "quantity_step": {
+            "type": "string"
+          },
+          "granted_quantity": {
+            "type": "string"
+          },
+          "reserved_quantity": {
+            "type": "string"
+          },
+          "consumed_quantity": {
+            "type": "string"
+          },
+          "available_quantity": {
+            "type": "string"
+          },
+          "total_price": {
+            "type": "string"
+          },
+          "expire_time": {
+            "type": "integer",
+            "nullable": true
+          },
+          "is_expired": {
+            "type": "boolean"
+          },
+          "is_exhausted": {
+            "type": "boolean"
+          },
+          "unused_auto_complete_due_at": {
+            "type": "integer",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "service": {
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "unit_name": {
+                    "type": "string"
+                  },
+                  "quantity_step": {
+                    "type": "string"
+                  },
+                  "is_active": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "description",
+                  "unit_name",
+                  "quantity_step",
+                  "is_active"
+                ]
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "service_id",
+          "unit_name",
+          "quantity_step",
+          "granted_quantity",
+          "reserved_quantity",
+          "consumed_quantity",
+          "available_quantity",
+          "total_price",
+          "expire_time",
+          "is_expired",
+          "is_exhausted",
+          "unused_auto_complete_due_at",
+          "create_time",
+          "update_time",
+          "service"
+        ]
+      },
+      "CustomerServiceEntitlementDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "service_id": {
+            "type": "integer"
+          },
+          "unit_name": {
+            "type": "string"
+          },
+          "quantity_step": {
+            "type": "string"
+          },
+          "granted_quantity": {
+            "type": "string"
+          },
+          "reserved_quantity": {
+            "type": "string"
+          },
+          "consumed_quantity": {
+            "type": "string"
+          },
+          "available_quantity": {
+            "type": "string"
+          },
+          "total_price": {
+            "type": "string"
+          },
+          "expire_time": {
+            "type": "integer",
+            "nullable": true
+          },
+          "is_expired": {
+            "type": "boolean"
+          },
+          "is_exhausted": {
+            "type": "boolean"
+          },
+          "unused_auto_complete_due_at": {
+            "type": "integer",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "service": {
+            "allOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "unit_name": {
+                    "type": "string"
+                  },
+                  "quantity_step": {
+                    "type": "string"
+                  },
+                  "is_active": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "description",
+                  "unit_name",
+                  "quantity_step",
+                  "is_active"
+                ]
+              }
+            ],
+            "nullable": true
+          },
+          "instances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerServiceInstance"
+            }
+          },
+          "assignment_offers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerServiceOffer"
+            }
+          },
+          "redemption_fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CustomerRedemptionField"
+            }
+          },
+          "allow_open_dispatch": {
+            "type": "boolean"
+          },
+          "dispatch_available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "service_id",
+          "unit_name",
+          "quantity_step",
+          "granted_quantity",
+          "reserved_quantity",
+          "consumed_quantity",
+          "available_quantity",
+          "total_price",
+          "expire_time",
+          "is_expired",
+          "is_exhausted",
+          "unused_auto_complete_due_at",
+          "create_time",
+          "update_time",
+          "service",
+          "instances",
+          "assignment_offers",
+          "redemption_fields",
+          "allow_open_dispatch",
+          "dispatch_available"
+        ]
+      },
+      "CustomerTransaction": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string"
+          },
+          "total_price": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "cash": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "prepaid": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "trans_at": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "service_credit": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "total_price",
+          "cash",
+          "prepaid",
+          "memo"
+        ]
+      },
+      "CustomerBalanceLog": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "customer_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "description": "1=充值, 2=消费, 3=退款, 4=手动调整"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "balance_after": {
+            "type": "string",
+            "pattern": "^\\d{1,10}(?:\\.\\d{1,2})?$",
+            "description": "Exact decimal string."
+          },
+          "trans_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "memo": {
+            "type": "string",
+            "nullable": true
+          },
+          "create_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "update_time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp, seconds"
+          },
+          "transaction": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomerTransaction"
+              }
+            ],
+            "nullable": true
+          }
+        }
       }
     }
   },
@@ -4914,7 +5790,47 @@
         "summary": "查询持有的计量服务权益",
         "responses": {
           "200": {
-            "description": "成功"
+            "description": "Customer response allowlist; no internal cost or allocations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "allOf": [
+                            {
+                              "$ref": "#/components/schemas/PaginationBase"
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "list": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/CustomerServiceEntitlement"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "list"
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -4938,7 +5854,29 @@
         "summary": "查询服务权益及履约切片",
         "responses": {
           "200": {
-            "description": "成功"
+            "description": "Customer response allowlist; no internal cost or allocations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CustomerServiceEntitlementDetail"
+                        }
+                      },
+                      "required": [
+                        "data"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -5199,8 +6137,103 @@
         }
       }
     },
-    "/customer/service-redemptions/{id}/complete": {"post": {"tags": ["Customer"], "security": [{"bearerAuth": []}], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "成功"}, "403": {"description": "不属于当前顾客"}, "409": {"description": "任务没有待确认请求或状态冲突"}, "422": {"description": "拒绝原因无效"}}, "operationId": "confirmCustomerServiceCompletion", "summary": "顾客确认接单人结单请求", "description": "仅当前权益持有顾客；确认后消耗权益，重复确认仍校验归属且幂等。拒绝后清请求时间，可重提或申请取消。"}},
-    "/customer/service-redemptions/{id}/completion/reject": {"post": {"tags": ["Customer"], "security": [{"bearerAuth": []}], "parameters": [{"name": "id", "in": "path", "required": true, "schema": {"type": "integer"}}], "responses": {"200": {"description": "成功"}, "403": {"description": "不属于当前顾客"}, "409": {"description": "任务没有待确认请求或状态冲突"}, "422": {"description": "拒绝原因无效"}}, "operationId": "rejectCustomerServiceCompletion", "summary": "顾客拒绝结单请求并继续履约", "description": "仅当前权益持有顾客；确认后消耗权益，重复确认仍校验归属且幂等。拒绝后清请求时间，可重提或申请取消。", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["reason"], "properties": {"reason": {"type": "string", "minLength": 1}}}}}}}},
+    "/customer/service-redemptions/{id}/complete": {
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "不属于当前顾客"
+          },
+          "409": {
+            "description": "任务没有待确认请求或状态冲突"
+          },
+          "422": {
+            "description": "拒绝原因无效"
+          }
+        },
+        "operationId": "confirmCustomerServiceCompletion",
+        "summary": "顾客确认接单人结单请求",
+        "description": "仅当前权益持有顾客；确认后消耗权益，重复确认仍校验归属且幂等。拒绝后清请求时间，可重提或申请取消。"
+      }
+    },
+    "/customer/service-redemptions/{id}/completion/reject": {
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "403": {
+            "description": "不属于当前顾客"
+          },
+          "409": {
+            "description": "任务没有待确认请求或状态冲突"
+          },
+          "422": {
+            "description": "拒绝原因无效"
+          }
+        },
+        "operationId": "rejectCustomerServiceCompletion",
+        "summary": "顾客拒绝结单请求并继续履约",
+        "description": "仅当前权益持有顾客；确认后消耗权益，重复确认仍校验归属且幂等。拒绝后清请求时间，可重提或申请取消。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/customer/service-redemptions/{id}/cancel": {
       "parameters": [
         {
@@ -7874,7 +8907,7 @@
         ],
         "responses": {
           "200": {
-            "description": "成功",
+            "description": "Customer response allowlist; no internal cost or allocations.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7896,14 +8929,20 @@
                                 "list": {
                                   "type": "array",
                                   "items": {
-                                    "$ref": "#/components/schemas/Transaction"
+                                    "$ref": "#/components/schemas/CustomerTransaction"
                                   }
                                 }
-                              }
+                              },
+                              "required": [
+                                "list"
+                              ]
                             }
                           ]
                         }
-                      }
+                      },
+                      "required": [
+                        "data"
+                      ]
                     }
                   ]
                 }
@@ -8121,7 +9160,7 @@
         ],
         "responses": {
           "200": {
-            "description": "成功",
+            "description": "Customer response allowlist; no internal cost or allocations.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8143,14 +9182,20 @@
                                 "list": {
                                   "type": "array",
                                   "items": {
-                                    "$ref": "#/components/schemas/BalanceLog"
+                                    "$ref": "#/components/schemas/CustomerBalanceLog"
                                   }
                                 }
-                              }
+                              },
+                              "required": [
+                                "list"
+                              ]
                             }
                           ]
                         }
-                      }
+                      },
+                      "required": [
+                        "data"
+                      ]
                     }
                   ]
                 }

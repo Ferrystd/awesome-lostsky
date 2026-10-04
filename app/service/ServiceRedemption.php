@@ -34,7 +34,7 @@ class ServiceRedemption
             ->paginate(['list_rows' => $limit, 'page' => $page]);
         return [
             'total' => $paginator->total(),
-            'list' => $paginator->getCollection()->toArray(),
+            'list' => array_map($this->customerEntitlementResponse(...), $paginator->getCollection()->toArray()),
             'page' => $paginator->currentPage(),
             'limit' => $paginator->listRows(),
         ];
@@ -45,7 +45,7 @@ class ServiceRedemption
         $entitlement = TeamServiceEntitlement::where('team_id', $teamId)
             ->where('customer_id', $customerId)->with(['service'])->find($id);
         if (!$entitlement) throw new HttpException(404, '服务权益不存在');
-        $result = $entitlement->toArray();
+        $result = $this->customerEntitlementResponse($entitlement->toArray());
         $instances = TeamServiceInstance::where('entitlement_id', $id)
             ->with(['cancelRequests.requester.profile', 'adjustments'])
             ->order('id', 'desc')->select()->toArray();
@@ -64,7 +64,7 @@ class ServiceRedemption
                 : [];
             if ($model) $this->attachStatus($instance, $model);
         }
-        $result['instances'] = $instances;
+        $result['instances'] = array_map($this->customerInstance(...), $instances);
         $result['redemption_fields'] = app(ServiceRedemptionField::class)->fieldsForService(
             $teamId,
             (int) $entitlement->service_id,
@@ -74,8 +74,10 @@ class ServiceRedemption
         $result['dispatch_available'] = true;
         $offers = TeamServiceAssignmentOffer::where('team_id', $teamId)
             ->where('customer_id', $customerId)->where('entitlement_id', $id)
-            ->with(['targetHandler.profile', 'instance'])->order('id', 'desc')->select()->toArray();
+            ->with(['targetHandler.profile'])->order('id', 'desc')->select()->toArray();
         foreach ($offers as &$offer) {
+            $offer['instance'] = !empty($offer['service_instance_id'])
+                ? TeamServiceInstance::find((int) $offer['service_instance_id'])?->toArray() : null;
             $resources = app(ServiceRedemptionField::class)->resourcesForValues(
                 $teamId,
                 (int) $entitlement->service_id,
@@ -87,8 +89,57 @@ class ServiceRedemption
             $offer['redemption_resources'] = $resources;
             $offer['redemption_fields'] = $resources[0]['redemption_fields'] ?? [];
         }
-        $result['assignment_offers'] = $offers;
+        $result['assignment_offers'] = array_map(function (array $offer): array {
+            $row = $this->customerFields($offer, 'id entitlement_id service_instance_id target_handler_entity_id quantity total_price status memo decision_reason decided_at create_time update_time redemption_fields redemption_resources');
+            $row['status'] = $this->customerStatus(ServiceAssignmentOfferStatus::class, $offer['status']);
+            $row['target_handler'] = $this->customerEntity($offer['targetHandler'] ?? null);
+            $row['instance'] = isset($offer['instance']) ? $this->customerInstance($offer['instance']) : null;
+            return $row;
+        }, $offers);
         return $result;
+    }
+
+    private function customerFields(array $row, string $fields): array
+    {
+        return array_intersect_key($row, array_flip(explode(' ', $fields)));
+    }
+
+    private function customerStatus(string $enum, int|string $status): int
+    {
+        foreach ($enum::cases() as $case) {
+            if ($status === $case->value() || (string) $status === (string) $case->value) return $case->value;
+        }
+        throw new \LogicException('Unknown customer service status');
+    }
+
+    private function customerEntity(?array $entity): ?array
+    {
+        if ($entity === null) return null;
+        $row = $this->customerFields($entity, 'id entity_id slug name avatar type');
+        if (isset($entity['profile'])) $row['profile'] = $this->customerFields($entity['profile'], 'name avatar');
+        return $row;
+    }
+
+    private function customerEntitlementResponse(array $entitlement): array
+    {
+        $row = $this->customerFields($entitlement, 'id service_id unit_name quantity_step granted_quantity reserved_quantity consumed_quantity available_quantity total_price expire_time is_expired is_exhausted unused_auto_complete_due_at create_time update_time');
+        $row['service'] = isset($entitlement['service']) ? $this->customerFields($entitlement['service'], 'id name description unit_name quantity_step is_active') : null;
+        return $row;
+    }
+
+    private function customerInstance(array $instance): array
+    {
+        $row = $this->customerFields($instance, 'id entitlement_id ordinal quantity status status_code status_label total_price expire_time is_expired memo handler_entity_id started_at completed_at completion_requested_at completion_due_at completion_rejected_at completion_rejection_reason settlement_kind create_time update_time redemption_fields redemption_resources');
+        $row['status'] = $this->customerStatus(ServiceStatus::class, $instance['status']);
+        $row['handler'] = $this->customerEntity($instance['handler'] ?? null);
+        $row['cancel_requests'] = array_map(function (array $request): array {
+            $result = $this->customerFields($request, 'id service_instance_id reason status decision_reason create_time update_time');
+            $result['status'] = $this->customerStatus(ServiceCancelStatus::class, $request['status']);
+            $result['requester'] = $this->customerEntity($request['requester'] ?? null);
+            return $result;
+        }, $instance['cancelRequests'] ?? $instance['cancel_requests'] ?? []);
+        $row['adjustments'] = array_map(fn (array $adjustment): array => array_replace($this->customerFields($adjustment, 'id service_instance_id name quantity unit_price total_price status memo decided_at create_time update_time'), ['status' => $this->customerStatus(ServiceAdjustmentStatus::class, $adjustment['status'])]), $instance['adjustments'] ?? []);
+        return $row;
     }
 
     public function handlers(int $teamId, int $customerId, int $id): array
