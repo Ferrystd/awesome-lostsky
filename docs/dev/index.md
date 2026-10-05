@@ -57,6 +57,7 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 ## 运维
 
 - [生产与宝塔部署](operations/deployment.md)
+- [宝塔官方通道部署](operations/bt-panel.md)
 - [系统运行日志](operations/logging.md)
 - [静态资源 CORS](operations/assets-cors.md)
 - [控制台命令](operations/console.md)

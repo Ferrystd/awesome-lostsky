@@ -2,6 +2,8 @@
 
 本文说明 LostSky 的生产部署流程。开发环境准备见[开发须知](../development/development.md)，版本发布与恢复见[发布须知](../development/releasing.md)。
 
+首个 `1.0.0` 版本优先通过[宝塔官方 MCP 与 Skill](bt-panel.md)完成面板资源盘点、部署和写后验收；无法使用 MCP 时采用对应版本的官方面板 API。下文的运行时、目录、构建、Nginx 与业务验收要求同样适用。
+
 ## 环境要求
 
 - PHP 8.1+
