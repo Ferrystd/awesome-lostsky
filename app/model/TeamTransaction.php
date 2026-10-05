@@ -100,7 +100,7 @@ class TeamTransaction extends Base
         $columns = [];
 
         foreach (self::MONEY_FIELDS as $field) {
-            $value = $this->decimalInput($values[$field] ?? 0);
+            $value = $this->decimalInput(array_key_exists($field, $values) ? $values[$field] : 0);
             $bind[$field] = $value;
             $columns[] = "CAST(:{$field} AS DECIMAL(12,2)) AS `{$field}`";
         }

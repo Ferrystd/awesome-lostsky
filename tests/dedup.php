@@ -59,6 +59,13 @@ try {
         'unsafe request without client identifiers still receives server-side deduplication'
     );
 
+    foreach ([null, "team-{$suffix}"] as $crossTeamId) {
+        $first = $request("/role/add/{$suffix}", $crossTeamId); $first->team_id = 10001;
+        $second = $request("/role/add/{$suffix}", $crossTeamId); $second->team_id = 10002;
+        $dedup->handle($first, $success);
+        $dedup->handle($second, $success);
+        $assertThrows(fn () => $dedup->handle($first, $success), 429, 'same team still deduplicates after another team succeeds');
+    }
     $requestId = "dedup-{$suffix}";
     $dedup->handle($request("/dedup/id/{$suffix}", $requestId), $success);
     $assertThrows(

@@ -359,7 +359,7 @@ class Product
             throw new HttpException(422, '商品金额格式不正确');
         }
         $configuration = array_merge($product->toArray(), $update);
-        if ($product->parent_product_id !== null && $kind === ProductKind::Standard) {
+        if ($kind === ProductKind::Standard) {
             $pricing = app(BenefitPackagePricing::class);
             $defaults = app(PersonalPricing::class)->defaults($teamId, $configuration['price'], $configuration['cost']);
             $remaining = $pricing->toCents((string) $configuration['price']) - $pricing->toCents((string) $configuration['cost']);

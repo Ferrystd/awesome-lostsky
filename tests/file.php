@@ -22,12 +22,16 @@ if ($path === false) {
 }
 
 try {
-    file_put_contents($path, 'upload-validator-fixture');
+    file_put_contents($path, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='));
     $validator = app(\app\validate\File::class);
     $assert(
-        $validator->upload(new UploadedFile($path, 'avatar.webp', 'image/webp', null, true)),
+        $validator->upload(new UploadedFile($path, 'avatar.png', 'image/png', null, true)),
         'configured image extension is accepted'
     );
+
+    file_put_contents($path, '<!doctype html><html><body>fake image</body></html>');
+    $validator = app(\app\validate\File::class, [], true);
+    $assert(!$validator->upload(new UploadedFile($path, 'fake.png', 'image/png', null, true)), 'image MIME is detected from content, not supplied header or extension');
 
     $validator = app(\app\validate\File::class, [], true);
     $assert(

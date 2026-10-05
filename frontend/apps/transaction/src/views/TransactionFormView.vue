@@ -32,15 +32,15 @@ const form = reactive({
   sender_entity_id: null as number | null,
   cs_entity_id: null as number | null,
   customer_id: null as number | null,
-  total_price: 0,
-  cost: 0,
-  cash: 0,
-  prepaid: 0,
-  handler_cut: 0,
-  sender_cut: 0,
-  cs_cut: 0,
-  team_cut: 0,
-  trans_at: Date.now(),
+  total_price: 0 as number | null,
+  cost: 0 as number | null,
+  cash: 0 as number | null,
+  prepaid: 0 as number | null,
+  handler_cut: 0 as number | null,
+  sender_cut: 0 as number | null,
+  cs_cut: 0 as number | null,
+  team_cut: 0 as number | null,
+  trans_at: Date.now() as number | null,
   memo: '',
 })
 const optionsQuery = useQuery({
@@ -100,8 +100,17 @@ const customerEntities = computed(() => customers.value
 const selectedCustomer = computed(() => customers.value.find(item => Number(item.id) === form.customer_id))
 const currentEntityId = computed(() => Number(accessQuery.data.value?.identity?.entity_id) || null)
 const balance = computed(() => Number(selectedCustomer.value?.balance?.balance ?? 0))
-const canSubmit = computed(() => Boolean(form.handler_entity_id && form.trans_at && balanced.value && (!form.prepaid || form.customer_id)))
 const operationReason = computed(() => routeAccess.reason.value || (editing.value ? '' : accessQuery.isPending.value ? '正在核对记账能力' : transactionAbilityReason(accessQuery.data.value)))
+const amountFields = ['total_price', 'cost', 'cash', 'prepaid', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut'] as const
+const submitReason = computed(() => operationReason.value
+  || (save.isPending.value ? '正在保存流水，请稍候' : '')
+  || (!currentEntityId.value ? '正在核对当前人员身份' : '')
+  || (!form.handler_entity_id ? '请选择接单人' : '')
+  || (amountFields.some(key => typeof form[key] !== 'number' || !Number.isFinite(form[key]) || Number(form[key]) < 0) ? '请完整填写金额，金额须为大于或等于 0 的数字' : '')
+  || (form.trans_at == null || !Number.isFinite(form.trans_at) || form.trans_at <= 0 ? '请选择有效的交易时间' : '')
+  || (!balanced.value ? '总价、支付合计与成本分成合计必须一致' : '')
+  || (form.prepaid && !form.customer_id ? '使用预存款时请选择顾客' : '')
+  || (Number(form.prepaid) > balance.value ? '预存款金额超过当前顾客余额' : ''))
 const amountProps = { min: 0, precision: 2, step: 1 } as const
 
 function applyCustomerDefaults(value: number | number[] | null) {
@@ -123,6 +132,7 @@ const save = useMutation({
     const wasEditing = editing.value
     const wasPersonal = personal.value
     const data = await api.post<{ id?: number }>(editing.value ? `/transaction/${id.value}` : '/transaction', {
+    expected_entity_id: currentEntityId.value,
     ...(!editing.value ? { handler_entity_id: submitted.value.handler_entity_id, type: 2 } : {}),
     sender_entity_id: submitted.value.sender_entity_id,
     cs_entity_id: submitted.value.cs_entity_id,
@@ -135,7 +145,7 @@ const save = useMutation({
     sender_cut: submitted.value.sender_cut,
     cs_cut: submitted.value.cs_cut,
     team_cut: submitted.value.team_cut,
-    trans_at: Math.floor(submitted.value.trans_at / 1000),
+    trans_at: Math.floor(Number(submitted.value.trans_at) / 1000),
     memo: submitted.value.memo.trim() || null,
   })
     return { data, submitted, targetId, wasEditing, wasPersonal }
@@ -150,9 +160,10 @@ const save = useMutation({
   },
 })
 async function submit() {
-  if (routeAccess.reason.value) return feedback.info(routeAccess.reason.value)
+  if (submitReason.value) return feedback.info(submitReason.value)
   const reason = await resolveTransactionAbilityReason(accessQuery.data.value)
   if (!editing.value && reason) return feedback.info(reason)
+  if (submitReason.value) return feedback.info(submitReason.value)
   save.mutate()
 }
 </script>
@@ -195,11 +206,11 @@ async function submit() {
         <LsField label="交易时间" for-id="transaction-time" required><NDatePicker id="transaction-time" v-model:value="form.trans_at" type="datetime" clearable /></LsField>
         <LsField label="备注" for-id="transaction-memo"><NInput id="transaction-memo" v-model:value="form.memo" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" maxlength="500" show-count placeholder="可记录订单来源、异常说明或结算信息" /></LsField>
       </LsFormSection>
-      <LsInlineError v-if="form.prepaid > balance && selectedCustomer" message="预存款金额超过当前顾客余额。" />
+      <LsInlineError v-if="Number(form.prepaid) > balance && selectedCustomer" message="预存款金额超过当前顾客余额。" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
-        <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="Boolean(operationReason) || !canSubmit || form.prepaid > balance" :disabled-reason="operationReason">保存流水</LsButton>
+        <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason">保存流水</LsButton>
       </LsFormActions>
     </form>
   </div>

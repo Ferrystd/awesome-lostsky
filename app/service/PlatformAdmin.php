@@ -170,13 +170,13 @@ final class PlatformAdmin
         if ($actorUserId === $targetUserId) {
             throw new HttpException(409, '不能封禁或解封自己的账号');
         }
-        Db::transaction(function () use ($actorUserId, $targetUserId, $banned, $reason, $request): void {
+        $disconnectIds = Db::transaction(function () use ($actorUserId, $targetUserId, $banned, $reason, $request): array {
             $user = User::where('id', $targetUserId)->lock(true)->find();
             if (!$user) {
                 throw new HttpException(404, '用户不存在');
             }
             if ((int) $user->is_banned === (int) $banned) {
-                return;
+                return [];
             }
             if ($banned && $this->isSuperAdmin($targetUserId)) {
                 app(PlatformAdminAccess::class)->assertAnotherActiveSuperAdmin($targetUserId);
@@ -184,9 +184,7 @@ final class PlatformAdmin
             $before = (int) $user->is_banned;
             $user->is_banned = $banned ? 1 : 0;
             $user->save();
-            if ($banned) {
-                app(Device::class)->quitAll($targetUserId);
-            }
+            $ids = $banned ? app(Device::class)->revokeAll($targetUserId) : [];
             app(BusinessAudit::class)->recordPlatform(
                 $actorUserId,
                 $banned ? 'user.ban' : 'user.unban',
@@ -195,7 +193,9 @@ final class PlatformAdmin
                 ['reason' => $reason, 'before' => $before, 'after' => (int) $banned],
                 $request
             );
+            return $ids;
         });
+        foreach ($disconnectIds as $sessionId) app(ChatRealtime::class)->disconnectSession($sessionId);
     }
 
     public function revokeUserSessions(
@@ -208,8 +208,8 @@ final class PlatformAdmin
         if (!User::find($targetUserId)) {
             throw new HttpException(404, '用户不存在');
         }
-        Db::transaction(function () use ($actorUserId, $targetUserId, $reason, $request): void {
-            app(Device::class)->quitAll($targetUserId);
+        $disconnectIds = Db::transaction(function () use ($actorUserId, $targetUserId, $reason, $request): array {
+            $ids = app(Device::class)->revokeAll($targetUserId);
             app(BusinessAudit::class)->recordPlatform(
                 $actorUserId,
                 'user.sessions.revoke',
@@ -218,7 +218,9 @@ final class PlatformAdmin
                 ['reason' => $reason],
                 $request
             );
+            return $ids;
         });
+        foreach ($disconnectIds as $sessionId) app(ChatRealtime::class)->disconnectSession($sessionId);
     }
 
     public function teams(array $filters): array

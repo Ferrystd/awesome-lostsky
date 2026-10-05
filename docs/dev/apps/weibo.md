@@ -67,3 +67,5 @@ Worker 使用业务数据库 MySQL 会话级执行锁，按数据库与 task ID 
 意外执行异常保留原调度键并退避重试，间隔为 60、120、240、480 秒，随后最多 900 秒；指数在计算前截断，高 attempts 不发生数值溢出。同 task/version 的异常告警只发一次，通知自身异常也只释放一次 Job。锁建立或连接配置异常同样延迟 60 秒，不能绕过互斥执行。
 
 `php think weibo:tasks-recover` 为 Active 但缺失对应 Job 的任务补投，包含历史入队缺口；保留原 task/version/plannedAt 和 dispatch key，已有待执行或已领取 Job 不重复投递。取得执行锁后发现已有 `dispatching` 才按失联恢复为 unknown，并推进下一周期，同一 dispatch key 不重复远端写入。Unknown 通知为“结果未确认”，只有明确 Failed 才通知“执行失败”。执行锁保证本地执行体不并发；原执行体死亡前远端已收到的请求仍可能在远端继续处理，不能保证跨周期内容绝不重复。部署后及定时恢复安排见[Weibo Worker](../operations/deployment.md#weibo-database-worker)。
+
+已取消任务为终态，暂停不能使其重新恢复。团队管理员编辑个人任务时，账号及媒体仍按任务 owner 范围校验。复用已登录微博账号时短信使用独立内部 weibo_bind 用途，不要求该手机号注册平台用户；公开短信入口仅接受 register/login。旧缓存挑战在有效期内仍核验原 login 用途，新挑战不复用平台登录验证码。

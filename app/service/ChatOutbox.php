@@ -25,6 +25,13 @@ class ChatOutbox
         $eventToken = bin2hex(random_bytes(16));
         $events = $this->claimEvents($limit, $eventToken);
         foreach ($events as $event) {
+            if (!$this->aggregateAvailable($event)) {
+                $this->updateClaimedEvent($event, $eventToken, [
+                    'published_at' => time(), 'last_error' => '事件对象已删除',
+                    'processing_token' => null, 'processing_until' => null,
+                ]);
+                continue;
+            }
             try {
                 [$conversation, $originIntegrationId] = $this->context($event);
                 $recipientIds = $this->currentRecipients($event, $conversation);
@@ -70,6 +77,7 @@ class ChatOutbox
                 throw new \RuntimeException('事件消息不存在');
             }
             $conversation = ChatConversation::find($message->conversation_id);
+            if (!$conversation) throw new \RuntimeException('事件会话不存在');
             return [$conversation, $message->origin_integration_id ? (int) $message->origin_integration_id : null];
         }
         $conversation = ChatConversation::find($event->aggregate_id);
@@ -77,6 +85,15 @@ class ChatOutbox
             throw new \RuntimeException('事件会话不存在');
         }
         return [$conversation, null];
+    }
+
+    private function aggregateAvailable(ChatEventOutbox $event): bool
+    {
+        if ((string) $event->aggregate_type === 'message') {
+            $message = ChatMessage::find($event->aggregate_id);
+            return $message !== null && ChatConversation::find($message->conversation_id) !== null;
+        }
+        return ChatConversation::find($event->aggregate_id) !== null;
     }
 
     private function prepareDeliveries(
@@ -124,7 +141,7 @@ class ChatOutbox
         foreach ($rows as $delivery) {
             $integration = $delivery->integration;
             $event = $delivery->outbox;
-            if (!$integration || !$event || !$integration->is_active) {
+            if (!$integration || !$event || !$integration->is_active || !$this->aggregateAvailable($event)) {
                 $this->updateClaimedDelivery($delivery, $deliveryToken, [
                     'status' => ChatDeliveryStatus::Failed,
                     'last_error' => '集成或事件不可用',
@@ -133,6 +150,7 @@ class ChatOutbox
                 ]);
                 continue;
             }
+            try {
             [$conversation] = $this->context($event);
             if (!$this->integrationEligible($integration, $event, $conversation)) {
                 $this->updateClaimedDelivery($delivery, $deliveryToken, [
@@ -141,7 +159,6 @@ class ChatOutbox
                 ]);
                 continue;
             }
-            try {
                 $publicPayload = (array) $event->payload;
                 unset($publicPayload['recipient_entity_ids']);
                 $body = json_encode([

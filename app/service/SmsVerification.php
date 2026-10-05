@@ -21,6 +21,7 @@ class SmsVerification
 {
     public const PURPOSE_REGISTER = 'register';
     public const PURPOSE_LOGIN = 'login';
+    public const PURPOSE_WEIBO_BIND = 'weibo_bind';
 
     /**
      * 发送短信验证码。
@@ -102,6 +103,10 @@ class SmsVerification
     private function validateSend(string $phone, string $purpose): void
     {
         $validator = new SmsVerificationValidator;
+        if ($purpose === self::PURPOSE_WEIBO_BIND) {
+            if (!$validator->only(['phone'])->check(['phone' => $phone])) throw new HttpException(422, $validator->getError());
+            return;
+        }
         if (!$validator->scene('send')->check(['phone' => $phone, 'purpose' => $purpose])) {
             throw new HttpException(422, $validator->getError());
         }

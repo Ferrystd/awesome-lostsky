@@ -70,7 +70,10 @@ class Dedup
                 json_encode($request->param(), JSON_UNESCAPED_UNICODE),
             ]));
 
-        return hash('sha256', $raw);
+        return hash('sha256', implode('|', [
+            (string) ($request->app_name ?? app()->http->getName()),
+            $request->team_id ?? 0, $raw,
+        ]));
     }
 
     private function header(Request $request, string $name): string

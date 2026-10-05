@@ -164,14 +164,20 @@ class ChatConversation
 
     public function teamCancelInvitation(int $teamId, array $acting, int $expected, string $uuid, string $slug): void
     {
-        $this->assertTeamManager($teamId, $acting, $expected); $target = app(ChatActor::class)->resolveGlobal($slug);
+        $this->assertTeamManager($teamId, $acting, $expected);
+        $identity = \app\model\Entity::where('slug', strtolower(trim($slug)))->find();
+        if (!$identity) throw new HttpException(404, '聊天人员不存在');
+        $target = ['entity_id' => (int) $identity->id];
         ChatParticipant::where('conversation_id', $this->teamModel($teamId, $uuid)->id)
             ->where('entity_id', $target['entity_id'])->where('status', 'pending')->delete();
     }
 
     public function teamRemove(int $teamId, array $acting, int $expected, string $uuid, string $slug): void
     {
-        $this->assertTeamManager($teamId, $acting, $expected); $target = app(ChatActor::class)->resolveGlobal($slug);
+        $this->assertTeamManager($teamId, $acting, $expected);
+        $identity = \app\model\Entity::where('slug', strtolower(trim($slug)))->find();
+        if (!$identity) throw new HttpException(404, '聊天人员不存在');
+        $target = ['entity_id' => (int) $identity->id];
         $conversation = $this->teamModel($teamId, $uuid);
         Db::transaction(function () use ($conversation, $target): void {
             $row = ChatParticipant::where('conversation_id', $conversation->id)

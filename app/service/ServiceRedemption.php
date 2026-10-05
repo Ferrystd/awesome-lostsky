@@ -21,7 +21,7 @@ use think\facade\Db;
 
 class ServiceRedemption
 {
-    private const MONEY_FIELDS = ['total_price', 'cost', 'handler_cut', 'sender_cut', 'cs_cut'];
+    private const MONEY_FIELDS = ['total_price', 'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut'];
 
     public function customerList(int $teamId, int $customerId, array $filters, int $page = 1, int $limit = 20): array
     {
@@ -1209,50 +1209,26 @@ class ServiceRedemption
 
     private function allocateMoney(TeamServiceEntitlement $entitlement, int $quantityMinor): array
     {
-        $grantedMinor = app(ServiceQuantity::class)->toMinor($entitlement->granted_quantity);
         $availableMinor = app(ServiceQuantity::class)->toMinor($entitlement->available_quantity);
-        $finalSlice = $quantityMinor === $availableMinor;
-        $money = [];
+        $remaining = [];
         foreach (self::MONEY_FIELDS as $field) {
-            $total = $this->toCents($entitlement->{$field});
-            $used = $this->usedCents((int) $entitlement->id, $field);
-            $slice = $finalSlice
-                ? $total - $used
-                : intdiv($total * $quantityMinor, $grantedMinor);
-            $money[$field] = $this->fromCents(max(0, $slice));
+            $cents = $this->toCents($entitlement->{$field}) - $this->usedCents((int) $entitlement->id, $field);
+            if ($cents < 0) throw new HttpException(422, '历史核销金额与权益余额不一致，请联系管理员核查');
+            $remaining[$field] = $this->fromCents($cents);
         }
-        $teamCents = $this->toCents($money['total_price'])
-            - $this->toCents($money['cost'])
-            - $this->toCents($money['handler_cut'])
-            - $this->toCents($money['sender_cut'])
-            - $this->toCents($money['cs_cut']);
-        if ($teamCents < 0) throw new HttpException(422, '该次服务的金额分成不平衡');
-        $money['team_cut'] = $this->fromCents($teamCents);
-        return $money;
+        if ($this->toCents($remaining['total_price']) !== array_sum(array_map(
+            fn(string $field): int => $this->toCents($remaining[$field]),
+            ['cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut']
+        ))) throw new HttpException(422, '历史核销金额与权益余额不平衡，请联系管理员核查');
+        return app(MoneyAllocation::class)->split($remaining, [$quantityMinor, $availableMinor - $quantityMinor])[0];
     }
 
     private function splitInstanceMoney(TeamServiceInstance $instance, int $claimedMinor, int $totalMinor): array
     {
-        $claimed = [];
-        $remainder = [];
-        foreach (self::MONEY_FIELDS as $field) {
-            $total = $this->toCents($instance->{$field});
-            $claimedCents = intdiv($total * $claimedMinor, $totalMinor);
-            $claimed[$field] = $this->fromCents($claimedCents);
-            $remainder[$field] = $this->fromCents($total - $claimedCents);
-        }
-        foreach ([&$claimed, &$remainder] as &$money) {
-            $money['team_cut'] = $this->fromCents(
-                $this->toCents($money['total_price'])
-                - $this->toCents($money['cost'])
-                - $this->toCents($money['handler_cut'])
-                - $this->toCents($money['sender_cut'])
-                - $this->toCents($money['cs_cut'])
-            );
-        }
-        return [$claimed, $remainder];
+        $totals = [];
+        foreach (self::MONEY_FIELDS as $field) $totals[$field] = $instance->{$field};
+        return app(MoneyAllocation::class)->split($totals, [$claimedMinor, $totalMinor - $claimedMinor]);
     }
-
     private function usedCents(int $entitlementId, string $field): int
     {
         $value = TeamServiceInstance::where('entitlement_id', $entitlementId)

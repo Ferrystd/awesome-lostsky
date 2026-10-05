@@ -199,6 +199,16 @@ try {
     );
 
     $memberId = $join->approve((int) $targetTeam->id, $applicationId);
+    foreach ([
+        fn () => $join->cancel((int) $targetTeam->id, (int) $applicant->id, $applicationId),
+        fn () => $join->startReview((int) $targetTeam->id, $applicationId),
+        fn () => $join->reject((int) $targetTeam->id, $applicationId, 'terminal regression'),
+        fn () => $join->saveTasks((int) $targetTeam->id, $applicationId, [['title' => 'late task']]),
+        fn () => $join->setTaskPassed((int) $targetTeam->id, $applicationId, 1, true),
+    ] as $lateMutation) {
+        try { $lateMutation(); $assert(false, 'approved application rejects every late review mutation'); }
+        catch (HttpException $exception) { $assert($exception->getStatusCode() === 409, 'approved application remains terminal'); }
+    }
     $member = TeamMember::find($memberId);
     $assert(
         (int) $member->inviter_entity_id === (int) ($externalInviter?->id ?? 0),

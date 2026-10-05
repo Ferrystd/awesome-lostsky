@@ -255,35 +255,41 @@ class TeamJoin
 
     public function cancel(int $teamId, int $userId, int $id): void
     {
-        $application = $this->application($teamId, $id);
-        if ((int) $application->user_id !== $userId) {
-            throw new HttpException(403, '无权取消此申请');
-        }
-        $this->assertPending($application);
-        $application->status = TeamJoinStatus::Cancelled;
-        $application->save();
+        \think\facade\Db::transaction(function () use ($teamId, $userId, $id): void {
+            $application = $this->application($teamId, $id, true);
+            if ((int) $application->user_id !== $userId) {
+                throw new HttpException(403, '无权取消此申请');
+            }
+            $this->assertPending($application);
+            $application->status = TeamJoinStatus::Cancelled;
+            $application->save();
+        });
     }
 
     public function startReview(int $teamId, int $id): void
     {
-        $application = $this->application($teamId, $id);
-        $this->assertPending($application);
-        $application->status = TeamJoinStatus::Reviewing;
-        $application->save();
+        \think\facade\Db::transaction(function () use ($teamId, $id): void {
+            $application = $this->application($teamId, $id, true);
+            $this->assertPending($application);
+            $application->status = TeamJoinStatus::Reviewing;
+            $application->save();
+        });
     }
 
     public function reject(int $teamId, int $id, string $memo): void
     {
-        $validator = new \app\validate\TeamJoinApplication;
-        if (!$validator->scene('reject')->check(['id' => $id, 'reject_memo' => $memo])) {
-            throw new HttpException(422, $validator->getError());
-        }
+        \think\facade\Db::transaction(function () use ($teamId, $id, $memo): void {
+            $validator = new \app\validate\TeamJoinApplication;
+            if (!$validator->scene('reject')->check(['id' => $id, 'reject_memo' => $memo])) {
+                throw new HttpException(422, $validator->getError());
+            }
 
-        $application = $this->application($teamId, $id);
-        $this->assertPending($application);
-        $application->status = TeamJoinStatus::Rejected;
-        $application->memo = $memo;
-        $application->save();
+            $application = $this->application($teamId, $id, true);
+            $this->assertPending($application);
+            $application->status = TeamJoinStatus::Rejected;
+            $application->memo = $memo;
+            $application->save();
+        });
     }
 
     public function approve(int $teamId, int $id): int
@@ -359,7 +365,7 @@ class TeamJoin
         }
 
         \think\facade\Db::transaction(function () use ($teamId, $id, $tasks) {
-            $application = $this->application($teamId, $id);
+            $application = $this->application($teamId, $id, true);
             $this->assertPending($application);
 
             TeamJoinTask::where('application_id', $application->id)->delete();
@@ -388,15 +394,17 @@ class TeamJoin
 
     public function setTaskPassed(int $teamId, int $id, int $taskId, bool $isPassed): void
     {
-        $application = $this->application($teamId, $id);
-        $this->assertPending($application);
+        \think\facade\Db::transaction(function () use ($teamId, $id, $taskId, $isPassed): void {
+            $application = $this->application($teamId, $id, true);
+            $this->assertPending($application);
 
-        $task = TeamJoinTask::where('application_id', $application->id)->find($taskId);
-        if (!$task) {
-            throw new HttpException(404, '审核任务不存在');
-        }
-        $task->is_passed = $isPassed ? 1 : 0;
-        $task->save();
+            $task = TeamJoinTask::where('application_id', $application->id)->find($taskId);
+            if (!$task) {
+                throw new HttpException(404, '审核任务不存在');
+            }
+            $task->is_passed = $isPassed ? 1 : 0;
+            $task->save();
+        });
     }
 
     public function upload(UploadedFile $file, int $teamId): array
@@ -414,9 +422,9 @@ class TeamJoin
         return $field;
     }
 
-    private function application(int $teamId, int $id): TeamJoinApplication
+    private function application(int $teamId, int $id, bool $lock = false): TeamJoinApplication
     {
-        $application = TeamJoinApplication::where('team_id', $teamId)->find($id);
+        $application = TeamJoinApplication::where('team_id', $teamId)->lock($lock)->find($id);
         if (!$application) {
             throw new HttpException(404, '申请不存在');
         }

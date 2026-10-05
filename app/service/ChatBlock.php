@@ -38,7 +38,9 @@ final class ChatBlock
     public function delete(array $actingEntity, int $expectedEntityId, string $slug): void
     {
         $sourceId = app(ChatIdentity::class)->expected($actingEntity, $expectedEntityId);
-        $target = app(ChatActor::class)->resolveGlobal($slug, false);
+        $identity = \app\model\Entity::where('slug', strtolower(trim($slug)))->find();
+        if (!$identity) throw new HttpException(404, '聊天人员不存在');
+        $target = ['entity_id' => (int) $identity->id];
         $row = ChatEntityBlock::where('blocker_entity_id', $sourceId)
             ->where('blocked_entity_id', $target['entity_id'])->find();
         if ($row) {

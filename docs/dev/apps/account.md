@@ -59,3 +59,5 @@ Chat 的身份选择使用 Account `/identity?redirect=...`，不要求团队 sl
 - `GET /identity/target`：解析当前身份应进入的 Team 个人工作台、商城顾客中心或身份选择页；Team Entity 与成员、虚拟实体使用同一 Team 个人入口，不返回业务资料。
 - `GET /identity/workspace-warning?team_slug=...`：复核外部 Entity 的目标团队角色并返回警告上下文。
 - `POST /identity/workspace-warning/acknowledge`：再次复核角色后确认警告；不授予任何角色或 Permission。
+
+退出设备、退出全部设备以及刷新令牌复用撤权同时撤销对应 EntitySession；平台封禁和设备已撤销状态实时参与叶会话校验，既有实时连接不能继续取得消息发布资格。设备及刷新操作按用户、设备、刷新令牌、实体会话顺序加锁，服务入口在最外层业务事务结束后执行实时断连。

@@ -44,3 +44,5 @@ Chat 使用 `chat.lostsky.work` 统一入口，由当前 Entity 参与单聊、�
 - 团队群管理位于 Team 的 `/chat-groups`、`/chat-groups/new` 和 `/chat-groups/:uuid`，按目标团队授权。
 
 出站集成使用 [Standard Webhooks 协议](../development/webhooks.md)，外部开发者可从[最小 SDK 接入](../development/webhook-quickstart.md)开始。
+
+已删除消息或会话的 outbox 终止发布，对应待投递 Webhook 标为失败并释放租约；上下文异常按投递错误处理，不中断整批处理或重新暴露删除内容。团队管理员可以撤销失效实体的已有邀请和群参与关系，个人也可以解除已有失效实体屏蔽；新邀请、屏蔽和消息发送继续要求有效实体。

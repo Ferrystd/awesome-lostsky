@@ -135,3 +135,5 @@ curl -X POST https://api.lostsky.work/login/password \
 curl https://api.lostsky.work/profile/get \
   -H "Origin: https://demo.display.lostsky.work"
 ```
+
+请求防重复键包含解析后的应用名和目标 team_id；同一人员在不同团队提交相同相对路径不会互相触发 429，同一团队通过不同域名调用仍共享防重复边界。

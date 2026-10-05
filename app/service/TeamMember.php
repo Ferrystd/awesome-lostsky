@@ -214,36 +214,25 @@ class TeamMember
      */
     public function block(int $teamId, int $memberId): void
     {
-        $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
-        if (!$member) {
-            throw new HttpException(404, '成员不存在');
-        }
-
-        if ($member->enumCase('status') !== TeamMemberStatus::Active) {
-            throw new HttpException(409, '只有正常成员可以被封禁');
-        }
-
-        $member->save(['status' => TeamMemberStatus::Blocked]);
+        \think\facade\Db::transaction(function () use ($teamId, $memberId): void {
+            $member = \app\model\TeamMember::where('team_id', $teamId)->lock(true)->find($memberId);
+            if (!$member) throw new HttpException(404, '成员不存在');
+            if ($member->enumCase('status') !== TeamMemberStatus::Active) throw new HttpException(409, '只有正常成员可以被封禁');
+            $member->save(['status' => TeamMemberStatus::Blocked]);
+        });
         $this->revokeMemberSessions($memberId);
     }
 
-    /**
-     * 解封成员
-     */
+    /** 解封前锁定并重新确认成员状态，不能复活已离队成员。 */
     public function unblock(int $teamId, int $memberId): void
     {
-        $member = \app\model\TeamMember::where('team_id', $teamId)->find($memberId);
-        if (!$member) {
-            throw new HttpException(404, '成员不存在');
-        }
-
-        if ($member->enumCase('status') !== TeamMemberStatus::Blocked) {
-            throw new HttpException(409, '只有已封禁成员可以解封');
-        }
-
-        $member->save(['status' => TeamMemberStatus::Active]);
+        \think\facade\Db::transaction(function () use ($teamId, $memberId): void {
+            $member = \app\model\TeamMember::where('team_id', $teamId)->lock(true)->find($memberId);
+            if (!$member) throw new HttpException(404, '成员不存在');
+            if ($member->enumCase('status') !== TeamMemberStatus::Blocked) throw new HttpException(409, '只有已封禁成员可以解封');
+            $member->save(['status' => TeamMemberStatus::Active]);
+        });
     }
-
     private function revokeMemberSessions(int $memberId): void
     {
         $entityId = (int) (\app\model\Entity::member()

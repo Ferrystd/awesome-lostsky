@@ -222,6 +222,7 @@ aliases: [服务, Service]
 | --- | --- | --- |
 | `quit` | `int $userId`、`string $deviceToken` | `void` |
 | `quitAll` | `int $userId` | `void` |
+| `revokeAll` | `int $userId` | `array` |
 
 ## Display
 
@@ -443,6 +444,12 @@ aliases: [服务, Service]
 | --- | --- | --- |
 | `issue` | `int $userId` | `array` |
 | `addMember` | `int $teamId`、`string $code`、`?array $joinForm = null` | `int` |
+
+## MoneyAllocation
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `split` | `array $totals`、`array $weights` | `array` |
 
 ## Notice
 

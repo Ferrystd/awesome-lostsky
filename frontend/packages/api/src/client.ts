@@ -116,6 +116,7 @@ export const auth = {
     if (usesSharedAuthCookie()) localStorage.removeItem(TOKEN_KEY)
     else localStorage.setItem(TOKEN_KEY, data.token)
     writeCookie(TOKEN_KEY, data.token)
+    pageIdentities.set(document, identityScope(data.token))
     if (data.refresh_token) {
       const maxAge = data.refresh_expires_at
         ? Math.max(1, data.refresh_expires_at - Math.floor(Date.now() / 1000))
@@ -138,11 +139,28 @@ export const auth = {
     writeCookie(TOKEN_KEY, '', 0)
     writeCookie(REFRESH_TOKEN_KEY, '', 0)
     writeCookie(USER_KEY, '', 0)
+    pageIdentities.set(document, identityScope(''))
   },
 }
 
 const inflight = new Map<string, Promise<unknown>>()
 let refreshTask: Promise<boolean> | null = null
+// The page owns the identity under which its data and drafts were loaded.
+// Local login/identity actions explicitly rebind it through auth.save().
+const pageIdentities = new WeakMap<Document, string>()
+function identityScope(token: string) {
+  try {
+    const part = token.split('.')[1]
+    const padded = part.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(part.length / 4) * 4, '=')
+    const payload = JSON.parse(atob(padded))
+    return JSON.stringify([payload.uid ?? payload.sub ?? null, payload.act?.type ?? null, payload.act?.id ?? null])
+  } catch { return '' }
+}
+function assertRequestIdentity(expected: string, method: string, path: string) {
+  if (identityScope(auth.token()) !== expected) {
+    throw new ApiError(ERROR_MESSAGES.request.identityChanged, { status: 409, method, path })
+  }
+}
 
 function queryString(params?: Record<string, unknown>) {
   if (!params) return ''
@@ -160,8 +178,10 @@ async function refreshSession(): Promise<boolean> {
   if (refreshTask) return refreshTask
 
   refreshTask = (async () => {
+    const identity = identityScope(auth.token())
     let refreshToken = auth.refreshToken()
     for (let attempt = 0; attempt < 2 && refreshToken; attempt++) {
+      if (identityScope(auth.token()) !== identity) return false
       try {
         const response = await fetch(`${API_BASE}/login/refresh`, {
           method: 'POST',
@@ -178,6 +198,7 @@ async function refreshSession(): Promise<boolean> {
           refresh_expires_at: number
         }>>
         if (response.ok && envelope.code === 0 && envelope.data?.token) {
+          if (identityScope(auth.token()) !== identity || identityScope(envelope.data.token) !== identity) return false
           auth.save(envelope.data)
           return true
         }
@@ -209,7 +230,11 @@ async function refreshSession(): Promise<boolean> {
 }
 
 async function request<T>(method: string, path: string, body?: unknown, options: { signal?: AbortSignal; timeout?: number; app?: 'common' } = {}): Promise<T> {
-  const key = method === 'GET' ? '' : `${method}:${path}:${JSON.stringify(body ?? null)}`
+  const identity = pageIdentities.get(document) ?? identityScope(auth.token())
+  pageIdentities.set(document, identity)
+  assertRequestIdentity(identity, method, path)
+  // FormData serializes to {}, so different files must never share a write.
+  const key = method === 'GET' || body instanceof FormData ? '' : `${identity}:${options.app ?? ''}:${method}:${path}:${JSON.stringify(body ?? null)}`
   if (key && inflight.has(key)) return inflight.get(key) as Promise<T>
 
   const task = (async () => {
@@ -224,6 +249,7 @@ async function request<T>(method: string, path: string, body?: unknown, options:
       let token = auth.token()
       let refreshAttempted = false
       while (true) {
+        assertRequestIdentity(identity, method, path)
         const headers: Record<string, string> = { 'X-Page-Id': pageId() }
         if (method !== 'GET') headers['X-Request-Id'] = uuid()
         if (options.app) headers['X-LostSky-App'] = options.app
@@ -237,6 +263,7 @@ async function request<T>(method: string, path: string, body?: unknown, options:
           envelope = await response.json() as ApiEnvelope<T>
           parsed = true
         } catch { /* handled below */ }
+        assertRequestIdentity(identity, method, path)
         if (token && (response.status === 401 || envelope.code === 401)) {
           if (!refreshAttempted && path !== '/login/refresh' && auth.refreshToken()) {
             refreshAttempted = true
@@ -244,6 +271,7 @@ async function request<T>(method: string, path: string, body?: unknown, options:
               token = auth.token()
               continue
             }
+            assertRequestIdentity(identity, method, path)
           }
           auth.clear()
           redirectToLogin({ expired: true })

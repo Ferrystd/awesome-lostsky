@@ -12,6 +12,7 @@ import { Pencil, Trash2 } from '@lucide/vue'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { customerName, dateTime, entityName, money, transactionType } from '../lib'
+import { loadWorkspaceAccess } from '../lib/workspace-access'
 import type { TransactionRecord } from '../types'
 
 const route = useRoute()
@@ -26,14 +27,16 @@ const query = useQuery({
   queryFn: () => routeAccess.read(() => api.get<TransactionRecord>(detailPath.value)),
   enabled: computed(() => id.value > 0 && !routeAccess.restricted.value),
 })
+const accessQuery = useQuery({ queryKey: ['transaction-workspace-access'], queryFn: () => loadWorkspaceAccess() })
 const remove = useMutation({
-  mutationFn: () => api.post(`/transaction/${id.value}/delete`),
+  mutationFn: () => api.post(`/transaction/${id.value}/delete`, { expected_entity_id: accessQuery.data.value?.identity?.entity_id }),
   onSuccess: async () => {
     await client.invalidateQueries({ queryKey: ['transactions'] })
     await router.push('/')
   },
 })
 function confirmDelete() {
+  if (remove.isPending.value || !accessQuery.data.value?.identity?.entity_id) return
   if (confirm('确认删除这笔流水？如使用了预存款，系统会同步退款。')) remove.mutate()
 }
 </script>
@@ -41,9 +44,9 @@ function confirmDelete() {
 <template>
   <div class="detail-view">
     <LsPageHeader title="流水详情" description="核对参与方、支付构成与分成结果。" :back-to="personal ? '/personal/transactions' : '/transactions'" :back-label="personal ? '返回我的流水' : '返回流水列表'">
-      <template v-if="!personal && (routeAccess.restricted.value || query.data.value?.type === 2)" #actions>
+      <template v-if="!personal && (routeAccess.restricted.value || transactionType(query.data.value?.type) === '记账登记')" #actions>
         <RouterLink class="secondary-link" :to="`/edit?id=${id}`"><Pencil :size="17" />编辑</RouterLink>
-        <LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" @click="confirmDelete"><template #icon><Trash2 :size="17" /></template>删除</LsButton>
+        <LsButton variant="danger" :disabled="routeAccess.restricted.value || remove.isPending.value || !accessQuery.data.value?.identity?.entity_id" :disabled-reason="routeAccess.reason.value || (remove.isPending.value ? '正在删除流水' : '正在核对当前人员身份')" @click="confirmDelete"><template #icon><Trash2 :size="17" /></template>删除</LsButton>
       </template>
     </LsPageHeader>
     <LsInlineError v-if="!id && !routeAccess.restricted.value" message="缺少流水 ID。" />

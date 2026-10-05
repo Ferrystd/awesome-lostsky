@@ -51,10 +51,10 @@ final class WeiboAccounts
         if ($account && $account->enumCase('health') === WeiboAccountHealth::Valid) {
             $phone = $account->getData('phone');
             if (!is_string($phone) || $phone === '') throw new HttpException(500, '微博账号手机号无效');
-            $result = app(SmsVerification::class)->send($phone, SmsVerification::PURPOSE_LOGIN);
+            $result = app(SmsVerification::class)->send($phone, SmsVerification::PURPOSE_WEIBO_BIND);
             $expiresIn = $result['expires_in'] ?? 600;
             if (!is_int($expiresIn)) $expiresIn = 600;
-            Cache::set($this->key($challengeId), ['kind' => 'lostsky', 'team_id' => $teamId, 'entity_id' => $entityId, 'account_id' => $account->id, 'phone' => $phone], 600);
+            Cache::set($this->key($challengeId), ['kind' => 'lostsky', 'team_id' => $teamId, 'entity_id' => $entityId, 'account_id' => $account->id, 'phone' => $phone, 'sms_purpose' => SmsVerification::PURPOSE_WEIBO_BIND], 600);
             return ['challenge_id' => $challengeId, 'kind' => 'lostsky', 'expires_in' => $expiresIn];
         }
         $challenge = app(WeiboProtocol::class)->sendLoginSms($phone);
@@ -71,7 +71,7 @@ final class WeiboAccounts
             $phone = $challenge['phone'] ?? null;
             $accountId = $challenge['account_id'] ?? null;
             if (!is_string($phone) || !is_int($accountId)) throw new HttpException(422, '登录挑战已失效');
-            app(SmsVerification::class)->verify($phone, $code, SmsVerification::PURPOSE_LOGIN);
+            app(SmsVerification::class)->verify($phone, $code, $challenge['sms_purpose'] ?? SmsVerification::PURPOSE_LOGIN);
             $account = WeiboAccount::find($accountId);
             if (!$account) throw new HttpException(404, '微博账号不存在');
         } else {

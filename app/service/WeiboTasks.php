@@ -55,7 +55,7 @@ final class WeiboTasks
         if (($data['expected_version'] ?? null) !== $task->version) throw new HttpException(409, '任务已更新，请刷新后重试');
         if ($task->enumCase('status') === WeiboTaskStatus::Cancelled) throw new HttpException(409, '已取消任务不能编辑');
         $scopeEntity = $task->owner_entity_id ?: $entityId;
-        $clean = $this->validate($teamId, $scopeEntity, $teamScope, $data);
+        $clean = $this->validate($teamId, $scopeEntity, $task->owner_entity_id === null, $data);
         Db::transaction(function () use ($task, $clean): void {
             $current = WeiboTask::where('id', $task->id)->lock(true)->find();
             if (!$current || $current->version !== $task->version || $current->enumCase('status') === WeiboTaskStatus::Cancelled) throw new HttpException(409, '任务已更新，请刷新后重试');
@@ -71,6 +71,9 @@ final class WeiboTasks
         return Db::transaction(function () use ($teamId, $entityId, $id, $teamScope, $action): array {
             $task = $this->find($teamId, $entityId, $id, $teamScope, true);
             $status = $task->enumCase('status');
+            if ($status === WeiboTaskStatus::Cancelled && $action !== 'cancel') {
+                throw new HttpException(409, '已取消任务不能恢复');
+            }
             if ($action === 'cancel') $next = WeiboTaskStatus::Cancelled;
             elseif ($action === 'pause') $next = WeiboTaskStatus::Paused;
             elseif (in_array($action, ['start', 'resume'], true)) {

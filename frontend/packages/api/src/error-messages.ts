@@ -4,6 +4,7 @@ export const ERROR_MESSAGES = {
     invalidResponse: '服务响应格式异常，请稍后重试',
     timeoutOrCancelled: '请求超时或已取消',
     networkFailure: '网络请求失败',
+    identityChanged: '当前登录身份已在其他页面改变，请刷新页面后重新操作。',
   },
   friendly: {
     unknown: '发生未知错误，请稍后再试',

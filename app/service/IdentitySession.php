@@ -514,6 +514,9 @@ class IdentitySession
 
     private function validChain(EntitySession $leaf, int $userId, string $deviceToken): bool
     {
+        $user = \app\model\User::find($userId);
+        if (!$user || (int) $user->is_banned === 1
+            || !UserDevice::where('user_id', $userId)->where('device_token', $deviceToken)->find()) return false;
         $current = $leaf;
         $visited = [];
         $now = time();
@@ -710,6 +713,8 @@ class IdentitySession
 
     private function lockDevice(int $userId, string $deviceToken): UserDevice
     {
+        $user = \app\model\User::where('id', $userId)->lock(true)->find();
+        if (!$user || (int) $user->is_banned === 1) throw new HttpException(401, '登录账号不可用');
         if ($deviceToken === '') {
             throw new HttpException(401, '登录设备信息不完整');
         }

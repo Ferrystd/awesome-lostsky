@@ -39,28 +39,26 @@ class TransactionVerify
             return $next($request);
         }
 
-        $customerId = (int) ($request->post('customer_id', 0) ?: 0);
-        $isEdit     = $request->route('id/d', 0) > 0;
-
-        // 规则 B：发单人已绑定该顾客
-        if ($customerId > 0) {
-            $customer = TeamCustomerModel::where('id', $customerId)
-                ->where('team_id', $team->id)
-                ->find();
-
-            if ($customer && (
-                (int) ($customer->assignee_entity_id ?? 0) === $entityId
-                || TeamCustomerSender::sender($entityId, $customerId)->find()
-            )) {
-                return $next($request);
+        $id = $request->route('id/d', 0);
+        return \think\facade\Db::transaction(function () use ($request, $next, $team, $entityId, $id) {
+            $customerIds = [];
+            if ($id > 0) {
+                $transaction = \app\model\TeamTransaction::where('team_id', $team->id)->lock(true)->find($id);
+                if (!$transaction) throw new HttpException(404, '流水不存在');
+                $customerIds[] = (int) ($transaction->customer_id ?? 0);
             }
-        }
-
-        // 规则 C：匿名顾客（仅创建时允许，编辑不允许匿名绕过）
-        if (!$isEdit && $customerId === 0) {
+            if (array_key_exists('customer_id', $request->post(false)) || $id < 1) {
+                $customerIds[] = (int) ($request->post('customer_id', 0) ?: 0);
+            }
+            foreach (array_unique($customerIds) as $customerId) {
+                if ($customerId === 0 && $id < 1) continue;
+                $customer = TeamCustomerModel::where('id', $customerId)->where('team_id', $team->id)->find();
+                if (!$customer || ((int) ($customer->assignee_entity_id ?? 0) !== $entityId
+                    && !TeamCustomerSender::sender($entityId, $customerId)->find())) {
+                    throw new HttpException(403, '你无权执行记账操作');
+                }
+            }
             return $next($request);
-        }
-
-        throw new HttpException(403, '你无权执行记账操作');
+        });
     }
 }

@@ -319,6 +319,9 @@ class Transaction
 
         if (array_key_exists('type', $data)) {
             $data['type'] = $this->normalizeType($data['type']);
+            if ($this->isImmutableSourceType($data['type'])) {
+                throw new HttpException(422, '普通流水不能改为业务来源流水');
+            }
         }
 
         $allow = ['type', 'total_price', 'cost', 'cash', 'prepaid',

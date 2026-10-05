@@ -45,8 +45,10 @@ export const transactionParticipantDefaults = (customer: Customer | null | undef
   }
 }
 
-export const transactionType = (value: unknown) => ({ 1: '商城订单', 2: '记账登记', 3: '权益包收款', 4: '权益核销', 5: '履约加价收款', 6: '履约加价业绩', 7: '未使用权益结单' }[Number(value)] ?? '其他流水')
-export const balanceLogType = (value: unknown) => ({ 1: '充值', 2: '消费', 3: '退款', 4: '调整' }[Number(value)] ?? '变动')
+const transactionTypes: Record<number, string> = { 1: '商城订单', 2: '记账登记', 3: '权益包收款', 4: '权益核销', 5: '履约加价收款', 6: '履约加价业绩', 7: '未使用权益结单' }
+const balanceLogTypes: Record<number, string> = { 1: '充值', 2: '消费', 3: '退款', 4: '调整' }
+export const transactionType = (value: unknown) => transactionTypes[Number(value)] ?? (typeof value === 'string' && value.trim() ? value : '其他流水')
+export const balanceLogType = (value: unknown) => balanceLogTypes[Number(value)] ?? (typeof value === 'string' && value.trim() ? value : '变动')
 
 export const serviceStatusCode = (value: unknown) => {
   if (typeof value === 'number') return value

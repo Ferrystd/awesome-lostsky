@@ -493,21 +493,7 @@ class BenefitFulfillment
 
     private function allocateMoney(array $totals, array $weights): array
     {
-        $weightTotal = array_sum($weights);
-        if ($weightTotal < 1) throw new HttpException(422, '权益额度必须大于零');
-        $rows = array_fill(0, count($weights), []);
-        foreach (self::MONEY_FIELDS as $field) {
-            $total = $this->toCents((string) ($totals[$field] ?? 0));
-            $before = 0;
-            $cumulative = 0;
-            foreach ($weights as $index => $weight) {
-                $cumulative += $weight;
-                $after = intdiv($total * $cumulative, $weightTotal);
-                $rows[$index][$field] = $this->fromCents($after - $before);
-                $before = $after;
-            }
-        }
-        return $rows;
+        return app(MoneyAllocation::class)->split($totals, $weights);
     }
 
     private function applyRoleAvailability(array $money, bool $hasSender, bool $hasCs): array

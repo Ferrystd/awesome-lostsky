@@ -362,3 +362,68 @@ describe('teamless identity recovery', () => {
     expect(target.searchParams.has('team_slug')).toBe(false)
   })
 })
+
+describe('identity ownership and independent uploads', () => {
+  const token = (id: number, version = 1) => `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type: 'teamMember', id }, iat: version })).toString('base64url')}.x`
+  const ok = (data: unknown) => new Response(JSON.stringify({ code: 0, data }))
+  function setup() {
+    const doc = { cookie: `lostsky_token=${token(11)}` }
+    vi.stubGlobal('document', doc)
+    vi.stubGlobal('location', { hostname: 'demo.transaction.lostsky.work', protocol: 'https:', replace: vi.fn() })
+    vi.stubGlobal('localStorage', storage())
+    vi.stubGlobal('sessionStorage', storage())
+    return doc
+  }
+  it('uploads different concurrent files independently while retaining JSON write deduplication', async () => {
+    setup()
+    const fetch = vi.fn().mockImplementation(async (_url, init: RequestInit) => {
+      const file = init.body instanceof FormData ? init.body.get('file') as File : null
+      return ok({ name: file?.name ?? 'json' })
+    })
+    vi.stubGlobal('fetch', fetch)
+    const result = await Promise.all([api.upload(new File(['a'], 'a.txt')), api.upload(new File(['b'], 'b.txt'))])
+    expect(result).toEqual([{ name: 'a.txt' }, { name: 'b.txt' }])
+    expect(fetch).toHaveBeenCalledTimes(2)
+    await Promise.all([api.post('/same', { id: 1 }), api.post('/same', { id: 1 })])
+    expect(fetch).toHaveBeenCalledTimes(3)
+  })
+  it('blocks old-page writes after another tab switches identity but accepts same-actor token rotation', async () => {
+    const doc = setup()
+    const fetch = vi.fn().mockImplementation(async () => ok({}))
+    vi.stubGlobal('fetch', fetch)
+    await api.get('/draft')
+    doc.cookie = `lostsky_token=${token(11, 2)}`
+    await api.post('/save', { memo: 'same actor' })
+    doc.cookie = `lostsky_token=${token(22)}`
+    await expect(api.post('/save', { memo: 'old draft' })).rejects.toMatchObject({ status: 409 })
+    expect(fetch).toHaveBeenCalledTimes(2)
+    auth.save({ token: token(22) })
+    await api.get('/new-identity')
+    expect(fetch).toHaveBeenCalledTimes(3)
+  })
+  it.each([200, 401])('rejects late %i reads without clearing the new identity', async status => {
+    const doc = setup()
+    let resolve!: (response: Response) => void
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(done => { resolve = done })))
+    const request = api.get('/old-data')
+    doc.cookie = `lostsky_token=${token(22)}`
+    resolve(new Response(JSON.stringify({ code: status === 200 ? 0 : 401, data: { private: true } }), { status }))
+    await expect(request).rejects.toMatchObject({ status: 409 })
+    expect(auth.token()).toBe(token(22))
+    expect(location.replace).not.toHaveBeenCalled()
+  })
+  it('does not overwrite a changed identity with a late refresh response', async () => {
+    const doc = setup()
+    doc.cookie += '; lostsky_refresh_token=refresh-a'
+    let resolve!: (response: Response) => void
+    const fetch = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ code: 401 }), { status: 401 }))
+      .mockImplementationOnce(() => new Promise<Response>(done => { resolve = done }))
+    vi.stubGlobal('fetch', fetch)
+    const request = api.get('/protected-old')
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    doc.cookie = `lostsky_token=${token(22)}`
+    resolve(ok({ token: token(11, 2), refresh_token: 'rotated-a' }))
+    await expect(request).rejects.toMatchObject({ status: 409 })
+    expect(auth.token()).toBe(token(22))
+  })
+})

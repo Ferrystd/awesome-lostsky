@@ -97,7 +97,18 @@ final class FileUsage
         $lines = preg_split('/\r?\n/', $markdown);
         $plain = [];
         $fence = null;
+        $listIndents = [];
         foreach ($lines as $line) {
+            // List continuation indentation belongs to the container, not an indented code block.
+            if (preg_match('/^( *)(?:[-+*]|\d+[.)]) +(.*)$/', $line, $list)) {
+                while ($listIndents && end($listIndents) > strlen($list[1])) array_pop($listIndents);
+                $listIndents[] = strlen($line) - strlen($list[2]);
+                $line = $list[2];
+            } elseif ($listIndents && trim($line) !== '') {
+                preg_match('/^ */', $line, $indent);
+                while ($listIndents && end($listIndents) > strlen($indent[0])) array_pop($listIndents);
+                if ($listIndents) $line = substr($line, end($listIndents));
+            }
             if ($fence !== null) {
                 if (preg_match('/^ {0,3}' . preg_quote($fence[0], '/') . '{' . $fence[1] . ',}\s*$/', $line)) $fence = null;
                 continue;

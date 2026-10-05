@@ -7,3 +7,5 @@ Common 仅承载团队文件上传入口。顾客端必须发送 `X-LostSky-App:
 接口契约见 [`common.openapi.json`](../openapi/common.openapi.json)。
 
 个人工作台、顾客资料、加入申请上传同样待使用；只有带 `file.upload` 权限的 Team `/file/upload` 文件库入口立即生效。CLI 与系统内部上传维持受信任直接生效。既有文件保持生效；客户端 `source` 不影响生命周期。
+
+图片、音视频和 PDF 扩展名同时校验文件内容检测的 MIME，拒绝伪装图片的 HTML 等内容。Markdown 文件使用识别保留列表容器缩进，嵌套列表及退出子项后的父项续行链接会激活文件；真实缩进代码和代码围栏内引用不会激活。

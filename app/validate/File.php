@@ -31,6 +31,20 @@ class File extends Validate
             'file' => 'require|fileSize:' . $maxSize . '|fileExt:' . implode(',', $extensions),
         ]);
 
-        return $this->check(['file' => $file]);
+        if (!$this->check(['file' => $file])) return false;
+        $mimeTypes = [
+            'jpg' => ['image/jpeg'], 'jpeg' => ['image/jpeg'], 'png' => ['image/png'],
+            'gif' => ['image/gif'], 'webp' => ['image/webp'], 'avif' => ['image/avif'],
+            'mp4' => ['video/mp4'], 'webm' => ['video/webm'], 'mov' => ['video/quicktime'],
+            'mp3' => ['audio/mpeg'], 'wav' => ['audio/wav', 'audio/x-wav'],
+            'ogg' => ['audio/ogg', 'video/ogg', 'application/ogg'], 'm4a' => ['audio/mp4', 'video/mp4', 'audio/x-m4a'],
+            'pdf' => ['application/pdf'],
+        ];
+        $extension = strtolower($file->getOriginalExtension());
+        if (isset($mimeTypes[$extension]) && !in_array($file->getMime(), $mimeTypes[$extension], true)) {
+            $this->error = '文件内容与扩展名不匹配';
+            return false;
+        }
+        return true;
     }
 }

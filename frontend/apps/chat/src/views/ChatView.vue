@@ -33,6 +33,7 @@ const { expectedEntityId, identityKey, checkIdentity, actor: actorsQuery } = use
   realtimeClient?.disconnect()
   content.value = ''
   replyTo.value = null
+  conversationDrafts.clear()
 })
 const identityType = computed(() => String(auth.entity()?.type ?? ''))
 const backendWorkspace = computed(() => ['team', 'teamMember', 'teamVirtual'].includes(identityType.value))
@@ -104,6 +105,7 @@ const activeUuid = ref(new URLSearchParams(location.search).get('conversation') 
 const actingSlug = computed(() => actorsQuery.data.value?.slug ?? '')
 const content = ref('')
 const replyTo = ref<Message | null>(null)
+const conversationDrafts = new Map<string, { content: string; replyTo: Message | null }>()
 const realtimeState = ref<'connecting' | 'live' | 'polling'>('connecting')
 const messageList = ref<HTMLElement | null>(null)
 let realtimeClient: CentrifugeClient | null = null
@@ -153,19 +155,25 @@ watch(messages, async items => {
     }).catch(() => undefined)
   }
 })
-watch(activeUuid, uuid => {
+watch(activeUuid, (uuid, previous) => {
+  if (previous) conversationDrafts.set(previous, { content: content.value, replyTo: replyTo.value })
+  const nextDraft = conversationDrafts.get(uuid)
+  content.value = nextDraft?.content ?? ''
+  replyTo.value = nextDraft?.replyTo ?? null
   const url = new URL(location.href)
   if (uuid) url.searchParams.set('conversation', uuid)
   else url.searchParams.delete('conversation')
   history.replaceState(null, '', `${url.pathname}${url.search}`)
   subscribeRealtime(uuid)
-})
+}, { flush: 'sync' })
 
 const sendMessage = useMutation({
   mutationFn: (draft: { conversation: string; content: string; reply_id: number | null }) => api.post<Message>('/message/send', { ...draft, expected_entity_id: expectedEntityId.value }),
   onSuccess: async (message, draft) => {
     if (!checkIdentity()) return
-    if (activeUuid.value === draft.conversation && content.value === draft.content) { content.value = ''; replyTo.value = null }
+    if (activeUuid.value === draft.conversation && content.value === draft.content && (replyTo.value?.id ?? null) === draft.reply_id) { content.value = ''; replyTo.value = null }
+    const savedDraft = conversationDrafts.get(draft.conversation)
+    if (savedDraft?.content === draft.content && (savedDraft.replyTo?.id ?? null) === draft.reply_id) conversationDrafts.delete(draft.conversation)
     queryClient.setQueryData<Message[]>(['chat-messages', identityKey, draft.conversation], current => [
       ...(current ?? []).filter(item => item.id !== message.id),
       message,
@@ -315,7 +323,7 @@ onUnmounted(() => {
       </header>
 
       <div class="workspace">
-        <aside :class="['conversation-pane', { hidden: activeUuid }]">
+        <aside :class="['conversation-pane', { 'conversation-pane--hidden': activeUuid }]">
           <div class="pane-heading">
             <div><p>会话</p><h1>消息</h1></div>
             <a href="/new" aria-label="创建会话"><Plus /></a>
@@ -397,5 +405,5 @@ onUnmounted(() => {
 .closed-state{padding:1rem;text-align:center;color:var(--muted-ink);background:var(--cloud);border-top:1px solid var(--line);font-size:.8rem}
 @media(max-width:1050px){.workspace{grid-template-columns:minmax(250px,310px) minmax(0,1fr)}.detail-pane{display:none}}
 @media(max-width:900px){.app-links{display:none}.app-menu{display:block}}
-@media(max-width:720px){.topbar{height:58px;gap:.5rem}.brand strong,.team{display:none}.account-links{gap:.15rem}.account-links a{min-height:44px}.account-links a:first-child{font-size:0}.workspace{height:calc(100dvh - 58px);display:block}.conversation-pane,.message-pane{height:100%}.conversation-pane.hidden{display:none}.message-pane{display:none}.message-pane.visible{display:grid}.mobile-back{display:grid!important}.messages footer{opacity:1}.pane-heading,.message-pane>header{min-height:68px}.composer{padding-bottom:max(1rem,env(safe-area-inset-bottom))}}
+@media(max-width:720px){.topbar{height:58px;gap:.5rem}.brand strong,.team{display:none}.account-links{gap:.15rem}.account-links a{min-height:44px}.account-links a:first-child{font-size:0}.workspace{height:calc(100dvh - 58px);display:block}.conversation-pane,.message-pane{height:100%}.conversation-pane--hidden{display:none}.message-pane{display:none}.message-pane.visible{display:grid}.mobile-back{display:grid!important}.messages footer{opacity:1}.pane-heading,.message-pane>header{min-height:68px}.composer{padding-bottom:max(1rem,env(safe-area-inset-bottom))}}
 </style>

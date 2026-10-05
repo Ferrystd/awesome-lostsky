@@ -1181,11 +1181,8 @@ export interface components {
             id?: number;
             /** Format: int64 */
             customer_id?: number;
-            /**
-             * @description 1=充值, 2=消费, 3=退款, 4=手动调整
-             * @enum {integer}
-             */
-            type?: 1 | 2 | 3 | 4 | 5 | 6;
+            /** @description 业务枚举的中文标签 */
+            type?: string;
             /** @description Exact decimal string. */
             amount?: string;
             /** @description Exact decimal string. */
@@ -1218,11 +1215,8 @@ export interface components {
             cs_entity_id?: number | null;
             /** Format: int64 */
             customer_id?: number | null;
-            /**
-             * @description 1=商城下单, 2=记账登记, 3=服务包收款, 4=服务核销, 5=履约加价收款, 6=履约加价业绩, 7=未使用权益结单（无接单人，接单分成归团队，不重复收款）
-             * @enum {integer}
-             */
-            type?: 1 | 2 | 3 | 4 | 5 | 6;
+            /** @description 业务枚举的中文标签 */
+            type?: string;
             /** @description Exact decimal string. */
             total_price?: string;
             /** @description Exact decimal string. */
@@ -2737,6 +2731,8 @@ export interface operations {
                      */
                     trans_at?: number;
                     memo?: string | null;
+                    /** @description 当前人员Entity ID；传入后身份不匹配返回409。旧调用可省略。 */
+                    expected_entity_id?: number;
                 };
             };
         };
@@ -3136,6 +3132,8 @@ export interface operations {
                      */
                     trans_at?: number;
                     memo?: string | null;
+                    /** @description 当前人员Entity ID；传入后身份不匹配返回409。旧调用可省略。 */
+                    expected_entity_id?: number;
                 };
             };
         };
@@ -3226,7 +3224,14 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description 当前人员Entity ID；传入后身份不匹配返回409。旧调用可省略。 */
+                    expected_entity_id?: number;
+                };
+            };
+        };
         responses: {
             /** @description 操作成功 */
             200: {

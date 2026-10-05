@@ -51,6 +51,8 @@ class Transaction
 
     public function create(Request $request)
     {
+        $this->assertExpectedIdentity($request);
+        $this->assertMoneyInput($request);
         $service = app(\app\service\Transaction::class);
         $id = $service->create($request->team_id, [
             'handler_entity_id'  => $request->post('handler_entity_id', 0),
@@ -76,13 +78,15 @@ class Transaction
 
     public function edit(Request $request)
     {
+        $this->assertExpectedIdentity($request);
+        $this->assertMoneyInput($request);
         $id = $request->route('id/d', 0);
 
         $data = [];
         foreach (['type','total_price','cost','cash','prepaid',
             'handler_cut','sender_cut','cs_cut','team_cut',
             'trans_at','memo','sender_entity_id','cs_entity_id','customer_id'] as $field) {
-            if ($request->has($field, 'post')) {
+            if (array_key_exists($field, $request->post(false))) {
                 $data[$field] = $request->post($field);
             }
         }
@@ -96,6 +100,7 @@ class Transaction
 
     public function delete(Request $request)
     {
+        $this->assertExpectedIdentity($request);
         $id = $request->route('id/d', 0);
 
         $service = app(\app\service\Transaction::class);
@@ -103,6 +108,25 @@ class Transaction
         app(\app\service\BusinessAudit::class)->record($request, 'transaction', 'delete', 'transaction', $id);
 
         return message('流水已删除');
+    }
+
+    private function assertExpectedIdentity(Request $request): void
+    {
+        if (array_key_exists('expected_entity_id', $request->post(false))) {
+            app(\app\service\ChatIdentity::class)->expected(
+                $request->acting_entity ?? [], $request->post('expected_entity_id/d', 0)
+            );
+        }
+    }
+
+    private function assertMoneyInput(Request $request): void
+    {
+        $submitted = $request->post(false);
+        foreach (['total_price', 'cost', 'cash', 'prepaid', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut'] as $field) {
+            if (array_key_exists($field, $submitted) && $submitted[$field] === null) {
+                throw new \think\exception\HttpException(422, '金额不能为空');
+            }
+        }
     }
 
     public function stats(Request $request)

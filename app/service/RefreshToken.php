@@ -41,6 +41,12 @@ class RefreshToken
         }
 
         $result = Db::transaction(function () use ($plain): array {
+            $snapshot = UserRefreshToken::where('token_hash', hash('sha256', $plain))->find();
+            if (!$snapshot) return ['status' => 401];
+            $user = User::where('id', $snapshot->user_id)->lock(true)->find();
+            if (!$user || (int) $user->is_banned === 1) return ['status' => 403];
+            $device = UserDevice::where('id', $snapshot->device_id)->where('user_id', $snapshot->user_id)->lock(true)->find();
+            if (!$device) return ['status' => 401];
             $current = UserRefreshToken::where('token_hash', hash('sha256', $plain))
                 ->lock(true)
                 ->find();
@@ -69,9 +75,15 @@ class RefreshToken
                 UserRefreshToken::where('family_id', $current->family_id)
                     ->whereNull('revoked_at')
                     ->update(['revoked_at' => time()]);
+                $sessions = \app\model\EntitySession::where('user_id', $device->user_id)
+                    ->where('device_token', $device->device_token)->whereNull('revoked_at')->order('id')->lock(true)->select();
+                $disconnectIds = [];
+                foreach ($sessions as $session) {
+                    $disconnectIds[] = (int) $session->id;
+                    $session->save(['revoked_at' => time()]);
+                }
                 $device->delete();
-
-                return ['status' => 401];
+                return ['status' => 401, 'disconnect_ids' => $disconnectIds];
             }
 
             $issued = $this->issue($device, (string) $current->family_id);
@@ -92,6 +104,7 @@ class RefreshToken
             ];
         });
 
+        foreach ($result['disconnect_ids'] ?? [] as $sessionId) app(ChatRealtime::class)->disconnectSession($sessionId);
         if ($result['status'] === 409) {
             throw new HttpException(409, '刷新令牌已轮换，请使用最新令牌重试');
         }
