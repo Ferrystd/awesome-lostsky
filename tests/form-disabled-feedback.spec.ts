@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from './fixtures'
 
 async function auth(page: Page, type: string) {
   const value = `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type, id: 31 } })).toString('base64url')}.x`

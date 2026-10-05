@@ -83,7 +83,7 @@ class ChatRealtime
         $response = curl_exec($curl);
         $code = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
         $error = curl_error($curl);
-        curl_close($curl);
+        unset($curl);
         if ($response === false || $code < 200 || $code >= 300) {
             throw new \RuntimeException($error ?: "HTTP请求失败：{$code}");
         }

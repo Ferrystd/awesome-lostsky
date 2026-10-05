@@ -81,7 +81,7 @@ Chat teamless 升级使用 `php think chat:migrate-teamless` 输出只读统计�
 | `php think system:cleanup` | 自动完成已到时且无待处理撤销/加价的核销，并清理过期实体会话、设备、刷新令牌、审计和微博日志，处理文件与外部补偿 |
 | `php think queue:restart` | 通知 Database Worker 重启；不重启独立的 `chat:worker` |
 
-启动顺序、队列名、进程管理和验收方法见[部署指南](deployment.md)。`system:cleanup` 的 JSON 结果包含 `autoCompletion.completed` 与 `autoCompletion.failed`；自动结单以开始核销时间持续计时，待处理撤销只跳过本轮，不暂停或重置。系统生命周期清理保留期由 `config/cleanup.php` 定义；聊天消息保留期由每个 Team 的 Chat 设置 `retention_days` 定义。未登记的定时任务不会因部署代码而自动运行。
+启动顺序、队列名、进程管理和验收方法见[部署指南](deployment.md)。`system:cleanup` 的 JSON 结果包含 `autoCompletion.completed` 与 `autoCompletion.failed`；核销自动结单从接单人发起结单确认请求时计时，待处理撤销或加价只跳过本轮，不暂停或重置。未使用权益的到期结算从权益入账时独立计时，不能代替核销结单确认。系统生命周期清理保留期由 `config/cleanup.php` 定义；聊天消息保留期由每个 Team 的 Chat 设置 `retention_days` 定义。未登记的定时任务不会因部署代码而自动运行。
 
 ## 通用 Service 调用
 

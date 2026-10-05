@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page } from './fixtures'
 
 const token = (id: number) => `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type: 'teamMember', id } })).toString('base64url')}.x`
 async function setupTransaction(page: Page) {

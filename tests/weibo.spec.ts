@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 import { formatAbilityDenied, formatPermissionDenied } from '../frontend/packages/api/src/error-format'
 
 async function authenticate(page: Page) {
@@ -174,7 +174,8 @@ test('missing Permission keeps entries open and degrades target pages without re
   for (const heading of ['执行账号', '发布内容', '图片', '执行']) {
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
   }
-  await expect(page.getByText('微博账号')).toBeVisible()
+  await expect(page.locator('label[for="weibo-account"]')).toBeVisible()
+  await expect(page.locator('label[for="weibo-account"]')).toContainText('微博账号')
   await expect(page.getByText('-', { exact: true }).first()).toBeVisible()
   const publish = page.getByRole('button', { name: '发布微博' })
   await expect(publish).toHaveAttribute('aria-disabled', 'true')

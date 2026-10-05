@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('team share links group destinations and copying across both overviews and responsive sizes', async ({ page }) => {
   const token = `e2e.${Buffer.from(JSON.stringify({ act: { type: 'teamMember', id: 1 } })).toString('base64url')}.signature`

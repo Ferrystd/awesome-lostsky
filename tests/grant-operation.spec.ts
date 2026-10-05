@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 const base = 'http://demo.transaction.lostsky.work:5177'
 const result = { entitlement_ids: [101], entitlement_count: 1, transaction_id: 201, order_id: null }

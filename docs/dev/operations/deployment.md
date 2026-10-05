@@ -189,7 +189,9 @@ stopwaitsecs=120
 
 部署并重启 Worker 后执行 `php think weibo:tasks-recover`，并由服务器调度器每分钟执行一次该命令；它输出 `enqueued` 计数，只为缺失 Job 的 Active 任务补投原 dispatch key，不重投已有待执行或已领取 Job。用于历史缺口和异常清除 Job 后的恢复，不直接调用微博写接口。远端结果不明仍由 Worker 转 unknown 后进入下一周期。命令不会自动安装计划任务，必须核验目标环境的定时调度与消费者。
 
-### 微博点单信息流采集 {#weibo-feed-polling}
+<a id="weibo-feed-polling"></a>
+
+### 微博点单信息流采集
 
 信息流采集与 `weibo-schedule` 写操作队列相互独立。已有库执行 `sql/patches/20260922_weibo_feed.sql`（新建库直接使用当前 Schema）。分类使用常驻本地 Python 服务，不再需要 TypeSafe 密钥；按 `.env.example` 和 `config/weibo_feed.php` 配置本地服务、关键词、轮询上限与显示窗口。
 

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page, type Route } from './fixtures'
 
 const origin = 'http://demo.weibo.lostsky.work:5181'
 
@@ -500,6 +500,7 @@ test('cached posts survive source failure with one inline error and compact acti
   await page.goto(`${origin}/personal/feed`)
   await expect(page.locator('.feed-post')).toHaveCount(2)
   await expect(page.locator('.ls-inline-error')).toHaveCount(1)
+  await expect(page.locator('.n-message')).toHaveCount(0)
   await expect(page.getByText('INTERNAL_SQL_DIAGNOSTIC')).toHaveCount(0)
   await expect(page.getByRole('status').filter({ hasText: '共 25 条' })).toHaveCount(1)
   await expect(page.locator('textarea')).toHaveCount(0)
@@ -562,10 +563,16 @@ test('cached feed query failure preserves posts and reports only a local error',
   await page.clock.install()
   await page.goto(`${origin}/personal/feed`)
   await expect(page.locator('.feed-post')).toHaveCount(2)
-  await page.route(`${origin}/api/**/personal/feed?**`, route => route.fulfill({ status: 400, json: { code: 400, message: '暂时无法更新', data: null } }))
+  const failFeed = (route: Route) => route.fulfill({ status: 400, json: { code: 400, message: '暂时无法更新', data: null } })
+  await page.route(`${origin}/api/**/personal/feed?**`, failFeed)
   await page.clock.fastForward(31_000)
   await expect(page.locator('.ls-inline-error')).toHaveCount(1)
   await expect(page.locator('.ls-async-state, .ls-empty-state')).toHaveCount(0)
+  await expect(page.locator('.feed-post')).toHaveCount(2)
+  await expect(page.locator('.n-message')).toHaveCount(0)
+  await page.unroute(`${origin}/api/**/personal/feed?**`, failFeed)
+  await page.clock.fastForward(31_000)
+  await expect(page.locator('.ls-inline-error')).toHaveCount(0)
   await expect(page.locator('.feed-post')).toHaveCount(2)
 })
 
@@ -926,17 +933,19 @@ for (const workspace of ['personal', 'team']) test(`preset ${workspace} direct e
   await expect(page).toHaveURL(`${origin}${workspace === 'personal' ? '/personal/feed' : '/interactions'}`)
 })
 
-test('failed source with cached posts shows one popup and keeps the feed readable', async ({ page }) => {
+test('failed source with cached posts keeps one local error after a refresh', async ({ page }) => {
   const requests = await setup(page, { pollStatus: 'failed' })
   await page.goto(`${origin}/personal/feed`)
   await expect(page.locator('.feed-post')).toHaveCount(2)
-  await expect(page.locator('.n-message').filter({ hasText: '点单来源更新暂时失败' })).toHaveCount(1)
-  await expect(page.locator('.weibo-stack').getByRole('alert')).toHaveCount(0)
+  await expect(page.locator('.ls-inline-error').filter({ hasText: '点单来源更新暂时失败' })).toHaveCount(1)
+  await expect(page.locator('.n-message')).toHaveCount(0)
+  await expect(page.locator('.weibo-stack').getByRole('alert')).toHaveCount(1)
   await expect(page.getByText('INTERNAL_SQL_DIAGNOSTIC')).toHaveCount(0)
   const reads = requests.feed
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
   await expect.poll(() => requests.feed).toBeGreaterThan(reads)
-  await expect(page.locator('.n-message').filter({ hasText: '点单来源更新暂时失败' })).toHaveCount(1)
+  await expect(page.locator('.ls-inline-error').filter({ hasText: '点单来源更新暂时失败' })).toHaveCount(1)
+  await expect(page.locator('.n-message')).toHaveCount(0)
 })
 
 test('preset management round trip restores the account and edited comment on the feed', async ({ page }) => {

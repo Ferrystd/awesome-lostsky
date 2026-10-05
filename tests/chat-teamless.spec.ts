@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 const chat = 'http://chat.lostsky.work:5176'
 const team = 'http://demo.team.lostsky.work:5175'
 const uuid = '123e4567-e89b-42d3-a456-426614174000'

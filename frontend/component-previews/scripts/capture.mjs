@@ -1,6 +1,6 @@
 import { chromium } from '@playwright/test'
 import vue from '@vitejs/plugin-vue'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
@@ -58,7 +58,7 @@ const server = await createServer({
     dedupe: ['vue'],
   },
   css: { postcss: path.join(frontendRoot, 'postcss.config.cjs') },
-  server: { host: '127.0.0.1', port: 5191, strictPort: true, fs: { allow: [repository] } },
+  server: { host: '127.0.0.1', port: 5191, strictPort: true, fs: { allow: [repository, await realpath(path.join(repository, 'node_modules'))] } },
 })
 
 const apiData = (pathname) => {

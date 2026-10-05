@@ -67,11 +67,11 @@ const displayedItems = computed(() => {
       return true
     })
 })
-watch(computed(() => {
+const feedUpdateError = computed(() => {
   if (!displayedItems.value.length) return ''
   if (feed.isError.value && !feed.isFetchNextPageError.value) return `点单更新失败：${friendlyError(feed.error.value)}。已有内容仍可查看。`
   return feedSummary.value?.poll_status === 'failed' ? '点单来源更新暂时失败，已有内容仍可查看。' : ''
-}), message => { if (message) feedback.error(message) }, { immediate: true })
+})
 watch(accessMode, mode => {
   if (mode === undefined) return
   // Also discard obsolete scopes when permission changed while this page was unmounted.
@@ -260,6 +260,7 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
         <LsEmptyState v-else title="暂无点单微博" description="新点单会自动出现在这里。" />
       </template>
       <template v-if="displayedItems.length">
+        <LsInlineError v-if="feedUpdateError" :message="feedUpdateError" />
         <p v-if="!feed.isError.value && feedSummary?.poll_status === 'unconfigured'" class="feed-status" role="status">点单来源尚未配置，已有内容仍可查看。</p>
         <section class="feed-results" aria-label="点单微博">
           <NFlex class="feed-summary" justify="space-between" align="center" :size="8">

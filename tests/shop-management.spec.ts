@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 const json = (data: unknown) =>
   JSON.stringify({ code: 0, message: "ok", data });

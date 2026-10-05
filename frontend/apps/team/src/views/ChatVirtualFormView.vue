@@ -33,6 +33,7 @@ const form = reactive({ slug: '', name: '', avatar: '', description: '', is_acti
 const draftKey = () => teamDraftScope('ChatVirtualFormView', slug.value)
 const draft = useQueryDraft({ key: draftKey, read: () => form, apply: value => Object.assign(form, value) })
 useUnsavedChangesGuard(draft.dirty, { shouldConfirm: teamDraftNavigationChanged })
+const saveDisabledReason = computed(() => routeAccess.reason.value || (avatarUploading.value ? '请等待头像上传完成' : !draft.dirty.value ? '尚未修改任何内容' : ''))
 
 const detail = useQuery({
   queryKey: computed(() => ['chat-virtual', slug.value]),
@@ -84,7 +85,7 @@ function deleteVirtual() {
   if (confirm('删除后具体 slug 权限会同步清理，slug 将永久保留。确认继续？')) remove.mutate()
 }
 function submit() {
-  if (routeAccess.restricted.value) return
+  if (saveDisabledReason.value || save.isPending.value) return
   save.mutate()
 }
 </script>
@@ -102,7 +103,7 @@ function submit() {
         <LsField label="简介" for-id="virtual-description"><NInput id="virtual-description" v-model:value="form.description" type="textarea" maxlength="500" :autosize="{ minRows: 3, maxRows: 7 }" /></LsField>
         <LsSwitchField v-if="editing" v-model="form.is_active" label="启用人员" description="停用后不能参与新操作。" />
         <LsInlineError v-if="(save.isError.value || remove.isError.value) && !routeAccess.restricted.value" :message="friendlyError(save.error.value || remove.error.value)" />
-        <LsButton type="submit" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || avatarUploading || !draft.dirty.value" :disabled-reason="routeAccess.reason.value">保存人员</LsButton>
+        <LsButton type="submit" :loading="save.isPending.value" :disabled="Boolean(saveDisabledReason)" :disabled-reason="saveDisabledReason">保存人员</LsButton>
       </div></LsPanel></form>
 
       <template v-if="editing">

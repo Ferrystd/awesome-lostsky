@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 
 const envelope = (data: unknown) => JSON.stringify({ code: 0, message: 'ok', data })
 const permissions = ['admin.access.read', 'admin.access.write', 'admin.entitlement.read', 'admin.entitlement.write', 'transaction.read', 'transaction.write', 'weibo.team.manage', 'shop.product.read', 'shop.product.write']

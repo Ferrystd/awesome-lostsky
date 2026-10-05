@@ -52,6 +52,11 @@ $assert(($parsed[1]['text'] ?? '') === '转发人的外层文字', 'repost class
 
 // Numeric scores remain valid without casts; validation must still reject strings and nonfinite values.
 $classifyBatch = new ReflectionMethod(WeiboFeedPoller::class, 'classifyBatch');
+foreach (['0.75', NAN, INF, -INF] as $threshold) {
+    $invalidThreshold = new WeiboFeedPoller(null, static fn(array $items): array => $classifierResponse($items, 0.9, ['threshold' => $threshold]));
+    try { $classifyBatch->invoke($invalidThreshold, [['id' => 'fixture-id', 'text' => 'fixture']]); $failures[] = 'classifier accepted invalid threshold'; }
+    catch (RuntimeException $exception) { $assert($exception->getMessage() === '本地分类服务阈值不匹配', 'classifier rejects nonnumeric and nonfinite thresholds'); }
+}
 foreach ([0, 1, 0.9] as $score) {
     $numericClassifier = new WeiboFeedPoller(null, static fn(array $items): array => $classifierResponse($items, 0.9, ['predictions' => [['id' => 'fixture-id', 'score' => $score]]]));
     $result = $classifyBatch->invoke($numericClassifier, [['id' => 'fixture-id', 'text' => 'fixture']]);

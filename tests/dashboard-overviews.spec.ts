@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 
 const identity = { entity_id: 1, type: 'team', slug: 'demo', name: '青空协作组', belongs_to_team: true, is_external: false }
 const team = { id: 1, slug: 'demo', name: '青空协作组' }

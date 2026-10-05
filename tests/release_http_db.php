@@ -1,0 +1,60 @@
+<?php
+declare(strict_types=1);
+require dirname(__DIR__) . '/vendor/autoload.php';
+(new think\App(dirname(__DIR__)))->initialize();
+use think\facade\Db;
+use app\model\{User,Team,TeamCustomer,TeamAbility,TeamService,BenefitPackage,BenefitPackageService,TeamServiceHandler,TeamServiceEntitlement,TeamServiceInstance,TeamTransaction,TeamCustomerBalance};
+if(!app()->isDebug()||config('database.connections.mysql.hostname')!=='127.0.0.1'||Db::query('SELECT DATABASE() AS db')[0]['db']!=='lostsky')throw new RuntimeException('Local database guard');
+set_exception_handler(static function(Throwable $e):void{fwrite(STDERR,$e->getMessage().PHP_EOL);exit(1);});
+$run='release-http-'.bin2hex(random_bytes(6));$teamId=0;$userIds=[];$entityIds=[];$cacheHashes=[];$checks=0;
+$manifest=sys_get_temp_dir().'/'.$run.'.json';
+$server=null;$serverLog=null;$baseUrl='';
+$check=static function(bool $ok,string $name)use(&$checks):void{if(!$ok)throw new RuntimeException('FAILED '.$name);$checks++;echo 'PASS '.$name.PHP_EOL;};
+$http=static function(string $appName,string $slug,string $path,array $body=[],?string $token=null,string $method='POST',int $expected=200)use($run,&$cacheHashes,$check,&$baseUrl):array{
+ $root=(string)config('app.domain.root');$origin='https://'.($slug===''?'':$slug.'.').$appName.'.'.$root;$reqId=$run.'-'.bin2hex(random_bytes(5));$header=['Host: '.config('app.domain.api'),'Origin: '.$origin,'Content-Type: application/json','X-Request-Id: '.$reqId];if($token!==null)$header[]='Authorization: Bearer '.$token;
+ $curl=curl_init($baseUrl.$path);curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>$method,CURLOPT_HTTPHEADER=>$header,CURLOPT_TIMEOUT=>20]);if($method==='POST')curl_setopt($curl,CURLOPT_POSTFIELDS,json_encode($body));$raw=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_RESPONSE_CODE);unset($curl);$json=is_string($raw)?json_decode($raw,true):null;
+ $check($status===$expected&&is_array($json),'HTTP '.$appName.' '.$path.' status '.$status.' expected '.$expected);
+ if($expected===200)$check(($json['code']??-1)===0,'business success '.$path);
+ // Only remove cache keys derived from this run's unique request IDs.
+ $principal=hash('sha256',$token===null?'':'Bearer '.$token);$team=$slug===''?0:(int)Team::where('slug',$slug)->value('id');$rawHash=implode('|',[$path,$method,$principal,$reqId]);$cacheHashes[]=hash('sha256',implode('|',[$appName,$team,$rawHash]));
+ return (array)($json['data']??[]);
+};
+$cleanup=static function()use(&$teamId,&$userIds,&$entityIds,&$cacheHashes,$manifest,$check):void{
+ if($teamId&&Db::name('team')->where('id',$teamId)->value('slug')!==basename($manifest,'.json'))throw new RuntimeException('Fixture cleanup ownership guard');
+ $columns=Db::query('SELECT TABLE_NAME,COLUMN_NAME,IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE()');$tables=[];$nullable=[];foreach($columns as$c){$tables[$c['TABLE_NAME']][]=$c['COLUMN_NAME'];if($c['IS_NULLABLE']==='YES')$nullable[$c['TABLE_NAME']][$c['COLUMN_NAME']]=true;}
+ $fks=Db::query('SELECT TABLE_NAME,COLUMN_NAME,REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL');$ids=[];
+ foreach($tables as$table=>$cols){if(!in_array('id',$cols,true))continue;if(!preg_match('/^[a-z_]+$/D',$table))throw new RuntimeException('Unsafe metadata identifier');$query=Db::table($table);$found=[];
+  foreach(['team_id'=>$teamId?[$teamId]:[],'issuer_team_id'=>$teamId?[$teamId]:[],'user_id'=>$userIds,'entity_id'=>$entityIds]as$col=>$values)if($values&&in_array($col,$cols,true))$found=array_merge($found,Db::table($table)->whereIn($col,$values)->column('id'));
+  $ids[$table]=array_values(array_unique(array_map('intval',$found)));
+ }
+ $ids['user']=$userIds;$ids['team']=$teamId?[$teamId]:[];$ids['entity']=$entityIds;
+ for($round=0;$round<20;$round++){$changed=false;foreach($fks as$fk){$parent=$fk['REFERENCED_TABLE_NAME'];$child=$fk['TABLE_NAME'];if($fk['REFERENCED_COLUMN_NAME']!=='id'||empty($ids[$parent])||!isset($ids[$child]))continue;$found=array_map('intval',Db::table($child)->whereIn($fk['COLUMN_NAME'],$ids[$parent])->column('id'));$next=array_values(array_unique(array_merge($ids[$child],$found)));if(count($next)!==count($ids[$child])){$ids[$child]=$next;$changed=true;}}if(!$changed)break;}
+ Db::transaction(function()use($ids,$cacheHashes,$fks,$nullable):void{
+  Db::name('api_request_cache')->whereIn('hash',$cacheHashes)->delete();$left=$ids;
+  for($round=0;$round<40;$round++){$progress=false;foreach($left as$table=>&$values){rsort($values);foreach($values as$key=>$id){try{Db::table($table)->where('id',$id)->delete();unset($values[$key]);$progress=true;}catch(think\db\exception\PDOException $e){}}}unset($values);if(array_sum(array_map('count',$left))===0)return;if(!$progress){
+   foreach($fks as$fk){$parent=$fk['REFERENCED_TABLE_NAME'];$child=$fk['TABLE_NAME'];$column=$fk['COLUMN_NAME'];if($fk['REFERENCED_COLUMN_NAME']!=='id'||empty($left[$parent])||empty($left[$child])||!isset($nullable[$child][$column]))continue;try{$changed=Db::table($child)->whereIn('id',$left[$child])->whereIn($column,$left[$parent])->update([$column=>null]);if($changed)$progress=true;}catch(think\db\exception\PDOException $e){}}
+   if(!$progress)break;
+  }}
+  throw new RuntimeException('Fixture cleanup FK dependency blocked; recover using manifest');
+ });
+ $check(!$teamId||Db::name('team')->where('id',$teamId)->count()===0,'fixture team deleted');$check(Db::name('user')->whereIn('id',$userIds)->count()===0,'fixture users deleted');if(is_file($manifest))unlink($manifest);
+};
+try{
+ $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);if(!$socket)throw new RuntimeException('Loopback port reservation failed');$address=stream_socket_get_name($socket,false);fclose($socket);$port=(int)substr(strrchr($address,':'),1);$baseUrl='http://127.0.0.1:'.$port;
+ $serverLog=tempnam(sys_get_temp_dir(),'lostsky-smoke-server-');$root=dirname(__DIR__);$server=proc_open([PHP_BINARY,'-S','127.0.0.1:'.$port,'-t',$root.'/public',$root.'/public/router.php'],[0=>['pipe','r'],1=>['file',$serverLog,'a'],2=>['file',$serverLog,'a']],$pipes,$root,null,['bypass_shell'=>true,'create_new_console'=>false]);if(!is_resource($server))throw new RuntimeException('Local HTTP server failed to start');fclose($pipes[0]);
+ $ready=false;for($attempt=0;$attempt<30;$attempt++){$connection=@stream_socket_client('tcp://127.0.0.1:'.$port,$errno,$error,0.1);if($connection){fclose($connection);$ready=true;break;}usleep(100000);}if(!$ready)throw new RuntimeException('Local HTTP server readiness timed out');
+ $password=bin2hex(random_bytes(16));foreach(['owner','buyer']as$name){$user=new User;$user->save(['username'=>$run.'-'.$name,'phone'=>'19'.random_int(100000000,999999999),'password'=>password_hash($password,PASSWORD_DEFAULT)]);$userIds[]=(int)$user->id;}
+ $teamData=app(app\service\Team::class)->create($userIds[0],$run,'HTTP Release Fixture');$teamId=(int)$teamData['id'];$teamEntity=app\model\Entity::where('entityable_type','team')->where('entityable_id',$teamId)->find();$members=app\model\TeamMember::where('team_id',$teamId)->column('id');$entityIds=array_map('intval',app\model\Entity::where(function($q)use($teamId,$members){$q->where(function($q)use($teamId){$q->where('entityable_type','team')->where('entityable_id',$teamId);})->whereOr(function($q)use($members){$q->where('entityable_type','teamMember')->whereIn('entityable_id',$members);});})->column('id'));
+ $customer=new TeamCustomer;$customer->save(['team_id'=>$teamId,'user_id'=>$userIds[1],'assignee_entity_id'=>$teamEntity->id]);$customerEntity=app(app\service\Entity::class)->claimCustomer((int)$customer->id,$run.'-customer');$entityIds[]=(int)$customerEntity->id;file_put_contents($manifest,json_encode(['run'=>$run,'team_id'=>$teamId,'user_ids'=>$userIds,'entity_ids'=>$entityIds]));
+ foreach(['shop','transaction']as$key){$ability=TeamAbility::where('team_id',$teamId)->where('ability_key',$key)->find()?:new TeamAbility;$ability->save(['team_id'=>$teamId,'ability_key'=>$key,'level'=>1,'expire_time'=>0]);}app(app\service\TeamSetting::class)->batch($teamId,'shop',['enabled'=>true]);app(app\service\TeamSetting::class)->set($teamId,'service','allow_customer_open_dispatch',true);app(app\service\Balance::class)->recharge($teamId,(int)$customer->id,'10.00');
+ $service=new TeamService;$service->save(['team_id'=>$teamId,'name'=>'HTTP service','unit_name'=>'unit','quantity_step'=>'1.0000','is_active'=>1]);(new TeamServiceHandler)->save(['team_id'=>$teamId,'service_id'=>$service->id,'entity_id'=>$teamEntity->id]);$package=new BenefitPackage;$package->save(['issuer_team_id'=>$teamId,'name'=>'HTTP package','pricing_mode'=>app\enum\BenefitPricingMode::LegacyEqualSplit,'is_active'=>1]);(new BenefitPackageService)->save(['package_id'=>$package->id,'service_id'=>$service->id,'quantity'=>'1.0000','sort'=>0]);
+ $product=app(app\service\Product::class)->create($teamId,['name'=>'HTTP product','cover_image'=>'/fixture.webp','kind'=>app\enum\ProductKind::ServiceBundle->value,'benefit_package_id'=>$package->id,'price'=>'1.00','cost'=>'0.00','handler_cut'=>'0.00','sender_cut'=>'0.00','cs_cut'=>'0.00']);
+ $owner=$http('account','','/login/password',['account'=>$run.'-owner','password'=>$password]);$ownerBase=$owner['token'];$ownerMember=$http('account','','/identity/member',['team_slug'=>$run],$ownerBase);$ownerIdentity=$http('account','','/identity/receive',['slug'=>(string)$teamEntity->slug],$ownerMember['token']);$ownerToken=$ownerIdentity['token'];
+ $buyer=$http('account','','/login/password',['account'=>$run.'-buyer','password'=>$password]);$buyerBase=$buyer['token'];$buyerIdentity=$http('account','','/identity/receive',['slug'=>(string)$customerEntity->slug],$buyerBase);$buyerToken=$buyerIdentity['token'];
+ $order=$http('shop',$run,'/customer/orders',['product_id'=>$product,'quantity'=>1],$buyerToken);$orderId=(int)$order['id'];$check(TeamCustomerBalance::where('customer_id',$customer->id)->value('balance')==='9.00','purchase balance persisted');
+ $http('shop',$run,'/order/'.$orderId.'/complete',[],$ownerToken);$entitlement=TeamServiceEntitlement::where('source_order_id',$orderId)->find();$check($entitlement!==null,'completed order creates persisted entitlement');
+ $tx=$http('transaction',$run,'/transaction',['expected_entity_id'=>(int)$teamEntity->id,'handler_entity_id'=>(int)$teamEntity->id,'customer_id'=>(int)$customer->id,'total_price'=>'0.10','cash'=>'0.10','prepaid'=>'0.00','cost'=>'0.00','handler_cut'=>'0.00','sender_cut'=>'0.00','cs_cut'=>'0.00','team_cut'=>'0.10','type'=>2],$ownerToken);$check(TeamTransaction::find((int)$tx['id'])->total_price==='0.10','ledger persisted through HTTP');
+ $slice=$http('shop',$run,'/customer/services/'.$entitlement->id.'/start',['quantity'=>'1'],$buyerToken);$sliceId=(int)$slice['id'];$http('transaction',$run,'/personal/services/'.$sliceId.'/claim',['quantity'=>'1'],$ownerToken);$http('transaction',$run,'/personal/services/'.$sliceId.'/complete',[],$ownerToken);$http('shop',$run,'/customer/service-redemptions/'.$sliceId.'/complete',[],$buyerToken);$check(TeamServiceInstance::find($sliceId)->enumCase('status')===app\enum\ServiceStatus::Redeemed,'redemption persisted through HTTP');
+ $jwt=json_decode(base64_decode(strtr(explode('.',$ownerBase)[1],'-_','+/')),true);$http('account','','/devices/quit',['device_token'=>$jwt['dvt']],$ownerBase);$http('account','','/identity/target',[],$ownerToken,'GET',401);$check(app\model\EntitySession::where('user_id',$userIds[0])->whereNull('revoked_at')->count()===0,'device quit persisted identity revocation');
+}finally{try{$cleanup();}finally{if(is_resource($server)){proc_terminate($server);proc_close($server);}if($serverLog&&is_file($serverLog))unlink($serverLog);}}
+echo 'REAL_HTTP_DB_COMPLETE checks='.$checks.PHP_EOL;

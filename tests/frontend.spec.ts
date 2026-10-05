@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('landing page keeps the legacy studio journey without horizontal overflow', async ({ page }) => {
   await page.goto('http://127.0.0.1:5173/')
@@ -2532,8 +2532,9 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.getByRole('heading', { name: '管理操作' })).toBeVisible()
       await expect(page.getByText('@alice')).toBeVisible()
       await expect(page.getByText('ADMIN ONLY', { exact: true })).toHaveCount(0)
-      await expect(page.getByRole('button', { name: '保存成员' })).toBeVisible()
-      await expect(page.locator('.ls-page-header .member-primary-actions')).toContainText('保存成员')
+      await expect(page.getByRole('button', { name: '保存成员' })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: '查看人员资料' })).toBeVisible()
+      await expect(page.getByText('名称、头像和介绍统一在人员资料页维护。')).toBeVisible()
     }
     if (path === '/settings') {
       const saveButtons = page.locator('.settings-header .ls-button')
@@ -3348,7 +3349,8 @@ test('team role tasks use independent routes for entity assignment and permissio
   await page.getByText('团队能力 · 已选择 1/1', { exact: true }).click()
   await expect(page.getByRole('checkbox', { name: /兑换团队能力/ })).toBeDisabled()
   await page.getByRole('button', { name: '保存权限' }).click()
-  await expect(page.getByText('未来新增的同前缀权限')).toBeVisible()
+  await expect(page.locator('.advanced-confirm')).toContainText('以下权限会覆盖同前缀下的现有权限：')
+  await expect(page.locator('.advanced-confirm code')).toContainText('team.ability')
   await page.getByRole('button', { name: '确认并保存' }).click()
   await expect.poll(() => savedPermissions).toContain('team.ability')
   expect(savedPermissions).not.toContain('team.ability.redeem')
@@ -3744,7 +3746,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
   await expect(page.getByRole('link', { name: '赋予顾客权益' })).toHaveAttribute('href', '/entitlements/new')
   await page.getByRole('link', { name: '赋予顾客权益' }).click()
   await expect(page.locator('#workspace').getByRole('heading', { name: '赋予顾客权益', level: 1 })).toBeVisible()
-  await expect(page.getByText('当前设置只赋予权益，不同步流水。')).toBeVisible()
+  await expect(page.getByText('本次只赋予权益，不同步流水。')).toBeVisible()
   await page.locator('#grant-product').click()
   await page.getByText('三小时服务 · ¥300.00', { exact: true }).click()
   await page.locator('#grant-customer').click()

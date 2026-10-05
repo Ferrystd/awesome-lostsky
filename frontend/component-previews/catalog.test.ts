@@ -29,6 +29,7 @@ describe("component preview catalog", () => {
     const registered = catalog.map((entry) => entry.source).sort();
     expect(discovered).toHaveLength(79);
     expect(registered).toHaveLength(79);
+    expect(new Set(registered).size).toBe(registered.length);
     expect(registered).toEqual(discovered);
   });
 

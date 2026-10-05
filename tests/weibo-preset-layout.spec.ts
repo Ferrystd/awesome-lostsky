@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 const origin = 'http://demo.weibo.lostsky.work:5181'
 

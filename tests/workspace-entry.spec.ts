@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 import { formatAbilityDenied, formatPermissionDenied } from '../frontend/packages/api/src/error-format'
 
 const identityToken = (type: string, id: number) => `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type, id } })).toString('base64url')}.x`
@@ -706,10 +706,12 @@ test('missing transaction Ability keeps the app entry available and explains onl
 test('Chat keeps the five-app switch for Customer and routes Product to the customer center', async ({ page }) => {
   await setToken(page, 'teamCustomer', 31)
   let workspaceAccessRequests = 0
-  await page.route('http://demo.chat.lostsky.work:5176/api/**', async (route) => {
+  await page.route('http://chat.lostsky.work:5176/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     if (path.endsWith('/workspace/access')) workspaceAccessRequests++
-    const data = path.endsWith('/conversation') || path.endsWith('/actor') ? [] : null
+    const data = path.endsWith('/actor')
+      ? { id: 31, slug: 'sky-customer', name: '青空顾客', type: 'customer', avatar: null, team: { id: 1, slug: 'demo', name: '青空团队' } }
+      : path.endsWith('/conversation') ? [] : null
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -736,7 +738,7 @@ test('Chat keeps the five-app switch for Customer and routes Product to the cust
     })
   })
 
-  await page.goto('http://demo.chat.lostsky.work:5176/')
+  await page.goto('http://chat.lostsky.work:5176/')
   await expect(page.getByRole('button', { name: '切换应用' })).toHaveCount(0)
   expect(workspaceAccessRequests).toBe(0)
 
@@ -749,6 +751,7 @@ test('Chat keeps the five-app switch for Customer and routes Product to the cust
   await expect(topbar.locator('.app-links').getByRole('link', { name: '商品' })).toBeVisible()
   await expect(topbar.getByRole('button', { name: '团队不可用：顾客不进入后台工作台' })).toBeVisible()
   await expect(topbar.getByRole('button', { name: '记账不可用：顾客不进入后台工作台' })).toBeVisible()
+  await expect(topbar.locator('.app-links').getByRole('link', { name: '商品' })).toHaveAttribute('href', 'http://demo.shop.lostsky.work:5179/customer/profile')
   await topbar.locator('.app-links').getByRole('link', { name: '商品' }).click()
   await expect(page).toHaveURL('http://demo.shop.lostsky.work:5179/customer/profile')
 })
@@ -835,9 +838,19 @@ test('an external Entity sees one shared warning before any of the four team wor
     })
   }
 
+  await page.route('http://account.lostsky.work:5174/api/identity/workspace-warning?**', async (route) => {
+    expect(route.request().method()).toBe('GET')
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 0, message: 'ok', data: { ...access, can_continue: true } }),
+    })
+  })
+
   for (const url of ['http://demo.team.lostsky.work:5175/', 'http://demo.shop.lostsky.work:5179/manage', 'http://demo.transaction.lostsky.work:5177/overview', 'http://demo.weibo.lostsky.work:5181/overview']) {
     await page.goto(url)
     await expect(page).toHaveURL(/^http:\/\/account\.lostsky\.work:5174\/identity\/workspace-warning\?/)
+    await expect(page.getByRole('heading', { name: '你正在使用外部身份' })).toBeVisible()
     const warningUrl = new URL(page.url())
     expect(warningUrl.searchParams.get('team_slug')).toBe('demo')
     expect(warningUrl.searchParams.get('redirect')).toBe(url)

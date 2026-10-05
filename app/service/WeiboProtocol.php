@@ -185,7 +185,7 @@ class WeiboProtocol
         if (!is_int($status)) $status = 0;
         if (!is_string($contentType)) $contentType = '';
         $error = curl_error($curl);
-        curl_close($curl);
+        unset($curl);
         if ($content === false) throw new WeiboRemoteException(WeiboReason::NetworkError, '读取微博图片失败: ' . $error, null, $status ?: null);
         if ($status !== 200 || !str_starts_with(strtolower($contentType), 'image/')) throw new WeiboRemoteException(WeiboReason::HttpError, "微博图片代理返回异常 (HTTP {$status})", sprintf('%d', $status), $status);
         if (strlen($content) > 25 * 1024 * 1024) throw new WeiboRemoteException(WeiboReason::BadResponse, '微博图片超过代理大小限制', null, $status);
@@ -291,7 +291,7 @@ class WeiboProtocol
         $status = curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
         if (!is_int($status)) $status = 0;
         $error = curl_error($curl);
-        curl_close($curl);
+        unset($curl);
         if ($raw === false) throw new WeiboRemoteException(WeiboReason::NetworkError, '请求微博失败: ' . $error, null, $status ?: null);
         $payload = json_decode($raw, true);
         if (!is_array($payload)) throw new WeiboRemoteException($status >= 400 ? WeiboReason::HttpError : WeiboReason::BadResponse, "微博返回了非 JSON 响应 (HTTP {$status})", sprintf('%d', $status), $status);

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('new product is immediately selectable in a new bundle without reloading', async ({ page }) => {
   const token = `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type: 'teamMember', id: 11 } })).toString('base64url')}.x`

@@ -61,3 +61,25 @@ Git 推送只同步版本，不代替服务器部署。宝塔/Nginx、CDN 缓存
 - 应用恢复到上一个已验证的产品标签或构建标签。
 - 数据库依赖备份或前向修复；MySQL DDL 不保证整体回滚。
 - 外部副作用使用幂等重试或补偿流程。
+
+## 真实发布集成验收
+
+常规单测与部署验收分别记录。下列入口默认不发送短信或微博帖子，外部探针必须显式选择；不得把本地通过写成生产部署通过。
+
+```bash
+php tests/release_schema.php
+php tests/release_http_db.php
+php tests/http_transport.php
+php tests/release_external.php --oss
+php tests/release_external.php --webhook
+python tests/release_realtime.py --realtime
+```
+
+- 全新库入口仅接受本地 debug 与回环 MySQL，登记随机 `lostsky_release_probe_<nonce>` 清理 manifest，拒绝 schema 中的目标库切换指令；逐条初始化前确认当前库为本次库，核对完整表/外键列及引擎、排序规则、管理员角色种子，再在新库运行外键回归。结束只 DROP 本次随机库并确认不存在，不访问原业务库，也不执行历史补丁。
+- HTTP→DB 入口仅接受 `APP_DEBUG=true`、MySQL `127.0.0.1` 和数据库名 `lostsky`。它启动临时回环 PHP HTTP 服务，使用随机自建用户、团队、商品和权益，验证登录、身份领取、购买、记账、核销和设备退出，结束后清理本次关联数据与进程。运行中的临时 manifest 只记录清理所需 ID；异常清理失败须保留现场，不得批量删除其他记录。
+- HTTP transport 入口启动独立回环响应服务，覆盖真实成功、错误响应和错误后继续请求；它不调用微博网络。
+- OSS 入口使用配置中的真实 OSS，仅操作 `release-probes/release-{随机标识}/object.txt`，校验 put/get/head/delete 与删除后不存在；清理失败返回非零，不得作为通过结果。
+- Webhook 入口向 `https://httpbin.org/post` 发送随机非敏感 fixture 和一次性签名，验证真实 HTTPS 请求、响应正文及签名头传输。这是公开 echo 组件验收，未验证用户接收端的签名校验、业务处理或生产投递。
+- 实时入口需要 Python 与 `websockets`（验收使用 13.1），通过进程管道读取当前 PHP 配置，不落盘令牌，使用独立随机 subject/channel 验证真实 WebSocket 连接、订阅、publication 与业务 disconnect。它不访问其他人的会话；该结果与 HTTP→DB 设备撤销结果分别记录，不能推断生产反向代理已通过。
+
+报告必须附源码 SHA、环境、命令和结果。生产 SSH 必须使用严格 host key 核验；主机指纹变化时先经可信渠道确认。生产备份、恢复、scheduler/worker、反向代理、受控短信收件人和实际 Webhook 接收端尚未验收时，分别标为未验证。短信 `SchemeName` 留空使用阿里云默认方案，不能仅因留空判为缺配置；发送与核验应使用同一方案。

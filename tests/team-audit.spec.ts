@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('Team 审计日志覆盖权限、筛选、详情、状态与响应式布局', async ({ page }) => {
   test.setTimeout(90_000)

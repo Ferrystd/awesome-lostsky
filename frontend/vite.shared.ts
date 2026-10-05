@@ -1,6 +1,7 @@
 import { fileURLToPath, URL } from 'node:url'
+import { realpathSync } from 'node:fs'
 import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vite'
+import { defineConfig, searchForWorkspaceRoot } from 'vite'
 
 export function appConfig(app: 'site' | 'account' | 'admin' | 'team' | 'chat' | 'transaction' | 'display' | 'shop' | 'weibo', port: number) {
   const root = fileURLToPath(new URL(`./apps/${app}`, import.meta.url))
@@ -21,6 +22,8 @@ export function appConfig(app: 'site' | 'account' | 'admin' | 'team' | 'chat' | 
       port,
       strictPort: true,
       allowedHosts: ['.lostsky.work'],
+      // Worktrees may share installed dependencies through a local junction.
+      fs: { allow: [searchForWorkspaceRoot(root), realpathSync(fileURLToPath(new URL('../node_modules', import.meta.url)))] },
       proxy: {
         '/api': {
           target: process.env.VITE_DEV_API_TARGET || 'http://api.lostsky.work',

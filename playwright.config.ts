@@ -9,6 +9,7 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   expect: { timeout: 12_000 },
   use: {
+    serviceWorkers: 'block',
     trace: 'on-first-retry',
     launchOptions: {
       args: ['--host-resolver-rules=MAP www.lostsky.work 127.0.0.1, MAP account.lostsky.work 127.0.0.1, MAP demo.team.lostsky.work 127.0.0.1, MAP demo.chat.lostsky.work 127.0.0.1, MAP chat.lostsky.work 127.0.0.1, MAP demo.transaction.lostsky.work 127.0.0.1, MAP demo.display.lostsky.work 127.0.0.1, MAP demo.shop.lostsky.work 127.0.0.1, MAP demo.weibo.lostsky.work 127.0.0.1'],

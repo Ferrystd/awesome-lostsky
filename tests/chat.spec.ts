@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 
 async function setToken(page: Page, value: string) {
   await page.context().addCookies([{ name: 'lostsky_token', value, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
@@ -6,6 +6,17 @@ async function setToken(page: Page, value: string) {
 
 async function token(page: Page) {
   return (await page.context().cookies()).find((cookie) => cookie.name === 'lostsky_token')?.value
+}
+
+async function mockTeams(page: Page) {
+  await page.route('http://account.lostsky.work:5174/api/team/join-code', route => route.fulfill({
+    json: { code: 0, message: 'ok', data: { code: 'fixture-join-code', expires_at: Math.floor(Date.now() / 1000) + 1800 } },
+  }))
+  await page.route('http://account.lostsky.work:5174/api/team/index', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ code: 0, message: 'ok', data: [] }),
+  }))
 }
 
 test('Account identity picker switches continuously and returns to its safe redirect', async ({ page }) => {
@@ -112,6 +123,7 @@ test('Account identity picker exposes loading and empty states', async ({ page }
 test('cross-team member callback waits for confirmation and cancel preserves the entity', async ({ page }) => {
   let receiveCount = 0
   await setToken(page, 'old-entity-token')
+  await mockTeams(page)
   await page.route('http://account.lostsky.work:5174/api/identity/member', async route => {
     receiveCount++
     await route.fulfill({
@@ -126,6 +138,7 @@ test('cross-team member callback waits for confirmation and cancel preserves the
   expect(receiveCount).toBe(0)
   await page.getByRole('button', { name: '取消并保留当前身份' }).click()
   await expect(page).toHaveURL('http://account.lostsky.work:5174/teams')
+  await expect(page.getByText('fixture-join-code', { exact: true })).toBeVisible()
   expect(receiveCount).toBe(0)
   await expect.poll(() => token(page)).toBe('old-entity-token')
 })
@@ -133,6 +146,7 @@ test('cross-team member callback waits for confirmation and cancel preserves the
 test('confirmed team mismatch switches member and missing identity recovers automatically', async ({ page }) => {
   let payload: { team_slug?: string } | null = null
   await setToken(page, 'old-entity-token')
+  await mockTeams(page)
   await page.route('http://account.lostsky.work:5174/api/identity/member', async route => {
     payload = route.request().postDataJSON()
     await route.fulfill({
@@ -151,12 +165,14 @@ test('confirmed team mismatch switches member and missing identity recovers auto
   await page.keyboard.press('Enter')
   await expect.poll(() => payload?.team_slug).toBe('demo')
   await expect(page).toHaveURL('http://account.lostsky.work:5174/teams')
+  await expect(page.getByText('fixture-join-code', { exact: true })).toBeVisible()
   await expect.poll(() => token(page)).toBe('new-member-token')
 
   payload = null
   await page.goto('http://account.lostsky.work:5174/identity/member-callback?team_slug=demo&reason=missing&return_to=%2Fteams')
   await expect.poll(() => payload?.team_slug).toBe('demo')
   await expect(page).toHaveURL('http://account.lostsky.work:5174/teams')
+  await expect(page.getByText('fixture-join-code', { exact: true })).toBeVisible()
 })
 
 test('member callback keeps the previous token when member receipt fails', async ({ page }) => {
@@ -170,11 +186,7 @@ test('member callback keeps the previous token when member receipt fails', async
       body: JSON.stringify({ code: 1, message: '你不是该团队的有效成员', data: null }),
     })
   })
-  await page.route('http://account.lostsky.work:5174/api/team/index', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ code: 0, message: 'ok', data: [] }),
-  }))
+  await mockTeams(page)
 
   await page.goto('http://account.lostsky.work:5174/identity/member-callback?team_slug=demo&reason=missing&return_to=%2Fteams')
   await expect(page.getByRole('heading', { name: '无法领取成员身份' })).toBeVisible()
@@ -184,6 +196,8 @@ test('member callback keeps the previous token when member receipt fails', async
   await expect(page.getByRole('alert')).toContainText('本次浏览会话已经尝试过自动领取')
   expect(receiveCount).toBe(1)
   await page.getByRole('button', { name: '切换团队' }).click()
+  await expect(page.getByText('fixture-join-code', { exact: true })).toBeVisible()
+  await expect.poll(() => token(page)).toBe('old-entity-token')
   await expect(page).toHaveURL('http://account.lostsky.work:5174/teams')
 })
 
@@ -208,11 +222,7 @@ test('external workspace warning confirms once and preserves only a safe return 
       } }),
     })
   })
-  await page.route('http://account.lostsky.work:5174/api/team/index', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ code: 0, message: 'ok', data: [] }),
-  }))
+  await mockTeams(page)
 
   const safe = 'http://demo.team.lostsky.work:5175/members'
   await page.goto(`http://account.lostsky.work:5174/identity/workspace-warning?team_slug=target&redirect=${encodeURIComponent(safe)}`)

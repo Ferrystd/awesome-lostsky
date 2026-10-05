@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 test('conversation drafts stay isolated and the sidebar follows viewport geometry', async ({ page, isMobile }) => {
   const chat = 'http://chat.lostsky.work:5176'
   const token = `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type: 'teamMember', id: 11 } })).toString('base64url')}.x`

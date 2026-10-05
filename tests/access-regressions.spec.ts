@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 
 const token = `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type: 'teamMember', id: 1 } })).toString('base64url')}.x`
 
@@ -41,6 +41,14 @@ test('specific virtual permission allows its list and detail but not another slu
   await page.goto('http://demo.team.lostsky.work:5175/chat-virtuals')
   await page.locator('a[href="/chat-virtual?slug=bot"]').click()
   await expect(page.locator('#virtual-name input')).toHaveValue('指定机器人')
+  const save = page.getByRole('button', { name: '保存人员', exact: true })
+  await expect(save).toHaveAttribute('aria-disabled', 'true')
+  await save.focus()
+  await save.press('Enter')
+  await expect(page.locator('.n-message')).toContainText('尚未修改任何内容')
+  expect(updates).toBe(0)
+  await page.locator('#virtual-name input').fill('指定机器人（已修改）')
+  await expect(save).not.toHaveAttribute('aria-disabled', 'true')
   await page.getByRole('button', { name: '保存人员', exact: true }).click()
   await expect.poll(() => updates).toBe(1)
   await expect(page.getByRole('button', { name: '保存人员', exact: true })).not.toHaveClass(/n-button--loading/)

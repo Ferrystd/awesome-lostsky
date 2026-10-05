@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 
 const origin = 'http://demo.weibo.lostsky.work:5181'
 async function setup(page: Page, options: { status?: string; accountsError?: boolean; presetsError?: boolean; restricted?: boolean; presets?: { id: number; scope: 'team' | 'personal'; content: string }[] } = {}) {

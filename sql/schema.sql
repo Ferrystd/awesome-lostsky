@@ -1704,7 +1704,7 @@ CREATE TABLE `weibo_media` (
   `byte_count` INT UNSIGNED NULL, `variants` JSON NULL,
   `create_time` INT UNSIGNED NOT NULL DEFAULT 0, `update_time` INT UNSIGNED NOT NULL DEFAULT 0, `delete_time` INT UNSIGNED NULL,
   PRIMARY KEY (`id`), UNIQUE KEY `uk_weibo_media_pid` (`team_id`,`owner_entity_id`,`pid`), KEY `idx_weibo_media_owner` (`team_id`,`owner_entity_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='寰崥杩滅濯掍綋鍏冩暟鎹?;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='寰崥杩滅濯掍綋鍏冩暟鎹?';
 
 CREATE TABLE `weibo_task` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, `team_id` INT UNSIGNED NOT NULL,

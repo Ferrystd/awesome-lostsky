@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('creates a multi variant product in one atomic request', async ({ page }) => {
   const token = `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type: 'teamMember', id: 11 } })).toString('base64url')}.x`
@@ -118,6 +118,7 @@ test('variant composition restores baseline prices when nesting is introduced', 
   await expect(save).toBeEnabled()
   await page.getByRole('button', { name: '添加商品', exact: true }).click()
   await page.locator('#variant-0-item-1').click()
+  await expect(page.locator('.n-base-select-menu:visible')).toHaveCount(1)
   await page.locator('.n-base-select-menu:visible').getByText('嵌套套餐', { exact: true }).click()
   await expect(price).toBeDisabled()
   await expect(price).toHaveValue('30.00')
