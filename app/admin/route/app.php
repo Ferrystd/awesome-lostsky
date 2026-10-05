@@ -34,6 +34,8 @@ Route::put('roles/<id>/permissions', 'access/savePermissions');
 
 Route::get('audit-events', 'operations/auditEvents');
 Route::get('system/health', 'operations/health');
+Route::get('site-content', 'siteContent/index');
+Route::put('site-content', 'siteContent/save');
 
 Route::get('entitlements/ability-catalog', 'entitlement/catalog');
 Route::get('entitlements/packages', 'entitlement/packages')->completeMatch();

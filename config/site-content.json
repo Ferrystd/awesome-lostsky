@@ -1,0 +1,13 @@
+{
+  "icp": "",
+  "members": [
+    {"name":"Alex Chen","role":"创始人 / 首席运营官","description":"前一线大厂泛娱乐业务负责人，深谙陪玩行业底层逻辑。擅长从0到1搭建运营体系，曾操盘多个月流水破百万的顶尖陪玩公会。致力于用标准化流程解决行业痛点。","tags":["流量矩阵","商业化变现"],"initials":"AC","avatar":"","visible":true},
+    {"name":"Sarah Lin","role":"技术总监 / 架构师","description":"全栈开发专家，主导研发了失落青空核心派单算法与数据分析中台。通过技术手段大幅提升派单效率与匹配精准度，让运营决策真正建立在数据之上。","tags":["算法匹配","数据中台"],"initials":"SL","avatar":"","visible":true}
+  ],
+  "stats": [
+    {"value":"300+","label":"服务店铺 / 公会","visible":true},
+    {"value":"5000w+","label":"累计助力流水","visible":true},
+    {"value":"98%","label":"顾客续约率","visible":true},
+    {"value":"24/7","label":"全天候技术支持","visible":true}
+  ]
+}

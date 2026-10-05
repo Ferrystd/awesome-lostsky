@@ -1,26 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { defaultSiteContent, loadPublicSiteContent } from '@lostsky/shared/siteContent'
 
 const menuOpen = ref(false)
 
-const members = [
-  {
-    name: 'Alex Chen',
-    role: '创始人 / 首席运营官',
-    description: '前一线大厂泛娱乐业务负责人，深谙陪玩行业底层逻辑。擅长从0到1搭建运营体系，曾操盘多个月流水破百万的顶尖陪玩公会。致力于用标准化流程解决行业痛点。',
-    tags: ['流量矩阵', '商业化变现'],
-    initials: 'AC',
-    primary: true,
-  },
-  {
-    name: 'Sarah Lin',
-    role: '技术总监 / 架构师',
-    description: '全栈开发专家，主导研发了失落青空核心派单算法与数据分析中台。通过技术手段大幅提升派单效率与匹配精准度，让运营决策真正建立在数据之上。',
-    tags: ['算法匹配', '数据中台'],
-    initials: 'SL',
-    primary: false,
-  },
-]
+const content = ref(defaultSiteContent())
+const members = computed(() => content.value.members.filter(member => member.visible).map((member, index) => ({ ...member, primary: index === 0 })))
+const stats = computed(() => content.value.stats.filter(stat => stat.visible).map(stat => [stat.value, stat.label]))
+onMounted(async () => {
+  try { content.value = await loadPublicSiteContent() }
+  catch { /* Keep the original homepage content when the API is unavailable. */ }
+})
 
 const services = [
   ['流水破局方案', '解决：单量不稳定、客单价低', '通过精细化用户分层与定制化营销活动，快速拉升店铺整体流水。适合遇到增长瓶颈的中腰部陪玩店。', 'primary'],
@@ -28,7 +18,6 @@ const services = [
   ['数据中台部署', '解决：管理混乱、决策拍脑袋', '私有化部署智能派单与财务分析系统，实现数字化管理。适合规模化运作、追求极致效率的大型工作室。', 'blue'],
 ]
 
-const stats = [['300+', '服务店铺 / 公会'], ['5000w+', '累计助力流水'], ['98%', '顾客续约率'], ['24/7', '全天候技术支持']]
 const advantages = [
   ['拒绝模板化运营', '深入调研您的业务现状，量身定制增长策略，不卖通用废话。'],
   ['自研核心科技', '独家派单算法与风控模型，用技术降本增效，领先同行一个时代。'],
@@ -88,14 +77,14 @@ const advantages = [
         <div class="container">
           <header class="section-title"><h2 id="team-title">核心<span>成员</span></h2><i aria-hidden="true"></i></header>
           <div class="member-list">
-            <article v-for="(member, index) in members" :key="member.name" :class="['member', { reverse: index === 1 }]">
+            <article v-for="(member, index) in members" :key="index" :class="['member', { reverse: index === 1 }]">
               <div class="member-copy">
                 <p :class="['role', member.primary ? 'primary' : 'secondary']">{{ member.role }}</p>
                 <h3>{{ member.name }}</h3>
                 <p class="member-description">{{ member.description }}</p>
                 <div class="tag-list"><span v-for="tag in member.tags" :key="tag">{{ tag }}</span></div>
               </div>
-              <div class="member-media" aria-hidden="true"><div :class="['avatar-frame', member.primary ? 'primary' : 'secondary']"><span>{{ member.initials }}</span><i></i></div></div>
+              <div class="member-media" aria-hidden="true"><div :class="['avatar-frame', member.primary ? 'primary' : 'secondary']" :style="member.avatar ? { backgroundImage: `url(${JSON.stringify(member.avatar)})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined"><span>{{ member.avatar ? '' : member.initials }}</span><i></i></div></div>
             </article>
           </div>
         </div>
@@ -118,7 +107,7 @@ const advantages = [
       <section id="advantages" class="advantages-section" aria-labelledby="advantages-title">
         <div class="container">
           <header class="section-title"><h2 id="advantages-title">团队<span>优势</span></h2><i aria-hidden="true"></i></header>
-          <div class="stat-list"><article v-for="([value, label]) in stats" :key="label"><strong>{{ value }}</strong><span>{{ label }}</span></article></div>
+          <div class="stat-list"><article v-for="([value, label], index) in stats" :key="index"><strong>{{ value }}</strong><span>{{ label }}</span></article></div>
           <article class="advantage-panel">
             <div class="panel-glow top" aria-hidden="true"></div><div class="panel-glow bottom" aria-hidden="true"></div>
             <div class="advantage-copy"><h3>为什么选择失落青空？</h3><ul><li v-for="([title, description]) in advantages" :key="title"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg><span><b>{{ title }}</b><small>{{ description }}</small></span></li></ul></div>
@@ -130,7 +119,7 @@ const advantages = [
       <section id="contact" class="contact-section" aria-labelledby="contact-title">
         <div class="contact-background" aria-hidden="true"></div>
         <div class="contact-body"><div class="contact-panel"><h2 id="contact-title">让下一阶段的增长<br><span>从一次诊断开始</span></h2><p>告诉我们当前的团队规模和运营难题，获取免费的店铺诊断建议。</p><div class="contact-actions"><a href="mailto:contact@lostsky.com?subject=预约店铺诊断"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z"/></svg>预约免费诊断</a><a href="mailto:contact@lostsky.com"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 8 7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z"/></svg>发送邮件咨询</a></div></div></div>
-        <footer><div class="container footer-content"><span>© 2026 失落青空工作室 (LostSky Studio).</span><nav aria-label="页脚导航"><a href="//account.lostsky.work/login">进入工作台</a><a href="#home">返回顶部</a><a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">备案信息</a></nav></div></footer>
+        <footer><div class="container footer-content"><span>© 2026 失落青空工作室 (LostSky Studio).</span><nav aria-label="页脚导航"><a href="//account.lostsky.work/login">进入工作台</a><a href="#home">返回顶部</a><a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">{{ content.icp || '备案信息' }}</a></nav></div></footer>
       </section>
     </main>
   </div>

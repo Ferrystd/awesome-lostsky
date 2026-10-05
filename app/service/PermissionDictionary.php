@@ -78,6 +78,8 @@ final class PermissionDictionary
     public const ADMIN_ACCESS_WRITE = 'admin.access.write';
     public const ADMIN_AUDIT_READ = 'admin.audit.read';
     public const ADMIN_SYSTEM_READ = 'admin.system.read';
+    public const ADMIN_SITE_READ = 'admin.site.read';
+    public const ADMIN_SITE_WRITE = 'admin.site.write';
     public const ADMIN_ENTITLEMENT_READ = 'admin.entitlement.read';
     public const ADMIN_ENTITLEMENT_WRITE = 'admin.entitlement.write';
 
@@ -187,6 +189,10 @@ final class PermissionDictionary
             self::ADMIN_ACCESS_WRITE => '管理平台管理员与角色',
             self::ADMIN_AUDIT_READ => '查看平台审计日志',
         ],
+        '官网内容' => [
+            self::ADMIN_SITE_READ => '查看官网内容',
+            self::ADMIN_SITE_WRITE => '编辑官网内容',
+        ],
         '平台权益' => [
             self::ADMIN_ENTITLEMENT_READ => '查看平台权益与体验码',
             self::ADMIN_ENTITLEMENT_WRITE => '管理平台权益与体验码',
@@ -253,6 +259,8 @@ final class PermissionDictionary
             'chat.group.manage' => '管理群聊',
             'admin.dashboard.read' => '查看平台总览',
             'admin.system.read' => '查看系统状态',
+            'admin.site.read' => '查看官网备案号、核心人员和团队优势数据',
+            'admin.site.write' => '编辑官网备案号、核心人员和团队优势数据',
             'admin.entitlement.read' => '查看 Ability 权益与体验码',
             'admin.entitlement.write' => '管理 Ability 权益与体验码',
             'admin.user.read' => '查看用户与脱敏联系方式',
