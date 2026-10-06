@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { BookOpen, ShoppingBag } from '@lucide/vue'
 import { defaultSiteContent, loadPublicSiteContent } from '@lostsky/shared/siteContent'
 
 const menuOpen = ref(false)
@@ -44,7 +45,7 @@ const advantages = [
           <a href="#services" @click="menuOpen = false">精选业务</a>
           <a href="#advantages" @click="menuOpen = false">团队优势</a>
         </div>
-        <a href="#contact" class="contact-link">联系我们</a>
+        <a href="//lostsky.display.lostsky.work/document/1" class="contact-link">立即免费试用</a>
       </div>
     </nav>
 
@@ -54,7 +55,7 @@ const advantages = [
         <div class="container hero-layout">
           <div class="hero-content">
             <p class="hero-signature">失落青空 · 陪玩运营工作室</p>
-            <h1 id="hero-title">重塑陪玩生态<br><span>让增长持续发生</span></h1>
+            <h1 id="hero-title">重塑陪玩生态<br><span>数字化转型团队</span></h1>
             <p class="hero-lead">专注陪玩团与陪玩店精细化运营。我们把增长策略、成员孵化和数据系统串成一条完整路径，让每一次投入都有迹可循。</p>
             <div class="hero-actions">
               <a href="#services" class="hero-cta">探索解决方案 <span aria-hidden="true">→</span></a>
@@ -94,11 +95,11 @@ const advantages = [
         <div class="container">
           <header class="section-title"><h2 id="services-title">精选<span>业务</span></h2><p>直击痛点，为您提供全链路的陪玩商业化解决方案</p></header>
           <div class="service-list">
-            <a v-for="([title, problem, description, tone], index) in services" :key="title" href="#contact" class="service-card">
+            <a v-for="([title, problem, description, tone], index) in services" :key="title" href="//lostsky.display.lostsky.work" class="service-card">
               <span :class="['service-icon', tone]"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path v-if="index === 0" d="M13 7h8m0 0v8m0-8-8 8-4-4-6 6"/><path v-else-if="index === 1" d="M12 4.354a4 4 0 1 0 0 5.292M15 21H3v-1a6 6 0 0 1 12 0v1m0 0h6v-1a6 6 0 0 0-9-5.197M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"/><path v-else d="M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6m6 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2Z"/></svg></span>
               <div class="service-heading"><h3>{{ title }}</h3><strong :class="tone">{{ problem }}</strong></div>
               <p>{{ description }}</p>
-              <span :class="['service-more', tone]">预约方案沟通 <b aria-hidden="true">→</b></span>
+              <span :class="['service-more', tone]">了解服务详情 <b aria-hidden="true">→</b></span>
             </a>
           </div>
         </div>
@@ -118,7 +119,16 @@ const advantages = [
 
       <section id="contact" class="contact-section" aria-labelledby="contact-title">
         <div class="contact-background" aria-hidden="true"></div>
-        <div class="contact-body"><div class="contact-panel"><h2 id="contact-title">让下一阶段的增长<br><span>从一次诊断开始</span></h2><p>告诉我们当前的团队规模和运营难题，获取免费的店铺诊断建议。</p><div class="contact-actions"><a href="mailto:contact@lostsky.com?subject=预约店铺诊断"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z"/></svg>预约免费诊断</a><a href="mailto:contact@lostsky.com"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 8 7.89 5.26a2 2 0 0 0 2.22 0L21 8M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z"/></svg>发送邮件咨询</a></div></div></div>
+        <div class="contact-body">
+          <div class="contact-panel">
+            <h2 id="contact-title">让下一阶段的增长<br><span>从一次转型开始</span></h2>
+            <p>尝试将团队业务接入可靠的数字系统，也可尝试我们的全套运营服务</p>
+            <div class="contact-actions">
+              <a href="//lostsky.display.lostsky.work/document/1"><BookOpen aria-hidden="true" />开始免费试用</a>
+              <a href="//lostsky.shop.lostsky.work/"><ShoppingBag aria-hidden="true" />了解全部业务</a>
+            </div>
+          </div>
+        </div>
         <footer><div class="container footer-content"><span>© 2026 失落青空工作室 (LostSky Studio).</span><nav aria-label="页脚导航"><a href="//account.lostsky.work/login">进入工作台</a><a href="#home">返回顶部</a><a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">{{ content.icp || '备案信息' }}</a></nav></div></footer>
       </section>
     </main>
