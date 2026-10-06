@@ -16,6 +16,7 @@ import AuthShell from "../../apps/account/src/components/AuthShell.vue";
 import SmsCodeField from "../../apps/account/src/components/SmsCodeField.vue";
 import AdminShell from "../../apps/admin/src/components/AdminShell.vue";
 import ReasonDialog from "../../apps/admin/src/components/ReasonDialog.vue";
+import SiteMemberFields from "../../apps/admin/src/components/SiteMemberFields.vue";
 import DocumentList from "../../apps/display/src/components/DocumentList.vue";
 import EntityList from "../../apps/display/src/components/EntityList.vue";
 import ProductList from "../../apps/display/src/components/ProductList.vue";
@@ -806,6 +807,10 @@ const transactionFlowTrend = story(
 );
 
 export const appStories: Record<string, StoryDefinition> = {
+  SiteMemberFields: story('SiteMemberFields', interactive, state => h(defineComponent({ setup() {
+    const member = ref({ name: '青空', role: '运营负责人', description: '负责团队运营与服务交付。', tags: ['运营', '服务'], initials: 'LS', avatar: '', visible: true });
+    return () => stage(h(SiteMemberFields, { member: member.value, index: 0, readonly: state === 'disabled' }));
+  }})), { loading: '人员资料加载由页面处理。', error: '保存校验和读取错误由页面处理。' }),
   ChatGroupMembers: story('ChatGroupMembers', [...previewStates], state => stage(h(ChatGroupMembers, {
     participants: state === 'error' ? [] : [
       { slug: 'qingkong', name: '青空', left_at: null },

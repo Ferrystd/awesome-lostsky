@@ -4,6 +4,30 @@
  */
 
 export interface paths {
+    "/site-content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 读取官网内容
+         * @description 需要 admin.site.read
+         */
+        get: operations["adminSiteContent"];
+        /**
+         * 一次保存官网内容
+         * @description 需要 admin.site.write；数组顺序为展示顺序，全部校验后事务写入并审计。
+         */
+        put: operations["adminSaveSiteContent"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/session": {
         parameters: {
             query?: never;
@@ -591,6 +615,29 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SiteContent: {
+            icp: string;
+            members: {
+                name: string;
+                role: string;
+                description: string;
+                tags: string[];
+                initials: string;
+                /** @description 留空或有效的 HTTPS 图片地址；头像与姓名缩写至少提供一个 */
+                avatar: string;
+                visible: boolean;
+            }[];
+            stats: {
+                value: string;
+                label: string;
+                visible: boolean;
+            }[];
+        };
+        SiteContentEnvelope: {
+            code: number;
+            message: string;
+            data: components["schemas"]["SiteContent"];
+        };
         SuccessEnvelope: {
             /** @enum {integer} */
             code: 0;
@@ -736,6 +783,53 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    adminSiteContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 官网内容 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteContentEnvelope"];
+                };
+            };
+            403: components["responses"]["Error"];
+        };
+    };
+    adminSaveSiteContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SiteContent"];
+            };
+        };
+        responses: {
+            /** @description 官网内容 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteContentEnvelope"];
+                };
+            };
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
     adminSession: {
         parameters: {
             query?: never;

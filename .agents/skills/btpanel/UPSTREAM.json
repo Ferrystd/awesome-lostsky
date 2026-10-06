@@ -52,5 +52,6 @@
       "git_blob_sha1": "6580a6c809eb85f164261eaf3014db8b9384b1e8",
       "sha256": "30642863f094dd3d316e58c43e8afb92c057a23104f6bdb40936f8e3f66b1c83"
     }
-  }
+  },
+  "local_modifications": ["scripts/bt_mcp_setup.py", "scripts/test_bt_mcp_setup.py", "README.md"]
 }

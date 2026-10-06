@@ -1789,3 +1789,10 @@ CREATE TABLE IF NOT EXISTS `manual_entitlement_grant_operation` (
     CONSTRAINT `fk_manual_grant_team` FOREIGN KEY (`team_id`) REFERENCES `team` (`id`),
     CONSTRAINT `fk_manual_grant_actor` FOREIGN KEY (`actor_entity_id`) REFERENCES `entity` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='手动发放持久幂等账本，无自动清理';
+
+CREATE TABLE IF NOT EXISTS `site_content` (
+    `id` TINYINT UNSIGNED NOT NULL COMMENT '官网内容单例，固定为 1',
+    `content` JSON NOT NULL COMMENT 'ICP备案号、核心人员和团队优势指标',
+    `update_time` INT UNSIGNED NOT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='官网公开内容配置';

@@ -1,6 +1,10 @@
 import { expect, test } from './fixtures'
+import { readFileSync } from 'node:fs'
+
+const siteContent = JSON.parse(readFileSync(new URL('../config/site-content.json', import.meta.url), 'utf8'))
 
 test('landing page keeps the legacy studio journey without horizontal overflow', async ({ page }) => {
+  await page.route('http://127.0.0.1:5173/api/site-content', route => route.fulfill({ json: { code: 0, message: 'ok', data: siteContent } }))
   await page.goto('http://127.0.0.1:5173/')
   await expect(page).toHaveTitle(/失落青空 - 顶尖陪玩运营工作室/)
   await expect(page.getByRole('heading', { name: /重塑陪玩生态/ })).toBeVisible()
@@ -9,13 +13,24 @@ test('landing page keeps the legacy studio journey without horizontal overflow',
   await expect(page.locator('#advantages')).toBeVisible()
   await expect(page.locator('#contact')).toBeVisible()
   await expect(page.getByRole('link', { name: '探索解决方案' })).toHaveAttribute('href', '#services')
-  await expect(page.getByRole('link', { name: '联系我们' })).toHaveAttribute('href', '#contact')
+  await expect(page.getByRole('link', { name: '立即免费试用' })).toHaveAttribute('href', '//lostsky.display.lostsky.work/document/1')
+  await expect(page.locator('#hero-title span')).toHaveText('数字化转型团队')
+  await expect(page.locator('#contact-title span')).toHaveText('从一次转型开始')
+  await expect(page.locator('.contact-panel > p')).toHaveText('尝试将团队业务接入可靠的数字系统，也可尝试我们的全套运营服务')
+  await expect(page.getByRole('link', { name: '开始免费试用' })).toHaveAttribute('href', '//lostsky.display.lostsky.work/document/1')
+  await expect(page.getByRole('link', { name: '了解全部业务' })).toHaveAttribute('href', '//lostsky.shop.lostsky.work/')
+  const services = page.locator('.service-card')
+  await expect(services).toHaveCount(3)
+  for (const service of await services.all()) {
+    await expect(service).toHaveAttribute('href', '//lostsky.display.lostsky.work')
+    await expect(service.locator('.service-more')).toContainText('了解服务详情')
+  }
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
   expect(overflow).toBe(false)
 
   await page.setViewportSize({ width: 375, height: 812 })
   await page.reload()
-  await expect(page.getByRole('link', { name: '联系我们' })).toBeVisible()
+  await expect(page.getByRole('link', { name: '立即免费试用' })).toBeVisible()
   const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
   expect(mobileOverflow).toBe(false)
 })

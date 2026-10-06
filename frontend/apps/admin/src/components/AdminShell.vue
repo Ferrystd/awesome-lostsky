@@ -33,6 +33,7 @@ const nav: NavItem[] = [
   { to: '/roles', label: '平台角色', icon: Command },
   { to: '/audit', label: '审计日志', icon: FileClock },
   { to: '/system', label: '系统状态', icon: Activity },
+  { to: '/site-content', label: '官网内容', icon: FileClock },
   { to: '/entitlements/team-abilities', label: '团队能力', icon: ShieldPlus },
   { to: '/entitlements/packages', label: '平台权益', icon: KeyRound },
 ]

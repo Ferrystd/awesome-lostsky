@@ -70,3 +70,17 @@ git clone https://cnb.cool/btpanel/skill/btpanel-skill "$CODEX_HOME/skills/btpan
 ## License
 
 本项目使用 [MIT License](LICENSE)。
+
+## LostSky 本地安全修订
+
+`UPSTREAM.json.files` 保留导入版本的上游校验记录；`local_modifications` 标明项目内修订，不冒称修改后的脚本仍与上游逐字相同。
+
+结果文件只创建新文件，拒绝覆盖已有文件或符号链接。Windows 使用当前用户 SID 作为 owner，以受保护且仅允许该 SID 的 DACL 创建文件；通过句柄核验 owner、保护标志和唯一 FullControl 规则后才写入 JSON。POSIX 保留 `0600`。安装流程在联网或安装前安全预留文件并保持句柄，提前拒绝已有输出；独立结果写入先完成序列化。权限校验、安装或写入失败时关闭资源，仅清理仍属于本次创建的文件，不删除已有输出或被替换的其他文件。
+
+隔离验证命令（不安装、联网或运行 SSH）：
+
+```bash
+python .agents/skills/btpanel/scripts/test_bt_mcp_setup.py
+```
+
+Windows 用原生 API 实施权限并通过 PowerShell 独立读取真实 ACL；POSIX 测试核验实际文件 mode。测试只使用临时目录和非敏感 fixture。

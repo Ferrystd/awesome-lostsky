@@ -9,6 +9,7 @@ the pinned SHA-256 below, and executed without shell command interpolation.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import hashlib
 import ipaddress
 import json
@@ -226,21 +227,178 @@ def classify_binding(result: dict, mcp_host: str) -> None:
     result["needs_trusted_ip_certificate"] = cert_problem
 
 
-def write_result(path: Path, result: dict) -> None:
-    path = path.expanduser().resolve()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-    if hasattr(os, "O_NOFOLLOW"):
-        flags |= os.O_NOFOLLOW
-    fd = os.open(path, flags, 0o600)
+def _windows_api() -> dict:
+    import ctypes
+    from ctypes import wintypes as w
+
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    security = ctypes.WinDLL('advapi32', use_last_error=True)
+    pointer = ctypes.POINTER
+    signatures = {
+        'GetCurrentProcess': (kernel, [], w.HANDLE),
+        'CloseHandle': (kernel, [w.HANDLE], w.BOOL),
+        'LocalFree': (kernel, [w.LPVOID], w.LPVOID),
+        'CreateFileW': (kernel, [w.LPCWSTR, w.DWORD, w.DWORD, w.LPVOID, w.DWORD, w.DWORD, w.HANDLE], w.HANDLE),
+        'OpenProcessToken': (security, [w.HANDLE, w.DWORD, pointer(w.HANDLE)], w.BOOL),
+        'GetTokenInformation': (security, [w.HANDLE, ctypes.c_int, w.LPVOID, w.DWORD, pointer(w.DWORD)], w.BOOL),
+        'ConvertSidToStringSidW': (security, [w.LPVOID, pointer(w.LPWSTR)], w.BOOL),
+        'ConvertStringSecurityDescriptorToSecurityDescriptorW': (security, [w.LPCWSTR, w.DWORD, pointer(w.LPVOID), pointer(w.DWORD)], w.BOOL),
+        'GetSecurityInfo': (security, [w.HANDLE, w.DWORD, w.DWORD] + [pointer(w.LPVOID)] * 5, w.DWORD),
+        'GetSecurityDescriptorControl': (security, [w.LPVOID, pointer(w.WORD), pointer(w.DWORD)], w.BOOL),
+        'GetAclInformation': (security, [w.LPVOID, w.LPVOID, w.DWORD, ctypes.c_int], w.BOOL),
+        'GetAce': (security, [w.LPVOID, w.DWORD, pointer(w.LPVOID)], w.BOOL),
+        'EqualSid': (security, [w.LPVOID, w.LPVOID], w.BOOL),
+    }
+    functions = {}
+    for name, (library, arguments, result) in signatures.items():
+        function = getattr(library, name)
+        function.argtypes, function.restype = arguments, result
+        functions[name] = function
+    return functions
+
+
+def _verify_windows_result_handle(handle: int, sid: int, api: dict) -> None:
+    import ctypes
+    from ctypes import wintypes as w
+
+    owner, acl, descriptor = w.LPVOID(), w.LPVOID(), w.LPVOID()
+    status = api['GetSecurityInfo'](handle, 1, 5, ctypes.byref(owner), None,
+                                    ctypes.byref(acl), None, ctypes.byref(descriptor))
+    if status:
+        raise ctypes.WinError(status)
     try:
-        os.fchmod(fd, 0o600)
-        with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            json.dump(result, stream, ensure_ascii=False, indent=2)
-            stream.write("\n")
-    except Exception:
-        os.close(fd)
+        control, revision = w.WORD(), w.DWORD()
+        if not api['GetSecurityDescriptorControl'](descriptor, ctypes.byref(control), ctypes.byref(revision)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        if not control.value & 0x1000 or not acl.value or not api['EqualSid'](owner, sid):
+            raise OSError('Result file owner/DACL protection verification failed')
+        information = (w.DWORD * 3)()
+        if not api['GetAclInformation'](acl, information, ctypes.sizeof(information), 2):
+            raise ctypes.WinError(ctypes.get_last_error())
+        if information[0] != 1:
+            raise OSError('Result file must grant access only to its current user')
+        ace = w.LPVOID()
+        if not api['GetAce'](acl, 0, ctypes.byref(ace)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        allowed = ctypes.c_ubyte.from_address(ace.value).value == 0
+        inherited = ctypes.c_ubyte.from_address(ace.value + 1).value & 0x10
+        mask = w.DWORD.from_address(ace.value + 4).value
+        if not allowed or inherited or mask != 0x1F01FF or not api['EqualSid'](ace.value + 8, sid):
+            raise OSError('Result file access rule verification failed')
+    finally:
+        api['LocalFree'](descriptor)
+
+
+def _remove_owned_result(path: Path, identity: tuple[int, int] | None) -> None:
+    if identity is None:
+        return
+    try:
+        current = path.lstat()
+        if (current.st_dev, current.st_ino) == identity:
+            path.unlink()
+    except FileNotFoundError:
+        pass
+
+
+def _windows_private_fd(path: Path) -> int:
+    import ctypes
+    import msvcrt
+    from ctypes import wintypes as w
+
+    class SecurityAttributes(ctypes.Structure):
+        _fields_ = [('length', w.DWORD), ('descriptor', w.LPVOID), ('inherit', w.BOOL)]
+
+    api = _windows_api()
+    token, descriptor, sid_text = w.HANDLE(), w.LPVOID(), w.LPWSTR()
+    handle = None
+    created = False
+    identity = None
+    try:
+        if not api['OpenProcessToken'](api['GetCurrentProcess'](), 8, ctypes.byref(token)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        length = w.DWORD()
+        api['GetTokenInformation'](token, 1, None, 0, ctypes.byref(length))
+        data = ctypes.create_string_buffer(length.value)
+        if not api['GetTokenInformation'](token, 1, data, length, ctypes.byref(length)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        sid = ctypes.cast(data, ctypes.POINTER(w.LPVOID)).contents.value
+        if not api['ConvertSidToStringSidW'](sid, ctypes.byref(sid_text)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        user = ctypes.wstring_at(sid_text)
+        sddl = f'O:{user}D:P(A;;FA;;;{user})'
+        if not api['ConvertStringSecurityDescriptorToSecurityDescriptorW'](sddl, 1, ctypes.byref(descriptor), None):
+            raise ctypes.WinError(ctypes.get_last_error())
+        attributes = SecurityAttributes(ctypes.sizeof(SecurityAttributes), descriptor, False)
+        handle = api['CreateFileW'](str(path), 0x40020000, 0, ctypes.byref(attributes), 1, 0x80, None)
+        if handle == w.HANDLE(-1).value:
+            handle = None
+            raise ctypes.WinError(ctypes.get_last_error())
+        created = True
+        information = path.stat()
+        identity = (information.st_dev, information.st_ino)
+        _verify_windows_result_handle(handle, sid, api)
+        fd = msvcrt.open_osfhandle(handle, os.O_WRONLY | os.O_BINARY)
+        handle = None  # The CRT fd now owns the Windows handle.
+        return fd
+    except BaseException:
+        if handle is not None:
+            api['CloseHandle'](handle)
+            handle = None
+        if created:
+            _remove_owned_result(path, identity)
         raise
+    finally:
+        if token:
+            api['CloseHandle'](token)
+        if descriptor:
+            api['LocalFree'](descriptor)
+        if sid_text:
+            api['LocalFree'](ctypes.cast(sid_text, w.LPVOID))
+
+
+@contextmanager
+def _private_result_stream(path: Path):
+    # Reserve the secure output before any network or installation side effect.
+    path = Path(os.path.abspath(path.expanduser()))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    created = False
+    fd = None
+    identity = None
+    try:
+        if os.name == 'nt':
+            fd = _windows_private_fd(path)
+        else:
+            flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+            if hasattr(os, 'O_NOFOLLOW'):
+                flags |= os.O_NOFOLLOW
+            fd = os.open(path, flags, 0o600)
+        created = True
+        information = os.fstat(fd)
+        identity = (information.st_dev, information.st_ino)
+        if os.name != 'nt':
+            os.fchmod(fd, 0o600)
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            fd = None  # fdopen owns and closes the descriptor, including errors.
+            yield stream
+    except BaseException:
+        if fd is not None:
+            os.close(fd)
+        if created:
+            _remove_owned_result(path, identity)
+        raise
+
+
+def _write_result_payload(stream, result: dict) -> None:
+    stream.write(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+    stream.flush()
+    os.fsync(stream.fileno())
+
+
+def write_result(path: Path, result: dict) -> None:
+    # Validate serialization before creating output for standalone callers.
+    json.dumps(result, ensure_ascii=False)
+    with _private_result_stream(path) as stream:
+        _write_result_payload(stream, result)
 
 
 def main() -> int:
@@ -269,15 +427,16 @@ def main() -> int:
 
     installer_path: Path | None = None
     try:
-        installer_path, actual_hash = download_installer()
-        print(f"安装入口校验通过: {actual_hash[:16]}...", file=sys.stderr)
-        completed = run_installer(installer_path, args, mcp_host)
-        sanitized_stderr = sanitize_installer_stderr(completed.stderr)
-        if sanitized_stderr:
-            print(sanitized_stderr, file=sys.stderr, end="")
-        result = extract_result(completed.stdout)
-        classify_binding(result, mcp_host)
-        write_result(args.result_file, result)
+        with _private_result_stream(args.result_file) as result_stream:
+            installer_path, actual_hash = download_installer()
+            print(f"安装入口校验通过: {actual_hash[:16]}...", file=sys.stderr)
+            completed = run_installer(installer_path, args, mcp_host)
+            sanitized_stderr = sanitize_installer_stderr(completed.stderr)
+            if sanitized_stderr:
+                print(sanitized_stderr, file=sys.stderr, end="")
+            result = extract_result(completed.stdout)
+            classify_binding(result, mcp_host)
+            _write_result_payload(result_stream, result)
 
         summary = {
             "status": result.get("status", "error"),

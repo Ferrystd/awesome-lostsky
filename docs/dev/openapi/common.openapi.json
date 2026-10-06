@@ -131,6 +131,8 @@
       }
     },
     "schemas": {
+      "SiteContent": {"type": "object", "additionalProperties": false, "required": ["icp", "members", "stats"], "properties": {"icp": {"type": "string", "maxLength": 100}, "members": {"type": "array", "maxItems": 20, "items": {"type": "object", "additionalProperties": false, "required": ["name", "role", "description", "tags", "initials", "avatar", "visible"], "properties": {"name": {"type": "string", "maxLength": 60, "minLength": 1}, "role": {"type": "string", "maxLength": 100, "minLength": 1}, "description": {"type": "string", "maxLength": 2000, "minLength": 1}, "tags": {"type": "array", "maxItems": 8, "items": {"type": "string", "maxLength": 30, "minLength": 1}}, "initials": {"type": "string", "maxLength": 8}, "avatar": {"type": "string", "maxLength": 2048, "description": "留空或有效的 HTTPS 图片地址；头像与姓名缩写至少提供一个"}, "visible": {"type": "boolean"}}}}, "stats": {"type": "array", "maxItems": 12, "items": {"type": "object", "additionalProperties": false, "required": ["value", "label", "visible"], "properties": {"value": {"type": "string", "maxLength": 30, "minLength": 1}, "label": {"type": "string", "maxLength": 60, "minLength": 1}, "visible": {"type": "boolean"}}}}}},
+      "SiteContentEnvelope": {"type": "object", "required": ["code", "message", "data"], "properties": {"code": {"type": "integer"}, "message": {"type": "string"}, "data": {"$ref": "#/components/schemas/SiteContent"}}},
       "AnyObject": {
         "type": "object",
         "additionalProperties": true
@@ -1428,6 +1430,38 @@
     }
   },
   "paths": {
+    "/site-content": {
+      "get": {
+        "summary": "公开读取官网内容（仅可见人员与指标）",
+        "operationId": "commonSiteContent",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "官网内容",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteContentEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-LostSky-App",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "common"
+              ]
+            }
+          }
+        ]
+      }
+    },
     "/upload": {
       "post": {
         "tags": [

@@ -16,6 +16,71 @@
     { "name": "Entitlements" }
   ],
   "paths": {
+    "/site-content": {
+      "get": {
+        "summary": "读取官网内容",
+        "operationId": "adminSiteContent",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "官网内容",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteContentEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "description": "需要 admin.site.read"
+      },
+      "put": {
+        "summary": "一次保存官网内容",
+        "description": "需要 admin.site.write；数组顺序为展示顺序，全部校验后事务写入并审计。",
+        "operationId": "adminSaveSiteContent",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SiteContent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "官网内容",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteContentEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/session": {
       "get": {
         "tags": ["Session"], "summary": "读取管理员会话", "operationId": "adminSession",
@@ -218,6 +283,8 @@
       "Error": { "description": "业务错误", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorEnvelope" } } } }
     },
     "schemas": {
+      "SiteContent": {"type": "object", "additionalProperties": false, "required": ["icp", "members", "stats"], "properties": {"icp": {"type": "string", "maxLength": 100}, "members": {"type": "array", "maxItems": 20, "items": {"type": "object", "additionalProperties": false, "required": ["name", "role", "description", "tags", "initials", "avatar", "visible"], "properties": {"name": {"type": "string", "maxLength": 60, "minLength": 1}, "role": {"type": "string", "maxLength": 100, "minLength": 1}, "description": {"type": "string", "maxLength": 2000, "minLength": 1}, "tags": {"type": "array", "maxItems": 8, "items": {"type": "string", "maxLength": 30, "minLength": 1}}, "initials": {"type": "string", "maxLength": 8}, "avatar": {"type": "string", "maxLength": 2048, "description": "留空或有效的 HTTPS 图片地址；头像与姓名缩写至少提供一个"}, "visible": {"type": "boolean"}}}}, "stats": {"type": "array", "maxItems": 12, "items": {"type": "object", "additionalProperties": false, "required": ["value", "label", "visible"], "properties": {"value": {"type": "string", "maxLength": 30, "minLength": 1}, "label": {"type": "string", "maxLength": 60, "minLength": 1}, "visible": {"type": "boolean"}}}}}},
+      "SiteContentEnvelope": {"type": "object", "required": ["code", "message", "data"], "properties": {"code": {"type": "integer"}, "message": {"type": "string"}, "data": {"$ref": "#/components/schemas/SiteContent"}}},
       "SuccessEnvelope": { "type": "object", "required": ["code", "message", "data"], "properties": { "code": { "type": "integer", "enum": [0] }, "message": { "type": "string" }, "data": {} } },
       "ErrorEnvelope": { "type": "object", "required": ["code", "message", "data"], "properties": { "code": { "type": "integer" }, "message": { "type": "string" }, "data": { "nullable": true } } },
       "AdminRole": {

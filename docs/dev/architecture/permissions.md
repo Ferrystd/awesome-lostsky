@@ -110,6 +110,8 @@ Admin 平台权限与团队权限共用 `PermissionDictionary` 作为代码事�
 | 平台权限 | `admin.access.read` | 查看平台管理员与角色 |
 | 平台权限 | `admin.access.write` | 管理平台管理员与角色 |
 | 平台权限 | `admin.audit.read` | 查看集中审计事件 |
+| 官网内容 | `admin.site.read` | 查看官网备案号、核心人员和团队优势数据 |
+| 官网内容 | `admin.site.write` | 编辑官网备案号、核心人员和团队优势数据 |
 | 平台权益 | `admin.entitlement.read` | 查看 Ability 权益与体验码 |
 | 平台权益 | `admin.entitlement.write` | 管理 Ability 权益与体验码 |
 

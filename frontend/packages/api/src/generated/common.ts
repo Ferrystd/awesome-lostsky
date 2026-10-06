@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/site-content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 公开读取官网内容（仅可见人员与指标） */
+        get: operations["commonSiteContent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/upload": {
         parameters: {
             query?: never;
@@ -28,6 +45,29 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SiteContent: {
+            icp: string;
+            members: {
+                name: string;
+                role: string;
+                description: string;
+                tags: string[];
+                initials: string;
+                /** @description 留空或有效的 HTTPS 图片地址；头像与姓名缩写至少提供一个 */
+                avatar: string;
+                visible: boolean;
+            }[];
+            stats: {
+                value: string;
+                label: string;
+                visible: boolean;
+            }[];
+        };
+        SiteContentEnvelope: {
+            code: number;
+            message: string;
+            data: components["schemas"]["SiteContent"];
+        };
         AnyObject: {
             [key: string]: unknown;
         };
@@ -595,6 +635,28 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    commonSiteContent: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-LostSky-App": "common";
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 官网内容 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteContentEnvelope"];
+                };
+            };
+        };
+    };
     commonUpload: {
         parameters: {
             query?: never;

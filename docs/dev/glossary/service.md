@@ -750,6 +750,14 @@ aliases: [服务, Service]
 | `open` | `int $teamId` | `bool` |
 | `assertOpen` | `int $teamId` | `void` |
 
+## SiteContent
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `get` | `bool $public = false` | `array` |
+| `save` | `array $input`、`think\Request $request` | `array` |
+| `normalize` | `array $input` | `array` |
+
 ## SmsVerification
 
 | 方法 | 参数 | 返回 |

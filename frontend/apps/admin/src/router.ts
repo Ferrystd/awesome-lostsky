@@ -39,6 +39,7 @@ export const router = createRouter({
     { path: '/roles/:id(\\d+)', component: RoleFormView, meta: { title: '编辑平台角色', permission: 'admin.access.read', width: 'form' } },
     { path: '/audit', component: AuditView, meta: { title: '审计日志', permission: 'admin.audit.read', accessMode: 'list' } },
     { path: '/system', component: SystemView, meta: { title: '系统状态', permission: 'admin.system.read', width: 'content' } },
+    { path: '/site-content', component: () => import('./views/SiteContentView.vue'), meta: { title: '官网内容', permission: 'admin.site.read', width: 'form' } },
     { path: '/entitlements/packages', component: EntitlementPackagesView, meta: { title: 'Ability 权益包', permission: 'admin.entitlement.read', accessMode: 'list' } },
     { path: '/entitlements/packages/new', component: EntitlementPackageFormView, meta: { title: '创建 Ability 权益包', permission: 'admin.entitlement.write', width: 'form' } },
     { path: '/entitlements/packages/:id(\\d+)', component: EntitlementPackageFormView, meta: { title: '编辑 Ability 权益包', permission: 'admin.entitlement.read', width: 'form' } },

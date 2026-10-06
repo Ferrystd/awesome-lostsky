@@ -82,6 +82,8 @@ $assert(
         'admin.access.read',
         'admin.access.write',
         'admin.audit.read',
+        'admin.site.read',
+        'admin.site.write',
         'admin.entitlement.read',
         'admin.entitlement.write',
     ],
