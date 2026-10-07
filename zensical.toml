@@ -93,6 +93,7 @@ nav = [
   {"API" = ["openapi/README.md"]},
   {"计划" = [
     "TODO.md",
+    "plans/community.md",
     "plans/markdown-ai.md"
   ]}
 ]

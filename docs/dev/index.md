@@ -65,4 +65,5 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 ## 计划
 
 - [当前待办](TODO.md)
+- [Community 社区应用](plans/community.md)
 - [Markdown 编辑器 AI 能力](plans/markdown-ai.md)
