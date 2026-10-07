@@ -7,6 +7,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { serviceRedemptionReadPermissions } from '../lib/workspace-access'
 
+const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: MessageCircleMore, weibo: Radio }
 const route = useRoute()
 const router = useRouter()
 const drawer = ref(false)
@@ -63,11 +64,10 @@ function handleHeaderAction(key: string) {
     <section class="workspace">
       <LsWorkspaceHeader context-label="记账工作台" :title="title" :actions="headerActions" app-navigation @menu="drawer = true" @action="handleHeaderAction">
         <template #actions>
-          <a class="app-link" :href="appEntries[0]?.href"><House :size="17" /><span>团队</span></a>
-          <a class="app-link" :href="appEntries[1]?.href"><Store :size="17" /><span>商品</span></a>
-          <RouterLink class="app-link" to="/"><ReceiptText :size="17" /><span>记账</span></RouterLink>
-          <a class="app-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>
-          <a class="app-link" :href="appEntries[4]?.href"><Radio :size="18" /><span>微博</span></a>
+          <template v-for="entry in appEntries" :key="entry.key">
+            <RouterLink v-if="entry.key === 'transaction'" class="app-link" to="/"><component :is="appIcons[entry.key]" :size="17" /><span>{{ entry.label }}</span></RouterLink>
+            <a v-else class="app-link" :href="entry.href"><component :is="appIcons[entry.key]" :size="17" /><span>{{ entry.label }}</span></a>
+          </template>
         </template>
       </LsWorkspaceHeader>
       <slot />

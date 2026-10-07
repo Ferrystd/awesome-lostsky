@@ -16,6 +16,7 @@ import { NButton } from "naive-ui";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: MessageCircleMore, weibo: Radio }
 const route = useRoute();
 const router = useRouter();
 const drawer = ref(false);
@@ -112,11 +113,10 @@ function handleHeaderAction(key: string) {
         @action="handleHeaderAction"
       >
         <template #actions>
-          <a class="manage-app-link" :href="appEntries[0]?.href"><House :size="17" /><span>团队</span></a>
-          <RouterLink class="manage-app-link" to="/manage"><Store :size="17" /><span>商品</span></RouterLink>
-          <a class="manage-app-link" :href="appEntries[2]?.href"><ReceiptText :size="17" /><span>记账</span></a>
-          <a class="manage-app-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>
-          <a class="manage-app-link" :href="appEntries[4]?.href"><Radio :size="18" /><span>微博</span></a>
+          <template v-for="entry in appEntries" :key="entry.key">
+            <RouterLink v-if="entry.key === 'shop'" class="manage-app-link" to="/manage"><component :is="appIcons[entry.key]" :size="17" /><span>{{ entry.label }}</span></RouterLink>
+            <a v-else class="manage-app-link" :href="entry.href"><component :is="appIcons[entry.key]" :size="17" /><span>{{ entry.label }}</span></a>
+          </template>
         </template>
       </LsWorkspaceHeader>
       <LsPage id="shop-manage-main" as="main" :width="width"><div class="manage-page-content"><slot /></div></LsPage>

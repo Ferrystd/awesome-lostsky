@@ -22,7 +22,10 @@ echo 'DB ' . $config['hostname'] . ':' . $config['hostport'] . '/' . $config['da
 $failures = []; $checks = 0;
 $assert = function (bool $ok, string $case) use (&$failures, &$checks) { $checks++; if (!$ok) $failures[] = $case; };
 $throws = function (callable $fn, int $code, string $case) use ($assert) { try { $fn(); $assert(false, $case . ': expected ' . $code); } catch (HttpException $e) { $assert($e->getStatusCode() === $code, $case . ': got ' . $e->getStatusCode()); } };
-$before = Db::name('community')->count();
+$fixtureTables = ['community', 'community_post', 'community_comment', 'community_member', 'community_like', 'user', 'user_device', 'team', 'team_member', 'team_customer', 'entity', 'entity_session', 'file'];
+$before = [];
+foreach ($fixtureTables as $table) $before[$table] = Db::name($table)->count();
+$uploadFixture = null;
 Db::startTrans();
 try {
     $suffix = bin2hex(random_bytes(5));
@@ -165,13 +168,13 @@ try {
     $assert(CommunityPost::find($attachmentPost['id'])->content === '' && \app\model\MarkdownReference::where('referenceable_type', 'communityPost')->where('referenceable_id', $attachmentPost['id'])->count() === 0, 'author deletion clears Markdown content and Entity references');
 
     // Dispatch the actual app routes and run their controller middleware pipeline.
-    $dispatch = function (string $application, string $method, string $path, string $bearer = '', array $body = [], ?int $targetTeam = null) use ($app): array {
+    $dispatch = function (string $application, string $method, string $path, string $bearer = '', array $body = [], ?int $targetTeam = null, array $files = []) use ($app): array {
         $app->setNamespace('app\\' . $application);
         $app->http->name($application);
         $route = new think\Route($app);
         $app->instance('route', $route);
         $app->instance('middleware', new think\Middleware($app));
-        $request = (new Request)->setMethod($method)->setPathinfo($path)->setUrl('/' . $path)->withPost($body)->withHeader($bearer ? ['Authorization' => 'Bearer ' . $bearer] : []);
+        $request = (new Request)->setMethod($method)->setPathinfo($path)->setUrl('/' . $path)->withPost($body)->withFiles($files)->withHeader($bearer ? ['Authorization' => 'Bearer ' . $bearer] : []);
         if ($targetTeam) { $request->team_id = $targetTeam; $request->team = \app\model\Team::find($targetTeam); $request->slug = $request->team->slug; }
         $app->instance('request', $request);
         require dirname(__DIR__) . '/app/' . $application . '/route/app.php';
@@ -187,6 +190,63 @@ try {
     $throws(fn () => $dispatch('community', 'POST', 'communities/' . $community->slug . '/join'), 401, 'anonymous actual route write requires login');
     $throws(fn () => $dispatch('community', 'POST', 'communities/' . $community->slug . '/join', $token, ['expected_entity_id' => $external->id]), 409, 'actual route rejects stale identity');
     $throws(fn () => $dispatch('community', 'POST', 'communities/' . $community->slug . '/manage/administrators', $token, ['expected_entity_id' => $entity->id, 'entity_slug' => $external->slug]), 404, 'Community never exposes administrator appointment');
+
+    // Account root identities must reach Community without any role in its owner team.
+    [$participant, $participantDevice, $participantBase] = $makeUser('participant');
+    $participantTeam = app(\app\service\Team::class)->create((int) $participant->id, 'community-c-' . $suffix, 'Participant team');
+    $participantMember = \app\model\TeamMember::where('team_id', $participantTeam['id'])->where('user_id', $participant->id)->find()->identity;
+    $customer = \app\model\TeamCustomer::create(['team_id' => $participantTeam['id'], 'user_id' => $participant->id, 'is_blocked' => 0]);
+    $customerEntity = app(\app\service\Entity::class)->claimCustomer((int) $customer->id, 'community-customer-' . $suffix);
+    $candidateData = $dispatch('account', 'GET', 'identity/candidates', $participantBase)['data'];
+    $candidateSlugs = array_column($candidateData, 'slug');
+    $assert(in_array($participantMember->slug, $candidateSlugs, true) && in_array($customerEntity->slug, $candidateSlugs, true), 'actual Account candidates include own member and customer roots');
+    $assert(!\app\model\TeamEntityRole::where('team_id', $teamId)->whereIn('entity_id', [$participantMember->id, $customerEntity->id])->count(), 'participants have no role in community owner team');
+    $availability = app(\app\service\File::class)->uploadAvailability($participantTeam['id']);
+    $assert($availability['available'] && $availability['size_limit'] === (int) config('file.tiers.0.size'), 'team without paid file ability has base upload capacity');
+    $uploadFixture = tempnam(sys_get_temp_dir(), 'community-image-');
+    file_put_contents($uploadFixture, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII='));
+    $uploadFile = ['name' => 'community.png', 'type' => 'image/png', 'tmp_name' => $uploadFixture, 'error' => UPLOAD_ERR_OK, 'size' => filesize($uploadFixture)];
+    // A pending object fixture exercises validation/deduplication without writing to OSS.
+    $pendingImage = $makeFile($participantTeam['id'], (int) $participantMember->id);
+    Db::name('file')->where('id', $pendingImage->id)->update(['hash' => hash_file('sha256', $uploadFixture), 'size' => filesize($uploadFixture)]);
+    if (Db::name('file')->where('team_id', $participantTeam['id'])->where('hash', hash_file('sha256', $uploadFixture))->value('id') !== (int) $pendingImage->id) throw new RuntimeException('Pending upload deduplication fixture missing');
+    foreach ([$participantMember, $customerEntity] as $participantEntity) {
+        $kind = (string) $participantEntity->entityable_type;
+        $issued = $dispatch('account', 'POST', 'identity/receive', $participantBase, ['slug' => $participantEntity->slug])['data'];
+        $participantToken = $issued['token'];
+        $assert($issued['identity']['type'] === $kind, $kind . ': actual Account receives chosen root');
+        $session = $dispatch('community', 'GET', 'session', $participantToken)['data'];
+        $assert($session['entity']['id'] === (int) $participantEntity->id && $session['upload_team_slug'] === $participantTeam['slug'], $kind . ': Community session keeps global actor and own upload team');
+        $expected = ['expected_entity_id' => (int) $participantEntity->id];
+        Db::name('file')->where('id', $pendingImage->id)->update(['pending_until' => time() + 3600]);
+        $throws(fn () => $dispatch('community', 'POST', 'upload', $participantToken, ['expected_entity_id' => $entity->id], null, ['file' => $uploadFile]), 409, $kind . ': image upload rejects stale identity before touching files');
+        $upload = $dispatch('community', 'POST', 'upload', $participantToken, $expected, null, ['file' => $uploadFile])['data'];
+        $assert($upload['id'] === (int) $pendingImage->id, $kind . ': actual Community upload accepts image without owner-team role');
+        foreach ([$community, $platform] as $destination) {
+            $prefix = 'communities/' . $destination->slug;
+            $destinationBoard = CommunityBoard::where('community_id', $destination->id)->find();
+            $dispatch('community', 'POST', $prefix . '/join', $participantToken, $expected);
+            $joined = $dispatch('community', 'GET', $prefix, $participantToken)['data'];
+            $assert($joined['is_joined'] && !$joined['can_manage'], $kind . ': joins ' . $destination->owner_type . ' without governance permission');
+            $mine = $dispatch('community', 'GET', 'mine', $participantToken)['data'];
+            $assert(in_array((int) $destination->id, array_column($mine['list'], 'id'), true), $kind . ': joined community appears in mine');
+            $textPost = $dispatch('community', 'POST', $prefix . '/posts', $participantToken, $expected + ['board_id' => (int) $destinationBoard->id, 'title' => $kind . ' text', 'content' => 'Text from current global Entity'])['data'];
+            $assert($textPost['author_entity_id'] === (int) $participantEntity->id, $kind . ': actual text post keeps author in cross-team/platform community');
+            $imagePost = $dispatch('community', 'POST', $prefix . '/posts', $participantToken, $expected + ['board_id' => (int) $destinationBoard->id, 'title' => $kind . ' image', 'content' => '![](' . $upload['url'] . ')'])['data'];
+            $assert($imagePost['author_entity_id'] === (int) $participantEntity->id && \app\model\File::find($pendingImage->id)->pending_until === null, $kind . ': actual image post activates own-team attachment');
+            $reply = $dispatch('community', 'POST', $prefix . '/posts/' . $textPost['id'] . '/comments', $participantToken, $expected + ['content' => 'Reply from current Entity'])['data'];
+            $assert($reply['author_entity_id'] === (int) $participantEntity->id, $kind . ': actual comment keeps author');
+            $dispatch('community', 'POST', $prefix . '/posts/' . $textPost['id'] . '/like', $participantToken, $expected + ['liked' => true]);
+            $assert(CommunityLike::where('post_id', $textPost['id'])->where('entity_id', $participantEntity->id)->count() === 1, $kind . ': actual like belongs to current Entity');
+            $dispatch('community', 'POST', $prefix . '/leave', $participantToken, $expected);
+            $assert(!CommunityMember::where('community_id', $destination->id)->where('entity_id', $participantEntity->id)->find(), $kind . ': actual leave removes only membership');
+        }
+        $participantBase = $dispatch('account', 'POST', 'identity/drop', $participantToken)['data']['token'];
+        $assert($dispatch('community', 'GET', 'session', $participantBase)['data']['entity'] === null, $kind . ': actual Account drop returns Community to base user');
+        $throws(fn () => $dispatch('community', 'GET', 'session', $participantToken), 401, $kind . ': dropped Entity token immediately invalid');
+        $rootSlugs = array_column($dispatch('account', 'GET', 'identity/candidates', $participantBase)['data'], 'slug');
+        $assert(in_array($customerEntity->slug, $rootSlugs, true) && in_array($participantMember->slug, $rootSlugs, true), $kind . ': drop restores both root choices for switching');
+    }
     $readRole = \app\model\PlatformAdminRole::create(['role_key' => 'community-read-' . $suffix, 'name' => 'Read', 'description' => '', 'is_system' => 0]);
     \app\model\PlatformAdminUserRole::create(['user_id' => $admin->id, 'role_id' => $readRole->id, 'assigned_by_user_id' => null]);
     $permission = \app\model\PlatformAdminRolePermission::create(['role_id' => $readRole->id, 'permission_key' => 'admin.community.read']);
@@ -238,7 +298,10 @@ try {
     $throws(fn () => $dispatch('community', 'GET', 'communities/' . $platform->slug . '/manage/boards', $externalToken), 401, 'actual route rejects invalid Entity session');
 } catch (Throwable $e) {
     $failures[] = get_class($e) . ': ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine();
-} finally { Db::rollback(); }
-$assert(Db::name('community')->count() === $before, 'fixture rollback leaves no community records');
+} finally {
+    Db::rollback();
+    if ($uploadFixture !== null) unlink($uploadFixture);
+}
+foreach ($before as $table => $count) $assert(Db::name($table)->count() === $count, 'fixture rollback leaves no ' . $table . ' records');
 if ($failures) { fwrite(STDERR, implode(PHP_EOL, $failures) . PHP_EOL); exit(1); }
 echo 'Community behavior and route tests passed: ' . $checks . ' assertions' . PHP_EOL;

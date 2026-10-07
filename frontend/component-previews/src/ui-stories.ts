@@ -760,6 +760,7 @@ const workspaceHeader = story('LsWorkspaceHeader', interactive, (state) =>
       {
         contextLabel: 'TEAM WORKSPACE',
         title: '对象字段',
+        appNavigation: true,
         actions: [
           { key: 'team', label: '团队' },
           { key: 'shop', label: '商品' },
@@ -770,10 +771,12 @@ const workspaceHeader = story('LsWorkspaceHeader', interactive, (state) =>
             reason: '当前团队未启用 transaction Ability',
           },
           { key: 'chat', label: '聊天' },
+          { key: 'community', label: '社区' },
+          { key: 'weibo', label: '微博' },
         ],
       },
       {
-        actions: () => ['团队', '商品', '记账', '聊天', '微博'].map((label) => h('a', { href: '#', onClick: (event: Event) => event.preventDefault() }, label)),
+        actions: () => ['团队', '商品', '记账', '聊天', '社区', '微博'].map((label) => h('a', { href: '#', onClick: (event: Event) => event.preventDefault() }, label)),
       },
     ),
   ),

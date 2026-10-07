@@ -152,7 +152,7 @@ export function teamScopedAppUrl(
   return new URL(path, `${location.protocol}//${host}${port}`).href
 }
 
-export type WorkspaceAppKey = 'team' | 'shop' | 'transaction' | 'chat' | 'weibo'
+export type WorkspaceAppKey = 'team' | 'shop' | 'transaction' | 'chat' | 'community' | 'weibo'
 export interface WorkspaceAppEntry { key: WorkspaceAppKey; label: string; href: string; disabled?: boolean; reason?: string }
 export function workspaceAppEntries(options: {
   personal?: boolean
@@ -165,6 +165,7 @@ export function workspaceAppEntries(options: {
     shop: personal ? '/manage/personal' : '/manage',
     transaction: personal ? '/personal' : '/',
     chat: '/',
+    community: '/',
     weibo: personal ? '/personal' : '/',
     ...options.paths,
   }
@@ -173,6 +174,7 @@ export function workspaceAppEntries(options: {
     { key: 'shop', label: '商品', href: shopWorkspaceUrl(paths.shop) },
     { key: 'transaction', label: '记账', href: transactionWorkspaceUrl(paths.transaction) },
     { key: 'chat', label: '聊天', href: chatWorkspaceUrl(paths.chat) },
+    { key: 'community', label: '社区', href: communityWorkspaceUrl(paths.community) },
     { key: 'weibo', label: '微博', href: weiboWorkspaceUrl(paths.weibo) },
   ]
   return entries.map(entry => ({ ...entry, ...options.states?.[entry.key] }))

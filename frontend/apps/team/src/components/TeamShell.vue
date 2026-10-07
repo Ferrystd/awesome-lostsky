@@ -12,6 +12,7 @@ type NavItem = {
   label: string
   icon: typeof House
 }
+const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: MessageCircleMore, weibo: Radio }
 const route = useRoute()
 const router = useRouter()
 const drawer = ref(false)
@@ -140,11 +141,10 @@ watch(
     <section class="workspace">
       <LsWorkspaceHeader context-label="团队工作台" :title="title" :actions="headerActions" app-navigation @menu="drawer = true" @action="handleHeaderAction">
         <template #actions>
-          <RouterLink class="display-link" to="/"><House :size="17" /><span>团队</span></RouterLink>
-          <a class="display-link" :href="appEntries[1]?.href"><Store :size="17" /><span>商品</span></a>
-          <a class="display-link" :href="appEntries[2]?.href"><ReceiptText :size="17" /><span>记账</span></a>
-          <a class="chat-link" :href="appEntries[3]?.href"><MessageCircleMore :size="19" /><span>聊天</span></a>
-          <a class="chat-link" :href="appEntries[4]?.href"><Radio :size="18" /><span>微博</span></a>
+          <template v-for="entry in appEntries" :key="entry.key">
+            <RouterLink v-if="entry.key === 'team'" class="display-link" to="/"><component :is="appIcons[entry.key]" :size="17" /><span>{{ entry.label }}</span></RouterLink>
+            <a v-else class="display-link" :href="entry.href"><component :is="appIcons[entry.key]" :size="17" /><span>{{ entry.label }}</span></a>
+          </template>
         </template>
       </LsWorkspaceHeader>
       <main id="workspace"><slot /></main>
@@ -363,10 +363,6 @@ nav p {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.display-link span,
-.chat-link span {
-  display: none;
-}
 .workspace main {
   width: min(100%, 90rem);
   margin: 0 auto;
@@ -438,10 +434,6 @@ nav p {
   }
   .topbar div {
     grid-column: 1;
-  }
-  .display-link span,
-  .chat-link span {
-    display: inline;
   }
   .workspace main {
     padding: 1.75rem;

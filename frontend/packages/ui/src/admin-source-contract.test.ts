@@ -284,13 +284,13 @@ describe('后台源码设计契约', () => {
     expect(styles).not.toMatch(/html\s*\{[^}]*scrollbar-gutter:/)
   })
 
-  it('业务工作台统一使用共享五等宽应用导航', () => {
+  it('业务工作台统一使用共享六等宽应用导航', () => {
     const header = readFileSync(join(repository, 'frontend', 'packages', 'ui', 'src', 'components', 'LsWorkspaceHeader.vue'), 'utf8')
     expect(header).toContain('ls-workspace-header--app-nav')
     expect(header).not.toMatch(/position:(?:sticky|fixed)/)
     expect(header).toMatch(/ls-workspace-header__desktop\{grid-column:3;/)
-    expect(header).toMatch(/grid-template-columns:repeat\(5,88px\)/)
-    expect(header).toMatch(/width:472px/)
+    expect(header).toMatch(/grid-template-columns:repeat\(6,88px\)/)
+    expect(header).toMatch(/width:568px/)
     expect(header).toMatch(/color:var\(--ink\);font-size:\.82rem/)
     for (const source of [
       ['team', 'TeamShell.vue'],
@@ -300,6 +300,7 @@ describe('后台源码设计契约', () => {
     ] as const) {
       const shell = readFileSync(join(repository, 'frontend', 'apps', source[0], 'src', 'components', source[1]), 'utf8')
       expect(shell, `${source[0]} 未启用共享应用导航`).toMatch(/<LsWorkspaceHeader[^>]*app-navigation/)
+      expect(shell).not.toMatch(/\.display-link span|\.chat-link span/)
     }
   })
 

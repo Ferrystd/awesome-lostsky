@@ -46,7 +46,7 @@ const baseAppOptions = computed<AppOption[]>(() => {
   return workspaceAppEntries()
 })
 const appOptions = computed<AppOption[]>(() => baseAppOptions.value.map(item => {
-  if (item.key === 'chat') return item
+  if (item.key === 'chat' || item.key === 'community') return item
   const team = activeIdentity.value?.team?.slug
   if (!team) return { ...item, href: '//account.lostsky.work/teams' }
   const path = item.key === 'shop' ? (customerWorkspace.value ? '/customer/profile' : '/manage') : '/'

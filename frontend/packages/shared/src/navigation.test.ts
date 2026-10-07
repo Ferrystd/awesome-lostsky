@@ -13,6 +13,7 @@ import {
   teamScopedAppUrl,
   transactionWorkspaceUrl,
   workspaceWarningUrl,
+  workspaceAppEntries,
 } from './navigation'
 
 afterEach(() => {
@@ -21,6 +22,13 @@ afterEach(() => {
 })
 
 describe('safeRedirect', () => {
+  it('keeps Community beside Chat in shared navigation without requiring a team workspace', () => {
+    vi.stubEnv('DEV', true)
+    vi.stubGlobal('location', { hostname: 'demo.team.lostsky.work', protocol: 'http:', port: '5175' })
+    const entries = workspaceAppEntries({ personal: true })
+    expect(entries.map(entry => entry.key)).toEqual(['team', 'shop', 'transaction', 'chat', 'community', 'weibo'])
+    expect(entries.find(entry => entry.key === 'community')).toEqual({ key: 'community', label: '社区', href: 'http://community.lostsky.work:5182/' })
+  })
   it('keeps Community teamless and allows its local Account return URL', () => {
     vi.stubEnv('DEV', true)
     vi.stubGlobal('location', { hostname: '127.0.0.1', protocol: 'http:', port: '5175' })
