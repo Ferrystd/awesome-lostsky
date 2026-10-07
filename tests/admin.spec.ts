@@ -29,7 +29,7 @@ const audit = {
 
 async function mockAdminApi(
   page: Page,
-  options: { forbidden?: boolean; session?: typeof session; dashboardFailures?: number } = {},
+  options: { forbidden?: boolean; session?: typeof session; dashboardFailures?: number; emptyEntitlements?: boolean } = {},
 ) {
   let dashboardFailures = options.dashboardFailures ?? 0
   await page.addInitScript(() => localStorage.setItem('lostsky_token', 'admin-test-token'))
@@ -82,6 +82,12 @@ async function mockAdminApi(
       const input = request.postDataJSON()
       data = { team_slug: input.team_slug, ability_key: input.ability_key, level: input.level, expire_time: input.expire_time }
     }
+    else if (path === '/entitlements/packages') data = { total: options.emptyEntitlements ? 0 : 1, list: options.emptyEntitlements ? [] : [{ id: 1, name: '团队能力月卡', is_active: 1, abilities: [{ ability_key: 'file', level: 1, duration_days: 30 }] }] }
+    else if (path === '/entitlements/campaigns') data = { total: 1, list: [{ id: 1, name: '团队月卡活动', package_id: 1, package: { name: '团队能力月卡' }, mode: 1, is_active: 1 }] }
+    else if (path === '/entitlements/campaigns/1') data = { id: 1, name: '团队月卡活动', package_id: 1, mode: 1, is_active: 1, claim_group: '', total_limit: null, redeem_starts_at: 0, redeem_ends_at: 0 }
+    else if (path === '/entitlements/campaigns/1/codes') data = request.method() === 'POST'
+      ? [{ id: 1, code: 'LS-TEST-TEAM-ABILITY' }]
+      : { total: 0, list: [] }
     else if (path === '/administrators') data = [{ ...session.user, is_banned: 0, roles: session.roles }]
     else if (path === '/roles' && request.method() === 'POST') data = { id: 4 }
     else if (path === '/roles') data = session.roles.map((role) => ({ ...role, permissions: session.permissions, administrator_count: 1 }))
@@ -137,6 +143,54 @@ test('Admin supports dashboard search, resource navigation and governed confirma
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
   expect(overflow).toBe(false)
+})
+
+test('Admin discovers code issuance from the sidebar and entitlement packages at every layout width', async ({ page }) => {
+  await mockAdminApi(page)
+  for (const width of [320, 375, 767, 768, 959, 960, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 960 })
+    await page.goto('http://127.0.0.1:5180/entitlements/packages')
+    await expect(page.locator('#admin-main').getByRole('heading', { name: 'Ability 权益包', exact: true })).toBeVisible()
+    const menu = page.getByRole('button', { name: '打开导航' })
+    if (await menu.isVisible()) await menu.click()
+    await page.getByRole('navigation').getByRole('link', { name: '兑换活动', exact: true }).click()
+    await expect(page).toHaveURL(/\/entitlements\/campaigns$/)
+    const main = page.locator('#admin-main')
+    await expect(main.getByRole('link', { name: '创建活动' })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    await main.getByRole('button', { name: '平台权益', exact: true }).click()
+    await expect(page).toHaveURL(/\/entitlements\/packages$/)
+    await expect(main.getByRole('link', { name: '创建权益包' })).toBeVisible()
+    const activities = main.getByRole('button', { name: '兑换活动', exact: true })
+    await activities.focus()
+    await expect(activities).toBeFocused()
+    expect((await activities.boundingBox())?.height).toBeGreaterThanOrEqual(44)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    await activities.press('Enter')
+    await expect(page).toHaveURL(/\/entitlements\/campaigns$/)
+  }
+  await page.getByRole('link', { name: /团队月卡活动/ }).click()
+  await expect(page).toHaveURL(/\/entitlements\/campaigns\/1$/)
+  await expect(page.getByRole('navigation').getByRole('link', { name: '兑换活动', exact: true })).toHaveClass(/router-link-active/)
+  const issue = page.waitForRequest((request) => request.url().endsWith('/api/entitlements/campaigns/1/codes') && request.method() === 'POST')
+  await page.getByRole('button', { name: '发行', exact: true }).click()
+  expect((await issue).postDataJSON()).toEqual({ quantity: 1, target_team_id: null })
+  await expect(page.getByRole('button', { name: /LS-TEST-TEAM-ABILITY/ })).toBeVisible()
+})
+
+test('Admin entitlement navigation remains available for empty and restricted lists', async ({ page }) => {
+  const limited = { ...session, permissions: [], is_super_admin: false }
+  await mockAdminApi(page, { emptyEntitlements: true })
+  await page.goto('http://127.0.0.1:5180/entitlements/packages')
+  await expect(page.locator('.ls-empty-state')).toBeVisible()
+  await page.locator('#admin-main').getByRole('button', { name: '兑换活动', exact: true }).click()
+  await expect(page).toHaveURL(/\/entitlements\/campaigns$/)
+  await mockAdminApi(page, { session: limited })
+  await page.goto('http://127.0.0.1:5180/entitlements/packages')
+  await expect(page.locator('.ls-empty-state')).toContainText('admin.entitlement.read')
+  await page.locator('#admin-main').getByRole('button', { name: '兑换活动', exact: true }).click()
+  await expect(page).toHaveURL(/\/entitlements\/campaigns$/)
+  await expect(page.locator('.ls-empty-state')).toContainText('admin.entitlement.read')
 })
 
 test('Admin renders mobile records and navigation without horizontal overflow', async ({ page }) => {

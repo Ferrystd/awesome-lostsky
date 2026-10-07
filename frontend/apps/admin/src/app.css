@@ -309,7 +309,7 @@ kbd {
     grid-template-columns: minmax(0, 1fr) minmax(300px, 0.48fr);
   }
 }
-@media (min-width: 960px) {
+@media (min-width: 768px) {
   .admin-shell {
     display: grid;
     grid-template-columns: 248px minmax(0, 1fr);

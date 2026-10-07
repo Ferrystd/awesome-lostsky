@@ -1453,6 +1453,11 @@ main {
 @media (max-width: 800px) {
   .site-header {
     min-height: 68px;
+    flex-wrap: wrap;
+  }
+  .site-header nav {
+    max-width: 100%;
+    flex-wrap: wrap;
   }
   .store-hero,
   .product-hero,

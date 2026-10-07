@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { api, friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
+import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
 import LsListToolbar from "@lostsky/ui/components/LsListToolbar.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
@@ -11,6 +12,7 @@ import { useQuery } from "@tanstack/vue-query";
 import { Plus } from "@lucide/vue";
 import { NPagination } from "naive-ui";
 import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
 type Item = {
   id: number;
   name: string;
@@ -25,6 +27,7 @@ type Page = { total: number; list: Item[] };
 const search = ref("");
 const page = ref(1);
 const routeAccess = useRouteAccess();
+const router = useRouter();
 const query = useQuery({
   queryKey: computed(() => [
     "admin-entitlement-packages",
@@ -49,6 +52,7 @@ const pages = computed(() =>
       title="Ability 权益包"
       description="权益包从代码目录中的能力里选择，并设定等级和持续天数。"
       ><template #actions
+        ><LsButton variant="secondary" @click="router.push('/entitlements/campaigns')">兑换活动</LsButton
         ><LsPagePrimaryAction
           :icon="Plus"
           label="创建权益包"

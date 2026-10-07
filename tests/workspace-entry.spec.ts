@@ -116,6 +116,10 @@ for (const [origin, path, accessPath] of communityWorkspaces) {
     await page.setViewportSize({ width: 375, height: 900 })
     await page.evaluate(() => { document.documentElement.style.fontSize = '200%' })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
+    if (origin === 'http://demo.weibo.lostsky.work:5181') {
+      await page.mouse.move(0, 0)
+      await expect(page.locator('.n-message')).toHaveCount(0)
+    }
     await expectHeaderApps(page)
     await page.evaluate(() => { document.documentElement.style.fontSize = '' })
   })

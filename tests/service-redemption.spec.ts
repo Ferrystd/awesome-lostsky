@@ -105,10 +105,22 @@ test('shop customer can split an entitlement between a named handler and open di
   await page.getByRole('button', { name: '申请取消' }).first().click()
   await expect(page.getByText('取消申请正在等待处理')).toBeVisible()
 
-  await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('http://demo.shop.lostsky.work:5179/services')
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
-  await expect(page.getByRole('link', { name: '我的服务' })).toBeVisible()
+  for (const width of [320, 390, 768]) {
+    await page.setViewportSize({ width, height: 844 })
+    await page.goto('http://demo.shop.lostsky.work:5179/services')
+    await expect(page.getByRole('heading', { name: '我的服务权益', exact: true })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    const navigation = page.getByRole('navigation', { name: '商城导航' })
+    await expect(navigation.getByRole('link', { name: '我的服务' })).toBeVisible()
+    await expect(navigation.getByRole('link', { name: '社区' })).toBeVisible()
+    for (const link of await navigation.getByRole('link').all()) {
+      if (!await link.isVisible()) continue
+      const box = await link.boundingBox()
+      expect(box?.x).toBeGreaterThanOrEqual(0)
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width)
+      expect(box?.height).toBeGreaterThanOrEqual(44)
+    }
+  }
 })
 
 test('transaction service redemption supports management and fixed 390px navigation', async ({ page }) => {
