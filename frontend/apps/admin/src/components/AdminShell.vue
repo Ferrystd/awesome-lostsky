@@ -36,6 +36,7 @@ const nav: NavItem[] = [
   { to: '/site-content', label: '官网内容', icon: FileClock },
   { to: '/entitlements/team-abilities', label: '团队能力', icon: ShieldPlus },
   { to: '/entitlements/packages', label: '平台权益', icon: KeyRound },
+  { to: '/entitlements/campaigns', label: '兑换活动', icon: KeyRound },
 ]
 const title = computed(() => String(route.meta.title ?? '平台管理'))
 
@@ -92,7 +93,7 @@ onBeforeUnmount(() => {
           <component :is="item.icon" :size="18" /><span>{{ item.label }}</span><ChevronRight :size="14" />
         </RouterLink>
         <p v-if="nav.length>3">治理与安全</p>
-        <RouterLink v-for="item in nav.slice(3)" :key="item.to" :to="item.to" @click="drawer=false">
+        <RouterLink v-for="item in nav.slice(3)" :key="item.to" :to="item.to" :class="{ 'router-link-active': item.to === '/entitlements/campaigns' && route.path.startsWith('/entitlements/campaigns/') }" @click="drawer=false">
           <component :is="item.icon" :size="18" /><span>{{ item.label }}</span><ChevronRight :size="14" />
         </RouterLink>
       </nav>

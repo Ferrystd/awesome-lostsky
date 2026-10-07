@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { api, friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
+import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
 import LsListToolbar from "@lostsky/ui/components/LsListToolbar.vue";
 import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
@@ -11,6 +12,7 @@ import { useQuery } from "@tanstack/vue-query";
 import { Plus } from "@lucide/vue";
 import { NPagination } from "naive-ui";
 import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
 type Item = {
   id: number;
   name: string;
@@ -22,6 +24,7 @@ type Page = { total: number; list: Item[] };
 const search = ref("");
 const page = ref(1);
 const routeAccess = useRouteAccess();
+const router = useRouter();
 const query = useQuery({
   queryKey: computed(() => [
     "admin-entitlement-campaigns",
@@ -48,6 +51,7 @@ const mode = (v: number) =>
       title="Ability 体验活动"
       description="创建平台活动、发行共享体验码，并在需要时显式查看或停用。"
       ><template #actions
+        ><LsButton variant="secondary" @click="router.push('/entitlements/packages')">平台权益</LsButton
         ><LsPagePrimaryAction
           :icon="Plus"
           label="创建活动"
