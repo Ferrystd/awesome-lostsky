@@ -44,6 +44,7 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 ## 参与项目
 
 - [贡献指南](development/contributing.md)
+- [任务拆分与自动分支](development/contributing.md#task-orchestration)
 - [开发须知](development/development.md)
 - [代码更新清单](development/checklist.md)
 - [后端约定](development/backend.md)
