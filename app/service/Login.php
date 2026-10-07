@@ -7,6 +7,7 @@ use app\model\User;
 use app\model\UserDevice;
 use app\validate\Login as LoginValidator;
 use think\exception\HttpException;
+use think\facade\Cache;
 
 class Login
 {
@@ -20,13 +21,14 @@ class Login
             throw new HttpException(422, $validator->getError());
         }
 
-        $user = User::where('phone', $phone)->find();
-        if (!$user || !$this->verifyPassword($user, $password)) {
-            throw new HttpException(401, '手机号或密码错误');
-        }
-        $this->assertActive($user);
-
-        return $this->loginSuccess($user, $deviceInfo);
+        return \think\facade\Db::transaction(function () use ($phone, $password, $deviceInfo): array {
+            $user = User::where('phone', $phone)->lock(true)->find();
+            if (!$user || !$this->verifyPassword($user, $password)) {
+                throw new HttpException(401, '手机号或密码错误');
+            }
+            $this->assertActive($user);
+            return $this->loginSuccess($user, $deviceInfo);
+        });
     }
 
     /**
@@ -34,15 +36,16 @@ class Login
      */
     public function bySms(string $phone, string $code, array $deviceInfo = []): array
     {
+        [$user, $generation] = \think\facade\Db::transaction(function () use ($phone): array {
+            $user = User::where('phone', $phone)->lock(true)->find();
+            if (!$user) throw new HttpException(404, '手机号尚未注册');
+            $this->assertActive($user);
+            return [$user, Cache::get('account_recovery_generation_' . $user->id)];
+        });
+        $deadline = time() + 600;
         app(SmsVerification::class)->verify($phone, $code, SmsVerification::PURPOSE_LOGIN);
 
-        $user = User::where('phone', $phone)->find();
-        if (!$user) {
-            throw new HttpException(404, '手机号尚未注册');
-        }
-        $this->assertActive($user);
-
-        return $this->loginSuccess($user, $deviceInfo);
+        return $this->loginSuccess($user, $deviceInfo, ['recovery_generation' => $generation, 'verified_until' => $deadline]);
     }
 
     /**
@@ -55,31 +58,37 @@ class Login
             throw new HttpException(422, $validator->getError());
         }
 
-        $user = User::where('username', $account)
-            ->whereOr('email', $account)
-            ->whereOr('phone', $account)
-            ->find();
-        if (!$user || !$this->verifyPassword($user, $password)) {
-            throw new HttpException(401, '账号或密码错误');
-        }
-        $this->assertActive($user);
-
-        return $this->loginSuccess($user, $deviceInfo);
+        return \think\facade\Db::transaction(function () use ($account, $password, $deviceInfo): array {
+            $user = User::where('username', $account)
+                ->whereOr('email', $account)
+                ->whereOr('phone', $account)->lock(true)->find();
+            if (!$user || !$this->verifyPassword($user, $password)) {
+                throw new HttpException(401, '账号或密码错误');
+            }
+            $this->assertActive($user);
+            return $this->loginSuccess($user, $deviceInfo);
+        });
     }
 
     /**
      * 登录成功：签发 JWT + 记录设备
      */
-    public function loginSuccess(User $user, array $deviceInfo): array
+    public function loginSuccess(User $user, array $deviceInfo, array $credentialState = []): array
     {
         $deviceToken = bin2hex(random_bytes(16));
 
-        $issued = \think\facade\Db::transaction(function () use ($user, $deviceToken, $deviceInfo): array {
+        $issued = \think\facade\Db::transaction(function () use ($user, $deviceToken, $deviceInfo, $credentialState): array {
             $lockedUser = User::where('id', $user->id)->lock(true)->find();
             if (!$lockedUser) {
                 throw new HttpException(401, '当前账号不存在');
             }
             $this->assertActive($lockedUser);
+            if ($lockedUser->phone !== $user->phone || !hash_equals((string) $lockedUser->password, (string) $user->password)
+                || (array_key_exists('recovery_generation', $credentialState)
+                    && Cache::get('account_recovery_generation_' . $user->id) !== $credentialState['recovery_generation'])
+                || (isset($credentialState['verified_until']) && $credentialState['verified_until'] <= time())) {
+                throw new HttpException(401, '账号资料已变更，请重新登录');
+            }
 
             $device = new UserDevice;
             $device->user_id          = $lockedUser->id;

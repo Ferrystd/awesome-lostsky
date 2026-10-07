@@ -3,19 +3,25 @@ import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import type { SmsDelivery } from '@lostsky/api/recovery'
 
 const props = withDefaults(defineProps<{
   phone: string
-  purpose: 'register' | 'login'
+  purpose: 'register' | 'login' | 'recovery'
+  disabled?: boolean
+  sendCode?: (phone: string) => Promise<SmsDelivery>
   id?: string
 }>(), { id: 'sms-code' })
 
+const emit = defineEmits<{ sending: [value: boolean]; failed: [reason: unknown] }>()
 const code = defineModel<string>({ required: true })
 const sending = ref(false)
 const cooldown = ref(0)
 const message = ref('')
 const error = ref('')
+let generation = 0
+let disposed = false
 let timer: ReturnType<typeof setInterval> | undefined
 
 const phoneValid = computed(() => /^1[3-9]\d{9}$/.test(props.phone.trim()))
@@ -34,7 +40,16 @@ function startCountdown(seconds: number) {
   }, 1000)
 }
 
+watch(() => props.phone.trim(), () => {
+  generation += 1
+  code.value = ''
+  message.value = ''
+  error.value = ''
+})
+
 async function send() {
+  if (sending.value || props.disabled || cooldown.value > 0) return
+  const currentGeneration = generation
   error.value = ''
   message.value = ''
   if (!phoneValid.value) {
@@ -43,23 +58,32 @@ async function send() {
   }
 
   sending.value = true
+  emit('sending', true)
   try {
-    const result = await api.post<{ retry_after: number; debug_bypass?: boolean }>('/verification/sms', {
+    const result = props.sendCode ? await props.sendCode(props.phone.trim()) : await api.post<SmsDelivery>('/verification/sms', {
       phone: props.phone.trim(),
       purpose: props.purpose,
     })
+    if (disposed) return
     startCountdown(result.retry_after)
+    if (generation !== currentGeneration) return
     message.value = result.debug_bypass
       ? '开发调试已跳过短信发送，输入任意内容即可继续。'
       : '验证码已发送，请注意查收。'
   } catch (reason) {
-    error.value = friendlyError(reason)
+    if (generation === currentGeneration) {
+      error.value = friendlyError(reason)
+      emit('failed', reason)
+    }
   } finally {
     sending.value = false
+    emit('sending', false)
   }
 }
 
 onBeforeUnmount(() => {
+  disposed = true
+  generation += 1
   if (timer) clearInterval(timer)
 })
 </script>
@@ -70,6 +94,7 @@ onBeforeUnmount(() => {
       <LsInput
         :id="id"
         v-model="code"
+        :disabled="disabled"
         type="text"
         inputmode="numeric"
         autocomplete="one-time-code"
@@ -80,7 +105,7 @@ onBeforeUnmount(() => {
         class="code-submit"
         variant="secondary"
         :loading="sending"
-        :disabled="!phoneValid || cooldown > 0"
+        :disabled="disabled || sending || !phoneValid || cooldown > 0"
         :aria-label="buttonText"
         @click="send"
       >

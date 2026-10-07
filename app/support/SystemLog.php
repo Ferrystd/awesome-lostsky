@@ -51,7 +51,7 @@ final class SystemLog
             $text = (string) $value;
             $text = preg_replace('/\bBearer\s+[^\s,;]+/i', 'Bearer ' . self::REDACTED, $text) ?? $text;
             $text = preg_replace(
-                '/([?&](?:access[_-]?token|refresh[_-]?token|token|password|secret|signature)=)[^&\s]+/i',
+                '/([?&](?:access[_-]?token|refresh[_-]?token|recovery[_-]?token|token|password|secret|signature|verify[_-]?code|code)=)[^&\s]+/i',
                 '$1' . self::REDACTED,
                 $text
             ) ?? $text;
@@ -68,7 +68,7 @@ final class SystemLog
     private function isSensitiveKey(string $key): bool
     {
         return (bool) preg_match(
-            '/password|passwd|authorization|cookie|credential|secret|token|access[_-]?key|private[_-]?key/i',
+            '/password|passwd|authorization|cookie|credential|secret|token|access[_-]?key|private[_-]?key|^(?:code|verify[_-]?code)$/i',
             $key
         );
     }

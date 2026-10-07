@@ -20,6 +20,10 @@ const visible = ref(false)
 const loading = ref(false)
 const error = ref('')
 const expired = computed(() => route.query.expired === '1')
+const recoveryTarget = computed(() => ({
+  path: '/recovery',
+  query: route.query.redirect ? { redirect: route.query.redirect } : {},
+}))
 const registerTarget = computed(() => ({
   path: '/register',
   query: route.query.redirect ? { redirect: route.query.redirect } : {},
@@ -110,6 +114,7 @@ async function submit() {
         {{ mode === 'sms' ? '验证码登录' : '密码登录' }}
       </LsButton>
     </form>
+    <p class="switch"><RouterLink class="recovery-link" :to="recoveryTarget">无法登录</RouterLink></p>
     <p class="switch">还没有账号？<RouterLink :to="registerTarget">创建通行证</RouterLink></p>
   </AuthShell>
 </template>
@@ -127,5 +132,6 @@ async function submit() {
 .error { color: var(--danger); background: color-mix(in oklch, var(--danger), white 93%); }
 .notice { color: var(--sky-lost-strong); background: color-mix(in oklch, var(--sky-lost), white 91%); }
 .switch { margin: 1.5rem 0 0; text-align: center; color: var(--muted-ink); font-size: .9rem; }
+.recovery-link { display: inline-flex; align-items: center; min-height: 44px; }
 .switch a { color: var(--sky-lost-strong); font-weight: 700; }
 </style>

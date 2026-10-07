@@ -159,7 +159,8 @@ const smsCodeField = story(
     stage(
       h(SmsCodeField, {
         modelValue: "123456",
-        phone: state === "disabled" ? "" : "13800138000",
+        phone: "13800138000",
+        disabled: state === "disabled",
         purpose: "login",
         id: `sms-${state}`,
       }),

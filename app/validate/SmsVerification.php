@@ -9,7 +9,7 @@ class SmsVerification extends Validate
 {
     protected $rule = [
         'phone'   => 'require|mobile',
-        'purpose' => 'require|in:register,login',
+        'purpose' => 'require|in:register,login,recovery,recovery_phone',
         'code'    => 'require|regex:/^[0-9]{4,8}$/',
     ];
 

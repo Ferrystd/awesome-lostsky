@@ -27,6 +27,7 @@ import LsButton from './components/LsButton.vue'
 import LsCheckboxGroupField from './components/LsCheckboxGroupField.vue'
 import LsDescriptionList from './components/LsDescriptionList.vue'
 import LsFormActions from './components/LsFormActions.vue'
+import LsInput from './components/LsInput.vue'
 import LsField from './components/LsField.vue'
 import LsFormSection from './components/LsFormSection.vue'
 import LsInlineError from './components/LsInlineError.vue'
@@ -677,4 +678,13 @@ describe('后台设计系统组件契约', () => {
     expect(source).not.toContain('checkedText')
     expect(source).not.toContain('uncheckedText')
   })
+})
+
+
+it('LsInput forwards disabled to the Naive owner and keeps default inputs editable', async () => {
+  const normal = await render(LsInput, { modelValue: 'draft' })
+  const disabled = await render(LsInput, { modelValue: 'draft', disabled: true })
+  expect(normal).not.toMatch(/<input[^>]*\sdisabled(?:[\s=>])/)
+  expect(disabled).toMatch(/<input[^>]*\sdisabled(?:[\s=>])/)
+  expect(disabled).toContain('draft')
 })

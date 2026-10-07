@@ -9,6 +9,10 @@ Route::post('login/refresh', 'login/refresh');
 
 // SMS verification
 Route::post('verification/sms', 'verification/sms');
+Route::post('recovery/verify', 'recovery/verify');
+Route::post('recovery/phone/sms', 'recovery/phoneSms');
+Route::post('recovery/password', 'recovery/password');
+Route::post('recovery/phone', 'recovery/phone');
 
 // devices (JwtAuth + Context)
 Route::post('devices/quit', 'devices/quit');

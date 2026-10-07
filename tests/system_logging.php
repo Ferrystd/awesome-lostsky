@@ -35,8 +35,11 @@ $app->log->forgetDriver();
 try {
     app(SystemLog::class)->write('info', 'security.test', [
         'password' => 'plain-password',
+        'recovery_token' => 'plain-recovery-token',
+        'code' => '789123',
+        'verifyCode' => '789124',
         'message' => 'Authorization: Bearer plain-token',
-        'url' => 'https://example.test/callback?secret=plain-secret&ok=1',
+        'url' => 'https://example.test/callback?secret=plain-secret&recovery_token=query-recovery&code=789125&ok=1',
     ]);
     $app->log->record('plain application message', 'notice');
 
@@ -114,6 +117,11 @@ try {
         !str_contains($raw, 'plain-password')
             && !str_contains($raw, 'plain-token')
             && !str_contains($raw, 'plain-secret')
+            && !str_contains($raw, 'plain-recovery-token')
+            && !str_contains($raw, 'query-recovery')
+            && !str_contains($raw, '789123')
+            && !str_contains($raw, '789124')
+            && !str_contains($raw, '789125')
             && !str_contains($raw, 'plain-exception-token'),
         'passwords, bearer tokens and secret query values must be redacted'
     );

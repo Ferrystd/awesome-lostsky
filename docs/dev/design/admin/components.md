@@ -50,7 +50,7 @@
 | `LsCheckboxGroupField` | `v-model` 接受字符串或数字数组，`label/options` 必填；option 支持 `value/label/description/meta/disabled/disabledReason`；可传 `id/hint/error/required/disabled` | 页面直接组合无分组语义的 `NCheckboxGroup`；用于分组权限编辑器或动态加入字段；把禁用原因写进选项正文或 `title` | 固定 `fieldset/legend` 与提示/错误关联；带原因的禁用选项保持可触发的权限态，点击仅由 `feedback.info()` 解释且不更新模型；选项触控区至少 44px；长文案与移动端自然换行 |
 | `LsSwitch` | `v-model` 接受布尔值；`disabled/readOnly/loading/disabledReason` 可选；是唯一 `NSwitch` 视觉原语，调用方通过普通无障碍属性命名 | 业务页面直接使用 `NSwitch`；轨道内显示状态文字；增加颜色、尺寸或文案视觉 props；把禁用原因写入原生标题 | 开关内部始终无文字；触控区域至少 44px；只读与禁用保留 `aria-disabled/aria-readonly` 语义；权限态的轨道与按钮内圈统一视觉降权，触发后仅由 `feedback.info()` 解释且不更新值；所有应用内紧凑布尔控件也必须复用 |
 | `LsSwitchField` | `v-model` 接受布尔值，`label` 必填；`description/id/ariaLabel/headingLevel/disabled/readOnly/loading/disabledReason` 可选；内部只组合 `LsSwitch`，承载完整布尔设置行 | 在 `LsField`、`NFormItem` 或页面私有 `switch-row/switch-field` 中直接组合开关；在开关轨道内显示状态文字；把禁用原因写在设置行正文或 `title` | 默认以可见标签作为无障碍名称；设置页分区标题可用 `headingLevel`；固定、只读和可编辑状态保持同一结构；禁用原因只交给内部 `LsSwitch` 以信息弹窗解释；长文案和移动端不溢出 |
-| `LsInput` | `v-model` 接受字符串或数字，`invalid/type` 可选；其余原生输入属性传给 `NInput.inputProps` | 页面直接写原生文本输入；用私有边框表示错误 | 密码类型保留；错误映射到 Naive `status=error` 和 `aria-invalid`；尺寸由主题控制 |
+| `LsInput` | `v-model` 接受字符串或数字，`invalid/type/disabled` 可选；其余原生输入属性传给 `NInput.inputProps` | 页面直接写原生文本输入；用私有边框表示错误 | 密码类型保留；`disabled` 显式传给 `NInput`，禁止仅放入 inputProps 而被底层覆盖；错误映射到 Naive `status=error` 和 `aria-invalid`；尺寸由主题控制 |
 | `LsMarkdownEditor` | `modelValue` 与 `uploadImage(file)` 必填；可传 `placeholder/draftKey/searchEntities/resolveEntities/uploadDisabledReason`；模式固定为可视化/源码/预览 | 页面复制编辑器工具栏；省略上传回调导致图片入口消失；缺上传能力仍调用上传 | 图片入口始终存在；无权时以 `uploadDisabledReason` 保持可解释禁用；草稿键有值时本地保存；@ 搜索、上传和预览错误局部呈现 |
 | `LsMarkdownRenderer` | `content`、`resolveEntities` 可选，`chatEnabled=true`；仅渲染清洗后的 Markdown 和受控 `lostsky://entity/` 引用 | 渲染任意未清洗 HTML；解析失败清空整页 | 解析失败退化为普通内容；主体详情可键盘关闭并恢复触发点焦点；移动端详情不溢出 |
 
@@ -80,3 +80,13 @@
 - `LsMarkdownRenderer` 的清洗结果内允许生成主体引用 `button`。适用范围仅为 DOMPurify 清洗后的 `lostsky://entity/` 引用，因为字符串渲染结果不能直接挂载 Vue/Naive 组件；它必须使用公共按钮令牌、提供主体名称、键盘触发与焦点恢复，不得生成其他原生控件。解析、权限或主体解析失败时退化为普通安全文本，不弹全局错误。检查方法：源码允许清单只包含该生成语句，并测试清洗、键盘和关闭后焦点。
 - Milkdown/Crepe 可管理其编辑区内部语义和必要工具栏 DOM。适用范围仅为 `LsMarkdownEditor` 的第三方编辑区；LostSky 仍负责外层模式、搜索、上传、错误、尺寸、焦点和减少动态效果，不得复制一套页面级编辑器控件。检查方法：组件测试三个模式和禁用上传，静态检查禁止其他页面直接引入 Crepe。
 - `LsFormList` 内部使用 `vue-draggable-plus` 同步单列表拖拽排序。适用范围仅为该公共组件；业务页面只能使用 `v-model`、项目工厂和项目插槽，不得直接导入拖拽库或依赖其事件结构。拖拽是指针与触控增强，上移/下移按钮始终提供等价键盘路径；组件卸载时由 Vue 封装销毁实例。检查方法：静态测试只允许 `LsFormList.vue` 导入 `vue-draggable-plus`，组件与 E2E 分别覆盖按钮和拖拽排序。
+
+## Account 认证组件
+
+`AuthShell` 是登录、注册与账号恢复的专属认证容器，`title/intro` 表达当前用户任务，默认插槽承载认证表单。壳层独占品牌区、表单容器、桌面分栏和移动端布局；调用方只编排表单与组件间距，不穿透内部样式，不增加布局参数。
+
+`SmsCodeField` 统一承载手机验证码输入、发送、倒计时和字段反馈。`phone` 必填，`purpose` 为 `register/login/recovery`，`id` 默认 `sms-code`，`v-model` 为验证码。`disabled` 表达所属表单正在提交；可选 `sendCode(phone)` 用于已验证恢复凭据的新号发送，返回既有短信发送结果，不承载视觉参数。未提供回调时调用公共短信接口。`sending` 事件同步父级忙碌状态，`failed` 事件供恢复流程识别 HTTP 410，其他发送失败仍由字段展示，不重复弹窗。
+
+发送中、倒计时中、手机号无效或表单禁用时不得重复发送；手机号变化清空验证码和旧提示，丢弃旧号码的异步反馈，保持发送冷却以免绕过限流。验证码控件与发送按钮由组件内部安排，320px 窄屏自然堆叠，沿用公共控件触控尺寸、焦点与标签关联。倒计时和请求在卸载时清理，失败保留手机号与验证码输入，成功只反馈发送结果。该组件不持久化恢复凭据，也不决定登录状态、Permission 或 Ability；无权限及空集合状态不适用。无新增原生控件或父级穿透例外。
+
+`tests/account-recovery.spec.ts` 覆盖原号与新号载荷、请求禁用、号码变化、失败、凭据失效、完成不自动登录及桌面/移动几何；登录现有 E2E 验证共享验证码改动没有破坏登录。源码守卫、类型检查、真实组件预览与完整静态构建共同验收。

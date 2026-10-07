@@ -3,12 +3,13 @@ import { NInput } from 'naive-ui'
 
 defineOptions({ inheritAttrs: false })
 const model = defineModel<string | number>()
-const props = defineProps<{ invalid?: boolean; type?: string }>()
+const props = defineProps<{ invalid?: boolean; type?: string; disabled?: boolean }>()
 </script>
 
 <template>
   <NInput
     class="ls-input"
+    :disabled="disabled"
     :value="model == null ? '' : String(model)"
     :type="type === 'password' ? 'password' : 'text'"
     :status="invalid ? 'error' : undefined"

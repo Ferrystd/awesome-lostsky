@@ -15,18 +15,26 @@ use app\model\User;
 use app\validate\SmsVerification as SmsVerificationValidator;
 use think\exception\HttpException;
 use think\facade\Cache;
+use think\facade\Db;
 use app\support\SystemLog;
 
 class SmsVerification
 {
     public const PURPOSE_REGISTER = 'register';
     public const PURPOSE_LOGIN = 'login';
+    public const PURPOSE_RECOVERY = 'recovery';
+    public const PURPOSE_RECOVERY_PHONE = 'recovery_phone';
     public const PURPOSE_WEIBO_BIND = 'weibo_bind';
 
     /**
      * 发送短信验证码。
      */
     public function send(string $phone, string $purpose): array
+    {
+        return $this->locked($phone, $purpose, fn (): array => $this->sendUnlocked($phone, $purpose));
+    }
+
+    private function sendUnlocked(string $phone, string $purpose): array
     {
         $this->validateSend($phone, $purpose);
         $this->assertPurposeState($phone, $purpose);
@@ -49,7 +57,7 @@ class SmsVerification
             SmsType::AliyunPnvsSms => $this->sendByAliyunPnvsSms($phone, $purpose),
         };
 
-        Cache::set($lockKey, 1, $this->interval());
+        if (!Cache::set($lockKey, 1, $this->interval())) throw new HttpException(503, '验证码发送暂时不可用，请稍后再试');
 
         return [
             'expires_in' => $this->validTime(),
@@ -63,6 +71,13 @@ class SmsVerification
      */
     public function verify(string $phone, string $code, string $purpose): void
     {
+        $this->locked($phone, $purpose, function () use ($phone, $code, $purpose): void {
+            $this->verifyUnlocked($phone, $code, $purpose);
+        });
+    }
+
+    private function verifyUnlocked(string $phone, string $code, string $purpose): void
+    {
         if ($this->debugBypass()) {
             return;
         }
@@ -75,7 +90,7 @@ class SmsVerification
         $recordKey = $this->key('code', $phone, $purpose);
         $record = Cache::get($recordKey);
         $type = $this->type();
-        if (!is_array($record) || ($record['type'] ?? '') !== $type->value) {
+        if (!is_array($record) || ($record['type'] ?? '') !== $type->value || ($record['expires_at'] ?? 0) <= time()) {
             throw new HttpException(422, '验证码已失效，请重新获取');
         }
 
@@ -87,17 +102,34 @@ class SmsVerification
 
         $passed = match ($type) {
             SmsType::AliyunSms => password_verify($code, (string) ($record['code_hash'] ?? '')),
-            SmsType::AliyunPnvsSms => $this->checkByAliyunPnvsSms($phone, $code),
+            SmsType::AliyunPnvsSms => password_verify($code, (string) ($record['code_hash'] ?? ''))
+                && $this->checkByAliyunPnvsSms($phone, $code),
         };
 
         if (!$passed) {
             $record['attempts'] = $attempts;
             $remaining = max(1, (int) ($record['expires_at'] ?? time()) - time());
-            Cache::set($recordKey, $record, $remaining);
+            if (!Cache::set($recordKey, $record, $remaining)) throw new HttpException(503, '验证码核验暂时不可用，请重新获取');
             throw new HttpException(422, '验证码错误或已失效');
         }
 
-        Cache::delete($recordKey);
+        if (!Cache::delete($recordKey)) throw new HttpException(503, '验证码核验暂时不可用，请重新获取');
+    }
+
+    private function locked(string $phone, string $purpose, callable $operation): mixed
+    {
+        // 与用户事务分离的连接级互斥；发送、错误计数及成功消费共用同一把锁。
+        $connection = Db::connect();
+        $name = hash('sha256', 'auth_sms|' . $purpose . '|' . $phone);
+        $result = $connection->query('SELECT GET_LOCK(?, 5) AS acquired', [$name]);
+        if ((int) ($result[0]['acquired'] ?? 0) !== 1) {
+            throw new HttpException(429, '验证码正在处理，请稍后再试');
+        }
+        try {
+            return $operation();
+        } finally {
+            $connection->query('SELECT RELEASE_LOCK(?)', [$name]);
+        }
     }
 
     private function validateSend(string $phone, string $purpose): void
@@ -118,8 +150,14 @@ class SmsVerification
         if ($purpose === self::PURPOSE_REGISTER && $exists) {
             throw new HttpException(409, '手机号已注册');
         }
-        if ($purpose === self::PURPOSE_LOGIN && !$exists) {
+        if (in_array($purpose, [self::PURPOSE_LOGIN, self::PURPOSE_RECOVERY], true) && !$exists) {
             throw new HttpException(404, '手机号尚未注册');
+        }
+        if ($purpose === self::PURPOSE_RECOVERY && (int) $exists->is_banned === 1) {
+            throw new HttpException(403, '账号已被平台封禁，请联系平台管理员');
+        }
+        if ($purpose === self::PURPOSE_RECOVERY_PHONE && $exists) {
+            throw new HttpException(409, '新手机号已注册');
         }
     }
 
@@ -133,7 +171,7 @@ class SmsVerification
             'attempts' => 0,
             'expires_at' => time() + $this->validTime(),
         ];
-        Cache::set($recordKey, $record, $this->validTime());
+        if (!Cache::set($recordKey, $record, $this->validTime())) throw new HttpException(503, '验证码发送暂时不可用，请稍后再试');
 
         try {
             $settings = (array) config('auth.sms.aliyun_sms');
@@ -182,7 +220,8 @@ class SmsVerification
                 'validTime' => $this->validTime(),
                 'interval' => $this->interval(),
                 'duplicatePolicy' => 1,
-                'returnVerifyCode' => false,
+                // 云端生成验证码，仅取回并保存摘要以隔离不同业务用途。
+                'returnVerifyCode' => true,
             ];
             if (($settings['scheme_name'] ?? '') !== '') {
                 $params['schemeName'] = $settings['scheme_name'];
@@ -197,11 +236,17 @@ class SmsVerification
                 $this->cloudFailure(SmsType::AliyunPnvsSms, (string) ($body->code ?? ''), (string) ($body->requestId ?? ''));
             }
 
-            Cache::set($recordKey, [
+            $code = (string) ($body->model->verifyCode ?? '');
+            if (!preg_match('/^[0-9]{4,8}$/D', $code)) {
+                throw new HttpException(503, '短信服务未返回验证码，请稍后再试');
+            }
+            $stored = Cache::set($recordKey, [
                 'type' => SmsType::AliyunPnvsSms->value,
+                'code_hash' => password_hash($code, PASSWORD_DEFAULT),
                 'attempts' => 0,
                 'expires_at' => time() + $this->validTime(),
             ], $this->validTime());
+            if (!$stored) throw new HttpException(503, '验证码发送暂时不可用，请稍后再试');
         } catch (HttpException $exception) {
             throw $exception;
         } catch (\Throwable $exception) {
@@ -240,14 +285,14 @@ class SmsVerification
         }
     }
 
-    private function dysmsClient(): DysmsClient
+    protected function dysmsClient(): DysmsClient
     {
         $config = $this->cloudConfig();
         $config->endpoint = 'dysmsapi.aliyuncs.com';
         return new DysmsClient($config);
     }
 
-    private function dypnsClient(): DypnsClient
+    protected function dypnsClient(): DypnsClient
     {
         $config = $this->cloudConfig();
         $config->endpoint = 'dypnsapi.aliyuncs.com';
@@ -281,7 +326,7 @@ class SmsVerification
     {
         app(SystemLog::class)->write('warning', 'sms.cloud_failure', [
             'type' => $type->value,
-            'code' => $code,
+            'provider_code' => $code,
             'provider_request_id' => $requestId,
         ]);
         throw new HttpException(503, '验证码发送或核验失败，请稍后再试');

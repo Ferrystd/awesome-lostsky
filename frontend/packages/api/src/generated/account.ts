@@ -221,7 +221,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 发送注册或登录短信验证码 */
+        /**
+         * 发送注册、登录或当前绑定手机号恢复验证码
+         * @description recovery 仅发送至已注册且未封禁账号的当前绑定手机号；新手机验证码必须通过 /recovery/phone/sms 并携带有效恢复凭据。各用途验证码相互隔离。
+         */
         post: operations["accountSendSmsVerification"];
         delete?: never;
         options?: never;
@@ -345,6 +348,86 @@ export interface paths {
          * @description 使用 JWT 真实用户生成 20 位大写十六进制随机入队码；30 分钟有效，重新生成替换旧码，成功加入团队后失效。不接受用户 ID 或 Entity 作为目标，不返回手机号。
          */
         post: operations["accountTeamJoinCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recovery/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 验证当前绑定手机号并获取恢复凭据
+         * @description 恢复成功不产生登录态。重置密码或换绑完成后撤销全部 access、refresh、Entity 会话。换绑需核验 recovery_phone 专用验证码。
+         */
+        post: operations["accountRecoveryVerify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recovery/phone/sms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 持恢复凭据发送新手机号验证码
+         * @description 恢复成功不产生登录态。重置密码或换绑完成后撤销全部 access、refresh、Entity 会话。换绑需核验 recovery_phone 专用验证码。
+         */
+        post: operations["accountRecoveryPhoneSms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recovery/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 持恢复凭据重置密码
+         * @description 恢复成功不产生登录态。重置密码或换绑完成后撤销全部 access、refresh、Entity 会话。换绑需核验 recovery_phone 专用验证码。
+         */
+        post: operations["accountRecoveryPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recovery/phone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 验证新手机号并换绑
+         * @description 恢复成功不产生登录态。重置密码或换绑完成后撤销全部 access、refresh、Entity 会话。换绑需核验 recovery_phone 专用验证码。
+         */
+        post: operations["accountRecoveryPhone"];
         delete?: never;
         options?: never;
         head?: never;
@@ -942,6 +1025,17 @@ export interface components {
             /** @enum {integer} */
             is_system?: 0 | 1;
         };
+        RecoveryCredential: {
+            /** @enum {integer} */
+            code: 0;
+            message: string;
+            data: {
+                /** @description 十分钟、单次使用、不授予登录权限的恢复凭据。仅在内存保存；重新验证替换旧凭据。 */
+                recovery_token: string;
+                /** @enum {integer} */
+                expires_in: 600;
+            };
+        };
     };
     responses: never;
     parameters: {
@@ -1470,7 +1564,7 @@ export interface operations {
                     /** @example 13800138000 */
                     phone: string;
                     /** @enum {string} */
-                    purpose: "register" | "login";
+                    purpose: "register" | "login" | "recovery";
                 };
             };
         };
@@ -2108,6 +2202,310 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
+            };
+        };
+    };
+    accountRecoveryVerify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 中国大陆手机号 */
+                    phone: string;
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功；Cache-Control: no-store */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCredential"];
+                };
+            };
+            /** @description 账号被平台封禁 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 手机号尚未注册 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 核验过程中账号资料改变，请重新验证当前绑定手机号 */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 字段格式、短信验证码错误或新手机号与原手机号相同 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 发送频率、核验次数或短信互斥限制 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 短信或缓存服务不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    accountRecoveryPhoneSms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 十分钟、单次使用、不授予登录权限的恢复凭据。仅在内存保存；重新验证替换旧凭据。 */
+                    recovery_token: string;
+                    /** @description 中国大陆手机号 */
+                    phone: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 发送请求已受理 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope"] & {
+                        data?: {
+                            expires_in: number;
+                            retry_after: number;
+                            debug_bypass: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description 账号被平台封禁 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 新手机号已注册 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 恢复凭据无效、过期、已使用、被替换，或原手机号/密码改变；必须重新验证当前绑定手机号 */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 字段格式、短信验证码错误或新手机号与原手机号相同 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 发送频率、核验次数或短信互斥限制 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 短信或缓存服务不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    accountRecoveryPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 十分钟、单次使用、不授予登录权限的恢复凭据。仅在内存保存；重新验证替换旧凭据。 */
+                    recovery_token: string;
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功；Cache-Control: no-store */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 0;
+                        message: string;
+                        /** @description 成功时为 null */
+                        data: Record<string, never> | null;
+                    };
+                };
+            };
+            /** @description 账号被平台封禁 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 新手机号已注册 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 恢复凭据无效、过期、已使用、被替换，或原手机号/密码改变；必须重新验证当前绑定手机号 */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 字段格式、短信验证码错误或新手机号与原手机号相同 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 发送频率、核验次数或短信互斥限制 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 短信或缓存服务不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    accountRecoveryPhone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 十分钟、单次使用、不授予登录权限的恢复凭据。仅在内存保存；重新验证替换旧凭据。 */
+                    recovery_token: string;
+                    /** @description 中国大陆手机号 */
+                    phone: string;
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 成功；Cache-Control: no-store */
+            200: {
+                headers: {
+                    "Cache-Control"?: "no-store";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {integer} */
+                        code: 0;
+                        message: string;
+                        /** @description 成功时为 null */
+                        data: Record<string, never> | null;
+                    };
+                };
+            };
+            /** @description 账号被平台封禁 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 新手机号已注册 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 恢复凭据无效、过期、已使用、被替换，或原手机号/密码改变；必须重新验证当前绑定手机号 */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 字段格式、短信验证码错误或新手机号与原手机号相同 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 发送频率、核验次数或短信互斥限制 */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 短信或缓存服务不可用 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

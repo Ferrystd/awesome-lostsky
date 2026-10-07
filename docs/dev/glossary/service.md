@@ -34,6 +34,15 @@ aliases: [服务, Service]
 | `available` | `int $teamId`、`string $key`、`int $minimumLevel = 1` | `bool` |
 | `syncProjection` | `int $teamId`、`string $key` | `void` |
 
+## AccountRecovery
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `verify` | `string $phone`、`string $code` | `array` |
+| `sendPhoneSms` | `string $token`、`string $phone` | `array` |
+| `password` | `string $token`、`string $password` | `void` |
+| `phone` | `string $token`、`string $phone`、`string $code` | `void` |
+
 ## Balance
 
 | 方法 | 参数 | 返回 |
@@ -420,7 +429,7 @@ aliases: [服务, Service]
 | `byPhone` | `string $phone`、`string $password`、`array $deviceInfo = []` | `array` |
 | `bySms` | `string $phone`、`string $code`、`array $deviceInfo = []` | `array` |
 | `byAccount` | `string $account`、`string $password`、`array $deviceInfo = []` | `array` |
-| `loginSuccess` | `model\User $user`、`array $deviceInfo` | `array` |
+| `loginSuccess` | `model\User $user`、`array $deviceInfo`、`array $credentialState = []` | `array` |
 | `refresh` | `string $refreshToken` | `array` |
 
 ## ManualEntitlementGrant
