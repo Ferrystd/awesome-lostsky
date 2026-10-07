@@ -15,7 +15,8 @@ async function componentFiles(directory: string): Promise<string[]> {
     if (entry.isDirectory()) result.push(...(await componentFiles(target)));
     else if (
       entry.name.endsWith(".vue") &&
-      normalize(target).includes("/components/")
+      (normalize(target).includes("/components/") ||
+        normalize(target).includes("/packages/ui/src/community/"))
     ) {
       result.push(normalize(path.relative(repository, target)));
     }
@@ -24,11 +25,11 @@ async function componentFiles(directory: string): Promise<string[]> {
 }
 
 describe("component preview catalog", () => {
-  it("registers every components directory Vue file exactly once", async () => {
+  it("registers every shared and application component Vue file exactly once", async () => {
     const discovered = await componentFiles(path.join(repository, "frontend"));
     const registered = catalog.map((entry) => entry.source).sort();
-    expect(discovered).toHaveLength(80);
-    expect(registered).toHaveLength(80);
+    expect(discovered).toHaveLength(84);
+    expect(registered).toHaveLength(84);
     expect(new Set(registered).size).toBe(registered.length);
     expect(registered).toEqual(discovered);
   });

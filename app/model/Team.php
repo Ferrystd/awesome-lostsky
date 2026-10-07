@@ -188,4 +188,5 @@ class Team extends Base
     {
         return $this->hasMany(File::class, 'team_id');
     }
+    public function communities() { return $this->hasMany(Community::class, 'team_id'); }
 }

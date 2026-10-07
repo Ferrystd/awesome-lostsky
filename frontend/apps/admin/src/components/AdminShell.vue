@@ -29,6 +29,7 @@ const nav: NavItem[] = [
   { to: '/', label: '平台总览', icon: Gauge },
   { to: '/users', label: '用户', icon: Users },
   { to: '/teams', label: '团队', icon: ShieldCheck },
+  { to: '/communities', label: '平台社区', icon: Users },
   { to: '/administrators', label: '平台管理员', icon: UserRoundCog },
   { to: '/roles', label: '平台角色', icon: Command },
   { to: '/audit', label: '审计日志', icon: FileClock },

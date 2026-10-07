@@ -80,6 +80,15 @@ await page.addInitScript(() => {
   localStorage.setItem('lostsky_token', 'component-preview-token')
 })
 await page.route('http://127.0.0.1:5191/api/**', async route => {
+  const path = new URL(route.request().url()).pathname
+  if (path === '/api/communities' || path.startsWith('/api/preview-community/')) {
+    const state = new URL(route.request().frame().url()).searchParams.get('state')
+    if (state === 'loading') return
+    if (state === 'error') return route.fulfill({ json: { code: 400, message: '暂时无法读取预览内容', data: null } })
+    const list = path.endsWith('/boards') ? [{ id: 1, community_id: 1, name: '经验交流', sort: 0, enabled: true }, { id: 2, community_id: 1, name: '历史讨论', sort: 1, enabled: false }] : [{ id: 1, slug: 'lostsky', name: 'LostSky 官方社区', description: '交流使用经验，讨论产品更新。', owner_type: 'Platform', team_id: null, is_official: true, status: 'Active' }]
+    return route.fulfill({ json: { code: 0, message: 'ok', data: { list, total: list.length, page: 1, limit: 20 } } })
+  }
+
   if (new URL(route.request().url()).pathname.endsWith('/memberDeparture/mine')) {
     const state = new URL(route.request().frame().url()).searchParams.get('state')
     if (state === 'loading') return

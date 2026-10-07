@@ -55,6 +55,11 @@ final class PermissionDictionary
     public const IDENTITY_CUSTOMER_ALL_ASSUME = 'identity.customer.*.assume';
     public const IDENTITY_VIRTUAL_ALL_ASSUME = 'identity.virtual.*.assume';
 
+    public const COMMUNITY_TEAM_READ = 'community.team.read';
+    public const COMMUNITY_TEAM_MANAGE = 'community.team.manage';
+    public const ADMIN_COMMUNITY_READ = 'admin.community.read';
+    public const ADMIN_COMMUNITY_WRITE = 'admin.community.write';
+    public const ADMIN_COMMUNITY_MODERATE = 'admin.community.moderate';
     public const CHAT_GROUP_MANAGE = 'chat.group.manage';
     public const WEIBO_PERSONAL_USE = 'weibo.personal.use';
     public const WEIBO_TEAM_MANAGE = 'weibo.team.manage';
@@ -86,6 +91,7 @@ final class PermissionDictionary
     public const TEAM_ENTITY_VIRTUAL_MANAGE_TEMPLATE = 'team.entity.virtual.<slug>.manage';
 
     private const GROUPS = [
+        '团队社区' => [self::COMMUNITY_TEAM_READ => '查看团队社区', self::COMMUNITY_TEAM_MANAGE => '管理团队社区'],
         '团队成员' => [
             self::TEAM_MEMBER_READ => '查看全部成员（含团队内隐藏）',
             self::TEAM_MEMBER_INVITE => '邀请成员',
@@ -169,6 +175,7 @@ final class PermissionDictionary
     ];
 
     private const ADMIN_GROUPS = [
+        '平台社区' => [self::ADMIN_COMMUNITY_READ => '查看平台社区', self::ADMIN_COMMUNITY_WRITE => '维护资料与管理员', self::ADMIN_COMMUNITY_MODERATE => '治理内容与成员'],
         '平台概览' => [
             self::ADMIN_DASHBOARD_READ => '查看平台概览',
             self::ADMIN_SYSTEM_READ => '查看系统状态',
@@ -203,6 +210,11 @@ final class PermissionDictionary
     public static function descriptions(): array
     {
         return [
+            'community.team.read' => 'community.team.read',
+            'community.team.manage' => 'community.team.manage',
+            'admin.community.read' => 'admin.community.read',
+            'admin.community.write' => 'admin.community.write',
+            'admin.community.moderate' => 'admin.community.moderate',
             'team.member.read' => '查看完整成员管理集合，包括团队内隐藏或封禁成员；基础目录不要求此权限',
             'team.member.invite' => '邀请或新增成员',
             'team.member.update' => '编辑、封禁、解封、设置 slug 与搜索成员',

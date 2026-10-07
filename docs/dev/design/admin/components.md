@@ -1,5 +1,20 @@
 # 后台公共组件
 
+<a id="community-components"></a>
+
+## 社区业务组件
+
+`frontend/packages/ui/src/community/` 承载三个应用共用的社区业务结构。组件复用既有公共原语，无新增视觉皮肤、尺寸参数或父级穿透；公共基础原语的封闭契约继续适用。
+
+| 组件 | 业务输入与职责 |
+| --- | --- |
+| `CommunityManagement` | 按 Team/Admin scope、读/写/治理权限与当前预期 Entity 编排社区列表、创建、资料和管理员页面；身份与权限不从资源 slug 推断 |
+| `CommunityGovernance` | 接收 API 与路由基址、返回目标、社区名称、读取/治理权限、拒绝原因、预期 Entity 与上传回调；统一板块、公告、内容和成员治理，各任务有独立路由与提交边界 |
+| `CommunityPostList` | 接收帖子集合与详情基址；统一内容摘要、作者、状态与详情入口，页面负责读取与分页 |
+| `CommunityContentState` | 接收内容状态与处理原因，统一删除或隐藏状态说明；不自行请求数据或决定授权 |
+
+API 基址与权限输入均由对应应用固定组装，不接受 URL query 覆盖；前端权限只决定展示和请求时机，后端逐次授权。组件范围与资源 ID 参与查询和草稿身份，不能跨 Admin、Team、Community 复用受限缓存。状态、列表、管理动作与移动端尺寸通过源码守卫和社区流程 E2E 验证。
+
 ## Shop 结单时限设置
 
 `ServiceCompletionSettings` 为 Shop 内部业务组件，由商品、规格及兼容服务表单共用；复用 `LsField` 和 `NInputNumber`，不创建新的视觉原语。仅接受 `idPrefix` 与两个可空分钟模型 `unusedMinutes`、`confirmationMinutes`，没有样式、尺寸参数或父级穿透。

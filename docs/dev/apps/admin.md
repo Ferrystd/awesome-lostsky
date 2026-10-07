@@ -13,6 +13,7 @@ Admin 是不依赖团队上下文的平台治理后台，前端入口为 `admin.
 - 维护平台管理员、平台角色及权限并集。
 - 查询集中业务审计事件和经过脱敏的系统健康状态。
 - 维护平台 Ability 权益包、公共体验活动与兑换码；平台权益与团队商家服务权益相互隔离。
+- 管理平台拥有的社区：创建、维护资料与状态、分配社区管理员，以及板块、公告、内容和禁言治理；具体边界见 [Community](community.md)。
 
 首版不提供用户删除、密码重置、身份代办、团队内容编辑、Ability 撤销、域名管理、订单交易管理、审计导出、队列重试或自动修复。
 
@@ -33,6 +34,7 @@ Admin 是不依赖团队上下文的平台治理后台，前端入口为 `admin.
 - `admin.access.read`、`admin.access.write`
 - `admin.audit.read`、`admin.system.read`
 - `admin.entitlement.read`、`admin.entitlement.write`
+- `admin.community.read`、`admin.community.write`、`admin.community.moderate`
 
 完整分组和文案以 [`PermissionDictionary`](../../app/service/PermissionDictionary.php) 为事实源。
 

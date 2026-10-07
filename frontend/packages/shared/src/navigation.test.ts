@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   chatWorkspaceUrl,
+  communityWorkspaceUrl,
   loginUrl,
   memberIdentityCallbackUrl,
   redirectToWorkspaceWarning,
@@ -20,6 +21,16 @@ afterEach(() => {
 })
 
 describe('safeRedirect', () => {
+  it('keeps Community teamless and allows its local Account return URL', () => {
+    vi.stubEnv('DEV', true)
+    vi.stubGlobal('location', { hostname: '127.0.0.1', protocol: 'http:', port: '5175' })
+    const target = communityWorkspaceUrl('/c/sky/manage/boards')
+    expect(target).toBe('http://127.0.0.1:5182/c/sky/manage/boards')
+    expect(safeRedirect(target)).toBe(target)
+    vi.stubGlobal('location', { hostname: 'demo.team.lostsky.work', protocol: 'https:', port: '' })
+    vi.stubEnv('DEV', false)
+    expect(communityWorkspaceUrl('/c/sky')).toBe('https://community.lostsky.work/c/sky')
+  })
   it('accepts local and LostSky HTTPS destinations only', () => {
     expect(safeRedirect('/teams')).toBe('/teams')
     expect(safeRedirect('https://demo.team.lostsky.work/members')).toBe('https://demo.team.lostsky.work/members')
