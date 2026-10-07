@@ -60,7 +60,7 @@ function appIcon(key: string) {
       ? Store
       : key === "transaction"
         ? ReceiptText
-        : key === "chat"
+        : key === "chat" || key === "community"
           ? MessageCircleMore
           : Radio;
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { BadgeCheck, House, KeyRound, ShoppingBag, UserRound } from '@lucide/vue'
-import { identityUrl } from '@lostsky/shared/navigation'
+import { BadgeCheck, House, KeyRound, MessageCircleMore, ShoppingBag, UserRound } from '@lucide/vue'
+import { chatWorkspaceUrl, communityWorkspaceUrl, identityUrl } from '@lostsky/shared/navigation'
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { NConfigProvider, NDialogProvider, NMessageProvider, darkTheme, type GlobalThemeOverrides, zhCN } from 'naive-ui'
 import { computed, watchEffect } from 'vue'
@@ -52,6 +52,8 @@ const shopTheme: GlobalThemeOverrides = {
       <header class="site-header">
         <RouterLink class="brand" to="/" aria-label="返回商城首页"><span>LostSky</span><small>团队商城</small></RouterLink>
         <nav aria-label="商城导航">
+          <a :href="chatWorkspaceUrl()"><MessageCircleMore :size="17" aria-hidden="true" />聊天</a>
+          <a :href="communityWorkspaceUrl()"><MessageCircleMore :size="17" aria-hidden="true" />社区</a>
           <RouterLink to="/"><House :size="17" aria-hidden="true" />商城首页</RouterLink>
           <RouterLink to="/customer/profile"><UserRound :size="17" aria-hidden="true" />当前人员</RouterLink>
           <RouterLink to="/orders"><ShoppingBag :size="17" aria-hidden="true" />我的订单</RouterLink>

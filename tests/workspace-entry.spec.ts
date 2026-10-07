@@ -20,13 +20,13 @@ async function expectHeaderApps(page: Page, headerSelector = '.ls-workspace-head
   await expect(page.getByRole('button', { name: '切换应用' })).toHaveCount(0)
   if ((page.viewportSize()?.width ?? 0) < mobileBreakpoint) {
     await header.getByRole('button', { name: '操作' }).click()
-    for (const label of ['团队', '商品', '记账', '聊天', '微博']) {
+    for (const label of ['团队', '商品', '记账', '聊天', '社区', '微博']) {
       await expect(page.getByText(new RegExp(`^${label}(?:（.*）)?$`)).last()).toBeVisible()
     }
     await page.keyboard.press('Escape')
     await expect(page.locator('.n-dropdown-menu:visible')).toHaveCount(0)
   } else {
-    for (const label of ['团队', '商品', '记账', '聊天', '微博']) {
+    for (const label of ['团队', '商品', '记账', '聊天', '社区', '微博']) {
       await expect(header.getByText(label, { exact: true })).toBeVisible()
     }
     if (headerSelector === '.ls-workspace-header') {
@@ -53,10 +53,10 @@ async function expectHeaderApps(page: Page, headerSelector = '.ls-workspace-head
           bodyColor: getComputedStyle(document.body).color,
         }
       })
-      expect(geometry.width).toBe(472)
+      expect(geometry.width).toBe(568)
       expect(geometry.rightInset).toBe(24)
-      expect(geometry.itemWidths).toEqual([88, 88, 88, 88, 88])
-      expect(geometry.gaps).toEqual([8, 8, 8, 8])
+      expect(geometry.itemWidths).toEqual([88, 88, 88, 88, 88, 88])
+      expect(geometry.gaps).toEqual([8, 8, 8, 8, 8])
       expect(new Set(geometry.textStyles.map((style) => JSON.stringify(style))).size).toBe(1)
       expect(geometry.textStyles.every((style) => style.color === geometry.bodyColor)).toBe(true)
     }
@@ -86,6 +86,54 @@ async function expectOverviewLayout(page: Page, label: string) {
   await firstLink.focus()
   await expect(firstLink).toBeFocused()
 }
+
+const communityWorkspaces = [
+    ['http://demo.team.lostsky.work:5175', '/', '/access'],
+    ['http://demo.shop.lostsky.work:5179', '/manage', '/manage/access'],
+    ['http://demo.transaction.lostsky.work:5177', '/', '/workspace/access'],
+    ['http://demo.weibo.lostsky.work:5181', '/overview', '/workspace/access'],
+] as const
+for (const [origin, path, accessPath] of communityWorkspaces) {
+  test(`shared Community navigation stays alongside Chat in ${origin}`, async ({ page }) => {
+    await setToken(page, 'teamMember', 11)
+    const access = { team: { id: 1, slug: 'demo', name: '测试团队' }, permissions: [], abilities: {}, identity: { type: 'teamMember', entity_id: 101, name: '成员', belongs_to_team: true, is_external: false } }
+    await page.route(`${origin}/api/**`, async route => {
+      const requestPath = new URL(route.request().url()).pathname
+      expect([`/api${accessPath}`, '/api/dashboard']).toContain(requestPath)
+      const data = requestPath === '/api/dashboard' ? Object.fromEntries(['entities', 'members', 'documents', 'notices'].map(key => [key, { available: false, count: null, error: null, reason: null }])) : access
+      await route.fulfill({ json: { code: 0, data } })
+    })
+    await page.goto(`${origin}${path}`)
+    await expect(page.locator('.ls-workspace-header')).toBeVisible()
+    await page.mouse.move(0, 0)
+    await expect(page.locator('.n-message')).toHaveCount(0)
+    for (const width of [320, 768, 900, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 })
+      await expectHeaderApps(page)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${origin} at ${width}px`).toBe(true)
+    }
+    await expect(page.locator('.ls-workspace-header').getByRole('link', { name: '社区', exact: true })).toHaveAttribute('href', 'http://community.lostsky.work:5182/')
+    await page.setViewportSize({ width: 375, height: 900 })
+    await page.evaluate(() => { document.documentElement.style.fontSize = '200%' })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
+    await expectHeaderApps(page)
+    await page.evaluate(() => { document.documentElement.style.fontSize = '' })
+  })
+}
+test('shared Community navigation remains available for customer Chat without an owning team', async ({ page }) => {
+  await setToken(page, 'teamCustomer', 31)
+  await page.route('http://chat.lostsky.work:5176/api/**', async route => {
+    const path = new URL(route.request().url()).pathname
+    expect(['/api/actor', '/api/conversation']).toContain(path)
+    await route.fulfill({ json: { code: 0, data: path === '/api/actor' ? { id: 31, slug: 'customer', name: '顾客', type: 'customer', team: null } : [] } })
+  })
+  await page.goto('http://chat.lostsky.work:5176/')
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await expect(page.locator('.app-links').getByRole('link', { name: '社区', exact: true })).toHaveAttribute('href', 'http://community.lostsky.work:5182/')
+  await page.setViewportSize({ width: 375, height: 900 })
+  await page.locator('.app-menu').getByRole('button', { name: '操作' }).click()
+  await expect(page.locator('.n-dropdown-menu:visible').getByText('社区', { exact: true })).toBeVisible()
+})
 
 function personalResult(type: 'team' | 'teamMember' | 'teamVirtual' = 'team') {
   const isTeam = type === 'team'
@@ -703,7 +751,7 @@ test('missing transaction Ability keeps the app entry available and explains onl
   expect(businessRequests).toBe(2)
 })
 
-test('Chat keeps the five-app switch for Customer and routes Product to the customer center', async ({ page }) => {
+test('Chat keeps the six-app switch for Customer and routes Product to the customer center', async ({ page }) => {
   await setToken(page, 'teamCustomer', 31)
   let workspaceAccessRequests = 0
   await page.route('http://chat.lostsky.work:5176/api/**', async (route) => {

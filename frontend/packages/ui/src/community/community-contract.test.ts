@@ -34,8 +34,10 @@ describe('社区跨应用组件契约', () => {
     for (const app of ['admin', 'team']) expect(source(`frontend/apps/${app}/src/views/CommunitiesView.vue`)).toContain('<CommunityManagement')
     expect(source('frontend/apps/community/src/views/ManageView.vue')).toContain('<CommunityGovernance')
     const app = source('frontend/apps/community/src/App.vue')
-    expect(app).toContain('identityUrl()')
+    expect(app).toContain('identityUrl(new URL(route.fullPath, location.origin).href)')
     expect(app).not.toContain('NSelect')
+    expect(source('frontend/apps/account/src/views/IdentityView.vue')).not.toContain('communityWorkspaceUrl')
+    expect(source('frontend/apps/account/src/views/TeamsView.vue')).not.toContain('communityWorkspaceUrl')
     expect(source(`${directory}/CommunityGovernance.vue`)).not.toContain('/administrators')
     expect(source('frontend/packages/api/src/community.ts')).toContain("from './generated/community'")
     for (const path of ['frontend/apps/community/src/views/PostFormView.vue', `${directory}/CommunityManagement.vue`, `${directory}/CommunityGovernance.vue`]) {
