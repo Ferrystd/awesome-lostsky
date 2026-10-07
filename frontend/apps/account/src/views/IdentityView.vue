@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { api, auth, friendlyError } from '@lostsky/api/client'
-import { safeRedirect } from '@lostsky/shared/navigation'
+import { safeRedirect, communityWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Bot, LogOut, ShieldUser, UserRound } from '@lucide/vue'
@@ -61,6 +61,7 @@ async function logout() {
 <template>
     <main class="identity-page">
       <nav class="page-actions" aria-label="账号操作">
+        <a :href="communityWorkspaceUrl()">社区广场</a>
         <a class="back" href="/teams"><ArrowLeft :size="18" />返回团队列表</a>
         <NButton quaternary @click="logout"><template #icon><LogOut :size="18" /></template>退出登录</NButton>
       </nav>

@@ -70,6 +70,9 @@ $assert(
 );
 $assert(
     PermissionDictionary::adminKeys() === [
+        'admin.community.read',
+        'admin.community.write',
+        'admin.community.moderate',
         'admin.dashboard.read',
         'admin.system.read',
         'admin.user.read',

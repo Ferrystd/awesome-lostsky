@@ -74,6 +74,8 @@ Team 个人工作台和 Shop 顾客中心的自管接口只解析上述证明链
 
 ## 业务上下文
 
+Community 同样使用当前全局 Entity，社区 slug 不确定人员身份。公开读取允许无 Entity；社区管理员关系只授予该社区日常管理权，Team 的社区管理按所有者团队 Permission 校验。Admin 平台社区管理使用平台 user 权限，不要求领取 Entity；三种入口的权限互不隐式转换，详见 [Community](../apps/community.md)。
+
 `Context` 只从当前 `acting_entity` 填充业务 `member` 与 `customer`。真实 user 只用于认证、设备、根身份、明确的 user 层流程和审计。`Permission`、`ChatAccess`、成员/顾客访问以及交易所有者规则均不得回退到 user 关联关系。
 
 `entity` 是持久化业务主体的唯一根表。业务表只保存一个指向 `entity.id` 的外键；不同职责使用带语义的列名，例如 `handler_entity_id`、`sender_entity_id`、`cs_entity_id`。引用表不再重复保存实体类型，本地 `team_member.id` 等子类型 ID 仅用于子类型自身的结构关系。

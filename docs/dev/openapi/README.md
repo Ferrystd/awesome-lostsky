@@ -9,12 +9,13 @@
 - [`display.openapi.json`](display.openapi.json)：团队主页、公开实体、公开文档与 Markdown 实体解析接口
 - [`team.openapi.json`](team.openapi.json)：团队工作台与 Team/成员/虚拟 Entity 个人工作台
 - [`chat.openapi.json`](chat.openapi.json)：teamless Chat 的当前 Entity、会话、邀请、屏蔽、消息与 EntitySession 实时令牌
+- [`community.openapi.json`](community.openapi.json)：teamless Community 的公开社区、板块、公告、帖子、评论、当前 Entity 互动与日常管理
 - [`shop.openapi.json`](shop.openapi.json)：商品、订单、顾客自助中心
 - [`transaction.openapi.json`](transaction.openapi.json)：记账流水、余额充值、统计、权益下发与核销；发单协作关系由 Team 顾客接口维护
 - [`weibo.openapi.json`](weibo.openapi.json)：微博账号、点单信息流、预设评论、媒体、单次写操作、自动发帖、每日签到与 30 天执行日志
 - [`common.openapi.json`](common.openapi.json)：公共上传入口
 
-这些 JSON 是接口契约正文。前端类型由 `openapi-typescript` 从九份契约生成到 `frontend/packages/api/src/generated/`，接口结构变更后在项目根目录运行 `npm run generate:api`，并把生成文件与契约一起核对；不要直接手改生成类型。
+这些 JSON 是接口契约正文。前端类型由 `openapi-typescript` 从各应用契约生成到 `frontend/packages/api/src/generated/`，接口结构变更后在项目根目录运行 `npm run generate:api`，并把生成文件与契约一起核对；不要直接手改生成类型。
 
 ## 调用入口
 
@@ -24,7 +25,7 @@
 - `https://{slug}.{app}.api.lostsky.work`：通过 Host 直接解析团队和 app
 - `https://{customDomain}`：通过 `team_domain` 反查团队和 app
 
-Account 与 Admin 是无团队应用，使用公共 API 时分别发送 `Origin: https://account.lostsky.work` 或 `Origin: https://admin.lostsky.work`，不要求团队 slug。完整解析规则见[请求路由与应用解析](../architecture/routing.md)。
+Account、Admin、Chat 与 Community 是无团队应用，使用公共 API 时发送对应 `Origin: https://{app}.lostsky.work`，不要求团队 slug，也支持 `{app}.api.lostsky.work` 直连入口。完整解析规则见[请求路由与应用解析](../architecture/routing.md)。
 
 ## 通用约定
 

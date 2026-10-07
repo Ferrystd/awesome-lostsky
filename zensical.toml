@@ -55,6 +55,7 @@ nav = [
     "apps/account.md",
     "apps/admin.md",
     "apps/chat.md",
+    "apps/community.md",
     "apps/common.md",
     "apps/display.md",
     "apps/shop.md",
@@ -93,7 +94,6 @@ nav = [
   {"API" = ["openapi/README.md"]},
   {"计划" = [
     "TODO.md",
-    "plans/community.md",
     "plans/markdown-ai.md"
   ]}
 ]

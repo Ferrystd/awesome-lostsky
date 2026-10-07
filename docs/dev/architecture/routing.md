@@ -17,6 +17,8 @@ LostSky 使用 ThinkPHP 8 多应用模式。API 请求先确定应用，再按�
 
 无团队应用也支持 `{app}.api.lostsky.work` 直连 API，例如 `chat.api.lostsky.work`。该入口按 `teamless_apps` 判断，不绑定团队。
 
+Community 使用 `community.lostsky.work` 与 `community.api.lostsky.work`，社区 slug 位于业务路径中，只定位社区。公开读取不要求身份，互动使用当前有效 Entity，所有者团队只参与对应社区的管理授权。
+
 Display 与 Shop 使用标准团队前端 Origin
 `https://{slug}.display.lostsky.work`、`https://{slug}.shop.lostsky.work`。两者都需要有效团队上下文，
 但公开展示控制器不组合登录或实体身份中间件；Shop 的顾客写接口仍按各自路由要求认证。

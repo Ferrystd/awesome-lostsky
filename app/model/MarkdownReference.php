@@ -42,6 +42,9 @@ class MarkdownReference extends Base
     {
         return $this->morphTo('referenceable', [
             'document'          => Document::class,
+            'communityPost' => CommunityPost::class,
+            'communityComment' => CommunityComment::class,
+            'communityAnnouncement' => CommunityAnnouncement::class,
             'teamEntityProfile' => TeamEntityProfile::class,
             'teamProduct'       => TeamProduct::class,
         ]);

@@ -277,6 +277,18 @@ php think oss:fallback:configure
 
 迁移包含会话归并和权限清理，回退须恢复配套数据库备份及旧发布版本，不能只回滚代码。`tests/chat_migration.php` 使用临时表覆盖归并、UUID 映射、消息与回复保留、已读合并、待投递事件及重复执行；`tests/chat_backend.php` 覆盖身份、参与资格、邀请、屏蔽和集成投递规则。
 
+<a id="community-initial-setup"></a>
+
+## Community 首次启用
+
+已有库先备份并执行 `sql/patches/20261007_community.sql`，核对新增社区及关联表、索引后发布后端；新建空库使用当前 Schema，不再重复执行此补丁。
+
+前端统一构建生成 `www/community.lostsky.work/`，为 `community.lostsky.work` 配置 SPA 站点，并将 `community.api.lostsky.work` 指向现有 API 站点。标准证书的 `*.lostsky.work` 与 `*.api.lostsky.work` 已覆盖这两个名称；实际证书、DNS 与站点配置仍须在部署环境验收。
+
+平台管理员按角色授予 `admin.community.read`、`admin.community.write` 与 `admin.community.moderate`，再从 Admin 创建官方社区并分配社区管理员；团队通过目标团队角色授予 `community.team.read`、`community.team.manage`。已有自定义角色不会因代码增加权限而自动拥有新权限。
+
+上线验收公开阅读、Account 身份回跳、互动写入以及 Team/Admin 各自管理范围。Community 无新增常驻 Worker 或定时任务；本地迁移、构建和测试不代表站点已发布或官方社区已创建。
+
 ## 宝塔静态前端部署
 
 宝塔添加站点时会在根目录生成默认 `index.html` 和 `404.html`。LostSky 的 Vite 应用是单入口 SPA，每个应用域名目录只保留 `index.html`，前端路径统一回退到该文件，因此不要直接在已经发布的 `www/{domain}` 目录上添加站点。
@@ -285,7 +297,7 @@ php think oss:fallback:configure
 
 | 站点类型 | 域名 | 不存在的路径 |
 | --- | --- | --- |
-| Vue SPA | `www`、`account`、`admin`、`team`、`chat`、`transaction`、`display`、`shop`、`weibo` 及其团队子域名 | 回退到 `/index.html`，交给 Vue Router |
+| Vue SPA | `www`、`account`、`admin`、`team`、`chat`、`community`、`transaction`、`display`、`shop`、`weibo`；团队应用另有团队子域名 | 回退到 `/index.html`，交给 Vue Router |
 | 公共静态资源 | `assets.lostsky.work` | 直接返回 `404` |
 | 文档站 | `docs.lostsky.work`、`doc.lostsky.work` | 直接返回 `404` |
 | ThinkPHP API | `api.lostsky.work` | 使用后端重写规则，不使用 SPA 回退 |

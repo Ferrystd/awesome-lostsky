@@ -5,7 +5,7 @@ audience:
   - team
 tags:
   - 权限
-modified_at: 2026-10-05
+modified_at: 2026-10-07
 ---
 
 # 权限字典
@@ -19,6 +19,8 @@ modified_at: 2026-10-05
 
 | 分组 | Permission | 允许的操作与范围 |
 | --- | --- | --- |
+| 团队社区 | `community.team.read` | community.team.read |
+| 团队社区 | `community.team.manage` | community.team.manage |
 | 团队成员 | `team.member.read` | 查看完整成员管理集合，包括团队内隐藏或封禁成员；基础目录不要求此权限 |
 | 团队成员 | `team.member.invite` | 邀请或新增成员 |
 | 团队成员 | `team.member.update` | 编辑、封禁、解封、设置 slug 与搜索成员 |

@@ -1,6 +1,6 @@
 const ACCOUNT_LOGIN_URL = '//account.lostsky.work/login'
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
-const LOCAL_APP_PORTS = new Set(['5173', '5174', '5175', '5176', '5177', '5178', '5179', '5180', '5181'])
+const LOCAL_APP_PORTS = new Set(['5173', '5174', '5175', '5176', '5177', '5178', '5179', '5180', '5181', '5182'])
 
 function isLocalDevelopmentHost(hostname: string | undefined) {
   return import.meta.env.DEV && Boolean(hostname && LOCAL_HOSTS.has(hostname))
@@ -117,6 +117,12 @@ export function chatWorkspaceUrl(
     if (value !== null && value !== undefined && value !== '') url.searchParams.set(key, String(value))
   }
   return url.href
+}
+
+export function communityWorkspaceUrl(path = '/') {
+  const host = isLocalDevelopmentHost(location.hostname) ? location.hostname : 'community.lostsky.work'
+  const port = import.meta.env.DEV ? ':5182' : location.port ? `:${location.port}` : ''
+  return new URL(path, `${location.protocol}//${host}${port}`).href
 }
 
 export function shopWorkspaceUrl(path = '/') {

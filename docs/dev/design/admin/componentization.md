@@ -71,7 +71,7 @@
 
 | 规则 | 范围 | 执行器 | 允许项与失效条件 |
 | --- | --- | --- | --- |
-| CC-01 调用方封闭 | `frontend/apps/{account,team,chat,transaction,admin,weibo,shop}/src` | `frontend/packages/ui/src/admin-source-contract.test.ts` | 不允许 `:deep(.ls-*)`；新增允许项必须是第三方不可封闭边界，先在本页与应用条目具名登记，再以精确文件和模式加入测试。当前无允许项。 |
+| CC-01 调用方封闭 | `frontend/apps/{account,team,chat,community,transaction,admin,weibo,shop}/src` 与跨应用社区业务组件 | `frontend/packages/ui/src/admin-source-contract.test.ts` | 不允许 `:deep(.ls-*)`；新增允许项必须是第三方不可封闭边界，先在本页与应用条目具名登记，再以精确文件和模式加入测试。当前无允许项。 |
 | CC-02 公共契约 | `frontend/packages/ui/src/components` | `frontend/packages/ui/src/admin-components.test.ts` | props、emits、slots、默认值与语义上下文必须有精确测试；视觉尺寸不得变成调用方参数。 |
 | CC-03 可观测几何 | 资料表单及新增同类布局 | `tests/frontend.spec.ts` | 使用计算样式、滚动尺寸和 `boundingBox()`；桌面与移动端必须覆盖，长文案、加载、禁用或只读状态存在时一并覆盖。 |
 | CC-04 单一原语与提交边界 | 全部后台业务页面 | `frontend/packages/ui/src/admin-source-contract.test.ts`、页面契约测试与 OpenAPI 路由测试 | 业务页面不得直接使用已有公共视觉原语的第三方底层控件；同一业务分组只有一个保存动作和一个原子批量端点，旧单字段端点不得重新进入调用方。 |

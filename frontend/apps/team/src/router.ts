@@ -103,6 +103,11 @@ function legacyNoticeRedirect(to: RouteLocationGeneric, detail = false) {
 }
 
 const routes = [
+  { path: '/communities', component: () => import('./views/CommunitiesView.vue'), meta: { title: '团队社区', permission: 'community.team.read', communityView: 'list', pageWidth: 'content', accessMode: 'list' } },
+  { path: '/communities/new', component: () => import('./views/CommunitiesView.vue'), meta: { title: '创建社区', permission: 'community.team.read', communityView: 'form', pageWidth: 'form', accessMode: 'data' } },
+  { path: '/communities/:id(\\d+)', component: () => import('./views/CommunitiesView.vue'), meta: { title: '社区详情', permission: 'community.team.read', communityView: 'detail', pageWidth: 'content', accessMode: 'data' } },
+  { path: '/communities/:id(\\d+)/edit', component: () => import('./views/CommunitiesView.vue'), meta: { title: '编辑社区', permission: 'community.team.read', communityView: 'form', pageWidth: 'form', accessMode: 'data' } },
+  { path: '/communities/:id(\\d+)/administrators', component: () => import('./views/CommunitiesView.vue'), meta: { title: '社区管理员', permission: 'community.team.read', communityView: 'administrators', pageWidth: 'content', accessMode: 'list' } },
   { path: '/', component: DashboardView, meta: { title: '概览' } },
   { path: '/personal/notices', component: NoticesView, meta: { title: '收件箱', noticeScope: 'entity', workspace: 'personal' } },
   { path: '/personal/notices/detail', component: NoticeDetailView, meta: { title: '阅读通知', noticeScope: 'entity', workspace: 'personal', pageWidth: 'content' } },

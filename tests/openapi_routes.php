@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 $root = dirname(__DIR__);
-$apps = ['account', 'admin', 'chat', 'common', 'display', 'shop', 'team', 'transaction', 'weibo'];
+$apps = ['account', 'admin', 'chat', 'community', 'common', 'display', 'shop', 'team', 'transaction', 'weibo'];
 $errors = [];
 
 foreach ($apps as $app) {
@@ -46,10 +46,14 @@ foreach ($apps as $app) {
     }
 
     $operations = [];
+    $operationIds = [];
     foreach ($document['paths'] ?? [] as $path => $pathItem) {
         foreach (['get', 'post', 'put', 'delete', 'patch'] as $method) {
             if (isset($pathItem[$method])) {
                 $operations["{$method} {$path}"] = true;
+                $id = $pathItem[$method]['operationId'] ?? null;
+                if ($id !== null && isset($operationIds[$id])) $errors[] = "{$app}: duplicate operationId: {$id}";
+                if ($id !== null) $operationIds[$id] = true;
             }
         }
     }

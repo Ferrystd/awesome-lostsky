@@ -35,6 +35,6 @@ npm run dev:<app> -- --host 127.0.0.1
 
 `<app>` 替换为下面列出的应用名（官网使用 `dev:site`，hosts 名称使用 `www`），`slug` 仅用于团队子域名。`tests/hosts.py` 会写入系统 hosts，需要管理员/root 权限；它只补充缺失名称，不纠正已有错误映射。浏览器使用相应业务域名及 Vite 端口，先确认本地 API 虚拟主机可达。自动化 E2E 使用自己的本地映射，无需执行 hosts 脚本，见[测试就绪检查](testing.md#e2e-domain-readiness)。
 
-HMR 端口：`site 5173`、`account 5174`、`team 5175`、`chat 5176`、`transaction 5177`、`display 5178`、`shop 5179`、`admin 5180`、`weibo 5181`。具体配置见 `frontend/vite.<app>.ts`。
+HMR 端口：`site 5173`、`account 5174`、`team 5175`、`chat 5176`、`transaction 5177`、`display 5178`、`shop 5179`、`admin 5180`、`weibo 5181`、`community 5182`。具体配置见 `frontend/vite.<app>.ts`。
 
 本地 Vite 默认把 `/api` 代理到 `http://api.lostsky.work`，与 `tests/hosts.py` 配置的本地 API 虚拟主机一致；需要连接其他开发 API 时通过 `VITE_DEV_API_TARGET` 显式覆盖。不要把默认目标改成生产 HTTPS 地址，否则本地证书或静态站点兜底会把真实 API 错误伪装成 CORS。

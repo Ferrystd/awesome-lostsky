@@ -3,7 +3,7 @@ import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const repository = process.cwd()
-const applicationNames = ['account', 'team', 'chat', 'transaction', 'admin', 'weibo']
+const applicationNames = ['account', 'team', 'chat', 'community', 'transaction', 'admin', 'weibo']
 const sourceRoots = [...applicationNames.map((name) => join(repository, 'frontend', 'apps', name, 'src')), join(repository, 'frontend', 'packages', 'ui', 'src')]
 
 function filesUnder(directory: string): string[] {
@@ -22,6 +22,7 @@ const componentCallerRoots = readdirSync(join(repository, 'frontend', 'apps'), {
 })
   .filter((entry) => entry.isDirectory())
   .map((entry) => join(repository, 'frontend', 'apps', entry.name, 'src'))
+  .concat(join(repository, 'frontend', 'packages', 'ui', 'src', 'community'))
 
 describe('后台源码设计契约', () => {
   it('微博点单与预设页面复用公共页面、异步和列表原语', () => {
@@ -350,8 +351,9 @@ describe('后台源码设计契约', () => {
   })
 
   it('Permission 与 Ability 原因只进入 info 弹窗或按钮权限态', () => {
-    const roots = ['admin', 'team', 'transaction', 'shop', 'weibo']
+    const roots = ['admin', 'team', 'community', 'transaction', 'shop', 'weibo']
       .map((name) => join(repository, 'frontend', 'apps', name, 'src'))
+      .concat(join(repository, 'frontend', 'packages', 'ui', 'src', 'community'))
     const pages = roots.flatMap(filesUnder).filter((path) => path.endsWith('.vue'))
     const forbiddenAttribute = /:(?:description|empty-description|hint|title|placeholder|count-label)=["'][^"']*(?:routeAccess\.reason\.value|permissionReason\(|abilityReason\()/
     const forbiddenContent = /<(?:p|span|small|dd|NAlert|NEmpty|LsEmptyState)\b[^>]*>[^<]*(?:routeAccess\.reason\.value|permissionReason\(|abilityReason\()/
@@ -393,8 +395,9 @@ describe('后台源码设计契约', () => {
     expect(missingRouteTarget('<LsButton @click="router.push(`/entity?id=${row.entity_id}`)" :disabled="!row.entity_id">')).toBe(true)
     expect(missingRouteTarget('<LsButton @click="router.push(`/entity?id=${row.entity_id}`)" :disabled="!access.canRead">')).toBe(false)
     expect(missingRouteTarget('<LsButton @click="router.push(`/entity?id=${row.entity_id}`)" :disabled="!row.entity_id || !canRead">')).toBe(false)
-    const roots = ['admin', 'team', 'transaction', 'shop', 'weibo']
+    const roots = ['admin', 'team', 'community', 'transaction', 'shop', 'weibo']
       .map((name) => join(repository, 'frontend', 'apps', name, 'src'))
+      .concat(join(repository, 'frontend', 'packages', 'ui', 'src', 'community'))
     const pages = roots.flatMap(filesUnder).filter((path) => path.endsWith('.vue'))
     for (const path of pages) {
       const source = readFileSync(path, 'utf8')

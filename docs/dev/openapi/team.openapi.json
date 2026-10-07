@@ -3649,6 +3649,635 @@
             "maximum": 100
           }
         }
+      },
+      "CommunityEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "nullable": true
+          },
+          "is_valid": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "is_valid"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "owner_type": {
+            "type": "string",
+            "enum": [
+              "Platform",
+              "Team"
+            ]
+          },
+          "team_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "is_official": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Active",
+              "Paused"
+            ]
+          },
+          "owner": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "entity_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "is_joined": {
+            "type": "boolean"
+          },
+          "is_muted": {
+            "type": "boolean"
+          },
+          "mute_reason": {
+            "type": "string"
+          },
+          "can_manage": {
+            "type": "boolean"
+          },
+          "can_write": {
+            "type": "boolean"
+          },
+          "can_moderate": {
+            "type": "boolean"
+          },
+          "team_available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "create_time",
+          "update_time",
+          "slug",
+          "name",
+          "description",
+          "owner_type",
+          "team_id",
+          "is_official",
+          "status",
+          "owner",
+          "entity_id",
+          "is_joined",
+          "is_muted",
+          "mute_reason",
+          "can_manage",
+          "team_available"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityBoard": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "community_id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sort": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "community_id",
+          "name",
+          "sort",
+          "enabled"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityAnnouncement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "community_id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "attachment_team_id": {
+            "type": "integer",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "community_id",
+          "title",
+          "content",
+          "pinned"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityPost": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "community_id": {
+            "type": "integer"
+          },
+          "author_entity_id": {
+            "type": "integer"
+          },
+          "content": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Visible",
+              "Deleted",
+              "Hidden"
+            ]
+          },
+          "hidden_reason": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/CommunityEntity"
+          },
+          "can_edit": {
+            "type": "boolean"
+          },
+          "board_id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "like_count": {
+            "type": "integer"
+          },
+          "comment_count": {
+            "type": "integer"
+          },
+          "is_liked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "create_time",
+          "update_time",
+          "community_id",
+          "author_entity_id",
+          "content",
+          "status",
+          "hidden_reason",
+          "author",
+          "can_edit",
+          "board_id",
+          "title",
+          "pinned",
+          "like_count",
+          "comment_count",
+          "is_liked"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityComment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "community_id": {
+            "type": "integer"
+          },
+          "author_entity_id": {
+            "type": "integer"
+          },
+          "content": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Visible",
+              "Deleted",
+              "Hidden"
+            ]
+          },
+          "hidden_reason": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/CommunityEntity"
+          },
+          "can_edit": {
+            "type": "boolean"
+          },
+          "post_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "create_time",
+          "update_time",
+          "community_id",
+          "author_entity_id",
+          "content",
+          "status",
+          "hidden_reason",
+          "author",
+          "can_edit",
+          "post_id"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityMember": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "community_id": {
+            "type": "integer"
+          },
+          "entity_id": {
+            "type": "integer"
+          },
+          "entity": {
+            "$ref": "#/components/schemas/CommunityEntity"
+          },
+          "joined": {
+            "type": "boolean"
+          },
+          "muted": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_id",
+          "entity",
+          "joined",
+          "muted",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityAdministrator": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "create_time": {
+            "type": "integer"
+          },
+          "update_time": {
+            "type": "integer"
+          },
+          "community_id": {
+            "type": "integer"
+          },
+          "entity_id": {
+            "type": "integer"
+          },
+          "entity": {
+            "$ref": "#/components/schemas/CommunityEntity"
+          },
+          "joined": {
+            "type": "boolean"
+          },
+          "muted": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_id",
+          "entity",
+          "joined",
+          "muted",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "CommunitySession": {
+        "type": "object",
+        "properties": {
+          "entity": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CommunityEntity"
+              }
+            ],
+            "nullable": true
+          },
+          "upload_team_slug": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "entity",
+          "upload_team_slug"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityDataPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommunityData"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityBoardPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommunityBoard"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityAnnouncementPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommunityAnnouncement"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityPostPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommunityPost"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityCommentPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommunityComment"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityMemberPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommunityMember"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit"
+        ],
+        "additionalProperties": false
+      },
+      "CommunityAdministratorPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommunityAdministrator"
+            }
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "list",
+          "page",
+          "limit"
+        ],
+        "additionalProperties": false
       }
     }
   },
@@ -12136,6 +12765,1765 @@
         "responses": {
           "200": {
             "description": "成功"
+          }
+        }
+      }
+    },
+    "/communities": {
+      "get": {
+        "operationId": "teamCommunityIndex",
+        "summary": "index",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Active",
+                "Paused"
+              ]
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityDataPage"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        }
+      },
+      "post": {
+        "operationId": "teamCommunityCreate",
+        "summary": "create",
+        "parameters": [],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityData"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slug": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "expected_entity_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "expected_entity_id",
+                  "slug",
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/communities/{id}": {
+      "get": {
+        "operationId": "teamCommunityGet",
+        "summary": "get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityData"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        }
+      },
+      "post": {
+        "operationId": "teamCommunityUpdate",
+        "summary": "update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityData"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slug": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "Active",
+                      "Paused"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "expected_entity_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "expected_entity_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/communities/{id}/administrators": {
+      "get": {
+        "operationId": "teamCommunityAdministrators",
+        "summary": "administrators",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityAdministratorPage"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        }
+      },
+      "post": {
+        "operationId": "teamCommunityAddAdministrator",
+        "summary": "addAdministrator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "entity_slug": {
+                    "type": "string"
+                  },
+                  "expected_entity_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "entity_slug",
+                  "expected_entity_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/communities/{id}/administrators/{entity_id}/remove": {
+      "post": {
+        "operationId": "teamCommunityRemoveAdministrator",
+        "summary": "removeAdministrator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expected_entity_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "expected_entity_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/communities/{id}/boards": {
+      "get": {
+        "operationId": "teamCommunityBoards",
+        "summary": "boards",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityBoardPage"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        }
+      }
+    },
+    "/communities/{id}/boards/{board_id}": {
+      "get": {
+        "operationId": "teamCommunityBoard",
+        "summary": "board",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "board_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityBoard"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        }
+      },
+      "post": {
+        "operationId": "teamCommunitySaveBoard",
+        "summary": "saveBoard",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "board_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityBoard"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                  },
+                  "sort": {
+                    "type": "integer"
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "expected_entity_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "name",
+                  "sort",
+                  "enabled",
+                  "expected_entity_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/communities/{id}/announcements": {
+      "get": {
+        "operationId": "teamCommunityAnnouncements",
+        "summary": "announcements",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityAnnouncementPage"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        }
+      }
+    },
+    "/communities/{id}/announcements/{announcement_id}": {
+      "get": {
+        "operationId": "teamCommunityAnnouncement",
+        "summary": "announcement",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "announcement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityAnnouncement"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        }
+      },
+      "post": {
+        "operationId": "teamCommunitySaveAnnouncement",
+        "summary": "saveAnnouncement",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "announcement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityAnnouncement"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "pinned": {
+                    "type": "boolean"
+                  },
+                  "expected_entity_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "title",
+                  "content",
+                  "pinned",
+                  "expected_entity_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/communities/{id}/posts": {
+      "get": {
+        "operationId": "teamCommunityPosts",
+        "summary": "posts",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "board_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityPostPage"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        }
+      }
+    },
+    "/communities/{id}/comments": {
+      "get": {
+        "operationId": "teamCommunityComments",
+        "summary": "comments",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityCommentPage"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        }
+      }
+    },
+    "/communities/{id}/members": {
+      "get": {
+        "operationId": "teamCommunityMembers",
+        "summary": "members",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CommunityMemberPage"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        }
+      }
+    },
+    "/communities/{id}/posts/{post_id}/moderate": {
+      "post": {
+        "operationId": "teamCommunityModeratePost",
+        "summary": "moderatePost",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hidden": {
+                    "type": "boolean"
+                  },
+                  "pinned": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "expected_entity_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "expected_entity_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/communities/{id}/comments/{comment_id}/moderate": {
+      "post": {
+        "operationId": "teamCommunityModerateComment",
+        "summary": "moderateComment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hidden": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "expected_entity_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "expected_entity_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/communities/{id}/members/{entity_id}/mute": {
+      "post": {
+        "operationId": "teamCommunityMute",
+        "summary": "mute",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "entity_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录"
+          },
+          "403": {
+            "description": "无权限或互动限制"
+          },
+          "404": {
+            "description": "资源不存在或不属于目标社区"
+          },
+          "409": {
+            "description": "身份切换或已删除"
+          },
+          "422": {
+            "description": "输入无效"
+          },
+          "428": {
+            "description": "需要领取有效 Entity"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "muted": {
+                    "type": "boolean"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "expected_entity_id": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "expected_entity_id"
+                ],
+                "additionalProperties": false
+              }
+            }
           }
         }
       }

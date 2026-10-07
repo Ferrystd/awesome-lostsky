@@ -191,6 +191,35 @@ aliases: [服务, Service]
 | `delete` | `int $teamId`、`string $slug` | `int` |
 | `model` | `int $teamId`、`string $slug` | `model\TeamVirtual` |
 
+## Community
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `uploadTeamSlug` | `?array $actor` | `?string` |
+| `managedResource` | `model\Community $community`、`string $kind`、`int $id` | `array` |
+| `audited` | `think\Request $request`、`string $application`、`?model\Community $community`、`string $action`、`callable $operation` | `mixed` |
+| `resolve` | `string\|int $key` | `model\Community` |
+| `actor` | `?array $actor`、`int $expected` | `array` |
+| `canManage` | `model\Community $community`、`?array $actor` | `bool` |
+| `manage` | `model\Community $community`、`?array $actor` | `void` |
+| `scope` | `model\Community $community`、`?int $teamId` | `void` |
+| `data` | `model\Community $row`、`?array $actor` | `array` |
+| `listing` | `?int $teamId`、`bool $platform`、`?array $actor`、`bool $mine`、`string $keyword`、`string $status`、`int $page`、`int $limit` | `array` |
+| `save` | `?model\Community $row`、`?int $teamId`、`array $data` | `model\Community` |
+| `relation` | `model\Community $community`、`array $actor`、`string $kind`、`bool $enabled`、`int $postId = 0` | `void` |
+| `interactive` | `model\Community $community`、`array $actor`、`bool $joined = true`、`bool $mute = false` | `void` |
+| `resource` | `string $class`、`model\Community $community`、`int $id` | `mixed` |
+| `visiblePost` | `model\Community $community`、`int $id`、`?array $actor` | `model\CommunityPost` |
+| `contentData` | `mixed $row`、`?array $actor`、`bool $manage = false` | `array` |
+| `resources` | `model\Community $community`、`string $kind`、`?array $actor`、`bool $manage`、`int $parent`、`int $board`、`string $keyword`、`int $page`、`int $limit` | `array` |
+| `writeContent` | `model\Community $community`、`array $actor`、`string $kind`、`int $id`、`int $parent`、`array $data`、`bool $delete = false` | `array` |
+| `saveBoard` | `model\Community $community`、`int $id`、`array $data` | `array` |
+| `saveAnnouncement` | `model\Community $community`、`int $id`、`array $data`、`?array $actor` | `array` |
+| `moderate` | `model\Community $community`、`string $kind`、`int $id`、`?bool $hidden`、`?bool $pinned`、`string $reason` | `void` |
+| `mute` | `model\Community $community`、`int $entityId`、`bool $muted`、`string $reason` | `void` |
+| `administrator` | `model\Community $community`、`string $slug`、`int $entityId`、`bool $remove` | `void` |
+| `entityData` | `int $id` | `?array` |
+
 ## CustomerAssignment
 
 | 方法 | 参数 | 返回 |
@@ -370,6 +399,7 @@ aliases: [服务, Service]
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
 | `tracks` | `model\Base $model` | `bool` |
+| `assertNoNewInternalReferences` | `string $before`、`string $after` | `void` |
 | `activateSaved` | `model\Base $model`、`array $changed` | `void` |
 
 ## IdentitySession

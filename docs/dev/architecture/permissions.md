@@ -10,6 +10,8 @@
 
 | 分组 | Permission | 允许的操作与范围 |
 | --- | --- | --- |
+| 团队社区 | `community.team.read` | community.team.read |
+| 团队社区 | `community.team.manage` | community.team.manage |
 | 团队成员 | `team.member.read` | 查看完整成员管理集合，包括团队内隐藏或封禁成员；基础目录不要求此权限 |
 | 团队成员 | `team.member.invite` | 邀请或新增成员 |
 | 团队成员 | `team.member.update` | 编辑、封禁、解封、设置 slug 与搜索成员 |
@@ -98,6 +100,9 @@ Admin 平台权限与团队权限共用 `PermissionDictionary` 作为代码事�
 
 | 分组 | Permission | 允许的操作与范围 |
 | --- | --- | --- |
+| 平台社区 | `admin.community.read` | admin.community.read |
+| 平台社区 | `admin.community.write` | admin.community.write |
+| 平台社区 | `admin.community.moderate` | admin.community.moderate |
 | 平台概览 | `admin.dashboard.read` | 查看平台总览 |
 | 平台概览 | `admin.system.read` | 查看系统状态 |
 | 用户治理 | `admin.user.read` | 查看用户与脱敏联系方式 |
