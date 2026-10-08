@@ -158,7 +158,7 @@ Route::post('file/delete', 'file/delete');
 Route::get('file/usage', 'file/usage');
 
 // doc
-Route::get('doc', 'Doc/index');
+Route::get('doc', 'Doc/index')->completeMatch();
 Route::get('doc/get', 'Doc/get');
 Route::post('doc/create', 'Doc/create');
 Route::post('doc/edit', 'Doc/edit');
