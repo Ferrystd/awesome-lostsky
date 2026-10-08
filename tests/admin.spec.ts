@@ -178,6 +178,28 @@ test('Admin discovers code issuance from the sidebar and entitlement packages at
   await expect(page.getByRole('button', { name: /LS-TEST-TEAM-ABILITY/ })).toBeVisible()
 })
 
+test('Admin campaign direct entry renders existing codes and populated limits without runtime errors', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await mockAdminApi(page)
+  await page.route('**/api/entitlements/campaigns/1', route => route.fulfill({ json: {
+    code: 0, message: 'ok', data: {
+      id: 1, name: '团队月卡活动', package_id: 1, mode: 2, is_active: 1,
+      claim_group: 'monthly-trial', total_limit: '100',
+      redeem_starts_at: 1_753_660_800, redeem_ends_at: 1_756_339_200,
+    },
+  } }))
+  await page.route('**/api/entitlements/campaigns/1/codes?**', route => route.fulfill({ json: {
+    code: 0, message: 'ok', data: { total: 1, list: [
+      { id: 1, code_hint: 'LS-TEST-****', use_count: 2, is_active: 1 },
+    ] },
+  } }))
+  await page.goto('http://127.0.0.1:5180/entitlements/campaigns/1')
+  await expect(page.locator('#admin-campaign-name input')).toHaveValue('团队月卡活动')
+  await expect(page.getByText('LS-TEST-****', { exact: true })).toBeVisible()
+  expect(errors).toEqual([])
+})
+
 test('Admin entitlement navigation remains available for empty and restricted lists', async ({ page }) => {
   const limited = { ...session, permissions: [], is_super_admin: false }
   await mockAdminApi(page, { emptyEntitlements: true })
