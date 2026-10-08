@@ -3,7 +3,7 @@ import { api, auth, friendlyError } from '@lostsky/api/client'
 import { identityUrl, teamScopedAppUrl, workspaceAppEntries } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ArrowLeft, Bot, Building2, CheckCheck, CircleX, House, MessageCircleMore, MoreHorizontal, Plus, Radio, ReceiptText, Reply, Send, Settings2, Store, UserRound, Users } from '@lucide/vue'
+import { ArrowLeft, Bot, Building2, CheckCheck, CircleX, Globe, House, MessageCircleMore, MoreHorizontal, Plus, Radio, ReceiptText, Reply, Send, Settings2, Store, UserRound, Users } from '@lucide/vue'
 import { NButton, NDropdown, NInput } from 'naive-ui'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { loadCentrifuge, type CentrifugeClient, type Subscription } from '../lib/centrifuge'
@@ -69,6 +69,7 @@ function appIcon(key: string) {
   if (key === 'shop') return Store
   if (key === 'transaction') return ReceiptText
   if (key === 'weibo') return Radio
+  if (key === 'community') return Globe
   return MessageCircleMore
 }
 interface Participant extends Actor {

@@ -4,6 +4,7 @@ import LsPage from "@lostsky/ui/components/LsPage.vue";
 import LsWorkspaceHeader from "@lostsky/ui/components/LsWorkspaceHeader.vue";
 import {
   ChevronRight,
+  Globe,
   House,
   MessageCircleMore,
   Radio,
@@ -16,7 +17,7 @@ import { NButton } from "naive-ui";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: MessageCircleMore, weibo: Radio }
+const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: Globe, weibo: Radio }
 const route = useRoute();
 const router = useRouter();
 const drawer = ref(false);

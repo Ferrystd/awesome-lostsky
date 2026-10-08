@@ -1,11 +1,11 @@
-import { Bell, BookOpen, Boxes, ClipboardCheck, Contact, FileClock, Files, MessageCircleMore, Settings, ShieldCheck, Users } from '@lucide/vue'
+import { Bell, BookOpen, Boxes, ClipboardCheck, Contact, FileClock, Files, Globe, MessageCircleMore, Settings, ShieldCheck, Users } from '@lucide/vue'
 
 export const teamNavigation = [
   { key: 'team', title: '团队管理', description: '维护团队资源、协作与运行配置。', icon: Settings, links: [
     { to: '/entities', label: '人员管理', icon: Boxes, note: '主体资料、对象字段与虚拟人员' },
     { to: '/customers', label: '顾客管理', icon: Contact, note: '顾客资料与协作关系' },
     { to: '/chat-groups', label: '聊天管理', icon: MessageCircleMore, note: '团队群聊、成员与历史消息' },
-    { to: '/communities', label: '团队社区', icon: MessageCircleMore, note: '团队社区资料、状态与管理员' },
+    { to: '/communities', label: '团队社区', icon: Globe, note: '团队社区资料、状态与管理员' },
     { to: '/docs', label: '文档管理', icon: BookOpen, note: '规范与工作资料' },
     { to: '/files', label: '文件管理', icon: Files, note: '团队上传资源' },
     { to: '/notices/sent', label: '通知中心', icon: Bell, note: '已发送通知、查看情况与平台通知' },

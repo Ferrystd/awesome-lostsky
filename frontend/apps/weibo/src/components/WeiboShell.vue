@@ -5,6 +5,7 @@ import {
   ChevronRight,
   ClipboardList,
   FileClock,
+  Globe,
   House,
   Menu,
   MessageCircleMore,
@@ -60,9 +61,11 @@ function appIcon(key: string) {
       ? Store
       : key === "transaction"
         ? ReceiptText
-        : key === "chat" || key === "community"
+        : key === "chat"
           ? MessageCircleMore
-          : Radio;
+          : key === "community"
+            ? Globe
+            : Radio;
 }
 function switchApp(key: string) {
   const entry = entries.value.find((item) => item.key === key);

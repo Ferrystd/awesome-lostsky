@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { CommunityEntity } from '@lostsky/api/community'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
-import { Compass, MessageCircle, Users, LogIn } from '@lucide/vue'
+import { Compass, Globe, MessageCircle, Users, LogIn } from '@lucide/vue'
 import { NAvatar, NButton } from 'naive-ui'
 import { useRoute } from 'vue-router'
 defineProps<{ entity?: CommunityEntity | null; identityHref: string; identityLabel: string }>()
@@ -10,7 +10,7 @@ const route = useRoute()
 <template>
   <div class="community-shell">
     <header class="community-shell__header">
-      <RouterLink to="/" class="community-shell__brand"><MessageCircle :size="26" aria-hidden="true" /><strong>LostSky 社区</strong></RouterLink>
+      <RouterLink to="/" class="community-shell__brand"><Globe :size="26" aria-hidden="true" /><strong>LostSky 社区</strong></RouterLink>
       <div class="community-shell__identity"><NAvatar v-if="entity" round :src="entity.avatar || undefined" :size="32">{{ entity.name.slice(0, 1) }}</NAvatar><span v-if="entity" class="community-shell__person">当前人员：{{ entity.name }}</span><NButton tag="a" text :href="identityHref"><template #icon><LogIn :size="18" /></template>{{ identityLabel }}</NButton></div>
     </header>
     <nav class="community-shell__nav" aria-label="社区导航">

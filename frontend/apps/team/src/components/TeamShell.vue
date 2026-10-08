@@ -2,7 +2,7 @@
 import { teamNavigation, teamNavigationOwner } from '../lib/workspaceNavigation'
 import { identityUrl, workspaceAppEntries } from '@lostsky/shared/navigation'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
-import { Bell, ChevronDown, ChevronRight, FileText, House, Menu, MessageCircleMore, Radio, ReceiptText, ShieldCheck, Store, UserRound, X } from '@lucide/vue'
+import { Bell, ChevronDown, ChevronRight, FileText, Globe, House, Menu, MessageCircleMore, Radio, ReceiptText, ShieldCheck, Store, UserRound, X } from '@lucide/vue'
 import { NButton } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -12,7 +12,7 @@ type NavItem = {
   label: string
   icon: typeof House
 }
-const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: MessageCircleMore, weibo: Radio }
+const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: Globe, weibo: Radio }
 const route = useRoute()
 const router = useRouter()
 const drawer = ref(false)

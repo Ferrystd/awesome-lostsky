@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { identityUrl, workspaceAppEntries } from '@lostsky/shared/navigation'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
-import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Gift, Handshake, House, ListChecks, Menu, MessageCircleMore, Radio, ReceiptText, Store, UserRound, X } from '@lucide/vue'
+import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Gift, Globe, Handshake, House, ListChecks, Menu, MessageCircleMore, Radio, ReceiptText, Store, UserRound, X } from '@lucide/vue'
 import { NButton } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { serviceRedemptionReadPermissions } from '../lib/workspace-access'
 
-const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: MessageCircleMore, weibo: Radio }
+const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: Globe, weibo: Radio }
 const route = useRoute()
 const router = useRouter()
 const drawer = ref(false)
