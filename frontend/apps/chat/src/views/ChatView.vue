@@ -39,9 +39,11 @@ const identityType = computed(() => String(auth.entity()?.type ?? ''))
 const backendWorkspace = computed(() => ['team', 'teamMember', 'teamVirtual'].includes(identityType.value))
 const customerWorkspace = computed(() => identityType.value === 'teamCustomer')
 const baseAppOptions = computed<AppOption[]>(() => {
-  if (customerWorkspace.value) return workspaceAppEntries({ paths: { shop: '/customer/profile' }, states: {
-    team: { disabled: true, reason: '顾客不进入后台工作台' }, transaction: { disabled: true, reason: '顾客不进入后台工作台' }, weibo: { disabled: true, reason: '顾客不进入后台工作台' },
-  } })
+  if (customerWorkspace.value) return [
+    { key: 'display', label: '展示' },
+    ...workspaceAppEntries({ paths: { shop: '/customer/profile' } })
+      .filter(item => ['shop', 'chat', 'community'].includes(item.key)),
+  ]
   if (!backendWorkspace.value) return workspaceAppEntries({ states: Object.fromEntries(['team', 'shop', 'transaction', 'weibo'].map(key => [key, { disabled: true, reason: '请先领取团队身份' }])) })
   return workspaceAppEntries()
 })
@@ -50,7 +52,7 @@ const appOptions = computed<AppOption[]>(() => baseAppOptions.value.map(item => 
   const team = activeIdentity.value?.team?.slug
   if (!team) return { ...item, href: '//account.lostsky.work/teams' }
   const path = item.key === 'shop' ? (customerWorkspace.value ? '/customer/profile' : '/manage') : '/'
-  return { ...item, href: teamScopedAppUrl(team, item.key as 'team' | 'shop' | 'transaction' | 'weibo', path) }
+  return { ...item, href: teamScopedAppUrl(team, item.key as 'display' | 'team' | 'shop' | 'transaction' | 'weibo', path) }
 }))
 const appDropdownOptions = computed(() => appOptions.value.map(({ key, label, disabled, reason }) => ({
   key,
@@ -65,7 +67,7 @@ function explainApp(item: AppOption) {
   feedback.info(item.reason || `${item.label}暂不可用`)
 }
 function appIcon(key: string) {
-  if (key === 'team') return House
+  if (key === 'team' || key === 'display') return House
   if (key === 'shop') return Store
   if (key === 'transaction') return ReceiptText
   if (key === 'weibo') return Radio

@@ -143,11 +143,11 @@ export function weiboWorkspaceUrl(path = '/') {
 
 export function teamScopedAppUrl(
   teamSlug: string,
-  app: 'chat' | 'shop' | 'team' | 'transaction' | 'weibo',
+  app: 'display' | 'chat' | 'shop' | 'team' | 'transaction' | 'weibo',
   path = '/',
 ) {
   if (app === 'chat') return chatWorkspaceUrl(path)
-  const port = import.meta.env.DEV ? `:${({ team: 5175, chat: 5176, transaction: 5177, shop: 5179, weibo: 5181 })[app]}` : ''
+  const port = import.meta.env.DEV ? `:${({ team: 5175, chat: 5176, transaction: 5177, display: 5178, shop: 5179, weibo: 5181 })[app]}` : ''
   const host = isLocalDevelopmentHost(location.hostname) ? location.hostname : `${teamSlug}.${app}.lostsky.work`
   return new URL(path, `${location.protocol}//${host}${port}`).href
 }

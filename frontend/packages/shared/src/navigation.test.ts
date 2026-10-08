@@ -226,5 +226,13 @@ describe('workspace destinations', () => {
     })
     expect(teamScopedAppUrl('demo', 'shop', '/customer/profile'))
       .toBe('http://localhost:5179/customer/profile')
+    expect(teamScopedAppUrl('demo', 'display'))
+      .toBe('http://localhost:5178/')
+    vi.stubGlobal('location', { hostname: 'chat.lostsky.work', protocol: 'https:', port: '' })
+    vi.stubEnv('DEV', false)
+    expect(teamScopedAppUrl('demo', 'display')).toBe('https://demo.display.lostsky.work/')
+    for (const app of ['team', 'transaction', 'weibo'] as const) {
+      expect(teamScopedAppUrl('demo', app)).toBe(`https://demo.${app}.lostsky.work/`)
+    }
   })
 })
