@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require dirname(__DIR__) . '/vendor/autoload.php';
+
 $root = dirname(__DIR__);
 $apps = ['account', 'admin', 'chat', 'community', 'common', 'display', 'shop', 'team', 'transaction', 'weibo'];
 $errors = [];
@@ -89,6 +91,31 @@ if (($shopOpenApi['paths']['/customer/service-redemptions/{id}/start']['post']['
     || array_diff(['handler_entity_id'], $restartSchema['required'] ?? [])
     || array_diff(['handler_entity_id', 'memo', 'field_values'], array_keys($restartSchema['properties'] ?? []))) {
     $errors[] = 'shop: restart service redemption must document its required request body';
+}
+
+$app = new \think\App($root);
+$app->initialize();
+$route = new class($app) extends \think\Route {
+    public function matchRequest(\think\Request $request): \think\route\Dispatch
+    {
+        $this->request = $request;
+        $this->host = $request->host(true);
+        return $this->check(str_replace('/', '|', $request->pathinfo()), false);
+    }
+};
+$app->instance('route', $route);
+require "{$root}/app/admin/route/app.php";
+foreach ([
+    ['GET', 'entitlements/campaigns/42', 'entitlement/campaign', ['id' => '42']],
+    ['GET', 'entitlements/campaigns/42/codes', 'entitlement/codes', ['id' => '42']],
+    ['POST', 'entitlements/campaigns/42/codes', 'entitlement/issueCodes', ['id' => '42']],
+    ['POST', 'entitlements/campaigns/42/codes/7/reveal', 'entitlement/revealCode', ['id' => '42', 'code_id' => '7']],
+    ['POST', 'entitlements/campaigns/42/codes/7/disable', 'entitlement/disableCode', ['id' => '42', 'code_id' => '7']],
+] as [$method, $path, $handler, $params]) {
+    $dispatch = $route->matchRequest((new \think\Request)->setMethod($method)->setPathinfo($path));
+    if ($dispatch->getDispatch() !== explode('/', $handler) || $dispatch->getParam() !== $params) {
+        $errors[] = "admin: {$method} /{$path} must dispatch to {$handler} with its path variables: " . json_encode([$dispatch->getDispatch(), $dispatch->getParam()]);
+    }
 }
 
 if ($errors) {

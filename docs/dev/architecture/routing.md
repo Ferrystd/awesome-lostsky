@@ -73,6 +73,8 @@ app/{app}/controller/
 
 `config/route.php` 使用 `url_route_must=true` 禁止控制器与动作自动回退；所有对外接口必须声明在应用的 `route/app.php` 中，并同步维护 OpenAPI。
 
+全局 `route_complete_match=false` 时，同一方法下位于子路径之前的前缀路由必须显式使用 `->completeMatch()`。例如 Admin 的活动详情 `GET entitlements/campaigns/<id>` 与发行接口 `POST entitlements/campaigns/<id>/codes` 必须完整匹配，才能让兑换码列表、揭示和停用请求进入各自处理器。`php tests/openapi_routes.php` 加载实际 Admin 路由，通过 ThinkPHP 匹配验证这些处理器和路径变量；该检查不执行控制器或访问数据库。
+
 含通用 `<id>` 路径变量的应用，在自己的路由文件顶部集中声明整数规则：
 
 ```php

@@ -44,12 +44,12 @@ Route::post('entitlements/packages', 'entitlement/savePackage')->completeMatch()
 Route::post('entitlements/packages/<id>', 'entitlement/savePackage')->completeMatch();
 Route::post('entitlements/packages/<id>/disable', 'entitlement/disablePackage');
 Route::get('entitlements/campaigns', 'entitlement/campaigns')->completeMatch();
-Route::get('entitlements/campaigns/<id>', 'entitlement/campaign');
+Route::get('entitlements/campaigns/<id>', 'entitlement/campaign')->completeMatch();
 Route::post('entitlements/campaigns', 'entitlement/saveCampaign')->completeMatch();
 Route::post('entitlements/campaigns/<id>', 'entitlement/saveCampaign')->completeMatch();
 Route::post('entitlements/campaigns/<id>/disable', 'entitlement/disableCampaign');
 Route::get('entitlements/campaigns/<id>/codes', 'entitlement/codes');
-Route::post('entitlements/campaigns/<id>/codes', 'entitlement/issueCodes');
+Route::post('entitlements/campaigns/<id>/codes', 'entitlement/issueCodes')->completeMatch();
 Route::post('entitlements/campaigns/<id>/codes/<code_id>/reveal', 'entitlement/revealCode');
 Route::post('entitlements/campaigns/<id>/codes/<code_id>/disable', 'entitlement/disableCode');
 
