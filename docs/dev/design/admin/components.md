@@ -10,7 +10,9 @@
 | --- | --- |
 | `CommunityManagement` | 按 Team/Admin scope、读/写/治理权限与当前预期 Entity 编排社区列表、创建、资料和管理员页面；身份与权限不从资源 slug 推断 |
 | `CommunityGovernance` | 接收 API 与路由基址、返回目标、社区名称、读取/治理权限、拒绝原因、预期 Entity 与上传回调；统一板块、公告、内容和成员治理，各任务有独立路由与提交边界 |
-| `CommunityPostList` | 接收帖子集合与详情基址；统一内容摘要、作者、状态与详情入口，页面负责读取与分页 |
+| `CommunityPostList` | 接收帖子集合、详情基址、可选板块集合与是否筛选；统一纯文本摘要、作者、板块、状态与详情入口，页面负责读取与分页 |
+| `CommunityTabs` | 接收 value、items 与可访问 label，发出 change；统一首页板块和管理分区，Naive 标签导航拥有 44px 点击区、选中语义及方向/Home/End/Enter/Space 键盘操作 |
+| `CommunityPostMeta` | 接收 author 与 time；统一列表、帖子正文与评论的头像、作者和时间，内部负责换行；不请求数据或暴露视觉参数 |
 | `CommunityContentState` | 接收内容状态与处理原因，统一删除或隐藏状态说明；不自行请求数据或决定授权 |
 
 API 基址与权限输入均由对应应用固定组装，不接受 URL query 覆盖；前端权限只决定展示和请求时机，后端逐次授权。组件范围与资源 ID 参与查询和草稿身份，不能跨 Admin、Team、Community 复用受限缓存。状态、列表、管理动作与移动端尺寸通过源码守卫和社区流程 E2E 验证。

@@ -2,6 +2,8 @@ import { h } from 'vue'
 import CommunityManagement from '@lostsky/ui/community/CommunityManagement.vue'
 import CommunityGovernance from '@lostsky/ui/community/CommunityGovernance.vue'
 import CommunityPostList from '@lostsky/ui/community/CommunityPostList.vue'
+import CommunityTabs from '@lostsky/ui/community/CommunityTabs.vue'
+import CommunityPostMeta from '@lostsky/ui/community/CommunityPostMeta.vue'
 import CommunityContentState from '@lostsky/ui/community/CommunityContentState.vue'
 import { previewStates, type StoryDefinition } from './story-types'
 
@@ -20,6 +22,16 @@ export const communityStories: Record<string, StoryDefinition> = {
     name: 'CommunityPostList', supported: ['default', 'hover', 'focus', 'active', 'error', 'mobile'],
     reason: { disabled: '阅读入口始终开放。', loading: '加载状态由调用页面的 LsAsyncState 提供。' },
     render: state => h(CommunityPostList, { posts: state === 'error' ? [] : [post], basePath: '/c/lostsky' }),
+  },
+  CommunityTabs: {
+    name: 'CommunityTabs', supported: ['default', 'hover', 'focus', 'active', 'mobile'],
+    reason: { disabled: '导航保持可用。', loading: '加载由页面处理。', error: '错误由页面处理。' },
+    render: () => h(CommunityTabs, { value: 'all', items: [{ key: 'all', label: '全部讨论' }, { key: 'chat', label: '日常交流' }, { key: 'help', label: '问题与建议' }], label: '社区板块' }),
+  },
+  CommunityPostMeta: {
+    name: 'CommunityPostMeta', supported: ['default', 'mobile'],
+    reason: { hover: '只读作者信息。', focus: '无交互操作。', active: '无选择操作。', disabled: '作者信息保持可见。', loading: '加载由页面处理。', error: '错误由页面处理。' },
+    render: () => h(CommunityPostMeta, { author: post.author, time: post.create_time }),
   },
   CommunityContentState: {
     name: 'CommunityContentState', supported: ['default', 'disabled', 'error', 'mobile'],

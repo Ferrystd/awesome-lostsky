@@ -59,6 +59,7 @@ for (const scope of ['admin', 'team'] as const) test(`${scope} creates owned com
 test('Admin read-only sees governance but cannot write, moderate or appoint administrators', async ({ page }) => {
   const { writes } = await setup(page, 'admin', ['admin.community.read'])
   await page.goto(`${adminOrigin}/communities/1/manage/posts`)
+  await page.getByText('阅读完整内容', { exact: true }).click()
   await expect(page.getByText('讨论正文', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '隐藏内容', exact: true }).press('Enter')
   await expect(page.getByRole('button', { name: '隐藏内容', exact: true })).toHaveAttribute('aria-disabled', 'true')

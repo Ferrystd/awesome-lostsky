@@ -909,5 +909,25 @@
     "story": "frontend/component-previews/src/community-stories.ts#CommunityContentState",
     "category": "community",
     "aliases": []
+  },
+  {
+    "id": "community-post-meta",
+    "name": "CommunityPostMeta",
+    "source": "frontend/packages/ui/src/community/CommunityPostMeta.vue",
+    "story": "frontend/component-previews/src/community-stories.ts#CommunityPostMeta",
+    "category": "community",
+    "aliases": [
+      "社区作者与时间"
+    ]
+  },
+  {
+    "id": "community-tabs",
+    "name": "CommunityTabs",
+    "source": "frontend/packages/ui/src/community/CommunityTabs.vue",
+    "story": "frontend/component-previews/src/community-stories.ts#CommunityTabs",
+    "category": "community",
+    "aliases": [
+      "社区板块导航"
+    ]
   }
 ]

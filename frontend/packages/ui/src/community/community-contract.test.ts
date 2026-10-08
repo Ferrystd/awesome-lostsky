@@ -21,9 +21,11 @@ describe('社区跨应用组件契约', () => {
   it('封闭参数只承载业务、权限和路由，不暴露视觉实现', () => {
     expect(props('CommunityManagement')).toEqual(['canModerate', 'canRead', 'canWrite', 'expectedEntityId', 'moderateReason', 'readReason', 'scope', 'writeReason'].sort())
     expect(props('CommunityGovernance')).toEqual(['apiBase', 'routeBase', 'backTo', 'communityName', 'canRead', 'canModerate', 'deniedReason', 'expectedEntityId', 'uploadImage', 'uploadDisabledReason'].sort())
-    expect(props('CommunityPostList')).toEqual(['basePath', 'posts'])
+    expect(props('CommunityPostList')).toEqual(['basePath', 'boards', 'filtered', 'posts'])
+    expect(props('CommunityTabs')).toEqual(['items', 'label', 'value'])
+    expect(props('CommunityPostMeta')).toEqual(['author', 'time'])
     expect(props('CommunityContentState')).toEqual(['reason', 'status'])
-    for (const name of ['CommunityManagement', 'CommunityGovernance', 'CommunityPostList', 'CommunityContentState']) {
+    for (const name of ['CommunityManagement', 'CommunityGovernance', 'CommunityPostList', 'CommunityPostMeta', 'CommunityTabs', 'CommunityContentState']) {
       expect(source(`${directory}/${name}.vue`)).not.toContain(':deep(')
       expect(source(`${directory}/${name}.vue`)).not.toMatch(/<LsButton\b[^>]*@click="[^"]*\.refetch\(/)
       expect(source('frontend/component-previews/catalog.json')).toContain(`"name": "${name}"`)

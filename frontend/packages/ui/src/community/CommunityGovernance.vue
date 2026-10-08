@@ -7,9 +7,9 @@ import type { CommunityBoard, CommunityAnnouncement, CommunityPost, CommunityCom
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NInput, NInputNumber, NSelect, NList, NListItem, NThing, NTag, NSpace, NPagination, NModal } from 'naive-ui'
+import { NInput, NInputNumber, NSelect, NList, NListItem, NThing, NTag, NSpace, NPagination, NModal, NTabs, NTab, NCollapse, NCollapseItem } from 'naive-ui'
 import LsPageHeader from '../components/LsPageHeader.vue'
 import LsListToolbar from '../components/LsListToolbar.vue'
 import LsAsyncState from '../components/LsAsyncState.vue'
@@ -21,6 +21,7 @@ import LsFormActions from '../components/LsFormActions.vue'
 import LsSwitchField from '../components/LsSwitchField.vue'
 import LsMarkdownEditor from '../components/LsMarkdownEditor.vue'
 import LsMarkdownRenderer from '../components/LsMarkdownRenderer.vue'
+import CommunityTabs from './CommunityTabs.vue'
 import CommunityContentState from './CommunityContentState.vue'
 import { feedback } from '../feedback'
 
@@ -31,6 +32,12 @@ type Row = CommunityBoard | CommunityAnnouncement | CommunityPost | CommunityCom
 const sections: { key: Section; label: string }[] = [{ key: 'boards', label: '板块' }, { key: 'announcements', label: '公告' }, { key: 'posts', label: '帖子' }, { key: 'comments', label: '评论' }, { key: 'members', label: '成员' }]
 const route = useRoute(), router = useRouter(), cache = useQueryClient()
 const section = computed(() => String(route.params.section || 'boards') as Section)
+async function changeSection(value: string | number) {
+  const restoreFocus = Boolean(document.activeElement?.closest('[aria-label="社区管理分区"]'))
+  await router.push(`${props.routeBase}/${value}`)
+  await nextTick()
+  if (restoreFocus) document.querySelector<HTMLElement>('[aria-label="社区管理分区"] [role="tab"][aria-selected="true"]')?.focus()
+}
 const itemId = computed(() => String(route.params.itemId || ''))
 const editing = computed(() => Boolean(itemId.value) && ['boards', 'announcements'].includes(section.value))
 const title = computed(() => sections.find(item => item.key === section.value)!.label)
@@ -72,23 +79,23 @@ watch(query.isSuccess, ready => { if (ready) void restoreScroll() }, { immediate
 <template>
   <LsPageHeader :title="editing ? `${itemId === 'new' ? '新增' : '编辑'}${title}` : `${communityName} · ${title}管理`" :back-to="editing ? `${routeBase}/${section}` : backTo"><template v-if="!editing && ['boards', 'announcements'].includes(section)" #actions><LsButton @click="router.push(`${routeBase}/${section}/new`)">新增{{ title }}</LsButton></template></LsPageHeader>
   <LsAsyncState v-if="editing && detail.isError.value && detail.data.value" state="error" title="暂时无法更新资料" description="已输入内容保留，网络恢复后将自动重新读取。" />
-  <NSpace v-if="!editing" aria-label="社区管理分区"><RouterLink v-for="item in sections" :key="item.key" :to="`${routeBase}/${item.key}`" :aria-current="section === item.key ? 'page' : undefined">{{ item.label }}</RouterLink></NSpace>
+  <CommunityTabs v-if="!editing" :value="section" :items="sections" label="社区管理分区" @change="changeSection" />
   <LsEmptyState v-if="!canRead" :title="deniedReason" description="当前人员没有此社区的治理读取权限。" />
   <template v-else-if="editing">
     <LsAsyncState v-if="itemId !== 'new' && detail.isPending.value" state="loading" /><template v-else-if="detail.isError.value && !detail.data.value"><LsAsyncState state="error" :description="friendlyError(detail.error.value)" /></template>
     <form v-else @submit.prevent="save"><LsFormSection :title="section === 'boards' ? '板块设置' : '公告内容'">
       <template v-if="section === 'boards'"><LsField label="板块名称" for-id="board-name" required><NInput :input-props="{ id: 'board-name' }" v-model:value="form.name" maxlength="100" /></LsField><LsField label="排序" for-id="board-sort" hint="较小的数值显示在前面。"><NInputNumber :input-props="{ id: 'board-sort' }" v-model:value="form.sort" :min="0" :precision="0" /></LsField><LsSwitchField v-model="form.enabled" label="启用板块" description="停用后保留已有帖子，停止接受新帖子。" /></template>
       <template v-else><LsField label="公告标题" for-id="announcement-title" required><NInput :input-props="{ id: 'announcement-title' }" v-model:value="form.title" maxlength="200" /></LsField><LsField label="公告正文" for-id="announcement-content" required><LsMarkdownEditor id="announcement-content" v-model="form.content" :upload-image="uploadImage" :upload-disabled-reason="uploadDisabledReason" /></LsField><LsSwitchField v-model="form.pinned" label="置顶公告" description="在社区首页优先展示。" /></template>
-    </LsFormSection><LsFormActions><LsButton type="submit" :disabled="Boolean(formReason)" :disabled-reason="formReason">保存{{ title }}</LsButton></LsFormActions></form>
+    </LsFormSection><LsFormActions><LsButton type="submit" :disabled="Boolean(formReason)" :disabled-reason="formReason">保存{{ title }}</LsButton><LsButton variant="secondary" @click="router.push(`${routeBase}/${section}`)">取消</LsButton></LsFormActions></form>
   </template>
   <template v-else>
     <LsListToolbar v-model="keyword" :placeholder="`搜索${title}`" :aria-label="`搜索${title}`" :count-label="`${query.data.value?.total ?? 0} 条记录`"><template v-if="section === 'posts' || section === 'comments'" #filters><NSelect v-model:value="status" aria-label="内容状态" clearable placeholder="全部状态" :options="[{ label: '可见', value: 'Visible' }, { label: '已隐藏', value: 'Hidden' }, { label: '作者已删除', value: 'Deleted' }]" /></template></LsListToolbar>
-    <LsAsyncState v-if="query.isPending.value" state="loading" /><template v-else-if="query.isError.value"><LsAsyncState state="error" :description="friendlyError(query.error.value)" /></template><LsEmptyState v-else-if="!query.data.value?.list.length" :title="`没有可显示的${title}`" description="调整搜索条件或稍后再来。" />
+    <LsAsyncState v-if="query.isPending.value" state="loading" /><template v-else-if="query.isError.value"><LsAsyncState state="error" :description="friendlyError(query.error.value)" /></template><LsEmptyState v-else-if="!query.data.value?.list.length" :title="keyword || status ? `没有符合条件的${title}` : `还没有${title}`" :description="keyword || status ? '调整搜索词或状态筛选，查看其他记录。' : section === 'boards' || section === 'announcements' ? `通过上方新增${title}，开始组织社区内容。` : '社区产生相关内容后，会显示在这里。'" />
     <NList v-else bordered>
       <template v-if="section === 'boards'"><NListItem v-for="row in boardRows" :key="row.id"><NThing :title="row.name" :description="`排序 ${row.sort} · ${row.enabled ? '已启用' : '已停用'}`"><template #action><RouterLink :to="`${routeBase}/boards/${row.id}`">编辑板块</RouterLink></template></NThing></NListItem></template>
-      <template v-else-if="section === 'announcements'"><NListItem v-for="row in announcementRows" :key="row.id"><NThing :title="row.title"><template #header-extra><NTag v-if="row.pinned">置顶公告</NTag></template><LsMarkdownRenderer :content="row.content" /><template #action><RouterLink :to="`${routeBase}/announcements/${row.id}`">编辑公告</RouterLink></template></NThing></NListItem></template>
+      <template v-else-if="section === 'announcements'"><NListItem v-for="row in announcementRows" :key="row.id"><NThing :title="row.title"><template #header-extra><NTag v-if="row.pinned">置顶公告</NTag></template><NCollapse><NCollapseItem :name="row.id" title="阅读公告"><LsMarkdownRenderer :content="row.content" /></NCollapseItem></NCollapse><template #action><RouterLink :to="`${routeBase}/announcements/${row.id}`">编辑公告</RouterLink></template></NThing></NListItem></template>
       <template v-else-if="section === 'members'"><NListItem v-for="row in memberRows" :key="row.entity_id"><NThing :title="row.entity.name" :description="`${row.entity.slug} · ${row.joined ? '已加入' : '已退出'} · ${row.entity.is_valid ? '有效人员' : '人员已失效'}`"><p v-if="row.muted">禁言原因：{{ row.reason }}</p><template #action><LsButton variant="secondary" :disabled="Boolean(unavailable)" :disabled-reason="unavailable" @click="mute(row)">{{ row.muted ? '解除禁言' : '禁言' }}</LsButton></template></NThing></NListItem></template>
-      <template v-else><NListItem v-for="row in contentRows" :key="row.id"><NThing :title="'title' in row ? row.title : `${row.author.name}的评论`" :description="`${row.author.name} · ${formatDate(row.create_time * 1000)}`"><CommunityContentState :status="row.status" :reason="row.hidden_reason" /><LsMarkdownRenderer v-if="row.status !== 'Deleted'" :content="row.content" /><template #action><NSpace><LsButton variant="secondary" :disabled="Boolean(unavailable) || row.status === 'Deleted'" :disabled-reason="unavailable || '作者已删除的内容不能恢复或隐藏'" @click="moderate(row)">{{ row.status === 'Hidden' ? '恢复内容' : '隐藏内容' }}</LsButton><LsButton v-if="'pinned' in row" variant="secondary" :disabled="Boolean(unavailable) || row.status === 'Deleted'" :disabled-reason="unavailable || '作者已删除的帖子不能置顶'" @click="moderate(row, true)">{{ row.pinned ? '取消置顶' : '置顶帖子' }}</LsButton></NSpace></template></NThing></NListItem></template>
+      <template v-else><NListItem v-for="row in contentRows" :key="row.id"><NThing :title="'title' in row ? row.title : `${row.author.name}的评论`" :description="`${row.author.name} · ${formatDate(row.create_time * 1000)}`"><CommunityContentState :status="row.status" :reason="row.hidden_reason" /><NCollapse v-if="row.status !== 'Deleted'"><NCollapseItem :name="row.id" title="阅读完整内容"><LsMarkdownRenderer :content="row.content" /></NCollapseItem></NCollapse><template #action><NSpace><LsButton variant="secondary" :disabled="Boolean(unavailable) || row.status === 'Deleted'" :disabled-reason="unavailable || '作者已删除的内容不能恢复或隐藏'" @click="moderate(row)">{{ row.status === 'Hidden' ? '恢复内容' : '隐藏内容' }}</LsButton><LsButton v-if="'pinned' in row" variant="secondary" :disabled="Boolean(unavailable) || row.status === 'Deleted'" :disabled-reason="unavailable || '作者已删除的帖子不能置顶'" @click="moderate(row, true)">{{ row.pinned ? '取消置顶' : '置顶帖子' }}</LsButton></NSpace></template></NThing></NListItem></template>
     </NList>
     <NPagination v-if="(query.data.value?.total ?? 0) > 20" v-model:page="page" :page-size="20" :item-count="query.data.value?.total" simple />
   </template>

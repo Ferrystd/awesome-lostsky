@@ -55,7 +55,7 @@ async function setup(page: Page, options: { guest?: boolean; joined?: boolean; m
   })
   return { writes, community }
 }
-async function markdown(page: Page, text: string) { await page.getByRole('tab', { name: '源码', exact: true }).click(); await page.getByRole('textbox', { name: 'Markdown 源码' }).fill(text) }
+async function markdown(page: Page, text: string) { if (await page.getByRole('button', { name: '写评论', exact: true }).count() && !await page.getByRole('tab', { name: '源码', exact: true }).count()) await page.getByRole('button', { name: '写评论', exact: true }).click(); await page.getByRole('tab', { name: '源码', exact: true }).click(); await page.getByRole('textbox', { name: 'Markdown 源码' }).fill(text) }
 async function noOverflow(page: Page) { expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true) }
 
 test('Community guest browses square and content, keeps identity read-only and explains write boundary', async ({ page }) => {
@@ -63,8 +63,7 @@ test('Community guest browses square and content, keeps identity read-only and e
   await page.goto(origin)
   await page.getByRole('link', { name: '青空交流社区', exact: true }).click()
   await expect(page.getByRole('heading', { name: '青空交流社区' })).toBeVisible()
-  await page.getByRole('button', { name: '加入社区', exact: true }).press('Enter')
-  await expect(page.getByText('请先登录并在通行证选择有效人员身份', { exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: '登录并选择身份' })).toHaveAttribute('href', /login\?redirect=/)
   expect(writes).toHaveLength(0)
   await page.getByRole('link', { name: '一起交流经验', exact: true }).click()
   await expect(page.getByText('参与讨论', { exact: false }).first()).toBeVisible()
@@ -77,7 +76,7 @@ test('Community joins, publishes Markdown, edits own post, comments, likes and d
   await page.getByRole('button', { name: '加入社区', exact: true }).press('Enter')
   await expect(page.getByRole('button', { name: '退出社区', exact: true })).toBeVisible()
   await page.getByRole('button', { name: '发布帖子', exact: true }).press('Enter')
-  await page.locator('#post-board').click(); await page.getByText('经验交流', { exact: true }).click()
+  await expect(page.locator('#post-board')).toContainText('经验交流')
   await page.getByRole('textbox', { name: '标题', exact: true }).fill('新的讨论')
   await markdown(page, '这是 **新帖子**')
   await page.getByRole('button', { name: '发布帖子', exact: true }).press('Enter')
@@ -117,15 +116,15 @@ test('Community muted and paused states explain separate restrictions and hide a
   await page.goto(`${origin}/c/sky/posts/11`)
   await expect(page.getByText('处理原因：不符合板块主题')).toBeVisible()
   await expect(page.getByText('参与讨论', { exact: true })).toHaveCount(0)
-  await page.getByRole('button', { name: '发表评论', exact: true }).press('Enter')
-  await expect(page.getByText('你在此社区被禁言：请勿重复推广', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '写评论', exact: true }).press('Enter')
+  await expect(page.getByText('你在此社区被禁言：请勿重复推广', { exact: true }).first()).toBeVisible()
   expect(writes).toHaveLength(0)
 })
 test('Community paused community and disabled board keep browsing but prevent posting', async ({ page }) => {
   const { writes } = await setup(page, { paused: true, boardDisabled: true })
   await page.goto(`${origin}/c/sky/posts/new`)
   await page.getByRole('button', { name: '发布帖子', exact: true }).press('Enter')
-  await expect(page.getByText('社区已暂停，暂时不能加入或互动', { exact: true })).toBeVisible()
+  await expect(page.getByText('社区已暂停，暂时不能加入或互动', { exact: true }).first()).toBeVisible()
   expect(writes).toHaveLength(0)
 })
 test('Community administrator manages board, announcement, hidden content, pinning and mute', async ({ page }) => {
@@ -138,12 +137,12 @@ test('Community administrator manages board, announcement, hidden content, pinni
   await page.locator('#board-sort').fill('3')
   await page.getByRole('button', { name: '保存板块' }).press('Enter')
   await expect(page.getByText('常见问题', { exact: true })).toBeVisible()
-  await page.getByRole('link', { name: '公告', exact: true }).click()
+  await page.getByRole('tab', { name: '公告', exact: true }).click()
   await page.getByRole('link', { name: '编辑公告', exact: true }).click()
   await page.getByRole('textbox', { name: '公告标题' }).fill('社区规则')
   await page.getByRole('button', { name: '保存公告' }).click()
   await expect(page.getByText('社区规则', { exact: true })).toBeVisible()
-  await page.getByRole('link', { name: '帖子', exact: true }).click()
+  await page.getByRole('tab', { name: '帖子', exact: true }).click()
   await page.getByRole('button', { name: '隐藏内容', exact: true }).click()
   await page.getByRole('textbox', { name: '处理原因' }).fill('重复主题')
   await page.getByRole('button', { name: '确认', exact: true }).click()
@@ -151,7 +150,7 @@ test('Community administrator manages board, announcement, hidden content, pinni
   await page.getByRole('button', { name: '恢复内容', exact: true }).click(); await page.getByRole('button', { name: '确认', exact: true }).click()
   await page.getByRole('button', { name: '置顶帖子', exact: true }).click(); await page.getByRole('button', { name: '确认', exact: true }).click()
   await expect(page.getByRole('button', { name: '取消置顶', exact: true })).toBeVisible()
-  await page.getByRole('link', { name: '成员', exact: true }).click()
+  await page.getByRole('tab', { name: '成员', exact: true }).click()
   await page.getByRole('button', { name: '禁言', exact: true }).click(); await page.getByRole('textbox', { name: '处理原因' }).fill('重复推广'); await page.getByRole('button', { name: '确认', exact: true }).click()
   await expect(page.getByText('禁言原因：重复推广')).toBeVisible()
   await page.getByRole('button', { name: '解除禁言', exact: true }).click(); await page.getByRole('button', { name: '确认', exact: true }).click()
@@ -193,4 +192,154 @@ test('Community keeps controls and long headings within 320–1440px and enlarge
   await page.setViewportSize({ width: 375, height: 900 })
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%' })
   await noOverflow(page)
+})
+
+
+test('Community draft survives joining, failed submission and background data refresh', async ({ page }) => {
+  const { writes } = await setup(page, { joined: false })
+  await page.goto(`${origin}/c/sky/posts/new`)
+  await page.getByRole('textbox', { name: '标题', exact: true }).fill('不能丢失的新讨论')
+  await markdown(page, '加入之前写好的正文')
+  await page.getByRole('button', { name: '加入社区', exact: true }).click()
+  await expect(page.getByRole('button', { name: '加入社区', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('textbox', { name: '标题', exact: true })).toHaveValue('不能丢失的新讨论')
+  await expect(page.getByRole('textbox', { name: 'Markdown 源码' })).toHaveValue('加入之前写好的正文')
+  await page.route(`${origin}/api/communities/sky/posts`, async route => {
+    if (route.request().method() === 'POST') await route.fulfill({ status: 400, json: { code: 400, message: '暂时无法保存，请稍后提交', data: null } })
+    else await route.fallback()
+  })
+  await page.getByRole('button', { name: '发布帖子', exact: true }).click()
+  await expect(page.getByText('暂时无法保存，请稍后提交', { exact: true })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: '标题', exact: true })).toHaveValue('不能丢失的新讨论')
+  await expect(page.getByRole('textbox', { name: 'Markdown 源码' })).toHaveValue('加入之前写好的正文')
+  page.once('dialog', dialog => dialog.dismiss())
+  await page.getByRole('button', { name: '取消', exact: true }).click()
+  await expect(page).toHaveURL(`${origin}/c/sky/posts/new`)
+  await page.unroute(`${origin}/api/communities/sky/posts`)
+  await page.getByRole('button', { name: '发布帖子', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '不能丢失的新讨论', exact: true })).toBeVisible()
+  expect(writes.find(write => write.path === '/communities/sky/posts')?.body.content).toBe('加入之前写好的正文')
+  await page.getByRole('link', { name: '编辑帖子', exact: true }).click()
+  await page.getByRole('textbox', { name: '标题', exact: true }).fill('编辑中保留这个标题')
+  let reads = 0
+  await page.route(`${origin}/api/communities/sky/posts/11`, async route => {
+    if (route.request().method() !== 'GET') return route.fallback()
+    reads++
+    await route.fulfill({ json: { code: 0, data: { ...originalPost, title: '另一个页面已经保存的标题' } } })
+  })
+  await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')))
+  await expect.poll(() => reads).toBeGreaterThan(0)
+  await expect(page.getByRole('textbox', { name: '标题', exact: true })).toHaveValue('编辑中保留这个标题')
+})
+
+test('Community failed image upload and comment submission preserve the discussion draft', async ({ page }) => {
+  await setup(page)
+  let uploads = 0
+  await page.route(`${origin}/api/upload`, async route => {
+    uploads++
+    await route.fulfill({ status: 400, json: { code: 400, message: '图片上传失败，请稍后再试', data: null } })
+  })
+  await page.goto(`${origin}/c/sky/posts/11`)
+  await page.getByRole('button', { name: '写评论', exact: true }).click()
+  await markdown(page, '图片失败也保留这段评论')
+  await page.getByRole('tab', { name: '可视化', exact: true }).click()
+  const editor = page.locator('[contenteditable="true"]').first()
+  await editor.click()
+  await editor.evaluate(element => {
+    const clipboard = new DataTransfer()
+    clipboard.items.add(new File([new Uint8Array([137,80,78,71])], 'discussion.png', { type: 'image/png' }))
+    element.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: clipboard }))
+  })
+  await expect.poll(() => uploads).toBe(1)
+  await expect(page.getByRole('alert').filter({ hasText: '图片上传失败' })).toBeVisible()
+  await page.getByRole('tab', { name: '源码', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Markdown 源码' })).toHaveValue(/图片失败也保留这段评论/)
+  await page.route(`${origin}/api/communities/sky/posts/11/comments`, async route => {
+    if (route.request().method() !== 'POST') return route.fallback()
+    await route.fulfill({ status: 400, json: { code: 400, message: '评论暂时无法保存', data: null } })
+  })
+  await page.getByRole('button', { name: '发表评论', exact: true }).click()
+  await expect(page.getByText('评论暂时无法保存', { exact: true })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Markdown 源码' })).toHaveValue(/图片失败也保留这段评论/)
+})
+
+test('Community design covers directory, announcements, keyboard boards, reading and editor geometry', async ({ page }, testInfo) => {
+  await setup(page)
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.goto(origin)
+  await expect(page.getByRole('link', { name: '青空交流社区', exact: true })).toBeVisible()
+  for (const path of ['/', '/mine', '/c/sky', '/c/sky/posts/11', '/c/sky/posts/new', '/c/sky/manage/boards']) {
+    await page.goto(`${origin}${path}`)
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
+    for (const width of [320, 375, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 960 })
+      await noOverflow(page)
+    }
+    await page.setViewportSize({ width: 375, height: 960 })
+    await page.evaluate(() => { document.documentElement.style.fontSize = '200%' })
+    await noOverflow(page)
+    await page.evaluate(() => { document.documentElement.style.fontSize = '' })
+  }
+  await page.goto(`${origin}/c/sky`)
+  await expect(page.getByText('请友善交流', { exact: true })).toBeVisible()
+  const tabs = page.getByRole('tablist', { name: '社区板块' })
+  await tabs.getByRole('tab', { name: '全部讨论', exact: true }).focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(tabs.getByRole('tab', { name: '经验交流', exact: true })).toHaveAttribute('aria-selected', 'true')
+  const tabBox = await tabs.getByRole('tab', { name: '经验交流', exact: true }).boundingBox()
+  expect(tabBox!.height).toBeGreaterThanOrEqual(44)
+  await page.screenshot({ path: testInfo.outputPath('community-home.png'), fullPage: true })
+  await page.getByRole('link', { name: '一起交流经验', exact: true }).click()
+  await expect(page.getByRole('tab', { name: '源码', exact: true })).toHaveCount(0)
+  await page.setViewportSize({ width: 1440, height: 960 })
+  const articleBox = await page.locator('.community-reading').boundingBox()
+  expect(articleBox!.width).toBeLessThan(850)
+  const headingBox = await page.getByRole('heading', { level: 1 }).boundingBox()
+  expect(Math.abs(headingBox!.x - articleBox!.x)).toBeLessThanOrEqual(1)
+  const skip = page.getByRole('link', { name: '跳到主要内容', exact: true })
+  expect((await skip.boundingBox())!.y).toBeLessThan(0)
+  await skip.focus()
+  expect((await skip.boundingBox())!.y).toBeGreaterThanOrEqual(0)
+  await skip.press('Enter')
+  await expect(page.locator('#main-content')).toBeFocused()
+  await page.screenshot({ path: testInfo.outputPath('community-reading.png'), fullPage: true })
+  await page.getByRole('button', { name: '写评论', exact: true }).click()
+  await expect(page.getByRole('region', { name: '评论编辑区' })).toBeFocused()
+  expect(errors).toEqual([])
+})
+
+
+test('Community comment cancellation confirms once and preserves the editor when declined', async ({ page }) => {
+  await setup(page)
+  await page.goto(`${origin}/c/sky/posts/11`)
+  await expect(page.getByRole('button', { name: '写评论', exact: true })).toBeVisible()
+  await markdown(page, '不要因为取消而丢失')
+  let confirmations = 0, accept = false
+  page.on('dialog', async dialog => { confirmations++; if (accept) await dialog.accept(); else await dialog.dismiss() })
+  await page.getByRole('region', { name: '评论编辑区' }).getByRole('button', { name: '取消', exact: true }).click()
+  expect(confirmations).toBe(1)
+  await expect(page.getByRole('textbox', { name: 'Markdown 源码' })).toHaveValue('不要因为取消而丢失')
+  accept = true
+  await page.getByRole('region', { name: '评论编辑区' }).getByRole('button', { name: '取消', exact: true }).click()
+  expect(confirmations).toBe(2)
+  await expect(page.getByRole('region', { name: '评论编辑区' })).toHaveCount(0)
+  await page.getByRole('button', { name: '写评论', exact: true }).click()
+  await markdown(page, '')
+  await expect(page.getByRole('textbox', { name: 'Markdown 源码' })).toHaveValue('')
+})
+
+
+test('Community governance retains keyboard focus across consecutive routed tabs', async ({ page }) => {
+  await setup(page)
+  await page.goto(`${origin}/c/sky/manage/boards`)
+  const tabs = page.getByRole('tablist', { name: '社区管理分区' })
+  await tabs.getByRole('tab', { name: '板块', exact: true }).focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(page).toHaveURL(`${origin}/c/sky/manage/announcements`)
+  await expect(tabs.getByRole('tab', { name: '公告', exact: true })).toBeFocused()
+  await page.keyboard.press('ArrowRight')
+  await expect(page).toHaveURL(`${origin}/c/sky/manage/posts`)
+  await expect(tabs.getByRole('tab', { name: '帖子', exact: true })).toBeFocused()
+  await expect(tabs.getByRole('tab', { name: '帖子', exact: true })).toHaveAttribute('aria-selected', 'true')
 })

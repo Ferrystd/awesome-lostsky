@@ -63,6 +63,7 @@ async function setup(page: Page, initial: ActorType | null, authenticated = true
 }
 
 async function source(page: Page, content: string) {
+  if (await page.getByRole('button', { name: '写评论', exact: true }).count() && !await page.getByRole('tab', { name: '源码', exact: true }).count()) await page.getByRole('button', { name: '写评论', exact: true }).click()
   await page.getByRole('tab', { name: '源码', exact: true }).click()
   await page.getByRole('textbox', { name: 'Markdown 源码' }).fill(content)
 }
@@ -102,8 +103,7 @@ for (const type of ['teamMember', 'teamCustomer'] as const) {
     if (isMobile) await page.getByRole('button', { name: '发布帖子', exact: true }).tap()
     else await page.getByRole('button', { name: '发布帖子', exact: true }).click()
     await expect(page).toHaveURL(`${communityOrigin}/c/public/posts/new`)
-    await page.locator('#post-board').click()
-    await page.getByText('日常交流', { exact: true }).click()
+    await expect(page.locator('#post-board')).toContainText('日常交流')
     await page.getByRole('textbox', { name: '标题', exact: true }).fill(`${people[type].name}的交流`)
     await source(page, '来自跨应用入口的帖子')
     await page.getByRole('button', { name: '发布帖子', exact: true }).click()
@@ -157,7 +157,7 @@ test('Community no-identity list guides selection and Account switch returns wit
   await page.getByRole('link', { name: '公开讨论', exact: true }).click()
   await expect(page).toHaveURL(`${communityOrigin}/c/public/posts/11`)
   await expect(page.getByRole('heading', { name: '公开讨论', exact: true })).toBeVisible()
-  await page.getByRole('link', { name: '前往通行证切换身份' }).click()
+  await page.getByRole('link', { name: '切换身份' }).click()
   await page.getByRole('button', { name: '放弃身份' }).click()
   await page.locator('article').filter({ hasText: '@external-customer' }).getByRole('button').click()
   await expect(page.getByText('当前正在使用人员身份')).toBeVisible()
