@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityTag from '@lostsky/ui/components/LsEntityTag.vue'
 import type { EntityType } from '@lostsky/ui/entity'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
@@ -130,19 +134,14 @@ function runFileAction(key: string, item: Record<string, unknown>) {
 </script>
 
 <template>
-  <div class="files">
-    <header>
-      <div>
-        <p>{{ usageSummary }}</p>
-        <h2>团队文件</h2>
-      </div>
-      <div class="header-actions">
+    <LsPageHeader title="文件" :description="usageSummary">
+      <template #actions>
         <RouterLink v-if="canUpgrade" class="secondary-link" to="/abilities">升级团队能力</RouterLink>
         <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload">
           <template #trigger="{ choose }"><LsPagePrimaryAction :icon="Upload" label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @click="choose" /></template>
         </LsUploadField>
-      </div>
-    </header>
+      </template>
+    </LsPageHeader>
     <LsInlineError v-if="uploadError" :message="uploadError" />
 
     <LsListToolbar v-model="keyword" placeholder="按文件名称搜索" aria-label="搜索文件" :count-label="routeAccess.restricted.value ? '0 个文件' : `${total} 个文件`" @update:model-value="page = 1" />
@@ -150,134 +149,29 @@ function runFileAction(key: string, item: Record<string, unknown>) {
       <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" key="error" state="error" title="暂时无法读取文件" :description="friendlyError(query.error.value)" />
       <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" key="loading" state="loading" :rows="6" />
       <LsEmptyState :source="query.data.value" v-else-if="!files.length" key="empty" :title="routeAccess.restricted.value ? '没有可显示的文件' : '还没有文件'" description="上传团队需要共享的第一份资料。" />
-      <TransitionGroup v-else key="list" name="ls-list" tag="div" class="file-list">
-        <article v-for="item in files" :key="String(item.id)">
-          <div class="file-icon"><File /></div>
-          <div class="file-content">
-            <strong>{{ item.name || item.original_name || '未命名文件' }}</strong>
-            <small>{{ fileSourceLabel(item.source) }} · {{ item.mime_type || item.ext || '未知格式' }} · {{ size(item.size) }}</small>
+      <LsResourceList v-else key="list" aria-label="文件列表">
+        <LsResourceRow v-for="item in files" :key="String(item.id)" :title="String(item.name || item.original_name || '未命名文件')" :description="`${fileSourceLabel(item.source)} · ${item.mime_type || item.ext || '未知格式'} · ${size(item.size)}`" :icon="File">
+          <template #metadata>
             <dl class="file-metadata">
-              <div>
-                <dt>来源人员</dt>
-                <dd>
-                  <LsEntityTag v-if="item.subject" :type="item.subject.entityable_type || 'unknown'" :name="item.subject.name || '未命名人员'" :slug="item.subject.slug" />
-                  <span v-else>{{ item.entity_id ? `人员 #${item.entity_id}（资料不可用）` : '未记录' }}</span>
-                </dd>
-              </div>
-              <div><dt>上传时间</dt><dd>{{ uploadTime(item.create_time) }}</dd></div>
+              <div><dt>来源人员</dt><dd><LsEntityTag v-if="item.subject" :type="item.subject.entityable_type || 'unknown'" :name="item.subject.name || '未命名人员'" :slug="item.subject.slug" /><span v-else>{{ item.entity_id ? `人员 #${item.entity_id}（资料不可用）` : '未记录' }}</span></dd></div>
+              <div><dt>上传时间</dt><dd><time>{{ uploadTime(item.create_time) }}</time></dd></div>
             </dl>
-          </div>
-          <LsResponsiveActions :actions="fileActions(item)" :primary-key="item.url ? 'open' : ''" @select="runFileAction($event, item)" />
-        </article>
-      </TransitionGroup>
+          </template>
+          <template #actions><LsResponsiveActions :actions="fileActions(item)" :primary-key="item.url ? 'open' : ''" @select="runFileAction($event, item)" /></template>
+        </LsResourceRow>
+      </LsResourceList>
     </Transition>
-    <footer v-if="pages > 1">
+    <footer v-if="pages > 1" class="pager">
       <NPagination v-model:page="page" :page-count="pages" />
     </footer>
-  </div>
 </template>
 
 <style scoped>
-.files {
-  display: grid;
-  gap: 1rem;
-}
-header {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-header p,
-header h2 {
-  margin: 0;
-}
-header p {
-  color: var(--muted-ink);
-  font-size: 0.82rem;
-}
-header h2 {
-  margin-top: 0.2rem;
-}
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-.secondary-link {
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  color: var(--sky-lost-strong);
-  font-weight: 650;
-}
-.file-list {
-  display: grid;
-  gap: 0;
-  overflow: hidden;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
-.file-list article {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem;
-  border-bottom: 1px solid var(--line);
-  background: white;
-  transition:
-    background-color var(--motion-fast) var(--ease-standard),
-    opacity var(--motion-base) var(--ease-out),
-    transform var(--motion-base) var(--ease-out);
-}
-.file-list article:last-child {
-  border-bottom: 0;
-}
-.file-list article:hover {
-  background: var(--cloud);
-}
-.file-icon {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  color: var(--sky-lost-strong);
-  background: var(--cloud);
-  border-radius: 8px;
-}
-.file-content > strong,
-.file-content > small {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.file-content > small {
-  margin-top: 0.2rem;
-  color: var(--muted-ink);
-  font-size: 0.75rem;
-}
-.file-content { min-width: 0; }
-.file-metadata { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 1.25rem; margin: 0.4rem 0 0; }
-.file-metadata > div { display: flex; align-items: center; gap: 0.4rem; min-width: 0; max-width: 100%; }
+.secondary-link { min-height: 44px; display: inline-flex; align-items: center; color: var(--primary); font-weight: 600; }
+.file-metadata { min-width: 0; display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin: 0; }
+.file-metadata > div { min-width: 0; max-width: 100%; display: flex; align-items: center; gap: .5rem; }
 .file-metadata > div:first-child { max-width: min(15rem, 100%); }
-.file-metadata dt { flex-shrink: 0; color: var(--muted-ink); font-size: 0.75rem; }
-.file-metadata dd { min-width: 0; margin: 0; color: var(--muted-ink); font-size: 0.75rem; overflow-wrap: anywhere; }
-@media (max-width: 639px) {
-  .file-list article { grid-template-columns: 44px minmax(0, 1fr); }
-  .file-list article > :last-child { grid-column: 2; justify-self: end; }
-  .file-metadata { align-items: flex-start; }
-}
-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  color: var(--muted-ink);
-  font-size: 0.8rem;
-}
+.file-metadata dt { flex-shrink: 0; }
+.file-metadata dd { min-width: 0; margin: 0; }
+.pager { display: flex; justify-content: center; }
 </style>

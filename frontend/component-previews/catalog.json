@@ -1,5 +1,35 @@
 [
   {
+    "id": "ls-resource-list",
+    "name": "LsResourceList",
+    "source": "frontend/packages/ui/src/components/LsResourceList.vue",
+    "story": "frontend/component-previews/src/ui-stories.ts#LsResourceList",
+    "category": "ui",
+    "aliases": [
+      "连续资源列表"
+    ]
+  },
+  {
+    "id": "ls-resource-row",
+    "name": "LsResourceRow",
+    "source": "frontend/packages/ui/src/components/LsResourceRow.vue",
+    "story": "frontend/component-previews/src/ui-stories.ts#LsResourceRow",
+    "category": "ui",
+    "aliases": [
+      "资源列表行"
+    ]
+  },
+  {
+    "id": "radio-group-field",
+    "name": "LsRadioGroupField",
+    "source": "frontend/packages/ui/src/components/LsRadioGroupField.vue",
+    "story": "frontend/component-previews/src/ui-stories.ts#LsRadioGroupField",
+    "category": "ui",
+    "aliases": [
+      "单选字段组"
+    ]
+  },
+  {
     "id": "admin-site-member-fields",
     "name": "SiteMemberFields",
     "source": "frontend/apps/admin/src/components/SiteMemberFields.vue",

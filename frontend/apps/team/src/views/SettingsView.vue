@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsRadioGroupField from '@lostsky/ui/components/LsRadioGroupField.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import { KeyRound } from '@lucide/vue'
 import { api, friendlyError } from '@lostsky/api/client'
@@ -9,7 +10,7 @@ import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NInput, NInputNumber, NRadio, NRadioGroup, NSelect } from 'naive-ui'
+import { NInput, NInputNumber, NSelect } from 'naive-ui'
 import type { SelectOption } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
@@ -163,7 +164,7 @@ function switchDisabled(appName: string, setting: SettingField): boolean {
         @submit.prevent="!save.isPending.value && validApp(app) && appDirty(app.app_name) && save.mutate(app)"
       >
       <header class="settings-header">
-        <LsSectionHeader :eyebrow="app.app_name.toUpperCase()" :title="app.label" :description="app.description">
+        <LsSectionHeader :title="app.label" :description="app.description">
           <template #aside><SettingsSaveButton :loading="isSaving(app.app_name)" :disabled="save.isPending.value || !validApp(app) || !appDirty(app.app_name)">保存{{ app.label }}设置</SettingsSaveButton></template>
         </LsSectionHeader>
       </header>
@@ -173,10 +174,9 @@ function switchDisabled(appName: string, setting: SettingField): boolean {
         :key="setting.key"
         :class="['setting-row', { 'setting-row--choices': setting.control === 'radio' }]"
       >
-        <div class="setting-copy">
+        <div v-if="setting.control !== 'radio'" class="setting-copy">
           <h3 :id="`${settingId(app.app_name, setting.key)}-label`">{{ setting.label }}</h3>
           <p :id="`${settingId(app.app_name, setting.key)}-description`">{{ setting.description }}</p>
-          <code>{{ app.app_name }}.{{ setting.key }}</code>
         </div>
 
         <div :class="['setting-control', { 'setting-control--choices': setting.control === 'radio' }]">
@@ -190,22 +190,16 @@ function switchDisabled(appName: string, setting: SettingField): boolean {
             @update:model-value="setSettingValue(app.app_name, setting.key, $event)"
           />
 
-          <NRadioGroup
+          <LsRadioGroupField
             v-else-if="setting.control === 'radio'"
-            :value="choiceValue(app.app_name, setting)"
-            :aria-labelledby="`${settingId(app.app_name, setting.key)}-label`"
-            :aria-describedby="`${settingId(app.app_name, setting.key)}-description`"
-            @update:value="setSettingValue(app.app_name, setting.key, $event)"
-          >
-            <div class="radio-options">
-              <NRadio v-for="option in setting.options ?? []" :key="String(option.value)" :value="option.value">
-                <span class="radio-copy">
-                  <strong>{{ option.label }}</strong>
-                  <small v-if="option.description">{{ option.description }}</small>
-                </span>
-              </NRadio>
-            </div>
-          </NRadioGroup>
+            :id="settingId(app.app_name, setting.key)"
+            :model-value="choiceValue(app.app_name, setting)"
+            :label="setting.label"
+            :hint="setting.description"
+            :options="setting.options ?? []"
+            :disabled="routeAccess.restricted.value"
+            @update:model-value="setSettingValue(app.app_name, setting.key, $event)"
+          />
 
           <NSelect
             v-else-if="setting.control === 'select'"
@@ -257,24 +251,24 @@ function switchDisabled(appName: string, setting: SettingField): boolean {
 </template>
 
 <style scoped>
-.settings-view{display:grid;gap:1.5rem}.settings-panel,.loading-panel,.empty-panel{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);overflow:hidden}
+.settings-view{display:grid;gap:1.5rem}.settings-panel{width:100%;max-width:64rem}.settings-panel,.loading-panel,.empty-panel{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);overflow:hidden}
 .settings-header{padding:1rem;border-bottom:1px solid var(--border)}
 .setting-copy h3,.setting-copy p{margin:0}
 .setting-row{min-height:96px;display:grid;grid-template-columns:1fr;align-items:center;gap:.9rem;padding:1rem;border-bottom:1px solid var(--border)}
 .setting-row:last-of-type{border-bottom:0}.setting-row--choices{align-items:start;gap:1rem}
 .setting-copy h3{font-size:.92rem}.setting-copy p{margin-top:.3rem;color:var(--text-secondary);font-size:.8rem;line-height:1.55}
-.setting-copy code{display:inline-block;margin-top:.35rem;color:var(--primary);font-size:.7rem}
+
 .setting-control{width:100%;min-height:44px;display:flex;align-items:center;justify-content:flex-start}.setting-control--choices{display:block}
-.setting-control>.n-input,.setting-control>.n-input-number,.setting-control>.n-select{width:100%}.setting-control>.n-radio-group{width:100%}
-.radio-options{display:grid;grid-template-columns:1fr;gap:.75rem}
-.radio-options :deep(.n-radio){min-height:80px;display:flex;align-items:flex-start;box-sizing:border-box;padding:1rem;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease}
-.radio-options :deep(.n-radio:hover),.radio-options :deep(.n-radio--checked){border-color:var(--primary);background:color-mix(in srgb,var(--primary) 6%,var(--surface))}
-.radio-options :deep(.n-radio:focus-within){border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 16%,transparent)}
-.radio-copy{display:block;padding-right:.25rem}.radio-copy strong,.radio-copy small{display:block}.radio-copy strong{font-size:.86rem;line-height:1.4}.radio-copy small{margin-top:.3rem;color:var(--text-secondary);font-size:.75rem;line-height:1.5}
+.setting-control>.n-input,.setting-control>.n-input-number,.setting-control>.n-select{width:100%}
+
+
+
+
+
 .feedback{margin:1rem 1.4rem;padding:.75rem .85rem;border-radius:var(--radius-md)}
 .error{color:var(--danger);background:color-mix(in srgb,var(--danger) 9%,transparent)}
 .success{color:var(--success);background:color-mix(in srgb,var(--success) 9%,transparent)}
 .loading-panel,.empty-panel{padding:2rem;color:var(--text-secondary)}.empty-panel h2{margin:0;color:var(--text);font-size:1rem}.empty-panel p{margin:.4rem 0 0}
-@media(min-width:641px){.settings-header{padding:1.5rem}.setting-row{grid-template-columns:minmax(0,1fr) minmax(220px,320px);gap:1.5rem;padding:1.25rem 1.5rem}.setting-row--choices{grid-template-columns:1fr}.setting-control{justify-content:flex-end}.radio-options{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
-@media(prefers-reduced-motion:reduce){.radio-options :deep(.n-radio){transition:none}}
+@media(min-width:641px){.settings-header{padding:1.5rem}.setting-row{grid-template-columns:minmax(0,1fr) minmax(220px,320px);gap:1.5rem;padding:1.25rem 1.5rem}.setting-row--choices{grid-template-columns:1fr}.setting-control{justify-content:flex-end}}
+
 </style>

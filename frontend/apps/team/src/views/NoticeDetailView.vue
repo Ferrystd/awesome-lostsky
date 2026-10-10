@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
@@ -79,10 +83,10 @@ function time(value: unknown) {
   <article class="notice-detail-view">
     <AdminPageHeader :title="copy.title" :description="copy.description" :back-to="copy.backTo" :back-label="copy.backLabel" />
 
-    <p v-if="!noticeId && !routeAccess.restricted.value" class="error" role="alert">缺少有效的{{ copy.noun }}编号，请返回列表重新选择。</p>
-    <p v-else-if="!routeAccess.restricted.value && detailQuery.isError.value" class="error" role="alert">{{ friendlyError(detailQuery.error.value) }}</p>
-    <div v-else-if="!routeAccess.restricted.value && detailQuery.isPending.value" class="loading" :aria-label="`正在读取${copy.noun}`"><span /><span /><span /></div>
-    <template v-else-if="routeAccess.restricted.value"><header class="notice-header"><div class="notice-meta"><time>-</time><span class="read-state"><MailOpen :size="15" />-</span></div><h1>-</h1></header><section class="notice-content" :aria-label="`${copy.noun}正文`">-</section></template>
+    <LsInlineError v-if="!noticeId && !routeAccess.restricted.value" :message="`缺少有效的${copy.noun}编号，请返回列表重新选择。`" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && detailQuery.isError.value" state="error" :description="friendlyError(detailQuery.error.value)" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && detailQuery.isPending.value" state="loading" :rows="3" />
+    <LsEmptyState v-else-if="routeAccess.restricted.value" :source="detailQuery.data.value" title="暂无可显示的通知" description="返回通知列表查看其他通知。" />
     <template v-else-if="detailQuery.data.value">
       <header class="notice-header">
         <div class="notice-meta">
@@ -93,18 +97,19 @@ function time(value: unknown) {
         </div>
         <h1>{{ detailQuery.data.value.title || '无标题消息' }}</h1>
       </header>
-      <section class="notice-content" :aria-label="`${copy.noun}正文`">
+      <LsPanel><section class="notice-content" :aria-label="`${copy.noun}正文`">
         <LsMarkdownRenderer
+          context="document"
           :content="detailQuery.data.value.content || `这条${copy.noun}没有正文。`"
           :resolve-entities="resolveEntities"
         />
-      </section>
+      </section></LsPanel>
     </template>
 
-    <p v-if="confirmNotice.isError.value" class="error" role="alert">{{ copy.noun }}已打开，但已读状态更新失败：{{ friendlyError(confirmNotice.error.value) }}</p>
+    <LsInlineError v-if="confirmNotice.isError.value" :message="`${copy.noun}已打开，但已读状态更新失败：${friendlyError(confirmNotice.error.value)}`" />
   </article>
 </template>
 
 <style scoped>
-.notice-detail-view{max-width:56rem;display:grid;gap:1.75rem}.notice-header{padding-bottom:1.5rem;border-bottom:1px solid var(--line)}.notice-meta{display:flex;align-items:center;flex-wrap:wrap;gap:.75rem;color:var(--muted-ink);font-size:.8rem}.notice-meta>span{display:inline-flex;align-items:center;gap:.3rem}.notice-meta .pinned{color:var(--sky-lost-strong);font-weight:750}.read-state{color:var(--ink)}.notice-header h1{margin:1rem 0 0;font-size:clamp(1.75rem,4vw,2.5rem);line-height:1.18;letter-spacing:-.025em;text-wrap:balance}.notice-content{min-height:14rem;padding:1.5rem;color:var(--ink);background:white;border:1px solid var(--line);border-radius:12px;overflow-wrap:anywhere}.notice-content :deep(.markdown){--markdown-h1-size:1.75rem;--markdown-h2-size:1.4rem;--markdown-h3-size:1.15rem;--markdown-h4-size:1rem}.loading{display:grid;gap:.75rem;padding:1.5rem;background:white;border:1px solid var(--line);border-radius:12px}.loading span{height:1rem;background:var(--surface-subtle);border-radius:999px;animation:pulse 1.3s infinite alternate}.loading span:first-child{width:55%}.loading span:last-child{width:72%}.error{padding:1rem;margin:0;color:var(--danger);background:white;border:1px solid color-mix(in oklch,var(--danger),white 70%);border-radius:10px}@keyframes pulse{to{opacity:.55}}@media(max-width:639px){.notice-detail-view{gap:1.25rem}.notice-content{padding:1.125rem}}@media(prefers-reduced-motion:reduce){.loading span{animation:none}}
+.notice-detail-view{display:grid;gap:1.75rem}.notice-header{padding-bottom:1.5rem;border-bottom:1px solid var(--line)}.notice-meta{display:flex;align-items:center;flex-wrap:wrap;gap:.75rem;color:var(--muted-ink);font-size:.8rem}.notice-meta>span{display:inline-flex;align-items:center;gap:.3rem}.notice-meta .pinned{color:var(--sky-lost-strong);font-weight:750}.read-state{color:var(--ink)}.notice-header h1{margin:1rem 0 0;font-size:clamp(1.75rem,4vw,2.5rem);line-height:1.18;letter-spacing:-.025em;text-wrap:balance}.notice-content{max-width:72ch;min-height:14rem;margin-inline:auto;overflow-wrap:anywhere}@media(max-width:639px){.notice-detail-view{gap:1.25rem}}
 </style>

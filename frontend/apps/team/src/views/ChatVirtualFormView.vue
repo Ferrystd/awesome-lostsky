@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
@@ -96,7 +101,7 @@ function submit() {
         <template v-if="editing" #actions><LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteVirtual"><Trash2 :size="16" />删除人员</LsButton></template>
       </AdminPageHeader>
       <form @submit.prevent="submit"><LsPanel><div class="virtual-fields">
-        <h3>基本信息</h3>
+        <LsSectionHeader title="基本信息" />
         <LsField label="永久 slug" for-id="virtual-slug" required><NInput id="virtual-slug" v-model:value="form.slug" :disabled="editing" maxlength="50" placeholder="sales-assistant" /></LsField>
         <LsField label="显示名称" for-id="virtual-name" required><NInput id="virtual-name" v-model:value="form.name" maxlength="50" placeholder="销售助手" /></LsField>
         <LsField label="头像" for-id="virtual-avatar"><LsMediaUploadField id="virtual-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
@@ -108,39 +113,16 @@ function submit() {
 
       <template v-if="editing">
         <LsPanel>
-          <template #header><header>
-            <div><h3>Webhook 集成</h3><p>同一虚拟人员可以同时由成员操作并连接多个外部系统。</p></div>
-            <LsButton v-if="routeAccess.restricted.value" size="sm" :disabled="true" :disabled-reason="routeAccess.reason.value"><Plus :size="16" />创建集成</LsButton>
-            <RouterLink v-else :to="{ path: '/chat-integration-new', query: { slug } }">
-              <LsButton size="sm"><Plus :size="16" />创建集成</LsButton>
-            </RouterLink>
-          </header></template>
-          <div v-if="detail.data.value?.integrations?.length" class="integration-list">
-            <article v-for="item in detail.data.value.integrations" :key="item.id">
-              <Webhook :size="19" />
-              <div><strong>{{ item.name }}</strong><small>{{ item.endpoint_url }}</small></div>
-              <span :class="{ inactive: !item.is_active }">{{ item.is_active ? '启用' : '停用' }}</span>
-              <RouterLink :to="{ path: '/chat-integration', query: { slug, id: item.id } }">编辑</RouterLink>
-            </article>
-          </div>
-          <p v-else class="empty-integrations">还没有集成。创建后会一次性显示 API Token 与签名密钥。</p>
+          <template #header><LsSectionHeader title="Webhook 集成" description="同一虚拟人员可以同时由成员操作并连接多个外部系统。"><template #aside><LsButton variant="secondary" @click="router.push({ path: '/chat-integration-new', query: { slug } })"><Plus :size="16" />创建集成</LsButton></template></LsSectionHeader></template>
+          <LsResourceList v-if="detail.data.value?.integrations?.length" aria-label="Webhook 集成列表"><LsResourceRow v-for="item in detail.data.value.integrations" :key="item.id" :title="item.name" :description="item.endpoint_url" :icon="Webhook" :to="{ path: '/chat-integration', query: { slug, id: item.id } }"><template #status><LsStatusTag :label="item.is_active ? '启用' : '停用'" :type="item.is_active ? 'success' : 'default'" /></template></LsResourceRow></LsResourceList>
+          <LsEmptyState v-else :source="detail.data.value?.integrations" title="还没有集成" description="创建后会一次性显示 API Token 与签名密钥。" />
         </LsPanel>
       </template>
     </div>
 </template>
 
 <style scoped>
-.virtual-form-page{max-width:60rem;display:grid;gap:1rem}
-.virtual-fields{display:grid;gap:1rem}.virtual-fields h3,.virtual-fields p{margin:0}
-header p{color:var(--muted-ink);font-size:.75rem;font-weight:400}
-.virtual-fields>.ls-button{width:fit-content}header{display:flex;align-items:center;justify-content:space-between;gap:1rem}header h3,header p{margin:0}
-.integration-list{display:grid;gap:.5rem}
-.integration-list article{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;align-items:center;gap:.65rem;padding:.65rem;background:var(--cloud);border-radius:9px}
-.integration-list article>svg{color:var(--sky-lost-strong)}
-.integration-list strong,.integration-list small{display:block;overflow:hidden;text-overflow:ellipsis}.integration-list small{color:var(--muted-ink)}
-.integration-list article>span{padding:.12rem .45rem;color:var(--success);background:color-mix(in oklch,var(--success),white 91%);border-radius:999px;font-size:.67rem}
-.integration-list article>span.inactive{color:var(--muted-ink);background:white}
-.integration-list article>a{min-height:40px;display:inline-flex;align-items:center;padding:0 .7rem;color:var(--sky-lost-strong);background:white;border:1px solid var(--line);border-radius:8px;font-size:.8rem;font-weight:650}
-.empty-integrations{padding:1rem;text-align:center;background:var(--cloud);border-radius:9px}
-@media(max-width:560px){header{align-items:stretch;flex-direction:column}header a,header .ls-button{width:100%}.integration-list article{grid-template-columns:24px minmax(0,1fr) auto}.integration-list article>span{display:none}.integration-list article>a{padding-inline:.5rem}}
+.virtual-form-page { display: grid; gap: 1.5rem; }
+.virtual-fields { display: grid; gap: 1rem; }
+.virtual-fields > .ls-button { width: fit-content; }
 </style>

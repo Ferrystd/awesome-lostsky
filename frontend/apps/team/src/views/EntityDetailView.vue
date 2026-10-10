@@ -239,8 +239,7 @@ async function submitProfile() {
             <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" :draft-key="`entity-profile:${id}`" id-prefix="entity-profile" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" :disabled="!canManage" />
             <section v-if="supportsPublicDocuments" class="document-tag-groups" aria-labelledby="document-tag-groups-title">
               <div>
-                <h3 id="document-tag-groups-title">公开文档分组</h3>
-                <p>按这里的顺序组织该人员的公开文档；说明会显示在对应分组标题下方。</p>
+                <LsSectionHeader id="document-tag-groups-title" title="公开文档分组" description="按这里的顺序组织该人员的公开文档；说明会显示在对应分组标题下方。" :heading-level="3" />
               </div>
               <LsFormList v-model="form.document_tags" :item-key="tagKey" :create-item="createTagGroup" item-label="展示标签" add-label="添加展示标签" empty-text="尚未配置公开文档分组" :disabled="!canManage" :disabled-reason="manageReason">
                 <template #item="{ item, index }">
@@ -309,15 +308,8 @@ async function submitProfile() {
   display: grid;
   gap: 16px;
 }
-.profile-panel h2,
-.profile-panel p,
-.document-tag-groups h3,
-.document-tag-groups p {
-  margin: 0;
-}
-.profile-panel h2 {
-  font-size: 1.05rem;
-}
+
+
 .profile-panel label {
   display: grid;
   gap: 7px;
@@ -339,16 +331,8 @@ async function submitProfile() {
   gap: 16px;
   padding-top: 4px;
 }
-.document-tag-groups h3 {
-  font-size: 1rem;
-}
-.document-tag-groups > div > p {
-  max-width: 68ch;
-  margin-top: 5px;
-  color: var(--text-secondary);
-  font-size: 0.84rem;
-  line-height: 1.55;
-}
+
+
 .document-tag-group-fields {
   min-width: 0;
   display: grid;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
@@ -79,7 +80,7 @@ function joinedAt(value: unknown) {
     </section>
 
     <section v-if="member.data.value" class="membership" aria-labelledby="membership-title">
-      <h2 id="membership-title">成员信息</h2>
+      <LsSectionHeader id="membership-title" title="成员信息" />
       <dl>
         <div>
           <dt>加入时间</dt>
@@ -98,7 +99,7 @@ function joinedAt(value: unknown) {
     </section>
 
     <section v-if="introduction" class="introduction" aria-labelledby="member-introduction-title">
-      <h2 id="member-introduction-title">详细介绍</h2>
+      <LsSectionHeader id="member-introduction-title" title="详细介绍" />
       <LsMarkdownRenderer :content="introduction" :resolve-entities="resolveEntities" />
     </section>
 
@@ -107,7 +108,7 @@ function joinedAt(value: unknown) {
 </template>
 
 <style scoped>
-.member-detail{display:grid;gap:1.25rem}.chat-link,.document-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .875rem;border-radius:8px;text-decoration:none}.chat-link{color:white;background:var(--sky-lost-strong);font-weight:650}.document-link{color:var(--sky-lost-strong);background:white;border:1px solid var(--line)}.identity{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:1rem;padding:1.25rem;color:white;background:var(--sky-night);border-radius:12px}.avatar{width:64px;height:64px;display:grid;place-items:center;overflow:hidden;background:var(--sky-lost-strong);border-radius:10px;font-size:1.4rem;font-weight:700}.avatar img{width:100%;height:100%;object-fit:cover}.identity small{color:var(--sky-lost)}.identity h2,.identity p{margin:0}.identity p{margin-top:.3rem;color:oklch(.74 .012 210)}.identity>strong{padding:.3rem .55rem;color:var(--sky-night);background:var(--afterglow);border-radius:7px;font-size:.78rem}.introduction{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.introduction>h2{margin:0;font-size:1rem}.feedback{padding:.875rem;background:white;border:1px solid var(--line);border-radius:8px}.error{color:var(--danger)}
-.membership{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.membership>h2{margin:0;font-size:1rem}.membership dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0}.membership dl>div{display:grid;gap:.35rem;padding:.25rem 1rem .25rem 0}.membership dl>div+div{padding-left:1rem;border-left:1px solid var(--line)}.membership dt{color:var(--muted-ink);font-size:.78rem}.membership dd{display:grid;gap:.15rem;margin:0;overflow-wrap:anywhere}.membership dd span,.membership dd small{color:var(--muted-ink);font-size:.8rem}
+.member-detail{display:grid;gap:1.25rem}.chat-link,.document-link{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:.45rem;padding:0 .875rem;border-radius:8px;text-decoration:none}.chat-link{color:white;background:var(--sky-lost-strong);font-weight:650}.document-link{color:var(--sky-lost-strong);background:white;border:1px solid var(--line)}.identity{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:1rem;padding:1.25rem;color:white;background:var(--sky-night);border-radius:12px}.avatar{width:64px;height:64px;display:grid;place-items:center;overflow:hidden;background:var(--sky-lost-strong);border-radius:10px;font-size:1.4rem;font-weight:700}.avatar img{width:100%;height:100%;object-fit:cover}.identity small{color:var(--sky-lost)}.identity h2,.identity p{margin:0}.identity p{margin-top:.3rem;color:oklch(.74 .012 210)}.identity>strong{padding:.3rem .55rem;color:var(--sky-night);background:var(--afterglow);border-radius:7px;font-size:.78rem}.introduction{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.feedback{padding:.875rem;background:white;border:1px solid var(--line);border-radius:8px}.error{color:var(--danger)}
+.membership{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.membership dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0}.membership dl>div{display:grid;gap:.35rem;padding:.25rem 1rem .25rem 0}.membership dl>div+div{padding-left:1rem;border-left:1px solid var(--line)}.membership dt{color:var(--muted-ink);font-size:.78rem}.membership dd{display:grid;gap:.15rem;margin:0;overflow-wrap:anywhere}.membership dd span,.membership dd small{color:var(--muted-ink);font-size:.8rem}
 @media(max-width:639px){.identity{grid-template-columns:56px minmax(0,1fr)}.avatar{width:56px;height:56px}.identity>strong{grid-column:1/-1;justify-self:start}.membership dl{grid-template-columns:1fr}.membership dl>div{padding:.25rem 0}.membership dl>div+div{padding-top:1rem;padding-left:0;border-top:1px solid var(--line);border-left:0}}
 </style>

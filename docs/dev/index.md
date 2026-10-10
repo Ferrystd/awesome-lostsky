@@ -68,3 +68,4 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 
 - [当前待办](TODO.md)
 - [Markdown 编辑器 AI 能力](plans/markdown-ai.md)
+- [非 Team 页面一致性保留计划](plans/non-team-page-consistency.md)

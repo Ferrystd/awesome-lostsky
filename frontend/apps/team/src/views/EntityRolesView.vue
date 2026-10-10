@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -176,10 +177,9 @@ function entityTypeLabel(type: EntityType) {
           <NTag v-else type="success" round>当前团队</NTag>
         </header>
 
-        <div class="assignment-heading">
-          <div><h3>当前团队角色</h3><p>勾选后保存完整角色集合；未勾选表示撤销该角色。</p></div>
+        <LsSectionHeader title="当前团队角色" description="勾选后保存完整角色集合；未勾选表示撤销该角色。"><template #aside>
           <LsButton :loading="save.isPending.value" :disabled="routeAccess.restricted.value || !roles.length" :disabled-reason="routeAccess.reason.value" @click="save.mutate()">保存分配</LsButton>
-        </div>
+        </template></LsSectionHeader>
         <LsCheckboxGroupField v-if="roles.length" v-model="roleIds" label="当前团队角色" :options="roleOptions" />
         <NEmpty v-else description="还没有可分配的角色">
           <template #extra><RouterLink to="/roles/new">新建角色</RouterLink></template>
@@ -192,6 +192,6 @@ function entityTypeLabel(type: EntityType) {
 </template>
 
 <style scoped>
-.entity-roles{display:grid;gap:1.5rem}.lookup,.assignment,.empty,.loading{padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.lookup{display:grid;gap:.4rem}.lookup label{font-size:.9rem;font-weight:700}.lookup p{margin:0;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.lookup-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.75rem;margin-top:.45rem}.assignment{display:grid;gap:1.25rem}.assignment>header{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:start;gap:.75rem;padding-bottom:1.1rem;border-bottom:1px solid var(--line)}.assignment>header>svg{color:var(--sky-lost-strong)}.assignment h3,.assignment p,.assignment small{margin:0}.assignment>header h3{font-size:1rem}.assignment>header p,.assignment>header small{display:block;margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.assignment-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.assignment-heading h3{font-size:1rem}.assignment-heading p{max-width:60ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.empty{padding-block:3.5rem}.loading{display:grid;gap:1rem}.error{margin:0;padding:1rem;color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%);border-radius:8px}
-@media(max-width:639px){.lookup-control{grid-template-columns:1fr}.assignment>header{grid-template-columns:24px minmax(0,1fr)}.assignment>header :deep(.n-tag){grid-column:2;justify-self:start}.assignment-heading{align-items:stretch;flex-direction:column}.assignment-heading :deep(.n-button){width:100%}}
+.entity-roles{display:grid;gap:1.5rem}.lookup,.assignment,.empty,.loading{padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.lookup{display:grid;gap:.4rem}.lookup label{font-size:.9rem;font-weight:700}.lookup p{margin:0;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.lookup-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.75rem;margin-top:.45rem}.assignment{display:grid;gap:1.25rem}.assignment>header{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:start;gap:.75rem;padding-bottom:1.1rem;border-bottom:1px solid var(--line)}.assignment>header>svg{color:var(--sky-lost-strong)}.assignment h3,.assignment p,.assignment small{margin:0}.assignment>header h3{font-size:1rem}.assignment>header p,.assignment>header small{display:block;margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.empty{padding-block:3.5rem}.loading{display:grid;gap:1rem}.error{margin:0;padding:1rem;color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%);border-radius:8px}
+@media(max-width:639px){.lookup-control{grid-template-columns:1fr}.assignment>header{grid-template-columns:24px minmax(0,1fr)}.assignment>header :deep(.n-tag){grid-column:2;justify-self:start}}
 </style>

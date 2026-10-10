@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -86,46 +89,20 @@ function handleAction(key: string, item: Record<string, unknown>) {
 
 <template>
   <div class="members-view">
-    <AdminPageHeader title="成员" description="查看团队内有权查看的成员。">
-      <template #actions><LsPagePrimaryAction :icon="Plus" label="添加成员" to="/member-add" /></template>
-    </AdminPageHeader>
-
-    <LsListToolbar
-      v-model="search"
-      placeholder="按昵称、slug 或用户 ID 搜索"
-      aria-label="搜索成员"
-      :count-label="`${filtered.length} 位成员`"
-    >
-      <template #filters>
-        <NSelect v-model:value="category" class="category-select" :options="categoryOptions" aria-label="成员分类" />
-      </template>
-    </LsListToolbar>
-
-    <Transition name="ls-state" mode="out-in">
-      <p v-if="query.isError.value" key="error" class="error" role="alert">{{ friendlyError(query.error.value) }}</p>
-      <div v-else-if="query.isPending.value" key="loading" class="loading"><span v-for="i in 5" :key="i" class="ls-skeleton" /></div>
-      <LsEmptyState :source="query.data.value"
-        v-else-if="!filtered.length"
-        key="empty"
-        :title="search || category !== 'all' ? '没有匹配的成员' : '当前没有可查看的成员'"
-        :description="search || category !== 'all' ? '尝试更短的关键词或切换成员分类。' : '成员可能尚未加入，或被设置为团队内隐藏。'"
-      />
-      <TransitionGroup v-else key="list" name="ls-list" tag="section" class="member-list">
-        <article v-for="item in filtered" :key="String(item.id)">
-        <div class="identity">
-          <LsEntityIdentity type="teamMember" :name="String(item.nickname || `成员 #${item.id}`)" :slug="String(item.slug || '')" :image-url="item.avatar ? String(item.avatar) : null" fallback="initial">
-            <template #status><LsStatusTag :label="memberStatusLabel(item)" :type="memberStatusType(item)" /></template>
-          </LsEntityIdentity>
-          <small>{{ item.description || '暂无成员简介' }}</small>
-        </div>
-        <LsResponsiveActions :actions="memberActions(item)" primary-key="manage" @select="handleAction($event, item)" />
-        </article>
-      </TransitionGroup>
-    </Transition>
+    <AdminPageHeader title="成员" description="查看团队内有权查看的成员。"><template #actions><LsPagePrimaryAction :icon="Plus" label="添加成员" to="/member-add" /></template></AdminPageHeader>
+    <LsListToolbar v-model="search" placeholder="按昵称、slug 或用户 ID 搜索" aria-label="搜索成员" :count-label="`${filtered.length} 位成员`"><template #filters><NSelect v-model:value="category" :options="categoryOptions" aria-label="成员分类" /></template></LsListToolbar>
+    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取成员" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
+    <LsEmptyState v-else-if="!filtered.length" :source="query.data.value" :title="search || category !== 'all' ? '没有匹配的成员' : '当前没有可查看的成员'" :description="search || category !== 'all' ? '尝试更短的关键词或切换成员分类。' : '成员可能尚未加入，或被设置为团队内隐藏。'" />
+    <LsResourceList v-else aria-label="成员列表">
+      <LsResourceRow v-for="item in filtered" :key="String(item.id)" :description="String(item.description || '暂无成员简介')">
+        <template #identity><LsEntityIdentity type="teamMember" :name="String(item.nickname || `成员 #${item.id}`)" :slug="String(item.slug || '')" :image-url="item.avatar ? String(item.avatar) : null" fallback="initial"><template #status><LsStatusTag :label="memberStatusLabel(item)" :type="memberStatusType(item)" /></template></LsEntityIdentity></template>
+        <template #actions><LsResponsiveActions :actions="memberActions(item)" primary-key="manage" @select="handleAction($event, item)" /></template>
+      </LsResourceRow>
+    </LsResourceList>
   </div>
 </template>
 
 <style scoped>
-.members-view{display:grid;gap:22px}.category-select{width:10rem}.member-list{display:grid;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface)}.member-list article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:15px;padding:15px 17px;border-bottom:1px solid var(--border);background:var(--surface);transition:background-color var(--motion-fast) var(--ease-standard),opacity var(--motion-base) var(--ease-out),transform var(--motion-base) var(--ease-out)}.member-list article:last-child{border-bottom:0}.member-list article:hover{background:var(--surface-subtle)}.identity{min-width:0;display:grid;gap:.25rem}.identity>small{margin-left:56px;overflow:hidden;color:var(--text-tertiary);font-size:.8rem;text-overflow:ellipsis;white-space:nowrap}.empty{display:grid;justify-items:center;gap:8px;padding:54px 20px;border:1px dashed var(--border);border-radius:var(--radius-lg);color:var(--text-secondary);text-align:center}.empty h2,.empty p{margin:0}.loading{display:grid;gap:10px}.loading span{height:82px;border-radius:var(--radius-lg);background:var(--surface-subtle)}.error{color:var(--danger)}
-@media(max-width:820px){.member-list article{grid-template-columns:minmax(0,1fr)}.identity>small{margin-left:0}}
+.members-view { display: grid; gap: 1.5rem; }
 </style>

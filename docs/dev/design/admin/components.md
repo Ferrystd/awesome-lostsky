@@ -31,6 +31,12 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 ## 组件契约
 
+### 连续资源目录
+
+`LsResourceList` 没有 props，默认插槽只承载 `LsResourceRow`，基于 Naive `NList` 提供单一白色边界、细分隔线和 12px 圆角。加载、错误与空状态在列表外处理，无数据时不渲染空列表。
+
+`LsResourceRow` 基于 Naive `NListItem`，仅接受资源语义 `title/description/to/icon` 和通知状态 `unread`。`identity` 插槽仅组合 `LsEntityIdentity` 并替代名称区域；`description/metadata` 仍随后呈现，身份状态放入 `LsEntityIdentity.status`；`metadata/status/actions` 分别承载辅助信息、状态和 `LsResponsiveActions`。名称在前，摘要和元信息随后，状态紧邻名称；内部拥有 16px 内边距、12px 主体间距、40px 资源图标，名称 1rem/600，辅助信息 .8125rem。容器小于 40rem 时动作独立下一行；链接至少 44px，文字放大自然换行，hover 只改表面色。禁止任意宽度、密度、布局、样式参数和调用方穿透；metadata 不得包含导致嵌套链接的交互控件。无实现级例外，以公共契约与 Team 页面几何测试验收。
+
 | 组件 | 必须用途与参数 | 禁止组合 | 状态与响应式检查 |
 | --- | --- | --- | --- |
 | `LsButton` | `variant=primary/secondary/ghost/danger`、`size=sm/md/lg`、`loading`、`disabled`、`disabledReason`、`type=button/submit/reset`；`icon` 插槽承载命令图标；是唯一可见命令按钮原语 | 页面私有按钮皮肤、同组混合尺寸、在默认插槽中反复手排图标间距、页面用外层 `span` 重做可解释禁用 | loading 保留尺寸；disabled 无原因时使用原生禁用，有原因时保留焦点并统一短时提示且绝不触发表单；40/44/48px；图标不改变可读文案 |
@@ -64,6 +70,7 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 | `LsRouteErrorBoundary` | 以路由地址为 `resetKey` 隔离异步路由渲染错误 | 让单页异常清空整个应用壳层 | 切换路由自动恢复；错误只占内容区 |
 | `LsSearchInput` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索'`、`autofocus=false`；搜索图标固定在输入内 | 页面手写图标+输入组合；显示选择器箭头 | 键盘、清除和焦点状态可用；输入类型为 search；桌面高度 40px、移动端 44px |
 | `LsField` | `label/forId` 必填，`error/hint/required` 可选；包装单个表单控件 | 标签、错误和说明与控件脱离；只用占位符代替标签；调用方传入宽度或用提示高度调整相邻字段位置 | `forId` 必须指向控件；内部控件轨道固定满宽且从顶部开始排列，提示或错误增高字段时不得拉开标签与控件；并列字段的控件顶部与宽度保持一致；错误与说明不重复；必填状态可被辅助技术识别 |
+| `LsRadioGroupField` | `modelValue: string/number/null`、`label`、`options=[{value,label,description?}]` 必填；`id/hint` 可选，`disabled=false`；发出 `update:modelValue` | 调用方传入宽度、密度、布局或样式参数；页面穿透 Naive Radio 样式；在字段外重复标题和说明 | fieldset/legend 和原生 Radio 语义；Naive 管理方向键与空格选择，禁用不提交更新；选项说明始终显示，最小 64px 触控区域，窄容器自然单列，320px 与 200% 文字不溢出 |
 | `LsCheckboxGroupField` | `v-model` 接受字符串或数字数组，`label/options` 必填；option 支持 `value/label/description/meta/disabled/disabledReason`；可传 `id/hint/error/required/disabled` | 页面直接组合无分组语义的 `NCheckboxGroup`；用于分组权限编辑器或动态加入字段；把禁用原因写进选项正文或 `title` | 固定 `fieldset/legend` 与提示/错误关联；带原因的禁用选项保持可触发的权限态，点击仅由 `feedback.info()` 解释且不更新模型；选项触控区至少 44px；长文案与移动端自然换行 |
 | `LsSwitch` | `v-model` 接受布尔值；`disabled/readOnly/loading/disabledReason` 可选；是唯一 `NSwitch` 视觉原语，调用方通过普通无障碍属性命名 | 业务页面直接使用 `NSwitch`；轨道内显示状态文字；增加颜色、尺寸或文案视觉 props；把禁用原因写入原生标题 | 开关内部始终无文字；触控区域至少 44px；只读与禁用保留 `aria-disabled/aria-readonly` 语义；权限态的轨道与按钮内圈统一视觉降权，触发后仅由 `feedback.info()` 解释且不更新值；所有应用内紧凑布尔控件也必须复用 |
 | `LsSwitchField` | `v-model` 接受布尔值，`label` 必填；`description/id/ariaLabel/headingLevel/disabled/readOnly/loading/disabledReason` 可选；内部只组合 `LsSwitch`，承载完整布尔设置行 | 在 `LsField`、`NFormItem` 或页面私有 `switch-row/switch-field` 中直接组合开关；在开关轨道内显示状态文字；把禁用原因写在设置行正文或 `title` | 默认以可见标签作为无障碍名称；设置页分区标题可用 `headingLevel`；固定、只读和可编辑状态保持同一结构；禁用原因只交给内部 `LsSwitch` 以信息弹窗解释；长文案和移动端不溢出 |
@@ -107,3 +114,7 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 发送中、倒计时中、手机号无效或表单禁用时不得重复发送；手机号变化清空验证码和旧提示，丢弃旧号码的异步反馈，保持发送冷却以免绕过限流。验证码控件与发送按钮由组件内部安排，320px 窄屏自然堆叠，沿用公共控件触控尺寸、焦点与标签关联。倒计时和请求在卸载时清理，失败保留手机号与验证码输入，成功只反馈发送结果。该组件不持久化恢复凭据，也不决定登录状态、Permission 或 Ability；无权限及空集合状态不适用。无新增原生控件或父级穿透例外。
 
 `tests/account-recovery.spec.ts` 覆盖原号与新号载荷、请求禁用、号码变化、失败、凭据失效、完成不自动登录及桌面/移动几何；登录现有 E2E 验证共享验证码改动没有破坏登录。源码守卫、类型检查、真实组件预览与完整静态构建共同验收。
+
+### Team 单选字段与权限编排
+
+`LsRadioGroupField` 的现有业务变体来自团队设置中的搜索优先级、顾客群聊模式和群聊历史范围；字段标题与说明由组件拥有，Settings 只传递 schema 数据和值。分类使用中文业务标题，不重复显示内部应用名和设置键。角色权限的静态权限、通用权限与指定人员权限统一复用 `LsCheckboxGroupField`；高级范围授权附带逐项覆盖明细，保留 Naive Checkbox 与原生 details 的业务组合，不穿透它们的内部皮肤。

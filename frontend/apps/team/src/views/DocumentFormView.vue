@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
@@ -152,10 +154,7 @@ async function submit() {
       </div>
 
       <section class="document-tags" aria-labelledby="document-tags-title">
-        <div>
-          <h2 id="document-tags-title">文档标签</h2>
-          <p>用于公开页面的文档分组；标签是独立资料，无需输入 #。</p>
-        </div>
+        <LsSectionHeader id="document-tags-title" title="文档标签" description="用于公开页面的文档分组；标签是独立资料，无需输入 #。" />
         <LsFormList
           v-model="form.tags"
           :item-key="tagKey"
@@ -199,10 +198,7 @@ async function submit() {
       </NFormItem>
 
       <section class="policy" aria-labelledby="document-policy-title">
-        <div>
-          <h2 id="document-policy-title">访问规则</h2>
-          <p>归属成员时可允许本人管理；公开可见会将正文暴露给未登录访客。</p>
-        </div>
+        <LsSectionHeader id="document-policy-title" title="访问规则" description="归属成员时可允许本人管理；公开可见会将正文暴露给未登录访客。" />
         <div class="field-row">
           <LsField label="管理范围" for-id="document-manager-scope"><NSelect id="document-manager-scope" v-model:value="form.manager_scope" :options="managerSelectOptions" /></LsField>
           <LsField label="可见范围" for-id="document-visibility"><NSelect id="document-visibility" v-model:value="form.visibility" :options="visibilitySelectOptions" /></LsField>
@@ -211,34 +207,28 @@ async function submit() {
       </section>
 
       <LsInlineError v-if="save.isError.value && !routeAccess.restricted.value" :message="friendlyError(save.error.value)" />
-      <div class="actions">
+      <LsFormActions>
         <LsButton type="button" variant="secondary" @click="router.push('/docs')">取消</LsButton>
-        <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || !draft.dirty.value || !form.title.trim() || (!editing && !form.entity_id)" :disabled-reason="routeAccess.reason.value">
+        <LsButton type="submit" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || !draft.dirty.value || !form.title.trim() || (!editing && !form.entity_id)" :disabled-reason="routeAccess.reason.value">
           保存文档
         </LsButton>
-      </div>
+      </LsFormActions>
     </form>
   </div>
 </template>
 
 <style scoped>
 .document-form-view { display: grid; gap: 24px; }
-.document-form { display: grid; gap: 22px; max-width: 920px; }
+.document-form { display: grid; gap: 22px; }
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .field-row .compact { grid-column: 1 / 2; }
 .control { width: 100%; }
 .document-tags { display: grid; gap: 16px; }
-.document-tags h2 { margin: 0 0 5px; font-size: 1rem; }
-.document-tags p { margin: 0; color: var(--text-secondary); font-size: .875rem; line-height: 1.55; }
 .policy { display: grid; gap: 18px; padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-subtle); }
-.policy h2 { margin: 0 0 5px; font-size: 1rem; }
-.policy p { margin: 0; color: var(--text-secondary); font-size: .875rem; }
-.actions { display: flex; justify-content: flex-end; gap: 10px; padding-bottom: 36px; }
 .error { color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); }
 @media (max-width: 720px) {
   .field-row { grid-template-columns: 1fr; }
   .field-row .compact { grid-column: auto; }
   .policy { padding: 16px; }
-  .actions > * { flex: 1; }
 }
 </style>

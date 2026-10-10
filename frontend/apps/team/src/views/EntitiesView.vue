@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -8,9 +11,10 @@ import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
 import { useQuery } from '@tanstack/vue-query'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import { Bot, FileText, MessageCircleMore, Pencil } from '@lucide/vue'
-import { NSelect, NSpin } from 'naive-ui'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import { NSelect } from 'naive-ui'
 import { computed, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { hasPermission, useTeamAccess } from '../lib/teamAccess'
 
@@ -68,28 +72,15 @@ function entityLocation(entity: Entity, manage = false) {
 </script>
 
 <template>
-  <div class="entities-view">
     <AdminPageHeader title="人员" description="查看团队内有权查看的人员。"><template #actions><LsPagePrimaryAction :icon="FileText" label="对象字段" to="/fields" /><LsPagePrimaryAction :icon="Bot" label="虚拟人员" to="/chat-virtuals" /></template></AdminPageHeader>
     <LsListToolbar v-model="search" placeholder="搜索人员名称或 slug" aria-label="搜索人员" :count-label="`${rows.length} 位人员`"><template #filters><NSelect v-model:value="type" :options="options" clearable placeholder="全部类型" /></template></LsListToolbar>
-    <NSpin v-if="query.isPending.value" size="large" />
-    <p v-else-if="query.isError.value" class="feedback" role="alert">{{ friendlyError(query.error.value) }}</p>
+    <LsAsyncState v-if="query.isPending.value" state="loading" />
+    <LsAsyncState v-else-if="query.isError.value" state="error" :description="friendlyError(query.error.value)" />
     <LsEmptyState :source="query.data.value" v-else-if="!rows.length" title="没有可查看的人员" description="调整搜索词或人员类型筛选后查看。" />
-    <div v-else class="entity-list">
-      <article
-        v-for="entity in rows"
-        :key="entity.id"
-        class="entity-row"
-      >
-        <RouterLink :to="entityLocation(entity)" class="entity-main">
-          <LsEntityIdentity :type="entity.entityable_type as 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'" :name="entity.profile?.name || '未命名人员'" :slug="entity.slug" :image-url="entity.profile?.avatar" />
-        </RouterLink>
-        <LsResponsiveActions :actions="entityActions(entity)" primary-key="manage" @select="handleAction($event, entity)" />
-      </article>
-    </div>
-  </div>
+    <LsResourceList v-else aria-label="人员列表">
+      <LsResourceRow v-for="entity in rows" :key="entity.id" :to="entityLocation(entity)">
+        <template #identity><LsEntityIdentity :type="entity.entityable_type as 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'" :name="entity.profile?.name || '未命名人员'" :slug="entity.slug" :image-url="entity.profile?.avatar" /></template>
+        <template #actions><LsResponsiveActions :actions="entityActions(entity)" primary-key="manage" @select="handleAction($event, entity)" /></template>
+      </LsResourceRow>
+    </LsResourceList>
 </template>
-
-<style scoped>
-.entities-view{display:grid;gap:22px}.filter{display:grid;gap:7px;max-width:22rem}.filter span{font-size:.875rem;font-weight:650;color:var(--text-secondary)}.entity-list{display:grid;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface)}.entity-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;min-height:76px;padding:8px 12px 8px 16px;border-bottom:1px solid var(--border);transition:background-color var(--motion-fast) var(--ease-standard)}.entity-row:last-of-type{border-bottom:0}.entity-row:hover{background:var(--surface-subtle)}.entity-main{min-width:0;min-height:56px;display:grid;align-items:center;color:inherit;text-decoration:none}.feedback{color:var(--danger)}.empty{padding:28px 16px;margin:0;color:var(--text-secondary)}
-@media(max-width:560px){.entity-row{grid-template-columns:minmax(0,1fr)}.entity-row nav{justify-content:flex-end;padding-top:.25rem;border-top:1px solid var(--border)}}
-</style>

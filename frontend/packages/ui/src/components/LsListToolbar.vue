@@ -53,6 +53,7 @@ const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 .ls-list-toolbar {
   min-width: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
@@ -65,13 +66,15 @@ const emit = defineEmits<{ "update:modelValue": [value: string] }>();
   border-color: color-mix(in oklch, var(--primary), white 48%);
 }
 .ls-list-toolbar__search {
-  min-width: 16rem;
+  min-width: min(16rem, 100%);
   max-width: 28rem;
   flex: 1 1 28rem;
 }
 .ls-list-toolbar__filters {
   min-width: 0;
+  max-width: 100%;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }

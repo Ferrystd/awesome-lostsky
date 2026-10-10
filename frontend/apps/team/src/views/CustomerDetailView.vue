@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
@@ -20,7 +23,6 @@ import { MessageCircleMore, Save } from '@lucide/vue'
 import { NInput } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import AdminPage from '../components/AdminPage.vue'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { permissionReason, resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
@@ -147,7 +149,7 @@ const money = (value: string) =>
 </script>
 
 <template>
-  <AdminPage width="form">
+  <div class="customer-detail">
     <AdminPageHeader :title="query.data.value?.name || '顾客详情'" description="查看顾客归属、余额和经营摘要；历史订单与流水保留创建时的发单归属。" back-to="/customers" back-label="返回顾客列表">
       <template #actions>
         <LsPagePrimaryAction :icon="MessageCircleMore" label="发起对话" :href="chatUrl" />
@@ -158,38 +160,23 @@ const money = (value: string) =>
     <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取顾客详情" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
     <template v-else-if="query.data.value">
-      <section class="summary-grid" aria-label="顾客经营摘要">
-        <article>
-          <span>可用余额</span><strong>{{ money(query.data.value.balance.balance) }}</strong
-          ><small>累计充值 {{ money(query.data.value.balance.recharged) }}</small>
-        </article>
-        <article>
-          <span>流水</span><strong>{{ query.data.value.summary.transaction_count }} 笔</strong><small>{{ money(query.data.value.summary.transaction_total) }}</small>
-        </article>
-        <article>
-          <span>订单</span><strong>{{ query.data.value.summary.order_count }} 笔</strong><small>{{ money(query.data.value.summary.order_total) }}</small>
-        </article>
-      </section>
+      <LsMetricGrid aria-label="顾客经营摘要" :items="[
+        { key: 'balance', label: '可用余额', value: money(query.data.value.balance.balance), hint: `累计充值 ${money(query.data.value.balance.recharged)}` },
+        { key: 'transactions', label: '流水', value: `${query.data.value.summary.transaction_count} 笔`, hint: money(query.data.value.summary.transaction_total) },
+        { key: 'orders', label: '订单', value: `${query.data.value.summary.order_count} 笔`, hint: money(query.data.value.summary.order_total) },
+      ]" />
 
       <LsPanel>
-        <template #header
-          ><header class="detail-heading">
-            <div>
-              <h3>顾客资料</h3>
-              <p>@{{ query.data.value.slug }}</p>
-            </div>
-            <span>{{ canManage ? '可维护' : '只读' }}</span>
-          </header></template
-        >
+        <template #header><LsSectionHeader title="顾客资料" :description="`@${query.data.value.slug}`"><template #aside><LsStatusTag :label="canManage ? '可维护' : '只读'" /></template></LsSectionHeader></template>
         <form @submit.prevent="save.mutate()">
           <LsField label="顾客昵称" for-id="customer-name"><NInput v-model:value="form.name" :input-props="{ id: 'customer-name' }" :disabled="!canManage" maxlength="50" /></LsField>
           <LsField label="头像" for-id="customer-avatar"><LsMediaUploadField id="customer-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(avatarUploadDisabledReason)" :disabled-reason="avatarUploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
           <LsField label="说明" for-id="customer-description"><NInput v-model:value="form.description" :input-props="{ id: 'customer-description' }" :disabled="!canManage" type="textarea" maxlength="500" /></LsField>
           <LsField label="当前归属人" for-id="customer-assignee" hint="变更只影响之后创建的订单和流水，不修改历史发单人。">
-            <LsEntitySelect id="customer-assignee" v-model="form.assignee_entity_id" :entities="assignees.data.value ?? []" :loading="assignees.isPending.value" :disabled="!canManage" clearable placeholder="未归属" />
+            <LsEntitySelect :input-props="{ id: 'customer-assignee', 'aria-label': '当前归属人' }" v-model="form.assignee_entity_id" :entities="assignees.data.value ?? []" :loading="assignees.isPending.value" :disabled="!canManage" clearable placeholder="未归属" />
           </LsField>
           <LsField label="协作发单人" for-id="customer-senders" hint="可以选择多名协作人员；他们仍需开通记账能力并具备相应权限，才能处理该顾客的业务。">
-            <LsEntitySelect id="customer-senders" v-model="form.sender_entity_ids" :entities="senderOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" multiple placeholder="未绑定协作发单人" />
+            <LsEntitySelect :input-props="{ id: 'customer-senders', 'aria-label': '协作发单人' }" v-model="form.sender_entity_ids" :entities="senderOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" multiple placeholder="未绑定协作发单人" />
           </LsField>
           <LsSwitchField v-model="form.is_blocked" label="封禁顾客" description="封禁后顾客现有身份会话不能继续使用。" :disabled="!canManage" />
           <LsFormActions
@@ -200,73 +187,10 @@ const money = (value: string) =>
         </form>
       </LsPanel>
     </template>
-  </AdminPage>
+  </div>
 </template>
 
 <style scoped>
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  overflow: hidden;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-.summary-grid article {
-  display: grid;
-  gap: 0.25rem;
-  padding: 1.1rem;
-  border-right: 1px solid var(--line);
-}
-.summary-grid article:last-child {
-  border-right: 0;
-}
-.summary-grid span,
-.summary-grid small {
-  color: var(--muted-ink);
-  font-size: 0.76rem;
-}
-.summary-grid strong {
-  font-size: 1.1rem;
-  font-variant-numeric: tabular-nums;
-}
-.detail-heading {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.detail-heading h3,
-.detail-heading p {
-  margin: 0;
-}
-.detail-heading p {
-  margin-top: 0.2rem;
-  color: var(--muted-ink);
-  font-size: 0.8rem;
-}
-.detail-heading > span {
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  background: var(--cloud);
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-.ls-panel form {
-  max-width: 42rem;
-  display: grid;
-  gap: 1rem;
-}
-@media (max-width: 640px) {
-  .summary-grid {
-    grid-template-columns: 1fr;
-  }
-  .summary-grid article {
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .summary-grid article:last-child {
-    border-bottom: 0;
-  }
-}
+.customer-detail { display: grid; gap: 1.5rem; }
+form { max-width: 42rem; display: grid; gap: 1rem; }
 </style>

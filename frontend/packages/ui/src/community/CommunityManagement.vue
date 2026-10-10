@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+import { Globe, Plus } from '@lucide/vue'
+import LsStatusTag from '../components/LsStatusTag.vue'
+import LsPagePrimaryAction from '../components/LsPagePrimaryAction.vue'
 import { communityActorKey } from '@lostsky/api/community'
 import { useCommunityListState } from '@lostsky/shared/useCommunityListState'
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
@@ -9,7 +14,7 @@ import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NInput, NSelect, NList, NListItem, NThing, NTag, NSpace, NPagination, NDescriptions, NDescriptionsItem, NAvatar, NButton, useDialog } from 'naive-ui'
+import { NInput, NSelect, NList, NListItem, NThing, NTag, NSpace, NPagination, NDescriptions, NDescriptionsItem, NButton, useDialog } from 'naive-ui'
 import LsPanel from '../components/LsPanel.vue'
 import LsSectionHeader from '../components/LsSectionHeader.vue'
 import LsPageHeader from '../components/LsPageHeader.vue'
@@ -65,10 +70,10 @@ watch(list.isSuccess, ready => { if (ready) void restoreScroll() }, { immediate:
   <LsAsyncState v-if="mode === 'form' && detail.isError.value && detail.data.value" state="error" title="暂时无法更新资料" description="已输入内容保留，网络恢复后将自动重新读取。" />
   <LsPageHeader v-if="mode !== 'list' && mode !== 'form' && detail.isError.value" title="社区管理" back-to="/communities" />
   <template v-if="mode === 'list'">
-    <LsPageHeader :title="scope === 'admin' ? '平台社区' : '团队社区'" :description="scope === 'admin' ? '管理平台拥有的社区、官方公告与讨论。' : '维护当前团队拥有的社区，并分配日常管理人员。'"><template #actions><LsButton @click="router.push('/communities/new')">创建社区</LsButton></template></LsPageHeader>
+    <LsPageHeader :title="scope === 'admin' ? '平台社区' : '团队社区'" :description="scope === 'admin' ? '管理平台拥有的社区、官方公告与讨论。' : '维护当前团队拥有的社区，并分配日常管理人员。'"><template #actions><LsPagePrimaryAction :icon="Plus" label="创建社区" to="/communities/new" /></template></LsPageHeader>
     <LsListToolbar v-model="keyword" placeholder="搜索社区名称" aria-label="搜索社区名称" :count-label="`${list.data.value?.total ?? 0} 个社区`"><template #filters><NSelect v-model:value="status" clearable aria-label="社区状态" placeholder="全部状态" :options="[{ label: '正常', value: 'Active' }, { label: '已暂停', value: 'Paused' }]" /></template></LsListToolbar>
     <LsEmptyState v-if="!canRead" :title="readReason" description="请联系管理员分配社区读取权限。" /><LsAsyncState v-else-if="list.isPending.value" state="loading" /><template v-else-if="list.isError.value"><LsAsyncState state="error" :description="friendlyError(list.error.value)" /></template><LsEmptyState v-else-if="!list.data.value?.list.length" :title="keyword || status ? '没有符合条件的社区' : '还没有创建社区'" :description="keyword || status ? '调整搜索词或状态筛选，查看其他社区。' : '创建一个公开话题空间，邀请人员加入讨论。'" />
-    <NList v-else bordered><NListItem v-for="row in list.data.value.list" :key="row.id"><NThing><template #avatar><NAvatar :size="44">{{ row.name.slice(0, 1) }}</NAvatar></template><template #header><RouterLink class="community-management-link" :to="`/communities/${row.id}`">{{ row.name }}</RouterLink></template><template #description>{{ row.slug }} · {{ row.description }}</template><template #header-extra><NSpace><NTag v-if="row.is_official" type="info">官方</NTag><NTag>{{ row.status === 'Paused' ? '已暂停' : '正常' }}</NTag></NSpace></template></NThing></NListItem></NList>
+    <LsResourceList v-else aria-label="社区列表"><LsResourceRow v-for="row in list.data.value.list" :key="row.id" :title="row.name" :description="row.description" :icon="Globe" :to="`/communities/${row.id}`"><template #metadata>@{{ row.slug }}</template><template #status><LsStatusTag v-if="row.is_official" label="官方" type="info" /><LsStatusTag :label="row.status === 'Paused' ? '已暂停' : '正常'" :type="row.status === 'Paused' ? 'default' : 'success'" /></template></LsResourceRow></LsResourceList>
     <NPagination v-if="(list.data.value?.total ?? 0) > 20" v-model:page="page" :item-count="list.data.value?.total" :page-size="20" simple />
   </template>
   <template v-else-if="mode === 'form'">

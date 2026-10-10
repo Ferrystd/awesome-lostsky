@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -90,7 +93,6 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
 </script>
 
 <template>
-  <div class="documents-view">
     <AdminPageHeader
       title="文档"
       :description="entityId ? `查看对象 #${entityId} 的可见文档。` : '搜索、分类并维护团队知识文档。'"
@@ -106,7 +108,7 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
       @update:model-value="page = 1"
     >
       <template #filters>
-        <NSelect v-model:value="visibility" class="category-select" :options="visibilityOptions" aria-label="文档分类" @update:value="page = 1" />
+        <NSelect v-model:value="visibility" :options="visibilityOptions" aria-label="文档分类" @update:value="page = 1" />
       </template>
     </LsListToolbar>
 
@@ -119,48 +121,17 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
         :title="routeAccess.restricted.value ? '没有可显示的文档' : keyword || visibility !== 'all' ? '没有匹配的文档' : '文档库还是空的'"
         :description="keyword || visibility !== 'all' ? '尝试更短的关键词或切换文档分类。' : '创建第一份文档，编辑时无需手写 Markdown 语法。'"
       />
-      <TransitionGroup v-else key="list" name="ls-list" tag="section" class="document-list">
-        <article v-for="item in docs" :key="String(item.id)">
-          <RouterLink class="document-main" :to="`/doc?id=${item.id}`">
-            <BookOpen :size="19" aria-hidden="true" />
-            <span>
-              <small>{{ date(item.update_time ?? item.create_time) }}</small>
-              <h2>{{ item.title || '未命名文档' }}</h2>
-              <p>{{ summary(item).slice(0, 150) || '这份文档还没有正文。' }}</p>
-            </span>
-          </RouterLink>
-          <footer>
-            <LsStatusTag :label="visibilityLabels[Number(item.visibility)] ?? '可见范围未设置'" />
-            <LsResponsiveActions :actions="documentActions()" primary-key="edit" @select="runDocumentAction($event, item)" />
-          </footer>
-        </article>
-      </TransitionGroup>
+      <LsResourceList v-else key="list" aria-label="文档列表">
+        <LsResourceRow v-for="item in docs" :key="String(item.id)" :title="String(item.title || '未命名文档')" :description="summary(item).slice(0, 150) || '这份文档还没有正文。'" :icon="BookOpen" :to="`/doc?id=${item.id}`">
+          <template #metadata><time>{{ date(item.update_time ?? item.create_time) }}</time></template>
+          <template #status><LsStatusTag :label="visibilityLabels[Number(item.visibility)] ?? '可见范围未设置'" /></template>
+          <template #actions><LsResponsiveActions :actions="documentActions()" primary-key="edit" @select="runDocumentAction($event, item)" /></template>
+        </LsResourceRow>
+      </LsResourceList>
     </Transition>
     <footer v-if="pages > 1" class="pager"><NPagination v-model:page="page" :page-count="pages" /></footer>
-  </div>
 </template>
 
 <style scoped>
-.documents-view { display: grid; gap: 22px; }
-.category-select { width: 12rem; }
-.document-list { display: grid; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
-.document-list article { display: grid; grid-template-columns:minmax(0,1fr) auto; min-height: 116px; border-bottom: 1px solid var(--border); background: var(--surface); transition: background-color var(--motion-fast) var(--ease-standard), opacity var(--motion-base) var(--ease-out), transform var(--motion-base) var(--ease-out); }
-.document-list article:last-child { border-bottom: 0; }
-.document-list article:hover { background: var(--surface-subtle); }
-.document-main { min-width:0; display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; gap:14px; padding: 17px 19px; color: inherit; text-decoration: none; }
-.document-main>svg { margin-top:4px; color:var(--primary); }
-.document-main small, .document-list footer span { color: var(--text-tertiary); font-size: .78rem; }
-.document-main h2 { margin: 3px 0 4px; font-size: 1rem; }
-.document-main p { margin: 0; overflow:hidden; color: var(--text-secondary); font-size:.84rem; line-height: 1.55; text-overflow:ellipsis; white-space:nowrap; }
-.document-list footer { display: flex; align-items: center; justify-content:flex-end; gap: 7px; padding: 12px 13px; }
-.icon-link, .icon-button { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--radius-md); color: var(--text-secondary); background: transparent; cursor: pointer; }
-.icon-link:hover, .icon-button:hover { background: var(--surface-subtle); color: var(--primary); }
-.icon-button.danger:hover { color: var(--danger); }
-.empty { display: grid; justify-items: center; gap: 8px; padding: 54px 20px; border: 1px dashed var(--border); border-radius: var(--radius-lg); color: var(--text-secondary); text-align: center; }
-.empty h2, .empty p { margin: 0; }
-.loading { display: grid; gap: 1px; overflow:hidden; border-radius:var(--radius-lg); }
-.loading span { height: 116px; background: var(--surface-subtle); }
-.pager { display: flex; align-items: center; justify-content: center; gap: 14px; color: var(--text-secondary); }
-.error { color: var(--danger); }
-@media (max-width: 720px) { .document-list article { grid-template-columns:1fr; }.document-list footer{border-top:1px solid var(--border)} }
+.pager { display: flex; justify-content: center; }
 </style>

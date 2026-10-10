@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
@@ -168,21 +171,21 @@ function rotateCredentials() {
       </AdminPageHeader>
 
       <p v-if="detail.isError.value && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(detail.error.value) }}</p>
-      <form v-else @submit.prevent="submit">
-        <label>集成名称<NInput v-model:value="form.name" maxlength="50" placeholder="CRM 工作流" /></label>
-        <label>HTTPS Webhook 地址<NInput v-model:value="form.endpoint_url" maxlength="1000" placeholder="https://example.com/lostsky/events" /></label>
+      <LsPanel v-else><form class="integration-form" @submit.prevent="submit">
+        <LsField label="集成名称" for-id="integration-name"><NInput :input-props="{ id: 'integration-name' }" v-model:value="form.name" maxlength="50" placeholder="CRM 工作流" /></LsField>
+        <LsField label="HTTPS Webhook 地址" for-id="integration-endpoint"><NInput :input-props="{ id: 'integration-endpoint' }" v-model:value="form.endpoint_url" maxlength="1000" placeholder="https://example.com/lostsky/events" /></LsField>
         <LsCheckboxGroupField v-model="form.events" label="订阅事件" :options="eventOptions" />
         <LsSwitchField v-if="editing" v-model="form.is_active" label="启用集成" description="停用后不再接收事件，也不能使用 API Token 发送消息。" />
         <p v-if="(save.isError.value || rotate.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">
           {{ friendlyError(save.error.value || rotate.error.value || remove.error.value) }}
         </p>
-        <div class="actions">
+        <LsFormActions>
           <LsButton type="submit" :disabled="routeAccess.restricted.value || !draft.dirty.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存集成</LsButton>
           <LsButton v-if="editing" type="button" variant="secondary" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="rotate.isPending.value" @click="rotateCredentials">
             <RotateCw :size="16" />轮换凭据
           </LsButton>
-        </div>
-      </form>
+        </LsFormActions>
+      </form></LsPanel>
 
       <section v-if="credentials.token" class="credentials" role="status">
         <KeyRound :size="22" />
@@ -198,11 +201,8 @@ function rotateCredentials() {
 
 <style scoped>
 .integration-form-page{display:grid;gap:1rem}
-form{display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}
-form>label{display:grid;gap:.4rem;font-size:.82rem;font-weight:650}
-.actions{display:flex;flex-wrap:wrap;gap:.6rem}
+.integration-form{display:grid;gap:1rem}
 .credentials{display:grid;grid-template-columns:28px minmax(0,1fr);gap:.65rem;padding:1rem;color:oklch(.28 .07 150);background:oklch(.95 .04 150);border:1px solid oklch(.8 .08 150);border-radius:12px}
 .credentials h3,.credentials p{margin:0}.credentials code{display:block;overflow-wrap:anywhere;color:var(--ink);user-select:all}.credentials small{color:var(--muted-ink)}
 .error{margin:0;color:var(--danger)}
-@media(max-width:520px){.actions{display:grid}.actions>*{width:100%}}
 </style>

@@ -4,6 +4,7 @@ import { House, Pencil, Plus, ReceiptText, Save, ShoppingBag, Trash2, UserRound 
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsCheckboxGroupField from '@lostsky/ui/components/LsCheckboxGroupField.vue'
+import LsRadioGroupField from '@lostsky/ui/components/LsRadioGroupField.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityCard from '@lostsky/ui/components/LsEntityCard.vue'
@@ -18,6 +19,8 @@ import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
@@ -174,6 +177,18 @@ const checkboxGroupField = story(
     ),
   { loading: '复选组字段不负责异步加载。' },
 )
+
+const radioGroupField = story('LsRadioGroupField', interactive, state => stage(h(LsRadioGroupField, {
+  id: 'preview-search-priority',
+  modelValue: state === 'active' ? 'member' : 'team',
+  label: '搜索优先级',
+  hint: '决定团队默认值与成员显式设置冲突时采用哪一个。',
+  disabled: state === 'disabled',
+  options: [
+    { value: 'team', label: '团队优先', description: '团队关闭搜索时，所有成员均不可被搜索。' },
+    { value: 'member', label: '成员优先', description: '成员的显式设置可以覆盖团队默认值。' },
+  ],
+})))
 
 const descriptionList = story('LsDescriptionList', passive, () =>
   stage(
@@ -475,6 +490,23 @@ const listToolbar = story(
     ),
   { loading: '列表工具栏不负责加载状态。', error: '错误由列表内容区域表达。' },
 )
+
+const resourceList = story('LsResourceList', ['default', 'hover', 'focus', 'mobile'], () => stage(
+  h(LsResourceList, {}, { default: () => [
+    h(LsResourceRow, { title: '团队协作指南', description: '查找工作流程、团队约定和常用资料。', icon: ReceiptText, to: '/docs' }, {
+      metadata: () => h('time', '2026年10月9日'),
+      status: () => h(LsStatusTag, { label: '公开文档' }),
+      actions: () => h(LsResponsiveActions, { actions: [{ key: 'edit', label: '编辑', icon: Pencil }, { key: 'delete', label: '删除', icon: Trash2, danger: true }], primaryKey: 'edit' }),
+    }),
+    h(LsResourceRow, { to: '/entities' }, { identity: () => h(LsEntityIdentity, member), actions: () => h(LsResponsiveActions, { actions: [{ key: 'manage', label: '管理', icon: Pencil }], primaryKey: 'manage' }) }),
+  ] }),
+))
+const resourceRow = story('LsResourceRow', ['default', 'hover', 'focus', 'active', 'mobile'], state => stage(
+  h(LsResourceList, {}, { default: () => h(LsResourceRow, { title: '本周资料已更新', description: '请在任务开始前查看新的协作安排。', icon: ReceiptText, to: '/notices/sent', unread: state === 'active' }, {
+    status: () => h(LsStatusTag, { label: state === 'active' ? '未读' : '已读', type: state === 'active' ? 'info' : 'success' }),
+    metadata: () => h('time', '2026年10月9日 09:30'),
+  }) }),
+))
 
 const markdownEditor = story(
   'LsMarkdownEditor',
@@ -834,6 +866,7 @@ export const uiStories: Record<string, StoryDefinition> = {
   LsAsyncState: asyncState,
   LsButton: button,
   LsCheckboxGroupField: checkboxGroupField,
+  LsRadioGroupField: radioGroupField,
   LsDescriptionList: descriptionList,
   LsEmptyState: emptyState,
   LsEntityCard: entityCard,
@@ -848,6 +881,8 @@ export const uiStories: Record<string, StoryDefinition> = {
   LsInlineError: inlineError,
   LsInput: input,
   LsListToolbar: listToolbar,
+  LsResourceList: resourceList,
+  LsResourceRow: resourceRow,
   LsMarkdownEditor: markdownEditor,
   LsMediaUploadField: mediaUploadField,
   LsMarkdownRenderer: markdownRenderer,

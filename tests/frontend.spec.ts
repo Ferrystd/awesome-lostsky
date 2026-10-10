@@ -1510,7 +1510,8 @@ test('team customer detail reuses typed entity options for assignment and sender
     expect(saveCustomerProfileBox?.width).toBeGreaterThanOrEqual(112)
     expect(saveCustomerProfileBox?.width).toBeLessThanOrEqual(180)
   }
-  await page.locator('#customer-assignee').click()
+  await page.locator('label[for="customer-assignee"]').click()
+  await expect(page.getByRole('textbox', { name: '当前归属人' })).toBeFocused()
 
   const options = page.locator('.ls-entity-select-menu .ls-entity-select-option')
   await expect(options).toHaveCount(4)
@@ -1521,8 +1522,9 @@ test('team customer detail reuses typed entity options for assignment and sender
   await expect(options.nth(3)).toContainText('虚拟人员')
   await page.keyboard.press('Escape')
 
-  await page.locator('#customer-senders').click()
-  await expect(page.locator('#customer-senders')).toContainText('member-2')
+  await page.locator('label[for="customer-senders"]').click()
+  await expect(page.getByRole('textbox', { name: '协作发单人' })).toBeFocused()
+  await expect(page.locator('.ls-field').filter({ has: page.locator('label[for="customer-senders"]') })).toContainText('member-2')
   await page.locator('.ls-entity-select-menu:visible .ls-entity-select-option').nth(3).click()
   await saveCustomerProfile.click()
   await expect.poll(() => customerUpdatePayload).not.toBeNull()
@@ -2339,7 +2341,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       if (originalViewport) await page.setViewportSize(originalViewport)
     }
     if (path === '/entities') {
-      const row = page.locator('.entity-row').filter({ hasText: '@alice' })
+      const row = page.locator('.ls-resource-row').filter({ hasText: '@alice' })
       if ((page.viewportSize()?.width ?? 0) < 640) {
         await row.getByRole('button', { name: '更多' }).click()
         await expect(page.getByText('对话', { exact: true }).last()).toBeVisible()
@@ -2360,8 +2362,8 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.locator('.sidebar a[href="/members"]')).toContainText('成员')
       await expect(page.getByRole('search').getByRole('searchbox', { name: '搜索成员' })).toBeVisible()
       await expect(page.getByLabel('成员分类')).toBeVisible()
-      await expect(page.locator('.member-list')).toBeVisible()
-      const row = page.locator('.member-list article').filter({ hasText: '@alice' })
+      await expect(page.locator('.ls-resource-list')).toBeVisible()
+      const row = page.locator('.ls-resource-row').filter({ hasText: '@alice' })
       await expect(row.locator('.ls-entity-identity__name-row .n-tag')).toContainText('正常')
       if ((page.viewportSize()?.width ?? 0) < 640) {
         await row.getByRole('button', { name: '更多' }).click()
@@ -2456,13 +2458,14 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       const noticeVisualEditor = page.locator('.ls-markdown-editor .ProseMirror')
       await noticeVisualEditor.click()
       await expect(noticeVisualEditor).toBeFocused()
-      await page.locator('.recipient-select').click()
-      const recipientMenu = page.locator('.recipient-select-menu')
-      await expect(recipientMenu.locator('.recipient-option')).toHaveCount(4)
-      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '测试团队' })).toContainText('团队@demo')
-      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '测试顾客' })).toContainText('顾客@customer-1')
-      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '测试成员' })).toContainText('成员@member-1')
-      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '协作助手' })).toContainText('虚拟人员@helper')
+      await page.locator('label[for="notice-recipient"]').click()
+      await expect(page.getByRole('textbox', { name: '收件人员' })).toBeFocused()
+      const recipientMenu = page.locator('.ls-entity-select-menu')
+      await expect(recipientMenu.locator('.ls-entity-select-option')).toHaveCount(4)
+      await expect(recipientMenu.locator('.ls-entity-select-option').filter({ hasText: '测试团队' })).toContainText('团队@demo')
+      await expect(recipientMenu.locator('.ls-entity-select-option').filter({ hasText: '测试顾客' })).toContainText('顾客@customer-1')
+      await expect(recipientMenu.locator('.ls-entity-select-option').filter({ hasText: '测试成员' })).toContainText('成员@member-1')
+      await expect(recipientMenu.locator('.ls-entity-select-option').filter({ hasText: '协作助手' })).toContainText('虚拟人员@helper')
       await recipientMenu.locator('.n-base-select-option').filter({ hasText: '测试顾客' }).click()
       await page.getByLabel('标题 *').fill('顾客专属通知')
       await page.getByRole('tab', { name: '源码' }).click()
@@ -2526,7 +2529,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(documentSearch).toBeVisible()
       expect((await documentSearch.boundingBox())?.height).toBeCloseTo((page.viewportSize()?.width ?? 0) < 640 ? 44 : 40, 0)
       await expect(page.getByLabel('文档分类')).toBeVisible()
-      await expect(page.locator('.document-list')).toBeVisible()
+      await expect(page.locator('.ls-resource-list')).toBeVisible()
     }
     if (path === '/files') {
       await expect(page.getByRole('search').getByRole('searchbox', { name: '搜索文件' })).toBeVisible()
@@ -2651,11 +2654,11 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         await expect(page.locator('.entity-card')).toHaveCount(0)
       }
     }
-    if (path === '/docs' && (await page.locator('.document-list article').count()) === 2) {
+    if (path === '/docs' && (await page.locator('.ls-resource-row').count()) === 2) {
       await expect(page.getByText('这份文档还没有正文。')).toBeVisible()
       await expect(page.locator('dialog')).toHaveCount(0)
       if ((page.viewportSize()?.width ?? 0) >= 720) {
-        const footerTops = await page.locator('.document-list article footer').evaluateAll((footers) => footers.map((footer) => footer.getBoundingClientRect().top))
+        const footerTops = await page.locator('.ls-resource-row__actions').evaluateAll((footers) => footers.map((footer) => footer.getBoundingClientRect().top))
         if (footerTops.length === 2) expect(footerTops[1]).toBeGreaterThan(footerTops[0])
       }
     }
@@ -2667,7 +2670,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
   await page.goto('http://demo.team.lostsky.work:5175/personal/notices/detail')
   await expect(page.getByRole('alert')).toContainText('缺少有效的通知编号')
   await page.goto('http://demo.team.lostsky.work:5175/personal/notices/detail?id=404')
-  await expect(page.getByRole('alert')).toContainText('通知不存在')
+  await expect(page.locator('.ls-async-state')).toContainText('通知不存在')
   emptyNotices = true
   await page.goto('http://demo.team.lostsky.work:5175/personal/notices')
   await expect(page.locator('.ls-empty-state')).toContainText('目前没有通知')
@@ -2780,7 +2783,10 @@ test('team join fields support management, validation and read-only permission d
 
   await page.goto('http://demo.team.lostsky.work:5175/join-fields/41')
   await expect(page.getByLabel('选项 1 显示名称')).toHaveValue('有经验')
-  await expect(page.getByLabel('转存目标')).toContainText('成员经验')
+  await expect(page.locator('.ls-field').filter({ has: page.locator('label[for="join-field-transfer"]') })).toContainText('成员经验')
+  await page.locator('label[for="join-field-transfer"]').click()
+  await expect(page.getByRole('textbox', { name: '转存目标' })).toBeFocused()
+  await page.keyboard.press('Escape')
   await page.getByLabel('选项 2 提交值').fill('yes')
   await page.getByRole('button', { name: '保存字段' }).click()
   await expect(page.getByText('选项的提交值不能重复。')).toBeVisible()
@@ -2983,8 +2989,8 @@ test('entity field form saves unified access rules and custom targets', async ({
   })
 
   await page.goto('http://demo.team.lostsky.work:5175/field-new?type=entity')
-  const valueTypeSelect = page.locator('label').filter({ hasText: '值类型' }).locator('.n-select')
-  const inputTypeSelect = page.locator('label').filter({ hasText: '输入控件' }).locator('.n-select')
+  const valueTypeSelect = page.locator('#entity-field-value-type')
+  const inputTypeSelect = page.locator('#entity-field-input-type')
   await expect(valueTypeSelect).toContainText('短文本')
   await expect(inputTypeSelect).toContainText('单行输入')
   await valueTypeSelect.click()
@@ -2995,13 +3001,15 @@ test('entity field form saves unified access rules and custom targets', async ({
   await page.keyboard.press('Escape')
   await page.getByPlaceholder('department').fill('department')
   await page.getByPlaceholder('部门').fill('部门')
-  const visibilitySelect = page.locator('.access-policy > label').filter({ hasText: '值可见范围' }).locator('.n-select')
+  const visibilitySelect = page.locator('#entity-field-visibility')
   await visibilitySelect.click()
   await page.locator('.n-base-select-option').filter({ hasText: '公开可见' }).click()
   await expect(page.getByText('公开字段只有在所属人员有效且已开启公开主页展示时')).toBeVisible()
   await visibilitySelect.click()
   await page.locator('.n-base-select-option').filter({ hasText: '指定对象可见' }).click()
-  const targets = page.locator('.access-policy > label').filter({ hasText: '指定可见对象' }).locator('.n-select')
+  const targets = page.getByRole('textbox', { name: '指定可见对象' })
+  await page.locator('label[for="entity-field-targets"]').click()
+  await expect(targets).toBeFocused()
   await targets.click()
   await page.locator('.n-base-select-option').filter({ hasText: '测试成员' }).click()
   await page.getByRole('button', { name: '保存字段' }).click()
@@ -3338,7 +3346,7 @@ test('team role tasks use independent routes for entity assignment and permissio
   })
 
   await page.goto('http://demo.team.lostsky.work:5175/roles')
-  await expect(page.getByRole('link', { name: /管理角色/ })).toHaveAttribute('href', '/roles/1')
+  await expect(page.getByRole('list', { name: '角色列表' }).getByRole('link').first()).toHaveAttribute('href', '/roles/1')
   await expect(page.getByText('仅内部')).toBeVisible()
   await expect(page.getByRole('tab')).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
@@ -3381,7 +3389,7 @@ test('team role tasks use independent routes for entity assignment and permissio
   await page.getByText('文档管理 · 已配置 0 项', { exact: true }).click()
   await page.getByLabel('选择权限目标').fill('customer-1')
   await page.getByRole('option', { name: /顾客一号.*customer-1/ }).click()
-  let dynamicPermissions = page.locator('.dynamic-permission-list:visible')
+  let dynamicPermissions = page.getByRole('group', { name: /^指定人员/ })
   await dynamicPermissions
     .getByRole('checkbox', {
       name: /管理指定人员文档.*team\.document\.customer\.customer-1\.manage/,
@@ -3400,7 +3408,7 @@ test('team role tasks use independent routes for entity assignment and permissio
     .check()
   await page.getByText('人员委托 · 已配置 1 项', { exact: true }).click()
   await expect(page.getByLabel('选择权限目标')).toBeVisible()
-  dynamicPermissions = page.locator('.dynamic-permission-list:visible')
+  dynamicPermissions = page.getByRole('group', { name: /^指定人员/ })
   await expect(dynamicPermissions.getByRole('checkbox')).toHaveCount(1)
   for (const checkbox of await dynamicPermissions.getByRole('checkbox').all()) await expect(checkbox).toBeDisabled()
   await page.getByLabel('选择权限目标').fill('helper')
@@ -3414,7 +3422,7 @@ test('team role tasks use independent routes for entity assignment and permissio
   await expect(page.getByText('人员委托 · 已配置 2 项', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: '已进入角色草稿' })).toBeVisible()
   await page.getByText('人员管理 · 已配置 0 项', { exact: true }).click()
-  dynamicPermissions = page.locator('.dynamic-permission-list:visible')
+  dynamicPermissions = page.getByRole('group', { name: /^指定人员/ })
   await dynamicPermissions
     .getByRole('checkbox', {
       name: /管理指定虚拟人员.*team\.entity\.virtual\.helper\.manage/,

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsCheckboxGroupField from '@lostsky/ui/components/LsCheckboxGroupField.vue'
 import { useQueryDraft, type DraftSubmission } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
@@ -18,7 +22,6 @@ import {
   NCollapse,
   NCollapseItem,
   NForm,
-  NFormItem,
   NInput,
   NInputNumber,
   NModal,
@@ -340,6 +343,28 @@ function dynamicPermissionLabel(key: string) {
       : key.endsWith('.manage') ? '管理指定虚拟人员'
         : '领取指定人员身份')
 }
+
+function permissionOptions(items: PermissionItem[]) {
+  return items.map(item => ({ value: item.key, label: item.label, meta: item.key, disabled: Boolean(coveringParent(item.key)), description: coveringParent(item.key) ? `由 ${coveringParent(item.key)} 覆盖` : undefined }))
+}
+function checkedPermissions(items: PermissionItem[]) {
+  return items.filter(item => permissionKeys.value.includes(item.key) || coveringParent(item.key)).map(item => item.key)
+}
+function updatePermissionGroup(items: PermissionItem[], values: Array<string | number>) {
+  if (routeAccess.restricted.value) return
+  const checked = checkedPermissions(items)
+  const item = items.find(item => !coveringParent(item.key) && checked.includes(item.key) !== values.includes(item.key))
+  if (item) togglePermission(item.key, values.includes(item.key))
+}
+type DynamicOption = (typeof dynamicOptions.value)[number]
+function targetOptions(options: DynamicOption[]) {
+  return options.map(option => ({ value: option.id, label: option.label, meta: option.key || option.template, disabled: option.disabled, description: option.coveredBy ? `由 ${option.coveredBy} 覆盖` : !selectedTarget.value ? '先选择目标人员' : !option.key ? '仅适用于虚拟人员' : undefined }))
+}
+function updateTargetPermissions(options: DynamicOption[], values: Array<string | number>) {
+  if (routeAccess.restricted.value) return
+  const option = options.find(option => !option.disabled && option.checked !== values.includes(option.id))
+  if (option) toggleDynamicPermission(option.key, values.includes(option.id))
+}
 </script>
 
 <template>
@@ -356,33 +381,30 @@ function dynamicPermissionLabel(key: string) {
 
       <template v-else>
         <LsPanel>
-          <template #header><header>
-            <div><h3>角色资料</h3><p>名称和说明帮助管理者理解角色用途，角色标识保持不变。</p></div>
-          </header></template>
-          <NForm label-placement="top" @submit.prevent="routeAccess.restricted.value || saveInfo.mutate()">
-            <NFormItem label="角色名称" required>
-              <NInput v-model:value="form.name" aria-label="角色名称" />
-            </NFormItem>
-            <NFormItem label="说明">
-              <NInput v-model:value="form.description" aria-label="说明" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" />
-            </NFormItem>
-            <NFormItem label="显示顺序">
-              <NInputNumber v-model:value="form.sort" aria-label="显示顺序" :min="0" :show-button="false" />
-              <template #feedback>数字越小越靠前。</template>
-            </NFormItem>
+          <template #header><LsSectionHeader title="角色资料" description="名称和说明帮助管理者理解角色用途，角色标识保持不变。" /></template>
+          <NForm class="role-info-form" label-placement="top" @submit.prevent="routeAccess.restricted.value || saveInfo.mutate()">
+            <LsField label="角色名称" for-id="role-detail-name" required>
+              <NInput v-model:value="form.name" :input-props="{ id: 'role-detail-name' }" />
+            </LsField>
+            <LsField label="说明" for-id="role-detail-description">
+              <NInput v-model:value="form.description" :input-props="{ id: 'role-detail-description' }" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" />
+            </LsField>
+            <LsField label="显示顺序" for-id="role-detail-sort" hint="数字越小越靠前。">
+              <NInputNumber v-model:value="form.sort" :input-props="{ id: 'role-detail-sort' }" :min="0" :show-button="false" />
+
+            </LsField>
             <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开人员资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟人员会展示角色名称和说明；角色权限不会公开。" />
-            <footer>
+            <LsFormActions>
               <LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</LsButton>
               <LsButton type="submit" :loading="saveInfo.isPending.value" :disabled="routeAccess.restricted.value || !draft.dirty.value || !form.name.trim()" :disabled-reason="routeAccess.reason.value"><template #icon><Save :size="17" /></template>保存资料</LsButton>
-            </footer>
+            </LsFormActions>
           </NForm>
         </LsPanel>
 
         <LsPanel><section class="permissions-panel">
-          <header>
-            <div><h3>角色权限</h3><p>权限按工作领域折叠展示，展开需要调整的分组即可。</p></div>
+          <LsSectionHeader title="角色权限" description="权限按工作领域折叠展示，展开需要调整的分组即可。"><template #aside>
             <LsButton :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="savePermissions.isPending.value" @click="requestPermissionSave">保存权限</LsButton>
-          </header>
+          </template></LsSectionHeader>
 
           <NCollapse class="permission-groups" arrow-placement="right">
             <NCollapseItem
@@ -391,22 +413,7 @@ function dynamicPermissionLabel(key: string) {
               :name="group.name"
               :title="`${group.name} · 已选择 ${selectedCount(group.items)}/${group.items.length}`"
             >
-              <div class="permission-list">
-                <NCheckbox
-                  v-for="item in group.items"
-                  :key="item.key"
-                  :checked="permissionKeys.includes(item.key) || Boolean(coveringParent(item.key))"
-                  :disabled="Boolean(coveringParent(item.key))"
-                  :aria-disabled="Boolean(coveringParent(item.key))"
-                  @update:checked="togglePermission(item.key, $event)"
-                >
-                  <span class="permission-copy">
-                    <strong>{{ item.label }}</strong>
-                    <code>{{ item.key }}</code>
-                    <small v-if="coveringParent(item.key)">由 {{ coveringParent(item.key) }} 覆盖</small>
-                  </span>
-                </NCheckbox>
-              </div>
+              <LsCheckboxGroupField :model-value="checkedPermissions(group.items)" :label="group.name" :options="permissionOptions(group.items)" :disabled="routeAccess.restricted.value" @update:model-value="updatePermissionGroup(group.items, $event)" />
             </NCollapseItem>
             <NCollapseItem
               v-for="specialGroup in specialPermissionGroups"
@@ -416,37 +423,11 @@ function dynamicPermissionLabel(key: string) {
             >
               <div class="dynamic-editor">
                 <section v-if="specialGroup.items.length" class="delegation-static" :aria-labelledby="`${specialGroup.id}-static-title`">
-                  <header>
-                    <div>
-                      <h4 :id="`${specialGroup.id}-static-title`">通用{{ specialGroup.name }}</h4>
-                      <p>通用权限与所涵盖的专门权限相冲突，保存时会自动覆盖。</p>
-                    </div>
-                  </header>
-                  <div class="permission-list">
-                    <NCheckbox
-                      v-for="item in specialGroup.items"
-                      :key="item.key"
-                      :checked="permissionKeys.includes(item.key) || Boolean(coveringParent(item.key))"
-                      :disabled="Boolean(coveringParent(item.key))"
-                      :aria-disabled="Boolean(coveringParent(item.key))"
-                      @update:checked="togglePermission(item.key, $event)"
-                    >
-                      <span class="permission-copy">
-                        <strong>{{ item.label }}</strong>
-                        <code>{{ item.key }}</code>
-                        <small v-if="coveringParent(item.key)">由 {{ coveringParent(item.key) }} 覆盖</small>
-                      </span>
-                    </NCheckbox>
-                  </div>
+                  <LsSectionHeader :id="`${specialGroup.id}-static-title`" :title="`通用${specialGroup.name}`" description="通用权限与所涵盖的专门权限相冲突，保存时会自动覆盖。" :heading-level="3" />
+                  <LsCheckboxGroupField :model-value="checkedPermissions(specialGroup.items)" :label="specialGroup.name" :options="permissionOptions(specialGroup.items)" :disabled="routeAccess.restricted.value" @update:model-value="updatePermissionGroup(specialGroup.items, $event)" />
                 </section>
                 <section class="dynamic-target" :aria-labelledby="`${specialGroup.id}-target-title`">
-                  <header>
-                    <div>
-                      <h4 :id="`${specialGroup.id}-target-title`">指定人员</h4>
-                      <p>选择人员后可配置精确权限；选择目标本身不会产生授权。</p>
-                    </div>
-                    <span v-if="selectedTarget" class="dynamic-target__status">当前目标 @{{ selectedTarget.slug }}</span>
-                  </header>
+                  <LsSectionHeader :id="`${specialGroup.id}-target-title`" title="指定人员" description="选择人员后可配置精确权限；选择目标本身不会产生授权。" :heading-level="3"><template #aside><span v-if="selectedTarget" class="dynamic-target__status">当前目标 @{{ selectedTarget.slug }}</span></template></LsSectionHeader>
                   <div class="target-selector">
                     <label :for="`${specialGroup.id}-target-slug`">选择权限目标</label>
                     <LsEntityInput
@@ -463,32 +444,9 @@ function dynamicPermissionLabel(key: string) {
                 <p class="dynamic-guidance">
                   {{ selectedTarget ? `正在为 @${selectedTarget.slug} 配置${specialGroup.name}，勾选后立即进入角色权限草稿。` : `请先选择目标人员，再配置${specialGroup.name}。` }}
                 </p>
-                <div class="permission-list dynamic-permission-list">
-                  <NCheckbox
-                    v-for="option in specialGroup.options"
-                    :key="option.id"
-                    :checked="option.checked"
-                    :disabled="option.disabled"
-                    :aria-disabled="option.disabled"
-                    @update:checked="toggleDynamicPermission(option.key, $event)"
-                  >
-                    <span class="permission-copy">
-                      <strong>{{ option.label }}</strong>
-                      <code>{{ option.key || option.template }}</code>
-                      <small v-if="option.coveredBy">由 {{ option.coveredBy }} 覆盖</small>
-                      <small v-else-if="!selectedTarget">先选择目标人员</small>
-                      <small v-else-if="!option.key">仅适用于虚拟人员</small>
-                    </span>
-                  </NCheckbox>
-                </div>
+                <LsCheckboxGroupField :model-value="specialGroup.options.filter(option => option.checked).map(option => option.id)" :label="`指定人员${specialGroup.name}`" :options="targetOptions(specialGroup.options)" :disabled="routeAccess.restricted.value" @update:model-value="updateTargetPermissions(specialGroup.options, $event)" />
                 <section v-if="assignedDynamicKeys(specialGroup.name).length" class="assigned-dynamic" :aria-labelledby="`${specialGroup.id}-assigned-title`">
-                  <header>
-                    <div>
-                      <h4 :id="`${specialGroup.id}-assigned-title`">已进入角色草稿</h4>
-                      <p>如需调整，请在上方重新选择对应人员。</p>
-                    </div>
-                    <span>{{ assignedDynamicKeys(specialGroup.name).length }} 项</span>
-                  </header>
+                  <LsSectionHeader :id="`${specialGroup.id}-assigned-title`" title="已进入角色草稿" description="如需调整，请在上方重新选择对应人员。" :heading-level="3"><template #aside><span>{{ assignedDynamicKeys(specialGroup.name).length }} 项</span></template></LsSectionHeader>
                   <ul>
                     <li v-for="key in assignedDynamicKeys(specialGroup.name)" :key="key">
                       <span><strong>{{ dynamicPermissionLabel(key) }}</strong><code>{{ key }}</code></span>
@@ -575,11 +533,12 @@ function dynamicPermissionLabel(key: string) {
     </div>
 </template>
 
-<style scoped>
-.role-detail{display:grid;gap:1.5rem}.permissions-panel{display:grid;gap:1.25rem}.role-detail header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.role-detail h3,.role-detail h4,.role-detail p{margin:0}.role-detail h3{font-size:1.05rem}.role-detail header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.role-detail :deep(.n-form-item-label){font-weight:650}.role-detail :deep(.n-input-number){width:100%}.role-detail footer{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;padding-top:.25rem}.saved{display:inline-flex;align-items:center;gap:.4rem;margin:0 auto 0 0;color:var(--success);font-size:.82rem;font-weight:650}.delegation-static{display:grid;gap:.75rem}.delegation-static>header{align-items:center}.delegation-static h4{font-size:.9rem}.dynamic-target{display:grid;border:1px solid var(--line);border-radius:10px}.dynamic-target>header{padding:1rem;background:var(--cloud);border-radius:9px 9px 0 0}.dynamic-target h4{font-size:.95rem}.dynamic-target__status{flex:none;color:var(--sky-lost-strong);font-size:.78rem;font-weight:700}.target-selector{display:grid;gap:.45rem;padding:1rem;background:var(--cloud);border-top:1px solid var(--line);border-radius:0 0 9px 9px}.target-selector label{font-size:.8rem;font-weight:700}.permission-groups{border-top:1px solid var(--line)}.permission-groups :deep(.n-collapse-item){margin:0;border-bottom:1px solid var(--line)}.permission-groups :deep(.n-collapse-item__header){min-height:56px;padding:0}.permission-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;margin-bottom:1rem;overflow:hidden;background:var(--line);border:1px solid var(--line);border-radius:8px}.permission-list :deep(.n-checkbox){min-height:58px;align-items:center;padding:.65rem .75rem;background:white}.permission-list :deep(.n-checkbox:hover){background:var(--cloud)}.permission-list :deep(.n-checkbox.n-checkbox--disabled){opacity:1}.permission-copy{display:grid;gap:.15rem}.permission-copy strong{font-size:.875rem}.permission-copy code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.72rem}.permission-copy small{color:var(--muted-ink);font-size:.72rem}.dynamic-editor{display:grid;gap:1rem;padding-bottom:1rem}.dynamic-guidance{padding:.75rem .875rem;background:var(--cloud);border-radius:8px;color:var(--muted-ink);font-size:.8rem;line-height:1.55}.dynamic-permission-list{margin-bottom:0}.dynamic-apply{display:flex;align-items:center;justify-content:space-between;gap:1rem}.dynamic-apply p{color:var(--muted-ink);font-size:.78rem;line-height:1.5}.assigned-dynamic{display:grid;border-top:1px solid var(--line)}.assigned-dynamic>header{align-items:center;padding:.875rem 0}.assigned-dynamic h4{font-size:.875rem}.assigned-dynamic>header>span{color:var(--muted-ink);font-size:.75rem}.assigned-dynamic ul{display:grid;margin:0;padding:0;border:1px solid var(--line);border-radius:8px;list-style:none}.assigned-dynamic li{padding:.65rem .75rem}.assigned-dynamic li+li{border-top:1px solid var(--line)}.assigned-dynamic li>span{display:grid;gap:.15rem}.assigned-dynamic strong{font-size:.82rem}.assigned-dynamic code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.72rem}.advanced-permissions{border-top:1px solid var(--line)}.advanced-permissions :deep(.n-collapse-item__header){min-height:56px;padding:0}.advanced-content{display:grid;gap:1rem;padding-bottom:1rem}.advanced-warning{padding:.875rem;color:color-mix(in oklch,var(--warning),black 38%);background:color-mix(in oklch,var(--warning),white 91%);border-radius:8px;font-size:.82rem;line-height:1.6}.advanced-empty{padding:1rem;color:var(--muted-ink);text-align:center}.advanced-group{display:grid;gap:.5rem}.advanced-group>header{min-height:36px;align-items:center}.advanced-group>header code,.advanced-group>header strong{font-size:.82rem;font-weight:700}.advanced-group>header span{color:var(--muted-ink);font-size:.75rem}.advanced-list{display:grid;overflow:hidden;border:1px solid var(--line);border-radius:8px}.advanced-list article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:1rem;padding:.75rem;background:white}.advanced-list article+article{border-top:1px solid var(--line)}.advanced-list :deep(.n-checkbox){min-height:44px;align-items:flex-start}.advanced-list :deep(.n-checkbox.n-checkbox--disabled){opacity:1}.advanced-list details{min-width:8rem}.advanced-list summary{min-height:44px;display:flex;align-items:center;justify-content:flex-end;color:var(--sky-lost-strong);font-size:.78rem;font-weight:650;cursor:pointer}.advanced-list ul{grid-column:1/-1;display:grid;gap:.45rem;margin:.35rem 0 0;padding:.65rem 0 0;border-top:1px solid var(--line);list-style:none}.advanced-list li{display:grid;grid-template-columns:minmax(8rem,.35fr) minmax(0,1fr);gap:1rem;font-size:.78rem}.advanced-list li code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.72rem}.advanced-confirm{width:min(34rem,calc(100vw - 2rem))}.advanced-confirm>p{line-height:1.6}.advanced-confirm ul{display:grid;gap:.65rem;margin:1rem 0 0;padding:0;list-style:none}.advanced-confirm li{display:grid;gap:.2rem;padding:.65rem .75rem;background:var(--cloud);border-radius:8px}.advanced-confirm li code{overflow-wrap:anywhere}.advanced-confirm li span{color:var(--muted-ink);font-size:.78rem}.confirm-actions{display:flex;justify-content:flex-end;gap:.75rem}
+<style scoped>.role-info-form{display:grid;gap:1rem}
+
+.role-detail{display:grid;gap:1.5rem}.permissions-panel{display:grid;gap:1.25rem}.role-detail header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.saved{display:inline-flex;align-items:center;gap:.4rem;margin:0 auto 0 0;color:var(--success);font-size:.82rem;font-weight:650}.delegation-static{display:grid;gap:.75rem}.delegation-static>header{align-items:center}.dynamic-target{display:grid;border:1px solid var(--line);border-radius:10px}.dynamic-target>header{padding:1rem;background:var(--cloud);border-radius:9px 9px 0 0}.dynamic-target__status{flex:none;color:var(--sky-lost-strong);font-size:.78rem;font-weight:700}.target-selector{display:grid;gap:.45rem;padding:1rem;background:var(--cloud);border-top:1px solid var(--line);border-radius:0 0 9px 9px}.target-selector label{font-size:.8rem;font-weight:700}.permission-groups{border-top:1px solid var(--line)}.permission-copy{display:grid;gap:.15rem}.permission-copy strong{font-size:.875rem}.permission-copy code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.72rem}.permission-copy small{color:var(--muted-ink);font-size:.72rem}.dynamic-editor{display:grid;gap:1rem;padding-bottom:1rem}.dynamic-guidance{padding:.75rem .875rem;background:var(--cloud);border-radius:8px;color:var(--muted-ink);font-size:.8rem;line-height:1.55}.dynamic-apply{display:flex;align-items:center;justify-content:space-between;gap:1rem}.dynamic-apply p{color:var(--muted-ink);font-size:.78rem;line-height:1.5}.assigned-dynamic{display:grid;border-top:1px solid var(--line)}.assigned-dynamic>header{align-items:center;padding:.875rem 0}.assigned-dynamic>header>span{color:var(--muted-ink);font-size:.75rem}.assigned-dynamic ul{display:grid;margin:0;padding:0;border:1px solid var(--line);border-radius:8px;list-style:none}.assigned-dynamic li{padding:.65rem .75rem}.assigned-dynamic li+li{border-top:1px solid var(--line)}.assigned-dynamic li>span{display:grid;gap:.15rem}.assigned-dynamic strong{font-size:.82rem}.assigned-dynamic code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.72rem}.advanced-permissions{border-top:1px solid var(--line)}.advanced-content{display:grid;gap:1rem;padding-bottom:1rem}.advanced-warning{padding:.875rem;color:color-mix(in oklch,var(--warning),black 38%);background:color-mix(in oklch,var(--warning),white 91%);border-radius:8px;font-size:.82rem;line-height:1.6}.advanced-empty{padding:1rem;color:var(--muted-ink);text-align:center}.advanced-group{display:grid;gap:.5rem}.advanced-group>header{min-height:36px;align-items:center}.advanced-group>header code,.advanced-group>header strong{font-size:.82rem;font-weight:700}.advanced-group>header span{color:var(--muted-ink);font-size:.75rem}.advanced-list{display:grid;overflow:hidden;border:1px solid var(--line);border-radius:8px}.advanced-list article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:1rem;padding:.75rem;background:white}.advanced-list article+article{border-top:1px solid var(--line)}.advanced-list details{min-width:8rem}.advanced-list summary{min-height:44px;display:flex;align-items:center;justify-content:flex-end;color:var(--sky-lost-strong);font-size:.78rem;font-weight:650;cursor:pointer}.advanced-list ul{grid-column:1/-1;display:grid;gap:.45rem;margin:.35rem 0 0;padding:.65rem 0 0;border-top:1px solid var(--line);list-style:none}.advanced-list li{display:grid;grid-template-columns:minmax(8rem,.35fr) minmax(0,1fr);gap:1rem;font-size:.78rem}.advanced-list li code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.72rem}.advanced-confirm{width:min(34rem,calc(100vw - 2rem))}.advanced-confirm>p{line-height:1.6}.advanced-confirm ul{display:grid;gap:.65rem;margin:1rem 0 0;padding:0;list-style:none}.advanced-confirm li{display:grid;gap:.2rem;padding:.65rem .75rem;background:var(--cloud);border-radius:8px}.advanced-confirm li code{overflow-wrap:anywhere}.advanced-confirm li span{color:var(--muted-ink);font-size:.78rem}.confirm-actions{display:flex;justify-content:flex-end;gap:.75rem}
 .dynamic-target{gap:.75rem;padding:.875rem;background:var(--cloud);border:0;border-radius:8px}
 .dynamic-target>header{padding:0;background:transparent;border-radius:0}
-.dynamic-target h4{font-size:.9rem}
+
 .target-selector{padding:0;background:transparent;border:0;border-radius:0}
-@media(max-width:639px){.role-detail header,.role-detail footer{align-items:stretch;flex-direction:column}.role-detail header :deep(.n-button),.role-detail footer :deep(.n-button){width:100%}.role-detail footer .saved{margin:0}.permission-list{grid-template-columns:1fr}.dynamic-apply{align-items:stretch;flex-direction:column}.dynamic-apply :deep(.n-button){width:100%}.advanced-list article{align-items:stretch;grid-template-columns:1fr}.advanced-list details{min-width:0}.advanced-list summary{justify-content:flex-start}.advanced-list li{grid-template-columns:1fr;gap:.2rem}.confirm-actions{flex-direction:column-reverse}.confirm-actions :deep(.n-button){width:100%}}
+@media(max-width:639px){.role-detail header,.dynamic-apply{align-items:stretch;flex-direction:column}.advanced-list article{align-items:stretch;grid-template-columns:1fr}.advanced-list details{min-width:0}.advanced-list summary{justify-content:flex-start}.advanced-list li{grid-template-columns:1fr;gap:.2rem}.confirm-actions{flex-direction:column-reverse}}
 </style>

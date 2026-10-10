@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
@@ -164,20 +167,20 @@ function submit() {
 <template>
     <div class="field-form-page">
       <AdminPageHeader :title="editing ? '编辑对象字段' : '创建对象字段'" description="不同字段需要使用不同字段类型，以此更好的适配您的业务。" back-to="/fields" back-label="返回对象字段" />
-      <form @submit.prevent="submit">
-        <label>对象类型<NSelect v-model:value="form.entity_type" :disabled="editing" :options="typeOptions" /></label>
-        <label>字段标识<NInput v-model:value="form.field_key" :disabled="editing" maxlength="64" placeholder="department" /></label>
-        <label>字段名称<NInput v-model:value="form.name" maxlength="50" placeholder="部门" /></label>
-        <label>值类型<NSelect v-model:value="form.value_type" :options="valueOptions" /></label>
-        <label>输入控件<NSelect v-model:value="form.input_type" :options="inputOptions" /></label>
-        <label v-if="['select','multi_select'].includes(form.value_type)">选项<NInput v-model:value="form.optionsText" type="textarea" :autosize="{ minRows: 3, maxRows: 8 }" placeholder="每行一个选项" /></label>
+      <LsPanel><form class="field-form" @submit.prevent="submit">
+        <LsField label="对象类型" for-id="entity-field-type"><NSelect id="entity-field-type" v-model:value="form.entity_type" :disabled="editing" :options="typeOptions" /></LsField>
+        <LsField label="字段标识" for-id="entity-field-key"><NInput :input-props="{ id: 'entity-field-key' }" v-model:value="form.field_key" :disabled="editing" maxlength="64" placeholder="department" /></LsField>
+        <LsField label="字段名称" for-id="entity-field-name"><NInput :input-props="{ id: 'entity-field-name' }" v-model:value="form.name" maxlength="50" placeholder="部门" /></LsField>
+        <LsField label="值类型" for-id="entity-field-value-type"><NSelect id="entity-field-value-type" v-model:value="form.value_type" :options="valueOptions" /></LsField>
+        <LsField label="输入控件" for-id="entity-field-input-type"><NSelect id="entity-field-input-type" v-model:value="form.input_type" :options="inputOptions" /></LsField>
+        <LsField v-if="['select','multi_select'].includes(form.value_type)" label="选项" for-id="entity-field-options"><NInput :input-props="{ id: 'entity-field-options' }" v-model:value="form.optionsText" type="textarea" :autosize="{ minRows: 3, maxRows: 8 }" placeholder="每行一个选项" /></LsField>
         <section class="access-policy" aria-labelledby="field-access-title">
           <LsSectionHeader id="field-access-title" title="访问与维护规则" description="可见范围不会授予页面访问权；能看见字段值的人员也不会因此自动获得编辑权。" />
-          <label>值维护范围<NSelect v-model:value="form.manager_scope" :options="managerScopeOptions" /></label>
-          <label>值可见范围<NSelect v-model:value="form.visibility" :options="visibilityOptions" /></label>
-          <label v-if="form.visibility === 6">
-            指定可见对象
+          <LsField label="值维护范围" for-id="entity-field-manager"><NSelect id="entity-field-manager" v-model:value="form.manager_scope" :options="managerScopeOptions" /></LsField>
+          <LsField label="值可见范围" for-id="entity-field-visibility"><NSelect id="entity-field-visibility" v-model:value="form.visibility" :options="visibilityOptions" /></LsField>
+          <LsField v-if="form.visibility === 6" label="指定可见对象" for-id="entity-field-targets" hint="所选对象可在其原本有权打开的所有对象资料中查看该字段。">
             <LsEntitySelect
+              :input-props="{ id: 'entity-field-targets', 'aria-label': '指定可见对象' }"
               v-model="form.visibility_target_ids"
               :entities="entities.data.value ?? []"
               :loading="entities.isPending.value"
@@ -186,18 +189,17 @@ function submit() {
               clearable
               placeholder="选择可以查看此字段的对象"
             />
-            <small>所选对象可在其原本有权打开的所有对象资料中查看该字段。</small>
-          </label>
+          </LsField>
           <p v-if="form.visibility === 5" class="policy-note">公开字段只有在所属人员有效且已开启公开主页展示时，才会向未登录访客显示。</p>
         </section>
         <LsSwitchField v-model="form.is_required" label="必填" description="在允许编辑该字段的资料保存时校验不能为空。" />
-        <label>排序<NInputNumber v-model:value="form.sort" :precision="0" /></label>
+        <LsField label="排序" for-id="entity-field-sort"><NInputNumber :input-props="{ id: 'entity-field-sort' }" v-model:value="form.sort" :precision="0" /></LsField>
         <p v-if="(save.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(save.error.value || remove.error.value) }}</p>
-        <div class="actions"><LsButton type="submit" :disabled="routeAccess.restricted.value || !draft.dirty.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton></div>
-      </form>
+        <LsFormActions><LsButton type="submit" :disabled="routeAccess.restricted.value || !draft.dirty.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton></LsFormActions>
+      </form></LsPanel>
     </div>
 </template>
 
 <style scoped>
-.field-form-page{display:grid;gap:1rem}form{max-width:42rem;display:grid;gap:1rem;padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}form>label,.access-policy>label{display:grid;gap:.4rem;font-size:.82rem;font-weight:650}.access-policy{display:grid;gap:1rem;padding:1.25rem 0 0;border-top:1px solid var(--line)}.access-policy label small{color:var(--muted-ink);font-size:.76rem;font-weight:500;line-height:1.5}.policy-note{margin:0;padding:.75rem;color:var(--ink);background:var(--cloud);border-radius:9px;font-size:.8rem;line-height:1.55}.actions{display:flex;gap:.6rem}.error{margin:0;color:var(--danger)}@media(max-width:520px){.actions{display:grid}.actions>*{width:100%}}
+.field-form-page,.field-form{display:grid;gap:1rem}.access-policy{display:grid;gap:1rem;padding:1.25rem 0 0;border-top:1px solid var(--line)}.policy-note{margin:0;padding:.75rem;color:var(--ink);background:var(--cloud);border-radius:9px;font-size:.8rem;line-height:1.55}.error{margin:0;color:var(--danger)}
 </style>
