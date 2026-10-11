@@ -1,4 +1,4 @@
-// Original analytic shader: continuous, gently advected color fields.
+// Original analytic shader: four broad, continuously deforming liquid ribbons.
 // No texture, noise field, or third-party shader source is included.
 const vertexSource = `attribute vec2 position; void main() { gl_Position = vec4(position, 0., 1.); }`
 const fragmentSource = `
@@ -8,14 +8,23 @@ uniform vec2 pointer;
 uniform float time;
 void main() {
   vec2 uv = gl_FragCoord.xy / resolution;
-  float t = time * .09;
-  vec2 p = uv - pointer * .12;
-  p.x += .09 * sin(p.y * 4. + t);
-  p.y += .07 * cos(p.x * 3. - t * .7);
-  float green = exp(-dot((p - vec2(.14 + .08*sin(t), .58)) / vec2(.65,.52), (p - vec2(.14 + .08*sin(t), .58)) / vec2(.65,.52)));
-  float blue = exp(-dot((p - vec2(.88, .24 + .1*cos(t*.8))) / vec2(.62,.56), (p - vec2(.88, .24 + .1*cos(t*.8))) / vec2(.62,.56)));
-  float veil = .5 + .5*sin(p.x*4. + p.y*3. + t*.6);
-  vec3 color = vec3(.031,.063,.079) + green*vec3(.012,.20,.14) + blue*vec3(.035,.11,.23) + veil*vec3(.008,.018,.023);
+  float t = time * .42;
+  vec2 p = uv - pointer * .10;
+  vec3 light = vec3(0.);
+  for (int ribbon = 0; ribbon < 4; ribbon++) {
+    float l = float(ribbon);
+    float x = p.x + .08*sin(t*.35+l);
+    float center = .13 + l*.235 + .15*sin(x*4.2+t*.65+l*1.8) + .045*sin(x*8.-t+l);
+    float width = .018 + .019*(.5+.5*sin(x*5.-t*1.1+l*2.));
+    float distance = (p.y-center)/width;
+    float taper = exp(-pow(abs((x-(.28+mod(l,2.)*.40))/.65),4.));
+    float body = exp(-distance*distance*.8);
+    float core = exp(-pow(distance+.30,2.)*9.);
+    float edge = exp(-distance*distance*.08)*.13;
+    vec3 color = mix(vec3(.05,.80,.52),vec3(.20,.48,1.),mod(l,2.));
+    light += (color*(body*.72+edge)+vec3(.38,.85,1.)*core*.27)*taper;
+  }
+  vec3 color = vec3(.025,.045,.057) + (1.-exp(-light*1.6))*vec3(.16,.30,.40);
   gl_FragColor = vec4(color, 1.);
 }`
 

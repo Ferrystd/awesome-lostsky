@@ -29,8 +29,8 @@ defineProps<{ title: string; summary?: string; recipient?: string; time: string;
 <style scoped>
 .team-notice-row.n-list-item { min-width: 0; padding: .75rem 1rem; }
 .team-notice-row :deep(.n-list-item__main) { min-width: 0; width: 100%; }
-.team-notice-row--unread { background: color-mix(in srgb, var(--primary) 3%, var(--surface)); }
-.team-notice-row:hover, .team-notice-row:focus-within { background: var(--surface-subtle); }
+.team-notice-row--unread { background: var(--notice-row-unread, color-mix(in srgb, var(--primary) 3%, var(--surface))); }
+.team-notice-row:hover, .team-notice-row:focus-within { background: var(--notice-row-hover, var(--surface-subtle)); }
 .team-notice-row__link { min-width: 0; min-height: 3rem; display: flex; align-items: center; gap: .75rem; color: var(--text); text-decoration: none; }
 .team-notice-row__link:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; border-radius: var(--radius-sm); }
 .team-notice-row__icon { flex: none; color: var(--text-tertiary); }

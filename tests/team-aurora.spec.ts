@@ -102,6 +102,14 @@ test('aurora unavailable and lost-context fallbacks keep settings usable', async
   await expect(page.locator('.settings-panel button[type=submit]')).toBeEnabled()
   await expect(page.locator('.team-aurora-backdrop canvas.ready')).toHaveCount(0)
   expect(await page.locator('.team-aurora-backdrop').evaluate(element => getComputedStyle(element).backgroundImage)).toContain('gradient')
+  const fallbackContrast = await page.locator('.team-aurora-backdrop').evaluate(element => {
+    const style=getComputedStyle(element),colors=(style.backgroundImage+' '+style.backgroundColor).match(/rgb\([^)]+\)/g)!
+    const lum=(c:number[])=>c.map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0)
+    const maxima=[0,0,0]
+    for(const color of colors){const rgb=color.match(/[\d.]+/g)!.map(Number);rgb.slice(0,3).forEach((v,i)=>maxima[i]=Math.max(maxima[i],v))}
+    return (lum([192,205,206])+.05)/(lum(maxima)+.05)
+  })
+  expect(fallbackContrast).toBeGreaterThanOrEqual(4.5)
 })
 
 
@@ -135,7 +143,7 @@ test('aurora pointer input eases independently, returns on leave and ignores tou
     // Compare foreground against the per-channel maximum actually rendered throughout the pointer sweep.
     const bare = (lum(color)+.05)/(lum(bg)+.05)
     // Conservative surface endpoint: the lightest material color at its lowest opacity over that same field.
-    const panel = [35,49,56].map((v,i)=>v*.93+bg[i]*.07)
+    const panel = [25,38,45].map((v,i)=>v*.42+bg[i]*.58)
     return { bare, panel: (lum(color)+.05)/(lum(panel)+.05), bg }
   })
   expect(contrast.bare).toBeGreaterThanOrEqual(4.5)
@@ -143,4 +151,36 @@ test('aurora pointer input eases independently, returns on leave and ignores tou
   await test.info().attach('scene-composite-contrast.json', { body: JSON.stringify(contrast), contentType: 'application/json' })
   const header = page.locator('.scene-workspace-header')
   expect(await header.evaluate(element => getComputedStyle(element).zIndex)).toBe('1')
+})
+
+
+test('liquid ribbons visibly move through settings and notice surfaces', async ({ page }) => {
+  test.setTimeout(60_000)
+  await fixture(page)
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  const results = []
+  for (const [route, selector] of [['settings', '.settings-panel'], ['notices/team', '.ls-resource-list']]) {
+    await page.goto(`${origin}/${route}`)
+    await expect(page.locator('.team-aurora-backdrop canvas.ready')).toBeVisible()
+    const panel = page.locator(selector)
+    const box = (await panel.boundingBox())!
+    const clip = { x: box.x, y: box.y, width: box.width, height: Math.min(box.height, 400) }
+    const first = (await page.screenshot({ clip })).toString('base64')
+    await page.waitForTimeout(1800)
+    const second = (await page.screenshot({ clip })).toString('base64')
+    const delta = await page.evaluate(async ([a,b]) => {
+      const decode = async (value: string) => {
+        const image = new Image(); image.src = `data:image/png;base64,${value}`; await image.decode()
+        const c = document.createElement('canvas'); c.width=image.width;c.height=image.height
+        const ctx=c.getContext('2d')!;ctx.drawImage(image,0,0);return ctx.getImageData(0,0,c.width,c.height).data
+      }
+      const one=await decode(a),two=await decode(b);let changed=0,max=0
+      for(let i=0;i<one.length;i+=4){const d=Math.max(...[0,1,2].map(k=>Math.abs(one[i+k]-two[i+k])));if(d>=6)changed++;max=Math.max(max,d)}
+      return { fraction:changed/(one.length/4),max }
+    }, [first,second])
+    expect(delta.fraction, route).toBeGreaterThan(.05)
+    expect(delta.max, route).toBeGreaterThan(12)
+    results.push({route,...delta})
+  }
+  await test.info().attach('liquid-panel-motion.json',{body:JSON.stringify(results),contentType:'application/json'})
 })
