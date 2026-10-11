@@ -64,7 +64,7 @@ function select(key: string) {
 </template>
 
 <style scoped>
-.team-category-navigation { min-width: 0; }
+.team-category-navigation { min-width: 0; padding: .75rem; border-radius: var(--radius-lg); background: var(--surface); }
 .team-category-navigation__desktop { display: none; }
 .team-category-navigation__label { margin: 0 0 .75rem; padding-inline: .75rem; color: var(--text-secondary); font-size: .8125rem; font-weight: 500; }
 .team-category-navigation :is(button, a) { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .75rem; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-secondary); font: inherit; font-size: .875rem; text-align: left; cursor: pointer; text-decoration: none; }

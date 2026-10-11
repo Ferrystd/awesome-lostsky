@@ -29,9 +29,11 @@ Team 已有例外与逐路由映射见 [Team 页面宽度审计](team-page-width
 
 设置与通知的分类布局由同一 `TeamCategoryLayout` 和 `TeamCategoryNavigation` 实现，留在 Team 应用内。布局只有语义分类数据、当前值、可访问名称和内容插槽，不接受 width/layout/compact 等视觉参数；面板表面由各自内容组件持有。通知使用 wide 容器，设置使用 content 容器。导航项提供 `to` 时渲染真实 RouterLink，未提供时渲染控制当前编辑组的按钮；移动选择分别导航或发出 select 事件。方向键在链接之间只移动焦点，Enter 保留原生导航语义；设置按钮延续方向键切组并聚焦。通知具体 query 与返回规则见 [Team 应用](../../apps/team.md#通知中心与地址状态)。
 
-用户指定的具名视觉例外：仅设置页和通知中心的 `TeamCategoryLayout` 背景允许极淡静态青绿极光，由布局唯一持有两个低浓度 primary 光带（6%/4%）。不透明白色编辑面板、工具栏与列表保持原样；不改变页头/侧栏，不增加视觉参数、图片、动画或 blur 滤镜。伪元素限定在布局边界内、pointer-events:none，不裁切焦点；不得据此扩展为全后台装饰背景。验收包括两页响应式无溢出和导航对比度。
+用户指定的具名视觉例外：仅设置页和通知中心的 `TeamCategoryLayout` 使用静态极光场景，深靛蓝上缘经灰青过渡至浅雾色底，青绿与冰蓝连续曲线形成光幕。布局唯一持有内联 SVG 几何、渐变和局部柔光；不加载图片、WebGL 或持续动画。上缘留出 6rem 光幕空间，640px 以下为 5rem，内容内边距分别为 1.25rem / .75rem。分类导航由 `TeamCategoryNavigation` 自身持有不透明白色表面，编辑面板、工具栏与列表保持不透明，装饰不影响任何状态、权限、焦点或交互。SVG 使用实例唯一 ID、aria-hidden、focusable=false 和 pointer-events:none，只有装饰自身裁切，不裁切布局或焦点。页头、应用侧栏和其他页面不受影响，不增加视觉参数。验收覆盖两页 320—1920px、200% 文本、导航真实表面对比度、键盘与无溢出；用户撤销此页面装饰方向时移除例外。
 
-`/settings` 使用 `content`：用户需要在多个业务分类间切换并保留草稿。`TeamCategoryLayout` 只排列分类导航和当前编辑区，透明且不持有面板样式；`TeamSettingsGroup` 持有右侧唯一编辑表面。容器可用宽度达到 `48rem` 时，导航轨为 `11.5rem`（默认字号 184px），编辑轨占剩余空间；不足时切为顶部分类选择器。标题和设置中心共用 64rem 页面边界，字段与保存操作在右侧表面内对齐。禁止为大屏增加巨型标题或重复卡片。
+设计研究参考 [React Bits Aurora](https://github.com/DavidHDev/react-bits/tree/main/src/content/Backgrounds/Aurora) 的连续光幕边缘（MIT + Commons Clause）与 [react-aurora-background](https://github.com/TheNaubit/react-aurora-background) 的独立背景层（MIT）。实现为本项目自绘静态 SVG 曲线，未复制这两个项目的源码或新增依赖。
+
+`/settings` 使用 `content`：用户需要在多个业务分类间切换并保留草稿。`TeamCategoryLayout` 排列分类导航和当前编辑区并持有上述背景；`TeamSettingsGroup` 持有右侧唯一编辑表面。容器扣除内边距后的可用宽度达到 `48rem` 时，导航轨为 `11.5rem`（默认字号 184px），编辑轨占剩余空间；不足时切为顶部分类选择器。标题和设置中心共用 64rem 页面边界，字段与保存操作在右侧表面内对齐。禁止为大屏增加巨型标题或重复卡片。
 
 `TeamCategoryNavigation` 的 `items/current/panelId` 表达分类、未保存标记、选中值与受控区域，`select(key)` 仅通知页面切换。分类按 schema 业务顺序呈现，包括未知业务组；桌面原生按钮支持 Tab、Enter 和方向键，移动端使用现有选择器。schema 刷新保持仍有效的分类，移除时回到第一有效分类。所有草稿由页面保管；切换不保存、不丢弃，不新增自动保存或本地持久化。保存中允许继续编辑、切换分类，整页防止重复提交，结果仅归属提交组；成功仅确认提交快照。刷新与离开保护检查全部分类草稿。
 

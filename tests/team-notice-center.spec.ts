@@ -113,27 +113,27 @@ test('notice center keeps responsive category semantics and permissions at large
   const model = await noticesFixture(page)
   await page.goto(`${origin}/notices/team`)
   await expect(page.locator('.ls-resource-row')).toHaveCount(20)
-  const aurora = await page.locator('.team-category-layout').evaluate(element => {
-    const style = getComputedStyle(element, '::before')
-    return { pointer: style.pointerEvents, filter: style.filter, animation: style.animationName, background: style.backgroundImage, overflow: getComputedStyle(element).overflow }
-  })
-  expect(aurora).toMatchObject({ pointer: 'none', filter: 'none', animation: 'none', overflow: 'visible' })
-  expect(aurora.background).toContain('radial-gradient')
-  // Convert semantic CSS colors to sRGB, then test the darkest possible overlap (6% + 4%).
-  // This reads DOM styles only; it does not capture or inspect any preview image.
-  const contrast = await page.locator('.team-category-navigation').evaluate(element => {
+  const aurora = await page.locator('.team-category-layout__aurora').evaluate(element => {
     const style = getComputedStyle(element)
+    return { pointer: style.pointerEvents, animation: style.animationName, hidden: element.getAttribute('aria-hidden'), overflow: getComputedStyle(element.parentElement!).overflow }
+  })
+  expect(aurora).toMatchObject({ pointer: 'none', animation: 'none', hidden: 'true', overflow: 'visible' })
+  // Navigation owns an opaque surface: contrast does not depend on the decorative light underneath.
+  await page.setViewportSize({ width: 1920, height: 1100 })
+  const contrast = await page.locator('.team-category-navigation').evaluate(element => {
     const canvas = document.createElement('canvas')
     const context = canvas.getContext('2d')!
     const rgb = (color: string) => { context.clearRect(0, 0, 1, 1); context.fillStyle = color; context.fillRect(0, 0, 1, 1); return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map(value => value / 255) }
-    const primary = rgb(style.getPropertyValue('--primary'))
-    const base = rgb(style.getPropertyValue('--surface-subtle'))
-    const foreground = rgb(style.getPropertyValue('--text-secondary'))
-    const background = base.map((value, index) => value * .9 + primary[index] * .1)
     const luminance = (color: number[]) => color.map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4).reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0)
-    return (luminance(background) + .05) / (luminance(foreground) + .05)
+    const base = getComputedStyle(element).backgroundColor
+    return Array.from(element.querySelectorAll('a, .team-category-navigation__label')).map(node => {
+      const style = getComputedStyle(node)
+      const foreground = luminance(rgb(style.color))
+      const background = luminance(rgb(style.backgroundColor === 'rgba(0, 0, 0, 0)' ? base : style.backgroundColor))
+      return (Math.max(background, foreground) + .05) / (Math.min(background, foreground) + .05)
+    })
   })
-  expect(contrast).toBeGreaterThanOrEqual(4.5)
+  expect(Math.min(...contrast)).toBeGreaterThanOrEqual(4.5)
   await test.info().attach('aurora-contrast.json', { body: JSON.stringify({ contrast, aurora }), contentType: 'application/json' })
   for (const fontSize of [16, 32]) for (const width of [320, 375, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1100 })
@@ -142,7 +142,8 @@ test('notice center keeps responsive category semantics and permissions at large
     const header = (await page.locator('.ls-page-header').boundingBox())!
     expect(center.width).toBeCloseTo(header.width, 0)
     if (width === 1920 && fontSize === 16) expect(center.width).toBe(1440)
-    const desktop = center.width >= 48 * fontSize
+    const availableWidth = await page.locator('.team-category-layout').evaluate(element => element.clientWidth - parseFloat(getComputedStyle(element).paddingLeft) - parseFloat(getComputedStyle(element).paddingRight))
+    const desktop = availableWidth >= 48 * fontSize
     await expect(page.locator('.team-category-navigation__desktop')).toBeVisible({ visible: desktop })
     await expect(page.locator('.team-category-navigation__mobile')).toBeVisible({ visible: !desktop })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `${width}/${fontSize}`).toBe(true)
