@@ -107,7 +107,7 @@ describe('后台源码设计契约', () => {
         control: 'button',
       },
       {
-        file: 'frontend/apps/team/src/components/TeamSettingsNavigation.vue',
+        file: 'frontend/apps/team/src/components/TeamCategoryNavigation.vue',
         control: 'button',
       },
       {

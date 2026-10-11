@@ -12,6 +12,8 @@ import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { resolveEntities } from '../lib/markdown'
+import { noticeListPath, noticeListQuery, noticeListState, type NoticeScope } from '../lib/noticeNavigation'
+import { queryPositiveInteger } from '@lostsky/shared/routeQuery'
 
 interface NoticeDetail {
   id: number
@@ -24,12 +26,12 @@ interface NoticeDetail {
   created_at?: number | string | null
 }
 
-type NoticeScope = 'team' | 'entity' | 'sent'
+interface NoticeResult { scope: NoticeScope; id: number; notice: NoticeDetail | null }
 
 const route = useRoute()
 const routeAccess = useRouteAccess()
 const client = useQueryClient()
-const noticeId = computed(() => Number(route.query.id || 0))
+const noticeId = computed(() => queryPositiveInteger(route.query.id) ?? 0)
 const scope = computed<NoticeScope>(() => route.meta.noticeScope as NoticeScope)
 const copy = computed(() => scope.value === 'sent'
   ? { title: '通知查看情况', description: '查看通知正文及收件人的已读状态。', noun: '通知', backTo: '/notices/sent', backLabel: '返回已发送通知' }
@@ -49,25 +51,27 @@ const copy = computed(() => scope.value === 'sent'
       backLabel: '返回通知列表',
     })
 const confirmed = new Set<string>()
+const backTo = computed(() => ({ path: noticeListPath(scope.value), query: noticeListQuery(noticeListState(route.query)) }))
 const detailQuery = useQuery({
-  queryKey: computed(() => ['notice', scope.value, noticeId.value]),
-  queryFn: () => routeAccess.read(() => api.get<NoticeDetail>('/notice/get', { scope: scope.value, id: noticeId.value })),
+  queryKey: computed(() => ['notice', scope.value, noticeId.value] as const),
+  queryFn: async ({ queryKey: [, originScope, id] }): Promise<NoticeResult> => ({ scope: originScope, id, notice: await routeAccess.read(() => api.get<NoticeDetail>('/notice/get', { scope: originScope, id })) ?? null }),
   enabled: computed(() => noticeId.value > 0 && !routeAccess.restricted.value),
 })
+const notice = computed(() => detailQuery.data.value?.scope === scope.value && detailQuery.data.value?.id === noticeId.value ? detailQuery.data.value.notice : null)
 const confirmNotice = useMutation({
   mutationFn: ({ id, noticeScope }: { id: number; noticeScope: NoticeScope }) => api.post('/notice/confirm', { id, scope: noticeScope }),
   onSuccess: async (_, { id, noticeScope }) => {
-    client.setQueryData<NoticeDetail>(['notice', noticeScope, id], (current) => current ? { ...current, is_read: 1 } : current)
+    client.setQueryData<NoticeResult>(['notice', noticeScope, id], (current) => current?.notice ? { ...current, notice: { ...current.notice, is_read: 1 } } : current)
     await client.invalidateQueries({ queryKey: ['notices', noticeScope] })
   },
   onError: (_, { id, noticeScope }) => confirmed.delete(`${noticeScope}:${id}`),
 })
 
-watch(() => detailQuery.data.value, (notice) => {
-  const key = `${scope.value}:${notice?.id ?? 0}`
-  if (scope.value === 'sent' || !notice || notice.is_read === 1 || confirmed.has(key)) return
+watch(notice, (value) => {
+  const key = `${scope.value}:${value?.id ?? 0}`
+  if (scope.value === 'sent' || !value || value.id !== noticeId.value || value.is_read === 1 || confirmed.has(key)) return
   confirmed.add(key)
-  confirmNotice.mutate({ id: notice.id, noticeScope: scope.value })
+  confirmNotice.mutate({ id: value.id, noticeScope: scope.value })
 }, { immediate: true })
 
 function time(value: unknown) {
@@ -81,32 +85,32 @@ function time(value: unknown) {
 
 <template>
   <article class="notice-detail-view">
-    <AdminPageHeader :title="copy.title" :description="copy.description" :back-to="copy.backTo" :back-label="copy.backLabel" />
+    <AdminPageHeader :title="copy.title" :description="copy.description" :back-to="backTo" :back-label="copy.backLabel" />
 
     <LsInlineError v-if="!noticeId && !routeAccess.restricted.value" :message="`缺少有效的${copy.noun}编号，请返回列表重新选择。`" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && detailQuery.isError.value" state="error" :description="friendlyError(detailQuery.error.value)" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && detailQuery.isPending.value" state="loading" :rows="3" />
-    <LsEmptyState v-else-if="routeAccess.restricted.value" :source="detailQuery.data.value" title="暂无可显示的通知" description="返回通知列表查看其他通知。" />
-    <template v-else-if="detailQuery.data.value">
+    <LsEmptyState v-else-if="routeAccess.restricted.value" :source="notice" title="暂无可显示的通知" description="返回通知列表查看其他通知。" />
+    <template v-else-if="notice">
       <header class="notice-header">
         <div class="notice-meta">
-          <span v-if="detailQuery.data.value.is_pinned === 1" class="pinned"><Pin :size="15" />置顶消息</span>
-          <time>{{ time(detailQuery.data.value.create_time ?? detailQuery.data.value.created_at) }}</time>
-          <span v-if="scope === 'sent'">收件人员 #{{ detailQuery.data.value.entity_id }}</span>
-          <span class="read-state"><MailOpen :size="15" />{{ detailQuery.data.value.is_read === 1 ? '已读' : scope === 'sent' ? '未读' : '正在标记已读' }}</span>
+          <span v-if="notice.is_pinned === 1" class="pinned"><Pin :size="15" />置顶消息</span>
+          <time>{{ time(notice.create_time ?? notice.created_at) }}</time>
+          <span v-if="scope === 'sent'">收件人员 #{{ notice.entity_id }}</span>
+          <span class="read-state"><MailOpen :size="15" />{{ notice.is_read === 1 ? '已读' : scope === 'sent' ? '未读' : '正在标记已读' }}</span>
         </div>
-        <h1>{{ detailQuery.data.value.title || '无标题消息' }}</h1>
+        <h1>{{ notice.title || '无标题消息' }}</h1>
       </header>
       <LsPanel><section class="notice-content" :aria-label="`${copy.noun}正文`">
         <LsMarkdownRenderer
           context="document"
-          :content="detailQuery.data.value.content || `这条${copy.noun}没有正文。`"
+          :content="notice.content || `这条${copy.noun}没有正文。`"
           :resolve-entities="resolveEntities"
         />
       </section></LsPanel>
     </template>
 
-    <LsInlineError v-if="confirmNotice.isError.value" :message="`${copy.noun}已打开，但已读状态更新失败：${friendlyError(confirmNotice.error.value)}`" />
+    <LsInlineError v-if="confirmNotice.isError.value && confirmNotice.variables.value?.noticeScope === scope && confirmNotice.variables.value?.id === noticeId" :message="`${copy.noun}已打开，但已读状态更新失败：${friendlyError(confirmNotice.error.value)}`" />
   </article>
 </template>
 

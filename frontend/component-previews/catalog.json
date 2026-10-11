@@ -972,20 +972,20 @@
     ]
   },
   {
-    "id": "team-settings-center",
+    "id": "team-category-layout",
     "category": "team",
-    "name": "TeamSettingsCenter",
-    "source": "frontend/apps/team/src/components/TeamSettingsCenter.vue",
-    "story": "frontend/component-previews/src/app-stories.ts#TeamSettingsCenter",
-    "aliases": ["team-settings-center"]
+    "name": "TeamCategoryLayout",
+    "source": "frontend/apps/team/src/components/TeamCategoryLayout.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#TeamCategoryLayout",
+    "aliases": ["team-category-layout"]
   },
   {
-    "id": "team-settings-navigation",
+    "id": "team-category-navigation",
     "category": "team",
-    "name": "TeamSettingsNavigation",
-    "source": "frontend/apps/team/src/components/TeamSettingsNavigation.vue",
-    "story": "frontend/component-previews/src/app-stories.ts#TeamSettingsNavigation",
-    "aliases": ["team-settings-navigation"]
+    "name": "TeamCategoryNavigation",
+    "source": "frontend/apps/team/src/components/TeamCategoryNavigation.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#TeamCategoryNavigation",
+    "aliases": ["team-category-navigation"]
   },
   {
     "id": "team-settings-group",

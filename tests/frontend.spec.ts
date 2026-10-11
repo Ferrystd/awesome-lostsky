@@ -1536,7 +1536,8 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
   test.setTimeout(240_000)
   const pageErrors: string[] = []
   let emptyNotices = false
-  let noticeConfirmRequests = 0
+  const noticeConfirmRequests: { scope: string; id: number }[] = []
+  const readNotices = new Set<string>()
   let noticeSendPayload: Record<string, unknown> | null = null
   let settingPayload: Record<string, unknown> | null = null
   let accessPermissions = ['team.entity.read', 'team.entity.profile.manage', 'team.document.read', 'team.customer.read', 'team.member.read', 'team.member.invite', 'team.member.update', 'team.member.remove', 'team.entity.field.manage', 'team.entity.virtual.*.manage', 'team.role.read', 'team.role.write', 'team.join_field.read', 'team.join_field.write', 'team.join_review.read', 'team.notice.read', 'team.notice.send', 'team.setting.read', 'file.read', 'file.upload', 'file.delete']
@@ -1882,7 +1883,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         title: '维护窗口提醒',
         content: '## 维护安排\n\n请提前保存正在处理的内容。\n\n- 保存草稿\n- 回复确认\n\n<script>window.__noticeXss = 1</script>',
         is_pinned: 1,
-        is_read: 0,
+        is_read: readNotices.has(`${url.searchParams.get('scope')}:21`) ? 1 : 0,
         create_time: 1752883200,
       }
     else if (url.pathname.endsWith('/notice/index'))
@@ -1935,7 +1936,9 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         is_pinned: noticeSendPayload.is_pinned ? 1 : 0,
       }
     } else if (url.pathname.endsWith('/notice/confirm')) {
-      noticeConfirmRequests++
+      const confirmed = route.request().postDataJSON() as { scope: string; id: number }
+      noticeConfirmRequests.push(confirmed)
+      readNotices.add(`${confirmed.scope}:${confirmed.id}`)
       data = null
     } else if (url.pathname.endsWith('/file/index')) data = { list: [], total: 0 }
     else if (url.pathname.endsWith('/setting/schema'))
@@ -2422,8 +2425,8 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.getByRole('link', { name: /维护窗口提醒/ })).toHaveAttribute('href', `${scope === 'entity' ? '/personal/notices' : '/notices/team'}/detail?id=21`)
       await expect(page.getByText('置顶', { exact: true })).toBeVisible()
       if ((page.viewportSize()?.width ?? 0) < 640) {
-        const header = page.locator('.ls-page-header')
-        const titleBox = await header.getByRole('heading', { level: 1 }).boundingBox()
+        const header = page.locator('.notice-content-header')
+        const titleBox = await header.getByRole('heading', { level: scope === 'entity' ? 1 : 2 }).boundingBox()
         const descriptionBox = await header.locator('p').boundingBox()
         const actionBox = await header.getByRole('button', { name: '全部标为已读' }).boundingBox()
         expect(titleBox).not.toBeNull()
@@ -2669,7 +2672,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     expect(overflow, `horizontal overflow at ${path}`).toBe(false)
   }
 
-  expect(noticeConfirmRequests).toBe(2)
+  expect(noticeConfirmRequests).toEqual([{ id: 21, scope: 'entity' }, { id: 21, scope: 'team' }])
   await page.goto('http://demo.team.lostsky.work:5175/personal/notices/detail')
   await expect(page.getByRole('alert')).toContainText('缺少有效的通知编号')
   await page.goto('http://demo.team.lostsky.work:5175/personal/notices/detail?id=404')

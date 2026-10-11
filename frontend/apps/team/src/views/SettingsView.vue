@@ -11,7 +11,7 @@ import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 
 import TeamSettingsGroup from '../components/TeamSettingsGroup.vue'
-import TeamSettingsCenter from '../components/TeamSettingsCenter.vue'
+import TeamCategoryLayout from '../components/TeamCategoryLayout.vue'
 import type { SettingApp, SettingField, SettingSchema, SettingValue } from './settings/types'
 
 const client = useQueryClient()
@@ -96,7 +96,7 @@ function isSaving(appName: string): boolean {
     <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="4" />
     <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !apps.length" :title="routeAccess.restricted.value ? '没有可显示的团队设置' : '当前没有可配置项'" description="还没有可配置的设置项。" />
 
-    <TeamSettingsCenter v-else-if="currentApp" :items="navigationItems" :current="currentApp.app_name" @select="selected = $event">
+    <TeamCategoryLayout v-else-if="currentApp" label="设置分类" :items="navigationItems" :current="currentApp.app_name" @select="selected = $event">
       <TeamSettingsGroup
         :key="currentApp.app_name"
         :app="currentApp"
@@ -109,7 +109,7 @@ function isSaving(appName: string): boolean {
         @update="(key, value) => setSettingValue(currentApp!.app_name, key, value)"
         @submit="save.mutate(currentApp!)"
       />
-    </TeamSettingsCenter>
+    </TeamCategoryLayout>
   </div>
 </template>
 

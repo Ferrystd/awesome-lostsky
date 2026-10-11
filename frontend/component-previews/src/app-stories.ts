@@ -1,7 +1,10 @@
 import WeiboAccountField from '../../apps/weibo/src/components/WeiboAccountField.vue';
 import TeamSettingsGroup from '../../apps/team/src/components/TeamSettingsGroup.vue';
-import TeamSettingsCenter from '../../apps/team/src/components/TeamSettingsCenter.vue';
-import TeamSettingsNavigation from '../../apps/team/src/components/TeamSettingsNavigation.vue';
+import TeamCategoryLayout from '../../apps/team/src/components/TeamCategoryLayout.vue';
+import TeamCategoryNavigation from '../../apps/team/src/components/TeamCategoryNavigation.vue';
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue';
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue';
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue';
 import WeiboCommentFields from '../../apps/weibo/src/components/WeiboCommentFields.vue';
 import WeiboFeedCommentComposer from '../../apps/weibo/src/components/WeiboFeedCommentComposer.vue';
 import JoinApplicationFields from '../../apps/team/src/components/JoinApplicationFields.vue';
@@ -811,17 +814,18 @@ const transactionFlowTrend = story(
 );
 
 export const appStories: Record<string, StoryDefinition> = {
-  TeamSettingsNavigation: { ...story('TeamSettingsNavigation', ['default', 'hover', 'focus', 'active', 'mobile'], state => h(defineComponent({ setup() {
+  TeamCategoryNavigation: { ...story('TeamCategoryNavigation', ['default', 'hover', 'focus', 'active', 'mobile'], state => h(defineComponent({ setup() {
     const current = ref('entity');
-    return () => h('div', { style: { container: 'team-settings-center / inline-size', minWidth: '0' } }, h(TeamSettingsNavigation, { style: state === 'mobile' ? undefined : { width: '11.5rem' }, current: current.value, panelId: 'preview-settings', items: [{ key: 'entity', label: '人员', dirty: state === 'active' }, { key: 'chat', label: '聊天', dirty: true }, { key: 'display', label: '展示', dirty: false }], onSelect: key => { current.value = key } }));
+    return () => h('div', { style: { container: 'team-category-layout / inline-size', minWidth: '0' } }, h(TeamCategoryNavigation, { label: state === 'active' ? '设置分类' : '通知分类', style: state === 'mobile' ? undefined : { width: '11.5rem' }, current: current.value, panelId: 'preview-settings', items: state === 'active' ? [{ key: 'entity', label: '人员', dirty: true }, { key: 'chat', label: '聊天', dirty: true }] : [{ key: 'entity', label: '站内通知', to: '/notices/team' }, { key: 'sent', label: '已发送通知', to: '/notices/sent' }], onSelect: key => { current.value = key } }));
   }}))), desktopWidth: 1024 },
-  TeamSettingsCenter: { ...story('TeamSettingsCenter', [...interactive, 'loading', 'error'], state => h(defineComponent({ setup() {
+  TeamCategoryLayout: { ...story('TeamCategoryLayout', [...interactive, 'loading', 'error'], state => h(defineComponent({ setup() {
+    if (state === 'active') return () => h(TeamCategoryLayout, { label: '通知分类', current: 'team', items: [{ key: 'team', label: '平台通知', to: '/notices/team' }, { key: 'sent', label: '已发送通知', to: '/notices/sent' }] }, { default: () => h('section', { style: { display: 'grid', gap: '1.5rem', minWidth: '0' } }, [h(LsSectionHeader, { title: '站内通知', description: 'LostSky 发给团队的共享通知，团队内统一查阅。当前页有 1 条未读。' }), h(LsResourceList, { 'aria-label': '站内通知列表' }, { default: () => [h(LsResourceRow, { title: '团队服务更新', description: '新的团队协作功能已上线，请查看更新说明。', unread: true, to: '/notices/team/detail?id=1' }), h(LsResourceRow, { title: '工作安排提醒', description: '请在本周结束前确认团队的工作安排。', to: '/notices/team/detail?id=2' })] })]) });
     const current = ref('entity');
     const values = ref<Record<string, boolean>>({ entity: false, chat: true, display: false });
     const items = [{ key: 'entity', label: '人员', dirty: false }, { key: 'chat', label: '聊天', dirty: true }, { key: 'display', label: '展示', dirty: false }];
-    return () => h(TeamSettingsCenter, { current: current.value, items, onSelect: key => { current.value = key } }, { default: () => h(TeamSettingsGroup, {
+    return () => h(TeamCategoryLayout, { label: '设置分类', current: current.value, items, onSelect: key => { current.value = key } }, { default: () => h(TeamSettingsGroup, {
       app: { app_name: current.value, label: items.find(item => item.key === current.value)!.label, description: '管理团队的业务规则。', order: 1, settings: [{ key: 'enabled', label: '允许查找团队', description: '允许通过团队标识找到当前团队。', type: 'boolean', control: 'switch', order: 1, default: false, value: false }] },
-      values: { enabled: values.value[current.value] }, loading: state === 'loading', disabled: state === 'disabled' || state === 'loading', saved: state === 'active', error: state === 'error' ? '保存失败，请稍后重试。' : '', restricted: false, onUpdate: (_key, value) => { values.value[current.value] = Boolean(value) },
+      values: { enabled: values.value[current.value] }, loading: state === 'loading', disabled: state === 'disabled' || state === 'loading', saved: false, error: state === 'error' ? '保存失败，请稍后重试。' : '', restricted: false, onUpdate: (_key, value) => { values.value[current.value] = Boolean(value) },
     }) });
   }}))), desktopWidth: 1024 },
   TeamSettingsGroup: story('TeamSettingsGroup', [...interactive, 'loading', 'error'], state => stage(h(TeamSettingsGroup, {

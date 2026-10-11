@@ -44,15 +44,15 @@ test('Team settings keeps compact fields and one group footer action across widt
   for (const fontSize of ['16px', '32px']) for (const width of [320, 375, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1200 })
     await page.evaluate(size => { document.documentElement.style.fontSize = size }, fontSize)
-    const header = await page.locator('.settings-center__content').boundingBox()
-    const center = (await page.locator('.settings-center').boundingBox())!
+    const header = await page.locator('.team-category-layout__content').boundingBox()
+    const center = (await page.locator('.team-category-layout').boundingBox())!
     const pageHeader = (await page.locator('.ls-page-header').boundingBox())!
     expect(center.x).toBeCloseTo(pageHeader.x, 0)
     expect(center.width).toBeCloseTo(pageHeader.width, 0)
     if (fontSize === '16px' && width === 1920) expect(center.width).toBe(1024)
     const desktop = center.width >= 48 * parseInt(fontSize)
-    await expect(page.locator('.settings-navigation__desktop')).toBeVisible({ visible: desktop })
-    await expect(page.locator('.settings-navigation__mobile')).toBeVisible({ visible: !desktop })
+    await expect(page.locator('.team-category-navigation__desktop')).toBeVisible({ visible: desktop })
+    await expect(page.locator('.team-category-navigation__mobile')).toBeVisible({ visible: !desktop })
     const box = await panel.boundingBox()
     expect(box!.x).toBeCloseTo(header!.x, 0)
     expect(box!.width).toBeCloseTo(header!.width, 0)

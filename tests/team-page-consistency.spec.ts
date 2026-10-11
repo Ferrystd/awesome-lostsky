@@ -84,11 +84,13 @@ test('team management pages share page geometry and resource row hierarchy acros
         expect(frame!.x, `${path} header left at ${width}`).toBeCloseTo(frames.get(width)!.x, 0)
         expect(frame!.width, `${path} header width at ${width}`).toBeCloseTo(frames.get(width)!.width, 0)
       } else if (path !== '/settings') frames.set(width, { x: frame!.x, width: frame!.width })
+      const categoryContent = page.locator('.team-category-layout__content')
+      const contentFrame = await categoryContent.count() ? (await categoryContent.boundingBox())! : frame!
       const toolbar = page.locator('#workspace .ls-list-toolbar')
       if (await toolbar.count()) {
         const bounds = await toolbar.boundingBox()
-        expect(bounds!.x).toBeCloseTo(frame!.x, 0)
-        expect(bounds!.width).toBeCloseTo(frame!.width, 0)
+        expect(bounds!.x).toBeCloseTo(contentFrame.x, 0)
+        expect(bounds!.width).toBeCloseTo(contentFrame.width, 0)
         for (const select of await toolbar.locator('.n-select').all()) {
           const control = await select.boundingBox()
           expect(control!.width, `${path} filter collapsed at ${width}`).toBeGreaterThan(0)
@@ -100,8 +102,8 @@ test('team management pages share page geometry and resource row hierarchy acros
       const list = page.locator('#workspace .ls-resource-list')
       if (await list.count()) {
         const bounds = await list.boundingBox()
-        expect(bounds!.x).toBeCloseTo(frame!.x, 0)
-        expect(bounds!.width).toBeCloseTo(frame!.width, 0)
+        expect(bounds!.x).toBeCloseTo(contentFrame.x, 0)
+        expect(bounds!.width).toBeCloseTo(contentFrame.width, 0)
         const row = list.locator('.ls-resource-row').first()
         const metrics = await row.evaluate(node => {
           const style = getComputedStyle(node)
