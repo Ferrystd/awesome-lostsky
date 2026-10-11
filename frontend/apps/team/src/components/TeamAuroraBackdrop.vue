@@ -22,9 +22,9 @@ onBeforeUnmount(() => renderer?.destroy())
 </template>
 
 <style scoped>
-.team-aurora-backdrop { position: absolute; inset: 0 0 auto; z-index: -1; height: min(28rem, 75vh); max-height: 100%; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse 17% 3% at 8% 76%, #45d9b9b0, transparent 100%), radial-gradient(ellipse 15% 3% at 87% 28%, #5a98ed90, transparent 100%); }
+.team-aurora-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse at 12% 42%, #12554b, transparent 75%), radial-gradient(ellipse at 88% 76%, #203c62, transparent 80%), #101e27; }
 .team-aurora-backdrop.rendered { background: none; }
 canvas { display: block; width: 100%; height: 100%; opacity: 0; }
 canvas.ready { opacity: 1; }
-@media (max-width: 639px) { .team-aurora-backdrop { height: min(20rem, 65vh); } }
+
 </style>

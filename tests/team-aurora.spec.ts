@@ -5,10 +5,16 @@ const origin = process.env.TEAM_TEST_ORIGIN ?? 'http://demo.team.lostsky.work:51
 async function fixture(page: Page) {
   await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/' }])
   await page.addInitScript(() => {
-    const stats = { draws: 0 }
+    const stats = { draws: 0, brightest: [0, 0, 0] }
     ;(window as any).auroraStats = stats
     const draw = WebGLRenderingContext.prototype.drawArrays
-    WebGLRenderingContext.prototype.drawArrays = function (...args) { stats.draws++; return draw.apply(this, args) }
+    WebGLRenderingContext.prototype.drawArrays = function (...args) { stats.draws++; const result = draw.apply(this, args)
+      const pixel = new Uint8Array(4)
+      for (const x of [.15,.5,.85]) for (const y of [.15,.5,.85]) {
+        this.readPixels(Math.floor(this.drawingBufferWidth*x), Math.floor(this.drawingBufferHeight*y), 1, 1, this.RGBA, this.UNSIGNED_BYTE, pixel)
+        for (let i=0;i<3;i++) stats.brightest[i] = Math.max(stats.brightest[i],pixel[i])
+      }
+      return result }
   })
   await page.route(`${origin}/api/**`, route => {
     const path = new URL(route.request().url()).pathname
@@ -56,7 +62,12 @@ test('aurora flows within a bounded canvas and stops for pause, visibility, redu
   await page.evaluate(() => { delete (document as any).hidden; document.dispatchEvent(new Event('visibilitychange')) })
   await expect.poll(() => count(page)).toBeGreaterThan(await count(page))
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  // The scene remains in the viewport while the content scrolls.
+  expect((await canvas.boundingBox())!.y).toBe(0)
+  await expect.poll(() => count(page)).toBeGreaterThan(await count(page))
+  await canvas.evaluate(element => { (element.parentElement as HTMLElement).style.display = 'none' })
   await staysStill(page)
+  await canvas.evaluate(element => { (element.parentElement as HTMLElement).style.display = '' })
   await page.evaluate(() => window.scrollTo(0, 0))
   await expect.poll(() => count(page)).toBeGreaterThan(await count(page))
   await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -91,4 +102,45 @@ test('aurora unavailable and lost-context fallbacks keep settings usable', async
   await expect(page.locator('.settings-panel button[type=submit]')).toBeEnabled()
   await expect(page.locator('.team-aurora-backdrop canvas.ready')).toHaveCount(0)
   expect(await page.locator('.team-aurora-backdrop').evaluate(element => getComputedStyle(element).backgroundImage)).toContain('gradient')
+})
+
+
+test('aurora pointer input eases independently, returns on leave and ignores touch', async ({ page }) => {
+  await fixture(page)
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto(`${origin}/settings`)
+  const canvas = page.locator('.team-aurora-backdrop canvas.ready')
+  await expect(canvas).toBeVisible()
+  const pointer = () => canvas.evaluate(element => {
+    const gl = (element as HTMLCanvasElement).getContext('webgl')!
+    const program = gl.getParameter(gl.CURRENT_PROGRAM)
+    return Array.from(gl.getUniform(program, gl.getUniformLocation(program, 'pointer'))) as number[]
+  })
+  await page.evaluate(() => document.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: innerWidth*.95, clientY: innerHeight*.1 })))
+  await expect.poll(async () => (await pointer())[0]).toBeGreaterThan(.5)
+  await page.evaluate(() => document.documentElement.dispatchEvent(new PointerEvent('pointerleave')))
+  await expect.poll(async () => Math.abs((await pointer())[0])).toBeLessThan(.1)
+  await page.evaluate(() => document.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'touch', clientX: innerWidth, clientY: 0 })))
+  await page.waitForTimeout(250)
+  expect(Math.abs((await pointer())[0])).toBeLessThan(.1)
+  await page.getByRole('button', { name: '暂停极光' }).click()
+  const frozen = await pointer()
+  await page.evaluate(() => document.dispatchEvent(new PointerEvent('pointermove', { pointerType: 'mouse', clientX: innerWidth, clientY: 0 })))
+  await page.waitForTimeout(200)
+  expect(await pointer()).toEqual(frozen)
+  const contrast = await page.evaluate(() => {
+    const lum = (rgb: number[]) => rgb.map(v => v/255).map(v => v <= .04045 ? v/12.92 : ((v+.055)/1.055)**2.4).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0)
+    const bg = (window as any).auroraStats.brightest as number[]
+    const color = getComputedStyle(document.querySelector('.team-page-link')!).color.match(/[\d.]+/g)!.slice(0,3).map(Number)
+    // Compare foreground against the per-channel maximum actually rendered throughout the pointer sweep.
+    const bare = (lum(color)+.05)/(lum(bg)+.05)
+    // Conservative surface endpoint: the lightest material color at its lowest opacity over that same field.
+    const panel = [35,49,56].map((v,i)=>v*.93+bg[i]*.07)
+    return { bare, panel: (lum(color)+.05)/(lum(panel)+.05), bg }
+  })
+  expect(contrast.bare).toBeGreaterThanOrEqual(4.5)
+  expect(contrast.panel).toBeGreaterThanOrEqual(4.5)
+  await test.info().attach('scene-composite-contrast.json', { body: JSON.stringify(contrast), contentType: 'application/json' })
+  const header = page.locator('.scene-workspace-header')
+  expect(await header.evaluate(element => getComputedStyle(element).zIndex)).toBe('1')
 })

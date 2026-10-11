@@ -470,6 +470,7 @@ const listToolbar = story(
       h(
         LsListToolbar,
         {
+          embedded: state === 'active' || state === 'mobile',
           modelValue: '',
           placeholder: '搜索字段名称或标识',
           ariaLabel: '搜索对象字段',

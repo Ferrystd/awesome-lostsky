@@ -136,7 +136,7 @@ function switchDisabled(setting: SettingField): boolean {
 
 <style scoped>
 
-.settings-panel { min-width: 0; margin: 0; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+.settings-panel { min-width: 0; margin: 0; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--panel-material, var(--surface)); box-shadow: var(--panel-elevation, none); }
 .settings-header { padding: 1.5rem 1.5rem 1rem; }
 .setting-row { display: grid; min-width: 0; gap: .75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--separator, var(--border)); }
 .setting-row--switch { grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 1rem; }

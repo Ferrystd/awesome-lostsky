@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
+import TeamPageLink from '../components/TeamPageLink.vue'
 import { KeyRound } from '@lucide/vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -90,7 +90,7 @@ function isSaving(appName: string): boolean {
     <AdminPageHeader
       title="团队设置"
       description="按业务分类管理团队的运行方式。"
-    ><template #actions><RouterLink class="settings-abilities" to="/abilities"><KeyRound :size="16" aria-hidden="true" />团队能力</RouterLink></template></AdminPageHeader>
+    ><template #actions><TeamPageLink to="/abilities" :icon="KeyRound" label="团队能力" /></template></AdminPageHeader>
 
     <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取团队设置" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="4" />
@@ -115,7 +115,4 @@ function isSaving(appName: string): boolean {
 
 <style scoped>
 .settings-view { min-width: 0; display: grid; gap: 1.5rem; }
-.settings-abilities { min-height: 44px; display: inline-flex; align-items: center; gap: .5rem; color: var(--text-secondary); font-size: .875rem; text-decoration: none; }
-.settings-abilities:hover { color: var(--primary); }
-.settings-abilities:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
 </style>

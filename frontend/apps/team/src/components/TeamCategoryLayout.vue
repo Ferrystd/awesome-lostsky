@@ -1,25 +1,22 @@
 <script setup lang="ts">
-import { ref, useId } from 'vue'
+import { inject, ref, useId } from 'vue'
 import { Pause, Play } from '@lucide/vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
-import TeamAuroraBackdrop from './TeamAuroraBackdrop.vue'
+import { teamSceneKey } from './team-scene'
 import TeamCategoryNavigation from './TeamCategoryNavigation.vue'
 
 defineProps<{
   items: { key: string; label: string; dirty?: boolean; to?: string }[]
   current: string
   label: string
-  purpose?: 'settings' | 'notices'
 }>()
 defineEmits<{ select: [key: string] }>()
 const panelId = `settings-content-${useId()}`
-const paused = ref(false)
-const available = ref(false)
+const { paused, available } = inject(teamSceneKey, { paused: ref(false), available: ref(false) })
 </script>
 
 <template>
-  <div :class="['team-category-layout', { 'team-category-layout--notices': purpose === 'notices' }]">
-    <TeamAuroraBackdrop :paused="paused" @available="available = $event" />
+  <div class="team-category-layout">
     <div class="team-category-layout__layout">
       <div class="team-category-layout__navigation">
       <TeamCategoryNavigation :items="items" :current="current" :label="label" :panel-id="panelId" @select="$emit('select', $event)" />
@@ -36,7 +33,7 @@ const available = ref(false)
 </template>
 
 <style scoped>
-.team-category-layout { min-width: 0; container: team-category-layout / inline-size; position: relative; isolation: isolate; padding: 1.25rem;  }
+.team-category-layout { min-width: 0; container: team-category-layout / inline-size; padding: 1.25rem;  }
 .team-category-layout__motion { margin-top: .75rem; }
 .team-category-layout__layout { min-width: 0; display: grid; gap: 1.5rem; align-items: start; }
 .team-category-layout__content { min-width: 0; }
@@ -48,9 +45,5 @@ const available = ref(false)
 }
 @container team-category-layout (min-width: 48rem) {
   .team-category-layout__layout { grid-template-columns: 11.5rem minmax(0, 1fr); }
-}
-.team-category-layout--notices { padding: 0; }
-@container team-category-layout (min-width: 48rem) {
-  .team-category-layout--notices .team-category-layout__layout { grid-template-columns: 10rem minmax(0, 1fr); }
 }
 </style>

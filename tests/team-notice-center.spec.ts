@@ -151,12 +151,13 @@ test('notice center keeps responsive category semantics and permissions at large
     const header = (await page.locator('.ls-page-header').boundingBox())!
     expect(center.width).toBeCloseTo(header.width, 0)
     if (width === 1920 && fontSize === 16) expect(center.width).toBe(1024)
-    const desktop = center.width >= 48 * fontSize
+    const availableWidth = await page.locator('.team-category-layout').evaluate(element => element.clientWidth - parseFloat(getComputedStyle(element).paddingLeft) * 2)
+    const desktop = availableWidth >= 48 * fontSize
     await expect(page.locator('.team-category-navigation__desktop')).toBeVisible({ visible: desktop })
     await expect(page.locator('.team-category-navigation__mobile')).toBeVisible({ visible: !desktop })
     if (desktop) {
       const track = await page.locator('.team-category-layout__navigation').boundingBox()
-      expect(track!.width).toBeCloseTo(10 * fontSize, 0)
+      expect(track!.width).toBeCloseTo(11.5 * fontSize, 0)
     }
     const alignment = await page.locator('.notice-list-content').evaluate(element => ({content:element.getBoundingClientRect().x, toolbar:element.querySelector('.ls-list-toolbar')!.getBoundingClientRect().x, list:element.querySelector('.ls-resource-list')!.getBoundingClientRect().x}))
     expect(alignment.content).toBeCloseTo(alignment.toolbar, 0)

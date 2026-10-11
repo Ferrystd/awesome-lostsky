@@ -1,6 +1,7 @@
 import TeamNoticeRow from '../../apps/team/src/components/TeamNoticeRow.vue';
 import WeiboAccountField from '../../apps/weibo/src/components/WeiboAccountField.vue';
 import TeamSettingsGroup from '../../apps/team/src/components/TeamSettingsGroup.vue';
+import TeamScene from '../../apps/team/src/components/TeamScene.vue';
 import TeamCategoryLayout from '../../apps/team/src/components/TeamCategoryLayout.vue';
 import TeamCategoryNavigation from '../../apps/team/src/components/TeamCategoryNavigation.vue';
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue';
@@ -814,6 +815,7 @@ const transactionFlowTrend = story(
   })),
 );
 
+const SceneCategoryLayout = defineComponent({ setup(_, { attrs, slots }) { return () => h(TeamScene, null, { default: () => h(TeamCategoryLayout, { items: [], current: '', label: '', ...attrs }, slots) }) } });
 export const appStories: Record<string, StoryDefinition> = {
   TeamNoticeRow: story('TeamNoticeRow', ['default', 'hover', 'focus', 'active', 'mobile'], state => h(LsResourceList, {}, { default: () => h(TeamNoticeRow, { title: '团队协作安排更新', summary: state === 'active' ? '' : '请查看本周工作安排并确认参与人员。', recipient: '收件人员 #18', time: '2026年10月12日 09:30', unread: state !== 'active', to: '/notices/sent/detail?id=1' }) })),
   TeamCategoryNavigation: { ...story('TeamCategoryNavigation', ['default', 'hover', 'focus', 'active', 'mobile'], state => h(defineComponent({ setup() {
@@ -821,11 +823,11 @@ export const appStories: Record<string, StoryDefinition> = {
     return () => h('div', { style: { container: 'team-category-layout / inline-size', minWidth: '0' } }, h(TeamCategoryNavigation, { label: state === 'active' ? '设置分类' : '通知分类', style: state === 'mobile' ? undefined : { width: '11.5rem' }, current: current.value, panelId: 'preview-settings', items: state === 'active' ? [{ key: 'entity', label: '人员', dirty: true }, { key: 'chat', label: '聊天', dirty: true }] : [{ key: 'entity', label: '站内通知', to: '/notices/team' }, { key: 'sent', label: '已发送通知', to: '/notices/sent' }], onSelect: key => { current.value = key } }));
   }}))), desktopWidth: 1024 },
   TeamCategoryLayout: { ...story('TeamCategoryLayout', [...interactive, 'loading', 'error'], state => h(defineComponent({ setup() {
-    if (state === 'active') return () => h(TeamCategoryLayout, { purpose: 'notices', label: '通知分类', current: 'team', items: [{ key: 'sent', label: '已发送通知', to: '/notices/sent' }, { key: 'team', label: '平台通知', to: '/notices/team' }] }, { default: () => h(LsResourceList, { 'aria-label': '站内通知列表' }, { default: () => [h(TeamNoticeRow, { title: '团队服务更新', summary: '新的团队协作功能已上线，请查看更新说明。', time: '2026年10月12日 09:30', unread: true, to: '/notices/team/detail?id=1' }), h(TeamNoticeRow, { title: '工作安排提醒', time: '2026年10月11日 10:00', unread: false, to: '/notices/team/detail?id=2' })] }) });
+    if (state === 'active') return () => h(SceneCategoryLayout, { label: '通知分类', current: 'team', items: [{ key: 'sent', label: '已发送通知', to: '/notices/sent' }, { key: 'team', label: '平台通知', to: '/notices/team' }] }, { default: () => h(LsResourceList, { 'aria-label': '站内通知列表' }, { default: () => [h(TeamNoticeRow, { title: '团队服务更新', summary: '新的团队协作功能已上线，请查看更新说明。', time: '2026年10月12日 09:30', unread: true, to: '/notices/team/detail?id=1' }), h(TeamNoticeRow, { title: '工作安排提醒', time: '2026年10月11日 10:00', unread: false, to: '/notices/team/detail?id=2' })] }) });
     const current = ref('entity');
     const values = ref<Record<string, boolean>>({ entity: false, chat: true, display: false });
     const items = [{ key: 'entity', label: '人员', dirty: false }, { key: 'chat', label: '聊天', dirty: true }, { key: 'display', label: '展示', dirty: false }];
-    return () => h(TeamCategoryLayout, { label: '设置分类', current: current.value, items, onSelect: key => { current.value = key } }, { default: () => h(TeamSettingsGroup, {
+    return () => h(SceneCategoryLayout, { label: '设置分类', current: current.value, items, onSelect: (key: string) => { current.value = key } }, { default: () => h(TeamSettingsGroup, {
       app: { app_name: current.value, label: items.find(item => item.key === current.value)!.label, description: '管理团队的业务规则。', order: 1, settings: [{ key: 'enabled', label: '允许查找团队', description: '允许通过团队标识找到当前团队。', type: 'boolean', control: 'switch', order: 1, default: false, value: false }] },
       values: { enabled: values.value[current.value] }, loading: state === 'loading', disabled: state === 'disabled' || state === 'loading', saved: false, error: state === 'error' ? '保存失败，请稍后重试。' : '', restricted: false, onUpdate: (_key, value) => { values.value[current.value] = Boolean(value) },
     }) });

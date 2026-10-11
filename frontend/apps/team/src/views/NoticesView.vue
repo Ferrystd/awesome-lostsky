@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TeamPageLink from '../components/TeamPageLink.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
@@ -123,9 +124,9 @@ function summary(content: string | null | undefined) {
 <template>
   <div class="notices-view">
     <AdminPageHeader v-if="scope !== 'entity'" title="通知中心" description="查看团队收到的站内通知与已发送通知。">
-      <template #actions><LsPagePrimaryAction :icon="Send" label="发送通知" to="/notices/send" /></template>
+      <template #actions><TeamPageLink :icon="Send" label="发送通知" to="/notices/send" /></template>
     </AdminPageHeader>
-    <component :is="scope === 'entity' ? 'div' : TeamCategoryLayout" v-bind="scope === 'entity' ? {} : { items: categories, current: route.path, label: '通知分类', purpose: 'notices' }">
+    <component :is="scope === 'entity' ? 'div' : TeamCategoryLayout" v-bind="scope === 'entity' ? {} : { items: categories, current: route.path, label: '通知分类' }">
     <section class="notice-list-content" :class="{ 'notice-list-content--compact': scope !== 'entity' }" :aria-label="scope === 'entity' ? '收件箱' : copy.title">
     <AdminPageHeader v-if="scope === 'entity'" class="notice-content-header" title="收件箱" :description="description">
       <template #actions>
@@ -134,7 +135,7 @@ function summary(content: string | null | undefined) {
     </AdminPageHeader>
     <LsInlineError v-if="errors[scope]" :message="errors[scope]!" />
 
-    <LsListToolbar v-model="search" :placeholder="`搜索${copy.noun}`" :aria-label="`搜索${copy.noun}`" :count-label="routeAccess.restricted.value ? '0 条' : `${visible.length} 条`">
+    <LsListToolbar :embedded="scope !== 'entity'" v-model="search" :placeholder="`搜索${copy.noun}`" :aria-label="`搜索${copy.noun}`" :count-label="routeAccess.restricted.value ? '0 条' : `${visible.length} 条`">
       <template #filters><NSelect v-model:value="filter" :options="filterOptions" :aria-label="`${copy.noun}筛选`" /></template>
       <template v-if="scope === 'team'" #actions><LsButton variant="secondary" :loading="confirmAll.isPending.value && confirmAll.variables.value === scope" :disabled="confirmAll.isPending.value || routeAccess.restricted.value || unreadCount === 0" :disabled-reason="routeAccess.reason.value || (confirmAll.isPending.value ? '请等待当前标记操作完成' : '当前页没有未读消息')" @click="confirmAll.mutate(scope)"><template #icon><CheckCheck :size="18" /></template>全部标为已读</LsButton></template>
     </LsListToolbar>

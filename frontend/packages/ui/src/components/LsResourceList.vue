@@ -7,5 +7,5 @@ import { NList } from 'naive-ui'
 </template>
 
 <style scoped>
-.ls-resource-list { min-width: 0; overflow: hidden; border-color: var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.ls-resource-list { min-width: 0; overflow: hidden; border-color: var(--border); border-radius: var(--radius-md); background: var(--panel-material, var(--surface)); box-shadow: var(--panel-elevation, none); }
 </style>

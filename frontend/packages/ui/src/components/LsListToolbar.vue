@@ -8,6 +8,7 @@ withDefaults(
     ariaLabel?: string;
     countLabel?: string;
     searchable?: boolean;
+    embedded?: boolean;
   }>(),
   {
     modelValue: "",
@@ -25,7 +26,7 @@ const emit = defineEmits<{ "update:modelValue": [value: string] }>();
   <section
     :class="[
       'ls-list-toolbar',
-      { 'ls-list-toolbar--filters-only': !searchable },
+      { 'ls-list-toolbar--filters-only': !searchable, 'ls-list-toolbar--embedded': embedded },
     ]"
     role="search"
   >
@@ -138,5 +139,14 @@ const emit = defineEmits<{ "update:modelValue": [value: string] }>();
   .ls-list-toolbar__count {
     margin-left: 0;
   }
+}
+.ls-list-toolbar--embedded { padding: 0; background: transparent; border: 0; border-radius: 0; }
+.ls-list-toolbar--embedded .ls-list-toolbar__search { min-width: min(12rem, 100%); max-width: none; flex: 1 1 12rem; }
+.ls-list-toolbar--embedded .ls-list-toolbar__filters :deep(.n-select) { width: 8rem; min-width: 8rem; }
+@media (max-width: 639px) {
+  .ls-list-toolbar--embedded { flex-direction: row; align-items: center; }
+  .ls-list-toolbar--embedded .ls-list-toolbar__search { flex: 1 0 100%; }
+  .ls-list-toolbar--embedded .ls-list-toolbar__filters, .ls-list-toolbar--embedded .ls-list-toolbar__actions { display: flex; }
+  .ls-list-toolbar--embedded .ls-list-toolbar__count { margin-left: auto; }
 }
 </style>
