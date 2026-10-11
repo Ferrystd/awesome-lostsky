@@ -125,7 +125,7 @@ function summary(content: string | null | undefined) {
     <AdminPageHeader v-if="scope !== 'entity'" title="通知中心" description="查看团队收到的站内通知与已发送通知。">
       <template #actions><LsPagePrimaryAction :icon="Send" label="发送通知" to="/notices/send" /></template>
     </AdminPageHeader>
-    <component :is="scope === 'entity' ? 'div' : TeamCategoryLayout" v-bind="scope === 'entity' ? {} : { items: categories, current: route.path, label: '通知分类', horizontal: true }">
+    <component :is="scope === 'entity' ? 'div' : TeamCategoryLayout" v-bind="scope === 'entity' ? {} : { items: categories, current: route.path, label: '通知分类', purpose: 'notices' }">
     <section class="notice-list-content" :class="{ 'notice-list-content--compact': scope !== 'entity' }" :aria-label="scope === 'entity' ? '收件箱' : copy.title">
     <AdminPageHeader v-if="scope === 'entity'" class="notice-content-header" title="收件箱" :description="description">
       <template #actions>

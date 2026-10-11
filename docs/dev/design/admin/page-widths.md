@@ -47,4 +47,4 @@ Team 已有例外与逐路由映射见 [Team 页面宽度审计](team-page-width
 
 `LsWorkspaceHeader` 在上述暗场景使用语义 `contextual` 模式，正文保留唯一主标题；其他页面继续默认标题模式。暗主题 radio 未选与悬停采用中性令牌，选中才使用青绿；滚动条和分隔线使用低强调中性色。
 
-通知采用单列布局：主标题与发送操作、横向路由分类、工具栏、紧凑列表共用64rem上限和左右边界。TeamCategoryLayout/Navigation的horizontal模式默认关闭，设置仍使用纵向分类；通知在窄屏保留可换行路由链接。TeamNoticeRow复用Naive NListItem，常规行最小72px而非固定高度，首层标题/状态/时间，次层一行摘要及收件人；空正文省略摘要。长标题与窄屏元信息自然换行，个人收件箱保留原LsResourceRow。组间24px，工具栏与列表16px。
+通知保留左分类与右列表，共用64rem正文上限。TeamCategoryLayout通过purpose=notices语义配置使用10rem分类列、1.5rem列间距和零额外内衬；默认设置布局仍为11.5rem分类列与原有内衬。通知和设置均在不足48rem时改用分类选择器，不启用顶端横向标签。主标题与主体间距24px。TeamNoticeRow复用Naive NListItem，常规行最小72px而非固定高度，首层标题/状态/时间，次层一行摘要及收件人；空正文省略摘要。长标题与窄屏元信息自然换行，个人收件箱保留原LsResourceRow。组间24px，工具栏与列表16px。

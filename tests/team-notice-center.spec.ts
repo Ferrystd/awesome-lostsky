@@ -151,8 +151,13 @@ test('notice center keeps responsive category semantics and permissions at large
     const header = (await page.locator('.ls-page-header').boundingBox())!
     expect(center.width).toBeCloseTo(header.width, 0)
     if (width === 1920 && fontSize === 16) expect(center.width).toBe(1024)
-    await expect(page.locator('.team-category-navigation__desktop')).toBeVisible()
-    await expect(page.locator('.team-category-navigation__mobile')).toBeHidden()
+    const desktop = center.width >= 48 * fontSize
+    await expect(page.locator('.team-category-navigation__desktop')).toBeVisible({ visible: desktop })
+    await expect(page.locator('.team-category-navigation__mobile')).toBeVisible({ visible: !desktop })
+    if (desktop) {
+      const track = await page.locator('.team-category-layout__navigation').boundingBox()
+      expect(track!.width).toBeCloseTo(10 * fontSize, 0)
+    }
     const alignment = await page.locator('.notice-list-content').evaluate(element => ({content:element.getBoundingClientRect().x, toolbar:element.querySelector('.ls-list-toolbar')!.getBoundingClientRect().x, list:element.querySelector('.ls-resource-list')!.getBoundingClientRect().x}))
     expect(alignment.content).toBeCloseTo(alignment.toolbar, 0)
     expect(alignment.content).toBeCloseTo(alignment.list, 0)
@@ -169,7 +174,8 @@ test('notice center keeps responsive category semantics and permissions at large
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/notices\/sent$/)
   await page.setViewportSize({ width: 375, height: 1100 })
-  await categoryLinks.nth(1).click()
+  await page.locator('.team-category-navigation__mobile .n-select').click()
+  await page.locator('.n-base-select-menu:visible .n-base-select-option').filter({ hasText: '平台通知' }).click()
   await expect(page).toHaveURL(/\/notices\/team$/)
   await page.goto(`${origin}/personal/notices`)
   await expect(page.locator('#workspace').getByRole('heading', { name: '收件箱' })).toBeVisible()
