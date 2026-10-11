@@ -62,7 +62,8 @@
 - Team 成员、个人资料与实体详情复用 `EntityProfileFields`；其中单文件资料上传统一交给 `LsMediaUploadField`。`EntityProfileFields.uploadFile` 回调接收可选来源参数 `attachment/markdown`，Markdown 图片固定传 `markdown`，其他媒体字段沿用默认 `attachment`；来源不改变上传权限和状态。Team、成员与虚拟实体本人编辑位于 Team 个人工作台，并复用公共字段与权限卡片。Team Entity 的字段和业务内容按类型与参与关系受限；身份领取留在 Account，顾客资料留在商城顾客中心。文档、文件和资源目录的行内动作统一使用 `LsResponsiveActions`；文件与文档分页统一使用 `NPagination`。
 - 文档编辑页的 `LsMarkdownEditor` 是第三方编辑器实现级例外：保留其原有的模式切换、候选项与工具栏视觉结构，不将 `NRadioGroup`、`NButton` 或 `NInput` 的通用皮肤套入编辑器内部。页面其余字段仍使用标准 Naive UI；验收时确认编辑器模式、源码与对象候选项和统一化前版本一致。
 - 文档创建/编辑页的文档标签与实体资料管理页的公开文档分组统一使用 `LsFormList`。两处都允许添加、删除、拖拽及按钮排序，并按顺序提交；标签错误必须就近阻止保存。公开文档分组只出现在 Team、Member 和 Virtual 实体，Customer 不显示；缺少 `team.entity.profile.manage` 时展示只读内容并禁用列表变更，不发写请求。
-- 团队设置各应用分组的保存动作统一使用 `SettingsSaveButton`：桌面端固定为紧凑的 `9rem` 等宽按钮，小于 640px 时铺满标题动作区。宽度由该 Team 业务组件内部持有，不得由设置页面穿透、传参或复制 CSS；其他 `LsButton` 与 `LsSectionHeader` 动作不继承此等宽规则。
+- Team 全路由宽度采用[后台页面宽度规范](page-widths.md)，逐页映射、例外和验证见[Team 页面宽度审计](team-page-widths.md)。禁止页面内部二次任意限宽。
+- 团队设置采用 `form` 容器。`TeamSettingsGroup` 是组标题、字段布局、权限说明、反馈和唯一组末保存的视觉所有者；页面只负责请求、能力判断、草稿与原子提交。组名和字段顺序沿用业务 schema，各组具有独立保存状态和权限语义。开关与文字同行，保留 44px 触控区；复杂选项占满内容区域并自然换行，不设置 96px 空白行高。`SettingsSaveButton` 桌面宽度为 `min(9rem,100%)`，长文案自然增高，在小于 640px 时由组尾 `LsFormActions` 铺满可用宽度；不得将保存放回组标题或同时出现第二个保存。提交快照之外仍有新修改时不显示“已保存”。
 
 ### Team 资料表单尺寸
 

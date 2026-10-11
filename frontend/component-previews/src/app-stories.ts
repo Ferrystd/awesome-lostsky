@@ -1,4 +1,5 @@
 import WeiboAccountField from '../../apps/weibo/src/components/WeiboAccountField.vue';
+import TeamSettingsGroup from '../../apps/team/src/components/TeamSettingsGroup.vue';
 import WeiboCommentFields from '../../apps/weibo/src/components/WeiboCommentFields.vue';
 import WeiboFeedCommentComposer from '../../apps/weibo/src/components/WeiboFeedCommentComposer.vue';
 import JoinApplicationFields from '../../apps/team/src/components/JoinApplicationFields.vue';
@@ -808,6 +809,13 @@ const transactionFlowTrend = story(
 );
 
 export const appStories: Record<string, StoryDefinition> = {
+  TeamSettingsGroup: story('TeamSettingsGroup', [...interactive, 'loading', 'error'], state => stage(h(TeamSettingsGroup, {
+    app: { app_name: 'entity', label: '人员', description: '管理人员查找与加入规则。', order: 1, settings: [
+      { key: 'searchable', label: '允许查找团队', description: '允许通过团队标识找到当前团队。', type: 'boolean', control: 'switch', order: 1, default: false, value: false },
+      { key: 'priority', label: '搜索优先级', description: '选择团队与成员设置冲突时的处理方式。', type: 'enum', control: 'radio', order: 2, default: 'team', value: 'team', options: [{ value: 'team', label: '团队优先', description: '遵循团队设置。' }, { value: 'member', label: '成员优先', description: '使用成员自行选择的查找规则。' }] },
+    ] },
+    values: { searchable: state === 'active', priority: 'team' }, loading: state === 'loading', disabled: state === 'disabled' || state === 'loading', restricted: false, saved: state === 'active', error: state === 'error' ? '保存失败，请稍后重试。' : '',
+  }), state === 'mobile' ? 'story-stage--mobile' : '')),
   SiteMemberFields: story('SiteMemberFields', interactive, state => h(defineComponent({ setup() {
     const member = ref({ name: '青空', role: '运营负责人', description: '负责团队运营与服务交付。', tags: ['运营', '服务'], initials: 'LS', avatar: '', visible: true });
     return () => stage(h(SiteMemberFields, { member: member.value, index: 0, readonly: state === 'disabled' }));

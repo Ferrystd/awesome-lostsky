@@ -44,7 +44,7 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 | `LsPanel` | 无 props；`header/default/footer` 三个插槽承载有边界的独立内容区 | 视觉变体、页面级 `.panel` 皮肤、嵌套面板、为连续列表逐项套面板 | 桌面 20px、移动端 16px 内边距；插槽边界使用细分隔线；加载、空、错误由内容区对应状态组件表达 |
 | `LsSectionHeader` | `title` 必填；`description/eyebrow/id` 可选，`headingLevel=2/3/4`；`aside` 插槽承载状态、统计或区块动作 | 页面手写 `section-heading/panel-heading/section-title`；在页面重复标题间距和移动端堆叠 | 标题层级与 ID 保留；说明宽度统一；右侧内容桌面靠右、移动端堆叠，命令按钮满宽 |
 | `LsFormSection` | `title` 必填，标题参数与 `LsSectionHeader` 相同；内部固定复用 `LsPanel` 与 `LsSectionHeader`，默认插槽承载单列表单字段 | 接管 `<form>`、校验、提交或业务数据；页面重建 `form-panel` | 通过标题 ID 标记面板；字段单列且长文案不溢出；状态由字段或表单区域表达 |
-| `LsFormActions` | 无 props、默认插槽承载保存、取消等命令 | 视觉参数、业务顺序判断、页面重建 `form-actions` | 桌面右对齐并换行，命令按文案自适应且最小 7rem；小于 640px 单列，`LsButton` 满宽；不改变按钮本身状态 |
+| `LsFormActions` | 无 props、默认插槽承载保存、取消等命令 | 视觉参数、业务顺序判断、页面重建 `form-actions` | 桌面右对齐并换行，命令按文案自适应，最小宽度为 `min(7rem,100%)`，放大文字后仍受容器约束；小于 640px 单列，`LsButton` 满宽；不改变按钮本身状态 |
 | `LsDescriptionList` | 无 props；根节点固定为 `<dl>`，默认插槽只提供成对 `<dt>/<dd>` | 指标网格、金额分解、移动表格记录或卡片式业务摘要 | 桌面双列、移动上下排列；统一分隔线和长内容换行；调用端保留术语和值的语义 |
 | `LsStatusTag` | `label` 必填，`type=default/success/warning/error/info`；统一状态标签 | 调用端重复 `size=small`、`bordered=false`，或按页面自建 StatusBadge | 固定 small、无边框；颜色不能替代文案；移动端和文本放大时不裁切状态文案 |
 | `LsPage` | `as=main/section/div`（默认 `section`）、`width=wide/content/form`（默认 `wide`）、`id`；分别用于列表、详情、单列表单 | 页面再嵌套同类容器 | 320px 无横向溢出，桌面居中；页面只能有一个 `main` |
@@ -90,7 +90,7 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 - `LsEmptyState` 的标题和下一步说明均使用 `--text-secondary`，不得继承 `NEmpty` 的禁用文字色；无数据不代表文字不可用。由组件内部固定主题映射，调用方不传颜色。通过真实页面计算样式验证两者一致，并遵循正文 4.5:1 的对比度要求。
 
-- `LsPagePrimaryAction` 的等宽只属于“页面标题区唯一主操作”这一项完整语义，不是全局按钮令牌。`LsFormActions` 负责表单命令组的排列：桌面端内容自适应、最小 7rem，小于 640px 满宽；`LsFormList` 的添加命令同样内容自适应、最小 7rem；`LsUploadField` 的默认上传命令固定 8.5rem。其他不同任务不得为了视觉齐边共享宽度，调用方也不得传递宽度、断点或视觉变体。
+- `LsPagePrimaryAction` 的等宽只属于“页面标题区唯一主操作”这一项完整语义，不是全局按钮令牌。`LsFormActions` 负责表单命令组的排列：桌面端内容自适应、最小 `min(7rem,100%)`，小于 640px 满宽；`LsFormList` 的添加命令同样内容自适应、最小 7rem；`LsUploadField` 的默认上传命令固定 8.5rem。其他不同任务不得为了视觉齐边共享宽度，调用方也不得传递宽度、断点或视觉变体。
 - `LsPage.width` 是页面根容器的语义容量（`wide/content/form`），不是任意子控件的视觉微调入口；页面需要不同的内容容量时选用该枚举，不新增自由宽度参数。
 - `LsResponsiveDataTable.scrollX` 表示桌面数据列所需的最小可读容量，只能由列内容推导；它不是页面为对齐或留白而传递的视觉宽度参数。
 - `LsMarkdownRenderer.context` 仅表达 `inline/document` 两种阅读语境，并由组件内部调整排版令牌；调用方不得穿透 Markdown 生成节点来改标题、字号、行高或间距。

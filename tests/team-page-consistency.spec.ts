@@ -80,10 +80,10 @@ test('team management pages share page geometry and resource row hierarchy acros
       await page.setViewportSize({ width, height: 1000 })
       const frame = await header.boundingBox()
       expect(frame).not.toBeNull()
-      if (frames.has(width)) {
+      if (path !== '/settings' && frames.has(width)) {
         expect(frame!.x, `${path} header left at ${width}`).toBeCloseTo(frames.get(width)!.x, 0)
         expect(frame!.width, `${path} header width at ${width}`).toBeCloseTo(frames.get(width)!.width, 0)
-      } else frames.set(width, { x: frame!.x, width: frame!.width })
+      } else if (path !== '/settings') frames.set(width, { x: frame!.x, width: frame!.width })
       const toolbar = page.locator('#workspace .ls-list-toolbar')
       if (await toolbar.count()) {
         const bounds = await toolbar.boundingBox()

@@ -192,5 +192,5 @@ const money = (value: string) =>
 
 <style scoped>
 .customer-detail { display: grid; gap: 1.5rem; }
-form { max-width: 42rem; display: grid; gap: 1rem; }
+form { min-width: 0; display: grid; gap: 1rem; }
 </style>

@@ -364,7 +364,7 @@ nav p {
   text-overflow: ellipsis;
 }
 .workspace main {
-  width: min(100%, 90rem);
+  width: 100%;
   margin: 0 auto;
   padding: 1rem;
 }
@@ -436,7 +436,7 @@ nav p {
     grid-column: 1;
   }
   .workspace main {
-    padding: 1.75rem;
+    padding: 1.5rem;
   }
   .bottom-nav {
     display: none;

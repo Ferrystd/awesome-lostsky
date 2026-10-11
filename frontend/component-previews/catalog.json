@@ -970,5 +970,15 @@
       "应用切换",
       "移动端应用面板"
     ]
+  },
+  {
+    "id": "team-settings-group",
+    "category": "team",
+    "name": "TeamSettingsGroup",
+    "source": "frontend/apps/team/src/components/TeamSettingsGroup.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#TeamSettingsGroup",
+    "aliases": [
+      "team-settings-group"
+    ]
   }
 ]

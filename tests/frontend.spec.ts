@@ -2555,7 +2555,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.getByText('名称、头像和介绍统一在人员资料页维护。')).toBeVisible()
     }
     if (path === '/settings') {
-      const saveButtons = page.locator('.settings-header .ls-button')
+      const saveButtons = page.locator('.settings-panel footer button[type=submit]')
       const saveButtonWidths = await saveButtons.evaluateAll((buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().width)))
       const clippedSaveLabels = await saveButtons.locator('.n-button__content').evaluateAll((labels) => labels.filter((label) => label.scrollWidth > label.clientWidth).map((label) => label.textContent))
       expect(saveButtonWidths.length).toBeGreaterThan(1)

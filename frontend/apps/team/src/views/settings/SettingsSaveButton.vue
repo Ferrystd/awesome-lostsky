@@ -19,7 +19,7 @@ withDefaults(defineProps<{
 </template>
 
 <style scoped>
-.settings-save-button { width: 9rem; }
+.settings-save-button { width: min(9rem, 100%); }
 @media (max-width: 639px) {
   .settings-save-button { width: 100%; }
 }
