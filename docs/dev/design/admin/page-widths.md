@@ -29,9 +29,13 @@ Team 已有例外与逐路由映射见 [Team 页面宽度审计](team-page-width
 
 设置与通知的分类布局由同一 `TeamCategoryLayout` 和 `TeamCategoryNavigation` 实现，留在 Team 应用内。布局只有语义分类数据、当前值、可访问名称和内容插槽，不接受 width/layout/compact 等视觉参数；面板表面由各自内容组件持有。通知使用 wide 容器，设置使用 content 容器。导航项提供 `to` 时渲染真实 RouterLink，未提供时渲染控制当前编辑组的按钮；移动选择分别导航或发出 select 事件。方向键在链接之间只移动焦点，Enter 保留原生导航语义；设置按钮延续方向键切组并聚焦。通知具体 query 与返回规则见 [Team 应用](../../apps/team.md#通知中心与地址状态)。
 
-用户指定的具名视觉例外：仅设置页和通知中心的 `TeamCategoryLayout` 使用静态极光场景，深靛蓝上缘经灰青过渡至浅雾色底，青绿与冰蓝连续曲线形成光幕。布局唯一持有内联 SVG 几何、渐变和局部柔光；不加载图片、WebGL 或持续动画。上缘留出 6rem 光幕空间，640px 以下为 5rem，内容内边距分别为 1.25rem / .75rem。分类导航由 `TeamCategoryNavigation` 自身持有不透明白色表面，编辑面板、工具栏与列表保持不透明，装饰不影响任何状态、权限、焦点或交互。SVG 使用实例唯一 ID、aria-hidden、focusable=false 和 pointer-events:none，只有装饰自身裁切，不裁切布局或焦点。页头、应用侧栏和其他页面不受影响，不增加视觉参数。验收覆盖两页 320—1920px、200% 文本、导航真实表面对比度、键盘与无溢出；用户撤销此页面装饰方向时移除例外。
+用户指定的具名视觉例外：仅 `/settings`、`/notices/team` 和 `/notices/sent` 使用暗底流动极光。Team 应用根既有 `NConfigProvider` 按精确路由选择 `darkTheme`、`lostskyAuroraTheme` 和 `ls-theme-aurora` 语义令牌；离开上述路径即恢复默认浅色主题。详情、发送页、个人收件箱和其他应用不启用该主题。页头、导航、表单与通知均沿用现有组件读取语义令牌（主操作文字使用 `--on-primary`，浅色默认白、暗场景深墨色），不允许调用方穿透其内部样式。Team 壳层自身表面使用 `--surface`，保持默认浅色等价。
 
-设计研究参考 [React Bits Aurora](https://github.com/DavidHDev/react-bits/tree/main/src/content/Backgrounds/Aurora) 的连续光幕边缘（MIT + Commons Clause）与 [react-aurora-background](https://github.com/TheNaubit/react-aurora-background) 的独立背景层（MIT）。实现为本项目自绘静态 SVG 曲线，未复制这两个项目的源码或新增依赖。
+`TeamCategoryLayout` 唯一持有极光场景与暂停控制，`TeamAuroraBackdrop` 与 `aurora-renderer.ts` 负责 WebGL 多层噪声光幕。暗色基底贯穿整个分类布局，光幕在内容起点之前淡出，保证任意帧都不改变通知标题的文字背景；光幕为高对比青绿、冰蓝和少量紫色，形状随时间连续变化，不以整体平移静态图片替代。操作与表单使用不透明深色表面及高对比文字。布局上缘为 12rem（640px 以下9rem），横向内边距1.25rem（手机.75rem）；不增加视觉参数。
+
+背景不可聚焦且 `aria-hidden/pointer-events:none`，不得挡住焦点和控件。现有 `LsButton` 提供暂停/播放，系统减少动态时自动显示静帧并隐藏该控制。隐藏或离屏停止连续绘制；卸载取消动画、解除观察器与事件、释放GPU资源；WebGL不可用或上下文丢失时显示CSS静态回退，业务内容与操作保持可用。帧率上限24fps，canvas限制为可视区域高度和约26万像素，手机不提高像素倍率，不按长列表scrollHeight分配。所有加载、权限、禁用、失败与草稿行为保持原契约。
+
+设计参考 [React Bits Aurora](https://reactbits.dev/backgrounds/aurora) 的流动噪声光幕。实现为本项目自写WebGL值噪声算法，没有复制其源码或引入依赖。验收覆盖实际画面随时间变化、暂停/恢复、减少动态、离屏/隐藏/卸载、无WebGL回退、路由主题恢复，以及两页320—1920px、200%文本和导航对比度。实际运行页可记录短视频；组件预览仍为人类专用PNG。
 
 `/settings` 使用 `content`：用户需要在多个业务分类间切换并保留草稿。`TeamCategoryLayout` 排列分类导航和当前编辑区并持有上述背景；`TeamSettingsGroup` 持有右侧唯一编辑表面。容器扣除内边距后的可用宽度达到 `48rem` 时，导航轨为 `11.5rem`（默认字号 184px），编辑轨占剩余空间；不足时切为顶部分类选择器。标题和设置中心共用 64rem 页面边界，字段与保存操作在右侧表面内对齐。禁止为大屏增加巨型标题或重复卡片。
 

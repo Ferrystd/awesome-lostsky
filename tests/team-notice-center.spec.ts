@@ -110,10 +110,11 @@ test('notice read mutations keep their origin scope and confirmed detail does no
 })
 
 test('notice center keeps responsive category semantics and permissions at large text sizes', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   const model = await noticesFixture(page)
   await page.goto(`${origin}/notices/team`)
   await expect(page.locator('.ls-resource-row')).toHaveCount(20)
-  const aurora = await page.locator('.team-category-layout__aurora').evaluate(element => {
+  const aurora = await page.locator('.team-aurora-backdrop').evaluate(element => {
     const style = getComputedStyle(element)
     return { pointer: style.pointerEvents, animation: style.animationName, hidden: element.getAttribute('aria-hidden'), overflow: getComputedStyle(element.parentElement!).overflow }
   })
@@ -126,7 +127,7 @@ test('notice center keeps responsive category semantics and permissions at large
     const rgb = (color: string) => { context.clearRect(0, 0, 1, 1); context.fillStyle = color; context.fillRect(0, 0, 1, 1); return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map(value => value / 255) }
     const luminance = (color: number[]) => color.map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4).reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0)
     const base = getComputedStyle(element).backgroundColor
-    return Array.from(element.querySelectorAll('a, .team-category-navigation__label')).map(node => {
+    return [...element.querySelectorAll('a, .team-category-navigation__label'), ...document.querySelectorAll('.notice-content-header .ls-page-primary-action')].map(node => {
       const style = getComputedStyle(node)
       const foreground = luminance(rgb(style.color))
       const background = luminance(rgb(style.backgroundColor === 'rgba(0, 0, 0, 0)' ? base : style.backgroundColor))
@@ -138,6 +139,8 @@ test('notice center keeps responsive category semantics and permissions at large
   for (const fontSize of [16, 32]) for (const width of [320, 375, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1100 })
     await page.evaluate(size => { document.documentElement.style.fontSize = `${size}px` }, fontSize)
+    // Let responsive media/container queries commit before comparing separate geometry reads.
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
     const center = (await page.locator('.team-category-layout').boundingBox())!
     const header = (await page.locator('.ls-page-header').boundingBox())!
     expect(center.width).toBeCloseTo(header.width, 0)

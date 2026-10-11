@@ -1,15 +1,16 @@
 import '@lostsky/ui/styles.css'
 import { lostskyQueryPluginOptions } from '@lostsky/api/query'
-import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
+import { lostskyAuroraTheme, lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createPinia } from 'pinia'
 import { createApp, h } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { NConfigProvider, NDialogProvider, NMessageProvider, zhCN } from 'naive-ui'
+import { darkTheme, NConfigProvider, NDialogProvider, NMessageProvider, zhCN } from 'naive-ui'
 import PreviewHost from './PreviewHost.vue'
 import { adminSession } from '../../apps/admin/src/session'
 
 const id = new URLSearchParams(location.search).get('id') || ''
+const auroraScene = ['team-category-layout', 'team-category-navigation', 'team-settings-group'].includes(id)
 if (id.startsWith('admin-')) await import('../../apps/admin/src/app.css')
 else if (id.startsWith('display-')) await import('../../apps/display/src/app.css')
 else if (id.startsWith('shop-')) {
@@ -37,7 +38,7 @@ const router = createRouter({
 })
 
 const Root = {
-  render: () => h(NConfigProvider, { themeOverrides: lostskyNaiveTheme, locale: zhCN }, {
+  render: () => h(NConfigProvider, { class: auroraScene ? 'ls-theme-aurora' : undefined, theme: auroraScene ? darkTheme : null, themeOverrides: auroraScene ? lostskyAuroraTheme : lostskyNaiveTheme, locale: zhCN }, {
     default: () => h(NDialogProvider, null, {
       default: () => h(NMessageProvider, null, { default: () => h(PreviewHost) }),
     }),

@@ -29,6 +29,7 @@ test('every Team workspace route declares and renders its standard page width', 
 })
 
 test('Team settings keeps compact fields and one group footer action across widths and text zoom', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.context().addCookies([{ name: 'lostsky_token', value: `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type: 'team', id: 1 } })).toString('base64url')}.x`, domain: '.lostsky.work', path: '/' }])
   await page.route(`${origin}/api/**`, route => route.fulfill({ json: { code: 0, data: route.request().url().endsWith('/access')
     ? { permissions: ['team'], abilities: {}, identity: { type: 'team', entity_id: 1 } }
@@ -44,6 +45,8 @@ test('Team settings keeps compact fields and one group footer action across widt
   for (const fontSize of ['16px', '32px']) for (const width of [320, 375, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1200 })
     await page.evaluate(size => { document.documentElement.style.fontSize = size }, fontSize)
+    // Let responsive media/container queries commit before comparing separate geometry reads.
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
     const header = await page.locator('.team-category-layout__content').boundingBox()
     const center = (await page.locator('.team-category-layout').boundingBox())!
     const pageHeader = (await page.locator('.ls-page-header').boundingBox())!
@@ -94,6 +97,8 @@ test('Team virtual creation and populated customer detail use the intended form 
     for (const fontSize of ['16px', '32px']) for (const width of [320, 768, 1024, 1920]) {
       await page.setViewportSize({ width, height: 1200 })
       await page.evaluate(size => { document.documentElement.style.fontSize = size }, fontSize)
+    // Let responsive media/container queries commit before comparing separate geometry reads.
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
       const frame = (await page.locator('#workspace .ls-page').boundingBox())!
       const header = (await page.locator('#workspace .ls-page-header').boundingBox())!
       expect(header.x).toBeCloseTo(frame.x, 0)
@@ -122,6 +127,8 @@ test('shared form actions keep both cancel and submit inside a narrow form at en
   for (const fontSize of ['16px', '32px']) for (const width of [320, 375, 768, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await page.evaluate(size => { document.documentElement.style.fontSize = size }, fontSize)
+    // Let responsive media/container queries commit before comparing separate geometry reads.
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
     const box = (await actions.boundingBox())!
     for (const button of await actions.getByRole('button').all()) {
       const control = (await button.boundingBox())!

@@ -173,7 +173,7 @@ watch(
   top: -4rem;
   z-index: 100;
   padding: 0.7rem 1rem;
-  background: white;
+  background: var(--surface);
 }
 .skip:focus {
   top: 1rem;
@@ -323,7 +323,7 @@ nav p {
   align-items: center;
   gap: 0.35rem;
   padding: 0 0.75rem;
-  background: white;
+  background: var(--surface);
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
@@ -377,7 +377,7 @@ nav p {
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
   padding-bottom: env(safe-area-inset-bottom);
-  background: white;
+  background: var(--surface);
   border-top: 1px solid var(--line);
 }
 .bottom-nav a,

@@ -4,6 +4,7 @@ import { selectSettingsGroup } from './helpers/team-settings'
 const origin = process.env.TEAM_TEST_ORIGIN ?? 'http://demo.team.lostsky.work:5175'
 
 test('settings categories retain drafts, attribute pending results and refresh schema safely', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.context().addCookies([{ name: 'lostsky_token', value: 'e2e-token', domain: '.lostsky.work', path: '/' }])
   const group = (name: string, label: string) => ({ app_name: name, label, description: '按业务管理设置', order: 1, settings: [{ key: 'text', label: '说明文字', description: '', type: 'string', control: 'input', value: `${name} baseline`, default: '', order: 1 }] })
   let apps = [group('entity', '人员'), group('chat', '聊天'), group('custom', '扩展业务')]
