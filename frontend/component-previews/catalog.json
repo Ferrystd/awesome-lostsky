@@ -959,5 +959,16 @@
     "aliases": [
       "社区板块导航"
     ]
+  },
+  {
+    "id": "ui-ls-app-switcher",
+    "name": "LsAppSwitcher",
+    "source": "frontend/packages/ui/src/components/LsAppSwitcher.vue",
+    "story": "frontend/component-previews/src/ui-stories.ts#LsAppSwitcher",
+    "category": "ui",
+    "aliases": [
+      "应用切换",
+      "移动端应用面板"
+    ]
   }
 ]

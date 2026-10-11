@@ -80,7 +80,7 @@ for (const type of ['teamMember', 'teamCustomer'] as const) {
         await route.fulfill({ json: { code: 0, data } })
       })
       await page.goto(`${teamOrigin}/personal/notices`)
-      if (isMobile) await page.getByRole('button', { name: '操作', exact: true }).click()
+      if (isMobile) await page.getByRole('button', { name: '切换应用', exact: true }).click()
     } else {
       await page.route(`${shopOrigin}/api/**`, async route => {
         const path = new URL(route.request().url()).pathname.replace('/api', '')
@@ -92,7 +92,7 @@ for (const type of ['teamMember', 'teamCustomer'] as const) {
       })
       await page.goto(`${shopOrigin}/orders`)
     }
-    if (type === 'teamMember' && isMobile) await page.locator('.n-dropdown-menu:visible').getByText('社区', { exact: true }).click()
+    if (type === 'teamMember' && isMobile) await page.getByRole('navigation', { name: '切换应用' }).getByText('社区', { exact: true }).click()
     else await page.getByRole('link', { name: '社区', exact: true }).click()
     await expect(page).toHaveURL(`${communityOrigin}/`)
     await expect(page.getByText(`当前人员：${people[type].name}`)).toBeVisible()

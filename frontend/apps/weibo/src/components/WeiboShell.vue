@@ -113,7 +113,7 @@ function switchApp(key: string) {
         context-label="微博工作台"
         :title="String(route.meta.title || '微博')"
         :actions="headerActions"
-        app-navigation
+        app-navigation current-app="weibo"
         @menu="drawer = true"
         @action="switchApp"
       >

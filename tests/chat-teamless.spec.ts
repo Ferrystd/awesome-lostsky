@@ -31,11 +31,11 @@ for (const type of ['teamCustomer', 'teamMember', 'team', 'teamVirtual']) {
       await expect(navigation.locator('a').filter({ hasText: /^社区$/ })).toHaveAttribute('href', 'http://community.lostsky.work:5182/')
     }
     await noOverflow(page)
-    const menuTrigger = page.getByRole('button', { name: '操作', exact: true })
+    const menuTrigger = page.getByRole('button', { name: '切换应用', exact: true })
     if (await menuTrigger.isVisible()) {
       await menuTrigger.focus()
       await page.keyboard.press('Enter')
-      const options = page.locator('.n-dropdown-option')
+      const options = page.getByRole('navigation', { name: '切换应用' }).getByRole('button')
       await expect(options).toHaveText(labels)
       if (customer) {
         await page.route('http://demo.display.lostsky.work:5178/', route => route.fulfill({ contentType: 'text/html', body: '<main>团队展示</main>' }))
@@ -45,6 +45,33 @@ for (const type of ['teamCustomer', 'teamMember', 'team', 'teamVirtual']) {
     }
   })
 }
+
+test('Chat unavailable application explains its reason and picker closes without navigation', async ({ page }) => {
+  const value = `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type: 'entity', id: 111 } })).toString('base64url')}.x`
+  await page.context().addCookies([{ name: 'lostsky_token', value, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
+  await page.route(`${chat}/api/**`, route => route.fulfill({ json: { code: 0, data: new URL(route.request().url()).pathname.endsWith('/actor') ? alice : [] } }))
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto(chat)
+  const trigger = page.getByRole('button', { name: '切换应用', exact: true })
+  await trigger.focus()
+  await page.keyboard.press('Enter')
+  const panel = page.getByRole('navigation', { name: '切换应用' })
+  await expect(panel.locator('[aria-current=true]')).toBeFocused()
+  await expect(panel.locator('[aria-current=true]')).toContainText('聊天')
+  const unavailable = panel.getByRole('button', { name: '团队', exact: true })
+  await expect(unavailable).toHaveAttribute('aria-disabled', 'true')
+  await unavailable.click({ force: true })
+  await expect(page.locator('.n-message').getByText('请先领取团队身份')).toBeVisible()
+  await expect(page).toHaveURL(`${chat}/`)
+  await page.keyboard.press('Escape')
+  await expect(trigger).toBeFocused()
+  await expect(panel).toBeHidden()
+  await trigger.click()
+  const panelBox = (await panel.boundingBox())!
+  await page.mouse.click(8, panelBox.y + panelBox.height + 24)
+  await expect(panel).toBeHidden()
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+})
 
 test('teamless Chat keeps one read-only identity and sends with expected Entity', async ({ page }) => {
   await authenticate(page); await realtime(page)

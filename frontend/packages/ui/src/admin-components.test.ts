@@ -48,6 +48,7 @@ import LsPagePrimaryAction from './components/LsPagePrimaryAction.vue'
 import LsResponsiveActions from './components/LsResponsiveActions.vue'
 import LsResponsiveDataTable from './components/LsResponsiveDataTable.vue'
 import LsUploadField from './components/LsUploadField.vue'
+import LsAppSwitcher from './components/LsAppSwitcher.vue'
 import LsWorkspaceHeader from './components/LsWorkspaceHeader.vue'
 import LsWorkspaceOverview from './components/LsWorkspaceOverview.vue'
 import { House, ReceiptText, Save, ShoppingBag, UserRound } from '@lucide/vue'
@@ -445,6 +446,20 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain('min-height:54px')
     expect(source).toContain('.n-base-select-option--selected.n-base-select-option--pending')
     expect(source).toContain('color:color-mix(in oklch,var(--ink),transparent 38%)')
+  })
+
+  it('应用切换与通用命令使用不同语义，当前应用由调用方声明', async () => {
+    expect(Object.keys((LsAppSwitcher as any).props).sort()).toEqual(['actions', 'currentApp'])
+    expect(Object.keys((LsWorkspaceHeader as any).props).sort()).toEqual(['actions', 'appNavigation', 'contextLabel', 'currentApp', 'showMenu', 'title'])
+    const source = readFileSync(new URL('./components/LsAppSwitcher.vue', import.meta.url), 'utf8')
+    expect(source).toContain('aria-label="切换应用"')
+    expect(source).toContain('action.key === currentApp')
+    expect(source).toContain('@keydown.esc.stop.prevent="closeApps"')
+    expect(source).toContain('grid-template-columns:repeat(2,minmax(0,1fr))')
+    for (const app of ['team', 'shop', 'transaction', 'weibo']) {
+      const shell = app === 'shop' ? 'ShopManageShell' : `${app[0].toUpperCase()}${app.slice(1)}Shell`
+      expect(readFileSync(new URL(`../../../apps/${app}/src/components/${shell}.vue`, import.meta.url), 'utf8')).toContain(`current-app="${app}"`)
+    }
   })
 
   it('页面标题、工作区标题和响应式动作始终保留可读文字', async () => {

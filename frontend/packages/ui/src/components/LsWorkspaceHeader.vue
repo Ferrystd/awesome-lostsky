@@ -2,6 +2,7 @@
 import { Menu, MoreHorizontal } from '@lucide/vue'
 import { NButton, NDropdown } from 'naive-ui'
 import { computed } from 'vue'
+import LsAppSwitcher from './LsAppSwitcher.vue'
 
 type LsAction = { key: string; label: string; disabled?: boolean; reason?: string }
 
@@ -11,7 +12,8 @@ const props = withDefaults(defineProps<{
   actions?: LsAction[]
   showMenu?: boolean
   appNavigation?: boolean
-}>(), { actions: () => [], showMenu: true, appNavigation: false })
+  currentApp?: string
+}>(), { actions: () => [], showMenu: true, appNavigation: false, currentApp: '' })
 const emit = defineEmits<{ menu: []; action: [key: string] }>()
 const options = computed(() => props.actions.map(action => ({
   key: action.key,
@@ -29,7 +31,8 @@ const options = computed(() => props.actions.map(action => ({
     </div>
     <div class="ls-workspace-header__desktop"><slot name="actions" /></div>
     <div v-if="actions.length" class="ls-workspace-header__mobile">
-      <NDropdown trigger="click" :options="options" @select="emit('action', String($event))">
+      <LsAppSwitcher v-if="appNavigation" :actions="actions" :current-app="currentApp" @select="emit('action', $event)" />
+      <NDropdown v-else trigger="click" :options="options" @select="emit('action', String($event))">
         <NButton secondary><template #icon><MoreHorizontal :size="18" /></template>操作</NButton>
       </NDropdown>
     </div>

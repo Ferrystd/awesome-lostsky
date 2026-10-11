@@ -109,7 +109,7 @@ function handleHeaderAction(key: string) {
         context-label="商品工作台"
         :title="title"
         :actions="headerActions"
-        app-navigation
+        app-navigation current-app="shop"
         @menu="drawer = true"
         @action="handleHeaderAction"
       >

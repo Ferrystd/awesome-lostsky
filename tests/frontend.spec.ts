@@ -2285,10 +2285,10 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     }
     if (path === '/') {
       if ((page.viewportSize()?.width ?? 0) < 768) {
-        await expect(page.locator('.ls-workspace-header').getByRole('button', { name: '操作' })).toBeVisible()
+        await expect(page.locator('.ls-workspace-header').getByRole('button', { name: '切换应用' })).toBeVisible()
       } else {
         const header = page.locator('.ls-workspace-header')
-        await expect(header.getByRole('button', { name: '操作' })).toBeHidden()
+        await expect(header.getByRole('button', { name: '切换应用' })).toBeHidden()
         await expect(page.getByRole('link', { name: '聊天', exact: true })).toHaveAttribute('href', 'http://chat.lostsky.work:5176/')
         const typography = await header.locator('.ls-workspace-header__desktop a').evaluateAll((elements) =>
           elements.map((element) => {
@@ -3820,7 +3820,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
     await page.goto('http://demo.transaction.lostsky.work:5177/personal/transactions/new')
     await expect(page.locator('#workspace')).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `horizontal overflow at ${width}px`).toBe(false)
-    if (width < 768) await expect(page.getByRole('button', { name: '操作' })).toBeVisible()
+    if (width < 768) await expect(page.getByRole('button', { name: '切换应用' })).toBeVisible()
     else await expect(page.locator('#workspace').getByRole('heading', { name: '登记流水' })).toBeVisible()
     await page.goto('http://demo.transaction.lostsky.work:5177/entitlements/new')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `entitlement grant horizontal overflow at ${width}px`).toBe(false)

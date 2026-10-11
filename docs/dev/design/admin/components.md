@@ -50,7 +50,7 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 | `LsPage` | `as=main/section/div`（默认 `section`）、`width=wide/content/form`（默认 `wide`）、`id`；分别用于列表、详情、单列表单 | 页面再嵌套同类容器 | 320px 无横向溢出，桌面居中；页面只能有一个 `main` |
 | `LsPageHeader` | `title` 必填；`description`、`backTo`、`backLabel` 可选；`actions` 插槽只承载当前区域动作 | 页面自行复制标题栏；移动端堆叠孤立图标 | 标题层级唯一；返回区 44px；动作小屏单列；无返回目标时不渲染返回入口 |
 | `LsPagePrimaryAction` | `icon/label` 必填；`to`、`href`、`type`、`loading`、`disabled/disabledReason` 可选；只承载页面标题区唯一的主操作，发出 `click` | 页面手写 `primary-link`；把 `RouterLink` 套在按钮外；省略图标；把危险、次要、筛选、状态或表单底部命令并入；调用方传宽度、尺寸或视觉变体 | 始终为主色图标加文字；桌面与移动端统一为 8.5rem × 44px、10px 圆角，容器不足时才收缩且保持靠右；移动端标题与限宽说明保留在左列，主操作位于右列并与说明顶边对齐；禁用态保留主色来源并以灰绿色降权，禁用原因可解释；内部路由渲染真实链接，命令由本组件的固定语义按钮执行 |
-| `LsWorkspaceHeader` | `contextLabel/title` 必填，`actions=[]`、`showMenu=true`；桌面应用入口由 `actions` 插槽承载，移动端按 `actions` 数据触发 `action` 事件 | 在组件内部增加应用下拉或个人/团队分段控件；移动端复制第二套顶栏；把响应式类直接传给无根 `NDropdown`；把顶栏设为 `sticky/fixed` 后覆盖滚动中的表单控件 | 桌面动作使用图标加文字；移动端进入“操作”菜单；禁用原因随菜单项保留；应用壳层负责保持当前团队与 Entity；顶栏参与正常文档流，滚动、聚焦和错误定位后不得遮挡字段 |
+| `LsWorkspaceHeader` | `contextLabel/title` 必填，`actions=[]`、`showMenu=true`、`appNavigation=false`、`currentApp` 为当前应用 key；桌面应用入口由 `actions` 插槽承载，移动端按 `actions` 数据触发 `action` 事件 | 由页面复制应用选择面板或增加个人/团队分段控件；移动端复制第二套顶栏；把响应式类直接传给无根 `NDropdown`；把顶栏设为 `sticky/fixed` 后覆盖滚动中的表单控件 | 桌面动作使用图标加文字；应用导航在移动端使用“应用”触发器、两列图标文字面板和当前应用勾选，通用命令仍进入“操作”菜单；面板支持 Escape 关闭并返回焦点，目标至少 44px，禁用原因随菜单项保留；应用壳层负责保持当前团队与 Entity；顶栏参与正常文档流，滚动、聚焦和错误定位后不得遮挡字段 |
 | `LsWorkspaceOverview` | `eyebrow/title/description/actions/entries` 必填，`scopeNotes` 可选；动作支持内部路由、外部地址和主次层级；入口包含图标、标题、说明与目标；`summary` 插槽承载主视觉下方身份或指标摘要，`workspace` 插槽替换默认业务入口及范围说明 | 用无业务意义的指标填充概览；页面私有复制主视觉或入口卡片；按 Permission 隐藏或禁用入口；把应用切换或分段控件塞入概览；插槽穿透内部样式 | 深色主视觉、主入口 `--afterglow`、白色细边界入口；全部入口使用真实链接并始终可导航，授权降级在目标页面处理；桌面主视觉固定为 188px，800px 以下由内容自然撑高；桌面多列、移动单列且动作满宽；所有链接至少 44px，范围说明为连续紧凑区域；不提供插槽时默认入口与范围说明保持原样 |
 | `LsDashboardPath` | `title/description/steps` 必填；步骤为 `{key,label,description,to,icon}`，`to` 使用内部路由；无插槽；用有序导航连接真实业务步骤 | 表达进度、健康评分或完成率；调用方传入视觉参数或覆盖内部样式 | 宽屏横向排列，800px 以下纵向排列；链接至少 44px，键盘焦点可见，减少动态时取消过渡 |
 | `LsListToolbar` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索列表'`、`countLabel=''`、`searchable=true`；`filters/actions` 插槽分别承载筛选与主操作，`searchable=false` 时隐藏搜索但仍保留筛选、操作和可选结果数量 | 搜索图标放在输入外；数量漂移到列表外；把普通说明塞入筛选插槽；让 `NSelect` 在无确定宽度的容器中折叠 | 桌面搜索→筛选→动作→数量，搜索不超过 28rem、筛选通常为 10rem、控件高 40px；移动端纵向且控件高 44px；数量使用 `aria-live=polite` |
@@ -118,3 +118,7 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 ### Team 单选字段与权限编排
 
 `LsRadioGroupField` 的现有业务变体来自团队设置中的搜索优先级、顾客群聊模式和群聊历史范围；字段标题与说明由组件拥有，Settings 只传递 schema 数据和值。分类使用中文业务标题，不重复显示内部应用名和设置键。角色权限的静态权限、通用权限与指定人员权限统一复用 `LsCheckboxGroupField`；高级范围授权附带逐项覆盖明细，保留 Naive Checkbox 与原生 details 的业务组合，不穿透它们的内部皮肤。
+
+### 应用切换面板
+
+`LsAppSwitcher` 是共享顶栏及 Chat 的移动应用入口唯一视觉所有者，参数只包含 `actions`（key/label/disabled/reason）和 `currentApp`，选择通过 `select` 事件交回应用。触发器使用应用图标与“应用”，两列面板展示图标、完整名称和当前勾选；禁止继续把应用切换命名为“操作”或复制选择器。面板宽度适应 320px 起的屏幕，目标至少 44px，打开聚焦当前项、Escape 关闭并归还焦点；放大文字自然换行，减少动态沿用 Naive UI。缺少目标身份时保留可聚焦的灰色入口，点击说明原因且不导航；应用列表与授权始终由宿主决定，Chat 顾客仍只有展示、商品、聊天、社区。组件不请求数据，不提供加载或错误状态。无视觉参数与例外。共享组件测试、workspace-entry 与 chat-teamless E2E 验证状态、入口集合、跳转、焦点和布局。

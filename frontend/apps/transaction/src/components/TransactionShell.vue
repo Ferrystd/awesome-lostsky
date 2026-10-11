@@ -62,7 +62,7 @@ function handleHeaderAction(key: string) {
       <div v-if="drawer" class="backdrop" aria-hidden="true" @click="drawer = false"></div>
     </Transition>
     <section class="workspace">
-      <LsWorkspaceHeader context-label="记账工作台" :title="title" :actions="headerActions" app-navigation @menu="drawer = true" @action="handleHeaderAction">
+      <LsWorkspaceHeader context-label="记账工作台" :title="title" :actions="headerActions" app-navigation current-app="transaction" @menu="drawer = true" @action="handleHeaderAction">
         <template #actions>
           <template v-for="entry in appEntries" :key="entry.key">
             <RouterLink v-if="entry.key === 'transaction'" class="app-link" to="/"><component :is="appIcons[entry.key]" :size="17" /><span>{{ entry.label }}</span></RouterLink>

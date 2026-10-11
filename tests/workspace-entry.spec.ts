@@ -17,14 +17,13 @@ async function setToken(page: Page, type: 'team' | 'teamMember' | 'teamVirtual' 
 
 async function expectHeaderApps(page: Page, headerSelector = '.ls-workspace-header', mobileBreakpoint = 768) {
   const header = page.locator(headerSelector)
-  await expect(page.getByRole('button', { name: '切换应用' })).toHaveCount(0)
   if ((page.viewportSize()?.width ?? 0) < mobileBreakpoint) {
-    await header.getByRole('button', { name: '操作' }).click()
+    await header.getByRole('button', { name: '切换应用' }).click()
     for (const label of ['团队', '商品', '记账', '聊天', '社区', '微博']) {
       await expect(page.getByText(new RegExp(`^${label}(?:（.*）)?$`)).last()).toBeVisible()
     }
     await page.keyboard.press('Escape')
-    await expect(page.locator('.n-dropdown-menu:visible')).toHaveCount(0)
+    await expect(page.locator('.ls-workspace-apps:visible')).toHaveCount(0)
   } else {
     for (const label of ['团队', '商品', '记账', '聊天', '社区', '微博']) {
       await expect(header.getByText(label, { exact: true })).toBeVisible()
@@ -135,8 +134,8 @@ test('shared Community navigation remains available for customer Chat without an
   await page.setViewportSize({ width: 1440, height: 900 })
   await expect(page.locator('.app-links').getByRole('link', { name: '社区', exact: true })).toHaveAttribute('href', 'http://community.lostsky.work:5182/')
   await page.setViewportSize({ width: 375, height: 900 })
-  await page.locator('.app-menu').getByRole('button', { name: '操作' }).click()
-  await expect(page.locator('.n-dropdown-menu:visible').getByText('社区', { exact: true })).toBeVisible()
+  await page.locator('.app-menu').getByRole('button', { name: '切换应用' }).click()
+  await expect(page.locator('.ls-workspace-apps:visible').getByText('社区', { exact: true })).toBeVisible()
 })
 
 function personalResult(type: 'team' | 'teamMember' | 'teamVirtual' = 'team') {
@@ -245,7 +244,6 @@ test('Team resource dashboard reaches personal workspace from the overview CTA',
 
   await page.goto('http://demo.team.lostsky.work:5175/')
   await expect(page.getByRole('link', { name: '进入个人工作台' })).toHaveAttribute('href', '/personal')
-  await expect(page.getByRole('button', { name: '切换应用' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '个人工作台' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '团队工作台' })).toHaveCount(0)
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)
@@ -791,7 +789,6 @@ test('Chat keeps the six-app switch for Customer and routes Product to the custo
   })
 
   await page.goto('http://chat.lostsky.work:5176/')
-  await expect(page.getByRole('button', { name: '切换应用' })).toHaveCount(0)
   expect(workspaceAccessRequests).toBe(0)
 
   for (const width of [320, 375, 1024, 1440]) {

@@ -1,4 +1,4 @@
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, nextTick, onMounted, ref } from 'vue'
 import { NInput, NSelect, NTag } from 'naive-ui'
 import { House, Pencil, Plus, ReceiptText, Save, ShoppingBag, Trash2, UserRound } from '@lucide/vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
@@ -40,6 +40,7 @@ import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
+import LsAppSwitcher from '@lostsky/ui/components/LsAppSwitcher.vue'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
@@ -785,6 +786,18 @@ const uploadField = story('LsUploadField', allInteractive, (state) =>
   ),
 )
 
+const AppSwitcherPreview = defineComponent({
+  props: { disabled: Boolean },
+  setup(props) {
+    const host = ref<HTMLElement | null>(null)
+    onMounted(async () => { await nextTick(); host.value?.querySelector<HTMLButtonElement>('button')?.click() })
+    return () => h('div', { ref: host, style: { minHeight: '280px', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start' } }, [h(LsAppSwitcher, {
+      currentApp: 'team',
+      actions: ['团队', '商品', '记账', '聊天', '社区', '微博'].map((label, index) => ({ key: ['team', 'shop', 'transaction', 'chat', 'community', 'weibo'][index], label, disabled: props.disabled && index === 2, reason: '请先领取团队身份' })),
+    })])
+  },
+})
+
 const workspaceHeader = story('LsWorkspaceHeader', interactive, (state) =>
   stage(
     h(
@@ -793,6 +806,7 @@ const workspaceHeader = story('LsWorkspaceHeader', interactive, (state) =>
         contextLabel: 'TEAM WORKSPACE',
         title: '对象字段',
         appNavigation: true,
+        currentApp: 'team',
         actions: [
           { key: 'team', label: '团队' },
           { key: 'shop', label: '商品' },
@@ -902,6 +916,7 @@ export const uiStories: Record<string, StoryDefinition> = {
   LsSwitch: switchControl,
   LsSwitchField: switchField,
   LsUploadField: uploadField,
+  LsAppSwitcher: story('LsAppSwitcher', interactive, (state) => stage(h(AppSwitcherPreview, { disabled: state === 'disabled' }))),
   LsWorkspaceHeader: workspaceHeader,
   LsWorkspaceOverview: workspaceOverview,
 }
