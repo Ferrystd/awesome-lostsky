@@ -14,7 +14,7 @@ const pageWidth = computed<'wide' | 'content' | 'form'>(() => ['content', 'form'
 <template>
   <NConfigProvider :class="{ 'ls-theme-aurora': auroraScene }" :theme="auroraScene ? darkTheme : null" :theme-overrides="auroraScene ? lostskyAuroraTheme : lostskyNaiveTheme" :locale="zhCN">
     <NDialogProvider><NMessageProvider>
-      <TeamShell v-if="!route.meta.public"><AdminPage :width="pageWidth"><RouterView /></AdminPage></TeamShell>
+      <TeamShell v-if="!route.meta.public" :contextual-header="auroraScene"><AdminPage :width="pageWidth"><RouterView /></AdminPage></TeamShell>
       <RouterView v-else />
     </NMessageProvider></NDialogProvider>
   </NConfigProvider>

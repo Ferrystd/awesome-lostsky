@@ -61,24 +61,30 @@
 
 /* Application-root palette, enabled only for the named Team aurora scene. */
 .ls-theme-aurora {
+  --sky-void: #101619;
+  --sidebar-scrollbar: #435257;
+  --separator: #29363b;
+  --radio-idle-border: #43545a;
+  --radio-hover-border: #70878e;
+  --radio-hover-surface: #202b30;
   color-scheme: dark;
-  --cloud: #080f1c;
-  --daylight: #121e2e;
-  --ink: #edf5ff;
-  --muted-ink: #becddd;
-  --line: #35475d;
+  --cloud: #101619;
+  --daylight: #192125;
+  --ink: #edf3f3;
+  --muted-ink: #c0cdce;
+  --line: #344247;
   --sky-lost: #6ee7c8;
   --sky-lost-strong: #6ee7c8;
   --primary: #6ee7c8;
   --on-primary: #062b27;
   --primary-hover: #a0f5df;
   --focus: #a0f5df;
-  --surface: #121e2e;
-  --surface-subtle: #080f1c;
-  --text: #edf5ff;
-  --text-secondary: #becddd;
-  --text-tertiary: #a6b8cc;
-  --border: #35475d;
+  --surface: #192125;
+  --surface-subtle: #101619;
+  --text: #edf3f3;
+  --text-secondary: #c0cdce;
+  --text-tertiary: #a4b5b8;
+  --border: #344247;
   --success: #6ee7b7;
   --danger: #ff98a6;
   --warning: #edc27a;

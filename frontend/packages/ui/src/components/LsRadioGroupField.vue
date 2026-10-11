@@ -44,8 +44,9 @@ function update(value: string | number) {
 .ls-radio-group-field__hint { margin: .3rem 0 .75rem; color: var(--muted-ink); font-size: .8125rem; line-height: 1.55; }
 .ls-radio-group-field > :deep(.n-radio-group) { width: 100%; }
 .ls-radio-group-field__options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); gap: .75rem; }
-.ls-radio-group-field__options :deep(.n-radio) { min-width: 0; min-height: 64px; margin: 0; align-items: flex-start; padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); }
-.ls-radio-group-field__options :deep(.n-radio:hover), .ls-radio-group-field__options :deep(.n-radio--checked) { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, var(--surface)); }
+.ls-radio-group-field__options :deep(.n-radio) { min-width: 0; min-height: 64px; margin: 0; align-items: flex-start; padding: 1rem; border: 1px solid var(--radio-idle-border, var(--line)); border-radius: var(--radius-md); background: var(--surface); }
+.ls-radio-group-field__options :deep(.n-radio--checked) { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, var(--surface)); }
+.ls-radio-group-field__options :deep(.n-radio:hover:not(.n-radio--checked)) { border-color: var(--radio-hover-border, var(--primary)); background: var(--radio-hover-surface, color-mix(in srgb, var(--primary) 6%, var(--surface))); }
 .ls-radio-group-field__options :deep(.n-radio:focus-within) { outline: 2px solid var(--primary); outline-offset: 2px; }
 .ls-radio-group-field__options :deep(.n-radio__label) { min-width: 0; }
 .ls-radio-group-field__copy { display: grid; gap: .3rem; overflow-wrap: anywhere; }

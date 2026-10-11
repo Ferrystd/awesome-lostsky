@@ -27,6 +27,7 @@ const personalNav: NavItem[] = [
   { to: '/personal/fields', label: '对象字段', icon: FileText },
   { to: '/personal/access', label: '角色与权限', icon: ShieldCheck },
 ]
+defineProps<{ contextualHeader?: boolean }>()
 const title = computed(() => String(route.meta.title ?? '工作台'))
 const activeWorkspace = computed(() => (route.meta.workspace === 'personal' ? 'personal' : 'team'))
 const sidebarPrimary = computed(() => (activeWorkspace.value === 'personal' ? personalNav : primary))
@@ -139,7 +140,7 @@ watch(
       <div v-if="drawer" class="backdrop" aria-hidden="true" @click="drawer = false" />
     </Transition>
     <section class="workspace">
-      <LsWorkspaceHeader context-label="团队工作台" :title="title" :actions="headerActions" app-navigation current-app="team" @menu="drawer = true" @action="handleHeaderAction">
+      <LsWorkspaceHeader context-label="团队工作台" :title="title" :contextual="contextualHeader" :actions="headerActions" app-navigation current-app="team" @menu="drawer = true" @action="handleHeaderAction">
         <template #actions>
           <template v-for="entry in appEntries" :key="entry.key">
             <RouterLink v-if="entry.key === 'team'" class="display-link" to="/"><component :is="appIcons[entry.key]" :size="17" /><span>{{ entry.label }}</span></RouterLink>
@@ -233,7 +234,7 @@ watch(
   overflow-y: auto;
   padding-right: 0.25rem;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklch, var(--sky-lost), white 18%) transparent;
+  scrollbar-color: var(--sidebar-scrollbar, color-mix(in oklch, var(--sky-lost), white 18%)) transparent;
 }
 .menu-scroll.has-more::after {
   content: '';

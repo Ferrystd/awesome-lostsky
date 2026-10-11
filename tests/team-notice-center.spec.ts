@@ -119,14 +119,14 @@ test('notice center keeps responsive category semantics and permissions at large
     return { pointer: style.pointerEvents, animation: style.animationName, hidden: element.getAttribute('aria-hidden'), overflow: getComputedStyle(element.parentElement!).overflow }
   })
   expect(aurora).toMatchObject({ pointer: 'none', animation: 'none', hidden: 'true', overflow: 'visible' })
-  // Navigation owns an opaque surface: contrast does not depend on the decorative light underneath.
+  // Transparent navigation and selected tint composite over the named scene background.
   await page.setViewportSize({ width: 1920, height: 1100 })
   const contrast = await page.locator('.team-category-navigation').evaluate(element => {
     const canvas = document.createElement('canvas')
     const context = canvas.getContext('2d')!
-    const rgb = (color: string) => { context.clearRect(0, 0, 1, 1); context.fillStyle = color; context.fillRect(0, 0, 1, 1); return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map(value => value / 255) }
+    const rgb = (color: string) => { context.clearRect(0, 0, 1, 1); context.fillStyle = base; context.fillRect(0, 0, 1, 1); context.fillStyle = color; context.fillRect(0, 0, 1, 1); return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map(value => value / 255) }
     const luminance = (color: number[]) => color.map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4).reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0)
-    const base = getComputedStyle(element).backgroundColor
+    const base = getComputedStyle(element.closest('.ls-theme-aurora')!).backgroundColor
     return [...element.querySelectorAll('a, .team-category-navigation__label'), ...document.querySelectorAll('.notice-content-header .ls-page-primary-action')].map(node => {
       const style = getComputedStyle(node)
       const foreground = luminance(rgb(style.color))

@@ -42,16 +42,23 @@ test('Team settings keeps compact fields and one group footer action across widt
   await page.goto(`${origin}/settings`)
   const panel = page.locator('.settings-panel')
   await expect(panel).toBeVisible()
+  await expect(page.locator('h1')).toHaveCount(1)
+  const radios = panel.locator('.n-radio')
+  await radios.nth(1).hover()
+  const radioBorders = await radios.evaluateAll(elements => elements.map(element => getComputedStyle(element).borderColor))
+  expect(radioBorders[0], 'only the selected radio uses the accent border').not.toBe(radioBorders[1])
   for (const fontSize of ['16px', '32px']) for (const width of [320, 375, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1200 })
     await page.evaluate(size => { document.documentElement.style.fontSize = size }, fontSize)
     // Let responsive media/container queries commit before comparing separate geometry reads.
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
-    const header = await page.locator('.team-category-layout__content').boundingBox()
-    const center = (await page.locator('.team-category-layout').boundingBox())!
-    const pageHeader = (await page.locator('.ls-page-header').boundingBox())!
-    const layoutGrid = (await page.locator('.team-category-layout__layout').boundingBox())!
-    const normalPadding = await page.locator('.team-category-layout').evaluate(element => parseFloat(getComputedStyle(element).paddingLeft))
+
+    const { center, pageHeader, layoutGrid, normalPadding } = await page.locator('.team-category-layout').evaluate(element => ({
+      center: element.getBoundingClientRect().toJSON(),
+      pageHeader: document.querySelector('.ls-page-header')!.getBoundingClientRect().toJSON(),
+      layoutGrid: element.querySelector('.team-category-layout__layout')!.getBoundingClientRect().toJSON(),
+      normalPadding: parseFloat(getComputedStyle(element).paddingLeft),
+    }))
     expect(layoutGrid.y - center.y, 'background must not reserve a banner').toBeCloseTo(normalPadding, 0)
     expect(center.x).toBeCloseTo(pageHeader.x, 0)
     expect(center.width).toBeCloseTo(pageHeader.width, 0)
@@ -60,7 +67,7 @@ test('Team settings keeps compact fields and one group footer action across widt
     const desktop = availableWidth >= 48 * parseInt(fontSize)
     await expect(page.locator('.team-category-navigation__desktop')).toBeVisible({ visible: desktop })
     await expect(page.locator('.team-category-navigation__mobile')).toBeVisible({ visible: !desktop })
-    const box = await panel.boundingBox()
+    const { box, header } = await panel.evaluate(element => ({ box: element.getBoundingClientRect().toJSON(), header: element.parentElement!.getBoundingClientRect().toJSON() }))
     expect(box!.x).toBeCloseTo(header!.x, 0)
     expect(box!.width).toBeCloseTo(header!.width, 0)
     const save = panel.locator('button[type=submit]')

@@ -138,14 +138,14 @@ function switchDisabled(setting: SettingField): boolean {
 
 .settings-panel { min-width: 0; margin: 0; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
 .settings-header { padding: 1.5rem 1.5rem 1rem; }
-.setting-row { display: grid; min-width: 0; gap: .75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--border); }
+.setting-row { display: grid; min-width: 0; gap: .75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--separator, var(--border)); }
 .setting-row--switch { grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 1rem; }
 .setting-copy { min-width: 0; }
 .setting-copy h3, .setting-copy p { margin: 0; overflow-wrap: anywhere; }
 .setting-copy h3 { font-size: .9375rem; line-height: 1.5; }
 .setting-copy p { margin-top: .25rem; color: var(--text-secondary); font-size: .875rem; line-height: 1.6; }
 .setting-control { min-width: 0; }
-.settings-footer { display: grid; gap: 1rem; padding: 1rem 1.5rem 1.5rem; border-top: 1px solid var(--border); }
+.settings-footer { display: grid; gap: 1rem; padding: 1rem 1.5rem 1.5rem; border-top: 1px solid var(--separator, var(--border)); }
 .feedback { margin: 0; font-size: .875rem; line-height: 1.5; overflow-wrap: anywhere; }
 .success { color: var(--success); }
 @media (max-width: 639px) {

@@ -11,10 +11,10 @@ void main() {
   vec3 light = vec3(0.);
   for (int layer = 0; layer < 2; layer++) {
     float l = float(layer);
-    float center = .29 + l * .39 + .016 * sin(t * .7 + l * 2.);
-    float x = (uv.x - center) / (.19 - l * .025);
+    float center = .16 + l * .66 + .016 * sin(t * .7 + l * 2.);
+    float x = (uv.x - center) / (.12 - l * .015);
     float taper = exp(-pow(abs(x), 4.) * 2.);
-    float curve = .975 - l * .01 + .009 * sin(x * 2. + t + l * 2.) + .007 * x * x;
+    float curve = .24 + l * .48 + .035 * sin(x * 2. + t + l * 2.) + .018 * x * x;
     float thickness = .012 + .007 * (.5 + .5 * sin(x * 2.5 - t));
     float d = (uv.y - curve) / thickness;
     float body = exp(-d * d * .65) * taper;
@@ -23,12 +23,13 @@ void main() {
     vec3 color = mix(vec3(.16, .94, .71), vec3(.30, .58, 1.), l);
     light += color * (body * .8 + glow) + vec3(.65, .96, 1.) * sheen;
   }
-  gl_FragColor = vec4(vec3(.0196, .0392, .075) + light, 1.);
+  light *= .48;
+  gl_FragColor = vec4(light, max(light.r, max(light.g, light.b)));
 }`
 
 export function createAuroraRenderer(canvas: HTMLCanvasElement, ready: (value: boolean) => void) {
   let gl: WebGLRenderingContext | null = null
-  try { gl = canvas.getContext('webgl', { alpha: false, antialias: false, depth: false, powerPreference: 'low-power' }) } catch { /* Static fallback remains visible. */ }
+  try { gl = canvas.getContext('webgl', { alpha: true, antialias: false, depth: false, powerPreference: 'low-power' }) } catch { /* Static fallback remains visible. */ }
   if (!gl) return { setPaused: (_paused: boolean) => {}, destroy: () => {} }
   const context = gl
   const shaders: WebGLShader[] = []

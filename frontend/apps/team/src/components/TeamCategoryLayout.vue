@@ -35,7 +35,7 @@ const available = ref(false)
 </template>
 
 <style scoped>
-.team-category-layout { min-width: 0; container: team-category-layout / inline-size; position: relative; isolation: isolate; padding: 1.25rem; border-radius: var(--radius-lg); background: #050a13; }
+.team-category-layout { min-width: 0; container: team-category-layout / inline-size; position: relative; isolation: isolate; padding: 1.25rem;  }
 .team-category-layout__motion { margin-top: .75rem; }
 .team-category-layout__layout { min-width: 0; display: grid; gap: 1.5rem; align-items: start; }
 .team-category-layout__content { min-width: 0; }
