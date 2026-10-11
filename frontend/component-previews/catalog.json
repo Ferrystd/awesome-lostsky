@@ -997,4 +997,12 @@
       "team-settings-group"
     ]
   }
+  ,{
+    "id": "team-notice-row",
+    "category": "team",
+    "name": "TeamNoticeRow",
+    "source": "frontend/apps/team/src/components/TeamNoticeRow.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#TeamNoticeRow",
+    "aliases": ["team-notice-row"]
+  }
 ]

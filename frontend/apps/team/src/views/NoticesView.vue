@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 
 import TeamCategoryLayout from '../components/TeamCategoryLayout.vue'
-import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import TeamNoticeRow from '../components/TeamNoticeRow.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import { noticeSections } from '../lib/workspaceNavigation'
 import { api, auth, friendlyError } from '@lostsky/api/client'
@@ -102,7 +103,6 @@ const confirmAll = useMutation({
   onError: (error, originScope) => { errors[originScope] = friendlyError(error) },
 })
 const description = computed(() => scope.value === 'sent' ? copy.value.description : `${copy.value.description}当前页有 ${routeAccess.restricted.value ? 0 : unreadCount.value} 条未读。`)
-const headerSlot = computed(() => scope.value === 'entity' ? 'actions' : 'aside')
 function detailTo(id: number) {
   return { path: `${noticeListPath(scope.value)}/detail`, query: { id: String(id), ...noticeListQuery(state.value) } }
 }
@@ -122,28 +122,33 @@ function summary(content: string | null | undefined) {
 
 <template>
   <div class="notices-view">
-    <AdminPageHeader v-if="scope !== 'entity'" title="通知中心" description="查看团队收到的站内通知与已发送通知。" />
-    <component :is="scope === 'entity' ? 'div' : TeamCategoryLayout" v-bind="scope === 'entity' ? {} : { items: categories, current: route.path, label: '通知分类' }">
-    <section class="notice-list-content" :aria-label="scope === 'entity' ? '收件箱' : copy.title">
-    <component :is="scope === 'entity' ? AdminPageHeader : LsSectionHeader" class="notice-content-header" :title="scope === 'entity' ? '收件箱' : copy.title" :description="description">
-      <template #[headerSlot]>
-        <LsPagePrimaryAction v-if="scope !== 'entity'" :icon="Send" label="发送通知" to="/notices/send" />
-        <LsPagePrimaryAction v-if="scope !== 'sent'" :icon="CheckCheck" label="全部标为已读" :loading="confirmAll.isPending.value && confirmAll.variables.value === scope" :disabled="confirmAll.isPending.value || routeAccess.restricted.value || unreadCount === 0" :disabled-reason="routeAccess.reason.value || (confirmAll.isPending.value ? '请等待当前标记操作完成' : '当前页没有未读消息')" @click="confirmAll.mutate(scope)" />
+    <AdminPageHeader v-if="scope !== 'entity'" title="通知中心" description="查看团队收到的站内通知与已发送通知。">
+      <template #actions><LsPagePrimaryAction :icon="Send" label="发送通知" to="/notices/send" /></template>
+    </AdminPageHeader>
+    <component :is="scope === 'entity' ? 'div' : TeamCategoryLayout" v-bind="scope === 'entity' ? {} : { items: categories, current: route.path, label: '通知分类', horizontal: true }">
+    <section class="notice-list-content" :class="{ 'notice-list-content--compact': scope !== 'entity' }" :aria-label="scope === 'entity' ? '收件箱' : copy.title">
+    <AdminPageHeader v-if="scope === 'entity'" class="notice-content-header" title="收件箱" :description="description">
+      <template #actions>
+        <LsPagePrimaryAction :icon="CheckCheck" label="全部标为已读" :loading="confirmAll.isPending.value && confirmAll.variables.value === scope" :disabled="confirmAll.isPending.value || routeAccess.restricted.value || unreadCount === 0" :disabled-reason="routeAccess.reason.value || (confirmAll.isPending.value ? '请等待当前标记操作完成' : '当前页没有未读消息')" @click="confirmAll.mutate(scope)" />
       </template>
-    </component>
+    </AdminPageHeader>
     <LsInlineError v-if="errors[scope]" :message="errors[scope]!" />
 
     <LsListToolbar v-model="search" :placeholder="`搜索${copy.noun}`" :aria-label="`搜索${copy.noun}`" :count-label="routeAccess.restricted.value ? '0 条' : `${visible.length} 条`">
       <template #filters><NSelect v-model:value="filter" :options="filterOptions" :aria-label="`${copy.noun}筛选`" /></template>
+      <template v-if="scope === 'team'" #actions><LsButton variant="secondary" :loading="confirmAll.isPending.value && confirmAll.variables.value === scope" :disabled="confirmAll.isPending.value || routeAccess.restricted.value || unreadCount === 0" :disabled-reason="routeAccess.reason.value || (confirmAll.isPending.value ? '请等待当前标记操作完成' : '当前页没有未读消息')" @click="confirmAll.mutate(scope)"><template #icon><CheckCheck :size="18" /></template>全部标为已读</LsButton></template>
     </LsListToolbar>
 
     <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" />
     <LsResourceList v-else-if="visible.length" :aria-label="`${copy.noun}列表`">
-      <LsResourceRow v-for="item in visible" :key="item.id" :title="item.title || '无标题消息'" :description="summary(item.content).slice(0, 120) || `这条${copy.noun}没有正文。`" :icon="item.is_read !== 1 ? Mail : MailOpen" :unread="item.is_read !== 1" :to="detailTo(item.id)">
+      <template v-for="item in visible" :key="item.id">
+      <TeamNoticeRow v-if="scope !== 'entity'" :title="item.title || '无标题消息'" :summary="summary(item.content).slice(0, 120)" :recipient="scope === 'sent' && item.entity_id != null ? `收件人员 #${item.entity_id}` : undefined" :time="time(item.create_time ?? item.created_at)" :unread="item.is_read !== 1" :pinned="item.is_pinned === 1" :to="detailTo(item.id)" />
+      <LsResourceRow v-else :title="item.title || '无标题消息'" :description="summary(item.content).slice(0, 120) || `这条${copy.noun}没有正文。`" :icon="item.is_read !== 1 ? Mail : MailOpen" :unread="item.is_read !== 1" :to="detailTo(item.id)">
         <template #status><LsStatusTag :label="item.is_read === 1 ? '已读' : '未读'" :type="item.is_read === 1 ? 'success' : 'info'" /><LsStatusTag v-if="item.is_pinned === 1" label="置顶" /></template>
-        <template #metadata><span v-if="scope === 'sent'">收件人员 #{{ item.entity_id }}</span><time>{{ time(item.create_time ?? item.created_at) }}</time></template>
+        <template #metadata><time>{{ time(item.create_time ?? item.created_at) }}</time></template>
       </LsResourceRow>
+      </template>
     </LsResourceList>
     <LsEmptyState :source="query.data.value"
       v-else
@@ -158,6 +163,8 @@ function summary(content: string | null | undefined) {
 </template>
 
 <style scoped>
-.notices-view, .notice-list-content { min-width: 0; display: grid; gap: 1.5rem; }
+.notices-view { min-width: 0; display: grid; gap: 1.5rem; }
+.notice-list-content { min-width: 0; display: grid; gap: 1.5rem; }
+.notice-list-content--compact { gap: 1rem; }
 .notice-pagination { min-width: 0; overflow-x: auto; }
 </style>

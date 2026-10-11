@@ -9,6 +9,7 @@ defineProps<{
   items: { key: string; label: string; dirty?: boolean; to?: string }[]
   current: string
   label: string
+  horizontal?: boolean
 }>()
 defineEmits<{ select: [key: string] }>()
 const panelId = `settings-content-${useId()}`
@@ -17,11 +18,11 @@ const available = ref(false)
 </script>
 
 <template>
-  <div class="team-category-layout">
+  <div :class="['team-category-layout', { 'team-category-layout--horizontal': horizontal }]">
     <TeamAuroraBackdrop :paused="paused" @available="available = $event" />
     <div class="team-category-layout__layout">
       <div class="team-category-layout__navigation">
-      <TeamCategoryNavigation :items="items" :current="current" :label="label" :panel-id="panelId" @select="$emit('select', $event)" />
+      <TeamCategoryNavigation :horizontal="horizontal" :items="items" :current="current" :label="label" :panel-id="panelId" @select="$emit('select', $event)" />
     <div v-if="available" class="team-category-layout__motion">
       <LsButton variant="secondary" :aria-pressed="paused" @click="paused = !paused">
         <template #icon><Play v-if="paused" :size="16" /><Pause v-else :size="16" /></template>
@@ -48,4 +49,8 @@ const available = ref(false)
 @container team-category-layout (min-width: 48rem) {
   .team-category-layout__layout { grid-template-columns: 11.5rem minmax(0, 1fr); }
 }
+.team-category-layout--horizontal { padding: 0; }
+.team-category-layout--horizontal .team-category-layout__layout { grid-template-columns: minmax(0, 1fr); }
+.team-category-layout--horizontal .team-category-layout__navigation { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
+.team-category-layout--horizontal .team-category-layout__motion { margin: 0; }
 </style>

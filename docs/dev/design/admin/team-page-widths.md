@@ -31,9 +31,9 @@
 | `/` | 概览 | `wide` |
 | `/personal/notices` | 收件箱 | `wide` |
 | `/personal/notices/detail` | 阅读通知 | `content` |
-| `/notices/sent` | 通知中心 | `wide` |
+| `/notices/sent` | 通知中心 | `content` |
 | `/notices/sent/detail` | 通知查看情况 | `content` |
-| `/notices/team` | 通知中心 | `wide` |
+| `/notices/team` | 通知中心 | `content` |
 | `/notices/team/detail` | 阅读站内通知 | `content` |
 | `/notices/send` | 发送通知 | `form` |
 | `/files` | 文件 | `wide` |

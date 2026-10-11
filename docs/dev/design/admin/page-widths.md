@@ -27,7 +27,7 @@ Team 已有例外与逐路由映射见 [Team 页面宽度审计](team-page-width
 
 ## Team 设置组实现
 
-设置与通知的分类布局由同一 `TeamCategoryLayout` 和 `TeamCategoryNavigation` 实现，留在 Team 应用内。布局只有语义分类数据、当前值、可访问名称和内容插槽，不接受 width/layout/compact 等视觉参数；面板表面由各自内容组件持有。通知使用 wide 容器，设置使用 content 容器。导航项提供 `to` 时渲染真实 RouterLink，未提供时渲染控制当前编辑组的按钮；移动选择分别导航或发出 select 事件。方向键在链接之间只移动焦点，Enter 保留原生导航语义；设置按钮延续方向键切组并聚焦。通知具体 query 与返回规则见 [Team 应用](../../apps/team.md#通知中心与地址状态)。
+设置与通知的分类布局由同一 `TeamCategoryLayout` 和 `TeamCategoryNavigation` 实现，留在 Team 应用内。布局只有语义分类数据、当前值、可访问名称和内容插槽，不接受 width/layout/compact 等视觉参数；面板表面由各自内容组件持有。通知与设置均使用 content 容器。导航项提供 `to` 时渲染真实 RouterLink，未提供时渲染控制当前编辑组的按钮；移动选择分别导航或发出 select 事件。方向键在链接之间只移动焦点，Enter 保留原生导航语义；设置按钮延续方向键切组并聚焦。通知具体 query 与返回规则见 [Team 应用](../../apps/team.md#通知中心与地址状态)。
 
 用户指定的具名视觉例外：仅 `/settings`、`/notices/team` 和 `/notices/sent` 使用暗底流动极光。Team 应用根既有 `NConfigProvider` 按精确路由选择 `darkTheme`、`lostskyAuroraTheme` 和 `ls-theme-aurora` 语义令牌；离开上述路径即恢复默认浅色主题。详情、发送页、个人收件箱和其他应用不启用该主题。页头、导航、表单与通知均沿用现有组件读取语义令牌（主操作文字使用 `--on-primary`，浅色默认白、暗场景深墨色），不允许调用方穿透其内部样式。Team 壳层自身表面使用 `--surface`，保持默认浅色等价。
 
@@ -46,3 +46,5 @@ Team 已有例外与逐路由映射见 [Team 页面宽度审计](team-page-width
 `TeamSettingsGroup` 是 Team 专属业务组件：`app/values` 表达设置 schema 和当前草稿，`loading/disabled/saved/error/restricted` 表达保存与权限状态，`update(key,value)` 和 `submit` 交还页面处理。禁止增加布局/宽度参数。保留原整数校验、可空数值、能力禁用说明和整组保存 API；成功只确认提交快照，较新的草稿仍显示未保存状态。原生 form 作为独立原子提交边界，按组件化规范允许自身面板边界，不嵌套同义面板。真实组件预览覆盖默认、选中、禁用、加载、失败和移动状态。
 
 `LsWorkspaceHeader` 在上述暗场景使用语义 `contextual` 模式，正文保留唯一主标题；其他页面继续默认标题模式。暗主题 radio 未选与悬停采用中性令牌，选中才使用青绿；滚动条和分隔线使用低强调中性色。
+
+通知采用单列布局：主标题与发送操作、横向路由分类、工具栏、紧凑列表共用64rem上限和左右边界。TeamCategoryLayout/Navigation的horizontal模式默认关闭，设置仍使用纵向分类；通知在窄屏保留可换行路由链接。TeamNoticeRow复用Naive NListItem，常规行最小72px而非固定高度，首层标题/状态/时间，次层一行摘要及收件人；空正文省略摘要。长标题与窄屏元信息自然换行，个人收件箱保留原LsResourceRow。组间24px，工具栏与列表16px。

@@ -9,6 +9,7 @@ const props = defineProps<{
   current: string
   panelId: string
   label: string
+  horizontal?: boolean
 }>()
 const emit = defineEmits<{ select: [key: string] }>()
 const selectId = `settings-category-${useId()}`
@@ -18,8 +19,8 @@ const options = computed(() => props.items.map(item => ({ value: item.key, label
 
 async function navigate(event: KeyboardEvent, index: number) {
   let next = index
-  if (event.key === 'ArrowDown') next = (index + 1) % props.items.length
-  else if (event.key === 'ArrowUp') next = (index + props.items.length - 1) % props.items.length
+  if (event.key === 'ArrowDown' || (props.horizontal && event.key === 'ArrowRight')) next = (index + 1) % props.items.length
+  else if (event.key === 'ArrowUp' || (props.horizontal && event.key === 'ArrowLeft')) next = (index + props.items.length - 1) % props.items.length
   else if (event.key === 'Home') next = 0
   else if (event.key === 'End') next = props.items.length - 1
   else return
@@ -36,7 +37,7 @@ function select(key: string) {
 </script>
 
 <template>
-  <div class="team-category-navigation">
+  <div :class="['team-category-navigation', { 'team-category-navigation--horizontal': horizontal }]">
     <div class="team-category-navigation__mobile">
       <LsField :label="label" :for-id="selectId">
         <NSelect :id="selectId" :aria-label="label" :value="current" :options="options" @update:value="select" />
@@ -77,4 +78,9 @@ function select(key: string) {
   .team-category-navigation__mobile { display: none; }
   .team-category-navigation__desktop { display: grid; gap: .25rem; }
 }
+.team-category-navigation--horizontal { padding: 0; }
+.team-category-navigation--horizontal .team-category-navigation__mobile, .team-category-navigation--horizontal .team-category-navigation__label { display: none; }
+.team-category-navigation--horizontal .team-category-navigation__desktop { display: flex; flex-wrap: wrap; gap: .5rem; }
+.team-category-navigation--horizontal :is(button, a) { width: auto; border-radius: 0; border-bottom: 2px solid transparent; padding: .625rem .75rem; }
+.team-category-navigation--horizontal :is(button, a)[aria-current] { border-bottom-color: var(--primary); background: transparent; }
 </style>

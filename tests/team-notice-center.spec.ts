@@ -29,7 +29,7 @@ async function noticesFixture(page: Page) {
       if (model.listMode === 'error') return route.fulfill({ json: { code: 500, message: '通知暂时无法读取' } })
       if (model.listMode === 'empty') return route.fulfill({ json: { code: 0, data: { list: [], total: 0 } } })
       const keyword = url.searchParams.get('keyword') ?? ''
-      data = { total: 60, list: Array.from({ length: 20 }, (_, index) => ({ id: index + 1, title: `${keyword} ${scope} 通知 ${index + 1} 长标题用于检验换行`, content: '这里是通知摘要，描述安排与需要完成的事项。'.repeat(8), is_read: model.marked.has(scope) || model.marked.has(`${scope}:${index + 1}`) ? 1 : 0, create_time: 1791500000 })) }
+      data = { total: 60, list: Array.from({ length: 20 }, (_, index) => ({ id: index + 1, title: `${keyword} ${scope} 通知 ${index + 1} 长标题用于检验换行`, entity_id: index + 1, content: index === 1 ? '' : '这里是通知摘要，描述安排与需要完成的事项。'.repeat(8), is_read: model.marked.has(scope) || model.marked.has(`${scope}:${index + 1}`) ? 1 : 0, create_time: 1791500000 })) }
     } else return route.abort('blockedbyclient')
     await route.fulfill({ json: { code: 0, data } })
   })
@@ -41,8 +41,8 @@ test('notice URL state, detail return and category links survive refresh and bro
   await page.goto(`${origin}/notices/team?keyword=窗口&filter=unread&page=2`)
   const search = page.getByRole('searchbox', { name: '搜索站内通知' })
   await expect(search).toHaveValue('窗口')
-  await expect(page.locator('.ls-resource-row')).toHaveCount(20)
-  const link = page.locator('.ls-resource-row a').nth(14)
+  await expect(page.locator('.team-notice-row')).toHaveCount(20)
+  const link = page.locator('.team-notice-row a').nth(14)
   await expect(link).toHaveAttribute('href', /detail\?id=15&keyword=.*&filter=unread&page=2/)
   // Real anchors carry a complete, same-scope return context even in a fresh tab.
   const href = await link.getAttribute('href')
@@ -97,7 +97,7 @@ test('notice read mutations keep their origin scope and confirmed detail does no
   const sentReads = model.requests.filter(value => value.includes('/notice/index') && value.includes('scope=sent')).length
   model.release!()
   await expect.poll(() => model.marked.has('team')).toBe(true)
-  await expect(page.locator('.ls-resource-row').first()).toContainText('未读')
+  await expect(page.locator('.team-notice-row').first()).toContainText('未读')
   expect(model.requests.filter(value => value.includes('/notice/index') && value.includes('scope=sent'))).toHaveLength(sentReads)
   await page.goto(`${origin}/personal/notices/detail?id=1`)
   await expect(page.getByText('已读', { exact: true })).toBeVisible()
@@ -113,7 +113,7 @@ test('notice center keeps responsive category semantics and permissions at large
   await page.emulateMedia({ reducedMotion: 'reduce' })
   const model = await noticesFixture(page)
   await page.goto(`${origin}/notices/team`)
-  await expect(page.locator('.ls-resource-row')).toHaveCount(20)
+  await expect(page.locator('.team-notice-row')).toHaveCount(20)
   const aurora = await page.locator('.team-aurora-backdrop').evaluate(element => {
     const style = getComputedStyle(element)
     return { pointer: style.pointerEvents, animation: style.animationName, hidden: element.getAttribute('aria-hidden'), overflow: getComputedStyle(element.parentElement!).overflow }
@@ -121,13 +121,19 @@ test('notice center keeps responsive category semantics and permissions at large
   expect(aurora).toMatchObject({ pointer: 'none', animation: 'none', hidden: 'true', overflow: 'visible' })
   // Transparent navigation and selected tint composite over the named scene background.
   await page.setViewportSize({ width: 1920, height: 1100 })
+  await expect(page.locator('h1')).toHaveCount(1)
+  await expect(page.locator('.notice-content-header')).toHaveCount(0)
+  await expect(page.locator('.team-notice-row').nth(1).locator('.team-notice-row__detail')).toHaveCount(0)
+  const rowHeight = (await page.locator('.team-notice-row').first().boundingBox())!.height
+  expect(rowHeight).toBeGreaterThanOrEqual(72)
+  expect(rowHeight).toBeLessThanOrEqual(88)
   const contrast = await page.locator('.team-category-navigation').evaluate(element => {
     const canvas = document.createElement('canvas')
     const context = canvas.getContext('2d')!
     const rgb = (color: string) => { context.clearRect(0, 0, 1, 1); context.fillStyle = base; context.fillRect(0, 0, 1, 1); context.fillStyle = color; context.fillRect(0, 0, 1, 1); return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map(value => value / 255) }
     const luminance = (color: number[]) => color.map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4).reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0)
     const base = getComputedStyle(element.closest('.ls-theme-aurora')!).backgroundColor
-    return [...element.querySelectorAll('a, .team-category-navigation__label'), ...document.querySelectorAll('.notice-content-header .ls-page-primary-action')].map(node => {
+    return [...element.querySelectorAll('a, .team-category-navigation__label'), ...document.querySelectorAll('.ls-page-primary-action')].map(node => {
       const style = getComputedStyle(node)
       const foreground = luminance(rgb(style.color))
       const background = luminance(rgb(style.backgroundColor === 'rgba(0, 0, 0, 0)' ? base : style.backgroundColor))
@@ -144,11 +150,12 @@ test('notice center keeps responsive category semantics and permissions at large
     const center = (await page.locator('.team-category-layout').boundingBox())!
     const header = (await page.locator('.ls-page-header').boundingBox())!
     expect(center.width).toBeCloseTo(header.width, 0)
-    if (width === 1920 && fontSize === 16) expect(center.width).toBe(1440)
-    const availableWidth = await page.locator('.team-category-layout').evaluate(element => element.clientWidth - parseFloat(getComputedStyle(element).paddingLeft) - parseFloat(getComputedStyle(element).paddingRight))
-    const desktop = availableWidth >= 48 * fontSize
-    await expect(page.locator('.team-category-navigation__desktop')).toBeVisible({ visible: desktop })
-    await expect(page.locator('.team-category-navigation__mobile')).toBeVisible({ visible: !desktop })
+    if (width === 1920 && fontSize === 16) expect(center.width).toBe(1024)
+    await expect(page.locator('.team-category-navigation__desktop')).toBeVisible()
+    await expect(page.locator('.team-category-navigation__mobile')).toBeHidden()
+    const alignment = await page.locator('.notice-list-content').evaluate(element => ({content:element.getBoundingClientRect().x, toolbar:element.querySelector('.ls-list-toolbar')!.getBoundingClientRect().x, list:element.querySelector('.ls-resource-list')!.getBoundingClientRect().x}))
+    expect(alignment.content).toBeCloseTo(alignment.toolbar, 0)
+    expect(alignment.content).toBeCloseTo(alignment.list, 0)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `${width}/${fontSize}`).toBe(true)
   }
   await page.evaluate(() => { document.documentElement.style.fontSize = '16px' })
@@ -162,8 +169,7 @@ test('notice center keeps responsive category semantics and permissions at large
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/notices\/sent$/)
   await page.setViewportSize({ width: 375, height: 1100 })
-  await page.locator('.team-category-navigation__mobile .n-select').click()
-  await page.locator('.n-base-select-menu:visible .n-base-select-option').filter({ hasText: '平台通知' }).click()
+  await categoryLinks.nth(1).click()
   await expect(page).toHaveURL(/\/notices\/team$/)
   await page.goto(`${origin}/personal/notices`)
   await expect(page.locator('#workspace').getByRole('heading', { name: '收件箱' })).toBeVisible()
@@ -171,7 +177,7 @@ test('notice center keeps responsive category semantics and permissions at large
   model.permissions = []
   await page.goto(`${origin}/notices/team`)
   await expect(page.locator('.ls-empty-state')).toBeVisible()
-  await expect(page.locator('.ls-resource-row')).toHaveCount(0)
+  await expect(page.locator('.team-notice-row')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '全部标为已读' })).toHaveAttribute('aria-disabled', 'true')
 })
 
