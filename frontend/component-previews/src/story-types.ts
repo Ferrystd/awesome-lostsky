@@ -5,6 +5,7 @@ export type PreviewState = typeof previewStates[number]
 
 export interface StoryDefinition {
   name: string
+  desktopWidth?: number
   supported: PreviewState[]
   render: (state: PreviewState) => VNodeChild
   reason?: Partial<Record<PreviewState, string>>

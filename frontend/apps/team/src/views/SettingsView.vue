@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
+import { RouterLink } from 'vue-router'
 import { KeyRound } from '@lucide/vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -11,6 +11,7 @@ import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 
 import TeamSettingsGroup from '../components/TeamSettingsGroup.vue'
+import TeamSettingsCenter from '../components/TeamSettingsCenter.vue'
 import type { SettingApp, SettingField, SettingSchema, SettingValue } from './settings/types'
 
 const client = useQueryClient()
@@ -26,8 +27,16 @@ const query = useQuery({
   enabled: computed(() => !routeAccess.restricted.value),
 })
 const apps = computed(() => query.data.value?.apps ?? [])
+const selected = ref('')
+const currentApp = computed(() => apps.value.find(app => app.app_name === selected.value) ?? apps.value[0])
+const navigationItems = computed(() => apps.value.map(app => ({ key: app.app_name, label: app.label, dirty: appDirty(app.app_name) })))
 
 watch(apps, (groups) => {
+  if (!groups.some(group => group.app_name === selected.value)) selected.value = groups[0]?.app_name ?? ''
+  for (const key of Object.keys(values)) if (!groups.some(group => group.app_name === key)) {
+    delete values[key]
+    delete baselines[key]
+  }
   groups.forEach((group) => {
     if (values[group.app_name] && appDirty(group.app_name)) return
     values[group.app_name] = Object.fromEntries(group.settings.map(setting => [setting.key, setting.value]))
@@ -44,6 +53,7 @@ const save = useMutation({
   },
   onMutate: () => { savedApp.value = '' },
   onSuccess: async (submitted, app) => {
+    if (!apps.value.some(group => group.app_name === app.app_name)) return
     baselines[app.app_name] = submitted
     savedApp.value = app.app_name
     await client.invalidateQueries({ queryKey: ['settings', 'schema'] })
@@ -79,31 +89,33 @@ function isSaving(appName: string): boolean {
   <div class="settings-view">
     <AdminPageHeader
       title="团队设置"
-      description="配置团队设置，以此更好的贴合贵团队的业务。"
-    ><template #actions><LsPagePrimaryAction :icon="KeyRound" label="团队能力" to="/abilities" /></template></AdminPageHeader>
+      description="按业务分类管理团队的运行方式。"
+    ><template #actions><RouterLink class="settings-abilities" to="/abilities"><KeyRound :size="16" aria-hidden="true" />团队能力</RouterLink></template></AdminPageHeader>
 
     <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取团队设置" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="4" />
     <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !apps.length" :title="routeAccess.restricted.value ? '没有可显示的团队设置' : '当前没有可配置项'" description="还没有可配置的设置项。" />
 
-    <template v-else>
+    <TeamSettingsCenter v-else-if="currentApp" :items="navigationItems" :current="currentApp.app_name" @select="selected = $event">
       <TeamSettingsGroup
-        v-for="app in apps"
-        :key="app.app_name"
-        :app="app"
-        :values="values[app.app_name] ?? {}"
-        :loading="isSaving(app.app_name)"
-        :disabled="save.isPending.value || !validApp(app) || !appDirty(app.app_name)"
-        :saved="savedApp === app.app_name && !appDirty(app.app_name)"
-        :error="save.isError.value && save.variables.value?.app_name === app.app_name ? friendlyError(save.error.value) : ''"
+        :key="currentApp.app_name"
+        :app="currentApp"
+        :values="values[currentApp.app_name] ?? {}"
+        :loading="isSaving(currentApp.app_name)"
+        :disabled="save.isPending.value || !validApp(currentApp) || !appDirty(currentApp.app_name)"
+        :saved="savedApp === currentApp.app_name && !appDirty(currentApp.app_name)"
+        :error="save.isError.value && save.variables.value?.app_name === currentApp.app_name ? friendlyError(save.error.value) : ''"
         :restricted="routeAccess.restricted.value"
-        @update="(key, value) => setSettingValue(app.app_name, key, value)"
-        @submit="save.mutate(app)"
+        @update="(key, value) => setSettingValue(currentApp!.app_name, key, value)"
+        @submit="save.mutate(currentApp!)"
       />
-    </template>
+    </TeamSettingsCenter>
   </div>
 </template>
 
 <style scoped>
 .settings-view { min-width: 0; display: grid; gap: 1.5rem; }
+.settings-abilities { min-height: 44px; display: inline-flex; align-items: center; gap: .5rem; color: var(--text-secondary); font-size: .875rem; text-decoration: none; }
+.settings-abilities:hover { color: var(--primary); }
+.settings-abilities:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
 </style>

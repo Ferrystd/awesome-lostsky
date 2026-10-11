@@ -28,8 +28,8 @@ describe("component preview catalog", () => {
   it("registers every shared and application component Vue file exactly once", async () => {
     const discovered = await componentFiles(path.join(repository, "frontend"));
     const registered = catalog.map((entry) => entry.source).sort();
-    expect(discovered).toHaveLength(93);
-    expect(registered).toHaveLength(93);
+    expect(discovered).toHaveLength(95);
+    expect(registered).toHaveLength(95);
     expect(new Set(registered).size).toBe(registered.length);
     expect(registered).toEqual(discovered);
   });

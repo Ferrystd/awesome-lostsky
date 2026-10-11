@@ -972,6 +972,22 @@
     ]
   },
   {
+    "id": "team-settings-center",
+    "category": "team",
+    "name": "TeamSettingsCenter",
+    "source": "frontend/apps/team/src/components/TeamSettingsCenter.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#TeamSettingsCenter",
+    "aliases": ["team-settings-center"]
+  },
+  {
+    "id": "team-settings-navigation",
+    "category": "team",
+    "name": "TeamSettingsNavigation",
+    "source": "frontend/apps/team/src/components/TeamSettingsNavigation.vue",
+    "story": "frontend/component-previews/src/app-stories.ts#TeamSettingsNavigation",
+    "aliases": ["team-settings-navigation"]
+  },
+  {
     "id": "team-settings-group",
     "category": "team",
     "name": "TeamSettingsGroup",

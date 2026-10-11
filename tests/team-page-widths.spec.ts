@@ -32,7 +32,7 @@ test('Team settings keeps compact fields and one group footer action across widt
   await page.context().addCookies([{ name: 'lostsky_token', value: `x.${Buffer.from(JSON.stringify({ sub: 1, act: { type: 'team', id: 1 } })).toString('base64url')}.x`, domain: '.lostsky.work', path: '/' }])
   await page.route(`${origin}/api/**`, route => route.fulfill({ json: { code: 0, data: route.request().url().endsWith('/access')
     ? { permissions: ['team'], abilities: {}, identity: { type: 'team', entity_id: 1 } }
-    : { apps: [{ app_name: 'entity', label: '人员', description: '管理人员查找规则。', settings: [
+    : { apps: [{ app_name: 'entity', label: '人员查找与团队访问规则的完整业务分类名称', description: '管理人员查找规则。', settings: [
       { key: 'searchable', label: '允许查找团队', description: '允许通过标识找到当前团队。', type: 'boolean', control: 'switch', value: false, default: false },
       { key: 'default_expire_days', label: '默认权益有效天数', description: '新建权益项默认的有效期；0 表示永久有效。', type: 'integer', control: 'number', value: 30, default: 30, min: 0, max: 3650 },
       { key: 'welcome_text', label: '主页欢迎语', description: '向访问团队主页的人员展示欢迎说明。'.repeat(8), type: 'string', control: 'input', value: '欢迎了解团队的服务与工作方式。'.repeat(10), default: '', max_length: 200 },
@@ -44,7 +44,15 @@ test('Team settings keeps compact fields and one group footer action across widt
   for (const fontSize of ['16px', '32px']) for (const width of [320, 375, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1200 })
     await page.evaluate(size => { document.documentElement.style.fontSize = size }, fontSize)
-    const header = await page.locator('.ls-page-header').boundingBox()
+    const header = await page.locator('.settings-center__content').boundingBox()
+    const center = (await page.locator('.settings-center').boundingBox())!
+    const pageHeader = (await page.locator('.ls-page-header').boundingBox())!
+    expect(center.x).toBeCloseTo(pageHeader.x, 0)
+    expect(center.width).toBeCloseTo(pageHeader.width, 0)
+    if (fontSize === '16px' && width === 1920) expect(center.width).toBe(1024)
+    const desktop = center.width >= 48 * parseInt(fontSize)
+    await expect(page.locator('.settings-navigation__desktop')).toBeVisible({ visible: desktop })
+    await expect(page.locator('.settings-navigation__mobile')).toBeVisible({ visible: !desktop })
     const box = await panel.boundingBox()
     expect(box!.x).toBeCloseTo(header!.x, 0)
     expect(box!.width).toBeCloseTo(header!.width, 0)
@@ -55,14 +63,17 @@ test('Team settings keeps compact fields and one group footer action across widt
     expect(action!.y).toBeGreaterThanOrEqual(lastField!.y + lastField!.height)
     expect(action!.height).toBeGreaterThanOrEqual(44)
     expect(action!.x + action!.width).toBeLessThanOrEqual(box!.x + box!.width)
-    expect((await panel.getByRole('switch').boundingBox())!.height).toBeGreaterThanOrEqual(44)
+    const caption = (await save.locator('.settings-save-label').boundingBox())!
+    expect(caption.width).toBeLessThanOrEqual(action!.width)
+    expect(caption.y + caption.height).toBeLessThanOrEqual(action!.y + action!.height + 1)
+    expect(Math.round((await panel.getByRole('switch').boundingBox())!.height)).toBeGreaterThanOrEqual(44)
     for (const field of await panel.locator('.setting-control').all()) {
       const bounds = (await field.boundingBox())!
       expect(bounds.x).toBeGreaterThanOrEqual(box!.x)
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(box!.x + box!.width)
     }
     if (fontSize === '16px' && width >= 1024) expect((await panel.locator('.setting-row--switch').boundingBox())!.height).toBeLessThan(96)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `settings overflow at ${width}px/${fontSize}`).toBe(true)
   }
 })
 

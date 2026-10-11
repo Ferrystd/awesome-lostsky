@@ -107,6 +107,10 @@ describe('后台源码设计契约', () => {
         control: 'button',
       },
       {
+        file: 'frontend/apps/team/src/components/TeamSettingsNavigation.vue',
+        control: 'button',
+      },
+      {
         file: 'frontend/packages/ui/src/components/LsMarkdownEditor.vue',
         control: 'button',
       },
@@ -201,7 +205,7 @@ describe('后台源码设计契约', () => {
       .flatMap(filesUnder)
       .filter((path) => path.endsWith('.vue'))
       .flatMap((path) => [...readFileSync(path, 'utf8').matchAll(/<LsPagePrimaryAction\b[^>]*>/g)].map((match) => ({ path, tag: match[0] })))
-    expect(usages).toHaveLength(42)
+    expect(usages).toHaveLength(41)
     for (const usage of usages) {
       const file = relative(repository, usage.path).replaceAll('\\', '/')
       expect(usage.tag, `${file} 的页面主操作缺少强制 icon`).toMatch(/:icon=/)

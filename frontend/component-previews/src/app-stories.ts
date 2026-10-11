@@ -1,5 +1,7 @@
 import WeiboAccountField from '../../apps/weibo/src/components/WeiboAccountField.vue';
 import TeamSettingsGroup from '../../apps/team/src/components/TeamSettingsGroup.vue';
+import TeamSettingsCenter from '../../apps/team/src/components/TeamSettingsCenter.vue';
+import TeamSettingsNavigation from '../../apps/team/src/components/TeamSettingsNavigation.vue';
 import WeiboCommentFields from '../../apps/weibo/src/components/WeiboCommentFields.vue';
 import WeiboFeedCommentComposer from '../../apps/weibo/src/components/WeiboFeedCommentComposer.vue';
 import JoinApplicationFields from '../../apps/team/src/components/JoinApplicationFields.vue';
@@ -809,6 +811,19 @@ const transactionFlowTrend = story(
 );
 
 export const appStories: Record<string, StoryDefinition> = {
+  TeamSettingsNavigation: { ...story('TeamSettingsNavigation', ['default', 'hover', 'focus', 'active', 'mobile'], state => h(defineComponent({ setup() {
+    const current = ref('entity');
+    return () => h('div', { style: { container: 'team-settings-center / inline-size', minWidth: '0' } }, h(TeamSettingsNavigation, { style: state === 'mobile' ? undefined : { width: '11.5rem' }, current: current.value, panelId: 'preview-settings', items: [{ key: 'entity', label: '人员', dirty: state === 'active' }, { key: 'chat', label: '聊天', dirty: true }, { key: 'display', label: '展示', dirty: false }], onSelect: key => { current.value = key } }));
+  }}))), desktopWidth: 1024 },
+  TeamSettingsCenter: { ...story('TeamSettingsCenter', [...interactive, 'loading', 'error'], state => h(defineComponent({ setup() {
+    const current = ref('entity');
+    const values = ref<Record<string, boolean>>({ entity: false, chat: true, display: false });
+    const items = [{ key: 'entity', label: '人员', dirty: false }, { key: 'chat', label: '聊天', dirty: true }, { key: 'display', label: '展示', dirty: false }];
+    return () => h(TeamSettingsCenter, { current: current.value, items, onSelect: key => { current.value = key } }, { default: () => h(TeamSettingsGroup, {
+      app: { app_name: current.value, label: items.find(item => item.key === current.value)!.label, description: '管理团队的业务规则。', order: 1, settings: [{ key: 'enabled', label: '允许查找团队', description: '允许通过团队标识找到当前团队。', type: 'boolean', control: 'switch', order: 1, default: false, value: false }] },
+      values: { enabled: values.value[current.value] }, loading: state === 'loading', disabled: state === 'disabled' || state === 'loading', saved: state === 'active', error: state === 'error' ? '保存失败，请稍后重试。' : '', restricted: false, onUpdate: (_key, value) => { values.value[current.value] = Boolean(value) },
+    }) });
+  }}))), desktopWidth: 1024 },
   TeamSettingsGroup: story('TeamSettingsGroup', [...interactive, 'loading', 'error'], state => stage(h(TeamSettingsGroup, {
     app: { app_name: 'entity', label: '人员', description: '管理人员查找与加入规则。', order: 1, settings: [
       { key: 'searchable', label: '允许查找团队', description: '允许通过团队标识找到当前团队。', type: 'boolean', control: 'switch', order: 1, default: false, value: false },

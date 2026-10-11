@@ -120,7 +120,7 @@ const routes = [
   { path: '/notice-detail', redirect: (to: RouteLocationGeneric) => legacyNoticeRedirect(to, true) },
   { path: '/notice-send', redirect: (to: RouteLocationGeneric) => ({ path: '/notices/send', query: to.query, hash: to.hash }) },
   { path: '/files', component: FilesView, meta: { pageWidth: 'wide', title: '文件', permission: 'file.read', accessMode: 'list' } },
-  { path: '/settings', component: SettingsView, meta: { title: '团队设置', pageWidth: 'form', permission: 'team.setting.read' } },
+  { path: '/settings', component: SettingsView, meta: { title: '团队设置', pageWidth: 'content', permission: 'team.setting.read' } },
   { path: '/abilities', component: AbilitiesView, meta: { title: '团队能力', pageWidth: 'content', permission: 'team.ability.redeem' } },
   { path: '/audit', component: AuditView, meta: { title: '审计日志', pageWidth: 'wide', permission: 'team.audit.read', accessMode: 'list' } },
   { path: '/audit/:id(\\d+)', component: AuditDetailView, meta: { title: '审计事件', pageWidth: 'content', permission: 'team.audit.read' } },
