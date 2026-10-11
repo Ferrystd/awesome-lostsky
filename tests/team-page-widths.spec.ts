@@ -50,6 +50,9 @@ test('Team settings keeps compact fields and one group footer action across widt
     const header = await page.locator('.team-category-layout__content').boundingBox()
     const center = (await page.locator('.team-category-layout').boundingBox())!
     const pageHeader = (await page.locator('.ls-page-header').boundingBox())!
+    const layoutGrid = (await page.locator('.team-category-layout__layout').boundingBox())!
+    const normalPadding = await page.locator('.team-category-layout').evaluate(element => parseFloat(getComputedStyle(element).paddingLeft))
+    expect(layoutGrid.y - center.y, 'background must not reserve a banner').toBeCloseTo(normalPadding, 0)
     expect(center.x).toBeCloseTo(pageHeader.x, 0)
     expect(center.width).toBeCloseTo(pageHeader.width, 0)
     if (fontSize === '16px' && width === 1920) expect(center.width).toBe(1024)

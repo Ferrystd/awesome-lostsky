@@ -1,37 +1,29 @@
-// Original shader: layered value-noise curtains, inspired by the visual direction of React Bits Aurora.
-// No React Bits source or dependency is included.
+// Original analytic shader: two sparse, smoothly deforming liquid lights.
+// No texture, noise field, or third-party shader source is included.
 const vertexSource = `attribute vec2 position; void main() { gl_Position = vec4(position, 0., 1.); }`
 const fragmentSource = `
 precision mediump float;
 uniform vec2 resolution;
 uniform float time;
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float noise(vec2 p) {
-  vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
-  return mix(mix(hash(i), hash(i + vec2(1., 0.)), f.x), mix(hash(i + vec2(0., 1.)), hash(i + 1.), f.x), f.y);
-}
-float folds(vec2 p) { return noise(p) * .57 + noise(p * 2.03) * .28 + noise(p * 4.07) * .15; }
 void main() {
   vec2 uv = gl_FragCoord.xy / resolution;
-  float x = uv.x * 3.6;
-  float t = time * .14;
+  float t = time * .22;
   vec3 light = vec3(0.);
   for (int layer = 0; layer < 2; layer++) {
     float l = float(layer);
-    float bend = folds(vec2(x + l * 3.8 + t * .2, t + l * 2.));
-    float crest = .59 + .24 * (bend - .5) + .09 * sin(x * 1.8 + t + l * 2.2) + l * .12;
-    float distance = uv.y - crest;
-    float rays = .45 + .55 * folds(vec2(x * 30. + bend * 8., t * .7 + l));
-    float curtain = exp(-max(distance, 0.) * 6.) * smoothstep(-.012, .035, distance);
-    float edge = exp(-abs(distance) * 100.);
-    float halo = exp(-abs(distance) * 14.);
-    vec3 color = mix(vec3(.12, 1., .62), vec3(.16, .72, 1.), smoothstep(.2, .75, uv.x + bend * .2));
-    color = mix(color, vec3(.6, .38, 1.), smoothstep(.72, 1.1, uv.x + l * .14));
-    light += color * (curtain * rays * .9 + edge * .6 + halo * .18) * (1. - l * .4);
+    float center = .29 + l * .39 + .016 * sin(t * .7 + l * 2.);
+    float x = (uv.x - center) / (.19 - l * .025);
+    float taper = exp(-pow(abs(x), 4.) * 2.);
+    float curve = .975 - l * .01 + .009 * sin(x * 2. + t + l * 2.) + .007 * x * x;
+    float thickness = .012 + .007 * (.5 + .5 * sin(x * 2.5 - t));
+    float d = (uv.y - curve) / thickness;
+    float body = exp(-d * d * .65) * taper;
+    float glow = exp(-d * d * .065) * taper * .14;
+    float sheen = exp(-pow(d - .35, 2.) * 9.) * taper * .18;
+    vec3 color = mix(vec3(.16, .94, .71), vec3(.30, .58, 1.), l);
+    light += color * (body * .8 + glow) + vec3(.65, .96, 1.) * sheen;
   }
-  light *= smoothstep(0., .16, uv.y) * (.65 + .35 * sin(uv.x * 3.14159));
-  vec3 night = vec3(.0196, .0392, .075);
-  gl_FragColor = vec4(night + light, 1.);
+  gl_FragColor = vec4(vec3(.0196, .0392, .075) + light, 1.);
 }`
 
 export function createAuroraRenderer(canvas: HTMLCanvasElement, ready: (value: boolean) => void) {
