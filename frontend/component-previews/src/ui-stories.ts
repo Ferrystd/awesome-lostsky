@@ -1,9 +1,10 @@
+import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
 import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
 import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { workspaceSceneKey } from '@lostsky/ui/workspace-scene'
 import { defineComponent, h, nextTick, onMounted, provide, ref } from 'vue'
-import { NInput, NSelect, NTag } from 'naive-ui'
+import { NInput, NSelect, NTag, NPagination } from 'naive-ui'
 import { House, Pencil, Plus, ReceiptText, Save, ShoppingBag, Trash2, UserRound } from '@lucide/vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -895,6 +896,15 @@ const sceneMotionControl = story('LsSceneMotionControl', ['default', 'hover', 'f
 const pageLink = story('LsPageLink', ['default', 'hover', 'focus', 'mobile'], () => stage([h(LsPageLink, { to: '/abilities', icon: ReceiptText, label: '团队能力' }), h(LsPageLink, { href: 'https://chat.lostsky.work/new', icon: UserRound, label: '发起对话' })]))
 
 export const uiStories: Record<string, StoryDefinition> = {
+  LsCollectionPage: {
+    ...story('LsCollectionPage', passive, () => stage(h(LsCollectionPage, { title: '文档', description: '搜索、分类并维护团队知识文档。' }, {
+      actions: () => h(LsPageLink, { icon: Plus, label: '新建文档', to: '/doc-create' }),
+      toolbar: () => h(LsListToolbar, { placeholder: '搜索标题或正文', ariaLabel: '搜索文档', countLabel: '24 份文档' }),
+      default: () => h(LsResourceList, null, { default: () => ['团队协作指南', '公开服务说明'].map(title => h(LsResourceRow, { title, description: '查看团队资料与工作安排。', to: '/doc?id=1' })) }),
+      pagination: () => h(NPagination, { page: 1, pageCount: 2 }),
+    }))),
+    desktopWidth: 1024,
+  },
   LsWorkspaceScene: workspaceScene,
   LsSceneMotionControl: sceneMotionControl,
   LsPageLink: pageLink,

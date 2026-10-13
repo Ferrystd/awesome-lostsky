@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft, KeyRound, RotateCw, Trash2 } from '@lucide/vue'
+
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
@@ -7,14 +11,13 @@ import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { KeyRound, RotateCw, Trash2 } from '@lucide/vue'
+
 import { NInput } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsCheckboxGroupField from '@lostsky/ui/components/LsCheckboxGroupField.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 interface Integration {
@@ -156,19 +159,15 @@ function rotateCredentials() {
 </script>
 
 <template>
-    <div class="integration-form-page">
-      <AdminPageHeader
-        :title="editing ? '编辑 Webhook 集成' : '创建 Webhook 集成'"
-        :description="`该集成仅代表 @${slug}，只能向这个虚拟人员已参与的会话发送消息。`"
-        :back-to="{ path: '/chat-virtual', query: { slug } }"
-        back-label="返回虚拟人员"
-      >
-        <template v-if="editing" #actions>
+  <LsFormPage :title="editing ? '编辑 Webhook 集成' : '创建 Webhook 集成'" :description="`该集成仅代表 @${slug}，只能向这个虚拟人员已参与的会话发送消息。`">
+    <template #actions>
+      <LsPageLink :to="{ path: '/chat-virtual', query: { slug } }" :icon="ArrowLeft" label="返回虚拟人员" />
+      <template v-if="editing">
           <LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteIntegration">
             <Trash2 :size="16" />删除集成
           </LsButton>
         </template>
-      </AdminPageHeader>
+    </template>
 
       <p v-if="detail.isError.value && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(detail.error.value) }}</p>
       <LsPanel v-else><form class="integration-form" @submit.prevent="submit">
@@ -187,7 +186,7 @@ function rotateCredentials() {
         </LsFormActions>
       </form></LsPanel>
 
-      <section v-if="credentials.token" class="credentials" role="status">
+      <LsPanel v-if="credentials.token" role="status"><div class="credentials">
         <KeyRound :size="22" />
         <div>
           <h3>立即保存新凭据</h3>
@@ -195,14 +194,14 @@ function rotateCredentials() {
           <p>签名密钥：<code>{{ credentials.signing_secret }}</code></p>
           <small>明文只在创建或轮换后显示一次。</small>
         </div>
-      </section>
-    </div>
+      </div></LsPanel>
+  </LsFormPage>
 </template>
 
 <style scoped>
-.integration-form-page{display:grid;gap:1rem}
+
 .integration-form{display:grid;gap:1rem}
-.credentials{display:grid;grid-template-columns:28px minmax(0,1fr);gap:.65rem;padding:1rem;color:oklch(.28 .07 150);background:oklch(.95 .04 150);border:1px solid oklch(.8 .08 150);border-radius:12px}
+.credentials{display:grid;grid-template-columns:28px minmax(0,1fr);gap:.65rem;color:var(--text-primary)}
 .credentials h3,.credentials p{margin:0}.credentials code{display:block;overflow-wrap:anywhere;color:var(--ink);user-select:all}.credentials small{color:var(--muted-ink)}
 .error{margin:0;color:var(--danger)}
 </style>

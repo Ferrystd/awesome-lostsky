@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { api, auth, ApiError, friendlyError } from '@lostsky/api/client'
@@ -8,7 +12,6 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
@@ -115,13 +118,11 @@ async function save() {
 </script>
 
 <template>
-  <div class="weibo-stack">
-    <LsPageHeader
-      :title="editing ? '编辑微博任务' : '新建微博任务'"
-      description="新建和编辑任务不需要微博能力，仅启用任务需要；修改后任务会回到暂停状态，需重新开启。"
-      :back-to="`${prefix}/tasks`"
-      back-label="返回任务"
-    />
+  <LsFormPage :title="editing ? '编辑微博任务' : '新建微博任务'" description="新建和编辑任务不需要微博能力，仅启用任务需要；修改后任务会回到暂停状态，需重新开启。">
+    <template #actions>
+      <LsPageLink :to="`${prefix}/tasks`" :icon="ArrowLeft" label="返回任务" />
+    </template>
+
     <div v-if="conflict" role="status"><p>任务状态已变化，当前修改已保留。请核对最新任务后再保存。</p><LsButton type="button" variant="secondary" @click="reloadTask">重新载入任务</LsButton></div>
     <LsInlineError v-if="existing.isError.value" :message="friendlyError(existing.error.value)" />
     <form v-else class="weibo-form" @submit.prevent="save">
@@ -183,9 +184,9 @@ async function save() {
       </LsFormSection>
 
       <LsFormActions>
-        <LsButton variant="secondary" @click="router.push(`${prefix}/tasks`)">取消</LsButton>
+        <LsPageLink :to="`${prefix}/tasks`" :icon="ArrowLeft" label="取消" />
         <LsButton type="submit" size="lg" :loading="pending" :disabled="routeAccess.restricted.value || !canSave || !draft.dirty.value" :disabled-reason="routeAccess.reason.value">保存为暂停</LsButton>
       </LsFormActions>
     </form>
-  </div>
+  </LsFormPage>
 </template>

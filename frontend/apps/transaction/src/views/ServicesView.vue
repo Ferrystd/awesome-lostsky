@@ -1,21 +1,21 @@
 <script setup lang="ts">
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
 import { api, friendlyError } from "@lostsky/api/client";
 import { quantityScaleForStep } from "@lostsky/shared/quantity";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
 import LsEntityIdentity from "@lostsky/ui/components/LsEntityIdentity.vue";
 import LsListToolbar from "@lostsky/ui/components/LsListToolbar.vue";
-import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
-import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
 import { useRouteAccess } from "@lostsky/ui/useRouteAccess";
 import { useQuery } from "@tanstack/vue-query";
-import { Gift } from "@lucide/vue";
+import { Gift, ArrowUpRight } from "@lucide/vue";
 import { NPagination, NSelect } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { computed, h, reactive } from "vue";
-import { RouterLink } from "vue-router";
+
 import { customerName, dateTime, entityName, serviceStatusCode, serviceStatusName } from "../lib";
 import type { Pagination, ServiceRedemption } from "../types";
 
@@ -56,22 +56,16 @@ const columns: DataTableColumns<ServiceRedemption> = [
     title: "权益",
     key: "service",
     render: (r) =>
-      h(
-        RouterLink,
-        { to: `/services/${r.id}`, class: "service-cell" },
-        {
-          default: () => [
-            h("strong", r.service.name),
-            h("span", { class: "service-meta" }, [
-              h("small", `权益实例 #${r.id}`),
-              h(LsStatusTag, {
-                label: serviceStatusName(rowStatus(r)),
-                type: statusType(rowStatus(r)) as any,
-              }),
-            ]),
-          ],
-        },
-      ),
+      h("div", { class: "service-cell" }, [
+        h(LsPageLink, { to: `/services/${r.id}`, icon: ArrowUpRight, label: r.service.name }),
+        h("span", { class: "service-meta" }, [
+          h("small", `权益实例 #${r.id}`),
+          h(LsStatusTag, {
+            label: serviceStatusName(rowStatus(r)),
+            type: statusType(rowStatus(r)),
+          }),
+        ]),
+      ]),
   },
   {
     title: "顾客",
@@ -111,94 +105,111 @@ const columns: DataTableColumns<ServiceRedemption> = [
     title: "操作",
     key: "action",
     render: (r) =>
-      h(RouterLink, { to: `/services/${r.id}` }, { default: () => "查看任务" }),
+      h(LsPageLink, { to: `/services/${r.id}`, icon: ArrowUpRight, label: "查看任务" }),
   },
 ];
 </script>
 <template>
   <div class="redemptions-view">
-    <LsPageHeader
-      title="权益核销"
-      description="接单人员查看自己的任务；管理人员处理改派、取消审批与确认完成。"
-    >
+    <LsCollectionPage title="权益核销" description="接单人员查看自己的任务；管理人员处理改派、取消审批与确认完成。">
       <template #actions>
-        <LsPagePrimaryAction :icon="Gift" label="赋予顾客权益" to="/entitlements/new" />
+        <LsPageLink :icon="Gift" label="赋予顾客权益" to="/entitlements/new" />
       </template>
-    </LsPageHeader><LsListToolbar
+      <template #toolbar>
+        <LsListToolbar
       v-model="filters.keyword"
       placeholder="搜索权益或顾客"
       aria-label="搜索权益核销"
       :count-label="routeAccess.restricted.value ? '0 个权益实例' : `${query.data.value?.total ?? 0} 个权益实例`"
       @update:model-value="filters.page = 1"
-      ><template #filters
-        ><NSelect
-          v-model:value="filters.status"
-          :options="statuses"
-          clearable
-          placeholder="全部状态"
-          @update:value="filters.page = 1" /></template></LsListToolbar
-    ><LsAsyncState
+      >
+          <template #filters
+        >
+            <NSelect
+            v-model:value="filters.status"
+            :options="statuses"
+            clearable
+            placeholder="全部状态"
+            @update:value="filters.page = 1" />
+          </template>
+        </LsListToolbar
+    >
+      </template>
+      <LsAsyncState
       v-if="!routeAccess.restricted.value && query.isError.value"
       state="error"
       title="无法读取核销"
       :description="friendlyError(query.error.value)"
-    /><LsAsyncState
+      />
+      <LsAsyncState
       v-else-if="!routeAccess.restricted.value && query.isPending.value"
       state="loading"
       :rows="6"
-    /><LsEmptyState :source="query.data.value"
+      />
+      <LsEmptyState :source="query.data.value"
       v-else-if="routeAccess.restricted.value || !rows.length"
       :title="
-        routeAccess.restricted.value ? '没有可显示的权益' : filters.keyword || filters.status
-          ? '没有匹配的权益'
-          : '没有待处理的权益'
+      routeAccess.restricted.value ? '没有可显示的权益' : filters.keyword || filters.status
+      ? '没有匹配的权益'
+      : '没有待处理的权益'
       "
       :description="filters.keyword || filters.status
-        ? '调整搜索或状态筛选后再试。'
-        : '顾客发起核销后，任务会出现在这里。'
+      ? '调整搜索或状态筛选后再试。'
+      : '顾客发起核销后，任务会出现在这里。'
       "
-    /><LsResponsiveDataTable
+      />
+      <LsResponsiveDataTable
       v-else
       :columns="columns"
       :data="rows"
       :row-key="(r) => r.id"
       :scroll-x="920"
-      ><template #mobile-title="{ row }"
-        ><RouterLink :to="`/services/${row.id}`"
-          >{{ row.service.name }} · #{{ row.id }}</RouterLink
-        ></template
-      ><template #mobile-status="{ row }"
-        ><LsStatusTag
+      >
+        <template #mobile-title="{ row }"
+        >
+          <LsPageLink :to="`/services/${row.id}`" :icon="ArrowUpRight" :label="row.service.name + ' · #' + row.id" />
+        </template
+      >
+        <template #mobile-status="{ row }"
+        >
+          <LsStatusTag
           :label="serviceStatusName(rowStatus(row))"
-          :type="statusType(rowStatus(row))" /></template
-      ><template #mobile="{ row }"
-        ><dl>
-          <dt>顾客</dt>
-          <dd>{{ customerName(row.customer, row.customer_id) }}</dd>
-          <dt>接单人</dt>
-          <dd>{{ entityName(row.handler, row.handler_entity_id) }}</dd>
-          <dt>发起时间</dt>
-          <dd>{{ dateTime(row.started_at) }}</dd>
-          <dt>履约数量</dt>
-          <dd>{{ Number(row.quantity).toFixed(quantityScaleForStep(row.entitlement?.quantity_step)) }} {{ row.entitlement?.unit_name || '单位' }}</dd>
-          <dt>操作</dt>
-          <dd><RouterLink :to="`/services/${row.id}`">查看任务</RouterLink></dd>
-        </dl></template
-      ></LsResponsiveDataTable
+          :type="statusType(rowStatus(row))" />
+        </template
+      >
+        <template #mobile="{ row }"
+        >
+          <dl>
+            <dt>顾客</dt>
+            <dd>{{ customerName(row.customer, row.customer_id) }}</dd>
+            <dt>接单人</dt>
+            <dd>{{ entityName(row.handler, row.handler_entity_id) }}</dd>
+            <dt>发起时间</dt>
+            <dd>{{ dateTime(row.started_at) }}</dd>
+            <dt>履约数量</dt>
+            <dd>{{ Number(row.quantity).toFixed(quantityScaleForStep(row.entitlement?.quantity_step)) }} {{ row.entitlement?.unit_name || '单位' }}</dd>
+            <dt>操作</dt>
+            <dd>
+              <LsPageLink :to="`/services/${row.id}`" :icon="ArrowUpRight" label="查看任务" />
+            </dd>
+          </dl>
+        </template
+      >
+      </LsResponsiveDataTable
     >
-    <div v-if="query.data.value?.total" class="pager">
-      <span>第 {{ filters.page }} / {{ pages }} 页</span
-      ><NPagination v-model:page="filters.page" :page-count="pages" />
-    </div>
+      <template v-if="query.data.value?.total" #pagination>
+        <span>第 {{ filters.page }} / {{ pages }} 页</span
+        >
+        <NPagination v-model:page="filters.page" :page-count="pages" />
+      </template>
+    </LsCollectionPage>
   </div>
 </template>
 <style scoped>
-.redemptions-view {
+
+.redemptions-view :deep(.service-cell) {
   display: grid;
-  gap: 1.25rem;
-}
-.redemptions-view :deep(.service-cell > *) {
-  display: block;
+  gap: 0.25rem;
 }
 .redemptions-view :deep(.service-meta) {
   display: flex;

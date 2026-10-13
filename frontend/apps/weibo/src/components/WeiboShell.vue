@@ -21,6 +21,7 @@ import { NButton } from "naive-ui";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+defineProps<{ scene?: boolean }>()
 const route = useRoute();
 const navigationPath = computed(() => route.path.startsWith('/personal/interactions/comment-presets') ? '/personal/feed' : route.path);
 const router = useRouter();
@@ -109,7 +110,7 @@ function switchApp(key: string) {
         @click="drawer = false"
     /></Transition>
     <section class="weibo-layout">
-      <LsWorkspaceHeader
+      <LsWorkspaceHeader :scene="scene" :contextual="scene"
         context-label="微博工作台"
         :title="String(route.meta.title || '微博')"
         :actions="headerActions"

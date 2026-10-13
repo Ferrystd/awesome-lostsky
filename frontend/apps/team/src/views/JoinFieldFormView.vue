@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
@@ -17,7 +21,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NAlert, NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { hasPermission, permissionReason, useTeamAccess } from '../lib/teamAccess'
 import { inputTypeOptions, normalizeJoinOptions, type JoinField, type JoinFieldOption, type JoinTransferOption, usesJoinOptions, valueTypeOptions } from '../lib/joinFields'
 
@@ -221,8 +224,10 @@ function deleteField() {
 </script>
 
 <template>
-  <div class="join-field-form-page">
-    <AdminPageHeader :title="editing ? (canWrite ? '编辑申请字段' : '查看申请字段') : '创建申请字段'" description="字段标识创建后保持不变；停用字段不会出现在新的加入申请表中。" back-to="/join-fields" back-label="返回申请字段" />
+  <LsFormPage :title="editing ? (canWrite ? '编辑申请字段' : '查看申请字段') : '创建申请字段'" description="字段标识创建后保持不变；停用字段不会出现在新的加入申请表中。">
+    <template #actions>
+      <LsPageLink to="/join-fields" :icon="ArrowLeft" label="返回申请字段" />
+    </template>
 
     <LsAsyncState v-if="access.isPending.value" state="loading" :rows="5" />
     <LsAsyncState v-else-if="access.isError.value" state="error" title="暂时无法确认申请字段权限" :description="friendlyError(access.error.value)" />
@@ -283,9 +288,9 @@ function deleteField() {
         <LsButton v-if="editing" type="button" variant="danger" :loading="remove.isPending.value" :disabled="!canWrite" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined" @click="deleteField">删除字段</LsButton>
       </LsFormActions>
     </form></LsPanel>
-  </div>
+  </LsFormPage>
 </template>
 
 <style scoped>
-.join-field-form-page{display:grid;gap:1.5rem}.join-field-form{display:grid;gap:1.25rem}.settings{display:grid;gap:1rem;padding-top:1.25rem;border-top:1px solid var(--line)}.option-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}@media(max-width:639px){.join-field-form-page{gap:1rem}.option-grid{grid-template-columns:1fr}}
+.join-field-form{display:grid;gap:1.25rem}.settings{display:grid;gap:1rem;padding-top:1.25rem;border-top:1px solid var(--line)}.option-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}@media(max-width:639px){.option-grid{grid-template-columns:1fr}}
 </style>

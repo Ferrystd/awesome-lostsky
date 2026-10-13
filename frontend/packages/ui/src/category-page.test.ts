@@ -1,0 +1,40 @@
+import { readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+import LsCategoryPage from './components/LsCategoryPage.vue'
+
+const source = (path: string) => readFileSync(path, 'utf8')
+describe('category page pilot', () => {
+  it('keeps a closed semantic contract and one responsive navigation owner', () => {
+    expect(Object.keys((LsCategoryPage as any).props).sort()).toEqual(['current', 'description', 'items', 'label', 'title'])
+    expect((LsCategoryPage as any).emits).toEqual(['select'])
+    const component = source('frontend/packages/ui/src/components/LsCategoryPage.vue')
+    expect(component).toContain('inheritAttrs: false')
+    expect(component).toContain('grid-template-columns: 11.5rem minmax(0, 1fr)')
+    expect(component).toContain('@container ls-category-page (min-width: 48rem)')
+    expect(component).toContain('<LsPageHeader')
+    expect(component).toContain('<NSelect')
+    expect(component).toContain('<LsSceneMotionControl')
+    expect(component).not.toMatch(/<LsPage\s|<LsWorkspaceScene|NConfigProvider|<form/)
+    expect(component).toContain("event.key === 'Home'")
+    expect(component).toContain("event.key === 'End'")
+    expect(component).toContain("trigger.setAttribute('role', 'combobox')")
+    expect(component).toContain("trigger.setAttribute('aria-expanded', String(expanded))")
+    expect(component).toContain("trigger.setAttribute('aria-controls', menuId)")
+  })
+  it('keeps the complete permission draft and a single permission save', () => {
+    const page = source('frontend/apps/team/src/views/RoleDetailView.vue')
+    expect(page).toContain('<LsCategoryPage')
+    expect(page).not.toContain('NCollapse')
+    expect(page.match(/api.post\('\/rolePermission\/save'/g)).toHaveLength(1)
+    expect(page).toContain('permission_keys: [...keys]')
+    expect(page).toContain('const submitted = pendingPermissionSubmission!')
+    expect(page).toContain('permissionsDraft.accept(submitted, keys)')
+    expect(page).toContain('useUnsavedChangesGuard')
+    expect(page).toContain(':access-reason="routeAccess.reason.value"')
+    expect(page).toContain("routeAccess.restricted.value ? '-' : form.name")
+    expect(page).not.toContain(':deep(')
+    const app = source('frontend/apps/team/src/App.vue')
+    expect(app).toContain('route.meta.workspaceScene === true')
+    expect(app).toContain('v-bind="workspaceSceneProviderProps(auroraScene)"')
+  })
+})

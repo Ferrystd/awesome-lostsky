@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
+import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
@@ -8,8 +10,7 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import { teamNavigation } from '../lib/workspaceNavigation'
 import { api, friendlyError } from '@lostsky/api/client'
 import { useQuery } from '@tanstack/vue-query'
-import { NGrid, NGridItem, NThing } from 'naive-ui'
-import { ArrowRight, Bell, BookOpen, Boxes, UserRound, Users } from '@lucide/vue'
+import { Bell, BookOpen, Boxes, UserRound, Users } from '@lucide/vue'
 import { computed } from 'vue'
 import TeamShareLinks from '../components/TeamShareLinks.vue'
 
@@ -68,37 +69,36 @@ const resourceGroups = teamNavigation
 
 
 <template>
-  <LsWorkspaceOverview eyebrow="团队运行概览" title="团队工作台" description="管理团队资源，处理成员与人事事务。" :actions="[{ key: 'personal', label: '进入个人工作台', to: '/personal', icon: UserRound, primary: true }, { key: 'manual', label: '使用文档', href: '//doc.lostsky.work', target: '_blank', rel: 'noopener', icon: BookOpen }]" :entries="[]">
+  <LsOverviewPage title="团队工作台" description="管理团队资源，处理成员与人事事务。">
+    <template #actions>
+      <LsPageLink to="/personal" :icon="UserRound" label="进入个人工作台" />
+      <LsPageLink href="//doc.lostsky.work" target="_blank" rel="noopener" :icon="BookOpen" label="使用文档" />
+      <LsSceneMotionControl />
+    </template>
     <template #summary>
       <TeamShareLinks />
       <LsMetricGrid :items="metricItems" aria-label="团队资源摘要" />
       <LsAsyncState v-if="query.isPending.value" state="loading" :rows="2" />
       <LsInlineError v-else-if="query.isError.value" :message="friendlyError(query.error.value)" />
     </template>
-    <template #workspace>
       <div class="team-resource-map">
         <LsPanel v-for="group in resourceGroups" :key="group.key">
           <template #header><LsSectionHeader :title="group.title" :description="group.description"><template #aside><component :is="group.icon" :size="24" aria-hidden="true" /></template></LsSectionHeader></template>
           <nav :aria-label="group.title">
-            <NGrid cols="1 600:2 1000:3" :x-gap="16" :y-gap="8">
-              <NGridItem v-for="link in group.links" :key="link.to">
-                <RouterLink class="team-resource-link" :to="link.to">
-                  <NThing :title="link.label" :description="link.note">
-                    <template #avatar><component :is="link.icon" :size="20" aria-hidden="true" /></template>
-                    <template #header-extra><ArrowRight :size="18" aria-hidden="true" /></template>
-                  </NThing>
-                </RouterLink>
-              </NGridItem>
-            </NGrid>
+            <ul class="team-resource-links">
+              <li v-for="link in group.links" :key="link.to">
+                <LsPageLink :to="link.to" :icon="link.icon" :label="link.label" />
+                <p>{{ link.note }}</p>
+              </li>
+            </ul>
           </nav>
         </LsPanel>
       </div>
-    </template>
-  </LsWorkspaceOverview>
+  </LsOverviewPage>
 </template>
 <style scoped>
 .team-resource-map { display: grid; gap: 1rem; }
-.team-resource-link { display: block; min-height: 44px; padding: .75rem; color: var(--ink); border-radius: var(--radius-md); overflow-wrap: anywhere; }
-.team-resource-link:hover { background: var(--cloud); }
-.team-resource-link:focus-visible { outline: 2px solid var(--sky-lost-strong); outline-offset: 2px; }
+.team-resource-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem 1.5rem; list-style: none; padding: 0; margin: 0; }
+.team-resource-links li { min-width: 0; }
+.team-resource-links p { margin: 0; color: var(--text-secondary); font-size: .875rem; line-height: 1.6; overflow-wrap: anywhere; }
 </style>

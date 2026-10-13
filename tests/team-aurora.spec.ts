@@ -75,7 +75,7 @@ test('aurora flows within a bounded canvas and stops for pause, visibility, redu
   await expect(page.getByRole('button', { name: '暂停极光' })).toBeHidden()
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   // The app root must restore its ordinary theme on a route without this scene.
-  await page.evaluate(async () => { const { router } = await import(/* @vite-ignore */ '/src/router.ts'); await router.push('/personal/notices') })
+  await page.evaluate(async () => { const { router } = await import(/* @vite-ignore */ '/src/router.ts'); await router.push('/join') })
   await expect(page.locator('.team-aurora-backdrop')).toHaveCount(0)
   await expect(page.locator('.ls-theme-aurora')).toHaveCount(0)
   await staysStill(page)

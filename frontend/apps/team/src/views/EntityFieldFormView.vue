@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
@@ -15,7 +19,6 @@ import { useRoute, useRouter } from 'vue-router'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 type EntityType = 'entity' | 'customer' | 'virtual'
@@ -165,8 +168,11 @@ function submit() {
 </script>
 
 <template>
-    <div class="field-form-page">
-      <AdminPageHeader :title="editing ? '编辑对象字段' : '创建对象字段'" description="不同字段需要使用不同字段类型，以此更好的适配您的业务。" back-to="/fields" back-label="返回对象字段" />
+  <LsFormPage :title="editing ? '编辑对象字段' : '创建对象字段'" description="不同字段需要使用不同字段类型，以此更好的适配您的业务。">
+    <template #actions>
+      <LsPageLink to="/fields" :icon="ArrowLeft" label="返回对象字段" />
+    </template>
+
       <LsPanel><form class="field-form" @submit.prevent="submit">
         <LsField label="对象类型" for-id="entity-field-type"><NSelect id="entity-field-type" v-model:value="form.entity_type" :disabled="editing" :options="typeOptions" /></LsField>
         <LsField label="字段标识" for-id="entity-field-key"><NInput :input-props="{ id: 'entity-field-key' }" v-model:value="form.field_key" :disabled="editing" maxlength="64" placeholder="department" /></LsField>
@@ -197,9 +203,9 @@ function submit() {
         <p v-if="(save.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(save.error.value || remove.error.value) }}</p>
         <LsFormActions><LsButton type="submit" :disabled="routeAccess.restricted.value || !draft.dirty.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton></LsFormActions>
       </form></LsPanel>
-    </div>
+  </LsFormPage>
 </template>
 
 <style scoped>
-.field-form-page,.field-form{display:grid;gap:1rem}.access-policy{display:grid;gap:1rem;padding:1.25rem 0 0;border-top:1px solid var(--line)}.policy-note{margin:0;padding:.75rem;color:var(--ink);background:var(--cloud);border-radius:9px;font-size:.8rem;line-height:1.55}.error{margin:0;color:var(--danger)}
+.field-form{display:grid;gap:1rem}.access-policy{display:grid;gap:1rem;padding:1.25rem 0 0;border-top:1px solid var(--line)}.policy-note{margin:0;padding:.75rem;color:var(--ink);background:var(--cloud);border-radius:9px;font-size:.8rem;line-height:1.55}.error{margin:0;color:var(--danger)}
 </style>

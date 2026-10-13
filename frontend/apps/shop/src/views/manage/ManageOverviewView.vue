@@ -3,7 +3,9 @@ import ShopOverviewWorkspace from '../../components/ShopOverviewWorkspace.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import { friendlyError } from '@lostsky/api/client'
 
-import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
+import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { ReceiptText, ShoppingBag, UserRound } from '@lucide/vue'
 import { computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
@@ -19,16 +21,15 @@ const configurationSteps = computed(() => [{ key: 'create', label: '创建商品
 </script>
 
 <template>
-  <LsWorkspaceOverview
-    eyebrow="商品团队工作台"
+  <LsOverviewPage
     :title="access.data.value?.team?.name || (access.isError.value ? '团队摘要暂时不可用' : '正在读取当前团队…')"
     description="管理团队商品并跟进订单交付，覆盖普通商品、核销商品、卡密和套餐。"
-    :actions="[{ key: 'personal', label: '进入个人工作台', to: '/manage/personal', icon: UserRound, primary: true }]"
-    :entries="entries"
   >
-    <template #workspace>
+    <template #actions>
+      <LsPageLink to="/manage/personal" :icon="UserRound" label="进入个人工作台" />
+      <LsSceneMotionControl />
+    </template>
       <ShopOverviewWorkspace :personal="false" :access="access.data.value" :steps="configurationSteps" />
       <LsInlineError v-if="access.isError.value" :message="friendlyError(access.error.value)" />
-    </template>
-  </LsWorkspaceOverview>
+  </LsOverviewPage>
 </template>

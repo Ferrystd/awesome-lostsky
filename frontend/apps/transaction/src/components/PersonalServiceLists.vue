@@ -8,7 +8,7 @@ import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { ArrowUpRight, ClipboardCheck, RadioTower, RotateCcw } from '@lucide/vue'
 import { NInput } from 'naive-ui'
 import { reactive, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import type { ServiceAssignmentOffer, ServiceField, ServiceRedemption } from '../types'
 
 const props = defineProps<{
@@ -72,7 +72,7 @@ const closeReturnTask = (id: number) => {
         <article v-for="offer in offers" :key="offer.id" class="task-row">
           <div class="task-summary">
             <span class="task-kind"><ClipboardCheck :size="16" aria-hidden="true" />指定邀请 #{{ offer.id }}</span>
-            <RouterLink class="task-title" :to="`/personal/service-offers/${offer.id}`"><strong>{{ offer.service?.name || `邀请 #${offer.id}` }}</strong><ArrowUpRight :size="18" aria-hidden="true" /></RouterLink>
+            <LsPageLink :to="`/personal/service-offers/${offer.id}`" :label="offer.service?.name || `邀请 #${offer.id}`" :icon="ArrowUpRight" />
             <dl class="task-metrics">
               <div><dt>权益量</dt><dd>{{ quantityLabel(offer) }}</dd></div>
               <div><dt>预计分成</dt><dd>{{ money(offer.handler_cut) }}</dd></div>
@@ -80,7 +80,7 @@ const closeReturnTask = (id: number) => {
             </dl>
           </div>
           <div class="task-customer"><span class="task-label">顾客</span><LsEntityIdentity type="customer" :name="customerName(offer)" size="sm" /></div>
-          <div class="task-actions"><RouterLink class="task-detail-link" :to="`/personal/service-offers/${offer.id}`">查看详情<ArrowUpRight :size="16" aria-hidden="true" /></RouterLink></div>
+          <div class="task-actions"><LsPageLink :to="`/personal/service-offers/${offer.id}`" label="查看详情" :icon="ArrowUpRight" /></div>
           <div v-if="offer.redemption_fields?.length" class="task-field-section"><span class="task-label">履约资料</span><dl class="field-list"><div v-for="field in offer.redemption_fields" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ fieldValue(field) }}</dd></div></dl></div>
         </article>
       </div>
@@ -97,11 +97,11 @@ const closeReturnTask = (id: number) => {
         <article v-for="row in available" :key="row.id" class="task-row">
           <div class="task-summary">
             <span class="task-kind"><RadioTower :size="16" aria-hidden="true" />公开任务 #{{ row.id }}</span>
-            <RouterLink class="task-title" :to="`/personal/services/available/${row.id}`"><strong>{{ row.service?.name || `任务 #${row.id}` }}</strong><ArrowUpRight :size="18" aria-hidden="true" /></RouterLink>
+            <LsPageLink :to="`/personal/services/available/${row.id}`" :label="row.service?.name || `任务 #${row.id}`" :icon="ArrowUpRight" />
             <dl class="task-metrics"><div><dt>权益量</dt><dd>{{ quantityLabel(row) }}</dd></div><div><dt>预计分成</dt><dd>{{ money(row.settlement_kind === 'unused' ? row.settled_handler_cut ?? 0 : row.handler_cut) }}</dd></div></dl>
           </div>
           <div class="task-customer"><span class="task-label">顾客</span><LsEntityIdentity type="customer" :name="customerName(row)" size="sm" /></div>
-          <div class="task-actions"><RouterLink class="task-detail-link" :to="`/personal/services/available/${row.id}`">查看详情<ArrowUpRight :size="16" aria-hidden="true" /></RouterLink></div>
+          <div class="task-actions"><LsPageLink :to="`/personal/services/available/${row.id}`" label="查看详情" :icon="ArrowUpRight" /></div>
           <div v-if="row.redemption_fields?.length" class="task-field-section"><span class="task-label">履约资料</span><dl class="field-list"><div v-for="field in row.redemption_fields" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ fieldValue(field) }}</dd></div></dl></div>
         </article>
       </div>
@@ -118,7 +118,7 @@ const closeReturnTask = (id: number) => {
         <article v-for="row in assigned" :key="row.id" class="task-row">
           <div class="task-summary">
             <span class="task-kind"><ClipboardCheck :size="16" aria-hidden="true" />接单 #{{ row.id }}<LsStatusTag :label="row.completion_requested_at && row.status === 2 ? '待顾客确认' : row.status_label || `状态 ${row.status}`" :type="row.status === 3 ? 'success' : 'warning'" /></span>
-            <RouterLink class="task-title" :to="`/personal/services/${row.id}`"><strong>{{ row.service?.name || `任务 #${row.id}` }}</strong><ArrowUpRight :size="18" aria-hidden="true" /></RouterLink>
+            <LsPageLink :to="`/personal/services/${row.id}`" :label="row.service?.name || `任务 #${row.id}`" :icon="ArrowUpRight" />
             <dl class="task-metrics"><div><dt>权益量</dt><dd>{{ quantityLabel(row) }}</dd></div><div><dt>接取时间</dt><dd>{{ dateTime(row.started_at || row.create_time) }}</dd></div></dl>
           </div>
           <div class="task-customer"><span class="task-label">顾客</span><LsEntityIdentity type="customer" :name="customerName(row)" size="sm" /></div>
@@ -135,10 +135,10 @@ const closeReturnTask = (id: number) => {
 </template>
 
 <style scoped>
-.task-detail-link{display:inline-flex;align-items:center;gap:.35rem;color:var(--primary);font-size:.84rem;font-weight:700}.task-detail-link:hover{text-decoration:underline}
-.personal-service-lists{display:grid;gap:1.25rem}.group-count{min-width:3.75rem;display:inline-flex;align-items:center;justify-content:center;padding:.4rem .65rem;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),white 86%);border-radius:var(--radius-sm);font-size:.78rem;font-weight:750;font-variant-numeric:tabular-nums}.queue-empty{min-height:5.5rem;display:flex;justify-content:center;flex-direction:column;gap:.25rem;color:var(--muted-ink)}.queue-empty strong{color:var(--ink);font-size:.9rem}.queue-empty span{font-size:.8rem;line-height:1.55}.task-list{min-width:0;overflow:hidden}.task-row{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 15rem 16rem;grid-template-areas:"summary customer actions" "fields fields fields";align-items:center;gap:1rem 1.5rem;padding:0 0 1.25rem;border-bottom:1px solid var(--border)}.task-row+.task-row{padding-top:1.25rem}.task-row:last-child{padding-bottom:0;border-bottom:0}.task-summary{grid-area:summary;min-width:0;display:grid;gap:.5rem}.task-kind{min-width:0;display:flex;align-items:center;gap:.4rem;color:var(--sky-lost-strong);font-size:.75rem;font-weight:700;line-height:1.4}.task-title{width:fit-content;max-width:100%;display:flex;align-items:center;gap:.4rem;color:var(--ink)}.task-title strong{min-width:0;overflow:hidden;font-size:1.05rem;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}.task-title svg{flex:none;color:var(--muted-ink);transition:color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard)}.task-title:hover strong{color:var(--primary)}.task-title:hover svg{color:var(--primary);transform:translate(.1rem,-.1rem)}.task-metrics,.field-list{margin:0}.task-metrics{display:flex;flex-wrap:wrap;gap:.45rem 1.25rem}.task-metrics div{min-width:6.5rem}.task-metrics dt,.field-list dt,.task-label{color:var(--muted-ink);font-size:.72rem;font-weight:650;line-height:1.4}.task-metrics dd,.field-list dd{margin:.12rem 0 0;color:var(--ink);font-size:.84rem;line-height:1.45;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.task-customer{grid-area:customer;min-width:0;display:grid;gap:.45rem;padding-left:1.25rem;border-left:1px solid var(--border)}.task-actions{grid-area:actions;display:flex;align-items:center;justify-content:flex-end;gap:.5rem}.task-field-section{grid-area:fields;display:grid;grid-template-columns:6rem minmax(0,1fr);align-items:start;gap:1rem;padding-top:1rem;border-top:1px solid var(--border)}.field-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));gap:.75rem 1rem}.field-list div{min-width:0}.return-composer{grid-column:1/-1;display:grid;grid-template-columns:minmax(10rem,.65fr) minmax(14rem,1fr) auto;align-items:center;gap:1rem;padding:1rem;background:var(--cloud);border-radius:var(--radius-sm)}.return-composer>div:first-child{min-width:0;display:grid;gap:.2rem}.return-composer strong{font-size:.86rem}.return-composer span{color:var(--muted-ink);font-size:.76rem;line-height:1.5}.return-actions{display:flex;align-items:center;justify-content:flex-end;gap:.5rem}
+
+.personal-service-lists{display:grid;gap:1.25rem}.group-count{min-width:3.75rem;display:inline-flex;align-items:center;justify-content:center;padding:.4rem .65rem;color:var(--sky-lost-strong);background:color-mix(in oklch,var(--sky-lost),var(--surface) 86%);border-radius:var(--radius-sm);font-size:.78rem;font-weight:750;font-variant-numeric:tabular-nums}.queue-empty{min-height:5.5rem;display:flex;justify-content:center;flex-direction:column;gap:.25rem;color:var(--muted-ink)}.queue-empty strong{color:var(--ink);font-size:.9rem}.queue-empty span{font-size:.8rem;line-height:1.55}.task-list{min-width:0;overflow:hidden}.task-row{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 15rem 16rem;grid-template-areas:"summary customer actions" "fields fields fields";align-items:center;gap:1rem 1.5rem;padding:0 0 1.25rem;border-bottom:1px solid var(--border)}.task-row+.task-row{padding-top:1.25rem}.task-row:last-child{padding-bottom:0;border-bottom:0}.task-summary{grid-area:summary;min-width:0;display:grid;gap:.5rem}.task-kind{min-width:0;display:flex;align-items:center;gap:.4rem;color:var(--sky-lost-strong);font-size:.75rem;font-weight:700;line-height:1.4}.task-metrics,.field-list{margin:0}.task-metrics{display:flex;flex-wrap:wrap;gap:.45rem 1.25rem}.task-metrics div{min-width:6.5rem}.task-metrics dt,.field-list dt,.task-label{color:var(--muted-ink);font-size:.72rem;font-weight:650;line-height:1.4}.task-metrics dd,.field-list dd{margin:.12rem 0 0;color:var(--ink);font-size:.84rem;line-height:1.45;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.task-customer{grid-area:customer;min-width:0;display:grid;gap:.45rem;padding-left:1.25rem;border-left:1px solid var(--border)}.task-actions{grid-area:actions;display:flex;align-items:center;justify-content:flex-end;gap:.5rem}.task-field-section{grid-area:fields;display:grid;grid-template-columns:6rem minmax(0,1fr);align-items:start;gap:1rem;padding-top:1rem;border-top:1px solid var(--border)}.field-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));gap:.75rem 1rem}.field-list div{min-width:0}.return-composer{grid-column:1/-1;display:grid;grid-template-columns:minmax(10rem,.65fr) minmax(14rem,1fr) auto;align-items:center;gap:1rem;padding:1rem;background:var(--cloud);border-radius:var(--radius-sm)}.return-composer>div:first-child{min-width:0;display:grid;gap:.2rem}.return-composer strong{font-size:.86rem}.return-composer span{color:var(--muted-ink);font-size:.76rem;line-height:1.5}.return-actions{display:flex;align-items:center;justify-content:flex-end;gap:.5rem}
 @media(max-width:1280px){.task-row{grid-template-columns:minmax(0,1fr) minmax(11rem,.5fr);grid-template-areas:"summary customer" "actions actions" "fields fields"}.task-actions{justify-content:flex-start}.return-composer{grid-template-columns:1fr minmax(14rem,1.25fr)}.return-actions{grid-column:2}}
-@media(max-width:700px){.personal-service-lists{gap:1rem}.task-row{grid-template-columns:1fr;grid-template-areas:"summary" "customer" "fields" "actions";gap:1rem}.task-customer{padding:1rem 0 0;border-top:1px solid var(--border);border-left:0}.task-actions{width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))}.task-actions>*{width:100%}.task-field-section{grid-template-columns:1fr;gap:.6rem}.field-list{grid-template-columns:1fr}.return-composer{grid-template-columns:1fr}.return-actions{grid-column:auto;justify-content:stretch}.return-actions>*{flex:1}.task-title strong{white-space:normal;overflow-wrap:anywhere}.task-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.task-metrics div{min-width:0}}
+@media(max-width:700px){.personal-service-lists{gap:1rem}.task-row{grid-template-columns:1fr;grid-template-areas:"summary" "customer" "fields" "actions";gap:1rem}.task-customer{padding:1rem 0 0;border-top:1px solid var(--border);border-left:0}.task-actions{width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))}.task-actions>*{width:100%}.task-field-section{grid-template-columns:1fr;gap:.6rem}.field-list{grid-template-columns:1fr}.return-composer{grid-template-columns:1fr}.return-actions{grid-column:auto;justify-content:stretch}.return-actions>*{flex:1}.task-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.task-metrics div{min-width:0}}
 @media(max-width:420px){.task-metrics{grid-template-columns:1fr}.return-actions{flex-direction:column}.return-actions>*{width:100%}}
-@media(prefers-reduced-motion:reduce){.task-title svg{transition:none}.task-title:hover svg{transform:none}}
+@media(prefers-reduced-motion:reduce){}
 </style>

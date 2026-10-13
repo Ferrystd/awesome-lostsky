@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { ArrowUpRight, Copy } from '@lucide/vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { feedback } from '@lostsky/ui/feedback'
@@ -35,10 +36,7 @@ async function copyLink(label: string, url: string) {
     </div>
     <ul class="team-share-list">
       <li v-for="link in links" :key="link.label" class="team-share-item">
-        <a class="team-share-link" :href="link.url" target="_blank" rel="noopener noreferrer">
-          <span class="team-share-name">{{ link.label }}<ArrowUpRight :size="16" aria-hidden="true" /></span>
-          <span class="team-share-description">{{ link.description }}</span>
-        </a>
+        <div class="team-share-copy"><LsPageLink :icon="ArrowUpRight" :href="link.url" :label="link.label" target="_blank" rel="noopener noreferrer" /><span class="team-share-description">{{ link.description }}</span></div>
         <LsButton variant="ghost" :aria-label="`复制${link.label}链接`" @click="copyLink(link.label, link.url)">
           <template #icon><Copy :size="16" aria-hidden="true" /></template>
           复制
@@ -57,11 +55,8 @@ async function copyLink(label: string, url: string) {
 .team-share-item:first-child { padding-left: 0; }
 .team-share-item:last-child { padding-right: 0; }
 .team-share-item + .team-share-item { border-left: 1px solid var(--border); }
-.team-share-link { min-width: 0; min-height: var(--touch-target); display: flex; flex-direction: column; justify-content: center; gap: .25rem; border-radius: .25rem; }
-.team-share-name { display: flex; align-items: center; gap: .375rem; color: var(--text); font-size: .9375rem; font-weight: 650; transition: color var(--motion-fast) var(--ease-standard); }
-.team-share-name svg { flex-shrink: 0; color: var(--text-secondary); }
+.team-share-copy { min-width: 0; display: grid; }
 .team-share-description { color: var(--text-secondary); font-size: .8125rem; }
-.team-share-link:hover .team-share-name { color: var(--primary); }
 @media (max-width: 799px) {
   .team-share-list { grid-template-columns: minmax(0, 1fr); }
   .team-share-item, .team-share-item:first-child, .team-share-item:last-child { padding: .875rem 0; }
@@ -70,6 +65,5 @@ async function copyLink(label: string, url: string) {
   .team-share-item + .team-share-item { border-left: 0; border-top: 1px solid var(--border); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .team-share-name { transition: none; }
-}
+  }
 </style>

@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import { api, friendlyError } from '@lostsky/api/client'
@@ -10,7 +15,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NCheckbox, NFormItem, NInput } from 'naive-ui'
 import { computed, reactive, ref } from 'vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
 import { resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 
@@ -73,15 +77,13 @@ function submit() {
 </script>
 
 <template>
-  <div class="notice-send-view">
-    <AdminPageHeader
-      title="发送通知"
-      description="以团队名义向团队内的一位人员发送通知；发送后对方无法回复。"
-      back-to="/notices/sent"
-      back-label="返回通知"
-    />
+  <LsFormPage title="发送通知" description="以团队名义向团队内的一位人员发送通知；发送后对方无法回复。">
+    <template #actions>
+      <LsPageLink to="/notices/sent" :icon="ArrowLeft" label="返回通知" />
+    </template>
 
     <form class="notice-form" @submit.prevent="submit">
+      <LsFormSection title="通知内容">
       <section class="delivery-note" aria-labelledby="delivery-note-title">
         <strong id="delivery-note-title">单向、同 Team 送达</strong>
         <p>此为单向通知，不支持回复或会话；发送方显示为团队本身。</p>
@@ -126,12 +128,13 @@ function submit() {
       </NFormItem>
 
       <NFormItem label="列表位置"><NCheckbox v-model:checked="form.is_pinned">在收件人的通知列表中置顶</NCheckbox></NFormItem>
+      </LsFormSection>
 
       <p v-if="success" class="feedback success" role="status" aria-live="polite">{{ success }}</p>
       <LsInlineError v-if="send.isError.value && !routeAccess.restricted.value" :message="`发送失败：${friendlyError(send.error.value)}。请检查收件对象和内容后重试。`" />
 
       <LsFormActions>
-        <LsButton variant="secondary" tag="a" href="/notices/sent">取消</LsButton>
+        <LsPageLink href="/notices/sent" :icon="ArrowLeft" label="取消" />
         <LsButton
           type="submit"
           :loading="send.isPending.value"
@@ -142,9 +145,9 @@ function submit() {
         </LsButton>
       </LsFormActions>
     </form>
-  </div>
+  </LsFormPage>
 </template>
 
 <style scoped>
-.notice-send-view,.notice-form{display:grid;gap:24px}.delivery-note{padding:16px;background:var(--surface-subtle);border:1px solid var(--border);border-radius:var(--radius-md)}.delivery-note strong{font-size:.9375rem}.delivery-note p{margin:6px 0 0;color:var(--text-secondary);font-size:.875rem;line-height:1.6}.feedback{margin:0;padding:12px 14px;border-radius:var(--radius-md);font-size:.875rem;line-height:1.55}.success{color:var(--success);background:color-mix(in srgb,var(--success) 9%,transparent)}.empty{color:var(--text-secondary);background:var(--surface-subtle)}@media(max-width:639px){.notice-send-view,.notice-form{gap:20px}}
+.notice-form{display:grid;gap:1.5rem}.delivery-note strong{font-size:.9375rem}.delivery-note p{margin:6px 0 0;color:var(--text-secondary);font-size:.875rem;line-height:1.6}.feedback{margin:0;padding:12px 14px;border-radius:var(--radius-md);font-size:.875rem;line-height:1.55}.success{color:var(--success);background:color-mix(in srgb,var(--success) 9%,transparent)}.empty{color:var(--text-secondary);background:var(--surface-subtle)}
 </style>

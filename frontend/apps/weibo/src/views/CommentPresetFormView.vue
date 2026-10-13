@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft, Save } from '@lucide/vue'
+
 import { api, friendlyError } from '@lostsky/api/client'
-import { Save } from '@lucide/vue'
+
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsFormList from '@lostsky/ui/components/LsFormList.vue'
@@ -8,7 +12,6 @@ import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { NInput } from 'naive-ui'
@@ -76,8 +79,11 @@ async function save() {
 </script>
 
 <template>
-  <div class="weibo-stack">
-    <LsPageHeader :title="creating ? '添加预设' : '编辑预设'" :back-to="listPath" back-label="返回预设评论" description="维护常用回复，修改后统一保存。" />
+  <LsFormPage :title="creating ? '添加预设' : '编辑预设'" description="维护常用回复，修改后统一保存。">
+    <template #actions>
+      <LsPageLink :to="listPath" :icon="ArrowLeft" label="返回预设评论" />
+    </template>
+
     <LsAsyncState v-if="query.isError.value" state="error" title="预设评论加载失败" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-if="!restricted && query.isPending.value" state="loading" :rows="5" />
     <form v-else-if="restricted || !query.isError.value || query.data.value || dirty" class="weibo-form" @submit.prevent="save">
@@ -99,5 +105,5 @@ async function save() {
       </LsFormSection>
       <LsFormActions><LsButton type="submit" :loading="pending" :disabled="Boolean(reason)" :disabled-reason="reason"><template #icon><Save :size="18" /></template>保存预设评论</LsButton></LsFormActions>
     </form>
-  </div>
+  </LsFormPage>
 </template>

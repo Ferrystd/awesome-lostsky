@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
-import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useQuery } from '@tanstack/vue-query'
@@ -48,48 +48,56 @@ const columns: DataTableColumns<PersonalEntitlementGrantRecord> = [
 
 <template>
   <div class="personal-entitlements-view">
-    <LsPageHeader title="权益下发" description="查看当前人员直接下发给顾客的全部权益；每项记录均按本人发单身份固定归档。">
+    <LsCollectionPage title="权益下发" description="查看当前人员直接下发给顾客的全部权益；每项记录均按本人发单身份固定归档。">
       <template #actions>
-        <LsPagePrimaryAction :icon="Gift" label="下发权益" to="/personal/entitlements/new" />
+        <LsPageLink :icon="Gift" label="下发权益" to="/personal/entitlements/new" />
       </template>
-    </LsPageHeader>
-
-    <LsListToolbar
-      v-model="filters.keyword"
-      placeholder="搜索权益、商品或顾客"
-      aria-label="搜索本人下发的权益"
-      :count-label="`${query.data.value?.total ?? 0} 项权益`"
-      @update:model-value="filters.page = 1"
-    />
-
-    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取下发记录" :description="friendlyError(query.error.value)" />
-    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
-    <LsEmptyState :source="query.data.value"
+      <template #toolbar>
+        <LsListToolbar
+        v-model="filters.keyword"
+        placeholder="搜索权益、商品或顾客"
+        aria-label="搜索本人下发的权益"
+        :count-label="`${query.data.value?.total ?? 0} 项权益`"
+        @update:model-value="filters.page = 1"
+        />
+      </template>
+      <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取下发记录" :description="friendlyError(query.error.value)" />
+      <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
+      <LsEmptyState :source="query.data.value"
       v-else-if="!rows.length"
       :title="filters.keyword ? '没有匹配的下发记录' : '还没有下发权益'"
       :description="filters.keyword ? '调整搜索关键词后再试。' : '下发的顾客权益会显示在这里。'"
-    />
-    <LsResponsiveDataTable v-else :columns="columns" :data="rows" :row-key="row => Number(row.id)" :scroll-x="900">
-      <template #mobile-title="{ row }">{{ row.service.name || `权益 #${row.id}` }}</template>
-      <template #mobile-status="{ row }"><LsStatusTag v-bind="status(row)" /></template>
-      <template #mobile="{ row }">
-        <dl>
-          <dt>来源商品</dt><dd>{{ row.product.name || '权益套餐' }}</dd>
-          <dt>顾客</dt><dd>{{ row.customer.name || `顾客 #${row.customer.id}` }}</dd>
-          <dt>下发额度</dt><dd class="ls-tabular">{{ quantity(row.granted_quantity, row.unit_name) }}</dd>
-          <dt>剩余额度</dt><dd class="ls-tabular">{{ quantity(row.available_quantity, row.unit_name) }}</dd>
-          <dt>下发时间</dt><dd>{{ dateTime(row.create_time) }}</dd>
-          <dt>有效期</dt><dd>{{ row.expire_time ? dateTime(row.expire_time) : '永久有效' }}</dd>
-        </dl>
+      />
+      <LsResponsiveDataTable v-else :columns="columns" :data="rows" :row-key="row => Number(row.id)" :scroll-x="900">
+        <template #mobile-title="{ row }">{{ row.service.name || `权益 #${row.id}` }}</template>
+        <template #mobile-status="{ row }">
+          <LsStatusTag v-bind="status(row)" />
+        </template>
+        <template #mobile="{ row }">
+          <dl>
+            <dt>来源商品</dt>
+            <dd>{{ row.product.name || '权益套餐' }}</dd>
+            <dt>顾客</dt>
+            <dd>{{ row.customer.name || `顾客 #${row.customer.id}` }}</dd>
+            <dt>下发额度</dt>
+            <dd class="ls-tabular">{{ quantity(row.granted_quantity, row.unit_name) }}</dd>
+            <dt>剩余额度</dt>
+            <dd class="ls-tabular">{{ quantity(row.available_quantity, row.unit_name) }}</dd>
+            <dt>下发时间</dt>
+            <dd>{{ dateTime(row.create_time) }}</dd>
+            <dt>有效期</dt>
+            <dd>{{ row.expire_time ? dateTime(row.expire_time) : '永久有效' }}</dd>
+          </dl>
+        </template>
+      </LsResponsiveDataTable>
+      <template v-if="query.data.value && Number(query.data.value.total) > 0" #pagination>
+        <span>共 {{ query.data.value.total }} 项，第 {{ filters.page }} / {{ pages }} 页</span>
+        <NPagination v-model:page="filters.page" :page-count="pages" />
       </template>
-    </LsResponsiveDataTable>
-    <div v-if="query.data.value && Number(query.data.value.total) > 0" class="pager">
-      <span>共 {{ query.data.value.total }} 项，第 {{ filters.page }} / {{ pages }} 页</span>
-      <NPagination v-model:page="filters.page" :page-count="pages" />
-    </div>
+    </LsCollectionPage>
   </div>
 </template>
 
 <style scoped>
-.personal-entitlements-view{display:grid;gap:1.35rem}.personal-entitlements-view :deep(.entitlement-cell>*){display:block}.personal-entitlements-view :deep(.entitlement-cell small){margin-top:.15rem;color:var(--muted-ink);font-size:.75rem}
+.personal-entitlements-view :deep(.entitlement-cell>*){display:block}.personal-entitlements-view :deep(.entitlement-cell small){margin-top:.15rem;color:var(--muted-ink);font-size:.75rem}
 </style>

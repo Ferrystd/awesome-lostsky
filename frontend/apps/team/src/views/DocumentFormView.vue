@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
@@ -17,7 +22,6 @@ import { NFormItem, NInput, NInputNumber, NSelect } from 'naive-ui'
 import type { SelectOption } from 'naive-ui'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { managerScopeOptions, visibilityOptions } from '../lib/access'
 import {
   createDocumentTagDraft,
@@ -137,16 +141,14 @@ async function submit() {
 </script>
 
 <template>
-  <div class="document-form-view">
-    <AdminPageHeader
-      :title="editing ? '编辑文档' : '新建文档'"
-      description="用可视化编辑器撰写团队文档，输入 @ 可引用团队或人员。"
-      back-to="/docs"
-      back-label="返回文档列表"
-    />
+  <LsFormPage :title="editing ? '编辑文档' : '新建文档'" description="用可视化编辑器撰写团队文档，输入 @ 可引用团队或人员。">
+    <template #actions>
+      <LsPageLink to="/docs" :icon="ArrowLeft" label="返回文档列表" />
+    </template>
 
     <LsInlineError v-if="detail.isError.value && !routeAccess.restricted.value" :message="friendlyError(detail.error.value)" />
     <form v-else class="document-form" @submit.prevent="submit">
+      <LsFormSection title="文档内容">
       <LsField label="标题" for-id="document-title" required><NInput id="document-title" v-model:value="form.title" placeholder="一句话说明这份文档解决什么问题" maxlength="120" show-count required /></LsField>
 
       <div v-if="!editing" class="field-row">
@@ -196,39 +198,36 @@ async function submit() {
           placeholder="开始写作，或输入 @ 引用团队与成员…"
         />
       </NFormItem>
+      </LsFormSection>
 
-      <section class="policy" aria-labelledby="document-policy-title">
-        <LsSectionHeader id="document-policy-title" title="访问规则" description="归属成员时可允许本人管理；公开可见会将正文暴露给未登录访客。" />
+      <LsFormSection id="document-policy-title" title="访问规则" description="归属成员时可允许本人管理；公开可见会将正文暴露给未登录访客。">
         <div class="field-row">
           <LsField label="管理范围" for-id="document-manager-scope"><NSelect id="document-manager-scope" v-model:value="form.manager_scope" :options="managerSelectOptions" /></LsField>
           <LsField label="可见范围" for-id="document-visibility"><NSelect id="document-visibility" v-model:value="form.visibility" :options="visibilitySelectOptions" /></LsField>
           <LsField label="排序" for-id="document-sort"><NInputNumber id="document-sort" v-model:value="form.sort" :precision="0" class="control" /></LsField>
         </div>
-      </section>
+      </LsFormSection>
 
       <LsInlineError v-if="save.isError.value && !routeAccess.restricted.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
-        <LsButton type="button" variant="secondary" @click="router.push('/docs')">取消</LsButton>
+        <LsPageLink to="/docs" :icon="ArrowLeft" label="取消" />
         <LsButton type="submit" :loading="save.isPending.value" :disabled="routeAccess.restricted.value || !draft.dirty.value || !form.title.trim() || (!editing && !form.entity_id)" :disabled-reason="routeAccess.reason.value">
           保存文档
         </LsButton>
       </LsFormActions>
     </form>
-  </div>
+  </LsFormPage>
 </template>
 
 <style scoped>
-.document-form-view { display: grid; gap: 24px; }
+
 .document-form { display: grid; gap: 22px; }
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .field-row .compact { grid-column: 1 / 2; }
 .control { width: 100%; }
 .document-tags { display: grid; gap: 16px; }
-.policy { display: grid; gap: 18px; padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-subtle); }
-.error { color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); }
 @media (max-width: 720px) {
   .field-row { grid-template-columns: 1fr; }
   .field-row .compact { grid-column: auto; }
-  .policy { padding: 16px; }
 }
 </style>

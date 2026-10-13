@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
+import { workspaceSceneProviderProps } from '@lostsky/ui/workspace-scene-theme'
 import { BadgeCheck, House, KeyRound, MessageCircleMore, ShoppingBag, UserRound } from '@lucide/vue'
 import { chatWorkspaceUrl, communityWorkspaceUrl, identityUrl } from '@lostsky/shared/navigation'
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
@@ -9,6 +11,7 @@ import { useRoute } from 'vue-router'
 import ShopManageShell from './components/ShopManageShell.vue'
 
 const route = useRoute()
+const auroraScene = computed(() => route.meta.workspaceScene === true)
 const managing = computed(() => Boolean(route.meta.manage))
 watchEffect(() => { document.documentElement.dataset.shopSurface = managing.value ? 'manage' : 'storefront' })
 
@@ -41,10 +44,10 @@ const shopTheme: GlobalThemeOverrides = {
 </script>
 
 <template>
-  <NConfigProvider :theme="managing ? undefined : darkTheme" :theme-overrides="managing ? lostskyNaiveTheme : shopTheme" :locale="zhCN">
+  <NConfigProvider :theme="managing ? undefined : darkTheme" :theme-overrides="managing ? lostskyNaiveTheme : shopTheme" :locale="zhCN" v-bind="workspaceSceneProviderProps(auroraScene)">
     <NDialogProvider><NMessageProvider>
-    <ShopManageShell v-if="managing">
-      <RouterView />
+    <ShopManageShell :scene="auroraScene" v-if="managing">
+      <LsWorkspaceScene v-if="auroraScene"><RouterView /></LsWorkspaceScene><RouterView v-else />
     </ShopManageShell>
     <template v-else>
       <a class="skip-link" href="#main-content">跳到主要内容</a>

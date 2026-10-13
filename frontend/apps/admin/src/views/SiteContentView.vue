@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { type SiteContent } from '@lostsky/shared/siteContent'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
@@ -7,7 +9,6 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
@@ -57,7 +58,8 @@ function move(items: unknown[], index: number, delta: number) {
 </script>
 
 <template>
-  <LsPageHeader title="官网内容" description="维护 www.lostsky.work 的备案号、核心人员和团队优势数据，保存后立即生效。" />
+  <LsFormPage title="官网内容" description="维护 www.lostsky.work 的备案号、核心人员和团队优势数据，保存后立即生效。">
+
   <LsAsyncState v-if="!access.restricted.value && query.isPending.value" state="loading" :rows="5" />
   <div v-else-if="!access.restricted.value && query.isError.value" class="content-groups"><LsAsyncState state="error" title="暂时无法读取官网内容" :description="friendlyError(query.error.value)" /><LsButton variant="secondary" @click="query.refetch()">重新加载</LsButton></div>
   <form v-else class="site-form" @submit.prevent="submit">
@@ -100,6 +102,7 @@ function move(items: unknown[], index: number, delta: number) {
       <template #footer><LsFormActions><LsButton type="submit" :aria-busy="save.isPending.value" :disabled="Boolean(saveReason)" :disabled-reason="saveReason">{{ save.isPending.value ? '正在保存…' : '保存官网内容' }}</LsButton></LsFormActions></template>
     </LsPanel>
   </form>
+  </LsFormPage>
 </template>
 
 <style scoped>

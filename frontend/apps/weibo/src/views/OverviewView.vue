@@ -6,7 +6,11 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
+import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { ClipboardList, FileClock, House, MessageCircleMore, Send, Users } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
@@ -90,7 +94,6 @@ const actions = computed(() => [
     label: '进入团队工作台',
     to: '/overview',
     icon: House,
-    primary: true,
   },
   {
     key: 'compose',
@@ -99,17 +102,29 @@ const actions = computed(() => [
     icon: Send,
   },
 ])
-const scopeNotes = ['管理当前人员的微博账号与任务', '无权限或能力时可预先配置']
 </script>
 
 <template>
   <div class="weibo-overview">
-    <TeamOverviewDashboard v-if="!personal" :accounts="query.data.value?.accounts" :tasks="query.data.value?.tasks" :operations="query.data.value?.operations" :state="access.isPending.value ? 'loading' : !canRead ? 'restricted' : query.isPending.value ? 'loading' : query.isError.value ? 'error' : 'ready'" :error-description="query.isError.value ? friendlyError(query.error.value) : ''" />
+    <TeamOverviewDashboard v-if="!personal" :accounts="query.data.value?.accounts" :tasks="query.data.value?.tasks" :operations="query.data.value?.operations" :state="access.isPending.value ? 'loading' : access.isError.value ? 'error' : !canRead ? 'restricted' : query.isPending.value ? 'loading' : query.isError.value ? 'error' : 'ready'" :error-description="access.isError.value ? friendlyError(access.error.value) : query.isError.value ? friendlyError(query.error.value) : ''" />
 
-    <template v-else>
-      <LsWorkspaceOverview :eyebrow="`${identityType} · 微博个人工作台`" :title="access.data.value?.identity.name || '当前人员调度态势'" description="围绕当前身份准备内容、管理任务并追踪执行结果。" :actions="actions" :entries="entries" :scope-notes="scopeNotes" />
+    <LsOverviewPage v-else :title="access.data.value?.identity.name || '当前人员调度态势'" :description="`${identityType} · 微博个人工作台。围绕当前身份准备内容、管理任务并追踪执行结果。`">
+      <template #actions>
+        <LsPageLink v-for="action in actions" :key="action.key" :to="action.to" :icon="action.icon" :label="action.label" />
+        <LsSceneMotionControl />
+      </template>
+      <template #summary>
+        <nav aria-label="个人工作入口">
+          <LsResourceList>
+            <LsResourceRow v-for="entry in entries" :key="entry.key" :description="entry.description">
+              <template #identity><LsPageLink :to="entry.to" :icon="entry.icon" :label="entry.label" /></template>
+            </LsResourceRow>
+          </LsResourceList>
+        </nav>
+      </template>
 
       <LsAsyncState v-if="access.isPending.value || (canRead && query.isPending.value)" state="loading" :rows="3" />
+      <LsAsyncState v-else-if="access.isError.value" state="error" title="无法读取当前工作身份" :description="friendlyError(access.error.value)" />
       <LsPanel v-else-if="!canRead">
         <LsDescriptionList
           ><dt>微博态势</dt>
@@ -144,6 +159,6 @@ const scopeNotes = ['管理当前人员的微博账号与任务', '无权限或�
           <OperationRecordList v-else :operations="failures" />
         </LsPanel>
       </section>
-    </template>
+    </LsOverviewPage>
   </div>
 </template>

@@ -7,17 +7,20 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
+import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
-import { Bell, BookOpen, FileText, House, ShieldCheck, UserRound } from '@lucide/vue'
+import { ArrowLeft, Bell, BookOpen, FileText, House, Save, ShieldCheck, UserRound } from '@lucide/vue'
 import { NInput } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { useRoute } from 'vue-router'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
 import MemberSelfDeparture from '../components/MemberSelfDeparture.vue'
 import TeamShareLinks from '../components/TeamShareLinks.vue'
 import EntityProfileFields from '../components/EntityProfileFields.vue'
@@ -57,10 +60,6 @@ const overviewTitle = computed(() => query.data.value?.identity.name || (query.i
 const overviewDescription = computed(() => query.data.value
   ? `${identityType.value} · 所属团队 ${query.data.value.identity.team.name}`
   : '正在读取当前身份；各功能入口保持可用，重新进入页面后会重新读取。')
-const overviewActions = computed(() => [
-  { key: 'team', label: '进入团队工作台', to: '/', icon: House, primary: true },
-  { key: 'docs', label: '使用文档', href: '//doc.lostsky.work', target: '_blank', rel: 'noopener', icon: BookOpen },
-])
 const overviewEntries = [
   { key: 'notices', label: '收件箱', description: '查看发给当前人员的通知并标记已读。', to: '/personal/notices', icon: Bell },
   { key: 'profile', label: '资料', description: '维护当前人员的名称、头像、简介与公开介绍。', to: '/personal/profile', icon: UserRound },
@@ -104,40 +103,56 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
 <template>
   <div class="personal-view">
     <template v-if="section === 'overview'">
-      <LsWorkspaceOverview
-        :eyebrow="`个人工作台 · ${identityType}`"
+      <LsPageHeader
         :title="overviewTitle"
         :description="overviewDescription"
-        :actions="overviewActions"
-        :entries="overviewEntries"
-        :scope-notes="['此处是你在团队中的个人中心', '部分内容受团队管理或需要权限']"
       >
-        <template #summary>
-          <TeamShareLinks />
-          <LsMetricGrid aria-label="个人身份摘要" :items="[
-            { key: 'roles', label: '已分配角色', value: query.isSuccess.value && query.data.value?.role_assignments ? query.data.value.role_assignments.length : '-' },
-            { key: 'fields', label: '资料字段', value: query.isSuccess.value && query.data.value?.custom_fields ? query.data.value.custom_fields.length : '-' },
-            { key: 'permissions', label: '有效权限', value: query.isSuccess.value && query.data.value?.effective_permissions ? query.data.value.effective_permissions.length : '-' },
-          ]" />
+        <template #actions>
+          <LsPageLink to="/" :icon="House" label="进入团队工作台" />
+          <LsPageLink href="//doc.lostsky.work" :icon="BookOpen" label="使用文档" target="_blank" rel="noopener" />
+          <LsSceneMotionControl />
         </template>
-      </LsWorkspaceOverview>
+      </LsPageHeader>
+      <TeamShareLinks />
+      <LsMetricGrid aria-label="个人身份摘要" :items="[
+        { key: 'roles', label: '已分配角色', value: query.isSuccess.value && query.data.value?.role_assignments ? query.data.value.role_assignments.length : '-' },
+        { key: 'fields', label: '资料字段', value: query.isSuccess.value && query.data.value?.custom_fields ? query.data.value.custom_fields.length : '-' },
+        { key: 'permissions', label: '有效权限', value: query.isSuccess.value && query.data.value?.effective_permissions ? query.data.value.effective_permissions.length : '-' },
+      ]" />
+      <LsPanel>
+        <template #header><LsSectionHeader title="工作入口" /></template>
+        <nav class="personal-entries" aria-label="工作入口">
+          <div v-for="entry in overviewEntries" :key="entry.key" class="personal-entry">
+            <LsPageLink :to="entry.to" :icon="entry.icon" :label="entry.label" />
+            <p>{{ entry.description }}</p>
+          </div>
+        </nav>
+        <template #footer>
+          <p class="scope-note">此处是你在团队中的个人中心。部分内容受团队管理或需要权限。</p>
+        </template>
+      </LsPanel>
       <LsInlineError v-if="query.isError.value" :message="friendlyError(query.error.value)" />
     </template>
     <template v-else>
-      <AdminPageHeader :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的人员；切换身份后会自动重新核对。">
-        <template #actions><MemberSelfDeparture v-if="section === 'profile' && query.data.value?.identity.type === 'teamMember'" /></template>
-      </AdminPageHeader>
+      <LsPageHeader :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的人员；切换身份后会自动重新核对。">
+        <template #actions>
+          <LsPageLink to="/personal" :icon="ArrowLeft" label="返回个人概览" />
+          <MemberSelfDeparture v-if="section === 'profile' && query.data.value?.identity.type === 'teamMember'" />
+          <LsSceneMotionControl />
+        </template>
+      </LsPageHeader>
       <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
       <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取当前人员" :description="friendlyError(query.error.value)" />
       <template v-else-if="query.data.value">
       <form v-if="section === 'profile'" class="profile-form" @submit.prevent="saveProfile.mutate()">
         <LsPanel>
+          <template #header><LsSectionHeader title="个人资料" /></template>
           <div class="identity-summary"><LsEntityIdentity :type="query.data.value.identity.type" :name="query.data.value.identity.name" :slug="query.data.value.identity.slug || ''" :image-url="query.data.value.profile.avatar" fallback="initial" /><small>所属团队：{{ query.data.value.identity.team.name }}</small></div>
-          <div v-if="!query.data.value.identity.slug" class="slug-field"><label>对象标识<NInput v-model:value="form.slug" placeholder="首次确认后不可修改" /></label></div>
+          <div v-if="!query.data.value.identity.slug" class="slug-field"><LsField label="对象标识" for-id="personal-slug"><NInput v-model:value="form.slug" :input-props="{ id: 'personal-slug' }" placeholder="首次确认后不可修改" /></LsField></div>
           <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" draft-key="personal-profile" id-prefix="personal-profile" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" />
+          <LsInlineError v-if="saveProfile.isError.value" :message="friendlyError(saveProfile.error.value)" />
+          <template #footer><LsFormActions><LsButton type="submit" :loading="saveProfile.isPending.value" :disabled="!draft.dirty.value || uploading || !form.name.trim() || (!query.data.value.identity.slug && !form.slug.trim())"><template #icon><Save :size="17" /></template>保存资料</LsButton></LsFormActions></template>
         </LsPanel>
-        <LsInlineError v-if="saveProfile.isError.value" :message="friendlyError(saveProfile.error.value)" />
-        <LsFormActions><LsButton type="submit" :loading="saveProfile.isPending.value" :disabled="!draft.dirty.value || uploading || !form.name.trim() || (!query.data.value.identity.slug && !form.slug.trim())">保存资料</LsButton></LsFormActions>
       </form>
       <EntityFieldsCard v-if="section === 'fields'" :fields="query.data.value.custom_fields" :stored-values="query.data.value.custom_field_values" mode="self" :saving="saveFields.isPending.value" :error="saveFields.error.value" :upload-disabled-reason="uploadDisabledReason" :key="draftKey()" :success="saveFields.isSuccess.value" @dirty="fieldsDirty = $event" @save="saveFields.mutate" />
       <EntityPermissionsCard v-else-if="section === 'access'" :assignments="query.data.value.role_assignments" :roles="roles" :effective-permissions="query.data.value.effective_permissions" />
@@ -147,5 +162,5 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
 </template>
 
 <style scoped>
-.personal-view,.profile-form{display:grid;gap:1rem}.identity-summary{display:grid;gap:.65rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}.identity-summary>small{color:var(--muted-ink);font-size:.78rem}.slug-field{margin-bottom:1rem}.slug-field label{display:grid;gap:.4rem;color:var(--ink);font-size:.82rem;font-weight:650}
+.personal-view,.profile-form{min-width:0;display:grid;gap:1.5rem}.identity-summary{min-width:0;display:grid;gap:.65rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}.identity-summary>small{color:var(--text-secondary);font-size:.8125rem;overflow-wrap:anywhere}.slug-field{margin-bottom:1rem}.personal-entries{min-width:0;display:grid}.personal-entry{min-width:0;padding:.75rem 0}.personal-entry:first-child{padding-top:0}.personal-entry:last-child{padding-bottom:0}.personal-entry+.personal-entry{border-top:1px solid var(--border)}.personal-entry p,.scope-note{margin:0;color:var(--text-secondary);font-size:.8125rem;line-height:1.6;overflow-wrap:anywhere}
 </style>

@@ -18,6 +18,7 @@ import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: Globe, weibo: Radio }
+defineProps<{ scene?: boolean }>()
 const route = useRoute();
 const router = useRouter();
 const drawer = ref(false);
@@ -105,7 +106,7 @@ function handleHeaderAction(key: string) {
         @click="drawer = false"
     /></Transition>
     <section class="manage-workspace">
-      <LsWorkspaceHeader
+      <LsWorkspaceHeader :scene="scene" :contextual="scene"
         context-label="商品工作台"
         :title="title"
         :actions="headerActions"
@@ -138,7 +139,7 @@ function handleHeaderAction(key: string) {
   top: -5rem;
   z-index: var(--z-tooltip);
   padding: 0.7rem 1rem;
-  background: white;
+  background: var(--surface);
 }
 .manage-skip:focus {
   top: 1rem;

@@ -10,7 +10,7 @@ import AdminPage from './components/AdminPage.vue'
 import { computed } from 'vue'
 setLucideProps({ strokeWidth: 1.8 })
 const route = useRoute()
-const auroraScene = computed(() => route.matched.some(record => ['/settings', '/notices/team', '/notices/sent'].includes(record.path)))
+const auroraScene = computed(() => route.meta.workspaceScene === true)
 const pageWidth = computed<'wide' | 'content' | 'form'>(() => ['content', 'form'].includes(String(route.meta.pageWidth)) ? route.meta.pageWidth as 'content' | 'form' : 'wide')
 </script>
 <template>

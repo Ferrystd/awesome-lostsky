@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 
@@ -8,7 +10,6 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityTag from '@lostsky/ui/components/LsEntityTag.vue'
 import type { EntityType } from '@lostsky/ui/entity'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
@@ -16,10 +17,10 @@ import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { File, Trash2, Upload } from '@lucide/vue'
-import { NPagination } from 'naive-ui'
+import { File, Trash2, Upload, ArrowUpRight } from '@lucide/vue'
+import { NPagination, NFlex } from 'naive-ui'
 import { computed, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+
 import { fileSourceLabel } from '../lib/fileSource'
 import { fileUploadReason, hasPermission, permissionReason, useTeamAccess, type FileUploadAvailability } from '../lib/teamAccess'
 
@@ -114,9 +115,8 @@ function removeFile(id: number) {
   if (!deleteReason.value && window.confirm('确认删除此文件？')) remove.mutate(id)
 }
 
-function fileActions(item: Record<string, unknown>) {
+function fileActions() {
   return [
-    ...(item.url ? [{ key: 'open', label: '打开', icon: File }] : []),
     {
       key: 'delete',
       label: '删除',
@@ -128,23 +128,24 @@ function fileActions(item: Record<string, unknown>) {
   ]
 }
 function runFileAction(key: string, item: Record<string, unknown>) {
-  if (key === 'open' && item.url) window.open(String(item.url), '_blank', 'noopener,noreferrer')
   if (key === 'delete') removeFile(Number(item.id))
 }
 </script>
 
 <template>
-    <LsPageHeader title="文件" :description="usageSummary">
-      <template #actions>
-        <RouterLink v-if="canUpgrade" class="secondary-link" to="/abilities">升级团队能力</RouterLink>
-        <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload">
-          <template #trigger="{ choose }"><LsPagePrimaryAction :icon="Upload" label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @click="choose" /></template>
-        </LsUploadField>
-      </template>
-    </LsPageHeader>
-    <LsInlineError v-if="uploadError" :message="uploadError" />
-
-    <LsListToolbar v-model="keyword" placeholder="按文件名称搜索" aria-label="搜索文件" :count-label="routeAccess.restricted.value ? '0 个文件' : `${total} 个文件`" @update:model-value="page = 1" />
+  <LsCollectionPage title="文件" :description="usageSummary">
+    <template #actions>
+      <LsPageLink v-if="canUpgrade" to="/abilities" :icon="ArrowUpRight" label="升级团队能力" />
+      <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload">
+        <template #trigger="{ choose }">
+          <LsPagePrimaryAction :icon="Upload" label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @click="choose" />
+        </template>
+      </LsUploadField>
+    </template>
+    <template #toolbar>
+      <LsInlineError v-if="uploadError" :message="uploadError" />
+      <LsListToolbar v-model="keyword" placeholder="按文件名称搜索" aria-label="搜索文件" :count-label="routeAccess.restricted.value ? '0 个文件' : `${total} 个文件`" @update:model-value="page = 1" />
+    </template>
     <Transition name="ls-state" mode="out-in">
       <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" key="error" state="error" title="暂时无法读取文件" :description="friendlyError(query.error.value)" />
       <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" key="loading" state="loading" :rows="6" />
@@ -153,25 +154,42 @@ function runFileAction(key: string, item: Record<string, unknown>) {
         <LsResourceRow v-for="item in files" :key="String(item.id)" :title="String(item.name || item.original_name || '未命名文件')" :description="`${fileSourceLabel(item.source)} · ${item.mime_type || item.ext || '未知格式'} · ${size(item.size)}`" :icon="File">
           <template #metadata>
             <dl class="file-metadata">
-              <div><dt>来源人员</dt><dd><LsEntityTag v-if="item.subject" :type="item.subject.entityable_type || 'unknown'" :name="item.subject.name || '未命名人员'" :slug="item.subject.slug" /><span v-else>{{ item.entity_id ? `人员 #${item.entity_id}（资料不可用）` : '未记录' }}</span></dd></div>
-              <div><dt>上传时间</dt><dd><time>{{ uploadTime(item.create_time) }}</time></dd></div>
+              <div>
+                <dt>来源人员</dt>
+                <dd>
+                  <LsEntityTag v-if="item.subject" :type="item.subject.entityable_type || 'unknown'" :name="item.subject.name || '未命名人员'" :slug="item.subject.slug" />
+                  <span v-else>{{ item.entity_id ? `人员 #${item.entity_id}（资料不可用）` : '未记录' }}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>上传时间</dt>
+                <dd>
+                  <time>{{ uploadTime(item.create_time) }}</time>
+                </dd>
+              </div>
             </dl>
           </template>
-          <template #actions><LsResponsiveActions :actions="fileActions(item)" :primary-key="item.url ? 'open' : ''" @select="runFileAction($event, item)" /></template>
+          <template #actions>
+            <NFlex align="center" justify="end" :size="12">
+              <LsPageLink v-if="item.url" :href="String(item.url)" target="_blank" rel="noopener noreferrer" :icon="File" label="打开" />
+              <LsResponsiveActions :actions="fileActions()" @select="runFileAction($event, item)" />
+            </NFlex>
+          </template>
         </LsResourceRow>
       </LsResourceList>
     </Transition>
-    <footer v-if="pages > 1" class="pager">
+    <template v-if="pages > 1" #pagination>
       <NPagination v-model:page="page" :page-count="pages" />
-    </footer>
+    </template>
+  </LsCollectionPage>
 </template>
 
 <style scoped>
-.secondary-link { min-height: 44px; display: inline-flex; align-items: center; color: var(--primary); font-weight: 600; }
+
 .file-metadata { min-width: 0; display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin: 0; }
 .file-metadata > div { min-width: 0; max-width: 100%; display: flex; align-items: center; gap: .5rem; }
 .file-metadata > div:first-child { max-width: min(15rem, 100%); }
 .file-metadata dt { flex-shrink: 0; }
 .file-metadata dd { min-width: 0; margin: 0; }
-.pager { display: flex; justify-content: center; }
+
 </style>

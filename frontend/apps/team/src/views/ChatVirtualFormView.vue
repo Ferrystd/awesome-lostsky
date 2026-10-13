@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft, Plus, Trash2, Webhook } from '@lucide/vue'
+
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
@@ -9,7 +13,7 @@ import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { Plus, Trash2, Webhook } from '@lucide/vue'
+
 import { NInput } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -19,7 +23,6 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { resourceUploadReason, useTeamAccess } from '../lib/teamAccess'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
@@ -96,10 +99,12 @@ function submit() {
 </script>
 
 <template>
-    <div class="virtual-form-page">
-      <AdminPageHeader :title="editing ? '编辑虚拟人员' : '创建虚拟人员'" description="您需要为虚拟人员设置标识。" back-to="/chat-virtuals" back-label="返回虚拟人员">
-        <template v-if="editing" #actions><LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteVirtual"><Trash2 :size="16" />删除人员</LsButton></template>
-      </AdminPageHeader>
+  <LsFormPage :title="editing ? '编辑虚拟人员' : '创建虚拟人员'" description="您需要为虚拟人员设置标识。">
+    <template #actions>
+      <LsPageLink to="/chat-virtuals" :icon="ArrowLeft" label="返回虚拟人员" />
+      <template v-if="editing"><LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteVirtual"><Trash2 :size="16" />删除人员</LsButton></template>
+    </template>
+
       <form @submit.prevent="submit"><LsPanel><div class="virtual-fields">
         <LsSectionHeader title="基本信息" />
         <LsField label="永久 slug" for-id="virtual-slug" required><NInput id="virtual-slug" v-model:value="form.slug" :disabled="editing" maxlength="50" placeholder="sales-assistant" /></LsField>
@@ -113,16 +118,16 @@ function submit() {
 
       <template v-if="editing">
         <LsPanel>
-          <template #header><LsSectionHeader title="Webhook 集成" description="同一虚拟人员可以同时由成员操作并连接多个外部系统。"><template #aside><LsButton variant="secondary" @click="router.push({ path: '/chat-integration-new', query: { slug } })"><Plus :size="16" />创建集成</LsButton></template></LsSectionHeader></template>
+          <template #header><LsSectionHeader title="Webhook 集成" description="同一虚拟人员可以同时由成员操作并连接多个外部系统。"><template #aside><LsPageLink :to="{ path: '/chat-integration-new', query: { slug } }" :icon="Plus" label="创建集成" /></template></LsSectionHeader></template>
           <LsResourceList v-if="detail.data.value?.integrations?.length" aria-label="Webhook 集成列表"><LsResourceRow v-for="item in detail.data.value.integrations" :key="item.id" :title="item.name" :description="item.endpoint_url" :icon="Webhook" :to="{ path: '/chat-integration', query: { slug, id: item.id } }"><template #status><LsStatusTag :label="item.is_active ? '启用' : '停用'" :type="item.is_active ? 'success' : 'default'" /></template></LsResourceRow></LsResourceList>
           <LsEmptyState v-else :source="detail.data.value?.integrations" title="还没有集成" description="创建后会一次性显示 API Token 与签名密钥。" />
         </LsPanel>
       </template>
-    </div>
+  </LsFormPage>
 </template>
 
 <style scoped>
-.virtual-form-page { display: grid; gap: 1.5rem; }
+
 .virtual-fields { display: grid; gap: 1rem; }
 .virtual-fields > .ls-button { width: fit-content; }
 </style>

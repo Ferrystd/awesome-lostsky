@@ -1,4 +1,7 @@
 import { h } from 'vue'
+import CommunityParticipation from '../../apps/community/src/components/CommunityParticipation.vue'
+import CommunityShell from '../../apps/community/src/components/CommunityShell.vue'
+import type { Community } from '@lostsky/api/community'
 import CommunityManagement from '@lostsky/ui/community/CommunityManagement.vue'
 import CommunityGovernance from '@lostsky/ui/community/CommunityGovernance.vue'
 import CommunityPostList from '@lostsky/ui/community/CommunityPostList.vue'
@@ -10,6 +13,16 @@ import { previewStates, type StoryDefinition } from './story-types'
 const post = { id: 1, community_id: 1, board_id: 1, author_entity_id: 9, title: '分享你的工作室协作经验', content: '讨论从一个好问题开始。', status: 'Visible' as const, hidden_reason: '', pinned: true, like_count: 12, comment_count: 4, is_liked: false, can_edit: false, author: { id: 9, slug: 'sky-person', name: '青空', is_valid: true }, create_time: 1791331200, update_time: 1791331200 }
 const unavailableUpload = async () => { throw new Error('组件预览不上传文件') }
 export const communityStories: Record<string, StoryDefinition> = {
+  CommunityParticipation: {
+    name: 'CommunityParticipation', supported: ['default', 'hover', 'focus', 'active', 'disabled', 'mobile'],
+    reason: { loading: '请求中状态由真实加入操作管理。', error: '请求错误由反馈系统展示。' },
+    render: state => h(CommunityParticipation, { community: { id: 1, slug: 'lostsky', name: 'LostSky 社区', entity_id: null, status: state === 'disabled' ? 'Paused' : 'Active', team_available: true, is_joined: false, is_muted: false } as unknown as Community }),
+  },
+  CommunityShell: {
+    name: 'CommunityShell', supported: ['default', 'hover', 'focus', 'active', 'mobile'],
+    reason: { loading: '外壳不发出读取请求。', error: '错误状态由内容区管理。', disabled: '导航始终可用。' },
+    render: () => h(CommunityShell, { identityHref: '/identity', identityLabel: '选择人员身份' }, { default: () => h('p', '公开社区内容区域') }),
+  },
   CommunityManagement: {
     name: 'CommunityManagement', supported: [...previewStates],
     render: state => h(CommunityManagement, { scope: 'admin', canRead: true, canWrite: state !== 'disabled', canModerate: state !== 'disabled', readReason: '', writeReason: '缺少平台社区资料管理权限', moderateReason: '缺少平台社区内容治理权限' }),

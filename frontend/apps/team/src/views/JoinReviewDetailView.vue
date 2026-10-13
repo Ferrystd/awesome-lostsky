@@ -15,7 +15,7 @@ import { Check, Plus, X } from '@lucide/vue'
 import { NCheckbox, NEmpty, NInput, NModal } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
+import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 interface Task { id?: number; title: string; description?: string | null; is_passed?: 0 | 1; sort?: number }
@@ -60,10 +60,9 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
 </script>
 
 <template>
-    <div class="join-review-detail-page">
-      <AdminPageHeader :title="`审核${detail?.purpose_label || '加入'}申请`" :description="reviewId ? `申请 #${reviewId}` : '缺少申请编号'" back-to="/join-review" back-label="返回申请列表">
+  <LsDetailPage :title="`审核${detail?.purpose_label || '加入'}申请`" :description="reviewId ? `申请 #${reviewId}` : '缺少申请编号'" back-to="/join-review" back-label="返回申请列表">
         <template v-if="detail" #actions><LsStatusTag :label="String(detail.purpose_label || '加入')" type="info" /><LsStatusTag :label="String(detail.status_label || detail.status)" :type="statusType(detail.status_label || detail.status)" /></template>
-      </AdminPageHeader>
+    <div class="join-review-detail-page">
       <LsInlineError v-if="!reviewId" message="缺少有效的申请编号，请返回列表重新选择。" />
       <LsAsyncState v-else-if="detailQuery.isError.value && !routeAccess.restricted.value" state="error" title="暂时无法读取加入申请" :description="friendlyError(detailQuery.error.value)" />
       <LsAsyncState v-else-if="detailQuery.isPending.value && !routeAccess.restricted.value" state="loading" :rows="6" />
@@ -92,9 +91,10 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
         <template #footer><div class="modal-actions"><LsButton variant="secondary" @click="rejectOpen = false">取消</LsButton><LsButton variant="danger" :disabled="!rejectMemo.trim()" @click="submitReject">确认拒绝</LsButton></div></template>
       </NModal>
     </div>
+  </LsDetailPage>
 </template>
 
 <style scoped>
-.join-review-detail-page{display:grid;gap:1.5rem}.join-review-detail-page section h3,.join-review-detail-page section p{margin:0}.tasks{display:grid;gap:1rem;margin-top:1rem}.tasks article{display:grid;gap:.75rem;padding:1rem;background:var(--cloud);border-radius:10px}.task-index{color:var(--sky-lost-strong);font-size:.75rem;font-weight:750}.tasks label{display:grid;gap:.5rem}.tasks label>span{color:var(--muted-ink);font-size:.8rem;font-weight:650}.task-actions,.save-row,.decision-actions,.modal-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:.75rem}.save-row{padding-top:.25rem}.modal-actions{width:100%}
-@media(max-width:639px){.decision-actions :deep(.n-button),.save-row :deep(.n-button){width:100%}.decision-actions,.save-row{display:grid;grid-template-columns:1fr;width:100%}}
+.join-review-detail-page{display:grid;gap:1.5rem}.join-review-detail-page section h3,.join-review-detail-page section p{margin:0}.tasks{display:grid;gap:1rem;margin-top:1rem}.tasks article{display:grid;gap:.75rem;padding:1rem;background:var(--surface-subtle);border-radius:10px}.task-index{color:var(--sky-lost-strong);font-size:.75rem;font-weight:750}.tasks label{display:grid;gap:.5rem}.tasks label>span{color:var(--muted-ink);font-size:.8rem;font-weight:650}.task-actions,.save-row,.decision-actions,.modal-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:.75rem}.save-row{padding-top:.25rem}.modal-actions{width:100%}
+@media(max-width:639px){.decision-actions,.save-row{display:grid;grid-template-columns:1fr;width:100%}}
 </style>

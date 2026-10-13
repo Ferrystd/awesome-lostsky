@@ -8,7 +8,7 @@ import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
+import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import { actorLabel, displayAuditValue, formatAuditTime, type AuditChange, type AuditEventDetail } from '../lib/audit'
 
 const route = useRoute()
@@ -40,45 +40,46 @@ const metadata = computed(() => Object.entries(query.data.value?.context ?? {}).
 </script>
 
 <template>
-  <div class="audit-detail">
-    <AdminPageHeader :title="query.data.value ? `${query.data.value.resource_label} · ${query.data.value.action_label}` : '审计事件'" description="审计事件为只读记录；敏感字段只显示发生过变更，不保存原始内容。" back-to="/audit" back-label="返回审计日志" />
-    <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取审计事件" :description="friendlyError(query.error.value)" />
-    <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
-    <template v-else-if="routeAccess.restricted.value">
-      <LsPanel><template #header><LsSectionHeader title="事件信息" /></template><LsDescriptionList><dt>应用</dt><dd>-</dd><dt>动作</dt><dd>-</dd><dt>执行人员</dt><dd>-</dd><dt>认证账号 ID</dt><dd>-</dd><dt>目标资源</dt><dd>-</dd><dt>发生时间</dt><dd>-</dd><dt>请求 ID</dt><dd>-</dd><dt>是否产生变更</dt><dd>-</dd></LsDescriptionList></LsPanel>
-      <LsPanel><template #header><LsSectionHeader title="变更内容" description="只展示允许进入审计记录的字段和安全值。" /></template><p class="muted">-</p></LsPanel>
-    </template>
-    <template v-else-if="query.data.value">
-      <LsPanel>
-        <template #header><LsSectionHeader title="事件信息" /></template>
-        <LsDescriptionList>
-          <dt>应用</dt><dd>{{ query.data.value.application_label }}</dd>
-          <dt>动作</dt><dd>{{ query.data.value.action_label }}</dd>
-          <dt>执行人员</dt><dd>{{ actorLabel(query.data.value.actor) }}</dd>
-          <dt>认证账号 ID</dt><dd>#{{ query.data.value.actor.authenticated_user_id }}</dd>
-          <dt>目标资源</dt><dd>{{ query.data.value.resource_label }}{{ query.data.value.resource_id ? ` #${query.data.value.resource_id}` : '' }}</dd>
-          <dt>发生时间</dt><dd>{{ formatAuditTime(query.data.value.create_time) }}</dd>
-          <dt>请求 ID</dt><dd>{{ query.data.value.request_id || '—' }}</dd>
-          <dt>是否产生变更</dt><dd>{{ query.data.value.context.changed === false ? '否，命令成功但状态未变化' : '是' }}</dd>
-        </LsDescriptionList>
-      </LsPanel>
-      <LsPanel>
-        <template #header><LsSectionHeader title="变更内容" description="只展示允许进入审计记录的字段和安全值。" /></template>
-        <div v-if="changes.length" class="change-list">
-          <article v-for="(change, index) in changes" :key="`${change.field ?? 'field'}-${index}`">
-            <strong>{{ change.field || '字段' }}</strong>
-            <dl><dt>变更前</dt><dd>{{ displayAuditValue(change.before) }}</dd><dt>变更后</dt><dd>{{ displayAuditValue(change.after) }}</dd></dl>
-          </article>
-        </div>
-        <p v-else-if="changedFields.length" class="field-list">已变更字段：{{ changedFields.join('、') }}</p>
-        <p v-else class="muted">此事件只保留基础操作信息。</p>
-      </LsPanel>
-      <LsPanel v-if="metadata.length">
-        <template #header><LsSectionHeader title="补充信息" /></template>
-        <LsDescriptionList><template v-for="([key, value]) in metadata" :key="key"><dt>{{ key }}</dt><dd>{{ displayAuditValue(value) }}</dd></template></LsDescriptionList>
-      </LsPanel>
-    </template>
-  </div>
+  <LsDetailPage :title="query.data.value ? `${query.data.value.resource_label} · ${query.data.value.action_label}` : '审计事件'" description="审计事件为只读记录；敏感字段只显示发生过变更，不保存原始内容。" back-to="/audit" back-label="返回审计日志">
+    <div class="audit-detail">
+      <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取审计事件" :description="friendlyError(query.error.value)" />
+      <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
+      <template v-else-if="routeAccess.restricted.value">
+        <LsPanel><template #header><LsSectionHeader title="事件信息" /></template><LsDescriptionList><dt>应用</dt><dd>-</dd><dt>动作</dt><dd>-</dd><dt>执行人员</dt><dd>-</dd><dt>认证账号 ID</dt><dd>-</dd><dt>目标资源</dt><dd>-</dd><dt>发生时间</dt><dd>-</dd><dt>请求 ID</dt><dd>-</dd><dt>是否产生变更</dt><dd>-</dd></LsDescriptionList></LsPanel>
+        <LsPanel><template #header><LsSectionHeader title="变更内容" description="只展示允许进入审计记录的字段和安全值。" /></template><p class="muted">-</p></LsPanel>
+      </template>
+      <template v-else-if="query.data.value">
+        <LsPanel>
+          <template #header><LsSectionHeader title="事件信息" /></template>
+          <LsDescriptionList>
+            <dt>应用</dt><dd>{{ query.data.value.application_label }}</dd>
+            <dt>动作</dt><dd>{{ query.data.value.action_label }}</dd>
+            <dt>执行人员</dt><dd>{{ actorLabel(query.data.value.actor) }}</dd>
+            <dt>认证账号 ID</dt><dd>#{{ query.data.value.actor.authenticated_user_id }}</dd>
+            <dt>目标资源</dt><dd>{{ query.data.value.resource_label }}{{ query.data.value.resource_id ? ` #${query.data.value.resource_id}` : '' }}</dd>
+            <dt>发生时间</dt><dd>{{ formatAuditTime(query.data.value.create_time) }}</dd>
+            <dt>请求 ID</dt><dd>{{ query.data.value.request_id || '—' }}</dd>
+            <dt>是否产生变更</dt><dd>{{ query.data.value.context.changed === false ? '否，命令成功但状态未变化' : '是' }}</dd>
+          </LsDescriptionList>
+        </LsPanel>
+        <LsPanel>
+          <template #header><LsSectionHeader title="变更内容" description="只展示允许进入审计记录的字段和安全值。" /></template>
+          <div v-if="changes.length" class="change-list">
+            <article v-for="(change, index) in changes" :key="`${change.field ?? 'field'}-${index}`">
+              <strong>{{ change.field || '字段' }}</strong>
+              <dl><dt>变更前</dt><dd>{{ displayAuditValue(change.before) }}</dd><dt>变更后</dt><dd>{{ displayAuditValue(change.after) }}</dd></dl>
+            </article>
+          </div>
+          <p v-else-if="changedFields.length" class="field-list">已变更字段：{{ changedFields.join('、') }}</p>
+          <p v-else class="muted">此事件只保留基础操作信息。</p>
+        </LsPanel>
+        <LsPanel v-if="metadata.length">
+          <template #header><LsSectionHeader title="补充信息" /></template>
+          <LsDescriptionList><template v-for="([key, value]) in metadata" :key="key"><dt>{{ key }}</dt><dd>{{ displayAuditValue(value) }}</dd></template></LsDescriptionList>
+        </LsPanel>
+      </template>
+    </div>
+  </LsDetailPage>
 </template>
 
 <style scoped>

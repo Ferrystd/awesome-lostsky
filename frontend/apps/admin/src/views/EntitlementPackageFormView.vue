@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 
@@ -7,7 +11,6 @@ import LsButton from "@lostsky/ui/components/LsButton.vue";
 import LsField from "@lostsky/ui/components/LsField.vue";
 import LsFormList from "@lostsky/ui/components/LsFormList.vue";
 import LsInlineError from "@lostsky/ui/components/LsInlineError.vue";
-import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
 import LsFormActions from "@lostsky/ui/components/LsFormActions.vue";
 import LsFormSection from "@lostsky/ui/components/LsFormSection.vue";
 import LsSwitchField from "@lostsky/ui/components/LsSwitchField.vue";
@@ -116,14 +119,12 @@ const valid = computed(() =>
 );
 </script>
 <template>
-  <div class="entitlement-form">
-    <LsPageHeader
-      :title="editing ? '编辑 Ability 权益包' : '创建 Ability 权益包'"
-      description="能力只能从代码目录中选择；持续天数填 0 表示永久。"
-      back-to="/entitlements/packages"
-      back-label="返回权益包"
-    />
-    <form @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
+  <LsFormPage :title="editing ? '编辑 Ability 权益包' : '创建 Ability 权益包'" description="能力只能从代码目录中选择；持续天数填 0 表示永久。">
+    <template #actions>
+      <LsPageLink to="/entitlements/packages" :icon="ArrowLeft" label="返回权益包" />
+    </template>
+
+    <form class="entitlement-fields" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
       <LsFormSection title="基本信息"
         ><LsField label="权益包名称" for-id="entitlement-name" required
           ><NInput
@@ -173,9 +174,7 @@ const valid = computed(() =>
         v-if="!routeAccess.restricted.value && detail.isError.value"
         :message="friendlyError(detail.error.value)"
       /><LsFormActions
-        ><LsButton type="button" variant="secondary" @click="router.back()"
-          >取消</LsButton
-        ><LsButton
+        ><LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton><LsButton
           type="submit"
           :disabled="routeAccess.restricted.value || !valid || !can('admin.entitlement.write') || !draft.dirty.value"
           :disabled-reason="
@@ -188,11 +187,10 @@ const valid = computed(() =>
         ></LsFormActions
       >
     </form>
-  </div>
+  </LsFormPage>
 </template>
 <style scoped>
-.entitlement-form,
-.entitlement-form form {
+.entitlement-fields {
   display: grid;
   gap: 1.25rem;
 }

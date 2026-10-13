@@ -977,7 +977,9 @@
     "name": "TeamCategoryLayout",
     "source": "frontend/apps/team/src/components/TeamCategoryLayout.vue",
     "story": "frontend/component-previews/src/app-stories.ts#TeamCategoryLayout",
-    "aliases": ["team-category-layout"]
+    "aliases": [
+      "team-category-layout"
+    ]
   },
   {
     "id": "team-category-navigation",
@@ -985,7 +987,9 @@
     "name": "TeamCategoryNavigation",
     "source": "frontend/apps/team/src/components/TeamCategoryNavigation.vue",
     "story": "frontend/component-previews/src/app-stories.ts#TeamCategoryNavigation",
-    "aliases": ["team-category-navigation"]
+    "aliases": [
+      "team-category-navigation"
+    ]
   },
   {
     "id": "team-settings-group",
@@ -996,14 +1000,16 @@
     "aliases": [
       "team-settings-group"
     ]
-  }
-  ,{
+  },
+  {
     "id": "team-notice-row",
     "category": "team",
     "name": "TeamNoticeRow",
     "source": "frontend/apps/team/src/components/TeamNoticeRow.vue",
     "story": "frontend/component-previews/src/app-stories.ts#TeamNoticeRow",
-    "aliases": ["team-notice-row"]
+    "aliases": [
+      "team-notice-row"
+    ]
   },
   {
     "id": "ls-workspace-scene",
@@ -1034,5 +1040,71 @@
     "aliases": [
       "页头轻入口"
     ]
+  },
+  {
+    "id": "ls-overview-page",
+    "name": "LsOverviewPage",
+    "source": "frontend/packages/ui/src/components/LsOverviewPage.vue",
+    "story": "frontend/component-previews/src/overview-story.ts#LsOverviewPage",
+    "category": "ui",
+    "aliases": [
+      "概览正文模板"
+    ]
+  },
+  {
+    "id": "ls-category-page",
+    "name": "LsCategoryPage",
+    "source": "frontend/packages/ui/src/components/LsCategoryPage.vue",
+    "story": "frontend/component-previews/src/category-page-story.ts#LsCategoryPage",
+    "category": "ui",
+    "aliases": [
+      "分类正文模板"
+    ]
+  },
+  {
+    "id": "ls-collection-page",
+    "name": "LsCollectionPage",
+    "source": "frontend/packages/ui/src/components/LsCollectionPage.vue",
+    "story": "frontend/component-previews/src/ui-stories.ts#LsCollectionPage",
+    "category": "ui",
+    "aliases": [
+      "集合正文模板"
+    ]
+  },
+  {
+    "id": "ls-detail-page",
+    "name": "LsDetailPage",
+    "source": "frontend/packages/ui/src/components/LsDetailPage.vue",
+    "story": "frontend/component-previews/src/detail-page-story.ts#detailPageStory",
+    "category": "ui",
+    "aliases": [
+      "详情正文模板"
+    ]
+  },
+  {
+    "id": "ui-ls-form-page",
+    "name": "LsFormPage",
+    "source": "frontend/packages/ui/src/components/LsFormPage.vue",
+    "story": "frontend/component-previews/src/form-page-story.ts#LsFormPage",
+    "category": "ui",
+    "aliases": [
+      "表单正文模板"
+    ]
+  },
+  {
+    "id": "community-participation",
+    "name": "CommunityParticipation",
+    "source": "frontend/apps/community/src/components/CommunityParticipation.vue",
+    "story": "frontend/component-previews/src/community-stories.ts#CommunityParticipation",
+    "category": "community",
+    "aliases": []
+  },
+  {
+    "id": "community-shell",
+    "name": "CommunityShell",
+    "source": "frontend/apps/community/src/components/CommunityShell.vue",
+    "story": "frontend/component-previews/src/community-stories.ts#CommunityShell",
+    "category": "community",
+    "aliases": []
   }
 ]

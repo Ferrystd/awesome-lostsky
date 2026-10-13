@@ -7,7 +7,7 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormList from '@lostsky/ui/components/LsFormList.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
@@ -16,7 +16,7 @@ import { ExternalLink, MessageCircleMore } from '@lucide/vue'
 import { NInput } from 'naive-ui'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
+import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import EntityProfileFields from '../components/EntityProfileFields.vue'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { createDocumentTagGroupDraft, documentTagDescriptionError, documentTagError, documentTagGroupDrafts, documentTagGroupsPayload, hasDocumentTagGroupErrors, type DocumentTagGroupDraft } from '../lib/documentTags'
@@ -219,88 +219,88 @@ async function submitProfile() {
 </script>
 
 <template>
-  <div class="entity-detail">
-    <AdminPageHeader :title="canManage ? '管理人员资料' : '查看人员资料'" description="团队内可见、全局搜索和公开主页是三套互相独立的展示范围。" back-to="/entities" back-label="返回人员">
+  <LsDetailPage :title="canManage ? '管理人员资料' : '查看人员资料'" description="团队内可见、全局搜索和公开主页是三套互相独立的展示范围。" back-to="/entities" back-label="返回人员">
       <template #actions>
-        <LsPagePrimaryAction v-if="chatUrl" :icon="MessageCircleMore" label="发起对话" :href="chatUrl" />
+        <LsPageLink v-if="chatUrl" :icon="MessageCircleMore" label="发起对话" :href="chatUrl" />
       </template>
-    </AdminPageHeader>
-    <LsAsyncState v-if="detail.isPending.value" state="loading" :rows="5" />
-    <LsAsyncState v-else-if="detail.isError.value" state="error" title="暂时无法读取人员资料" :description="friendlyError(detail.error.value)" />
-    <template v-else-if="detail.data.value">
-      <form @submit.prevent="submitProfile">
+    <div class="entity-detail">
+      <LsAsyncState v-if="detail.isPending.value" state="loading" :rows="5" />
+      <LsAsyncState v-else-if="detail.isError.value" state="error" title="暂时无法读取人员资料" :description="friendlyError(detail.error.value)" />
+      <template v-else-if="detail.data.value">
+        <form @submit.prevent="submitProfile">
+          <LsPanel
+            ><div class="profile-panel">
+              <LsSectionHeader :title="`${entityTypeLabel} · @${detail.data.value.slug}`" description="这些资料用于人员详情；公开页面仍受“公开主页展示”控制。">
+                <template v-if="displayUrl" #aside
+                  ><LsPageLink :icon="ExternalLink" label="查看公开主页" :href="displayUrl" target="_blank" rel="noopener noreferrer" /></template>
+              </LsSectionHeader>
+              <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" :draft-key="`entity-profile:${id}`" id-prefix="entity-profile" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" :disabled="!canManage" />
+              <section v-if="supportsPublicDocuments" class="document-tag-groups" aria-labelledby="document-tag-groups-title">
+                <div>
+                  <LsSectionHeader id="document-tag-groups-title" title="公开文档分组" description="按这里的顺序组织该人员的公开文档；说明会显示在对应分组标题下方。" :heading-level="3" />
+                </div>
+                <LsFormList v-model="form.document_tags" :item-key="tagKey" :create-item="createTagGroup" item-label="展示标签" add-label="添加展示标签" empty-text="尚未配置公开文档分组" :disabled="!canManage" :disabled-reason="manageReason">
+                  <template #item="{ item, index }">
+                    <div class="document-tag-group-fields">
+                      <LsField label="标签" :for-id="`entity-document-tag-${item.key}`" :error="tagFieldError(item, index)" required>
+                        <NInput
+                          :id="`entity-document-tag-${item.key}`"
+                          v-model:value="item.tag"
+                          placeholder="例如：精选"
+                          maxlength="50"
+                          show-count
+                          :disabled="!canManage"
+                          :status="tagFieldError(item, index) ? 'error' : undefined"
+                          @blur="item.touched = true; item.tag = item.tag.trim()"
+                        />
+                      </LsField>
+                      <LsField label="说明（可选）" :for-id="`entity-document-tag-description-${item.key}`" :error="descriptionFieldError(item)">
+                        <NInput
+                          :id="`entity-document-tag-description-${item.key}`"
+                          v-model:value="item.description"
+                          maxlength="255"
+                          show-count
+                          :disabled="!canManage"
+                          :status="descriptionFieldError(item) ? 'error' : undefined"
+                          @blur="item.descriptionTouched = true; item.description = item.description.trim()"
+                        />
+                      </LsField>
+                    </div>
+                  </template>
+                </LsFormList>
+              </section>
+              <LsFormActions>
+                <LsButton type="submit" :disabled="!canManage || uploading || !profileDirty" :disabled-reason="!canManage ? manageReason : uploading ? '文件正在上传，请稍候' : ''" :loading="profileSave.isPending.value">保存资料</LsButton>
+              </LsFormActions>
+            </div></LsPanel
+          >
+        </form>
+
         <LsPanel
-          ><div class="profile-panel">
-            <LsSectionHeader :title="`${entityTypeLabel} · @${detail.data.value.slug}`" description="这些资料用于人员详情；公开页面仍受“公开主页展示”控制。">
-              <template v-if="displayUrl" #aside
-                ><a class="public-link" :href="displayUrl" target="_blank" rel="noopener noreferrer">查看公开主页<ExternalLink :size="16" /></a
-              ></template>
-            </LsSectionHeader>
-            <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" :draft-key="`entity-profile:${id}`" id-prefix="entity-profile" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" :disabled="!canManage" />
-            <section v-if="supportsPublicDocuments" class="document-tag-groups" aria-labelledby="document-tag-groups-title">
-              <div>
-                <LsSectionHeader id="document-tag-groups-title" title="公开文档分组" description="按这里的顺序组织该人员的公开文档；说明会显示在对应分组标题下方。" :heading-level="3" />
-              </div>
-              <LsFormList v-model="form.document_tags" :item-key="tagKey" :create-item="createTagGroup" item-label="展示标签" add-label="添加展示标签" empty-text="尚未配置公开文档分组" :disabled="!canManage" :disabled-reason="manageReason">
-                <template #item="{ item, index }">
-                  <div class="document-tag-group-fields">
-                    <LsField label="标签" :for-id="`entity-document-tag-${item.key}`" :error="tagFieldError(item, index)" required>
-                      <NInput
-                        :id="`entity-document-tag-${item.key}`"
-                        v-model:value="item.tag"
-                        placeholder="例如：精选"
-                        maxlength="50"
-                        show-count
-                        :disabled="!canManage"
-                        :status="tagFieldError(item, index) ? 'error' : undefined"
-                        @blur="item.touched = true; item.tag = item.tag.trim()"
-                      />
-                    </LsField>
-                    <LsField label="说明（可选）" :for-id="`entity-document-tag-description-${item.key}`" :error="descriptionFieldError(item)">
-                      <NInput
-                        :id="`entity-document-tag-description-${item.key}`"
-                        v-model:value="item.description"
-                        maxlength="255"
-                        show-count
-                        :disabled="!canManage"
-                        :status="descriptionFieldError(item) ? 'error' : undefined"
-                        @blur="item.descriptionTouched = true; item.description = item.description.trim()"
-                      />
-                    </LsField>
-                  </div>
-                </template>
-              </LsFormList>
-            </section>
-            <LsFormActions>
-              <LsButton type="submit" :disabled="!canManage || uploading || !profileDirty" :disabled-reason="!canManage ? manageReason : uploading ? '文件正在上传，请稍候' : ''" :loading="profileSave.isPending.value">保存资料</LsButton>
+          ><section class="visibility-settings">
+            <LsSectionHeader title="可见性设置" description="分别控制团队工作空间与互联网公开主页中的发现范围。" :heading-level="2" />
+            <div class="visibility-list">
+              <LsSwitchField v-if="canToggleInternal" v-model="isInternalVisible" label="团队内可见" :heading-level="3" description="控制普通成员是否能在当前团队工作空间发现该人员；具有 team.entity.read 的角色仍可查看。它不影响全局搜索或公开主页。" :disabled="!canManage" :loading="visibilitySave.isPending.value" :disabled-reason="!canManage ? manageReason : ''" />
+              <LsSwitchField v-else :model-value="detail.data.value.entityable_type === 'team'" label="团队内可见" :heading-level="3" description="控制普通成员是否能在当前团队工作空间发现该人员；它不影响全局搜索或公开主页。" read-only :disabled-reason="internalFixedMessage" />
+
+              <LsSwitchField v-if="canDisplay" v-model="isDisplayed" label="公开主页展示" :heading-level="3" description="控制互联网访客能否在 Display 公开主页浏览该人员。它不影响团队内目录或全局搜索。" :disabled="!canManage" :loading="visibilitySave.isPending.value" :disabled-reason="!canManage ? manageReason : ''" />
+              <LsSwitchField v-else :model-value="detail.data.value.entityable_type === 'team'" label="公开主页展示" :heading-level="3" description="控制互联网访客能否在 Display 公开主页浏览该人员。" read-only :disabled-reason="publicFixedMessage" />
+            </div>
+            <LsFormActions v-if="canToggleInternal">
+              <LsButton variant="secondary" :disabled="!canManage || !visibilityDirty" :disabled-reason="!canManage ? manageReason : ''" :loading="visibilitySave.isPending.value" @click="visibilitySave.mutate(buildVisibilityPayload())">保存可见性</LsButton>
             </LsFormActions>
-          </div></LsPanel
+          </section></LsPanel
         >
-      </form>
-
-      <LsPanel
-        ><section class="visibility-settings">
-          <LsSectionHeader title="可见性设置" description="分别控制团队工作空间与互联网公开主页中的发现范围。" :heading-level="2" />
-          <div class="visibility-list">
-            <LsSwitchField v-if="canToggleInternal" v-model="isInternalVisible" label="团队内可见" :heading-level="3" description="控制普通成员是否能在当前团队工作空间发现该人员；具有 team.entity.read 的角色仍可查看。它不影响全局搜索或公开主页。" :disabled="!canManage" :loading="visibilitySave.isPending.value" :disabled-reason="!canManage ? manageReason : ''" />
-            <LsSwitchField v-else :model-value="detail.data.value.entityable_type === 'team'" label="团队内可见" :heading-level="3" description="控制普通成员是否能在当前团队工作空间发现该人员；它不影响全局搜索或公开主页。" read-only :disabled-reason="internalFixedMessage" />
-
-            <LsSwitchField v-if="canDisplay" v-model="isDisplayed" label="公开主页展示" :heading-level="3" description="控制互联网访客能否在 Display 公开主页浏览该人员。它不影响团队内目录或全局搜索。" :disabled="!canManage" :loading="visibilitySave.isPending.value" :disabled-reason="!canManage ? manageReason : ''" />
-            <LsSwitchField v-else :model-value="detail.data.value.entityable_type === 'team'" label="公开主页展示" :heading-level="3" description="控制互联网访客能否在 Display 公开主页浏览该人员。" read-only :disabled-reason="publicFixedMessage" />
-          </div>
-          <LsFormActions v-if="canToggleInternal">
-            <LsButton variant="secondary" :disabled="!canManage || !visibilityDirty" :disabled-reason="!canManage ? manageReason : ''" :loading="visibilitySave.isPending.value" @click="visibilitySave.mutate(buildVisibilityPayload())">保存可见性</LsButton>
-          </LsFormActions>
-        </section></LsPanel
-      >
-    </template>
-  </div>
+      </template>
+    </div>
+  </LsDetailPage>
 </template>
 
 <style scoped>
 .entity-detail {
   display: grid;
-  gap: 22px;
+  min-width: 0;
+  gap: 1.5rem;
 }
 .profile-panel,
 .visibility-settings,
@@ -315,16 +315,6 @@ async function submitProfile() {
   gap: 7px;
   color: var(--text-secondary);
   font-weight: 650;
-}
-.public-link {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--primary);
-  font-size: 0.82rem;
-  font-weight: 650;
-  white-space: nowrap;
 }
 .document-tag-groups {
   display: grid;

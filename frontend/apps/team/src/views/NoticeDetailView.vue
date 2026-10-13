@@ -10,7 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { MailOpen, Pin } from '@lucide/vue'
 import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
+import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import { resolveEntities } from '../lib/markdown'
 import { noticeListPath, noticeListQuery, noticeListState, type NoticeScope } from '../lib/noticeNavigation'
 import { queryPositiveInteger } from '@lostsky/shared/routeQuery'
@@ -84,36 +84,37 @@ function time(value: unknown) {
 </script>
 
 <template>
-  <article class="notice-detail-view">
-    <AdminPageHeader :title="copy.title" :description="copy.description" :back-to="backTo" :back-label="copy.backLabel" />
+  <LsDetailPage :title="copy.title" :description="copy.description" :back-to="backTo" :back-label="copy.backLabel">
+    <article class="notice-detail-view">
 
-    <LsInlineError v-if="!noticeId && !routeAccess.restricted.value" :message="`缺少有效的${copy.noun}编号，请返回列表重新选择。`" />
-    <LsAsyncState v-else-if="!routeAccess.restricted.value && detailQuery.isError.value" state="error" :description="friendlyError(detailQuery.error.value)" />
-    <LsAsyncState v-else-if="!routeAccess.restricted.value && detailQuery.isPending.value" state="loading" :rows="3" />
-    <LsEmptyState v-else-if="routeAccess.restricted.value" :source="notice" title="暂无可显示的通知" description="返回通知列表查看其他通知。" />
-    <template v-else-if="notice">
-      <header class="notice-header">
-        <div class="notice-meta">
-          <span v-if="notice.is_pinned === 1" class="pinned"><Pin :size="15" />置顶消息</span>
-          <time>{{ time(notice.create_time ?? notice.created_at) }}</time>
-          <span v-if="scope === 'sent'">收件人员 #{{ notice.entity_id }}</span>
-          <span class="read-state"><MailOpen :size="15" />{{ notice.is_read === 1 ? '已读' : scope === 'sent' ? '未读' : '正在标记已读' }}</span>
-        </div>
-        <h1>{{ notice.title || '无标题消息' }}</h1>
-      </header>
-      <LsPanel><section class="notice-content" :aria-label="`${copy.noun}正文`">
-        <LsMarkdownRenderer
-          context="document"
-          :content="notice.content || `这条${copy.noun}没有正文。`"
-          :resolve-entities="resolveEntities"
-        />
-      </section></LsPanel>
-    </template>
+      <LsInlineError v-if="!noticeId && !routeAccess.restricted.value" :message="`缺少有效的${copy.noun}编号，请返回列表重新选择。`" />
+      <LsAsyncState v-else-if="!routeAccess.restricted.value && detailQuery.isError.value" state="error" :description="friendlyError(detailQuery.error.value)" />
+      <LsAsyncState v-else-if="!routeAccess.restricted.value && detailQuery.isPending.value" state="loading" :rows="3" />
+      <LsEmptyState v-else-if="routeAccess.restricted.value" :source="notice" title="暂无可显示的通知" description="返回通知列表查看其他通知。" />
+      <template v-else-if="notice">
+        <header class="notice-header">
+          <div class="notice-meta">
+            <span v-if="notice.is_pinned === 1" class="pinned"><Pin :size="15" />置顶消息</span>
+            <time>{{ time(notice.create_time ?? notice.created_at) }}</time>
+            <span v-if="scope === 'sent'">收件人员 #{{ notice.entity_id }}</span>
+            <span class="read-state"><MailOpen :size="15" />{{ notice.is_read === 1 ? '已读' : scope === 'sent' ? '未读' : '正在标记已读' }}</span>
+          </div>
+          <h2>{{ notice.title || '无标题消息' }}</h2>
+        </header>
+        <LsPanel><section class="notice-content" :aria-label="`${copy.noun}正文`">
+          <LsMarkdownRenderer
+            context="document"
+            :content="notice.content || `这条${copy.noun}没有正文。`"
+            :resolve-entities="resolveEntities"
+          />
+        </section></LsPanel>
+      </template>
 
-    <LsInlineError v-if="confirmNotice.isError.value && confirmNotice.variables.value?.noticeScope === scope && confirmNotice.variables.value?.id === noticeId" :message="`${copy.noun}已打开，但已读状态更新失败：${friendlyError(confirmNotice.error.value)}`" />
-  </article>
+      <LsInlineError v-if="confirmNotice.isError.value && confirmNotice.variables.value?.noticeScope === scope && confirmNotice.variables.value?.id === noticeId" :message="`${copy.noun}已打开，但已读状态更新失败：${friendlyError(confirmNotice.error.value)}`" />
+    </article>
+  </LsDetailPage>
 </template>
 
 <style scoped>
-.notice-detail-view{display:grid;gap:1.75rem}.notice-header{padding-bottom:1.5rem;border-bottom:1px solid var(--line)}.notice-meta{display:flex;align-items:center;flex-wrap:wrap;gap:.75rem;color:var(--muted-ink);font-size:.8rem}.notice-meta>span{display:inline-flex;align-items:center;gap:.3rem}.notice-meta .pinned{color:var(--sky-lost-strong);font-weight:750}.read-state{color:var(--ink)}.notice-header h1{margin:1rem 0 0;font-size:clamp(1.75rem,4vw,2.5rem);line-height:1.18;letter-spacing:-.025em;text-wrap:balance}.notice-content{max-width:72ch;min-height:14rem;margin-inline:auto;overflow-wrap:anywhere}@media(max-width:639px){.notice-detail-view{gap:1.25rem}}
+.notice-detail-view{display:grid;gap:1.5rem}.notice-header{padding-bottom:1.5rem;border-bottom:1px solid var(--line)}.notice-meta{display:flex;align-items:center;flex-wrap:wrap;gap:.75rem;color:var(--muted-ink);font-size:.8rem}.notice-meta>span{display:inline-flex;align-items:center;gap:.3rem}.notice-meta .pinned{color:var(--sky-lost-strong);font-weight:750}.read-state{color:var(--ink)}.notice-header h2{margin:1rem 0 0;font-size:1.5rem;line-height:1.35;text-wrap:balance}.notice-content{max-width:72ch;min-height:14rem;margin-inline:auto;overflow-wrap:anywhere}@media(max-width:639px){.notice-detail-view{gap:1.25rem}}
 </style>

@@ -313,7 +313,7 @@ const groupedPermissions = computed(() => {
 .permission-label small {
   padding: 0.15rem 0.4rem;
   color: color-mix(in oklch, var(--warning), black 35%);
-  background: color-mix(in oklch, var(--warning), white 90%);
+  background: color-mix(in oklch, var(--warning), var(--surface) 90%);
   border-radius: 999px;
   font-size: 0.68rem;
   font-weight: 700;

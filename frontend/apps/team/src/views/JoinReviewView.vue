@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
@@ -10,11 +12,9 @@ import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
-import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import { Settings, ClipboardCheck } from '@lucide/vue'
 import { NSelect } from 'naive-ui'
 import { computed, ref } from 'vue'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
 
 const statusOptions = [
   { label: '全部状态', value: '' }, { label: '已申请', value: '已申请' }, { label: '审核中', value: '审核中' },
@@ -37,21 +37,32 @@ const visibleRows = computed(() => { const keyword = search.value.trim().toLocal
 
 <template>
   <div class="join-review-list-page">
-    <AdminPageHeader title="人事审核" description="查看加入申请，点击进入对应审核页面。"><template #actions><LsPagePrimaryAction :icon="Settings" label="申请表配置" to="/join-fields" /></template></AdminPageHeader>
-    <TeamSectionNav label="审核分类" :items="reviewSections" />
-    <LsListToolbar v-model="search" placeholder="搜索申请人、编号或说明" aria-label="搜索加入申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visibleRows.length} 条申请`"><template #filters><NSelect v-model:value="status" :options="statusOptions" aria-label="筛选申请状态" /></template></LsListToolbar>
-    <LsAsyncState v-if="!routeAccess.restricted.value && listQuery.isError.value" state="error" title="暂时无法读取加入申请" :description="friendlyError(listQuery.error.value)" />
-    <LsAsyncState v-else-if="!routeAccess.restricted.value && listQuery.isPending.value" state="loading" :rows="4" />
-    <LsEmptyState v-else-if="routeAccess.restricted.value || !visibleRows.length" :source="listQuery.data.value" :title="routeAccess.restricted.value ? '没有可显示的加入申请' : '没有匹配的加入申请'" description="调整搜索词或申请状态筛选后查看。" />
-    <LsResourceList v-else aria-label="加入申请列表">
-      <LsResourceRow v-for="item in visibleRows" :key="String(item.id)" :title="applicant(item)" :description="String(item.memo || '没有补充说明')" :icon="ClipboardCheck" :to="{ path: '/join-review/review', query: { id: String(item.id ?? '') } }">
-        <template #status><LsStatusTag :label="String(item.purpose_label || '加入')" type="info" /><LsStatusTag :label="String(item.status_label || item.status)" :type="statusType(item.status_label || item.status)" /></template>
-        <template #metadata><span>{{ item.purpose_label || '加入' }}申请 #{{ item.id }}</span></template>
-      </LsResourceRow>
-    </LsResourceList>
+    <LsCollectionPage title="人事审核" description="查看加入申请，点击进入对应审核页面。">
+      <template #actions>
+        <LsPageLink :icon="Settings" label="申请表配置" to="/join-fields" />
+      </template>
+      <template #toolbar>
+        <TeamSectionNav label="审核分类" :items="reviewSections" />
+        <LsListToolbar v-model="search" placeholder="搜索申请人、编号或说明" aria-label="搜索加入申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visibleRows.length} 条申请`">
+          <template #filters>
+            <NSelect v-model:value="status" :options="statusOptions" aria-label="筛选申请状态" />
+          </template>
+        </LsListToolbar>
+      </template>
+      <LsAsyncState v-if="!routeAccess.restricted.value && listQuery.isError.value" state="error" title="暂时无法读取加入申请" :description="friendlyError(listQuery.error.value)" />
+      <LsAsyncState v-else-if="!routeAccess.restricted.value && listQuery.isPending.value" state="loading" :rows="4" />
+      <LsEmptyState v-else-if="routeAccess.restricted.value || !visibleRows.length" :source="listQuery.data.value" :title="routeAccess.restricted.value ? '没有可显示的加入申请' : '没有匹配的加入申请'" description="调整搜索词或申请状态筛选后查看。" />
+      <LsResourceList v-else aria-label="加入申请列表">
+        <LsResourceRow v-for="item in visibleRows" :key="String(item.id)" :title="applicant(item)" :description="String(item.memo || '没有补充说明')" :icon="ClipboardCheck" :to="{ path: '/join-review/review', query: { id: String(item.id ?? '') } }">
+          <template #status>
+            <LsStatusTag :label="String(item.purpose_label || '加入')" type="info" />
+            <LsStatusTag :label="String(item.status_label || item.status)" :type="statusType(item.status_label || item.status)" />
+          </template>
+          <template #metadata>
+            <span>{{ item.purpose_label || '加入' }}申请 #{{ item.id }}</span>
+          </template>
+        </LsResourceRow>
+      </LsResourceList>
+    </LsCollectionPage>
   </div>
 </template>
-
-<style scoped>
-.join-review-list-page { display: grid; gap: 1.5rem; }
-</style>

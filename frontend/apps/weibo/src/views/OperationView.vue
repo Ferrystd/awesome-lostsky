@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+
 import { api, friendlyError } from '@lostsky/api/client'
 import { formatAbilityDenied } from '@lostsky/api/error-format'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -6,7 +8,6 @@ import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
@@ -61,8 +62,8 @@ async function submit() {
 </script>
 
 <template>
-  <div class="weibo-stack">
-    <LsPageHeader title="超话发帖" description="在超话内发帖不同步至主页。" />
+  <LsFormPage title="超话发帖" description="在超话内发帖不同步至主页。">
+
     <form class="weibo-form" @submit.prevent="submit">
       <LsFormSection title="执行账号" description="选择本次发布使用的已绑定微博账号。">
         <LsField label="微博账号" for-id="weibo-account" required>
@@ -93,5 +94,5 @@ async function submit() {
         </LsFormActions>
       </LsFormSection>
     </form>
-  </div>
+  </LsFormPage>
 </template>

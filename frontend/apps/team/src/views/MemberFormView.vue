@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft, Eye, UserPlus } from '@lucide/vue'
+
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import { api, friendlyError } from '@lostsky/api/client'
@@ -18,11 +22,10 @@ import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import JoinApplicationFields, { type JoinField, type FieldValue } from '../components/JoinApplicationFields.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { UserPlus } from '@lucide/vue'
+
 import { NFlex, NInput, NSelect } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import EntityFieldsCard, { type EntityFieldDefinition } from '../components/EntityFieldsCard.vue'
 import EntityPermissionsCard, { type AdvancedPermissionItem, type PermissionGroup, type RoleAssignment, type RoleRecord } from '../components/EntityPermissionsCard.vue'
@@ -315,22 +318,22 @@ function submit() {
 </script>
 
 <template>
-  <div class="member-form-view">
-    <AdminPageHeader :title="editing ? '管理成员' : '添加成员'" :description="editing ? '管理成员状态、对象字段与角色权限。' : '填写对方的个人入队码，直接加入当前团队。'" back-to="/members" back-label="返回成员列表">
-      <template #actions>
-        <LsFormActions v-if="!editing" class="member-primary-actions">
-          <LsButton type="button" variant="secondary" @click="router.push('/members')">取消</LsButton>
+  <LsFormPage :title="editing ? '管理成员' : '添加成员'" :description="editing ? '管理成员状态、对象字段与角色权限。' : '填写对方的个人入队码，直接加入当前团队。'">
+    <template #actions>
+      <LsPageLink to="/members" :icon="ArrowLeft" label="返回成员列表" />
+      <LsFormActions v-if="!editing">
+          <LsPageLink to="/members" :icon="ArrowLeft" label="取消" />
           <LsPagePrimaryAction :icon="UserPlus" label="添加成员" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason" />
         </LsFormActions>
-      </template>
-    </AdminPageHeader>
+    </template>
 
     <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
     <LsInlineError v-else-if="editing && (!Number.isInteger(id) || id <= 0)" message="缺少有效的成员编号，请返回成员列表重新选择。" />
     <LsAsyncState v-else-if="editing && detail.isPending.value" state="loading" aria-label="正在读取成员" />
     <LsSectionHeader v-else-if="editing && detail.data.value" :title="String(detail.data.value.name || `成员 #${id}`)" description="名称、头像和介绍统一在人员资料页维护。">
       <template #aside>
-        <LsButton @click="router.push(`/entity?id=${detail.data.value.entity_id}`)" :disabled="!detail.data.value.entity_id" disabled-reason="该成员缺少人员标识，请联系管理员检查。">查看人员资料</LsButton>
+        <LsPageLink v-if="detail.data.value.entity_id" :to="`/entity?id=${detail.data.value.entity_id}`" :icon="Eye" label="查看人员资料" />
+        <LsButton v-else variant="ghost" disabled disabled-reason="该成员缺少人员标识，请联系管理员检查。"><template #icon><Eye :size="16" /></template>查看人员资料</LsButton>
       </template>
     </LsSectionHeader>
     <form v-else-if="!editing" id="member-profile-form" class="member-form" @submit.prevent="submit">
@@ -403,19 +406,14 @@ function submit() {
         </div>
       </section>
     </LsPanel>
-  </div>
+  </LsFormPage>
 </template>
 
 <style scoped>
-.member-form-view,
 .member-form {
   min-width: 0;
   display: grid;
   gap: 22px;
-}
-.member-primary-actions {
-  display: flex;
-  gap: 10px;
 }
 .management {
   display: grid;
@@ -504,25 +502,6 @@ function submit() {
   line-height: 1.55;
 }
 @media (max-width: 680px) {
-  .member-form-view {
-    padding-bottom: calc(140px + env(safe-area-inset-bottom));
-  }
-  .member-primary-actions {
-    position: fixed;
-    z-index: 20;
-    right: 0;
-    bottom: calc(64px + env(safe-area-inset-bottom));
-    left: 0;
-    display: grid;
-    grid-template-columns: 1fr 1.4fr;
-    gap: 10px;
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-  }
-  .member-primary-actions > * {
-    width: 100%;
-  }
   .inline-form {
     grid-template-columns: 1fr;
   }

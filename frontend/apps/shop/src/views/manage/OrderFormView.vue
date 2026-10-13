@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 
@@ -9,7 +13,6 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery } from '@tanstack/vue-query'
@@ -61,8 +64,11 @@ function submit() {
 </script>
 
 <template>
-  <div class="manage-page">
-    <LsPageHeader title="新建订单" description="分成自动根据价格计算，也可手动输入。" back-to="/manage/orders" back-label="返回订单" />
+  <LsFormPage title="新建订单" description="分成自动根据价格计算，也可手动输入。">
+    <template #actions>
+      <LsPageLink to="/manage/orders" :icon="ArrowLeft" label="返回订单" />
+    </template>
+
     <form class="manage-form" @submit.prevent="submit">
       <LsFormSection title="商品与顾客">
         <LsField label="商品" for-id="order-product" required><NSelect id="order-product" v-model:value="form.product_id" :options="productOptions" filterable :disabled="routeAccess.restricted.value" :placeholder="routeAccess.restricted.value ? '-' : '选择已上架商品'" /></LsField>
@@ -77,7 +83,7 @@ function submit() {
         <LsField label="备注" for-id="order-memo"><NInput id="order-memo" v-model:value="form.memo" type="textarea" maxlength="500" show-count /></LsField>
       </LsFormSection>
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
-      <LsFormActions><LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton><LsButton type="submit" :disabled="routeAccess.restricted.value || !valid" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">创建订单</LsButton></LsFormActions>
+      <LsFormActions><LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton><LsButton type="submit" :disabled="routeAccess.restricted.value || !valid" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">创建订单</LsButton></LsFormActions>
     </form>
-  </div>
+  </LsFormPage>
 </template>

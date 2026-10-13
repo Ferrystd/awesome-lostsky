@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 
@@ -9,7 +13,6 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -169,13 +172,11 @@ async function submit() {
 </script>
 
 <template>
-  <div class="transaction-form-view">
-    <LsPageHeader
-      :title="editing ? '编辑流水' : '登记流水'"
-      :description="editing ? '接单人创建后不可更换；修改预存款会同步生成余额变动。' : '总价需要同时与支付构成、成本及分成构成保持一致。'"
-      :back-to="editing ? `/detail?id=${id}` : personal ? '/personal/transactions' : '/'"
-      :back-label="editing ? '返回流水详情' : personal ? '返回我的流水' : '返回流水列表'"
-    />
+  <LsFormPage :title="editing ? '编辑流水' : '登记流水'" :description="editing ? '接单人创建后不可更换；修改预存款会同步生成余额变动。' : '总价需要同时与支付构成、成本及分成构成保持一致。'">
+    <template #actions>
+      <LsPageLink :to="editing ? `/detail?id=${id}` : personal ? '/personal/transactions' : '/'" :icon="ArrowLeft" :label="editing ? '返回流水详情' : personal ? '返回我的流水' : '返回流水列表'" />
+    </template>
+
     <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
     <form v-else class="transaction-form" @submit.prevent="submit">
       <LsInlineError v-if="!routeAccess.restricted.value && optionsQuery.isError.value" message="参与方选项暂时无法读取；表单仍可查看，但相关字段已禁用。" />
@@ -209,13 +210,13 @@ async function submit() {
       <LsInlineError v-if="Number(form.prepaid) > balance && selectedCustomer" message="预存款金额超过当前顾客余额。" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
-        <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
+        <LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton>
         <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason">保存流水</LsButton>
       </LsFormActions>
     </form>
-  </div>
+  </LsFormPage>
 </template>
 
 <style scoped>
-.transaction-form-view,.transaction-form{display:grid;gap:1.25rem}.ok,.warn{font-size:.78rem}.ok{color:var(--success)}.warn{color:var(--warning)}.balance-hint,.equation{margin:0;padding:.7rem .8rem;border-radius:8px;background:var(--cloud);color:var(--muted-ink);font-size:.82rem}.balance-hint strong{color:var(--ink)}
+.transaction-form{display:grid;gap:1.25rem}.ok,.warn{font-size:.78rem}.ok{color:var(--success)}.warn{color:var(--warning)}.balance-hint,.equation{margin:0;padding:.7rem .8rem;border-radius:8px;background:var(--cloud);color:var(--muted-ink);font-size:.82rem}.balance-hint strong{color:var(--ink)}
 </style>

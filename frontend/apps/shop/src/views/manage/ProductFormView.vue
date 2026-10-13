@@ -6,16 +6,16 @@ import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
-import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { Eye } from '@lucide/vue'
+import { ArrowLeft, Eye } from '@lucide/vue'
 import { NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -356,17 +356,12 @@ const valid = computed(() => Boolean(
 </script>
 
 <template>
-  <div class="manage-page">
-    <LsPageHeader
-      :title="editing ? (personal ? '编辑本人商品' : '编辑商品') : (personal ? '新建本人商品' : '新建商品')"
-      description="商品类型决定订单完成时交付什么；相关配置在保存时由后端再次校验。"
-      :back-to="management.routeBase"
-      :back-label="personal ? '返回我的商品' : '返回商品'"
-    >
-      <template #actions>
-        <LsPagePrimaryAction v-if="editing" :icon="Eye" label="预览前台" :href="`/product/${id}`" target="_blank" rel="noopener noreferrer" />
-      </template>
-    </LsPageHeader>
+  <LsFormPage :title="editing ? (personal ? '编辑本人商品' : '编辑商品') : (personal ? '新建本人商品' : '新建商品')" description="商品类型决定订单完成时交付什么；相关配置在保存时由后端再次校验。">
+    <template #actions>
+      <LsPageLink :to="management.routeBase" :icon="ArrowLeft" :label="personal ? '返回我的商品' : '返回商品'" />
+      <LsPageLink v-if="editing" :icon="Eye" label="预览前台" :href="`/product/${id}`" target="_blank" rel="noopener noreferrer" />
+    </template>
+
     <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : !save.isPending.value && save.mutate()">
       <fieldset class="product-edit-fields" :disabled="save.isPending.value" :inert="save.isPending.value">
       <LsFormSection title="基本信息">
@@ -438,12 +433,12 @@ const valid = computed(() => Boolean(
       <LsInlineError v-if="!routeAccess.restricted.value && options.isError.value" :message="friendlyError(options.error.value)" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
-        <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
+        <LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton>
         <LsButton type="submit" :disabled="routeAccess.restricted.value || !hasUnsavedChanges || Boolean(uploading) || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存商品</LsButton>
       </LsFormActions>
       </fieldset>
     </form>
-  </div>
+  </LsFormPage>
 </template>
 
 <style scoped>

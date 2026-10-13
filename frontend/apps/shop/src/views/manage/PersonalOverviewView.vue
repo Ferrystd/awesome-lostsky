@@ -3,7 +3,9 @@ import ShopOverviewWorkspace from '../../components/ShopOverviewWorkspace.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import { friendlyError } from '@lostsky/api/client'
 
-import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
+import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { House, ReceiptText, ShoppingBag } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
@@ -31,16 +33,15 @@ const configurationSteps = computed(() => [{ key: 'create', label: '创建商品
 </script>
 
 <template>
-  <LsWorkspaceOverview
-    :eyebrow="`${identityType} · ${access.data.value?.team?.name || '当前团队'}`"
+  <LsOverviewPage
     :title="access.data.value?.identity?.name || (access.isError.value ? '当前身份摘要暂时不可用' : '正在读取当前人员')"
-    description="直接创建自己的商品，组合本人和公用商品，并跟进业务订单。"
-    :actions="[{ key: 'team', label: '进入团队工作台', to: '/manage', icon: House, primary: true }]"
-    :entries="entries"
+    :description="`${identityType} · ${access.data.value?.team?.name || '当前团队'}。直接创建自己的商品，组合本人和公用商品，并跟进业务订单。`"
   >
-    <template #workspace>
+    <template #actions>
+      <LsPageLink to="/manage" :icon="House" label="进入团队工作台" />
+      <LsSceneMotionControl />
+    </template>
       <ShopOverviewWorkspace :personal="true" :access="access.data.value" :steps="configurationSteps" />
       <LsInlineError v-if="access.isError.value" :message="friendlyError(access.error.value)" />
-    </template>
-  </LsWorkspaceOverview>
+  </LsOverviewPage>
 </template>

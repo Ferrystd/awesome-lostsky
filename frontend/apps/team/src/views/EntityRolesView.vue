@@ -5,14 +5,20 @@ import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsCheckboxGroupField from '@lostsky/ui/components/LsCheckboxGroupField.vue'
 import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
-import { ExternalLink, Search, ShieldCheck } from '@lucide/vue'
-import { NEmpty, NSkeleton, NTag } from 'naive-ui'
+import { ArrowLeft, ExternalLink, Plus, Save, Search, ShieldCheck } from '@lucide/vue'
+import { NEmpty, NTag } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AdminPageHeader from '../components/AdminPageHeader.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
 type EntityType = 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'
@@ -131,17 +137,21 @@ function entityTypeLabel(type: EntityType) {
 </script>
 
 <template>
-    <div class="entity-roles">
-      <AdminPageHeader
+  <div class="entity-roles">
+      <LsPageHeader
         title="人员角色分配"
         description="人员被授予角色后，获取角色的权限，方可执行特定的业务。"
-        back-to="/roles"
-        back-label="返回角色列表"
-      />
+      >
+        <template #actions>
+          <LsPageLink to="/roles" :icon="ArrowLeft" label="返回角色列表" />
+          <LsSceneMotionControl />
+        </template>
+      </LsPageHeader>
 
-      <form class="lookup" @submit.prevent="submit">
-        <label for="source-slug">搜索人员</label>
-        <p>输入名称或 slug 查看带类型与全局标识的候选；也可直接提交准确 slug 查找未公开搜索的人员。</p>
+      <LsPanel>
+        <template #header><LsSectionHeader title="搜索人员" description="输入名称或 slug 查看带类型与全局标识的候选；也可直接提交准确 slug 查找未公开搜索的人员。" /></template>
+        <form class="lookup" @submit.prevent="submit">
+        <label for="source-slug">人员</label>
         <div class="lookup-control">
           <LsEntityInput
             :model-value="inputEntities"
@@ -158,14 +168,12 @@ function entityTypeLabel(type: EntityType) {
             <template #icon><Search :size="17" /></template>查找人员
           </LsButton>
         </div>
-      </form>
+        </form>
+      </LsPanel>
 
-      <p v-if="requestError && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(requestError) }}</p>
-      <section v-if="!routeAccess.restricted.value && (resolveEntity.isPending.value || rolesQuery.isPending.value)" class="loading" aria-label="正在加载人员角色">
-        <NSkeleton text width="38%" /><NSkeleton text width="55%" />
-        <NSkeleton v-for="index in 3" :key="index" height="58px" />
-      </section>
-      <section v-else-if="selectedEntity" class="assignment">
+      <LsInlineError v-if="requestError && !routeAccess.restricted.value" :message="friendlyError(requestError)" />
+      <LsAsyncState v-if="!routeAccess.restricted.value && (resolveEntity.isPending.value || rolesQuery.isPending.value)" state="loading" :rows="5" aria-label="正在加载人员角色" />
+      <LsPanel v-else-if="selectedEntity"><section class="assignment">
         <header>
           <ShieldCheck :size="22" aria-hidden="true" />
           <div>
@@ -173,25 +181,25 @@ function entityTypeLabel(type: EntityType) {
             <p>@{{ selectedEntity.slug }} · {{ entityTypeLabel(selectedEntity.type) }}</p>
             <small v-if="selectedEntity.team">{{ selectedEntity.team.name }} · @{{ selectedEntity.team.slug }}</small>
           </div>
-          <NTag v-if="selectedEntity.is_external" type="warning" round><template #icon><ExternalLink :size="14" /></template>跨团队身份</NTag>
-          <NTag v-else type="success" round>当前团队</NTag>
+          <div class="assignment-status">
+            <NTag v-if="selectedEntity.is_external" type="warning" round><template #icon><ExternalLink :size="14" /></template>跨团队身份</NTag>
+            <NTag v-else type="success" round>当前团队</NTag>
+          </div>
         </header>
 
         <LsSectionHeader title="当前团队角色" description="勾选后保存完整角色集合；未勾选表示撤销该角色。"><template #aside>
-          <LsButton :loading="save.isPending.value" :disabled="routeAccess.restricted.value || !roles.length" :disabled-reason="routeAccess.reason.value" @click="save.mutate()">保存分配</LsButton>
+          <LsButton :loading="save.isPending.value" :disabled="routeAccess.restricted.value || !roles.length" :disabled-reason="routeAccess.reason.value" @click="save.mutate()"><template #icon><Save :size="17" /></template>保存分配</LsButton>
         </template></LsSectionHeader>
         <LsCheckboxGroupField v-if="roles.length" v-model="roleIds" label="当前团队角色" :options="roleOptions" />
         <NEmpty v-else description="还没有可分配的角色">
-          <template #extra><RouterLink to="/roles/new">新建角色</RouterLink></template>
+          <template #extra><LsPageLink to="/roles/new" :icon="Plus" label="新建角色" /></template>
         </NEmpty>
-      </section>
-      <section v-else class="empty">
-        <NEmpty description="输入人员 slug 后，可查看归属并分配角色" />
-      </section>
-    </div>
+      </section></LsPanel>
+      <LsEmptyState v-else :access-reason="routeAccess.reason.value" title="尚未选择人员" description="输入人员 slug 后，可查看归属并分配角色。" />
+  </div>
 </template>
 
 <style scoped>
-.entity-roles{display:grid;gap:1.5rem}.lookup,.assignment,.empty,.loading{padding:1.25rem;background:white;border:1px solid var(--line);border-radius:12px}.lookup{display:grid;gap:.4rem}.lookup label{font-size:.9rem;font-weight:700}.lookup p{margin:0;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.lookup-control{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.75rem;margin-top:.45rem}.assignment{display:grid;gap:1.25rem}.assignment>header{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:start;gap:.75rem;padding-bottom:1.1rem;border-bottom:1px solid var(--line)}.assignment>header>svg{color:var(--sky-lost-strong)}.assignment h3,.assignment p,.assignment small{margin:0}.assignment>header h3{font-size:1rem}.assignment>header p,.assignment>header small{display:block;margin-top:.2rem;color:var(--muted-ink);font-size:.8rem}.empty{padding-block:3.5rem}.loading{display:grid;gap:1rem}.error{margin:0;padding:1rem;color:var(--danger);background:color-mix(in oklch,var(--danger),white 94%);border-radius:8px}
-@media(max-width:639px){.lookup-control{grid-template-columns:1fr}.assignment>header{grid-template-columns:24px minmax(0,1fr)}.assignment>header :deep(.n-tag){grid-column:2;justify-self:start}}
+.entity-roles{min-width:0;display:grid;gap:1.5rem}.lookup{min-width:0;display:grid;gap:.5rem}.lookup label{font-size:.875rem;font-weight:650}.lookup-control{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.75rem}.assignment{min-width:0;display:grid;gap:1.25rem}.assignment>header{min-width:0;display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:start;gap:.75rem;padding-bottom:1rem;border-bottom:1px solid var(--line)}.assignment>header>svg{color:var(--primary)}.assignment h3,.assignment p,.assignment small{margin:0;overflow-wrap:anywhere}.assignment>header h3{font-size:1rem}.assignment>header p,.assignment>header small{display:block;margin-top:.2rem;color:var(--text-secondary);font-size:.8125rem}.assignment-status{min-width:0}
+@media(max-width:639px){.lookup-control{grid-template-columns:1fr}.assignment>header{grid-template-columns:24px minmax(0,1fr)}.assignment-status{grid-column:2;justify-self:start}}
 </style>

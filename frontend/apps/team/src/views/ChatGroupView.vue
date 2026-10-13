@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
@@ -6,7 +10,6 @@ import { api, friendlyError } from '@lostsky/api/client'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
@@ -72,11 +75,15 @@ function close() { if (confirm('关闭后成员不能继续发送消息，确认
 function older() { previousMessages.value = allMessages.value; beforeId.value = allMessages.value[0]?.id }
 </script>
 <template>
-  <div class="chat-group-page">
-    <LsPageHeader :title="isNew ? '创建群聊' : '管理群聊'" back-to="/chat-groups" back-label="返回聊天管理" description="团队管理员可管理成员和历史消息；发言需以当前身份接受入群邀请。"><template v-if="!isNew" #actions><LsButton variant="danger" :disabled="Boolean(disabledReason)" :disabled-reason="disabledReason" :loading="action.isPending.value" @click="close">关闭群聊</LsButton></template></LsPageHeader>
+  <LsFormPage :title="isNew ? '创建群聊' : '管理群聊'" description="团队管理员可管理成员和历史消息；发言需以当前身份接受入群邀请。">
+    <template #actions>
+      <LsPageLink to="/chat-groups" :icon="ArrowLeft" label="返回聊天管理" />
+      <template v-if="!isNew"><LsButton variant="danger" :disabled="Boolean(disabledReason)" :disabled-reason="disabledReason" :loading="action.isPending.value" @click="close">关闭群聊</LsButton></template>
+    </template>
+
     <LsPanel><form class="group-form" @submit.prevent="submit"><LsSectionHeader title="群聊资料"><template v-if="!isNew" #aside><LsStatusTag :label="group.data.value?.is_closed ? '已关闭' : '进行中'" :type="group.data.value?.is_closed ? 'default' : 'success'" /></template></LsSectionHeader><LsField label="群聊名称" for-id="group-title" required><NInput :input-props="{ id: 'group-title' }" aria-label="群聊名称" v-model:value="title" maxlength="100" :placeholder="access.restricted.value ? '-' : '填写群聊名称'" /></LsField><LsInlineError :message="save.isError.value || group.isError.value ? friendlyError(save.error.value || group.error.value) : ''" /><LsButton v-if="!isNew" type="submit" :loading="save.isPending.value" :disabled="Boolean(disabledReason) || !title.trim() || title === baseline" :disabled-reason="disabledReason || (!title.trim() ? '请填写群聊名称' : '没有未保存的修改')">保存资料</LsButton></form></LsPanel>
     <LsPanel><section class="group-form"><LsSectionHeader :title="isNew ? '邀请首批成员' : '邀请人员'" description="所有人员均需本人确认加入，包括创建者和管理员。" /><NSelect v-model:value="searchMode" aria-label="搜索方式" :options="[{ label: '按姓名搜索', value: 'q' }, { label: '按准确标识查找', value: 'slug' }]" /><LsField label="人员" for-id="invite-search"><NInput :input-props="{ id: 'invite-search' }" aria-label="人员" v-model:value="searchInput" @keydown.enter.prevent="search = searchInput.trim()" /></LsField><LsButton variant="secondary" :disabled="Boolean(disabledReason) || !searchInput.trim()" :disabled-reason="disabledReason || '请输入姓名或标识'" @click="search = searchInput.trim()">查找人员</LsButton><LsInlineError :message="people.isError.value ? friendlyError(people.error.value) : ''" /><NList v-if="people.data.value?.length"><NListItem v-for="person in people.data.value" :key="person.slug"><NCheckbox :checked="selected.includes(person.slug)" @update:checked="toggle(person.slug, $event)">{{ person.name }} · @{{ person.slug }}</NCheckbox></NListItem></NList><p v-if="selected.length">已选择 {{ selected.length }} 位人员</p><LsButton v-if="isNew" :loading="save.isPending.value" :disabled="Boolean(disabledReason) || !title.trim()" :disabled-reason="disabledReason || '请填写群聊名称'" @click="submit">创建并发送邀请</LsButton><LsButton v-else :loading="action.isPending.value" :disabled="Boolean(disabledReason) || !selected.length" :disabled-reason="disabledReason || '请选择要邀请的人员'" @click="action.mutate({ path: '/chatGroup/invite', body: { participants: selected } })">发送邀请</LsButton></section></LsPanel>
     <template v-if="!isNew"><ChatGroupMembers :participants="activeMembers" :invitations="invitations" :busy="action.isPending.value" :disabled-reason="disabledReason" @remove="remove" @cancel="action.mutate({ path: '/chatGroup/invitation/cancel', body: { entity_slug: $event } })" /><LsInlineError :message="messages.isError.value ? friendlyError(messages.error.value) : ''" /><ChatGroupMessages :messages="allMessages" :busy="action.isPending.value || messages.isFetching.value" :disabled-reason="access.reason.value" :has-older="(messages.data.value?.length ?? 0) === 50" @revoke="revoke" @older="older" /></template>
-  </div>
+  </LsFormPage>
 </template>
-<style scoped>.chat-group-page{display:grid;gap:1.5rem}.group-form{display:grid;gap:1rem}</style>
+<style scoped>.group-form{display:grid;gap:1rem}</style>
