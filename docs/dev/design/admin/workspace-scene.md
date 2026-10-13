@@ -12,7 +12,7 @@
 - `@lostsky/ui/workspace-scene`：导出 `useWorkspaceScene()`，只提供 `paused`、`available` 响应式状态；供统一控制使用，不允许模板复制 renderer 或改变其预算。
 - `@lostsky/ui/components/LsSceneMotionControl.vue`：无业务 props，使用场景状态；保持现有暂停/播放按钮、可访问名称与 pressed 状态。分类模板放在左分类下原位置，其余模板通过页级辅助操作区域放置；减少动态隐藏控制。未挂场景或 WebGL 不可用时不显示。
 - `@lostsky/ui/workspace-scene-theme`：`workspaceSceneProviderProps(enabled: boolean)` 开启时返回现有 `NConfigProvider` 所需的 class、theme、themeOverrides；关闭时严格返回空对象，不提供空theme或默认themeOverrides覆盖应用配置。应用先提供原provider配置，再合并该helper结果；每次路由变化重新组合，不能将开启结果保留在可变对象中。Shop公开页原darkTheme/shopTheme必须完整保留。应用继续持有唯一provider，不嵌套第二个；enabled由精确样板路由选择，不能按应用名称无条件开启。
-- `@lostsky/ui/components/LsPageLink.vue`：`to`、`icon`、`label`，复用黄金基准页头轻量路由入口；不承接业务提交、禁用解释或权限判定。
+- `@lostsky/ui/components/LsPageLink.vue`：互斥的 `to` / `href`、`icon`、`label`，复用黄金基准页头轻量导航入口；可明确传入 `target` / `rel`，默认同窗口，不增加动作回调；不承接业务提交、禁用解释或权限判定。
 - 背景实现是共享组件内部细节，原 shader、静态回退、24fps/约26万像素上限、鼠标插值、隐藏/离屏暂停、减少动态及卸载释放保持原样。现有 `lostskyAuroraTheme` 和 `.ls-theme-aurora` 材质令牌保持数值不变。只迁移归属，不趁机调色或重新设计。
 
 所有壳层继续复用 `LsPage`、`LsWorkspaceHeader` 和各自导航。页面宽度遵循[三档宽度](page-widths.md)：form 42rem、content 64rem、wide 90rem；旧 `meta.width` 与 `meta.pageWidth` 的适配留在应用接入层，不改变现有路由含义。页头与主体间距24px；分类黄金规格为184px列、24px列距、桌面20px/手机12px内衬，内容可用宽度不足48rem时用原移动选择入口。

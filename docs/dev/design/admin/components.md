@@ -130,4 +130,4 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 ### 共享工作台场景原语
 
-`LsWorkspaceScene` 提供默认正文插槽及共享背景、暂停和可用状态；`LsSceneMotionControl` 读取所属场景状态，提供暂停/播放动作，无场景或不可用时隐藏。`LsPageLink` 接收 `to`、`icon`、`label`，用于页头路由轻入口。`LsWorkspaceHeader.scene` 默认关闭，启用时保留固定场景上方的前景层级。主题、精确路由 opt-in、宽度及五个独立样板的边界见[共享工作台场景规范](workspace-scene.md)。这些原语不拥有数据、权限或保存流程；现有设置和通知黄金基准不重新设计。
+`LsWorkspaceScene` 提供默认正文插槽及共享背景、暂停和可用状态；`LsSceneMotionControl` 读取所属场景状态，提供暂停/播放动作，无场景或不可用时隐藏。`LsPageLink` 接收互斥的 `to` / `href` 目的地及 `icon`、`label`，用于页头导航轻入口；`to` 保留路由解析，`href` 使用原生链接，默认同窗口，只有调用方明确指定时才传 `target` / `rel`，不承接提交或点击动作。`LsWorkspaceHeader.scene` 默认关闭，启用时保留固定场景上方的前景层级。主题、精确路由 opt-in、宽度及五个独立样板的边界见[共享工作台场景规范](workspace-scene.md)。这些原语不拥有数据、权限或保存流程；现有设置和通知黄金基准不重新设计。

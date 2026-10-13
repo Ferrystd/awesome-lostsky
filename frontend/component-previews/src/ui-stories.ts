@@ -892,7 +892,7 @@ const MotionControlPreview = defineComponent({
 })
 const workspaceScene = story('LsWorkspaceScene', passive, () => h('div', { class: 'ls-theme-aurora', style: 'min-height:0' }, [h(LsWorkspaceScene, null, { default: () => h('div', { style: 'position:relative;min-height:320px;padding:24px' }, [h(LsPageHeader, { title: '工作台场景', description: '正文、导航和权限由应用提供。' }), h(LsPanel, null, { default: () => '现有光胶、透光材质与布局保持原样。' }), h(LsSceneMotionControl)]) })]))
 const sceneMotionControl = story('LsSceneMotionControl', ['default', 'hover', 'focus', 'active', 'mobile'], state => stage(h(MotionControlPreview, { paused: state === 'active' })))
-const pageLink = story('LsPageLink', ['default', 'hover', 'focus', 'mobile'], () => stage(h(LsPageLink, { to: '/abilities', icon: ReceiptText, label: '团队能力' })))
+const pageLink = story('LsPageLink', ['default', 'hover', 'focus', 'mobile'], () => stage([h(LsPageLink, { to: '/abilities', icon: ReceiptText, label: '团队能力' }), h(LsPageLink, { href: 'https://chat.lostsky.work/new', icon: UserRound, label: '发起对话' })]))
 
 export const uiStories: Record<string, StoryDefinition> = {
   LsWorkspaceScene: workspaceScene,
