@@ -10,7 +10,8 @@
 .ls-panel {
   min-width: 0;
   overflow: hidden;
-  background: var(--surface);
+  background: var(--panel-material, var(--surface));
+  box-shadow: var(--panel-elevation, none);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
 }

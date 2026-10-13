@@ -37,6 +37,8 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 `LsResourceRow` 基于 Naive `NListItem`，仅接受资源语义 `title/description/to/icon` 和通知状态 `unread`。`identity` 插槽仅组合 `LsEntityIdentity` 并替代名称区域；`description/metadata` 仍随后呈现，身份状态放入 `LsEntityIdentity.status`；`metadata/status/actions` 分别承载辅助信息、状态和 `LsResponsiveActions`。名称在前，摘要和元信息随后，状态紧邻名称；内部拥有 16px 内边距、12px 主体间距、40px 资源图标，名称 1rem/600，辅助信息 .8125rem。容器小于 40rem 时动作独立下一行；链接至少 44px，文字放大自然换行，hover 只改表面色。禁止任意宽度、密度、布局、样式参数和调用方穿透；metadata 不得包含导致嵌套链接的交互控件。无实现级例外，以公共契约与 Team 页面几何测试验收。
 
+`LsPanel` 的普通说明、导航与表单容器读取 `--panel-material` 和 `--panel-elevation`；未启用场景时回退到原 `--surface` 与无阴影。场景中的 `LsFormSection` 通过内部 `LsPanel` 自然采用相同材质，不在页面追加透明度或私有皮肤。表格、编辑器及标准控件自身的稳定阅读底保持原样；不得把全局 `--surface` 改为透明以替代面板接线，也不新增未经证实的视觉变体。
+
 | 组件 | 必须用途与参数 | 禁止组合 | 状态与响应式检查 |
 | --- | --- | --- | --- |
 | `LsButton` | `variant=primary/secondary/ghost/danger`、`size=sm/md/lg`、`loading`、`disabled`、`disabledReason`、`type=button/submit/reset`；`icon` 插槽承载命令图标；是唯一可见命令按钮原语 | 页面私有按钮皮肤、同组混合尺寸、在默认插槽中反复手排图标间距、页面用外层 `span` 重做可解释禁用 | loading 保留尺寸；disabled 无原因时使用原生禁用，有原因时保留焦点并统一短时提示且绝不触发表单；40/44/48px；图标不改变可读文案 |
