@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { inject, ref, useId } from 'vue'
-import { Pause, Play } from '@lucide/vue'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
-import { teamSceneKey } from './team-scene'
+import { useId } from 'vue'
+import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import TeamCategoryNavigation from './TeamCategoryNavigation.vue'
 
 defineProps<{
@@ -12,7 +10,6 @@ defineProps<{
 }>()
 defineEmits<{ select: [key: string] }>()
 const panelId = `settings-content-${useId()}`
-const { paused, available } = inject(teamSceneKey, { paused: ref(false), available: ref(false) })
 </script>
 
 <template>
@@ -20,12 +17,7 @@ const { paused, available } = inject(teamSceneKey, { paused: ref(false), availab
     <div class="team-category-layout__layout">
       <div class="team-category-layout__navigation">
       <TeamCategoryNavigation :items="items" :current="current" :label="label" :panel-id="panelId" @select="$emit('select', $event)" />
-    <div v-if="available" class="team-category-layout__motion">
-      <LsButton variant="secondary" :aria-pressed="paused" @click="paused = !paused">
-        <template #icon><Play v-if="paused" :size="16" /><Pause v-else :size="16" /></template>
-        {{ paused ? '播放极光' : '暂停极光' }}
-      </LsButton>
-    </div>
+    <LsSceneMotionControl />
       </div>
       <div :id="panelId" class="team-category-layout__content"><slot /></div>
     </div>
@@ -34,12 +26,8 @@ const { paused, available } = inject(teamSceneKey, { paused: ref(false), availab
 
 <style scoped>
 .team-category-layout { min-width: 0; container: team-category-layout / inline-size; padding: 1.25rem;  }
-.team-category-layout__motion { margin-top: .75rem; }
 .team-category-layout__layout { min-width: 0; display: grid; gap: 1.5rem; align-items: start; }
 .team-category-layout__content { min-width: 0; }
-@media (prefers-reduced-motion: reduce) {
-  .team-category-layout__motion { display: none; }
-}
 @media (max-width: 639px) {
   .team-category-layout { padding: .75rem; }
 }

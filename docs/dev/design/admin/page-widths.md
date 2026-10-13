@@ -25,9 +25,11 @@
 
 Team 已有例外与逐路由映射见 [Team 页面宽度审计](team-page-widths.md)。规范验证需要路由枚举守卫和真实 DOM 尺寸；至少检查 320、375、768、1024、1440px、足以达到 1440px 内容上限的宽桌面，以及 200% 文本放大。
 
+<a id="team-settings-groups"></a>
+
 ## Team 设置组实现
 
-设置与通知的分类布局由同一 `TeamCategoryLayout` 和 `TeamCategoryNavigation` 实现，留在 Team 应用内。布局只有语义分类数据、当前值、可访问名称和内容插槽，不接受 width/layout/compact 等视觉参数；面板表面由各自内容组件持有。通知与设置均使用 content 容器。导航项提供 `to` 时渲染真实 RouterLink，未提供时渲染控制当前编辑组的按钮；移动选择分别导航或发出 select 事件。方向键在链接之间只移动焦点，Enter 保留原生导航语义；设置按钮延续方向键切组并聚焦。通知具体 query 与返回规则见 [Team 应用](../../apps/team.md#通知中心与地址状态)。
+设置与通知的分类布局由同一 `TeamCategoryLayout` 和 `TeamCategoryNavigation` 实现，留在 Team 应用内。布局只有语义分类数据、当前值、可访问名称和内容插槽，不接受 width/layout/compact 等视觉参数；面板表面由各自内容组件持有。通知与设置均使用 content 容器。导航项提供 `to` 时渲染真实 RouterLink，未提供时渲染控制当前编辑组的按钮；移动选择分别导航或发出 select 事件。方向键在链接之间只移动焦点，Enter 保留原生导航语义；设置按钮延续方向键切组并聚焦。通知具体 query 与返回规则见 [Team 应用](../../apps/team.md#notice-url-state)。
 
 用户指定的具名视觉例外：仅 `/settings`、`/notices/team` 和 `/notices/sent` 使用暗底流动极光。Team 应用根既有 `NConfigProvider` 按精确路由选择 `darkTheme`、`lostskyAuroraTheme` 和 `ls-theme-aurora` 语义令牌；离开上述路径即恢复默认浅色主题。详情、发送页、个人收件箱和其他应用不启用该主题。页头、导航、表单与通知均沿用现有组件读取语义令牌（主操作文字使用 `--on-primary`，浅色默认白、暗场景深墨色），不允许调用方穿透其内部样式。Team 壳层自身表面使用 `--surface`，保持默认浅色等价。
 

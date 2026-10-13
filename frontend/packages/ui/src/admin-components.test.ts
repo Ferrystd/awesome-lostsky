@@ -450,7 +450,7 @@ describe('后台设计系统组件契约', () => {
 
   it('应用切换与通用命令使用不同语义，当前应用由调用方声明', async () => {
     expect(Object.keys((LsAppSwitcher as any).props).sort()).toEqual(['actions', 'currentApp'])
-    expect(Object.keys((LsWorkspaceHeader as any).props).sort()).toEqual(['actions', 'appNavigation', 'contextLabel', 'currentApp', 'showMenu', 'title'])
+    expect(Object.keys((LsWorkspaceHeader as any).props).sort()).toEqual(['actions', 'appNavigation', 'contextLabel', 'contextual', 'currentApp', 'scene', 'showMenu', 'title'])
     const source = readFileSync(new URL('./components/LsAppSwitcher.vue', import.meta.url), 'utf8')
     expect(source).toContain('aria-label="切换应用"')
     expect(source).toContain('action.key === currentApp')

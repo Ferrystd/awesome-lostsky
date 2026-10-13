@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import TeamPageLink from '../components/TeamPageLink.vue'
+import TeamPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'

@@ -127,6 +127,8 @@ Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `sco
 
 ## 前端列表约束
 
+<a id="notice-url-state"></a>
+
 ### 通知中心与地址状态
 
 `/notices/team`（站内通知）与 `/notices/sent`（已发送）保持独立路由与原权限边界，共用 `TeamCategoryLayout/TeamCategoryNavigation`。桌面分类是真实链接，可复制、新开与浏览器前进后退；移动端选择器导航到相同路由。显式切换分类从目标分类默认列表开始，不把收件筛选带到另一 scope；浏览器后退恢复原 URL。`/personal/notices` 仍是个人收件箱，不展示团队分类导航。

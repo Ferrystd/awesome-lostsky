@@ -119,6 +119,13 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 `LsRadioGroupField` 的现有业务变体来自团队设置中的搜索优先级、顾客群聊模式和群聊历史范围；字段标题与说明由组件拥有，Settings 只传递 schema 数据和值。分类使用中文业务标题，不重复显示内部应用名和设置键。角色权限的静态权限、通用权限与指定人员权限统一复用 `LsCheckboxGroupField`；高级范围授权附带逐项覆盖明细，保留 Naive Checkbox 与原生 details 的业务组合，不穿透它们的内部皮肤。
 
+<a id="app-switcher"></a>
+
 ### 应用切换面板
 
 `LsAppSwitcher` 是共享顶栏及 Chat 的移动应用入口唯一视觉所有者，参数只包含 `actions`（key/label/disabled/reason）和 `currentApp`，选择通过 `select` 事件交回应用。触发器使用应用图标与“应用”，两列面板展示图标、完整名称和当前勾选；禁止继续把应用切换命名为“操作”或复制选择器。面板宽度适应 320px 起的屏幕，目标至少 44px，打开聚焦当前项、Escape 关闭并归还焦点；放大文字自然换行，减少动态沿用 Naive UI。缺少目标身份时保留可聚焦的灰色入口，点击说明原因且不导航；应用列表与授权始终由宿主决定，Chat 顾客仍只有展示、商品、聊天、社区。组件不请求数据，不提供加载或错误状态。无视觉参数与例外。共享组件测试、workspace-entry 与 chat-teamless E2E 验证状态、入口集合、跳转、焦点和布局。
+
+
+### 共享工作台场景原语
+
+`LsWorkspaceScene` 提供默认正文插槽及共享背景、暂停和可用状态；`LsSceneMotionControl` 读取所属场景状态，提供暂停/播放动作，无场景或不可用时隐藏。`LsPageLink` 接收 `to`、`icon`、`label`，用于页头路由轻入口。`LsWorkspaceHeader.scene` 默认关闭，启用时保留固定场景上方的前景层级。主题、精确路由 opt-in、宽度及五个独立样板的边界见[共享工作台场景规范](workspace-scene.md)。这些原语不拥有数据、权限或保存流程；现有设置和通知黄金基准不重新设计。

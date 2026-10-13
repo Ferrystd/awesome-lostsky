@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import TeamPageLink from '../components/TeamPageLink.vue'
+import TeamPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { KeyRound } from '@lucide/vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'

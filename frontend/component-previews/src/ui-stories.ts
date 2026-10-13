@@ -1,4 +1,8 @@
-import { defineComponent, h, nextTick, onMounted, ref } from 'vue'
+import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
+import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { workspaceSceneKey } from '@lostsky/ui/workspace-scene'
+import { defineComponent, h, nextTick, onMounted, provide, ref } from 'vue'
 import { NInput, NSelect, NTag } from 'naive-ui'
 import { House, Pencil, Plus, ReceiptText, Save, ShoppingBag, Trash2, UserRound } from '@lucide/vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
@@ -806,6 +810,8 @@ const workspaceHeader = story('LsWorkspaceHeader', interactive, (state) =>
       {
         contextLabel: 'TEAM WORKSPACE',
         title: '对象字段',
+        scene: state === 'active',
+        contextual: state === 'active',
         appNavigation: true,
         currentApp: 'team',
         actions: [
@@ -877,7 +883,21 @@ const dashboardSteps = [
 const dashboardPath = story('LsDashboardPath', ['default', 'hover', 'focus', 'active', 'mobile'], () => stage(h(LsPanel, {}, { default: () => h(LsDashboardPath, { title: '商品配置链', description: '定义服务，组合权益，连接销售。', steps: dashboardSteps }) })))
 const shopOverviewWorkspace = story('ShopOverviewWorkspace', ['default', 'hover', 'focus', 'active', 'loading', 'error', 'mobile'], (state) => stage(h(ShopOverviewWorkspace, { personal: state === 'mobile', steps: dashboardSteps, access: state === 'loading' || state === 'error' ? undefined : { permissions: [], team: { id: 1, name: '青空协作组', slug: 'demo' }, identity: { entity_id: 1, type: 'teamMember', name: '青空成员', belongs_to_team: true, is_external: false } } })))
 
+const MotionControlPreview = defineComponent({
+  props: { paused: Boolean },
+  setup(props) {
+    provide(workspaceSceneKey, { available: ref(true), paused: ref(props.paused) })
+    return () => h(LsSceneMotionControl)
+  },
+})
+const workspaceScene = story('LsWorkspaceScene', passive, () => h(LsWorkspaceScene, null, { default: () => h('div', { class: 'ls-theme-aurora', style: 'position:relative;min-height:320px;padding:24px' }, [h(LsPageHeader, { title: '工作台场景', description: '正文、导航和权限由应用提供。' }), h(LsPanel, null, { default: () => '现有光胶、透光材质与布局保持原样。' }), h(LsSceneMotionControl)]) }))
+const sceneMotionControl = story('LsSceneMotionControl', ['default', 'hover', 'focus', 'active', 'mobile'], state => stage(h(MotionControlPreview, { paused: state === 'active' })))
+const pageLink = story('LsPageLink', ['default', 'hover', 'focus', 'mobile'], () => stage(h(LsPageLink, { to: '/abilities', icon: ReceiptText, label: '团队能力' })))
+
 export const uiStories: Record<string, StoryDefinition> = {
+  LsWorkspaceScene: workspaceScene,
+  LsSceneMotionControl: sceneMotionControl,
+  LsPageLink: pageLink,
   LsAsyncState: asyncState,
   LsButton: button,
   LsCheckboxGroupField: checkboxGroupField,

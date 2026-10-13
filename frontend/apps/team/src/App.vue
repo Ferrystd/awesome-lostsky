@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { lostskyAuroraTheme, lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
+import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { setLucideProps } from '@lucide/vue'
-import { darkTheme, NConfigProvider, NDialogProvider, NMessageProvider, zhCN } from 'naive-ui'
+import { NConfigProvider, NDialogProvider, NMessageProvider, zhCN } from 'naive-ui'
 import { RouterView, useRoute } from 'vue-router'
-import TeamScene from './components/TeamScene.vue'
+import TeamScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
+import { workspaceSceneProviderProps } from '@lostsky/ui/workspace-scene-theme'
 import TeamShell from './components/TeamShell.vue'
 import AdminPage from './components/AdminPage.vue'
 import { computed } from 'vue'
@@ -13,7 +14,7 @@ const auroraScene = computed(() => route.matched.some(record => ['/settings', '/
 const pageWidth = computed<'wide' | 'content' | 'form'>(() => ['content', 'form'].includes(String(route.meta.pageWidth)) ? route.meta.pageWidth as 'content' | 'form' : 'wide')
 </script>
 <template>
-  <NConfigProvider :class="{ 'ls-theme-aurora': auroraScene }" :theme="auroraScene ? darkTheme : null" :theme-overrides="auroraScene ? lostskyAuroraTheme : lostskyNaiveTheme" :locale="zhCN">
+  <NConfigProvider :theme-overrides="lostskyNaiveTheme" v-bind="workspaceSceneProviderProps(auroraScene)" :locale="zhCN">
     <NDialogProvider><NMessageProvider>
       <TeamShell v-if="!route.meta.public" :contextual-header="auroraScene"><AdminPage :width="pageWidth"><TeamScene v-if="auroraScene"><RouterView /></TeamScene><RouterView v-else /></AdminPage></TeamShell>
       <RouterView v-else />

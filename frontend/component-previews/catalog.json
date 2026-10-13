@@ -1004,5 +1004,35 @@
     "source": "frontend/apps/team/src/components/TeamNoticeRow.vue",
     "story": "frontend/component-previews/src/app-stories.ts#TeamNoticeRow",
     "aliases": ["team-notice-row"]
+  },
+  {
+    "id": "ls-workspace-scene",
+    "name": "LsWorkspaceScene",
+    "source": "frontend/packages/ui/src/components/LsWorkspaceScene.vue",
+    "story": "frontend/component-previews/src/ui-stories.ts#LsWorkspaceScene",
+    "category": "ui",
+    "aliases": [
+      "共享工作台场景"
+    ]
+  },
+  {
+    "id": "ls-scene-motion-control",
+    "name": "LsSceneMotionControl",
+    "source": "frontend/packages/ui/src/components/LsSceneMotionControl.vue",
+    "story": "frontend/component-previews/src/ui-stories.ts#LsSceneMotionControl",
+    "category": "ui",
+    "aliases": [
+      "场景动态控制"
+    ]
+  },
+  {
+    "id": "ls-page-link",
+    "name": "LsPageLink",
+    "source": "frontend/packages/ui/src/components/LsPageLink.vue",
+    "story": "frontend/component-previews/src/ui-stories.ts#LsPageLink",
+    "category": "ui",
+    "aliases": [
+      "页头轻入口"
+    ]
   }
 ]

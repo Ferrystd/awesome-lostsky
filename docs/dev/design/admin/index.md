@@ -33,6 +33,7 @@
 - [公共组件](components.md)
 - [页面组件化方法](componentization.md)
 - [页面模式](patterns.md)
+- [共享工作台场景与正文模板](workspace-scene.md)
 - [状态、权限与能力](states-and-access.md)
 - [响应式与无障碍](responsive-accessibility.md)
 - [应用与页面](applications.md)

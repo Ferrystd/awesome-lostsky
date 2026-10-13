@@ -149,7 +149,7 @@ test('aurora pointer input eases independently, returns on leave and ignores tou
   expect(contrast.bare).toBeGreaterThanOrEqual(4.5)
   expect(contrast.panel).toBeGreaterThanOrEqual(4.5)
   await test.info().attach('scene-composite-contrast.json', { body: JSON.stringify(contrast), contentType: 'application/json' })
-  const header = page.locator('.scene-workspace-header')
+  const header = page.locator('.ls-workspace-header--scene')
   expect(await header.evaluate(element => getComputedStyle(element).zIndex)).toBe('1')
 })
 

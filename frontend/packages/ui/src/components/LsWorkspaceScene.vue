@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { provide, ref } from 'vue'
-import TeamAuroraBackdrop from './TeamAuroraBackdrop.vue'
-import { teamSceneKey } from './team-scene'
+import WorkspaceAuroraBackdrop from '../workspace-scene/WorkspaceAuroraBackdrop.vue'
+import { workspaceSceneKey } from '../workspace-scene'
 const paused = ref(false)
 const available = ref(false)
-provide(teamSceneKey, { paused, available })
+provide(workspaceSceneKey, { paused, available })
 </script>
 
 <template>
   <div class="team-scene">
-    <TeamAuroraBackdrop :paused="paused" @available="available = $event" />
+    <WorkspaceAuroraBackdrop :paused="paused" @available="available = $event" />
     <slot />
   </div>
 </template>
