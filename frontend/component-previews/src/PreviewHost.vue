@@ -58,4 +58,17 @@ function resizeFrame(event: Event, state: PreviewState) {
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .story-stage{min-width:0;display:grid;align-content:start;gap:12px;padding:8px}.story-inline{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.story-form{max-width:440px}.story-stage--editor,.story-stage--profile{padding:0}.story-stage--markdown{max-width:760px}.shell-content{min-height:180px;padding:24px}.shell-content h2,.shell-content p{margin:0}.shell-content p{margin-top:8px;color:var(--text-secondary)}.preview-sheet--single.preview-sheet--display{--surface:oklch(.17 .025 220);--ink:oklch(.97 .008 210);--muted-ink:oklch(.75 .025 215);--line:oklch(.36 .035 218);--sky-lost:oklch(.68 .12 190);--sky-lost-strong:oklch(.78 .13 190)}
 </style>
-<style>.preview-cell--wide { grid-column: 1 / -1; }</style>
+<style>
+.preview-cell--wide { grid-column: 1 / -1; }
+.ls-theme-aurora .preview-sheet {
+  color: var(--text);
+  background: var(--cloud);
+  --preview-cell: var(--surface);
+  --preview-border: var(--border);
+}
+.ls-theme-aurora .preview-sheet--single { background: var(--surface); }
+.ls-theme-aurora .preview-sheet__header span,
+.ls-theme-aurora .preview-sheet__header code,
+.ls-theme-aurora .preview-cell > h2,
+.ls-theme-aurora .preview-na { color: var(--text-secondary); }
+</style>

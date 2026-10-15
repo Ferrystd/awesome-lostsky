@@ -30,7 +30,7 @@ function click(event: MouseEvent) {
 
 <template>
   <NButton
-    :class="['ls-button', { 'ls-button--explainable-disabled': explainableDisabled }]"
+    :class="['ls-button', `ls-button--${variant}`, { 'ls-button--explainable-disabled': explainableDisabled }]"
     :attr-type="type"
     :type="naiveType"
     :size="naiveSize"
@@ -49,4 +49,53 @@ function click(event: MouseEvent) {
 <style scoped>
 .ls-button { font-weight: 650; }
 .ls-button--explainable-disabled { opacity: .5; }
+
+/* The scene owns the palette; the button owns its surface and inset stroke. */
+.ls-theme-aurora .ls-button:not(.ls-button--ghost) {
+  --button-ink: var(--text);
+  color: var(--button-ink) !important;
+  background-color: var(--command-surface) !important;
+}
+.ls-theme-aurora .ls-button--primary { --button-ink: var(--primary) !important; }
+.ls-theme-aurora .ls-button--danger,
+.ls-theme-aurora .ls-button--danger-ghost { --button-ink: var(--danger) !important; }
+.ls-theme-aurora .ls-button:not(.ls-button--ghost)::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 2px dashed var(--button-ink);
+  border-radius: var(--n-border-radius);
+  pointer-events: none;
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.ls-theme-aurora .ls-button:not(.ls-button--ghost)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--command-border);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.ls-theme-aurora .ls-button:not(.ls-button--ghost) :deep(.n-button__border),
+.ls-theme-aurora .ls-button:not(.ls-button--ghost) :deep(.n-button__state-border) {
+  display: none;
+}
+@media (hover: hover) {
+  .ls-theme-aurora .ls-button:not(.ls-button--ghost):not([aria-disabled='true']):not(.n-button--loading):hover {
+    background-color: var(--command-surface-hover) !important;
+  }
+  .ls-theme-aurora .ls-button:not(.ls-button--ghost):not([aria-disabled='true']):not(.n-button--loading):hover::after {
+    border-color: color-mix(in srgb, var(--button-ink), white 20%);
+  }
+}
+.ls-theme-aurora .ls-button:not(.ls-button--ghost):not([aria-disabled='true']):not(.n-button--loading):active {
+  background-color: var(--command-surface-pressed) !important;
+}
+.ls-theme-aurora .ls-button:not(.ls-button--ghost):focus-visible {
+  outline: 2px solid var(--button-ink);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ls-theme-aurora .ls-button::after { transition: none; }
+}
 </style>

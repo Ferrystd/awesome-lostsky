@@ -121,7 +121,22 @@ test('category pilot owns responsive geometry and keeps adjacent routes unchange
   await page.getByLabel('角色名称').fill('团队运营')
   await expect(save).not.toHaveAttribute('aria-disabled', 'true')
   await expect(save.locator('svg')).toHaveCount(0)
-  await expect(remove).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  for (const button of [remove, save]) {
+    await expect(button).toHaveCSS('background-color', 'rgba(5, 12, 16, 0.38)')
+    const stroke = await button.evaluate(el => {
+      const style = getComputedStyle(el, '::after')
+      return { inset: style.inset, border: style.borderTopStyle, width: style.borderTopWidth, pointerEvents: style.pointerEvents }
+    })
+    expect(stroke).toEqual({ inset: '4px', border: 'dashed', width: '2px', pointerEvents: 'none' })
+    await expect(button).toHaveCSS('border-radius', '10px')
+    expect(await button.evaluate(el => getComputedStyle(el, '::before').borderTopColor)).toBe('rgba(2, 7, 10, 0.9)')
+  }
+  await expect(save).toHaveCSS('color', 'rgb(110, 231, 200)')
+  await expect(remove).toHaveCSS('color', 'rgb(255, 152, 166)')
+  await save.focus()
+  await expect(save).toHaveCSS('outline-style', 'solid')
+  await expect(save).toHaveCSS('outline-offset', '2px')
+  await page.getByLabel('角色名称').focus()
   await expect(remove).toHaveClass(/n-button--error-type/)
   await expect(save).toHaveClass(/n-button--primary-type/)
   for (const width of [320, 375, 768, 1024, 1440, 1920]) {

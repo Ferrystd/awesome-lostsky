@@ -81,6 +81,10 @@
   --focus: #a0f5df;
   --surface: #192125;
   --panel-material: linear-gradient(145deg, rgb(25 38 45 / .52), rgb(15 26 34 / .42));
+  --command-surface: rgb(5 12 16 / .38);
+  --command-border: rgb(2 7 10 / .9);
+  --command-surface-hover: rgb(5 12 16 / .58);
+  --command-surface-pressed: rgb(5 12 16 / .74);
   --notice-row-unread: rgb(110 231 200 / .045);
   --notice-row-hover: rgb(10 23 30 / .24);
   --panel-elevation: inset 0 1px 0 rgb(191 226 233 / .09), 0 14px 36px -22px rgb(0 8 15 / .65);
