@@ -207,16 +207,15 @@ const descriptionList = story('LsDescriptionList', passive, () =>
 
 const formActions = story(
   'LsFormActions',
-  interactive,
+  ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'mobile'],
   (state) =>
     stage(
       h(LsFormActions, null, {
-        destructive: () => h(LsButton, { variant: 'danger-ghost', disabled: state === 'disabled' }, { default: () => '删除角色' }),
-        default: () => h(LsButton, { disabled: state === 'disabled' }, { default: () => '保存资料' }),
+        destructive: () => h(LsButton, { variant: 'danger-ghost', disabled: state === 'disabled' }, { icon: () => h(Trash2, { size: 17 }), default: () => '删除角色' }),
+        default: () => h(LsButton, { disabled: state === 'disabled', loading: state === 'loading' }, { default: () => '保存资料' }),
       }),
     ),
   {
-    loading: '动作容器不管理按钮加载状态。',
     error: '动作容器不负责错误状态。',
   },
 )

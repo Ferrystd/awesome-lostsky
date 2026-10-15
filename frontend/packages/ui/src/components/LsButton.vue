@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { NButton } from 'naive-ui'
 import { computed } from 'vue'
+import { CircleArrowRight, LoaderCircle } from '@lucide/vue'
 import { feedback } from '../feedback'
 
 const props = withDefaults(defineProps<{
@@ -39,22 +40,32 @@ function click(event: MouseEvent) {
     :loading="loading"
     :disabled="disabled && !explainableDisabled"
     :aria-disabled="disabled || undefined"
+    :aria-busy="loading || undefined"
     @click="click"
   >
     <template v-if="$slots.icon" #icon><slot name="icon" /></template>
     <slot />
+    <component
+      :is="loading ? LoaderCircle : CircleArrowRight"
+      v-if="variant === 'primary'"
+      :class="['ls-button__forward', { 'ls-button__forward--loading': loading }]"
+      :size="24"
+      :stroke-width="1.5"
+      aria-hidden="true"
+    />
   </NButton>
 </template>
 
 <style scoped>
 .ls-button { font-weight: 650; }
 .ls-button--explainable-disabled { opacity: .5; }
+.ls-button__forward { display: none; }
 
 /* The scene owns the palette; the button owns its surface and inset stroke. */
 .ls-theme-aurora .ls-button:not(.ls-button--ghost) {
   --button-ink: var(--text);
   color: var(--button-ink) !important;
-  background-color: var(--command-surface) !important;
+  background-color: var(--button-surface, var(--command-surface)) !important;
 }
 .ls-theme-aurora .ls-button--primary { --button-ink: var(--primary) !important; }
 .ls-theme-aurora .ls-button--danger,
@@ -82,20 +93,39 @@ function click(event: MouseEvent) {
 }
 @media (hover: hover) {
   .ls-theme-aurora .ls-button:not(.ls-button--ghost):not([aria-disabled='true']):not(.n-button--loading):hover {
-    background-color: var(--command-surface-hover) !important;
+    background-color: var(--button-surface, var(--command-surface-hover)) !important;
   }
   .ls-theme-aurora .ls-button:not(.ls-button--ghost):not([aria-disabled='true']):not(.n-button--loading):hover::after {
     border-color: color-mix(in srgb, var(--button-ink), white 20%);
   }
 }
 .ls-theme-aurora .ls-button:not(.ls-button--ghost):not([aria-disabled='true']):not(.n-button--loading):active {
-  background-color: var(--command-surface-pressed) !important;
+  background-color: var(--button-surface, var(--command-surface-pressed)) !important;
 }
+.ls-theme-aurora .ls-button:is(.ls-button--primary, .ls-button--danger-ghost) {
+  --button-surface: transparent;
+}
+.ls-theme-aurora .ls-button:is(.ls-button--primary, .ls-button--danger-ghost)::before,
+.ls-theme-aurora .ls-button:is(.ls-button--primary, .ls-button--danger-ghost)::after {
+  display: none;
+}
+.ls-theme-aurora .ls-button--primary :deep(.n-button__icon) { display: none; }
+.ls-theme-aurora .ls-button--primary .ls-button__forward {
+  display: block;
+  flex: none;
+  margin-inline-start: .5rem;
+}
+.ls-theme-aurora .ls-button--primary:not([aria-disabled='true']):not(.n-button--loading):hover {
+  color: var(--primary-hover) !important;
+}
+.ls-button__forward--loading { animation: ls-button-spin 1s linear infinite; }
+@keyframes ls-button-spin { to { transform: rotate(360deg); } }
 .ls-theme-aurora .ls-button:not(.ls-button--ghost):focus-visible {
   outline: 2px solid var(--button-ink);
   outline-offset: 2px;
 }
 @media (prefers-reduced-motion: reduce) {
   .ls-theme-aurora .ls-button::after { transition: none; }
+  .ls-button__forward--loading { animation: none; }
 }
 </style>

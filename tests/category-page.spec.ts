@@ -120,16 +120,10 @@ test('category pilot owns responsive geometry and keeps adjacent routes unchange
   await expect(save).toHaveAttribute('aria-disabled', 'true')
   await page.getByLabel('角色名称').fill('团队运营')
   await expect(save).not.toHaveAttribute('aria-disabled', 'true')
-  await expect(save.locator('svg')).toHaveCount(0)
+  await expect(save.locator('.lucide-circle-arrow-right')).toBeVisible()
   for (const button of [remove, save]) {
-    await expect(button).toHaveCSS('background-color', 'rgba(5, 12, 16, 0.38)')
-    const stroke = await button.evaluate(el => {
-      const style = getComputedStyle(el, '::after')
-      return { inset: style.inset, border: style.borderTopStyle, width: style.borderTopWidth, pointerEvents: style.pointerEvents }
-    })
-    expect(stroke).toEqual({ inset: '4px', border: 'dashed', width: '2px', pointerEvents: 'none' })
-    await expect(button).toHaveCSS('border-radius', '10px')
-    expect(await button.evaluate(el => getComputedStyle(el, '::before').borderTopColor)).toBe('rgba(2, 7, 10, 0.9)')
+    await expect(button).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    expect(await button.evaluate(el => ['::before', '::after'].map(pseudo => getComputedStyle(el, pseudo).display))).toEqual(['none', 'none'])
   }
   await expect(save).toHaveCSS('color', 'rgb(110, 231, 200)')
   await expect(remove).toHaveCSS('color', 'rgb(255, 152, 166)')
@@ -166,7 +160,7 @@ test('category pilot owns responsive geometry and keeps adjacent routes unchange
     if (box.width >= 768) {
       expect(box.columns[0]).toBe(184)
       await expect(page.getByRole('navigation', { name: '角色分类', exact: true })).toBeVisible()
-      for (const item of await page.getByRole('navigation', { name: '角色分类', exact: true }).getByRole('button').all()) expect((await item.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+      for (const item of await page.getByRole('navigation', { name: '角色分类', exact: true }).getByRole('button').all()) await expect.poll(async () => (await item.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44)
     } else await expect(page.getByRole('combobox', { name: '角色分类', exact: true })).toBeVisible()
     if (width === 375 || width === 1440) await page.screenshot({ path: testInfo.outputPath(`category-${width}.png`), fullPage: true })
   }
@@ -204,6 +198,7 @@ test('category pilot owns responsive geometry and keeps adjacent routes unchange
   await expect(page.locator('.ls-category-page')).toHaveCount(0)
   await expect(page.locator('.ls-theme-aurora')).toHaveCount(1)
   await page.goto(`${origin}/roles/new`)
+  await expect(page.getByLabel('角色名称')).toBeVisible()
   await expect(page.locator('.ls-theme-aurora')).toHaveCount(1)
   expect(errors).toEqual([])
 })
