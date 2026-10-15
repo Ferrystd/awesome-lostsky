@@ -139,15 +139,19 @@ function switchDisabled(setting: SettingField): boolean {
 
 <style scoped>
 
-.settings-form { display: grid; min-width: 0; margin: 0; gap: 1.5rem; }
+.settings-form { display: grid; min-width: 0; margin: 0; gap: 1.75rem; }
 .setting-row { display: grid; min-width: 0; gap: .75rem; }
-.setting-row--switch { grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 1rem; }
+.setting-row--switch { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
+.setting-row--choices { margin-top: .25rem; }
 .setting-copy { min-width: 0; }
 .setting-copy h3, .setting-copy p { margin: 0; overflow-wrap: anywhere; }
 .setting-copy h3 { font-size: .9375rem; line-height: 1.5; }
-.setting-copy p { margin-top: .25rem; color: var(--text-secondary); font-size: .875rem; line-height: 1.6; }
+.setting-copy p { margin-top: .25rem; color: var(--text-secondary); font-size: .875rem; line-height: 1.5; }
 .setting-control { min-width: 0; }
 .settings-feedback { display: grid; gap: 1rem; }
 .feedback { margin: 0; font-size: .875rem; line-height: 1.5; overflow-wrap: anywhere; }
 .success { color: var(--success); }
+@media (max-width: 639px) {
+  .settings-form { gap: 1.5rem; }
+}
 </style>
