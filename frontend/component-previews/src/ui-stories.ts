@@ -211,8 +211,8 @@ const formActions = story(
   (state) =>
     stage(
       h(LsFormActions, null, {
-        destructive: () => h(LsButton, { variant: 'danger-ghost', size: 'sm', disabled: state === 'disabled' }, { default: () => '删除角色' }),
-        default: () => h(LsButton, { size: 'sm', disabled: state === 'disabled' }, { default: () => '保存资料' }),
+        destructive: () => h(LsButton, { variant: 'danger-ghost', disabled: state === 'disabled' }, { default: () => '删除角色' }),
+        default: () => h(LsButton, { disabled: state === 'disabled' }, { default: () => '保存资料' }),
       }),
     ),
   {

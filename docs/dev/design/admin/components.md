@@ -41,12 +41,12 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 | 组件 | 必须用途与参数 | 禁止组合 | 状态与响应式检查 |
 | --- | --- | --- | --- |
-| `LsButton` | `variant=primary/secondary/ghost/danger/danger-ghost`、`size=sm/md/lg`、`loading`、`disabled`、`disabledReason`、`type=button/submit/reset`；`icon` 插槽承载命令图标；是唯一可见命令按钮原语 | 页面私有按钮皮肤、同组混合尺寸、在默认插槽中反复手排图标间距、页面用外层 `span` 重做可解释禁用 | danger 保持实心，danger-ghost 使用 Naive UI error + quaternary 的透明底危险色；loading 保留尺寸；disabled 无原因时使用原生禁用，有原因时保留焦点并统一短时提示且绝不触发表单；sm 桌面精确指针为 36px、窄屏或触控为至少 44px，md/lg 为 44/48px；图标不改变可读文案 |
+| `LsButton` | `variant=primary/secondary/ghost/danger/danger-ghost`、`size=sm/md/lg`、`loading`、`disabled`、`disabledReason`、`type=button/submit/reset`；`icon` 插槽承载命令图标；是唯一可见命令按钮原语 | 页面私有按钮皮肤、同组混合尺寸、在默认插槽中反复手排图标间距、页面用外层 `span` 重做可解释禁用 | danger 保持实心，danger-ghost 使用 Naive UI error + quaternary 的透明底危险色；loading 保留尺寸；disabled 无原因时使用原生禁用，有原因时保留焦点并统一短时提示且绝不触发表单；40/44/48px；图标不改变可读文案 |
 | `LsInlineError` | 只接收必填 `message`；用于字段组、表单或局部操作的阻断错误 | 自定义颜色、图标、标题、动作、插槽或重复书写 `role=alert` | 固定区域 `alert`、危险色和紧凑内边距；长文案与 200% 文本自然换行；空状态和页面加载错误不得使用 |
 | `LsPanel` | 无 props；`header/default/footer` 三个插槽承载有边界的独立内容区 | 视觉变体、页面级 `.panel` 皮肤、嵌套面板、为连续列表逐项套面板 | 桌面 20px、移动端 16px 内边距；插槽边界使用细分隔线；加载、空、错误由内容区对应状态组件表达 |
 | `LsSectionHeader` | `title` 必填；`description/eyebrow/id` 可选，`headingLevel=2/3/4`；`aside` 插槽承载状态、统计或区块动作 | 页面手写 `section-heading/panel-heading/section-title`；在页面重复标题间距和移动端堆叠 | 标题层级与 ID 保留；说明宽度统一；右侧内容桌面靠右、移动端堆叠，命令按钮满宽 |
 | `LsFormSection` | `title` 必填，标题参数与 `LsSectionHeader` 相同；内部固定复用 `LsPanel` 与 `LsSectionHeader`，默认插槽承载单列表单字段 | 接管 `<form>`、校验、提交或业务数据；页面重建 `form-panel` | 通过标题 ID 标记面板；字段单列且长文案不溢出；状态由字段或表单区域表达 |
-| `LsFormActions` | 无 props、默认插槽承载保存、取消等命令；可选 `destructive` 插槽承载独立危险动作 | 视觉参数、业务顺序判断、页面重建 `form-actions` | 默认命令桌面右对齐、最小宽度 `min(7rem,100%)`，小于 640px 单列满宽；存在 destructive 时危险动作左置、默认命令右置，按文案宽度收紧，窄屏保持并列、空间不足才换行；DOM 与视觉顺序一致，不改变按钮本身状态 |
+| `LsFormActions` | 无 props、默认插槽承载保存、取消等命令；可选 `destructive` 插槽承载独立危险动作 | 视觉参数、业务顺序判断、页面重建 `form-actions` | 默认命令桌面右对齐并换行，destructive 在同一行左侧并与默认命令分离；命令按文案自适应，最小宽度为 `min(7rem,100%)`，放大文字后仍受容器约束；小于 640px 单列，危险动作在前、默认命令在后，`LsButton` 满宽，DOM 与视觉顺序一致；不改变按钮本身状态 |
 | `LsDescriptionList` | 无 props；根节点固定为 `<dl>`，默认插槽只提供成对 `<dt>/<dd>` | 指标网格、金额分解、移动表格记录或卡片式业务摘要 | 桌面双列、移动上下排列；统一分隔线和长内容换行；调用端保留术语和值的语义 |
 | `LsStatusTag` | `label` 必填，`type=default/success/warning/error/info`；统一状态标签 | 调用端重复 `size=small`、`bordered=false`，或按页面自建 StatusBadge | 固定 small、无边框；颜色不能替代文案；移动端和文本放大时不裁切状态文案 |
 | `LsPage` | `as=main/section/div`（默认 `section`）、`width=wide/content/form`（默认 `wide`）、`id`；分别用于列表、详情、单列表单 | 页面再嵌套同类容器 | 320px 无横向溢出，桌面居中；页面只能有一个 `main` |
@@ -75,7 +75,7 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 | `LsRadioGroupField` | `modelValue: string/number/null`、`label`、`options=[{value,label,description?}]` 必填；`id/hint` 可选，`disabled=false`；发出 `update:modelValue` | 调用方传入宽度、密度、布局或样式参数；页面穿透 Naive Radio 样式；在字段外重复标题和说明 | fieldset/legend 和原生 Radio 语义；Naive 管理方向键与空格选择，禁用不提交更新；选项说明始终显示，最小 64px 触控区域，窄容器自然单列，320px 与 200% 文字不溢出 |
 | `LsCheckboxGroupField` | `v-model` 接受字符串或数字数组，`label/options` 必填；option 支持 `value/label/description/meta/disabled/disabledReason`；可传 `id/hint/error/required/disabled` | 页面直接组合无分组语义的 `NCheckboxGroup`；用于分组权限编辑器或动态加入字段；把禁用原因写进选项正文或 `title` | 固定 `fieldset/legend` 与提示/错误关联；带原因的禁用选项保持可触发的权限态，点击仅由 `feedback.info()` 解释且不更新模型；选项触控区至少 44px；长文案与移动端自然换行 |
 | `LsSwitch` | `v-model` 接受布尔值；`disabled/readOnly/loading/disabledReason` 可选；是唯一 `NSwitch` 视觉原语，调用方通过普通无障碍属性命名 | 业务页面直接使用 `NSwitch`；轨道内显示状态文字；增加颜色、尺寸或文案视觉 props；把禁用原因写入原生标题 | 开关内部始终无文字；触控区域至少 44px；只读与禁用保留 `aria-disabled/aria-readonly` 语义；权限态的轨道与按钮内圈统一视觉降权，触发后仅由 `feedback.info()` 解释且不更新值；所有应用内紧凑布尔控件也必须复用 |
-| `LsSwitchField` | `v-model` 接受布尔值，`label` 必填；`description/id/ariaLabel/headingLevel/disabled/readOnly/loading/disabledReason` 可选；内部只组合 `LsSwitch`，承载完整布尔设置行 | 在 `LsField`、`NFormItem` 或页面私有 `switch-row/switch-field` 中直接组合开关；在开关轨道内显示状态文字；把禁用原因写在设置行正文或 `title` | 默认以可见标签作为无障碍名称；设置页分区标题可用 `headingLevel`；默认无额外底色、圆角和内边距，以标签、说明和开关组成轻量行；固定、只读和可编辑状态保持同一结构；禁用原因只交给内部 `LsSwitch` 以信息弹窗解释；长文案和移动端不溢出 |
+| `LsSwitchField` | `v-model` 接受布尔值，`label` 必填；`description/id/ariaLabel/headingLevel/disabled/readOnly/loading/disabledReason` 可选；内部只组合 `LsSwitch`，承载完整布尔设置行 | 在 `LsField`、`NFormItem` 或页面私有 `switch-row/switch-field` 中直接组合开关；在开关轨道内显示状态文字；把禁用原因写在设置行正文或 `title` | 默认以可见标签作为无障碍名称；设置页分区标题可用 `headingLevel`；固定、只读和可编辑状态保持同一结构；禁用原因只交给内部 `LsSwitch` 以信息弹窗解释；长文案和移动端不溢出 |
 | `LsInput` | `v-model` 接受字符串或数字，`invalid/type/disabled` 可选；其余原生输入属性传给 `NInput.inputProps` | 页面直接写原生文本输入；用私有边框表示错误 | 密码类型保留；`disabled` 显式传给 `NInput`，禁止仅放入 inputProps 而被底层覆盖；错误映射到 Naive `status=error` 和 `aria-invalid`；尺寸由主题控制 |
 | `LsMarkdownEditor` | `modelValue` 与 `uploadImage(file)` 必填；可传 `placeholder/draftKey/searchEntities/resolveEntities/uploadDisabledReason`；模式固定为可视化/源码/预览 | 页面复制编辑器工具栏；省略上传回调导致图片入口消失；缺上传能力仍调用上传 | 图片入口始终存在；无权时以 `uploadDisabledReason` 保持可解释禁用；草稿键有值时本地保存；@ 搜索、上传和预览错误局部呈现 |
 | `LsMarkdownRenderer` | `content`、`resolveEntities` 可选，`chatEnabled=true`；仅渲染清洗后的 Markdown 和受控 `lostsky://entity/` 引用 | 渲染任意未清洗 HTML；解析失败清空整页 | 解析失败退化为普通内容；主体详情可键盘关闭并恢复触发点焦点；移动端详情不溢出 |
@@ -92,7 +92,7 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 - `LsEmptyState` 的标题和下一步说明均使用 `--text-secondary`，不得继承 `NEmpty` 的禁用文字色；无数据不代表文字不可用。由组件内部固定主题映射，调用方不传颜色。通过真实页面计算样式验证两者一致，并遵循正文 4.5:1 的对比度要求。
 
-- `LsPagePrimaryAction` 的等宽只属于“页面标题区唯一主操作”这一项完整语义，不是全局按钮令牌。`LsFormActions` 负责表单命令组的排列：默认命令组桌面端内容自适应、最小 `min(7rem,100%)`，小于 640px 满宽；存在 `destructive` 插槽时，两侧动作按内容收紧，窄屏保留并列且空间不足才换行；`LsFormList` 的添加命令同样内容自适应、最小 7rem；`LsUploadField` 的默认上传命令固定 8.5rem。其他不同任务不得为了视觉齐边共享宽度，调用方也不得传递宽度、断点或视觉变体。
+- `LsPagePrimaryAction` 的等宽只属于“页面标题区唯一主操作”这一项完整语义，不是全局按钮令牌。`LsFormActions` 负责表单命令组的排列：桌面端内容自适应、最小 `min(7rem,100%)`，小于 640px 满宽；`LsFormList` 的添加命令同样内容自适应、最小 7rem；`LsUploadField` 的默认上传命令固定 8.5rem。其他不同任务不得为了视觉齐边共享宽度，调用方也不得传递宽度、断点或视觉变体。
 - `LsPage.width` 是页面根容器的语义容量（`wide/content/form`），不是任意子控件的视觉微调入口；页面需要不同的内容容量时选用该枚举，不新增自由宽度参数。
 - `LsResponsiveDataTable.scrollX` 表示桌面数据列所需的最小可读容量，只能由列内容推导；它不是页面为对齐或留白而传递的视觉宽度参数。
 - `LsMarkdownRenderer.context` 仅表达 `inline/document` 两种阅读语境，并由组件内部调整排版令牌；调用方不得穿透 Markdown 生成节点来改标题、字号、行高或间距。

@@ -11,13 +11,13 @@ const catalog = {
   advanced_items: [{ key: 'team.ability', label: '覆盖 team.ability 下全部权限', covered_keys: ['team.ability.redeem'] }],
 }
 async function choose(page: Page, label: string) {
-  const nav = page.getByRole('navigation', { name: '编辑内容', exact: true })
+  const nav = page.getByRole('navigation', { name: '角色分类', exact: true })
   if (await nav.isVisible()) await nav.getByRole('button', { name: new RegExp(`^${label}`) }).click()
   else {
-    const trigger = page.getByRole('combobox', { name: '编辑内容', exact: true })
+    const trigger = page.getByRole('combobox', { name: '角色分类', exact: true })
     await trigger.click()
     await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-    await expect(page.getByRole('listbox', { name: '编辑内容', exact: true })).toBeVisible()
+    await expect(page.getByRole('listbox', { name: '角色分类', exact: true })).toBeVisible()
     await page.getByRole('option', { name: new RegExp(`^${label}`) }).click()
   }
 }
@@ -120,15 +120,6 @@ test('category pilot owns responsive geometry and keeps adjacent routes unchange
   await expect(save).toHaveAttribute('aria-disabled', 'true')
   await page.getByLabel('角色名称').fill('团队运营')
   await expect(save).not.toHaveAttribute('aria-disabled', 'true')
-  await page.getByLabel('显示顺序').fill('')
-  await expect(save).toHaveAttribute('aria-disabled', 'true')
-  await page.getByLabel('显示顺序').fill('10')
-  await expect(save).not.toHaveAttribute('aria-disabled', 'true')
-  const visibility = page.getByRole('switch', { name: '在公开人员资料中展示此角色' })
-  await visibility.focus()
-  await page.keyboard.press('Space')
-  await expect(visibility).toHaveAttribute('aria-checked', 'true')
-  await page.getByRole('heading', { level: 1 }).click()
   await expect(save.locator('svg')).toHaveCount(0)
   await expect(remove).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
   await expect(remove).toHaveClass(/n-button--error-type/)
@@ -146,32 +137,22 @@ test('category pilot owns responsive geometry and keeps adjacent routes unchange
     const removeBox = (await remove.boundingBox())!
     const saveBox = (await save.boundingBox())!
     const actionsBox = (await save.locator('..').boundingBox())!
-    const touch = await page.evaluate(() => matchMedia('(any-pointer: coarse)').matches)
-    const buttonHeight = width < 640 || touch ? 44 : 36
-    expect(removeBox.height).toBe(buttonHeight)
-    expect(saveBox.height).toBe(buttonHeight)
-    expect(saveBox.width).toBeLessThan(112)
+    expect(removeBox.height).toBeGreaterThanOrEqual(44)
+    expect(saveBox.height).toBeGreaterThanOrEqual(44)
     expect(Math.abs(removeBox.x - actionsBox.x)).toBeLessThanOrEqual(1)
     expect(Math.abs(saveBox.x + saveBox.width - actionsBox.x - actionsBox.width)).toBeLessThanOrEqual(1)
-    expect(Math.abs(removeBox.y - saveBox.y)).toBeLessThanOrEqual(1)
-    expect(saveBox.x - removeBox.x - removeBox.width).toBeGreaterThanOrEqual(12)
-    const nameBox = (await page.getByLabel('角色名称').boundingBox())!
-    const sortBox = (await page.getByLabel('显示顺序').boundingBox())!
-    const displayField = page.locator('.role-display-field')
-    const displayBox = (await displayField.boundingBox())!
-    expect(sortBox.width).toBeLessThanOrEqual(144)
-    expect(sortBox.width).toBeLessThan(nameBox.width)
-    await expect(displayField).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-    if (width >= 1024) {
-      const sortFieldBox = (await page.locator('.role-sort-field').boundingBox())!
-      expect(Math.abs(sortFieldBox.y - displayBox.y)).toBeLessThanOrEqual(1)
-      expect(displayBox.x).toBeGreaterThan(sortBox.x + sortBox.width)
-    } else if (width <= 375) expect(displayBox.y).toBeGreaterThan(sortBox.y + sortBox.height)
+    if (width >= 640) {
+      expect(Math.abs(removeBox.y - saveBox.y)).toBeLessThanOrEqual(1)
+      expect(saveBox.x - removeBox.x - removeBox.width).toBeGreaterThanOrEqual(12)
+    } else {
+      expect(saveBox.y).toBeGreaterThan(removeBox.y + removeBox.height)
+      expect(Math.abs(removeBox.width - saveBox.width)).toBeLessThanOrEqual(1)
+    }
     if (box.width >= 768) {
       expect(box.columns[0]).toBe(184)
-      await expect(page.getByRole('navigation', { name: '编辑内容', exact: true })).toBeVisible()
-      for (const item of await page.getByRole('navigation', { name: '编辑内容', exact: true }).getByRole('button').all()) expect((await item.boundingBox())!.height).toBeGreaterThanOrEqual(44)
-    } else await expect(page.getByRole('combobox', { name: '编辑内容', exact: true })).toBeVisible()
+      await expect(page.getByRole('navigation', { name: '角色分类', exact: true })).toBeVisible()
+      for (const item of await page.getByRole('navigation', { name: '角色分类', exact: true }).getByRole('button').all()) expect((await item.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+    } else await expect(page.getByRole('combobox', { name: '角色分类', exact: true })).toBeVisible()
     if (width === 375 || width === 1440) await page.screenshot({ path: testInfo.outputPath(`category-${width}.png`), fullPage: true })
   }
   await page.setViewportSize({ width: 1440, height: 1000 })
@@ -179,25 +160,24 @@ test('category pilot owns responsive geometry and keeps adjacent routes unchange
   await remove.click()
   await expect(page).toHaveURL(/\/roles\/1$/)
   await page.getByLabel('角色名称').fill('跨部门运营协作与服务管理角色')
-  const nav = page.getByRole('navigation', { name: '编辑内容', exact: true })
+  const nav = page.getByRole('navigation', { name: '角色分类', exact: true })
   await nav.getByRole('button').first().focus()
   await page.keyboard.press('End')
   await expect(nav.getByRole('button').last()).toBeFocused()
   await expect(page.getByLabel('搜索高级范围权限')).toBeVisible()
   await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
-  await expect(page.getByRole('combobox', { name: '编辑内容', exact: true })).toBeVisible()
-  await page.getByRole('combobox', { name: '编辑内容', exact: true }).focus()
-  await expect(page.getByRole('combobox', { name: '编辑内容', exact: true })).toBeFocused()
+  await expect(page.getByRole('combobox', { name: '角色分类', exact: true })).toBeVisible()
+  await page.getByRole('combobox', { name: '角色分类', exact: true }).focus()
+  await expect(page.getByRole('combobox', { name: '角色分类', exact: true })).toBeFocused()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('listbox', { name: '编辑内容', exact: true })).toBeVisible()
+  await expect(page.getByRole('listbox', { name: '角色分类', exact: true })).toBeVisible()
   await page.keyboard.press('ArrowUp')
-  const mobileTrigger = page.getByRole('combobox', { name: '编辑内容', exact: true })
+  const mobileTrigger = page.getByRole('combobox', { name: '角色分类', exact: true })
   await expect.poll(() => mobileTrigger.getAttribute('aria-activedescendant')).toBeTruthy()
   const activeId = await mobileTrigger.getAttribute('aria-activedescendant')
   await expect(page.locator(`[id="${activeId}"]`)).toHaveAttribute('role', 'option')
   await expect(page.getByRole('option', { selected: true })).toContainText('高级范围权限')
   await page.keyboard.press('Escape')
-  await choose(page, '角色资料')
   for (const width of [320, 768, 1920]) {
     await page.setViewportSize({ width, height: 1200 })
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)

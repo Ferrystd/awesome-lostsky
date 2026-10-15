@@ -703,7 +703,7 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain(':disabled-reason="disabledReason"')
     expect(source).not.toContain('ls-switch-field__reason')
     expect(source).not.toContain(':title=')
-    expect(source).not.toContain('background:')
+    expect(source).toContain('min-height:56px')
     expect(source).toContain('min-height:44px')
     expect(source).toContain('@media(max-width:639px)')
     expect(source).not.toContain('checkedText')
