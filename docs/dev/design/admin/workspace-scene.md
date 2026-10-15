@@ -13,7 +13,13 @@
 - `@lostsky/ui/components/LsSceneMotionControl.vue`：无业务 props，使用场景状态；保持现有暂停/播放按钮、可访问名称与 pressed 状态。分类模板放在左分类下原位置，其余模板通过页级辅助操作区域放置；减少动态隐藏控制。未挂场景或 WebGL 不可用时不显示。
 - `@lostsky/ui/workspace-scene-theme`：`workspaceSceneProviderProps(enabled: boolean)` 开启时返回现有 `NConfigProvider` 所需的 class、theme、themeOverrides；关闭时严格返回空对象，不提供空theme或默认themeOverrides覆盖应用配置。应用先提供原provider配置，再合并该helper结果；每次路由变化重新组合，不能将开启结果保留在可变对象中。Shop公开页原darkTheme/shopTheme必须完整保留。应用继续持有唯一provider，不嵌套第二个；enabled由主对话维护的内部工作台路由集合选择，不能按应用名称无条件开启；排除路由保持原主题。
 - `@lostsky/ui/components/LsPageLink.vue`：互斥的 `to` / `href`、`icon`、`label`，复用黄金基准页头轻量导航入口；可明确传入 `target` / `rel`，默认同窗口，不增加动作回调；不承接业务提交、禁用解释或权限判定。
-- 背景实现是共享组件内部细节，原 shader、静态回退、24fps/约26万像素上限、鼠标插值、隐藏/离屏暂停、减少动态及卸载释放保持原样。现有 `lostskyAuroraTheme` 和 `.ls-theme-aurora` 材质令牌保持数值不变。只迁移归属，不趁机调色或重新设计。
+- 背景实现是共享组件内部细节，原 shader、静态回退、24fps/约26万像素上限、鼠标插值、隐藏/离屏暂停、减少动态及卸载释放保持原样。现有 `lostskyAuroraTheme` 和 `.ls-theme-aurora` 材质令牌除下述已批准的输入面调整外保持数值不变。只迁移归属，不趁机调色或重新设计。
+
+### 输入面材质
+
+极光工作台的 Naive `NInput`（含 `LsInput`、搜索与 textarea）统一采用轻微内凹的深色输入面：`lostskyAuroraTheme.Input` 持有透明度 .72 的深色底、弱化的常态边框及清晰青绿色聚焦边框；`.ls-theme-aurora` 下由共享样式提供极淡顶部内阴影。禁止页面私有覆盖、外发光和输入面渐变。普通主题、选择器和编辑器不在本次调整范围，无新增例外。
+
+桌面与手机使用同一材质，保留圆角、留白、字号、textarea 高度和字数统计；键盘焦点继续使用 Naive 状态边框。错误与警告保留对应语义边框，聚焦不添加外发光；禁用输入保留原底色与边框且不加内阴影，只读状态沿用输入面。加载、空值、权限与业务校验由原页面负责，不增加动效。以真实组件 DOM 验证透明底、内阴影、聚焦/错误/禁用、输入与计数、320px 和文字放大无溢出，并核对关闭场景后普通主题不变。
 
 所有壳层继续复用 `LsPage`、`LsWorkspaceHeader` 和各自导航。页面宽度遵循[三档宽度](page-widths.md)：form 42rem、content 64rem、wide 90rem；旧 `meta.width` 与 `meta.pageWidth` 的适配留在应用接入层，不改变现有路由含义。页头与主体间距24px；分类黄金规格为184px列、24px列距、桌面20px/手机12px内衬，内容可用宽度不足48rem时用原移动选择入口。
 

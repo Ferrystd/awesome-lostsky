@@ -7,7 +7,7 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
+import LsDirectoryActions from '@lostsky/ui/components/LsDirectoryActions.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
@@ -16,7 +16,7 @@ import { BookOpen, Pencil, Plus, Trash2 } from '@lucide/vue'
 import { NPagination, NSelect, NFlex } from 'naive-ui'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 
 const route = useRoute()
 const routeAccess = useRouteAccess()
@@ -90,15 +90,16 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
 </script>
 
 <template>
-  <LsCollectionPage
+  <LsObjectDirectory
       title="文档"
-      :description="entityId ? `查看对象 #${entityId} 的可见文档。` : '搜索、分类并维护团队知识文档。'"
+      :description="entityId ? `查看对象 #${entityId} 的可见文档。` : '查找团队文档，进入阅读或编辑。'"
     >
     <template #actions>
       <LsPageLink :icon="Plus" label="新建文档" :to="createTo" />
     </template>
     <template #toolbar>
       <LsListToolbar
+      embedded
       v-model="keyword"
       placeholder="搜索标题或正文"
       aria-label="搜索文档"
@@ -121,16 +122,14 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
       />
       <LsResourceList v-else key="list" aria-label="文档列表">
         <LsResourceRow v-for="item in docs" :key="String(item.id)" :title="String(item.title || '未命名文档')" :description="summary(item).slice(0, 150) || '这份文档还没有正文。'" :icon="BookOpen" :to="`/doc?id=${item.id}`">
-          <template #metadata>
-            <time>{{ date(item.update_time ?? item.create_time) }}</time>
-          </template>
           <template #status>
             <LsStatusTag :label="visibilityLabels[Number(item.visibility)] ?? '可见范围未设置'" />
           </template>
           <template #actions>
             <NFlex align="center" justify="end" :size="12">
+              <span class="document-updated">更新于 {{ date(item.update_time ?? item.create_time) }}</span>
               <LsPageLink :to="`/doc-edit?id=${item.id}`" :icon="Pencil" label="编辑" />
-              <LsResponsiveActions :actions="documentActions()" @select="runDocumentAction($event, item)" />
+              <LsDirectoryActions :label="`${String(item.title || '文档')}的更多操作`" :actions="documentActions()" @select="runDocumentAction($event, item)" />
             </NFlex>
           </template>
         </LsResourceRow>
@@ -139,5 +138,9 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
     <template v-if="pages > 1" #pagination>
       <NPagination v-model:page="page" :page-count="pages" :page-slot="5" />
     </template>
-  </LsCollectionPage>
+  </LsObjectDirectory>
 </template>
+
+<style scoped>
+.document-updated { text-align: right; color: var(--text-secondary); font-size: .8125rem; line-height: 1.5; overflow-wrap: anywhere; }
+</style>

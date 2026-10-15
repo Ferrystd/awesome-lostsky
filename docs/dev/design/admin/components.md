@@ -33,6 +33,8 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 ### 连续资源目录
 
+对象目录的页面、身份内容与命令菜单契约见 [对象目录](object-directory.md)。`LsObjectDirectory`、`LsDirectoryIdentity`、`LsDirectoryActions` 只被已迁移目录消费，不改变下面原组件默认外观。`LsResourceRow.identity` 在对象目录中允许 `LsDirectoryIdentity`；`actions` 允许非交互次要摘要、独立轻入口及 `LsDirectoryActions`，不可放入主链接内部。
+
 `LsResourceList` 没有 props，默认插槽只承载 `LsResourceRow`，基于 Naive `NList` 提供单一白色边界、细分隔线和 12px 圆角。加载、错误与空状态在列表外处理，无数据时不渲染空列表。
 
 `LsResourceRow` 基于 Naive `NListItem`，仅接受资源语义 `title/description/to/icon` 和通知状态 `unread`。`identity` 插槽仅组合 `LsEntityIdentity` 并替代名称区域；`description/metadata` 仍随后呈现，身份状态放入 `LsEntityIdentity.status`；`metadata/status/actions` 分别承载辅助信息、状态和 `LsResponsiveActions`。名称在前，摘要和元信息随后，状态紧邻名称；内部拥有 16px 内边距、12px 主体间距、40px 资源图标，名称 1rem/600，辅助信息 .8125rem。容器小于 40rem 时动作独立下一行；链接至少 44px，文字放大自然换行，hover 只改表面色。禁止任意宽度、密度、布局、样式参数和调用方穿透；metadata 不得包含导致嵌套链接的交互控件。无实现级例外，以公共契约与 Team 页面几何测试验收。

@@ -1106,5 +1106,35 @@
     "story": "frontend/component-previews/src/community-stories.ts#CommunityShell",
     "category": "community",
     "aliases": []
+  },
+  {
+    "id": "lsobjectdirectory",
+    "name": "LsObjectDirectory",
+    "source": "frontend/packages/ui/src/components/LsObjectDirectory.vue",
+    "story": "frontend/component-previews/src/object-directory-story.ts#LsObjectDirectory",
+    "category": "ui",
+    "aliases": [
+      "对象目录"
+    ]
+  },
+  {
+    "id": "lsdirectoryidentity",
+    "name": "LsDirectoryIdentity",
+    "source": "frontend/packages/ui/src/components/LsDirectoryIdentity.vue",
+    "story": "frontend/component-previews/src/object-directory-story.ts#LsDirectoryIdentity",
+    "category": "ui",
+    "aliases": [
+      "目录身份"
+    ]
+  },
+  {
+    "id": "lsdirectoryactions",
+    "name": "LsDirectoryActions",
+    "source": "frontend/packages/ui/src/components/LsDirectoryActions.vue",
+    "story": "frontend/component-previews/src/object-directory-story.ts#LsDirectoryActions",
+    "category": "ui",
+    "aliases": [
+      "目录更多操作"
+    ]
   }
 ]
