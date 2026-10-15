@@ -89,7 +89,7 @@ function handleAction(key: string, item: Record<string, unknown>) {
         <LsPageLink :icon="Plus" label="添加成员" to="/member-add" />
       </template>
       <template #toolbar>
-        <LsListToolbar v-model="search" placeholder="按昵称、slug 或用户 ID 搜索" aria-label="搜索成员" :count-label="`${filtered.length} 位成员`">
+        <LsListToolbar v-model="search" placeholder="搜索昵称、标识或用户 ID" aria-label="搜索成员" :count-label="search.trim() || category !== 'all' ? `找到 ${filtered.length} 位成员` : `共 ${members.length} 位成员`">
           <template #filters>
             <NSelect v-model:value="category" :options="categoryOptions" aria-label="成员分类" />
           </template>

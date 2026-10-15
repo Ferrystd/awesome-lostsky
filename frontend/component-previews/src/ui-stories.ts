@@ -485,26 +485,26 @@ const listToolbar = story(
         {
           embedded: state === 'active' || state === 'mobile',
           modelValue: '',
-          placeholder: '搜索字段名称或标识',
-          ariaLabel: '搜索对象字段',
-          countLabel: '12 个字段',
+          placeholder: '搜索昵称、标识或用户 ID',
+          ariaLabel: '搜索成员',
+          countLabel: state === 'active' ? '找到 2 位成员' : '共 6 位成员',
         },
         {
           filters: () =>
             h(NSelect, {
-              value: 'entity',
+              value: state === 'active' ? 'active' : 'all',
               disabled: state === 'disabled',
               options: [
-                { label: '人员', value: 'entity' },
-                { label: '顾客', value: 'customer' },
+                { label: '全部成员', value: 'all' },
+                { label: '正常成员', value: 'active' },
               ],
             }),
-          actions: () => h(LsButton, { disabled: state === 'disabled' }, { default: () => '创建字段' }),
         },
       ),
     ),
   { loading: '列表工具栏不负责加载状态。', error: '错误由列表内容区域表达。' },
 )
+listToolbar.desktopWidth = 1024
 
 const resourceList = story('LsResourceList', ['default', 'hover', 'focus', 'mobile'], () => stage(
   h(LsResourceList, {}, { default: () => [

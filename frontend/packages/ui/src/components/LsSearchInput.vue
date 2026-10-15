@@ -38,12 +38,6 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
   min-height:40px;
   --n-height:40px!important;
   --n-border-radius:10px!important;
-  --n-color:var(--surface, white)!important;
-  --n-color-focus:var(--surface, white)!important;
-  --n-border:1px solid var(--border, var(--line))!important;
-  --n-border-hover:1px solid var(--primary, var(--sky-lost-strong))!important;
-  --n-border-focus:1px solid var(--primary, var(--sky-lost-strong))!important;
-  --n-box-shadow-focus:0 0 0 3px color-mix(in oklch,var(--primary, var(--sky-lost-strong)),transparent 84%)!important;
 }
 .ls-search-input :deep(.n-input-wrapper){padding-inline:.8rem}
 .ls-search-input :deep(.n-input__prefix){margin-right:.45rem;color:var(--text-secondary, var(--muted-ink))}
