@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsRadioGroupField from '@lostsky/ui/components/LsRadioGroupField.vue'
 import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
@@ -48,10 +49,11 @@ function switchDisabled(setting: SettingField): boolean {
 </script>
 
 <template>
-  <form class="settings-panel" :aria-labelledby="`settings-${app.app_name}`" @submit.prevent="!disabled && emit('submit')">
-      <header class="settings-header">
+  <LsPanel :aria-labelledby="`settings-${app.app_name}`">
+    <template #header>
         <LsSectionHeader :id="`settings-${app.app_name}`" :title="app.label" :description="app.description" />
-      </header>
+    </template>
+    <form class="settings-form" @submit.prevent="!disabled && emit('submit')">
       <section
         v-for="setting in app.settings"
         :key="setting.key"
@@ -121,7 +123,7 @@ function switchDisabled(setting: SettingField): boolean {
         </div>
       </section>
 
-    <footer class="settings-footer">
+    <div class="settings-feedback" v-if="error || saved">
       <LsInlineError
         v-if="error"
         :message="error"
@@ -129,26 +131,23 @@ function switchDisabled(setting: SettingField): boolean {
       <p v-if="saved" class="feedback success" role="status">
         {{ app.label }}设置已保存。
       </p>
-      <LsFormActions><SettingsSaveButton :loading="loading" :disabled="disabled">保存{{ app.label }}设置</SettingsSaveButton></LsFormActions>
-    </footer>
-  </form>
+    </div>
+    <LsFormActions><SettingsSaveButton :loading="loading" :disabled="disabled">保存{{ app.label }}设置</SettingsSaveButton></LsFormActions>
+    </form>
+  </LsPanel>
 </template>
 
 <style scoped>
 
-.settings-panel { min-width: 0; margin: 0; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--panel-material, var(--surface)); box-shadow: var(--panel-elevation, none); }
-.settings-header { padding: 1.5rem 1.5rem 1rem; }
-.setting-row { display: grid; min-width: 0; gap: .75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--separator, var(--border)); }
+.settings-form { display: grid; min-width: 0; margin: 0; gap: 1.5rem; }
+.setting-row { display: grid; min-width: 0; gap: .75rem; }
 .setting-row--switch { grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 1rem; }
 .setting-copy { min-width: 0; }
 .setting-copy h3, .setting-copy p { margin: 0; overflow-wrap: anywhere; }
 .setting-copy h3 { font-size: .9375rem; line-height: 1.5; }
 .setting-copy p { margin-top: .25rem; color: var(--text-secondary); font-size: .875rem; line-height: 1.6; }
 .setting-control { min-width: 0; }
-.settings-footer { display: grid; gap: 1rem; padding: 1rem 1.5rem 1.5rem; border-top: 1px solid var(--separator, var(--border)); }
+.settings-feedback { display: grid; gap: 1rem; }
 .feedback { margin: 0; font-size: .875rem; line-height: 1.5; overflow-wrap: anywhere; }
 .success { color: var(--success); }
-@media (max-width: 639px) {
-  .settings-header, .setting-row, .settings-footer { padding: 1rem; }
-}
 </style>
