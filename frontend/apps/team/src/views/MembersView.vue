@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
-import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import LsDirectoryIdentity from '@lostsky/ui/components/LsDirectoryIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
-import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
+import LsDirectoryActions from '@lostsky/ui/components/LsDirectoryActions.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { FileText, MessageCircleMore, Pencil, Plus, ShieldBan, ShieldCheck, UserX } from '@lucide/vue'
+import { MessageCircleMore, Pencil, Plus, ShieldBan, ShieldCheck, UserX } from '@lucide/vue'
 import { NSelect, NFlex } from 'naive-ui'
 import { computed, ref } from 'vue'
 
@@ -84,12 +84,12 @@ function handleAction(key: string, item: Record<string, unknown>) {
 
 <template>
   <div class="members-view">
-    <LsCollectionPage title="成员" description="查看团队内有权查看的成员。">
+    <LsObjectDirectory title="成员" description="查找成员、确认状态，进入档案查看资料或管理。">
       <template #actions>
         <LsPageLink :icon="Plus" label="添加成员" to="/member-add" />
       </template>
       <template #toolbar>
-        <LsListToolbar v-model="search" placeholder="搜索昵称、标识或用户 ID" aria-label="搜索成员" :count-label="search.trim() || category !== 'all' ? `找到 ${filtered.length} 位成员` : `共 ${members.length} 位成员`">
+        <LsListToolbar embedded v-model="search" placeholder="搜索昵称、标识或用户 ID" aria-label="搜索成员" :count-label="search.trim() || category !== 'all' ? `找到 ${filtered.length} 位成员` : `共 ${members.length} 位成员`">
           <template #filters>
             <NSelect v-model:value="category" :options="categoryOptions" aria-label="成员分类" />
           </template>
@@ -99,23 +99,23 @@ function handleAction(key: string, item: Record<string, unknown>) {
       <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="5" />
       <LsEmptyState v-else-if="!filtered.length" :source="query.data.value" :title="search || category !== 'all' ? '没有匹配的成员' : '当前没有可查看的成员'" :description="search || category !== 'all' ? '尝试更短的关键词或切换成员分类。' : '成员可能尚未加入，或被设置为团队内隐藏。'" />
       <LsResourceList v-else aria-label="成员列表">
-        <LsResourceRow v-for="item in filtered" :key="String(item.id)" :description="String(item.description || '暂无成员简介')">
+        <LsResourceRow v-for="item in filtered" :key="String(item.id)" :to="`/member-detail?id=${item.id}`">
           <template #identity>
-            <LsEntityIdentity type="teamMember" :name="String(item.nickname || `成员 #${item.id}`)" :slug="String(item.slug || '')" :image-url="item.avatar ? String(item.avatar) : null" fallback="initial">
+            <LsDirectoryIdentity type="teamMember" :name="String(item.nickname || `成员 #${item.id}`)" :slug="String(item.slug || '')" :image-url="item.avatar ? String(item.avatar) : null">
               <template #status>
                 <LsStatusTag :label="memberStatusLabel(item)" :type="memberStatusType(item)" />
               </template>
-            </LsEntityIdentity>
+              <template #context><span v-if="!item.slug">尚未认领 slug</span><span v-if="item.description">{{ String(item.description) }}</span></template>
+            </LsDirectoryIdentity>
           </template>
           <template #actions>
             <NFlex align="center" justify="end" :size="12">
-              <LsPageLink :to="`/member-detail?id=${item.id}`" :icon="FileText" label="预览" />
               <LsPageLink :to="`/member-edit?id=${item.id}`" :icon="Pencil" :label="canUpdate ? '管理' : '查看'" />
-              <LsResponsiveActions :actions="memberActions(item)" @select="handleAction($event, item)" />
+              <LsDirectoryActions :label="`${String(item.nickname || '成员')}的更多操作`" :actions="memberActions(item)" @select="handleAction($event, item)" />
             </NFlex>
           </template>
         </LsResourceRow>
       </LsResourceList>
-    </LsCollectionPage>
+    </LsObjectDirectory>
   </div>
 </template>
