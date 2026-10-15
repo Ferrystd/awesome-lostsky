@@ -18,7 +18,7 @@ import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ArrowLeft, ChevronDown, Save, Trash2 } from '@lucide/vue'
+import { ArrowLeft, ChevronDown, Save } from '@lucide/vue'
 import {
   NCheckbox,
   NForm,
@@ -385,7 +385,7 @@ function updateTargetPermissions(options: DynamicOption[], values: Array<string 
       <LsCategoryPage
         :title="roleQuery.data.value?.name || '编辑角色权限'"
         :description="roleQuery.data.value?.role_key ? `角色标识：${roleQuery.data.value.role_key}` : '保存角色对外展示资料、权限等。'"
-        :items="categoryItems" :current="currentCategory" label="角色分类" @select="currentCategory = $event"
+        :items="categoryItems" :current="currentCategory" label="编辑内容" @select="currentCategory = $event"
       >
         <template #actions><LsPageLink to="/roles" :icon="ArrowLeft" label="返回角色列表" /></template>
         <LsAsyncState v-if="requestError && !routeAccess.restricted.value" state="error" title="暂时无法读取角色" :description="friendlyError(requestError)" />
@@ -393,24 +393,27 @@ function updateTargetPermissions(options: DynamicOption[], values: Array<string 
         <LsEmptyState v-else-if="!routeAccess.restricted.value && !roleQuery.data.value" :source="roleQuery.data.value" title="没有可显示的角色" description="此角色暂不可用。" />
         <template v-else>
         <LsPanel v-if="currentCategory === 'profile'">
-          <template #header><LsSectionHeader title="角色资料" description="名称和说明帮助管理者理解角色用途，角色标识保持不变。" /></template>
-          <NForm class="role-info-form" label-placement="top" @submit.prevent="routeAccess.restricted.value || saveInfo.mutate()">
+          <NForm class="role-info-form" aria-label="角色资料" label-placement="top" @submit.prevent="routeAccess.restricted.value || saveInfo.mutate()">
+            <div class="role-info-main">
             <LsField label="角色名称" for-id="role-detail-name" required>
               <NInput :value="routeAccess.restricted.value ? '-' : form.name" :disabled="routeAccess.restricted.value" :input-props="{ id: 'role-detail-name' }" @update:value="form.name = $event" />
             </LsField>
             <LsField label="说明" for-id="role-detail-description">
-              <NInput :value="routeAccess.restricted.value ? '-' : form.description" :disabled="routeAccess.restricted.value" :input-props="{ id: 'role-detail-description' }" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" @update:value="form.description = $event" />
+              <NInput :value="routeAccess.restricted.value ? '-' : form.description" :disabled="routeAccess.restricted.value" :input-props="{ id: 'role-detail-description' }" type="textarea" :autosize="{ minRows: 2, maxRows: 7 }" @update:value="form.description = $event" />
             </LsField>
-            <LsField label="显示顺序" for-id="role-detail-sort" hint="数字越小越靠前。">
+            </div>
+            <div class="role-display-settings">
+            <LsField class="role-sort-field" label="显示顺序" for-id="role-detail-sort" hint="数字越小越靠前。">
               <NInputNumber :value="routeAccess.restricted.value ? null : form.sort" :disabled="routeAccess.restricted.value" placeholder="-" :input-props="{ id: 'role-detail-sort' }" :min="0" :show-button="false" @update:value="form.sort = $event" />
 
             </LsField>
-            <LsSwitchField :model-value="routeAccess.restricted.value ? false : form.is_displayed" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" label="公开主页展示" aria-label="在公开人员资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟人员会展示角色名称和说明；角色权限不会公开。" @update:model-value="form.is_displayed = $event" />
+            <LsSwitchField class="role-display-field" :model-value="routeAccess.restricted.value ? false : form.is_displayed" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" label="公开主页展示" aria-label="在公开人员资料中展示此角色" description="在公开成员或虚拟人员的主页展示角色名称和说明，不公开权限。" @update:model-value="form.is_displayed = $event" />
+            </div>
             <LsFormActions>
               <template #destructive>
-                <LsButton variant="danger-ghost" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</LsButton>
+                <LsButton variant="danger-ghost" size="sm" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteRole">删除角色</LsButton>
               </template>
-              <LsButton type="submit" :loading="saveInfo.isPending.value" :disabled="routeAccess.restricted.value || !draft.dirty.value || !validInfo" :disabled-reason="infoDisabledReason">保存资料</LsButton>
+              <LsButton type="submit" size="sm" :loading="saveInfo.isPending.value" :disabled="routeAccess.restricted.value || !draft.dirty.value || !validInfo" :disabled-reason="infoDisabledReason">保存资料</LsButton>
             </LsFormActions>
           </NForm>
         </LsPanel>
@@ -533,7 +536,12 @@ function updateTargetPermissions(options: DynamicOption[], values: Array<string 
     </div>
 </template>
 
-<style scoped>.role-info-form{display:grid;gap:1rem}
+<style scoped>
+.role-info-form{display:grid;gap:1.5rem}
+.role-info-main{display:grid;gap:1rem}
+.role-display-settings{display:flex;flex-wrap:wrap;align-items:flex-start;gap:1.5rem 2rem;padding-top:1.25rem;border-top:1px solid var(--line)}
+.role-sort-field{flex:0 1 9rem;max-width:100%}
+.role-display-field{flex:1 1 18rem}
 
 .role-detail{display:grid;gap:1.5rem}.permissions-panel{display:grid;gap:1.25rem}.advanced-group>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.saved{display:inline-flex;align-items:center;gap:.4rem;margin:0 auto 0 0;color:var(--success);font-size:.82rem;font-weight:650}.delegation-static{display:grid;gap:.75rem}.delegation-static>header{align-items:center}.dynamic-target{display:grid;border:1px solid var(--line);border-radius:10px}.dynamic-target>header{padding:1rem;background:var(--cloud);border-radius:9px 9px 0 0}.dynamic-target__status{flex:none;color:var(--sky-lost-strong);font-size:.78rem;font-weight:700}.target-selector{display:grid;gap:.45rem;padding:1rem;background:var(--cloud);border-top:1px solid var(--line);border-radius:0 0 9px 9px}.target-selector label{font-size:.8rem;font-weight:700}.permission-copy{display:grid;gap:.15rem}.permission-copy strong{font-size:.875rem}.permission-copy code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.72rem}.permission-copy small{color:var(--muted-ink);font-size:.72rem}.dynamic-editor{display:grid;gap:1rem;padding-bottom:1rem}.dynamic-guidance{padding:.75rem .875rem;background:var(--cloud);border-radius:8px;color:var(--muted-ink);font-size:.8rem;line-height:1.55}.dynamic-apply{display:flex;align-items:center;justify-content:space-between;gap:1rem}.dynamic-apply p{color:var(--muted-ink);font-size:.78rem;line-height:1.5}.assigned-dynamic{display:grid;border-top:1px solid var(--line)}.assigned-dynamic>header{align-items:center;padding:.875rem 0}.assigned-dynamic>header>span{color:var(--muted-ink);font-size:.75rem}.assigned-dynamic ul{display:grid;margin:0;padding:0;border:1px solid var(--line);border-radius:8px;list-style:none}.assigned-dynamic li{padding:.65rem .75rem}.assigned-dynamic li+li{border-top:1px solid var(--line)}.assigned-dynamic li>span{display:grid;gap:.15rem}.assigned-dynamic strong{font-size:.82rem}.assigned-dynamic code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.72rem}.advanced-content{display:grid;gap:1rem;padding-bottom:1rem}.advanced-group{display:grid;gap:.5rem}.advanced-group>header{min-height:36px;align-items:center}.advanced-group>header code,.advanced-group>header strong{font-size:.82rem;font-weight:700}.advanced-group>header span{color:var(--muted-ink);font-size:.75rem}.advanced-list{display:grid;overflow:hidden;border:1px solid var(--line);border-radius:8px}.advanced-list article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:1rem;padding:.75rem;background:var(--surface)}.advanced-list article+article{border-top:1px solid var(--line)}.advanced-list details{min-width:8rem}.advanced-list summary{min-height:44px;display:flex;align-items:center;justify-content:flex-end;gap:.4rem;color:var(--text-secondary);font-size:.78rem;font-weight:500;cursor:pointer}.advanced-list summary:hover{color:var(--primary)}.advanced-list summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}.advanced-list details[open] summary svg{transform:rotate(180deg)}.advanced-list ul{grid-column:1/-1;display:grid;gap:.45rem;margin:.35rem 0 0;padding:.65rem 0 0;border-top:1px solid var(--line);list-style:none}.advanced-list li{display:grid;grid-template-columns:minmax(8rem,.35fr) minmax(0,1fr);gap:1rem;font-size:.78rem}.advanced-list li code{overflow-wrap:anywhere;color:var(--muted-ink);font-size:.72rem}.advanced-confirm{width:min(34rem,calc(100vw - 2rem))}.advanced-confirm>p{line-height:1.6}.advanced-confirm ul{display:grid;gap:.65rem;margin:1rem 0 0;padding:0;list-style:none}.advanced-confirm li{display:grid;gap:.2rem;padding:.65rem .75rem;background:var(--cloud);border-radius:8px}.advanced-confirm li code{overflow-wrap:anywhere}.advanced-confirm li span{color:var(--muted-ink);font-size:.78rem}.confirm-actions{display:flex;justify-content:flex-end;gap:.75rem}
 .dynamic-target{gap:.75rem;padding:.875rem;background:var(--cloud);border:0;border-radius:8px}

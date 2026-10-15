@@ -30,10 +30,11 @@ function click(event: MouseEvent) {
 
 <template>
   <NButton
-    :class="['ls-button', { 'ls-button--explainable-disabled': explainableDisabled }]"
+    :class="['ls-button', { 'ls-button--small': size === 'sm', 'ls-button--explainable-disabled': explainableDisabled }]"
     :attr-type="type"
     :type="naiveType"
     :size="naiveSize"
+    :theme-overrides="size === 'sm' ? { heightSmall: '36px', paddingSmall: '0 12px', borderRadiusSmall: '8px' } : undefined"
     :secondary="variant === 'secondary'"
     :quaternary="variant === 'ghost' || variant === 'danger-ghost'"
     :loading="loading"
@@ -49,4 +50,7 @@ function click(event: MouseEvent) {
 <style scoped>
 .ls-button { font-weight: 650; }
 .ls-button--explainable-disabled { opacity: .5; }
+@media (max-width: 639px), (any-pointer: coarse) {
+  .ls-button--small { min-height: 44px; }
+}
 </style>
