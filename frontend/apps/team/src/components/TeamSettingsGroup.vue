@@ -132,26 +132,28 @@ function switchDisabled(setting: SettingField): boolean {
         {{ app.label }}设置已保存。
       </p>
     </div>
-    <LsFormActions><SettingsSaveButton :loading="loading" :disabled="disabled">保存{{ app.label }}设置</SettingsSaveButton></LsFormActions>
+    <LsFormActions class="settings-actions"><SettingsSaveButton :loading="loading" :disabled="disabled">保存{{ app.label }}设置</SettingsSaveButton></LsFormActions>
     </form>
   </LsPanel>
 </template>
 
 <style scoped>
 
-.settings-form { display: grid; min-width: 0; margin: 0; gap: 1.75rem; }
-.setting-row { display: grid; min-width: 0; gap: .75rem; }
+.settings-form { display: grid; min-width: 0; margin: 0; }
+.setting-row { display: grid; min-width: 0; gap: .75rem; padding: 1rem .25rem; }
+.setting-row:first-child { padding-top: 0; }
 .setting-row--switch { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
-.setting-row--choices { margin-top: .25rem; }
 .setting-copy { min-width: 0; }
 .setting-copy h3, .setting-copy p { margin: 0; overflow-wrap: anywhere; }
 .setting-copy h3 { font-size: .9375rem; line-height: 1.5; }
-.setting-copy p { margin-top: .25rem; color: var(--text-secondary); font-size: .875rem; line-height: 1.5; }
+.setting-copy p { margin-top: .25rem; color: var(--text-secondary); font-size: .875rem; line-height: 1.6; }
 .setting-control { min-width: 0; }
-.settings-feedback { display: grid; gap: 1rem; }
+.settings-feedback { display: grid; gap: 1rem; padding: 1rem .25rem 0; }
+.settings-actions { margin: 1rem .25rem .25rem; }
 .feedback { margin: 0; font-size: .875rem; line-height: 1.5; overflow-wrap: anywhere; }
 .success { color: var(--success); }
 @media (max-width: 639px) {
-  .settings-form { gap: 1.5rem; }
+  .setting-row, .settings-feedback { padding-inline: 0; }
+  .settings-actions { margin-inline: 0; margin-bottom: 0; }
 }
 </style>
