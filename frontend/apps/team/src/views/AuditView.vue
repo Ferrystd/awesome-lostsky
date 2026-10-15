@@ -1,21 +1,20 @@
 <script setup lang="ts">
-import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import { ArrowUpRight } from '@lucide/vue'
-import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import AdminPageHeader from '../components/AdminPageHeader.vue'
+import TeamCategoryLayout from '../components/TeamCategoryLayout.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
-import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
 import { NDatePicker, NPagination, NSelect } from 'naive-ui'
-import type { DataTableColumns, SelectOption } from 'naive-ui'
-import { computed, h, reactive, ref, watch } from 'vue'
-
-import { actorLabel, formatAuditTime, type AuditEventSummary, type AuditFilterCatalog, type AuditOption, type AuditPage } from '../lib/audit'
+import type { SelectOption } from 'naive-ui'
+import { computed, reactive, ref, watch } from 'vue'
+import TeamAuditEventStream from '../components/TeamAuditEventStream.vue'
+import { type AuditFilterCatalog, type AuditOption, type AuditPage } from '../lib/audit'
 
 function selectOptions(items: AuditOption[]): SelectOption[] {
   return items.map(item => ({ label: item.label, value: item.value }))
@@ -38,7 +37,10 @@ const catalog = useQuery({
   queryFn: () => api.get<AuditFilterCatalog>('/audit/catalog'),
   enabled: computed(() => !routeAccess.restricted.value),
 })
-const applicationOptions = computed(() => selectOptions(catalog.data.value?.applications ?? []))
+const applicationItems = computed(() => [
+  { key: '', label: '全部应用' },
+  ...(catalog.data.value?.applications ?? []).map(item => ({ key: item.value, label: item.label })),
+])
 const actionOptions = computed(() => selectOptions(catalog.data.value?.actions ?? []))
 const resourceOptions = computed(() => selectOptions(catalog.data.value?.resource_types ?? []))
 const params = computed(() => ({
@@ -61,71 +63,62 @@ watch(
   () => { filters.page = 1 },
 )
 const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.total ?? 0) / filters.limit)))
-const columns: DataTableColumns<AuditEventSummary> = [
-  { title: '时间', key: 'create_time', width: 176, render: event => formatAuditTime(event.create_time) },
-  {
-    title: '操作', key: 'action', render: event => h('div', { class: 'cell-primary' }, [
-      h(LsPageLink, { to: `/audit/${event.id}`, icon: ArrowUpRight, label: `${event.resource_label} · ${event.action_label}` }),
-      h('small', event.application_label),
-    ]),
-  },
-  { title: '执行人', key: 'actor', render: event => actorLabel(event.actor) },
-  { title: '目标', key: 'resource', render: event => `${event.resource_label}${event.resource_id ? ` #${event.resource_id}` : ''}` },
-  { title: '请求 ID', key: 'request_id', render: event => event.request_id || '—' },
-]
+const countLabel = computed(() => routeAccess.restricted.value
+  ? '0 条事件'
+  : query.isSuccess.value ? `${query.data.value?.total ?? 0} 条事件` : '')
 </script>
 
 <template>
   <div class="audit-view">
-    <LsCollectionPage title="审计日志" description="查看本团队内成功完成的管理操作；正文、凭据和联系方式不会写入审计上下文。">
-      <template #toolbar>
-        <LsListToolbar v-model="filters.q" class="audit-toolbar" placeholder="搜索执行人、动作、资源或请求 ID" aria-label="搜索审计日志" :count-label="routeAccess.restricted.value ? '0 条事件' : `${query.data.value?.total ?? 0} 条事件`" @update:model-value="filters.page = 1">
-          <template #filters>
-            <NSelect v-model:value="filters.application" :options="applicationOptions" clearable placeholder="全部应用" />
-          </template>
-          <template #actions>
-            <LsButton size="sm" variant="secondary" :aria-expanded="showAdvanced" aria-controls="audit-advanced-filters" @click="showAdvanced = !showAdvanced">{{ showAdvanced ? '收起筛选' : '更多筛选' }}{{ advancedFilterCount ? `（${advancedFilterCount}）` : '' }}</LsButton>
-          </template>
-        </LsListToolbar>
-      </template>
-      <LsPanel v-if="showAdvanced">
-        <section id="audit-advanced-filters" class="audit-filters" aria-label="更多审计筛选">
-          <NSelect v-model:value="filters.action" :options="actionOptions" clearable filterable placeholder="全部动作" />
-          <NSelect v-model:value="filters.resource_type" :options="resourceOptions" clearable filterable placeholder="全部资源" />
+    <AdminPageHeader title="审计日志" description="查看本团队内成功完成的管理操作；正文、凭据和联系方式不会写入审计上下文。" />
+    <TeamCategoryLayout
+    label="应用分类"
+    :items="applicationItems"
+    :current="filters.application ?? ''"
+    @select="filters.application = $event || null"
+  >
+    <div class="audit-workspace">
+      <LsListToolbar v-model="filters.q" embedded placeholder="搜索执行人、动作、资源或请求 ID" aria-label="搜索审计日志" :count-label="countLabel" @update:model-value="filters.page = 1">
+        <template #actions>
+          <LsButton size="sm" variant="secondary" :aria-expanded="showAdvanced" aria-controls="audit-advanced-filters" @click="showAdvanced = !showAdvanced">{{ showAdvanced ? '收起筛选' : '更多筛选' }}{{ advancedFilterCount ? `（${advancedFilterCount}）` : '' }}</LsButton>
+        </template>
+      </LsListToolbar>
+      <LsInlineError v-if="!routeAccess.restricted.value && catalog.isError.value" :message="`筛选选项暂时无法读取：${friendlyError(catalog.error.value)}`" />
+      <p v-else-if="!routeAccess.restricted.value && catalog.isPending.value" class="audit-workspace__hint" role="status">正在读取应用与筛选选项…</p>
+      <section v-if="showAdvanced" id="audit-advanced-filters" class="audit-filters" aria-label="更多审计筛选">
+        <LsField label="动作">
+          <NSelect v-model:value="filters.action" :options="actionOptions" :loading="catalog.isFetching.value" clearable filterable placeholder="全部动作" aria-label="审计动作" />
+        </LsField>
+        <LsField label="资源">
+          <NSelect v-model:value="filters.resource_type" :options="resourceOptions" :loading="catalog.isFetching.value" clearable filterable placeholder="全部资源" aria-label="审计资源" />
+        </LsField>
+        <LsField class="audit-filters__period" label="时间范围">
           <NDatePicker v-model:value="filters.period" class="period-filter" type="datetimerange" clearable aria-label="审计时间范围" />
-        </section>
-      </LsPanel>
+        </LsField>
+      </section>
       <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取审计日志" :description="friendlyError(query.error.value)" />
       <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="6" />
-      <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !query.data.value?.list.length" title="没有可显示的审计事件" description="调整搜索条件或时间范围后再试。" />
-      <LsResponsiveDataTable v-else :columns="columns" :data="query.data.value.list" :row-key="row => row.id" :scroll-x="980">
-        <template #mobile-title="{ row: event }">
-          <LsPageLink :to="`/audit/${event.id}`" :icon="ArrowUpRight" :label="event.resource_label + ' · ' + event.action_label" />
-        </template>
-        <template #mobile-status="{ row: event }">
-          <span>{{ event.application_label }}</span>
-        </template>
-        <template #mobile="{ row: event }">
-          <dl>
-            <dt>执行人</dt>
-            <dd>{{ actorLabel(event.actor) }}</dd>
-            <dt>目标</dt>
-            <dd>{{ event.resource_label }}{{ event.resource_id ? ` #${event.resource_id}` : '' }}</dd>
-            <dt>时间</dt>
-            <dd>{{ formatAuditTime(event.create_time) }}</dd>
-            <dt>请求 ID</dt>
-            <dd>{{ event.request_id || '—' }}</dd>
-          </dl>
-        </template>
-      </LsResponsiveDataTable>
-      <template v-if="query.data.value && query.data.value.total > 0" #pagination>
+      <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !query.data.value?.list.length" title="没有可显示的审计事件" description="调整应用、搜索条件或时间范围后再试。" />
+      <TeamAuditEventStream v-else :events="query.data.value.list" />
+      <div v-if="!routeAccess.restricted.value && query.isSuccess.value && query.data.value && query.data.value.total > 0" class="audit-pagination">
         <span>第 {{ filters.page }} / {{ pages }} 页</span>
-        <NPagination v-model:page="filters.page" :page-count="pages" />
-      </template>
-    </LsCollectionPage>
+        <div class="audit-pagination__controls"><NPagination v-model:page="filters.page" :page-count="pages" :page-slot="5" /></div>
+      </div>
+    </div>
+    </TeamCategoryLayout>
   </div>
 </template>
 
 <style scoped>
-.audit-toolbar{flex-wrap:wrap}.audit-filters{display:grid;grid-template-columns:minmax(10rem,1fr) minmax(10rem,1fr) minmax(17rem,2fr);gap:.5rem;min-width:0;}.cell-primary{display:grid;gap:.15rem}.cell-primary small{color:var(--muted-ink)}.period-filter{width:100%;min-width:0}@media(max-width:900px){.audit-filters{grid-template-columns:1fr 1fr}.period-filter{grid-column:1/-1}}@media(max-width:639px){.audit-filters{grid-template-columns:1fr}.period-filter{grid-column:auto}}
+.audit-view { min-width: 0; display: grid; gap: 1.5rem; }
+.audit-workspace { min-width: 0; display: grid; gap: 1.5rem; container: audit-workspace / inline-size; }
+.audit-workspace__hint { margin: 0; color: var(--text-secondary); font-size: .8125rem; }
+.audit-filters { min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+.audit-filters__period { grid-column: 1 / -1; }
+.period-filter { width: 100%; min-width: 0; }
+.audit-pagination { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; color: var(--text-secondary); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.audit-pagination__controls { min-width: 0; max-width: 100%; overflow-x: auto; }
+@container audit-workspace (max-width: 32rem) {
+  .audit-filters { grid-template-columns: minmax(0, 1fr); }
+}
 </style>
