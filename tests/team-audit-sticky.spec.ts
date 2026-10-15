@@ -28,14 +28,28 @@ for (const [width, scale] of [[320, 1], [375, 1], [768, 1], [1024, 1], [1440, 1]
     await page.goto('http://demo.team.lostsky.work:5175/audit')
     await expect(page.locator('.audit-event-stream__event')).toHaveCount(20)
     await page.addStyleTag({ content: `html { scroll-behavior: auto !important; font-size: ${scale * 100}%; }` })
+    await page.evaluate(() => document.fonts.ready)
     const dates = page.locator('.audit-event-stream__date')
     await expect(dates).toHaveCount(2)
+    await expect(dates.first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    const label = (await dates.first().boundingBox())!
+    const day = (await page.locator('.audit-event-stream__day').first().boundingBox())!
+    const textWidth = await dates.first().evaluate(node => {
+      const range = document.createRange()
+      range.selectNodeContents(node)
+      return range.getBoundingClientRect().width
+    })
+    expect(label.width).toBeCloseTo(textWidth + 16 * scale, 0)
+    expect(label.width).toBeLessThan(day.width)
+    expect(label.x + 8 * scale).toBeCloseTo(day.x, 0)
     const layout = await page.evaluate(() => {
       const headings = [...document.querySelectorAll<HTMLElement>('.audit-event-stream__date')]
       return { first: headings[0].getBoundingClientRect().top + scrollY, second: headings[1].getBoundingClientRect().top + scrollY }
     })
     await page.evaluate(y => window.scrollTo(0, y + 100), layout.first)
     await expect.poll(async () => (await dates.first().boundingBox())!.y).toBeCloseTo(0, 0)
+    await expect(dates.first()).toHaveClass(/date--stuck/)
+    await expect(dates.first()).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
     const surface = await dates.first().evaluate(node => {
       const box = node.getBoundingClientRect()
       return { color: getComputedStyle(node).backgroundColor, onTop: document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === node }
@@ -55,6 +69,9 @@ for (const [width, scale] of [[320, 1], [375, 1], [768, 1], [1024, 1], [1440, 1]
     await expect(link).toBeFocused()
     expect((await link.boundingBox())!.y).toBeGreaterThanOrEqual((await dates.nth(1).boundingBox())!.height)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await expect(dates.first()).not.toHaveClass(/date--stuck/)
+    await expect(dates.first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
     expect(errors).toEqual([])
   })
 }

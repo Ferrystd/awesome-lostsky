@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ArrowUpRight } from '@lucide/vue'
 import { actorLabel, formatAuditTime, type AuditEventSummary } from '../lib/audit'
 
 const props = defineProps<{ events: AuditEventSummary[] }>()
+const stream = ref<HTMLElement>()
+const stuckDays = ref(new Set<number>())
 const dateFormat = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium' })
 const timeFormat = new Intl.DateTimeFormat('zh-CN', { timeStyle: 'medium' })
 const groups = computed(() => {
@@ -18,12 +20,30 @@ const groups = computed(() => {
   }
   return result
 })
+
+watch([stream, groups], ([element], _previous, onCleanup) => {
+  stuckDays.value = new Set()
+  if (!element) return
+  const anchors = [...element.querySelectorAll<HTMLElement>('.audit-event-stream__anchor')]
+  const observer = new IntersectionObserver(() => {
+    const next = new Set<number>()
+    for (const anchor of anchors) {
+      if (anchor.getBoundingClientRect().top < 0) next.add(Number(anchor.dataset.dayKey))
+    }
+    stuckDays.value = next
+  })
+  anchors.forEach(anchor => observer.observe(anchor))
+  // A direct jump can skip an anchor entirely; the sticky heading still enters the viewport.
+  element.querySelectorAll('.audit-event-stream__date').forEach(heading => observer.observe(heading))
+  onCleanup(() => observer.disconnect())
+}, { flush: 'post' })
 </script>
 
 <template>
-  <div class="audit-event-stream" aria-label="审计事件">
+  <div ref="stream" class="audit-event-stream" aria-label="审计事件">
     <section v-for="group in groups" :key="group.key" class="audit-event-stream__day" :aria-label="group.date">
-      <h2 class="audit-event-stream__date">{{ group.date }}</h2>
+      <span class="audit-event-stream__anchor" :data-day-key="group.key" aria-hidden="true" />
+      <h2 class="audit-event-stream__date" :class="{ 'audit-event-stream__date--stuck': stuckDays.has(group.key) }">{{ group.date }}</h2>
       <ol class="audit-event-stream__events">
         <li v-for="event in group.events" :key="event.id" class="audit-event-stream__event">
           <RouterLink :to="`/audit/${event.id}`" class="audit-event-stream__link">
@@ -48,11 +68,14 @@ const groups = computed(() => {
 
 <style scoped>
 .audit-event-stream { min-width: 0; display: grid; gap: 1.5rem; container: audit-event-stream / inline-size; }
-.audit-event-stream__day { min-width: 0; }
-.audit-event-stream__date { position: sticky; top: 0; z-index: 1; margin: 0; padding-block: .5rem; background: var(--surface); border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: .8125rem; font-weight: 500; line-height: 1.5; }
+.audit-event-stream__day { position: relative; min-width: 0; }
+.audit-event-stream__anchor { position: absolute; top: 0; left: 0; width: 1px; height: 1px; pointer-events: none; }
+.audit-event-stream__date { position: sticky; top: 0; z-index: 1; width: fit-content; max-width: 100%; margin: 0 0 .5rem -.5rem; padding: .25rem .5rem; border-radius: var(--radius-sm); color: var(--text-secondary); font-size: .8125rem; font-weight: 500; line-height: 1.5; }
+.audit-event-stream__date--stuck { background: var(--cloud); }
 .audit-event-stream__events { margin: 0; padding: 0; list-style: none; }
 .audit-event-stream__event { min-width: 0; border-bottom: 1px solid var(--border); }
-.audit-event-stream__link { min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 1rem; padding: .875rem 0; scroll-margin-top: calc(.8125rem * 1.5 + 1rem + 3px); color: var(--text); text-decoration: none; }
+.audit-event-stream__event:first-child { border-top: 1px solid var(--border); }
+.audit-event-stream__link { min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 1rem; padding: .875rem 0; scroll-margin-top: calc(.8125rem * 1.5 + .5rem + 3px); color: var(--text); text-decoration: none; }
 .audit-event-stream__link:hover { background: var(--notice-row-hover, var(--surface-subtle)); }
 .audit-event-stream__link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-sm); }
 .audit-event-stream__content { flex: 1; min-width: 0; }
