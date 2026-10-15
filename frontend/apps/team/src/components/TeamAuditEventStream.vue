@@ -49,11 +49,10 @@ const groups = computed(() => {
 <style scoped>
 .audit-event-stream { min-width: 0; display: grid; gap: 1.5rem; container: audit-event-stream / inline-size; }
 .audit-event-stream__day { min-width: 0; }
-.audit-event-stream__date { margin: 0 0 .5rem; color: var(--text-secondary); font-size: .8125rem; font-weight: 500; line-height: 1.5; }
+.audit-event-stream__date { position: sticky; top: 0; z-index: 1; margin: 0; padding-block: .5rem; background: var(--surface); border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: .8125rem; font-weight: 500; line-height: 1.5; }
 .audit-event-stream__events { margin: 0; padding: 0; list-style: none; }
 .audit-event-stream__event { min-width: 0; border-bottom: 1px solid var(--border); }
-.audit-event-stream__event:first-child { border-top: 1px solid var(--border); }
-.audit-event-stream__link { min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 1rem; padding: .875rem 0; color: var(--text); text-decoration: none; }
+.audit-event-stream__link { min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 1rem; padding: .875rem 0; scroll-margin-top: calc(.8125rem * 1.5 + 1rem + 3px); color: var(--text); text-decoration: none; }
 .audit-event-stream__link:hover { background: var(--notice-row-hover, var(--surface-subtle)); }
 .audit-event-stream__link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-sm); }
 .audit-event-stream__content { flex: 1; min-width: 0; }
