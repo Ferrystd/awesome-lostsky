@@ -73,8 +73,9 @@ export const lostskyAuroraTheme: GlobalThemeOverrides = {
     placeholderColor: '#a4b5b8', placeholderColorDisabled: '#819397',
   },
   Input: {
-    ...lostskyNaiveTheme.Input, color: '#121a1e', colorFocus: '#121a1e',
-    border: '1px solid #4b5e64', borderHover: '1px solid #84cfca', borderFocus: '1px solid #6ee7c8', boxShadowFocus: '0 0 0 3px #6ee7c825',
+    ...lostskyNaiveTheme.Input, color: 'rgba(18, 26, 30, .72)', colorFocus: 'rgba(18, 26, 30, .72)',
+    border: '1px solid rgba(112, 143, 151, .42)', borderHover: '1px solid rgba(132, 207, 202, .62)', borderFocus: '1px solid #6ee7c8',
+    boxShadowFocus: 'none', boxShadowFocusError: 'none', boxShadowFocusWarning: 'none',
   },
   InternalSelection: {
     ...lostskyNaiveTheme.InternalSelection, color: '#121a1e', colorActive: '#121a1e',

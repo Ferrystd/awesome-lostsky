@@ -3,8 +3,9 @@ import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
 import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { workspaceSceneKey } from '@lostsky/ui/workspace-scene'
+import { workspaceSceneProviderProps } from '@lostsky/ui/workspace-scene-theme'
 import { defineComponent, h, nextTick, onMounted, provide, ref } from 'vue'
-import { NInput, NSelect, NTag, NPagination } from 'naive-ui'
+import { NConfigProvider, NInput, NSelect, NTag, NPagination } from 'naive-ui'
 import { House, Pencil, Plus, ReceiptText, Save, ShoppingBag, Trash2, UserRound } from '@lucide/vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -457,12 +458,19 @@ const input = story(
   ['default', 'hover', 'focus', 'active', 'disabled', 'error', 'mobile'],
   (state) =>
     stage(
-      h(LsInput, {
+      [h(LsInput, {
         modelValue: '青空协作组',
         placeholder: '输入团队名称',
         disabled: state === 'disabled',
         invalid: state === 'error',
-      }),
+      }), h(NConfigProvider, { ...workspaceSceneProviderProps(true), style: { minHeight: 'auto', padding: '16px', marginTop: '16px' } }, {
+        default: () => [
+          h(LsInput, { modelValue: '青空协作组', disabled: state === 'disabled', invalid: state === 'error', 'aria-label': '极光单行输入' }),
+          h(NInput, { type: 'textarea', placeholder: '输入角色说明', rows: 3, maxlength: 255, showCount: true,
+            disabled: state === 'disabled', status: state === 'error' ? 'error' : undefined,
+            inputProps: { 'aria-label': '极光角色说明' }, style: { marginTop: '12px' } }),
+        ],
+      })],
     ),
   { loading: '文本输入框没有加载状态。' },
 )
