@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { feedback } from '../feedback'
 
 const props = withDefaults(defineProps<{
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-ghost'
   size?: 'sm' | 'md' | 'lg'
   loading?: boolean
   disabled?: boolean
@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ click: [event: MouseEvent] }>()
 
-const naiveType = computed(() => props.variant === 'primary' ? 'primary' : props.variant === 'danger' ? 'error' : 'default')
+const naiveType = computed(() => props.variant === 'primary' ? 'primary' : props.variant === 'danger' || props.variant === 'danger-ghost' ? 'error' : 'default')
 const naiveSize = computed(() => ({ sm: 'small', md: 'medium', lg: 'large' } as const)[props.size])
 const explainableDisabled = computed(() => props.disabled && Boolean(props.disabledReason.trim()))
 
@@ -35,7 +35,7 @@ function click(event: MouseEvent) {
     :type="naiveType"
     :size="naiveSize"
     :secondary="variant === 'secondary'"
-    :quaternary="variant === 'ghost'"
+    :quaternary="variant === 'ghost' || variant === 'danger-ghost'"
     :loading="loading"
     :disabled="disabled && !explainableDisabled"
     :aria-disabled="disabled || undefined"

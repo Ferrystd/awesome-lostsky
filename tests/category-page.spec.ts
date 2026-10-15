@@ -115,6 +115,15 @@ test('category pilot owns responsive geometry and keeps adjacent routes unchange
   await fixture(page)
   await page.goto(`${origin}/roles/1`)
   await expect(page.getByLabel('角色名称')).toBeVisible()
+  const remove = page.getByRole('button', { name: '删除角色', exact: true })
+  const save = page.getByRole('button', { name: '保存资料', exact: true })
+  await expect(save).toHaveAttribute('aria-disabled', 'true')
+  await page.getByLabel('角色名称').fill('团队运营')
+  await expect(save).not.toHaveAttribute('aria-disabled', 'true')
+  await expect(save.locator('svg')).toHaveCount(0)
+  await expect(remove).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(remove).toHaveClass(/n-button--error-type/)
+  await expect(save).toHaveClass(/n-button--primary-type/)
   for (const width of [320, 375, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1000 })
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
@@ -125,6 +134,20 @@ test('category pilot owns responsive geometry and keeps adjacent routes unchange
     })
     expect(box.padding).toBe(width < 640 ? 12 : 20)
     expect(box.gap).toBe(24)
+    const removeBox = (await remove.boundingBox())!
+    const saveBox = (await save.boundingBox())!
+    const actionsBox = (await save.locator('..').boundingBox())!
+    expect(removeBox.height).toBeGreaterThanOrEqual(44)
+    expect(saveBox.height).toBeGreaterThanOrEqual(44)
+    expect(Math.abs(removeBox.x - actionsBox.x)).toBeLessThanOrEqual(1)
+    expect(Math.abs(saveBox.x + saveBox.width - actionsBox.x - actionsBox.width)).toBeLessThanOrEqual(1)
+    if (width >= 640) {
+      expect(Math.abs(removeBox.y - saveBox.y)).toBeLessThanOrEqual(1)
+      expect(saveBox.x - removeBox.x - removeBox.width).toBeGreaterThanOrEqual(12)
+    } else {
+      expect(saveBox.y).toBeGreaterThan(removeBox.y + removeBox.height)
+      expect(Math.abs(removeBox.width - saveBox.width)).toBeLessThanOrEqual(1)
+    }
     if (box.width >= 768) {
       expect(box.columns[0]).toBe(184)
       await expect(page.getByRole('navigation', { name: '角色分类', exact: true })).toBeVisible()
@@ -133,6 +156,10 @@ test('category pilot owns responsive geometry and keeps adjacent routes unchange
     if (width === 375 || width === 1440) await page.screenshot({ path: testInfo.outputPath(`category-${width}.png`), fullPage: true })
   }
   await page.setViewportSize({ width: 1440, height: 1000 })
+  page.once('dialog', dialog => dialog.dismiss())
+  await remove.click()
+  await expect(page).toHaveURL(/\/roles\/1$/)
+  await page.getByLabel('角色名称').fill('跨部门运营协作与服务管理角色')
   const nav = page.getByRole('navigation', { name: '角色分类', exact: true })
   await nav.getByRole('button').first().focus()
   await page.keyboard.press('End')

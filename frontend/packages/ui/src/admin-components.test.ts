@@ -110,6 +110,15 @@ describe('后台设计系统组件契约', () => {
     expect(source).not.toContain(':title="disabledReason || undefined"')
   })
 
+  it('LsButton 的低强调危险动作保留危险语义而不改变实心危险动作', async () => {
+    const ghost = await render(LsButton, { variant: 'danger-ghost' }, { default: () => h('span', '删除') })
+    const solid = await render(LsButton, { variant: 'danger' }, { default: () => h('span', '确认删除') })
+    expect(ghost).toContain('n-button--error-type')
+    expect(ghost).toContain('--n-color:#0000;')
+    expect(solid).toContain('n-button--error-type')
+    expect(solid).not.toContain('--n-color:#0000;')
+  })
+
   it('LsSwitch 是唯一 Naive UI 开关原语且不在轨道内放文字', async () => {
     expect(Object.keys((LsSwitch as any).props).sort()).toEqual(['disabled', 'disabledReason', 'loading', 'modelValue', 'readOnly'])
     const source = readFileSync(new URL('./components/LsSwitch.vue', import.meta.url), 'utf8')
@@ -295,6 +304,13 @@ describe('后台设计系统组件契约', () => {
     const actions = await render(LsFormActions, {}, { default: () => h(LsButton, {}, { default: () => '保存' }) })
     const details = await render(LsDescriptionList, {}, { default: () => [h('dt', '状态'), h('dd', '正常')] as any })
     expect(actions).toContain('ls-form-actions')
+    expect(actions).not.toContain('ls-form-actions__destructive')
+    const separated = await render(LsFormActions, {}, {
+      destructive: () => h(LsButton, { variant: 'danger-ghost' }, { default: () => '删除角色' }),
+      default: () => h(LsButton, {}, { default: () => '保存资料' }),
+    })
+    expect(separated).toContain('ls-form-actions__destructive')
+    expect(separated.indexOf('删除角色')).toBeLessThan(separated.indexOf('保存资料'))
     expect(details).toContain('<dl class="ls-description-list"')
     expect(details).toContain('<dt>状态</dt><dd>正常</dd>')
   })
