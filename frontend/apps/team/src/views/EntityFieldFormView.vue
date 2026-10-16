@@ -6,7 +6,7 @@ import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import { ArrowLeft } from '@lucide/vue'
+import { ArrowLeft, Trash2 } from '@lucide/vue'
 
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
@@ -212,7 +212,7 @@ const previewAvailable = computed(() => !routeAccess.restricted.value && (!editi
         <LsSwitchField v-model="form.is_required" label="必填" description="在允许编辑该字段的资料保存时校验不能为空。" />
         <LsField label="排序" for-id="entity-field-sort"><NInputNumber :input-props="{ id: 'entity-field-sort' }" v-model:value="form.sort" :precision="0" /></LsField>
         <p v-if="(save.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(save.error.value || remove.error.value) }}</p>
-        <LsFormActions><LsButton type="submit" :disabled="routeAccess.restricted.value || !draft.dirty.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton></LsFormActions>
+        <LsFormActions><LsButton type="submit" :disabled="routeAccess.restricted.value || !draft.dirty.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger-ghost" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteField"><template #icon><Trash2 :size="16" /></template>删除字段</LsButton></LsFormActions>
       </form></LsPanel>
     <template #aside>
       <LsFormSection title="填写预览" description="根据当前配置试填，不会保存试填内容。">

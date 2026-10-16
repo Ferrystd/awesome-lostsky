@@ -4,7 +4,7 @@ import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import { ArrowLeft, Eye, UserPlus } from '@lucide/vue'
+import { ArrowLeft, Ban, Eye, LogOut, ShieldCheck, UserPlus, UserRoundCog } from '@lucide/vue'
 
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
@@ -19,7 +19,6 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import JoinApplicationFields, { type JoinField, type FieldValue } from '../components/JoinApplicationFields.vue'
@@ -352,7 +351,7 @@ function submit() {
       </LsPanel>
       <LsFormActions>
         <LsPageLink to="/members" :icon="ArrowLeft" label="取消" />
-        <LsPagePrimaryAction :icon="UserPlus" label="添加成员" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason" />
+        <LsButton variant="secondary" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason"><template #icon><UserPlus :size="18" /></template>添加成员</LsButton>
       </LsFormActions>
     </form>
 
@@ -382,7 +381,7 @@ function submit() {
         >
         <form v-if="!detail.data.value.slug" class="inline-form" @submit.prevent="capabilities.member_slug && claim.mutate()">
           <LsField label="补全对象标识" for-id="member-slug"><NInput id="member-slug" v-model:value="identityForm.slug" placeholder="例如 zhang-san" autocapitalize="none" /></LsField>
-          <LsButton type="submit" variant="secondary" :loading="claim.isPending.value" :disabled="!capabilities.member_slug || !identityForm.slug.trim()" :disabled-reason="!capabilities.member_slug ? permissionReason('team.member.update') : undefined">确认标识</LsButton>
+          <LsButton type="submit" variant="primary" :loading="claim.isPending.value" :disabled="!capabilities.member_slug || !identityForm.slug.trim()" :disabled-reason="!capabilities.member_slug ? permissionReason('team.member.update') : undefined">确认标识</LsButton>
         </form>
         <div v-else class="identity-status">
           <span>对象标识</span><strong>@{{ detail.data.value.slug }}</strong
@@ -391,13 +390,13 @@ function submit() {
 
         <form class="inline-form search-form" @submit.prevent="capabilities.member_search && saveSearch.mutate()">
           <LsField label="成员搜索状态" for-id="member-search"><NSelect id="member-search" v-model:value="identityForm.search_override" :options="searchOptions" :disabled="!capabilities.member_search" /></LsField>
-          <LsButton type="submit" variant="secondary" :loading="saveSearch.isPending.value" :disabled="!capabilities.member_search || !detail.data.value.slug" :disabled-reason="!capabilities.member_search ? permissionReason('team.member.update') : undefined">保存搜索设置</LsButton>
+          <LsButton type="submit" variant="primary" :loading="saveSearch.isPending.value" :disabled="!capabilities.member_search || !detail.data.value.slug" :disabled-reason="!capabilities.member_search ? permissionReason('team.member.update') : undefined">保存搜索设置</LsButton>
         </form>
 
         <div class="management-actions">
-          <LsButton v-if="lifecycleStatus === 'active'" type="button" variant="secondary" :loading="memberAction.isPending.value" :disabled="!capabilities.member_block" :disabled-reason="!capabilities.member_block ? permissionReason('team.member.update') : undefined" @click="confirmAction('/member/block', '确认封禁该成员？封禁后该人员暂时无法使用。')"> 封禁成员 </LsButton>
-          <LsButton v-if="lifecycleStatus === 'blocked'" type="button" variant="secondary" :loading="memberAction.isPending.value" :disabled="!capabilities.member_block" :disabled-reason="!capabilities.member_block ? permissionReason('team.member.update') : undefined" @click="confirmAction('/member/unblock', '确认解除该成员的封禁？')"> 解除封禁 </LsButton>
-          <LsButton v-if="memberSlug" type="button" variant="secondary" :disabled="!capabilities.identity_assume" :disabled-reason="!capabilities.identity_assume ? permissionReason(`identity.member.${memberSlug}.assume`) : undefined" @click="switchIdentity"> 切换为该人员 </LsButton>
+          <LsButton v-if="lifecycleStatus === 'active'" type="button" variant="ghost" :loading="memberAction.isPending.value" :disabled="!capabilities.member_block" :disabled-reason="!capabilities.member_block ? permissionReason('team.member.update') : undefined" @click="confirmAction('/member/block', '确认封禁该成员？封禁后该人员暂时无法使用。')"><template #icon><Ban :size="16" /></template>封禁成员</LsButton>
+          <LsButton v-if="lifecycleStatus === 'blocked'" type="button" variant="ghost" :loading="memberAction.isPending.value" :disabled="!capabilities.member_block" :disabled-reason="!capabilities.member_block ? permissionReason('team.member.update') : undefined" @click="confirmAction('/member/unblock', '确认解除该成员的封禁？')"><template #icon><ShieldCheck :size="16" /></template>解除封禁</LsButton>
+          <LsButton v-if="memberSlug" type="button" variant="ghost" :disabled="!capabilities.identity_assume" :disabled-reason="!capabilities.identity_assume ? permissionReason(`identity.member.${memberSlug}.assume`) : undefined" @click="switchIdentity"><template #icon><UserRoundCog :size="16" /></template>切换为该人员</LsButton>
         </div>
 
         <div v-if="lifecycleStatus !== 'departed'" class="danger-zone">
@@ -405,7 +404,7 @@ function submit() {
             <strong>离职</strong>
             <p>确认后成员立即进入已离队状态，现有会话失效；资料、角色、对象标识和全部业务关系都会保留。</p>
           </div>
-          <LsButton type="button" variant="danger" class="member-depart-action" :loading="memberAction.isPending.value" :disabled="!capabilities.member_remove" :disabled-reason="!capabilities.member_remove ? permissionReason('team.member.remove') : undefined" @click="confirmAction('/memberDeparture/depart', '确认将该成员设为已离职？操作后该成员的现有会话会立即失效，且不再等待审核。')"> 离职 </LsButton>
+          <LsButton type="button" variant="danger-ghost" class="member-depart-action" :loading="memberAction.isPending.value" :disabled="!capabilities.member_remove" :disabled-reason="!capabilities.member_remove ? permissionReason('team.member.remove') : undefined" @click="confirmAction('/memberDeparture/depart', '确认将该成员设为已离职？操作后该成员的现有会话会立即失效，且不再等待审核。')"><template #icon><LogOut :size="16" /></template>离职</LsButton>
         </div>
       </section>
     </LsPanel>

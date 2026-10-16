@@ -8,7 +8,7 @@ const { paused, available } = useWorkspaceScene()
 
 <template>
   <div v-if="available" class="team-category-layout__motion">
-    <LsButton variant="secondary" :aria-pressed="paused" @click="paused = !paused">
+    <LsButton variant="ghost" :aria-pressed="paused" @click="paused = !paused">
       <template #icon><Play v-if="paused" :size="16" /><Pause v-else :size="16" /></template>
       {{ paused ? '播放极光' : '暂停极光' }}
     </LsButton>

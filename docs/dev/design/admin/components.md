@@ -31,6 +31,18 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 ## 组件契约
 
+### 表单动作层级
+
+极光表单按动作语义选择既有 `LsButton.variant`，不再把管理区所有命令都设为 `secondary`：
+
+- 添加成员、增添表单项与选择上传使用 `secondary` 的虚线描边及前置图标。
+- 保存、确认使用 `primary` 的文字和尾部圆形箭头；加载时由同一尾部位置显示进度。非极光主题继续使用既有主按钮。
+- 封禁、解除封禁、切换身份、暂停/播放背景等辅助命令使用 `ghost`，保留前置图标与 14px 小字；按钮触控高度至少 44px。
+- 离职、删除等需要后续确认的辅助入口使用 `danger-ghost` 加图标与小字。最终破坏性确认仍可使用实心 `danger`，危险色与确认流程保持原有语义。
+- 返回和查看资料的真正导航继续使用 `LsPageLink`，不把业务提交改为链接。
+
+虚线只由 `LsButton--secondary` 拥有；禁止用“除 ghost 外全部按钮”的选择器将危险确认也画成虚线。样式、字体与焦点由共享按钮维护，页面只选择已有语义变体与命令图标，无新增视觉参数。当前右栏代表页和复用的对象字段、角色保存组件已按此规则调整。
+
 ### 连续资源目录
 
 对象目录的页面、身份内容与命令菜单契约见 [对象目录](object-directory.md)。`LsObjectDirectory`、`LsDirectoryIdentity`、`LsDirectoryActions` 只被已迁移目录消费，不改变下面原组件默认外观。`LsResourceRow.identity` 在对象目录中允许 `LsDirectoryIdentity`；`actions` 允许非交互次要摘要、独立轻入口及 `LsDirectoryActions`，不可放入主链接内部。
