@@ -49,7 +49,7 @@ function switchDisabled(setting: SettingField): boolean {
 </script>
 
 <template>
-  <LsPanel :aria-labelledby="`settings-${app.app_name}`">
+  <LsPanel class="settings-panel" :aria-labelledby="`settings-${app.app_name}`">
     <template #header>
         <LsSectionHeader :id="`settings-${app.app_name}`" :title="app.label" :description="app.description" />
     </template>
@@ -132,7 +132,7 @@ function switchDisabled(setting: SettingField): boolean {
         {{ app.label }}设置已保存。
       </p>
     </div>
-    <LsFormActions class="settings-actions"><SettingsSaveButton :loading="loading" :disabled="disabled">保存{{ app.label }}设置</SettingsSaveButton></LsFormActions>
+    <div class="settings-actions"><LsFormActions><SettingsSaveButton :loading="loading" :disabled="disabled">保存{{ app.label }}设置</SettingsSaveButton></LsFormActions></div>
     </form>
   </LsPanel>
 </template>
@@ -155,5 +155,11 @@ function switchDisabled(setting: SettingField): boolean {
 @media (max-width: 639px) {
   .setting-row, .settings-feedback { padding-inline: 0; }
   .settings-actions { margin-inline: 0; margin-bottom: 0; }
+}
+@container team-category-layout (min-width: 48rem) {
+  .settings-panel { display: grid; grid-template-rows: auto 1fr; min-height: 520px; }
+  .settings-form { display: flex; flex-direction: column; height: 100%; }
+  .setting-row, .settings-feedback, .settings-actions { flex-shrink: 0; }
+  .settings-actions { margin-top: auto; padding-top: 1rem; }
 }
 </style>

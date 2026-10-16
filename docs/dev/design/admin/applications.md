@@ -65,7 +65,7 @@
 - 文档编辑页的 `LsMarkdownEditor` 是第三方编辑器实现级例外：保留其原有的模式切换、候选项与工具栏视觉结构，不将 `NRadioGroup`、`NButton` 或 `NInput` 的通用皮肤套入编辑器内部。页面其余字段仍使用标准 Naive UI；验收时确认编辑器模式、源码与对象候选项和统一化前版本一致。
 - 文档创建/编辑页的文档标签与实体资料管理页的公开文档分组统一使用 `LsFormList`。两处都允许添加、删除、拖拽及按钮排序，并按顺序提交；标签错误必须就近阻止保存。公开文档分组只出现在 Team、Member 和 Virtual 实体，Customer 不显示；缺少 `team.entity.profile.manage` 时展示只读内容并禁用列表变更，不发写请求。
 - Team 全路由宽度采用[后台页面宽度规范](page-widths.md)，逐页映射、例外和验证见[Team 页面宽度审计](team-page-widths.md)。禁止页面内部二次任意限宽。
-- 团队设置采用 `content` 分类设置中心，见[页面宽度规范](page-widths.md#team-settings-groups)。`TeamSettingsGroup` 复用 `LsPanel` 的 header 与正文插槽，标题使用 `LsSectionHeader`；字段沿用原分隔行的上下 16px 内衬，桌面文字距面板边缘 24px、手机 16px；相邻字段通过内衬留白分组，不绘制逐行分隔线，唯一保存动作通过 `LsFormActions` 放在表单正文末尾，不使用面板 footer 或独立按钮底栏。它是字段布局、权限说明、反馈和唯一组末保存的视觉所有者；页面只负责请求、能力判断、草稿与原子提交。组名和字段顺序沿用业务 schema，各组具有独立保存状态和权限语义。开关与文字同行，保留 44px 触控区；复杂选项占满内容区域并自然换行，不设置 96px 空白行高。`SettingsSaveButton` 桌面宽度为 `min(9rem,100%)`，长文案自然增高，在小于 640px 时由组尾 `LsFormActions` 铺满可用宽度；不得将保存放回组标题或同时出现第二个保存。提交快照之外仍有新修改时不显示“已保存”。
+- 团队设置采用 `content` 分类设置中心，见[页面宽度规范](page-widths.md#team-settings-groups)。`TeamSettingsGroup` 复用 `LsPanel` 的 header 与正文插槽，标题使用 `LsSectionHeader`；字段沿用原分隔行的上下 16px 内衬，桌面文字距面板边缘 24px、手机 16px；相邻字段通过内衬留白分组，不绘制逐行分隔线，唯一保存动作通过 `LsFormActions` 放在表单正文末尾，不使用面板 footer 或独立按钮底栏。分类工作区达到桌面双列宽度时，设置面板含 header 最低 520px；字段不拉伸，剩余空间留在字段与底部保存动作之间，长内容自然增高，窄屏取消最低高度。它是字段布局、权限说明、反馈和唯一组末保存的视觉所有者；页面只负责请求、能力判断、草稿与原子提交。组名和字段顺序沿用业务 schema，各组具有独立保存状态和权限语义。开关与文字同行，保留 44px 触控区；复杂选项占满内容区域并自然换行，不设置 96px 空白行高。`SettingsSaveButton` 桌面宽度为 `min(9rem,100%)`，长文案自然增高，在小于 640px 时由组尾 `LsFormActions` 铺满可用宽度；不得将保存放回组标题或同时出现第二个保存。提交快照之外仍有新修改时不显示“已保存”。
 
 ### Team 资料表单尺寸
 
