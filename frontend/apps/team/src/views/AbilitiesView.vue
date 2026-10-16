@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft } from '@lucide/vue'
@@ -53,9 +54,11 @@ function confirm(){if(routeAccess.restricted.value||!preview.value)return;dialog
       <LsPanel>
         <form class="redeem-form" @submit.prevent="inspectCode">
           <LsSectionHeader title="兑换能力卡密" description="查看兑换码对应的能力权益，确认后应用到当前团队。" />
-          <LsField label="兑换码" for-id="ability-code" required>
-            <NInput id="ability-code" v-model:value="code" autocomplete="off" placeholder="LS-XXXX-XXXX-…" @update:value="preview=null"/>
-          </LsField>
+          <LsFormFields>
+            <LsField label="兑换码" for-id="ability-code" required>
+              <NInput :input-props="{ id: 'ability-code' }" v-model:value="code" autocomplete="off" placeholder="LS-XXXX-XXXX-…" @update:value="preview=null"/>
+            </LsField>
+          </LsFormFields>
           <LsInlineError v-if="inspect.isError.value && !routeAccess.restricted.value" :message="friendlyError(inspect.error.value)"/>
           <LsInlineError v-if="redeem.isError.value && !routeAccess.restricted.value" :message="friendlyError(redeem.error.value)"/>
           <LsButton type="submit" :disabled="routeAccess.restricted.value || !ready" :disabled-reason="routeAccess.reason.value" :loading="inspect.isPending.value">检查兑换码</LsButton>

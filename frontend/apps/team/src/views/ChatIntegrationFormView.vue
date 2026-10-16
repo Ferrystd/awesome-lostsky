@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft, KeyRound, RotateCw, Trash2 } from '@lucide/vue'
@@ -171,10 +173,14 @@ function rotateCredentials() {
 
       <p v-if="detail.isError.value && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(detail.error.value) }}</p>
       <LsPanel v-else><form class="integration-form" @submit.prevent="submit">
-        <LsField label="集成名称" for-id="integration-name"><NInput :input-props="{ id: 'integration-name' }" v-model:value="form.name" maxlength="50" placeholder="CRM 工作流" /></LsField>
-        <LsField label="HTTPS Webhook 地址" for-id="integration-endpoint"><NInput :input-props="{ id: 'integration-endpoint' }" v-model:value="form.endpoint_url" maxlength="1000" placeholder="https://example.com/lostsky/events" /></LsField>
-        <LsCheckboxGroupField v-model="form.events" label="订阅事件" :options="eventOptions" />
-        <LsSwitchField v-if="editing" v-model="form.is_active" label="启用集成" description="停用后不再接收事件，也不能使用 API Token 发送消息。" />
+        <LsFormFields>
+          <LsField label="集成名称" for-id="integration-name"><NInput :input-props="{ id: 'integration-name' }" v-model:value="form.name" maxlength="50" placeholder="CRM 工作流" /></LsField>
+          <LsField label="HTTPS Webhook 地址" for-id="integration-endpoint"><NInput :input-props="{ id: 'integration-endpoint' }" v-model:value="form.endpoint_url" maxlength="1000" placeholder="https://example.com/lostsky/events" /></LsField>
+        </LsFormFields>
+        <LsFormContent><LsCheckboxGroupField v-model="form.events" label="订阅事件" :options="eventOptions" /></LsFormContent>
+        <LsFormFields>
+          <LsSwitchField v-if="editing" v-model="form.is_active" label="启用集成" description="停用后不再接收事件，也不能使用 API Token 发送消息。" />
+        </LsFormFields>
         <p v-if="(save.isError.value || rotate.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">
           {{ friendlyError(save.error.value || rotate.error.value || remove.error.value) }}
         </p>

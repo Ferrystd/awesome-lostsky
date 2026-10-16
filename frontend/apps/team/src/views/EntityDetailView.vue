@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
@@ -279,13 +280,13 @@ async function submitProfile() {
         <LsPanel
           ><section class="visibility-settings">
             <LsSectionHeader title="可见性设置" description="分别控制团队工作空间与互联网公开主页中的发现范围。" :heading-level="2" />
-            <div class="visibility-list">
+            <LsFormFields>
               <LsSwitchField v-if="canToggleInternal" v-model="isInternalVisible" label="团队内可见" :heading-level="3" description="控制普通成员是否能在当前团队工作空间发现该人员；具有 team.entity.read 的角色仍可查看。它不影响全局搜索或公开主页。" :disabled="!canManage" :loading="visibilitySave.isPending.value" :disabled-reason="!canManage ? manageReason : ''" />
               <LsSwitchField v-else :model-value="detail.data.value.entityable_type === 'team'" label="团队内可见" :heading-level="3" description="控制普通成员是否能在当前团队工作空间发现该人员；它不影响全局搜索或公开主页。" read-only :disabled-reason="internalFixedMessage" />
 
               <LsSwitchField v-if="canDisplay" v-model="isDisplayed" label="公开主页展示" :heading-level="3" description="控制互联网访客能否在 Display 公开主页浏览该人员。它不影响团队内目录或全局搜索。" :disabled="!canManage" :loading="visibilitySave.isPending.value" :disabled-reason="!canManage ? manageReason : ''" />
               <LsSwitchField v-else :model-value="detail.data.value.entityable_type === 'team'" label="公开主页展示" :heading-level="3" description="控制互联网访客能否在 Display 公开主页浏览该人员。" read-only :disabled-reason="publicFixedMessage" />
-            </div>
+            </LsFormFields>
             <LsFormActions v-if="canToggleInternal">
               <LsButton variant="secondary" :disabled="!canManage || !visibilityDirty" :disabled-reason="!canManage ? manageReason : ''" :loading="visibilitySave.isPending.value" @click="visibilitySave.mutate(buildVisibilityPayload())">保存可见性</LsButton>
             </LsFormActions>
@@ -303,8 +304,7 @@ async function submitProfile() {
   gap: 1.5rem;
 }
 .profile-panel,
-.visibility-settings,
-.visibility-list {
+.visibility-settings {
   display: grid;
   gap: 16px;
 }

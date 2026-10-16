@@ -6,6 +6,8 @@ import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
 import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import { NCheckbox, NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
 import { reactive, ref, watch } from 'vue'
 
@@ -154,22 +156,23 @@ function submit() {
 
     <p v-if="loading" class="state">正在读取对象字段…</p>
     <p v-else-if="!fields.length" class="state">当前没有可显示的对象字段。</p>
-    <div v-else class="field-list">
-      <div v-for="field in fields" :key="field.id" class="field-row">
-        <div :id="`entity-field-${field.id}-label`" class="field-label">
-          <span>{{ field.name }} <b v-if="field.is_required" aria-label="必填">*</b></span>
-          <small>{{ typeLabel(field) }}</small>
-        </div>
-
+    <LsFormFields v-else>
+      <template v-for="field in fields" :key="field.id">
+      <LsField :label="field.name" :description="typeLabel(field)" :for-id="`entity-field-${field.id}`" :required="Boolean(field.is_required)" :read-only="!editable(field)">
         <div
           v-if="!editable(field)"
           class="readonly-value"
+          :id="`entity-field-${field.id}`"
           :aria-labelledby="`entity-field-${field.id}-label`"
         >
           {{ displayValue(field) }}
           <small v-if="mode === 'self'">仅展示</small>
         </div>
+        <div v-else-if="field.value_type === 'bool'">
+          <LsSwitch :id="`entity-field-${field.id}`" :model-value="Boolean(Number(values[field.id]))" :aria-labelledby="`entity-field-${field.id}-label`" @update:model-value="value => values[field.id] = value ? 1 : 0" />
+        </div>
         <NInput
+          :input-props="{ id: `entity-field-${field.id}`, 'aria-label': field.name }"
           v-else-if="field.input_type === 'textarea' || field.value_type === 'text' || field.value_type === 'json'"
           v-model:value="values[field.id] as string"
           type="textarea"
@@ -179,6 +182,7 @@ function submit() {
           :placeholder="`填写${field.name}`"
         />
         <NSelect
+          :input-props="{ id: `entity-field-${field.id}`, 'aria-label': field.name }"
           v-else-if="field.value_type === 'multi_select'"
           v-model:value="values[field.id] as string[]"
           multiple
@@ -188,6 +192,7 @@ function submit() {
           :placeholder="`选择${field.name}`"
         />
         <NSelect
+          :input-props="{ id: `entity-field-${field.id}`, 'aria-label': field.name }"
           v-else-if="field.input_type === 'select' || field.input_type === 'radio' || field.value_type === 'select'"
           v-model:value="values[field.id] as string"
           clearable
@@ -199,6 +204,7 @@ function submit() {
         <div
           v-else-if="field.input_type === 'checkbox' && field.value_type !== 'bool'"
           class="choice-list"
+          :id="`entity-field-${field.id}`"
           role="group"
           :aria-labelledby="`entity-field-${field.id}-label`"
         >
@@ -213,14 +219,8 @@ function submit() {
             {{ option.label }}
           </NCheckbox>
         </div>
-        <LsSwitch
-          v-else-if="field.value_type === 'bool'"
-          :model-value="Boolean(Number(values[field.id]))"
-          :aria-label="field.name"
-          :aria-describedby="`entity-field-${field.id}-label`"
-          @update:model-value="value => values[field.id] = value ? 1 : 0"
-        />
         <NInputNumber
+          :input-props="{ id: `entity-field-${field.id}`, 'aria-label': field.name }"
           v-else-if="field.value_type === 'int' || field.value_type === 'decimal'"
           v-model:value="values[field.id] as number"
           :aria-label="field.name"
@@ -229,6 +229,7 @@ function submit() {
           class="number-input"
         />
         <LsMediaUploadField
+          :id="`entity-field-${field.id}`"
           v-else-if="field.input_type === 'upload'"
           :model-value="String(values[field.id] ?? '')"
           :upload="uploadFileUrl"
@@ -239,6 +240,7 @@ function submit() {
           @uploading="value => uploading = value ? field.id : null"
         />
         <NDatePicker
+          :id="`entity-field-${field.id}`"
           v-else-if="field.value_type === 'date' || field.value_type === 'datetime'"
           :formatted-value="typeof values[field.id] === 'string' && values[field.id] ? values[field.id] as string : null"
           :type="field.value_type === 'date' ? 'date' : 'datetime'"
@@ -249,20 +251,22 @@ function submit() {
           @update:formatted-value="value => values[field.id] = value"
         />
         <NInput
+          :input-props="{ id: `entity-field-${field.id}`, 'aria-label': field.name }"
           v-else
           v-model:value="values[field.id] as string"
           :aria-label="field.name"
           :aria-describedby="`entity-field-${field.id}-label`"
           :placeholder="`填写${field.name}`"
         />
-      </div>
-    </div>
+      </LsField>
+      </template>
+    </LsFormFields>
 
     <LsInlineError v-if="error" :message="friendlyError(error)" />
   </section></LsPanel>
 </template>
 
 <style scoped>
-.entity-fields-card{display:grid;gap:1rem}.entity-fields-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.entity-fields-card h2,.entity-fields-card p{margin:0}.entity-fields-card h2{font-size:1.05rem}.entity-fields-card header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.field-list{border-top:1px solid var(--line)}.field-row{display:grid;grid-template-columns:minmax(9rem,.36fr) minmax(0,1fr);align-items:center;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}.field-label{display:grid;gap:.2rem}.field-label>span{font-size:.875rem;font-weight:680}.field-label b{color:var(--danger)}.field-label small,.readonly-value small{color:var(--muted-ink);font-size:.75rem}.readonly-value{min-width:0;display:grid;gap:.2rem;overflow-wrap:anywhere;color:var(--ink);line-height:1.55}.readonly-value small{font-weight:500}.number-input{width:100%}.choice-list{display:flex;flex-wrap:wrap;gap:.75rem 1rem}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}
-@media(max-width:639px){.entity-fields-card>header{align-items:stretch;flex-direction:column}.entity-fields-save{width:100%}.field-row{grid-template-columns:1fr;gap:.65rem}.upload-control{grid-template-columns:1fr}.upload-control>label{justify-content:center}}
+.entity-fields-card{display:grid;gap:1rem}.entity-fields-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.entity-fields-card h2,.entity-fields-card p{margin:0}.entity-fields-card h2{font-size:1.05rem}.entity-fields-card header p{max-width:65ch;margin-top:.3rem;color:var(--muted-ink);font-size:.82rem;line-height:1.55}.readonly-value{min-width:0;display:grid;gap:.2rem;overflow-wrap:anywhere;color:var(--ink);line-height:1.55}.readonly-value small{font-weight:500;color:var(--muted-ink);font-size:.75rem}.choice-list{display:flex;flex-wrap:wrap;gap:.75rem 1rem}.state{padding:1rem;color:var(--muted-ink);background:var(--cloud);border-radius:8px;text-align:center}
+@media(max-width:639px){.entity-fields-card>header{align-items:stretch;flex-direction:column}.entity-fields-save{width:100%}}
 </style>

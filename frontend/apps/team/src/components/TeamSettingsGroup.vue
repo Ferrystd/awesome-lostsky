@@ -2,7 +2,10 @@
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsRadioGroupField from '@lostsky/ui/components/LsRadioGroupField.vue'
-import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
+import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
+import LsField from '@lostsky/ui/components/LsField.vue'
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
+import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import SettingsSaveButton from '../views/settings/SettingsSaveButton.vue'
@@ -54,74 +57,21 @@ function switchDisabled(setting: SettingField): boolean {
         <LsSectionHeader :id="`settings-${app.app_name}`" :title="app.label" :description="app.description" />
     </template>
     <form class="settings-form" @submit.prevent="!disabled && emit('submit')">
-      <section
-        v-for="setting in app.settings"
-        :key="setting.key"
-        :class="['setting-row', { 'setting-row--choices': setting.control === 'radio', 'setting-row--switch': setting.control === 'switch' }]"
-      >
-        <div v-if="setting.control !== 'radio'" class="setting-copy">
-          <h3 :id="`${settingId(app.app_name, setting.key)}-label`">{{ setting.label }}</h3>
-          <p :id="`${settingId(app.app_name, setting.key)}-description`">{{ setting.description }}</p>
-        </div>
-
-        <div :class="['setting-control', { 'setting-control--choices': setting.control === 'radio' }]">
-          <LsSwitch
-            v-if="setting.control === 'switch'"
-            :model-value="Boolean(settingValue(setting))"
-            :aria-labelledby="`${settingId(app.app_name, setting.key)}-label`"
-            :aria-describedby="`${settingId(app.app_name, setting.key)}-description`"
-            :disabled="switchDisabled(setting)"
-            :disabled-reason="abilityDisabledReason(setting)"
-            @update:model-value="emit('update', setting.key, $event)"
-          />
-
-          <LsRadioGroupField
-            v-else-if="setting.control === 'radio'"
-            :id="settingId(app.app_name, setting.key)"
-            :model-value="choiceValue(setting)"
-            :label="setting.label"
-            :hint="setting.description"
-            :options="setting.options ?? []"
-            :disabled="restricted"
-            @update:model-value="emit('update', setting.key, $event)"
-          />
-
-          <NSelect
-            v-else-if="setting.control === 'select'"
-            :value="choiceValue(setting)"
-            :options="setting.options ?? []"
-            :aria-label="setting.label"
-            :aria-describedby="`${settingId(app.app_name, setting.key)}-description`"
-            @update:value="emit('update', setting.key, $event)"
-          />
-
-          <NInputNumber
-            v-else-if="setting.control === 'number'"
-            :value="settingValue(setting) === null ? null : Number(settingValue(setting))"
-            :clearable="setting.nullable === true"
-            :precision="0"
-            :min="setting.min"
-            :max="setting.max"
-            :step="setting.step"
-            :input-props="{
-              'aria-label': setting.label,
-              'aria-describedby': `${settingId(app.app_name, setting.key)}-description`,
-            }"
-            @update:value="emit('update', setting.key, $event)"
-          />
-
-          <NInput
-            v-else
-            :value="String(settingValue(setting))"
-            :maxlength="setting.max_length"
-            :input-props="{
-              'aria-label': setting.label,
-              'aria-describedby': `${settingId(app.app_name, setting.key)}-description`,
-            }"
-            @update:value="emit('update', setting.key, $event)"
-          />
-        </div>
+      <LsFormFields>
+      <section v-for="setting in app.settings" :key="setting.key" :class="['setting-row', { 'setting-row--choices': setting.control === 'radio', 'setting-row--switch': setting.control === 'switch' }]">
+        <LsFormContent v-if="setting.control === 'radio'">
+          <LsRadioGroupField :id="settingId(app.app_name, setting.key)" :model-value="choiceValue(setting)" :label="setting.label" :hint="setting.description" :options="setting.options ?? []" :disabled="restricted" @update:model-value="emit('update', setting.key, $event)" />
+        </LsFormContent>
+        <LsSwitchField v-else-if="setting.control === 'switch'" :id="settingId(app.app_name, setting.key)" :model-value="Boolean(settingValue(setting))" :label="setting.label" :description="setting.description" :disabled="switchDisabled(setting)" :disabled-reason="abilityDisabledReason(setting)" @update:model-value="emit('update', setting.key, $event)" />
+        <LsField v-else :label="setting.label" :for-id="settingId(app.app_name, setting.key)" :hint="setting.description" v-slot="{ describedBy }">
+          <div class="setting-control">
+          <NSelect v-if="setting.control === 'select'" :id="settingId(app.app_name, setting.key)" :value="choiceValue(setting)" :options="setting.options ?? []" :aria-label="setting.label" :aria-describedby="describedBy" :input-props="{ id: settingId(app.app_name, setting.key), 'aria-label': setting.label, 'aria-describedby': describedBy }" @update:value="emit('update', setting.key, $event)" />
+          <NInputNumber v-else-if="setting.control === 'number'" :value="settingValue(setting) === null ? null : Number(settingValue(setting))" :clearable="setting.nullable === true" :precision="0" :min="setting.min" :max="setting.max" :step="setting.step" :input-props="{ id: settingId(app.app_name, setting.key), 'aria-label': setting.label, 'aria-describedby': describedBy }" @update:value="emit('update', setting.key, $event)" />
+          <NInput v-else :value="String(settingValue(setting))" :maxlength="setting.max_length" :input-props="{ id: settingId(app.app_name, setting.key), 'aria-label': setting.label, 'aria-describedby': describedBy }" @update:value="emit('update', setting.key, $event)" />
+          </div>
+        </LsField>
       </section>
+      </LsFormFields>
 
     <div class="settings-feedback" v-if="error || saved">
       <LsInlineError
@@ -140,20 +90,13 @@ function switchDisabled(setting: SettingField): boolean {
 <style scoped>
 
 .settings-form { display: grid; min-width: 0; margin: 0; }
-.setting-row { display: grid; min-width: 0; gap: .75rem; padding: 1rem .25rem; }
-.setting-row:first-child { padding-top: 0; }
-.setting-row--switch { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
-.setting-copy { min-width: 0; }
-.setting-copy h3, .setting-copy p { margin: 0; overflow-wrap: anywhere; }
-.setting-copy h3 { font-size: .9375rem; line-height: 1.5; }
-.setting-copy p { margin-top: .25rem; color: var(--text-secondary); font-size: .875rem; line-height: 1.6; }
-.setting-control { min-width: 0; }
+.setting-row, .setting-control { min-width: 0; }
 .settings-feedback { display: grid; gap: 1rem; padding: 1rem .25rem 0; }
 .settings-actions { margin: 1rem .25rem .25rem; }
 .feedback { margin: 0; font-size: .875rem; line-height: 1.5; overflow-wrap: anywhere; }
 .success { color: var(--success); }
 @media (max-width: 639px) {
-  .setting-row, .settings-feedback { padding-inline: 0; }
+  .settings-feedback { padding-inline: 0; }
   .settings-actions { margin-inline: 0; margin-bottom: 0; }
 }
 @container team-category-layout (min-width: 48rem) {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
@@ -148,7 +149,7 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
         <LsPanel>
           <template #header><LsSectionHeader title="个人资料" /></template>
           <div class="identity-summary"><LsEntityIdentity :type="query.data.value.identity.type" :name="query.data.value.identity.name" :slug="query.data.value.identity.slug || ''" :image-url="query.data.value.profile.avatar" fallback="initial" /><small>所属团队：{{ query.data.value.identity.team.name }}</small></div>
-          <div v-if="!query.data.value.identity.slug" class="slug-field"><LsField label="对象标识" for-id="personal-slug"><NInput v-model:value="form.slug" :input-props="{ id: 'personal-slug' }" placeholder="首次确认后不可修改" /></LsField></div>
+          <div v-if="!query.data.value.identity.slug" class="slug-field"><LsFormFields><LsField label="对象标识" for-id="personal-slug"><NInput v-model:value="form.slug" :input-props="{ id: 'personal-slug' }" placeholder="首次确认后不可修改" /></LsField></LsFormFields></div>
           <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" draft-key="personal-profile" id-prefix="personal-profile" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" />
           <LsInlineError v-if="saveProfile.isError.value" :message="friendlyError(saveProfile.error.value)" />
           <template #footer><LsFormActions><LsButton type="submit" :loading="saveProfile.isPending.value" :disabled="!draft.dirty.value || uploading || !form.name.trim() || (!query.data.value.identity.slug && !form.slug.trim())"><template #icon><Save :size="17" /></template>保存资料</LsButton></LsFormActions></template>

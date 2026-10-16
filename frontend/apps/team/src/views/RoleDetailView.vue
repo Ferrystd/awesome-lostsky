@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
@@ -395,17 +396,19 @@ function updateTargetPermissions(options: DynamicOption[], values: Array<string 
         <LsPanel v-if="currentCategory === 'profile'">
           <template #header><LsSectionHeader title="角色资料" description="名称和说明帮助管理者理解角色用途，角色标识保持不变。" /></template>
           <NForm class="role-info-form" label-placement="top" @submit.prevent="routeAccess.restricted.value || saveInfo.mutate()">
-            <LsField label="角色名称" for-id="role-detail-name" required>
-              <NInput :value="routeAccess.restricted.value ? '-' : form.name" :disabled="routeAccess.restricted.value" :input-props="{ id: 'role-detail-name' }" @update:value="form.name = $event" />
-            </LsField>
-            <LsField label="说明" for-id="role-detail-description">
-              <NInput :value="routeAccess.restricted.value ? '-' : form.description" :disabled="routeAccess.restricted.value" :input-props="{ id: 'role-detail-description' }" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" @update:value="form.description = $event" />
-            </LsField>
-            <LsField label="显示顺序" for-id="role-detail-sort" hint="数字越小越靠前。">
-              <NInputNumber :value="routeAccess.restricted.value ? null : form.sort" :disabled="routeAccess.restricted.value" placeholder="-" :input-props="{ id: 'role-detail-sort' }" :min="0" :show-button="false" @update:value="form.sort = $event" />
+            <LsFormFields>
+              <LsField label="角色名称" for-id="role-detail-name" required>
+                <NInput :value="routeAccess.restricted.value ? '-' : form.name" :disabled="routeAccess.restricted.value" :input-props="{ id: 'role-detail-name' }" @update:value="form.name = $event" />
+              </LsField>
+              <LsField label="说明" for-id="role-detail-description">
+                <NInput :value="routeAccess.restricted.value ? '-' : form.description" :disabled="routeAccess.restricted.value" :input-props="{ id: 'role-detail-description' }" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" @update:value="form.description = $event" />
+              </LsField>
+              <LsField v-slot="{ describedBy }" label="显示顺序" for-id="role-detail-sort" hint="数字越小越靠前。">
+                <NInputNumber :value="routeAccess.restricted.value ? null : form.sort" :disabled="routeAccess.restricted.value" placeholder="-" :input-props="{ 'aria-describedby': describedBy, id: 'role-detail-sort' }" :min="0" :show-button="false" @update:value="form.sort = $event" />
 
-            </LsField>
-            <LsSwitchField :model-value="routeAccess.restricted.value ? false : form.is_displayed" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" label="公开主页展示" aria-label="在公开人员资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟人员会展示角色名称和说明；角色权限不会公开。" @update:model-value="form.is_displayed = $event" />
+              </LsField>
+              <LsSwitchField :model-value="routeAccess.restricted.value ? false : form.is_displayed" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" label="公开主页展示" aria-label="在公开人员资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟人员会展示角色名称和说明；角色权限不会公开。" @update:model-value="form.is_displayed = $event" />
+            </LsFormFields>
             <LsFormActions>
               <template #destructive>
                 <LsButton variant="danger-ghost" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteRole"><template #icon><Trash2 :size="17" /></template>删除角色</LsButton>

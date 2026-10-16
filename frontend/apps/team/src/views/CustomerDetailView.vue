@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -184,16 +185,18 @@ const money = (value: string) =>
         <template #header><LsSectionHeader title="顾客资料" :description="`@${query.data.value.slug}`"><template #aside><LsStatusTag :label="canManage ? '可维护' : '只读'" /></template></LsSectionHeader></template>
         <form @submit.prevent="save.mutate()">
           <LsInlineError v-if="assignees.isError.value" :message="friendlyError(assignees.error.value)" />
-          <LsField label="顾客昵称" for-id="customer-name"><NInput v-model:value="form.name" :input-props="{ id: 'customer-name' }" :disabled="!canManage" maxlength="50" /></LsField>
-          <LsField label="头像" for-id="customer-avatar"><LsMediaUploadField id="customer-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(avatarUploadDisabledReason)" :disabled-reason="avatarUploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
-          <LsField label="说明" for-id="customer-description"><NInput v-model:value="form.description" :input-props="{ id: 'customer-description' }" :disabled="!canManage" type="textarea" maxlength="500" /></LsField>
-          <LsField label="当前归属人" for-id="customer-assignee" hint="变更只影响之后创建的订单和流水，不修改历史发单人。">
-            <LsEntitySelect :input-props="{ id: 'customer-assignee', 'aria-label': '当前归属人' }" v-model="form.assignee_entity_id" :entities="assigneeOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" clearable placeholder="未归属" />
-          </LsField>
-          <LsField label="协作发单人" for-id="customer-senders" hint="可以选择多名协作人员；他们仍需开通记账能力并具备相应权限，才能处理该顾客的业务。">
-            <LsEntitySelect :input-props="{ id: 'customer-senders', 'aria-label': '协作发单人' }" v-model="form.sender_entity_ids" :entities="senderOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" multiple placeholder="未绑定协作发单人" />
-          </LsField>
-          <LsSwitchField v-model="form.is_blocked" label="封禁顾客" description="封禁后顾客现有身份会话不能继续使用。" :disabled="!canManage" />
+          <LsFormFields>
+            <LsField label="顾客昵称" for-id="customer-name"><NInput v-model:value="form.name" :input-props="{ id: 'customer-name' }" :disabled="!canManage" maxlength="50" /></LsField>
+            <LsField label="头像" for-id="customer-avatar"><LsMediaUploadField id="customer-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(avatarUploadDisabledReason)" :disabled-reason="avatarUploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
+            <LsField label="说明" for-id="customer-description"><NInput v-model:value="form.description" :input-props="{ id: 'customer-description' }" :disabled="!canManage" type="textarea" maxlength="500" /></LsField>
+            <LsField v-slot="{ describedBy }" label="当前归属人" for-id="customer-assignee" hint="变更只影响之后创建的订单和流水，不修改历史发单人。">
+              <LsEntitySelect :aria-describedby="describedBy" :input-props="{ 'aria-describedby': describedBy, id: 'customer-assignee', 'aria-label': '当前归属人' }" v-model="form.assignee_entity_id" :entities="assigneeOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" clearable placeholder="未归属" />
+            </LsField>
+            <LsField v-slot="{ describedBy }" label="协作发单人" for-id="customer-senders" hint="可以选择多名协作人员；他们仍需开通记账能力并具备相应权限，才能处理该顾客的业务。">
+              <LsEntitySelect :aria-describedby="describedBy" :input-props="{ 'aria-describedby': describedBy, id: 'customer-senders', 'aria-label': '协作发单人' }" v-model="form.sender_entity_ids" :entities="senderOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" multiple placeholder="未绑定协作发单人" />
+            </LsField>
+            <LsSwitchField v-model="form.is_blocked" label="封禁顾客" description="封禁后顾客现有身份会话不能继续使用。" :disabled="!canManage" />
+          </LsFormFields>
           <LsFormActions
             ><LsButton type="submit" :loading="save.isPending.value" :disabled="!canManage || avatarUploading || !draft.dirty.value" :disabled-reason="!canManage ? manageReason : avatarUploading ? '请等待头像上传完成' : !draft.dirty.value ? '尚未修改顾客资料' : undefined"
               ><template #icon><Save :size="18" /></template>保存顾客资料</LsButton

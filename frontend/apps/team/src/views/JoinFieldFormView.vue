@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft } from '@lucide/vue'
@@ -235,19 +237,22 @@ function deleteField() {
     <LsAsyncState v-else-if="editing && canRead && fieldsQuery.isError.value" state="error" title="暂时无法读取申请字段" :description="friendlyError(fieldsQuery.error.value)" />
     <NAlert v-else-if="editing && !detail" type="warning" title="申请字段不存在">该字段可能已删除，或不属于当前团队。</NAlert>
     <LsPanel v-else><form class="join-field-form" @submit.prevent="submit">
-      <LsField label="字段标识" for-id="join-field-key" :required="!editing" :error="errors.field_key" hint="创建后不可修改；用于稳定识别提交数据。">
-        <template #default="{ invalid }"><NInput v-model:value="form.field_key" :input-props="{ id: 'join-field-key', 'aria-label': '字段标识' }" :disabled="editing || !canWrite" :status="invalid ? 'error' : undefined" maxlength="64" placeholder="experience" /></template>
-      </LsField>
-      <LsField label="字段名称" for-id="join-field-name" required :error="errors.name">
-        <template #default="{ invalid }"><NInput v-model:value="form.name" :input-props="{ id: 'join-field-name', 'aria-label': '字段名称' }" :disabled="!canWrite" :status="invalid ? 'error' : undefined" maxlength="50" placeholder="相关经验" /></template>
-      </LsField>
-      <LsField label="值类型" for-id="join-field-value-type" hint="决定提交值的存储方式。">
-        <NSelect id="join-field-value-type" v-model:value="form.value_type" :disabled="!canWrite" :options="valueTypeOptions" aria-label="值类型" />
-      </LsField>
-      <LsField label="输入控件" for-id="join-field-input-type" hint="决定申请人在加入页面看到的控件。">
-        <NSelect id="join-field-input-type" v-model:value="form.input_type" :disabled="!canWrite" :options="inputTypeOptions" aria-label="输入控件" />
-      </LsField>
+      <LsFormFields>
+        <LsField label="字段标识" for-id="join-field-key" :required="!editing" :error="errors.field_key" hint="创建后不可修改；用于稳定识别提交数据。">
+          <template #default="{ invalid, describedBy }"><NInput v-model:value="form.field_key" :input-props="{ 'aria-describedby': describedBy, id: 'join-field-key', 'aria-label': '字段标识' }" :disabled="editing || !canWrite" :status="invalid ? 'error' : undefined" maxlength="64" placeholder="experience" /></template>
+        </LsField>
+        <LsField label="字段名称" for-id="join-field-name" required :error="errors.name">
+          <template #default="{ invalid, describedBy }"><NInput v-model:value="form.name" :input-props="{ 'aria-describedby': describedBy, id: 'join-field-name', 'aria-label': '字段名称' }" :disabled="!canWrite" :status="invalid ? 'error' : undefined" maxlength="50" placeholder="相关经验" /></template>
+        </LsField>
+        <LsField v-slot="{ describedBy }" label="值类型" for-id="join-field-value-type" hint="决定提交值的存储方式。">
+          <NSelect :aria-describedby="describedBy" :input-props="{ 'aria-describedby': describedBy }" id="join-field-value-type" v-model:value="form.value_type" :disabled="!canWrite" :options="valueTypeOptions" aria-label="值类型" />
+        </LsField>
+        <LsField v-slot="{ describedBy }" label="输入控件" for-id="join-field-input-type" hint="决定申请人在加入页面看到的控件。">
+          <NSelect :aria-describedby="describedBy" :input-props="{ 'aria-describedby': describedBy }" id="join-field-input-type" v-model:value="form.input_type" :disabled="!canWrite" :options="inputTypeOptions" aria-label="输入控件" />
+        </LsField>
 
+      </LsFormFields>
+      <LsFormContent>
       <LsField v-if="usesJoinOptions(form.input_type)" label="选项" for-id="join-field-options" :error="errors.options" hint="申请人看到显示名称，提交时保存对应的提交值。">
         <LsFormList v-model="form.options" :item-key="(option) => option.key" :create-item="() => ({ key: nextOptionKey(), label: '', value: '' })" item-label="选项" add-label="添加选项" empty-text="尚未添加选项" :disabled="!canWrite" :disabled-reason="permissionReason('team.join_field.write')">
           <template #item="{ item, index }">
@@ -259,29 +264,38 @@ function deleteField() {
         </LsFormList>
       </LsField>
 
-      <LsField label="默认值" for-id="join-field-default" :error="errors.default_value" hint="申请人未填写时由服务端采用；选项字段应填写对应提交值。">
-        <template #default="{ invalid }"><NInput v-model:value="form.default_value" :input-props="{ id: 'join-field-default', 'aria-label': '默认值' }" :disabled="!canWrite" :status="invalid ? 'error' : undefined" maxlength="500" clearable /></template>
-      </LsField>
+      </LsFormContent>
+      <LsFormFields>
+        <LsField label="默认值" for-id="join-field-default" :error="errors.default_value" hint="申请人未填写时由服务端采用；选项字段应填写对应提交值。">
+          <template #default="{ invalid, describedBy }"><NInput v-model:value="form.default_value" :input-props="{ 'aria-describedby': describedBy, id: 'join-field-default', 'aria-label': '默认值' }" :disabled="!canWrite" :status="invalid ? 'error' : undefined" maxlength="500" clearable /></template>
+        </LsField>
 
+      </LsFormFields>
       <section class="settings" aria-labelledby="application-settings-title">
         <LsSectionHeader id="application-settings-title" title="申请表规则" description="这些设置只影响新的加入申请，不改写历史提交。" />
-        <LsSwitchField v-model="form.is_apply_fillable" label="允许申请人填写" description="关闭后字段不会出现在申请表，也不会保存新的字段值。" :disabled="!canWrite" />
-        <LsSwitchField v-model="form.is_apply_required" label="申请时必填" description="提交申请前必须填写；只有允许填写时才能开启。" :disabled="!canWrite || !form.is_apply_fillable" />
-        <LsSwitchField v-model="form.is_active" label="启用字段" description="停用后从申请表隐藏，但仍保留历史数据并可重新启用。" :disabled="!canWrite" />
+        <LsFormFields>
+          <LsSwitchField v-model="form.is_apply_fillable" label="允许申请人填写" description="关闭后字段不会出现在申请表，也不会保存新的字段值。" :disabled="!canWrite" />
+          <LsSwitchField v-model="form.is_apply_required" label="申请时必填" description="提交申请前必须填写；只有允许填写时才能开启。" :disabled="!canWrite || !form.is_apply_fillable" />
+          <LsSwitchField v-model="form.is_active" label="启用字段" description="停用后从申请表隐藏，但仍保留历史数据并可重新启用。" :disabled="!canWrite" />
+        </LsFormFields>
       </section>
 
       <section class="settings" aria-labelledby="transfer-settings-title">
         <LsSectionHeader id="transfer-settings-title" title="审批后转存" description="申请通过并创建成员后，可把该值写入一位人员对象字段。" />
-        <LsSwitchField v-model="form.is_transfer_entity_field" label="自动转存" description="目标必须是当前团队的人员对象字段。" :disabled="!canWrite" />
-        <LsField v-if="form.is_transfer_entity_field" label="转存目标" for-id="join-field-transfer" required :error="errors.entity_field_id">
-          <NSelect :input-props="{ id: 'join-field-transfer', 'aria-label': '转存目标' }" v-model:value="form.entity_field_id" :disabled="!canWrite || transferQuery.isError.value" :loading="transferQuery.isPending.value" :options="transferSelectOptions" filterable placeholder="选择人员对象字段" />
-        </LsField>
+        <LsFormFields>
+          <LsSwitchField v-model="form.is_transfer_entity_field" label="自动转存" description="目标必须是当前团队的人员对象字段。" :disabled="!canWrite" />
+          <LsField v-slot="{ describedBy }" v-if="form.is_transfer_entity_field" label="转存目标" for-id="join-field-transfer" required :error="errors.entity_field_id">
+            <NSelect :aria-describedby="describedBy" :input-props="{ 'aria-describedby': describedBy, id: 'join-field-transfer', 'aria-label': '转存目标' }" v-model:value="form.entity_field_id" :disabled="!canWrite || transferQuery.isError.value" :loading="transferQuery.isPending.value" :options="transferSelectOptions" filterable placeholder="选择人员对象字段" />
+          </LsField>
+        </LsFormFields>
         <LsInlineError v-if="form.is_transfer_entity_field && transferQuery.isError.value" :message="friendlyError(transferQuery.error.value)" />
       </section>
 
-      <LsField label="排序" for-id="join-field-sort" hint="数值越小越靠前；相同数值按字段 ID 排序。">
-        <NInputNumber id="join-field-sort" v-model:value="form.sort" :disabled="!canWrite" :precision="0" aria-label="排序" />
-      </LsField>
+      <LsFormFields>
+        <LsField v-slot="{ describedBy }" label="排序" for-id="join-field-sort" hint="数值越小越靠前；相同数值按字段 ID 排序。">
+          <NInputNumber :input-props="{ 'aria-describedby': describedBy, id: 'join-field-sort' }" v-model:value="form.sort" :disabled="!canWrite" :precision="0" aria-label="排序" />
+        </LsField>
+      </LsFormFields>
       <LsInlineError v-if="save.isError.value || remove.isError.value" :message="friendlyError(save.error.value || remove.error.value)" />
       <LsFormActions>
         <LsButton type="submit" :loading="save.isPending.value" :disabled="!canWrite || !draft.dirty.value" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined">保存字段</LsButton>

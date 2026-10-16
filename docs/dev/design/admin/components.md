@@ -31,6 +31,20 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 ## 组件契约
 
+<a id="form-fields"></a>
+
+### 任务表单字段集合
+
+`LsFormFields` 是无参数、仅默认插槽的字段集合语义容器，不接管原生 form、提交、校验、权限或草稿。当前只由 Team 已登记表单接入；通过 Vue 注入将 `LsField`、`LsSwitchField` 组合为连续字段行，未进入该集合的既有调用保持原布局。上下文随组件树跨 Teleport 传递，不能依靠全局页面 CSS 选择器或新增 layout、width、断点参数开启。
+
+`LsFormContent` 仅接受可选 `title/description` 和默认插槽，表示富文本、复杂权限、动态选项列表等需要完整宽度的编辑内容；内部关闭字段行上下文，嵌套字段保留上下结构。它不创建第二个表面或保存动作。
+
+普通字段与完整开关行内部共用 `internal/FormFieldLayout.vue`，该内部模块只供公共组件组合，应用不得直接导入。每行依据自身实际容器容量查询：达到 36rem 时为 9rem 标签列与剩余控件列，低于该值为上下排列；固定 1rem 行内上下间距及细分隔线。标签与控件起点固定，开关从控件列左边缘开始；说明和错误位于控件下方，错误优先且不重复显示提示。长标签、只读值、200% 文字与 320px 页面必须自然换行、无横向溢出。内部容器查询必须以实际字段行容量而非 viewport 选择布局。
+
+`LsField` 新增可选语义 `description`（字段名称下的类型/辅助信息）及 `readOnly`（只读值组，使用文本标签和 aria-labelledby）。只读值可继续进入同一字段集合；不将只读显示伪装成可编辑输入。普通 `hint/error` 属于控件反馈，反馈节点固定为 `${forId}-feedback`；默认插槽提供 `invalid/describedBy`，调用方将其关联到实际可交互控件，Naive 输入通过 `input-props` 传递。
+
+加载、空、错误、禁用和权限语义继续由原组件与业务持有，字段集合不隐藏入口或改写提交；完整开关使用 `LsSwitchField`。动态对象布尔字段沿用已登记的 `LsSwitch` 例外，通过 `LsField` 保留运行时必填和类型说明，并共用同一字段行。唯一允许差异是 `LsFormContent` 的完整内容语义，无自由视觉变体。以公共 SSR/Teleport 契约、Team 路由覆盖、真实浏览器控件轨道和开关对齐、窄容器、长文及文字放大验证；Admin 社区及未接入的公共字段保持原布局作为对照。
+
 ### 连续资源目录
 
 对象目录的页面、身份内容与命令菜单契约见 [对象目录](object-directory.md)。`LsObjectDirectory`、`LsDirectoryIdentity`、`LsDirectoryActions` 只被已迁移目录消费，不改变下面原组件默认外观。`LsResourceRow.identity` 在对象目录中允许 `LsDirectoryIdentity`；`actions` 允许非交互次要摘要、独立轻入口及 `LsDirectoryActions`，不可放入主链接内部。
@@ -73,7 +87,7 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 | `LsAsyncState` | `state=loading/error` 必填；`title/description` 可选、`rows=3`；只负责加载骨架和真实错误 | 承担空数据状态；手动“重试”按钮；同一错误同时全局提示；加载时空白 | 骨架数量稳定；错误使用区域 `alert` 且只出现一次；壳层和其他区域保持可用 |
 | `LsRouteErrorBoundary` | 以路由地址为 `resetKey` 隔离异步路由渲染错误 | 让单页异常清空整个应用壳层 | 切换路由自动恢复；错误只占内容区 |
 | `LsSearchInput` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索'`、`autofocus=false`；搜索图标固定在输入内；底色、边框和焦点继承当前Naive主题，极光场景沿用共享内凹输入面 | 页面手写图标+输入组合；显示选择器箭头；以固定CSS变量覆盖主题材质与焦点 | 键盘、清除和焦点状态可用；输入类型为 search；桌面高度 40px、移动端 44px；普通与极光主题均验证 |
-| `LsField` | `label/forId` 必填，`error/hint/required` 可选；包装单个表单控件 | 标签、错误和说明与控件脱离；只用占位符代替标签；调用方传入宽度或用提示高度调整相邻字段位置 | `forId` 必须指向控件；内部控件轨道固定满宽且从顶部开始排列，提示或错误增高字段时不得拉开标签与控件；并列字段的控件顶部与宽度保持一致；错误与说明不重复；必填状态可被辅助技术识别 |
+| `LsField` | `label/forId` 必填，`error/hint/required/description/readOnly` 可选；默认插槽提供 `invalid/describedBy`，包装单个表单控件 | 标签、错误和说明与控件脱离；只用占位符代替标签；调用方传入宽度或用提示高度调整相邻字段位置 | `forId` 必须指向控件；内部控件轨道固定满宽且从顶部开始排列，提示或错误增高字段时不得拉开标签与控件；并列字段的控件顶部与宽度保持一致；错误与说明不重复；必填状态可被辅助技术识别 |
 | `LsRadioGroupField` | `modelValue: string/number/null`、`label`、`options=[{value,label,description?}]` 必填；`id/hint` 可选，`disabled=false`；发出 `update:modelValue` | 调用方传入宽度、密度、布局或样式参数；页面穿透 Naive Radio 样式；在字段外重复标题和说明 | fieldset/legend 和原生 Radio 语义；Naive 管理方向键与空格选择，禁用不提交更新；选项说明始终显示，最小 64px 触控区域，窄容器自然单列，320px 与 200% 文字不溢出 |
 | `LsCheckboxGroupField` | `v-model` 接受字符串或数字数组，`label/options` 必填；option 支持 `value/label/description/meta/disabled/disabledReason`；可传 `id/hint/error/required/disabled` | 页面直接组合无分组语义的 `NCheckboxGroup`；用于分组权限编辑器或动态加入字段；把禁用原因写进选项正文或 `title` | 固定 `fieldset/legend` 与提示/错误关联；带原因的禁用选项保持可触发的权限态，点击仅由 `feedback.info()` 解释且不更新模型；选项触控区至少 44px；长文案与移动端自然换行 |
 | `LsSwitch` | `v-model` 接受布尔值；`disabled/readOnly/loading/disabledReason` 可选；是唯一 `NSwitch` 视觉原语，调用方通过普通无障碍属性命名 | 业务页面直接使用 `NSwitch`；轨道内显示状态文字；增加颜色、尺寸或文案视觉 props；把禁用原因写入原生标题 | 开关内部始终无文字；触控区域至少 44px；只读与禁用保留 `aria-disabled/aria-readonly` 语义；权限态的轨道与按钮内圈统一视觉降权，触发后仅由 `feedback.info()` 解释且不更新值；所有应用内紧凑布尔控件也必须复用 |

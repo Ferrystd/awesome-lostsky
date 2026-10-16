@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft, Check } from '@lucide/vue'
@@ -44,19 +45,21 @@ function submit() {
     </template>
 
       <LsPanel><form class="role-form" @submit.prevent="submit">
-        <LsField label="角色标识" for-id="role-key" required hint="创建后不建议更改；使用小写字母、数字和下划线。">
-          <NInput :input-props="{ id: 'role-key' }" v-model:value="form.role_key" autocomplete="off" placeholder="例如 operator" />
-        </LsField>
-        <LsField label="角色名称" for-id="role-name" required>
-          <NInput :input-props="{ id: 'role-name' }" v-model:value="form.name" autocomplete="off" placeholder="例如 运营" />
-        </LsField>
-        <LsField label="说明" for-id="role-description">
-          <NInput :input-props="{ id: 'role-description' }" v-model:value="form.description" type="textarea" :autosize="{ minRows: 4, maxRows: 8 }" placeholder="说明该角色负责的工作范围" />
-        </LsField>
-        <LsField label="显示顺序" for-id="role-sort" hint="数字越小越靠前。">
-          <NInputNumber :input-props="{ id: 'role-sort' }" v-model:value="form.sort" :min="0" :show-button="false" />
-        </LsField>
-        <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开人员资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟人员会展示角色名称和说明；角色权限不会公开。" />
+        <LsFormFields>
+          <LsField v-slot="{ describedBy }" label="角色标识" for-id="role-key" required hint="创建后不建议更改；使用小写字母、数字和下划线。">
+            <NInput :input-props="{ 'aria-describedby': describedBy, id: 'role-key' }" v-model:value="form.role_key" autocomplete="off" placeholder="例如 operator" />
+          </LsField>
+          <LsField label="角色名称" for-id="role-name" required>
+            <NInput :input-props="{ id: 'role-name' }" v-model:value="form.name" autocomplete="off" placeholder="例如 运营" />
+          </LsField>
+          <LsField label="说明" for-id="role-description">
+            <NInput :input-props="{ id: 'role-description' }" v-model:value="form.description" type="textarea" :autosize="{ minRows: 4, maxRows: 8 }" placeholder="说明该角色负责的工作范围" />
+          </LsField>
+          <LsField v-slot="{ describedBy }" label="显示顺序" for-id="role-sort" hint="数字越小越靠前。">
+            <NInputNumber :input-props="{ 'aria-describedby': describedBy, id: 'role-sort' }" v-model:value="form.sort" :min="0" :show-button="false" />
+          </LsField>
+          <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开人员资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟人员会展示角色名称和说明；角色权限不会公开。" />
+        </LsFormFields>
         <p v-if="save.isError.value && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(save.error.value) }}</p>
         <LsFormActions>
           <LsPageLink to="/roles" :icon="ArrowLeft" label="取消" />

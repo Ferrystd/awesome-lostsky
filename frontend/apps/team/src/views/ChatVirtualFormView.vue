@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft, Plus, Trash2, Webhook } from '@lucide/vue'
@@ -107,11 +108,13 @@ function submit() {
 
       <form @submit.prevent="submit"><LsPanel><div class="virtual-fields">
         <LsSectionHeader title="基本信息" />
-        <LsField label="永久 slug" for-id="virtual-slug" required><NInput id="virtual-slug" v-model:value="form.slug" :disabled="editing" maxlength="50" placeholder="sales-assistant" /></LsField>
-        <LsField label="显示名称" for-id="virtual-name" required><NInput id="virtual-name" v-model:value="form.name" maxlength="50" placeholder="销售助手" /></LsField>
-        <LsField label="头像" for-id="virtual-avatar"><LsMediaUploadField id="virtual-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
-        <LsField label="简介" for-id="virtual-description"><NInput id="virtual-description" v-model:value="form.description" type="textarea" maxlength="500" :autosize="{ minRows: 3, maxRows: 7 }" /></LsField>
-        <LsSwitchField v-if="editing" v-model="form.is_active" label="启用人员" description="停用后不能参与新操作。" />
+        <LsFormFields>
+          <LsField label="永久 slug" for-id="virtual-slug" required><NInput :input-props="{ id: 'virtual-slug' }" v-model:value="form.slug" :disabled="editing" maxlength="50" placeholder="sales-assistant" /></LsField>
+          <LsField label="显示名称" for-id="virtual-name" required><NInput :input-props="{ id: 'virtual-name' }" v-model:value="form.name" maxlength="50" placeholder="销售助手" /></LsField>
+          <LsField label="头像" for-id="virtual-avatar"><LsMediaUploadField id="virtual-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(uploadDisabledReason)" :disabled-reason="uploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
+          <LsField label="简介" for-id="virtual-description"><NInput :input-props="{ id: 'virtual-description' }" v-model:value="form.description" type="textarea" maxlength="500" :autosize="{ minRows: 3, maxRows: 7 }" /></LsField>
+          <LsSwitchField v-if="editing" v-model="form.is_active" label="启用人员" description="停用后不能参与新操作。" />
+        </LsFormFields>
         <LsInlineError v-if="(save.isError.value || remove.isError.value) && !routeAccess.restricted.value" :message="friendlyError(save.error.value || remove.error.value)" />
         <LsButton type="submit" :loading="save.isPending.value" :disabled="Boolean(saveDisabledReason)" :disabled-reason="saveDisabledReason">保存人员</LsButton>
       </div></LsPanel></form>
