@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft, Eye, UserPlus } from '@lucide/vue'
@@ -318,13 +321,9 @@ function submit() {
 </script>
 
 <template>
-  <LsFormPage :title="editing ? '管理成员' : '添加成员'" :description="editing ? '管理成员状态、对象字段与角色权限。' : '填写对方的个人入队码，直接加入当前团队。'">
+  <LsFormPage aside-label="成员辅助信息" :title="editing ? '管理成员' : '添加成员'" :description="editing ? '管理成员状态、对象字段与角色权限。' : '填写对方的个人入队码，直接加入当前团队。'">
     <template #actions>
       <LsPageLink to="/members" :icon="ArrowLeft" label="返回成员列表" />
-      <LsFormActions v-if="!editing">
-          <LsPageLink to="/members" :icon="ArrowLeft" label="取消" />
-          <LsPagePrimaryAction :icon="UserPlus" label="添加成员" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason" />
-        </LsFormActions>
     </template>
 
     <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
@@ -351,6 +350,10 @@ function submit() {
         </template>
         </NFlex>
       </LsPanel>
+      <LsFormActions>
+        <LsPageLink to="/members" :icon="ArrowLeft" label="取消" />
+        <LsPagePrimaryAction :icon="UserPlus" label="添加成员" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason" />
+      </LsFormActions>
     </form>
 
     <EntityFieldsCard :key="`${draftKey()}:fields`" v-if="editing && capabilities.field_manage && memberSlug" :fields="fields.data.value ?? []" :stored-values="fieldValues.data.value ?? []" mode="manager" :loading="fields.isPending.value || fieldValues.isPending.value" :saving="saveFields.isPending.value" :upload-disabled-reason="uploadDisabledReason" :error="fields.error.value || fieldValues.error.value" :success="saveFields.isSuccess.value" @save="saveFields.mutate" @dirty="setFieldsDirty" />
@@ -406,10 +409,38 @@ function submit() {
         </div>
       </section>
     </LsPanel>
+    <template #aside>
+      <LsFormSection v-if="!editing" title="添加说明" description="使用成员本人生成的一次性入队码。">
+        <LsDescriptionList>
+          <dt>加入方式</dt><dd>个人入队码</dd>
+          <dt>代填资料</dt><dd>{{ fillJoinForm ? '随成员一起保存' : '本次不代填' }}</dd>
+          <dt>有效时间</dt><dd>生成后 30 分钟</dd>
+        </LsDescriptionList>
+        <p class="member-context-note">成功加入后入队码失效。提交前不会读取或展示对方的身份资料。</p>
+      </LsFormSection>
+      <LsFormSection v-else title="成员概况" description="已保存的成员信息">
+        <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
+        <p v-else-if="!Number.isInteger(id) || id <= 0" class="member-context-note">请从成员列表选择有效成员。</p>
+        <LsAsyncState v-else-if="detail.isPending.value" state="loading" :rows="3" />
+        <template v-else-if="detail.data.value">
+          <LsEntityIdentity type="teamMember" :name="String(detail.data.value.name || detail.data.value.nickname || `成员 #${id}`)" :slug="memberSlug" :image-url="typeof detail.data.value.avatar === 'string' ? detail.data.value.avatar : null">
+            <template #status><LsStatusTag :label="memberStatusLabel(detail.data.value)" /></template>
+          </LsEntityIdentity>
+          <LsDescriptionList>
+            <dt>搜索设置</dt><dd>{{ detail.data.value.search_override == null ? '继承团队默认值' : Number(detail.data.value.search_override) === 1 ? '允许被搜索' : '禁止被搜索' }}</dd>
+            <dt>对象字段</dt><dd>{{ capabilities.field_manage ? '可维护' : '权限受限' }}</dd>
+            <dt>角色分配</dt><dd>{{ !capabilities.role_read ? '权限受限' : capabilities.role_write ? '可维护' : '只读' }}</dd>
+          </LsDescriptionList>
+          <p class="member-context-note">对象字段、角色和搜索设置分别保存。名称、头像与介绍仍通过左侧人员资料入口维护。</p>
+        </template>
+        <p v-else class="member-context-note">暂无可读取的成员资料。</p>
+      </LsFormSection>
+    </template>
   </LsFormPage>
 </template>
 
 <style scoped>
+.member-context-note { margin: 0; color: var(--text-secondary); font-size: .8125rem; line-height: 1.7; }
 .member-form {
   min-width: 0;
   display: grid;

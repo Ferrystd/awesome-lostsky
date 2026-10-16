@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft } from '@lucide/vue'
@@ -13,7 +18,7 @@ import { api, friendlyError } from '@lostsky/api/client'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NInput, NInputNumber, NSelect } from 'naive-ui'
+import { NCheckbox, NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -165,10 +170,16 @@ function submit() {
   if (routeAccess.restricted.value) return
   save.mutate()
 }
+const preview = reactive({ text: '', number: null as number | null, single: null as string | null, multiple: [] as string[], checked: false, date: null as number | null })
+const previewOptions = computed(() => [...new Set(form.optionsText.split('\n').map(value => value.trim()).filter(Boolean))].map(value => ({ label: value, value })))
+watch(() => [id.value, form.value_type, form.input_type, form.optionsText], () => {
+  Object.assign(preview, { text: '', number: null, single: null, multiple: [], checked: false, date: null })
+})
+const previewAvailable = computed(() => !routeAccess.restricted.value && (!editing.value || detail.isSuccess.value))
 </script>
 
 <template>
-  <LsFormPage :title="editing ? '编辑对象字段' : '创建对象字段'" description="不同字段需要使用不同字段类型，以此更好的适配您的业务。">
+  <LsFormPage aside-label="字段预览与规则" :title="editing ? '编辑对象字段' : '创建对象字段'" description="不同字段需要使用不同字段类型，以此更好的适配您的业务。">
     <template #actions>
       <LsPageLink to="/fields" :icon="ArrowLeft" label="返回对象字段" />
     </template>
@@ -203,9 +214,43 @@ function submit() {
         <p v-if="(save.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(save.error.value || remove.error.value) }}</p>
         <LsFormActions><LsButton type="submit" :disabled="routeAccess.restricted.value || !draft.dirty.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteField">删除字段</LsButton></LsFormActions>
       </form></LsPanel>
+    <template #aside>
+      <LsFormSection title="填写预览" description="根据当前配置试填，不会保存试填内容。">
+        <p v-if="routeAccess.restricted.value" class="field-context-note">{{ routeAccess.reason.value }}</p>
+        <LsInlineError v-else-if="editing && detail.isError.value" :message="friendlyError(detail.error.value)" />
+        <LsAsyncState v-else-if="editing && detail.isPending.value" state="loading" :rows="3" />
+        <template v-else-if="previewAvailable">
+          <LsField :label="form.name.trim() || '未命名字段'" for-id="entity-field-preview" :required="form.is_required">
+            <NInput v-if="form.input_type === 'textarea' || ['text', 'json'].includes(form.value_type)" v-model:value="preview.text" :input-props="{ id: 'entity-field-preview' }" type="textarea" :autosize="{ minRows: 3, maxRows: 5 }" placeholder="在此试填" />
+            <NSelect v-else-if="form.value_type === 'multi_select'" v-model:value="preview.multiple" :input-props="{ id: 'entity-field-preview', 'aria-label': form.name || '字段试填' }" :options="previewOptions" multiple placeholder="选择预览选项" />
+            <NSelect v-else-if="['select', 'radio'].includes(form.input_type) || form.value_type === 'select'" v-model:value="preview.single" :input-props="{ id: 'entity-field-preview', 'aria-label': form.name || '字段试填' }" :options="previewOptions" clearable placeholder="选择预览选项" />
+            <div v-else-if="form.input_type === 'checkbox' && form.value_type !== 'bool'" id="entity-field-preview" class="field-preview-choices" role="group" :aria-label="form.name || '字段试填'">
+              <NCheckbox v-for="option in previewOptions" :key="option.value" :checked="preview.multiple.includes(option.value)" @update:checked="checked => preview.multiple = checked ? [...preview.multiple, option.value] : preview.multiple.filter(value => value !== option.value)">{{ option.label }}</NCheckbox>
+              <p v-if="!previewOptions.length" class="field-context-note">尚未配置选项。</p>
+            </div>
+            <LsSwitch v-else-if="form.value_type === 'bool'" id="entity-field-preview" v-model="preview.checked" :aria-label="form.name || '字段试填'" />
+            <NInputNumber v-else-if="['int', 'decimal'].includes(form.value_type)" v-model:value="preview.number" :input-props="{ id: 'entity-field-preview' }" :precision="form.value_type === 'int' ? 0 : undefined" placeholder="在此试填" />
+            <NDatePicker v-else-if="['date', 'datetime'].includes(form.value_type)" v-model:value="preview.date" :input-props="{ id: 'entity-field-preview' }" :type="form.value_type === 'date' ? 'date' : 'datetime'" clearable />
+            <NInput v-else v-model:value="preview.text" :input-props="{ id: 'entity-field-preview' }" placeholder="在此试填" />
+          </LsField>
+          <p class="field-context-note">{{ form.is_required ? '资料保存时必填' : '选填' }} · {{ valueOptions.find(option => option.value === form.value_type)?.label || form.value_type }}</p>
+        </template>
+      </LsFormSection>
+      <LsFormSection title="规则摘要" description="当前配置，保存后生效">
+        <LsDescriptionList>
+          <dt>适用对象</dt><dd>{{ previewAvailable ? typeOptions.find(option => option.value === form.entity_type)?.label : '-' }}</dd>
+          <dt>值维护范围</dt><dd>{{ previewAvailable ? managerScopeOptions.find(option => option.value === form.manager_scope)?.label : '-' }}</dd>
+          <dt>值可见范围</dt><dd>{{ previewAvailable ? visibilityOptions.find(option => option.value === form.visibility)?.label : '-' }}</dd>
+          <template v-if="previewAvailable && form.visibility === 6"><dt>指定对象</dt><dd>{{ form.visibility_target_ids.length }} 位</dd></template>
+        </LsDescriptionList>
+        <p class="field-context-note">可见范围与维护权限分别生效；公开可见仍受人员有效性与公开主页设置约束。</p>
+      </LsFormSection>
+    </template>
   </LsFormPage>
 </template>
 
 <style scoped>
+.field-context-note { margin: 0; color: var(--text-secondary); font-size: .8125rem; line-height: 1.7; }
+.field-preview-choices { display: grid; gap: .75rem; min-width: 0; }
 .field-form{display:grid;gap:1rem}.access-policy{display:grid;gap:1rem;padding:1.25rem 0 0;border-top:1px solid var(--line)}.policy-note{margin:0;padding:.75rem;color:var(--ink);background:var(--cloud);border-radius:9px;font-size:.8rem;line-height:1.55}.error{margin:0;color:var(--danger)}
 </style>
