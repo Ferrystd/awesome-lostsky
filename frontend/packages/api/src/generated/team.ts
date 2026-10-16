@@ -2493,6 +2493,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/entityField/fieldValues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List nonempty person values for a saved entity field
+         * @description Requires the same type-specific field management Permission as entityField/get. Only valid same-team persons readable under the independent team.entity.read directory scope are included. Without that permission, hidden persons and all customers are excluded. Permissions and null, empty string, empty array are filtered before counting and pagination; zero and false are preserved. Ordered by entity_id ascending.
+         */
+        get: operations["teamEntityFieldPersonValues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3826,6 +3846,16 @@ export interface components {
             list: components["schemas"]["CommunityAdministrator"][];
             page: number;
             limit: number;
+        };
+        EntityFieldPersonValue: {
+            /** Format: int64 */
+            entity_id: number;
+            slug: string;
+            name: string;
+            /** @enum {string} */
+            type: "team" | "teamMember" | "teamCustomer" | "teamVirtual";
+            /** @description Nonempty value of the saved value_type: decimal string, bool boolean, date/datetime Unix seconds; JSON preserves its original type. */
+            value: unknown;
         };
     };
     responses: never;
@@ -10621,6 +10651,51 @@ export interface operations {
             };
             /** @description 需要领取有效 Entity */
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    teamEntityFieldPersonValues: {
+        parameters: {
+            query?: {
+                id?: components["parameters"]["IdQuery"];
+                page?: components["parameters"]["Page"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Readable nonempty person values */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Envelope"] & {
+                        data?: {
+                            data: components["schemas"]["EntityFieldPersonValue"][];
+                            total: number;
+                            current_page: number;
+                            per_page: number;
+                        };
+                    };
+                };
+            };
+            /** @description Structured permission denial: missing type-specific field management permission */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Field missing or outside current team */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

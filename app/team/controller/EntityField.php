@@ -75,6 +75,25 @@ class EntityField
         return success(app(\app\service\TeamEntityField::class)->values($request->team_id, $slug));
     }
 
+    public function fieldValues(\think\Request $request)
+    {
+        $id = $request->get('id/d', 0);
+        $service = app(\app\service\TeamEntityField::class);
+        $this->assertTypePermission($request, $service->typeFor($request->team_id, $id));
+        $canReadAll = app(\app\service\PermissionGate::class)->allows(
+            $request->team_id,
+            $request->acting_entity,
+            [Permissions::TEAM_ENTITY_READ]
+        );
+        return success($service->fieldValues(
+            $request->team_id,
+            $id,
+            $request->get('page/d', 1),
+            $request->get('limit/d', 20),
+            $canReadAll
+        ));
+    }
+
     public function saveValues(\think\Request $request)
     {
         $slug = $request->post('slug/s', '');

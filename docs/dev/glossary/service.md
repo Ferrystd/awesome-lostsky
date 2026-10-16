@@ -877,6 +877,7 @@ aliases: [服务, Service]
 | `delete` | `int $teamId`、`int $id` | `void` |
 | `typeFor` | `int $teamId`、`int $id` | `string` |
 | `values` | `int $teamId`、`string $entitySlug` | `array` |
+| `fieldValues` | `int $teamId`、`int $id`、`int $page`、`int $limit`、`bool $canReadAll` | `array` |
 | `visibleFields` | `int $teamId`、`string $entityType`、`int $subjectEntityId`、`array $actingEntity`、`bool $isFieldManager = false` | `array` |
 | `visibleValues` | `int $teamId`、`int $subjectEntityId`、`string $entityType`、`array $actingEntity`、`bool $isFieldManager = false` | `array` |
 | `saveValues` | `int $teamId`、`string $entitySlug`、`array $values` | `int` |

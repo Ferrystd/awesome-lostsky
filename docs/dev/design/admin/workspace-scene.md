@@ -33,7 +33,7 @@
 | --- | --- | --- | --- |
 | `LsOverviewPage` | title/description；actions、summary、default插槽 | `frontend/apps/transaction/src/views/TeamOverviewView.vue`，`/overview` | wide |
 | `LsCollectionPage` | title/description；actions、toolbar、default、pagination插槽 | `frontend/apps/team/src/views/DocumentsView.vue`，`/docs` | wide |
-| `LsFormPage` | title/description；actions、default、footer插槽；不额外创建或接管form提交 | `frontend/apps/shop/src/views/manage/ProductFormView.vue`，`/manage/products/new` | form |
+| `LsFormPage` | title/description/asideLabel（默认“辅助信息”）；actions、default、footer、aside 插槽；不额外创建或接管form提交 | `frontend/apps/shop/src/views/manage/ProductFormView.vue`，`/manage/products/new` | form |
 | `LsDetailPage` | title/description、backTo/backLabel；actions、summary、default插槽 | `frontend/apps/team/src/views/CustomerDetailView.vue`，`/customers/:id` | content |
 | `LsCategoryPage` | title/description、items/current/label；actions、default插槽；select(key)事件；items包含key/label及可选dirty/to | `frontend/apps/team/src/views/RoleDetailView.vue`，`/roles/:id` | content |
 
@@ -103,3 +103,7 @@ Team `/join`、Shop非`/manage`公开/顾客页面及其他应用不迁移。未
 共享底座提取使用同一fixture、视口、字体与静帧条件比较黄金基准截图和DOM几何，核对shader/材质及动态参数不变；运行既有动效生命周期、面板透光、分类布局与默认主题兼容用例。避免测试服务运行时编辑触发HMR。
 
 主对话集中验证各迁移页面及模板的原数据/权限/草稿与操作流程，覆盖320—1920px、200%文字、长内容、空/加载/失败状态；精确opt-in路由与其相邻未迁移路由均验证。模板不能拥有或复制背景实例。类型检查、完整10应用静态构建、CORS契约和最多4个真实登记组件预览按项目门禁串行执行；PNG仅供人类查看，不用作Agent视觉输入。
+
+### 表单辅助上下文
+
+`LsFormPage` 的可选 `aside` 用于与表单独立读取、无需提交的辅助信息；`asideLabel` 只提供可访问名称。无侧栏时保持原有单列结构。有侧栏时容器达到 48rem 后采用 2:1 双列，否则按表单、辅助信息顺序堆叠；宽度、间距与断点只由模板持有。页面选择既有 `wide` 外部宽度，不穿透模板内部。加载、空、错误及权限由侧栏业务内容处理。无额外动效与例外。通过对象字段 E2E 的 320–1440px、200% 文本和无侧栏 SSR 契约验收。

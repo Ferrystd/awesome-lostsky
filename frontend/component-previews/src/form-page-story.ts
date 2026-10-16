@@ -1,6 +1,7 @@
 import { h } from 'vue'
 import { ArrowLeft } from '@lucide/vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
@@ -11,6 +12,7 @@ import type { StoryDefinition } from './story-types'
 
 export const formPageStory: StoryDefinition = {
   name: 'LsFormPage',
+  desktopWidth: 1100,
   supported: ['default', 'mobile'],
   reason: {
     hover: '模板没有独立悬停态，操作由插槽内组件持有。',
@@ -20,7 +22,7 @@ export const formPageStory: StoryDefinition = {
     loading: '异步状态由页面在正文中表达。',
     error: '错误与空状态由页面在正文中表达。',
   },
-  render: () => h(LsFormPage, { title: '新建商品', description: '填写商品资料后统一保存。' }, {
+  render: () => h(LsFormPage, { title: '新建商品', description: '填写商品资料后统一保存。', asideLabel: '辅助上下文' }, {
     actions: () => h(LsPageLink, { to: '/manage/products', icon: ArrowLeft, label: '返回商品' }),
     default: () => h('form', { id: 'preview-product-form', onSubmit: (event: Event) => event.preventDefault() }, [
       h(LsFormSection, { title: '基本信息' }, { default: () => [
@@ -28,6 +30,7 @@ export const formPageStory: StoryDefinition = {
         h(LsField, { label: '简短说明', forId: 'preview-product-description' }, { default: () => h(LsInput, { id: 'preview-product-description', modelValue: '按约定时间提供服务' }) }),
       ] }),
     ]),
+    aside: () => h(LsEmptyState, { title: '暂无人员填写值', description: '创建字段后，可在这里查看人员已保存的值。' }),
     footer: () => h(LsFormActions, null, { default: () => [h(LsButton, { variant: 'secondary' }, { default: () => '取消' }), h(LsButton, { type: 'submit', form: 'preview-product-form' }, { default: () => '保存商品' })] }),
   }),
 }
