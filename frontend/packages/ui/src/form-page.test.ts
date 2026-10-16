@@ -16,7 +16,7 @@ describe('LsFormPage closed presentation contract', () => {
     expect(html.indexOf('统一保存')).toBeLessThan(html.indexOf('商品字段'))
     expect(html.indexOf('商品字段')).toBeLessThan(html.indexOf('保存商品'))
     expect(html).not.toMatch(/forbidden|9999px|<main|<canvas/)
-    expect(Object.keys(LsFormPage.props ?? {}).sort()).toEqual(['description', 'title'])
+    expect(Object.keys(LsFormPage.props ?? {}).sort()).toEqual(['asideLabel', 'description', 'title'])
   })
 
   it('does not render empty optional action or footer regions', async () => {
