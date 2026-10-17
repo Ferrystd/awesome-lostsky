@@ -1136,5 +1136,25 @@
     "aliases": [
       "目录更多操作"
     ]
+  },
+  {
+    "id": "ui-lsformfields",
+    "name": "LsFormFields",
+    "source": "frontend/packages/ui/src/components/LsFormFields.vue",
+    "story": "frontend/component-previews/src/form-fields-story.ts#LsFormFields",
+    "category": "ui",
+    "aliases": [
+      "任务表单字段集合"
+    ]
+  },
+  {
+    "id": "ui-lsformcontent",
+    "name": "LsFormContent",
+    "source": "frontend/packages/ui/src/components/LsFormContent.vue",
+    "story": "frontend/component-previews/src/form-fields-story.ts#LsFormContent",
+    "category": "ui",
+    "aliases": [
+      "完整编辑内容区"
+    ]
   }
 ]

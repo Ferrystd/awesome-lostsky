@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import { formatPermissionDenied } from '@lostsky/api/error-format'
 import { quantityScaleForStep } from '@lostsky/shared/quantity'
@@ -175,52 +176,10 @@ function confirmFee() {
 }
 </script>
 <template>
-  <LsDetailPage :title="query.data.value?.service.name || '核销详情'" :description="routeAccess.restricted.value ? '#- · -' : query.data.value ? `#${query.data.value.id} · ${serviceStatusName(statusCode)}` : '正在读取'" back-to="/services" back-label="返回核销">
+  <LsDetailPage aside-label="核销任务已保存概况" :title="query.data.value?.service.name || '核销详情'" :description="routeAccess.restricted.value ? '#- · -' : query.data.value ? `#${query.data.value.id} · ${serviceStatusName(statusCode)}` : '正在读取'" back-to="/services" back-label="返回核销">
     <div class="service-task">
-      <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" /><LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取核销任务" :description="friendlyError(query.error.value)" /><template v-else-if="routeAccess.restricted.value"><LsPanel><section class="task-section"><div class="overview-heading"><LsEntityIdentity type="customer" name="-" /><LsStatusTag label="-" /></div><LsDescriptionList class="facts"><dt>任务编号</dt><dd>-</dd><dt>当前接单人</dt><dd>-</dd><dt>发单人</dt><dd>-</dd><dt>客服</dt><dd>-</dd><dt>发起时间</dt><dd>-</dd><dt>完成时间</dt><dd>-</dd><dt>履约总量</dt><dd>-</dd><dt>独立资源</dt><dd>-</dd></LsDescriptionList></section></LsPanel><LsPanel><section class="task-section"><h2>履约资源</h2><p class="hint">-</p></section></LsPanel></template><template v-else-if="query.data.value"
-        ><LsPanel>
-          <section class="task-section">
-            <div class="overview-heading">
-              <LsEntityIdentity type="customer" :name="customerName(query.data.value.customer, query.data.value.customer_id)" />
-              <LsStatusTag :label="serviceStatusName(statusCode)" :type="statusCode === 3 ? 'success' : statusCode === 2 ? 'warning' : 'default'" />
-            </div>
-            <LsDescriptionList class="facts">
-              <dt>任务编号</dt>
-              <dd>#{{ query.data.value.id }}</dd>
-              <dt>当前接单人</dt>
-              <dd>
-                {{ entityName(query.data.value.handler, query.data.value.handler_entity_id) }}
-              </dd>
-              <dt>发单人</dt>
-              <dd>{{ entityName(query.data.value.sender) }}</dd>
-              <dt>客服</dt>
-              <dd>{{ entityName(query.data.value.cs) }}</dd>
-              <dt>发起时间</dt>
-              <dd>{{ dateTime(query.data.value.started_at) }}</dd>
-              <dt>完成时间</dt>
-              <dd>{{ dateTime(query.data.value.completed_at) }}</dd>
-              <template v-if="query.data.value.settlement_kind === 'unused'">
-                <dt>结单方式</dt><dd>未使用权益自动结单</dd>
-                <dt>接单实结</dt><dd>¥{{ query.data.value.settled_handler_cut ?? '0.00' }}</dd>
-                <dt>团队实结</dt><dd>¥{{ query.data.value.settled_team_cut ?? '0.00' }}</dd>
-              </template>
-              <template v-else-if="query.data.value.completion_requested_at && statusCode === 2">
-                <dt>结单请求</dt><dd>等待顾客确认</dd>
-                <dt>确认截止</dt><dd>{{ query.data.value.completion_due_at ? dateTime(query.data.value.completion_due_at) : '须由顾客手动确认' }}</dd>
-              </template>
-              <dt>履约总量</dt>
-              <dd>
-                {{ Number(query.data.value.quantity).toFixed(quantityScale) }}
-                {{ query.data.value.entitlement?.unit_name || '单位' }}
-              </dd>
-              <dt>独立资源</dt>
-              <dd>{{ resources.length }} 份</dd>
-              <template v-if="query.data.value.memo"
-                ><dt>顾客备注</dt>
-                <dd>{{ query.data.value.memo }}</dd></template
-              >
-            </LsDescriptionList>
-          </section> </LsPanel
+      <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" /><LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取核销任务" :description="friendlyError(query.error.value)" /><template v-else-if="routeAccess.restricted.value"><LsFormSection title="履约资源"><p>-</p></LsFormSection></template><template v-else-if="query.data.value"
+        ><LsFormSection v-if="!resources.some(resource => resource.redemption_fields.length)" title="履约资料"><p>该任务没有配置额外履约字段。</p></LsFormSection
         ><LsPanel v-if="resources.some((resource) => resource.redemption_fields.length)">
           <section class="task-section">
             <div>
@@ -366,10 +325,59 @@ function confirmFee() {
         ><LsInlineError v-if="action.isError.value" :message="friendlyError(action.error.value)"
       /></template>
     </div>
+    <template #aside>
+      <LsFormSection v-if="routeAccess.restricted.value || query.isPending.value || query.isError.value || !query.data.value" title="任务概况">
+        <p v-if="routeAccess.restricted.value">暂无可查看的任务资料。</p><p v-else-if="query.isPending.value">正在读取任务…</p><p v-else-if="query.isError.value">任务读取失败。</p><p v-else>暂无任务资料。</p>
+      </LsFormSection>
+      <template v-else><LsPanel aria-label="已保存的核销任务概况">
+          <section class="task-section">
+            <div class="overview-heading">
+              <LsEntityIdentity type="customer" :name="customerName(query.data.value.customer, query.data.value.customer_id)" />
+              <LsStatusTag :label="serviceStatusName(statusCode)" :type="statusCode === 3 ? 'success' : statusCode === 2 ? 'warning' : 'default'" />
+            </div>
+            <LsDescriptionList class="facts">
+              <dt>任务编号</dt>
+              <dd>#{{ query.data.value.id }}</dd>
+              <dt>当前接单人</dt>
+              <dd>
+                {{ entityName(query.data.value.handler, query.data.value.handler_entity_id) }}
+              </dd>
+              <dt>发单人</dt>
+              <dd>{{ entityName(query.data.value.sender) }}</dd>
+              <dt>客服</dt>
+              <dd>{{ entityName(query.data.value.cs) }}</dd>
+              <dt>发起时间</dt>
+              <dd>{{ dateTime(query.data.value.started_at) }}</dd>
+              <dt>完成时间</dt>
+              <dd>{{ dateTime(query.data.value.completed_at) }}</dd>
+              <template v-if="query.data.value.settlement_kind === 'unused'">
+                <dt>结单方式</dt><dd>未使用权益自动结单</dd>
+                <dt>接单实结</dt><dd>¥{{ query.data.value.settled_handler_cut ?? '0.00' }}</dd>
+                <dt>团队实结</dt><dd>¥{{ query.data.value.settled_team_cut ?? '0.00' }}</dd>
+              </template>
+              <template v-else-if="query.data.value.completion_requested_at && statusCode === 2">
+                <dt>结单请求</dt><dd>等待顾客确认</dd>
+                <dt>确认截止</dt><dd>{{ query.data.value.completion_due_at ? dateTime(query.data.value.completion_due_at) : '须由顾客手动确认' }}</dd>
+              </template>
+              <dt>履约总量</dt>
+              <dd>
+                {{ Number(query.data.value.quantity).toFixed(quantityScale) }}
+                {{ query.data.value.entitlement?.unit_name || '单位' }}
+              </dd>
+              <dt>独立资源</dt>
+              <dd>{{ resources.length }} 份</dd>
+              <template v-if="query.data.value.memo"
+                ><dt>顾客备注</dt>
+                <dd>{{ query.data.value.memo }}</dd></template
+              >
+            </LsDescriptionList>
+          </section> </LsPanel></template>
+    </template>
   </LsDetailPage>
 </template>
 <style scoped>
 .service-task {
+  container: service-task / inline-size;
   min-width: 0;
   display: grid;
   gap: 1.5rem;
@@ -401,6 +409,7 @@ function confirmFee() {
   margin: 0;
 }
 .overview-heading {
+  flex-wrap: wrap;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -517,7 +526,7 @@ function confirmFee() {
   color: var(--muted-ink);
   font-size: 0.8rem;
 }
-@media (max-width: 680px) {
+@container service-task (max-width: 40rem) {
   .field-summary,
   .manager-fields,
   .actions,

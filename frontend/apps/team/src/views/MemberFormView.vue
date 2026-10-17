@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft, Eye, UserPlus } from '@lucide/vue'
@@ -318,7 +319,7 @@ function submit() {
 </script>
 
 <template>
-  <LsFormPage :title="editing ? '管理成员' : '添加成员'" :description="editing ? '管理成员状态、对象字段与角色权限。' : '填写对方的个人入队码，直接加入当前团队。'">
+  <LsFormPage aside-label="成员上下文" :title="editing ? '管理成员' : '添加成员'" :description="editing ? '管理成员状态、对象字段与角色权限。' : '填写对方的个人入队码，直接加入当前团队。'">
     <template #actions>
       <LsPageLink to="/members" :icon="ArrowLeft" label="返回成员列表" />
       <LsFormActions v-if="!editing">
@@ -339,8 +340,10 @@ function submit() {
     <form v-else-if="!editing" id="member-profile-form" class="member-form" @submit.prevent="submit">
       <LsPanel>
         <NFlex vertical size="large">
-        <LsField label="个人入队码" for-id="member-join-code" hint="请对方在账号的团队选择页生成入队码，30 分钟内有效，成功加入后失效。" required><LsInput id="member-join-code" v-model="form.join_code" :disabled="save.isPending.value" autocomplete="off" spellcheck="false" placeholder="粘贴对方的个人入队码" required /></LsField>
-        <LsSwitchField v-model="fillJoinForm" label="代填入职表单" description="可选。填写后随成员一并保存，无需再次审核；不代填也可直接添加成员。" :disabled="save.isPending.value || uploading" />
+        <LsFormFields>
+          <LsField v-slot="{ describedBy }" label="个人入队码" for-id="member-join-code" hint="请对方在账号的团队选择页生成入队码，30 分钟内有效，成功加入后失效。" required><LsInput :aria-describedby="describedBy" id="member-join-code" v-model="form.join_code" :disabled="save.isPending.value" autocomplete="off" spellcheck="false" placeholder="粘贴对方的个人入队码" required /></LsField>
+          <LsSwitchField v-model="fillJoinForm" label="代填入职表单" description="可选。填写后随成员一并保存，无需再次审核；不代填也可直接添加成员。" :disabled="save.isPending.value || uploading" />
+        </LsFormFields>
         <template v-if="fillJoinForm">
           <LsAsyncState v-if="joinForm.isPending.value" state="loading" aria-label="正在读取入职表单" />
           <LsInlineError v-else-if="joinForm.isError.value" :message="friendlyError(joinForm.error.value)" />
@@ -378,8 +381,10 @@ function submit() {
           ></LsSectionHeader
         >
         <form v-if="!detail.data.value.slug" class="inline-form" @submit.prevent="capabilities.member_slug && claim.mutate()">
-          <LsField label="补全对象标识" for-id="member-slug"><NInput id="member-slug" v-model:value="identityForm.slug" placeholder="例如 zhang-san" autocapitalize="none" /></LsField>
-          <LsButton type="submit" variant="secondary" :loading="claim.isPending.value" :disabled="!capabilities.member_slug || !identityForm.slug.trim()" :disabled-reason="!capabilities.member_slug ? permissionReason('team.member.update') : undefined">确认标识</LsButton>
+          <LsFormFields>
+            <LsField label="补全对象标识" for-id="member-slug"><NInput :input-props="{ id: 'member-slug' }" v-model:value="identityForm.slug" placeholder="例如 zhang-san" autocapitalize="none" /></LsField>
+          </LsFormFields>
+          <LsFormActions><LsButton type="submit" variant="secondary" :loading="claim.isPending.value" :disabled="!capabilities.member_slug || !identityForm.slug.trim()" :disabled-reason="!capabilities.member_slug ? permissionReason('team.member.update') : undefined">确认标识</LsButton></LsFormActions>
         </form>
         <div v-else class="identity-status">
           <span>对象标识</span><strong>@{{ detail.data.value.slug }}</strong
@@ -387,8 +392,10 @@ function submit() {
         </div>
 
         <form class="inline-form search-form" @submit.prevent="capabilities.member_search && saveSearch.mutate()">
-          <LsField label="成员搜索状态" for-id="member-search"><NSelect id="member-search" v-model:value="identityForm.search_override" :options="searchOptions" :disabled="!capabilities.member_search" /></LsField>
-          <LsButton type="submit" variant="secondary" :loading="saveSearch.isPending.value" :disabled="!capabilities.member_search || !detail.data.value.slug" :disabled-reason="!capabilities.member_search ? permissionReason('team.member.update') : undefined">保存搜索设置</LsButton>
+          <LsFormFields>
+            <LsField label="成员搜索状态" for-id="member-search"><NSelect id="member-search" v-model:value="identityForm.search_override" :options="searchOptions" :disabled="!capabilities.member_search" /></LsField>
+          </LsFormFields>
+          <LsFormActions><LsButton type="submit" variant="secondary" :loading="saveSearch.isPending.value" :disabled="!capabilities.member_search || !detail.data.value.slug" :disabled-reason="!capabilities.member_search ? permissionReason('team.member.update') : undefined">保存搜索设置</LsButton></LsFormActions>
         </form>
 
         <div class="management-actions">
@@ -406,6 +413,7 @@ function submit() {
         </div>
       </section>
     </LsPanel>
+  <template #aside><LsPanel v-if="!editing"><LsSectionHeader title="加入当前团队" description="通过个人入队码直接添加成员。" /><LsDescriptionList><dt>入队方式</dt><dd>入队码确认，无需再次审核</dd><dt>资料收集</dt><dd>{{ fillJoinForm ? '代填入职表单，随成员一并保存' : '直接添加成员' }}</dd><dt>身份资料</dt><dd>成功加入后查看</dd></LsDescriptionList></LsPanel><LsPanel v-else><LsSectionHeader title="成员概况" description="已保存的成员信息" /><LsDescriptionList><dt>成员</dt><dd>{{ detail.isSuccess.value ? detail.data.value?.name || detail.data.value?.nickname || '-' : '-' }}</dd><dt>对象标识</dt><dd>{{ detail.isSuccess.value ? memberSlug || '尚未设置' : '-' }}</dd><dt>状态</dt><dd>{{ detail.isSuccess.value && detail.data.value ? memberStatusLabel(detail.data.value) : '-' }}</dd><dt>对象字段</dt><dd>{{ detail.isSuccess.value ? (capabilities.field_manage ? '可维护' : '不可维护') : '-' }}</dd><dt>角色权限</dt><dd>{{ detail.isSuccess.value ? (capabilities.role_write ? '可维护' : '只读') : '-' }}</dd></LsDescriptionList></LsPanel></template>
   </LsFormPage>
 </template>
 
@@ -454,8 +462,6 @@ function submit() {
 }
 .inline-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
   gap: 12px;
 }
 .identity-status {
@@ -502,9 +508,6 @@ function submit() {
   line-height: 1.55;
 }
 @media (max-width: 680px) {
-  .inline-form {
-    grid-template-columns: 1fr;
-  }
   .identity-status {
     align-items: flex-start;
     grid-template-columns: 1fr;

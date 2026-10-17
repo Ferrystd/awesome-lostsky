@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
@@ -18,7 +22,7 @@ import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NFormItem, NInput, NInputNumber, NSelect } from 'naive-ui'
+import { NInput, NInputNumber, NSelect } from 'naive-ui'
 import type { SelectOption } from 'naive-ui'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -141,7 +145,7 @@ async function submit() {
 </script>
 
 <template>
-  <LsFormPage :title="editing ? '编辑文档' : '新建文档'" description="用可视化编辑器撰写团队文档，输入 @ 可引用团队或人员。">
+  <LsFormPage aside-label="文档发布摘要" :title="editing ? '编辑文档' : '新建文档'" description="用可视化编辑器撰写团队文档，输入 @ 可引用团队或人员。">
     <template #actions>
       <LsPageLink to="/docs" :icon="ArrowLeft" label="返回文档列表" />
     </template>
@@ -149,12 +153,14 @@ async function submit() {
     <LsInlineError v-if="detail.isError.value && !routeAccess.restricted.value" :message="friendlyError(detail.error.value)" />
     <form v-else class="document-form" @submit.prevent="submit">
       <LsFormSection title="文档内容">
-      <LsField label="标题" for-id="document-title" required><NInput id="document-title" v-model:value="form.title" placeholder="一句话说明这份文档解决什么问题" maxlength="120" show-count required /></LsField>
+      <LsFormFields>
+        <LsField label="标题" for-id="document-title" required><NInput :input-props="{ id: 'document-title' }" v-model:value="form.title" placeholder="一句话说明这份文档解决什么问题" maxlength="120" show-count required /></LsField>
 
-      <div v-if="!editing" class="field-row">
-        <LsField label="归属对象" for-id="document-entity"><LsEntitySelect id="document-entity" v-model="form.entity_id" :entities="entities.data.value ?? []" :loading="entities.isPending.value" :disabled="routeAccess.restricted.value || entities.isError.value || !entities.data.value?.length" :placeholder="routeAccess.restricted.value ? '-' : '选择归属对象'" /></LsField>
-      </div>
+        <template v-if="!editing">
+          <LsField label="归属对象" for-id="document-entity"><LsEntitySelect :input-props="{ id: 'document-entity' }" v-model="form.entity_id" :entities="entities.data.value ?? []" :loading="entities.isPending.value" :disabled="routeAccess.restricted.value || entities.isError.value || !entities.data.value?.length" :placeholder="routeAccess.restricted.value ? '-' : '选择归属对象'" /></LsField>
+        </template>
 
+      </LsFormFields>
       <section class="document-tags" aria-labelledby="document-tags-title">
         <LsSectionHeader id="document-tags-title" title="文档标签" description="用于公开页面的文档分组；标签是独立资料，无需输入 #。" />
         <LsFormList
@@ -186,7 +192,7 @@ async function submit() {
         </LsFormList>
       </section>
 
-      <NFormItem label="正文">
+      <LsFormContent title="正文">
         <LsMarkdownEditor
           v-if="routeAccess.restricted.value || !editing || detail.isSuccess.value"
           ref="editor"
@@ -197,15 +203,15 @@ async function submit() {
           :upload-disabled-reason="uploadDisabledReason"
           placeholder="开始写作，或输入 @ 引用团队与成员…"
         />
-      </NFormItem>
+      </LsFormContent>
       </LsFormSection>
 
       <LsFormSection id="document-policy-title" title="访问规则" description="归属成员时可允许本人管理；公开可见会将正文暴露给未登录访客。">
-        <div class="field-row">
+        <LsFormFields>
           <LsField label="管理范围" for-id="document-manager-scope"><NSelect id="document-manager-scope" v-model:value="form.manager_scope" :options="managerSelectOptions" /></LsField>
           <LsField label="可见范围" for-id="document-visibility"><NSelect id="document-visibility" v-model:value="form.visibility" :options="visibilitySelectOptions" /></LsField>
-          <LsField label="排序" for-id="document-sort"><NInputNumber id="document-sort" v-model:value="form.sort" :precision="0" class="control" /></LsField>
-        </div>
+          <LsField label="排序" for-id="document-sort"><NInputNumber :input-props="{ id: 'document-sort' }" v-model:value="form.sort" :precision="0" /></LsField>
+        </LsFormFields>
       </LsFormSection>
 
       <LsInlineError v-if="save.isError.value && !routeAccess.restricted.value" :message="friendlyError(save.error.value)" />
@@ -216,18 +222,12 @@ async function submit() {
         </LsButton>
       </LsFormActions>
     </form>
+  <template #aside><p v-if="editing && !(routeAccess.restricted.value) && detail.isPending.value" role="status">正在读取资料…</p><p v-else-if="editing && !(routeAccess.restricted.value) && detail.isError.value" role="status">资料暂不可用，请恢复读取后查看摘要。</p><template v-else><LsPanel><LsSectionHeader title="文档设置" description="当前草稿，保存后生效。" /><LsDescriptionList><dt>归属人员</dt><dd>{{ routeAccess.restricted.value ? '-' : (entities.data.value?.find(item => item.entity_id === form.entity_id)?.name || '尚未选择') }}</dd><dt>可见范围</dt><dd>{{ routeAccess.restricted.value ? '-' : (visibilityOptions.find(item => item.value === form.visibility)?.label || '-' ) }}</dd><dt>管理范围</dt><dd>{{ routeAccess.restricted.value ? '-' : (managerScopeOptions.find(item => item.value === form.manager_scope)?.label || '-' ) }}</dd><dt>公开分组</dt><dd>{{ routeAccess.restricted.value ? '-' : (`${form.tags.length} 个标签`) }}</dd></LsDescriptionList></LsPanel></template></template>
   </LsFormPage>
 </template>
 
 <style scoped>
 
 .document-form { display: grid; gap: 22px; }
-.field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.field-row .compact { grid-column: 1 / 2; }
-.control { width: 100%; }
 .document-tags { display: grid; gap: 16px; }
-@media (max-width: 720px) {
-  .field-row { grid-template-columns: 1fr; }
-  .field-row .compact { grid-column: auto; }
-}
 </style>

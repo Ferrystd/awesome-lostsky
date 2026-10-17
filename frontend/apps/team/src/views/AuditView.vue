@@ -86,14 +86,14 @@ const countLabel = computed(() => routeAccess.restricted.value
       <LsInlineError v-if="!routeAccess.restricted.value && catalog.isError.value" :message="`筛选选项暂时无法读取：${friendlyError(catalog.error.value)}`" />
       <p v-else-if="!routeAccess.restricted.value && catalog.isPending.value" class="audit-workspace__hint" role="status">正在读取应用与筛选选项…</p>
       <section v-if="showAdvanced" id="audit-advanced-filters" class="audit-filters" aria-label="更多审计筛选">
-        <LsField label="动作">
-          <NSelect v-model:value="filters.action" :options="actionOptions" :loading="catalog.isFetching.value" clearable filterable placeholder="全部动作" aria-label="审计动作" />
+        <LsField label="动作" for-id="audit-action">
+          <NSelect v-model:value="filters.action" :input-props="{ id: 'audit-action', 'aria-label': '审计动作' }" :options="actionOptions" :loading="catalog.isFetching.value" clearable filterable placeholder="全部动作" aria-label="审计动作" />
         </LsField>
-        <LsField label="资源">
-          <NSelect v-model:value="filters.resource_type" :options="resourceOptions" :loading="catalog.isFetching.value" clearable filterable placeholder="全部资源" aria-label="审计资源" />
+        <LsField label="资源" for-id="audit-resource">
+          <NSelect v-model:value="filters.resource_type" :input-props="{ id: 'audit-resource', 'aria-label': '审计资源' }" :options="resourceOptions" :loading="catalog.isFetching.value" clearable filterable placeholder="全部资源" aria-label="审计资源" />
         </LsField>
-        <LsField class="audit-filters__period" label="时间范围">
-          <NDatePicker v-model:value="filters.period" class="period-filter" type="datetimerange" clearable aria-label="审计时间范围" />
+        <LsField class="audit-filters__period" label="时间范围" for-id="audit-period">
+          <NDatePicker id="audit-period" v-model:value="filters.period" class="period-filter" type="datetimerange" clearable role="group" aria-label="审计时间范围" />
         </LsField>
       </section>
       <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取审计日志" :description="friendlyError(query.error.value)" />

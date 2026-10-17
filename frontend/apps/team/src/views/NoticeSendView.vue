@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
@@ -12,7 +17,7 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NCheckbox, NFormItem, NInput } from 'naive-ui'
+import { NCheckbox, NInput } from 'naive-ui'
 import { computed, reactive, ref } from 'vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { searchEntities, uploadMarkdownImage } from '../lib/markdown'
@@ -77,7 +82,7 @@ function submit() {
 </script>
 
 <template>
-  <LsFormPage title="发送通知" description="以团队名义向团队内的一位人员发送通知；发送后对方无法回复。">
+  <LsFormPage aside-label="通知发送摘要" title="发送通知" description="以团队名义向团队内的一位人员发送通知；发送后对方无法回复。">
     <template #actions>
       <LsPageLink to="/notices/sent" :icon="ArrowLeft" label="返回通知" />
     </template>
@@ -89,33 +94,35 @@ function submit() {
         <p>此为单向通知，不支持回复或会话；发送方显示为团队本身。</p>
       </section>
 
-      <LsField label="收件人员" for-id="notice-recipient" required hint="在本团队的人员中选择收件人；不会发给同名对象。">
-        <LsEntitySelect
-          :input-props="{ id: 'notice-recipient', 'aria-label': '收件人员' }"
-          v-model="form.entity_id"
-          :entities="recipients"
-          :loading="!routeAccess.restricted.value && entities.isPending.value"
-          :disabled="entities.isError.value || !recipients.length"
-          :placeholder="routeAccess.restricted.value ? '-' : '选择本 Team 内的人员'"
-        />
-      </LsField>
-      <LsInlineError v-if="entities.isError.value && !routeAccess.restricted.value" :message="`收件对象加载失败：${friendlyError(entities.error.value)}`" />
-      <p v-else-if="entities.isSuccess.value && !recipients.length" class="feedback empty" role="status">
-        当前团队还没有可接收通知的人员。
-      </p>
+      <LsFormFields>
+        <LsField v-slot="{ describedBy }" label="收件人员" for-id="notice-recipient" required hint="在本团队的人员中选择收件人；不会发给同名对象。">
+          <LsEntitySelect :aria-describedby="describedBy"
+            :input-props="{ 'aria-describedby': describedBy, id: 'notice-recipient', 'aria-label': '收件人员' }"
+            v-model="form.entity_id"
+            :entities="recipients"
+            :loading="!routeAccess.restricted.value && entities.isPending.value"
+            :disabled="entities.isError.value || !recipients.length"
+            :placeholder="routeAccess.restricted.value ? '-' : '选择本 Team 内的人员'"
+          />
+        </LsField>
+        <LsInlineError v-if="entities.isError.value && !routeAccess.restricted.value" :message="`收件对象加载失败：${friendlyError(entities.error.value)}`" />
+        <p v-else-if="entities.isSuccess.value && !recipients.length" class="feedback empty" role="status">
+          当前团队还没有可接收通知的人员。
+        </p>
 
-      <LsField label="标题" for-id="notice-title" required>
-        <NInput
-          :input-props="{ id: 'notice-title' }"
-          v-model:value="form.title"
-          maxlength="200"
-          show-count
-          placeholder="一句话说明通知事项"
-          required
-        />
-      </LsField>
+        <LsField label="标题" for-id="notice-title" required>
+          <NInput
+            :input-props="{ id: 'notice-title' }"
+            v-model:value="form.title"
+            maxlength="200"
+            show-count
+            placeholder="一句话说明通知事项"
+            required
+          />
+        </LsField>
 
-      <NFormItem label="正文">
+      </LsFormFields>
+      <LsFormContent title="正文">
         <LsMarkdownEditor
           ref="editor"
           v-model="form.content"
@@ -125,9 +132,9 @@ function submit() {
           :upload-disabled-reason="uploadDisabledReason"
           placeholder="使用 Markdown 补充背景、时间和需要收件人采取的行动；输入 @ 可引用对象"
         />
-      </NFormItem>
+      </LsFormContent>
 
-      <NFormItem label="列表位置"><NCheckbox v-model:checked="form.is_pinned">在收件人的通知列表中置顶</NCheckbox></NFormItem>
+      <LsFormFields><LsField label="列表位置" for-id="notice-pinned"><NCheckbox id="notice-pinned" v-model:checked="form.is_pinned">在收件人的通知列表中置顶</NCheckbox></LsField></LsFormFields>
       </LsFormSection>
 
       <p v-if="success" class="feedback success" role="status" aria-live="polite">{{ success }}</p>
@@ -145,6 +152,7 @@ function submit() {
         </LsButton>
       </LsFormActions>
     </form>
+  <template #aside><LsPanel><LsSectionHeader title="发送预览" description="当前草稿；确认正文和收件人后发送。" /><LsDescriptionList><dt>收件人</dt><dd>{{ routeAccess.restricted.value ? '-' : (recipients.find(item => item.entity_id === form.entity_id)?.name || '尚未选择') }}</dd><dt>标题</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.title || '尚未填写') }}</dd><dt>置顶</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.is_pinned ? '置顶显示' : '普通通知') }}</dd><dt>回复方式</dt><dd>{{ '收件人无法回复此通知' }}</dd></LsDescriptionList></LsPanel></template>
   </LsFormPage>
 </template>
 

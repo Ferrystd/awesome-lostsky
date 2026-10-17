@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
@@ -156,17 +156,11 @@ const money = (value: string) =>
 </script>
 
 <template>
-  <LsDetailPage :title="query.data.value?.name || '顾客详情'" description="查看顾客归属、余额和经营摘要；历史订单与流水保留创建时的发单归属。" back-to="/customers" back-label="返回顾客列表">
+  <LsDetailPage aside-label="顾客经营摘要" :title="query.data.value?.name || '顾客详情'" description="查看顾客归属、余额和经营摘要；历史订单与流水保留创建时的发单归属。" back-to="/customers" back-label="返回顾客列表">
       <template #actions>
         <LsPageLink :icon="MessageCircleMore" label="发起对话" :href="chatUrl" />
       </template>
-    <template v-if="query.data.value || routeAccess.restricted.value" #summary>
-      <LsMetricGrid aria-label="顾客经营摘要" :items="[
-        { key: 'balance', label: '可用余额', value: query.data.value ? money(query.data.value.balance.balance) : '-', hint: query.data.value ? `累计充值 ${money(query.data.value.balance.recharged)}` : '-' },
-        { key: 'transactions', label: '流水', value: query.data.value ? `${query.data.value.summary.transaction_count} 笔` : '-', hint: query.data.value ? money(query.data.value.summary.transaction_total) : '-' },
-        { key: 'orders', label: '订单', value: query.data.value ? `${query.data.value.summary.order_count} 笔` : '-', hint: query.data.value ? money(query.data.value.summary.order_total) : '-' },
-      ]" />
-    </template>
+
 
     <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
     <LsPanel v-if="routeAccess.restricted.value">
@@ -184,16 +178,18 @@ const money = (value: string) =>
         <template #header><LsSectionHeader title="顾客资料" :description="`@${query.data.value.slug}`"><template #aside><LsStatusTag :label="canManage ? '可维护' : '只读'" /></template></LsSectionHeader></template>
         <form @submit.prevent="save.mutate()">
           <LsInlineError v-if="assignees.isError.value" :message="friendlyError(assignees.error.value)" />
-          <LsField label="顾客昵称" for-id="customer-name"><NInput v-model:value="form.name" :input-props="{ id: 'customer-name' }" :disabled="!canManage" maxlength="50" /></LsField>
-          <LsField label="头像" for-id="customer-avatar"><LsMediaUploadField id="customer-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(avatarUploadDisabledReason)" :disabled-reason="avatarUploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
-          <LsField label="说明" for-id="customer-description"><NInput v-model:value="form.description" :input-props="{ id: 'customer-description' }" :disabled="!canManage" type="textarea" maxlength="500" /></LsField>
-          <LsField label="当前归属人" for-id="customer-assignee" hint="变更只影响之后创建的订单和流水，不修改历史发单人。">
-            <LsEntitySelect :input-props="{ id: 'customer-assignee', 'aria-label': '当前归属人' }" v-model="form.assignee_entity_id" :entities="assigneeOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" clearable placeholder="未归属" />
-          </LsField>
-          <LsField label="协作发单人" for-id="customer-senders" hint="可以选择多名协作人员；他们仍需开通记账能力并具备相应权限，才能处理该顾客的业务。">
-            <LsEntitySelect :input-props="{ id: 'customer-senders', 'aria-label': '协作发单人' }" v-model="form.sender_entity_ids" :entities="senderOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" multiple placeholder="未绑定协作发单人" />
-          </LsField>
-          <LsSwitchField v-model="form.is_blocked" label="封禁顾客" description="封禁后顾客现有身份会话不能继续使用。" :disabled="!canManage" />
+          <LsFormFields>
+            <LsField label="顾客昵称" for-id="customer-name"><NInput v-model:value="form.name" :input-props="{ id: 'customer-name' }" :disabled="!canManage" maxlength="50" /></LsField>
+            <LsField label="头像" for-id="customer-avatar"><LsMediaUploadField id="customer-avatar" v-model="form.avatar" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传头像" :disabled="avatarUploading || Boolean(avatarUploadDisabledReason)" :disabled-reason="avatarUploadDisabledReason" @uploading="avatarUploading = $event" /></LsField>
+            <LsField label="说明" for-id="customer-description"><NInput v-model:value="form.description" :input-props="{ id: 'customer-description' }" :disabled="!canManage" type="textarea" maxlength="500" /></LsField>
+            <LsField v-slot="{ describedBy }" label="当前归属人" for-id="customer-assignee" hint="变更只影响之后创建的订单和流水，不修改历史发单人。">
+              <LsEntitySelect :aria-describedby="describedBy" :input-props="{ 'aria-describedby': describedBy, id: 'customer-assignee', 'aria-label': '当前归属人' }" v-model="form.assignee_entity_id" :entities="assigneeOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" clearable placeholder="未归属" />
+            </LsField>
+            <LsField v-slot="{ describedBy }" label="协作发单人" for-id="customer-senders" hint="可以选择多名协作人员；他们仍需开通记账能力并具备相应权限，才能处理该顾客的业务。">
+              <LsEntitySelect :aria-describedby="describedBy" :input-props="{ 'aria-describedby': describedBy, id: 'customer-senders', 'aria-label': '协作发单人' }" v-model="form.sender_entity_ids" :entities="senderOptions" :loading="canManage && assignees.isPending.value" :disabled="!canManage" multiple placeholder="未绑定协作发单人" />
+            </LsField>
+            <LsSwitchField v-model="form.is_blocked" label="封禁顾客" description="封禁后顾客现有身份会话不能继续使用。" :disabled="!canManage" />
+          </LsFormFields>
           <LsFormActions
             ><LsButton type="submit" :loading="save.isPending.value" :disabled="!canManage || avatarUploading || !draft.dirty.value" :disabled-reason="!canManage ? manageReason : avatarUploading ? '请等待头像上传完成' : !draft.dirty.value ? '尚未修改顾客资料' : undefined"
               ><template #icon><Save :size="18" /></template>保存顾客资料</LsButton
@@ -202,6 +198,7 @@ const money = (value: string) =>
         </form>
       </LsPanel>
     </template>
+  <template #aside><LsPanel><LsSectionHeader title="经营摘要" description="已保存的业务数据；历史订单与流水保留创建时的归属。" /><LsDescriptionList><dt>可用余额</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : money(query.data.value.balance.balance) }}</dd><dt>累计充值</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : money(query.data.value.balance.recharged) }}</dd><dt>流水笔数</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : query.data.value.summary.transaction_count }}</dd><dt>流水总额</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : money(query.data.value.summary.transaction_total) }}</dd><dt>订单笔数</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : query.data.value.summary.order_count }}</dd><dt>订单总额</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : money(query.data.value.summary.order_total) }}</dd></LsDescriptionList></LsPanel></template>
   </LsDetailPage>
 </template>
 

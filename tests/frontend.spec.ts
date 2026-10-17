@@ -810,7 +810,7 @@ test('team entity detail atomically saves one visibility group for supported ent
     expect(new Set(uploadButtonBoxes.map((box) => Math.round(box?.width ?? -1))).size).toBe(1)
     expect(uploadButtonBoxes[0]?.width).toBeLessThanOrEqual(140)
   }
-  const mediaFields = page.locator('.entity-profile-fields > .ls-field')
+  const mediaFields = page.locator('.entity-profile-fields > .ls-form-fields > .ls-field')
   const [avatarField, introImageField, introVideoField] = await Promise.all([mediaFields.nth(1).boundingBox(), mediaFields.nth(3).boundingBox(), mediaFields.nth(4).boundingBox()])
   expect(Math.round(avatarField?.x ?? -1)).toBe(Math.round(introImageField?.x ?? -2))
   expect(Math.round(introImageField?.x ?? -1)).toBe(Math.round(introVideoField?.x ?? -2))
@@ -1522,14 +1522,16 @@ test('team customer detail reuses typed entity options for assignment and sender
   await expect(options.nth(1)).toContainText('成员')
   await expect(options.nth(3)).toContainText('虚拟人员')
   await page.keyboard.press('Escape')
+  await expect(page.locator('.ls-entity-select-menu:visible')).toHaveCount(0)
 
   await page.locator('label[for="customer-senders"]').click()
   await expect(page.getByRole('textbox', { name: '协作发单人' })).toBeFocused()
   await expect(page.locator('.ls-field').filter({ has: page.locator('label[for="customer-senders"]') })).toContainText('member-2')
   await page.locator('.ls-entity-select-menu:visible .ls-entity-select-option').nth(3).click()
+  await expect(page.locator('.ls-field').filter({ has: page.locator('label[for="customer-senders"]') }).getByText('1', { exact: true })).toBeVisible()
   await saveCustomerProfile.click()
   await expect.poll(() => customerUpdatePayload).not.toBeNull()
-  expect(customerUpdatePayload).toMatchObject({ sender_entity_ids: [3, 4] })
+  expect(customerUpdatePayload).toMatchObject({ assignee_entity_id: null, sender_entity_ids: [3, 4] })
 })
 
 test('team workspace routes remain responsive with the API boundary mocked', async ({ page }) => {

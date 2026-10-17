@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
+import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
@@ -69,8 +71,9 @@ defineExpose({ clearDraft: () => editor.value?.clearDraft() })
 
 <template>
   <div class="entity-profile-fields">
+    <LsFormFields>
     <LsField :label="nameLabel" :for-id="`${idPrefix}-name`" required>
-      <NInput :id="`${idPrefix}-name`" v-model:value="displayName" autocomplete="name" maxlength="80" show-count :disabled="disabled" />
+      <NInput :input-props="{ id: `${idPrefix}-name` }" v-model:value="displayName" autocomplete="name" maxlength="80" show-count :disabled="disabled" />
     </LsField>
     <LsField
       label="头像"
@@ -89,7 +92,7 @@ defineExpose({ clearDraft: () => editor.value?.clearDraft() })
       />
     </LsField>
     <LsField label="简短介绍" :for-id="`${idPrefix}-description`">
-      <NInput :id="`${idPrefix}-description`" v-model:value="profile.description" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" maxlength="500" show-count :disabled="disabled" />
+      <NInput :input-props="{ id: `${idPrefix}-description` }" v-model:value="profile.description" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" maxlength="500" show-count :disabled="disabled" />
     </LsField>
     <LsField
       label="介绍图片"
@@ -124,6 +127,8 @@ defineExpose({ clearDraft: () => editor.value?.clearDraft() })
         @uploading="setUploading"
       />
     </LsField>
+    </LsFormFields>
+    <LsFormContent>
     <LsField label="详细介绍" :for-id="`${idPrefix}-introduction`">
       <LsMarkdownRenderer v-if="disabled" :id="`${idPrefix}-introduction`" :content="profile.introduction_markdown || '未填写'" />
       <LsMarkdownEditor
@@ -138,9 +143,10 @@ defineExpose({ clearDraft: () => editor.value?.clearDraft() })
         placeholder="写下详细介绍，输入 @ 可引用团队或其他成员…"
       />
     </LsField>
+    </LsFormContent>
   </div>
 </template>
 
 <style scoped>
-.entity-profile-fields { display: grid; gap: 1rem; }
+.entity-profile-fields { min-width: 0; display: grid; }
 </style>

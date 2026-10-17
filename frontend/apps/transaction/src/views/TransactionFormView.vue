@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft } from '@lucide/vue'
@@ -169,10 +171,15 @@ async function submit() {
   if (submitReason.value) return feedback.info(submitReason.value)
   save.mutate()
 }
+
+const contextAvailable = computed(() => !routeAccess.restricted.value && (!editing.value || detail.isSuccess.value))
+const contextComplete = computed(() => contextAvailable.value && amountFields.every(key => typeof form[key] === 'number' && Number.isFinite(form[key]) && Number(form[key]) >= 0))
+const contextMoney = (value: number | null) => contextAvailable.value && typeof value === 'number' && Number.isFinite(value) && value >= 0 ? money(value) : '-'
+
 </script>
 
 <template>
-  <LsFormPage :title="editing ? '编辑流水' : '登记流水'" :description="editing ? '接单人创建后不可更换；修改预存款会同步生成余额变动。' : '总价需要同时与支付构成、成本及分成构成保持一致。'">
+  <LsFormPage aside-label="流水金额与顾客摘要" :title="editing ? '编辑流水' : '登记流水'" :description="editing ? '接单人创建后不可更换；修改预存款会同步生成余额变动。' : '总价需要同时与支付构成、成本及分成构成保持一致。'">
     <template #actions>
       <LsPageLink :to="editing ? `/detail?id=${id}` : personal ? '/personal/transactions' : '/'" :icon="ArrowLeft" :label="editing ? '返回流水详情' : personal ? '返回我的流水' : '返回流水列表'" />
     </template>
@@ -214,6 +221,34 @@ async function submit() {
         <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason">保存流水</LsButton>
       </LsFormActions>
     </form>
+    <template #aside>
+      <LsFormSection title="金额核对" description="当前草稿；保存后才会生效。">
+        <p v-if="routeAccess.restricted.value">暂无可查看的流水金额。</p>
+        <p v-else-if="editing && detail.isPending.value">正在读取已保存流水…</p>
+        <p v-else-if="editing && detail.isError.value">流水读取失败，暂不展示金额摘要。</p>
+        <template v-else>
+          <LsDescriptionList>
+            <dt>总价</dt><dd>{{ contextMoney(form.total_price) }}</dd>
+            <dt>现款</dt><dd>{{ contextMoney(form.cash) }}</dd>
+            <dt>预存款</dt><dd>{{ contextMoney(form.prepaid) }}</dd>
+            <dt>支付合计</dt><dd>{{ contextComplete ? money(paymentTotal) : '-' }}</dd>
+            <dt>成本及分成</dt><dd>{{ contextComplete ? money(allocationTotal) : '-' }}</dd>
+          </LsDescriptionList>
+          <LsStatusTag v-if="!contextComplete || !balanced" :label="contextComplete ? '金额未平衡' : '金额待补全'" type="warning" />
+        </template>
+      </LsFormSection>
+      <LsFormSection title="顾客余额" description="来自当前已读取的顾客资料。">
+        <p v-if="routeAccess.restricted.value">暂无可查看的顾客资料。</p>
+        <p v-else-if="optionsQuery.isPending.value">正在读取顾客资料…</p>
+        <p v-else-if="optionsQuery.isError.value">顾客资料读取失败。</p>
+        <LsDescriptionList v-else-if="selectedCustomer">
+          <dt>顾客</dt><dd>{{ customerName(selectedCustomer, selectedCustomer.id) }}</dd>
+          <dt>当前余额</dt><dd>{{ selectedCustomer.balance?.balance != null ? money(balance) : '-' }}</dd>
+          <dt>本次预存款</dt><dd>{{ contextMoney(form.prepaid) }}</dd>
+        </LsDescriptionList>
+        <p v-else>选择顾客后显示余额。</p>
+      </LsFormSection>
+    </template>
   </LsFormPage>
 </template>
 

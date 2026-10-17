@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft, ArrowUpRight } from '@lucide/vue'
@@ -158,10 +159,14 @@ async function submit() {
     submitting.value = false
   }
 }
+
+const contextPayload = computed(() => pending.value?.payload ?? form)
+const contextProduct = computed(() => products.value.find(item => Number(item.id) === contextPayload.value.product_id))
+
 </script>
 
 <template>
-  <LsFormPage :title="personal ? '下发顾客权益' : '赋予顾客权益'" :description="personal ? '授予顾客可核销的权益，视同顾客下单核销商品；全程不产生商城订单。' : '按权益套餐的内容把权益直接交付给顾客；不创建商城订单。'">
+  <LsFormPage aside-label="权益发放核对" :title="personal ? '下发顾客权益' : '赋予顾客权益'" :description="personal ? '授予顾客可核销的权益，视同顾客下单核销商品；全程不产生商城订单。' : '按权益套餐的内容把权益直接交付给顾客；不创建商城订单。'">
     <template #actions>
       <LsPageLink :to="personal ? '/personal/entitlements' : '/services'" :icon="ArrowLeft" :label="personal ? '返回权益下发' : '返回权益核销'" />
     </template>
@@ -213,6 +218,20 @@ async function submit() {
         <LsButton type="submit" :loading="submitting" :disabled="Boolean(submitDisabledReason)" :disabled-reason="submitDisabledReason">{{ pending ? '重试确认结果' : personal ? '下发权益' : '确认提交' }}</LsButton>
       </LsFormActions>
     </form>
+    <template #aside>
+      <LsFormSection title="发放核对" :description="pending ? '本次待确认操作的固定内容。' : '当前草稿；提交后才会发放。'">
+        <p v-if="routeAccess.restricted.value">暂无可查看的权益资料。</p>
+        <p v-else-if="!pending && options.isPending.value">正在读取权益套餐…</p>
+        <p v-else-if="!pending && options.isError.value">权益套餐读取失败。</p>
+        <LsDescriptionList v-else>
+          <dt>商品</dt><dd>{{ contextProduct?.name || (contextPayload.product_id ? '商品 #' + contextPayload.product_id : '尚未选择') }}</dd>
+          <dt>顾客</dt><dd>{{ customerOptions(options.data.value).find(item => Number(item.value) === contextPayload.customer_id)?.label || (contextPayload.customer_id ? '顾客 #' + contextPayload.customer_id : '尚未选择') }}</dd>
+          <dt>份数</dt><dd>{{ contextPayload.quantity ?? '-' }}</dd>
+          <dt>商城订单</dt><dd>不创建</dd>
+          <dt>同步收款</dt><dd>{{ pending ? '以本次发放确认结果为准' : options.data.value ? (options.data.value.sync_transaction ? '同步权益包收款流水' : '只赋予权益') : '待核对' }}</dd>
+        </LsDescriptionList>
+      </LsFormSection>
+    </template>
   </LsFormPage>
 </template>
 

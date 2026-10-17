@@ -283,7 +283,7 @@ describe('后台设计系统组件契约', () => {
   })
 
   it('LsField 固定控件轨道并阻止提示文字拉开相邻控件', async () => {
-    expect(Object.keys((LsField as any).props).sort()).toEqual(['error', 'forId', 'hint', 'label', 'required'])
+    expect(Object.keys((LsField as any).props).sort()).toEqual(['description', 'error', 'forId', 'hint', 'label', 'readOnly', 'required'])
     const html = await render(
       LsField,
       { label: '授予额度', forId: 'quantity', hint: '单位：次；最小步长 1' },

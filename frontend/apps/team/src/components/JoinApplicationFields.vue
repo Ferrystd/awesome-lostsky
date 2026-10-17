@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import { computed, ref } from 'vue'
-import { NCheckbox, NCheckboxGroup, NDatePicker, NFlex, NInput, NRadioButton, NRadioGroup, NSelect } from 'naive-ui'
+import { NCheckbox, NCheckboxGroup, NDatePicker, NInput, NRadioButton, NRadioGroup, NSelect } from 'naive-ui'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
@@ -52,7 +53,7 @@ async function upload(field: JoinField, event: Event) {
 }
 </script>
 <template>
-  <NFlex vertical size="large" class="join-application-fields">
+  <div class="join-application-fields"><LsFormFields>
       <LsField v-for="field in fields" :key="keyOf(field)" :label="field.name || field.field_key || '入职字段'" :required="Boolean(field.is_apply_required)" :for-id="`join-field-${keyOf(field)}`">
         <NInput :input-props="{ id: `join-field-${keyOf(field)}`, 'aria-label': field.name || field.field_key }" :disabled="disabled" v-if="field.input_type === 'textarea'" :value="String(values[keyOf(field)] ?? '')" type="textarea" :autosize="{ minRows: 4, maxRows: 8 }" @update:value="value => update(field, value)" />
         <NSelect :id="`join-field-${keyOf(field)}`" :disabled="disabled" v-else-if="field.input_type === 'select'" :value="String(values[keyOf(field)] ?? '') || null" :options="choices(field)" placeholder="请选择" @update:value="value => update(field, value)" />
@@ -64,7 +65,7 @@ async function upload(field: JoinField, event: Event) {
       </LsField>
 
     <LsInlineError v-if="uploadError" :message="uploadError" />
-  </NFlex>
+  </LsFormFields></div>
 </template>
 <style scoped>
 .choices{display:flex;flex-wrap:wrap;gap:.5rem}.choices :deep(.n-radio-button),.choices :deep(.n-checkbox){min-height:44px}

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { api, auth, friendlyError } from '@lostsky/api/client'
@@ -6,7 +7,6 @@ import { quantityScaleForStep } from '@lostsky/shared/quantity'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
-import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
@@ -135,28 +135,11 @@ const completeTask = () => {
 </script>
 
 <template>
-  <LsDetailPage :title="row?.service?.name || '接单任务'" :description="kind === 'offer' ? '顾客指定邀请' : kind === 'available' ? '公开接单任务' : '我的接单任务'" back-to="/personal/services" back-label="返回接单工作台">
+  <LsDetailPage aside-label="个人接单任务概况" :title="row?.service?.name || '接单任务'" :description="kind === 'offer' ? '顾客指定邀请' : kind === 'available' ? '公开接单任务' : '我的接单任务'" back-to="/personal/services" back-label="返回接单工作台">
     <div class="personal-task-page">
       <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
       <LsAsyncState v-else-if="query.isError.value" state="error" title="无法读取任务" :description="friendlyError(query.error.value)" />
       <LsPanel v-else-if="row" class="task-panel">
-        <div class="task-overview">
-          <div class="overview-heading">
-            <LsEntityIdentity type="customer" :name="customerName" />
-            <div class="state-cluster">
-              <div><span>接单</span><LsStatusTag :label="claimStatus.label" :type="claimStatus.type" /></div>
-              <div><span>核销</span><LsStatusTag :label="redemptionStatus.label" :type="redemptionStatus.type" /></div>
-            </div>
-          </div>
-          <dl class="summary-strip">
-            <div><dt>任务编号</dt><dd>#{{ row.id }}</dd></div>
-            <div><dt>履约数量</dt><dd>{{ quantityLabel }}</dd></div>
-            <div><dt>{{ row.settlement_kind === 'unused' ? '接单实结' : '预计分成' }}</dt><dd>{{ money(row.settlement_kind === 'unused' ? row.settled_handler_cut ?? 0 : row.handler_cut) }}</dd></div>
-            <div><dt>任务来源</dt><dd>{{ taskSource }}</dd></div>
-            <div><dt>接单人</dt><dd>{{ handlerName }}</dd></div>
-          </dl>
-        </div>
-
         <section v-if="kind === 'available'" class="claim-quantity-section">
           <LsField label="本次接单数量" for-id="claim-quantity" required :hint="`最多可接 ${quantityLabel}；每个最小步长是一份独立履约资源。`">
             <NInputNumber id="claim-quantity" v-model:value="claimQuantity" :min="quantityStep" :max="maxQuantity" :step="quantityStep" :precision="quantityScale" />
@@ -202,12 +185,29 @@ const completeTask = () => {
         <p v-if="action.isError.value" class="error" role="alert">{{ friendlyError(action.error.value) }}</p>
       </LsPanel>
     </div>
+    <template #aside>
+      <LsFormSection title="任务概况" description="已保存的任务信息；接单数量与资料在主区确认。">
+        <p v-if="query.isPending.value">正在读取任务…</p>
+        <p v-else-if="query.isError.value">任务读取失败。</p>
+        <LsDescriptionList v-else-if="row">
+          <dt>顾客</dt><dd>{{ customerName }}</dd>
+          <dt>接单状态</dt><dd><LsStatusTag :label="claimStatus.label" :type="claimStatus.type" /></dd>
+          <dt>核销状态</dt><dd><LsStatusTag :label="redemptionStatus.label" :type="redemptionStatus.type" /></dd>
+          <dt>任务编号</dt><dd>#{{ row.id }}</dd>
+          <dt>履约数量</dt><dd>{{ quantityLabel }}</dd>
+          <dt>{{ row.settlement_kind === 'unused' ? '接单实结' : '预计分成' }}</dt><dd>{{ money(row.settlement_kind === 'unused' ? row.settled_handler_cut ?? 0 : row.handler_cut) }}</dd>
+          <dt>任务来源</dt><dd>{{ taskSource }}</dd>
+          <dt>接单人</dt><dd>{{ handlerName }}</dd>
+        </LsDescriptionList>
+        <p v-else>暂无任务资料。</p>
+      </LsFormSection>
+    </template>
   </LsDetailPage>
 </template>
 
 <style scoped>
-.personal-task-page{min-width:0;display:grid;gap:1.5rem}.task-panel{display:grid;gap:0}.task-overview{display:grid;gap:1.25rem;padding-bottom:1.5rem}.overview-heading{display:flex;align-items:center;justify-content:space-between;gap:1.5rem}.state-cluster{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap}.state-cluster>div{display:flex;align-items:center;gap:.5rem}.state-cluster span{color:var(--muted-ink);font-size:.78rem}.summary-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin:0;overflow:hidden;background:var(--surface-subtle);border-radius:var(--radius-sm)}.summary-strip>div{min-width:0;padding:1rem}.summary-strip>div+div{border-left:1px solid var(--line)}.summary-strip dt{color:var(--muted-ink);font-size:.75rem}.summary-strip dd{margin:.3rem 0 0;font-size:.92rem;font-weight:650;line-height:1.4;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.claim-quantity-section{padding:1.25rem 0;border-top:1px solid var(--line)}.resource-list{display:grid}.resource-item{display:grid;gap:1rem;padding:1.25rem 0;border-top:1px solid var(--line)}.resource-heading h2,.resource-heading p{margin:0}.resource-heading h2{font-size:1rem}.resource-heading p{margin-top:.25rem;color:var(--muted-ink);font-size:.8rem}.field-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;border:1px solid var(--line);border-radius:var(--radius-sm)}.field-pane{min-width:0;display:grid;align-content:start;gap:1rem;padding:1.5rem}.field-pane+ .field-pane{border-left:1px solid var(--line)}.detail-heading{display:grid;gap:.25rem}.detail-heading h3,.detail-heading p,.task-panel p{margin:0}.detail-heading h3{font-size:.95rem}.detail-heading p,.empty{color:var(--muted-ink);font-size:.8rem;line-height:1.5}.memo-block{display:grid;gap:.35rem;padding:1rem 0;border-top:1px solid var(--line)}.memo-block strong{font-size:.82rem}.memo-block p{line-height:1.65;overflow-wrap:anywhere}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.5rem;margin-top:.25rem}.task-actions{padding:1.25rem 0;border-top:1px solid var(--line)}.completion-section{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:1rem;padding:1.25rem 0;border-bottom:1px solid var(--line)}.return-form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:1rem;padding:1.25rem 0}.completed-section{padding:1.25rem 0}.completed-section>div{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;padding:1rem;background:var(--surface-subtle);border-radius:var(--radius-sm)}.completed-section strong{font-size:.95rem}.completed-section p{width:100%;color:var(--muted-ink);font-size:.84rem}.error{margin:1rem 0 0;color:var(--danger)}
-@media(max-width:960px){.summary-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.summary-strip>div:nth-child(4){border-left:0}.summary-strip>div:nth-child(n+4){border-top:1px solid var(--line)}}
-@media(max-width:760px){.overview-heading{align-items:flex-start;flex-direction:column;gap:1rem}.summary-strip{grid-template-columns:1fr}.summary-strip>div+div,.summary-strip>div:nth-child(4){border-top:1px solid var(--line);border-left:0}.field-columns{grid-template-columns:1fr}.field-pane+ .field-pane{border-top:1px solid var(--line);border-left:0}.field-pane{padding:1.25rem 0}.completion-section,.return-form{grid-template-columns:1fr}.actions{display:grid;grid-template-columns:1fr}.actions>*{width:100%}.completion-section>:last-child,.return-form>:last-child{width:100%}}
-@media(max-width:420px){.state-cluster{align-items:flex-start;flex-direction:column;gap:.65rem}}
+.personal-task-page{container: personal-task / inline-size;min-width:0;display:grid;gap:1.5rem}.task-panel{display:grid;gap:0}.claim-quantity-section{padding:1.25rem 0;border-top:1px solid var(--line)}.resource-list{display:grid}.resource-item{display:grid;gap:1rem;padding:1.25rem 0;border-top:1px solid var(--line)}.resource-heading h2,.resource-heading p{margin:0}.resource-heading h2{font-size:1rem}.resource-heading p{margin-top:.25rem;color:var(--muted-ink);font-size:.8rem}.field-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;border:1px solid var(--line);border-radius:var(--radius-sm)}.field-pane{min-width:0;display:grid;align-content:start;gap:1rem;padding:1.5rem}.field-pane+ .field-pane{border-left:1px solid var(--line)}.detail-heading{display:grid;gap:.25rem}.detail-heading h3,.detail-heading p,.task-panel p{margin:0}.detail-heading h3{font-size:.95rem}.detail-heading p,.empty{color:var(--muted-ink);font-size:.8rem;line-height:1.5}.memo-block{display:grid;gap:.35rem;padding:1rem 0;border-top:1px solid var(--line)}.memo-block strong{font-size:.82rem}.memo-block p{line-height:1.65;overflow-wrap:anywhere}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.5rem;margin-top:.25rem}.task-actions{padding:1.25rem 0;border-top:1px solid var(--line)}.completion-section{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:1rem;padding:1.25rem 0;border-bottom:1px solid var(--line)}.return-form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:1rem;padding:1.25rem 0}.completed-section{padding:1.25rem 0}.completed-section>div{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;padding:1rem;background:var(--surface-subtle);border-radius:var(--radius-sm)}.completed-section strong{font-size:.95rem}.completed-section p{width:100%;color:var(--muted-ink);font-size:.84rem}.error{margin:1rem 0 0;color:var(--danger)}
+
+@container personal-task (max-width: 40rem){.field-columns{grid-template-columns:1fr}.field-pane+ .field-pane{border-top:1px solid var(--line);border-left:0}.field-pane{padding:1.25rem 0}.completion-section,.return-form{grid-template-columns:1fr}.actions{display:grid;grid-template-columns:1fr}.actions>*{width:100%}.completion-section>:last-child,.return-form>:last-child{width:100%}}
+
 </style>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
@@ -8,10 +10,8 @@ import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
@@ -137,17 +137,7 @@ function entityTypeLabel(type: EntityType) {
 </script>
 
 <template>
-  <div class="entity-roles">
-      <LsPageHeader
-        title="人员角色分配"
-        description="人员被授予角色后，获取角色的权限，方可执行特定的业务。"
-      >
-        <template #actions>
-          <LsPageLink to="/roles" :icon="ArrowLeft" label="返回角色列表" />
-          <LsSceneMotionControl />
-        </template>
-      </LsPageHeader>
-
+  <LsFormPage title="人员角色分配" description="人员被授予角色后，获取角色的权限，方可执行特定的业务。" aside-label="人员授权摘要"><template #actions><LsPageLink to="/roles" :icon="ArrowLeft" label="返回角色列表" /></template>
       <LsPanel>
         <template #header><LsSectionHeader title="搜索人员" description="输入名称或 slug 查看带类型与全局标识的候选；也可直接提交准确 slug 查找未公开搜索的人员。" /></template>
         <form class="lookup" @submit.prevent="submit">
@@ -196,10 +186,11 @@ function entityTypeLabel(type: EntityType) {
         </NEmpty>
       </section></LsPanel>
       <LsEmptyState v-else :access-reason="routeAccess.reason.value" title="尚未选择人员" description="输入人员 slug 后，可查看归属并分配角色。" />
-  </div>
+    <template #aside><LsPanel><LsSectionHeader title="授权对象" description="当前选择；角色更改在保存分配后生效。" /><LsDescriptionList><dt>人员</dt><dd>{{ routeAccess.restricted.value ? '-' : selectedEntity?.name || '尚未选择' }}</dd><dt>人员类型</dt><dd>{{ !routeAccess.restricted.value && selectedEntity ? entityTypeLabel(selectedEntity.type) : '-' }}</dd><dt>所属团队</dt><dd>{{ routeAccess.restricted.value ? '-' : selectedEntity?.team?.name || '-' }}</dd><dt>已选角色</dt><dd>{{ routeAccess.restricted.value || !selectedEntity ? '-' : roleIds.length }}</dd></LsDescriptionList></LsPanel></template>
+  </LsFormPage>
 </template>
 
 <style scoped>
-.entity-roles{min-width:0;display:grid;gap:1.5rem}.lookup{min-width:0;display:grid;gap:.5rem}.lookup label{font-size:.875rem;font-weight:650}.lookup-control{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.75rem}.assignment{min-width:0;display:grid;gap:1.25rem}.assignment>header{min-width:0;display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:start;gap:.75rem;padding-bottom:1rem;border-bottom:1px solid var(--line)}.assignment>header>svg{color:var(--primary)}.assignment h3,.assignment p,.assignment small{margin:0;overflow-wrap:anywhere}.assignment>header h3{font-size:1rem}.assignment>header p,.assignment>header small{display:block;margin-top:.2rem;color:var(--text-secondary);font-size:.8125rem}.assignment-status{min-width:0}
+.lookup{min-width:0;display:grid;gap:.5rem}.lookup label{font-size:.875rem;font-weight:650}.lookup-control{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:.75rem}.assignment{min-width:0;display:grid;gap:1.25rem}.assignment>header{min-width:0;display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:start;gap:.75rem;padding-bottom:1rem;border-bottom:1px solid var(--line)}.assignment>header>svg{color:var(--primary)}.assignment h3,.assignment p,.assignment small{margin:0;overflow-wrap:anywhere}.assignment>header h3{font-size:1rem}.assignment>header p,.assignment>header small{display:block;margin-top:.2rem;color:var(--text-secondary);font-size:.8125rem}.assignment-status{min-width:0}
 @media(max-width:639px){.lookup-control{grid-template-columns:1fr}.assignment>header{grid-template-columns:24px minmax(0,1fr)}.assignment-status{grid-column:2;justify-self:start}}
 </style>

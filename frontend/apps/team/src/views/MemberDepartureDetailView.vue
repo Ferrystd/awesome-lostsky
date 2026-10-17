@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
@@ -42,7 +43,7 @@ function dateTime(value: unknown): string {
 </script>
 
 <template>
-  <LsDetailPage title="审核离队申请" :description="id ? `申请 #${id}` : '缺少申请编号'" back-to="/departure-review" back-label="返回离队审核">
+  <LsDetailPage aside-label="离队申请记录" title="审核离队申请" :description="id ? `申请 #${id}` : '缺少申请编号'" back-to="/departure-review" back-label="返回离队审核">
       <template v-if="detail" #actions><LsStatusTag :label="String(detail.status_label || detail.status_code || detail.status)" /></template>
     <div class="departure-detail">
       <LsInlineError v-if="!id" message="缺少有效的离队申请编号。" />
@@ -50,13 +51,14 @@ function dateTime(value: unknown): string {
       <LsAsyncState v-else-if="query.isPending.value && !routeAccess.restricted.value" state="loading" :rows="5" />
       <template v-else-if="detail || routeAccess.restricted.value">
         <LsPanel><LsSectionHeader eyebrow="目标成员" :title="String(routeAccess.restricted.value ? '-' : member?.nickname || member?.name || `成员 #${detail?.member_id}`)" :description="routeAccess.restricted.value ? '-' : `@${member?.slug || '尚无 slug'} · ${member?.status_label || '正常'}`" /></LsPanel>
-        <LsPanel><dl><div><dt>发起人员</dt><dd>{{ routeAccess.restricted.value ? '-' : (detail?.requester as Record<string, unknown> | undefined)?.name || `人员 #${detail?.requester_entity_id}` }}</dd></div><div><dt>申请时间</dt><dd>{{ routeAccess.restricted.value ? '-' : dateTime(detail?.create_time) }}</dd></div><div><dt>决定人员</dt><dd>{{ routeAccess.restricted.value ? '-' : (detail?.decision_entity as Record<string, unknown> | undefined)?.name || '尚未决定' }}</dd></div><div><dt>决定时间</dt><dd>{{ routeAccess.restricted.value ? '-' : dateTime(detail?.decided_at) }}</dd></div></dl></LsPanel>
+
         <LsPanel v-if="routeAccess.restricted.value || detail?.status_code === 'applied'"><section class="decision"><LsSectionHeader title="审核决定" description="批准后成员进入已离队状态，现有会话立即失效；资料、角色与业务关系保持不变。" /><div><LsButton :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="action.isPending.value" @click="decide('/memberDeparture/approve', '确认批准该离队申请？')"><template #icon><Check :size="17" /></template>批准离队</LsButton><LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="action.isPending.value" @click="decide('/memberDeparture/reject', '确认拒绝该离队申请？')"><template #icon><X :size="17" /></template>拒绝申请</LsButton></div></section></LsPanel>
       </template>
     </div>
+  <template #aside><LsPanel><LsSectionHeader title="申请记录" description="已保存的申请与决定信息" /><LsDescriptionList><dt>发起人员</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value ? '-' : (detail?.requester as Record<string, unknown> | undefined)?.name || (detail?.requester_entity_id ? `人员 #${detail.requester_entity_id}` : '未记录') }}</dd><dt>申请时间</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value ? '-' : dateTime(detail?.create_time) }}</dd><dt>决定人员</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value ? '-' : (detail?.decision_entity as Record<string, unknown> | undefined)?.name || '尚未决定' }}</dd><dt>决定时间</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value ? '-' : dateTime(detail?.decided_at) }}</dd></LsDescriptionList></LsPanel></template>
   </LsDetailPage>
 </template>
 
 <style scoped>
-.departure-detail{display:grid;gap:1.5rem}dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:0}dl>div{padding:1rem;background:var(--surface-subtle);border-radius:10px}dt{color:var(--muted-ink);font-size:.78rem}dd{margin:.35rem 0 0;overflow-wrap:anywhere}.decision{display:flex;align-items:center;justify-content:space-between;gap:1rem}.decision>div:last-child{display:flex;flex-wrap:wrap;gap:.75rem}@media(max-width:639px){dl{grid-template-columns:1fr}.decision{align-items:stretch;flex-direction:column}.decision>div:last-child{display:grid}}
+.departure-detail{display:grid;gap:1.5rem}.decision{display:flex;align-items:center;justify-content:space-between;gap:1rem}.decision>div:last-child{display:flex;flex-wrap:wrap;gap:.75rem}@media(max-width:639px){.decision{align-items:stretch;flex-direction:column}.decision>div:last-child{display:grid}}
 </style>

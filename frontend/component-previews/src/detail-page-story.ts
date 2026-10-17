@@ -12,7 +12,7 @@ import { previewStates, type StoryDefinition } from './story-types'
 
 export const detailPageStory: StoryDefinition = {
   name: 'LsDetailPage',
-  desktopWidth: 900,
+  desktopWidth: 1024,
   supported: [...previewStates],
   render: state => h(NConfigProvider, workspaceSceneProviderProps(true), { default: () => h(LsDetailPage, {
     title: '青空顾客',
@@ -20,6 +20,7 @@ export const detailPageStory: StoryDefinition = {
     backTo: '/customers',
     backLabel: '返回顾客列表',
   }, {
+    aside: () => h(LsPanel, null, { default: () => [h('h2', '已保存的经营摘要'), h(LsDescriptionList, null, { default: () => [h('dt', '所属人员'), h('dd', '青空成员'), h('dt', '公开范围'), h('dd', '团队内部可见，保存后生效')] })] }),
     actions: () => h(LsPageLink, { icon: MessageCircleMore, label: '发起对话', href: 'https://chat.lostsky.work/new?participant=customer-518' }),
     summary: state === 'loading' || state === 'error' ? undefined : () => h(LsMetricGrid, { items: [
       { key: 'balance', label: '可用余额', value: '¥ 1,280.00', hint: '累计充值 ¥ 2,000.00' },

@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
@@ -133,22 +136,15 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
       </LsPanel>
       <LsInlineError v-if="query.isError.value" :message="friendlyError(query.error.value)" />
     </template>
-    <template v-else>
-      <LsPageHeader :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的人员；切换身份后会自动重新核对。">
-        <template #actions>
-          <LsPageLink to="/personal" :icon="ArrowLeft" label="返回个人概览" />
-          <MemberSelfDeparture v-if="section === 'profile' && query.data.value?.identity.type === 'teamMember'" />
-          <LsSceneMotionControl />
-        </template>
-      </LsPageHeader>
+    <LsDetailPage v-else :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的人员；切换身份后会自动重新核对。" back-to="/personal" back-label="返回个人概览" aside-label="当前人员身份">
+      <template #actions><MemberSelfDeparture v-if="section === 'profile' && query.data.value?.identity.type === 'teamMember'" /></template>
       <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
       <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取当前人员" :description="friendlyError(query.error.value)" />
       <template v-else-if="query.data.value">
       <form v-if="section === 'profile'" class="profile-form" @submit.prevent="saveProfile.mutate()">
         <LsPanel>
           <template #header><LsSectionHeader title="个人资料" /></template>
-          <div class="identity-summary"><LsEntityIdentity :type="query.data.value.identity.type" :name="query.data.value.identity.name" :slug="query.data.value.identity.slug || ''" :image-url="query.data.value.profile.avatar" fallback="initial" /><small>所属团队：{{ query.data.value.identity.team.name }}</small></div>
-          <div v-if="!query.data.value.identity.slug" class="slug-field"><LsField label="对象标识" for-id="personal-slug"><NInput v-model:value="form.slug" :input-props="{ id: 'personal-slug' }" placeholder="首次确认后不可修改" /></LsField></div>
+          <div v-if="!query.data.value.identity.slug" class="slug-field"><LsFormFields><LsField label="对象标识" for-id="personal-slug"><NInput v-model:value="form.slug" :input-props="{ id: 'personal-slug' }" placeholder="首次确认后不可修改" /></LsField></LsFormFields></div>
           <EntityProfileFields ref="editor" v-model="profileModel" v-model:uploading="uploading" draft-key="personal-profile" id-prefix="personal-profile" :upload-file="uploadFileUrl" :upload-disabled-reason="uploadDisabledReason" />
           <LsInlineError v-if="saveProfile.isError.value" :message="friendlyError(saveProfile.error.value)" />
           <template #footer><LsFormActions><LsButton type="submit" :loading="saveProfile.isPending.value" :disabled="!draft.dirty.value || uploading || !form.name.trim() || (!query.data.value.identity.slug && !form.slug.trim())"><template #icon><Save :size="17" /></template>保存资料</LsButton></LsFormActions></template>
@@ -157,10 +153,11 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
       <EntityFieldsCard v-if="section === 'fields'" :fields="query.data.value.custom_fields" :stored-values="query.data.value.custom_field_values" mode="self" :saving="saveFields.isPending.value" :error="saveFields.error.value" :upload-disabled-reason="uploadDisabledReason" :key="draftKey()" :success="saveFields.isSuccess.value" @dirty="fieldsDirty = $event" @save="saveFields.mutate" />
       <EntityPermissionsCard v-else-if="section === 'access'" :assignments="query.data.value.role_assignments" :roles="roles" :effective-permissions="query.data.value.effective_permissions" />
       </template>
-    </template>
+      <template #aside><LsPanel><LsSectionHeader title="当前身份" description="已保存的身份与授权信息" /><template v-if="query.isSuccess.value && query.data.value"><LsEntityIdentity :type="query.data.value.identity.type" :name="query.data.value.identity.name" :slug="query.data.value.identity.slug || ''" :image-url="query.data.value.profile.avatar" fallback="initial" /><LsDescriptionList><dt>所属团队</dt><dd>{{ query.data.value.identity.team.name }}</dd><dt>角色</dt><dd>{{ roles.length }} 个</dd><dt>有效权限</dt><dd>{{ query.data.value.effective_permissions?.length ?? 0 }} 项</dd></LsDescriptionList></template><p v-else>当前身份暂不可用。</p></LsPanel></template>
+    </LsDetailPage>
   </div>
 </template>
 
 <style scoped>
-.personal-view,.profile-form{min-width:0;display:grid;gap:1.5rem}.identity-summary{min-width:0;display:grid;gap:.65rem;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}.identity-summary>small{color:var(--text-secondary);font-size:.8125rem;overflow-wrap:anywhere}.slug-field{margin-bottom:1rem}.personal-entries{min-width:0;display:grid}.personal-entry{min-width:0;padding:.75rem 0}.personal-entry:first-child{padding-top:0}.personal-entry:last-child{padding-bottom:0}.personal-entry+.personal-entry{border-top:1px solid var(--border)}.personal-entry p,.scope-note{margin:0;color:var(--text-secondary);font-size:.8125rem;line-height:1.6;overflow-wrap:anywhere}
+.personal-view,.profile-form{min-width:0;display:grid;gap:1.5rem}.slug-field{margin-bottom:1rem}.personal-entries{min-width:0;display:grid}.personal-entry{min-width:0;padding:.75rem 0}.personal-entry:first-child{padding-top:0}.personal-entry:last-child{padding-bottom:0}.personal-entry+.personal-entry{border-top:1px solid var(--border)}.personal-entry p,.scope-note{margin:0;color:var(--text-secondary);font-size:.8125rem;line-height:1.6;overflow-wrap:anywhere}
 </style>

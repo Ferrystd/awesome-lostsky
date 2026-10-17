@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
+import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft, KeyRound, RotateCw, Trash2 } from '@lucide/vue'
@@ -159,7 +163,7 @@ function rotateCredentials() {
 </script>
 
 <template>
-  <LsFormPage :title="editing ? '编辑 Webhook 集成' : '创建 Webhook 集成'" :description="`该集成仅代表 @${slug}，只能向这个虚拟人员已参与的会话发送消息。`">
+  <LsFormPage aside-label="Webhook 上下文" :title="editing ? '编辑 Webhook 集成' : '创建 Webhook 集成'" :description="`该集成仅代表 @${slug}，只能向这个虚拟人员已参与的会话发送消息。`">
     <template #actions>
       <LsPageLink :to="{ path: '/chat-virtual', query: { slug } }" :icon="ArrowLeft" label="返回虚拟人员" />
       <template v-if="editing">
@@ -171,10 +175,14 @@ function rotateCredentials() {
 
       <p v-if="detail.isError.value && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(detail.error.value) }}</p>
       <LsPanel v-else><form class="integration-form" @submit.prevent="submit">
-        <LsField label="集成名称" for-id="integration-name"><NInput :input-props="{ id: 'integration-name' }" v-model:value="form.name" maxlength="50" placeholder="CRM 工作流" /></LsField>
-        <LsField label="HTTPS Webhook 地址" for-id="integration-endpoint"><NInput :input-props="{ id: 'integration-endpoint' }" v-model:value="form.endpoint_url" maxlength="1000" placeholder="https://example.com/lostsky/events" /></LsField>
-        <LsCheckboxGroupField v-model="form.events" label="订阅事件" :options="eventOptions" />
-        <LsSwitchField v-if="editing" v-model="form.is_active" label="启用集成" description="停用后不再接收事件，也不能使用 API Token 发送消息。" />
+        <LsFormFields>
+          <LsField label="集成名称" for-id="integration-name"><NInput :input-props="{ id: 'integration-name' }" v-model:value="form.name" maxlength="50" placeholder="CRM 工作流" /></LsField>
+          <LsField label="HTTPS Webhook 地址" for-id="integration-endpoint"><NInput :input-props="{ id: 'integration-endpoint' }" v-model:value="form.endpoint_url" maxlength="1000" placeholder="https://example.com/lostsky/events" /></LsField>
+        </LsFormFields>
+        <LsFormContent><LsCheckboxGroupField v-model="form.events" label="订阅事件" :options="eventOptions" /></LsFormContent>
+        <LsFormFields>
+          <LsSwitchField v-if="editing" v-model="form.is_active" label="启用集成" description="停用后不再接收事件，也不能使用 API Token 发送消息。" />
+        </LsFormFields>
         <p v-if="(save.isError.value || rotate.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">
           {{ friendlyError(save.error.value || rotate.error.value || remove.error.value) }}
         </p>
@@ -195,6 +203,7 @@ function rotateCredentials() {
           <small>明文只在创建或轮换后显示一次。</small>
         </div>
       </div></LsPanel>
+  <template #aside><p v-if="Boolean(slug) && !(routeAccess.restricted.value) && detail.isPending.value" role="status">正在读取资料…</p><p v-else-if="Boolean(slug) && !(routeAccess.restricted.value) && detail.isError.value" role="status">资料暂不可用，请恢复读取后查看摘要。</p><template v-else><LsPanel><LsSectionHeader title="集成草稿" description="仅代表所属虚拟人员，保存后生效。" /><LsDescriptionList><dt>所属人员</dt><dd>{{ routeAccess.restricted.value ? '-' : (detail.data.value?.name || slug || '-') }}</dd><dt>集成名称</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.name || '尚未填写') }}</dd><dt>订阅事件</dt><dd>{{ routeAccess.restricted.value ? '-' : (`${form.events.length} 项`) }}</dd><dt>启用状态</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.is_active ? '启用' : '停用') }}</dd></LsDescriptionList></LsPanel></template></template>
   </LsFormPage>
 </template>
 

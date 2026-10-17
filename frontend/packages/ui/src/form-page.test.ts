@@ -16,7 +16,7 @@ describe('LsFormPage closed presentation contract', () => {
     expect(html.indexOf('统一保存')).toBeLessThan(html.indexOf('商品字段'))
     expect(html.indexOf('商品字段')).toBeLessThan(html.indexOf('保存商品'))
     expect(html).not.toMatch(/forbidden|9999px|<main|<canvas/)
-    expect(Object.keys(LsFormPage.props ?? {}).sort()).toEqual(['description', 'title'])
+    expect(Object.keys(LsFormPage.props ?? {}).sort()).toEqual(['asideLabel', 'description', 'title'])
   })
 
   it('does not render empty optional action or footer regions', async () => {
@@ -26,3 +26,11 @@ describe('LsFormPage closed presentation contract', () => {
     expect(html).not.toContain('<form')
   })
 })
+
+it('keeps footer in the main track before the named complementary area', async () => {
+ const html = await renderToString(createSSRApp({ render: () => h(LsFormPage, { title: '表单', asideLabel: '草稿摘要' }, { default: () => h('input', { id: 'field' }), footer: () => h('button', '保存'), aside: () => h('p', '未提交草稿') }) }));
+ expect(html).toContain('aria-label="草稿摘要"');
+ expect(html.indexOf('保存')).toBeLessThan(html.indexOf('<aside'));
+ expect(html).toContain('page-context__main');
+ expect(html.match(/<aside/g)).toHaveLength(1);
+});
