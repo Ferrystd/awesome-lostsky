@@ -10,7 +10,7 @@ import PreviewHost from './PreviewHost.vue'
 import { adminSession } from '../../apps/admin/src/session'
 
 const id = new URLSearchParams(location.search).get('id') || ''
-const auroraScene = ['team-category-layout', 'team-category-navigation', 'team-settings-group', 'team-notice-row', 'ui-ls-list-toolbar', 'ui-ls-button', 'ui-ls-form-actions', 'lsobjectdirectory', 'lsdirectoryidentity', 'lsdirectoryactions'].includes(id)
+const auroraScene = ['ls-single-panel-page', 'team-category-layout', 'team-category-navigation', 'team-settings-group', 'team-notice-row', 'ui-ls-list-toolbar', 'ui-ls-button', 'ui-ls-form-actions', 'lsobjectdirectory', 'lsdirectoryidentity', 'lsdirectoryactions'].includes(id)
 if (id.startsWith('admin-')) await import('../../apps/admin/src/app.css')
 else if (id.startsWith('display-')) await import('../../apps/display/src/app.css')
 else if (id.startsWith('shop-')) {
