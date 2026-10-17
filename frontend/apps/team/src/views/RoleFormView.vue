@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
@@ -39,7 +41,7 @@ function submit() {
 </script>
 
 <template>
-  <LsFormPage title="新建角色" description="填写角色资料并创建；创建后进入角色页面设置权限。">
+  <LsFormPage aside-label="角色创建摘要" title="新建角色" description="填写角色资料并创建；创建后进入角色页面设置权限。">
     <template #actions>
       <LsPageLink to="/roles" :icon="ArrowLeft" label="返回角色与权限" />
     </template>
@@ -68,6 +70,7 @@ function submit() {
           </LsButton>
         </LsFormActions>
       </form></LsPanel>
+  <template #aside><LsPanel><LsSectionHeader title="角色草稿" description="创建后进入角色页面配置权限。" /><LsDescriptionList><dt>角色名称</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.name || '尚未填写') }}</dd><dt>角色标识</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.role_key || '尚未填写') }}</dd><dt>公开展示</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.is_displayed ? '展示角色名称和说明' : '不展示') }}</dd><dt>权限</dt><dd>{{ '创建时不额外授予权限' }}</dd></LsDescriptionList></LsPanel></template>
   </LsFormPage>
 </template>
 

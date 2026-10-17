@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import LsPageHeader from './LsPageHeader.vue'
+import PageContextLayout from './internal/PageContextLayout.vue'
 import LsSceneMotionControl from './LsSceneMotionControl.vue'
 import { useWorkspaceScene } from '../workspace-scene'
 const { available } = useWorkspaceScene()
 
 defineOptions({ inheritAttrs: false })
-defineProps<{ title: string; description?: string }>()
-defineSlots<{ actions?(): unknown; default?(): unknown; footer?(): unknown }>()
+defineProps<{ title: string; description?: string; asideLabel?: string }>()
+defineSlots<{ actions?(): unknown; default?(): unknown; footer?(): unknown; aside?(): unknown }>()
 </script>
 
 <template>
@@ -14,8 +15,15 @@ defineSlots<{ actions?(): unknown; default?(): unknown; footer?(): unknown }>()
     <LsPageHeader :title="title" :description="description">
       <template v-if="$slots.actions || available" #actions><slot name="actions" /><LsSceneMotionControl /></template>
     </LsPageHeader>
-    <div class="ls-form-page__body"><slot /></div>
-    <div v-if="$slots.footer" class="ls-form-page__footer"><slot name="footer" /></div>
+    <PageContextLayout v-if="$slots.aside" :aside-label="asideLabel">
+      <div class="ls-form-page__body"><slot /></div>
+      <div v-if="$slots.footer" class="ls-form-page__footer"><slot name="footer" /></div>
+      <template #aside><slot name="aside" /></template>
+    </PageContextLayout>
+    <template v-else>
+      <div class="ls-form-page__body"><slot /></div>
+      <div v-if="$slots.footer" class="ls-form-page__footer"><slot name="footer" /></div>
+    </template>
   </div>
 </template>
 

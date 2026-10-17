@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
@@ -220,7 +221,7 @@ async function submitProfile() {
 </script>
 
 <template>
-  <LsDetailPage :title="canManage ? '管理人员资料' : '查看人员资料'" description="团队内可见、全局搜索和公开主页是三套互相独立的展示范围。" back-to="/entities" back-label="返回人员">
+  <LsDetailPage aside-label="人员身份与展示范围" :title="canManage ? '管理人员资料' : '查看人员资料'" description="团队内可见、全局搜索和公开主页是三套互相独立的展示范围。" back-to="/entities" back-label="返回人员">
       <template #actions>
         <LsPageLink v-if="chatUrl" :icon="MessageCircleMore" label="发起对话" :href="chatUrl" />
       </template>
@@ -294,6 +295,7 @@ async function submitProfile() {
         >
       </template>
     </div>
+  <template #aside><LsPanel><LsSectionHeader title="已保存的人员资料" description="资料与可见性分别保存。" /><LsDescriptionList><dt>人员类型</dt><dd>{{ detail.isSuccess.value ? entityTypeLabel : '-' }}</dd><dt>标识</dt><dd>{{ detail.isSuccess.value ? detail.data.value?.slug || '-' : '-' }}</dd><dt>团队内可见</dt><dd>{{ detail.isSuccess.value ? detail.data.value?.is_internal_visible ? '可见' : '不可见' : '-' }}</dd><dt>公开主页</dt><dd>{{ detail.isSuccess.value ? detail.data.value?.is_displayed ? '展示' : '不展示' : '-'  }}</dd></LsDescriptionList></LsPanel></template>
   </LsDetailPage>
 </template>
 

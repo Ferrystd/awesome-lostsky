@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
@@ -79,7 +82,7 @@ function submit() {
 </script>
 
 <template>
-  <LsFormPage title="发送通知" description="以团队名义向团队内的一位人员发送通知；发送后对方无法回复。">
+  <LsFormPage aside-label="通知发送摘要" title="发送通知" description="以团队名义向团队内的一位人员发送通知；发送后对方无法回复。">
     <template #actions>
       <LsPageLink to="/notices/sent" :icon="ArrowLeft" label="返回通知" />
     </template>
@@ -149,6 +152,7 @@ function submit() {
         </LsButton>
       </LsFormActions>
     </form>
+  <template #aside><LsPanel><LsSectionHeader title="发送预览" description="当前草稿；确认正文和收件人后发送。" /><LsDescriptionList><dt>收件人</dt><dd>{{ routeAccess.restricted.value ? '-' : (recipients.find(item => item.entity_id === form.entity_id)?.name || '尚未选择') }}</dd><dt>标题</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.title || '尚未填写') }}</dd><dt>置顶</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.is_pinned ? '置顶显示' : '普通通知') }}</dd><dt>回复方式</dt><dd>{{ '收件人无法回复此通知' }}</dd></LsDescriptionList></LsPanel></template>
   </LsFormPage>
 </template>
 

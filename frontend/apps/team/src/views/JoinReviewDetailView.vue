@@ -60,7 +60,7 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
 </script>
 
 <template>
-  <LsDetailPage :title="`审核${detail?.purpose_label || '加入'}申请`" :description="reviewId ? `申请 #${reviewId}` : '缺少申请编号'" back-to="/join-review" back-label="返回申请列表">
+  <LsDetailPage aside-label="申请审核进度" :title="`审核${detail?.purpose_label || '加入'}申请`" :description="reviewId ? `申请 #${reviewId}` : '缺少申请编号'" back-to="/join-review" back-label="返回申请列表">
         <template v-if="detail" #actions><LsStatusTag :label="String(detail.purpose_label || '加入')" type="info" /><LsStatusTag :label="String(detail.status_label || detail.status)" :type="statusType(detail.status_label || detail.status)" /></template>
     <div class="join-review-detail-page">
       <LsInlineError v-if="!reviewId" message="缺少有效的申请编号，请返回列表重新选择。" />
@@ -91,6 +91,7 @@ function statusType(value: unknown): 'success' | 'error' | 'warning' | 'info' { 
         <template #footer><div class="modal-actions"><LsButton variant="secondary" @click="rejectOpen = false">取消</LsButton><LsButton variant="danger" :disabled="!rejectMemo.trim()" @click="submitReject">确认拒绝</LsButton></div></template>
       </NModal>
     </div>
+  <template #aside><LsPanel><LsSectionHeader title="审核概况" description="已保存的申请状态与任务结果。" /><LsDescriptionList><dt>申请类型</dt><dd>{{ routeAccess.restricted.value || !detailQuery.isSuccess.value ? '-' : (detail?.purpose_label || '-') }}</dd><dt>审核状态</dt><dd>{{ routeAccess.restricted.value || !detailQuery.isSuccess.value ? '-' : (detail?.status_label || detail?.status || '-') }}</dd><dt>已完成任务</dt><dd>{{ routeAccess.restricted.value || !detailQuery.isSuccess.value ? '-' : `${[...taskStatuses.values()].filter(value => value === 1).length} / ${taskStatuses.size}` }}</dd></LsDescriptionList></LsPanel></template>
   </LsDetailPage>
 </template>
 

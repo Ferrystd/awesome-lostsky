@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
@@ -51,7 +52,7 @@ function joinedAt(value: unknown) {
 </script>
 
 <template>
-  <LsDetailPage
+  <LsDetailPage aside-label="成员入队信息"
       title="成员详情"
       :description="memberId ? `成员 #${memberId} 的公开介绍和团队对象字段预览。` : '缺少成员编号'"
       back-to="/members"
@@ -78,24 +79,7 @@ function joinedAt(value: unknown) {
         <strong>{{ memberStatusLabel(member.data.value) }}</strong>
       </section></LsPanel>
 
-      <LsPanel v-if="member.data.value"><section class="membership" aria-labelledby="membership-title">
-        <LsSectionHeader id="membership-title" title="成员信息" />
-        <dl>
-          <div>
-            <dt>加入时间</dt>
-            <dd><time>{{ joinedAt(member.data.value.create_time) }}</time></dd>
-          </div>
-          <div>
-            <dt>邀请人</dt>
-            <dd v-if="inviter">
-              <strong>{{ inviter.name }}</strong>
-              <span>@{{ inviter.slug }}</span>
-              <small v-if="inviter.team">{{ inviter.is_external ? '来自其他团队 · ' : '' }}{{ (inviter.team as Record<string, unknown>).name }}</small>
-            </dd>
-            <dd v-else>未记录</dd>
-          </div>
-        </dl>
-      </section></LsPanel>
+
 
       <LsPanel v-if="introduction"><section class="introduction" aria-labelledby="member-introduction-title">
         <LsSectionHeader id="member-introduction-title" title="详细介绍" />
@@ -104,6 +88,7 @@ function joinedAt(value: unknown) {
 
       <EntityFieldsCard :fields="fields" :stored-values="fieldValues" mode="readonly" />
     </div>
+  <template #aside><LsPanel><LsSectionHeader title="成员信息" description="已保存的入队记录。" /><LsDescriptionList><dt>加入时间</dt><dd>{{ member.isSuccess.value ? joinedAt(member.data.value?.create_time) : '-' }}</dd><dt>邀请人</dt><dd>{{ member.isSuccess.value ? inviter?.name || '未记录' : '-' }}</dd><dt>邀请人标识</dt><dd>{{ member.isSuccess.value ? inviter?.slug || '未记录' : '-' }}</dd><template v-if="member.isSuccess.value && inviter?.team"><dt>邀请人团队</dt><dd>{{ inviter.is_external ? '来自其他团队 · ' : '' }}{{ (inviter.team as Record<string, unknown>).name }}</dd></template></LsDescriptionList></LsPanel></template>
   </LsDetailPage>
 </template>
 
@@ -115,12 +100,6 @@ function joinedAt(value: unknown) {
 .identity small,.identity p{color:var(--text-secondary)}
 .identity h2,.identity p{margin:0}.identity h2{font-size:1.125rem}.identity p{margin-top:.3rem;line-height:1.6}
 .identity>strong{color:var(--text-secondary);font-size:.8rem}
-.introduction,.membership{min-width:0;display:grid;gap:1rem}
-.membership dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0}
-.membership dl>div{display:grid;gap:.35rem;padding:.25rem 1rem .25rem 0}
-.membership dl>div+div{padding-left:1rem;border-left:1px solid var(--border)}
-.membership dt{color:var(--text-secondary);font-size:.78rem}
-.membership dd{display:grid;gap:.15rem;margin:0;overflow-wrap:anywhere}
-.membership dd span,.membership dd small{color:var(--text-secondary);font-size:.8rem}
-@media(max-width:639px){.identity{grid-template-columns:56px minmax(0,1fr)}.avatar{width:56px;height:56px}.identity>strong{grid-column:1/-1;justify-self:start}.membership dl{grid-template-columns:1fr}.membership dl>div{padding:.25rem 0}.membership dl>div+div{padding-top:1rem;padding-left:0;border-top:1px solid var(--border);border-left:0}}
+.introduction{min-width:0;display:grid;gap:1rem}
+@media(max-width:639px){.identity{grid-template-columns:56px minmax(0,1fr)}.avatar{width:56px;height:56px}.identity>strong{grid-column:1/-1;justify-self:start}}
 </style>

@@ -1,3 +1,5 @@
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import { h } from 'vue'
 import { ArrowLeft } from '@lucide/vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
@@ -11,6 +13,7 @@ import type { StoryDefinition } from './story-types'
 
 export const formPageStory: StoryDefinition = {
   name: 'LsFormPage',
+  desktopWidth: 1024,
   supported: ['default', 'mobile'],
   reason: {
     hover: '模板没有独立悬停态，操作由插槽内组件持有。',
@@ -21,6 +24,7 @@ export const formPageStory: StoryDefinition = {
     error: '错误与空状态由页面在正文中表达。',
   },
   render: () => h(LsFormPage, { title: '新建商品', description: '填写商品资料后统一保存。' }, {
+    aside: () => h(LsPanel, null, { default: () => [h('h2', '当前草稿'), h(LsDescriptionList, null, { default: () => [h('dt', '所属人员'), h('dd', '青空成员'), h('dt', '公开范围'), h('dd', '团队内部可见，保存后生效')] })] }),
     actions: () => h(LsPageLink, { to: '/manage/products', icon: ArrowLeft, label: '返回商品' }),
     default: () => h('form', { id: 'preview-product-form', onSubmit: (event: Event) => event.preventDefault() }, [
       h(LsFormSection, { title: '基本信息' }, { default: () => [

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
@@ -226,7 +227,7 @@ function deleteField() {
 </script>
 
 <template>
-  <LsFormPage :title="editing ? (canWrite ? '编辑申请字段' : '查看申请字段') : '创建申请字段'" description="字段标识创建后保持不变；停用字段不会出现在新的加入申请表中。">
+  <LsFormPage aside-label="申请字段规则" :title="editing ? (canWrite ? '编辑申请字段' : '查看申请字段') : '创建申请字段'" description="字段标识创建后保持不变；停用字段不会出现在新的加入申请表中。">
     <template #actions>
       <LsPageLink to="/join-fields" :icon="ArrowLeft" label="返回申请字段" />
     </template>
@@ -302,6 +303,7 @@ function deleteField() {
         <LsButton v-if="editing" type="button" variant="danger" :loading="remove.isPending.value" :disabled="!canWrite" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined" @click="deleteField">删除字段</LsButton>
       </LsFormActions>
     </form></LsPanel>
+  <template #aside><p v-if="editing && !(!canRead) && fieldsQuery.isPending.value" role="status">正在读取字段…</p><p v-else-if="editing && !(!canRead) && fieldsQuery.isError.value" role="status">资料暂不可用，请恢复读取后查看摘要。</p><template v-else><LsPanel><LsSectionHeader title="申请表规则" description="当前草稿；历史申请资料保持原样。" /><LsDescriptionList><dt>字段名称</dt><dd>{{ !canRead ? '-' : (form.name || '尚未填写') }}</dd><dt>启用状态</dt><dd>{{ !canRead ? '-' : (form.is_active ? '用于新的申请' : '已停用') }}</dd><dt>申请人填写</dt><dd>{{ !canRead ? '-' : (!form.is_apply_fillable ? '不可填写' : form.is_apply_required ? '必填' : '选填') }}</dd><dt>审批后转存</dt><dd>{{ !canRead ? '-' : (form.is_transfer_entity_field ? transferSelectOptions.find(item => item.value === form.entity_field_id)?.label || '尚未选择目标字段' : '不转存') }}</dd></LsDescriptionList></LsPanel></template></template>
   </LsFormPage>
 </template>
 

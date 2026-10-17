@@ -319,7 +319,7 @@ function submit() {
 </script>
 
 <template>
-  <LsFormPage :title="editing ? '管理成员' : '添加成员'" :description="editing ? '管理成员状态、对象字段与角色权限。' : '填写对方的个人入队码，直接加入当前团队。'">
+  <LsFormPage aside-label="成员上下文" :title="editing ? '管理成员' : '添加成员'" :description="editing ? '管理成员状态、对象字段与角色权限。' : '填写对方的个人入队码，直接加入当前团队。'">
     <template #actions>
       <LsPageLink to="/members" :icon="ArrowLeft" label="返回成员列表" />
       <LsFormActions v-if="!editing">
@@ -413,6 +413,7 @@ function submit() {
         </div>
       </section>
     </LsPanel>
+  <template #aside><LsPanel v-if="!editing"><LsSectionHeader title="加入当前团队" description="通过个人入队码直接添加成员。" /><LsDescriptionList><dt>入队方式</dt><dd>入队码确认，无需再次审核</dd><dt>资料收集</dt><dd>{{ fillJoinForm ? '代填入职表单，随成员一并保存' : '直接添加成员' }}</dd><dt>身份资料</dt><dd>成功加入后查看</dd></LsDescriptionList></LsPanel><LsPanel v-else><LsSectionHeader title="成员概况" description="已保存的成员信息" /><LsDescriptionList><dt>成员</dt><dd>{{ detail.isSuccess.value ? detail.data.value?.name || detail.data.value?.nickname || '-' : '-' }}</dd><dt>对象标识</dt><dd>{{ detail.isSuccess.value ? memberSlug || '尚未设置' : '-' }}</dd><dt>状态</dt><dd>{{ detail.isSuccess.value && detail.data.value ? memberStatusLabel(detail.data.value) : '-' }}</dd><dt>对象字段</dt><dd>{{ detail.isSuccess.value ? (capabilities.field_manage ? '可维护' : '不可维护') : '-' }}</dd><dt>角色权限</dt><dd>{{ detail.isSuccess.value ? (capabilities.role_write ? '可维护' : '只读') : '-' }}</dd></LsDescriptionList></LsPanel></template>
   </LsFormPage>
 </template>
 

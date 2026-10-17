@@ -165,3 +165,17 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 `LsMarkdownEditor` 的可视编辑、源码、引用候选及工具状态使用现有不透明 `--surface` 与文字令牌，保持密集编辑内容对比度；普通面板仍沿用已认可透光材质。默认浅色不变。
 
 `LsDashboardPath` 与 `TeamShareLinks` 的纯导航复用 `LsPageLink`；说明留在链接旁，复制等命令保留原按钮。
+
+<a id="page-context-columns"></a>
+
+## 页面主辅内容区
+
+独立编辑、对象详情与审核页可将操作放在主区、相关上下文放在右栏。`LsFormPage` 与 `LsDetailPage` 共同暴露可选 `aside` 插槽及 `asideLabel?: string`（默认“辅助信息”）；没有插槽时保留原单列。Form 的 default/footer 在主区，Detail 的 summary 在两栏之前，标题和操作保持页头。
+
+内部 `PageContextLayout` 是唯一布局所有者：内容容器达到 48rem 时以 2:1 分栏、间距 1.5rem，不足时主区后接右栏。没有比例、尺寸、sticky、颜色等参数，不建立独立滚动区。页面路由接入后通常由 form 升为 content；原字段行仍依据自己的容量响应。
+
+右栏采用现有面板和描述列表，显示既有查询结果、明确标注的未提交草稿或隔离的本地试填。保存、审核决定及敏感凭据留在主任务区；不新增接口或保存动作。请求加载、错误、权限受限时不能把默认零或正常状态当成真实结果，也不能显示失去读取权的缓存。
+
+`LsDescriptionList` 的标签和值由组件自身容器决定：宽于 28rem 保持双列，更窄时依次堆叠。该规则作用于所有调用方，不由右栏父组件覆盖。
+
+Team 实际路由、分组理由和具名保留项见[迁移清单](../../plans/page-context-columns-team.md)，商品与记账见[业务清单](../../plans/page-context-columns-commerce.md)。角色权限已有分类双栏，不增加第三栏；列表、分类工作区、总览与前台不自动接入。

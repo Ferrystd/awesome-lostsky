@@ -64,3 +64,11 @@ describe('LsDetailPage closed composition contract', () => {
     expect(app.match(/<TeamScene\s/g)).toHaveLength(1)
   })
 })
+
+it('keeps the full-width summary before main and aside and exposes only semantic props', async () => {
+ const html = await renderToString(createSSRApp({ render: () => h(LsDetailPage, { title: '对象', asideLabel: '记录摘要' }, { summary: () => h('p', '对象身份'), default: () => h('form', '编辑资料'), aside: () => h('p', '已保存记录') }) }));
+ expect(html.indexOf('对象身份')).toBeLessThan(html.indexOf('page-context__columns'));
+ expect(html.indexOf('编辑资料')).toBeLessThan(html.indexOf('<aside'));
+ expect(html).toContain('aria-label="记录摘要"');
+ expect(Object.keys(LsDetailPage.props ?? {}).sort()).toEqual(['asideLabel','backLabel','backTo','description','title']);
+});

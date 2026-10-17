@@ -33,8 +33,8 @@
 | --- | --- | --- | --- |
 | `LsOverviewPage` | title/description；actions、summary、default插槽 | `frontend/apps/transaction/src/views/TeamOverviewView.vue`，`/overview` | wide |
 | `LsCollectionPage` | title/description；actions、toolbar、default、pagination插槽 | `frontend/apps/team/src/views/DocumentsView.vue`，`/docs` | wide |
-| `LsFormPage` | title/description；actions、default、footer插槽；不额外创建或接管form提交 | `frontend/apps/shop/src/views/manage/ProductFormView.vue`，`/manage/products/new` | form |
-| `LsDetailPage` | title/description、backTo/backLabel；actions、summary、default插槽 | `frontend/apps/team/src/views/CustomerDetailView.vue`，`/customers/:id` | content |
+| `LsFormPage` | title/description/asideLabel；actions、default、footer、aside插槽；不额外创建或接管form提交 | `frontend/apps/shop/src/views/manage/ProductFormView.vue`，`/manage/products/new` | content（未接入右栏可使用 form） |
+| `LsDetailPage` | title/description/asideLabel、backTo/backLabel；actions、summary、default、aside插槽 | `frontend/apps/team/src/views/CustomerDetailView.vue`，`/customers/:id` | content |
 | `LsCategoryPage` | title/description、items/current/label；actions、default插槽；select(key)事件；items包含key/label及可选dirty/to | `frontend/apps/team/src/views/RoleDetailView.vue`，`/roles/:id` | content |
 
 原代表页不再是迁移数量上限，以下完整文件归属取代“一个模板＋一个样板”限制。同源文件的不同路由只能由一个对话负责，保留原拓扑、权限、完整草稿和保存边界，不强行改造成另一类页面。不得修改已认可的 Settings/Notices 来完成迁移。

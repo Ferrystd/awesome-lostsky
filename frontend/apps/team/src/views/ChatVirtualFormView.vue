@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
@@ -100,7 +101,7 @@ function submit() {
 </script>
 
 <template>
-  <LsFormPage :title="editing ? '编辑虚拟人员' : '创建虚拟人员'" description="您需要为虚拟人员设置标识。">
+  <LsFormPage aside-label="虚拟人员摘要" :title="editing ? '编辑虚拟人员' : '创建虚拟人员'" description="您需要为虚拟人员设置标识。">
     <template #actions>
       <LsPageLink to="/chat-virtuals" :icon="ArrowLeft" label="返回虚拟人员" />
       <template v-if="editing"><LsButton variant="danger" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteVirtual"><Trash2 :size="16" />删除人员</LsButton></template>
@@ -126,6 +127,7 @@ function submit() {
           <LsEmptyState v-else :source="detail.data.value?.integrations" title="还没有集成" description="创建后会一次性显示 API Token 与签名密钥。" />
         </LsPanel>
       </template>
+  <template #aside><p v-if="editing && !(routeAccess.restricted.value) && detail.isPending.value" role="status">正在读取资料…</p><p v-else-if="editing && !(routeAccess.restricted.value) && detail.isError.value" role="status">资料暂不可用，请恢复读取后查看摘要。</p><template v-else><LsPanel><LsSectionHeader title="当前草稿" description="保存后生效；现有集成保持独立配置。" /><LsDescriptionList><dt>名称</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.name || '尚未填写') }}</dd><dt>标识</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.slug || slug || '尚未填写') }}</dd><dt>状态</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.is_active ? '启用' : '停用') }}</dd><dt>已有集成</dt><dd>{{ routeAccess.restricted.value || (editing && !detail.isSuccess.value) ? '-' : (detail.data.value?.integrations?.length ?? 0) }}</dd></LsDescriptionList></LsPanel></template></template>
   </LsFormPage>
 </template>
 

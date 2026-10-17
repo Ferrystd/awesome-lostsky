@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
-import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
@@ -157,17 +156,11 @@ const money = (value: string) =>
 </script>
 
 <template>
-  <LsDetailPage :title="query.data.value?.name || '顾客详情'" description="查看顾客归属、余额和经营摘要；历史订单与流水保留创建时的发单归属。" back-to="/customers" back-label="返回顾客列表">
+  <LsDetailPage aside-label="顾客经营摘要" :title="query.data.value?.name || '顾客详情'" description="查看顾客归属、余额和经营摘要；历史订单与流水保留创建时的发单归属。" back-to="/customers" back-label="返回顾客列表">
       <template #actions>
         <LsPageLink :icon="MessageCircleMore" label="发起对话" :href="chatUrl" />
       </template>
-    <template v-if="query.data.value || routeAccess.restricted.value" #summary>
-      <LsMetricGrid aria-label="顾客经营摘要" :items="[
-        { key: 'balance', label: '可用余额', value: query.data.value ? money(query.data.value.balance.balance) : '-', hint: query.data.value ? `累计充值 ${money(query.data.value.balance.recharged)}` : '-' },
-        { key: 'transactions', label: '流水', value: query.data.value ? `${query.data.value.summary.transaction_count} 笔` : '-', hint: query.data.value ? money(query.data.value.summary.transaction_total) : '-' },
-        { key: 'orders', label: '订单', value: query.data.value ? `${query.data.value.summary.order_count} 笔` : '-', hint: query.data.value ? money(query.data.value.summary.order_total) : '-' },
-      ]" />
-    </template>
+
 
     <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
     <LsPanel v-if="routeAccess.restricted.value">
@@ -205,6 +198,7 @@ const money = (value: string) =>
         </form>
       </LsPanel>
     </template>
+  <template #aside><LsPanel><LsSectionHeader title="经营摘要" description="已保存的业务数据；历史订单与流水保留创建时的归属。" /><LsDescriptionList><dt>可用余额</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : money(query.data.value.balance.balance) }}</dd><dt>累计充值</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : money(query.data.value.balance.recharged) }}</dd><dt>流水笔数</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : query.data.value.summary.transaction_count }}</dd><dt>流水总额</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : money(query.data.value.summary.transaction_total) }}</dd><dt>订单笔数</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : query.data.value.summary.order_count }}</dd><dt>订单总额</dt><dd>{{ routeAccess.restricted.value || !query.isSuccess.value || !query.data.value ? '-' : money(query.data.value.summary.order_total) }}</dd></LsDescriptionList></LsPanel></template>
   </LsDetailPage>
 </template>
 

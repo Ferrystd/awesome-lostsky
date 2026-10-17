@@ -354,3 +354,7 @@ Team 普通编辑字段使用 `LsFormFields`，每行由公共组件按实际容
 ### Account 团队选择标题
 
 `/teams` 使用 `LsPageHeader` 呈现“我的团队”和选择说明，`LsPagePrimaryAction` 放入 actions 插槽。页面只拥有标题与入队码、团队列表之间的顺序，不自造纵向标题后悬空靠右按钮。桌面同行，移动端沿用公共标题的说明与操作两列布局；320px 与 200% 文字下按组件容器规则自然换行。创建、加载、空、错误与入队码生命周期保持原有行为，无权限变更及视觉例外。以移动端、桌面 E2E 验证标题、按钮实际位置、打开创建表单、44px 命中区和无横向溢出。
+
+## 页面主辅栏接入
+
+本轮 Team 独立操作页的 29 条路由及每页任务分组见[迁移清单](../../plans/page-context-columns-team.md)；Shop 管理与 Transaction 见[迁移清单](../../plans/page-context-columns-commerce.md)。Team 社区通过 scope 语义隔离，Admin 共享社区页面不增加右栏。RoleDetail 原分类导航双栏保留；公共申请、只读长篇正文、审计事件及短确认弹窗保持原模式。

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft } from '@lucide/vue'
@@ -61,10 +62,18 @@ function submit() {
   if (!valid.value || save.isPending.value) return
   save.mutate()
 }
+
+const contextProduct = computed(() => options.data.value?.products?.find(product => Number(product.id) === form.product_id))
+const contextCustomer = computed(() => options.data.value?.customers.find(customer => Number(customer.id) === form.customer_id))
+const contextTotal = computed(() => {
+ const price = contextProduct.value?.price
+ return price != null && Number.isFinite(Number(price)) && Number.isInteger(form.quantity) && form.quantity > 0 ? (Math.round(Number(price) * 100) * form.quantity / 100).toFixed(2) : null
+})
+
 </script>
 
 <template>
-  <LsFormPage title="新建订单" description="分成自动根据价格计算，也可手动输入。">
+  <LsFormPage aside-label="订单草稿核对" title="新建订单" description="分成自动根据价格计算，也可手动输入。">
     <template #actions>
       <LsPageLink to="/manage/orders" :icon="ArrowLeft" label="返回订单" />
     </template>
@@ -85,5 +94,19 @@ function submit() {
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions><LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton><LsButton type="submit" :disabled="routeAccess.restricted.value || !valid" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">创建订单</LsButton></LsFormActions>
     </form>
+    <template #aside>
+      <LsFormSection title="订单核对" description="根据当前商品与数量估算；以创建后订单的冻结金额为准。">
+        <p v-if="routeAccess.restricted.value">暂无可查看的订单候选资料。</p>
+        <p v-else-if="options.isPending.value">正在读取商品与顾客…</p>
+        <p v-else-if="options.isError.value">商品与顾客读取失败。</p>
+        <LsDescriptionList v-else>
+          <dt>商品</dt><dd>{{ contextProduct?.name || '尚未选择' }}</dd>
+          <dt>数量</dt><dd>{{ form.quantity ?? '-' }}</dd>
+          <dt>预计总价</dt><dd>{{ contextTotal == null ? '-' : '¥' + contextTotal }}</dd>
+          <dt>顾客</dt><dd>{{ contextCustomer?.nickname || contextCustomer?.name || (contextCustomer ? '顾客 #' + contextCustomer.id : '未关联') }}</dd>
+          <dt>购买资料</dt><dd>{{ purchaseFields.length }} 项</dd>
+        </LsDescriptionList>
+      </LsFormSection>
+    </template>
   </LsFormPage>
 </template>

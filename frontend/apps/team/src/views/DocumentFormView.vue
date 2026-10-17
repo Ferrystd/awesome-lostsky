@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
@@ -143,7 +145,7 @@ async function submit() {
 </script>
 
 <template>
-  <LsFormPage :title="editing ? '编辑文档' : '新建文档'" description="用可视化编辑器撰写团队文档，输入 @ 可引用团队或人员。">
+  <LsFormPage aside-label="文档发布摘要" :title="editing ? '编辑文档' : '新建文档'" description="用可视化编辑器撰写团队文档，输入 @ 可引用团队或人员。">
     <template #actions>
       <LsPageLink to="/docs" :icon="ArrowLeft" label="返回文档列表" />
     </template>
@@ -220,6 +222,7 @@ async function submit() {
         </LsButton>
       </LsFormActions>
     </form>
+  <template #aside><p v-if="editing && !(routeAccess.restricted.value) && detail.isPending.value" role="status">正在读取资料…</p><p v-else-if="editing && !(routeAccess.restricted.value) && detail.isError.value" role="status">资料暂不可用，请恢复读取后查看摘要。</p><template v-else><LsPanel><LsSectionHeader title="文档设置" description="当前草稿，保存后生效。" /><LsDescriptionList><dt>归属人员</dt><dd>{{ routeAccess.restricted.value ? '-' : (entities.data.value?.find(item => item.entity_id === form.entity_id)?.name || '尚未选择') }}</dd><dt>可见范围</dt><dd>{{ routeAccess.restricted.value ? '-' : (visibilityOptions.find(item => item.value === form.visibility)?.label || '-' ) }}</dd><dt>管理范围</dt><dd>{{ routeAccess.restricted.value ? '-' : (managerScopeOptions.find(item => item.value === form.manager_scope)?.label || '-' ) }}</dd><dt>公开分组</dt><dd>{{ routeAccess.restricted.value ? '-' : (`${form.tags.length} 个标签`) }}</dd></LsDescriptionList></LsPanel></template></template>
   </LsFormPage>
 </template>
 

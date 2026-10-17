@@ -2,13 +2,14 @@
 import { ArrowLeft } from '@lucide/vue'
 import type { RouteLocationRaw } from 'vue-router'
 import LsPageLink from './LsPageLink.vue'
+import PageContextLayout from './internal/PageContextLayout.vue'
 import LsPageHeader from './LsPageHeader.vue'
 import LsSceneMotionControl from './LsSceneMotionControl.vue'
 import { useWorkspaceScene } from '../workspace-scene'
 
 defineOptions({ inheritAttrs: false })
-defineProps<{ title: string; description?: string; backTo?: RouteLocationRaw; backLabel?: string }>()
-defineSlots<{ actions(): unknown; summary(): unknown; default(): unknown }>()
+defineProps<{ title: string; description?: string; backTo?: RouteLocationRaw; backLabel?: string; asideLabel?: string }>()
+defineSlots<{ actions(): unknown; summary(): unknown; default(): unknown; aside?(): unknown }>()
 const { available } = useWorkspaceScene()
 </script>
 
@@ -24,7 +25,11 @@ const { available } = useWorkspaceScene()
       </div>
     </div>
     <div v-if="$slots.summary" class="ls-detail-page__summary"><slot name="summary" /></div>
-    <div v-if="$slots.default" class="ls-detail-page__body"><slot /></div>
+    <PageContextLayout v-if="$slots.aside" :aside-label="asideLabel">
+      <div v-if="$slots.default" class="ls-detail-page__body"><slot /></div>
+      <template #aside><slot name="aside" /></template>
+    </PageContextLayout>
+    <div v-else-if="$slots.default" class="ls-detail-page__body"><slot /></div>
   </div>
 </template>
 

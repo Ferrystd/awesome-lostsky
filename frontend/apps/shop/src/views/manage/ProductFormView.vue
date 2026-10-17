@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import ServiceCompletionSettings from '../../components/ServiceCompletionSettings.vue'
 import { api, friendlyError, uploadFileUrl } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -353,10 +354,15 @@ const valid = computed(() => Boolean(
     && nonNegative(redemption.valid_days) && Number.isInteger(redemption.valid_days)
     && validAutoCompleteAfterMinutes(redemption.unused_auto_complete_after_minutes) && validAutoCompleteAfterMinutes(redemption.auto_complete_after_minutes))))),
 ))
+
+const contextAvailable = computed(() => !routeAccess.restricted.value && (!editing.value || detail.isSuccess.value))
+const contextKind = computed(() => ({ 1: '普通商品', 2: '套餐', 3: '卡密', 4: '核销商品', 5: '多规格商品' })[form.kind as 1 | 2 | 3 | 4 | 5] || '待选择')
+const contextMoney = (value: number | null) => contextAvailable.value && typeof value === 'number' && Number.isFinite(value) && value >= 0 ? '¥' + value.toFixed(2) : '-'
+
 </script>
 
 <template>
-  <LsFormPage :title="editing ? (personal ? '编辑本人商品' : '编辑商品') : (personal ? '新建本人商品' : '新建商品')" description="商品类型决定订单完成时交付什么；相关配置在保存时由后端再次校验。">
+  <LsFormPage aside-label="商品草稿摘要" :title="editing ? (personal ? '编辑本人商品' : '编辑商品') : (personal ? '新建本人商品' : '新建商品')" description="商品类型决定订单完成时交付什么；相关配置在保存时由后端再次校验。">
     <template #actions>
       <LsPageLink :to="management.routeBase" :icon="ArrowLeft" :label="personal ? '返回我的商品' : '返回商品'" />
       <LsPageLink v-if="editing" :icon="Eye" label="预览前台" :href="`/product/${id}`" target="_blank" rel="noopener noreferrer" />
@@ -438,6 +444,23 @@ const valid = computed(() => Boolean(
       </LsFormActions>
       </fieldset>
     </form>
+    <template #aside>
+      <LsFormSection title="商品概况" description="当前编辑草稿；保存后更新商品。">
+        <p v-if="routeAccess.restricted.value">暂无可查看的商品资料。</p>
+        <p v-else-if="editing && detail.isPending.value">正在读取商品…</p>
+        <p v-else-if="editing && detail.isError.value">商品读取失败。</p>
+        <LsDescriptionList v-else>
+          <dt>名称</dt><dd>{{ form.name.trim() || '尚未填写' }}</dd>
+          <dt>类型</dt><dd>{{ contextKind }}</dd>
+          <dt>上架</dt><dd>{{ form.is_active === 1 ? '上架' : '下架' }}</dd>
+          <dt>归属</dt><dd>{{ personal ? (access.data.value?.identity?.name || '当前人员') : (form.entity_id ? entities.find(item => Number(item.entity_id ?? item.id) === form.entity_id)?.name || '人员 #' + form.entity_id : '团队公用') }}</dd>
+          <template v-if="form.kind === 5"><dt>规格数量</dt><dd>{{ variants.length }} 项</dd></template>
+          <template v-else><dt>售价</dt><dd>{{ contextMoney(form.price) }}</dd><dt>成本</dt><dd>{{ contextMoney(form.cost) }}</dd><dt>团队分成</dt><dd>{{ contextMoney(teamCut) }}</dd></template>
+          <template v-if="useComposition"><dt>组合子项</dt><dd>{{ compositionItems.length }} 项</dd></template>
+          <template v-if="form.kind === 4"><dt>每份额度</dt><dd>{{ redemption.quantity ?? '-' }} {{ redemption.unit_name }}</dd><dt>最小核销单位</dt><dd>{{ redemption.quantity_step ?? '-' }} {{ redemption.unit_name }}</dd><dt>有效天数</dt><dd>{{ redemption.valid_days === 0 ? '不限期' : redemption.valid_days ?? '-' }}</dd></template>
+        </LsDescriptionList>
+      </LsFormSection>
+    </template>
   </LsFormPage>
 </template>
 
