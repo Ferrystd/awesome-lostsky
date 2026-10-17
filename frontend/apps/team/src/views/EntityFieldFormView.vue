@@ -11,7 +11,6 @@ import { ArrowLeft, Trash2 } from '@lucide/vue'
 
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
-import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
@@ -23,7 +22,6 @@ import { NCheckbox, NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
 import { computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
-import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 
@@ -185,7 +183,8 @@ const previewAvailable = computed(() => !routeAccess.restricted.value && (!editi
       <LsPageLink to="/fields" :icon="ArrowLeft" label="返回对象字段" />
     </template>
 
-      <LsPanel><form class="field-form" @submit.prevent="submit">
+      <form class="field-form" @submit.prevent="submit">
+      <LsFormSection title="字段定义" description="确定字段归属、稳定标识和填写方式。">
         <LsFormFields>
           <LsField label="对象类型" for-id="entity-field-type"><NSelect id="entity-field-type" v-model:value="form.entity_type" :disabled="editing" :options="typeOptions" /></LsField>
           <LsField label="字段标识" for-id="entity-field-key"><NInput :input-props="{ id: 'entity-field-key' }" v-model:value="form.field_key" :disabled="editing" maxlength="64" placeholder="department" /></LsField>
@@ -194,8 +193,8 @@ const previewAvailable = computed(() => !routeAccess.restricted.value && (!editi
           <LsField label="输入控件" for-id="entity-field-input-type"><NSelect id="entity-field-input-type" v-model:value="form.input_type" :options="inputOptions" /></LsField>
           <LsField v-if="['select','multi_select'].includes(form.value_type)" label="选项" for-id="entity-field-options"><NInput :input-props="{ id: 'entity-field-options' }" v-model:value="form.optionsText" type="textarea" :autosize="{ minRows: 3, maxRows: 8 }" placeholder="每行一个选项" /></LsField>
         </LsFormFields>
-        <section class="access-policy" aria-labelledby="field-access-title">
-          <LsSectionHeader id="field-access-title" title="访问与维护规则" description="可见范围不会授予页面访问权；能看见字段值的人员也不会因此自动获得编辑权。" />
+        </LsFormSection>
+      <LsFormSection id="field-access-title" title="访问与维护规则" description="可见范围不会授予页面访问权；能看见字段值的人员也不会因此自动获得编辑权。">
           <LsFormFields>
             <LsField label="值维护范围" for-id="entity-field-manager"><NSelect id="entity-field-manager" v-model:value="form.manager_scope" :options="managerScopeOptions" /></LsField>
             <LsField label="值可见范围" for-id="entity-field-visibility"><NSelect id="entity-field-visibility" v-model:value="form.visibility" :options="visibilityOptions" /></LsField>
@@ -213,14 +212,16 @@ const previewAvailable = computed(() => !routeAccess.restricted.value && (!editi
             </LsField>
           </LsFormFields>
           <p v-if="form.visibility === 5" class="policy-note">公开字段只有在所属人员有效且已开启公开主页展示时，才会向未登录访客显示。</p>
-        </section>
+        </LsFormSection>
+      <LsFormSection title="填写要求与排序">
         <LsFormFields>
           <LsSwitchField v-model="form.is_required" label="必填" description="在允许编辑该字段的资料保存时校验不能为空。" />
           <LsField label="排序" for-id="entity-field-sort"><NInputNumber :input-props="{ id: 'entity-field-sort' }" v-model:value="form.sort" :precision="0" /></LsField>
         </LsFormFields>
+      </LsFormSection>
         <p v-if="(save.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(save.error.value || remove.error.value) }}</p>
         <LsFormActions><LsButton type="submit" :disabled="routeAccess.restricted.value || !draft.dirty.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存字段</LsButton><LsButton v-if="editing" type="button" variant="danger-ghost" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="remove.isPending.value" @click="deleteField"><template #icon><Trash2 :size="16" /></template>删除字段</LsButton></LsFormActions>
-      </form></LsPanel>
+      </form>
     <template #aside>
       <LsFormSection title="填写预览" description="根据当前配置试填，不会保存试填内容。">
         <p v-if="routeAccess.restricted.value" class="field-context-note">-</p>

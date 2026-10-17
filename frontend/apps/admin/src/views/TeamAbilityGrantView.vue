@@ -93,10 +93,12 @@ onBeforeRouteLeave(() => {
     <LsAsyncState v-if="!routeAccess.restricted.value && catalog.isPending.value" state="loading" :rows="4" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && catalog.isError.value" state="error" title="暂时无法读取 Ability 目录" :description="friendlyError(catalog.error.value)" />
     <form class="ability-grant-fields" v-else @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
-      <LsFormSection title="直接授权" description="提交前请再次核对团队标识；提交会覆盖该团队同一种能力的旧手工授权，但不影响角色权限和体验活动授权。">
+      <LsFormSection title="授权对象" description="确认接收能力的团队标识。">
         <LsField label="团队 slug" for-id="team-ability-slug" hint="字母开头，仅使用字母、数字、下划线和连字符。" required>
           <LsInput id="team-ability-slug" v-model="teamSlug" autocomplete="off" autocapitalize="none" spellcheck="false" pattern="[A-Za-z][A-Za-z0-9_-]+" minlength="2" maxlength="50" placeholder="lostsky" required />
         </LsField>
+      </LsFormSection>
+      <LsFormSection title="能力与有效期" description="选择能力、等级，以及本次授权的到期时间。">
         <LsField label="Ability" for-id="team-ability-key" required>
           <NSelect id="team-ability-key" v-model:value="abilityKey" :options="abilityOptions" :disabled="routeAccess.restricted.value || save.isPending.value" :placeholder="routeAccess.restricted.value ? '-' : '选择要开通的能力'" aria-label="Ability" />
         </LsField>
@@ -108,9 +110,11 @@ onBeforeRouteLeave(() => {
         </LsField>
       </LsFormSection>
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
+      <LsFormSection title="确认授权" description="提交会覆盖该团队同一种能力的旧手工授权，但不影响角色权限和体验活动授权。">
       <LsFormActions>
         <LsButton type="submit" :disabled="routeAccess.restricted.value || !valid" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">开通能力</LsButton>
       </LsFormActions>
+      </LsFormSection>
     </form>
   </LsFormPage>
 </template>

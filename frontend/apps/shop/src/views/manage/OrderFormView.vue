@@ -73,7 +73,7 @@ const contextTotal = computed(() => {
 </script>
 
 <template>
-  <LsFormPage aside-label="订单草稿核对" title="新建订单" description="分成自动根据价格计算，也可手动输入。">
+  <LsFormPage aside-label="订单草稿核对" title="新建订单" description="选择商品、顾客和参与人员，确认后创建订单。">
     <template #actions>
       <LsPageLink to="/manage/orders" :icon="ArrowLeft" label="返回订单" />
     </template>
@@ -89,6 +89,8 @@ const contextTotal = computed(() => {
         <LsField label="接单人" for-id="order-handler"><LsEntitySelect id="order-handler" v-model="form.handler_entity_id" :entities="entities" :loading="!routeAccess.restricted.value && options.isPending.value" :disabled="routeAccess.restricted.value || options.isError.value" clearable :placeholder="routeAccess.restricted.value ? '-' : '普通商品可选'" /></LsField>
         <LsField label="发单人" for-id="order-sender"><LsEntitySelect id="order-sender" v-model="form.sender_entity_id" :entities="entities" :loading="!routeAccess.restricted.value && options.isPending.value" :disabled="routeAccess.restricted.value || options.isError.value" clearable :placeholder="routeAccess.restricted.value ? '-' : '可选'" /></LsField>
         <LsField label="客服" for-id="order-cs"><LsEntitySelect id="order-cs" v-model="form.cs_entity_id" :entities="entities" :loading="!routeAccess.restricted.value && options.isPending.value" :disabled="routeAccess.restricted.value || options.isError.value" clearable :placeholder="routeAccess.restricted.value ? '-' : '可选'" /></LsField>
+      </LsFormSection>
+      <LsFormSection title="订单备注" description="补充本次订单需要留存的说明。">
         <LsField label="备注" for-id="order-memo"><NInput id="order-memo" v-model:value="form.memo" type="textarea" maxlength="500" show-count /></LsField>
       </LsFormSection>
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />

@@ -103,7 +103,9 @@ async function save() {
         </LsFormList>
         <LsInlineError v-if="!restricted && draft.length > 20" message="最多保存 20 条预设，请移除多余项。" />
       </LsFormSection>
+      <LsFormSection title="保存预设" description="当前列表中的增删与修改将一起保存。">
       <LsFormActions><LsButton type="submit" :loading="pending" :disabled="Boolean(reason)" :disabled-reason="reason"><template #icon><Save :size="18" /></template>保存预设评论</LsButton></LsFormActions>
+      </LsFormSection>
     </form>
   </LsFormPage>
 </template>

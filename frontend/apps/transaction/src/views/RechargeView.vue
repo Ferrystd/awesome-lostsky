@@ -70,14 +70,16 @@ const rechargePreview = computed(() => {
     </template>
 
     <form class="recharge-form" @submit.prevent="submit">
-      <LsFormSection title="充值信息">
+      <LsFormSection title="顾客与充值金额" description="先核对顾客及当前余额，再填写本次充值金额。">
         <LsField label="顾客" for-id="recharge-customer" required><NSelect id="recharge-customer" v-model:value="customerId" :options="customerOptions(options.data.value)" filterable :disabled="routeAccess.restricted.value" :placeholder="routeAccess.restricted.value ? '-' : '选择顾客'" /></LsField>
         <p v-if="customer" class="current-balance">充值前余额 <strong class="ls-tabular">{{ money(customer.balance?.balance) }}</strong></p>
         <LsField label="充值金额" for-id="recharge-amount" required><NInputNumber id="recharge-amount" v-model:value="amount" :min="0.01" :precision="2" :step="10" placeholder="输入大于 0 的金额" /></LsField>
         <LsField label="备注" for-id="recharge-memo"><NInput id="recharge-memo" v-model:value="memo" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" maxlength="255" show-count placeholder="例如：7 月预存款充值" /></LsField>
         <LsInlineError v-if="(!routeAccess.restricted.value && options.isError.value) || save.isError.value" :message="friendlyError(options.error.value || save.error.value)" />
       </LsFormSection>
+      <LsFormSection title="确认充值" description="提交后增加顾客余额，并保留本次充值记录。">
       <LsFormActions><LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton><LsButton type="submit" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason">确认充值</LsButton></LsFormActions>
+      </LsFormSection>
     </form>
     <template #aside>
       <LsFormSection title="充值核对" description="当前草稿；确认充值后才会写入余额。">

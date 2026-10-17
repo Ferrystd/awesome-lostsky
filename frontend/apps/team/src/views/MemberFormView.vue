@@ -450,7 +450,7 @@ function submit() {
 .member-form {
   min-width: 0;
   display: grid;
-  gap: 22px;
+  gap: 24px;
 }
 .management {
   display: grid;

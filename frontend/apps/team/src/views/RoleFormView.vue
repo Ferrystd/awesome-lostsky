@@ -2,13 +2,13 @@
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft, Check } from '@lucide/vue'
 
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
-import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
@@ -46,7 +46,7 @@ function submit() {
       <LsPageLink to="/roles" :icon="ArrowLeft" label="返回角色与权限" />
     </template>
 
-      <LsPanel><form class="role-form" @submit.prevent="submit">
+      <form class="role-form" @submit.prevent="submit"><LsFormSection title="角色资料" description="先建立名称与标识，创建后再配置权限。">
         <LsFormFields>
           <LsField v-slot="{ describedBy }" label="角色标识" for-id="role-key" required hint="创建后不建议更改；使用小写字母、数字和下划线。">
             <NInput :input-props="{ 'aria-describedby': describedBy, id: 'role-key' }" v-model:value="form.role_key" autocomplete="off" placeholder="例如 operator" />
@@ -62,6 +62,7 @@ function submit() {
           </LsField>
           <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开人员资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟人员会展示角色名称和说明；角色权限不会公开。" />
         </LsFormFields>
+      </LsFormSection>
         <p v-if="save.isError.value && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(save.error.value) }}</p>
         <LsFormActions>
           <LsPageLink to="/roles" :icon="ArrowLeft" label="取消" />
@@ -69,7 +70,7 @@ function submit() {
             <template #icon><Check :size="17" /></template>创建角色
           </LsButton>
         </LsFormActions>
-      </form></LsPanel>
+      </form>
   <template #aside><LsPanel><LsSectionHeader title="角色草稿" description="创建后进入角色页面配置权限。" /><LsDescriptionList><dt>角色名称</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.name || '尚未填写') }}</dd><dt>角色标识</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.role_key || '尚未填写') }}</dd><dt>公开展示</dt><dd>{{ routeAccess.restricted.value ? '-' : (form.is_displayed ? '展示角色名称和说明' : '不展示') }}</dd><dt>权限</dt><dd>{{ '创建时不额外授予权限' }}</dd></LsDescriptionList></LsPanel></template>
   </LsFormPage>
 </template>

@@ -179,7 +179,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
     </template>
 
     <form class="campaign-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
-      <LsFormSection title="活动配置">
+      <LsFormSection title="活动内容" description="确定活动名称、权益包和发放模式。">
           <LsField label="活动名称" for-id="admin-campaign-name" required
             ><NInput
               id="admin-campaign-name"
@@ -204,7 +204,8 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
                 { label: '定向团队卡', value: 3 },
               ]"
               :disabled="editing" /></LsField
-          ><LsField
+          ></LsFormSection>
+      <LsFormSection title="领取规则" description="配置互斥范围、领取时间和总量，再统一保存活动。"><LsField
             label="领取互斥组"
             for-id="admin-campaign-group"
             hint="首月免费活动应长期复用稳定的互斥组。"
@@ -250,18 +251,18 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
       </LsFormActions>
     </form>
     <template v-if="editing"
-      ><LsFormSection title="发行体验码">
+      ><LsFormSection title="发行体验码" description="发行是独立操作，不会代替上方的活动保存。">
           <div class="issue-row">
-            <NInputNumber
-              v-model:value="quantity"
+            <LsField label="发行数量" for-id="campaign-issue-quantity"><NInputNumber
+              id="campaign-issue-quantity" v-model:value="quantity"
               :min="1"
               :max="100"
-            /><NInputNumber
-              v-if="form.mode === 3"
+            /></LsField><LsField v-if="form.mode === 3" label="目标团队 ID" for-id="campaign-issue-team"><NInputNumber
+              id="campaign-issue-team"
               v-model:value="targetTeam"
               :min="1"
               placeholder="目标 Team ID"
-            /><LsButton
+            /></LsField><LsButton
               :disabled="
                 !can('admin.entitlement.write') ||
                 (form.mode === 3 && !targetTeam)
@@ -347,8 +348,9 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
 }
 .issue-row {
   display: flex;
-  align-items: center;
-  gap: 0.65rem;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 .issued {
   display: grid;

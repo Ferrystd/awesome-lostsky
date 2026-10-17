@@ -181,7 +181,7 @@ const contextProduct = computed(() => products.value.find(item => Number(item.id
       <template #action><LsPageLink :href="shopProductsUrl" :icon="ArrowUpRight" label="前往商品管理" /></template>
     </LsEmptyState>
     <form class="grant-form" v-else @submit.prevent="submit">
-      <LsFormSection title="赋予内容" :description="grantDescription">
+      <LsFormSection :title="pending ? '确认发放结果' : '顾客与权益'" :description="grantDescription">
         <template v-if="pending">
           <NAlert type="warning" title="发放结果待确认">
             本次发放内容已保存。请重试确认结果；确认完成前不能修改或再次发放。刷新后可继续确认同一次操作。
@@ -213,10 +213,12 @@ const contextProduct = computed(() => products.value.find(item => Number(item.id
         </template>
         <LsInlineError v-if="requestError" :message="requestError" />
       </LsFormSection>
+      <LsFormSection :title="pending ? '继续确认' : '确认发放'" description="本次操作直接发放权益，不创建商城订单。">
       <LsFormActions>
         <LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton>
         <LsButton type="submit" :loading="submitting" :disabled="Boolean(submitDisabledReason)" :disabled-reason="submitDisabledReason">{{ pending ? '重试确认结果' : personal ? '下发权益' : '确认提交' }}</LsButton>
       </LsFormActions>
+      </LsFormSection>
     </form>
     <template #aside>
       <LsFormSection title="发放核对" :description="pending ? '本次待确认操作的固定内容。' : '当前草稿；提交后才会发放。'">

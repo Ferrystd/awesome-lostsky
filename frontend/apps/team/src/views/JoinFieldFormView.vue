@@ -2,11 +2,11 @@
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft } from '@lucide/vue'
 
-import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
@@ -17,7 +17,6 @@ import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormList from '@lostsky/ui/components/LsFormList.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -237,7 +236,8 @@ function deleteField() {
     <LsAsyncState v-else-if="editing && canRead && fieldsQuery.isPending.value" state="loading" :rows="7" />
     <LsAsyncState v-else-if="editing && canRead && fieldsQuery.isError.value" state="error" title="暂时无法读取申请字段" :description="friendlyError(fieldsQuery.error.value)" />
     <NAlert v-else-if="editing && !detail" type="warning" title="申请字段不存在">该字段可能已删除，或不属于当前团队。</NAlert>
-    <LsPanel v-else><form class="join-field-form" @submit.prevent="submit">
+    <form v-else class="join-field-form" @submit.prevent="submit">
+      <LsFormSection title="字段定义" description="先设置申请人看到的名称、控件和默认值。">
       <LsFormFields>
         <LsField label="字段标识" for-id="join-field-key" :required="!editing" :error="errors.field_key" hint="创建后不可修改；用于稳定识别提交数据。">
           <template #default="{ invalid, describedBy }"><NInput v-model:value="form.field_key" :input-props="{ 'aria-describedby': describedBy, id: 'join-field-key', 'aria-label': '字段标识' }" :disabled="editing || !canWrite" :status="invalid ? 'error' : undefined" maxlength="64" placeholder="experience" /></template>
@@ -272,17 +272,16 @@ function deleteField() {
         </LsField>
 
       </LsFormFields>
-      <section class="settings" aria-labelledby="application-settings-title">
-        <LsSectionHeader id="application-settings-title" title="申请表规则" description="这些设置只影响新的加入申请，不改写历史提交。" />
+      </LsFormSection>
+      <LsFormSection id="application-settings-title" title="申请表规则" description="这些设置只影响新的加入申请，不改写历史提交。">
         <LsFormFields>
           <LsSwitchField v-model="form.is_apply_fillable" label="允许申请人填写" description="关闭后字段不会出现在申请表，也不会保存新的字段值。" :disabled="!canWrite" />
           <LsSwitchField v-model="form.is_apply_required" label="申请时必填" description="提交申请前必须填写；只有允许填写时才能开启。" :disabled="!canWrite || !form.is_apply_fillable" />
           <LsSwitchField v-model="form.is_active" label="启用字段" description="停用后从申请表隐藏，但仍保留历史数据并可重新启用。" :disabled="!canWrite" />
         </LsFormFields>
-      </section>
+      </LsFormSection>
 
-      <section class="settings" aria-labelledby="transfer-settings-title">
-        <LsSectionHeader id="transfer-settings-title" title="审批后转存" description="申请通过并创建成员后，可把该值写入一位人员对象字段。" />
+      <LsFormSection id="transfer-settings-title" title="审批后转存" description="申请通过并创建成员后，可把该值写入一位人员对象字段。">
         <LsFormFields>
           <LsSwitchField v-model="form.is_transfer_entity_field" label="自动转存" description="目标必须是当前团队的人员对象字段。" :disabled="!canWrite" />
           <LsField v-slot="{ describedBy }" v-if="form.is_transfer_entity_field" label="转存目标" for-id="join-field-transfer" required :error="errors.entity_field_id">
@@ -290,7 +289,8 @@ function deleteField() {
           </LsField>
         </LsFormFields>
         <LsInlineError v-if="form.is_transfer_entity_field && transferQuery.isError.value" :message="friendlyError(transferQuery.error.value)" />
-      </section>
+      </LsFormSection>
+
 
       <LsFormFields>
         <LsField v-slot="{ describedBy }" label="排序" for-id="join-field-sort" hint="数值越小越靠前；相同数值按字段 ID 排序。">
@@ -302,11 +302,11 @@ function deleteField() {
         <LsButton type="submit" :loading="save.isPending.value" :disabled="!canWrite || !draft.dirty.value" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined">保存字段</LsButton>
         <LsButton v-if="editing" type="button" variant="danger" :loading="remove.isPending.value" :disabled="!canWrite" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined" @click="deleteField">删除字段</LsButton>
       </LsFormActions>
-    </form></LsPanel>
+    </form>
   <template #aside><p v-if="editing && !(!canRead) && fieldsQuery.isPending.value" role="status">正在读取字段…</p><p v-else-if="editing && !(!canRead) && fieldsQuery.isError.value" role="status">资料暂不可用，请恢复读取后查看摘要。</p><template v-else><LsPanel><LsSectionHeader title="申请表规则" description="当前草稿；历史申请资料保持原样。" /><LsDescriptionList><dt>字段名称</dt><dd>{{ !canRead ? '-' : (form.name || '尚未填写') }}</dd><dt>启用状态</dt><dd>{{ !canRead ? '-' : (form.is_active ? '用于新的申请' : '已停用') }}</dd><dt>申请人填写</dt><dd>{{ !canRead ? '-' : (!form.is_apply_fillable ? '不可填写' : form.is_apply_required ? '必填' : '选填') }}</dd><dt>审批后转存</dt><dd>{{ !canRead ? '-' : (form.is_transfer_entity_field ? transferSelectOptions.find(item => item.value === form.entity_field_id)?.label || '尚未选择目标字段' : '不转存') }}</dd></LsDescriptionList></LsPanel></template></template>
   </LsFormPage>
 </template>
 
 <style scoped>
-.join-field-form{display:grid;gap:1.25rem}.settings{display:grid;gap:1rem;padding-top:1.25rem;border-top:1px solid var(--line)}.option-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}@media(max-width:639px){.option-grid{grid-template-columns:1fr}}
+.join-field-form{display:grid;gap:1.5rem}.option-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:.75rem}@media(max-width:639px){.option-grid{grid-template-columns:1fr}}
 </style>

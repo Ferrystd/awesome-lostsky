@@ -3,6 +3,7 @@ import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsFormContent from '@lostsky/ui/components/LsFormContent.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft, KeyRound, RotateCw, Trash2 } from '@lucide/vue'
@@ -174,7 +175,8 @@ function rotateCredentials() {
     </template>
 
       <p v-if="detail.isError.value && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(detail.error.value) }}</p>
-      <LsPanel v-else><form class="integration-form" @submit.prevent="submit">
+      <form v-else class="integration-form" @submit.prevent="submit">
+      <LsFormSection title="连接与事件" description="设置回调地址，并选择这个集成需要接收的事件。">
         <LsFormFields>
           <LsField label="集成名称" for-id="integration-name"><NInput :input-props="{ id: 'integration-name' }" v-model:value="form.name" maxlength="50" placeholder="CRM 工作流" /></LsField>
           <LsField label="HTTPS Webhook 地址" for-id="integration-endpoint"><NInput :input-props="{ id: 'integration-endpoint' }" v-model:value="form.endpoint_url" maxlength="1000" placeholder="https://example.com/lostsky/events" /></LsField>
@@ -186,13 +188,14 @@ function rotateCredentials() {
         <p v-if="(save.isError.value || rotate.isError.value || remove.isError.value) && !routeAccess.restricted.value" class="error" role="alert">
           {{ friendlyError(save.error.value || rotate.error.value || remove.error.value) }}
         </p>
+      </LsFormSection>
         <LsFormActions>
           <LsButton type="submit" :disabled="routeAccess.restricted.value || !draft.dirty.value" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">保存集成</LsButton>
           <LsButton v-if="editing" type="button" variant="secondary" :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="rotate.isPending.value" @click="rotateCredentials">
             <RotateCw :size="16" />轮换凭据
           </LsButton>
         </LsFormActions>
-      </form></LsPanel>
+      </form>
 
       <LsPanel v-if="credentials.token" role="status"><div class="credentials">
         <KeyRound :size="22" />
