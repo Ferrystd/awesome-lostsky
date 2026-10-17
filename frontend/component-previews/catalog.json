@@ -8,6 +8,14 @@
     "aliases": ["概览业务入口"]
   },
   {
+    "id": "ls-single-panel-page",
+    "name": "LsSinglePanelPage",
+    "source": "frontend/packages/ui/src/components/LsSinglePanelPage.vue",
+    "story": "frontend/component-previews/src/single-panel-page-story.ts#LsSinglePanelPage",
+    "category": "ui",
+    "aliases": ["左对齐单面板", "第六页面模板"]
+  },
+  {
     "id": "ls-resource-list",
     "name": "LsResourceList",
     "source": "frontend/packages/ui/src/components/LsResourceList.vue",

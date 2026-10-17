@@ -3,7 +3,7 @@ import ShopOverviewWorkspace from '../../components/ShopOverviewWorkspace.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import { friendlyError } from '@lostsky/api/client'
 
-import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
+import LsSinglePanelPage from '@lostsky/ui/components/LsSinglePanelPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { ReceiptText, ShoppingBag, UserRound } from '@lucide/vue'
@@ -21,7 +21,7 @@ const configurationSteps = computed(() => [{ key: 'create', label: '创建商品
 </script>
 
 <template>
-  <LsOverviewPage
+  <LsSinglePanelPage
     :title="access.data.value?.team?.name || (access.isError.value ? '团队摘要暂时不可用' : '正在读取当前团队…')"
     description="管理团队商品并跟进订单交付，覆盖普通商品、核销商品、卡密和套餐。"
   >
@@ -31,5 +31,5 @@ const configurationSteps = computed(() => [{ key: 'create', label: '创建商品
     </template>
       <ShopOverviewWorkspace :personal="false" :access="access.data.value" :steps="configurationSteps" />
       <LsInlineError v-if="access.isError.value" :message="friendlyError(access.error.value)" />
-  </LsOverviewPage>
+  </LsSinglePanelPage>
 </template>
