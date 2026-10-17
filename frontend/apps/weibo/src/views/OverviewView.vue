@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsOverviewLinks from '@lostsky/ui/components/LsOverviewLinks.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import { formatPermissionDenied } from '@lostsky/api/error-format'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
@@ -8,8 +10,6 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
-import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { ClipboardList, FileClock, House, MessageCircleMore, Send, Users } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
@@ -113,15 +113,7 @@ const actions = computed(() => [
         <LsPageLink v-for="action in actions" :key="action.key" :to="action.to" :icon="action.icon" :label="action.label" />
         <LsSceneMotionControl />
       </template>
-      <template #summary>
-        <nav aria-label="个人工作入口">
-          <LsResourceList>
-            <LsResourceRow v-for="entry in entries" :key="entry.key" :description="entry.description">
-              <template #identity><LsPageLink :to="entry.to" :icon="entry.icon" :label="entry.label" /></template>
-            </LsResourceRow>
-          </LsResourceList>
-        </nav>
-      </template>
+
 
       <LsAsyncState v-if="access.isPending.value || (canRead && query.isPending.value)" state="loading" :rows="3" />
       <LsAsyncState v-else-if="access.isError.value" state="error" title="无法读取当前工作身份" :description="friendlyError(access.error.value)" />
@@ -132,9 +124,9 @@ const actions = computed(() => [
         >
       </LsPanel>
       <LsAsyncState v-else-if="query.isError.value" state="error" title="无法读取微博态势" :description="`${friendlyError(query.error.value)}；账号、发帖、互动、任务和日志入口仍可使用。`" />
-      <section v-else-if="query.data.value" class="weibo-overview-status" aria-label="调度运行状态">
-        <LsPanel class="weibo-overview-next">
-          <template #header><strong>下一次执行</strong></template>
+      <section v-else-if="query.data.value" class="personal-overview-status" aria-label="调度运行状态">
+        <LsPanel class="personal-overview-next">
+          <template #header><LsSectionHeader title="下一次执行" /></template>
           <template v-if="next">
             <p>
               <strong>{{ next.topic.display_tag || `#${next.topic.name}#` }}</strong>
@@ -145,20 +137,33 @@ const actions = computed(() => [
           </template>
           <p v-else class="weibo-empty">暂无已开启的计划执行。</p>
         </LsPanel>
-        <LsPanel>
-          <template #header><strong>账号健康</strong></template>
-          <AccountHealthSummary :accounts="query.data.value.accounts" />
-        </LsPanel>
-        <LsPanel>
-          <template #header><strong>任务状态</strong></template>
-          <TaskStatusSummary :tasks="query.data.value.tasks" />
-        </LsPanel>
-        <LsPanel class="weibo-overview-failures">
-          <template #header><strong>近期失败与未确认结果</strong></template>
+        <LsPanel class="personal-overview-failures">
+          <template #header><LsSectionHeader title="近期失败与未确认结果" /></template>
           <LsEmptyState :source="query.data.value" v-if="!failures.length" title="近期运行正常" description="最近的执行记录中没有失败或结果未确认项。" />
           <OperationRecordList v-else :operations="failures" />
         </LsPanel>
+        <LsPanel>
+          <template #header><LsSectionHeader title="账号健康" /></template>
+          <AccountHealthSummary :accounts="query.data.value.accounts" />
+        </LsPanel>
+        <LsPanel>
+          <template #header><LsSectionHeader title="任务状态" /></template>
+          <TaskStatusSummary :tasks="query.data.value.tasks" />
+        </LsPanel>
+
       </section>
+      <LsPanel>
+        <template #header><LsSectionHeader title="个人工作入口" description="准备内容、管理账号与任务，继续处理执行结果。" /></template>
+        <LsOverviewLinks label="个人工作入口" :entries="entries" />
+      </LsPanel>
     </LsOverviewPage>
   </div>
 </template>
+
+<style scoped>
+.personal-overview-status { min-width: 0; display: grid; gap: 1rem; }
+@media (min-width: 960px) {
+  .personal-overview-status { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+  .personal-overview-next, .personal-overview-failures { grid-column: 1 / -1; }
+}
+</style>

@@ -17,6 +17,6 @@ defineSlots<{ actions(): unknown; summary(): unknown; default(): unknown }>()
 </template>
 
 <style scoped>
-.ls-overview-page { min-width: 0; display: grid; gap: 1.5rem; overflow-wrap: anywhere; }
+.ls-overview-page { width: 100%; max-width: 1280px; margin-inline: auto; min-width: 0; display: grid; gap: 1.5rem; overflow-wrap: anywhere; }
 .ls-overview-page__summary, .ls-overview-page__body { min-width: 0; display: grid; gap: 1rem; }
 </style>

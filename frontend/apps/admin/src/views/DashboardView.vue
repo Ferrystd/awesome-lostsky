@@ -42,16 +42,7 @@ function openSearch() { window.dispatchEvent(new CustomEvent('admin:open-search'
     <LsPageLink to="/teams" :icon="Building2" label="查看团队" />
     <LsSceneMotionControl />
   </template>
-  <template #summary>
-    <LsMetricGrid aria-label="平台关键数据" :items="[
-      { key: 'users', label: '用户总数', value: value('users'), hint: value('new_users_7d') === '-' ? '-' : '近 7 日新增 ' + value('new_users_7d') },
-      { key: 'teams', label: '团队总数', value: value('teams'), hint: value('new_teams_7d') === '-' ? '-' : '近 7 日新增 ' + value('new_teams_7d') },
-      { key: 'sessions', label: '活跃会话', value: value('active_sessions'), hint: '当前设备授权' },
-      { key: 'administrators', label: '平台管理员', value: value('administrators'), hint: '平台治理成员' },
-      { key: 'banned-users', label: '已封禁用户', value: value('banned_users'), hint: '当前封禁状态' },
-      { key: 'banned-teams', label: '已封禁团队', value: value('banned_teams'), hint: '当前封禁状态' },
-    ]" />
-  </template>
+
   <NButton autofocus block class="dashboard-search" @click="openSearch"><Search :size="19" /><span><strong>搜索平台资源</strong><small>用户、手机号、邮箱、团队或资源 ID</small></span><kbd>Ctrl K</kbd></NButton>
   <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="6" />
   <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取平台总览" :description="friendlyError(query.error.value)" />
@@ -88,6 +79,18 @@ function openSearch() { window.dispatchEvent(new CustomEvent('admin:open-search'
       </aside>
     </section>
   </template>
+  <LsPanel>
+    <template #header><LsSectionHeader title="平台规模与授权" description="用户、团队、会话及治理成员的当前汇总。" /></template>
+
+    <LsMetricGrid aria-label="平台关键数据" :items="[
+      { key: 'users', label: '用户总数', value: value('users'), hint: value('new_users_7d') === '-' ? '-' : '近 7 日新增 ' + value('new_users_7d') },
+      { key: 'teams', label: '团队总数', value: value('teams'), hint: value('new_teams_7d') === '-' ? '-' : '近 7 日新增 ' + value('new_teams_7d') },
+      { key: 'sessions', label: '活跃会话', value: value('active_sessions'), hint: '当前设备授权' },
+      { key: 'administrators', label: '平台管理员', value: value('administrators'), hint: '平台治理成员' },
+      { key: 'banned-users', label: '已封禁用户', value: value('banned_users'), hint: '当前封禁状态' },
+      { key: 'banned-teams', label: '已封禁团队', value: value('banned_teams'), hint: '当前封禁状态' },
+    ]" />
+  </LsPanel>
   </LsOverviewPage>
 </template>
 

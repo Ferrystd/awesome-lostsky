@@ -217,6 +217,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
     <template #actions><LsSceneMotionControl /></template>
 
     <LsPanel>
+    <template #header><LsSectionHeader title="统计周期" description="选择自然日、周或月，图表和明细随周期更新。" /></template>
     <section class="period-toolbar" aria-label="统计周期">
       <NRadioGroup v-model:value="period" name="stats-period" aria-label="周期粒度">
         <NRadioButton value="day">日</NRadioButton>
@@ -239,13 +240,18 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
     <LsAsyncState v-if="summaryError" state="error" title="暂时无法读取经营统计" :description="friendlyError(summaryError)" />
     <LsAsyncState v-else-if="summaryPending" state="loading" :rows="5" />
     <template v-else>
-      <LsPanel><LsMetricGrid :items="summaryItems" aria-label="经营统计摘要" /></LsPanel>
+
 
       <LsPanel>
         <LsAsyncState v-if="timelinePending" state="loading" :rows="4" />
         <LsAsyncState v-else-if="timelineError" state="error" title="暂时无法读取实际流水趋势" :description="friendlyError(timelineError)" />
         <LsEmptyState v-else-if="routeAccess.restricted.value" title="没有可显示的流水趋势" description="当前没有趋势数据。" />
         <TransactionFlowTrend v-else :points="flowPoints" :period-label="periodLabel" />
+      </LsPanel>
+
+      <LsPanel>
+        <template #header><LsSectionHeader title="周期收支摘要" description="与上方流水趋势使用同一统计周期。" /></template>
+        <LsMetricGrid :items="summaryItems" aria-label="经营统计摘要" />
       </LsPanel>
 
       <LsPanel>

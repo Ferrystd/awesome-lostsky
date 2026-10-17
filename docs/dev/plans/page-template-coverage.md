@@ -1,6 +1,8 @@
 # 全页面模板归属清单
 
-状态：只读盘点与拟归属，不代表推广或验收完成。2026-10-16，基线 main `0c8589512de78854003550a212967ba63ee574b3`；唯一代码实施为 Transaction `/overview`。其他聊天的对象档案/专注编辑实例不在此工作区，统一标作拟归属，不能据此宣称已实施。
+状态：总览分析候选的 11 个路由均已实施，等待批阅。2026-10-17，本任务已在独立分支合入 main `b120a821` 作为开发基线，未反向合并到 main。总览之外的归属与实施标记沿用 2026-10-16 的路由盘点，不据此判断其他聊天当前的完成进度。
+
+本轮仅处理总览分析：Team `/`、`/personal`；Admin `/`、`/system`；Transaction `/overview`、`/personal`、`/stats`；Weibo `/overview`、`/personal`；Shop `/manage`、`/manage/personal`。Team `PersonalView` 只改变 overview 分支，保留最新 main 的资料、字段与权限分支。下列待新增类保留，供第六模板或其他专用模板另行评估；本轮未将任何总览候选强行迁入它们。
 
 ## 计数口径
 
@@ -53,7 +55,7 @@
 | `/communities/:id(\d+)/edit` | 编辑社区 | [views/CommunitiesView.vue](../../../frontend/apps/admin/src/views/CommunitiesView.vue) | 专注编辑 | 围绕单一配置或授权任务填写并提交 | 拟归属，未实施 |
 | `/communities/:id(\d+)/administrators` | 社区管理员 | [views/CommunitiesView.vue](../../../frontend/apps/admin/src/views/CommunitiesView.vue) | 对象目录 | 按名称/状态定位可管理对象 | 拟归属，未实施 |
 | `/communities/:id(\d+)/manage/:section(boards&#124;announcements&#124;posts&#124;comments&#124;members)/:itemId?` | 社区管理 | [views/CommunitiesView.vue](../../../frontend/apps/admin/src/views/CommunitiesView.vue) | 分类工作区 | 按稳定管理范围查看记录或治理内容 | 拟归属，未实施 |
-| `/` | 平台总览 | [views/DashboardView.vue](../../../frontend/apps/admin/src/views/DashboardView.vue) | 总览分析 | 先看平台关键状态，再进入管理动作 | 拟归属，未实施 |
+| `/` | 平台总览 | [views/DashboardView.vue](../../../frontend/apps/admin/src/views/DashboardView.vue) | 总览分析 | 先看平台关键状态，再进入管理动作 | 已实施，待批阅 |
 | `/users` | 用户 | [views/UsersView.vue](../../../frontend/apps/admin/src/views/UsersView.vue) | 对象目录 | 按名称/状态定位可管理对象 | 拟归属，未实施 |
 | `/users/:id(\d+)` | 用户详情 | [views/UserDetailView.vue](../../../frontend/apps/admin/src/views/UserDetailView.vue) | 对象档案 | 围绕一个已选对象理解状态与管理关系 | 拟归属，未实施 |
 | `/teams` | 团队 | [views/TeamsView.vue](../../../frontend/apps/admin/src/views/TeamsView.vue) | 对象目录 | 按名称/状态定位可管理对象 | 拟归属，未实施 |
@@ -66,7 +68,7 @@
 | `/roles/new` | 创建平台角色 | [views/RoleFormView.vue](../../../frontend/apps/admin/src/views/RoleFormView.vue) | 专注编辑 | 围绕单一配置或授权任务填写并提交 | 拟归属，未实施 |
 | `/roles/:id(\d+)` | 编辑平台角色 | [views/RoleFormView.vue](../../../frontend/apps/admin/src/views/RoleFormView.vue) | 专注编辑 | 围绕单一配置或授权任务填写并提交 | 拟归属，未实施 |
 | `/audit` | 审计日志 | [views/AuditView.vue](../../../frontend/apps/admin/src/views/AuditView.vue) | 分类工作区 | 按稳定管理范围查看记录或治理内容 | 拟归属，未实施 |
-| `/system` | 系统状态 | [views/SystemView.vue](../../../frontend/apps/admin/src/views/SystemView.vue) | 总览分析 | 先看平台关键状态，再进入管理动作 | 拟归属，未实施 |
+| `/system` | 系统状态 | [views/SystemView.vue](../../../frontend/apps/admin/src/views/SystemView.vue) | 总览分析 | 先看平台关键状态，再进入管理动作 | 已实施，待批阅 |
 | `/site-content` | 官网内容 | [views/SiteContentView.vue](../../../frontend/apps/admin/src/views/SiteContentView.vue) | 专注编辑 | 围绕单一配置或授权任务填写并提交 | 拟归属，未实施 |
 | `/entitlements/packages` | Ability 权益包 | [views/EntitlementPackagesView.vue](../../../frontend/apps/admin/src/views/EntitlementPackagesView.vue) | 对象目录 | 按名称/状态定位可管理对象 | 拟归属，未实施 |
 | `/entitlements/packages/new` | 创建 Ability 权益包 | [views/EntitlementPackageFormView.vue](../../../frontend/apps/admin/src/views/EntitlementPackageFormView.vue) | 专注编辑 | 围绕单一配置或授权任务填写并提交 | 拟归属，未实施 |
@@ -128,8 +130,8 @@
 | `/services` | 我的服务 | [views/ServicesView.vue](../../../frontend/apps/shop/src/views/ServicesView.vue) | 待新增类 | 购物与顾客自助：公开陈列、购买确认及顾客履约生命周期 | 建议新增，未实施 |
 | `/services/:id(\d+)` | 服务核销 | [views/ServiceView.vue](../../../frontend/apps/shop/src/views/ServiceView.vue) | 待新增类 | 购物与顾客自助：公开陈列、购买确认及顾客履约生命周期 | 建议新增，未实施 |
 | `/cards` | 我的卡密 | [views/CardsView.vue](../../../frontend/apps/shop/src/views/CardsView.vue) | 待新增类 | 购物与顾客自助：公开陈列、购买确认及顾客履约生命周期 | 建议新增，未实施 |
-| `/manage` | 概览 | [views/manage/ManageOverviewView.vue](../../../frontend/apps/shop/src/views/manage/ManageOverviewView.vue) | 总览分析 | 团队/个人经营工作入口与当前范围 | 拟归属，未实施 |
-| `/manage/personal` | 概览 | [views/manage/PersonalOverviewView.vue](../../../frontend/apps/shop/src/views/manage/PersonalOverviewView.vue) | 总览分析 | 团队/个人经营工作入口与当前范围 | 拟归属，未实施 |
+| `/manage` | 概览 | [views/manage/ManageOverviewView.vue](../../../frontend/apps/shop/src/views/manage/ManageOverviewView.vue) | 总览分析 | 团队/个人经营工作入口与当前范围 | 已实施，待批阅 |
+| `/manage/personal` | 概览 | [views/manage/PersonalOverviewView.vue](../../../frontend/apps/shop/src/views/manage/PersonalOverviewView.vue) | 总览分析 | 团队/个人经营工作入口与当前范围 | 已实施，待批阅 |
 | `/manage/personal/products` | 我的商品 | [views/manage/ProductsView.vue](../../../frontend/apps/shop/src/views/manage/ProductsView.vue) | 对象目录 | 定位商品或订单，再进入独立任务 | 已有模板（基线） |
 | `/manage/personal/products/new` | 新建本人商品 | [views/manage/ProductFormView.vue](../../../frontend/apps/shop/src/views/manage/ProductFormView.vue) | 专注编辑 | 填写一个商品或订单并提交 | 拟归属，未实施 |
 | `/manage/personal/products/:id(\d+)` | 编辑本人商品 | [views/manage/ProductFormView.vue](../../../frontend/apps/shop/src/views/manage/ProductFormView.vue) | 专注编辑 | 填写一个商品或订单并提交 | 拟归属，未实施 |
@@ -154,7 +156,7 @@
 | `/communities/:id(\d+)` | 社区详情 | [views/CommunitiesView.vue](../../../frontend/apps/team/src/views/CommunitiesView.vue) | 对象档案 | 围绕单个对象查看资料、状态、关系与上下文动作 | 拟归属，未实施 |
 | `/communities/:id(\d+)/edit` | 编辑社区 | [views/CommunitiesView.vue](../../../frontend/apps/team/src/views/CommunitiesView.vue) | 专注编辑 | 围绕单个填写、配置、授权或发送任务提交 | 拟归属，未实施 |
 | `/communities/:id(\d+)/administrators` | 社区管理员 | [views/CommunitiesView.vue](../../../frontend/apps/team/src/views/CommunitiesView.vue) | 对象目录 | 定位人员、文件、字段或其他管理对象 | 拟归属，未实施 |
-| `/` | 概览 | [views/DashboardView.vue](../../../frontend/apps/team/src/views/DashboardView.vue) | 总览分析 | 团队/个人当前范围与主要工作入口 | 拟归属，未实施 |
+| `/` | 概览 | [views/DashboardView.vue](../../../frontend/apps/team/src/views/DashboardView.vue) | 总览分析 | 团队/个人当前范围与主要工作入口 | 已实施，待批阅 |
 | `/personal/notices` | 收件箱 | [views/NoticesView.vue](../../../frontend/apps/team/src/views/NoticesView.vue) | 分类工作区 | 按稳定的设置、通知、审计或审核范围切换 | 拟归属，未实施 |
 | `/personal/notices/detail` | 阅读通知 | [views/NoticeDetailView.vue](../../../frontend/apps/team/src/views/NoticeDetailView.vue) | 对象档案 | 围绕单个对象查看资料、状态、关系与上下文动作 | 拟归属，未实施 |
 | `/notices/sent` | 通知中心 | [views/NoticesView.vue](../../../frontend/apps/team/src/views/NoticesView.vue) | 分类工作区 | 按稳定的设置、通知、审计或审核范围切换 | 已有模板（基线） |
@@ -201,7 +203,7 @@
 | `/doc-edit` | 编辑文档 | [views/DocumentFormView.vue](../../../frontend/apps/team/src/views/DocumentFormView.vue) | 专注编辑 | 围绕单个填写、配置、授权或发送任务提交 | 拟归属，未实施 |
 | `/member-detail` | 成员详情 | [views/MemberDetailView.vue](../../../frontend/apps/team/src/views/MemberDetailView.vue) | 对象档案 | 围绕单个对象查看资料、状态、关系与上下文动作 | 拟归属，未实施 |
 | `/doc` | 文档 | [views/DocumentView.vue](../../../frontend/apps/team/src/views/DocumentView.vue) | 待新增类 | 内容阅读：以文档正文及阅读导航为主体 | 建议新增，未实施 |
-| `/personal` | 概览 | [views/PersonalView.vue](../../../frontend/apps/team/src/views/PersonalView.vue) | 总览分析 | 团队/个人当前范围与主要工作入口 | 拟归属，未实施 |
+| `/personal` | 概览 | [views/PersonalView.vue](../../../frontend/apps/team/src/views/PersonalView.vue) | 总览分析 | 团队/个人当前范围与主要工作入口 | 已实施，待批阅 |
 | `/personal/profile` | 资料 | [views/PersonalView.vue](../../../frontend/apps/team/src/views/PersonalView.vue) | 专注编辑 | 围绕单个填写、配置、授权或发送任务提交 | 拟归属，未实施 |
 | `/personal/fields` | 对象字段 | [views/PersonalView.vue](../../../frontend/apps/team/src/views/PersonalView.vue) | 专注编辑 | 围绕单个填写、配置、授权或发送任务提交 | 拟归属，未实施 |
 | `/personal/access` | 角色与权限 | [views/PersonalView.vue](../../../frontend/apps/team/src/views/PersonalView.vue) | 对象档案 | 围绕单个对象查看资料、状态、关系与上下文动作 | 拟归属，未实施 |
@@ -213,9 +215,9 @@
 
 | 实际路由 | 页面 | 源码 | 归属 | 理由 | 实施状态 |
 | --- | --- | --- | --- | --- | --- |
-| `/overview` | 概览 | [views/TeamOverviewView.vue](../../../frontend/apps/transaction/src/views/TeamOverviewView.vue) | 总览分析 | 当前工作范围、主要业务入口或真实经营统计 | 本次已实施，待批阅 |
+| `/overview` | 概览 | [views/TeamOverviewView.vue](../../../frontend/apps/transaction/src/views/TeamOverviewView.vue) | 总览分析 | 当前工作范围、主要业务入口或真实经营统计 | 已实施，待批阅 |
 | `/transactions` | 团队流水 | [views/TransactionsView.vue](../../../frontend/apps/transaction/src/views/TransactionsView.vue) | 对象目录 | 找到流水、任务、顾客、权益或余额对象；局部汇总不改变主任务 | 拟归属，未实施 |
-| `/personal` | 概览 | [views/PersonalOverviewView.vue](../../../frontend/apps/transaction/src/views/PersonalOverviewView.vue) | 总览分析 | 当前工作范围、主要业务入口或真实经营统计 | 拟归属，未实施 |
+| `/personal` | 概览 | [views/PersonalOverviewView.vue](../../../frontend/apps/transaction/src/views/PersonalOverviewView.vue) | 总览分析 | 当前工作范围、主要业务入口或真实经营统计 | 已实施，待批阅 |
 | `/personal/transactions` | 我的流水 | [views/PersonalWorkspaceView.vue](../../../frontend/apps/transaction/src/views/PersonalWorkspaceView.vue) | 对象目录 | 找到流水、任务、顾客、权益或余额对象；局部汇总不改变主任务 | 拟归属，未实施 |
 | `/personal/transactions/new` | 登记流水 | [views/TransactionFormView.vue](../../../frontend/apps/transaction/src/views/TransactionFormView.vue) | 专注编辑 | 登记、赋予权益或充值的单次提交任务 | 拟归属，未实施 |
 | `/personal/transactions/:id(\d+)` | 流水详情 | [views/TransactionDetailView.vue](../../../frontend/apps/transaction/src/views/TransactionDetailView.vue) | 对象档案 | 单笔流水、任务或顾客余额的上下文详情与动作 | 拟归属，未实施 |
@@ -228,7 +230,7 @@
 | `/personal/entitlements/new` | 下发顾客权益 | [views/EntitlementGrantView.vue](../../../frontend/apps/transaction/src/views/EntitlementGrantView.vue) | 专注编辑 | 登记、赋予权益或充值的单次提交任务 | 拟归属，未实施 |
 | `/detail` | 流水详情 | [views/TransactionDetailView.vue](../../../frontend/apps/transaction/src/views/TransactionDetailView.vue) | 对象档案 | 单笔流水、任务或顾客余额的上下文详情与动作 | 拟归属，未实施 |
 | `/edit` | 编辑流水 | [views/TransactionFormView.vue](../../../frontend/apps/transaction/src/views/TransactionFormView.vue) | 专注编辑 | 登记、赋予权益或充值的单次提交任务 | 拟归属，未实施 |
-| `/stats` | 经营统计 | [views/StatsView.vue](../../../frontend/apps/transaction/src/views/StatsView.vue) | 总览分析 | 当前工作范围、主要业务入口或真实经营统计 | 拟归属，未实施 |
+| `/stats` | 经营统计 | [views/StatsView.vue](../../../frontend/apps/transaction/src/views/StatsView.vue) | 总览分析 | 当前工作范围、主要业务入口或真实经营统计 | 已实施，待批阅 |
 | `/services` | 权益核销 | [views/ServicesView.vue](../../../frontend/apps/transaction/src/views/ServicesView.vue) | 对象目录 | 找到流水、任务、顾客、权益或余额对象；局部汇总不改变主任务 | 拟归属，未实施 |
 | `/entitlements/new` | 赋予顾客权益 | [views/EntitlementGrantView.vue](../../../frontend/apps/transaction/src/views/EntitlementGrantView.vue) | 专注编辑 | 登记、赋予权益或充值的单次提交任务 | 拟归属，未实施 |
 | `/services/:id(\d+)` | 核销详情 | [views/ServiceDetailView.vue](../../../frontend/apps/transaction/src/views/ServiceDetailView.vue) | 对象档案 | 单笔流水、任务或顾客余额的上下文详情与动作 | 拟归属，未实施 |
@@ -242,7 +244,7 @@
 
 | 实际路由 | 页面 | 源码 | 归属 | 理由 | 实施状态 |
 | --- | --- | --- | --- | --- | --- |
-| `/overview` | 概览 | [views/OverviewView.vue](../../../frontend/apps/weibo/src/views/OverviewView.vue) | 总览分析 | 工作范围与微博业务入口 | 拟归属，未实施 |
+| `/overview` | 概览 | [views/OverviewView.vue](../../../frontend/apps/weibo/src/views/OverviewView.vue) | 总览分析 | 工作范围与微博业务入口 | 已实施，待批阅 |
 | `/interactions/comment-presets` | 预设评论 | [views/CommentPresetsView.vue](../../../frontend/apps/weibo/src/views/CommentPresetsView.vue) | 对象目录 | 定位账号、持续任务或预设评论 | 拟归属，未实施 |
 | `/interactions/comment-presets/new` | 添加预设 | [views/CommentPresetFormView.vue](../../../frontend/apps/weibo/src/views/CommentPresetFormView.vue) | 专注编辑 | 一次绑定、发帖、互动、预设或任务配置 | 拟归属，未实施 |
 | `/interactions/comment-presets/edit` | 编辑预设 | [views/CommentPresetFormView.vue](../../../frontend/apps/weibo/src/views/CommentPresetFormView.vue) | 专注编辑 | 一次绑定、发帖、互动、预设或任务配置 | 拟归属，未实施 |
@@ -254,7 +256,7 @@
 | `/tasks/new` | 新建任务 | [views/TaskFormView.vue](../../../frontend/apps/weibo/src/views/TaskFormView.vue) | 专注编辑 | 一次绑定、发帖、互动、预设或任务配置 | 拟归属，未实施 |
 | `/tasks/:id(\d+)` | 编辑任务 | [views/TaskFormView.vue](../../../frontend/apps/weibo/src/views/TaskFormView.vue) | 专注编辑 | 一次绑定、发帖、互动、预设或任务配置 | 拟归属，未实施 |
 | `/logs` | 执行日志 | [views/LogsView.vue](../../../frontend/apps/weibo/src/views/LogsView.vue) | 分类工作区 | 按执行记录及其状态核查自动化结果 | 拟归属，未实施 |
-| `/personal` | 概览 | [views/OverviewView.vue](../../../frontend/apps/weibo/src/views/OverviewView.vue) | 总览分析 | 工作范围与微博业务入口 | 拟归属，未实施 |
+| `/personal` | 概览 | [views/OverviewView.vue](../../../frontend/apps/weibo/src/views/OverviewView.vue) | 总览分析 | 工作范围与微博业务入口 | 已实施，待批阅 |
 | `/personal/feed` | 点单信息流 | [views/FeedView.vue](../../../frontend/apps/weibo/src/views/FeedView.vue) | 待新增类 | 信息流处置：阅读点单内容并按上下文发起操作 | 建议新增，未实施 |
 | `/personal/interactions/comment-presets` | 预设评论 | [views/CommentPresetsView.vue](../../../frontend/apps/weibo/src/views/CommentPresetsView.vue) | 对象目录 | 定位账号、持续任务或预设评论 | 拟归属，未实施 |
 | `/personal/interactions/comment-presets/new` | 添加预设 | [views/CommentPresetFormView.vue](../../../frontend/apps/weibo/src/views/CommentPresetFormView.vue) | 专注编辑 | 一次绑定、发帖、互动、预设或任务配置 | 拟归属，未实施 |
@@ -294,7 +296,7 @@
 
 没有显式 alias 字段；兼容路径以上述 redirect 为准。Account /identity/current/:section? 有可见的加载、失败及重试界面，已计入身份流程：依据 /identity/target 回到 Team /personal/profile、Shop /customer/profile 或 Account /identity；section 当前不改变目标。
 
-参数映射：:id、:userId、:postId 的数字约束按路由保留；:uuid 为群聊对象，:slug 为社区或公开人员，:section 为治理范围。社区管理 section 覆盖 boards / announcements / posts / comments / members，:itemId? 覆盖所选对象的上下文子状态；不按每个参数值或 tab 重复计页。没有 path 参数但由 query 定位对象的 /member-detail、/member-edit、/entity、/doc、/doc-edit、/notice-*/detail、Transaction /detail、/edit、/balance 等仍各计一页，原 query 由原页面继续处理。
+参数映射：:id、:userId、:postId 的数字约束按路由保留；:uuid 为群聊对象，:slug 为社区或公开人员，:section 为治理范围。社区管理 section 覆盖 boards / announcements / posts / comments / members，:itemId? 覆盖所选对象的上下文子状态；不按每个参数值或 tab 重复计页。没有 path 参数但由 query 定位对象的 /member-detail、/member-edit、/entity、/doc、/doc-edit、/notices/*/detail、Transaction /detail、/edit、/balance 等仍各计一页，原 query 由原页面继续处理。
 
 ## 五类之外的页面与新增模板建议
 
@@ -346,4 +348,4 @@
 - 文档站由独立 MkDocs 配置发布，不在 frontend/apps 的应用路由集合内；本清单不宣称覆盖其文章 URL、后端 API、静态资源或未知服务器 rewrite。
 - /:pathMatch(.*)* 的结果页计一次；跳转式 catch-all 不计。公开域的团队 slug 与 runtime 身份重定向改变数据范围，不生成新的页面模式。
 - 本表读取全部 9 份 router.ts 与 Site main.ts，并展开路由工厂；只对分类不明确的少数页面读取入口，没有全量审查业务实现。拟归属是设计建议，不是授权、功能、响应式或可用性验收。
-- 待批阅后再由各页面负责人评估迁移；本次未更改路由、后端、权限、公共主题、公共 demo 或其他模板实例。
+- 待批阅后再由各页面负责人评估迁移；本次未更改路由、后端、权限、公共主题、公共 demo 或其他模板实例；总览实施详见配套说明。
