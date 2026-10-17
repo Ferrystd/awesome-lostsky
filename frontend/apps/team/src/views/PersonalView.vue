@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsOverviewLinks from '@lostsky/ui/components/LsOverviewLinks.vue'
+import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
@@ -12,7 +14,6 @@ import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
@@ -105,8 +106,7 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
 
 <template>
   <div class="personal-view">
-    <template v-if="section === 'overview'">
-      <LsPageHeader
+    <LsOverviewPage v-if="section === 'overview'"
         :title="overviewTitle"
         :description="overviewDescription"
       >
@@ -115,27 +115,25 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
           <LsPageLink href="//doc.lostsky.work" :icon="BookOpen" label="使用文档" target="_blank" rel="noopener" />
           <LsSceneMotionControl />
         </template>
-      </LsPageHeader>
-      <TeamShareLinks />
+
+      <LsPanel>
+        <template #header><LsSectionHeader title="工作入口" /></template>
+        <LsOverviewLinks label="工作入口" :entries="overviewEntries" />
+        <template #footer>
+          <p class="scope-note">此处是你在团队中的个人中心。部分内容受团队管理或需要权限。</p>
+        </template>
+      </LsPanel>
+      <LsPanel>
+        <template #header><LsSectionHeader title="个人身份摘要" description="当前身份已分配的角色、资料字段与有效权限。" /></template>
       <LsMetricGrid aria-label="个人身份摘要" :items="[
         { key: 'roles', label: '已分配角色', value: query.isSuccess.value && query.data.value?.role_assignments ? query.data.value.role_assignments.length : '-' },
         { key: 'fields', label: '资料字段', value: query.isSuccess.value && query.data.value?.custom_fields ? query.data.value.custom_fields.length : '-' },
         { key: 'permissions', label: '有效权限', value: query.isSuccess.value && query.data.value?.effective_permissions ? query.data.value.effective_permissions.length : '-' },
       ]" />
-      <LsPanel>
-        <template #header><LsSectionHeader title="工作入口" /></template>
-        <nav class="personal-entries" aria-label="工作入口">
-          <div v-for="entry in overviewEntries" :key="entry.key" class="personal-entry">
-            <LsPageLink :to="entry.to" :icon="entry.icon" :label="entry.label" />
-            <p>{{ entry.description }}</p>
-          </div>
-        </nav>
-        <template #footer>
-          <p class="scope-note">此处是你在团队中的个人中心。部分内容受团队管理或需要权限。</p>
-        </template>
       </LsPanel>
+      <TeamShareLinks />
       <LsInlineError v-if="query.isError.value" :message="friendlyError(query.error.value)" />
-    </template>
+    </LsOverviewPage>
     <LsDetailPage v-else :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的人员；切换身份后会自动重新核对。" back-to="/personal" back-label="返回个人概览" aside-label="当前人员身份">
       <template #actions><MemberSelfDeparture v-if="section === 'profile' && query.data.value?.identity.type === 'teamMember'" /></template>
       <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
@@ -159,5 +157,5 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
 </template>
 
 <style scoped>
-.personal-view,.profile-form{min-width:0;display:grid;gap:1.5rem}.slug-field{margin-bottom:1rem}.personal-entries{min-width:0;display:grid}.personal-entry{min-width:0;padding:.75rem 0}.personal-entry:first-child{padding-top:0}.personal-entry:last-child{padding-bottom:0}.personal-entry+.personal-entry{border-top:1px solid var(--border)}.personal-entry p,.scope-note{margin:0;color:var(--text-secondary);font-size:.8125rem;line-height:1.6;overflow-wrap:anywhere}
+.personal-view,.profile-form{min-width:0;display:grid;gap:1.5rem}.slug-field{margin-bottom:1rem}.scope-note{margin:0;color:var(--text-secondary);font-size:.8125rem;line-height:1.6;overflow-wrap:anywhere}
 </style>

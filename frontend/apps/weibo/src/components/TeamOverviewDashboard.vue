@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsOverviewLinks from '@lostsky/ui/components/LsOverviewLinks.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -6,8 +7,6 @@ import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
-import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
-import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { ClipboardList, Clock3, FileClock, MessageCircleMore, Send, UserRound, Users } from '@lucide/vue'
@@ -130,33 +129,30 @@ const nextTime = computed(() => (nextTask.value?.next_run_at ? new Date(nextTask
         <LsAsyncState v-else-if="state === 'error'" state="error" title="无法读取微博态势" :description="errorDescription" />
         <template v-else>
           <LsPanel>
+            <template #header><LsSectionHeader title="近期需要关注" description="只收拢失败与结果未确认记录；不显示常规运行日志。"><template #aside><span>{{ failures.length }} 项</span></template></LsSectionHeader></template>
+            <LsEmptyState v-if="!failures.length" title="近期运行正常" description="最近的执行记录中没有失败或结果未确认项。" />
+            <OperationRecordList v-else :operations="failures" />
+          </LsPanel>
+          <LsPanel>
             <template #header><LsSectionHeader title="运行健康" description="账号健康和任务状态并列展示，便于优先处理异常。" /></template>
             <div class="weibo-dashboard-health">
               <section aria-labelledby="weibo-account-health-title"><h3 id="weibo-account-health-title">账号健康</h3><AccountHealthSummary :accounts="accounts" /></section>
               <section aria-labelledby="weibo-task-health-title"><h3 id="weibo-task-health-title">任务状态</h3><TaskStatusSummary :tasks="tasks" /></section>
             </div>
           </LsPanel>
-          <LsPanel>
-            <template #header><LsSectionHeader title="近期需要关注" description="只收拢失败与结果未确认记录；不显示常规运行日志。"><template #aside><span>{{ failures.length }} 项</span></template></LsSectionHeader></template>
-            <LsEmptyState v-if="!failures.length" title="近期运行正常" description="最近的执行记录中没有失败或结果未确认项。" />
-            <OperationRecordList v-else :operations="failures" />
-          </LsPanel>
+
         </template>
       </div>
-      <nav class="weibo-dashboard-navigation" aria-label="工作入口">
-        <LsSectionHeader title="工作入口" description="状态确认完毕后，从这里进入账号、发帖、互动和任务等具体工作。" />
-        <LsResourceList>
-          <LsResourceRow v-for="entry in entries" :key="entry.key" :description="entry.description">
-            <template #identity><LsPageLink :to="entry.to" :icon="entry.icon" :label="entry.label" /></template>
-          </LsResourceRow>
-        </LsResourceList>
-      </nav>
+      <LsPanel>
+        <template #header><LsSectionHeader title="工作入口" description="继续准备内容、管理账号或处理任务。" /></template>
+        <LsOverviewLinks label="微博工作入口" :entries="entries" />
+      </LsPanel>
     </div>
   </LsOverviewPage>
 </template>
 
 <style scoped>
-.weibo-dashboard-summary, .weibo-dashboard-workspace, .weibo-dashboard-main, .weibo-dashboard-navigation, .weibo-dashboard-health { min-width: 0; display: grid; gap: 1rem; align-content: start; }
+.weibo-dashboard-summary, .weibo-dashboard-workspace, .weibo-dashboard-main, .weibo-dashboard-health { min-width: 0; display: grid; gap: 1rem; align-content: start; }
 .weibo-dashboard-signal { margin: 0 0 1rem; color: var(--text-secondary); font-size: .875rem; }
 .weibo-dashboard-signal[data-tone='danger'] { color: var(--danger); }
 .weibo-dashboard-signal[data-tone='warning'] { color: var(--warning); }

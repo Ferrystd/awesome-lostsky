@@ -1,5 +1,13 @@
 [
   {
+    "id": "ls-overview-links",
+    "name": "LsOverviewLinks",
+    "source": "frontend/packages/ui/src/components/LsOverviewLinks.vue",
+    "story": "frontend/component-previews/src/overview-links-story.ts#overviewLinksStory",
+    "category": "ui",
+    "aliases": ["概览业务入口"]
+  },
+  {
     "id": "ls-resource-list",
     "name": "LsResourceList",
     "source": "frontend/packages/ui/src/components/LsResourceList.vue",

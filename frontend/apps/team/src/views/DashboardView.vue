@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsOverviewLinks from '@lostsky/ui/components/LsOverviewLinks.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
@@ -64,7 +65,7 @@ const stats = computed(() => [
   },
 ])
 const metricItems = computed(() => stats.value.map(item => ({ key: item.key, label: item.label, value: !query.isPending.value && !query.isError.value && item.metric?.available && item.metric.count != null ? item.metric.count : '-', hint: item.metric?.error || '当前可见范围' })))
-const resourceGroups = teamNavigation
+const resourceGroups = teamNavigation.map(group => ({ ...group, entries: group.links.map(link => ({ key: link.to, label: link.label, description: link.note, to: link.to, icon: link.icon })) }))
 </script>
 
 
@@ -75,30 +76,25 @@ const resourceGroups = teamNavigation
       <LsPageLink href="//doc.lostsky.work" target="_blank" rel="noopener" :icon="BookOpen" label="使用文档" />
       <LsSceneMotionControl />
     </template>
-    <template #summary>
-      <TeamShareLinks />
+    <LsPanel>
+      <template #header><LsSectionHeader title="处理团队事务" description="管理团队资源，继续人事与协作工作。" /></template>
+      <div class="team-resource-map">
+        <section v-for="group in resourceGroups" :key="group.key" class="team-resource-group">
+          <LsSectionHeader :title="group.title" :description="group.description" :heading-level="3" />
+          <LsOverviewLinks :label="group.title" :entries="group.entries" />
+        </section>
+      </div>
+    </LsPanel>
+    <LsPanel>
+      <template #header><LsSectionHeader title="团队资源摘要" description="当前可见范围内的人员、成员、文档与通知。" /></template>
       <LsMetricGrid :items="metricItems" aria-label="团队资源摘要" />
       <LsAsyncState v-if="query.isPending.value" state="loading" :rows="2" />
       <LsInlineError v-else-if="query.isError.value" :message="friendlyError(query.error.value)" />
-    </template>
-      <div class="team-resource-map">
-        <LsPanel v-for="group in resourceGroups" :key="group.key">
-          <template #header><LsSectionHeader :title="group.title" :description="group.description"><template #aside><component :is="group.icon" :size="24" aria-hidden="true" /></template></LsSectionHeader></template>
-          <nav :aria-label="group.title">
-            <ul class="team-resource-links">
-              <li v-for="link in group.links" :key="link.to">
-                <LsPageLink :to="link.to" :icon="link.icon" :label="link.label" />
-                <p>{{ link.note }}</p>
-              </li>
-            </ul>
-          </nav>
-        </LsPanel>
-      </div>
+    </LsPanel>
+    <TeamShareLinks />
   </LsOverviewPage>
 </template>
 <style scoped>
-.team-resource-map { display: grid; gap: 1rem; }
-.team-resource-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem 1.5rem; list-style: none; padding: 0; margin: 0; }
-.team-resource-links li { min-width: 0; }
-.team-resource-links p { margin: 0; color: var(--text-secondary); font-size: .875rem; line-height: 1.6; overflow-wrap: anywhere; }
+.team-resource-map { min-width: 0; display: grid; gap: 2rem; }
+.team-resource-group { min-width: 0; display: grid; gap: .75rem; }
 </style>
