@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft, Check } from '@lucide/vue'
 
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
-import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
@@ -43,7 +43,7 @@ function submit() {
       <LsPageLink to="/roles" :icon="ArrowLeft" label="返回角色与权限" />
     </template>
 
-      <LsPanel><form class="role-form" @submit.prevent="submit">
+      <form class="role-form" @submit.prevent="submit"><LsFormSection title="角色资料" description="先建立名称与标识，创建后再配置权限。">
         <LsField label="角色标识" for-id="role-key" required hint="创建后不建议更改；使用小写字母、数字和下划线。">
           <NInput :input-props="{ id: 'role-key' }" v-model:value="form.role_key" autocomplete="off" placeholder="例如 operator" />
         </LsField>
@@ -57,6 +57,7 @@ function submit() {
           <NInputNumber :input-props="{ id: 'role-sort' }" v-model:value="form.sort" :min="0" :show-button="false" />
         </LsField>
         <LsSwitchField v-model="form.is_displayed" label="公开主页展示" aria-label="在公开人员资料中展示此角色" description="开启后，获得此角色的公开成员或虚拟人员会展示角色名称和说明；角色权限不会公开。" />
+      </LsFormSection>
         <p v-if="save.isError.value && !routeAccess.restricted.value" class="error" role="alert">{{ friendlyError(save.error.value) }}</p>
         <LsFormActions>
           <LsPageLink to="/roles" :icon="ArrowLeft" label="取消" />
@@ -64,7 +65,7 @@ function submit() {
             <template #icon><Check :size="17" /></template>创建角色
           </LsButton>
         </LsFormActions>
-      </form></LsPanel>
+      </form>
   </LsFormPage>
 </template>
 

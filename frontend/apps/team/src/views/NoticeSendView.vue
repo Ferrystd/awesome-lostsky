@@ -83,12 +83,7 @@ function submit() {
     </template>
 
     <form class="notice-form" @submit.prevent="submit">
-      <LsFormSection title="通知内容">
-      <section class="delivery-note" aria-labelledby="delivery-note-title">
-        <strong id="delivery-note-title">单向、同 Team 送达</strong>
-        <p>此为单向通知，不支持回复或会话；发送方显示为团队本身。</p>
-      </section>
-
+      <LsFormSection title="收件人员" description="以团队名义发送给一位人员；通知为单向消息，对方不能直接回复。">
       <LsField label="收件人员" for-id="notice-recipient" required hint="在本团队的人员中选择收件人；不会发给同名对象。">
         <LsEntitySelect
           :input-props="{ id: 'notice-recipient', 'aria-label': '收件人员' }"
@@ -104,6 +99,8 @@ function submit() {
         当前团队还没有可接收通知的人员。
       </p>
 
+      </LsFormSection>
+      <LsFormSection title="通知内容" description="用标题概括事项，在正文中说明时间、背景和需要采取的行动。">
       <LsField label="标题" for-id="notice-title" required>
         <NInput
           :input-props="{ id: 'notice-title' }"
@@ -149,5 +146,5 @@ function submit() {
 </template>
 
 <style scoped>
-.notice-form{display:grid;gap:1.5rem}.delivery-note strong{font-size:.9375rem}.delivery-note p{margin:6px 0 0;color:var(--text-secondary);font-size:.875rem;line-height:1.6}.feedback{margin:0;padding:12px 14px;border-radius:var(--radius-md);font-size:.875rem;line-height:1.55}.success{color:var(--success);background:color-mix(in srgb,var(--success) 9%,transparent)}.empty{color:var(--text-secondary);background:var(--surface-subtle)}
+.notice-form{display:grid;gap:1.5rem}.feedback{margin:0;padding:12px 14px;border-radius:var(--radius-md);font-size:.875rem;line-height:1.55}.success{color:var(--success);background:color-mix(in srgb,var(--success) 9%,transparent)}.empty{color:var(--text-secondary);background:var(--surface-subtle)}
 </style>

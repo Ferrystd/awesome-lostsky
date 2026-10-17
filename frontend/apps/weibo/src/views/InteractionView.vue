@@ -154,7 +154,7 @@ onBeforeUnmount(() => { epoch++ })
     </template>
 
     <form class="weibo-form" @submit.prevent="submit">
-      <LsFormSection title="微博互动" description="确认目标、账号和内容后执行一次互动。">
+      <LsFormSection title="操作与目标" description="选择互动方式，并确认目标微博。">
         <LsInlineError v-if="task.error" :message="task.error" />
         <LsField label="操作" for-id="weibo-interaction" required>
           <NRadioGroup id="weibo-interaction" v-model:value="draft.action" :disabled="task.feedPostId !== null">
@@ -168,8 +168,12 @@ onBeforeUnmount(() => { epoch++ })
         <LsField v-else label="微博帖子链接" for-id="weibo-status-url" required hint="请粘贴 weibo.com 或 m.weibo.cn 的微博正文页链接。">
           <NInput v-model:value="draft.statusUrl" :maxlength="2048" placeholder="https://weibo.com/..." :input-props="{ id: 'weibo-status-url', 'aria-label': '微博帖子链接' }" />
         </LsField>
+      </LsFormSection>
+      <LsFormSection title="账号与内容" description="本次仅使用所选账号执行一次互动。">
         <WeiboAccountField id="weibo-account" v-model="draft.accountId" :accounts="accounts.data.value || []" :loading="accounts.isPending.value" :error="accounts.isError.value ? friendlyError(accounts.error.value) : ''" :disabled-reason="accountReason" />
         <WeiboCommentFields v-if="draft.action === 'comment'" id-prefix="weibo" v-model="draft.comment" :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason" />
+      </LsFormSection>
+      <LsFormSection title="确认互动" description="核对账号、目标与内容后手动提交。">
         <LsDescriptionList>
           <dt>账号</dt><dd>{{ selectedAccount?.screen_name || selectedAccount?.uid || (accountReason ? '-' : '未选择') }}</dd>
           <dt>目标</dt><dd>{{ task.feedPostId ? (visiblePost?.status_url || '-') : draft.statusUrl || '未填写' }}</dd>

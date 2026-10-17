@@ -58,6 +58,13 @@ const router = useRouter()
 const queryClient = useQueryClient()
 const id = computed(() => Number(route.params.id || 0))
 const editing = computed(() => id.value > 0)
+function focusChapter(chapterId: string) {
+  const heading = document.getElementById(chapterId)
+  if (!heading) return
+  heading.tabIndex = -1
+  heading.focus({ preventScroll: true })
+  heading.scrollIntoView({ block: 'center' })
+}
 const scope = computed(() => route.meta.workspace === 'personal' ? 'personal' : 'team')
 const management = computed(() => productManagement(scope.value))
 const personal = computed(() => management.value.personal)
@@ -356,22 +363,28 @@ const valid = computed(() => Boolean(
 </script>
 
 <template>
-  <LsFormPage :title="editing ? (personal ? '编辑本人商品' : '编辑商品') : (personal ? '新建本人商品' : '新建商品')" description="商品类型决定订单完成时交付什么；相关配置在保存时由后端再次校验。">
+  <LsFormPage :title="editing ? (personal ? '编辑本人商品' : '编辑商品') : (personal ? '新建本人商品' : '新建商品')" description="整理商品资料、配置交付与价格，最后统一保存。">
     <template #actions>
       <LsPageLink :to="management.routeBase" :icon="ArrowLeft" :label="personal ? '返回我的商品' : '返回商品'" />
       <LsPageLink v-if="editing" :icon="Eye" label="预览前台" :href="`/product/${id}`" target="_blank" rel="noopener noreferrer" />
     </template>
 
-    <form class="manage-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : !save.isPending.value && save.mutate()">
+    <nav class="product-chapters" aria-label="商品编辑章节">
+      <a href="#product-basics" @click.prevent="focusChapter('product-basics')">商品资料</a>
+      <a href="#product-delivery" @click.prevent="focusChapter('product-delivery')">销售与交付</a>
+      <a v-if="form.kind !== 5" href="#product-pricing" @click.prevent="focusChapter('product-pricing')">价格与分成</a>
+      <a href="#product-details" @click.prevent="focusChapter('product-details')">详情介绍</a>
+      <a href="#product-publish" @click.prevent="focusChapter('product-publish')">上架与保存</a>
+    </nav>
+
+    <form class="product-focused-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : !save.isPending.value && save.mutate()">
       <fieldset class="product-edit-fields" :disabled="save.isPending.value" :inert="save.isPending.value">
-      <LsFormSection title="基本信息">
+      <LsFormSection id="product-basics" title="商品资料" description="名称、简短说明与封面，帮助顾客快速了解商品。">
           <LsField label="商品名称" for-id="product-name" required><NInput id="product-name" v-model:value="form.name" maxlength="100" /></LsField>
           <LsField label="简短说明" for-id="product-description"><NInput id="product-description" v-model:value="form.description" type="textarea" maxlength="500" show-count /></LsField>
           <LsField label="封面" for-id="product-cover" required><LsMediaUploadField id="product-cover" v-model="form.cover_image" :upload="uploadFileUrl" accept="image/*" placeholder="图片 URL 或上传文件" button-label="上传封面" :disabled="Boolean(uploading || uploadDisabledReason)" :disabled-reason="uploading ? '正在上传图片，请稍候' : uploadDisabledReason" @uploading="uploading = $event ? 'cover' : ''" @uploaded="access.refetch(); feedback.success('商品封面已上传')" /></LsField>
-          <LsField label="详情" for-id="product-markdown"><LsMarkdownEditor id="product-markdown" v-model="form.introduction_markdown" :draft-key="`shop-product-${scope}-${id || 'new'}`" :upload-image="uploadMarkdownImage" :upload-disabled-reason="uploading ? '正在上传图片，请稍候' : uploadDisabledReason" /></LsField>
-          <LsSwitchField id="product-active" :model-value="form.is_active === 1" label="上架状态" description="关闭后商品不会在商城展示。" @update:model-value="value => form.is_active = value ? 1 : 0" />
       </LsFormSection>
-      <LsFormSection title="销售与履约">
+      <LsFormSection id="product-delivery" title="销售与交付" description="确定商品类型、归属人员，以及顾客购买后获得的内容。">
           <p v-if="personal" class="form-intro" role="note">此商品自动归属当前已领取的人员，个人工作台不能转移归属。</p>
           <LsField label="商品类型" for-id="product-kind" required><NSelect id="product-kind" v-model:value="form.kind" :disabled="editing" :options="[{ label: '普通商品', value: 1 }, { label: '核销商品', value: 4 }, { label: '套餐', value: 2 }, { label: '卡密', value: 3 }, { label: '多规格商品', value: 5 }]" /></LsField>
           <template v-if="form.kind === 4">
@@ -400,7 +413,6 @@ const valid = computed(() => Boolean(
             <LsButton v-if="form.kind === 2 || compositionItems.length === 0" type="button" variant="secondary" :disabled="options.isPending.value || options.isError.value" @click="compositionItems.push({ product_id: null, quantity: 1 })">添加商品</LsButton>
           </template>
           <p v-if="pricingLocked" class="form-intro" role="note">售价、成本和分成由子项自动汇总。</p>
-          <LsField v-if="form.kind !== 5" label="售价" for-id="product-price" required :hint="pricingLocked ? '由子项自动汇总' : undefined"><NInputNumber id="product-price" v-model:value="form.price" :min="0" :step="0.01" :precision="2" :disabled="pricingLocked" /></LsField>
           <LsField v-if="!personal" label="专属人员" for-id="product-owner"><LsEntitySelect id="product-owner" v-model="form.entity_id" :entities="entities" :loading="options.isPending.value" :disabled="options.isError.value" clearable placeholder="留空表示团队公用商品" /></LsField>
           <LsField v-if="[1, 4].includes(form.kind)" label="可选接单人" for-id="product-handlers" hint="普通商品用于下单选择；核销商品用于核销接单。"><LsEntitySelect id="product-handlers" v-model="form.handler_entity_ids" :entities="entities" :loading="options.isPending.value" :disabled="options.isError.value" multiple clearable placeholder="选择可选接单人" /></LsField>
       </LsFormSection>
@@ -413,7 +425,9 @@ const valid = computed(() => Boolean(
         <LsButton type="button" variant="secondary" :disabled="variants.length >= 50 || options.isPending.value || options.isError.value" @click="addVariant">添加规格</LsButton>
       </template>
       <ServiceFieldsEditor v-if="form.kind === 4" v-model="redemptionFields" />
-      <LsFormSection v-if="pricingLocked" title="分项金额汇总" description="按子项份数汇总，订单创建后冻结交付配置和金额。">
+      <LsFormSection v-if="form.kind !== 5" id="product-pricing" title="价格与分成" :description="pricingLocked ? '按子项份数自动汇总；订单创建后冻结当前金额。' : distributionLocked ? (editing ? '人员分成沿用已保存金额，团队分成取余额。' : '人员分成按团队默认比例生成，团队分成取余额。') : '修改售价或成本后，按团队设置重算人员分成；订单创建时冻结当前金额。'">
+          <LsField label="售价" for-id="product-price" required :hint="pricingLocked ? '由子项自动汇总' : undefined"><NInputNumber id="product-price" v-model:value="form.price" :min="0" :step="0.01" :precision="2" :disabled="pricingLocked" /></LsField>
+        <template v-if="pricingLocked">
           <dl class="pricing-breakdown">
             <div><dt>成本</dt><dd>¥{{ benefitPricingSummary?.cost }}</dd></div>
             <div><dt>接单分成</dt><dd>¥{{ benefitPricingSummary?.handler_cut }}</dd></div>
@@ -421,14 +435,21 @@ const valid = computed(() => Boolean(
             <div><dt>客服分成</dt><dd>¥{{ benefitPricingSummary?.cs_cut }}</dd></div>
             <div><dt>团队分成</dt><dd>¥{{ benefitPricingSummary?.team_cut }}</dd></div>
           </dl>
-      </LsFormSection>
-      <LsFormSection v-else-if="form.kind !== 5" title="默认分成" :description="distributionLocked ? (editing ? '人员分成沿用已保存金额，团队分成取余额。' : '人员分成按团队默认比例生成，团队分成取余额。') : '修改售价或成本后，将按团队设置重算人员分成；订单创建时冻结当前金额。'">
+        </template>
+        <template v-else>
           <LsField label="成本" for-id="product-cost"><NInputNumber id="product-cost" v-model:value="form.cost" :min="0" :step="0.01" :precision="2" /></LsField>
           <LsField label="接单分成" for-id="product-handler-cut"><NInputNumber id="product-handler-cut" v-model:value="form.handler_cut" :min="0" :precision="2" :disabled="distributionLocked" clearable /></LsField>
           <LsField label="发单分成" for-id="product-sender-cut"><NInputNumber id="product-sender-cut" v-model:value="form.sender_cut" :min="0" :precision="2" :disabled="distributionLocked" clearable /></LsField>
           <LsField label="客服分成" for-id="product-cs-cut"><NInputNumber id="product-cs-cut" v-model:value="form.cs_cut" :min="0" :precision="2" :disabled="distributionLocked" clearable /></LsField>
           <LsField label="团队分成" for-id="product-team-cut" :hint="teamCutHint"><NInputNumber id="product-team-cut" :value="teamCut" :precision="2" disabled /></LsField>
+        </template>
       </LsFormSection>
+      <LsFormSection id="product-details" title="详情介绍" description="补充服务内容、使用方式与购买须知，支持图文编辑。">
+          <LsField label="详情" for-id="product-markdown"><LsMarkdownEditor id="product-markdown" v-model="form.introduction_markdown" :draft-key="`shop-product-${scope}-${id || 'new'}`" :upload-image="uploadMarkdownImage" :upload-disabled-reason="uploading ? '正在上传图片，请稍候' : uploadDisabledReason" /></LsField>
+      </LsFormSection>
+      <LsFormSection id="product-publish" title="上架与保存" description="本页所有修改将一起保存。离开前请确认商品内容与上架状态。">
+          <LsSwitchField id="product-active" :model-value="form.is_active === 1" label="上架状态" description="关闭后商品不会在商城展示。" @update:model-value="value => form.is_active = value ? 1 : 0" />
+      <p class="product-draft-status" role="status">{{ hasUnsavedChanges ? '有未保存的修改' : '当前没有未保存的修改' }}</p>
       <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
       <LsInlineError v-if="!routeAccess.restricted.value && options.isError.value" :message="friendlyError(options.error.value)" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
@@ -436,14 +457,21 @@ const valid = computed(() => Boolean(
         <LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton>
         <LsButton type="submit" :disabled="routeAccess.restricted.value || !hasUnsavedChanges || Boolean(uploading) || !valid || !canManage(management.permission) || (personal && !expectedEntityId)" :disabled-reason="routeAccess.reason.value || (!canManage(management.permission) ? managePermissionReason(management.permission) : '')" :loading="save.isPending.value">保存商品</LsButton>
       </LsFormActions>
+      </LsFormSection>
       </fieldset>
     </form>
   </LsFormPage>
 </template>
 
 <style scoped>
+.product-focused-form { display: grid; gap: 1.5rem; min-width: 0; }
+.product-chapters { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: .5rem; }
+.product-chapters a { display: inline-flex; align-items: center; min-height: 44px; color: var(--muted-ink); font-size: .82rem; text-decoration: none; }
+.product-chapters a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: .3em; }
+.product-chapters a:focus-visible { outline: 2px solid var(--sky-lost-strong); outline-offset: 3px; border-radius: 4px; }
+.product-draft-status { margin: 0; color: var(--muted-ink); font-size: .82rem; line-height: 1.6; }
 .product-edit-fields { display: contents; border: 0; padding: 0; margin: 0; min-width: 0; }
-.pricing-breakdown { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin: 0; }
+.pricing-breakdown { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin: 0; }
 .pricing-breakdown div { padding: .8rem; background: var(--cloud); border-radius: 10px; }
 .pricing-breakdown dt { color: var(--muted-ink); font-size: .75rem; }
 .pricing-breakdown dd { margin: .2rem 0 0; color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }

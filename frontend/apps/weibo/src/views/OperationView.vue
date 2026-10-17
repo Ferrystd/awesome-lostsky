@@ -79,11 +79,11 @@ async function submit() {
             <NInput id="weibo-content" v-model:value="content" type="textarea" placeholder="输入微博正文" :autosize="{ minRows: 6, maxRows: 12 }" />
           </LsField>
         </LsFormSection>
-        <LsFormSection title="图片" description="每条帖子最多 9 张图片；不占用团队文件额度。">
+        <LsFormSection title="附加图片（可选）" description="每条帖子最多 9 张图片；不占用团队文件额度。">
           <MediaPreparation v-model="mediaIds" :prefix="prefix" :personal="personal" :expected-entity-id="access.data.value?.identity.entity_id ?? 0" :account-id="accountId" :access-disabled-reason="routeAccess.reason.value" />
         </LsFormSection>
 
-      <LsFormSection title="执行" description="点击发布后发出一次请求；失败后需手动重试。">
+      <LsFormSection title="发布前确认" description="点击发布后发出一次请求；失败后需手动重试。">
         <LsDescriptionList>
           <dt>账号</dt><dd>{{ routeAccess.restricted.value ? '-' : selectedAccount?.screen_name || selectedAccount?.uid || '未选择' }}</dd>
           <dt>目标</dt><dd>{{ targetSummary }}</dd>

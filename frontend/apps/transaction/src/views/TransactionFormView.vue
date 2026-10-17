@@ -180,7 +180,7 @@ async function submit() {
     <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
     <form v-else class="transaction-form" @submit.prevent="submit">
       <LsInlineError v-if="!routeAccess.restricted.value && optionsQuery.isError.value" message="参与方选项暂时无法读取；表单仍可查看，但相关字段已禁用。" />
-      <LsFormSection title="参与方" description="选择接单人、发单人、客服与顾客；顾客为空时不能使用预存款。" :heading-level="3">
+      <LsFormSection title="参与方" description="选择接单人、发单人、客服与顾客；顾客为空时不能使用预存款。">
         <p v-if="optionsQuery.data.value && !hasEntityOptions" class="hint">当前响应未提供主体选项，主体字段已禁用，其他金额与备注仍可填写。</p>
         <p v-if="optionsQuery.data.value && !hasCustomerOptions" class="hint">当前响应未提供顾客选项，顾客与预存款暂不可用。</p>
         <LsField label="接单人" for-id="transaction-handler" required><LsEntitySelect id="transaction-handler" v-model="form.handler_entity_id" :entities="optionsQuery.data.value?.entities ?? []" :loading="!routeAccess.restricted.value && optionsQuery.isPending.value" :disabled="routeAccess.restricted.value || editing || !hasEntityOptions" :placeholder="routeAccess.restricted.value ? '-' : '选择接单人'" /></LsField>
@@ -189,13 +189,13 @@ async function submit() {
         <LsField label="顾客" for-id="transaction-customer"><LsEntitySelect id="transaction-customer" v-model="form.customer_id" :entities="customerEntities" :loading="optionsQuery.isPending.value" :disabled="!hasCustomerOptions" clearable placeholder="可选；使用预存款时必填" @update:model-value="applyCustomerDefaults" /></LsField>
         <p v-if="selectedCustomer" class="balance-hint">当前顾客余额 <strong class="ls-tabular">{{ money(balance) }}</strong></p>
       </LsFormSection>
-      <LsFormSection title="金额与支付" description="现款 + 预存款必须等于总价。" :heading-level="3"><template #aside><strong :class="balanced ? 'ok' : 'warn'">{{ balanced ? '金额平衡' : '金额未平衡' }}</strong></template>
+      <LsFormSection title="金额与支付" description="现款 + 预存款必须等于总价。"><template #aside><strong :class="balanced ? 'ok' : 'warn'">{{ balanced ? '金额平衡' : '金额未平衡' }}</strong></template>
         <LsField label="总价" for-id="transaction-total" required><NInputNumber id="transaction-total" v-model:value="form.total_price" v-bind="amountProps" /></LsField>
         <LsField label="现款" for-id="transaction-cash"><NInputNumber id="transaction-cash" v-model:value="form.cash" v-bind="amountProps" /></LsField>
         <LsField label="预存款" for-id="transaction-prepaid"><NInputNumber id="transaction-prepaid" v-model:value="form.prepaid" v-bind="amountProps" :disabled="!hasCustomerOptions" /></LsField>
         <p class="equation ls-tabular">支付合计 {{ money(paymentTotal) }} / 总价 {{ money(form.total_price) }}</p>
       </LsFormSection>
-      <LsFormSection title="成本与分成" description="成本 + 四类分成必须等于总价。" :heading-level="3">
+      <LsFormSection title="成本与分成" description="成本 + 四类分成必须等于总价。">
         <LsField label="成本" for-id="transaction-cost"><NInputNumber id="transaction-cost" v-model:value="form.cost" v-bind="amountProps" /></LsField>
         <LsField label="接单人分成" for-id="transaction-handler-cut"><NInputNumber id="transaction-handler-cut" v-model:value="form.handler_cut" v-bind="amountProps" /></LsField>
         <LsField label="发单人分成" for-id="transaction-sender-cut"><NInputNumber id="transaction-sender-cut" v-model:value="form.sender_cut" v-bind="amountProps" /></LsField>
@@ -203,16 +203,18 @@ async function submit() {
         <LsField label="团队分成" for-id="transaction-team-cut"><NInputNumber id="transaction-team-cut" v-model:value="form.team_cut" v-bind="amountProps" /></LsField>
         <p class="equation ls-tabular">成本与分成合计 {{ money(allocationTotal) }} / 总价 {{ money(form.total_price) }}</p>
       </LsFormSection>
-      <LsFormSection title="交易信息" description="时间用于列表排序和统计归属。" :heading-level="3">
+      <LsFormSection title="交易信息" description="时间用于列表排序和统计归属。">
         <LsField label="交易时间" for-id="transaction-time" required><NDatePicker id="transaction-time" v-model:value="form.trans_at" type="datetime" clearable /></LsField>
         <LsField label="备注" for-id="transaction-memo"><NInput id="transaction-memo" v-model:value="form.memo" type="textarea" :autosize="{ minRows: 3, maxRows: 7 }" maxlength="500" show-count placeholder="可记录订单来源、异常说明或结算信息" /></LsField>
       </LsFormSection>
       <LsInlineError v-if="Number(form.prepaid) > balance && selectedCustomer" message="预存款金额超过当前顾客余额。" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
+      <LsFormSection title="核对并保存" description="确认支付与分成均已平衡后，保存这一笔流水。">
       <LsFormActions>
         <LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton>
         <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason">保存流水</LsButton>
       </LsFormActions>
+      </LsFormSection>
     </form>
   </LsFormPage>
 </template>

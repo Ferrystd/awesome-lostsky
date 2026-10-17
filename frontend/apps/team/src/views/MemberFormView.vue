@@ -321,10 +321,7 @@ function submit() {
   <LsFormPage :title="editing ? '管理成员' : '添加成员'" :description="editing ? '管理成员状态、对象字段与角色权限。' : '填写对方的个人入队码，直接加入当前团队。'">
     <template #actions>
       <LsPageLink to="/members" :icon="ArrowLeft" label="返回成员列表" />
-      <LsFormActions v-if="!editing">
-          <LsPageLink to="/members" :icon="ArrowLeft" label="取消" />
-          <LsPagePrimaryAction :icon="UserPlus" label="添加成员" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason" />
-        </LsFormActions>
+
     </template>
 
     <LsInlineError v-if="detail.isError.value" :message="friendlyError(detail.error.value)" />
@@ -351,6 +348,10 @@ function submit() {
         </template>
         </NFlex>
       </LsPanel>
+      <LsFormActions>
+          <LsPageLink to="/members" :icon="ArrowLeft" label="取消" />
+          <LsPagePrimaryAction :icon="UserPlus" label="添加成员" type="submit" form="member-profile-form" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason" />
+        </LsFormActions>
     </form>
 
     <EntityFieldsCard :key="`${draftKey()}:fields`" v-if="editing && capabilities.field_manage && memberSlug" :fields="fields.data.value ?? []" :stored-values="fieldValues.data.value ?? []" mode="manager" :loading="fields.isPending.value || fieldValues.isPending.value" :saving="saveFields.isPending.value" :upload-disabled-reason="uploadDisabledReason" :error="fields.error.value || fieldValues.error.value" :success="saveFields.isSuccess.value" @save="saveFields.mutate" @dirty="setFieldsDirty" />
@@ -413,7 +414,7 @@ function submit() {
 .member-form {
   min-width: 0;
   display: grid;
-  gap: 22px;
+  gap: 24px;
 }
 .management {
   display: grid;

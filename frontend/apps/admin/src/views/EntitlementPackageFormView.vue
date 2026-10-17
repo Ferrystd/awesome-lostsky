@@ -139,7 +139,7 @@ const valid = computed(() =>
           @update:model-value="
             (v) => (form.is_active = v ? 1 : 0)
           " /></LsFormSection
-      ><LsFormSection title="Ability"
+      ><LsFormSection title="包含的能力" description="逐项设置能力等级和有效天数，随权益包统一保存。"
         ><LsFormList
           v-model="form.abilities"
           :item-key="(a) => a.key"
@@ -192,11 +192,11 @@ const valid = computed(() =>
 <style scoped>
 .entitlement-fields {
   display: grid;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 .ability-fields {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.8rem;
 }
 .ability-fields > *:last-child {

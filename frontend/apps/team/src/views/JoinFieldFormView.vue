@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft } from '@lucide/vue'
 
-import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
@@ -14,7 +14,6 @@ import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormList from '@lostsky/ui/components/LsFormList.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -234,7 +233,8 @@ function deleteField() {
     <LsAsyncState v-else-if="editing && canRead && fieldsQuery.isPending.value" state="loading" :rows="7" />
     <LsAsyncState v-else-if="editing && canRead && fieldsQuery.isError.value" state="error" title="暂时无法读取申请字段" :description="friendlyError(fieldsQuery.error.value)" />
     <NAlert v-else-if="editing && !detail" type="warning" title="申请字段不存在">该字段可能已删除，或不属于当前团队。</NAlert>
-    <LsPanel v-else><form class="join-field-form" @submit.prevent="submit">
+    <form v-else class="join-field-form" @submit.prevent="submit">
+      <LsFormSection title="字段定义" description="配置申请人看到的名称、控件和默认值。">
       <LsField label="字段标识" for-id="join-field-key" :required="!editing" :error="errors.field_key" hint="创建后不可修改；用于稳定识别提交数据。">
         <template #default="{ invalid }"><NInput v-model:value="form.field_key" :input-props="{ id: 'join-field-key', 'aria-label': '字段标识' }" :disabled="editing || !canWrite" :status="invalid ? 'error' : undefined" maxlength="64" placeholder="experience" /></template>
       </LsField>
@@ -263,34 +263,34 @@ function deleteField() {
         <template #default="{ invalid }"><NInput v-model:value="form.default_value" :input-props="{ id: 'join-field-default', 'aria-label': '默认值' }" :disabled="!canWrite" :status="invalid ? 'error' : undefined" maxlength="500" clearable /></template>
       </LsField>
 
-      <section class="settings" aria-labelledby="application-settings-title">
-        <LsSectionHeader id="application-settings-title" title="申请表规则" description="这些设置只影响新的加入申请，不改写历史提交。" />
+      </LsFormSection>
+      <LsFormSection id="application-settings-title" title="申请表规则" description="这些设置只影响新的加入申请，不改写历史提交。">
         <LsSwitchField v-model="form.is_apply_fillable" label="允许申请人填写" description="关闭后字段不会出现在申请表，也不会保存新的字段值。" :disabled="!canWrite" />
         <LsSwitchField v-model="form.is_apply_required" label="申请时必填" description="提交申请前必须填写；只有允许填写时才能开启。" :disabled="!canWrite || !form.is_apply_fillable" />
         <LsSwitchField v-model="form.is_active" label="启用字段" description="停用后从申请表隐藏，但仍保留历史数据并可重新启用。" :disabled="!canWrite" />
-      </section>
+      <LsField label="排序" for-id="join-field-sort" hint="数值越小越靠前；相同数值按字段 ID 排序。">
+        <NInputNumber id="join-field-sort" v-model:value="form.sort" :disabled="!canWrite" :precision="0" aria-label="排序" />
+      </LsField>
+      </LsFormSection>
 
-      <section class="settings" aria-labelledby="transfer-settings-title">
-        <LsSectionHeader id="transfer-settings-title" title="审批后转存" description="申请通过并创建成员后，可把该值写入一位人员对象字段。" />
+      <LsFormSection id="transfer-settings-title" title="审批后转存" description="申请通过并创建成员后，可把该值写入一位人员对象字段。">
         <LsSwitchField v-model="form.is_transfer_entity_field" label="自动转存" description="目标必须是当前团队的人员对象字段。" :disabled="!canWrite" />
         <LsField v-if="form.is_transfer_entity_field" label="转存目标" for-id="join-field-transfer" required :error="errors.entity_field_id">
           <NSelect :input-props="{ id: 'join-field-transfer', 'aria-label': '转存目标' }" v-model:value="form.entity_field_id" :disabled="!canWrite || transferQuery.isError.value" :loading="transferQuery.isPending.value" :options="transferSelectOptions" filterable placeholder="选择人员对象字段" />
         </LsField>
         <LsInlineError v-if="form.is_transfer_entity_field && transferQuery.isError.value" :message="friendlyError(transferQuery.error.value)" />
-      </section>
+      </LsFormSection>
 
-      <LsField label="排序" for-id="join-field-sort" hint="数值越小越靠前；相同数值按字段 ID 排序。">
-        <NInputNumber id="join-field-sort" v-model:value="form.sort" :disabled="!canWrite" :precision="0" aria-label="排序" />
-      </LsField>
+
       <LsInlineError v-if="save.isError.value || remove.isError.value" :message="friendlyError(save.error.value || remove.error.value)" />
       <LsFormActions>
         <LsButton type="submit" :loading="save.isPending.value" :disabled="!canWrite || !draft.dirty.value" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined">保存字段</LsButton>
         <LsButton v-if="editing" type="button" variant="danger" :loading="remove.isPending.value" :disabled="!canWrite" :disabled-reason="!canWrite ? permissionReason('team.join_field.write') : undefined" @click="deleteField">删除字段</LsButton>
       </LsFormActions>
-    </form></LsPanel>
+    </form>
   </LsFormPage>
 </template>
 
 <style scoped>
-.join-field-form{display:grid;gap:1.25rem}.settings{display:grid;gap:1rem;padding-top:1.25rem;border-top:1px solid var(--line)}.option-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}@media(max-width:639px){.option-grid{grid-template-columns:1fr}}
+.join-field-form{display:grid;gap:1.5rem}.option-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:.75rem}@media(max-width:639px){.option-grid{grid-template-columns:1fr}}
 </style>

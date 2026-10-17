@@ -148,7 +148,7 @@ async function submit() {
 
     <LsInlineError v-if="detail.isError.value && !routeAccess.restricted.value" :message="friendlyError(detail.error.value)" />
     <form v-else class="document-form" @submit.prevent="submit">
-      <LsFormSection title="文档内容">
+      <LsFormSection title="文档资料" description="标题与标签帮助读者找到这份文档。">
       <LsField label="标题" for-id="document-title" required><NInput id="document-title" v-model:value="form.title" placeholder="一句话说明这份文档解决什么问题" maxlength="120" show-count required /></LsField>
 
       <div v-if="!editing" class="field-row">
@@ -186,6 +186,8 @@ async function submit() {
         </LsFormList>
       </section>
 
+      </LsFormSection>
+      <LsFormSection title="正文" description="撰写完整内容，可插入图片或引用团队与人员。">
       <NFormItem label="正文">
         <LsMarkdownEditor
           v-if="routeAccess.restricted.value || !editing || detail.isSuccess.value"
@@ -221,8 +223,8 @@ async function submit() {
 
 <style scoped>
 
-.document-form { display: grid; gap: 22px; }
-.field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.document-form { display: grid; gap: 24px; }
+.field-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .field-row .compact { grid-column: 1 / 2; }
 .control { width: 100%; }
 .document-tags { display: grid; gap: 16px; }
