@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
@@ -9,7 +12,7 @@ import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
-import { CircleDollarSign, ArrowLeft } from '@lucide/vue'
+import { CircleDollarSign } from '@lucide/vue'
 import { NPagination } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { computed, h, ref } from 'vue'
@@ -39,19 +42,10 @@ const columns: DataTableColumns<BalanceLog> = [
 </script>
 
 <template>
-  <div class="balance-logs-view">
-    <LsCollectionPage :title="routeAccess.restricted.value ? '顾客余额明细' : `${customerName(customer, customerId)}的余额明细`" description="按发生时间查看充值、消费、退款和手动调整。">
+    <LsDetailPage :title="routeAccess.restricted.value || !customerId ? '顾客余额明细' : `${customerName(customer, customerId)}的余额明细`" description="按发生时间查看充值、消费、退款和手动调整。" back-to="/balances" back-label="返回顾客余额" aside-label="顾客余额账户">
       <template #actions>
-        <LsPageLink to="/balances" label="返回顾客余额" :icon="ArrowLeft" />
         <LsPageLink :icon="CircleDollarSign" label="为该顾客充值" :to="`/recharge?customer_id=${customerId}`" />
       </template>
-      <LsPanel v-if="customer || routeAccess.restricted.value">
-        <section class="balance-summary">
-          <span>当前可用余额</span>
-          <strong class="ls-tabular">{{ routeAccess.restricted.value ? '-' : money(customer?.balance?.balance) }}</strong>
-          <small>{{ routeAccess.restricted.value ? '累计充值 - · 累计消费 -' : `累计充值 ${money(customer?.balance?.recharged)} · 累计消费 ${money(customer?.balance?.spent)}` }}</small>
-        </section>
-      </LsPanel>
       <LsInlineError v-if="!customerId && !routeAccess.restricted.value" message="缺少顾客 ID。" />
       <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取余额明细" :description="friendlyError(query.error.value)" />
       <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
@@ -69,12 +63,37 @@ const columns: DataTableColumns<BalanceLog> = [
           </dl>
         </template>
       </LsResponsiveDataTable>
-      <template v-if="query.data.value?.total" #pagination>
+      <div v-if="!routeAccess.restricted.value && query.data.value?.total" class="balance-log-pagination">
         <span>共 {{ query.data.value.total }} 条</span>
         <NPagination v-model:page="page" :page-count="pages" />
+      </div>
+      <template #aside>
+        <LsPanel>
+          <div class="balance-context">
+            <LsSectionHeader title="顾客账户" description="当前余额与累计收支，供核对变动记录。" />
+            <template v-if="routeAccess.restricted.value">
+              <LsDescriptionList><dt>顾客</dt><dd>-</dd><dt>可用余额</dt><dd>-</dd><dt>累计充值</dt><dd>-</dd><dt>累计消费</dt><dd>-</dd></LsDescriptionList>
+            </template>
+            <p v-else-if="!customerId" class="balance-context-note">请从顾客余额列表选择需要查看的顾客。</p>
+            <LsAsyncState v-else-if="options.isPending.value" state="loading" :rows="3" />
+            <LsAsyncState v-else-if="options.isError.value" state="error" title="暂时无法读取顾客账户" :description="friendlyError(options.error.value)" />
+            <template v-else-if="customer">
+              <LsEntityIdentity type="teamCustomer" :name="customerName(customer, customerId)" />
+              <LsDescriptionList>
+                <dt>可用余额</dt><dd class="ls-tabular">{{ customer.balance ? money(customer.balance.balance) : '-' }}</dd>
+                <dt>累计充值</dt><dd class="ls-tabular">{{ customer.balance ? money(customer.balance.recharged) : '-' }}</dd>
+                <dt>累计消费</dt><dd class="ls-tabular">{{ customer.balance ? money(customer.balance.spent) : '-' }}</dd>
+              </LsDescriptionList>
+            </template>
+            <p v-else class="balance-context-note">当前没有可显示的顾客账户资料。</p>
+          </div>
+        </LsPanel>
       </template>
-    </LsCollectionPage>
-  </div>
+    </LsDetailPage>
 </template>
 
-<style scoped>.balance-summary{display:grid;padding:1.25rem}.balance-summary span,.balance-summary small{color:var(--muted-ink);font-size:.8rem}.balance-summary strong{font-size:1.8rem;line-height:1.35}</style>
+<style scoped>
+.balance-context { min-width: 0; display: grid; gap: 1rem; }
+.balance-context-note { margin: 0; color: var(--muted-ink); }
+.balance-log-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+</style>
