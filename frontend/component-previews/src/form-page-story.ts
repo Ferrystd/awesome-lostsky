@@ -4,6 +4,9 @@ import { h } from 'vue'
 import { ArrowLeft } from '@lucide/vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
@@ -32,6 +35,7 @@ export const formPageStory: StoryDefinition = {
         h(LsField, { label: '简短说明', forId: 'preview-product-description' }, { default: () => h(LsInput, { id: 'preview-product-description', modelValue: '按约定时间提供服务' }) }),
       ] }),
     ]),
+    aside: () => h(LsPanel, null, { header: () => h(LsSectionHeader, { title: '商品摘要', description: '当前填写内容，尚未保存' }), default: () => h(LsDescriptionList, null, { default: () => [h('dt', '名称'), h('dd', '语音陪伴'), h('dt', '交付说明'), h('dd', '按约定时间提供服务')] }) }),
     footer: () => h(LsFormActions, null, { default: () => [h(LsButton, { variant: 'secondary' }, { default: () => '取消' }), h(LsButton, { type: 'submit', form: 'preview-product-form' }, { default: () => '保存商品' })] }),
   }),
 }

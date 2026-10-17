@@ -121,20 +121,20 @@ const ThrowingPreview = defineComponent({
 })
 
 const button = story('LsButton', allInteractive, (state) =>
-  stage(
-    h(
-      LsButton,
-      {
-        variant: state === 'error' ? 'danger' : 'primary',
-        disabled: state === 'disabled',
-        loading: state === 'loading',
-      },
-      {
-        icon: () => h(Save, { size: 17 }),
-        default: () => (state === 'error' ? '删除记录' : '保存修改'),
-      },
-    ),
-  ),
+  stage(h('div', { style: { display: 'grid', gap: '16px', justifyItems: 'start' } }, [
+    h('span', '添加 · 虚线描边'),
+    h(LsButton, { variant: 'secondary', disabled: state === 'disabled', loading: state === 'loading' }, {
+      icon: () => h(Plus, { size: 17 }), default: () => '添加一项',
+    }),
+    h('span', '辅助操作 · 图标与小字'),
+    h(LsButton, { variant: state === 'error' ? 'danger-ghost' : 'ghost', disabled: state === 'disabled', loading: state === 'loading' }, {
+      icon: () => h(state === 'error' ? Trash2 : Pencil, { size: 16 }), default: () => state === 'error' ? '删除记录' : '编辑资料',
+    }),
+    h('span', '提交 · 文字与箭头（极光主题）'),
+    h(LsButton, { disabled: state === 'disabled', loading: state === 'loading' }, {
+      icon: () => h(Save, { size: 17 }), default: () => '保存修改',
+    }),
+  ])),
 )
 
 const pagePrimaryAction = story(

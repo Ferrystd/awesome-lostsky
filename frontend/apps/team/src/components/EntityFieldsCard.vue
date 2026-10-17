@@ -145,7 +145,7 @@ function submit() {
       <LsButton
         v-if="mode !== 'readonly' && fields.some(editable)"
         class="entity-fields-save"
-        variant="secondary"
+        variant="primary"
         :loading="saving"
         :disabled="loading || Boolean(uploading) || !isDirty"
         @click="submit"

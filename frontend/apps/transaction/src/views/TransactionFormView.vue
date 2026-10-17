@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft } from '@lucide/vue'
@@ -222,10 +223,10 @@ const contextMoney = (value: number | null) => contextAvailable.value && typeof 
       </LsFormActions>
     </form>
     <template #aside>
-      <LsFormSection title="金额核对" description="当前草稿；保存后才会生效。">
-        <p v-if="routeAccess.restricted.value">暂无可查看的流水金额。</p>
-        <p v-else-if="editing && detail.isPending.value">正在读取已保存流水…</p>
-        <p v-else-if="editing && detail.isError.value">流水读取失败，暂不展示金额摘要。</p>
+      <LsFormSection title="金额摘要" description="当前草稿，保存后生效">
+        <p v-if="routeAccess.restricted.value" class="transaction-context-note">-</p>
+        <LsInlineError v-else-if="editing && detail.isError.value" :message="friendlyError(detail.error.value)" />
+        <LsAsyncState v-else-if="editing && detail.isPending.value" state="loading" :rows="3" />
         <template v-else>
           <LsDescriptionList>
             <dt>总价</dt><dd>{{ contextMoney(form.total_price) }}</dd>
@@ -234,24 +235,27 @@ const contextMoney = (value: number | null) => contextAvailable.value && typeof 
             <dt>支付合计</dt><dd>{{ contextComplete ? money(paymentTotal) : '-' }}</dd>
             <dt>成本及分成</dt><dd>{{ contextComplete ? money(allocationTotal) : '-' }}</dd>
           </LsDescriptionList>
-          <LsStatusTag v-if="!contextComplete || !balanced" :label="contextComplete ? '金额未平衡' : '金额待补全'" type="warning" />
+          <LsStatusTag :label="!contextComplete ? '金额待补全' : balanced ? '金额已平衡' : '金额未平衡'" :type="contextComplete && balanced ? 'success' : 'warning'" />
+          <p v-if="contextComplete && !balanced" class="transaction-context-note">支付与总价相差 {{ money(Math.abs(paymentTotal - Number(form.total_price))) }}；成本及分成与总价相差 {{ money(Math.abs(allocationTotal - Number(form.total_price))) }}。</p>
         </template>
       </LsFormSection>
-      <LsFormSection title="顾客余额" description="来自当前已读取的顾客资料。">
-        <p v-if="routeAccess.restricted.value">暂无可查看的顾客资料。</p>
-        <p v-else-if="optionsQuery.isPending.value">正在读取顾客资料…</p>
-        <p v-else-if="optionsQuery.isError.value">顾客资料读取失败。</p>
+      <LsFormSection title="顾客与余额" description="当前选择的顾客">
+        <p v-if="routeAccess.restricted.value" class="transaction-context-note">顾客信息不可读取。</p>
+        <LsInlineError v-else-if="optionsQuery.isError.value" message="顾客信息暂时无法读取。" />
+        <LsAsyncState v-else-if="optionsQuery.isPending.value || (editing && detail.isPending.value)" state="loading" :rows="2" />
+        <p v-else-if="editing && detail.isError.value" class="transaction-context-note">流水详情读取失败，无法确认顾客。</p>
         <LsDescriptionList v-else-if="selectedCustomer">
           <dt>顾客</dt><dd>{{ customerName(selectedCustomer, selectedCustomer.id) }}</dd>
           <dt>当前余额</dt><dd>{{ selectedCustomer.balance?.balance != null ? money(balance) : '-' }}</dd>
           <dt>本次预存款</dt><dd>{{ contextMoney(form.prepaid) }}</dd>
         </LsDescriptionList>
-        <p v-else>选择顾客后显示余额。</p>
+        <p v-else class="transaction-context-note">{{ form.customer_id ? '当前顾客资料不在可读取范围内。' : '尚未选择顾客；使用预存款时需选择顾客。' }}</p>
       </LsFormSection>
     </template>
   </LsFormPage>
 </template>
 
 <style scoped>
+.transaction-context-note { margin: 0; color: var(--text-secondary); font-size: .8125rem; line-height: 1.7; }
 .transaction-form{display:grid;gap:1.25rem}.ok,.warn{font-size:.78rem}.ok{color:var(--success)}.warn{color:var(--warning)}.balance-hint,.equation{margin:0;padding:.7rem .8rem;border-radius:8px;background:var(--cloud);color:var(--muted-ink);font-size:.82rem}.balance-hint strong{color:var(--ink)}
 </style>

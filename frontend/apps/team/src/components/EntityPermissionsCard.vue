@@ -175,7 +175,7 @@ const groupedPermissions = computed(() => {
             {{ canEdit ? '角色决定该人员在当前团队能够执行的操作。' : '以下权限来自当前团队分配给该身份的角色。' }}
           </p>
         </div>
-        <LsButton class="permissions-save" variant="secondary" :loading="saving" :disabled="!canEdit || loading || !isDirty" :disabled-reason="!canEdit ? editReason : undefined" @click="submit"> 保存角色 </LsButton>
+        <LsButton class="permissions-save" variant="primary" :loading="saving" :disabled="!canEdit || loading || !isDirty" :disabled-reason="!canEdit ? editReason : undefined" @click="submit"> 保存角色 </LsButton>
       </header>
 
       <p v-if="loading" class="state">正在读取角色与权限…</p>

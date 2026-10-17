@@ -11,7 +11,7 @@ defineSlots<{ actions?(): unknown; default?(): unknown; footer?(): unknown; asid
 </script>
 
 <template>
-  <div class="ls-form-page">
+  <div class="ls-form-page" :class="{ 'ls-form-page--with-aside': $slots.aside }">
     <LsPageHeader :title="title" :description="description">
       <template v-if="$slots.actions || available" #actions><slot name="actions" /><LsSceneMotionControl /></template>
     </LsPageHeader>
@@ -36,4 +36,10 @@ defineSlots<{ actions?(): unknown; default?(): unknown; footer?(): unknown; asid
   gap: 1.5rem;
 }
 .ls-form-page__footer { min-width: 0; }
+.ls-form-page--with-aside { container: ls-form-page / inline-size; }
+.ls-form-page__columns { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.5rem; }
+.ls-form-page__aside { min-width: 0; display: grid; gap: 1.5rem; overflow-wrap: anywhere; }
+@container ls-form-page (min-width: 48rem) {
+  .ls-form-page__columns { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+}
 </style>
