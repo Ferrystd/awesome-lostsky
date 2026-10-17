@@ -2,9 +2,15 @@
 import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
-import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import { readAccessReason } from '@lostsky/api/access-result'
+import { formatFieldValue, type FieldValuesPage } from '../lib/entityFieldValues'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { ArrowLeft, Trash2 } from '@lucide/vue'
@@ -18,8 +24,8 @@ import { api, friendlyError } from '@lostsky/api/client'
 import { enumOptionValue } from '@lostsky/ui/lib/enum'
 import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NCheckbox, NDatePicker, NInput, NInputNumber, NSelect } from 'naive-ui'
-import { computed, reactive, watch } from 'vue'
+import { NCheckbox, NDatePicker, NInput, NInputNumber, NPagination, NSelect } from 'naive-ui'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
@@ -47,6 +53,8 @@ const client = useQueryClient()
 const routeAccess = useRouteAccess()
 const id = computed(() => Number(route.query.id ?? 0))
 const editing = computed(() => id.value > 0)
+const valuesPage = ref(1)
+watch(id, () => { valuesPage.value = 1 }, { flush: 'sync' })
 const form = reactive({
   entity_type: String(route.query.type ?? 'entity') as EntityType,
   field_key: '',
@@ -91,6 +99,13 @@ const detail = useQuery({
   queryFn: () => routeAccess.read(() => api.get<EntityField>('/entityField/get', { id: id.value })),
   enabled: computed(() => editing.value && !routeAccess.restricted.value),
 })
+const fieldValues = useQuery({
+  queryKey: computed(() => ['entity-field-values', id.value, valuesPage.value]),
+  queryFn: () => api.get<FieldValuesPage>('/entityField/fieldValues', { id: id.value, page: valuesPage.value, limit: 20 }),
+  enabled: computed(() => editing.value && !routeAccess.restricted.value && detail.data.value?.id === id.value),
+})
+const valuesReason = computed(() => routeAccess.reason.value || readAccessReason(fieldValues.data.value))
+const visibleValues = computed(() => !editing.value || valuesReason.value ? [] : fieldValues.data.value?.data ?? [])
 watch(() => detail.data.value, value => {
   if (!value || value.id !== id.value) return
     const next = { ...form }
@@ -178,7 +193,7 @@ const previewAvailable = computed(() => !routeAccess.restricted.value && (!editi
 </script>
 
 <template>
-  <LsFormPage aside-label="字段预览与规则" :title="editing ? '编辑对象字段' : '创建对象字段'" description="不同字段需要使用不同字段类型，以此更好的适配您的业务。">
+  <LsFormPage aside-label="字段预览与人员值" :title="editing ? '编辑对象字段' : '创建对象字段'" description="不同字段需要使用不同字段类型，以此更好的适配您的业务。">
     <template #actions>
       <LsPageLink to="/fields" :icon="ArrowLeft" label="返回对象字段" />
     </template>
@@ -244,20 +259,29 @@ const previewAvailable = computed(() => !routeAccess.restricted.value && (!editi
           <p class="field-context-note">{{ form.is_required ? '资料保存时必填' : '选填' }} · {{ valueOptions.find(option => option.value === form.value_type)?.label || form.value_type }}</p>
         </template>
       </LsFormSection>
-      <LsFormSection title="规则摘要" description="当前配置，保存后生效">
-        <LsDescriptionList>
-          <dt>适用对象</dt><dd>{{ previewAvailable ? typeOptions.find(option => option.value === form.entity_type)?.label : '-' }}</dd>
-          <dt>值维护范围</dt><dd>{{ previewAvailable ? managerScopeOptions.find(option => option.value === form.manager_scope)?.label : '-' }}</dd>
-          <dt>值可见范围</dt><dd>{{ previewAvailable ? visibilityOptions.find(option => option.value === form.visibility)?.label : '-' }}</dd>
-          <template v-if="previewAvailable && form.visibility === 6"><dt>指定对象</dt><dd>{{ form.visibility_target_ids.length }} 位</dd></template>
-        </LsDescriptionList>
-        <p class="field-context-note">可见范围与维护权限分别生效；公开可见仍受人员有效性与公开主页设置约束。</p>
-      </LsFormSection>
+      <section class="field-values" aria-labelledby="field-values-title">
+        <LsSectionHeader id="field-values-title" title="人员字段值" description="查看有权读取的全部人员已保存的值。" />
+        <LsEmptyState v-if="!editing || valuesReason" :title="editing ? '暂无可显示的人员值' : '字段尚未创建'" :description="editing ? '人员填写此字段后，已保存的值会显示在这里。' : '创建字段后，可在这里查看人员已保存的值。'" :source="fieldValues.data.value" :access-reason="valuesReason" />
+        <LsAsyncState v-else-if="detail.isError.value || fieldValues.isError.value" state="error" title="暂时无法读取人员字段值" :description="friendlyError(detail.error.value || fieldValues.error.value)" />
+        <LsAsyncState v-else-if="detail.isPending.value || fieldValues.isPending.value" state="loading" :rows="3" />
+        <template v-else-if="visibleValues.length">
+          <LsResourceList aria-label="人员字段值列表">
+            <LsResourceRow v-for="item in visibleValues" :key="item.entity_id">
+              <template #identity><LsEntityIdentity :name="item.name" :slug="item.slug" :type="item.type" /></template>
+              <template #metadata><span class="field-value-text">{{ formatFieldValue(item.value, detail.data.value?.value_type ?? 'string') }}</span></template>
+            </LsResourceRow>
+          </LsResourceList>
+          <NPagination v-if="(fieldValues.data.value?.total ?? 0) > 20" v-model:page="valuesPage" :item-count="fieldValues.data.value?.total ?? 0" :page-size="20" simple aria-label="人员字段值分页" />
+        </template>
+        <LsEmptyState v-else title="暂无人员填写值" description="人员填写此字段后，已保存的值会显示在这里。" :source="fieldValues.data.value" />
+      </section>
     </template>
   </LsFormPage>
 </template>
 
 <style scoped>
+.field-values { min-width: 0; display: grid; gap: 1rem; }
+.field-value-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .field-context-note { margin: 0; color: var(--text-secondary); font-size: .8125rem; line-height: 1.7; }
 .field-preview-choices { display: grid; gap: .75rem; min-width: 0; }
 .field-form{display:grid;gap:1rem}.access-policy{display:grid;gap:1rem;padding:1.25rem 0 0;border-top:1px solid var(--line)}.policy-note{margin:0;padding:.75rem;color:var(--ink);background:var(--cloud);border-radius:9px;font-size:.8rem;line-height:1.55}.error{margin:0;color:var(--danger)}

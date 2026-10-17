@@ -152,6 +152,90 @@ class TeamEntityField
             ->where('entity_id', $actor['entity_id'])->with(['field'])->select()->toArray();
     }
 
+    /** 字段定义管理员读取；人员目录范围由独立的全量读取权限决定。 */
+    public function fieldValues(int $teamId, int $id, int $page, int $limit, bool $canReadAll): array
+    {
+        $field = $this->field($teamId, $id);
+        [$page, $limit] = app(Pagination::class)->normalize($page, $limit);
+        $types = match ($field->enumCase('entity_type')) {
+            TeamEntityType::Entity => ['team', 'teamMember'],
+            TeamEntityType::Customer => ['teamCustomer'],
+            TeamEntityType::Virtual => ['teamVirtual'],
+        };
+        $column = match ((string) $field->value_type) {
+            'text' => 'value_text', 'int', 'bool' => 'value_int', 'decimal' => 'value_decimal',
+            'date', 'datetime' => 'value_datetime', 'multi_select', 'json' => 'value_json',
+            default => 'value_string',
+        };
+        $team = \app\model\Team::find($teamId);
+        $total = 0;
+        $data = [];
+        $cursor = 0;
+        $inactiveMemberAvailable = null;
+        $offset = ($page - 1) * $limit;
+        if ($team && $team->is_valid) {
+            do {
+                $batch = TeamEntityFieldValue::with(['subject' => ['profile', 'entityable']])
+                    ->where('team_id', $teamId)->where('field_id', $id)
+                    ->where('entity_id', '>', $cursor)
+                    ->order('entity_id', 'asc')->limit(500)->select();
+                foreach ($batch as $stored) {
+                    $cursor = (int) $stored->entity_id;
+                    $entity = $stored->subject;
+                    if (!$entity || !in_array((string) $entity->entityable_type, $types, true)) {
+                        continue;
+                    }
+                    $subject = $entity->entityable;
+                    if (!$subject || ($entity->entityable_type === 'team'
+                        ? (int) $subject->id !== $teamId
+                        : (int) $subject->team_id !== $teamId)) {
+                        continue;
+                    }
+                    // 预载目标团队，避免模型有效性检查逐人员查询同一团队。
+                    if ($entity->entityable_type !== 'team') {
+                        $subject->setRelation('team', $team);
+                    }
+                    // 与 TeamMember::is_valid 保持一致，但每次聚合只读取一次非活跃成员设置。
+                    if ($subject instanceof \app\model\TeamMember) {
+                        $isActive = $subject->enumCase('status') === \app\enum\TeamMemberStatus::Active;
+                        if (!$isActive && $inactiveMemberAvailable === null) {
+                            $settings = app(TeamSetting::class)->internal($teamId, 'member');
+                            $inactiveMemberAvailable = (bool) ($settings['inactive_entity_available'] ?? false);
+                        }
+                        $isValid = $isActive || $inactiveMemberAvailable;
+                    } else {
+                        $isValid = $subject->is_valid;
+                    }
+                    if (!$isValid || (!$canReadAll && $entity->entityable_type !== 'team'
+                        && ($entity->entityable_type === 'teamCustomer' || (int) $entity->is_internal_visible !== 1))) {
+                        continue;
+                    }
+                    $value = $stored->{$column};
+                    if ($this->isEmptyValue($value)) {
+                        continue;
+                    }
+                    $value = match ((string) $field->value_type) {
+                        'int', 'date', 'datetime' => (int) $value,
+                        'bool' => (bool) $value,
+                        'decimal' => (string) $value,
+                        default => $value,
+                    };
+                    if ($total >= $offset && count($data) < $limit) {
+                        $data[] = [
+                            'entity_id' => (int) $entity->id,
+                            'slug' => (string) $entity->slug,
+                            'name' => (string) ($entity->profile?->name ?: '人员'),
+                            'type' => (string) $entity->entityable_type,
+                            'value' => $value,
+                        ];
+                    }
+                    $total++;
+                }
+            } while ($batch->count() === 500);
+        }
+        return ['data' => $data, 'total' => $total, 'current_page' => $page, 'per_page' => $limit];
+    }
+
     public function visibleFields(
         int $teamId,
         string $entityType,

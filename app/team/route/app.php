@@ -96,6 +96,7 @@ Route::post('entityField/create', 'EntityField/create');
 Route::post('entityField/update', 'EntityField/update');
 Route::post('entityField/delete', 'EntityField/delete');
 Route::get('entityField/values', 'EntityField/values');
+Route::get('entityField/fieldValues', 'EntityField/fieldValues');
 Route::post('entityField/values', 'EntityField/saveValues');
 
 // chat virtual entities

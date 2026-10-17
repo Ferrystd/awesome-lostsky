@@ -4278,6 +4278,40 @@
           "limit"
         ],
         "additionalProperties": false
+      },
+      "EntityFieldPersonValue": {
+        "type": "object",
+        "required": [
+          "entity_id",
+          "slug",
+          "name",
+          "type",
+          "value"
+        ],
+        "properties": {
+          "entity_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "team",
+              "teamMember",
+              "teamCustomer",
+              "teamVirtual"
+            ]
+          },
+          "value": {
+            "description": "Nonempty value of the saved value_type: decimal string, bool boolean, date/datetime Unix seconds; JSON preserves its original type."
+          }
+        }
       }
     }
   },
@@ -14524,6 +14558,80 @@
                 "additionalProperties": false
               }
             }
+          }
+        }
+      }
+    },
+    "/entityField/fieldValues": {
+      "get": {
+        "tags": [
+          "EntityField"
+        ],
+        "summary": "List nonempty person values for a saved entity field",
+        "description": "Requires the same type-specific field management Permission as entityField/get. Only valid same-team persons readable under the independent team.entity.read directory scope are included. Without that permission, hidden persons and all customers are excluded. Permissions and null, empty string, empty array are filtered before counting and pagination; zero and false are preserved. Ordered by entity_id ascending.",
+        "operationId": "teamEntityFieldPersonValues",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdQuery"
+          },
+          {
+            "$ref": "#/components/parameters/Page"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Readable nonempty person values",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Envelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "required": [
+                            "data",
+                            "total",
+                            "current_page",
+                            "per_page"
+                          ],
+                          "properties": {
+                            "data": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/EntityFieldPersonValue"
+                              }
+                            },
+                            "total": {
+                              "type": "integer"
+                            },
+                            "current_page": {
+                              "type": "integer"
+                            },
+                            "per_page": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Structured permission denial: missing type-specific field management permission"
+          },
+          "404": {
+            "description": "Field missing or outside current team"
           }
         }
       }

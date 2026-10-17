@@ -4,9 +4,7 @@ import { h } from 'vue'
 import { ArrowLeft } from '@lucide/vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
-import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
-import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
@@ -26,8 +24,7 @@ export const formPageStory: StoryDefinition = {
     loading: '异步状态由页面在正文中表达。',
     error: '错误与空状态由页面在正文中表达。',
   },
-  render: () => h(LsFormPage, { title: '新建商品', description: '填写商品资料后统一保存。' }, {
-    aside: () => h(LsPanel, null, { default: () => [h('h2', '当前草稿'), h(LsDescriptionList, null, { default: () => [h('dt', '所属人员'), h('dd', '青空成员'), h('dt', '公开范围'), h('dd', '团队内部可见，保存后生效')] })] }),
+  render: () => h(LsFormPage, { title: '新建商品', description: '填写商品资料后统一保存。', asideLabel: '辅助上下文' }, {
     actions: () => h(LsPageLink, { to: '/manage/products', icon: ArrowLeft, label: '返回商品' }),
     default: () => h('form', { id: 'preview-product-form', onSubmit: (event: Event) => event.preventDefault() }, [
       h(LsFormSection, { title: '基本信息' }, { default: () => [

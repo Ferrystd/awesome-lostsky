@@ -358,3 +358,10 @@ Team 普通编辑字段使用 `LsFormFields`，每行由公共组件按实际容
 ## 页面主辅栏接入
 
 本轮 Team 独立操作页的 29 条路由及每页任务分组见[迁移清单](../../plans/page-context-columns-team.md)；Shop 管理与 Transaction 见[迁移清单](../../plans/page-context-columns-commerce.md)。Team 社区通过 scope 语义隔离，Admin 共享社区页面不增加右栏。RoleDetail 原分类导航双栏保留；公共申请、只读长篇正文、审计事件及短确认弹窗保持原模式。
+
+## 对象字段填写预览与人员值
+
+- **范围与目标**：Team `/field-new`、`/field-edit` 保留字段配置表单，在 `LsFormPage.aside` 中提供“填写预览”和“人员字段值”。试填不保存；人员值只显示服务端已保存值，不随未保存的字段类型草稿重新解释。
+- **数据与状态**：按字段分页列出有权读取且实际有值的全部人员，每页 20 项；0 和 false 是有效值。人员资料和字段值权限分别由服务端核验。新建字段、无读权限、无人有值统一使用 `LsEmptyState`；无权时保留授权原因。加载与真实请求错误使用 `LsAsyncState`，不把失败当作空数据。切换字段重置页码，旧请求不能覆盖新字段。
+- **组件与适配**：`LsResourceList/LsResourceRow` 承载连续列表，`LsEntityIdentity` 标识人员，metadata 完整显示文本、选项、JSON、布尔和日期值；`NPagination simple` 可到达后续页。外部布局沿用主辅栏的 content 宽度；窄屏顺序堆叠，长值自然换行，键盘可操作分页，200% 文本不溢出。无新视觉参数、父级穿透或实现例外。
+- **验收**：`entity-field-values.test.ts` 检查类型格式化与侧栏可选契约；`entity-field-values.spec.ts` 检查有效零值、分页、新建/受限/空/错误、路由切换及桌面移动端几何。用户手册仅只读参考。
