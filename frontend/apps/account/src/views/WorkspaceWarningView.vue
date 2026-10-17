@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AccountFlowPage from '../components/AccountFlowPage.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import { identityUrl, safeRedirect } from '@lostsky/shared/navigation'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -50,7 +51,7 @@ function continueToWorkspace() {
 </script>
 
 <template>
-  <main class="warning-page">
+  <AccountFlowPage>
     <section v-if="invalid" class="warning-card">
       <AlertTriangle class="warning-icon" :size="32" aria-hidden="true" />
       <h1>无法确定目标团队</h1>
@@ -96,9 +97,9 @@ function continueToWorkspace() {
         <LsButton :loading="acknowledge.isPending.value" @click="continueToWorkspace">继续前往</LsButton>
       </div>
     </section>
-  </main>
+  </AccountFlowPage>
 </template>
 
 <style scoped>
-.warning-page{min-height:100dvh;display:grid;place-items:center;padding:1rem;background:var(--cloud)}.warning-card{width:min(100%,38rem);display:grid;gap:1.25rem;padding:clamp(1.5rem,6vw,2.75rem);background:white;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 55px color-mix(in oklch,var(--sky-night),transparent 92%)}.warning-card h1,.warning-card p{margin:0}.warning-card h1{font-size:clamp(1.6rem,6vw,2.15rem);line-height:1.2}.warning-card p{max-width:70ch;color:var(--muted-ink);line-height:1.65}.warning-icon{color:var(--warning)}.spinner{color:var(--sky-lost-strong);animation:spin .9s linear infinite}.identity-pair{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:1rem;padding:1rem;background:var(--cloud);border-radius:12px}.identity-pair>svg{color:var(--muted-ink)}.assurance{font-size:.85rem}.error{color:var(--danger)!important}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.65rem}.actions>*{min-height:44px}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:34rem){.identity-pair{grid-template-columns:1fr}.identity-pair>svg{transform:rotate(90deg)}.actions{display:grid}.actions>*{width:100%}}@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
+.warning-card{display:grid;gap:1.25rem;min-width:0}.warning-card h1,.warning-card p{margin:0}.warning-card h1{font-size:clamp(1.6rem,6vw,2.15rem);line-height:1.2}.warning-card p{max-width:70ch;color:var(--muted-ink);line-height:1.65}.warning-icon{color:var(--warning)}.spinner{color:var(--sky-lost-strong);animation:spin .9s linear infinite}.identity-pair{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:1rem;padding:1rem;background:var(--cloud);border-radius:12px}.identity-pair>svg{color:var(--muted-ink)}.assurance{font-size:.85rem}.error{color:var(--danger)!important}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.65rem}.actions>*{min-height:44px}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:34rem){.identity-pair{grid-template-columns:1fr}.identity-pair>svg{transform:rotate(90deg)}.actions{display:grid}.actions>*{width:100%}}@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
 </style>
