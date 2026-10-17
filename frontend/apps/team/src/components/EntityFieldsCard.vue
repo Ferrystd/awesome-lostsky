@@ -139,7 +139,7 @@ function submit() {
   <LsPanel><section class="entity-fields-card" aria-labelledby="entity-fields-title">
     <header>
       <div>
-        <h2 id="entity-fields-title">对象字段</h2>
+        <h2 id="entity-fields-title">人员字段</h2>
         <p>{{ mode === 'manager' ? '维护团队为这个成员配置的字段。' : '团队为当前人员配置的补充资料。' }}</p>
       </div>
       <LsButton
@@ -154,8 +154,8 @@ function submit() {
       </LsButton>
     </header>
 
-    <p v-if="loading" class="state">正在读取对象字段…</p>
-    <p v-else-if="!fields.length" class="state">当前没有可显示的对象字段。</p>
+    <p v-if="loading" class="state">正在读取人员字段…</p>
+    <p v-else-if="!fields.length" class="state">当前没有可显示的人员字段。</p>
     <LsFormFields v-else>
       <template v-for="field in fields" :key="field.id">
       <LsField :label="field.name" :description="typeLabel(field)" :for-id="`entity-field-${field.id}`" :required="Boolean(field.is_required)" :read-only="!editable(field)">

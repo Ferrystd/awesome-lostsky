@@ -281,11 +281,11 @@ function deleteField() {
         </LsFormFields>
       </LsFormSection>
 
-      <LsFormSection id="transfer-settings-title" title="审批后转存" description="申请通过并创建成员后，可把该值写入一位人员对象字段。">
+      <LsFormSection id="transfer-settings-title" title="审批后转存" description="申请通过并创建成员后，可把该值写入一位人员字段。">
         <LsFormFields>
-          <LsSwitchField v-model="form.is_transfer_entity_field" label="自动转存" description="目标必须是当前团队的人员对象字段。" :disabled="!canWrite" />
+          <LsSwitchField v-model="form.is_transfer_entity_field" label="自动转存" description="目标必须是当前团队的人员字段。" :disabled="!canWrite" />
           <LsField v-slot="{ describedBy }" v-if="form.is_transfer_entity_field" label="转存目标" for-id="join-field-transfer" required :error="errors.entity_field_id">
-            <NSelect :aria-describedby="describedBy" :input-props="{ 'aria-describedby': describedBy, id: 'join-field-transfer', 'aria-label': '转存目标' }" v-model:value="form.entity_field_id" :disabled="!canWrite || transferQuery.isError.value" :loading="transferQuery.isPending.value" :options="transferSelectOptions" filterable placeholder="选择人员对象字段" />
+            <NSelect :aria-describedby="describedBy" :input-props="{ 'aria-describedby': describedBy, id: 'join-field-transfer', 'aria-label': '转存目标' }" v-model:value="form.entity_field_id" :disabled="!canWrite || transferQuery.isError.value" :loading="transferQuery.isPending.value" :options="transferSelectOptions" filterable placeholder="选择人员字段" />
           </LsField>
         </LsFormFields>
         <LsInlineError v-if="form.is_transfer_entity_field && transferQuery.isError.value" :message="friendlyError(transferQuery.error.value)" />

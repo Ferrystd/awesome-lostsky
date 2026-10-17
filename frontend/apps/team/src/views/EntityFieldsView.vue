@@ -40,21 +40,21 @@ const visibleFields = computed(() => { const keyword = search.value.trim().toLoc
 
 <template>
   <div class="fields-page">
-    <LsCollectionPage title="对象字段" description="在业务流程中，创建自定义字段以为不同人员存储业务所需数据。">
+    <LsCollectionPage title="人员字段" description="在业务流程中，创建自定义字段以为不同人员存储业务所需数据。">
       <template #actions>
         <LsPageLink to="/entities" label="返回人员" :icon="ArrowLeft" />
         <LsPageLink :icon="Plus" label="创建字段" :to="{ path: '/field-new', query: { type } }" />
       </template>
       <template #toolbar>
-        <LsListToolbar v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索对象字段" :count-label="routeAccess.restricted.value ? '0 个字段' : `${visibleFields.length} 个字段`">
+        <LsListToolbar v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索人员字段" :count-label="routeAccess.restricted.value ? '0 个字段' : `${visibleFields.length} 个字段`">
           <template #filters>
             <NSelect v-model:value="type" :options="typeOptions" aria-label="对象类型" />
           </template>
         </LsListToolbar>
       </template>
-      <LsAsyncState v-if="!routeAccess.restricted.value && fields.isError.value" state="error" title="暂时无法读取对象字段" :description="friendlyError(fields.error.value)" />
+      <LsAsyncState v-if="!routeAccess.restricted.value && fields.isError.value" state="error" title="暂时无法读取人员字段" :description="friendlyError(fields.error.value)" />
       <LsAsyncState v-else-if="!routeAccess.restricted.value && fields.isPending.value" state="loading" :rows="4" />
-      <LsResourceList v-else-if="visibleFields.length" aria-label="对象字段列表">
+      <LsResourceList v-else-if="visibleFields.length" aria-label="人员字段列表">
         <LsResourceRow v-for="field in visibleFields" :key="field.id" :title="field.name" :to="{ path: '/field-edit', query: { id: field.id } }" :icon="FileText" :description="`${valueTypeLabel(field.value_type)} / ${inputTypeLabel(field.input_type)}`">
           <template #status>
             <LsStatusTag v-if="field.is_required" label="必填" type="warning" />
