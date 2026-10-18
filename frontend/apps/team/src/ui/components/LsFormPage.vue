@@ -36,6 +36,7 @@ defineSlots<{ actions?(): unknown; default?(): unknown; footer?(): unknown; asid
   gap: 1.5rem;
 }
 .ls-form-page__footer { min-width: 0; }
+.ls-form-page:not(.ls-form-page--with-aside) { width: 100%; max-width: 42rem; margin-inline: auto; }
 .ls-form-page--with-aside { container: ls-form-page / inline-size; }
 .ls-form-page__columns { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 1.5rem; }
 .ls-form-page__aside { min-width: 0; display: grid; gap: 1.5rem; overflow-wrap: anywhere; }

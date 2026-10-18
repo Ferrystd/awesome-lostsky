@@ -1,5 +1,7 @@
 # 后台页面模式
 
+Team 已批阅的页面版型与编辑辅助区按 [Team 页面版型](team-page-templates.md) 执行；下文保留其他应用的默认契约。
+
 页面结构的抽象阈值、职责边界和迁移流程统一见[后台页面组件化方法](componentization.md)。本页只定义已经成立的页面模式。
 
 父子页面归属、独立任务返回与 URL query 预填统一遵循[前端路由与页面间导航](../../architecture/frontend-navigation.md)，不由单页自行约定。

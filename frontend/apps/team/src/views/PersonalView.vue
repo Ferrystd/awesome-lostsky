@@ -3,6 +3,7 @@ import LsOverviewLinks from '@lostsky/ui/components/LsOverviewLinks.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { teamDraftScope, teamDraftNavigationChanged } from '../lib/draftScope'
@@ -134,8 +135,8 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
       <TeamShareLinks />
       <LsInlineError v-if="query.isError.value" :message="friendlyError(query.error.value)" />
     </LsOverviewPage>
-    <LsDetailPage v-else :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的人员；切换身份后会自动重新核对。" back-to="/personal" back-label="返回个人概览" aside-label="当前人员身份">
-      <template #actions><MemberSelfDeparture v-if="section === 'profile' && query.data.value?.identity.type === 'teamMember'" /></template>
+    <component :is="section === 'access' ? LsDetailPage : LsFormPage" v-else :title="section === 'profile' ? '资料' : section === 'fields' ? '对象字段' : '角色与权限'" description="所有内容均属于当前已领取的人员；切换身份后会自动重新核对。" back-to="/personal" back-label="返回个人概览" aside-label="当前人员身份">
+      <template #actions><LsPageLink v-if="section !== 'access'" to="/personal" :icon="ArrowLeft" label="返回个人概览" /><MemberSelfDeparture v-if="section === 'profile' && query.data.value?.identity.type === 'teamMember'" /></template>
       <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
       <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取当前人员" :description="friendlyError(query.error.value)" />
       <template v-else-if="query.data.value">
@@ -152,7 +153,7 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
       <EntityPermissionsCard v-else-if="section === 'access'" :assignments="query.data.value.role_assignments" :roles="roles" :effective-permissions="query.data.value.effective_permissions" />
       </template>
       <template #aside><LsPanel><LsSectionHeader title="当前身份" description="已保存的身份与授权信息" /><template v-if="query.isSuccess.value && query.data.value"><LsEntityIdentity :type="query.data.value.identity.type" :name="query.data.value.identity.name" :slug="query.data.value.identity.slug || ''" :image-url="query.data.value.profile.avatar" fallback="initial" /><LsDescriptionList><dt>所属团队</dt><dd>{{ query.data.value.identity.team.name }}</dd><dt>角色</dt><dd>{{ roles.length }} 个</dd><dt>有效权限</dt><dd>{{ query.data.value.effective_permissions?.length ?? 0 }} 项</dd></LsDescriptionList></template><p v-else>当前身份暂不可用。</p></LsPanel></template>
-    </LsDetailPage>
+    </component>
   </div>
 </template>
 

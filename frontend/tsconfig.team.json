@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@lostsky/ui/*": ["apps/team/src/ui/*"],
+      "@lostsky/api/*": ["packages/api/src/*"],
+      "@lostsky/shared/*": ["packages/shared/src/*"],
+      "vue-draggable-plus": ["packages/ui/src/types/vue-draggable-plus.d.ts"]
+    }
+  },
+  "include": ["apps/team/**/*.vue", "apps/team/**/*.ts", "vite.team.ts"],
+  "exclude": ["**/*.test.ts"]
+}
