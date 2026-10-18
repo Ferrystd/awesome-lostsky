@@ -126,17 +126,18 @@ function summary(content: string | null | undefined) {
     <AdminPageHeader v-if="scope !== 'entity'" title="通知中心" description="查看团队收到的站内通知与已发送通知。">
       <template #actions><TeamPageLink :icon="Send" label="发送通知" to="/notices/send" /></template>
     </AdminPageHeader>
-    <component :is="scope === 'entity' ? 'div' : TeamCategoryLayout" v-bind="scope === 'entity' ? {} : { items: categories, current: route.path, label: '通知分类' }">
-    <section class="notice-list-content" :class="{ 'notice-list-content--compact': scope !== 'entity' }" :aria-label="scope === 'entity' ? '收件箱' : copy.title">
     <AdminPageHeader v-if="scope === 'entity'" class="notice-content-header" title="收件箱" :description="description">
       <template #actions>
         <LsPagePrimaryAction :icon="CheckCheck" label="全部标为已读" :loading="confirmAll.isPending.value && confirmAll.variables.value === scope" :disabled="confirmAll.isPending.value || routeAccess.restricted.value || unreadCount === 0" :disabled-reason="routeAccess.reason.value || (confirmAll.isPending.value ? '请等待当前标记操作完成' : '当前页没有未读消息')" @click="confirmAll.mutate(scope)" />
       </template>
     </AdminPageHeader>
+    <TeamCategoryLayout :items="scope === 'entity' ? filterOptions.map(item => ({ key: item.value, label: item.label === '全部' ? '全部通知' : '未读通知' })) : categories" :current="scope === 'entity' ? filter : route.path" :label="scope === 'entity' ? '收件箱分类' : '通知分类'" @select="scope === 'entity' && updateState({ filter: $event === 'unread' ? 'unread' : 'all', page: 1 })">
+    <section class="notice-list-content" :class="{ 'notice-list-content--compact': scope !== 'entity' }" :aria-label="scope === 'entity' ? '收件箱' : copy.title">
+
     <LsInlineError v-if="errors[scope]" :message="errors[scope]!" />
 
-    <LsListToolbar :embedded="scope !== 'entity'" v-model="search" :placeholder="`搜索${copy.noun}`" :aria-label="`搜索${copy.noun}`" :count-label="routeAccess.restricted.value ? '0 条' : `${visible.length} 条`">
-      <template #filters><NSelect v-model:value="filter" :options="filterOptions" :aria-label="`${copy.noun}筛选`" /></template>
+    <LsListToolbar embedded v-model="search" :placeholder="`搜索${copy.noun}`" :aria-label="`搜索${copy.noun}`" :count-label="routeAccess.restricted.value ? '0 条' : `${visible.length} 条`">
+      <template v-if="scope !== 'entity'" #filters><NSelect v-model:value="filter" :options="filterOptions" :aria-label="`${copy.noun}筛选`" /></template>
       <template v-if="scope === 'team'" #actions><LsButton variant="secondary" :loading="confirmAll.isPending.value && confirmAll.variables.value === scope" :disabled="confirmAll.isPending.value || routeAccess.restricted.value || unreadCount === 0" :disabled-reason="routeAccess.reason.value || (confirmAll.isPending.value ? '请等待当前标记操作完成' : '当前页没有未读消息')" @click="confirmAll.mutate(scope)"><template #icon><CheckCheck :size="18" /></template>全部标为已读</LsButton></template>
     </LsListToolbar>
 
@@ -159,7 +160,7 @@ function summary(content: string | null | undefined) {
 
     <div class="notice-pagination"><NPagination v-if="!routeAccess.restricted.value && (query.data.value?.total ?? 0) > 20" v-model:page="page" :item-count="query.data.value?.total ?? 0" :page-size="20" :page-slot="5" /></div>
     </section>
-    </component>
+    </TeamCategoryLayout>
   </div>
 </template>
 

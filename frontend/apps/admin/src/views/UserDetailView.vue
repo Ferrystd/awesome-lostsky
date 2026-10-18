@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
-import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
@@ -13,7 +12,6 @@ import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { NTag } from 'naive-ui'
-import { Users } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import ReasonDialog from '../components/ReasonDialog.vue'
@@ -44,29 +42,29 @@ function open(next: typeof action.value) { action.value = next; dialog.value = t
 </script>
 
 <template>
-  <LsDetailPage title="用户详情" description="核对身份、团队与设备后再执行治理操作。" back-to="/users">
+  <LsPageHeader title="用户详情" description="核对身份、团队与设备后再执行治理操作。" back-to="/users">
     <template #actions>
       <LsButton variant="secondary" :disabled="routeAccess.restricted.value || !can('admin.user.session.revoke')" :disabled-reason="routeAccess.reason.value || permissionReason('admin.user.session.revoke')" @click="open('revoke-sessions')">撤销全部会话</LsButton>
       <LsButton :variant="query.data.value?.is_banned ? 'primary' : 'danger'" :disabled="routeAccess.restricted.value || !can('admin.user.moderate')" :disabled-reason="routeAccess.reason.value || permissionReason('admin.user.moderate')" @click="open(query.data.value?.is_banned ? 'unban' : 'ban')">{{ query.data.value?.is_banned ? '解封用户' : '封禁用户' }}</LsButton>
     </template>
-    <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
-    <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取用户详情" :description="friendlyError(query.error.value)" />
-    <template v-else-if="routeAccess.restricted.value">
-      <LsPanel><template #header><LsSectionHeader title="-" description="-" /></template><LsDescriptionList><dt>手机</dt><dd>-</dd><dt>邮箱</dt><dd>-</dd><dt>平台角色</dt><dd>-</dd><dt>注册时间</dt><dd>-</dd></LsDescriptionList></LsPanel>
-      <div class="detail-grid detail-grid--two"><LsPanel><template #header><LsSectionHeader title="所属团队" description="0 个团队关系" /></template><LsEmptyState :source="query.data.value" title="没有可显示的团队" description="当前没有团队关系数据。" /></LsPanel><LsPanel><template #header><LsSectionHeader title="已授权设备" description="0 个有效会话" /></template><LsEmptyState :source="query.data.value" title="没有可显示的设备" description="当前没有设备会话数据。" /></LsPanel></div>
-    </template>
-    <template v-else-if="query.data.value">
-      <LsPanel>
-        <template #header><LsSectionHeader :title="query.data.value.nickname || query.data.value.username" :description="`#${query.data.value.id} · @${query.data.value.username}`"><template #aside><LsStatusTag :label="adminStatusLabel(query.data.value.is_banned ? 'banned' : 'active')" :type="adminStatusType(query.data.value.is_banned ? 'banned' : 'active')" /></template></LsSectionHeader></template>
-        <LsDescriptionList><dt>手机</dt><dd>{{ query.data.value.phone || query.data.value.phone_masked || '—' }}</dd><dt>邮箱</dt><dd>{{ query.data.value.email || query.data.value.email_masked || '—' }}</dd><dt>平台角色</dt><dd class="role-tags"><NTag v-for="role in query.data.value.roles" :key="role.id" size="small">{{ role.name }}</NTag><span v-if="!query.data.value.roles.length">非平台管理员</span></dd><dt>注册时间</dt><dd>{{ formatTime(query.data.value.create_time) }}</dd></LsDescriptionList>
-      </LsPanel>
-      <div class="detail-grid detail-grid--two">
-        <LsPanel><template #header><LsSectionHeader title="所属团队" :description="`${query.data.value.teams.length} 个团队关系`" /></template><LsEmptyState :source="query.data.value" v-if="!query.data.value.teams.length" title="尚未加入团队" description="该用户当前没有任何团队关系。" /><div v-else class="simple-list"><div v-for="team in query.data.value.teams" :key="team.id"><span><LsPageLink :icon="Users" :label="team.slug" :to="`/teams/${team.id}`" /><small>#{{ team.id }} · {{ formatTime(team.create_time) }}</small></span><LsStatusTag :label="adminStatusLabel(teamStatus(team))" :type="adminStatusType(teamStatus(team))" /></div></div></LsPanel>
-        <LsPanel><template #header><LsSectionHeader title="已授权设备" :description="`${query.data.value.devices.length} 个有效会话`" /></template><LsEmptyState :source="query.data.value" v-if="!query.data.value.devices.length" title="当前没有有效设备" description="用户下次登录后，已授权设备会显示在这里。" /><div v-else class="simple-list"><div v-for="device in query.data.value.devices" :key="device.id"><span><strong>{{ device.device_name || '未命名设备' }}</strong><small>{{ device.ua || '未知顾客端' }}</small></span><time>{{ formatTime(device.last_active_time) }}</time></div></div></LsPanel>
-      </div>
-    </template>
-    <ReasonDialog v-model:show="dialog" :title="dialogTitle" :consequence="consequence" :action-label="actionLabel" :danger="action === 'ban' || action === 'revoke-sessions'" :loading="mutation.isPending.value" @confirm="mutation.mutate" />
-  </LsDetailPage>
+  </LsPageHeader>
+  <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
+  <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取用户详情" :description="friendlyError(query.error.value)" />
+  <template v-else-if="routeAccess.restricted.value">
+    <LsPanel><template #header><LsSectionHeader title="-" description="-" /></template><LsDescriptionList><dt>手机</dt><dd>-</dd><dt>邮箱</dt><dd>-</dd><dt>平台角色</dt><dd>-</dd><dt>注册时间</dt><dd>-</dd></LsDescriptionList></LsPanel>
+    <div class="detail-grid detail-grid--two"><LsPanel><template #header><div><h2>所属团队</h2><p>0 个团队关系</p></div></template><LsEmptyState :source="query.data.value" title="没有可显示的团队" description="当前没有团队关系数据。" /></LsPanel><LsPanel><template #header><div><h2>已授权设备</h2><p>0 个有效会话</p></div></template><LsEmptyState :source="query.data.value" title="没有可显示的设备" description="当前没有设备会话数据。" /></LsPanel></div>
+  </template>
+  <template v-else-if="query.data.value">
+    <LsPanel>
+      <template #header><LsSectionHeader :title="query.data.value.nickname || query.data.value.username" :description="`#${query.data.value.id} · @${query.data.value.username}`"><template #aside><LsStatusTag :label="adminStatusLabel(query.data.value.is_banned ? 'banned' : 'active')" :type="adminStatusType(query.data.value.is_banned ? 'banned' : 'active')" /></template></LsSectionHeader></template>
+      <LsDescriptionList><dt>手机</dt><dd>{{ query.data.value.phone || query.data.value.phone_masked || '—' }}</dd><dt>邮箱</dt><dd>{{ query.data.value.email || query.data.value.email_masked || '—' }}</dd><dt>平台角色</dt><dd class="role-tags"><NTag v-for="role in query.data.value.roles" :key="role.id" size="small">{{ role.name }}</NTag><span v-if="!query.data.value.roles.length">非平台管理员</span></dd><dt>注册时间</dt><dd>{{ formatTime(query.data.value.create_time) }}</dd></LsDescriptionList>
+    </LsPanel>
+    <div class="detail-grid detail-grid--two">
+      <LsPanel><template #header><div><h2>所属团队</h2><p>{{ query.data.value.teams.length }} 个团队关系</p></div></template><LsEmptyState :source="query.data.value" v-if="!query.data.value.teams.length" title="尚未加入团队" description="该用户当前没有任何团队关系。" /><div v-else class="simple-list"><RouterLink v-for="team in query.data.value.teams" :key="team.id" :to="`/teams/${team.id}`"><span><strong>{{ team.slug }}</strong><small>#{{ team.id }} · {{ formatTime(team.create_time) }}</small></span><LsStatusTag :label="adminStatusLabel(teamStatus(team))" :type="adminStatusType(teamStatus(team))" /></RouterLink></div></LsPanel>
+      <LsPanel><template #header><div><h2>已授权设备</h2><p>{{ query.data.value.devices.length }} 个有效会话</p></div></template><LsEmptyState :source="query.data.value" v-if="!query.data.value.devices.length" title="当前没有有效设备" description="用户下次登录后，已授权设备会显示在这里。" /><div v-else class="simple-list"><div v-for="device in query.data.value.devices" :key="device.id"><span><strong>{{ device.device_name || '未命名设备' }}</strong><small>{{ device.ua || '未知顾客端' }}</small></span><time>{{ formatTime(device.last_active_time) }}</time></div></div></LsPanel>
+    </div>
+  </template>
+  <ReasonDialog v-model:show="dialog" :title="dialogTitle" :consequence="consequence" :action-label="actionLabel" :danger="action === 'ban' || action === 'revoke-sessions'" :loading="mutation.isPending.value" @confirm="mutation.mutate" />
 </template>
 
-<style scoped>.detail-grid{min-width:0;display:grid;gap:1.5rem}.role-tags{display:flex;flex-wrap:wrap;gap:.375rem}.simple-list{display:grid}.simple-list>div{min-width:0;min-height:60px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.simple-list>*:last-child{border-bottom:0}.simple-list>div>span{min-width:0}.simple-list strong,.simple-list small{display:block}.simple-list small,.simple-list time{max-width:42ch;color:var(--muted-ink);font-size:.76rem;overflow-wrap:anywhere}@media(min-width:800px){.detail-grid--two{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>
+<style scoped>.role-tags .n-tag{margin:0 6px 4px 0}.simple-list{display:grid}.simple-list>a,.simple-list>div{min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.simple-list>*:last-child{border-bottom:0}.simple-list strong,.simple-list small{display:block}.simple-list small,.simple-list time{max-width:42ch;color:var(--muted-ink);font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(min-width:800px){.detail-grid--two{grid-template-columns:repeat(2,minmax(0,1fr))}}</style>

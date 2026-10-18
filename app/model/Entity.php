@@ -70,10 +70,6 @@ class Entity extends Base
     {
         return $this->hasMany(File::class, 'entity_id');
     }
-    public function communityPosts() { return $this->hasMany(CommunityPost::class, 'author_entity_id'); }
-    public function communityComments() { return $this->hasMany(CommunityComment::class, 'author_entity_id'); }
-    public function communityMemberships() { return $this->hasMany(CommunityMember::class, 'entity_id'); }
-    public function communityAdministrations() { return $this->hasMany(CommunityAdministrator::class, 'entity_id'); }
 
     public function notices()
     {

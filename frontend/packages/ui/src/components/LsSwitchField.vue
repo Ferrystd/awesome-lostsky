@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { useFormFields } from '../form-fields'
-import FormFieldLayout from './internal/FormFieldLayout.vue'
 import { computed, useId } from 'vue'
 import LsSwitch from './LsSwitch.vue'
 
@@ -29,17 +27,11 @@ const labelId = computed(() => `${controlId.value}-label`)
 const descriptionId = computed(() => `${controlId.value}-description`)
 const labelTag = computed(() => props.headingLevel ? `h${props.headingLevel}` : 'span')
 const unavailable = computed(() => props.disabled || props.readOnly)
-const inFields = useFormFields()
 const describedBy = computed(() => props.description ? descriptionId.value : undefined)
 </script>
 
 <template>
-  <FormFieldLayout v-if="inFields" class="ls-switch-field-row" :data-disabled="unavailable || undefined">
-    <template #label><component :is="labelTag" :id="labelId" class="ls-switch-field__label">{{ label }}</component></template>
-    <LsSwitch :id="controlId" :model-value="modelValue" :disabled="disabled" :read-only="readOnly" :loading="loading" :disabled-reason="disabledReason" :aria-label="ariaLabel || undefined" :aria-labelledby="ariaLabel ? undefined : labelId" :aria-describedby="describedBy" @update:model-value="emit('update:modelValue', $event)" />
-    <template v-if="description" #feedback><span :id="descriptionId" class="ls-switch-field__description">{{ description }}</span></template>
-  </FormFieldLayout>
-  <div v-else class="ls-switch-field" :data-disabled="unavailable || undefined">
+  <div class="ls-switch-field" :data-disabled="unavailable || undefined">
     <span class="ls-switch-field__copy">
       <component :is="labelTag" :id="labelId" class="ls-switch-field__label">{{ label }}</component>
       <span v-if="description" :id="descriptionId" class="ls-switch-field__description">{{ description }}</span>

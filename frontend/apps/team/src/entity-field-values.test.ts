@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from '@vue/server-renderer'
-import LsFormPage from '../../../packages/ui/src/components/LsFormPage.vue'
+import LsFormPage from './ui/components/LsFormPage.vue'
 import { formatFieldValue } from './lib/entityFieldValues'
 
 describe('object field values', () => {

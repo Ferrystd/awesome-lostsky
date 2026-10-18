@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "apps/account/**/*.ts",
+    "apps/account/**/*.vue",
+    "apps/admin/**/*.ts",
+    "apps/admin/**/*.vue",
+    "apps/chat/**/*.ts",
+    "apps/chat/**/*.vue",
+    "apps/shop/**/*.ts",
+    "apps/shop/**/*.vue",
+    "apps/transaction/**/*.ts",
+    "apps/transaction/**/*.vue",
+    "apps/weibo/**/*.ts",
+    "apps/weibo/**/*.vue",
+    "packages/**/*.ts",
+    "packages/**/*.vue"
+  ],
+  "exclude": [
+    "**/*.test.ts"
+  ]
+}

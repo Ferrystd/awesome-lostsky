@@ -14,7 +14,6 @@ Team 是团队工作台的核心应用，负责成员资料、顾客资料与协
 - 扩展资料：实体自定义字段与字段值。字段定义编辑页通过 `GET /entityField/fieldValues?id=&page=&limit=` 分页读取已保存字段的人员非空值，沿用字段定义读取的类型管理权限；人员仍受独立的 `team.entity.read` 目录范围限制，无该权限时排除隐藏人员和顾客。接口只包含当前团队有效人员，按 `entity_id` 排序，先过滤权限和 `null`、空字符串、空数组再统计与分页，保留 `0` 与 `false`；返回 `{data,total,current_page,per_page}`，日期使用秒时间戳。
 - RBAC：角色、角色权限和成员角色绑定。
 - 团队设置：按应用读取配置，由团队管理者读取配置结构并保存设置。
-- 团队社区：用 `community.team.read` 读取所属社区，`community.team.manage` 创建、维护资料和状态、分配全局 Entity 管理员，并进入 Community 处理日常内容；不会取得其他团队或平台社区的管理权，见 [Community](community.md)。
 - Chat 管理：维护本团队所属群聊、群成员、历史消息、统一实体字段、虚拟实体与 Webhook 集成；管理接口记录在 Team OpenAPI。`chat.group.manage` 覆盖所属团队群聊的全部管理操作，管理员无需先加入群，个人单聊不在此范围内。
 - 内容协作：保留 LostSky 向 Team 发送的共享站内通知；同时允许有权限的当前 Entity 代表 Team 向本团队任意 Entity（包括 Team 自身）发送通知。两种通道相互隔离，每条通知的已读状态由其收件 Team 或 Entity 共享。团队文件和任意团队实体的文档通过 `entity_id` 关联全局 `entity`。
 - 加入团队：申请表单、可选的全局邀请来源、申请记录、审核任务和审批；仅在链接带有邀请参数时显示只读邀请人，审批通过后把有效申请邀请人写入成员关系。
@@ -126,25 +125,6 @@ Team 共享站内通知读取要求 `team.notice.read`；通知接口通过 `sco
 团队文档接口经过 `JwtAuth`、`Context`、`TeamWorkspaceAuth` 和 `Ability:doc`；归属与指定可见对象只接受全局 `entity_id`。
 
 ## 前端列表约束
-
-<a id="notice-url-state"></a>
-
-### 通知中心与地址状态
-
-`/notices/team`（站内通知）与 `/notices/sent`（已发送）保持独立路由与原权限边界，共用 `TeamCategoryLayout/TeamCategoryNavigation`。桌面分类是真实链接，可复制、新开与浏览器前进后退；移动端选择器导航到相同路由。显式切换分类从目标分类默认列表开始，不把收件筛选带到另一 scope；浏览器后退恢复原 URL。`/personal/notices` 仍是个人收件箱，不展示团队分类导航。
-
-| Query | 契约与默认值 |
-| --- | --- |
-| `keyword` | 单值字符串，最长 200 字符；默认空。重复、无值或超长时为空；输入时限制长度并以 replace 同步 URL，不为每个字符增加历史记录 |
-| `filter` | 单值 `all` 或 `unread`，默认 all；缺失、重复、其他值均回退 all。sent 的 unread 仍表示收件人尚未读取 |
-| `page` | 单值十进制正整数 1–100000，默认 1；拒绝前导零、小数、负数、无穷及重复参数 |
-| 详情 `id` | 必须是单值安全正整数；无效时显示缺少有效编号，不发读取或确认请求 |
-
-只有这三个列表参数进入通知查询；未知 query（包括 `scope`、外部 `return`）不透传。scope 由路由 meta 确定。搜索和筛选变化把 page 置 1；筛选、页码和分类切换使用正常历史导航。默认值不写入生成的 URL。
-
-详情链接携带同一 scope 的三个规范化列表参数，返回入口固定到该 scope 的父列表并恢复这些参数；不接受任意返回地址。直接访问、非法参数和新标签页访问都能返回稳定列表。浏览位置按当前域、用户、完整 Entity type:id、scope 和规范化列表参数在当前应用会话中保留；不保存通知正文、权限或其他敏感数据，刷新不承诺恢复滚动位置。
-
-通知中心整体继续使用 wide 90rem；左分类轨与设置中心相同，右侧顺序是分类标题/说明及动作、搜索筛选、通知列表、分页。设置页仍为 content 64rem；共用布局不强制共用页面宽度。未读数量明确标为“当前页”，不伪装全局未读统计，不新增 badge/API。所有标记请求以提交时 scope 为准，完成时只失效该 scope 的列表；切换分类不会展示另一分类的标记失败。详情查询与回包绑定请求 scope/id，仅当前匹配记录可以自动确认；已发送详情不自动确认。
 
 实体与成员列表的主体操作必须复用 `LsResponsiveActions`，显示为透明、无边框的图标加文字；创建、提交和确认仍使用命令按钮。成员状态通过 `LsEntityIdentity` 的 `status` 插槽紧随名称，顾客空目录使用 `LsAsyncState` 呈现标题和说明。公共规则正文见[后台组件规范](../design/admin/components.md)与[后台页面模式](../design/admin/patterns.md)，本节只登记 Team 的落点，不复制公共参数。
 

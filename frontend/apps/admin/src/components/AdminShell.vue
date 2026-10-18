@@ -6,7 +6,7 @@ import LsSearchInput from '@lostsky/ui/components/LsSearchInput.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import {
-  Activity, ChevronRight, Command, FileClock, Gauge, Globe, KeyRound, LogOut, Menu, Search,
+  Activity, ChevronRight, Command, FileClock, Gauge, KeyRound, LogOut, Menu, Search,
   ShieldCheck, ShieldPlus, Users, UserRoundCog, X,
 } from '@lucide/vue'
 import { NButton, NModal } from 'naive-ui'
@@ -15,7 +15,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { adminSession } from '../session'
 import type { TeamSummary, UserSummary } from '../types'
 
-defineProps<{ scene?: boolean }>()
 const route = useRoute()
 const router = useRouter()
 const drawer = ref(false)
@@ -30,7 +29,6 @@ const nav: NavItem[] = [
   { to: '/', label: '平台总览', icon: Gauge },
   { to: '/users', label: '用户', icon: Users },
   { to: '/teams', label: '团队', icon: ShieldCheck },
-  { to: '/communities', label: '平台社区', icon: Globe },
   { to: '/administrators', label: '平台管理员', icon: UserRoundCog },
   { to: '/roles', label: '平台角色', icon: Command },
   { to: '/audit', label: '审计日志', icon: FileClock },
@@ -109,7 +107,7 @@ onBeforeUnmount(() => {
       <NButton v-if="drawer" class="shell-backdrop" quaternary aria-label="关闭导航" @click="drawer=false" />
     </Transition>
     <section class="admin-workspace">
-      <LsWorkspaceHeader :scene="scene" :contextual="scene" context-label="平台管理" :title="title" :actions="[{ key: 'search', label: '搜索平台资源' }]" @menu="drawer=true" @action="commandOpen=true">
+      <LsWorkspaceHeader context-label="平台管理" :title="title" :actions="[{ key: 'search', label: '搜索平台资源' }]" @menu="drawer=true" @action="commandOpen=true">
         <template #actions><NButton class="top-search" secondary @click="commandOpen=true"><template #icon><Search :size="18" /></template><span>搜索用户、团队</span><kbd>Ctrl K</kbd></NButton></template>
       </LsWorkspaceHeader>
       <slot />

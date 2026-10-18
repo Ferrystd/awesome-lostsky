@@ -60,26 +60,3 @@ export const lostskyNaiveTheme: GlobalThemeOverrides = {
     borderRadius: '5px',
   },
 }
-
-/** Named scene for Team settings and notice categories; supplied only by their application root. */
-export const lostskyAuroraTheme: GlobalThemeOverrides = {
-  ...lostskyNaiveTheme,
-  common: {
-    ...lostskyNaiveTheme.common,
-    primaryColor: '#6ee7c8', primaryColorHover: '#a0f5df', primaryColorPressed: '#43cba8', primaryColorSuppl: '#6ee7c8',
-    infoColor: '#8bd7f1', successColor: '#6ee7b7', warningColor: '#edc27a', errorColor: '#ff98a6',
-    bodyColor: '#101619', cardColor: '#192125', popoverColor: '#202a2f', modalColor: '#192125',
-    borderColor: '#344247', textColorBase: '#edf3f3', textColor1: '#edf3f3', textColor2: '#c0cdce', textColor3: '#a4b5b8',
-    placeholderColor: '#a4b5b8', placeholderColorDisabled: '#819397',
-  },
-  Input: {
-    ...lostskyNaiveTheme.Input, color: 'rgba(18, 26, 30, .72)', colorFocus: 'rgba(18, 26, 30, .72)',
-    border: '1px solid rgba(112, 143, 151, .42)', borderHover: '1px solid rgba(132, 207, 202, .62)', borderFocus: '1px solid #6ee7c8',
-    boxShadowFocus: 'none', boxShadowFocusError: 'none', boxShadowFocusWarning: 'none',
-  },
-  InternalSelection: {
-    ...lostskyNaiveTheme.InternalSelection, color: '#121a1e', colorActive: '#121a1e',
-    border: '1px solid #4b5e64', borderHover: '1px solid #84cfca', borderActive: '1px solid #6ee7c8', boxShadowActive: '0 0 0 3px #6ee7c825',
-  },
-  Button: { ...lostskyNaiveTheme.Button, textColorPrimary: '#062b27', textColorHoverPrimary: '#062b27', textColorPressedPrimary: '#062b27' },
-}

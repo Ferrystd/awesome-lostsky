@@ -9,9 +9,6 @@ class Markdown
 {
     private const SOURCE_MAP = [
         \app\model\Document::class          => 'document',
-        \app\model\CommunityPost::class => 'communityPost',
-        \app\model\CommunityComment::class => 'communityComment',
-        \app\model\CommunityAnnouncement::class => 'communityAnnouncement',
         \app\model\TeamEntityProfile::class => 'teamEntityProfile',
         \app\model\TeamProduct::class        => 'teamProduct',
     ];
@@ -39,8 +36,11 @@ class Markdown
                 'entity_id' => (int) $identity->id,
             ];
             $reference = \app\model\MarkdownReference::withTrashed()->where($where)->find();
-            if ($reference) $reference->save(['delete_time' => null]);
-            else \app\model\MarkdownReference::create($where);
+            if ($reference) {
+                if ($reference->trashed()) $reference->restore();
+            } else {
+                \app\model\MarkdownReference::create($where);
+            }
         }
 
         $rows = \app\model\MarkdownReference::where('referenceable_type', $type)

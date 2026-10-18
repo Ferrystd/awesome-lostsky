@@ -5,8 +5,7 @@ import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
-import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
@@ -213,11 +212,9 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
 </script>
 
 <template>
-  <LsOverviewPage title="经营统计" description="按自然日、周或月查看团队实际流水、履约业绩与人员贡献。">
-    <template #actions><LsSceneMotionControl /></template>
+  <div class="stats-view">
+    <LsPageHeader title="经营统计" description="按自然日、周或月查看团队实际流水、履约业绩与人员贡献。" />
 
-    <LsPanel>
-    <template #header><LsSectionHeader title="统计周期" description="选择自然日、周或月，图表和明细随周期更新。" /></template>
     <section class="period-toolbar" aria-label="统计周期">
       <NRadioGroup v-model:value="period" name="stats-period" aria-label="周期粒度">
         <NRadioButton value="day">日</NRadioButton>
@@ -235,23 +232,17 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
       </div>
       <strong class="period-label">{{ periodLabel }}</strong>
     </section>
-    </LsPanel>
 
     <LsAsyncState v-if="summaryError" state="error" title="暂时无法读取经营统计" :description="friendlyError(summaryError)" />
     <LsAsyncState v-else-if="summaryPending" state="loading" :rows="5" />
     <template v-else>
-
+      <LsPanel><LsMetricGrid :items="summaryItems" aria-label="经营统计摘要" /></LsPanel>
 
       <LsPanel>
         <LsAsyncState v-if="timelinePending" state="loading" :rows="4" />
         <LsAsyncState v-else-if="timelineError" state="error" title="暂时无法读取实际流水趋势" :description="friendlyError(timelineError)" />
         <LsEmptyState v-else-if="routeAccess.restricted.value" title="没有可显示的流水趋势" description="当前没有趋势数据。" />
         <TransactionFlowTrend v-else :points="flowPoints" :period-label="periodLabel" />
-      </LsPanel>
-
-      <LsPanel>
-        <template #header><LsSectionHeader title="周期收支摘要" description="与上方流水趋势使用同一统计周期。" /></template>
-        <LsMetricGrid :items="summaryItems" aria-label="经营统计摘要" />
       </LsPanel>
 
       <LsPanel>
@@ -330,15 +321,20 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
         <p v-else class="hint">所选时间内暂无带发单人的成交。</p>
       </section></LsPanel>
     </template>
-  </LsOverviewPage>
+  </div>
 </template>
 
 <style scoped>
+.stats-view { display: grid; gap: 1.25rem; }
 .period-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 1rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
 .period-toolbar > :first-child { justify-self: start; }
 .period-navigator { display: flex; align-items: center; justify-content: center; gap: .5rem; }

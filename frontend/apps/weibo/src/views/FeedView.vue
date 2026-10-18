@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
-import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
 import { readAccessReason } from '@lostsky/api/access-result'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import WeiboAccountField from '../components/WeiboAccountField.vue'
@@ -14,9 +11,10 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { NFlex, NSpin } from 'naive-ui'
+import { NFlex, NList, NListItem, NSpin } from 'naive-ui'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { clearFeedDraft, feedPosition, saveFeedDraft, saveFeedPosition, takeFeedDraft, type FeedCommentDraft } from '../lib/feedNavigation'
@@ -248,66 +246,62 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
 
 <template>
   <div class="weibo-stack">
-    <LsCollectionPage title="点单信息流" description="浏览最新点单，展开帖子即可发表评论。">
-      <template #actions>
-        <LsButton variant="secondary" @click="managePresets">管理预设评论</LsButton>
+    <LsPageHeader title="点单信息流" description="浏览最新点单，展开帖子即可发表评论。">
+      <template #actions><LsButton variant="secondary" @click="managePresets">管理预设评论</LsButton></template>
+    </LsPageHeader>
+    <WeiboAccountField id="feed-comment-account" label="评论使用的微博账号" v-model="accountId" :accounts="accounts.data.value || []" :loading="accounts.isPending.value" :error="accounts.isError.value ? friendlyError(accounts.error.value) : ''" :disabled-reason="accountReason" />
+    <LsAsyncState v-if="access.isError.value" state="error" title="访问权限加载失败" :description="friendlyError(access.error.value)" />
+    <LsAsyncState v-else-if="feed.isPending.value" state="loading" :rows="8" />
+    <template v-else>
+      <LsAsyncState v-if="feed.isError.value && !displayedItems.length" state="error" title="点单信息流加载失败" :description="friendlyError(feed.error.value)" />
+      <template v-else-if="!displayedItems.length">
+        <LsAsyncState v-if="feedSummary?.poll_status === 'failed'" state="error" title="点单来源更新暂时失败" description="暂时无法获取点单内容，恢复后会自动更新。" />
+        <LsEmptyState v-else-if="feedSummary?.poll_status === 'unconfigured'" title="点单来源尚未配置" description="请联系管理员配置来源，准备好后会自动显示点单。" />
+        <LsEmptyState v-else title="暂无点单微博" description="新点单会自动出现在这里。" />
       </template>
-      <WeiboAccountField id="feed-comment-account" label="评论使用的微博账号" v-model="accountId" :accounts="accounts.data.value || []" :loading="accounts.isPending.value" :error="accounts.isError.value ? friendlyError(accounts.error.value) : ''" :disabled-reason="accountReason" />
-      <LsAsyncState v-if="access.isError.value" state="error" title="访问权限加载失败" :description="friendlyError(access.error.value)" />
-      <LsAsyncState v-else-if="feed.isPending.value" state="loading" :rows="8" />
-      <template v-else>
-        <LsAsyncState v-if="feed.isError.value && !displayedItems.length" state="error" title="点单信息流加载失败" :description="friendlyError(feed.error.value)" />
-        <template v-else-if="!displayedItems.length">
-          <LsAsyncState v-if="feedSummary?.poll_status === 'failed'" state="error" title="点单来源更新暂时失败" description="暂时无法获取点单内容，恢复后会自动更新。" />
-          <LsEmptyState v-else-if="feedSummary?.poll_status === 'unconfigured'" title="点单来源尚未配置" description="请联系管理员配置来源，准备好后会自动显示点单。" />
-          <LsEmptyState v-else title="暂无点单微博" description="新点单会自动出现在这里。" />
-        </template>
-        <template v-if="displayedItems.length">
-          <LsInlineError v-if="feedUpdateError" :message="feedUpdateError" />
-          <p v-if="!feed.isError.value && feedSummary?.poll_status === 'unconfigured'" class="feed-status" role="status">点单来源尚未配置，已有内容仍可查看。</p>
-          <section class="feed-results" aria-label="点单微博">
-            <NFlex class="feed-summary" justify="space-between" align="center" :size="8">
-              <span role="status">共 <strong>{{ feedSummary?.total ?? displayedItems.length }}</strong> 条点单</span>
-              <span v-if="feedSummary?.updated_at">最近更新 <time :datetime="new Date(feedSummary.updated_at * 1000).toISOString()" :title="new Date(feedSummary.updated_at * 1000).toLocaleString()">{{ formatTime(feedSummary.updated_at) }}</time></span>
-            </NFlex>
-            <LsResourceList aria-label="点单微博列表">
-              <LsResourceRow v-for="item in displayedItems" :key="item.id">
-                <template #identity>
-                  <article class="feed-post">
-                    <div class="feed-content">
-                      <p class="feed-text">{{ item.text }}</p>
-                      <NFlex class="feed-meta" align="center" :size="[12, 4]">
-                        <time :datetime="new Date(item.posted_at * 1000).toISOString()" :title="new Date(item.posted_at * 1000).toLocaleString()">{{ formatTime(item.posted_at) }}</time>
-                        <span v-if="item.author_name">{{ item.author_name }}</span>
-                      </NFlex>
-                    </div>
-                    <NFlex class="feed-actions" align="center" :size="4">
-                      <LsButton variant="ghost" :disabled="Boolean(actionReason(item))" :disabled-reason="actionReason(item)" @click="openPost(item)"><template #icon><ExternalLink :size="18" aria-hidden="true" /></template>前往</LsButton>
-                      <LsButton variant="ghost" :disabled="Boolean(actionReason(item))" :disabled-reason="actionReason(item)" :aria-expanded="Boolean(drafts[item.id]?.expanded)" :aria-controls="`feed-comment-${item.id}`" @click="toggleComment(item)"><template #icon><MessageCircle :size="18" aria-hidden="true" /></template>{{ drafts[item.id]?.expanded ? '收起评论' : '评论' }}</LsButton>
-                    </NFlex>
-                    <Transition name="feed-rail">
-                      <form v-if="drafts[item.id]?.expanded && !actionReason(item)" :id="`feed-comment-${item.id}`" class="feed-comment" aria-label="发表评论" @submit.prevent="submitComment(item)">
-                        <WeiboFeedCommentComposer :id-prefix="`feed-${item.id}`" v-model="drafts[item.id]!.text" :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason" :sending="drafts[item.id]!.pending" :submit-reason="submitReason(item)" @submit="submitComment(item)" />
-                        <LsInlineError v-if="drafts[item.id]!.error" :message="drafts[item.id]!.error" />
-                      </form>
-                    </Transition>
-                  </article>
-                </template>
-              </LsResourceRow>
-            </LsResourceList>
-            <div ref="sentinel" class="feed-tail" :aria-busy="feed.isFetchingNextPage.value">
-              <template v-if="nextPageError">
-                <LsInlineError :message="`更多点单加载失败：${friendlyError(nextPageError)}。已加载的内容仍可查看。`" />
-                <LsButton variant="secondary" :disabled="feed.isFetching.value" disabled-reason="正在加载，请稍候" @click="loadMore(true)">继续加载</LsButton>
-              </template>
-              <NFlex v-else-if="feed.isFetchingNextPage.value" align="center" justify="center" :size="8" role="status"><NSpin size="small" />正在加载更多点单…</NFlex>
-              <p v-else-if="!feed.hasNextPage.value" role="status">已看完当前点单</p>
-              <p v-else role="status">继续下滑，加载更多点单</p>
-            </div>
-          </section>
-        </template>
+      <template v-if="displayedItems.length">
+        <LsInlineError v-if="feedUpdateError" :message="feedUpdateError" />
+        <p v-if="!feed.isError.value && feedSummary?.poll_status === 'unconfigured'" class="feed-status" role="status">点单来源尚未配置，已有内容仍可查看。</p>
+        <section class="feed-results" aria-label="点单微博">
+          <NFlex class="feed-summary" justify="space-between" align="center" :size="8">
+            <span role="status">共 <strong>{{ feedSummary?.total ?? displayedItems.length }}</strong> 条点单</span>
+            <span v-if="feedSummary?.updated_at">最近更新 <time :datetime="new Date(feedSummary.updated_at * 1000).toISOString()" :title="new Date(feedSummary.updated_at * 1000).toLocaleString()">{{ formatTime(feedSummary.updated_at) }}</time></span>
+          </NFlex>
+          <NList bordered size="small">
+            <NListItem v-for="item in displayedItems" :key="item.id">
+              <article class="feed-post">
+                <div class="feed-content">
+                  <p class="feed-text">{{ item.text }}</p>
+                  <NFlex class="feed-meta" align="center" :size="[12, 4]">
+                    <time :datetime="new Date(item.posted_at * 1000).toISOString()" :title="new Date(item.posted_at * 1000).toLocaleString()">{{ formatTime(item.posted_at) }}</time>
+                    <span v-if="item.author_name">{{ item.author_name }}</span>
+                  </NFlex>
+                </div>
+                <NFlex class="feed-actions" align="center" :size="4">
+                  <LsButton variant="ghost" :disabled="Boolean(actionReason(item))" :disabled-reason="actionReason(item)" @click="openPost(item)"><template #icon><ExternalLink :size="18" aria-hidden="true" /></template>前往</LsButton>
+                  <LsButton variant="ghost" :disabled="Boolean(actionReason(item))" :disabled-reason="actionReason(item)" :aria-expanded="Boolean(drafts[item.id]?.expanded)" :aria-controls="`feed-comment-${item.id}`" @click="toggleComment(item)"><template #icon><MessageCircle :size="18" aria-hidden="true" /></template>{{ drafts[item.id]?.expanded ? '收起评论' : '评论' }}</LsButton>
+                </NFlex>
+                <Transition name="feed-rail">
+                  <form v-if="drafts[item.id]?.expanded && !actionReason(item)" :id="`feed-comment-${item.id}`" class="feed-comment" aria-label="发表评论" @submit.prevent="submitComment(item)">
+                    <WeiboFeedCommentComposer :id-prefix="`feed-${item.id}`" v-model="drafts[item.id]!.text" :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason" :sending="drafts[item.id]!.pending" :submit-reason="submitReason(item)" @submit="submitComment(item)" />
+                    <LsInlineError v-if="drafts[item.id]!.error" :message="drafts[item.id]!.error" />
+                  </form>
+                </Transition>
+              </article>
+            </NListItem>
+          </NList>
+          <div ref="sentinel" class="feed-tail" :aria-busy="feed.isFetchingNextPage.value">
+            <template v-if="nextPageError">
+              <LsInlineError :message="`更多点单加载失败：${friendlyError(nextPageError)}。已加载的内容仍可查看。`" />
+              <LsButton variant="secondary" :disabled="feed.isFetching.value" disabled-reason="正在加载，请稍候" @click="loadMore(true)">继续加载</LsButton>
+            </template>
+            <NFlex v-else-if="feed.isFetchingNextPage.value" align="center" justify="center" :size="8" role="status"><NSpin size="small" />正在加载更多点单…</NFlex>
+            <p v-else-if="!feed.hasNextPage.value" role="status">已看完当前点单</p>
+            <p v-else role="status">继续下滑，加载更多点单</p>
+          </div>
+        </section>
       </template>
-    </LsCollectionPage>
+    </template>
   </div>
 </template>
 

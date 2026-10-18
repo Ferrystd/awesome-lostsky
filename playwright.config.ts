@@ -12,7 +12,7 @@ export default defineConfig({
     serviceWorkers: 'block',
     trace: 'on-first-retry',
     launchOptions: {
-      args: ['--host-resolver-rules=MAP www.lostsky.work 127.0.0.1, MAP account.lostsky.work 127.0.0.1, MAP demo.team.lostsky.work 127.0.0.1, MAP demo.chat.lostsky.work 127.0.0.1, MAP chat.lostsky.work 127.0.0.1, MAP community.lostsky.work 127.0.0.1, MAP admin.lostsky.work 127.0.0.1, MAP demo.transaction.lostsky.work 127.0.0.1, MAP demo.display.lostsky.work 127.0.0.1, MAP demo.shop.lostsky.work 127.0.0.1, MAP demo.weibo.lostsky.work 127.0.0.1'],
+      args: ['--host-resolver-rules=MAP www.lostsky.work 127.0.0.1, MAP account.lostsky.work 127.0.0.1, MAP demo.team.lostsky.work 127.0.0.1, MAP demo.chat.lostsky.work 127.0.0.1, MAP chat.lostsky.work 127.0.0.1, MAP demo.transaction.lostsky.work 127.0.0.1, MAP demo.display.lostsky.work 127.0.0.1, MAP demo.shop.lostsky.work 127.0.0.1, MAP demo.weibo.lostsky.work 127.0.0.1'],
     },
   },
   projects: [
@@ -20,7 +20,6 @@ export default defineConfig({
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: [
-    { command: 'npm run dev:community -- --host 127.0.0.1', url: 'http://127.0.0.1:5182', reuseExistingServer: !process.env.CI },
     { command: 'npm run dev:site -- --host 127.0.0.1', url: 'http://127.0.0.1:5173', reuseExistingServer: !process.env.CI },
     { command: 'npm run dev:account -- --host 127.0.0.1', url: 'http://127.0.0.1:5174/login', reuseExistingServer: !process.env.CI },
     { command: 'npm run dev:team -- --host 127.0.0.1', url: 'http://127.0.0.1:5175/join', reuseExistingServer: !process.env.CI },

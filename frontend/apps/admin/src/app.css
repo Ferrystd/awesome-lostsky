@@ -1,7 +1,7 @@
 :root {
   --admin-sidebar: oklch(0.19 0.018 218);
   --admin-sidebar-muted: oklch(0.72 0.014 215);
-  --admin-row-hover: color-mix(in oklch, var(--cloud), var(--surface) 38%);
+  --admin-row-hover: color-mix(in oklch, var(--cloud), white 38%);
 }
 html,
 body,
@@ -20,7 +20,7 @@ button {
   top: -5rem;
   left: 1rem;
   padding: 0.75rem 1rem;
-  background: var(--surface);
+  background: white;
   border-radius: 8px;
 }
 .skip-link:focus {
@@ -181,7 +181,7 @@ kbd {
   align-items: center;
   gap: 10px;
   padding: 0 12px;
-  background: var(--surface);
+  background: white;
   border-bottom: 1px solid var(--line);
 }
 .admin-topbar > button {

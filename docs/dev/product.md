@@ -20,7 +20,7 @@ LostSky 的主要用户是陪玩与数字服务工作室的运营者、团队管
 
 Weibo 将个人使用与团队管理拆成 `weibo.personal.use`、`weibo.team.manage`。基础概览和访问快照不要求业务 Permission；业务导航、数据读取和本地管理按当前工作台 Permission 收口，只有远端发帖、点赞、评论，以及任务开启、恢复和 Worker 执行额外要求 Weibo Ability。
 
-团队域后台顶栏固定提供黑色的“团队、商品、记账、聊天、社区、微博”六个直达入口，并保持当前团队与当前 Entity；所有后台应用共用六等宽入口导航，不允许各应用分别定义颜色、字号、宽度、内边距或项间距。Team、Shop、Transaction 与 Weibo 的团队工作台允许本团队有效 Entity 直接进入，也允许获得目标团队至少一个角色的外部有效 Entity 进入；外部身份首次进入时先由 Account 明示当前 Entity 与目标团队，确认只抑制 24 小时提示，不改变授权。个人工作台仍要求 Entity 归属于地址团队。Chat 使用 teamless 统一入口，以当前 Entity 汇总跨团队会话；团队群管理归 Team，Chat 内身份只读并通过 Account 切换。Chat 顶栏的团队业务入口由当前人员所属团队定位，不能从 Chat 域名推断团队。各工作台都把“概览”固定为首个导航入口，概览不因业务 Permission 消失或改绑；具体入口、读取和操作继续按 Permission 收口。
+团队域后台顶栏固定提供黑色的“团队、商品、记账、聊天、微博”五个直达入口，并保持当前团队与当前 Entity；所有后台应用共用五等宽入口导航，不允许各应用分别定义颜色、字号、宽度、内边距或项间距。Team、Shop、Transaction 与 Weibo 的团队工作台允许本团队有效 Entity 直接进入，也允许获得目标团队至少一个角色的外部有效 Entity 进入；外部身份首次进入时先由 Account 明示当前 Entity 与目标团队，确认只抑制 24 小时提示，不改变授权。个人工作台仍要求 Entity 归属于地址团队。Chat 使用 teamless 统一入口，以当前 Entity 汇总跨团队会话；团队群管理归 Team，Chat 内身份只读并通过 Account 切换。Chat 顶栏的团队业务入口由当前人员所属团队定位，不能从 Chat 域名推断团队。各工作台都把“概览”固定为首个导航入口，概览不因业务 Permission 消失或改绑；具体入口、读取和操作继续按 Permission 收口。
 
 工作台入口、侧栏导航和业务页面不会因 Permission 或 Ability 消失或阻止进入。列表读取受限时页面渲染普通空列表，详情、表单和指标等普通数据受限时只把关键值显示为 `-`；受限空状态由 `LsEmptyState` 显示对应 Permission / Ability 原因，替换正常空文案；普通数据原因继续通过 `feedback.info()` 短时弹窗说明。具体受限按钮保持原有业务按钮和位置，只比正常状态更灰并保持可点击与可聚焦，用户点击后由 `LsButton` 弹出一次短时原因说明。Transaction 的登记流水入口属于个人工作台，顾客候选按当前 Entity 的归属或发单绑定范围收口；个人业绩统计合并到“我的流水”，与我的接单、我的顾客和权益下发均属于当前 Entity 本人范围，入口和读取不依赖 Team 全量 Permission；服务端始终按 `acting_entity` 固定范围。“我的顾客”合并当前归属与协作发单关系，同一顾客只显示一次并分别标明关系。顾客协作关系在 Team 顾客详情随资料统一查看和维护：读取沿用顾客可见范围，写入使用 `team.customer.manage`，不受 Transaction Ability 控制。团队“权益核销”作为 Team 全量资源入口，读取要求 `service.redemption.read` 或 `service.redemption.manage`，管理只接受后者；个人“我的接单”允许当前接单 Entity 填写核销字段并完成自己的任务，不因此取得改派、费用调整或管理他人任务的权限。后台统一始终显示真实纵向滚动条，长短页面之间切换时不得推动顶栏标题或应用导航横向跳动，也不得在右侧留下空白占位槽。`transaction` Ability 不控制“记账”应用入口、页面读取或普通管理动作，只在赋予顾客权益确认提交、顾客确认充值、登记流水保存、接受接单邀请和个人下发权益时，于用户点击后通过 `feedback.info()` 提示并阻止提交；界面不常驻展示 Ability 缺失说明。`shop` Ability 只约束面向顾客的商品陈列与购买，不关闭 Shop 后台、顾客中心或历史业务入口。
 
@@ -31,8 +31,6 @@ Shop 管理统一为商品和订单入口，商品分为普通商品、核销商
 发单人可在 Transaction 从 Shop 已配置的权益套餐商品直接赋予顾客独立权益。个人工作台以“权益下发”作为稳定入口，当前 Entity 无需 Transaction Ability 即可查看自己直接下发的权益；“下发权益”动作同时要求有效的 Transaction Ability 与 `service.entitlement.grant`，且只能操作自己接待或绑定的顾客，发单人强制为当前 Entity。该动作固定不创建 Shop 订单，团队设置独立决定是否同步权益包收款流水。商品与权益资源继续由 Shop 管理，Shop Ability 不成为后台维护或直接赋予的门槛。
 
 ## Positioning
-
-Community 以公开主题社区承载平台沟通与团队讨论，采用 teamless 统一入口。社区地址只确定内容范围，互动使用当前人员身份，身份切换统一交由 Account。Team 管理团队拥有的社区，Admin 管理平台拥有的社区；分配社区管理员不会授予平台管理员身份。具体互动、治理与状态边界见 [Community](apps/community.md)。
 
 面向小型数字工作室的清晰运营底座：不把复杂度转嫁给使用者。
 

@@ -1,5 +1,4 @@
 import { expect, test } from './fixtures'
-import { selectSettingsGroup } from './helpers/team-settings'
 import { readFileSync } from 'node:fs'
 
 const siteContent = JSON.parse(readFileSync(new URL('../config/site-content.json', import.meta.url), 'utf8'))
@@ -810,7 +809,7 @@ test('team entity detail atomically saves one visibility group for supported ent
     expect(new Set(uploadButtonBoxes.map((box) => Math.round(box?.width ?? -1))).size).toBe(1)
     expect(uploadButtonBoxes[0]?.width).toBeLessThanOrEqual(140)
   }
-  const mediaFields = page.locator('.entity-profile-fields > .ls-form-fields > .ls-field')
+  const mediaFields = page.locator('.entity-profile-fields > .ls-field')
   const [avatarField, introImageField, introVideoField] = await Promise.all([mediaFields.nth(1).boundingBox(), mediaFields.nth(3).boundingBox(), mediaFields.nth(4).boundingBox()])
   expect(Math.round(avatarField?.x ?? -1)).toBe(Math.round(introImageField?.x ?? -2))
   expect(Math.round(introImageField?.x ?? -1)).toBe(Math.round(introVideoField?.x ?? -2))
@@ -1511,8 +1510,7 @@ test('team customer detail reuses typed entity options for assignment and sender
     expect(saveCustomerProfileBox?.width).toBeGreaterThanOrEqual(112)
     expect(saveCustomerProfileBox?.width).toBeLessThanOrEqual(180)
   }
-  await page.locator('label[for="customer-assignee"]').click()
-  await expect(page.getByRole('textbox', { name: '当前归属人' })).toBeFocused()
+  await page.locator('#customer-assignee').click()
 
   const options = page.locator('.ls-entity-select-menu .ls-entity-select-option')
   await expect(options).toHaveCount(4)
@@ -1522,24 +1520,20 @@ test('team customer detail reuses typed entity options for assignment and sender
   await expect(options.nth(1)).toContainText('成员')
   await expect(options.nth(3)).toContainText('虚拟人员')
   await page.keyboard.press('Escape')
-  await expect(page.locator('.ls-entity-select-menu:visible')).toHaveCount(0)
 
-  await page.locator('label[for="customer-senders"]').click()
-  await expect(page.getByRole('textbox', { name: '协作发单人' })).toBeFocused()
-  await expect(page.locator('.ls-field').filter({ has: page.locator('label[for="customer-senders"]') })).toContainText('member-2')
+  await page.locator('#customer-senders').click()
+  await expect(page.locator('#customer-senders')).toContainText('member-2')
   await page.locator('.ls-entity-select-menu:visible .ls-entity-select-option').nth(3).click()
-  await expect(page.locator('.ls-field').filter({ has: page.locator('label[for="customer-senders"]') }).getByText('1', { exact: true })).toBeVisible()
   await saveCustomerProfile.click()
   await expect.poll(() => customerUpdatePayload).not.toBeNull()
-  expect(customerUpdatePayload).toMatchObject({ assignee_entity_id: null, sender_entity_ids: [3, 4] })
+  expect(customerUpdatePayload).toMatchObject({ sender_entity_ids: [3, 4] })
 })
 
 test('team workspace routes remain responsive with the API boundary mocked', async ({ page }) => {
   test.setTimeout(240_000)
   const pageErrors: string[] = []
   let emptyNotices = false
-  const noticeConfirmRequests: { scope: string; id: number }[] = []
-  const readNotices = new Set<string>()
+  let noticeConfirmRequests = 0
   let noticeSendPayload: Record<string, unknown> | null = null
   let settingPayload: Record<string, unknown> | null = null
   let accessPermissions = ['team.entity.read', 'team.entity.profile.manage', 'team.document.read', 'team.customer.read', 'team.member.read', 'team.member.invite', 'team.member.update', 'team.member.remove', 'team.entity.field.manage', 'team.entity.virtual.*.manage', 'team.role.read', 'team.role.write', 'team.join_field.read', 'team.join_field.write', 'team.join_review.read', 'team.notice.read', 'team.notice.send', 'team.setting.read', 'file.read', 'file.upload', 'file.delete']
@@ -1885,7 +1879,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         title: '维护窗口提醒',
         content: '## 维护安排\n\n请提前保存正在处理的内容。\n\n- 保存草稿\n- 回复确认\n\n<script>window.__noticeXss = 1</script>',
         is_pinned: 1,
-        is_read: readNotices.has(`${url.searchParams.get('scope')}:21`) ? 1 : 0,
+        is_read: 0,
         create_time: 1752883200,
       }
     else if (url.pathname.endsWith('/notice/index'))
@@ -1938,9 +1932,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         is_pinned: noticeSendPayload.is_pinned ? 1 : 0,
       }
     } else if (url.pathname.endsWith('/notice/confirm')) {
-      const confirmed = route.request().postDataJSON() as { scope: string; id: number }
-      noticeConfirmRequests.push(confirmed)
-      readNotices.add(`${confirmed.scope}:${confirmed.id}`)
+      noticeConfirmRequests++
       data = null
     } else if (url.pathname.endsWith('/file/index')) data = { list: [], total: 0 }
     else if (url.pathname.endsWith('/setting/schema'))
@@ -2291,10 +2283,10 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     }
     if (path === '/') {
       if ((page.viewportSize()?.width ?? 0) < 768) {
-        await expect(page.locator('.ls-workspace-header').getByRole('button', { name: '切换应用' })).toBeVisible()
+        await expect(page.locator('.ls-workspace-header').getByRole('button', { name: '操作' })).toBeVisible()
       } else {
         const header = page.locator('.ls-workspace-header')
-        await expect(header.getByRole('button', { name: '切换应用' })).toBeHidden()
+        await expect(header.getByRole('button', { name: '操作' })).toBeHidden()
         await expect(page.getByRole('link', { name: '聊天', exact: true })).toHaveAttribute('href', 'http://chat.lostsky.work:5176/')
         const typography = await header.locator('.ls-workspace-header__desktop a').evaluateAll((elements) =>
           elements.map((element) => {
@@ -2347,7 +2339,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       if (originalViewport) await page.setViewportSize(originalViewport)
     }
     if (path === '/entities') {
-      const row = page.locator('.ls-resource-row').filter({ hasText: '@alice' })
+      const row = page.locator('.entity-row').filter({ hasText: '@alice' })
       if ((page.viewportSize()?.width ?? 0) < 640) {
         await row.getByRole('button', { name: '更多' }).click()
         await expect(page.getByText('对话', { exact: true }).last()).toBeVisible()
@@ -2368,8 +2360,8 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.locator('.sidebar a[href="/members"]')).toContainText('成员')
       await expect(page.getByRole('search').getByRole('searchbox', { name: '搜索成员' })).toBeVisible()
       await expect(page.getByLabel('成员分类')).toBeVisible()
-      await expect(page.locator('.ls-resource-list')).toBeVisible()
-      const row = page.locator('.ls-resource-row').filter({ hasText: '@alice' })
+      await expect(page.locator('.member-list')).toBeVisible()
+      const row = page.locator('.member-list article').filter({ hasText: '@alice' })
       await expect(row.locator('.ls-entity-identity__name-row .n-tag')).toContainText('正常')
       if ((page.viewportSize()?.width ?? 0) < 640) {
         await row.getByRole('button', { name: '更多' }).click()
@@ -2427,8 +2419,8 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.getByRole('link', { name: /维护窗口提醒/ })).toHaveAttribute('href', `${scope === 'entity' ? '/personal/notices' : '/notices/team'}/detail?id=21`)
       await expect(page.getByText('置顶', { exact: true })).toBeVisible()
       if ((page.viewportSize()?.width ?? 0) < 640) {
-        const header = page.locator('.notice-content-header')
-        const titleBox = await header.getByRole('heading', { level: scope === 'entity' ? 1 : 2 }).boundingBox()
+        const header = page.locator('.ls-page-header')
+        const titleBox = await header.getByRole('heading', { level: 1 }).boundingBox()
         const descriptionBox = await header.locator('p').boundingBox()
         const actionBox = await header.getByRole('button', { name: '全部标为已读' }).boundingBox()
         expect(titleBox).not.toBeNull()
@@ -2464,14 +2456,13 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       const noticeVisualEditor = page.locator('.ls-markdown-editor .ProseMirror')
       await noticeVisualEditor.click()
       await expect(noticeVisualEditor).toBeFocused()
-      await page.locator('label[for="notice-recipient"]').click()
-      await expect(page.getByRole('textbox', { name: '收件人员' })).toBeFocused()
-      const recipientMenu = page.locator('.ls-entity-select-menu')
-      await expect(recipientMenu.locator('.ls-entity-select-option')).toHaveCount(4)
-      await expect(recipientMenu.locator('.ls-entity-select-option').filter({ hasText: '测试团队' })).toContainText('团队@demo')
-      await expect(recipientMenu.locator('.ls-entity-select-option').filter({ hasText: '测试顾客' })).toContainText('顾客@customer-1')
-      await expect(recipientMenu.locator('.ls-entity-select-option').filter({ hasText: '测试成员' })).toContainText('成员@member-1')
-      await expect(recipientMenu.locator('.ls-entity-select-option').filter({ hasText: '协作助手' })).toContainText('虚拟人员@helper')
+      await page.locator('.recipient-select').click()
+      const recipientMenu = page.locator('.recipient-select-menu')
+      await expect(recipientMenu.locator('.recipient-option')).toHaveCount(4)
+      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '测试团队' })).toContainText('团队@demo')
+      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '测试顾客' })).toContainText('顾客@customer-1')
+      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '测试成员' })).toContainText('成员@member-1')
+      await expect(recipientMenu.locator('.recipient-option').filter({ hasText: '协作助手' })).toContainText('虚拟人员@helper')
       await recipientMenu.locator('.n-base-select-option').filter({ hasText: '测试顾客' }).click()
       await page.getByLabel('标题 *').fill('顾客专属通知')
       await page.getByRole('tab', { name: '源码' }).click()
@@ -2535,7 +2526,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(documentSearch).toBeVisible()
       expect((await documentSearch.boundingBox())?.height).toBeCloseTo((page.viewportSize()?.width ?? 0) < 640 ? 44 : 40, 0)
       await expect(page.getByLabel('文档分类')).toBeVisible()
-      await expect(page.locator('.ls-resource-list')).toBeVisible()
+      await expect(page.locator('.document-list')).toBeVisible()
     }
     if (path === '/files') {
       await expect(page.getByRole('search').getByRole('searchbox', { name: '搜索文件' })).toBeVisible()
@@ -2561,10 +2552,10 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.getByText('名称、头像和介绍统一在人员资料页维护。')).toBeVisible()
     }
     if (path === '/settings') {
-      const saveButtons = page.locator('.settings-panel footer button[type=submit]')
+      const saveButtons = page.locator('.settings-header .ls-button')
       const saveButtonWidths = await saveButtons.evaluateAll((buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().width)))
       const clippedSaveLabels = await saveButtons.locator('.n-button__content').evaluateAll((labels) => labels.filter((label) => label.scrollWidth > label.clientWidth).map((label) => label.textContent))
-      expect(saveButtonWidths.length).toBe(1)
+      expect(saveButtonWidths.length).toBeGreaterThan(1)
       expect(clippedSaveLabels).toEqual([])
       if ((page.viewportSize()?.width ?? 0) >= 641) {
         expect(new Set(saveButtonWidths)).toEqual(new Set([144]))
@@ -2573,26 +2564,24 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         expect(saveButtonWidths[0]).toBeGreaterThan(144)
       }
       await expect(page.getByRole('heading', { name: '人员', level: 2 })).toBeVisible()
-      await selectSettingsGroup(page, '成员')
       await expect(page.getByRole('button', { name: '保存成员设置' })).toBeVisible()
-      await selectSettingsGroup(page, '人员')
+      await expect(page.getByRole('heading', { name: '聊天', level: 2 })).toBeVisible()
+      await expect(page.getByRole('heading', { name: '商城', level: 2 })).toBeVisible()
+      await expect(page.getByRole('heading', { name: '展示', level: 2 })).toBeVisible()
       await expect(page.getByRole('switch', { name: '团队自身可搜索' })).toBeVisible()
       await expect(page.getByRole('switch', { name: '成员默认可搜索' })).toBeVisible()
+      await expect(page.getByRole('switch', { name: '自动同步记账流水' })).toBeChecked()
+      await expect(page.getByRole('switch', { name: '手动赋予权益时同步流水' })).not.toBeChecked()
       await expect(page.getByRole('radio', { name: /团队优先/ })).toBeChecked()
       await expect(page.getByText('成员优先', { exact: true })).toBeVisible()
       await page.getByText('成员优先', { exact: true }).click()
       await expect(page.getByRole('radio', { name: /成员优先/ })).toBeChecked()
-      await selectSettingsGroup(page, '聊天')
       await expect(page.getByRole('radio', { name: /仅限团队邀请/ })).toBeChecked()
       await expect(page.getByRole('radio', { name: /仅加入后消息/ })).toBeChecked()
       await expect(page.getByText('顾客不能创建群聊，只能由团队成员邀请进入。')).toBeVisible()
       await expect(page.getByText('新参与者可以查看加入前的全部群聊消息。')).toBeVisible()
       await expect(page.getByText('InviteOnly', { exact: true })).toHaveCount(0)
       await expect(page.getByText('FromJoin', { exact: true })).toHaveCount(0)
-      await expect(page.getByRole('textbox', { name: '消息编辑窗口' })).toHaveValue('15')
-      await selectSettingsGroup(page, '商城')
-      await expect(page.getByRole('switch', { name: '自动同步记账流水' })).toBeChecked()
-      await expect(page.getByRole('switch', { name: '手动赋予权益时同步流水' })).not.toBeChecked()
       const shopSwitch = page.locator('[aria-labelledby="setting-shop-enabled-label"]')
       await expect(shopSwitch).toHaveAttribute('aria-disabled', 'true')
       await expect(shopSwitch).not.toHaveAttribute('title')
@@ -2603,8 +2592,8 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
       await expect(page.locator('.requirement-reason')).toHaveCount(0)
       await shopSwitch.click({ force: true })
       await expect(page.locator('.n-message').filter({ hasText: '商城' })).toBeVisible()
-      await expect(page.locator('.settings-panel .n-select')).toHaveCount(0)
-      await selectSettingsGroup(page, '展示')
+      await expect(page.locator('.settings-view .n-select')).toHaveCount(0)
+      await expect(page.getByRole('textbox', { name: '消息编辑窗口' })).toHaveValue('15')
       await expect(page.getByRole('textbox', { name: '主页欢迎语' })).toHaveValue('欢迎来到我们的公开主页')
       await expect(page.getByRole('textbox', { name: '人员入口文案' })).toHaveValue('浏览公开人员')
       await expect(page.getByRole('textbox', { name: '人员区域标题' })).toHaveValue('公开人员')
@@ -2662,11 +2651,11 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
         await expect(page.locator('.entity-card')).toHaveCount(0)
       }
     }
-    if (path === '/docs' && (await page.locator('.ls-resource-row').count()) === 2) {
+    if (path === '/docs' && (await page.locator('.document-list article').count()) === 2) {
       await expect(page.getByText('这份文档还没有正文。')).toBeVisible()
       await expect(page.locator('dialog')).toHaveCount(0)
       if ((page.viewportSize()?.width ?? 0) >= 720) {
-        const footerTops = await page.locator('.ls-resource-row__actions').evaluateAll((footers) => footers.map((footer) => footer.getBoundingClientRect().top))
+        const footerTops = await page.locator('.document-list article footer').evaluateAll((footers) => footers.map((footer) => footer.getBoundingClientRect().top))
         if (footerTops.length === 2) expect(footerTops[1]).toBeGreaterThan(footerTops[0])
       }
     }
@@ -2674,11 +2663,11 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
     expect(overflow, `horizontal overflow at ${path}`).toBe(false)
   }
 
-  expect(noticeConfirmRequests).toEqual([{ id: 21, scope: 'entity' }, { id: 21, scope: 'team' }])
+  expect(noticeConfirmRequests).toBe(2)
   await page.goto('http://demo.team.lostsky.work:5175/personal/notices/detail')
   await expect(page.getByRole('alert')).toContainText('缺少有效的通知编号')
   await page.goto('http://demo.team.lostsky.work:5175/personal/notices/detail?id=404')
-  await expect(page.locator('.ls-async-state')).toContainText('通知不存在')
+  await expect(page.getByRole('alert')).toContainText('通知不存在')
   emptyNotices = true
   await page.goto('http://demo.team.lostsky.work:5175/personal/notices')
   await expect(page.locator('.ls-empty-state')).toContainText('目前没有通知')
@@ -2791,10 +2780,7 @@ test('team join fields support management, validation and read-only permission d
 
   await page.goto('http://demo.team.lostsky.work:5175/join-fields/41')
   await expect(page.getByLabel('选项 1 显示名称')).toHaveValue('有经验')
-  await expect(page.locator('.ls-field').filter({ has: page.locator('label[for="join-field-transfer"]') })).toContainText('成员经验')
-  await page.locator('label[for="join-field-transfer"]').click()
-  await expect(page.getByRole('textbox', { name: '转存目标' })).toBeFocused()
-  await page.keyboard.press('Escape')
+  await expect(page.getByLabel('转存目标')).toContainText('成员经验')
   await page.getByLabel('选项 2 提交值').fill('yes')
   await page.getByRole('button', { name: '保存字段' }).click()
   await expect(page.getByText('选项的提交值不能重复。')).toBeVisible()
@@ -2997,8 +2983,8 @@ test('entity field form saves unified access rules and custom targets', async ({
   })
 
   await page.goto('http://demo.team.lostsky.work:5175/field-new?type=entity')
-  const valueTypeSelect = page.locator('#entity-field-value-type')
-  const inputTypeSelect = page.locator('#entity-field-input-type')
+  const valueTypeSelect = page.locator('label').filter({ hasText: '值类型' }).locator('.n-select')
+  const inputTypeSelect = page.locator('label').filter({ hasText: '输入控件' }).locator('.n-select')
   await expect(valueTypeSelect).toContainText('短文本')
   await expect(inputTypeSelect).toContainText('单行输入')
   await valueTypeSelect.click()
@@ -3009,15 +2995,13 @@ test('entity field form saves unified access rules and custom targets', async ({
   await page.keyboard.press('Escape')
   await page.getByPlaceholder('department').fill('department')
   await page.getByPlaceholder('部门').fill('部门')
-  const visibilitySelect = page.locator('#entity-field-visibility')
+  const visibilitySelect = page.locator('.access-policy > label').filter({ hasText: '值可见范围' }).locator('.n-select')
   await visibilitySelect.click()
   await page.locator('.n-base-select-option').filter({ hasText: '公开可见' }).click()
   await expect(page.getByText('公开字段只有在所属人员有效且已开启公开主页展示时')).toBeVisible()
   await visibilitySelect.click()
   await page.locator('.n-base-select-option').filter({ hasText: '指定对象可见' }).click()
-  const targets = page.getByRole('textbox', { name: '指定可见对象' })
-  await page.locator('label[for="entity-field-targets"]').click()
-  await expect(targets).toBeFocused()
+  const targets = page.locator('.access-policy > label').filter({ hasText: '指定可见对象' }).locator('.n-select')
   await targets.click()
   await page.locator('.n-base-select-option').filter({ hasText: '测试成员' }).click()
   await page.getByRole('button', { name: '保存字段' }).click()
@@ -3354,7 +3338,7 @@ test('team role tasks use independent routes for entity assignment and permissio
   })
 
   await page.goto('http://demo.team.lostsky.work:5175/roles')
-  await expect(page.getByRole('list', { name: '角色列表' }).getByRole('link').first()).toHaveAttribute('href', '/roles/1')
+  await expect(page.getByRole('link', { name: /管理角色/ })).toHaveAttribute('href', '/roles/1')
   await expect(page.getByText('仅内部')).toBeVisible()
   await expect(page.getByRole('tab')).toHaveCount(0)
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
@@ -3397,7 +3381,7 @@ test('team role tasks use independent routes for entity assignment and permissio
   await page.getByText('文档管理 · 已配置 0 项', { exact: true }).click()
   await page.getByLabel('选择权限目标').fill('customer-1')
   await page.getByRole('option', { name: /顾客一号.*customer-1/ }).click()
-  let dynamicPermissions = page.getByRole('group', { name: /^指定人员/ })
+  let dynamicPermissions = page.locator('.dynamic-permission-list:visible')
   await dynamicPermissions
     .getByRole('checkbox', {
       name: /管理指定人员文档.*team\.document\.customer\.customer-1\.manage/,
@@ -3416,7 +3400,7 @@ test('team role tasks use independent routes for entity assignment and permissio
     .check()
   await page.getByText('人员委托 · 已配置 1 项', { exact: true }).click()
   await expect(page.getByLabel('选择权限目标')).toBeVisible()
-  dynamicPermissions = page.getByRole('group', { name: /^指定人员/ })
+  dynamicPermissions = page.locator('.dynamic-permission-list:visible')
   await expect(dynamicPermissions.getByRole('checkbox')).toHaveCount(1)
   for (const checkbox of await dynamicPermissions.getByRole('checkbox').all()) await expect(checkbox).toBeDisabled()
   await page.getByLabel('选择权限目标').fill('helper')
@@ -3430,7 +3414,7 @@ test('team role tasks use independent routes for entity assignment and permissio
   await expect(page.getByText('人员委托 · 已配置 2 项', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: '已进入角色草稿' })).toBeVisible()
   await page.getByText('人员管理 · 已配置 0 项', { exact: true }).click()
-  dynamicPermissions = page.getByRole('group', { name: /^指定人员/ })
+  dynamicPermissions = page.locator('.dynamic-permission-list:visible')
   await dynamicPermissions
     .getByRole('checkbox', {
       name: /管理指定虚拟人员.*team\.entity\.virtual\.helper\.manage/,
@@ -3828,7 +3812,7 @@ test('transaction workspace covers ledger tasks without horizontal overflow', as
     await page.goto('http://demo.transaction.lostsky.work:5177/personal/transactions/new')
     await expect(page.locator('#workspace')).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `horizontal overflow at ${width}px`).toBe(false)
-    if (width < 768) await expect(page.getByRole('button', { name: '切换应用' })).toBeVisible()
+    if (width < 768) await expect(page.getByRole('button', { name: '操作' })).toBeVisible()
     else await expect(page.locator('#workspace').getByRole('heading', { name: '登记流水' })).toBeVisible()
     await page.goto('http://demo.transaction.lostsky.work:5177/entitlements/new')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), `entitlement grant horizontal overflow at ${width}px`).toBe(false)

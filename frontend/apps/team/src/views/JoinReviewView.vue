@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsCategoryPage from '@lostsky/ui/components/LsCategoryPage.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
-import TeamSectionNav from '../components/TeamSectionNav.vue'
 import { reviewSections } from '../lib/workspaceNavigation'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -37,18 +36,16 @@ const visibleRows = computed(() => { const keyword = search.value.trim().toLocal
 
 <template>
   <div class="join-review-list-page">
-    <LsCollectionPage title="人事审核" description="查看加入申请，点击进入对应审核页面。">
+    <LsCategoryPage :items="reviewSections.map(item => ({ ...item, key: item.to }))" current="/join-review" label="审核分类" title="人事审核" description="查看加入申请，点击进入对应审核页面。">
       <template #actions>
         <LsPageLink :icon="Settings" label="申请表配置" to="/join-fields" />
       </template>
-      <template #toolbar>
-        <TeamSectionNav label="审核分类" :items="reviewSections" />
-        <LsListToolbar v-model="search" placeholder="搜索申请人、编号或说明" aria-label="搜索加入申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visibleRows.length} 条申请`">
+        <LsListToolbar embedded v-model="search" placeholder="搜索申请人、编号或说明" aria-label="搜索加入申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visibleRows.length} 条申请`">
           <template #filters>
             <NSelect v-model:value="status" :options="statusOptions" aria-label="筛选申请状态" />
           </template>
         </LsListToolbar>
-      </template>
+      <div class="review-results">
       <LsAsyncState v-if="!routeAccess.restricted.value && listQuery.isError.value" state="error" title="暂时无法读取加入申请" :description="friendlyError(listQuery.error.value)" />
       <LsAsyncState v-else-if="!routeAccess.restricted.value && listQuery.isPending.value" state="loading" :rows="4" />
       <LsEmptyState v-else-if="routeAccess.restricted.value || !visibleRows.length" :source="listQuery.data.value" :title="routeAccess.restricted.value ? '没有可显示的加入申请' : '没有匹配的加入申请'" description="调整搜索词或申请状态筛选后查看。" />
@@ -63,6 +60,11 @@ const visibleRows = computed(() => { const keyword = search.value.trim().toLocal
           </template>
         </LsResourceRow>
       </LsResourceList>
-    </LsCollectionPage>
+      </div>
+    </LsCategoryPage>
   </div>
 </template>
+
+<style scoped>
+.review-results { min-width: 0; margin-top: 1rem; }
+</style>

@@ -21,19 +21,19 @@ const CommentPresets = () => import('./views/CommentPresetsView.vue')
 const scoped = (prefix: '' | '/personal', workspace: 'team' | 'personal') => {
   const permission = workspace === 'team' ? 'weibo.team.manage' : 'weibo.personal.use'
   return [
-    { path: prefix || '/overview', component: Overview, meta: { workspaceScene: true, title: '概览', workspace, pageWidth: 'wide', accessPublic: true } },
-    ...(workspace === 'personal' ? [{ path: '/personal/feed', component: Feed, meta: { workspaceScene: true, title: '点单信息流', workspace, pageWidth: 'content', accessPublic: true } }] : []),
-    { path: `${prefix}/interactions/comment-presets`, component: CommentPresets, meta: { workspaceScene: true, title: '预设评论', workspace, pageWidth: 'content', permission, accessMode: 'list' } },
-    { path: `${prefix}/interactions/comment-presets/new`, component: CommentPresetForm, meta: { workspaceScene: true, title: '添加预设', workspace, pageWidth: 'form', permission, presetMode: 'new' } },
-    { path: `${prefix}/interactions/comment-presets/edit`, component: CommentPresetForm, meta: { workspaceScene: true, title: '编辑预设', workspace, pageWidth: 'form', permission, presetMode: 'edit' } },
-    { path: `${prefix}/accounts`, component: Accounts, meta: { workspaceScene: true, title: '账号', workspace, pageWidth: 'wide', permission, accessMode: 'list' } },
-    { path: `${prefix}/accounts/bind`, component: AccountBinding, meta: { workspaceScene: true, title: '绑定账号', workspace, pageWidth: 'form', permission } },
-    { path: `${prefix}/compose`, component: Operation, meta: { workspaceScene: true, title: '超话发帖', workspace, operation: 'post', pageWidth: 'form', permission } },
-    { path: `${prefix}/interactions`, component: Interaction, meta: { workspaceScene: true, title: '互动', workspace, operation: 'interaction', pageWidth: 'form', permission } },
-    { path: `${prefix}/tasks`, component: Tasks, meta: { workspaceScene: true, title: '持续任务', workspace, pageWidth: 'wide', permission, accessMode: 'list' } },
-    { path: `${prefix}/tasks/new`, component: TaskForm, meta: { workspaceScene: true, title: '新建任务', workspace, pageWidth: 'form', permission } },
-    { path: `${prefix}/tasks/:id(\\d+)`, component: TaskForm, meta: { workspaceScene: true, title: '编辑任务', workspace, pageWidth: 'form', permission } },
-    { path: `${prefix}/logs`, component: Logs, meta: { workspaceScene: true, title: '执行日志', workspace, pageWidth: 'wide', permission, accessMode: 'list' } },
+    { path: prefix || '/overview', component: Overview, meta: { title: '概览', workspace, pageWidth: 'wide', accessPublic: true } },
+    ...(workspace === 'personal' ? [{ path: '/personal/feed', component: Feed, meta: { title: '点单信息流', workspace, pageWidth: 'content', accessPublic: true } }] : []),
+    { path: `${prefix}/interactions/comment-presets`, component: CommentPresets, meta: { title: '预设评论', workspace, pageWidth: 'content', permission, accessMode: 'list' } },
+    { path: `${prefix}/interactions/comment-presets/new`, component: CommentPresetForm, meta: { title: '添加预设', workspace, pageWidth: 'form', permission, presetMode: 'new' } },
+    { path: `${prefix}/interactions/comment-presets/edit`, component: CommentPresetForm, meta: { title: '编辑预设', workspace, pageWidth: 'form', permission, presetMode: 'edit' } },
+    { path: `${prefix}/accounts`, component: Accounts, meta: { title: '账号', workspace, pageWidth: 'wide', permission, accessMode: 'list' } },
+    { path: `${prefix}/accounts/bind`, component: AccountBinding, meta: { title: '绑定账号', workspace, pageWidth: 'form', permission } },
+    { path: `${prefix}/compose`, component: Operation, meta: { title: '超话发帖', workspace, operation: 'post', pageWidth: 'form', permission } },
+    { path: `${prefix}/interactions`, component: Interaction, meta: { title: '互动', workspace, operation: 'interaction', pageWidth: 'form', permission } },
+    { path: `${prefix}/tasks`, component: Tasks, meta: { title: '持续任务', workspace, pageWidth: 'wide', permission, accessMode: 'list' } },
+    { path: `${prefix}/tasks/new`, component: TaskForm, meta: { title: '新建任务', workspace, pageWidth: 'form', permission } },
+    { path: `${prefix}/tasks/:id(\\d+)`, component: TaskForm, meta: { title: '编辑任务', workspace, pageWidth: 'form', permission } },
+    { path: `${prefix}/logs`, component: Logs, meta: { title: '执行日志', workspace, pageWidth: 'wide', permission, accessMode: 'list' } },
   ]
 }
 

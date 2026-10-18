@@ -12,7 +12,7 @@ type NavItem = {
   label: string
   icon: typeof House
 }
-const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: Globe, weibo: Radio }
+const appIcons = { team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, weibo: Radio }
 const route = useRoute()
 const router = useRouter()
 const drawer = ref(false)

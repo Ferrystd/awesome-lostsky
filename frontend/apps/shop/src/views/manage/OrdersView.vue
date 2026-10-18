@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
 import { friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
 import LsEntitySelect from "@lostsky/ui/components/LsEntitySelect.vue";
 import LsListToolbar from "@lostsky/ui/components/LsListToolbar.vue";
+import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
+import LsPagePrimaryAction from "@lostsky/ui/components/LsPagePrimaryAction.vue";
 import LsResponsiveDataTable from "@lostsky/ui/components/LsResponsiveDataTable.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
 import { useRouteAccess } from "@lostsky/ui/useRouteAccess";
 import { useQuery } from "@tanstack/vue-query";
-import { Plus, ArrowUpRight } from "@lucide/vue";
+import { Plus } from "@lucide/vue";
 import { NDatePicker, NPagination, NSelect } from "naive-ui";
 import type { DataTableColumns } from "naive-ui";
 import { computed, h, reactive } from "vue";
-
+import { RouterLink } from "vue-router";
 import { formatDate, formatMoney, manageApi } from "../../lib";
 type Row = {
   id: number;
@@ -97,118 +97,98 @@ const columns: DataTableColumns<Row> = [
     title: "操作",
     key: "action",
     render: (r) =>
-      h(LsPageLink, { to: `/manage/orders/${r.id}`, icon: ArrowUpRight, label: "查看" }),
+      h(
+        RouterLink,
+        { to: `/manage/orders/${r.id}` },
+        { default: () => "查看" },
+      ),
   },
 ];
 </script>
 <template>
   <div class="manage-page">
-    <LsCollectionPage title="订单" description="查看销售记录并处理订单完成或取消。">
-      <template #actions>
-        <LsPageLink :icon="Plus" label="新建订单" to="/manage/orders/new" />
-      </template
-      >
-      <template #toolbar>
-        <LsListToolbar
+    <LsPageHeader title="订单" description="查看销售记录并处理订单完成或取消。"
+      ><template #actions>
+        <LsPagePrimaryAction :icon="Plus" label="新建订单" to="/manage/orders/new" /></template
+      ></LsPageHeader
+    ><LsListToolbar
       :searchable="false"
       :count-label="routeAccess.restricted.value ? '0 条订单' : `${query.data.value?.total ?? 0} 条订单`"
-      >
-          <template #filters
-        >
-            <NDatePicker
-            v-model:value="filters.range"
-            type="daterange"
-            clearable
-            @update:value="filters.page = 1" />
-            <NSelect
-            v-model:value="filters.status"
-            :options="[
+      ><template #filters
+        ><NDatePicker
+          v-model:value="filters.range"
+          type="daterange"
+          clearable
+          @update:value="filters.page = 1" /><NSelect
+          v-model:value="filters.status"
+          :options="[
             { label: '处理中', value: 1 },
             { label: '已完成', value: 2 },
             { label: '已取消', value: 3 },
-            ]"
-            clearable
-            placeholder="全部状态"
-            @update:value="filters.page = 1" />
-            <NSelect
-            v-model:value="filters.customer_id"
-            :options="customerOptions"
-            filterable
-            clearable
-            placeholder="全部顾客"
-            @update:value="filters.page = 1" />
-            <LsEntitySelect
-            v-model="filters.handler_entity_id"
-            :entities="options.data.value?.entities ?? []"
-            :loading="options.isPending.value"
-            :disabled="options.isError.value"
-            clearable
-            placeholder="全部接单人"
-            @update:model-value="filters.page = 1" />
-          </template>
-        </LsListToolbar
-    >
-      </template>
-      <LsAsyncState
+          ]"
+          clearable
+          placeholder="全部状态"
+          @update:value="filters.page = 1" /><NSelect
+          v-model:value="filters.customer_id"
+          :options="customerOptions"
+          filterable
+          clearable
+          placeholder="全部顾客"
+          @update:value="filters.page = 1" /><LsEntitySelect
+          v-model="filters.handler_entity_id"
+          :entities="options.data.value?.entities ?? []"
+          :loading="options.isPending.value"
+          :disabled="options.isError.value"
+          clearable
+          placeholder="全部接单人"
+          @update:model-value="filters.page = 1" /></template></LsListToolbar
+    ><LsAsyncState
       v-if="!routeAccess.restricted.value && query.isPending.value"
       state="loading"
       :rows="6"
-      />
-      <LsAsyncState
+    /><LsAsyncState
       v-else-if="!routeAccess.restricted.value && query.isError.value"
       state="error"
       title="暂时无法读取订单"
       :description="friendlyError(query.error.value)"
-      />
-      <LsEmptyState :source="query.data.value"
+    /><LsEmptyState :source="query.data.value"
       v-else-if="routeAccess.restricted.value || !rows.length"
       :title="routeAccess.restricted.value ? '没有可显示的订单' : '没有匹配的订单'"
       description="调整筛选条件，或手动创建订单。"
-      />
-      <LsResponsiveDataTable
+    /><LsResponsiveDataTable
       v-else
       :columns="columns"
       :data="rows"
       :row-key="(r) => r.id"
       :scroll-x="900"
-      >
-        <template #mobile-title="{ row }"
+      ><template #mobile-title="{ row }"
         >{{ row.product_name }} · #{{ row.id }}</template
-        >
-        <template #mobile-status="{ row }"
-        >
-          <LsStatusTag
+      ><template #mobile-status="{ row }"
+        ><LsStatusTag
           :label="status(row.status)"
-          :type="tone(row.status)" />
-        </template
-      >
-        <template #mobile="{ row }"
-        >
-          <dl>
-            <dt>数量</dt>
-            <dd>{{ row.quantity }}</dd>
-            <dt>顾客</dt>
-            <dd>{{ row.customer?.nickname ?? "未关联" }}</dd>
-            <dt>金额</dt>
-            <dd>{{ formatMoney(row.total_price) }}</dd>
-            <dt>时间</dt>
-            <dd>{{ formatDate(row.create_time) }}</dd>
-            <dt>操作</dt>
-            <dd>
-              <LsPageLink :to="`/manage/orders/${row.id}`" :icon="ArrowUpRight" label="查看" />
-            </dd>
-          </dl>
-        </template
-      >
-      </LsResponsiveDataTable
+          :type="tone(row.status)" /></template
+      ><template #mobile="{ row }"
+        ><dl>
+          <dt>数量</dt>
+          <dd>{{ row.quantity }}</dd>
+          <dt>顾客</dt>
+          <dd>{{ row.customer?.nickname ?? "未关联" }}</dd>
+          <dt>金额</dt>
+          <dd>{{ formatMoney(row.total_price) }}</dd>
+          <dt>时间</dt>
+          <dd>{{ formatDate(row.create_time) }}</dd>
+          <dt>操作</dt>
+          <dd>
+            <RouterLink :to="`/manage/orders/${row.id}`">查看</RouterLink>
+          </dd>
+        </dl></template
+      ></LsResponsiveDataTable
     >
-      <template v-if="query.data.value?.total" #pagination>
-        <span
+    <div v-if="query.data.value?.total" class="pager">
+      <span
         >共 {{ query.data.value.total }} 条订单，第 {{ filters.page }} /
         {{ pages }} 页</span
-        >
-        <NPagination v-model:page="filters.page" :page-count="pages" />
-      </template>
-    </LsCollectionPage>
+      ><NPagination v-model:page="filters.page" :page-count="pages" />
+    </div>
   </div>
 </template>

@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   chatWorkspaceUrl,
-  communityWorkspaceUrl,
   loginUrl,
   memberIdentityCallbackUrl,
   redirectToWorkspaceWarning,
@@ -13,7 +12,6 @@ import {
   teamScopedAppUrl,
   transactionWorkspaceUrl,
   workspaceWarningUrl,
-  workspaceAppEntries,
 } from './navigation'
 
 afterEach(() => {
@@ -22,23 +20,6 @@ afterEach(() => {
 })
 
 describe('safeRedirect', () => {
-  it('keeps Community beside Chat in shared navigation without requiring a team workspace', () => {
-    vi.stubEnv('DEV', true)
-    vi.stubGlobal('location', { hostname: 'demo.team.lostsky.work', protocol: 'http:', port: '5175' })
-    const entries = workspaceAppEntries({ personal: true })
-    expect(entries.map(entry => entry.key)).toEqual(['team', 'shop', 'transaction', 'chat', 'community', 'weibo'])
-    expect(entries.find(entry => entry.key === 'community')).toEqual({ key: 'community', label: '社区', href: 'http://community.lostsky.work:5182/' })
-  })
-  it('keeps Community teamless and allows its local Account return URL', () => {
-    vi.stubEnv('DEV', true)
-    vi.stubGlobal('location', { hostname: '127.0.0.1', protocol: 'http:', port: '5175' })
-    const target = communityWorkspaceUrl('/c/sky/manage/boards')
-    expect(target).toBe('http://127.0.0.1:5182/c/sky/manage/boards')
-    expect(safeRedirect(target)).toBe(target)
-    vi.stubGlobal('location', { hostname: 'demo.team.lostsky.work', protocol: 'https:', port: '' })
-    vi.stubEnv('DEV', false)
-    expect(communityWorkspaceUrl('/c/sky')).toBe('https://community.lostsky.work/c/sky')
-  })
   it('accepts local and LostSky HTTPS destinations only', () => {
     expect(safeRedirect('/teams')).toBe('/teams')
     expect(safeRedirect('https://demo.team.lostsky.work/members')).toBe('https://demo.team.lostsky.work/members')
@@ -226,13 +207,5 @@ describe('workspace destinations', () => {
     })
     expect(teamScopedAppUrl('demo', 'shop', '/customer/profile'))
       .toBe('http://localhost:5179/customer/profile')
-    expect(teamScopedAppUrl('demo', 'display'))
-      .toBe('http://localhost:5178/')
-    vi.stubGlobal('location', { hostname: 'chat.lostsky.work', protocol: 'https:', port: '' })
-    vi.stubEnv('DEV', false)
-    expect(teamScopedAppUrl('demo', 'display')).toBe('https://demo.display.lostsky.work/')
-    for (const app of ['team', 'transaction', 'weibo'] as const) {
-      expect(teamScopedAppUrl('demo', app)).toBe(`https://demo.${app}.lostsky.work/`)
-    }
   })
 })

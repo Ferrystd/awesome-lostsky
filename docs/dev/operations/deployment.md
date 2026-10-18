@@ -45,24 +45,6 @@ php -v
 composer --version
 ```
 
-<a id="emergency-bugfix-deployment"></a>
-
-## 紧急修复部署
-
-适用范围、产品版本、Git 交付和授权以[紧急修复发布](../development/releasing.md#emergency-bugfix)为准。部署前严格核验 SSH host key，读取活动目录及部署记录，并校验实际文件；已有 overlay 的生产身份是“完整基线标签/commit + 按应用顺序记录的 overlay 标签/commit、清单及 SHA-256”，不能只读 Git HEAD。现场与记录不一致时先核对差异，不能覆盖未知改动。
-
-默认在独立目录准备本次不可变标签对应的完整发布包，核对锁定依赖、构建与验证证据、入口及产物 SHA-256，备份当前发布记录和恢复所需配置后原子切换活动目录。未变化产物的复用必须符合发布页的证据规则，记录来源与校验值；数据库结构迁移不进入紧急流程。按实际受影响运行时清理缓存、重载 PHP-FPM 或重启常驻进程，确认进程状态和真实请求使用新代码。
-
-确需仅替换文件时，overlay 必须满足以下要求：
-
-1. 部署前登记基础完整发布标签/commit、此前 overlay、当前活动目录、本次修复标签/commit、包 SHA-256，以及每个文件的相对路径、替换前后 SHA-256、权限和所有者；只允许清单内文件，不携带未发布源码或静态资源。
-2. 替换前再次核对活动目录和原文件 hash。保存原字节、权限和完整部署元数据到本次唯一备份目录，并准备恢复顺序、重载命令和回滚验收；任一 hash 不符即停止，禁止覆盖并发或未知修改。
-3. 先在临时目录校验包、语法和必要运行时契约，再以同文件系统原子替换应用文件。多文件应采用可一致切换的目录或受控暂停机制；中途失败按清单恢复，不能留下半套代码。
-4. 保留基础发布身份，在部署元数据中追加本次 overlay 身份、应用时间、文件清单、新旧 hash、备份位置及验证结果。Git HEAD 或基础标签不能被伪装成已经包含 overlay；本次 overlay 标签也不能被报告成整目录已经检出或构建的新完整发布包。
-5. 完成适用重载后核对实际文件 hash、进程状态和真实生产请求。回滚须恢复原字节、权限及先前元数据，执行适用重载，再核对原 hash、进程和恢复后的请求结果；本次缺陷修复后的断言不能替代旧版本的恢复验收。
-
-生产验收必须覆盖缺陷入口及相关响应结构、鉴权边界和受影响运行时；涉及前端时由 Astra 验收实际入口和资源。仅本地测试、语法检查、包上传或进程重载均不代表上线成功。记录标签/commit、有效生产基线、环境、时间、执行人、验收命令和结果、回滚位置及未覆盖范围，失败按预定回滚路径恢复并再次验收。
-
 ## 后端部署
 
 1. 安装生产依赖：
@@ -295,18 +277,6 @@ php think oss:fallback:configure
 
 迁移包含会话归并和权限清理，回退须恢复配套数据库备份及旧发布版本，不能只回滚代码。`tests/chat_migration.php` 使用临时表覆盖归并、UUID 映射、消息与回复保留、已读合并、待投递事件及重复执行；`tests/chat_backend.php` 覆盖身份、参与资格、邀请、屏蔽和集成投递规则。
 
-<a id="community-initial-setup"></a>
-
-## Community 首次启用
-
-已有库先备份并执行 `sql/patches/20261007_community.sql`，核对新增社区及关联表、索引后发布后端；新建空库使用当前 Schema，不再重复执行此补丁。
-
-前端统一构建生成 `www/community.lostsky.work/`，为 `community.lostsky.work` 配置 SPA 站点，并将 `community.api.lostsky.work` 指向现有 API 站点。标准证书的 `*.lostsky.work` 与 `*.api.lostsky.work` 已覆盖这两个名称；实际证书、DNS 与站点配置仍须在部署环境验收。
-
-平台管理员按角色授予 `admin.community.read`、`admin.community.write` 与 `admin.community.moderate`，再从 Admin 创建官方社区并分配社区管理员；团队通过目标团队角色授予 `community.team.read`、`community.team.manage`。已有自定义角色不会因代码增加权限而自动拥有新权限。
-
-上线验收公开阅读、Account 身份回跳、互动写入以及 Team/Admin 各自管理范围。Community 无新增常驻 Worker 或定时任务；本地迁移、构建和测试不代表站点已发布或官方社区已创建。
-
 ## 宝塔静态前端部署
 
 宝塔添加站点时会在根目录生成默认 `index.html` 和 `404.html`。LostSky 的 Vite 应用是单入口 SPA，每个应用域名目录只保留 `index.html`，前端路径统一回退到该文件，因此不要直接在已经发布的 `www/{domain}` 目录上添加站点。
@@ -315,7 +285,7 @@ php think oss:fallback:configure
 
 | 站点类型 | 域名 | 不存在的路径 |
 | --- | --- | --- |
-| Vue SPA | `www`、`account`、`admin`、`team`、`chat`、`community`、`transaction`、`display`、`shop`、`weibo`；团队应用另有团队子域名 | 回退到 `/index.html`，交给 Vue Router |
+| Vue SPA | `www`、`account`、`admin`、`team`、`chat`、`transaction`、`display`、`shop`、`weibo` 及其团队子域名 | 回退到 `/index.html`，交给 Vue Router |
 | 公共静态资源 | `assets.lostsky.work` | 直接返回 `404` |
 | 文档站 | `docs.lostsky.work`、`doc.lostsky.work` | 直接返回 `404` |
 | ThinkPHP API | `api.lostsky.work` | 使用后端重写规则，不使用 SPA 回退 |

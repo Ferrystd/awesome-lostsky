@@ -5,7 +5,6 @@ import {
   ChevronRight,
   ClipboardList,
   FileClock,
-  Globe,
   House,
   Menu,
   MessageCircleMore,
@@ -21,7 +20,6 @@ import { NButton } from "naive-ui";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-defineProps<{ scene?: boolean }>()
 const route = useRoute();
 const navigationPath = computed(() => route.path.startsWith('/personal/interactions/comment-presets') ? '/personal/feed' : route.path);
 const router = useRouter();
@@ -64,9 +62,7 @@ function appIcon(key: string) {
         ? ReceiptText
         : key === "chat"
           ? MessageCircleMore
-          : key === "community"
-            ? Globe
-            : Radio;
+          : Radio;
 }
 function switchApp(key: string) {
   const entry = entries.value.find((item) => item.key === key);
@@ -110,7 +106,7 @@ function switchApp(key: string) {
         @click="drawer = false"
     /></Transition>
     <section class="weibo-layout">
-      <LsWorkspaceHeader :scene="scene" :contextual="scene"
+      <LsWorkspaceHeader
         context-label="微博工作台"
         :title="String(route.meta.title || '微博')"
         :actions="headerActions"

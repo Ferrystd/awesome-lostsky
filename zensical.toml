@@ -17,7 +17,6 @@ nav = [
       "design/admin/components.md",
       "design/admin/componentization.md",
       "design/admin/patterns.md",
-      "design/admin/workspace-scene.md",
       "design/admin/states-and-access.md",
       "design/admin/responsive-accessibility.md",
       "design/admin/applications.md",
@@ -56,7 +55,6 @@ nav = [
     "apps/account.md",
     "apps/admin.md",
     "apps/chat.md",
-    "apps/community.md",
     "apps/common.md",
     "apps/display.md",
     "apps/shop.md",
@@ -95,8 +93,7 @@ nav = [
   {"API" = ["openapi/README.md"]},
   {"计划" = [
     "TODO.md",
-    "plans/markdown-ai.md",
-    "plans/non-team-page-consistency.md"
+    "plans/markdown-ai.md"
   ]}
 ]
 

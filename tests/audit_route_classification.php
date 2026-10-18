@@ -25,10 +25,6 @@ $classification = [
             'joinReview/saveTasks', 'joinReview/setTaskPassed', 'joinField/add',
             'joinField/edit', 'joinField/delete', 'setting', 'file/upload', 'file/delete',
             'doc/create', 'doc/edit', 'doc/delete',
-            'communities', 'communities/<id>', 'communities/<id>/administrators',
-            'communities/<id>/administrators/<entity_id>/remove', 'communities/<id>/boards/<board_id>',
-            'communities/<id>/announcements/<announcement_id>', 'communities/<id>/posts/<post_id>/moderate',
-            'communities/<id>/comments/<comment_id>/moderate', 'communities/<id>/members/<entity_id>/mute',
             'chatGroup/create', 'chatGroup/update', 'chatGroup/invite',
             'chatGroup/invitation/cancel', 'chatGroup/participant/remove',
             'chatGroup/message/revoke', 'chatGroup/close',
@@ -154,11 +150,6 @@ foreach ($classification as $application => $groups) {
         $controllerSource = (string) file_get_contents($controllerFile);
         if (str_contains($controllerSource, 'extends WorkspaceController')) {
             $controllerSource .= (string) file_get_contents("{$root}/app/{$application}/controller/WorkspaceController.php");
-        }
-        if ($application === 'team' && str_starts_with($route, 'communities')
-            && str_contains($controllerSource, 'extends \\app\\controller\\CommunityManagement')) {
-            $controllerSource .= (string) file_get_contents("{$root}/app/controller/CommunityManagement.php");
-            $controllerSource .= (string) file_get_contents("{$root}/app/service/Community.php");
         }
         if (!str_contains($controllerSource, 'BusinessAudit::class')) {
             throw new RuntimeException("{$application} {$route} 的控制器未使用 BusinessAudit");

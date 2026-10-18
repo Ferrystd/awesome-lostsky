@@ -4,7 +4,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $root = dirname(__DIR__);
-$apps = ['account', 'admin', 'chat', 'community', 'common', 'display', 'shop', 'team', 'transaction', 'weibo'];
+$apps = ['account', 'admin', 'chat', 'common', 'display', 'shop', 'team', 'transaction', 'weibo'];
 $errors = [];
 
 foreach ($apps as $app) {

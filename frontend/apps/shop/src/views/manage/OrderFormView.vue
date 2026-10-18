@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
-import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
-import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import { ArrowLeft } from '@lucide/vue'
-
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 
@@ -14,6 +9,7 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery } from '@tanstack/vue-query'
@@ -62,22 +58,11 @@ function submit() {
   if (!valid.value || save.isPending.value) return
   save.mutate()
 }
-
-const contextProduct = computed(() => options.data.value?.products?.find(product => Number(product.id) === form.product_id))
-const contextCustomer = computed(() => options.data.value?.customers.find(customer => Number(customer.id) === form.customer_id))
-const contextTotal = computed(() => {
- const price = contextProduct.value?.price
- return price != null && Number.isFinite(Number(price)) && Number.isInteger(form.quantity) && form.quantity > 0 ? (Math.round(Number(price) * 100) * form.quantity / 100).toFixed(2) : null
-})
-
 </script>
 
 <template>
-  <LsFormPage aside-label="订单草稿核对" title="新建订单" description="选择商品、顾客和参与人员，确认后创建订单。">
-    <template #actions>
-      <LsPageLink to="/manage/orders" :icon="ArrowLeft" label="返回订单" />
-    </template>
-
+  <div class="manage-page">
+    <LsPageHeader title="新建订单" description="分成自动根据价格计算，也可手动输入。" back-to="/manage/orders" back-label="返回订单" />
     <form class="manage-form" @submit.prevent="submit">
       <LsFormSection title="商品与顾客">
         <LsField label="商品" for-id="order-product" required><NSelect id="order-product" v-model:value="form.product_id" :options="productOptions" filterable :disabled="routeAccess.restricted.value" :placeholder="routeAccess.restricted.value ? '-' : '选择已上架商品'" /></LsField>
@@ -89,26 +74,10 @@ const contextTotal = computed(() => {
         <LsField label="接单人" for-id="order-handler"><LsEntitySelect id="order-handler" v-model="form.handler_entity_id" :entities="entities" :loading="!routeAccess.restricted.value && options.isPending.value" :disabled="routeAccess.restricted.value || options.isError.value" clearable :placeholder="routeAccess.restricted.value ? '-' : '普通商品可选'" /></LsField>
         <LsField label="发单人" for-id="order-sender"><LsEntitySelect id="order-sender" v-model="form.sender_entity_id" :entities="entities" :loading="!routeAccess.restricted.value && options.isPending.value" :disabled="routeAccess.restricted.value || options.isError.value" clearable :placeholder="routeAccess.restricted.value ? '-' : '可选'" /></LsField>
         <LsField label="客服" for-id="order-cs"><LsEntitySelect id="order-cs" v-model="form.cs_entity_id" :entities="entities" :loading="!routeAccess.restricted.value && options.isPending.value" :disabled="routeAccess.restricted.value || options.isError.value" clearable :placeholder="routeAccess.restricted.value ? '-' : '可选'" /></LsField>
-      </LsFormSection>
-      <LsFormSection title="订单备注" description="补充本次订单需要留存的说明。">
         <LsField label="备注" for-id="order-memo"><NInput id="order-memo" v-model:value="form.memo" type="textarea" maxlength="500" show-count /></LsField>
       </LsFormSection>
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
-      <LsFormActions><LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton><LsButton type="submit" :disabled="routeAccess.restricted.value || !valid" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">创建订单</LsButton></LsFormActions>
+      <LsFormActions><LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton><LsButton type="submit" :disabled="routeAccess.restricted.value || !valid" :disabled-reason="routeAccess.reason.value" :loading="save.isPending.value">创建订单</LsButton></LsFormActions>
     </form>
-    <template #aside>
-      <LsFormSection title="订单核对" description="根据当前商品与数量估算；以创建后订单的冻结金额为准。">
-        <p v-if="routeAccess.restricted.value">暂无可查看的订单候选资料。</p>
-        <p v-else-if="options.isPending.value">正在读取商品与顾客…</p>
-        <p v-else-if="options.isError.value">商品与顾客读取失败。</p>
-        <LsDescriptionList v-else>
-          <dt>商品</dt><dd>{{ contextProduct?.name || '尚未选择' }}</dd>
-          <dt>数量</dt><dd>{{ form.quantity ?? '-' }}</dd>
-          <dt>预计总价</dt><dd>{{ contextTotal == null ? '-' : '¥' + contextTotal }}</dd>
-          <dt>顾客</dt><dd>{{ contextCustomer?.nickname || contextCustomer?.name || (contextCustomer ? '顾客 #' + contextCustomer.id : '未关联') }}</dd>
-          <dt>购买资料</dt><dd>{{ purchaseFields.length }} 项</dd>
-        </LsDescriptionList>
-      </LsFormSection>
-    </template>
-  </LsFormPage>
+  </div>
 </template>

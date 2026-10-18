@@ -76,7 +76,7 @@ function update(value: Array<string | number>) {
 .ls-checkbox-group-field legend span,
 .ls-checkbox-group-field__error { color: var(--danger); }
 .ls-checkbox-group-field__options { display: grid; gap: 1px; overflow: hidden; background: var(--line); border: 1px solid var(--line); border-radius: 8px; }
-.ls-checkbox-group-field__options :deep(.n-checkbox) { min-width: 0; min-height: 60px; align-items: center; padding: .65rem .75rem; background: var(--surface); }
+.ls-checkbox-group-field__options :deep(.n-checkbox) { min-width: 0; min-height: 60px; align-items: center; padding: .65rem .75rem; background: white; }
 .ls-checkbox-group-field__options :deep(.n-checkbox:hover) { background: var(--cloud); }
 .ls-checkbox-group-field__options :deep(.n-checkbox.n-checkbox--disabled) { opacity: 1; }
 .ls-checkbox-group-field__copy { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .15rem .6rem; }

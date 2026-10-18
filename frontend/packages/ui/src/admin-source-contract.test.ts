@@ -3,7 +3,7 @@ import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const repository = process.cwd()
-const applicationNames = ['account', 'team', 'chat', 'community', 'transaction', 'admin', 'weibo']
+const applicationNames = ['account', 'team', 'chat', 'transaction', 'admin', 'weibo']
 const sourceRoots = [...applicationNames.map((name) => join(repository, 'frontend', 'apps', name, 'src')), join(repository, 'frontend', 'packages', 'ui', 'src')]
 
 function filesUnder(directory: string): string[] {
@@ -22,7 +22,6 @@ const componentCallerRoots = readdirSync(join(repository, 'frontend', 'apps'), {
 })
   .filter((entry) => entry.isDirectory())
   .map((entry) => join(repository, 'frontend', 'apps', entry.name, 'src'))
-  .concat(join(repository, 'frontend', 'packages', 'ui', 'src', 'community'))
 
 describe('后台源码设计契约', () => {
   it('微博点单与预设页面复用公共页面、异步和列表原语', () => {
@@ -30,15 +29,15 @@ describe('后台源码设计契约', () => {
     const presets = readFileSync(join(repository, 'frontend/apps/weibo/src/views/CommentPresetsView.vue'), 'utf8')
     const editor = readFileSync(join(repository, 'frontend/apps/weibo/src/views/CommentPresetFormView.vue'), 'utf8')
     for (const source of [feed, presets, editor]) {
-      expect(source).toMatch(/<Ls(?:Collection|Form)Page/)
+      expect(source).toContain('<LsPageHeader')
       expect(source).not.toMatch(/<LsPage[ >]/)
       expect(source).toContain('<LsAsyncState')
       expect(source).not.toMatch(/<(?:NAlert|NSkeleton)\b/)
     }
     expect(readFileSync(join(repository, 'frontend/apps/weibo/src/App.vue'), 'utf8')).toContain('<LsPage id="workspace"')
     expect(feed).toContain('<LsEmptyState')
-    expect(feed).toContain('<LsResourceList')
-    expect(feed).toContain('<LsResourceRow v-for="item in displayedItems"')
+    expect(feed).toContain('<NList bordered size="small">')
+    expect(feed).toContain('<NListItem v-for="item in displayedItems"')
     expect(feed).toContain('class="feed-summary"')
     expect(feed).not.toContain('LsListToolbar')
     expect(feed).not.toContain('NPagination')
@@ -104,10 +103,6 @@ describe('后台源码设计契约', () => {
       },
       {
         file: 'frontend/apps/account/src/views/LoginView.vue',
-        control: 'button',
-      },
-      {
-        file: 'frontend/apps/team/src/components/TeamCategoryNavigation.vue',
         control: 'button',
       },
       {
@@ -192,7 +187,7 @@ describe('后台源码设计契约', () => {
 
   it('公共组件和 Wiki 板块保持可定位', () => {
     const componentRules = readFileSync(join(repository, 'docs', 'dev', 'design', 'admin', 'components.md'), 'utf8')
-    for (const name of ['LsWorkspaceScene', 'LsSceneMotionControl', 'LsPageLink', 'LsButton', 'LsInlineError', 'LsPanel', 'LsSectionHeader', 'LsFormSection', 'LsFormActions', 'LsDescriptionList', 'LsStatusTag', 'LsPage', 'LsPageHeader', 'LsPagePrimaryAction', 'LsWorkspaceHeader', 'LsWorkspaceOverview', 'LsListToolbar', 'LsFormList', 'LsEntityIdentity', 'LsEntityTag', 'LsEntityCard', 'LsEntityInput', 'LsEntitySelect', 'LsResponsiveActions', 'LsResponsiveDataTable', 'LsUploadField', 'LsMediaUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsCheckboxGroupField', 'LsSwitch', 'LsSwitchField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
+    for (const name of ['LsButton', 'LsInlineError', 'LsPanel', 'LsSectionHeader', 'LsFormSection', 'LsFormActions', 'LsDescriptionList', 'LsStatusTag', 'LsPage', 'LsPageHeader', 'LsPagePrimaryAction', 'LsWorkspaceHeader', 'LsWorkspaceOverview', 'LsListToolbar', 'LsFormList', 'LsEntityIdentity', 'LsEntityTag', 'LsEntityCard', 'LsEntityInput', 'LsEntitySelect', 'LsResponsiveActions', 'LsResponsiveDataTable', 'LsUploadField', 'LsMediaUploadField', 'LsEmptyState', 'LsAsyncState', 'LsRouteErrorBoundary', 'LsSearchInput', 'LsField', 'LsCheckboxGroupField', 'LsSwitch', 'LsSwitchField', 'LsInput', 'LsMarkdownEditor', 'LsMarkdownRenderer']) {
       expect(componentRules, `${name} 缺少 Wiki 契约`).toContain(`\`${name}\``)
     }
     for (const page of ['index.md', 'foundations.md', 'components.md', 'componentization.md', 'patterns.md', 'states-and-access.md', 'responsive-accessibility.md', 'applications.md', 'checklist.md']) {
@@ -204,8 +199,8 @@ describe('后台源码设计契约', () => {
     const usages = componentCallerRoots
       .flatMap(filesUnder)
       .filter((path) => path.endsWith('.vue'))
-      .flatMap((path) => [...readFileSync(path, 'utf8').matchAll(/<(?:LsPagePrimaryAction|LsPageLink)\b[^>]*>/g)].map((match) => ({ path, tag: match[0] })))
-    expect(usages.length).toBeGreaterThan(0)
+      .flatMap((path) => [...readFileSync(path, 'utf8').matchAll(/<LsPagePrimaryAction\b[^>]*>/g)].map((match) => ({ path, tag: match[0] })))
+    expect(usages).toHaveLength(41)
     for (const usage of usages) {
       const file = relative(repository, usage.path).replaceAll('\\', '/')
       expect(usage.tag, `${file} 的页面主操作缺少强制 icon`).toMatch(/:icon=/)
@@ -265,7 +260,7 @@ describe('后台源码设计契约', () => {
   })
 
   it('普通复选组统一复用 LsCheckboxGroupField', () => {
-    const allowed = ['frontend/apps/team/src/components/JoinApplicationFields.vue', 'frontend/packages/ui/src/components/LsCheckboxGroupField.vue']
+    const allowed = ['frontend/apps/admin/src/views/RoleFormView.vue', 'frontend/apps/team/src/components/JoinApplicationFields.vue', 'frontend/packages/ui/src/components/LsCheckboxGroupField.vue']
     const roots = ['admin', 'team', 'transaction', 'shop'].map((name) => join(repository, 'frontend', 'apps', name, 'src')).concat(join(repository, 'frontend', 'packages', 'ui', 'src'))
     const files = roots
       .flatMap(filesUnder)
@@ -288,13 +283,13 @@ describe('后台源码设计契约', () => {
     expect(styles).not.toMatch(/html\s*\{[^}]*scrollbar-gutter:/)
   })
 
-  it('业务工作台统一使用共享六等宽应用导航', () => {
+  it('业务工作台统一使用共享五等宽应用导航', () => {
     const header = readFileSync(join(repository, 'frontend', 'packages', 'ui', 'src', 'components', 'LsWorkspaceHeader.vue'), 'utf8')
     expect(header).toContain('ls-workspace-header--app-nav')
     expect(header).not.toMatch(/position:(?:sticky|fixed)/)
     expect(header).toMatch(/ls-workspace-header__desktop\{grid-column:3;/)
-    expect(header).toMatch(/grid-template-columns:repeat\(6,88px\)/)
-    expect(header).toMatch(/width:568px/)
+    expect(header).toMatch(/grid-template-columns:repeat\(5,88px\)/)
+    expect(header).toMatch(/width:472px/)
     expect(header).toMatch(/color:var\(--ink\);font-size:\.82rem/)
     for (const source of [
       ['team', 'TeamShell.vue'],
@@ -304,7 +299,6 @@ describe('后台源码设计契约', () => {
     ] as const) {
       const shell = readFileSync(join(repository, 'frontend', 'apps', source[0], 'src', 'components', source[1]), 'utf8')
       expect(shell, `${source[0]} 未启用共享应用导航`).toMatch(/<LsWorkspaceHeader[^>]*app-navigation/)
-      expect(shell).not.toMatch(/\.display-link span|\.chat-link span/)
     }
   })
 
@@ -356,9 +350,8 @@ describe('后台源码设计契约', () => {
   })
 
   it('Permission 与 Ability 原因只进入 info 弹窗或按钮权限态', () => {
-    const roots = ['admin', 'team', 'community', 'transaction', 'shop', 'weibo']
+    const roots = ['admin', 'team', 'transaction', 'shop', 'weibo']
       .map((name) => join(repository, 'frontend', 'apps', name, 'src'))
-      .concat(join(repository, 'frontend', 'packages', 'ui', 'src', 'community'))
     const pages = roots.flatMap(filesUnder).filter((path) => path.endsWith('.vue'))
     const forbiddenAttribute = /:(?:description|empty-description|hint|title|placeholder|count-label)=["'][^"']*(?:routeAccess\.reason\.value|permissionReason\(|abilityReason\()/
     const forbiddenContent = /<(?:p|span|small|dd|NAlert|NEmpty|LsEmptyState)\b[^>]*>[^<]*(?:routeAccess\.reason\.value|permissionReason\(|abilityReason\()/
@@ -400,9 +393,8 @@ describe('后台源码设计契约', () => {
     expect(missingRouteTarget('<LsButton @click="router.push(`/entity?id=${row.entity_id}`)" :disabled="!row.entity_id">')).toBe(true)
     expect(missingRouteTarget('<LsButton @click="router.push(`/entity?id=${row.entity_id}`)" :disabled="!access.canRead">')).toBe(false)
     expect(missingRouteTarget('<LsButton @click="router.push(`/entity?id=${row.entity_id}`)" :disabled="!row.entity_id || !canRead">')).toBe(false)
-    const roots = ['admin', 'team', 'community', 'transaction', 'shop', 'weibo']
+    const roots = ['admin', 'team', 'transaction', 'shop', 'weibo']
       .map((name) => join(repository, 'frontend', 'apps', name, 'src'))
-      .concat(join(repository, 'frontend', 'packages', 'ui', 'src', 'community'))
     const pages = roots.flatMap(filesUnder).filter((path) => path.endsWith('.vue'))
     for (const path of pages) {
       const source = readFileSync(path, 'utf8')
@@ -477,9 +469,9 @@ describe('后台源码设计契约', () => {
 
   it('Team 个人概览提供团队入口与使用文档', () => {
     const source = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'views', 'PersonalView.vue'), 'utf8')
-    expect(source).toMatch(/<LsPageLink[^>]*:icon="House"/ )
-    expect(source).toMatch(/<LsPageLink[^>]*href="\/\/doc.lostsky.work"[^>]*target="_blank"/)
-    expect(source).toMatch(/<LsPageLink[^>]*to="\/"/)
+    expect(source).toContain("import { Bell, BookOpen, FileText, House, ShieldCheck, UserRound } from '@lucide/vue'")
+    expect(source).toContain("{ key: 'docs', label: '使用文档', href: '//doc.lostsky.work'")
+    expect(source).toContain("{ key: 'team', label: '进入团队工作台', to: '/'")
     expect(source).not.toContain("{ key: 'identity', label: '切换身份'")
   })
 
@@ -492,14 +484,10 @@ describe('后台源码设计契约', () => {
   it('Team 设置分组保存按钮由业务组件统一紧凑宽度', () => {
     const page = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'views', 'SettingsView.vue'), 'utf8')
     const button = readFileSync(join(repository, 'frontend', 'apps', 'team', 'src', 'views', 'settings', 'SettingsSaveButton.vue'), 'utf8')
-    expect(page).toContain('<TeamSettingsGroup')
-    const group = readFileSync(join(repository, 'frontend/apps/team/src/components/TeamSettingsGroup.vue'), 'utf8')
-    expect(group.match(/<SettingsSaveButton/g)).toHaveLength(1)
-    expect(group.indexOf('<SettingsSaveButton')).toBeGreaterThan(group.indexOf('<footer'))
-    expect(group).not.toContain('min-height:96px')
+    expect(page).toContain('<SettingsSaveButton')
     expect(page).not.toMatch(/settings-header[^}]*width:/)
     expect(button).toContain("import LsButton from '@lostsky/ui/components/LsButton.vue'")
-    expect(button).toContain('.settings-save-button { width: min(9rem, 100%); }')
+    expect(button).toContain('.settings-save-button { width: 9rem; }')
     expect(button).toContain('.settings-save-button { width: 100%; }')
     expect(button).not.toContain('width?:')
   })

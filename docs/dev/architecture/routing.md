@@ -17,8 +17,6 @@ LostSky 使用 ThinkPHP 8 多应用模式。API 请求先确定应用，再按�
 
 无团队应用也支持 `{app}.api.lostsky.work` 直连 API，例如 `chat.api.lostsky.work`。该入口按 `teamless_apps` 判断，不绑定团队。
 
-Community 使用 `community.lostsky.work` 与 `community.api.lostsky.work`，社区 slug 位于业务路径中，只定位社区。公开读取不要求身份，互动使用当前有效 Entity，所有者团队只参与对应社区的管理授权。
-
 Display 与 Shop 使用标准团队前端 Origin
 `https://{slug}.display.lostsky.work`、`https://{slug}.shop.lostsky.work`。两者都需要有效团队上下文，
 但公开展示控制器不组合登录或实体身份中间件；Shop 的顾客写接口仍按各自路由要求认证。
@@ -72,8 +70,6 @@ app/{app}/controller/
 ```
 
 `config/route.php` 使用 `url_route_must=true` 禁止控制器与动作自动回退；所有对外接口必须声明在应用的 `route/app.php` 中，并同步维护 OpenAPI。
-
-全局 `route_complete_match=false` 时，同一方法下位于子路径之前的前缀路由必须显式使用 `->completeMatch()`。例如 Admin 的活动详情 `GET entitlements/campaigns/<id>` 与发行接口 `POST entitlements/campaigns/<id>/codes` 必须完整匹配，才能让兑换码列表、揭示和停用请求进入各自处理器。`php tests/openapi_routes.php` 加载实际 Admin 路由，通过 ThinkPHP 匹配验证这些处理器和路径变量；该检查不执行控制器或访问数据库。
 
 含通用 `<id>` 路径变量的应用，在自己的路由文件顶部集中声明整数规则：
 

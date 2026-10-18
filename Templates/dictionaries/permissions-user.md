@@ -5,7 +5,7 @@ audience:
   - team
 tags:
   - 权限
-modified_at: 2026-10-07
+modified_at: 2026-10-05
 ---
 
 # 权限字典

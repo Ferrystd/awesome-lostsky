@@ -110,7 +110,6 @@ test("Shop personal workspace creates an immutable self-owned product through pe
 
   await page.setViewportSize({ width: 320, height: 780 });
   await page.goto("http://demo.shop.lostsky.work:5179/manage/personal/products");
-  await expect(page.locator("#shop-manage-main").getByRole("heading", { name: "我的商品", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 test("Shop product forms upload cover images without file.upload permission", async ({ page }) => {
@@ -268,8 +267,6 @@ test("platform admin creates an Ability package from the fixed catalog", async (
       data = {
         is_super_admin: false,
         permissions: ["admin.entitlement.read", "admin.entitlement.write"],
-        user: { id: 1, username: "ability-operator" },
-        roles: [{ id: 2, role_key: "ability_operator", name: "能力运营" }],
       };
     else if (path.endsWith("/entitlements/ability-catalog"))
       data = [
@@ -303,7 +300,7 @@ test("platform admin creates an Ability package from the fixed catalog", async (
   });
 
   await page.goto("http://admin.lostsky.work:5180/entitlements/packages/new");
-  await page.locator("#entitlement-name input").fill("首月免费");
+  await page.getByPlaceholder("请输入").first().fill("首月免费");
   await page.locator(".n-select").first().click();
   await page.getByText("文件", { exact: true }).last().click();
   await page.getByRole("button", { name: "保存权益包" }).click();

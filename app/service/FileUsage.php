@@ -13,9 +13,6 @@ final class FileUsage
     private const FIELDS = [
         'TeamEntityProfile' => ['avatar', 'intro_image', 'intro_video', 'introduction_markdown'],
         'Document' => ['content'],
-        'CommunityPost' => ['content'],
-        'CommunityComment' => ['content'],
-        'CommunityAnnouncement' => ['content'],
         'TeamProduct' => ['cover_image', 'introduction_markdown'],
         'TeamEntityFieldValue' => ['value_string'],
         'TeamJoinFieldValue' => ['value_string', 'value_json'],
@@ -28,16 +25,6 @@ final class FileUsage
         return isset(self::FIELDS[(new \ReflectionClass($model))->getShortName()]);
     }
 
-    /** Platform user management can retain existing attachments but cannot claim new team files. */
-    public function assertNoNewInternalReferences(string $before, string $after): void
-    {
-        $domain = rtrim((string) Config::get('aliyun.oss_domain'), '/');
-        if ($domain === '') $domain = 'https://' . Config::get('aliyun.bucket') . '.oss-' . Config::get('aliyun.region') . '.aliyuncs.com';
-        $base = preg_replace('~^https?:~', '', $domain) . '/';
-        $owned = fn (string $markdown): array => array_values(array_filter(array_map(fn ($url) => preg_replace('~^https?:~', '', $url), $this->markdownUrls($markdown)), fn ($url) => str_starts_with($url, $base)));
-        if (array_diff($owned($after), $owned($before))) throw new HttpException(422, '平台账号不能新增团队附件，请使用有效人员在 Community 上传和发布');
-    }
-
     public function activateSaved(Base $model, array $changed): void
     {
         $name = (new \ReflectionClass($model))->getShortName();
@@ -47,12 +34,10 @@ final class FileUsage
         $saved = $model::where('id', $model->id)->find();
         if (!$saved) return;
         $teamId = (int) ($saved->getData()['team_id'] ?? 0);
-        if (in_array($name, ['TeamEntityProfile', 'Document', 'CommunityPost', 'CommunityComment'], true)) {
-            $identity = \app\model\Entity::find(in_array($name, ['CommunityPost', 'CommunityComment'], true) ? $saved->author_entity_id : $saved->entity_id);
+        if (in_array($name, ['TeamEntityProfile', 'Document'], true)) {
+            $identity = \app\model\Entity::find($saved->entity_id);
             $teamId = $identity?->entityable_type === 'team'
                 ? (int) $identity->entityable_id : (int) ($identity?->entityable?->team_id ?? 0);
-        } elseif ($name === 'CommunityAnnouncement') {
-            $teamId = (int) ($saved->attachment_team_id ?? 0);
         } elseif ($name === 'TeamJoinFieldValue') {
             $teamId = (int) $saved->application->team_id;
         } elseif ($name === 'TeamServiceFieldValue') {
@@ -99,13 +84,6 @@ final class FileUsage
         }
         foreach (array_unique($paths) as $path) {
             $file = FileModel::where('path', $path)->lock(true)->find();
-            if ($name === 'CommunityAnnouncement' && $file && $file->pending_until === null) {
-                $retained = array_filter($this->markdownUrls($model->previousContent), function ($url) use ($base, $path) {
-                    $canonical = preg_replace('~^https?:~', '', $url);
-                    return str_starts_with($canonical, $base . '/') && rawurldecode(explode('?', substr($canonical, strlen($base) + 1))[0]) === $path;
-                });
-                if ($retained) continue;
-            }
             if (!$file || (int) $file->team_id !== $teamId) throw new HttpException(422, '文件不存在或不属于当前团队');
             if ($file->pending_until === null) continue;
             if ((int) $file->pending_until <= time()) throw new HttpException(422, '文件已过期，请重新上传');

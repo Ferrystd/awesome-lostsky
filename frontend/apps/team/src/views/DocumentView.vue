@@ -3,12 +3,11 @@ import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
-import { BookOpen, Clock3, FileText, Pencil, UserRound } from '@lucide/vue'
+import { ArrowLeft, BookOpen, Clock3, FileText, Pencil, UserRound } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { NTag } from 'naive-ui'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import { visibilityOptions } from '../lib/access'
 import { resolveEntities } from '../lib/markdown'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
@@ -96,36 +95,38 @@ const back = computed(() => {
 </script>
 
 <template>
-  <LsDetailPage title="文档" description="浏览文档。" :back-to="back" back-label="返回文档列表">
-      <template #actions>
+  <section class="document-reading-page" aria-label="文档阅读">
+      <nav class="document-navigation" aria-label="文档操作">
+        <LsPageLink :icon="ArrowLeft" label="返回文档列表" :to="back" />
         <LsPageLink v-if="id" :icon="Pencil" label="编辑文档" :to="`/doc-edit?id=${id}`" />
-      </template>
+      </nav>
     <article class="document-view">
 
       <LsPanel v-if="!id"><section class="state-panel error" role="alert">
         <FileText :size="24" />
-        <div><strong>无法打开文档</strong><p>链接中缺少有效的文档编号，请返回列表重新选择。</p></div>
+        <div><h1 class="state-title" tabindex="-1">无法打开文档</h1><p>链接中缺少有效的文档编号，请返回列表重新选择。</p></div>
       </section></LsPanel>
 
       <LsPanel v-else-if="query.isError.value && !routeAccess.restricted.value"><section class="state-panel error" role="alert">
         <FileText :size="24" />
-        <div><strong>文档加载失败</strong><p>{{ friendlyError(query.error.value) }}</p></div>
+        <div><h1 class="state-title" tabindex="-1">文档加载失败</h1><p>{{ friendlyError(query.error.value) }}</p></div>
       </section></LsPanel>
 
       <LsPanel v-else-if="query.isPending.value && !routeAccess.restricted.value"><section class="document-sheet loading" aria-label="正在加载文档">
+        <h1 class="state-title" tabindex="-1">正在加载文档</h1>
         <div class="loading-meta ls-skeleton" />
         <div class="loading-title ls-skeleton" />
         <div class="loading-line ls-skeleton" />
         <div class="loading-body ls-skeleton" />
       </section></LsPanel>
 
-      <LsPanel v-else-if="document || routeAccess.restricted.value"><section class="document-sheet">
+      <section v-else-if="document || routeAccess.restricted.value" class="document-sheet">
         <header class="document-header">
           <div class="document-kicker">
             <span><BookOpen :size="16" />文档 #{{ routeAccess.restricted.value ? '-' : id }}</span>
             <NTag v-if="visibilityLabel" size="small" :bordered="false">{{ visibilityLabel }}</NTag>
           </div>
-          <h2>{{ routeAccess.restricted.value ? '-' : title }}</h2>
+          <h1 tabindex="-1">{{ routeAccess.restricted.value ? '文档' : title }}</h1>
           <div class="document-meta">
             <span v-if="subjectName"><UserRound :size="16" />{{ subjectName }}</span>
             <time :datetime="String(document?.update_time ?? document?.create_time ?? '')">
@@ -143,18 +144,22 @@ const back = computed(() => {
           <strong>这篇文档还没有正文</strong>
           <p>可以进入编辑页补充内容，标题和访问规则会保持不变。</p>
         </div>
-      </section></LsPanel>
+      </section>
+      <LsPanel v-else><h1 class="state-title" tabindex="-1">暂无文档内容</h1><p>请返回列表重新选择文档。</p></LsPanel>
     </article>
-  </LsDetailPage>
+  </section>
 </template>
 
 <style scoped>
+.document-reading-page{width:min(100%,72ch);margin-inline:auto;display:grid;gap:clamp(1.5rem,4vw,3rem);padding-block:1rem 3rem;min-width:0}
+.document-navigation{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem}
+.state-title{margin:0;font-size:1.25rem;line-height:1.4}
 .document-view{min-width:0;display:grid;gap:1.5rem}
 .document-sheet{min-width:0;color:var(--text-primary)}
 .document-header{display:grid;gap:1rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}
 .document-kicker,.document-meta{display:flex;align-items:center;flex-wrap:wrap;gap:.75rem;color:var(--text-secondary);font-size:.8rem}
 .document-kicker>span,.document-meta>span,.document-meta>time{display:inline-flex;align-items:center;gap:.4rem;min-width:0}
-.document-header h2{margin:0;font-size:1.5rem;line-height:1.35;text-wrap:balance;overflow-wrap:anywhere}
+.document-header h1{margin:0;font-size:clamp(1.75rem,4vw,2.75rem);line-height:1.25;text-wrap:balance;overflow-wrap:anywhere}
 .document-content{max-width:72ch;padding-top:1.5rem;margin-inline:auto;overflow-wrap:anywhere}
 .empty-content{display:grid;place-items:center;align-content:center;gap:.5rem;padding:2rem 0;text-align:center;color:var(--text-secondary)}
 .empty-content strong{color:var(--text-primary);font-size:1rem}.empty-content p{max-width:34rem;margin:0;font-size:.875rem}

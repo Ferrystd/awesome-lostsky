@@ -1,120 +1,24 @@
 [
   {
-    "id": "ls-overview-links",
-    "name": "LsOverviewLinks",
-    "source": "frontend/packages/ui/src/components/LsOverviewLinks.vue",
-    "story": "frontend/component-previews/src/overview-links-story.ts#overviewLinksStory",
-    "category": "ui",
-    "aliases": ["概览业务入口"]
-  },
-  {
-    "id": "ls-single-panel-page",
-    "name": "LsSinglePanelPage",
-    "source": "frontend/packages/ui/src/components/LsSinglePanelPage.vue",
-    "story": "frontend/component-previews/src/single-panel-page-story.ts#LsSinglePanelPage",
-    "category": "ui",
-    "aliases": ["左对齐单面板", "第六页面模板"]
-  },
-  {
-    "id": "ls-resource-list",
-    "name": "LsResourceList",
-    "source": "frontend/packages/ui/src/components/LsResourceList.vue",
-    "story": "frontend/component-previews/src/ui-stories.ts#LsResourceList",
-    "category": "ui",
-    "aliases": [
-      "连续资源列表"
-    ]
-  },
-  {
-    "id": "ls-resource-row",
-    "name": "LsResourceRow",
-    "source": "frontend/packages/ui/src/components/LsResourceRow.vue",
-    "story": "frontend/component-previews/src/ui-stories.ts#LsResourceRow",
-    "category": "ui",
-    "aliases": [
-      "资源列表行"
-    ]
-  },
-  {
-    "id": "radio-group-field",
-    "name": "LsRadioGroupField",
-    "source": "frontend/packages/ui/src/components/LsRadioGroupField.vue",
-    "story": "frontend/component-previews/src/ui-stories.ts#LsRadioGroupField",
-    "category": "ui",
-    "aliases": [
-      "单选字段组"
-    ]
-  },
-  {
     "id": "admin-site-member-fields",
     "name": "SiteMemberFields",
     "source": "frontend/apps/admin/src/components/SiteMemberFields.vue",
     "story": "frontend/component-previews/src/app-stories.ts#SiteMemberFields",
     "category": "admin",
-    "aliases": [
-      "官网人员字段"
-    ]
+    "aliases": ["官网人员字段"]
   },
-  {
-    "id": "shop-service-completion-settings",
-    "name": "ServiceCompletionSettings",
-    "source": "frontend/apps/shop/src/components/ServiceCompletionSettings.vue",
-    "story": "frontend/component-previews/src/story-registry.ts#ServiceCompletionSettings",
-    "category": "shop",
-    "aliases": [
-      "两套结单时限"
-    ]
-  },
-  {
-    "id": "weibo-feed-comment-composer",
-    "name": "WeiboFeedCommentComposer",
-    "source": "frontend/apps/weibo/src/components/WeiboFeedCommentComposer.vue",
-    "story": "frontend/component-previews/src/story-registry.ts#WeiboFeedCommentComposer",
-    "category": "weibo",
-    "aliases": [
-      "信息流快捷评论面板"
-    ]
-  },
-  {
-    "id": "weibo-account-field",
-    "name": "WeiboAccountField",
-    "source": "frontend/apps/weibo/src/components/WeiboAccountField.vue",
-    "story": "frontend/component-previews/src/story-registry.ts#WeiboAccountField",
-    "category": "weibo",
-    "aliases": [
-      "微博账号字段"
-    ]
-  },
-  {
-    "id": "weibo-comment-fields",
-    "name": "WeiboCommentFields",
-    "source": "frontend/apps/weibo/src/components/WeiboCommentFields.vue",
-    "story": "frontend/component-previews/src/story-registry.ts#WeiboCommentFields",
-    "category": "weibo",
-    "aliases": [
-      "微博评论字段"
-    ]
-  },
-  {
-    "id": "team-join-application-fields",
-    "name": "JoinApplicationFields",
-    "source": "frontend/apps/team/src/components/JoinApplicationFields.vue",
-    "story": "frontend/component-previews/src/story-registry.ts#JoinApplicationFields",
-    "category": "team",
-    "aliases": [
-      "入职表单字段"
-    ]
-  },
+  {"id":"shop-service-completion-settings","name":"ServiceCompletionSettings","source":"frontend/apps/shop/src/components/ServiceCompletionSettings.vue","story":"frontend/component-previews/src/story-registry.ts#ServiceCompletionSettings","category":"shop","aliases":["两套结单时限"]},
+  {"id": "weibo-feed-comment-composer", "name": "WeiboFeedCommentComposer", "source": "frontend/apps/weibo/src/components/WeiboFeedCommentComposer.vue", "story": "frontend/component-previews/src/story-registry.ts#WeiboFeedCommentComposer", "category": "weibo", "aliases": ["信息流快捷评论面板"]},
+  {"id": "weibo-account-field", "name": "WeiboAccountField", "source": "frontend/apps/weibo/src/components/WeiboAccountField.vue", "story": "frontend/component-previews/src/story-registry.ts#WeiboAccountField", "category": "weibo", "aliases": ["微博账号字段"]},
+  {"id": "weibo-comment-fields", "name": "WeiboCommentFields", "source": "frontend/apps/weibo/src/components/WeiboCommentFields.vue", "story": "frontend/component-previews/src/story-registry.ts#WeiboCommentFields", "category": "weibo", "aliases": ["微博评论字段"]},
+  {"id":"team-join-application-fields","name":"JoinApplicationFields","source":"frontend/apps/team/src/components/JoinApplicationFields.vue","story":"frontend/component-previews/src/story-registry.ts#JoinApplicationFields","category":"team","aliases":["入职表单字段"]},
   {
     "id": "team-share-links",
     "name": "TeamShareLinks",
     "source": "frontend/apps/team/src/components/TeamShareLinks.vue",
     "story": "frontend/component-previews/src/story-registry.ts#TeamShareLinks",
     "category": "team",
-    "aliases": [
-      "团队链接",
-      "分享链接"
-    ]
+    "aliases": ["团队链接", "分享链接"]
   },
   {
     "id": "team-member-self-departure",
@@ -900,9 +804,7 @@
     "source": "frontend/apps/team/src/components/ChatGroupMembers.vue",
     "story": "frontend/component-previews/src/app-stories.ts#ChatGroupMembers",
     "category": "team",
-    "aliases": [
-      "群成员与邀请"
-    ]
+    "aliases": ["群成员与邀请"]
   },
   {
     "id": "team-chat-group-messages",
@@ -910,9 +812,7 @@
     "source": "frontend/apps/team/src/components/ChatGroupMessages.vue",
     "story": "frontend/component-previews/src/app-stories.ts#ChatGroupMessages",
     "category": "team",
-    "aliases": [
-      "群历史消息"
-    ]
+    "aliases": ["群历史消息"]
   },
   {
     "id": "app-shop-product-variant-editor",
@@ -922,255 +822,6 @@
     "category": "app",
     "aliases": [
       "商品规格编辑器"
-    ]
-  },
-  {
-    "id": "community-management",
-    "name": "CommunityManagement",
-    "source": "frontend/packages/ui/src/community/CommunityManagement.vue",
-    "story": "frontend/component-previews/src/community-stories.ts#CommunityManagement",
-    "category": "community",
-    "aliases": []
-  },
-  {
-    "id": "community-governance",
-    "name": "CommunityGovernance",
-    "source": "frontend/packages/ui/src/community/CommunityGovernance.vue",
-    "story": "frontend/component-previews/src/community-stories.ts#CommunityGovernance",
-    "category": "community",
-    "aliases": []
-  },
-  {
-    "id": "community-post-list",
-    "name": "CommunityPostList",
-    "source": "frontend/packages/ui/src/community/CommunityPostList.vue",
-    "story": "frontend/component-previews/src/community-stories.ts#CommunityPostList",
-    "category": "community",
-    "aliases": []
-  },
-  {
-    "id": "community-content-state",
-    "name": "CommunityContentState",
-    "source": "frontend/packages/ui/src/community/CommunityContentState.vue",
-    "story": "frontend/component-previews/src/community-stories.ts#CommunityContentState",
-    "category": "community",
-    "aliases": []
-  },
-  {
-    "id": "community-post-meta",
-    "name": "CommunityPostMeta",
-    "source": "frontend/packages/ui/src/community/CommunityPostMeta.vue",
-    "story": "frontend/component-previews/src/community-stories.ts#CommunityPostMeta",
-    "category": "community",
-    "aliases": [
-      "社区作者与时间"
-    ]
-  },
-  {
-    "id": "community-tabs",
-    "name": "CommunityTabs",
-    "source": "frontend/packages/ui/src/community/CommunityTabs.vue",
-    "story": "frontend/component-previews/src/community-stories.ts#CommunityTabs",
-    "category": "community",
-    "aliases": [
-      "社区板块导航"
-    ]
-  },
-  {
-    "id": "ui-ls-app-switcher",
-    "name": "LsAppSwitcher",
-    "source": "frontend/packages/ui/src/components/LsAppSwitcher.vue",
-    "story": "frontend/component-previews/src/ui-stories.ts#LsAppSwitcher",
-    "category": "ui",
-    "aliases": [
-      "应用切换",
-      "移动端应用面板"
-    ]
-  },
-  {
-    "id": "team-category-layout",
-    "category": "team",
-    "name": "TeamCategoryLayout",
-    "source": "frontend/apps/team/src/components/TeamCategoryLayout.vue",
-    "story": "frontend/component-previews/src/app-stories.ts#TeamCategoryLayout",
-    "aliases": [
-      "team-category-layout"
-    ]
-  },
-  {
-    "id": "team-category-navigation",
-    "category": "team",
-    "name": "TeamCategoryNavigation",
-    "source": "frontend/apps/team/src/components/TeamCategoryNavigation.vue",
-    "story": "frontend/component-previews/src/app-stories.ts#TeamCategoryNavigation",
-    "aliases": [
-      "team-category-navigation"
-    ]
-  },
-  {
-    "id": "team-settings-group",
-    "category": "team",
-    "name": "TeamSettingsGroup",
-    "source": "frontend/apps/team/src/components/TeamSettingsGroup.vue",
-    "story": "frontend/component-previews/src/app-stories.ts#TeamSettingsGroup",
-    "aliases": [
-      "team-settings-group"
-    ]
-  },
-  {
-    "id": "team-notice-row",
-    "category": "team",
-    "name": "TeamNoticeRow",
-    "source": "frontend/apps/team/src/components/TeamNoticeRow.vue",
-    "story": "frontend/component-previews/src/app-stories.ts#TeamNoticeRow",
-    "aliases": [
-      "team-notice-row"
-    ]
-  },
-  {
-    "id": "ls-workspace-scene",
-    "name": "LsWorkspaceScene",
-    "source": "frontend/packages/ui/src/components/LsWorkspaceScene.vue",
-    "story": "frontend/component-previews/src/ui-stories.ts#LsWorkspaceScene",
-    "category": "ui",
-    "aliases": [
-      "共享工作台场景"
-    ]
-  },
-  {
-    "id": "ls-scene-motion-control",
-    "name": "LsSceneMotionControl",
-    "source": "frontend/packages/ui/src/components/LsSceneMotionControl.vue",
-    "story": "frontend/component-previews/src/ui-stories.ts#LsSceneMotionControl",
-    "category": "ui",
-    "aliases": [
-      "场景动态控制"
-    ]
-  },
-  {
-    "id": "ls-page-link",
-    "name": "LsPageLink",
-    "source": "frontend/packages/ui/src/components/LsPageLink.vue",
-    "story": "frontend/component-previews/src/ui-stories.ts#LsPageLink",
-    "category": "ui",
-    "aliases": [
-      "页头轻入口"
-    ]
-  },
-  {
-    "id": "ls-overview-page",
-    "name": "LsOverviewPage",
-    "source": "frontend/packages/ui/src/components/LsOverviewPage.vue",
-    "story": "frontend/component-previews/src/overview-story.ts#LsOverviewPage",
-    "category": "ui",
-    "aliases": [
-      "概览正文模板"
-    ]
-  },
-  {
-    "id": "ls-category-page",
-    "name": "LsCategoryPage",
-    "source": "frontend/packages/ui/src/components/LsCategoryPage.vue",
-    "story": "frontend/component-previews/src/category-page-story.ts#LsCategoryPage",
-    "category": "ui",
-    "aliases": [
-      "分类正文模板"
-    ]
-  },
-  {
-    "id": "ls-collection-page",
-    "name": "LsCollectionPage",
-    "source": "frontend/packages/ui/src/components/LsCollectionPage.vue",
-    "story": "frontend/component-previews/src/ui-stories.ts#LsCollectionPage",
-    "category": "ui",
-    "aliases": [
-      "集合正文模板"
-    ]
-  },
-  {
-    "id": "ls-detail-page",
-    "name": "LsDetailPage",
-    "source": "frontend/packages/ui/src/components/LsDetailPage.vue",
-    "story": "frontend/component-previews/src/detail-page-story.ts#detailPageStory",
-    "category": "ui",
-    "aliases": [
-      "详情正文模板"
-    ]
-  },
-  {
-    "id": "ui-ls-form-page",
-    "name": "LsFormPage",
-    "source": "frontend/packages/ui/src/components/LsFormPage.vue",
-    "story": "frontend/component-previews/src/form-page-story.ts#LsFormPage",
-    "category": "ui",
-    "aliases": [
-      "表单正文模板"
-    ]
-  },
-  {
-    "id": "community-participation",
-    "name": "CommunityParticipation",
-    "source": "frontend/apps/community/src/components/CommunityParticipation.vue",
-    "story": "frontend/component-previews/src/community-stories.ts#CommunityParticipation",
-    "category": "community",
-    "aliases": []
-  },
-  {
-    "id": "community-shell",
-    "name": "CommunityShell",
-    "source": "frontend/apps/community/src/components/CommunityShell.vue",
-    "story": "frontend/component-previews/src/community-stories.ts#CommunityShell",
-    "category": "community",
-    "aliases": []
-  },
-  {
-    "id": "lsobjectdirectory",
-    "name": "LsObjectDirectory",
-    "source": "frontend/packages/ui/src/components/LsObjectDirectory.vue",
-    "story": "frontend/component-previews/src/object-directory-story.ts#LsObjectDirectory",
-    "category": "ui",
-    "aliases": [
-      "对象目录"
-    ]
-  },
-  {
-    "id": "lsdirectoryidentity",
-    "name": "LsDirectoryIdentity",
-    "source": "frontend/packages/ui/src/components/LsDirectoryIdentity.vue",
-    "story": "frontend/component-previews/src/object-directory-story.ts#LsDirectoryIdentity",
-    "category": "ui",
-    "aliases": [
-      "目录身份"
-    ]
-  },
-  {
-    "id": "lsdirectoryactions",
-    "name": "LsDirectoryActions",
-    "source": "frontend/packages/ui/src/components/LsDirectoryActions.vue",
-    "story": "frontend/component-previews/src/object-directory-story.ts#LsDirectoryActions",
-    "category": "ui",
-    "aliases": [
-      "目录更多操作"
-    ]
-  },
-  {
-    "id": "ui-lsformfields",
-    "name": "LsFormFields",
-    "source": "frontend/packages/ui/src/components/LsFormFields.vue",
-    "story": "frontend/component-previews/src/form-fields-story.ts#LsFormFields",
-    "category": "ui",
-    "aliases": [
-      "任务表单字段集合"
-    ]
-  },
-  {
-    "id": "ui-lsformcontent",
-    "name": "LsFormContent",
-    "source": "frontend/packages/ui/src/components/LsFormContent.vue",
-    "story": "frontend/component-previews/src/form-fields-story.ts#LsFormContent",
-    "category": "ui",
-    "aliases": [
-      "完整编辑内容区"
     ]
   }
 ]

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 
@@ -11,8 +11,8 @@ import LsEntityTag from '@lostsky/ui/components/LsEntityTag.vue'
 import type { EntityType } from '@lostsky/ui/entity'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
-import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
-import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
+import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsDirectoryActions from '@lostsky/ui/components/LsDirectoryActions.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
@@ -133,18 +133,18 @@ function runFileAction(key: string, item: Record<string, unknown>) {
 </script>
 
 <template>
-  <LsCollectionPage title="文件" :description="usageSummary">
+  <LsObjectDirectory title="文件" :description="usageSummary">
     <template #actions>
       <LsPageLink v-if="canUpgrade" to="/abilities" :icon="ArrowUpRight" label="升级团队能力" />
       <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload">
         <template #trigger="{ choose }">
-          <LsPagePrimaryAction :icon="Upload" label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @click="choose" />
+          <LsButton variant="ghost" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @click="choose"><template #icon><Upload :size="18" /></template>上传文件</LsButton>
         </template>
       </LsUploadField>
     </template>
     <template #toolbar>
       <LsInlineError v-if="uploadError" :message="uploadError" />
-      <LsListToolbar v-model="keyword" placeholder="按文件名称搜索" aria-label="搜索文件" :count-label="routeAccess.restricted.value ? '0 个文件' : `${total} 个文件`" @update:model-value="page = 1" />
+      <LsListToolbar embedded v-model="keyword" placeholder="按文件名称搜索" aria-label="搜索文件" :count-label="routeAccess.restricted.value ? '0 个文件' : `${total} 个文件`" @update:model-value="page = 1" />
     </template>
     <Transition name="ls-state" mode="out-in">
       <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" key="error" state="error" title="暂时无法读取文件" :description="friendlyError(query.error.value)" />
@@ -153,26 +153,14 @@ function runFileAction(key: string, item: Record<string, unknown>) {
       <LsResourceList v-else key="list" aria-label="文件列表">
         <LsResourceRow v-for="item in files" :key="String(item.id)" :title="String(item.name || item.original_name || '未命名文件')" :description="`${fileSourceLabel(item.source)} · ${item.mime_type || item.ext || '未知格式'} · ${size(item.size)}`" :icon="File">
           <template #metadata>
-            <dl class="file-metadata">
-              <div>
-                <dt>来源人员</dt>
-                <dd>
-                  <LsEntityTag v-if="item.subject" :type="item.subject.entityable_type || 'unknown'" :name="item.subject.name || '未命名人员'" :slug="item.subject.slug" />
-                  <span v-else>{{ item.entity_id ? `人员 #${item.entity_id}（资料不可用）` : '未记录' }}</span>
-                </dd>
-              </div>
-              <div>
-                <dt>上传时间</dt>
-                <dd>
-                  <time>{{ uploadTime(item.create_time) }}</time>
-                </dd>
-              </div>
-            </dl>
+            <LsEntityTag v-if="item.subject" :type="item.subject.entityable_type || 'unknown'" :name="item.subject.name || '未命名人员'" :slug="item.subject.slug" />
+            <span v-else>{{ item.entity_id ? `人员 #${item.entity_id}（资料不可用）` : '来源人员未记录' }}</span>
+            <time :title="`上传时间：${uploadTime(item.create_time)}`">{{ uploadTime(item.create_time) }}</time>
           </template>
           <template #actions>
             <NFlex align="center" justify="end" :size="12">
               <LsPageLink v-if="item.url" :href="String(item.url)" target="_blank" rel="noopener noreferrer" :icon="File" label="打开" />
-              <LsResponsiveActions :actions="fileActions()" @select="runFileAction($event, item)" />
+              <LsDirectoryActions :label="`${item.name || item.original_name || '未命名文件'}的操作`" :actions="fileActions()" @select="runFileAction($event, item)" />
             </NFlex>
           </template>
         </LsResourceRow>
@@ -181,15 +169,5 @@ function runFileAction(key: string, item: Record<string, unknown>) {
     <template v-if="pages > 1" #pagination>
       <NPagination v-model:page="page" :page-count="pages" />
     </template>
-  </LsCollectionPage>
+  </LsObjectDirectory>
 </template>
-
-<style scoped>
-
-.file-metadata { min-width: 0; display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin: 0; }
-.file-metadata > div { min-width: 0; max-width: 100%; display: flex; align-items: center; gap: .5rem; }
-.file-metadata > div:first-child { max-width: min(15rem, 100%); }
-.file-metadata dt { flex-shrink: 0; }
-.file-metadata dd { min-width: 0; margin: 0; }
-
-</style>

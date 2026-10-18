@@ -8,7 +8,7 @@
   top: -4rem;
   z-index: 100;
   padding: 0.7rem 1rem;
-  background: var(--surface);
+  background: white;
 }
 .skip:focus {
   top: 1rem;
@@ -145,7 +145,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0 0.75rem;
-  background: var(--surface);
+  background: white;
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
@@ -188,7 +188,7 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   padding-bottom: env(safe-area-inset-bottom);
-  background: var(--surface);
+  background: white;
   border-top: 1px solid var(--line);
 }
 .bottom-nav a,
@@ -233,7 +233,7 @@
 }
 .secondary-link {
   color: var(--text-secondary);
-  background: var(--surface);
+  background: white;
   border: 1px solid var(--line);
 }
 .pager {

@@ -164,25 +164,3 @@ Route::get('doc/get', 'Doc/get');
 Route::post('doc/create', 'Doc/create');
 Route::post('doc/edit', 'Doc/edit');
 Route::post('doc/delete', 'Doc/delete');
-
-// Community ownership and daily management.
-Route::pattern(['post_id' => 'int', 'comment_id' => 'int', 'board_id' => 'int', 'announcement_id' => 'int', 'entity_id' => 'int']);
-Route::get('communities', 'Community/index')->completeMatch();
-Route::post('communities', 'Community/create')->completeMatch();
-Route::get('communities/<id>', 'Community/get')->completeMatch();
-Route::post('communities/<id>', 'Community/update')->completeMatch();
-Route::get('communities/<id>/administrators', 'Community/administrators')->completeMatch();
-Route::post('communities/<id>/administrators', 'Community/addAdministrator')->completeMatch();
-Route::post('communities/<id>/administrators/<entity_id>/remove', 'Community/removeAdministrator')->completeMatch();
-Route::get('communities/<id>/boards', 'Community/boards')->completeMatch();
-Route::get('communities/<id>/boards/<board_id>', 'Community/board')->completeMatch();
-Route::get('communities/<id>/announcements', 'Community/announcements')->completeMatch();
-Route::get('communities/<id>/announcements/<announcement_id>', 'Community/announcement')->completeMatch();
-Route::get('communities/<id>/posts', 'Community/posts')->completeMatch();
-Route::get('communities/<id>/comments', 'Community/comments')->completeMatch();
-Route::get('communities/<id>/members', 'Community/members')->completeMatch();
-Route::post('communities/<id>/boards/<board_id>', 'Community/saveBoard')->completeMatch();
-Route::post('communities/<id>/announcements/<announcement_id>', 'Community/saveAnnouncement')->completeMatch();
-Route::post('communities/<id>/posts/<post_id>/moderate', 'Community/moderatePost')->completeMatch();
-Route::post('communities/<id>/comments/<comment_id>/moderate', 'Community/moderateComment')->completeMatch();
-Route::post('communities/<id>/members/<entity_id>/mute', 'Community/mute')->completeMatch();

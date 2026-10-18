@@ -1,16 +1,9 @@
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
-import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
-import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import { workspaceSceneKey } from '@lostsky/ui/workspace-scene'
-import { workspaceSceneProviderProps } from '@lostsky/ui/workspace-scene-theme'
-import { defineComponent, h, nextTick, onMounted, provide, ref } from 'vue'
-import { NConfigProvider, NInput, NSelect, NTag, NPagination } from 'naive-ui'
+import { defineComponent, h } from 'vue'
+import { NInput, NSelect, NTag } from 'naive-ui'
 import { House, Pencil, Plus, ReceiptText, Save, ShoppingBag, Trash2, UserRound } from '@lucide/vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsCheckboxGroupField from '@lostsky/ui/components/LsCheckboxGroupField.vue'
-import LsRadioGroupField from '@lostsky/ui/components/LsRadioGroupField.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityCard from '@lostsky/ui/components/LsEntityCard.vue'
@@ -25,8 +18,6 @@ import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsInput from '@lostsky/ui/components/LsInput.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
-import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
-import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsMarkdownEditor from '@lostsky/ui/components/LsMarkdownEditor.vue'
 import LsMarkdownRenderer from '@lostsky/ui/components/LsMarkdownRenderer.vue'
 import LsMediaUploadField from '@lostsky/ui/components/LsMediaUploadField.vue'
@@ -46,7 +37,6 @@ import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsSwitch from '@lostsky/ui/components/LsSwitch.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import LsUploadField from '@lostsky/ui/components/LsUploadField.vue'
-import LsAppSwitcher from '@lostsky/ui/components/LsAppSwitcher.vue'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
 import type { EntityDisplay } from '@lostsky/ui/entity'
@@ -121,20 +111,20 @@ const ThrowingPreview = defineComponent({
 })
 
 const button = story('LsButton', allInteractive, (state) =>
-  stage(h('div', { style: { display: 'grid', gap: '16px', justifyItems: 'start' } }, [
-    h('span', '添加 · 虚线描边'),
-    h(LsButton, { variant: 'secondary', disabled: state === 'disabled', loading: state === 'loading' }, {
-      icon: () => h(Plus, { size: 17 }), default: () => '添加一项',
-    }),
-    h('span', '辅助操作 · 图标与小字'),
-    h(LsButton, { variant: state === 'error' ? 'danger-ghost' : 'ghost', disabled: state === 'disabled', loading: state === 'loading' }, {
-      icon: () => h(state === 'error' ? Trash2 : Pencil, { size: 16 }), default: () => state === 'error' ? '删除记录' : '编辑资料',
-    }),
-    h('span', '提交 · 文字与箭头（极光主题）'),
-    h(LsButton, { disabled: state === 'disabled', loading: state === 'loading' }, {
-      icon: () => h(Save, { size: 17 }), default: () => '保存修改',
-    }),
-  ])),
+  stage(
+    h(
+      LsButton,
+      {
+        variant: state === 'error' ? 'danger' : 'primary',
+        disabled: state === 'disabled',
+        loading: state === 'loading',
+      },
+      {
+        icon: () => h(Save, { size: 17 }),
+        default: () => (state === 'error' ? '删除记录' : '保存修改'),
+      },
+    ),
+  ),
 )
 
 const pagePrimaryAction = story(
@@ -185,18 +175,6 @@ const checkboxGroupField = story(
   { loading: '复选组字段不负责异步加载。' },
 )
 
-const radioGroupField = story('LsRadioGroupField', interactive, state => stage(h(LsRadioGroupField, {
-  id: 'preview-search-priority',
-  modelValue: state === 'active' ? 'member' : 'team',
-  label: '搜索优先级',
-  hint: '决定团队默认值与成员显式设置冲突时采用哪一个。',
-  disabled: state === 'disabled',
-  options: [
-    { value: 'team', label: '团队优先', description: '团队关闭搜索时，所有成员均不可被搜索。' },
-    { value: 'member', label: '成员优先', description: '成员的显式设置可以覆盖团队默认值。' },
-  ],
-})))
-
 const descriptionList = story('LsDescriptionList', passive, () =>
   stage(
     h(LsDescriptionList, null, {
@@ -207,15 +185,15 @@ const descriptionList = story('LsDescriptionList', passive, () =>
 
 const formActions = story(
   'LsFormActions',
-  ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'mobile'],
+  interactive,
   (state) =>
     stage(
       h(LsFormActions, null, {
-        destructive: () => h(LsButton, { variant: 'danger-ghost', disabled: state === 'disabled' }, { icon: () => h(Trash2, { size: 17 }), default: () => '删除角色' }),
-        default: () => h(LsButton, { disabled: state === 'disabled', loading: state === 'loading' }, { default: () => '保存资料' }),
+        default: () => [h(LsButton, { variant: 'secondary', disabled: state === 'disabled' }, { default: () => '取消' }), h(LsButton, { disabled: state === 'disabled' }, { default: () => '保存修改' })],
       }),
     ),
   {
+    loading: '动作容器不管理按钮加载状态。',
     error: '动作容器不负责错误状态。',
   },
 )
@@ -458,19 +436,12 @@ const input = story(
   ['default', 'hover', 'focus', 'active', 'disabled', 'error', 'mobile'],
   (state) =>
     stage(
-      [h(LsInput, {
+      h(LsInput, {
         modelValue: '青空协作组',
         placeholder: '输入团队名称',
         disabled: state === 'disabled',
         invalid: state === 'error',
-      }), h(NConfigProvider, { ...workspaceSceneProviderProps(true), style: { minHeight: 'auto', padding: '16px', marginTop: '16px' } }, {
-        default: () => [
-          h(LsInput, { modelValue: '青空协作组', disabled: state === 'disabled', invalid: state === 'error', 'aria-label': '极光单行输入' }),
-          h(NInput, { type: 'textarea', placeholder: '输入角色说明', rows: 3, maxlength: 255, showCount: true,
-            disabled: state === 'disabled', status: state === 'error' ? 'error' : undefined,
-            inputProps: { 'aria-label': '极光角色说明' }, style: { marginTop: '12px' } }),
-        ],
-      })],
+      }),
     ),
   { loading: '文本输入框没有加载状态。' },
 )
@@ -483,45 +454,27 @@ const listToolbar = story(
       h(
         LsListToolbar,
         {
-          embedded: state === 'active' || state === 'mobile',
           modelValue: '',
-          placeholder: '搜索昵称、标识或用户 ID',
-          ariaLabel: '搜索成员',
-          countLabel: state === 'active' ? '找到 2 位成员' : '共 6 位成员',
+          placeholder: '搜索字段名称或标识',
+          ariaLabel: '搜索对象字段',
+          countLabel: '12 个字段',
         },
         {
           filters: () =>
             h(NSelect, {
-              value: state === 'active' ? 'active' : 'all',
+              value: 'entity',
               disabled: state === 'disabled',
               options: [
-                { label: '全部成员', value: 'all' },
-                { label: '正常成员', value: 'active' },
+                { label: '人员', value: 'entity' },
+                { label: '顾客', value: 'customer' },
               ],
             }),
+          actions: () => h(LsButton, { disabled: state === 'disabled' }, { default: () => '创建字段' }),
         },
       ),
     ),
   { loading: '列表工具栏不负责加载状态。', error: '错误由列表内容区域表达。' },
 )
-listToolbar.desktopWidth = 1024
-
-const resourceList = story('LsResourceList', ['default', 'hover', 'focus', 'mobile'], () => stage(
-  h(LsResourceList, {}, { default: () => [
-    h(LsResourceRow, { title: '团队协作指南', description: '查找工作流程、团队约定和常用资料。', icon: ReceiptText, to: '/docs' }, {
-      metadata: () => h('time', '2026年10月9日'),
-      status: () => h(LsStatusTag, { label: '公开文档' }),
-      actions: () => h(LsResponsiveActions, { actions: [{ key: 'edit', label: '编辑', icon: Pencil }, { key: 'delete', label: '删除', icon: Trash2, danger: true }], primaryKey: 'edit' }),
-    }),
-    h(LsResourceRow, { to: '/entities' }, { identity: () => h(LsEntityIdentity, member), actions: () => h(LsResponsiveActions, { actions: [{ key: 'manage', label: '管理', icon: Pencil }], primaryKey: 'manage' }) }),
-  ] }),
-))
-const resourceRow = story('LsResourceRow', ['default', 'hover', 'focus', 'active', 'mobile'], state => stage(
-  h(LsResourceList, {}, { default: () => h(LsResourceRow, { title: '本周资料已更新', description: '请在任务开始前查看新的协作安排。', icon: ReceiptText, to: '/notices/sent', unread: state === 'active' }, {
-    status: () => h(LsStatusTag, { label: state === 'active' ? '未读' : '已读', type: state === 'active' ? 'info' : 'success' }),
-    metadata: () => h('time', '2026年10月9日 09:30'),
-  }) }),
-))
 
 const markdownEditor = story(
   'LsMarkdownEditor',
@@ -800,18 +753,6 @@ const uploadField = story('LsUploadField', allInteractive, (state) =>
   ),
 )
 
-const AppSwitcherPreview = defineComponent({
-  props: { disabled: Boolean },
-  setup(props) {
-    const host = ref<HTMLElement | null>(null)
-    onMounted(async () => { await nextTick(); host.value?.querySelector<HTMLButtonElement>('button')?.click() })
-    return () => h('div', { ref: host, style: { minHeight: '280px', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start' } }, [h(LsAppSwitcher, {
-      currentApp: 'team',
-      actions: ['团队', '商品', '记账', '聊天', '社区', '微博'].map((label, index) => ({ key: ['team', 'shop', 'transaction', 'chat', 'community', 'weibo'][index], label, disabled: props.disabled && index === 2, reason: '请先领取团队身份' })),
-    })])
-  },
-})
-
 const workspaceHeader = story('LsWorkspaceHeader', interactive, (state) =>
   stage(
     h(
@@ -819,10 +760,6 @@ const workspaceHeader = story('LsWorkspaceHeader', interactive, (state) =>
       {
         contextLabel: 'TEAM WORKSPACE',
         title: '对象字段',
-        scene: state === 'active',
-        contextual: state === 'active',
-        appNavigation: true,
-        currentApp: 'team',
         actions: [
           { key: 'team', label: '团队' },
           { key: 'shop', label: '商品' },
@@ -833,12 +770,10 @@ const workspaceHeader = story('LsWorkspaceHeader', interactive, (state) =>
             reason: '当前团队未启用 transaction Ability',
           },
           { key: 'chat', label: '聊天' },
-          { key: 'community', label: '社区' },
-          { key: 'weibo', label: '微博' },
         ],
       },
       {
-        actions: () => ['团队', '商品', '记账', '聊天', '社区', '微博'].map((label) => h('a', { href: '#', onClick: (event: Event) => event.preventDefault() }, label)),
+        actions: () => ['团队', '商品', '记账', '聊天', '微博'].map((label) => h('a', { href: '#', onClick: (event: Event) => event.preventDefault() }, label)),
       },
     ),
   ),
@@ -892,34 +827,10 @@ const dashboardSteps = [
 const dashboardPath = story('LsDashboardPath', ['default', 'hover', 'focus', 'active', 'mobile'], () => stage(h(LsPanel, {}, { default: () => h(LsDashboardPath, { title: '商品配置链', description: '定义服务，组合权益，连接销售。', steps: dashboardSteps }) })))
 const shopOverviewWorkspace = story('ShopOverviewWorkspace', ['default', 'hover', 'focus', 'active', 'loading', 'error', 'mobile'], (state) => stage(h(ShopOverviewWorkspace, { personal: state === 'mobile', steps: dashboardSteps, access: state === 'loading' || state === 'error' ? undefined : { permissions: [], team: { id: 1, name: '青空协作组', slug: 'demo' }, identity: { entity_id: 1, type: 'teamMember', name: '青空成员', belongs_to_team: true, is_external: false } } })))
 
-const MotionControlPreview = defineComponent({
-  props: { paused: Boolean },
-  setup(props) {
-    provide(workspaceSceneKey, { available: ref(true), paused: ref(props.paused) })
-    return () => h(LsSceneMotionControl)
-  },
-})
-const workspaceScene = story('LsWorkspaceScene', passive, () => h('div', { class: 'ls-theme-aurora', style: 'min-height:0' }, [h(LsWorkspaceScene, null, { default: () => h('div', { style: 'position:relative;min-height:320px;padding:24px' }, [h(LsPageHeader, { title: '工作台场景', description: '正文、导航和权限由应用提供。' }), h(LsPanel, null, { default: () => '现有光胶、透光材质与布局保持原样。' }), h(LsSceneMotionControl)]) })]))
-const sceneMotionControl = story('LsSceneMotionControl', ['default', 'hover', 'focus', 'active', 'mobile'], state => stage(h(MotionControlPreview, { paused: state === 'active' })))
-const pageLink = story('LsPageLink', ['default', 'hover', 'focus', 'mobile'], () => stage([h(LsPageLink, { to: '/abilities', icon: ReceiptText, label: '团队能力' }), h(LsPageLink, { href: 'https://chat.lostsky.work/new', icon: UserRound, label: '发起对话' })]))
-
 export const uiStories: Record<string, StoryDefinition> = {
-  LsCollectionPage: {
-    ...story('LsCollectionPage', passive, () => stage(h(LsCollectionPage, { title: '文档', description: '搜索、分类并维护团队知识文档。' }, {
-      actions: () => h(LsPageLink, { icon: Plus, label: '新建文档', to: '/doc-create' }),
-      toolbar: () => h(LsListToolbar, { placeholder: '搜索标题或正文', ariaLabel: '搜索文档', countLabel: '24 份文档' }),
-      default: () => h(LsResourceList, null, { default: () => ['团队协作指南', '公开服务说明'].map(title => h(LsResourceRow, { title, description: '查看团队资料与工作安排。', to: '/doc?id=1' })) }),
-      pagination: () => h(NPagination, { page: 1, pageCount: 2 }),
-    }))),
-    desktopWidth: 1024,
-  },
-  LsWorkspaceScene: workspaceScene,
-  LsSceneMotionControl: sceneMotionControl,
-  LsPageLink: pageLink,
   LsAsyncState: asyncState,
   LsButton: button,
   LsCheckboxGroupField: checkboxGroupField,
-  LsRadioGroupField: radioGroupField,
   LsDescriptionList: descriptionList,
   LsEmptyState: emptyState,
   LsEntityCard: entityCard,
@@ -934,8 +845,6 @@ export const uiStories: Record<string, StoryDefinition> = {
   LsInlineError: inlineError,
   LsInput: input,
   LsListToolbar: listToolbar,
-  LsResourceList: resourceList,
-  LsResourceRow: resourceRow,
   LsMarkdownEditor: markdownEditor,
   LsMediaUploadField: mediaUploadField,
   LsMarkdownRenderer: markdownRenderer,
@@ -955,7 +864,6 @@ export const uiStories: Record<string, StoryDefinition> = {
   LsSwitch: switchControl,
   LsSwitchField: switchField,
   LsUploadField: uploadField,
-  LsAppSwitcher: story('LsAppSwitcher', interactive, (state) => stage(h(AppSwitcherPreview, { disabled: state === 'disabled' }))),
   LsWorkspaceHeader: workspaceHeader,
   LsWorkspaceOverview: workspaceOverview,
 }

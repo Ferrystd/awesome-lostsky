@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
-import { workspaceSceneProviderProps } from '@lostsky/ui/workspace-scene-theme'
-import { BadgeCheck, House, KeyRound, MessageCircleMore, ShoppingBag, UserRound } from '@lucide/vue'
-import { chatWorkspaceUrl, communityWorkspaceUrl, identityUrl } from '@lostsky/shared/navigation'
+import { BadgeCheck, House, KeyRound, ShoppingBag, UserRound } from '@lucide/vue'
+import { identityUrl } from '@lostsky/shared/navigation'
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import { NConfigProvider, NDialogProvider, NMessageProvider, darkTheme, type GlobalThemeOverrides, zhCN } from 'naive-ui'
 import { computed, watchEffect } from 'vue'
@@ -11,7 +9,6 @@ import { useRoute } from 'vue-router'
 import ShopManageShell from './components/ShopManageShell.vue'
 
 const route = useRoute()
-const auroraScene = computed(() => route.meta.workspaceScene === true)
 const managing = computed(() => Boolean(route.meta.manage))
 watchEffect(() => { document.documentElement.dataset.shopSurface = managing.value ? 'manage' : 'storefront' })
 
@@ -44,10 +41,10 @@ const shopTheme: GlobalThemeOverrides = {
 </script>
 
 <template>
-  <NConfigProvider :theme="managing ? undefined : darkTheme" :theme-overrides="managing ? lostskyNaiveTheme : shopTheme" :locale="zhCN" v-bind="workspaceSceneProviderProps(auroraScene)">
+  <NConfigProvider :theme="managing ? undefined : darkTheme" :theme-overrides="managing ? lostskyNaiveTheme : shopTheme" :locale="zhCN">
     <NDialogProvider><NMessageProvider>
-    <ShopManageShell :scene="auroraScene" v-if="managing">
-      <LsWorkspaceScene v-if="auroraScene"><RouterView /></LsWorkspaceScene><RouterView v-else />
+    <ShopManageShell v-if="managing">
+      <RouterView />
     </ShopManageShell>
     <template v-else>
       <a class="skip-link" href="#main-content">跳到主要内容</a>
@@ -55,8 +52,6 @@ const shopTheme: GlobalThemeOverrides = {
       <header class="site-header">
         <RouterLink class="brand" to="/" aria-label="返回商城首页"><span>LostSky</span><small>团队商城</small></RouterLink>
         <nav aria-label="商城导航">
-          <a :href="chatWorkspaceUrl()"><MessageCircleMore :size="17" aria-hidden="true" />聊天</a>
-          <a :href="communityWorkspaceUrl()"><MessageCircleMore :size="17" aria-hidden="true" />社区</a>
           <RouterLink to="/"><House :size="17" aria-hidden="true" />商城首页</RouterLink>
           <RouterLink to="/customer/profile"><UserRound :size="17" aria-hidden="true" />当前人员</RouterLink>
           <RouterLink to="/orders"><ShoppingBag :size="17" aria-hidden="true" />我的订单</RouterLink>

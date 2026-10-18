@@ -11,68 +11,6 @@ async function authenticate(page: Page, id = 11) { await page.context().addCooki
 async function realtime(page: Page) { await page.route('https://cdn.jsdelivr.net/**', route => route.fulfill({ contentType: 'application/javascript', body: 'window.Centrifuge=class{connect(){} disconnect(){} newSubscription(){return {on(){return this},subscribe(){},unsubscribe(){}}}}' })) }
 async function noOverflow(page: Page) { expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false) }
 
-for (const type of ['teamCustomer', 'teamMember', 'team', 'teamVirtual']) {
-  test(`Chat application menu follows ${type} identity`, async ({ page }) => {
-    const customer = type === 'teamCustomer'
-    const value = `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type, id: 11 } })).toString('base64url')}.x`
-    await page.context().addCookies([{ name: 'lostsky_token', value, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
-    await realtime(page)
-    await page.route(`${chat}/api/**`, route => route.fulfill({ json: { code: 0, data: new URL(route.request().url()).pathname.endsWith('/actor') ? { ...alice, type: customer ? 'customer' : 'entity' } : [] } }))
-    await page.goto(chat)
-
-    const labels = customer ? ['展示', '商品', '聊天', '社区'] : ['团队', '商品', '记账', '聊天', '社区', '微博']
-    const navigation = page.locator('nav[aria-label="应用切换"]')
-    await expect(navigation.locator('a')).toHaveText(labels)
-    await expect(navigation.getByRole('button')).toHaveCount(0)
-    await expect(navigation.locator('a').filter({ hasText: /^商品$/ })).toHaveAttribute('href', `http://demo.shop.lostsky.work:5179/${customer ? 'customer/profile' : 'manage'}`)
-    if (customer) {
-      await expect(navigation.locator('a').filter({ hasText: /^展示$/ })).toHaveAttribute('href', 'http://demo.display.lostsky.work:5178/')
-      await expect(navigation.locator('a').filter({ hasText: /^聊天$/ })).toHaveAttribute('href', `${chat}/`)
-      await expect(navigation.locator('a').filter({ hasText: /^社区$/ })).toHaveAttribute('href', 'http://community.lostsky.work:5182/')
-    }
-    await noOverflow(page)
-    const menuTrigger = page.getByRole('button', { name: '切换应用', exact: true })
-    if (await menuTrigger.isVisible()) {
-      await menuTrigger.focus()
-      await page.keyboard.press('Enter')
-      const options = page.getByRole('navigation', { name: '切换应用' }).getByRole('button')
-      await expect(options).toHaveText(labels)
-      if (customer) {
-        await page.route('http://demo.display.lostsky.work:5178/', route => route.fulfill({ contentType: 'text/html', body: '<main>团队展示</main>' }))
-        await options.filter({ hasText: /^展示$/ }).click()
-        await expect(page).toHaveURL('http://demo.display.lostsky.work:5178/')
-      }
-    }
-  })
-}
-
-test('Chat unavailable application explains its reason and picker closes without navigation', async ({ page }) => {
-  const value = `x.${Buffer.from(JSON.stringify({ sub: 21, act: { type: 'entity', id: 111 } })).toString('base64url')}.x`
-  await page.context().addCookies([{ name: 'lostsky_token', value, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
-  await page.route(`${chat}/api/**`, route => route.fulfill({ json: { code: 0, data: new URL(route.request().url()).pathname.endsWith('/actor') ? alice : [] } }))
-  await page.setViewportSize({ width: 375, height: 812 })
-  await page.goto(chat)
-  const trigger = page.getByRole('button', { name: '切换应用', exact: true })
-  await trigger.focus()
-  await page.keyboard.press('Enter')
-  const panel = page.getByRole('navigation', { name: '切换应用' })
-  await expect(panel.locator('[aria-current=true]')).toBeFocused()
-  await expect(panel.locator('[aria-current=true]')).toContainText('聊天')
-  const unavailable = panel.getByRole('button', { name: '团队', exact: true })
-  await expect(unavailable).toHaveAttribute('aria-disabled', 'true')
-  await unavailable.click({ force: true })
-  await expect(page.locator('.n-message').getByText('请先领取团队身份')).toBeVisible()
-  await expect(page).toHaveURL(`${chat}/`)
-  await page.keyboard.press('Escape')
-  await expect(trigger).toBeFocused()
-  await expect(panel).toBeHidden()
-  await trigger.click()
-  const panelBox = (await panel.boundingBox())!
-  await page.mouse.click(8, panelBox.y + panelBox.height + 24)
-  await expect(panel).toBeHidden()
-  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
-})
-
 test('teamless Chat keeps one read-only identity and sends with expected Entity', async ({ page }) => {
   await authenticate(page); await realtime(page)
   const writes: Array<{ path: string; body: Record<string, unknown> }> = []

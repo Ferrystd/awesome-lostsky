@@ -3,7 +3,7 @@ import { realpathSync } from 'node:fs'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig, searchForWorkspaceRoot } from 'vite'
 
-export function appConfig(app: 'site' | 'account' | 'admin' | 'team' | 'chat' | 'community' | 'transaction' | 'display' | 'shop' | 'weibo', port: number) {
+export function appConfig(app: 'site' | 'account' | 'admin' | 'team' | 'chat' | 'transaction' | 'display' | 'shop' | 'weibo', port: number) {
   const root = fileURLToPath(new URL(`./apps/${app}`, import.meta.url))
   return defineConfig(({ command }) => ({
     root,

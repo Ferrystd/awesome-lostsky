@@ -13,7 +13,6 @@ Admin 是不依赖团队上下文的平台治理后台，前端入口为 `admin.
 - 维护平台管理员、平台角色及权限并集。
 - 查询集中业务审计事件和经过脱敏的系统健康状态。
 - 维护平台 Ability 权益包、公共体验活动与兑换码；平台权益与团队商家服务权益相互隔离。
-- 管理平台拥有的社区：创建、维护资料与状态、分配社区管理员，以及板块、公告、内容和禁言治理；具体边界见 [Community](community.md)。
 
 首版不提供用户删除、密码重置、身份代办、团队内容编辑、Ability 撤销、域名管理、订单交易管理、审计导出、队列重试或自动修复。
 
@@ -34,7 +33,6 @@ Admin 是不依赖团队上下文的平台治理后台，前端入口为 `admin.
 - `admin.access.read`、`admin.access.write`
 - `admin.audit.read`、`admin.system.read`
 - `admin.entitlement.read`、`admin.entitlement.write`
-- `admin.community.read`、`admin.community.write`、`admin.community.moderate`
 
 完整分组和文案以 [`PermissionDictionary`](../../app/service/PermissionDictionary.php) 为事实源。
 
@@ -43,14 +41,6 @@ Admin 是不依赖团队上下文的平台治理后台，前端入口为 `admin.
 接口契约见 [`admin.openapi.json`](../openapi/admin.openapi.json)。前端路由覆盖平台总览、用户、团队、团队 Ability 直接授权、管理员、角色、审计、系统状态和平台权益；侧栏“团队能力”允许仅具备写权限的管理员输入准确 slug 完成授权，不读取或枚举团队目录，团队详情中的“开通能力”只负责预填同一表单。提交后替换相同 Ability 的旧手工授权，并保留兑换活动产生的其他有效授权。桌面端使用固定资源侧栏与命令搜索，移动端使用导航抽屉、全屏搜索和字段化记录行。
 
 未登录请求跳转 Account 并保留原地址；已登录但没有平台角色的用户显示明确的 403 页面。前端权限只控制导航和操作入口，服务端中间件始终是授权事实源。
-
-### 平台权益与兑换活动
-
-侧栏“平台权益”进入 Ability 权益包，“兑换活动”进入活动列表；两个列表页头提供同名次级导航，保留各自的创建主动作。桌面侧栏与移动导航抽屉使用同一入口，空列表和权限受限时仍可导航，读取及发行继续按 `admin.entitlement.read`、`admin.entitlement.write` 校验。
-
-Admin 壳从 768px 起显示固定侧栏，与公共页头的菜单按钮断点对齐，活动新建与详情保持“兑换活动”选中；正文仍从 960px 起使用桌面间距。复用 `LsPageHeader` 动作槽与 `LsButton` 次级导航，不穿透组件内部样式，无新增例外。`tests/admin.spec.ts` 覆盖 767/768、959/960px 边界、键盘导航、空态与受限态。
-
-管理员先创建权益包，选择能力、等级和持续天数（0 表示永久），再进入“兑换活动”创建活动并选择权益包及模式。保存活动后在“发行体验码”中填写数量并发行；定向团队卡还需填写目标 Team ID。团队在“团队设置 → 团队能力”检查兑换码并确认兑换。
 
 ## 自举与发布
 

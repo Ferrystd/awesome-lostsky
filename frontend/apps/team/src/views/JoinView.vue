@@ -1,4 +1,11 @@
 <script setup lang="ts">
+import { NConfigProvider } from 'naive-ui'
+import { workspaceSceneProviderProps } from '@lostsky/ui/workspace-scene-theme'
+import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -51,11 +58,11 @@ async function uploadFile(file: File) {
 </script>
 
 <template>
-  <main class="join">
-    <a href="//www.lostsky.work"><ArrowLeft :size="18" />LostSky</a>
-    <section><p>{{ isReinstate ? '返回团队' : '加入团队' }}</p><h1 class="ls-display">{{ isReinstate ? '申请复职' : '申请进入' }}<br>这片青空。</h1><span>{{ isReinstate ? '复职会继续使用原成员身份、对象标识和业务关系。' : '填写团队设置的申请资料，提交后由管理员审核。' }}</span></section>
+  <NConfigProvider v-bind="workspaceSceneProviderProps(true)"><LsWorkspaceScene><main class="join">
+    <nav class="join-navigation"><LsPageLink href="//www.lostsky.work" :icon="ArrowLeft" label="LostSky 官网" /><LsSceneMotionControl /></nav>
+    <LsPageHeader :title="isReinstate ? '申请复职' : '申请加入团队'" :description="isReinstate ? '复职会继续使用原成员身份、对象标识和业务关系。' : '填写团队设置的申请资料，提交后由管理员审核。'" /><LsPanel>
     <form @submit.prevent="mutation.mutate()">
-      <h2>{{ isReinstate ? '复职申请' : '加入申请' }}</h2>
+      <ol class="join-progress" aria-label="申请流程"><li :aria-current="!mutation.isSuccess.value ? 'step' : undefined">填写申请</li><li :aria-current="mutation.isSuccess.value ? 'step' : undefined">等待审核</li></ol>
       <p v-if="form.isPending.value" class="form-state">正在读取申请表…</p>
       <LsInlineError v-else-if="form.isError.value" :message="friendlyError(form.error.value)" />
       <div v-if="inviterSlug && !isReinstate" class="referral-confirmation" aria-label="当前邀请人">
@@ -67,11 +74,12 @@ async function uploadFile(file: File) {
       <LsInlineError v-if="mutation.isError.value" :message="friendlyError(mutation.error.value)" />
       <p v-if="mutation.isSuccess.value" class="success" role="status">{{ isReinstate ? '复职申请已提交，请等待审核。' : '加入申请已提交，请等待审核。' }}</p>
       <LsButton type="submit" size="lg" :loading="mutation.isPending.value" :disabled="form.isPending.value || Boolean(uploading) || missingRequired">提交{{ isReinstate ? '复职' : '加入' }}申请</LsButton>
-      <section v-if="mine.data.value?.length" class="mine"><h2>我的申请</h2><article v-for="item in mine.data.value" :key="String(item.id)"><div><strong>{{ item.purpose_label || '加入' }}申请 #{{item.id}}</strong><LsStatusTag :label="String(item.status_label || item.status)" /></div><p v-if="item.memo">{{item.memo}}</p><LsButton v-if="['applied','reviewing','已申请','审核中',1,2].includes((item.status_code ?? item.status) as string|number)" type="button" variant="danger" size="sm" :loading="cancel.isPending.value" @click="cancel.mutate(Number(item.id))">取消申请</LsButton></article></section>
+
     </form>
-  </main>
+      <section v-if="mine.data.value?.length" class="mine"><h2>我的申请</h2><article v-for="item in mine.data.value" :key="String(item.id)"><div><strong>{{ item.purpose_label || '加入' }}申请 #{{item.id}}</strong><LsStatusTag :label="String(item.status_label || item.status)" /></div><p v-if="item.memo">{{item.memo}}</p><LsButton v-if="['applied','reviewing','已申请','审核中',1,2].includes((item.status_code ?? item.status) as string|number)" type="button" variant="danger" size="sm" :loading="cancel.isPending.value" @click="cancel.mutate(Number(item.id))">取消申请</LsButton></article></section>
+  </LsPanel></main></LsWorkspaceScene></NConfigProvider>
 </template>
 
 <style scoped>
-.join{min-height:100dvh;padding:1rem;color:white;background:var(--sky-void)}.join>a{min-height:44px;display:inline-flex;align-items:center;gap:.5rem;color:oklch(.72 .014 210)}.join>section{padding:3.5rem 0 2.5rem}.join>section p{color:var(--sky-lost);font-size:.75rem;font-weight:750;letter-spacing:.08em}.join h1{margin:.75rem 0;font-size:clamp(3.2rem,15vw,5.5rem)}.join>section span{color:oklch(.72 .014 210)}form{display:grid;gap:1.15rem;padding:1.25rem;color:var(--ink);background:white;border-radius:12px}form h2{margin:0}.referral-confirmation{display:grid;grid-template-columns:minmax(5rem,.35fr) minmax(0,1fr);gap:.25rem 1rem;padding:.875rem 0;border-block:1px solid var(--line)}.referral-confirmation span{color:var(--muted-ink);font-size:.8rem}.referral-confirmation strong{overflow-wrap:anywhere}.referral-confirmation small{grid-column:2;color:var(--muted-ink);font-size:.78rem;line-height:1.5}.field{display:grid;gap:.45rem;color:var(--ink);font-size:.875rem;font-weight:650}.field b{color:var(--danger)}.form-state{color:var(--muted-ink)}.error,.success,.form-state{padding:.75rem;margin:0;border-radius:8px;font-size:.86rem}.error{color:var(--danger);background:color-mix(in oklch,var(--danger),white 93%)}.success{color:var(--success);background:color-mix(in oklch,var(--success),white 92%)}.mine{display:grid;gap:.65rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--line)}.mine article{display:grid;gap:.5rem;padding:.75rem;background:var(--cloud);border-radius:8px}.mine article>div{display:flex;justify-content:space-between;gap:1rem}.mine p{margin:0;color:var(--muted-ink);font-size:.84rem}@media(max-width:479px){.referral-confirmation{grid-template-columns:1fr}.referral-confirmation small{grid-column:1}}@media(min-width:800px){.join{display:grid;grid-template-columns:1fr minmax(420px,.75fr);grid-template-rows:auto 1fr;gap:4rem;padding:2.5rem clamp(2rem,7vw,7rem)}.join>a{grid-column:1/3}.join>section{align-self:center}.join form{align-self:center;padding:2rem}}
+.join{min-height:100dvh;width:100%;max-width:44rem;margin-inline:auto;padding:1.5rem 1rem 3rem;display:grid;align-content:start;gap:1.5rem;color:var(--ink);overflow-wrap:anywhere}.join-navigation{display:flex;justify-content:space-between;align-items:center;gap:1rem}.join-progress{display:flex;gap:1.5rem;flex-wrap:wrap;list-style:none;padding:0 0 1rem;margin:0;border-bottom:1px solid var(--line);color:var(--muted-ink)}.join-progress [aria-current]{color:var(--ink);font-weight:700}form{display:grid;gap:1.25rem;min-width:0}.referral-confirmation{display:grid;gap:.4rem;padding-block:.75rem;border-block:1px solid var(--line)}.referral-confirmation small,.form-state{color:var(--muted-ink)}.success{color:var(--success)}.mine{display:grid;gap:1rem;margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--line)}.mine h2,.mine p{margin:0}.mine h2{font-size:1.125rem}.mine article{display:grid;gap:.75rem;padding-block:.75rem;border-bottom:1px solid var(--line)}.mine article>div{display:flex;justify-content:space-between;flex-wrap:wrap;gap:.75rem}
 </style>

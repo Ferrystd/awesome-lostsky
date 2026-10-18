@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import LsFormFields from '@lostsky/ui/components/LsFormFields.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
-import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import { ArrowLeft } from '@lucide/vue'
+import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
@@ -32,11 +30,8 @@ function inspectCode(){if(routeAccess.restricted.value)return;inspect.mutate()}
 function confirm(){if(routeAccess.restricted.value||!preview.value)return;dialog.warning({title:'确认兑换 Ability',content:`将为当前团队领取“${preview.value.campaign.name}”。同一公共活动每个团队只能领取一次。`,positiveText:'确认兑换',negativeText:'返回',onPositiveClick:()=>redeem.mutate()})}
 </script>
 <template>
-  <div class="abilities-view">
-    <LsCollectionPage title="团队能力" description="查看与兑换团队能力。">
-      <template #actions>
-        <LsPageLink to="/settings" label="返回团队设置" :icon="ArrowLeft" />
-      </template>
+    <LsDetailPage title="团队能力" description="查看与兑换团队能力。" back-to="/settings" back-label="返回团队设置" aside-label="团队能力兑换">
+      <LsSectionHeader title="能力授权" description="查看当前团队各项能力的授权、等级与有效期。" />
       <LsEmptyState :source="query.data.value" v-if="routeAccess.restricted.value" title="暂无可显示的数据" description="当前列表为空。"/>
       <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="3"/>
       <LsAsyncState v-else-if="query.isError.value" state="error" title="暂时无法读取团队能力" :description="friendlyError(query.error.value)"/>
@@ -51,6 +46,7 @@ function confirm(){if(routeAccess.restricted.value||!preview.value)return;dialog
         </LsResourceRow>
       </LsResourceList>
       <LsEmptyState v-else :source="query.data.value" title="暂无团队能力" description="兑换能力后可在这里查看授权和有效期。"/>
+      <template #aside>
       <LsPanel>
         <form class="redeem-form" @submit.prevent="inspectCode">
           <LsSectionHeader title="兑换能力卡密" description="查看兑换码对应的能力权益，确认后应用到当前团队。" />
@@ -63,9 +59,7 @@ function confirm(){if(routeAccess.restricted.value||!preview.value)return;dialog
           <LsInlineError v-if="redeem.isError.value && !routeAccess.restricted.value" :message="friendlyError(redeem.error.value)"/>
           <LsButton type="submit" :disabled="routeAccess.restricted.value || !ready" :disabled-reason="routeAccess.reason.value" :loading="inspect.isPending.value">检查兑换码</LsButton>
         </form>
-      </LsPanel>
-      <LsPanel v-if="preview">
-        <div class="preview">
+        <section v-if="preview" class="preview" aria-label="待确认的能力兑换">
           <LsSectionHeader :title="preview.campaign.name" description="确认后立即应用到当前团队。" />
           <LsDescriptionList>
             <template v-for="item in preview.abilities" :key="item.ability_key">
@@ -74,13 +68,14 @@ function confirm(){if(routeAccess.restricted.value||!preview.value)return;dialog
             </template>
           </LsDescriptionList>
           <LsButton :disabled="routeAccess.restricted.value" :disabled-reason="routeAccess.reason.value" :loading="redeem.isPending.value" @click="confirm">确认兑换</LsButton>
-        </div>
+        </section>
       </LsPanel>
-    </LsCollectionPage>
-  </div>
+      </template>
+    </LsDetailPage>
 </template>
 <style scoped>
 
 .redeem-form, .preview { display: grid; gap: 1rem; }
+.preview { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
 
 </style>

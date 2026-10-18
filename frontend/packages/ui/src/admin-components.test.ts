@@ -27,7 +27,6 @@ import LsButton from './components/LsButton.vue'
 import LsCheckboxGroupField from './components/LsCheckboxGroupField.vue'
 import LsDescriptionList from './components/LsDescriptionList.vue'
 import LsFormActions from './components/LsFormActions.vue'
-import LsInput from './components/LsInput.vue'
 import LsField from './components/LsField.vue'
 import LsFormSection from './components/LsFormSection.vue'
 import LsInlineError from './components/LsInlineError.vue'
@@ -48,7 +47,6 @@ import LsPagePrimaryAction from './components/LsPagePrimaryAction.vue'
 import LsResponsiveActions from './components/LsResponsiveActions.vue'
 import LsResponsiveDataTable from './components/LsResponsiveDataTable.vue'
 import LsUploadField from './components/LsUploadField.vue'
-import LsAppSwitcher from './components/LsAppSwitcher.vue'
 import LsWorkspaceHeader from './components/LsWorkspaceHeader.vue'
 import LsWorkspaceOverview from './components/LsWorkspaceOverview.vue'
 import { House, ReceiptText, Save, ShoppingBag, UserRound } from '@lucide/vue'
@@ -108,15 +106,6 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain('feedback.info(props.disabledReason.trim())')
     expect(source).toContain('event.preventDefault()')
     expect(source).not.toContain(':title="disabledReason || undefined"')
-  })
-
-  it('LsButton 的低强调危险动作保留危险语义而不改变实心危险动作', async () => {
-    const ghost = await render(LsButton, { variant: 'danger-ghost' }, { default: () => h('span', '删除') })
-    const solid = await render(LsButton, { variant: 'danger' }, { default: () => h('span', '确认删除') })
-    expect(ghost).toContain('n-button--error-type')
-    expect(ghost).toContain('--n-color:#0000;')
-    expect(solid).toContain('n-button--error-type')
-    expect(solid).not.toContain('--n-color:#0000;')
   })
 
   it('LsSwitch 是唯一 Naive UI 开关原语且不在轨道内放文字', async () => {
@@ -221,7 +210,7 @@ describe('后台设计系统组件契约', () => {
     expect(list).toContain('.ls-form-list__add { justify-self: start;')
     expect(list).toContain('min-width: 7rem;')
     expect(list).toContain('.ls-form-list__add { width: 100%; }')
-    expect(actions).toContain('.ls-form-actions :deep(.ls-button) { min-width: min(7rem, 100%); }')
+    expect(actions).toContain('.ls-form-actions :deep(.ls-button) { min-width: 7rem; }')
     expect(actions).toContain('.ls-form-actions :deep(.ls-button) { width: 100%; }')
     expect(pageAction).toContain('width: 8.5rem;')
     expect(pageAction).not.toContain('width?:')
@@ -283,7 +272,7 @@ describe('后台设计系统组件契约', () => {
   })
 
   it('LsField 固定控件轨道并阻止提示文字拉开相邻控件', async () => {
-    expect(Object.keys((LsField as any).props).sort()).toEqual(['description', 'error', 'forId', 'hint', 'label', 'readOnly', 'required'])
+    expect(Object.keys((LsField as any).props).sort()).toEqual(['error', 'forId', 'hint', 'label', 'required'])
     const html = await render(
       LsField,
       { label: '授予额度', forId: 'quantity', hint: '单位：次；最小步长 1' },
@@ -304,13 +293,6 @@ describe('后台设计系统组件契约', () => {
     const actions = await render(LsFormActions, {}, { default: () => h(LsButton, {}, { default: () => '保存' }) })
     const details = await render(LsDescriptionList, {}, { default: () => [h('dt', '状态'), h('dd', '正常')] as any })
     expect(actions).toContain('ls-form-actions')
-    expect(actions).not.toContain('ls-form-actions__destructive')
-    const separated = await render(LsFormActions, {}, {
-      destructive: () => h(LsButton, { variant: 'danger-ghost' }, { default: () => '删除角色' }),
-      default: () => h(LsButton, {}, { default: () => '保存资料' }),
-    })
-    expect(separated).toContain('ls-form-actions__destructive')
-    expect(separated.indexOf('删除角色')).toBeLessThan(separated.indexOf('保存资料'))
     expect(details).toContain('<dl class="ls-description-list"')
     expect(details).toContain('<dt>状态</dt><dd>正常</dd>')
   })
@@ -462,20 +444,6 @@ describe('后台设计系统组件契约', () => {
     expect(source).toContain('min-height:54px')
     expect(source).toContain('.n-base-select-option--selected.n-base-select-option--pending')
     expect(source).toContain('color:color-mix(in oklch,var(--ink),transparent 38%)')
-  })
-
-  it('应用切换与通用命令使用不同语义，当前应用由调用方声明', async () => {
-    expect(Object.keys((LsAppSwitcher as any).props).sort()).toEqual(['actions', 'currentApp'])
-    expect(Object.keys((LsWorkspaceHeader as any).props).sort()).toEqual(['actions', 'appNavigation', 'contextLabel', 'contextual', 'currentApp', 'scene', 'showMenu', 'title'])
-    const source = readFileSync(new URL('./components/LsAppSwitcher.vue', import.meta.url), 'utf8')
-    expect(source).toContain('aria-label="切换应用"')
-    expect(source).toContain('action.key === currentApp')
-    expect(source).toContain('@keydown.esc.stop.prevent="closeApps"')
-    expect(source).toContain('grid-template-columns:repeat(2,minmax(0,1fr))')
-    for (const app of ['team', 'shop', 'transaction', 'weibo']) {
-      const shell = app === 'shop' ? 'ShopManageShell' : `${app[0].toUpperCase()}${app.slice(1)}Shell`
-      expect(readFileSync(new URL(`../../../apps/${app}/src/components/${shell}.vue`, import.meta.url), 'utf8')).toContain(`current-app="${app}"`)
-    }
   })
 
   it('页面标题、工作区标题和响应式动作始终保留可读文字', async () => {
@@ -709,13 +677,4 @@ describe('后台设计系统组件契约', () => {
     expect(source).not.toContain('checkedText')
     expect(source).not.toContain('uncheckedText')
   })
-})
-
-
-it('LsInput forwards disabled to the Naive owner and keeps default inputs editable', async () => {
-  const normal = await render(LsInput, { modelValue: 'draft' })
-  const disabled = await render(LsInput, { modelValue: 'draft', disabled: true })
-  expect(normal).not.toMatch(/<input[^>]*\sdisabled(?:[\s=>])/)
-  expect(disabled).toMatch(/<input[^>]*\sdisabled(?:[\s=>])/)
-  expect(disabled).toContain('draft')
 })

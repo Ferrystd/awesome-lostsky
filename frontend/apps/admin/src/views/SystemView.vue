@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
-import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
@@ -28,20 +26,19 @@ const columns: DataTableColumns<HealthCheck> = [
 </script>
 
 <template>
-  <LsOverviewPage title="系统状态" description="只读检查核心依赖和后台积压；数据在进入页面、重新聚焦窗口和短暂故障恢复后自动更新。">
-  <template #actions><LsSceneMotionControl /></template>
+  <LsPageHeader title="系统状态" description="只读检查核心依赖和后台积压；数据在进入页面、重新聚焦窗口和短暂故障恢复后自动更新。" />
   <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
   <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取系统状态" :description="friendlyError(query.error.value)" />
   <template v-else-if="routeAccess.restricted.value">
-
-    <LsPanel><template #header><LsSectionHeader title="核心服务状态" description="检查时间 - · 当前无法读取核心依赖" /></template><LsEmptyState :source="query.data.value" title="没有可显示的依赖状态" description="当前没有依赖状态数据。" /></LsPanel>
-    <LsPanel><template #header><LsSectionHeader title="后台积压" description="仅用于判断是否需要进入运维流程" /></template><LsDescriptionList><dt>任务数量</dt><dd>-</dd></LsDescriptionList></LsPanel>
+    <LsPanel><section class="system-status"><h2>核心服务状态</h2><p>检查时间 -</p></section></LsPanel>
+    <LsPanel><template #header><div class="system-panel-header"><h2>核心依赖</h2><p>检查结果不包含连接密钥和服务器路径</p></div></template><LsEmptyState :source="query.data.value" title="没有可显示的依赖状态" description="当前没有依赖状态数据。" /></LsPanel>
+    <LsPanel><template #header><div class="system-panel-header"><h2>后台积压</h2><p>仅用于判断是否需要进入运维流程</p></div></template><LsDescriptionList><dt>任务数量</dt><dd>-</dd></LsDescriptionList></LsPanel>
   </template>
   <template v-else-if="query.data.value">
-    <LsPanel><template #header><section class="system-status"><LsStatusTag :label="adminStatusLabel(query.data.value.status)" :type="adminStatusType(query.data.value.status)" /><h2>{{ query.data.value.status === 'healthy' ? '核心服务运行正常' : '有服务需要关注' }}</h2><p>检查时间 {{ formatTime(query.data.value.checked_at) }}</p></section></template><LsSectionHeader title="核心依赖" :heading-level="3" description="检查结果不包含连接密钥和服务器路径" /><NDataTable :columns="columns" :data="query.data.value.checks" :row-key="row => row.key" /></LsPanel>
-    <LsPanel><template #header><LsSectionHeader title="后台积压" description="仅用于判断是否需要进入运维流程" /></template><LsDescriptionList><template v-for="(count, key) in query.data.value.backlogs" :key="key"><dt>{{ key }}</dt><dd class="ls-tabular">{{ count }}</dd></template></LsDescriptionList></LsPanel>
+    <LsPanel><section class="system-status"><LsStatusTag :label="adminStatusLabel(query.data.value.status)" :type="adminStatusType(query.data.value.status)" /><h2>{{ query.data.value.status === 'healthy' ? '核心服务运行正常' : '有服务需要关注' }}</h2><p>检查时间 {{ formatTime(query.data.value.checked_at) }}</p></section></LsPanel>
+    <LsPanel><template #header><div class="system-panel-header"><h2>核心依赖</h2><p>检查结果不包含连接密钥和服务器路径</p></div></template><NDataTable :columns="columns" :data="query.data.value.checks" :row-key="row => row.key" /></LsPanel>
+    <LsPanel><template #header><div class="system-panel-header"><h2>后台积压</h2><p>仅用于判断是否需要进入运维流程</p></div></template><LsDescriptionList><template v-for="(count, key) in query.data.value.backlogs" :key="key"><dt>{{ key }}</dt><dd class="ls-tabular">{{ count }}</dd></template></LsDescriptionList></LsPanel>
   </template>
-  </LsOverviewPage>
 </template>
 
-<style scoped>.system-status h2{margin:10px 0 4px;font-size:1.25rem}.system-status p{margin:0;color:var(--muted-ink)}</style>
+<style scoped>.system-status h2{margin:10px 0 4px;font-size:1.25rem}.system-status p,.system-panel-header p{margin:0;color:var(--muted-ink)}.system-panel-header h2{margin:0}</style>

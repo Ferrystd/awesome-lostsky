@@ -1,22 +1,5 @@
 # 后台公共组件
 
-<a id="community-components"></a>
-
-## 社区业务组件
-
-`frontend/packages/ui/src/community/` 承载三个应用共用的社区业务结构。组件复用既有公共原语，无新增视觉皮肤、尺寸参数或父级穿透；公共基础原语的封闭契约继续适用。
-
-| 组件 | 业务输入与职责 |
-| --- | --- |
-| `CommunityManagement` | 按 Team/Admin scope、读/写/治理权限与当前预期 Entity 编排社区列表、创建、资料和管理员页面；身份与权限不从资源 slug 推断 |
-| `CommunityGovernance` | 接收 API 与路由基址、返回目标、社区名称、读取/治理权限、拒绝原因、预期 Entity 与上传回调；统一板块、公告、内容和成员治理，各任务有独立路由与提交边界 |
-| `CommunityPostList` | 接收帖子集合、详情基址、可选板块集合与是否筛选；统一纯文本摘要、作者、板块、状态与详情入口，页面负责读取与分页 |
-| `CommunityTabs` | 接收 value、items 与可访问 label，发出 change；统一首页板块和管理分区，Naive 标签导航拥有 44px 点击区、选中语义及方向/Home/End/Enter/Space 键盘操作 |
-| `CommunityPostMeta` | 接收 author 与 time；统一列表、帖子正文与评论的头像、作者和时间，内部负责换行；不请求数据或暴露视觉参数 |
-| `CommunityContentState` | 接收内容状态与处理原因，统一删除或隐藏状态说明；不自行请求数据或决定授权 |
-
-API 基址与权限输入均由对应应用固定组装，不接受 URL query 覆盖；前端权限只决定展示和请求时机，后端逐次授权。组件范围与资源 ID 参与查询和草稿身份，不能跨 Admin、Team、Community 复用受限缓存。状态、列表、管理动作与移动端尺寸通过源码守卫和社区流程 E2E 验证。
-
 ## Shop 结单时限设置
 
 `ServiceCompletionSettings` 为 Shop 内部业务组件，由商品、规格及兼容服务表单共用；复用 `LsField` 和 `NInputNumber`，不创建新的视觉原语。仅接受 `idPrefix` 与两个可空分钟模型 `unusedMinutes`、`confirmationMinutes`，没有样式、尺寸参数或父级穿透。
@@ -31,59 +14,23 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 ## 组件契约
 
-<a id="form-fields"></a>
-
-### 任务表单字段集合
-
-`LsFormFields` 是无参数、仅默认插槽的字段集合语义容器，不接管原生 form、提交、校验、权限或草稿。当前只由 Team 已登记表单接入；通过 Vue 注入将 `LsField`、`LsSwitchField` 组合为连续字段行，未进入该集合的既有调用保持原布局。上下文随组件树跨 Teleport 传递，不能依靠全局页面 CSS 选择器或新增 layout、width、断点参数开启。
-
-`LsFormContent` 仅接受可选 `title/description` 和默认插槽，表示富文本、复杂权限、动态选项列表等需要完整宽度的编辑内容；内部关闭字段行上下文，嵌套字段保留上下结构。它不创建第二个表面或保存动作。
-
-普通字段与完整开关行内部共用 `internal/FormFieldLayout.vue`，该内部模块只供公共组件组合，应用不得直接导入。每行依据自身实际容器容量查询：达到 36rem 时为 9rem 标签列与剩余控件列，低于该值为上下排列；固定 1rem 行内上下间距及细分隔线。标签与控件起点固定，开关从控件列左边缘开始；说明和错误位于控件下方，错误优先且不重复显示提示。长标签、只读值、200% 文字与 320px 页面必须自然换行、无横向溢出。内部容器查询必须以实际字段行容量而非 viewport 选择布局。
-
-`LsField` 新增可选语义 `description`（字段名称下的类型/辅助信息）及 `readOnly`（只读值组，使用文本标签和 aria-labelledby）。只读值可继续进入同一字段集合；不将只读显示伪装成可编辑输入。普通 `hint/error` 属于控件反馈，反馈节点固定为 `${forId}-feedback`；默认插槽提供 `invalid/describedBy`，调用方将其关联到实际可交互控件，Naive 输入通过 `input-props` 传递。
-
-加载、空、错误、禁用和权限语义继续由原组件与业务持有，字段集合不隐藏入口或改写提交；完整开关使用 `LsSwitchField`。动态对象布尔字段沿用已登记的 `LsSwitch` 例外，通过 `LsField` 保留运行时必填和类型说明，并共用同一字段行。唯一允许差异是 `LsFormContent` 的完整内容语义，无自由视觉变体。以公共 SSR/Teleport 契约、Team 路由覆盖、真实浏览器控件轨道和开关对齐、窄容器、长文及文字放大验证；Admin 社区及未接入的公共字段保持原布局作为对照。
-
-### 表单动作层级
-
-极光表单按动作语义选择既有 `LsButton.variant`，不再把管理区所有命令都设为 `secondary`：
-
-- 添加成员、增添表单项与选择上传使用 `secondary` 的虚线描边及前置图标。
-- 保存、确认使用 `primary` 的文字和尾部圆形箭头；加载时由同一尾部位置显示进度。非极光主题继续使用既有主按钮。
-- 封禁、解除封禁、切换身份、暂停/播放背景等辅助命令使用 `ghost`，保留前置图标与 14px 小字；按钮触控高度至少 44px。
-- 离职、删除等需要后续确认的辅助入口使用 `danger-ghost` 加图标与小字。最终破坏性确认仍可使用实心 `danger`，危险色与确认流程保持原有语义。
-- 返回和查看资料的真正导航继续使用 `LsPageLink`，不把业务提交改为链接。
-
-虚线只由 `LsButton--secondary` 拥有；禁止用“除 ghost 外全部按钮”的选择器将危险确认也画成虚线。样式、字体与焦点由共享按钮维护，页面只选择已有语义变体与命令图标，无新增视觉参数。当前右栏代表页和复用的对象字段、角色保存组件已按此规则调整。
-
-### 连续资源目录
-
-对象目录的页面、身份内容与命令菜单契约见 [对象目录](object-directory.md)。`LsObjectDirectory`、`LsDirectoryIdentity`、`LsDirectoryActions` 只被已迁移目录消费，不改变下面原组件默认外观。`LsResourceRow.identity` 在对象目录中允许 `LsDirectoryIdentity`；`actions` 允许非交互次要摘要、独立轻入口及 `LsDirectoryActions`，不可放入主链接内部。
-
-`LsResourceList` 没有 props，默认插槽只承载 `LsResourceRow`，基于 Naive `NList` 提供单一白色边界、细分隔线和 12px 圆角。加载、错误与空状态在列表外处理，无数据时不渲染空列表。
-
-`LsResourceRow` 基于 Naive `NListItem`，仅接受资源语义 `title/description/to/icon` 和通知状态 `unread`。`identity` 插槽仅组合 `LsEntityIdentity` 并替代名称区域；`description/metadata` 仍随后呈现，身份状态放入 `LsEntityIdentity.status`；`metadata/status/actions` 分别承载辅助信息、状态和 `LsResponsiveActions`。名称在前，摘要和元信息随后，状态紧邻名称；内部拥有 16px 内边距、12px 主体间距、40px 资源图标，名称 1rem/600，辅助信息 .8125rem。容器小于 40rem 时动作独立下一行；链接至少 44px，文字放大自然换行，hover 只改表面色。禁止任意宽度、密度、布局、样式参数和调用方穿透；metadata 不得包含导致嵌套链接的交互控件。无实现级例外，以公共契约与 Team 页面几何测试验收。
-
-`LsPanel` 的普通说明、导航与表单容器读取 `--panel-material` 和 `--panel-elevation`；未启用场景时回退到原 `--surface` 与无阴影。场景中的 `LsFormSection` 通过内部 `LsPanel` 自然采用相同材质，不在页面追加透明度或私有皮肤。表格、编辑器及标准控件自身的稳定阅读底保持原样；不得把全局 `--surface` 改为透明以替代面板接线，也不新增未经证实的视觉变体。
-
 | 组件 | 必须用途与参数 | 禁止组合 | 状态与响应式检查 |
 | --- | --- | --- | --- |
-| `LsButton` | `variant=primary/secondary/ghost/danger/danger-ghost`、`size=sm/md/lg`、`loading`、`disabled`、`disabledReason`、`type=button/submit/reset`；`icon` 插槽承载命令图标；是唯一可见命令按钮原语 | 页面私有按钮皮肤、同组混合尺寸、在默认插槽中反复手排图标间距、页面用外层 `span` 重做可解释禁用 | danger 保持实心，danger-ghost 使用 Naive UI error + quaternary 的透明底危险色；loading 保留尺寸；disabled 无原因时使用原生禁用，有原因时保留焦点并统一短时提示且绝不触发表单；40/44/48px；图标不改变可读文案 |
+| `LsButton` | `variant=primary/secondary/ghost/danger`、`size=sm/md/lg`、`loading`、`disabled`、`disabledReason`、`type=button/submit/reset`；`icon` 插槽承载命令图标；是唯一可见命令按钮原语 | 页面私有按钮皮肤、同组混合尺寸、在默认插槽中反复手排图标间距、页面用外层 `span` 重做可解释禁用 | loading 保留尺寸；disabled 无原因时使用原生禁用，有原因时保留焦点并统一短时提示且绝不触发表单；40/44/48px；图标不改变可读文案 |
 | `LsInlineError` | 只接收必填 `message`；用于字段组、表单或局部操作的阻断错误 | 自定义颜色、图标、标题、动作、插槽或重复书写 `role=alert` | 固定区域 `alert`、危险色和紧凑内边距；长文案与 200% 文本自然换行；空状态和页面加载错误不得使用 |
 | `LsPanel` | 无 props；`header/default/footer` 三个插槽承载有边界的独立内容区 | 视觉变体、页面级 `.panel` 皮肤、嵌套面板、为连续列表逐项套面板 | 桌面 20px、移动端 16px 内边距；插槽边界使用细分隔线；加载、空、错误由内容区对应状态组件表达 |
 | `LsSectionHeader` | `title` 必填；`description/eyebrow/id` 可选，`headingLevel=2/3/4`；`aside` 插槽承载状态、统计或区块动作 | 页面手写 `section-heading/panel-heading/section-title`；在页面重复标题间距和移动端堆叠 | 标题层级与 ID 保留；说明宽度统一；右侧内容桌面靠右、移动端堆叠，命令按钮满宽 |
 | `LsFormSection` | `title` 必填，标题参数与 `LsSectionHeader` 相同；内部固定复用 `LsPanel` 与 `LsSectionHeader`，默认插槽承载单列表单字段 | 接管 `<form>`、校验、提交或业务数据；页面重建 `form-panel` | 通过标题 ID 标记面板；字段单列且长文案不溢出；状态由字段或表单区域表达 |
-| `LsFormActions` | 无 props、默认插槽承载保存、取消等命令；可选 `destructive` 插槽承载独立危险动作 | 视觉参数、业务顺序判断、页面重建 `form-actions` | 默认命令桌面右对齐并换行，destructive 在同一行左侧并与默认命令分离；命令按文案自适应，最小宽度为 `min(7rem,100%)`，放大文字后仍受容器约束；小于 640px 单列，危险动作在前、默认命令在后，`LsButton` 满宽，DOM 与视觉顺序一致；不改变按钮本身状态 |
+| `LsFormActions` | 无 props、默认插槽承载保存、取消等命令 | 视觉参数、业务顺序判断、页面重建 `form-actions` | 桌面右对齐并换行，命令按文案自适应且最小 7rem；小于 640px 单列，`LsButton` 满宽；不改变按钮本身状态 |
 | `LsDescriptionList` | 无 props；根节点固定为 `<dl>`，默认插槽只提供成对 `<dt>/<dd>` | 指标网格、金额分解、移动表格记录或卡片式业务摘要 | 桌面双列、移动上下排列；统一分隔线和长内容换行；调用端保留术语和值的语义 |
 | `LsStatusTag` | `label` 必填，`type=default/success/warning/error/info`；统一状态标签 | 调用端重复 `size=small`、`bordered=false`，或按页面自建 StatusBadge | 固定 small、无边框；颜色不能替代文案；移动端和文本放大时不裁切状态文案 |
 | `LsPage` | `as=main/section/div`（默认 `section`）、`width=wide/content/form`（默认 `wide`）、`id`；分别用于列表、详情、单列表单 | 页面再嵌套同类容器 | 320px 无横向溢出，桌面居中；页面只能有一个 `main` |
 | `LsPageHeader` | `title` 必填；`description`、`backTo`、`backLabel` 可选；`actions` 插槽只承载当前区域动作 | 页面自行复制标题栏；移动端堆叠孤立图标 | 标题层级唯一；返回区 44px；动作小屏单列；无返回目标时不渲染返回入口 |
 | `LsPagePrimaryAction` | `icon/label` 必填；`to`、`href`、`type`、`loading`、`disabled/disabledReason` 可选；只承载页面标题区唯一的主操作，发出 `click` | 页面手写 `primary-link`；把 `RouterLink` 套在按钮外；省略图标；把危险、次要、筛选、状态或表单底部命令并入；调用方传宽度、尺寸或视觉变体 | 始终为主色图标加文字；桌面与移动端统一为 8.5rem × 44px、10px 圆角，容器不足时才收缩且保持靠右；移动端标题与限宽说明保留在左列，主操作位于右列并与说明顶边对齐；禁用态保留主色来源并以灰绿色降权，禁用原因可解释；内部路由渲染真实链接，命令由本组件的固定语义按钮执行 |
-| `LsWorkspaceHeader` | `contextLabel/title` 必填，`actions=[]`、`showMenu=true`、`appNavigation=false`、`currentApp` 为当前应用 key；桌面应用入口由 `actions` 插槽承载，移动端按 `actions` 数据触发 `action` 事件 | 由页面复制应用选择面板或增加个人/团队分段控件；移动端复制第二套顶栏；把响应式类直接传给无根 `NDropdown`；把顶栏设为 `sticky/fixed` 后覆盖滚动中的表单控件 | 桌面动作使用图标加文字；应用导航在移动端使用“应用”触发器、两列图标文字面板和当前应用勾选，通用命令仍进入“操作”菜单；面板支持 Escape 关闭并返回焦点，目标至少 44px，禁用原因随菜单项保留；应用壳层负责保持当前团队与 Entity；顶栏参与正常文档流，滚动、聚焦和错误定位后不得遮挡字段 |
+| `LsWorkspaceHeader` | `contextLabel/title` 必填，`actions=[]`、`showMenu=true`；桌面应用入口由 `actions` 插槽承载，移动端按 `actions` 数据触发 `action` 事件 | 在组件内部增加应用下拉或个人/团队分段控件；移动端复制第二套顶栏；把响应式类直接传给无根 `NDropdown`；把顶栏设为 `sticky/fixed` 后覆盖滚动中的表单控件 | 桌面动作使用图标加文字；移动端进入“操作”菜单；禁用原因随菜单项保留；应用壳层负责保持当前团队与 Entity；顶栏参与正常文档流，滚动、聚焦和错误定位后不得遮挡字段 |
 | `LsWorkspaceOverview` | `eyebrow/title/description/actions/entries` 必填，`scopeNotes` 可选；动作支持内部路由、外部地址和主次层级；入口包含图标、标题、说明与目标；`summary` 插槽承载主视觉下方身份或指标摘要，`workspace` 插槽替换默认业务入口及范围说明 | 用无业务意义的指标填充概览；页面私有复制主视觉或入口卡片；按 Permission 隐藏或禁用入口；把应用切换或分段控件塞入概览；插槽穿透内部样式 | 深色主视觉、主入口 `--afterglow`、白色细边界入口；全部入口使用真实链接并始终可导航，授权降级在目标页面处理；桌面主视觉固定为 188px，800px 以下由内容自然撑高；桌面多列、移动单列且动作满宽；所有链接至少 44px，范围说明为连续紧凑区域；不提供插槽时默认入口与范围说明保持原样 |
 | `LsDashboardPath` | `title/description/steps` 必填；步骤为 `{key,label,description,to,icon}`，`to` 使用内部路由；无插槽；用有序导航连接真实业务步骤 | 表达进度、健康评分或完成率；调用方传入视觉参数或覆盖内部样式 | 宽屏横向排列，800px 以下纵向排列；链接至少 44px，键盘焦点可见，减少动态时取消过渡 |
-| `LsListToolbar` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索列表'`、`countLabel=''`、`searchable=true`、`embedded=false`；嵌入模式仅由具名场景显式启用，取消工具栏外表面、筛选8rem，手机搜索独占首行其余自然换行；`filters/actions` 插槽分别承载筛选与主操作，`searchable=false` 时隐藏搜索但仍保留筛选、操作和可选结果数量 | 搜索图标放在输入外；数量漂移到列表外；把普通说明塞入筛选插槽；让 `NSelect` 在无确定宽度的容器中折叠；搜索无限拉伸挤压筛选与数量 | 两种模式的桌面搜索均以24rem为基准、最多28rem，不扩张占满整行；搜索→筛选→动作→数量，组间横距16px、换行间距12px；默认筛选10rem、控件高40px；移动端搜索满宽、控件高44px，默认纵向排列；数量靠末端、允许长文案换行并使用 `aria-live=polite`；通过桌面/窄屏/200%文字的DOM边界及真实筛选行为验收 |
+| `LsListToolbar` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索列表'`、`countLabel=''`、`searchable=true`；`filters/actions` 插槽分别承载筛选与主操作，`searchable=false` 时隐藏搜索但仍保留筛选、操作和可选结果数量 | 搜索图标放在输入外；数量漂移到列表外；把普通说明塞入筛选插槽；让 `NSelect` 在无确定宽度的容器中折叠 | 桌面搜索→筛选→动作→数量，搜索不超过 28rem、筛选通常为 10rem、控件高 40px；移动端纵向且控件高 44px；数量使用 `aria-live=polite` |
 | `LsMetricGrid` | `items=[{key,label,value,hint?}]` 必填，`ariaLabel` 默认“统计摘要”；承载同一范围内的一组只读指标 | 页面复制响应式指标网格、为每项单独套面板、调用方控制列数或视觉参数 | 默认三列，四项数据且视口不小于 1000px 时四列；800px 以下两列、480px 以下单列；数值使用等宽数字；标签、值和可选口径说明保持语义顺序，320px 与 200% 文本放大不溢出 |
 | `LsFormList` | `v-model`、`itemKey`、`createItem` 必填；`itemLabel='项目'`、`addLabel='添加一项'`、`emptyText='尚未添加项目'`、`disabled=false`、`disabledReason`；`item` 插槽接收当前项目与索引 | 页面自行实现重复字段的增删排序；业务页面直接导入拖拽库；只提供拖拽而没有键盘替代路径；让行操作形成贯穿整项高度的侧栏并持续压缩业务字段 | 连续有边界列表；拖拽手柄、项目名称和行操作组成紧凑头部，`item` 内容在下一行占满名称至操作区的全部可用宽度；拖拽手柄支持指针与触控，上移/下移为完整键盘路径；增删排序后维持焦点并礼貌播报；行操作至少 44px；禁用命令保留键盘与点击解释，首尾移动说明由组件生成，业务锁定原因由调用方提供；移动端字段与操作自然换行；减少动态时取消排序动画 |
 | `LsEntityIdentity` | `type/name/slug/imageUrl/fallback/size`；`status` 插槽只承载与当前主体直接相关的 `NTag`；真实头像优先，圆角方形回退 | 同一主体在列表和选择器使用圆形/不同信息结构；把主体状态推到列表行远端 | 类型、名称、slug 可辨；图片有替代文本；状态紧随名称且不挤压名称 |
@@ -98,13 +45,12 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 | `LsEmptyState` | `title`、`description` 为正常空数据文案；`source` 为未加工的查询结果，`accessReason` 为局部授权原因（可选）。默认继承当前路由的授权原因；有原因时统一显示受限空状态；用于页面主内容或主集合没有数据、筛选无结果 | 新增图标、动作、尺寸、样式或插槽参数；页面用裸图标、标题和段落重新拼装；把加载或错误交给本组件；按视口宽度放大垂直留白 | 固定使用 Naive `NEmpty`、白色有边界面板和居中排版；标准最小高度为 `12rem`（192px）、上下内边距固定 `2rem`，仅在文案换行或文本放大确实需要时自然增高；桌面与移动端自然换行且无横向溢出；组件测试锁定四个语义 props、普通空状态、受限空状态和紧凑高度 |
 | `LsAsyncState` | `state=loading/error` 必填；`title/description` 可选、`rows=3`；只负责加载骨架和真实错误 | 承担空数据状态；手动“重试”按钮；同一错误同时全局提示；加载时空白 | 骨架数量稳定；错误使用区域 `alert` 且只出现一次；壳层和其他区域保持可用 |
 | `LsRouteErrorBoundary` | 以路由地址为 `resetKey` 隔离异步路由渲染错误 | 让单页异常清空整个应用壳层 | 切换路由自动恢复；错误只占内容区 |
-| `LsSearchInput` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索'`、`autofocus=false`；搜索图标固定在输入内；底色、边框和焦点继承当前Naive主题，极光场景沿用共享内凹输入面 | 页面手写图标+输入组合；显示选择器箭头；以固定CSS变量覆盖主题材质与焦点 | 键盘、清除和焦点状态可用；输入类型为 search；桌面高度 40px、移动端 44px；普通与极光主题均验证 |
-| `LsField` | `label/forId` 必填，`error/hint/required/description/readOnly` 可选；默认插槽提供 `invalid/describedBy`，包装单个表单控件 | 标签、错误和说明与控件脱离；只用占位符代替标签；调用方传入宽度或用提示高度调整相邻字段位置 | `forId` 必须指向控件；内部控件轨道固定满宽且从顶部开始排列，提示或错误增高字段时不得拉开标签与控件；并列字段的控件顶部与宽度保持一致；错误与说明不重复；必填状态可被辅助技术识别 |
-| `LsRadioGroupField` | `modelValue: string/number/null`、`label`、`options=[{value,label,description?}]` 必填；`id/hint` 可选，`disabled=false`；发出 `update:modelValue` | 调用方传入宽度、密度、布局或样式参数；页面穿透 Naive Radio 样式；在字段外重复标题和说明 | fieldset/legend 和原生 Radio 语义；Naive 管理方向键与空格选择，禁用不提交更新；选项说明始终显示，最小 64px 触控区域，窄容器自然单列，320px 与 200% 文字不溢出 |
+| `LsSearchInput` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索'`、`autofocus=false`；搜索图标固定在输入内 | 页面手写图标+输入组合；显示选择器箭头 | 键盘、清除和焦点状态可用；输入类型为 search；桌面高度 40px、移动端 44px |
+| `LsField` | `label/forId` 必填，`error/hint/required` 可选；包装单个表单控件 | 标签、错误和说明与控件脱离；只用占位符代替标签；调用方传入宽度或用提示高度调整相邻字段位置 | `forId` 必须指向控件；内部控件轨道固定满宽且从顶部开始排列，提示或错误增高字段时不得拉开标签与控件；并列字段的控件顶部与宽度保持一致；错误与说明不重复；必填状态可被辅助技术识别 |
 | `LsCheckboxGroupField` | `v-model` 接受字符串或数字数组，`label/options` 必填；option 支持 `value/label/description/meta/disabled/disabledReason`；可传 `id/hint/error/required/disabled` | 页面直接组合无分组语义的 `NCheckboxGroup`；用于分组权限编辑器或动态加入字段；把禁用原因写进选项正文或 `title` | 固定 `fieldset/legend` 与提示/错误关联；带原因的禁用选项保持可触发的权限态，点击仅由 `feedback.info()` 解释且不更新模型；选项触控区至少 44px；长文案与移动端自然换行 |
 | `LsSwitch` | `v-model` 接受布尔值；`disabled/readOnly/loading/disabledReason` 可选；是唯一 `NSwitch` 视觉原语，调用方通过普通无障碍属性命名 | 业务页面直接使用 `NSwitch`；轨道内显示状态文字；增加颜色、尺寸或文案视觉 props；把禁用原因写入原生标题 | 开关内部始终无文字；触控区域至少 44px；只读与禁用保留 `aria-disabled/aria-readonly` 语义；权限态的轨道与按钮内圈统一视觉降权，触发后仅由 `feedback.info()` 解释且不更新值；所有应用内紧凑布尔控件也必须复用 |
 | `LsSwitchField` | `v-model` 接受布尔值，`label` 必填；`description/id/ariaLabel/headingLevel/disabled/readOnly/loading/disabledReason` 可选；内部只组合 `LsSwitch`，承载完整布尔设置行 | 在 `LsField`、`NFormItem` 或页面私有 `switch-row/switch-field` 中直接组合开关；在开关轨道内显示状态文字；把禁用原因写在设置行正文或 `title` | 默认以可见标签作为无障碍名称；设置页分区标题可用 `headingLevel`；固定、只读和可编辑状态保持同一结构；禁用原因只交给内部 `LsSwitch` 以信息弹窗解释；长文案和移动端不溢出 |
-| `LsInput` | `v-model` 接受字符串或数字，`invalid/type/disabled` 可选；其余原生输入属性传给 `NInput.inputProps` | 页面直接写原生文本输入；用私有边框表示错误 | 密码类型保留；`disabled` 显式传给 `NInput`，禁止仅放入 inputProps 而被底层覆盖；错误映射到 Naive `status=error` 和 `aria-invalid`；尺寸由主题控制 |
+| `LsInput` | `v-model` 接受字符串或数字，`invalid/type` 可选；其余原生输入属性传给 `NInput.inputProps` | 页面直接写原生文本输入；用私有边框表示错误 | 密码类型保留；错误映射到 Naive `status=error` 和 `aria-invalid`；尺寸由主题控制 |
 | `LsMarkdownEditor` | `modelValue` 与 `uploadImage(file)` 必填；可传 `placeholder/draftKey/searchEntities/resolveEntities/uploadDisabledReason`；模式固定为可视化/源码/预览 | 页面复制编辑器工具栏；省略上传回调导致图片入口消失；缺上传能力仍调用上传 | 图片入口始终存在；无权时以 `uploadDisabledReason` 保持可解释禁用；草稿键有值时本地保存；@ 搜索、上传和预览错误局部呈现 |
 | `LsMarkdownRenderer` | `content`、`resolveEntities` 可选，`chatEnabled=true`；仅渲染清洗后的 Markdown 和受控 `lostsky://entity/` 引用 | 渲染任意未清洗 HTML；解析失败清空整页 | 解析失败退化为普通内容；主体详情可键盘关闭并恢复触发点焦点；移动端详情不溢出 |
 
@@ -116,13 +62,11 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 
 普通页面的创建、保存、取消、删除、确认等命令必须使用 `LsButton`；页面标题区唯一主操作必须使用 `LsPagePrimaryAction`。直接 `NButton` 只允许用于应用壳层导航、Admin 平台命令搜索结果和确实没有可见文案的 44×44px 微操作；新增例外必须先在应用规则登记，并同步源码契约白名单。导航链接继续使用 `RouterLink` 或安全的 `<a>`，不得为了复用按钮外观把链接伪装成提交命令。
 
-极光深色场景下，`LsButton` 的 primary 使用主色文字加右侧 24px 空心圆形右箭头，正常、悬停、按下均无填充和矩形勾线；原 icon 插槽的前置图标在该场景隐藏，避免重复。文字与箭头属于同一个按钮，箭头对读屏隐藏，加载时在同一位置显示转圈提示并保留尺寸。danger-ghost 使用无填充、无勾线的危险色文字，保留垃圾桶等语义图标。secondary 与 danger 继续使用 `--command-surface` 深色半透明底、极暗外沿和内缩 4px 的 2px 亮色虚线，圆角沿用 10px；ghost 保持轻量入口。上述规则覆盖浅色主题的实心/透明底外观。主操作悬停仅提亮文字与箭头；虚线按钮悬停加深底色、提亮描边。键盘焦点额外绘制清晰的 2px 外轮廓。视觉由按钮持有，不增加调用方参数。尺寸、移动排列和权限解释沿用原契约；不可用或加载中不响应悬停/按下的视觉反馈，减少动态时关闭旋转与描边过渡。空状态不适用，无页面例外。通过 `tests/category-page.spec.ts` 的计算样式、焦点和桌面/移动几何断言，以及 LsButton/LsFormActions 的真实状态预览验收。
-
 ## 封闭契约补充
 
 - `LsEmptyState` 的标题和下一步说明均使用 `--text-secondary`，不得继承 `NEmpty` 的禁用文字色；无数据不代表文字不可用。由组件内部固定主题映射，调用方不传颜色。通过真实页面计算样式验证两者一致，并遵循正文 4.5:1 的对比度要求。
 
-- `LsPagePrimaryAction` 的等宽只属于“页面标题区唯一主操作”这一项完整语义，不是全局按钮令牌。`LsFormActions` 负责表单命令组的排列：桌面端内容自适应、最小 `min(7rem,100%)`，小于 640px 满宽；`LsFormList` 的添加命令同样内容自适应、最小 7rem；`LsUploadField` 的默认上传命令固定 8.5rem。其他不同任务不得为了视觉齐边共享宽度，调用方也不得传递宽度、断点或视觉变体。
+- `LsPagePrimaryAction` 的等宽只属于“页面标题区唯一主操作”这一项完整语义，不是全局按钮令牌。`LsFormActions` 负责表单命令组的排列：桌面端内容自适应、最小 7rem，小于 640px 满宽；`LsFormList` 的添加命令同样内容自适应、最小 7rem；`LsUploadField` 的默认上传命令固定 8.5rem。其他不同任务不得为了视觉齐边共享宽度，调用方也不得传递宽度、断点或视觉变体。
 - `LsPage.width` 是页面根容器的语义容量（`wide/content/form`），不是任意子控件的视觉微调入口；页面需要不同的内容容量时选用该枚举，不新增自由宽度参数。
 - `LsResponsiveDataTable.scrollX` 表示桌面数据列所需的最小可读容量，只能由列内容推导；它不是页面为对齐或留白而传递的视觉宽度参数。
 - `LsMarkdownRenderer.context` 仅表达 `inline/document` 两种阅读语境，并由组件内部调整排版令牌；调用方不得穿透 Markdown 生成节点来改标题、字号、行高或间距。
@@ -136,58 +80,3 @@ API 基址与权限输入均由对应应用固定组装，不接受 URL query �
 - `LsMarkdownRenderer` 的清洗结果内允许生成主体引用 `button`。适用范围仅为 DOMPurify 清洗后的 `lostsky://entity/` 引用，因为字符串渲染结果不能直接挂载 Vue/Naive 组件；它必须使用公共按钮令牌、提供主体名称、键盘触发与焦点恢复，不得生成其他原生控件。解析、权限或主体解析失败时退化为普通安全文本，不弹全局错误。检查方法：源码允许清单只包含该生成语句，并测试清洗、键盘和关闭后焦点。
 - Milkdown/Crepe 可管理其编辑区内部语义和必要工具栏 DOM。适用范围仅为 `LsMarkdownEditor` 的第三方编辑区；LostSky 仍负责外层模式、搜索、上传、错误、尺寸、焦点和减少动态效果，不得复制一套页面级编辑器控件。检查方法：组件测试三个模式和禁用上传，静态检查禁止其他页面直接引入 Crepe。
 - `LsFormList` 内部使用 `vue-draggable-plus` 同步单列表拖拽排序。适用范围仅为该公共组件；业务页面只能使用 `v-model`、项目工厂和项目插槽，不得直接导入拖拽库或依赖其事件结构。拖拽是指针与触控增强，上移/下移按钮始终提供等价键盘路径；组件卸载时由 Vue 封装销毁实例。检查方法：静态测试只允许 `LsFormList.vue` 导入 `vue-draggable-plus`，组件与 E2E 分别覆盖按钮和拖拽排序。
-
-## Account 认证组件
-
-`AuthShell` 是登录、注册与账号恢复的专属认证容器，`title/intro` 表达当前用户任务，默认插槽承载认证表单。壳层独占品牌区、表单容器、桌面分栏和移动端布局；调用方只编排表单与组件间距，不穿透内部样式，不增加布局参数。
-
-`SmsCodeField` 统一承载手机验证码输入、发送、倒计时和字段反馈。`phone` 必填，`purpose` 为 `register/login/recovery`，`id` 默认 `sms-code`，`v-model` 为验证码。`disabled` 表达所属表单正在提交；可选 `sendCode(phone)` 用于已验证恢复凭据的新号发送，返回既有短信发送结果，不承载视觉参数。未提供回调时调用公共短信接口。`sending` 事件同步父级忙碌状态，`failed` 事件供恢复流程识别 HTTP 410，其他发送失败仍由字段展示，不重复弹窗。
-
-发送中、倒计时中、手机号无效或表单禁用时不得重复发送；手机号变化清空验证码和旧提示，丢弃旧号码的异步反馈，保持发送冷却以免绕过限流。验证码控件与发送按钮由组件内部安排，320px 窄屏自然堆叠，沿用公共控件触控尺寸、焦点与标签关联。倒计时和请求在卸载时清理，失败保留手机号与验证码输入，成功只反馈发送结果。该组件不持久化恢复凭据，也不决定登录状态、Permission 或 Ability；无权限及空集合状态不适用。无新增原生控件或父级穿透例外。
-
-`tests/account-recovery.spec.ts` 覆盖原号与新号载荷、请求禁用、号码变化、失败、凭据失效、完成不自动登录及桌面/移动几何；登录现有 E2E 验证共享验证码改动没有破坏登录。源码守卫、类型检查、真实组件预览与完整静态构建共同验收。
-
-### Team 单选字段与权限编排
-
-`LsRadioGroupField` 的现有业务变体来自团队设置中的搜索优先级、顾客群聊模式和群聊历史范围；字段标题与说明由组件拥有，Settings 只传递 schema 数据和值。分类使用中文业务标题，不重复显示内部应用名和设置键。角色权限的静态权限、通用权限与指定人员权限统一复用 `LsCheckboxGroupField`；高级范围授权附带逐项覆盖明细，保留 Naive Checkbox 与原生 details 的业务组合，不穿透它们的内部皮肤。
-
-<a id="app-switcher"></a>
-
-### 应用切换面板
-
-`LsAppSwitcher` 是共享顶栏及 Chat 的移动应用入口唯一视觉所有者，参数只包含 `actions`（key/label/disabled/reason）和 `currentApp`，选择通过 `select` 事件交回应用。触发器使用应用图标与“应用”，两列面板展示图标、完整名称和当前勾选；禁止继续把应用切换命名为“操作”或复制选择器。面板宽度适应 320px 起的屏幕，目标至少 44px，打开聚焦当前项、Escape 关闭并归还焦点；放大文字自然换行，减少动态沿用 Naive UI。缺少目标身份时保留可聚焦的灰色入口，点击说明原因且不导航；应用列表与授权始终由宿主决定，Chat 顾客仍只有展示、商品、聊天、社区。组件不请求数据，不提供加载或错误状态。无视觉参数与例外。共享组件测试、workspace-entry 与 chat-teamless E2E 验证状态、入口集合、跳转、焦点和布局。
-
-
-### 共享工作台场景原语
-
-`LsWorkspaceScene` 提供默认正文插槽及共享背景、暂停和可用状态；`LsSceneMotionControl` 读取所属场景状态，提供暂停/播放动作，无场景或不可用时隐藏。`LsPageLink` 接收互斥的 `to` / `href` 目的地及 `icon`、`label`，用于页头导航轻入口；`to` 保留路由解析，`href` 使用原生链接，默认同窗口，只有调用方明确指定时才传 `target` / `rel`，不承接提交或点击动作。`LsWorkspaceHeader.scene` 默认关闭，启用时保留固定场景上方的前景层级。主题、精确路由 opt-in、宽度及五个独立样板的边界见[共享工作台场景规范](workspace-scene.md)。这些原语不拥有数据、权限或保存流程；现有设置和通知黄金基准不重新设计。
-
-## Workbench正文模板
-
-`LsOverviewPage` 的语义参数、插槽、文件归属和场景接入以[共享工作台场景规范](workspace-scene.md)为准；模板不拥有业务数据、权限、Provider、背景或页面宽度。
-
-`LsCollectionPage` 的语义参数、插槽、文件归属和场景接入以[共享工作台场景规范](workspace-scene.md)为准；模板不拥有业务数据、权限、Provider、背景或页面宽度。
-
-`LsFormPage` 的语义参数、插槽、文件归属和场景接入以[共享工作台场景规范](workspace-scene.md)为准；模板不拥有业务数据、权限、Provider、背景或页面宽度。
-
-`LsDetailPage` 的语义参数、插槽、文件归属和场景接入以[共享工作台场景规范](workspace-scene.md)为准；模板不拥有业务数据、权限、Provider、背景或页面宽度。
-
-`LsCategoryPage` 的语义参数、插槽、文件归属和场景接入以[共享工作台场景规范](workspace-scene.md)为准；模板不拥有业务数据、权限、Provider、背景或页面宽度。
-
-`LsMarkdownEditor` 的可视编辑、源码、引用候选及工具状态使用现有不透明 `--surface` 与文字令牌，保持密集编辑内容对比度；普通面板仍沿用已认可透光材质。默认浅色不变。
-
-`LsDashboardPath` 与 `TeamShareLinks` 的纯导航复用 `LsPageLink`；说明留在链接旁，复制等命令保留原按钮。
-
-<a id="page-context-columns"></a>
-
-## 页面主辅内容区
-
-独立编辑、对象详情与审核页可将操作放在主区、相关上下文放在右栏。`LsFormPage` 与 `LsDetailPage` 共同暴露可选 `aside` 插槽及 `asideLabel?: string`（默认“辅助信息”）；没有插槽时保留原单列。Form 的 default/footer 在主区，Detail 的 summary 在两栏之前，标题和操作保持页头。
-
-内部 `PageContextLayout` 是唯一布局所有者：内容容器达到 48rem 时以 2:1 分栏、间距 1.5rem，不足时主区后接右栏。没有比例、尺寸、sticky、颜色等参数，不建立独立滚动区。页面路由接入后通常由 form 升为 content；原字段行仍依据自己的容量响应。
-
-右栏采用现有面板和描述列表，显示既有查询结果、明确标注的未提交草稿或隔离的本地试填。保存、审核决定及敏感凭据留在主任务区；不新增接口或保存动作。请求加载、错误、权限受限时不能把默认零或正常状态当成真实结果，也不能显示失去读取权的缓存。
-
-`LsDescriptionList` 的标签和值由组件自身容器决定：宽于 28rem 保持双列，更窄时依次堆叠。该规则作用于所有调用方，不由右栏父组件覆盖。
-
-Team 实际路由、分组理由和具名保留项见[迁移清单](../../plans/page-context-columns-team.md)，商品与记账见[业务清单](../../plans/page-context-columns-commerce.md)。角色权限已有分类双栏，不增加第三栏；列表、分类工作区、总览与前台不自动接入。

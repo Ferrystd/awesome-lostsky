@@ -1,6 +1,6 @@
 const ACCOUNT_LOGIN_URL = '//account.lostsky.work/login'
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
-const LOCAL_APP_PORTS = new Set(['5173', '5174', '5175', '5176', '5177', '5178', '5179', '5180', '5181', '5182'])
+const LOCAL_APP_PORTS = new Set(['5173', '5174', '5175', '5176', '5177', '5178', '5179', '5180', '5181'])
 
 function isLocalDevelopmentHost(hostname: string | undefined) {
   return import.meta.env.DEV && Boolean(hostname && LOCAL_HOSTS.has(hostname))
@@ -89,7 +89,7 @@ export function redirectToLogin(options: LoginRedirectOptions = {}) {
 }
 
 function workspaceUrl(
-  app: 'chat' | 'shop' | 'team' | 'transaction' | 'weibo',
+  app: 'display' | 'chat' | 'shop' | 'team' | 'transaction' | 'weibo',
   developmentPort: number,
   path = '/',
   params: Record<string, string | number | boolean | null | undefined> = {},
@@ -119,12 +119,6 @@ export function chatWorkspaceUrl(
   return url.href
 }
 
-export function communityWorkspaceUrl(path = '/') {
-  const host = isLocalDevelopmentHost(location.hostname) ? location.hostname : 'community.lostsky.work'
-  const port = import.meta.env.DEV ? ':5182' : location.port ? `:${location.port}` : ''
-  return new URL(path, `${location.protocol}//${host}${port}`).href
-}
-
 export function shopWorkspaceUrl(path = '/') {
   return workspaceUrl('shop', 5179, path)
 }
@@ -152,7 +146,7 @@ export function teamScopedAppUrl(
   return new URL(path, `${location.protocol}//${host}${port}`).href
 }
 
-export type WorkspaceAppKey = 'team' | 'shop' | 'transaction' | 'chat' | 'community' | 'weibo'
+export type WorkspaceAppKey = 'team' | 'shop' | 'transaction' | 'chat' | 'weibo'
 export interface WorkspaceAppEntry { key: WorkspaceAppKey; label: string; href: string; disabled?: boolean; reason?: string }
 export function workspaceAppEntries(options: {
   personal?: boolean
@@ -165,7 +159,6 @@ export function workspaceAppEntries(options: {
     shop: personal ? '/manage/personal' : '/manage',
     transaction: personal ? '/personal' : '/',
     chat: '/',
-    community: '/',
     weibo: personal ? '/personal' : '/',
     ...options.paths,
   }
@@ -174,7 +167,6 @@ export function workspaceAppEntries(options: {
     { key: 'shop', label: '商品', href: shopWorkspaceUrl(paths.shop) },
     { key: 'transaction', label: '记账', href: transactionWorkspaceUrl(paths.transaction) },
     { key: 'chat', label: '聊天', href: chatWorkspaceUrl(paths.chat) },
-    { key: 'community', label: '社区', href: communityWorkspaceUrl(paths.community) },
     { key: 'weibo', label: '微博', href: weiboWorkspaceUrl(paths.weibo) },
   ]
   return entries.map(entry => ({ ...entry, ...options.states?.[entry.key] }))

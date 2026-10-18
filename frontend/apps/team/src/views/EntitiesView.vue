@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 
 import { api, friendlyError } from '@lostsky/api/client'
 import { chatWorkspaceUrl } from '@lostsky/shared/navigation'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
-import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import LsDirectoryIdentity from '@lostsky/ui/components/LsDirectoryIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { Bot, FileText, MessageCircleMore, Pencil } from '@lucide/vue'
@@ -60,13 +60,13 @@ function entityLocation(entity: Entity, manage = false) {
 </script>
 
 <template>
-  <LsCollectionPage title="人员" description="查看团队内有权查看的人员。">
+  <LsObjectDirectory title="人员" description="查看团队内有权查看的人员。">
     <template #actions>
       <LsPageLink :icon="FileText" label="对象字段" to="/fields" />
       <LsPageLink :icon="Bot" label="虚拟人员" to="/chat-virtuals" />
     </template>
     <template #toolbar>
-      <LsListToolbar v-model="search" placeholder="搜索人员名称或 slug" aria-label="搜索人员" :count-label="`${rows.length} 位人员`">
+      <LsListToolbar embedded v-model="search" placeholder="搜索人员名称或 slug" aria-label="搜索人员" :count-label="`${rows.length} 位人员`">
         <template #filters>
           <NSelect v-model:value="type" :options="options" clearable placeholder="全部类型" />
         </template>
@@ -78,7 +78,7 @@ function entityLocation(entity: Entity, manage = false) {
     <LsResourceList v-else aria-label="人员列表">
       <LsResourceRow v-for="entity in rows" :key="entity.id" :to="entityLocation(entity)">
         <template #identity>
-          <LsEntityIdentity :type="entity.entityable_type as 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'" :name="entity.profile?.name || '未命名人员'" :slug="entity.slug" :image-url="entity.profile?.avatar" />
+          <LsDirectoryIdentity :type="entity.entityable_type as 'team' | 'teamMember' | 'teamCustomer' | 'teamVirtual'" :name="entity.profile?.name || '未命名人员'" :slug="entity.slug" :image-url="entity.profile?.avatar" />
         </template>
         <template #actions>
           <NFlex align="center" justify="end" :size="12">
@@ -88,5 +88,5 @@ function entityLocation(entity: Entity, manage = false) {
         </template>
       </LsResourceRow>
     </LsResourceList>
-  </LsCollectionPage>
+  </LsObjectDirectory>
 </template>

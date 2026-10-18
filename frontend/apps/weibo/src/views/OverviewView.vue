@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
-import LsOverviewLinks from '@lostsky/ui/components/LsOverviewLinks.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import { formatPermissionDenied } from '@lostsky/api/error-format'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
@@ -8,9 +6,7 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
-import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
+import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
 import { ClipboardList, FileClock, House, MessageCircleMore, Send, Users } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
@@ -94,6 +90,7 @@ const actions = computed(() => [
     label: '进入团队工作台',
     to: '/overview',
     icon: House,
+    primary: true,
   },
   {
     key: 'compose',
@@ -102,21 +99,17 @@ const actions = computed(() => [
     icon: Send,
   },
 ])
+const scopeNotes = ['管理当前人员的微博账号与任务', '无权限或能力时可预先配置']
 </script>
 
 <template>
   <div class="weibo-overview">
-    <TeamOverviewDashboard v-if="!personal" :accounts="query.data.value?.accounts" :tasks="query.data.value?.tasks" :operations="query.data.value?.operations" :state="access.isPending.value ? 'loading' : access.isError.value ? 'error' : !canRead ? 'restricted' : query.isPending.value ? 'loading' : query.isError.value ? 'error' : 'ready'" :error-description="access.isError.value ? friendlyError(access.error.value) : query.isError.value ? friendlyError(query.error.value) : ''" />
+    <TeamOverviewDashboard v-if="!personal" :accounts="query.data.value?.accounts" :tasks="query.data.value?.tasks" :operations="query.data.value?.operations" :state="access.isPending.value ? 'loading' : !canRead ? 'restricted' : query.isPending.value ? 'loading' : query.isError.value ? 'error' : 'ready'" :error-description="query.isError.value ? friendlyError(query.error.value) : ''" />
 
-    <LsOverviewPage v-else :title="access.data.value?.identity.name || '当前人员调度态势'" :description="`${identityType} · 微博个人工作台。围绕当前身份准备内容、管理任务并追踪执行结果。`">
-      <template #actions>
-        <LsPageLink v-for="action in actions" :key="action.key" :to="action.to" :icon="action.icon" :label="action.label" />
-        <LsSceneMotionControl />
-      </template>
-
+    <template v-else>
+      <LsWorkspaceOverview :eyebrow="`${identityType} · 微博个人工作台`" :title="access.data.value?.identity.name || '当前人员调度态势'" description="围绕当前身份准备内容、管理任务并追踪执行结果。" :actions="actions" :entries="entries" :scope-notes="scopeNotes" />
 
       <LsAsyncState v-if="access.isPending.value || (canRead && query.isPending.value)" state="loading" :rows="3" />
-      <LsAsyncState v-else-if="access.isError.value" state="error" title="无法读取当前工作身份" :description="friendlyError(access.error.value)" />
       <LsPanel v-else-if="!canRead">
         <LsDescriptionList
           ><dt>微博态势</dt>
@@ -124,9 +117,9 @@ const actions = computed(() => [
         >
       </LsPanel>
       <LsAsyncState v-else-if="query.isError.value" state="error" title="无法读取微博态势" :description="`${friendlyError(query.error.value)}；账号、发帖、互动、任务和日志入口仍可使用。`" />
-      <section v-else-if="query.data.value" class="personal-overview-status" aria-label="调度运行状态">
-        <LsPanel class="personal-overview-next">
-          <template #header><LsSectionHeader title="下一次执行" /></template>
+      <section v-else-if="query.data.value" class="weibo-overview-status" aria-label="调度运行状态">
+        <LsPanel class="weibo-overview-next">
+          <template #header><strong>下一次执行</strong></template>
           <template v-if="next">
             <p>
               <strong>{{ next.topic.display_tag || `#${next.topic.name}#` }}</strong>
@@ -137,33 +130,20 @@ const actions = computed(() => [
           </template>
           <p v-else class="weibo-empty">暂无已开启的计划执行。</p>
         </LsPanel>
-        <LsPanel class="personal-overview-failures">
-          <template #header><LsSectionHeader title="近期失败与未确认结果" /></template>
-          <LsEmptyState :source="query.data.value" v-if="!failures.length" title="近期运行正常" description="最近的执行记录中没有失败或结果未确认项。" />
-          <OperationRecordList v-else :operations="failures" />
-        </LsPanel>
         <LsPanel>
-          <template #header><LsSectionHeader title="账号健康" /></template>
+          <template #header><strong>账号健康</strong></template>
           <AccountHealthSummary :accounts="query.data.value.accounts" />
         </LsPanel>
         <LsPanel>
-          <template #header><LsSectionHeader title="任务状态" /></template>
+          <template #header><strong>任务状态</strong></template>
           <TaskStatusSummary :tasks="query.data.value.tasks" />
         </LsPanel>
-
+        <LsPanel class="weibo-overview-failures">
+          <template #header><strong>近期失败与未确认结果</strong></template>
+          <LsEmptyState :source="query.data.value" v-if="!failures.length" title="近期运行正常" description="最近的执行记录中没有失败或结果未确认项。" />
+          <OperationRecordList v-else :operations="failures" />
+        </LsPanel>
       </section>
-      <LsPanel>
-        <template #header><LsSectionHeader title="个人工作入口" description="准备内容、管理账号与任务，继续处理执行结果。" /></template>
-        <LsOverviewLinks label="个人工作入口" :entries="entries" />
-      </LsPanel>
-    </LsOverviewPage>
+    </template>
   </div>
 </template>
-
-<style scoped>
-.personal-overview-status { min-width: 0; display: grid; gap: 1rem; }
-@media (min-width: 960px) {
-  .personal-overview-status { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
-  .personal-overview-next, .personal-overview-failures { grid-column: 1 / -1; }
-}
-</style>

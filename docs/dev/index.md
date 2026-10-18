@@ -25,7 +25,6 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 - [设计系统](design.md)
 - [后台设计规范](design/admin/index.md)
 - [项目概览](overview.md)
-- [Community 社区](apps/community.md)
 - [开始使用](getting-started.md)
 - [用户文档](https://doc.lostsky.work/)
 - [最近更新](updates.md)
@@ -44,7 +43,6 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 ## 参与项目
 
 - [贡献指南](development/contributing.md)
-- [任务拆分与自动分支](development/contributing.md#task-orchestration)
 - [开发须知](development/development.md)
 - [代码更新清单](development/checklist.md)
 - [后端约定](development/backend.md)
@@ -68,4 +66,3 @@ description: LostSky 的产品、设计、应用、架构、开发、运维、�
 
 - [当前待办](TODO.md)
 - [Markdown 编辑器 AI 能力](plans/markdown-ai.md)
-- [非 Team 页面一致性保留计划](plans/non-team-page-consistency.md)
