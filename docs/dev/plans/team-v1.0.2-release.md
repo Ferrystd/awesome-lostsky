@@ -60,3 +60,11 @@ Team UI 隔离目录 `frontend/apps/team/src/ui` 来源为 main 3397e3ae 的公�
 ### main 手册保留说明
 
 main 的正式版本提交保留了 `docs/user/dictionary/permissions.md` 的原人工维护内容，因此最终 main 树与发布准备提交 `7d4bb318` 的差异还包括该手册及本说明；手册中的 Community 权限文字不代表本版交付 Community 功能，Community 应用代码、路由与 schema 均已排除。
+
+### 最终 main 文档发布例外
+
+最终 main（验证时 8726827e）的 `npm run build:docs` 未通过：Service 和开发侧权限字典已通过检查，只有保留的人工 `docs/user/dictionary/permissions.md` 与生成模板不一致。按用户明确允许忽略人工手册差异、保护人工文档的指令保留该文件，不将此检查记为通过。
+
+随后仅执行 `node frontend/scripts/wiki.mjs build`，退出码 0：开发文档与用户指南双站实际产物构建成功，指南元数据 25 页、0 错误。直接构建没有运行字典一致性检查，不等价于完整 `npm run build:docs` 门禁通过。此前 release 工作区的完整文档构建通过也不能代替最终 main 的这项例外。
+
+日志：`C:/lostsky-worktrees/release-1.0.2-main-docs.log`（一致性失败）与 `C:/lostsky-worktrees/release-1.0.2-main-docs-direct.log`（实际双站构建通过）。本项未修改人工文档或后端源码。
