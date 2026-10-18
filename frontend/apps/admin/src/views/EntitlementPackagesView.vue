@@ -2,7 +2,7 @@
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import { api, friendlyError } from "@lostsky/api/client";
 import LsAsyncState from "@lostsky/ui/components/LsAsyncState.vue";
 import LsEmptyState from "@lostsky/ui/components/LsEmptyState.vue";
@@ -48,7 +48,7 @@ const pages = computed(() =>
 </script>
 <template>
   <div class="admin-list-page">
-    <LsCollectionPage title="Ability 权益包" description="权益包从代码目录中的能力里选择，并设定等级和持续天数。">
+    <LsObjectDirectory title="Ability 权益包" description="权益包从代码目录中的能力里选择，并设定等级和持续天数。">
       <template #actions
         >
         <LsPageLink :to="'/entitlements/campaigns'" :icon="ArrowUpRight" label="兑换活动" />
@@ -58,7 +58,7 @@ const pages = computed(() =>
         to="/entitlements/packages/new" />
       </template>
       <template #toolbar>
-        <LsListToolbar
+        <LsListToolbar embedded
         v-model="search"
         placeholder="搜索权益包"
         aria-label="搜索 Ability 权益包"
@@ -94,6 +94,6 @@ const pages = computed(() =>
         >
         <NPagination v-model:page="page" :page-count="pages" />
       </template>
-    </LsCollectionPage>
+    </LsObjectDirectory>
   </div>
 </template>

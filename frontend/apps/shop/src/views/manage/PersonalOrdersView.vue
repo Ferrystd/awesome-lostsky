@@ -2,7 +2,7 @@
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import { friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -27,9 +27,9 @@ const status = (value: number) => ({ 1: '处理中', 2: '已完成', 3: '已取�
 
 <template>
   <div class="personal-orders">
-    <LsCollectionPage title="我的业务订单" description="只显示当前人员接单或发单的订单。">
+    <LsObjectDirectory title="我的业务订单" description="只显示当前人员接单或发单的订单。">
       <template #toolbar>
-        <LsListToolbar :searchable="false">
+        <LsListToolbar embedded :searchable="false">
           <template #filters>
             <NSelect v-model:value="statusFilter" :options="[{label:'处理中',value:1},{label:'已完成',value:2},{label:'已取消',value:3}]" clearable placeholder="全部状态" @update:value="page=1" />
           </template>
@@ -54,6 +54,6 @@ const status = (value: number) => ({ 1: '处理中', 2: '已完成', 3: '已取�
         <span>共 {{ query.data.value.total }} 条</span>
         <NPagination v-model:page="page" :page-count="pages"/>
       </template>
-    </LsCollectionPage>
+    </LsObjectDirectory>
   </div>
 </template>

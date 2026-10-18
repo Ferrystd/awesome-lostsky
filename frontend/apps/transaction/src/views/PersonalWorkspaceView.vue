@@ -2,14 +2,15 @@
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
+import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ArrowUpRight, CirclePlus } from '@lucide/vue'
+import { CirclePlus } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import PersonalServiceLists from '../components/PersonalServiceLists.vue'
@@ -50,10 +51,11 @@ const personalMetricItems = computed(() => [
 
 <template>
   <div class="personal-workspace">
-    <LsCollectionPage :title="title" :description="section === 'services' ? '确认指定邀请，登记信息并接单核销，并管理当前人员已结单的履约任务。' : '汇总当前人员参与的流水与业绩。'">
+    <LsObjectDirectory :title="title" :description="section === 'services' ? '确认指定邀请，登记信息并接单核销，并管理当前人员已结单的履约任务。' : '汇总当前人员参与的流水与业绩。'">
       <template v-if="section === 'transactions'" #actions>
         <LsPageLink :icon="CirclePlus" label="登记流水" to="/personal/transactions/new" />
       </template>
+      <template #toolbar><LsListToolbar embedded :searchable="false" :count-label="section === 'services' ? `${offers.length + available.length + rows.length} 项任务` : `${rows.length} 条流水`" /></template>
       <LsAsyncState v-if="query.isPending.value || (section === 'transactions' && statsQuery.isPending.value)" state="loading" :rows="5" />
       <LsAsyncState v-else-if="query.isError.value || (section === 'transactions' && statsQuery.isError.value)" state="error" title="暂时无法读取" :description="friendlyError(query.error.value || statsQuery.error.value)" />
       <template v-else-if="section === 'services'">
@@ -66,17 +68,14 @@ const personalMetricItems = computed(() => [
         </LsPanel>
         <LsEmptyState :source="query.data.value" v-if="!rows.length" title="暂无相关记录" description="当前人员参与业务后，流水会显示在这里。" />
         <LsResourceList v-else aria-label="我的流水列表">
-          <LsResourceRow v-for="(row, index) in rows" :key="row.id ?? index" :title="row.product_name || row.customer?.profile?.name || row.customer?.nickname || `记录 #${row.id ?? index + 1}`">
+          <LsResourceRow v-for="(row, index) in rows" :key="row.id ?? index" :to="row.id ? `/personal/transactions/${row.id}` : undefined" :title="row.product_name || row.customer?.profile?.name || row.customer?.nickname || `记录 #${row.id ?? index + 1}`">
             <template #metadata>
               <span>{{ money(row.total_price) }}</span>
-            </template>
-            <template v-if="row.id" #actions>
-              <LsPageLink :to="`/personal/transactions/${row.id}`" :aria-label="`查看流水 ${row.id} 详情`" :icon="ArrowUpRight" label="查看详情" />
             </template>
           </LsResourceRow>
         </LsResourceList>
       </template>
-    </LsCollectionPage>
+    </LsObjectDirectory>
   </div>
 </template>
 

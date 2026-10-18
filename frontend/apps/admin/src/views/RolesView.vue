@@ -2,7 +2,7 @@
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -24,12 +24,12 @@ const rows = computed(() => {
 </script>
 
 <template>
-  <LsCollectionPage title="平台角色" description="可选权限由代码统一维护；自定义角色从固定权限中组合，再分配给平台管理员。">
+  <LsObjectDirectory title="平台角色" description="可选权限由代码统一维护；自定义角色从固定权限中组合，再分配给平台管理员。">
     <template #actions>
       <LsPageLink :icon="Plus" label="创建角色" to="/roles/new" />
     </template>
     <template #toolbar>
-      <LsListToolbar v-model="search" placeholder="搜索角色名称或标识" aria-label="搜索平台角色" :count-label="routeAccess.restricted.value ? '0 个角色' : `${rows.length} 个角色`" />
+      <LsListToolbar embedded v-model="search" placeholder="搜索角色名称或标识" aria-label="搜索平台角色" :count-label="routeAccess.restricted.value ? '0 个角色' : `${rows.length} 个角色`" />
     </template>
     <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="4" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取平台角色" :description="friendlyError(query.error.value)" />
@@ -44,5 +44,5 @@ const rows = computed(() => {
         </template>
       </LsResourceRow>
     </LsResourceList>
-  </LsCollectionPage>
+  </LsObjectDirectory>
 </template>

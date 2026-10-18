@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 
@@ -19,12 +19,12 @@ const groups = useQuery({ queryKey: ['team-chat-groups'], queryFn: () => api.get
 const rows = computed(() => (groups.data.value ?? []).filter(item => !search.value || item.title?.includes(search.value)))
 </script>
 <template>
-  <LsCollectionPage title="聊天管理" description="管理本团队所属的群聊、成员和历史消息。">
+  <LsObjectDirectory title="聊天管理" description="管理本团队所属的群聊、成员和历史消息。">
     <template #actions>
       <LsPageLink to="/chat-groups/new" :icon="Plus" label="创建群聊" />
     </template>
     <template #toolbar>
-      <LsListToolbar v-model="search" placeholder="搜索群聊名称" aria-label="搜索群聊" :count-label="`${rows.length} 个群聊`" />
+      <LsListToolbar embedded v-model="search" placeholder="搜索群聊名称" aria-label="搜索群聊" :count-label="`${rows.length} 个群聊`" />
     </template>
     <LsAsyncState v-if="groups.isPending.value && !access.restricted.value" state="loading" />
     <LsAsyncState v-else-if="groups.isError.value" state="error" :description="friendlyError(groups.error.value)" />
@@ -37,5 +37,5 @@ const rows = computed(() => (groups.data.value ?? []).filter(item => !search.val
       </LsResourceRow>
     </LsResourceList>
     <LsEmptyState v-else-if="!groups.isPending.value || access.restricted.value" :source="groups.data.value" :access-reason="access.reason.value" title="暂无群聊" description="创建团队群聊，并邀请人员确认加入。" />
-  </LsCollectionPage>
+  </LsObjectDirectory>
 </template>

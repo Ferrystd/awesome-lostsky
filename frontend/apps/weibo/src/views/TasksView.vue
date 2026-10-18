@@ -3,10 +3,11 @@ import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import { formatAbilityDenied } from '@lostsky/api/error-format'
-import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsDirectoryActions from '@lostsky/ui/components/LsDirectoryActions.vue'
+import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
@@ -39,15 +40,25 @@ const action = useMutation({
   },
   onError: error => feedback.error(friendlyError(error)),
 })
+function taskActions(task: WeiboTask) {
+  if (task.status === 'Cancelled') return []
+  return [
+    task.status === 'Active'
+      ? { key: 'pause', label: '暂停' }
+      : { key: task.status === 'Paused' ? 'start' : 'resume', label: task.status === 'Paused' ? '开启' : '恢复', disabled: Boolean(abilityDisabledReason.value), reason: abilityDisabledReason.value },
+    { key: 'cancel', label: '取消', danger: true },
+  ]
+}
 const label = { Paused: '已暂停', Active: '运行中', BlockedLogin: '登录阻塞', BlockedAbility: 'Ability 阻塞', Cancelled: '已取消' }
 </script>
 
 <template>
   <div class="weibo-stack">
-    <LsCollectionPage title="持续随机任务" description="任务从设定的开始时间执行第一轮，之后在上一次完成时间上加随机间隔继续；被阻塞后不会自动恢复。">
+    <LsObjectDirectory title="持续随机任务" description="任务从设定的开始时间执行第一轮，之后在上一次完成时间上加随机间隔继续；被阻塞后不会自动恢复。">
       <template #actions>
         <LsPageLink :icon="Plus" label="新建任务" :href="`${prefix}/tasks/new`" />
       </template>
+      <template #toolbar><LsListToolbar embedded :searchable="false" :count-label="`${routeAccess.restricted.value ? 0 : query.data.value?.length ?? 0} 项任务`" /></template>
       <NAlert v-if="query.isError.value" type="error">{{ friendlyError(query.error.value) }}</NAlert>
       <NSkeleton v-if="!routeAccess.restricted.value && query.isPending.value" text :repeat="5" />
       <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !query.data.value?.length" title="暂无任务" description="任务新建后统一先保存为暂停，开启时才检查运行条件。" />
@@ -62,19 +73,11 @@ const label = { Paused: '已暂停', Active: '运行中', BlockedLogin: '登录�
           <template #actions>
             <NFlex align="center" justify="end" :size="12">
               <LsPageLink :href="`${prefix}/tasks/${task.id}`" :icon="ArrowUpRight" label="编辑" />
-              <LsButton v-if="task.status === 'Active'" size="sm" variant="secondary" @click="action.mutate({ id: task.id, name: 'pause' })">暂停</LsButton>
-              <LsButton
-              v-else-if="task.status !== 'Cancelled'"
-              size="sm"
-              :disabled="Boolean(abilityDisabledReason)"
-              :disabled-reason="abilityDisabledReason"
-              @click="action.mutate({ id: task.id, name: task.status === 'Paused' ? 'start' : 'resume' })"
-              >{{ task.status === 'Paused' ? '开启' : '恢复' }}</LsButton>
-              <LsButton v-if="task.status !== 'Cancelled'" size="sm" variant="danger" @click="action.mutate({ id: task.id, name: 'cancel' })">取消</LsButton>
+              <LsDirectoryActions :label="`${task.topic.name}任务的操作`" :actions="taskActions(task)" @select="action.mutate({ id: task.id, name: $event })" />
             </NFlex>
           </template>
         </LsResourceRow>
       </LsResourceList>
-    </LsCollectionPage>
+    </LsObjectDirectory>
   </div>
 </template>
