@@ -63,13 +63,14 @@ function click(event: MouseEvent) {
 .ls-button__forward { display: none; }
 
 /* The scene owns the palette; the button owns its surface and inset stroke. */
-.ls-theme-aurora .ls-button:is(.ls-button--primary, .ls-button--secondary) {
+.ls-theme-aurora .ls-button:is(.ls-button--primary, .ls-button--secondary, .ls-button--danger) {
   --button-ink: var(--text);
   color: var(--button-ink) !important;
   background-color: var(--button-surface, var(--command-surface)) !important;
 }
 .ls-theme-aurora .ls-button--primary { --button-ink: var(--primary) !important; }
-.ls-theme-aurora .ls-button--secondary::after {
+.ls-theme-aurora .ls-button--danger { --button-ink: var(--danger) !important; }
+.ls-theme-aurora .ls-button:is(.ls-button--secondary, .ls-button--danger)::after {
   content: '';
   position: absolute;
   inset: 4px;
@@ -78,7 +79,7 @@ function click(event: MouseEvent) {
   pointer-events: none;
   transition: border-color var(--motion-fast) var(--ease-standard);
 }
-.ls-theme-aurora .ls-button--secondary::before {
+.ls-theme-aurora .ls-button:is(.ls-button--secondary, .ls-button--danger)::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -86,19 +87,19 @@ function click(event: MouseEvent) {
   border-radius: inherit;
   pointer-events: none;
 }
-.ls-theme-aurora .ls-button:is(.ls-button--primary, .ls-button--secondary) :deep(.n-button__border),
-.ls-theme-aurora .ls-button:is(.ls-button--primary, .ls-button--secondary) :deep(.n-button__state-border) {
+.ls-theme-aurora .ls-button:is(.ls-button--primary, .ls-button--secondary, .ls-button--danger) :deep(.n-button__border),
+.ls-theme-aurora .ls-button:is(.ls-button--primary, .ls-button--secondary, .ls-button--danger) :deep(.n-button__state-border) {
   display: none;
 }
 @media (hover: hover) {
-  .ls-theme-aurora .ls-button--secondary:not([aria-disabled='true']):not(.n-button--loading):hover {
+  .ls-theme-aurora .ls-button:is(.ls-button--secondary, .ls-button--danger):not([aria-disabled='true']):not(.n-button--loading):hover {
     background-color: var(--button-surface, var(--command-surface-hover)) !important;
   }
-  .ls-theme-aurora .ls-button--secondary:not([aria-disabled='true']):not(.n-button--loading):hover::after {
+  .ls-theme-aurora .ls-button:is(.ls-button--secondary, .ls-button--danger):not([aria-disabled='true']):not(.n-button--loading):hover::after {
     border-color: color-mix(in srgb, var(--button-ink), white 20%);
   }
 }
-.ls-theme-aurora .ls-button--secondary:not([aria-disabled='true']):not(.n-button--loading):active {
+.ls-theme-aurora .ls-button:is(.ls-button--secondary, .ls-button--danger):not([aria-disabled='true']):not(.n-button--loading):active {
   background-color: var(--button-surface, var(--command-surface-pressed)) !important;
 }
 .ls-theme-aurora .ls-button--primary {

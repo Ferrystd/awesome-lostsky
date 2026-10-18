@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
-import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
-import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+import TeamResourceWorkspace from '../components/TeamResourceWorkspace.vue'
+import TeamResourceEntry from '../components/TeamResourceEntry.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
@@ -18,8 +19,8 @@ import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { File, Trash2, Upload, ArrowUpRight } from '@lucide/vue'
-import { NPagination, NFlex } from 'naive-ui'
-import { computed, ref } from 'vue'
+import { NPagination, NProgress } from 'naive-ui'
+import { computed, ref, watch } from 'vue'
 
 import { fileSourceLabel } from '../lib/fileSource'
 import { fileUploadReason, hasPermission, permissionReason, useTeamAccess, type FileUploadAvailability } from '../lib/teamAccess'
@@ -61,13 +62,14 @@ const uploadReason = computed(() => {
   })
 })
 const canUpgrade = computed(() => (usage.data.value ?? access.data.value?.file_upload)?.reason === 'quota' && hasPermission(access.data.value, 'team.ability.redeem'))
-const usageSummary = computed(() => {
+const selectedId = ref<string | null>(null)
+const selectedFile = computed(() => files.value.find(item => String(item.id) === selectedId.value) ?? null)
+watch(files, items => {
+  if (!items.some(item => String(item.id) === selectedId.value)) selectedId.value = items.length ? String(items[0].id) : null
+}, { immediate: true })
+const usagePercent = computed(() => {
   const state = usage.data.value
-  if (routeAccess.restricted.value) return '已使用 - / 容量 - · 0 个文件'
-  if (!state) return `正在读取容量 · ${total.value} 个文件`
-  const used = size(state?.total_size ?? 0)
-  const capacity = state?.size_limit == null ? '不限容量' : `容量 ${size(state.size_limit)}`
-  return `已使用 ${used} / ${capacity} · ${state?.count ?? total.value} 个文件`
+  return state?.size_limit ? Math.min(100, Math.max(0, state.total_size / state.size_limit * 100)) : null
 })
 const deleteReason = computed(() => routeAccess.reason.value || (access.isPending.value || access.isError.value || hasPermission(access.data.value, 'file.delete') ? '' : permissionReason('file.delete')))
 
@@ -133,9 +135,8 @@ function runFileAction(key: string, item: Record<string, unknown>) {
 </script>
 
 <template>
-  <LsObjectDirectory title="文件" :description="usageSummary">
+  <TeamResourceWorkspace title="文件" description="查找团队文件，查看来源并管理存储空间。" context-label="文件资料与容量">
     <template #actions>
-      <LsPageLink v-if="canUpgrade" to="/abilities" :icon="ArrowUpRight" label="升级团队能力" />
       <LsUploadField :show-url="false" multiple button-label="上传文件" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @change="upload">
         <template #trigger="{ choose }">
           <LsButton variant="ghost" :disabled="Boolean(uploadReason)" :disabled-reason="uploadReason" :loading="uploading" @click="choose"><template #icon><Upload :size="18" /></template>上传文件</LsButton>
@@ -146,28 +147,61 @@ function runFileAction(key: string, item: Record<string, unknown>) {
       <LsInlineError v-if="uploadError" :message="uploadError" />
       <LsListToolbar embedded v-model="keyword" placeholder="按文件名称搜索" aria-label="搜索文件" :count-label="routeAccess.restricted.value ? '0 个文件' : `${total} 个文件`" @update:model-value="page = 1" />
     </template>
-    <Transition name="ls-state" mode="out-in">
-      <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" key="error" state="error" title="暂时无法读取文件" :description="friendlyError(query.error.value)" />
-      <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" key="loading" state="loading" :rows="6" />
-      <LsEmptyState :source="query.data.value" v-else-if="!files.length" key="empty" :title="routeAccess.restricted.value ? '没有可显示的文件' : '还没有文件'" description="上传团队需要共享的第一份资料。" />
-      <LsResourceList v-else key="list" aria-label="文件列表">
-        <LsResourceRow v-for="item in files" :key="String(item.id)" :title="String(item.name || item.original_name || '未命名文件')" :description="`${fileSourceLabel(item.source)} · ${item.mime_type || item.ext || '未知格式'} · ${size(item.size)}`" :icon="File">
-          <template #metadata>
-            <LsEntityTag v-if="item.subject" :type="item.subject.entityable_type || 'unknown'" :name="item.subject.name || '未命名人员'" :slug="item.subject.slug" />
-            <span v-else>{{ item.entity_id ? `人员 #${item.entity_id}（资料不可用）` : '来源人员未记录' }}</span>
-            <time :title="`上传时间：${uploadTime(item.create_time)}`">{{ uploadTime(item.create_time) }}</time>
+    <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取文件" :description="friendlyError(query.error.value)" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="3" />
+    <LsEmptyState v-else-if="!files.length" :source="query.data.value" :title="keyword ? '没有匹配的文件' : '还没有文件'" :description="keyword ? '换一个文件名称试试。' : '上传团队需要共享的第一份资料。'" />
+    <ul v-else class="file-directory" aria-label="文件列表">
+      <TeamResourceEntry v-for="item in files" :key="String(item.id)" :title="String(item.name || item.original_name || '未命名文件')" :icon="File" href="#file-details" :selected="selectedId === String(item.id)" @select="selectedId = String(item.id)">
+        <span>{{ item.mime_type || item.ext || '未知格式' }}</span><span>{{ size(item.size) }}</span>
+        <template #actions>
+          <LsPageLink v-if="item.url" :href="String(item.url)" target="_blank" rel="noopener noreferrer" :icon="ArrowUpRight" label="打开" />
+          <LsDirectoryActions :label="`${item.name || item.original_name || '未命名文件'}的操作`" :actions="fileActions()" @select="runFileAction($event, item)" />
+        </template>
+      </TeamResourceEntry>
+    </ul>
+    <template v-if="pages > 1" #pagination><NPagination v-model:page="page" :page-count="pages" /></template>
+    <template #context>
+      <LsPanel>
+        <section id="file-details" class="file-context" tabindex="-1" aria-label="所选文件资料">
+          <LsSectionHeader title="文件资料" />
+          <template v-if="selectedFile">
+            <h3 class="file-context__name">{{ selectedFile.name || selectedFile.original_name || '未命名文件' }}</h3>
+            <dl class="file-context__facts">
+              <dt>来源</dt><dd>{{ fileSourceLabel(selectedFile.source) }}</dd>
+              <dt>来源人员</dt><dd><LsEntityTag v-if="selectedFile.subject" :type="selectedFile.subject.entityable_type || 'unknown'" :name="selectedFile.subject.name || '未命名人员'" :slug="selectedFile.subject.slug" /><span v-else>{{ selectedFile.entity_id ? `人员 #${selectedFile.entity_id}（资料不可用）` : '未记录' }}</span></dd>
+              <dt>上传时间</dt><dd><time>{{ uploadTime(selectedFile.create_time) }}</time></dd>
+            </dl>
           </template>
-          <template #actions>
-            <NFlex align="center" justify="end" :size="12">
-              <LsPageLink v-if="item.url" :href="String(item.url)" target="_blank" rel="noopener noreferrer" :icon="File" label="打开" />
-              <LsDirectoryActions :label="`${item.name || item.original_name || '未命名文件'}的操作`" :actions="fileActions()" @select="runFileAction($event, item)" />
-            </NFlex>
+          <p v-else class="file-context__hint">{{ files.length ? '选择文件名称，查看来源资料。' : '文件的来源人员和上传时间会显示在这里。' }}</p>
+        </section>
+      </LsPanel>
+      <LsPanel>
+        <section class="file-context" aria-label="存储空间">
+          <LsSectionHeader title="存储空间" />
+          <LsAsyncState v-if="usage.isPending.value && !routeAccess.restricted.value" state="loading" :rows="1" />
+          <LsInlineError v-else-if="usage.isError.value" :message="friendlyError(usage.error.value)" />
+          <template v-else-if="usage.data.value && !routeAccess.restricted.value">
+            <p class="file-context__usage"><strong>{{ size(usage.data.value.total_size) }}</strong><span> / {{ usage.data.value.size_limit == null ? '不限容量' : size(usage.data.value.size_limit) }}</span></p>
+            <NProgress v-if="usagePercent !== null" type="line" :percentage="usagePercent" :show-indicator="false" :height="4" aria-label="存储使用比例" />
+            <p class="file-context__hint">{{ usage.data.value.count }} 个文件<span v-if="usage.data.value.remaining_size != null"> · 剩余 {{ size(usage.data.value.remaining_size) }}</span></p>
           </template>
-        </LsResourceRow>
-      </LsResourceList>
-    </Transition>
-    <template v-if="pages > 1" #pagination>
-      <NPagination v-model:page="page" :page-count="pages" />
+          <p v-else class="file-context__hint">容量信息不可用</p>
+          <LsPageLink v-if="canUpgrade" to="/abilities" :icon="ArrowUpRight" label="升级团队能力" />
+        </section>
+      </LsPanel>
     </template>
-  </LsObjectDirectory>
+  </TeamResourceWorkspace>
 </template>
+
+<style scoped>
+.file-directory { padding: 0; margin: 0; }
+.file-context { min-width: 0; display: grid; gap: 1rem; scroll-margin-top: 1.5rem; }
+.file-context__name { font-size: 1rem; line-height: 1.5; font-weight: 600; overflow-wrap: anywhere; margin: 0; }
+.file-context__facts { display: grid; gap: .25rem; margin: 0; font-size: .875rem; }
+.file-context__facts dt { color: var(--text-secondary); font-size: .8125rem; }
+.file-context__facts dt:not(:first-child) { margin-top: .75rem; }
+.file-context__facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.file-context__hint { margin: 0; color: var(--text-secondary); font-size: .8125rem; line-height: 1.65; }
+.file-context__usage { margin: 0; font-size: .8125rem; color: var(--text-secondary); }
+.file-context__usage strong { color: var(--text); font-size: 1.125rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+</style>

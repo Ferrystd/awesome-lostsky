@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { join, relative, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const repository = process.cwd()
@@ -11,6 +11,11 @@ function filesUnder(directory: string): string[] {
     const path = join(directory, entry.name)
     return entry.isDirectory() ? filesUnder(path) : [path]
   })
+}
+
+// Team resolves @lostsky/ui to this primitive library, not to business callers.
+function isTeamUiPrimitive(path: string) {
+  return path.startsWith(join(repository, 'frontend', 'apps', 'team', 'src', 'ui') + sep)
 }
 
 function sourceFiles() {
@@ -85,7 +90,7 @@ describe('后台源码设计契约', () => {
   })
 
   it('原生标准控件只存在于已登记的浏览器实现例外', () => {
-    const controls = sourceFiles().flatMap((path) => {
+    const controls = sourceFiles().filter((path) => !isTeamUiPrimitive(path)).flatMap((path) => {
       const source = readFileSync(path, 'utf8')
       return [...source.matchAll(/<(button|input|select|textarea)\b/gi)].map((match) => ({
         file: relative(repository, path).replaceAll('\\', '/'),
@@ -144,6 +149,7 @@ describe('后台源码设计契约', () => {
     const offenders = componentCallerRoots
       .flatMap(filesUnder)
       .filter((path) => /\.(?:vue|css)$/.test(path))
+      .filter((path) => !isTeamUiPrimitive(path))
       .filter((path) => readFileSync(path, 'utf8').includes(':deep(.ls-'))
       .map((path) => relative(repository, path).replaceAll('\\', '/'))
     expect(offenders).toEqual([])
