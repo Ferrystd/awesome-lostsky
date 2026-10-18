@@ -56,3 +56,7 @@ Team UI 隔离目录 `frontend/apps/team/src/ui` 来源为 main 3397e3ae 的公�
 - `composer check-platform-reqs --no-dev` 通过，`git diff --check` 通过。
 - 最终公共 Header 恢复 v1 五入口宽度后，受影响范围仅 Admin/Transaction/Shop/Weibo，串行重建这四个应用并更新本工作区 www；其余五个应用复用同轮完整构建。
 - 日志位于工作区同级 `release-1.0.2-*.log`。以上是本地源码与静态产物验证，不是生产部署验收。
+
+### main 手册保留说明
+
+main 的正式版本提交保留了 `docs/user/dictionary/permissions.md` 的原人工维护内容，因此最终 main 树与发布准备提交 `7d4bb318` 的差异还包括该手册及本说明；手册中的 Community 权限文字不代表本版交付 Community 功能，Community 应用代码、路由与 schema 均已排除。
