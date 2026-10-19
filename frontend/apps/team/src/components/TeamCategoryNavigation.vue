@@ -2,7 +2,8 @@
 import { computed, nextTick, ref, useId } from 'vue'
 import { NSelect } from 'naive-ui'
 import LsField from '@lostsky/ui/components/LsField.vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
+import LsCategoryNavigationItem from '@lostsky/ui/components/LsCategoryNavigationItem.vue'
 
 const props = defineProps<{
   items: { key: string; label: string; dirty?: boolean; to?: string }[]
@@ -44,21 +45,7 @@ function select(key: string) {
     </div>
     <nav ref="navigation" class="team-category-navigation__desktop" :aria-label="label">
       <p class="team-category-navigation__label">{{ label }}</p>
-      <template v-for="(item, index) in items" :key="item.key">
-      <RouterLink v-if="item.to" :to="item.to" :aria-current="item.key === current ? 'page' : undefined" @keydown="navigate($event, index)">
-        <span>{{ item.label }}</span><small v-if="item.dirty">未保存</small>
-      </RouterLink>
-      <button v-else
-        type="button"
-        :aria-current="item.key === current ? 'true' : undefined"
-        :aria-controls="panelId"
-        @click="emit('select', item.key)"
-        @keydown="navigate($event, index)"
-      >
-        <span>{{ item.label }}</span>
-        <small v-if="item.dirty">未保存</small>
-      </button>
-      </template>
+      <LsCategoryNavigationItem v-for="(item, index) in items" :key="item.key" :label="item.label" :to="item.to" :current="item.key === current" :dirty="item.dirty" :panel-id="panelId" @select="emit('select', item.key)" @keydown="navigate($event, index)" />
     </nav>
   </div>
 </template>
@@ -67,12 +54,6 @@ function select(key: string) {
 .team-category-navigation { min-width: 0; padding: .75rem 0; }
 .team-category-navigation__desktop { display: none; }
 .team-category-navigation__label { margin: 0 0 .75rem; padding-inline: .75rem; color: var(--text-secondary); font-size: .8125rem; font-weight: 500; }
-.team-category-navigation :is(button, a) { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .75rem; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-secondary); font: inherit; font-size: .875rem; text-align: left; cursor: pointer; text-decoration: none; }
-.team-category-navigation :is(button, a) span { min-width: 0; overflow-wrap: anywhere; }
-.team-category-navigation :is(button, a) small { flex: none; font-size: .75rem; color: var(--text-secondary); }
-.team-category-navigation :is(button, a):hover { background: var(--surface); color: var(--text); }
-.team-category-navigation :is(button, a)[aria-current] { background: color-mix(in srgb, var(--primary) 8%, transparent); color: var(--primary); font-weight: 650; }
-.team-category-navigation :is(button, a):focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 @container team-category-layout (min-width: 48rem) {
   .team-category-navigation__mobile { display: none; }
   .team-category-navigation__desktop { display: grid; gap: .25rem; }

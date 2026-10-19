@@ -450,10 +450,23 @@ describe('后台源码设计契约', () => {
     const allowed = new Set(['frontend/apps/admin/src/components/AdminShell.vue', 'frontend/apps/admin/src/views/DashboardView.vue', 'frontend/apps/team/src/components/TeamShell.vue', 'frontend/apps/team/src/views/RoleDetailView.vue', 'frontend/apps/transaction/src/components/TransactionShell.vue'])
     const offenders = ['admin', 'team', 'transaction']
       .flatMap((name) => filesUnder(join(repository, 'frontend', 'apps', name, 'src')))
+      .filter((path) => !isTeamUiPrimitive(path))
       .filter((path) => path.endsWith('.vue') && readFileSync(path, 'utf8').includes('<NButton'))
       .map((path) => relative(repository, path).replaceAll('\\', '/'))
       .filter((path) => !allowed.has(path))
     expect(offenders).toEqual([])
+  })
+
+  it('Team 分类导航原语封闭视觉并保留标准控件语义', () => {
+    const item = readFileSync(join(repository, 'frontend/apps/team/src/ui/components/LsCategoryNavigationItem.vue'), 'utf8')
+    const navigation = readFileSync(join(repository, 'frontend/apps/team/src/components/TeamCategoryNavigation.vue'), 'utf8')
+    expect(item).toContain("import { NButton } from 'naive-ui'")
+    expect(item).toContain('<RouterLink v-if="to"')
+    expect(item).toContain('<NButton v-else')
+    expect(item).not.toMatch(/<button\b/)
+    expect(item.match(/defineProps<([\s\S]*?)>\(\)/)?.[1]).not.toMatch(/(?:variant|size|appearance|className)\??:/)
+    expect(navigation).toContain('<LsCategoryNavigationItem')
+    expect(navigation).not.toMatch(/:deep\(|:is\(button,\s*a\)/)
   })
 
   it('三个业务工作台的侧栏身份入口保持导航式左对齐', () => {

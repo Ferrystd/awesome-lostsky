@@ -1,5 +1,9 @@
 # Team 页面版型
 
+## 分类导航项
+
+Team 私有 `LsCategoryNavigationItem` 统一分类命令与路由入口，仅接收 `label/to/current/dirty/panelId` 语义值，发出 `select/keydown`。命令基于 Naive `NButton`，链接基于 `RouterLink`，不嵌套交互元素；组件独占既有 44px 最小目标、12px 内衬、14px 字号、选择态、焦点轮廓和未保存提示。父级仅负责集合、方向键/Home/End 与手机选择器，不穿透子项样式；既有 48rem 容器断点、路由与草稿保护不变。
+
 本规范只约束 Team。沿用已批阅的极光、透光面板和轻量入口，不改变其他应用的公共 UI 默认行为。Team 的 `@lostsky/ui` 由 `frontend/vite.team.ts` 指向应用内适配目录。
 
 ## 容量与任务归属
