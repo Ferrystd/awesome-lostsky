@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 
@@ -10,7 +15,6 @@ import LsField from "@lostsky/ui/components/LsField.vue";
 import LsFormActions from "@lostsky/ui/components/LsFormActions.vue";
 import LsFormSection from "@lostsky/ui/components/LsFormSection.vue";
 import LsInlineError from "@lostsky/ui/components/LsInlineError.vue";
-import LsPageHeader from "@lostsky/ui/components/LsPageHeader.vue";
 import LsSwitchField from "@lostsky/ui/components/LsSwitchField.vue";
 import LsStatusTag from "@lostsky/ui/components/LsStatusTag.vue";
 import { feedback } from "@lostsky/ui/feedback";
@@ -169,15 +173,13 @@ const pages = computed(() =>
 const valid = computed(() => Boolean(form.name.trim() && form.package_id));
 </script>
 <template>
-  <div class="campaign-view">
-    <LsPageHeader
-      :title="editing ? 'Ability 体验活动' : '创建 Ability 体验活动'"
-      description="体验码在所有团队之间共享；同一个团队在同一互斥组中只能领取一次。"
-      back-to="/entitlements/campaigns"
-      back-label="返回活动"
-    />
+  <LsFormPage :title="editing ? 'Ability 体验活动' : '创建 Ability 体验活动'" description="体验码在所有团队之间共享；同一个团队在同一互斥组中只能领取一次。">
+    <template #actions>
+      <LsPageLink to="/entitlements/campaigns" :icon="ArrowLeft" label="返回活动" />
+    </template>
+
     <form class="campaign-form" @submit.prevent="routeAccess.restricted.value ? feedback.info(routeAccess.reason.value) : save.mutate()">
-      <LsFormSection title="活动配置">
+      <LsFormSection title="活动内容" description="确定活动名称、权益包和发放模式。">
           <LsField label="活动名称" for-id="admin-campaign-name" required
             ><NInput
               id="admin-campaign-name"
@@ -202,7 +204,8 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
                 { label: '定向团队卡', value: 3 },
               ]"
               :disabled="editing" /></LsField
-          ><LsField
+          ></LsFormSection>
+      <LsFormSection title="领取规则" description="配置互斥范围、领取时间和总量，再统一保存活动。"><LsField
             label="领取互斥组"
             for-id="admin-campaign-group"
             hint="首月免费活动应长期复用稳定的互斥组。"
@@ -234,9 +237,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
         :message="friendlyError(detail.error.value)"
       />
       <LsFormActions>
-        <LsButton type="button" variant="secondary" @click="router.back()"
-          >取消</LsButton
-        ><LsButton
+        <LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton><LsButton
           type="submit"
           :disabled="routeAccess.restricted.value || !valid || !can('admin.entitlement.write') || !draft.dirty.value"
           :disabled-reason="
@@ -250,18 +251,18 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
       </LsFormActions>
     </form>
     <template v-if="editing"
-      ><LsFormSection title="发行体验码">
+      ><LsFormSection title="发行体验码" description="发行是独立操作，不会代替上方的活动保存。">
           <div class="issue-row">
-            <NInputNumber
-              v-model:value="quantity"
+            <LsField label="发行数量" for-id="campaign-issue-quantity"><NInputNumber
+              id="campaign-issue-quantity" v-model:value="quantity"
               :min="1"
               :max="100"
-            /><NInputNumber
-              v-if="form.mode === 3"
+            /></LsField><LsField v-if="form.mode === 3" label="目标团队 ID" for-id="campaign-issue-team"><NInputNumber
+              id="campaign-issue-team"
               v-model:value="targetTeam"
               :min="1"
               placeholder="目标 Team ID"
-            /><LsButton
+            /></LsField><LsButton
               :disabled="
                 !can('admin.entitlement.write') ||
                 (form.mode === 3 && !targetTeam)
@@ -301,7 +302,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
         v-else-if="routeAccess.restricted.value || !codes.data.value?.list.length"
         :title="routeAccess.restricted.value ? '没有可显示的体验码' : '还没有体验码'"
         description="公共活动通常只需发行一个共享代码。" />
-      <section v-else class="codes">
+      <LsPanel v-else aria-label="体验码"><div class="codes">
         <article v-for="row in codes.data.value.list" :key="row.id">
           <div>
             <strong>{{ revealed[row.id] || row.code_hint }}</strong
@@ -333,23 +334,23 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
             >
           </div>
         </article>
-      </section>
+      </div></LsPanel>
       <div v-if="codes.data.value?.total" class="pager">
         <span>第 {{ page }} / {{ pages }} 页</span
         ><NPagination v-model:page="page" :page-count="pages" /></div
     ></template>
-  </div>
+  </LsFormPage>
 </template>
 <style scoped>
-.campaign-view,
 .campaign-form {
   display: grid;
   gap: 1.25rem;
 }
 .issue-row {
   display: flex;
-  align-items: center;
-  gap: 0.65rem;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 .issued {
   display: grid;
@@ -365,10 +366,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
 }
 .codes {
   display: grid;
-  overflow: hidden;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  min-width: 0;
 }
 .codes article {
   min-height: 70px;
@@ -385,6 +383,7 @@ const valid = computed(() => Boolean(form.name.trim() && form.package_id));
 .codes strong,
 .codes small {
   display: block;
+  overflow-wrap: anywhere;
 }
 .codes small {
   color: var(--muted-ink);

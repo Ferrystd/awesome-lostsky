@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft, ArrowUpRight } from '@lucide/vue'
+
 import { api, ApiError, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -8,7 +13,6 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { shopWorkspaceUrl } from '@lostsky/shared/navigation'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
@@ -155,16 +159,18 @@ async function submit() {
     submitting.value = false
   }
 }
+
+const contextPayload = computed(() => pending.value?.payload ?? form)
+const contextProduct = computed(() => products.value.find(item => Number(item.id) === contextPayload.value.product_id))
+
 </script>
 
 <template>
-  <div class="entitlement-grant-view">
-    <LsPageHeader
-      :title="personal ? '下发顾客权益' : '赋予顾客权益'"
-      :description="personal ? '授予顾客可核销的权益，视同顾客下单核销商品；全程不产生商城订单。' : '按权益套餐的内容把权益直接交付给顾客；不创建商城订单。'"
-      :back-to="personal ? '/personal/entitlements' : '/services'"
-      :back-label="personal ? '返回权益下发' : '返回权益核销'"
-    />
+  <LsFormPage aside-label="权益发放核对" :title="personal ? '下发顾客权益' : '赋予顾客权益'" :description="personal ? '授予顾客可核销的权益，视同顾客下单核销商品；全程不产生商城订单。' : '按权益套餐的内容把权益直接交付给顾客；不创建商城订单。'">
+    <template #actions>
+      <LsPageLink :to="personal ? '/personal/entitlements' : '/services'" :icon="ArrowLeft" :label="personal ? '返回权益下发' : '返回权益核销'" />
+    </template>
+
     <p v-if="result" class="grant-result" role="status" aria-live="polite">
       已赋予 {{ result.entitlement_count }} 项权益；未创建商城订单；{{ result.transaction_id ? `已生成流水 #${result.transaction_id}` : '未同步流水' }}。
     </p>
@@ -172,10 +178,10 @@ async function submit() {
     <LsAsyncState v-if="!pending && !routeAccess.restricted.value && (access.isPending.value || options.isPending.value)" state="loading" :rows="5" />
     <LsAsyncState v-else-if="!pending && !routeAccess.restricted.value && options.isError.value" state="error" title="暂时无法读取赋予候选" :description="friendlyError(options.error.value)" />
     <LsEmptyState :source="options.data.value" v-else-if="!pending && !routeAccess.restricted.value && !products.length" title="没有可赋予的权益套餐" description="请先在商城应用创建并启用核销商品。">
-      <template #action><a class="primary-link" :href="shopProductsUrl">前往商品管理</a></template>
+      <template #action><LsPageLink :href="shopProductsUrl" :icon="ArrowUpRight" label="前往商品管理" /></template>
     </LsEmptyState>
-    <form v-else @submit.prevent="submit">
-      <LsFormSection title="赋予内容" :description="grantDescription">
+    <form class="grant-form" v-else @submit.prevent="submit">
+      <LsFormSection :title="pending ? '确认发放结果' : '顾客与权益'" :description="grantDescription">
         <template v-if="pending">
           <NAlert type="warning" title="发放结果待确认">
             本次发放内容已保存。请重试确认结果；确认完成前不能修改或再次发放。刷新后可继续确认同一次操作。
@@ -207,14 +213,30 @@ async function submit() {
         </template>
         <LsInlineError v-if="requestError" :message="requestError" />
       </LsFormSection>
+      <LsFormSection :title="pending ? '继续确认' : '确认发放'" description="本次操作直接发放权益，不创建商城订单。">
       <LsFormActions>
-        <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
+        <LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton>
         <LsButton type="submit" :loading="submitting" :disabled="Boolean(submitDisabledReason)" :disabled-reason="submitDisabledReason">{{ pending ? '重试确认结果' : personal ? '下发权益' : '确认提交' }}</LsButton>
       </LsFormActions>
+      </LsFormSection>
     </form>
-  </div>
+    <template #aside>
+      <LsFormSection title="发放核对" :description="pending ? '本次待确认操作的固定内容。' : '当前草稿；提交后才会发放。'">
+        <p v-if="routeAccess.restricted.value">暂无可查看的权益资料。</p>
+        <p v-else-if="!pending && options.isPending.value">正在读取权益套餐…</p>
+        <p v-else-if="!pending && options.isError.value">权益套餐读取失败。</p>
+        <LsDescriptionList v-else>
+          <dt>商品</dt><dd>{{ contextProduct?.name || (contextPayload.product_id ? '商品 #' + contextPayload.product_id : '尚未选择') }}</dd>
+          <dt>顾客</dt><dd>{{ customerOptions(options.data.value).find(item => Number(item.value) === contextPayload.customer_id)?.label || (contextPayload.customer_id ? '顾客 #' + contextPayload.customer_id : '尚未选择') }}</dd>
+          <dt>份数</dt><dd>{{ contextPayload.quantity ?? '-' }}</dd>
+          <dt>商城订单</dt><dd>不创建</dd>
+          <dt>同步收款</dt><dd>{{ pending ? '以本次发放确认结果为准' : options.data.value ? (options.data.value.sync_transaction ? '同步权益包收款流水' : '只赋予权益') : '待核对' }}</dd>
+        </LsDescriptionList>
+      </LsFormSection>
+    </template>
+  </LsFormPage>
 </template>
 
 <style scoped>
-.entitlement-grant-view,.entitlement-grant-view form{display:grid;gap:1.25rem}.grant-result{margin:0;padding:.75rem .875rem;border-radius:8px;background:var(--cloud);color:var(--ink);font-size:.875rem;line-height:1.6}
+.grant-form{display:grid;gap:1.25rem}.grant-result{margin:0;padding:.75rem .875rem;border-radius:8px;background:var(--cloud);color:var(--ink);font-size:.875rem;line-height:1.6}
 </style>

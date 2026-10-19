@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { api, auth, ApiError, friendlyError } from '@lostsky/api/client'
@@ -8,7 +12,6 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
@@ -115,20 +118,18 @@ async function save() {
 </script>
 
 <template>
-  <div class="weibo-stack">
-    <LsPageHeader
-      :title="editing ? '编辑微博任务' : '新建微博任务'"
-      description="新建和编辑任务不需要微博能力，仅启用任务需要；修改后任务会回到暂停状态，需重新开启。"
-      :back-to="`${prefix}/tasks`"
-      back-label="返回任务"
-    />
+  <LsFormPage :title="editing ? '编辑微博任务' : '新建微博任务'" description="新建和编辑任务不需要微博能力，仅启用任务需要；修改后任务会回到暂停状态，需重新开启。">
+    <template #actions>
+      <LsPageLink :to="`${prefix}/tasks`" :icon="ArrowLeft" label="返回任务" />
+    </template>
+
     <div v-if="conflict" role="status"><p>任务状态已变化，当前修改已保留。请核对最新任务后再保存。</p><LsButton type="button" variant="secondary" @click="reloadTask">重新载入任务</LsButton></div>
     <LsInlineError v-if="existing.isError.value" :message="friendlyError(existing.error.value)" />
     <form v-else class="weibo-form" @submit.prevent="save">
       <LsFormSection v-if="editing && routeAccess.restricted.value" title="当前任务" description="列表结构始终可用；暂时无法读取的配置会显示为横杠。">
         <LsDescriptionList><dt>已保存配置</dt><dd>-</dd></LsDescriptionList>
       </LsFormSection>
-      <LsFormSection title="执行安排" :description="isCheckin ? '选择候选账号和首次签到时间；之后每天同一时间执行。' : '选择每轮可用的候选账号，并设置首次执行时间与随机间隔。'">
+      <LsFormSection title="任务与账号" description="选择任务类型，以及每轮可用的候选账号。">
         <LsInlineError v-if="accounts.isError.value" message="微博账号暂时无法读取，请稍后重试。" />
         <LsField label="任务类型" for-id="weibo-task-operation" required hint="签到任务每天最多尝试一次，失败不会在当天重试。">
           <NRadioGroup id="weibo-task-operation" v-model:value="operationType" name="weibo-task-operation">
@@ -147,6 +148,8 @@ async function save() {
             :placeholder="routeAccess.restricted.value ? '-' : '选择一个或多个账号'"
           />
         </LsField>
+      </LsFormSection>
+      <LsFormSection title="执行安排" :description="isCheckin ? '首次签到后，每天同一时间执行。' : '设置首次执行时间，以及后续每轮的随机间隔。'">
         <LsField label="开始时间" for-id="weibo-task-start" required :hint="isCheckin ? '首次在这个时间签到；之后每天同一时间执行。' : '首次开启后会在这个时间执行；后续按完成时间重新计算。'">
           <NDatePicker id="weibo-task-start" v-model:value="startMs" type="datetime" />
         </LsField>
@@ -182,10 +185,12 @@ async function save() {
         />
       </LsFormSection>
 
+      <LsFormSection title="保存任务" description="保存后保持暂停；需要执行时，再到任务列表手动开启。">
       <LsFormActions>
-        <LsButton variant="secondary" @click="router.push(`${prefix}/tasks`)">取消</LsButton>
+        <LsPageLink :to="`${prefix}/tasks`" :icon="ArrowLeft" label="取消" />
         <LsButton type="submit" size="lg" :loading="pending" :disabled="routeAccess.restricted.value || !canSave || !draft.dirty.value" :disabled-reason="routeAccess.reason.value">保存为暂停</LsButton>
       </LsFormActions>
+      </LsFormSection>
     </form>
-  </div>
+  </LsFormPage>
 </template>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import { identityUrl } from '@lostsky/shared/navigation'
-import LsPage from '@lostsky/ui/components/LsPage.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import ChatTaskPage from '../components/ChatTaskPage.vue'
+
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
@@ -32,9 +32,7 @@ const create = useMutation({
 })
 </script>
 <template>
-  <main class="new-conversation">
-    <LsPage width="form">
-      <LsPageHeader title="发起单聊" back-to="/" back-label="返回消息" description="搜索可联系的人员，或输入准确标识。团队群聊由团队的聊天管理创建。" />
+  <ChatTaskPage title="发起单聊" description="搜索可联系的人员，或输入准确标识。团队群聊由团队的聊天管理创建。">
       <p>当前身份：{{ identity.data.value?.name || '正在读取…' }} <a :href="identityUrl()">切换身份</a></p>
       <form class="conversation-form" @submit.prevent="search = query.trim(); selected = ''">
         <NSelect v-model:value="searchMode" aria-label="搜索方式" :options="[{ label: '按姓名搜索', value: 'q' }, { label: '按准确标识查找', value: 'slug' }]" />
@@ -48,9 +46,9 @@ const create = useMutation({
       </NList>
       <LsEmptyState v-else-if="search && !people.isPending.value" title="没有找到人员" description="请检查标识是否完整准确。" />
       <LsButton :disabled="!selected || !expectedEntityId" disabled-reason="请先选择聊天对象" :loading="create.isPending.value" @click="create.mutate()">开始聊天</LsButton>
-    </LsPage>
-  </main>
+    </ChatTaskPage>
+
 </template>
 <style scoped>
-.new-conversation{padding:2rem 1rem}.conversation-form{display:grid;gap:1rem}
+.conversation-form{display:grid;gap:1rem}
 </style>

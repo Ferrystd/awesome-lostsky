@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { workspaceSceneProviderProps } from '@lostsky/ui/workspace-scene-theme'
+import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
+
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import LsPage from '@lostsky/ui/components/LsPage.vue'
 import LsRouteErrorBoundary from '@lostsky/ui/components/LsRouteErrorBoundary.vue'
@@ -14,11 +17,11 @@ const width = computed<'wide' | 'content' | 'form'>(() => ['content', 'form'].in
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme" :locale="zhCN">
+  <NConfigProvider :theme-overrides="lostskyNaiveTheme" :locale="zhCN" v-bind="workspaceSceneProviderProps(true)">
     <NDialogProvider><NMessageProvider>
-      <TransactionShell>
+      <TransactionShell scene>
         <LsPage id="workspace" as="main" :width="width">
-          <RouterView v-slot="{ Component }"><LsRouteErrorBoundary :reset-key="route.fullPath"><component :is="Component" /></LsRouteErrorBoundary></RouterView>
+          <LsWorkspaceScene><RouterView v-slot="{ Component }"><LsRouteErrorBoundary :reset-key="route.fullPath"><component :is="Component" /></LsRouteErrorBoundary></RouterView></LsWorkspaceScene>
         </LsPage>
       </TransactionShell>
     </NMessageProvider></NDialogProvider>

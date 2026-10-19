@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { workspaceSceneProviderProps } from '@lostsky/ui/workspace-scene-theme'
+import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
+
 import { BadgeCheck, House, KeyRound, ShoppingBag, UserRound } from '@lucide/vue'
 import { identityUrl } from '@lostsky/shared/navigation'
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
@@ -41,10 +44,10 @@ const shopTheme: GlobalThemeOverrides = {
 </script>
 
 <template>
-  <NConfigProvider :theme="managing ? undefined : darkTheme" :theme-overrides="managing ? lostskyNaiveTheme : shopTheme" :locale="zhCN">
+  <NConfigProvider :theme="managing ? undefined : darkTheme" :theme-overrides="managing ? lostskyNaiveTheme : shopTheme" :locale="zhCN" v-bind="workspaceSceneProviderProps(managing)">
     <NDialogProvider><NMessageProvider>
-    <ShopManageShell v-if="managing">
-      <RouterView />
+    <ShopManageShell v-if="managing" scene>
+      <LsWorkspaceScene><RouterView /></LsWorkspaceScene>
     </ShopManageShell>
     <template v-else>
       <a class="skip-link" href="#main-content">跳到主要内容</a>

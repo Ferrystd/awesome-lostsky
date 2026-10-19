@@ -1,0 +1,50 @@
+[
+  {
+    "routeKey": "chat:/:default",
+    "app": "chat",
+    "path": "/",
+    "view": "ChatView",
+    "variant": "default",
+    "template": "ChatScene",
+    "fixture": "chat-populated",
+    "previewPath": "/",
+    "reuseSource": "cdca1533",
+    "specialReason": ""
+  },
+  {
+    "routeKey": "chat:/new:default",
+    "app": "chat",
+    "path": "/new",
+    "view": "NewConversationView",
+    "variant": "default",
+    "template": "ChatTaskPage",
+    "fixture": "chat-populated",
+    "previewPath": "/new?participant=evening-sky",
+    "reuseSource": "cdca1533",
+    "specialReason": ""
+  },
+  {
+    "routeKey": "chat:/requests:default",
+    "app": "chat",
+    "path": "/requests",
+    "view": "RequestsView",
+    "variant": "default",
+    "template": "ChatTaskPage",
+    "fixture": "chat-populated",
+    "previewPath": "/requests",
+    "reuseSource": "cdca1533",
+    "specialReason": ""
+  },
+  {
+    "routeKey": "chat:/:group",
+    "app": "chat",
+    "path": "/",
+    "view": "ChatView",
+    "variant": "group",
+    "template": "ChatScene",
+    "fixture": "chat-populated",
+    "previewPath": "/?conversation=preview-group",
+    "reuseSource": "cdca1533",
+    "specialReason": ""
+  }
+]

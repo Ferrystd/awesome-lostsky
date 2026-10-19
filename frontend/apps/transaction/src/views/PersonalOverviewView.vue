@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsOverviewLinks from '@lostsky/ui/components/LsOverviewLinks.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import { readAccessReason } from '@lostsky/api/access-result'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
@@ -6,7 +7,9 @@ import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsWorkspaceOverview from '@lostsky/ui/components/LsWorkspaceOverview.vue'
+import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { BadgeCheck, Gift, Handshake, House, ListChecks } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
@@ -38,15 +41,19 @@ const metrics = computed(() => [
 </script>
 
 <template>
-  <LsWorkspaceOverview
-    :eyebrow="`${identityType} · ${access.data.value?.team?.name || '当前团队'}`"
+  <LsOverviewPage
     :title="access.data.value?.identity?.name || (access.isError.value ? '当前身份摘要暂时不可用' : '正在读取当前人员')"
-    :description="`查看自己的接单、发单与接待业绩，从参与的业务继续处理顾客和权益。${access.data.value?.identity?.slug ? ` 当前身份 @${access.data.value.identity.slug}` : ''}`"
-    :actions="[{ key: 'team', label: '进入团队工作台', to: '/overview', icon: House, primary: true }]"
-    :entries="entries"
-    :scope-notes="['团队流水需切换至团队工作台；商品编辑请移步至商城工作台']"
+    :description="`${identityType} · ${access.data.value?.team?.name || '当前团队'}。查看自己的接单、发单与接待业绩，从参与的业务继续处理顾客和权益。${access.data.value?.identity?.slug ? ` 当前身份 @${access.data.value.identity.slug}` : ''}`"
   >
-    <template #summary>
+    <template #actions>
+      <LsPageLink to="/overview" :icon="House" label="进入团队工作台" />
+      <LsSceneMotionControl />
+    </template>
+    <LsPanel>
+      <template #header><LsSectionHeader title="继续我的业务" description="从参与的流水、接单和顾客关系继续处理。" /></template>
+      <LsOverviewLinks label="个人工作入口" :entries="entries" />
+    </LsPanel>
+
       <LsPanel>
         <template #header><LsSectionHeader title="我的业务表现" description="按角色分别统计参与流水与业绩。" /></template>
         <LsMetricGrid :items="metrics" aria-label="个人业务统计" />
@@ -54,6 +61,11 @@ const metrics = computed(() => [
         <LsInlineError v-else-if="stats.isError.value" :message="friendlyError(stats.error.value)" />
       </LsPanel>
       <LsInlineError v-if="access.isError.value" :message="friendlyError(access.error.value)" />
-    </template>
-  </LsWorkspaceOverview>
+
+    <p class="workspace-note">团队流水需切换至团队工作台；商品编辑请移步至商城工作台。</p>
+  </LsOverviewPage>
 </template>
+
+<style scoped>
+.workspace-note { margin: 0; color: var(--text-secondary); font-size: .875rem; line-height: 1.6; }
+</style>

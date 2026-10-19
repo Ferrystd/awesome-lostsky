@@ -1,5 +1,11 @@
 # 后台公共组件
 
+## 已批准后台模板接入
+
+非 Team 后台此次采用[后台翻新规范](backoffice-renovation.md)。`LsOverviewPage`、`LsObjectDirectory`、`LsCategoryPage`、`LsDetailPage`、`LsFormPage`、`LsSinglePanelPage` 与 `LsCollectionPage` 是各自内容任务的视觉所有者，不接受任意视觉透传；标题、说明、上下文名称及语义插槽沿用保留分支已批准契约。无辅助区的 `LsFormPage` 上限 42rem；有实际上下文时沿用 2:1 辅助区。`LsField` 的 `description/readOnly` 仅表达字段语义，横向字段轨道由 `LsFormFields` 的上下文提供，未置于该上下文的旧字段保持原布局。
+
+场景 Provider 只由应用根节点提供，AccountFlowPage 与 ChatScene 仅拥有场景，不重复注入主题。Team 私有 UI 与场景保持原契约；未启用 `.ls-theme-aurora` 的前台保留基础外观。
+
 ## Shop 结单时限设置
 
 `ServiceCompletionSettings` 为 Shop 内部业务组件，由商品、规格及兼容服务表单共用；复用 `LsField` 和 `NInputNumber`，不创建新的视觉原语。仅接受 `idPrefix` 与两个可空分钟模型 `unusedMinutes`、`confirmationMinutes`，没有样式、尺寸参数或父级穿透。

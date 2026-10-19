@@ -1,18 +1,18 @@
 <script setup lang="ts">
+import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
-import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
-import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
-import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useQuery } from '@tanstack/vue-query'
 import { Gift } from '@lucide/vue'
 import { NPagination } from 'naive-ui'
-import type { DataTableColumns } from 'naive-ui'
-import { computed, h, reactive } from 'vue'
+import { computed, reactive } from 'vue'
 import { dateTime } from '../lib'
 import type { Pagination, PersonalEntitlementGrantRecord } from '../types'
 
@@ -37,59 +37,40 @@ function status(row: PersonalEntitlementGrantRecord) {
   if (row.is_exhausted) return { label: '已用完', type: 'default' as const }
   return { label: '可使用', type: 'success' as const }
 }
-const columns: DataTableColumns<PersonalEntitlementGrantRecord> = [
-  { title: '权益 / 商品', key: 'service', render: row => h('span', { class: 'entitlement-cell' }, [h('strong', row.service.name || `权益 #${row.id}`), h('small', row.product.name || '权益套餐')]) },
-  { title: '顾客', key: 'customer', render: row => h(LsEntityIdentity, { type: 'customer', name: row.customer.name || `顾客 #${row.customer.id}`, imageUrl: row.customer.avatar ?? null, size: 'sm' }) },
-  { title: '额度', key: 'quantity', render: row => h('span', { class: 'entitlement-cell ls-tabular' }, [h('strong', quantity(row.granted_quantity, row.unit_name)), h('small', `剩余 ${quantity(row.available_quantity, row.unit_name)}`)]) },
-  { title: '状态', key: 'status', render: row => h(LsStatusTag, status(row)) },
-  { title: '下发时间 / 到期', key: 'time', render: row => h('span', { class: 'entitlement-cell' }, [h('strong', dateTime(row.create_time)), h('small', row.expire_time ? `到期 ${dateTime(row.expire_time)}` : '永久有效')]) },
-]
 </script>
 
 <template>
   <div class="personal-entitlements-view">
-    <LsPageHeader title="权益下发" description="查看当前人员直接下发给顾客的全部权益；每项记录均按本人发单身份固定归档。">
+    <LsObjectDirectory title="权益下发" description="查看当前人员直接下发给顾客的全部权益；每项记录均按本人发单身份固定归档。">
       <template #actions>
-        <LsPagePrimaryAction :icon="Gift" label="下发权益" to="/personal/entitlements/new" />
+        <LsPageLink :icon="Gift" label="下发权益" to="/personal/entitlements/new" />
       </template>
-    </LsPageHeader>
-
-    <LsListToolbar
-      v-model="filters.keyword"
-      placeholder="搜索权益、商品或顾客"
-      aria-label="搜索本人下发的权益"
-      :count-label="`${query.data.value?.total ?? 0} 项权益`"
-      @update:model-value="filters.page = 1"
-    />
-
-    <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取下发记录" :description="friendlyError(query.error.value)" />
-    <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
-    <LsEmptyState :source="query.data.value"
+      <template #toolbar>
+        <LsListToolbar
+        v-model="filters.keyword"
+        placeholder="搜索权益、商品或顾客"
+        aria-label="搜索本人下发的权益"
+        :count-label="`${query.data.value?.total ?? 0} 项权益`"
+        @update:model-value="filters.page = 1"
+        />
+      </template>
+      <LsAsyncState v-if="query.isError.value" state="error" title="暂时无法读取下发记录" :description="friendlyError(query.error.value)" />
+      <LsAsyncState v-else-if="query.isPending.value" state="loading" :rows="6" />
+      <LsEmptyState :source="query.data.value"
       v-else-if="!rows.length"
       :title="filters.keyword ? '没有匹配的下发记录' : '还没有下发权益'"
       :description="filters.keyword ? '调整搜索关键词后再试。' : '下发的顾客权益会显示在这里。'"
-    />
-    <LsResponsiveDataTable v-else :columns="columns" :data="rows" :row-key="row => Number(row.id)" :scroll-x="900">
-      <template #mobile-title="{ row }">{{ row.service.name || `权益 #${row.id}` }}</template>
-      <template #mobile-status="{ row }"><LsStatusTag v-bind="status(row)" /></template>
-      <template #mobile="{ row }">
-        <dl>
-          <dt>来源商品</dt><dd>{{ row.product.name || '权益套餐' }}</dd>
-          <dt>顾客</dt><dd>{{ row.customer.name || `顾客 #${row.customer.id}` }}</dd>
-          <dt>下发额度</dt><dd class="ls-tabular">{{ quantity(row.granted_quantity, row.unit_name) }}</dd>
-          <dt>剩余额度</dt><dd class="ls-tabular">{{ quantity(row.available_quantity, row.unit_name) }}</dd>
-          <dt>下发时间</dt><dd>{{ dateTime(row.create_time) }}</dd>
-          <dt>有效期</dt><dd>{{ row.expire_time ? dateTime(row.expire_time) : '永久有效' }}</dd>
-        </dl>
+      />
+      <LsResourceList v-else aria-label="权益下发记录">
+        <LsResourceRow v-for="row in rows" :key="row.id" :title="row.service.name || `权益 #${row.id}`" :description="`${row.product.name || '权益套餐'} · 顾客 ${row.customer.name || `顾客 #${row.customer.id}`} · 下发 ${quantity(row.granted_quantity, row.unit_name)} · 剩余 ${quantity(row.available_quantity, row.unit_name)}`">
+          <template #status><LsStatusTag v-bind="status(row)" /></template>
+          <template #metadata><LsEntityIdentity type="customer" :name="row.customer.name || `顾客 #${row.customer.id}`" :image-url="row.customer.avatar ?? null" size="sm" /><span>下发于 {{ dateTime(row.create_time) }}</span><span>{{ row.expire_time ? `到期 ${dateTime(row.expire_time)}` : '永久有效' }}</span></template>
+        </LsResourceRow>
+      </LsResourceList>
+      <template v-if="query.data.value && Number(query.data.value.total) > 0" #pagination>
+        <span>共 {{ query.data.value.total }} 项，第 {{ filters.page }} / {{ pages }} 页</span>
+        <NPagination v-model:page="filters.page" :page-count="pages" />
       </template>
-    </LsResponsiveDataTable>
-    <div v-if="query.data.value && Number(query.data.value.total) > 0" class="pager">
-      <span>共 {{ query.data.value.total }} 项，第 {{ filters.page }} / {{ pages }} 页</span>
-      <NPagination v-model:page="filters.page" :page-count="pages" />
-    </div>
+    </LsObjectDirectory>
   </div>
 </template>
-
-<style scoped>
-.personal-entitlements-view{display:grid;gap:1.35rem}.personal-entitlements-view :deep(.entitlement-cell>*){display:block}.personal-entitlements-view :deep(.entitlement-cell small){margin-top:.15rem;color:var(--muted-ink);font-size:.75rem}
-</style>

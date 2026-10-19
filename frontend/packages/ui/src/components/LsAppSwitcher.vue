@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ChevronDown, Globe, House, LayoutGrid, MessageCircleMore, Radio, ReceiptText, Store } from '@lucide/vue'
+import { Check, ChevronDown, House, LayoutGrid, MessageCircleMore, Radio, ReceiptText, Store } from '@lucide/vue'
 import { NButton, NPopover } from 'naive-ui'
 import { nextTick, ref, useId } from 'vue'
 import { feedback } from '../feedback'

@@ -78,7 +78,7 @@ function click(event: MouseEvent) {
   justify-content: center;
   gap: .375rem;
   padding: 0 .75rem;
-  color: white;
+  color: var(--on-primary);
   background: var(--sky-lost-strong);
   border: 1px solid var(--sky-lost-strong);
   border-radius: var(--radius-sm);
@@ -93,7 +93,7 @@ function click(event: MouseEvent) {
   justify-content: center;
   gap: .375rem;
   padding: 0 .75rem;
-  color: white;
+  color: var(--on-primary);
   background: var(--sky-lost-strong);
   border: 1px solid var(--sky-lost-strong);
   border-radius: var(--radius-sm);
@@ -131,7 +131,7 @@ function click(event: MouseEvent) {
 }
 .ls-page-primary-action__icon { flex: none; }
 .ls-page-primary-action--disabled { opacity: .5; cursor: pointer; }
-.ls-page-primary-action__spinner { width: 1rem; height: 1rem; flex: none; border: 2px solid color-mix(in oklch, white, transparent 55%); border-top-color: white; border-radius: 50%; animation: ls-page-primary-action-spin .8s linear infinite; }
+.ls-page-primary-action__spinner { width: 1rem; height: 1rem; flex: none; border: 2px solid color-mix(in oklch, var(--on-primary), transparent 55%); border-top-color: var(--on-primary); border-radius: 50%; animation: ls-page-primary-action-spin .8s linear infinite; }
 @keyframes ls-page-primary-action-spin { to { transform: rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) {
   .ls-page-primary-action--link,.ls-page-primary-action--button { transition: none; }

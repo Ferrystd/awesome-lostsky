@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AccountFlowPage from '../components/AccountFlowPage.vue'
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { safeRedirect } from '@lostsky/shared/navigation'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -59,13 +60,13 @@ async function logout() {
 </script>
 
 <template>
-    <main class="identity-page">
+    <AccountFlowPage><div class="identity-page">
       <nav class="page-actions" aria-label="账号操作">
         <a class="back" href="/teams"><ArrowLeft :size="18" />返回团队列表</a>
         <NButton quaternary @click="logout"><template #icon><LogOut :size="18" /></template>退出登录</NButton>
       </nav>
       <header>
-        <p class="eyebrow">身份</p>
+
         <h1>选择当前身份</h1>
         <p>业务操作使用你登录的人员。</p>
       </header>
@@ -117,12 +118,12 @@ async function logout() {
           前往页面<ArrowRight :size="18" aria-hidden="true" />
         </a>
       </footer>
-    </main>
+    </div></AccountFlowPage>
 </template>
 
 <style scoped>
 .page-actions{display:flex;align-items:center;justify-content:space-between;gap:1rem}
 .return-action{display:flex;justify-content:flex-end;padding-top:.5rem}
 .return-link{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;color:var(--sky-lost-strong);font-weight:650;text-underline-offset:.2em}.return-link:hover{text-decoration:underline}.return-link:focus-visible{outline:2px solid var(--sky-lost-strong);outline-offset:3px;border-radius:4px}
-.identity-page{width:min(100% - 2rem,42rem);margin:0 auto;padding:2.5rem 0 4rem;display:grid;gap:1.5rem}.back{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;width:max-content;color:var(--sky-lost-strong);font-weight:650}.identity-page header{display:grid;gap:.65rem}.identity-page h1,.identity-page h2,.identity-page p{margin:0}.identity-page h1{font-size:2rem;line-height:1.2}.identity-page header>p:last-child,.candidate-heading p{max-width:65ch;color:var(--muted-ink);line-height:1.65}.eyebrow{font:700 .72rem/1 'Barlow Condensed',sans-serif;letter-spacing:.12em;color:var(--sky-lost-strong)}.active-card,.identity-list,.state{background:white;border:1px solid var(--line);border-radius:12px}.active-card{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem}.active-card p{margin-top:.25rem;color:var(--muted-ink);font-size:.8rem}.candidate-heading{display:flex;align-items:end;justify-content:space-between;gap:1rem}.candidate-heading h2{font-size:1.125rem}.candidate-heading p{margin-top:.35rem;font-size:.875rem}.target-note{padding:.8rem 1rem;color:var(--ink);background:var(--cloud);border-radius:8px;font-size:.875rem}.candidate-results{display:grid;gap:1rem}.identity-list{display:grid;overflow:hidden}.identity-list article{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:1rem;align-items:center;padding:1rem;border-bottom:1px solid var(--line)}.identity-list article.targeted{background:var(--cloud);outline:2px solid var(--sky-lost-strong);outline-offset:-2px}.identity-list article:last-child{border-bottom:0}.identity-list article>svg{color:var(--sky-lost-strong)}.identity-list strong,.identity-list small{display:block}.identity-list small{margin-top:.2rem;color:var(--muted-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.identity-list .team-name{color:var(--ink)}.state{padding:2rem;text-align:center}.state h2{margin:0 0 .5rem;font-size:1.05rem}.state p{color:var(--muted-ink);line-height:1.6}.state.error{display:grid;justify-items:center;gap:1rem}.skeletons{display:grid;gap:.75rem;text-align:left}.error{margin:0;color:var(--danger)}@media(max-width:32rem){.identity-page{padding-top:1.5rem}.active-card{align-items:stretch;flex-direction:column}.identity-list article{grid-template-columns:24px minmax(0,1fr);gap:.75rem}.identity-list article :deep(.n-button){grid-column:2;justify-self:start;min-height:44px}.identity-list small{white-space:normal}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+.identity-page{display:grid;gap:1.5rem;min-width:0}.back{min-height:44px;display:inline-flex;align-items:center;gap:.4rem;width:max-content;color:var(--sky-lost-strong);font-weight:650}.identity-page header{display:grid;gap:.65rem}h1,h2,p{margin:0}.identity-page h1{font-size:2rem;line-height:1.2}.identity-page header>p:last-child,.candidate-heading p{max-width:65ch;color:var(--muted-ink);line-height:1.65}.active-card{border-bottom:1px solid var(--line)}.identity-list,.state{background:transparent}.active-card{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem}.active-card p{margin-top:.25rem;color:var(--muted-ink);font-size:.8rem}.candidate-heading{display:flex;align-items:end;justify-content:space-between;gap:1rem}.candidate-heading h2{font-size:1.125rem}.candidate-heading p{margin-top:.35rem;font-size:.875rem}.target-note{padding:.8rem 1rem;color:var(--ink);background:var(--cloud);border-radius:8px;font-size:.875rem}.candidate-results{display:grid;gap:1rem}.identity-list{display:grid;overflow:hidden}.identity-list article{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:1rem;align-items:center;padding:1rem;border-bottom:1px solid var(--line)}.identity-list article.targeted{background:var(--cloud);outline:2px solid var(--sky-lost-strong);outline-offset:-2px}.identity-list article:last-child{border-bottom:0}.identity-list article>svg{color:var(--sky-lost-strong)}.identity-list strong,.identity-list small{display:block}.identity-list small{margin-top:.2rem;color:var(--muted-ink);overflow-wrap:anywhere}.identity-list .team-name{color:var(--ink)}.state{padding:2rem;text-align:center}.state h2{margin:0 0 .5rem;font-size:1.05rem}.state p{color:var(--muted-ink);line-height:1.6}.state.error{display:grid;justify-items:center;gap:1rem}.skeletons{display:grid;gap:.75rem;text-align:left}.error{margin:0;color:var(--danger)}@media(max-width:32rem){.identity-page{display:grid;gap:1.5rem;min-width:0}.active-card{align-items:stretch;flex-direction:column}.identity-list article{grid-template-columns:24px minmax(0,1fr);gap:.75rem}.identity-list article :deep(.n-button){grid-column:2;justify-self:start;min-height:44px}.identity-list small{white-space:normal}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 </style>

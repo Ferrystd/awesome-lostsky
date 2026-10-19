@@ -1,4 +1,11 @@
 <script setup lang="ts">
+import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
+import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
+import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft } from '@lucide/vue'
+
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 
@@ -9,7 +16,6 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -166,16 +172,17 @@ async function submit() {
   if (submitReason.value) return feedback.info(submitReason.value)
   save.mutate()
 }
+const summaryAvailable = computed(() => !routeAccess.restricted.value && (!editing.value || detail.isSuccess.value))
+const summaryComplete = computed(() => summaryAvailable.value && amountFields.every(key => typeof form[key] === 'number' && Number.isFinite(form[key]) && Number(form[key]) >= 0))
+const summaryMoney = (value: number | null) => summaryAvailable.value && typeof value === 'number' && Number.isFinite(value) && value >= 0 ? money(value) : '-'
 </script>
 
 <template>
-  <div class="transaction-form-view">
-    <LsPageHeader
-      :title="editing ? '编辑流水' : '登记流水'"
-      :description="editing ? '接单人创建后不可更换；修改预存款会同步生成余额变动。' : '总价需要同时与支付构成、成本及分成构成保持一致。'"
-      :back-to="editing ? `/detail?id=${id}` : personal ? '/personal/transactions' : '/'"
-      :back-label="editing ? '返回流水详情' : personal ? '返回我的流水' : '返回流水列表'"
-    />
+  <LsFormPage aside-label="流水金额与顾客摘要" :title="editing ? '编辑流水' : '登记流水'" :description="editing ? '接单人创建后不可更换；修改预存款会同步生成余额变动。' : '总价需要同时与支付构成、成本及分成构成保持一致。'">
+    <template #actions>
+      <LsPageLink :to="editing ? `/detail?id=${id}` : personal ? '/personal/transactions' : '/'" :icon="ArrowLeft" :label="editing ? '返回流水详情' : personal ? '返回我的流水' : '返回流水列表'" />
+    </template>
+
     <LsInlineError v-if="!routeAccess.restricted.value && detail.isError.value" :message="friendlyError(detail.error.value)" />
     <form v-else class="transaction-form" @submit.prevent="submit">
       <LsInlineError v-if="!routeAccess.restricted.value && optionsQuery.isError.value" message="参与方选项暂时无法读取；表单仍可查看，但相关字段已禁用。" />
@@ -209,13 +216,44 @@ async function submit() {
       <LsInlineError v-if="Number(form.prepaid) > balance && selectedCustomer" message="预存款金额超过当前顾客余额。" />
       <LsInlineError v-if="save.isError.value" :message="friendlyError(save.error.value)" />
       <LsFormActions>
-        <LsButton type="button" variant="secondary" @click="router.back()">取消</LsButton>
+        <LsButton type="button" variant="ghost" @click="router.back()"><template #icon><ArrowLeft :size="16" /></template>取消</LsButton>
         <LsButton type="submit" size="lg" :loading="save.isPending.value" :disabled="Boolean(submitReason)" :disabled-reason="submitReason">保存流水</LsButton>
       </LsFormActions>
     </form>
-  </div>
+    <template #aside>
+      <LsFormSection title="金额摘要" description="当前草稿，保存后生效">
+        <p v-if="routeAccess.restricted.value" class="transaction-context-note">-</p>
+        <LsInlineError v-else-if="editing && detail.isError.value" :message="friendlyError(detail.error.value)" />
+        <LsAsyncState v-else-if="editing && detail.isPending.value" state="loading" :rows="3" />
+        <template v-else>
+          <LsDescriptionList>
+            <dt>总价</dt><dd>{{ summaryMoney(form.total_price) }}</dd>
+            <dt>现款</dt><dd>{{ summaryMoney(form.cash) }}</dd>
+            <dt>预存款</dt><dd>{{ summaryMoney(form.prepaid) }}</dd>
+            <dt>支付合计</dt><dd>{{ summaryComplete ? money(paymentTotal) : '-' }}</dd>
+            <dt>成本及分成</dt><dd>{{ summaryComplete ? money(allocationTotal) : '-' }}</dd>
+          </LsDescriptionList>
+          <LsStatusTag v-if="!summaryComplete || !balanced" :label="!summaryComplete ? '金额待补全' : '金额未平衡'" type="warning" />
+          <p v-if="summaryComplete && !balanced" class="transaction-context-note">支付与总价相差 {{ money(Math.abs(paymentTotal - Number(form.total_price))) }}；成本及分成与总价相差 {{ money(Math.abs(allocationTotal - Number(form.total_price))) }}。</p>
+        </template>
+      </LsFormSection>
+      <LsFormSection title="顾客与余额" description="当前选择的顾客">
+        <p v-if="routeAccess.restricted.value" class="transaction-context-note">顾客信息不可读取。</p>
+        <LsInlineError v-else-if="optionsQuery.isError.value" message="顾客信息暂时无法读取。" />
+        <LsAsyncState v-else-if="optionsQuery.isPending.value || (editing && detail.isPending.value)" state="loading" :rows="2" />
+        <p v-else-if="editing && detail.isError.value" class="transaction-context-note">流水详情读取失败，无法确认顾客。</p>
+        <LsDescriptionList v-else-if="selectedCustomer">
+          <dt>顾客</dt><dd>{{ customerName(selectedCustomer, selectedCustomer.id) }}</dd>
+          <dt>当前余额</dt><dd>{{ selectedCustomer.balance?.balance != null ? money(balance) : '-' }}</dd>
+          <dt>本次预存款</dt><dd>{{ summaryMoney(form.prepaid) }}</dd>
+        </LsDescriptionList>
+        <p v-else class="transaction-context-note">{{ form.customer_id ? '当前顾客资料不在可读取范围内。' : '尚未选择顾客；使用预存款时需选择顾客。' }}</p>
+      </LsFormSection>
+    </template>
+  </LsFormPage>
 </template>
 
 <style scoped>
-.transaction-form-view,.transaction-form{display:grid;gap:1.25rem}.ok,.warn{font-size:.78rem}.ok{color:var(--success)}.warn{color:var(--warning)}.balance-hint,.equation{margin:0;padding:.7rem .8rem;border-radius:8px;background:var(--cloud);color:var(--muted-ink);font-size:.82rem}.balance-hint strong{color:var(--ink)}
+.transaction-context-note { margin: 0; color: var(--text-secondary); font-size: .8125rem; line-height: 1.7; }
+.transaction-form{display:grid;gap:1.25rem}.ok,.warn{font-size:.78rem}.ok{color:var(--success)}.warn{color:var(--warning)}.balance-hint,.equation{margin:0;padding:.7rem .8rem;border-radius:8px;background:var(--cloud);color:var(--muted-ink);font-size:.82rem}.balance-hint strong{color:var(--ink)}
 </style>

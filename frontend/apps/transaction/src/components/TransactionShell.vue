@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineProps<{ scene?: boolean }>()
 import { identityUrl, workspaceAppEntries } from '@lostsky/shared/navigation'
 import LsWorkspaceHeader from '@lostsky/ui/components/LsWorkspaceHeader.vue'
 import { BarChart3, BadgeCheck, ChevronRight, CircleDollarSign, Gift, Handshake, House, ListChecks, Menu, MessageCircleMore, Radio, ReceiptText, Store, UserRound, X } from '@lucide/vue'
@@ -61,7 +62,7 @@ function handleHeaderAction(key: string) {
       <div v-if="drawer" class="backdrop" aria-hidden="true" @click="drawer = false"></div>
     </Transition>
     <section class="workspace">
-      <LsWorkspaceHeader context-label="记账工作台" :title="title" :actions="headerActions" app-navigation current-app="transaction" @menu="drawer = true" @action="handleHeaderAction">
+      <LsWorkspaceHeader :scene="scene" :contextual="scene" context-label="记账工作台" :title="title" :actions="headerActions" app-navigation current-app="transaction" @menu="drawer = true" @action="handleHeaderAction">
         <template #actions>
           <a class="app-link" :href="appEntries[0]?.href"><House :size="17" /><span>团队</span></a>
           <a class="app-link" :href="appEntries[1]?.href"><Store :size="17" /><span>商品</span></a>

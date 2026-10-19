@@ -1,0 +1,492 @@
+[
+  {
+    "app": "account",
+    "path": "/",
+    "kind": "redirect"
+  },
+  {
+    "app": "account",
+    "path": "/login",
+    "kind": "page"
+  },
+  {
+    "app": "account",
+    "path": "/recovery",
+    "kind": "page"
+  },
+  {
+    "app": "account",
+    "path": "/register",
+    "kind": "page"
+  },
+  {
+    "app": "account",
+    "path": "/teams",
+    "kind": "page"
+  },
+  {
+    "app": "account",
+    "path": "/identity",
+    "kind": "page"
+  },
+  {
+    "app": "account",
+    "path": "/identity/member-callback",
+    "kind": "page"
+  },
+  {
+    "app": "account",
+    "path": "/identity/workspace-warning",
+    "kind": "page"
+  },
+  {
+    "app": "account",
+    "path": "/identity/current/:section?",
+    "kind": "transition"
+  },
+  {
+    "app": "chat",
+    "path": "/",
+    "kind": "page"
+  },
+  {
+    "app": "chat",
+    "path": "/requests",
+    "kind": "page"
+  },
+  {
+    "app": "chat",
+    "path": "/new",
+    "kind": "page"
+  },
+  {
+    "app": "chat",
+    "path": "/profile",
+    "kind": "redirect"
+  },
+  {
+    "app": "transaction",
+    "path": "/",
+    "kind": "redirect"
+  },
+  {
+    "app": "transaction",
+    "path": "/overview",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/transactions",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal/transactions",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal/transactions/new",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal/transactions/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal/services",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal/service-offers/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal/services/available/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal/services/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal/customers",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal/bindings",
+    "kind": "redirect"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal/entitlements",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/personal/entitlements/new",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/detail",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/edit",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/stats",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/services",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/entitlements/new",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/services/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/balances",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/balance",
+    "kind": "page"
+  },
+  {
+    "app": "transaction",
+    "path": "/recharge",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/users",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/users/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/teams",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/teams/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/entitlements/team-abilities",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/administrators",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/administrators/new",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/administrators/:userId(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/roles",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/roles/new",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/roles/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/audit",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/system",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/site-content",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/entitlements/packages",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/entitlements/packages/new",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/entitlements/packages/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/entitlements/campaigns",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/entitlements/campaigns/new",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/entitlements/campaigns/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/forbidden",
+    "kind": "page"
+  },
+  {
+    "app": "admin",
+    "path": "/:pathMatch(.*)*",
+    "kind": "redirect"
+  },
+  {
+    "app": "weibo",
+    "path": "/overview",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/interactions/comment-presets",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/interactions/comment-presets/new",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/interactions/comment-presets/edit",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/accounts",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/accounts/bind",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/compose",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/interactions",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/tasks",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/tasks/new",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/tasks/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/logs",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/feed",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/interactions/comment-presets",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/interactions/comment-presets/new",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/interactions/comment-presets/edit",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/accounts",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/accounts/bind",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/compose",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/interactions",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/tasks",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/tasks/new",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/tasks/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/personal/logs",
+    "kind": "page"
+  },
+  {
+    "app": "weibo",
+    "path": "/",
+    "kind": "redirect"
+  },
+  {
+    "app": "shop",
+    "path": "/manage",
+    "kind": "page"
+  },
+  {
+    "app": "shop",
+    "path": "/manage/personal",
+    "kind": "page"
+  },
+  {
+    "app": "shop",
+    "path": "/manage/personal/products",
+    "kind": "page"
+  },
+  {
+    "app": "shop",
+    "path": "/manage/personal/products/new",
+    "kind": "page"
+  },
+  {
+    "app": "shop",
+    "path": "/manage/personal/products/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "shop",
+    "path": "/manage/personal/orders",
+    "kind": "page"
+  },
+  {
+    "app": "shop",
+    "path": "/manage/products",
+    "kind": "page"
+  },
+  {
+    "app": "shop",
+    "path": "/manage/products/new",
+    "kind": "page"
+  },
+  {
+    "app": "shop",
+    "path": "/manage/products/:id(\\\\d+)",
+    "kind": "page"
+  },
+  {
+    "app": "shop",
+    "path": "/manage/orders",
+    "kind": "page"
+  },
+  {
+    "app": "shop",
+    "path": "/manage/orders/new",
+    "kind": "page"
+  },
+  {
+    "app": "shop",
+    "path": "/manage/orders/:id(\\\\d+)",
+    "kind": "page"
+  }
+]
