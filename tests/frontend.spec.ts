@@ -2255,7 +2255,7 @@ test('team workspace routes remain responsive with the API boundary mocked', asy
   for (const path of ['/', '/entities', '/members', '/customers', '/member-detail?id=1', '/member-add', '/member-edit?id=1', '/roles', '/roles/new', '/fields', '/field-new?type=entity', '/join-fields', '/join-fields/new', '/join-fields/42', '/chat-virtuals', '/chat-virtual-new', '/chat-virtual?slug=sales-assistant', '/chat-integration-new?slug=sales-assistant', '/personal/notices', '/personal/notices/detail?id=21', '/notices/team', '/notices/team/detail?id=21', '/notices/send', '/files', '/docs', '/doc-create', '/doc-edit?id=11', '/doc?id=11', '/settings', '/join-review', '/join-review/review?id=1']) {
     await page.goto(`http://demo.team.lostsky.work:5175${path}`)
     expect(page.url(), `unexpected navigation at ${path}; errors: ${pageErrors.join(' | ')}`).toContain('demo.team.lostsky.work:5175')
-    if (!(await page.locator('#workspace').count())) throw new Error(`workspace missing at ${path}; url=${page.url()}; authenticated=${Boolean(await page.evaluate(() => localStorage.getItem('lostsky_token')))}; errors=${pageErrors.join(' | ')}; body=${(await page.locator('body').innerText()).slice(0, 400)}`)
+    // The app waits for the initial route guard before mounting its workspace.
     await expect(page.locator('#workspace')).toBeVisible()
     await expect(page.locator('#workspace > .ls-page'), `admin page hidden at ${path}; errors: ${pageErrors.join(' | ')}`).toBeVisible({ timeout: 60_000 })
     if (collectionPaths.has(path)) await expect(page.locator('.ls-list-toolbar')).toBeVisible()

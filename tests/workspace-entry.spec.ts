@@ -17,6 +17,19 @@ async function setToken(page: Page, type: 'team' | 'teamMember' | 'teamVirtual' 
 
 async function expectHeaderApps(page: Page, headerSelector = '.ls-workspace-header', mobileBreakpoint = 768) {
   const header = page.locator(headerSelector)
+  if (new URL(page.url()).hostname.endsWith('.team.lostsky.work') && (page.viewportSize()?.width ?? 0) < mobileBreakpoint) {
+    const trigger = header.getByRole('button', { name: '切换应用', exact: true })
+    const panel = page.getByRole('dialog', { name: '切换应用', exact: true })
+    await trigger.click()
+    await expect(panel).toBeVisible()
+    await expect(panel.locator('.ls-workspace-apps__item')).toHaveText(['团队', '商品', '记账', '聊天', '微博'])
+    await expect(panel.locator('button[aria-current="true"]')).toHaveText('团队')
+    await expect(panel.locator('button[aria-current="true"]')).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(panel).toBeHidden()
+    await expect(trigger).toBeFocused()
+    return
+  }
   await expect(page.getByRole('button', { name: '切换应用' })).toHaveCount(0)
   if ((page.viewportSize()?.width ?? 0) < mobileBreakpoint) {
     await header.getByRole('button', { name: '操作' }).click()
@@ -193,7 +206,7 @@ test('Team resource dashboard reaches personal workspace from the overview CTA',
 
   await page.goto('http://demo.team.lostsky.work:5175/')
   await expect(page.getByRole('link', { name: '进入个人工作台' })).toHaveAttribute('href', '/personal')
-  await expect(page.getByRole('button', { name: '切换应用' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '切换应用' })).toHaveCount((page.viewportSize()?.width ?? 0) < 768 ? 1 : 0)
   await expect(page.getByRole('button', { name: '个人工作台' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '团队工作台' })).toHaveCount(0)
   await expect(page.locator('.sidebar').getByRole('link', { name: '概览' })).toHaveCount(1)

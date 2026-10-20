@@ -12,6 +12,7 @@ import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
+import LsPageNavigation from '@lostsky/ui/components/LsPageNavigation.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
@@ -35,8 +36,8 @@ createApp({
     provide(workspaceSceneKey, { available: ref(true), paused: ref(false) })
     return () => h(NConfigProvider, workspaceSceneProviderProps(true), { default: () => h('main', { style: 'padding:16px;display:grid;grid-template-columns:minmax(0,1fr);gap:24px;min-width:0' }, [
       ...[LsCollectionPage, LsObjectDirectory, LsCategoryPage, LsDetailPage, LsFormPage, LsOverviewPage].map((component, index) => h('section', { 'data-template': index }, [
-        h(component, { title: long ? '需要保留全部文字的人员管理页面标题' : '人员管理', description: '查看团队内有权查看的人员。', items: [{ key: 'all', label: '全部' }], current: 'all', label: '分类' }, {
-          actions,
+        h(component, { title: long ? '需要保留全部文字的人员管理页面标题' : '人员管理', description: long ? '查看团队内有权查看的人员，保留完整的人员资料说明和访问边界。放大文字后也应当紧随标题自然换行。' : '查看团队内有权查看的人员。', items: [{ key: 'all', label: '全部' }], current: 'all', label: '分类' }, {
+          actions: () => query.has('navigation') ? h(LsPageNavigation, { label: 'More navigation', links: [{ to: '/fields', icon: FileText, label: 'Fields' }, { to: '/virtuals', icon: Bot, label: 'Virtual people' }] }) : actions(),
           default: () => h('p', '业务内容'),
         }),
       ])),
