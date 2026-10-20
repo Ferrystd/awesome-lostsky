@@ -7,7 +7,7 @@ import { goToSafeRedirect } from '@lostsky/shared/navigation'
 import { ref } from 'vue'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import AccountFlowPage from '../components/AccountFlowPage.vue'
+import AuthShell from '../components/AuthShell.vue'
 import SmsCodeField from '../components/SmsCodeField.vue'
 
 const route = useRoute()
@@ -55,7 +55,7 @@ async function submit() {
 </script>
 
 <template>
-  <AccountFlowPage title="创建通行证" intro="验证手机号码并设置密码，之后可使用验证码或密码登录。">
+  <AuthShell title="创建通行证" intro="验证手机号码并设置密码，之后可使用验证码或密码登录。">
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <form class="form" @submit.prevent="submit">
       <LsField label="手机号码" for-id="register-phone" required>
@@ -78,13 +78,13 @@ async function submit() {
       <LsButton class="auth-submit" type="submit" size="lg" :loading="loading">验证并创建账号</LsButton>
     </form>
     <p class="switch">已有账号？<RouterLink :to="loginTarget">直接登录</RouterLink></p>
-  </AccountFlowPage>
+  </AuthShell>
 </template>
 
 <style scoped>
 .form { display: grid; gap: 1.25rem; }
 .auth-submit { width: 100%; margin-top: .25rem; }
-.error { padding: .75rem .85rem; color: var(--danger); background: color-mix(in oklch, var(--danger), var(--surface) 93%); border-radius: 8px; font-size: .875rem; }
+.error { padding: .75rem .85rem; color: var(--danger); background: color-mix(in oklch, var(--danger), white 93%); border-radius: 8px; font-size: .875rem; }
 .switch { margin: 1.5rem 0 0; text-align: center; color: var(--muted-ink); font-size: .9rem; }
 .switch a { color: var(--sky-lost-strong); font-weight: 700; }
 </style>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { api, friendlyError } from '@lostsky/api/client'
 import { feedback } from '@lostsky/ui/feedback'
-import ChatTaskPage from '../components/ChatTaskPage.vue'
-
+import LsPage from '@lostsky/ui/components/LsPage.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -20,7 +20,8 @@ const action = useMutation({
 })
 </script>
 <template>
-  <ChatTaskPage title="邀请与屏蔽" description="处理群聊邀请，管理与你联系的人员。">
+  <main class="chat-requests"><LsPage width="content">
+    <LsPageHeader title="邀请与屏蔽" back-to="/" back-label="返回消息" />
     <section><h2>待处理群邀请</h2>
       <LsAsyncState v-if="invitations.isPending.value" state="loading" /><LsAsyncState v-else-if="invitations.isError.value" state="error" :description="friendlyError(invitations.error.value)" />
       <NList v-else-if="invitations.data.value?.length"><NListItem v-for="item in invitations.data.value" :key="item.uuid"><NThing :title="item.title || '群聊邀请'" description="接受后可以读取群聊历史消息。" /><template #suffix><div class="request-actions"><LsButton :loading="action.isPending.value" :disabled="!expectedEntityId" disabled-reason="正在读取当前身份" @click="action.mutate({ path: '/conversation/invitation/accept', body: { uuid: item.uuid } })">接受</LsButton><LsButton variant="secondary" :loading="action.isPending.value" :disabled="!expectedEntityId" disabled-reason="正在读取当前身份" @click="action.mutate({ path: '/conversation/invitation/reject', body: { uuid: item.uuid } })">拒绝</LsButton></div></template></NListItem></NList>
@@ -31,8 +32,8 @@ const action = useMutation({
       <NList v-else-if="blocks.data.value?.length"><NListItem v-for="item in blocks.data.value" :key="item.slug">{{ item.name }} · @{{ item.slug }}<template #suffix><LsButton variant="secondary" :loading="action.isPending.value" :disabled="!expectedEntityId" disabled-reason="正在读取当前身份" @click="action.mutate({ path: '/block/delete', body: { entity_slug: item.slug } })">取消屏蔽</LsButton></template></NListItem></NList>
       <LsEmptyState v-else-if="!blocks.isPending.value" title="暂无屏蔽人员" description="可在单聊消息页屏蔽对方。" />
     </section>
-  </ChatTaskPage>
+  </LsPage></main>
 </template>
 <style scoped>
-.request-actions{display:flex;flex-wrap:wrap;gap:.5rem}h2{font-size:1.1rem}
+.chat-requests{padding:2rem 1rem}.request-actions{display:flex;flex-wrap:wrap;gap:.5rem}h2{font-size:1.1rem}
 </style>

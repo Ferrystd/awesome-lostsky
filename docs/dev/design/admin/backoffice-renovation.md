@@ -2,7 +2,7 @@
 
 ## 范围与交付
 
-范围为 Account、Chat、Transaction、Admin、Weibo 和 Shop `/manage`。Team 保持不变；Community 未发布功能不恢复；Site、Display 与 Shop 前台不迁移。机器清单位于 `frontend/backoffice-preview-manifest.json`，逐路由及影响结构的变体登记模板、复用来源、预览路径和完成状态。重定向具名登记，不冒充可见页面。
+范围为 Transaction、Admin、Weibo 和 Shop `/manage`。Account、Chat、Team 保持基线不变；Community 未发布功能不恢复；Site、Display 与 Shop 前台不迁移。机器清单位于 `frontend/backoffice-preview-manifest.json`，逐路由及影响结构的变体登记模板、复用来源、预览路径和完成状态。重定向具名登记，不冒充可见页面。
 
 全部真实页面必须有代码渲染的桌面与手机预览，索引按应用、路由与变体组织；只提供代表页或组件名不算全覆盖。模拟数据明确标记，未模拟 API 请求必须失败，不以登录跳转、错误页或 HTTP 200 代替成功预览。预览、临时服务与完整静态构建只在任务工作树，不安装到主工作区 `www`，不改常驻站点或生产。
 
@@ -18,7 +18,7 @@
 | 简单独立任务 | `LsSinglePanelPage` | 左对齐有阅读上限单面板，右侧可自然留白 |
 | 流水、日志等多列比较 | `LsCollectionPage` | 保留搜索、筛选、批量与记录语义，不强行压为对象目录；移动记录保留字段名 |
 
-身份验证、多步恢复、领取身份结果与聊天时间线属于具名专用流程。AccountFlowPage、ChatScene、ChatTaskPage 由应用拥有，不加入万能公共页面组件。运行态、错误、空数据、禁用原因及权限边界沿用现有行为，不新增后端接口。
+账号身份流程与聊天应用不在本次范围，不启用此次新增场景。运行态、错误、空数据、禁用原因及权限边界沿用现有行为，不新增后端接口。
 
 ## 共用所有权
 

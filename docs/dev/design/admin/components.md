@@ -2,9 +2,9 @@
 
 ## 已批准后台模板接入
 
-非 Team 后台此次采用[后台翻新规范](backoffice-renovation.md)。`LsOverviewPage`、`LsObjectDirectory`、`LsCategoryPage`、`LsDetailPage`、`LsFormPage`、`LsSinglePanelPage` 与 `LsCollectionPage` 是各自内容任务的视觉所有者，不接受任意视觉透传；标题、说明、上下文名称及语义插槽沿用保留分支已批准契约。无辅助区的 `LsFormPage` 上限 42rem；有实际上下文时沿用 2:1 辅助区。`LsField` 的 `description/readOnly` 仅表达字段语义，横向字段轨道由 `LsFormFields` 的上下文提供，未置于该上下文的旧字段保持原布局。
+Transaction、Admin、Weibo 与 Shop 管理后台此次采用[后台翻新规范](backoffice-renovation.md)。`LsOverviewPage`、`LsObjectDirectory`、`LsCategoryPage`、`LsDetailPage`、`LsFormPage`、`LsSinglePanelPage` 与 `LsCollectionPage` 是各自内容任务的视觉所有者，不接受任意视觉透传；标题、说明、上下文名称及语义插槽沿用保留分支已批准契约。无辅助区的 `LsFormPage` 上限 42rem；有实际上下文时沿用 2:1 辅助区。`LsField` 的 `description/readOnly` 仅表达字段语义，横向字段轨道由 `LsFormFields` 的上下文提供，未置于该上下文的旧字段保持原布局。
 
-场景 Provider 只由应用根节点提供，AccountFlowPage 与 ChatScene 仅拥有场景，不重复注入主题。Team 私有 UI 与场景保持原契约；未启用 `.ls-theme-aurora` 的前台保留基础外观。
+场景 Provider 只由应用根节点提供，业务页面不重复注入主题。Account、Chat 保留基线组件与默认主题。Team 私有 UI 与场景保持原契约；未启用 `.ls-theme-aurora` 的前台保留基础外观。
 
 ## Shop 结单时限设置
 

@@ -8,7 +8,7 @@ import LsInput from '@lostsky/ui/components/LsInput.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import AccountFlowPage from '../components/AccountFlowPage.vue'
+import AuthShell from '../components/AuthShell.vue'
 import SmsCodeField from '../components/SmsCodeField.vue'
 
 const route = useRoute()
@@ -121,8 +121,7 @@ async function submit() {
 </script>
 
 <template>
-  <AccountFlowPage :title="title" :intro="intro">
-    <ol class="recovery-progress" aria-label="恢复进度"><li :aria-current="step === 'verify' ? 'step' : undefined">验证手机号</li><li :aria-current="['choose', 'password', 'phone'].includes(step) ? 'step' : undefined">更新账号信息</li><li :aria-current="step === 'done' ? 'step' : undefined">重新登录</li></ol>
+  <AuthShell :title="title" :intro="intro">
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     <form v-if="step === 'verify'" class="form" aria-label="验证当前手机号" @submit.prevent="verify">
       <LsField label="当前绑定手机号" for-id="recovery-phone" required>
@@ -156,13 +155,12 @@ async function submit() {
     <LsButton v-if="token" class="reverify" variant="ghost" :disabled="busy" @click="resetVerification()">重新验证当前手机号</LsButton>
     <p v-if="step === 'done'" role="status">你可以使用新的账号信息登录。</p>
     <p class="back"><RouterLink id="recovery-login" :to="loginTarget">返回登录</RouterLink></p>
-  </AccountFlowPage>
+  </AuthShell>
 </template>
 
 <style scoped>
-.recovery-progress{display:flex;flex-wrap:wrap;gap:.75rem 1.5rem;list-style:none;padding:0 0 1rem;margin:0;border-bottom:1px solid var(--line);color:var(--muted-ink);font-size:.875rem}.recovery-progress [aria-current]{color:var(--ink);font-weight:700}
 .form { display: grid; gap: 1.25rem; }
-.error { padding: .75rem .85rem; border-radius: 8px; font-size: .875rem; color: var(--danger); background: color-mix(in oklch, var(--danger), var(--surface) 93%); }
+.error { padding: .75rem .85rem; border-radius: 8px; font-size: .875rem; color: var(--danger); background: color-mix(in oklch, var(--danger), white 93%); }
 .reverify { width: 100%; margin-top: 1rem; }
 .back { margin: 1.5rem 0 0; text-align: center; }
 .back a { display: inline-flex; align-items: center; min-height: 44px; color: var(--sky-lost-strong); font-weight: 700; }

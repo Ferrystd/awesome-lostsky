@@ -55,7 +55,7 @@ Hero、品牌介绍和交错的大幅商品媒体形成连续陈列；商品无�
 
 ### 视觉方向
 
-后台是任务型产品界面，采用用户已批准的 Team 墨色、青绿冰蓝程序化极光与透光面板体系。Account、Chat、Transaction、Admin、Weibo 与 Shop 管理端按[后台翻新覆盖清单](design/admin/backoffice-renovation.md)接入；Team 保持既有视觉与逻辑，商城前台与展示页面不受此次迁移影响。
+后台是任务型产品界面，采用用户已批准的 Team 墨色、青绿冰蓝程序化极光与透光面板体系。Transaction、Admin、Weibo 与 Shop 管理端按[后台翻新覆盖清单](design/admin/backoffice-renovation.md)接入；Team 保持既有视觉与逻辑，商城前台与展示页面不受此次迁移影响。
 
 - 场景使用暗色透光面板、连续信息层级与轻入口；保留清晰文字遮蔽，不用背景效果替代版型设计。
 - 极光由共用工作区场景提供，保留暂停、减少动态、后台停止与静态降级；禁止页面各自实现动画或添加品牌首屏巨字。

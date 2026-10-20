@@ -3,18 +3,17 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { installPreviewRoutes } from './runtime.mjs'
-import { accountFixture, chatFixture, weiboFixture, shopFixture, prepareRemainingScene } from './remaining-fixtures.mjs'
+import { weiboFixture, shopFixture } from './remaining-fixtures.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
 const manifestRoot = path.join(root, 'frontend/backoffice-previews')
-const fixtureFor = { account: accountFixture, chat: chatFixture, weibo: weiboFixture, shop: shopFixture }
-const portFor = { account: 4311, chat: 4312, weibo: 4315, shop: 4316 }
+const fixtureFor = { weibo: weiboFixture, shop: shopFixture }
+const portFor = { weibo: 4315, shop: 4316 }
 const apps = process.argv.slice(2).filter(app => app in fixtureFor)
 const failedOnly = process.argv.includes('--failed-only')
 const geometryOnly = process.argv.includes('--geometry-only')
 const browser = await chromium.launch({ headless: true })
 const results = []
-const transitionResults = []
 try {
   for (const app of apps.length ? apps : Object.keys(fixtureFor)) {
     const manifestPath = path.join(manifestRoot, `${app}.json`)
@@ -29,23 +28,19 @@ try {
       for (const [viewportName, viewport] of Object.entries({ desktop: { width: 1440, height: 1000 }, mobile: { width: 375, height: 900 } })) {
         const context = await browser.newContext({ viewport, reducedMotion: 'reduce', serviceWorkers: 'block' })
         const missing = []; const pageErrors = []
-        const publicAccount = app === 'account' && ['/login', '/register', '/recovery'].includes(scene.path)
-        if (!publicAccount) {
+        {
           const value = `x.${Buffer.from(JSON.stringify({ uid: 21, sub: 21, act: { type: 'teamMember', id: 11, slug: 'qingkong', name: '青空接单人' } })).toString('base64url')}.x`
           await context.addCookies([{ name: 'lostsky_token', value, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
         }
-        // Exercise the built-in polling fallback, without loading a CDN SDK or connecting a socket.
-        if (app === 'chat') await context.addInitScript(() => { window.Centrifuge = class { constructor() { throw new Error('Offline preview uses polling') } } })
         await installPreviewRoutes(context, {
           app, origin, fixture: url => fixtureFor[app](url, scene), missing,
-          mockedWrites: app === 'account' ? ['POST /team/join-code', 'POST /recovery/verify', 'POST /recovery/password'] : app === 'chat' ? ['POST /message/read', 'POST /realtime/connect'] : [],
+          mockedWrites: [],
         })
         const page = await context.newPage()
         page.on('pageerror', error => pageErrors.push(error.message))
         try {
           await page.goto(origin + scene.previewPath, { waitUntil: 'networkidle', timeout: 30000 })
-          await prepareRemainingScene(page, scene)
-          await page.locator(app === 'chat' && scene.path === '/' ? 'h1:visible,h2:visible' : 'h1:visible').first().waitFor({ state: 'visible' })
+          await page.locator('h1:visible').first().waitFor({ state: 'visible' })
           await page.waitForTimeout(250)
           const check = await page.evaluate(() => ({
             title: [...document.querySelectorAll('h1,h2')].find(node => node.getClientRects().length)?.textContent?.trim(),
@@ -95,37 +90,6 @@ try {
       console.log(`${result.status}: ${scene.routeKey}${failures.length ? ' ' + failures.map(f => f.error).join(' | ') : ''}`)
       await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n')
     }
-    if (app === 'account') {
-      // The optional section parameter has no page state. Verify all real target kinds instead.
-      for (const [kind, expectedHost, expectedPath] of [
-        ['identity', 'account.lostsky.work', '/identity'],
-        ['team-personal', 'demo.team.lostsky.work', '/personal/profile'],
-        ['shop-customer', 'demo.shop.lostsky.work', '/customer/profile'],
-      ]) {
-        const context = await browser.newContext({ serviceWorkers: 'block' })
-        const missing = []
-        const value = `x.${Buffer.from(JSON.stringify({ uid: 21, act: { type: 'teamMember', id: 11 } })).toString('base64url')}.x`
-        await context.addCookies([{ name: 'lostsky_token', value, domain: '.lostsky.work', path: '/', sameSite: 'Lax' }])
-        await installPreviewRoutes(context, { app, origin, missing, fixture: url => url.pathname.replace(/^\/api/, '') === '/identity/target' ? { kind, team: kind === 'identity' ? null : { slug: 'demo' } } : undefined })
-        let reached = false
-        await context.route('**/*', async route => {
-          const url = new URL(route.request().url())
-          if (route.request().isNavigationRequest() && url.hostname === expectedHost && url.pathname === expectedPath) {
-            reached = true
-            return route.fulfill({ contentType: 'text/html', body: '<title>Offline navigation destination</title>' })
-          }
-          return route.fallback()
-        })
-        const page = await context.newPage()
-        try {
-          await page.goto(origin + '/identity/current/profile', { waitUntil: 'domcontentloaded' })
-          await page.waitForURL(url => url.hostname === expectedHost && url.pathname === expectedPath)
-          if (!reached || missing.length) throw new Error('Navigation target not fulfilled locally: ' + missing.join('; '))
-          transitionResults.push({ kind, expectedHost, expectedPath, status: 'passed', network: 'fully intercepted' })
-        } catch (error) { transitionResults.push({ kind, status: 'failed', error: String(error) }) }
-        finally { await context.close() }
-      }
-    }
   }
 } finally { await browser.close() }
 await mkdir(path.join(root, 'test-results/backoffice-previews'), { recursive: true })
@@ -135,5 +99,4 @@ for (const app of Object.keys(fixtureFor)) {
   allResults.push(...report)
 }
 await writeFile(path.join(root, 'test-results/backoffice-previews/remaining-report.json'), JSON.stringify(allResults, null, 2))
-if (transitionResults.length) await writeFile(path.join(root, 'test-results/backoffice-previews/account-transitions.json'), JSON.stringify(transitionResults, null, 2))
-if (results.some(result => result.status !== 'captured') || transitionResults.some(result => result.status !== 'passed')) process.exitCode = 1
+if (results.some(result => result.status !== 'captured')) process.exitCode = 1

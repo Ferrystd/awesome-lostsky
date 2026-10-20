@@ -4,7 +4,7 @@
 
 ## 未发布
 
-- Account、Chat、Transaction、Admin、Weibo 与商品管理按任务结构统一页面版型，提供逐页桌面和手机预览；保留 Team 与商品前台现有行为和外观，不包含社区应用。
+- Transaction、Admin、Weibo 与商品管理按任务结构统一页面版型，提供逐页桌面和手机预览；保留 Account、Chat、Team 与商品前台现有行为和外观，不包含社区应用。
 
 - Team 分类导航采用统一控件，保留现有样式、键盘切换及未保存提示。
 

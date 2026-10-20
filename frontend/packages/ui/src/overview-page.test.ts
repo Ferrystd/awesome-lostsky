@@ -34,5 +34,8 @@ describe('overview page pilot', () => {
     expect(app.match(/<LsWorkspaceScene\b/g)).toHaveLength(1)
     expect(source('frontend/apps/transaction/src/router.ts')).toContain("permission: 'transaction.read'")
     expect(source('frontend/apps/shop/src/App.vue')).toContain('workspaceSceneProviderProps(managing)')
+    for (const excluded of ['account', 'chat']) {
+      expect(source(`frontend/apps/${excluded}/src/App.vue`)).not.toContain('workspaceSceneProviderProps')
+    }
   })
 })
