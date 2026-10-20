@@ -15,10 +15,9 @@ defineSlots<{ actions(): unknown; summary(): unknown; default(): unknown; aside?
     <div class="ls-detail-page__heading">
       <div class="ls-detail-page__title">
         <div v-if="backTo"><LsPageLink :icon="ArrowLeft" :to="backTo" :label="backLabel || '返回'" /></div>
-        <LsPageHeader :title="title" :description="description" />
-      </div>
-      <div v-if="$slots.actions" class="ls-detail-page__commands">
-        <div class="ls-detail-page__actions"><slot name="actions" /></div>
+        <LsPageHeader :title="title" :description="description">
+          <template v-if="$slots.actions" #actions><slot name="actions" /></template>
+        </LsPageHeader>
       </div>
     </div>
     <div v-if="$slots.summary" class="ls-detail-page__summary"><slot name="summary" /></div>
@@ -32,12 +31,7 @@ defineSlots<{ actions(): unknown; summary(): unknown; default(): unknown; aside?
 
 <style scoped>
 .ls-detail-page { min-width: 0; display: grid; gap: 1.5rem; overflow-wrap: anywhere; container-type: inline-size; }
-.ls-detail-page__heading { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 1rem; }
+.ls-detail-page__heading { min-width: 0; }
 .ls-detail-page__title { min-width: 0; display: grid; gap: .75rem; }
-.ls-detail-page__commands { min-width: 0; }
 .ls-detail-page__summary, .ls-detail-page__body { min-width: 0; display: grid; gap: 1.5rem; }
-.ls-detail-page__actions { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .75rem; }
-@container (max-width: 48rem) {
-  .ls-detail-page__heading { grid-template-columns: minmax(0, 1fr); }
-}
 </style>
