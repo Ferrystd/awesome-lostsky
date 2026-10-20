@@ -4,7 +4,6 @@ import { NButton, NSelect, type SelectOption, type SelectGroupOption } from 'nai
 import { RouterLink, useRouter } from 'vue-router'
 import LsField from './LsField.vue'
 import LsPageHeader from './LsPageHeader.vue'
-import LsSceneMotionControl from './LsSceneMotionControl.vue'
 
 defineOptions({ inheritAttrs: false })
 const props = defineProps<{
@@ -90,7 +89,7 @@ async function navigate(event: KeyboardEvent, index: number) {
               <NButton v-else quaternary class="ls-category-page__item" :aria-current="item.key === current ? 'true' : undefined" :aria-controls="panelId" @click="emit('select', item.key)" @keydown="navigate($event, index)"><span>{{ item.label }}</span><small v-if="item.dirty">未保存</small></NButton>
             </template>
           </nav>
-          <LsSceneMotionControl />
+
         </div>
         <div :id="panelId" class="ls-category-page__content"><slot /></div>
       </div>

@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import LsPageHeader from './LsPageHeader.vue'
 import PageContextLayout from './internal/PageContextLayout.vue'
-import LsSceneMotionControl from './LsSceneMotionControl.vue'
-import { useWorkspaceScene } from '../workspace-scene'
-const { available } = useWorkspaceScene()
 
 defineOptions({ inheritAttrs: false })
 defineProps<{ title: string; description?: string; asideLabel?: string }>()
@@ -13,7 +10,7 @@ defineSlots<{ actions?(): unknown; default?(): unknown; footer?(): unknown; asid
 <template>
   <div class="ls-form-page" :class="{ 'ls-form-page--with-aside': $slots.aside }">
     <LsPageHeader :title="title" :description="description">
-      <template v-if="$slots.actions || available" #actions><slot name="actions" /><LsSceneMotionControl /></template>
+      <template v-if="$slots.actions" #actions><slot name="actions" /></template>
     </LsPageHeader>
     <PageContextLayout v-if="$slots.aside" :aside-label="asideLabel">
       <div class="ls-form-page__body"><slot /></div>

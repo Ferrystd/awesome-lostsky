@@ -44,7 +44,7 @@ function click(event: MouseEvent) {
     @click="click"
   >
     <template v-if="$slots.icon" #icon><slot name="icon" /></template>
-    <slot />
+    <span class="ls-button__label"><slot /></span>
     <component
       :is="loading ? LoaderCircle : CircleArrowRight"
       v-if="variant === 'primary'"
@@ -57,7 +57,9 @@ function click(event: MouseEvent) {
 </template>
 
 <style scoped>
-.ls-button { font-weight: 650; }
+.ls-button { min-width: 0; max-width: 100%; height: auto; min-height: max(44px, var(--n-height)); padding-block: .5rem; white-space: normal; font-weight: 650; }
+.ls-button :deep(.n-button__content) { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.ls-button__label { line-height: 1.5; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .ls-button:is(.ls-button--ghost, .ls-button--danger-ghost) { min-height: 44px; font-size: .875rem; font-weight: 500; }
 .ls-button--explainable-disabled { opacity: .5; }
 .ls-button__forward { display: none; }

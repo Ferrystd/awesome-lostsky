@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useId } from 'vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import TeamCategoryNavigation from './TeamCategoryNavigation.vue'
 
 defineProps<{
@@ -17,7 +16,7 @@ const panelId = `settings-content-${useId()}`
     <div class="team-category-layout__layout">
       <div class="team-category-layout__navigation">
       <TeamCategoryNavigation :items="items" :current="current" :label="label" :panel-id="panelId" @select="$emit('select', $event)" />
-    <LsSceneMotionControl />
+
       </div>
       <div :id="panelId" class="team-category-layout__content"><slot /></div>
     </div>

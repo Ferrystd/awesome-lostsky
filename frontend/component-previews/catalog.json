@@ -823,5 +823,25 @@
     "aliases": [
       "商品规格编辑器"
     ]
+  },
+  {
+    "id": "team-ui-page-header",
+    "name": "TeamPageHeader",
+    "source": "frontend/apps/team/src/ui/components/LsPageHeader.vue",
+    "story": "frontend/component-previews/src/team-ui-stories.ts#TeamPageHeader",
+    "category": "team",
+    "aliases": [
+      "Team 页面标题"
+    ]
+  },
+  {
+    "id": "team-ui-list-toolbar",
+    "name": "TeamListToolbar",
+    "source": "frontend/apps/team/src/ui/components/LsListToolbar.vue",
+    "story": "frontend/component-previews/src/team-ui-stories.ts#TeamListToolbar",
+    "category": "team",
+    "aliases": [
+      "Team 单行搜索"
+    ]
   }
 ]

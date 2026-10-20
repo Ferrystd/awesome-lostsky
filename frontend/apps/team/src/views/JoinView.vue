@@ -5,7 +5,6 @@ import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -59,7 +58,7 @@ async function uploadFile(file: File) {
 
 <template>
   <NConfigProvider v-bind="workspaceSceneProviderProps(true)"><LsWorkspaceScene><main class="join">
-    <nav class="join-navigation"><LsPageLink href="//www.lostsky.work" :icon="ArrowLeft" label="LostSky 官网" /><LsSceneMotionControl /></nav>
+    <nav class="join-navigation"><LsPageLink href="//www.lostsky.work" :icon="ArrowLeft" label="LostSky 官网" /></nav>
     <LsPageHeader :title="isReinstate ? '申请复职' : '申请加入团队'" :description="isReinstate ? '复职会继续使用原成员身份、对象标识和业务关系。' : '填写团队设置的申请资料，提交后由管理员审核。'" /><LsPanel>
     <form @submit.prevent="mutation.mutate()">
       <ol class="join-progress" aria-label="申请流程"><li :aria-current="!mutation.isSuccess.value ? 'step' : undefined">填写申请</li><li :aria-current="mutation.isSuccess.value ? 'step' : undefined">等待审核</li></ol>

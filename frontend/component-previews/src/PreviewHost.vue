@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import catalogData from '../catalog.json'
 import StoryRenderer from './StoryRenderer'
-import { storyRegistry } from './story-registry'
+import { shallowRef } from 'vue'
+import { teamUiStories } from './team-ui-stories'
 import { previewStates, type CatalogEntry, type PreviewState } from './story-types'
 
 const catalog = catalogData as CatalogEntry[]
@@ -10,13 +11,14 @@ const id = params.get('id') || catalog[0]?.id || ''
 const single = params.get('single') === '1'
 const singleState = (params.get('state') || 'default') as PreviewState
 const entry = catalog.find(item => item.id === id)
-const story = entry ? storyRegistry[entry.name] : undefined
+const story = shallowRef(entry ? teamUiStories[entry.name] : undefined)
+if (!story.value && entry) void import('./story-registry').then(({ storyRegistry }) => { story.value = storyRegistry[entry.name] })
 const stateLabels: Record<PreviewState, string> = {
   default: '默认', hover: '悬停', focus: '键盘聚焦', active: '激活 / 选中',
   disabled: '禁用 / 只读', loading: '加载中', error: '错误 / 空状态', mobile: '移动端 390px',
 }
 const singleUrl = (state: PreviewState) => `/?id=${encodeURIComponent(id)}&single=1&state=${state}`
-const unsupportedReason = (state: PreviewState) => story?.reason?.[state] || '该组件没有此状态。'
+const unsupportedReason = (state: PreviewState) => story.value?.reason?.[state] || '该组件没有此状态。'
 function resizeFrame(event: Event, state: PreviewState) {
   const frame = event.currentTarget as HTMLIFrameElement
   if (state === 'mobile') return
