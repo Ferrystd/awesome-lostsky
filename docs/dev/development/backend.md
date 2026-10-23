@@ -8,6 +8,22 @@
 - 业务模型继承 `app\model\Base`；类名不附加 `Service`、`Controller`、`Validate`。
 - 响应使用 `{code, message, data}`，列表使用 `{total, list, page, limit}`；部分更新不得覆盖未提交字段。
 
+## 去重与公共入口
+
+优化以减少重复维护、保持可读性和既有行为为目标。先比较调用方的输入、输出、空值、错误和副作用，再抽取语义相同的部分；不为减少行数压缩语句、删除边界检查，或把权限、查询、审计和事务差异塞进通用函数的开关参数。
+
+| 场景 | 现有入口 | 使用边界 |
+| --- | --- | --- |
+| 模型通用字段类型 | `Base::COMMON_TYPES` | 在模型 `$type` 中以业务字段数组 `+ self::COMMON_TYPES` 显式复用，左侧业务声明优先；只用于原本具有这些字段及相同转换的模型，不改变隐藏字段、JSON、枚举、时间戳与可空值规则。 |
+| 模型团队与人员关系 | `concern\BelongsToTeam`、`concern\BelongsToEntity` | 分别提供原名 `team()`、`subject()`，只接入原本具有相同关系的模型；不放入 Base 为所有模型新增关系。ThinkPHP 会从调用方法推导关系名，关系方法应直接调用 ORM，不再套改名的通用转发函数。 |
+| 分页返回结构 | `Pagination::response($paginator, $list = null)` | 只组装 `total/list/page/limit`；`null` 使用分页器集合，显式 `[]` 必须保持空列表。查询范围、排序、权限与列表转换留在原调用方。 |
+| 验证失败处理 | `Validation::check($validator, $data)` | 复用失败时抛 HTTP 422 与原错误信息的场景；验证器、scene、only 等由调用方先配置。不同错误码、批量错误或其他返回约定不强行迁入。 |
+| CLI JSON 输出 | `CommandResult::write($output, $code, $message, $data)` | 统一编码与换行并返回传入的退出码；成功/失败判断、错误数据是否为 `null`、HTTP 错误信息与退出码仍由命令决定，不改变原 catch 范围。 |
+
+重构前后使用同一组行为断言：模型覆盖字段转换与覆盖优先级；关系覆盖名称、键、预加载、缺失目标和软删除；分页覆盖空集合、显式空覆盖与顺序；校验覆盖场景和错误；CLI 比较精确输出与退出码。现有入口分别由 `tests/model_defaults.php`、`tests/model_relations.php`、`tests/service_helpers.php`、`tests/command_result.php` 保护，运行范围仍按测试须知选择。
+
+新增或改变 Service public 方法后，从代码生成 Service 字典；不得手改生成文件。若当前任务明确排除文档，记录待同步的方法和命令，在后续获准的文档或集成任务补齐，不把字典过期当作代码回归，也不把未完成的字典检查称为通过。
+
 ## 请求参数边界
 
 > **参数来源必须明确，类型只在边界转换一次。** 路径变量使用 `route()`，查询参数使用 `get()`，请求体使用 `post()`；控制器不得用 `param()` 混合多个来源。

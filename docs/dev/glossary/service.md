@@ -500,6 +500,7 @@ aliases: [服务, Service]
 
 | 方法 | 参数 | 返回 |
 | --- | --- | --- |
+| `response` | `think\Paginator $paginator`、`?array $list = null` | `array` |
 | `normalize` | `int $page`、`int $limit` | `array` |
 
 ## PermissionDictionary
@@ -945,6 +946,12 @@ aliases: [服务, Service]
 | `byPerson` | `int $teamId`、`int $startTime`、`int $endTime`、`int $page = 1`、`int $limit = 20`、`string $sortBy = 'handler_performance_total'`、`string $sortOrder = 'desc'` | `array` |
 | `byCustomer` | `int $teamId`、`int $startTime`、`int $endTime` | `array` |
 | `byAssignee` | `int $teamId`、`int $startTime`、`int $endTime` | `array` |
+
+## Validation
+
+| 方法 | 参数 | 返回 |
+| --- | --- | --- |
+| `check` | `think\Validate $validator`、`array $data` | `void` |
 
 ## Visibility
 
