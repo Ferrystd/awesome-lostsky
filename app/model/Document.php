@@ -8,27 +8,19 @@ use app\enum\Visibility;
 
 class Document extends Base
 {
+    use concern\BelongsToEntity;
+
     protected $type = [
-        'id' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'entity_id' => 'integer',
         'manager_scope' => ManageScope::class,
         'visibility' => Visibility::class,
         'sort' => 'integer',
         'title' => 'string',
         'content' => 'string',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = ['tags'];
-    protected $hidden = ['delete_time'];
     protected $readonly = ['entity_id'];
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
 
     public function visibilityTargets()
     {

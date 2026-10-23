@@ -12,15 +12,13 @@ use app\enum\ServiceStatus;
  */
 class TeamServiceInstance extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id' => 'integer',
         'service_id' => 'integer',
         'customer_id' => 'integer',
@@ -37,13 +35,10 @@ class TeamServiceInstance extends Base
         'team_cut' => 'string',
         'expire_time' => 'integer',
         'memo' => 'string',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = ['is_expired', 'completion_due_at', 'settled_handler_cut', 'settled_team_cut'];
@@ -82,7 +77,6 @@ class TeamServiceInstance extends Base
             && (int) $this->expire_time < time();
     }
 
-    public function team() { return $this->belongsTo(Team::class, 'team_id'); }
     public function service() { return $this->belongsTo(TeamService::class, 'service_id'); }
     public function entitlement() { return $this->belongsTo(TeamServiceEntitlement::class, 'entitlement_id'); }
     public function sourceProduct() { return $this->belongsTo(TeamProduct::class, 'source_product_id'); }

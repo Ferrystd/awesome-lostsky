@@ -589,11 +589,6 @@ final class EntitlementManagement
         if ($with) $query->with($with);
         $paginator = $query->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
 
-        return [
-            'total' => $paginator->total(),
-            'list' => $paginator->getCollection()->toArray(),
-            'page' => $paginator->currentPage(),
-            'limit' => $paginator->listRows(),
-        ];
+        return app(Pagination::class)->response($paginator);
     }
 }

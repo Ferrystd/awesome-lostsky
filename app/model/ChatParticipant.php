@@ -7,11 +7,9 @@ use app\enum\ChatParticipantStatus;
 
 class ChatParticipant extends Base
 {
+    use concern\BelongsToEntity;
+
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'              => 'integer',
         'conversation_id'      => 'integer',
         'entity_id'            => 'integer',
@@ -20,10 +18,9 @@ class ChatParticipant extends Base
         'joined_at'            => 'integer',
         // 'left_at'              => 'null|integer',
         // 'last_read_message_id' => 'null|integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
-    protected $hidden = ['delete_time'];
     protected $append = [];
     protected $readonly = ['team_id', 'conversation_id', 'entity_id'];
 
@@ -32,8 +29,4 @@ class ChatParticipant extends Base
         return $this->belongsTo(ChatConversation::class, 'conversation_id');
     }
 
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
 }

@@ -7,11 +7,10 @@ use app\enum\ChatConversationKind;
 
 class ChatConversation extends Base
 {
+    use concern\BelongsToTeam;
+    use concern\BelongsToEntity;
+
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'         => 'integer',
         'uuid'            => 'string',
         'kind'            => ChatConversationKind::class,
@@ -21,26 +20,15 @@ class ChatConversation extends Base
         // 'last_message_at' => 'null|integer',
         // 'expires_at'      => 'null|integer',
         // 'closed_at'       => 'null|integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
-    protected $hidden = ['delete_time'];
     protected $append = ['is_closed'];
     protected $readonly = ['team_id', 'uuid', 'kind', 'is_temporary', 'entity_id', 'direct_key'];
 
     public function getIsClosedAttr($value, $data): bool
     {
         return !empty($data['closed_at']) || (!empty($data['expires_at']) && (int) $data['expires_at'] <= time());
-    }
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
     public function participants()

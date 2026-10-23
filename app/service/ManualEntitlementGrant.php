@@ -80,12 +80,7 @@ final class ManualEntitlementGrant
             ];
         }, $paginator->getCollection()->all());
 
-        return [
-            'total' => $paginator->total(),
-            'list' => $list,
-            'page' => $paginator->currentPage(),
-            'limit' => $paginator->listRows(),
-        ];
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function options(int $teamId, array $actingEntity, int $actorEntityId, bool $personal = false): array

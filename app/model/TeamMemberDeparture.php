@@ -8,17 +8,13 @@ use app\enum\TeamMemberDepartureStatus;
 class TeamMemberDeparture extends Base
 {
     protected $type = [
-        'id' => 'integer',
         'team_id' => 'integer',
         'member_id' => 'integer',
         'requester_entity_id' => 'integer',
         'decision_entity_id' => 'integer',
         'status' => TeamMemberDepartureStatus::class,
         'decided_at' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $append = ['status_code', 'status_label'];
     protected $readonly = ['team_id', 'member_id', 'requester_entity_id'];

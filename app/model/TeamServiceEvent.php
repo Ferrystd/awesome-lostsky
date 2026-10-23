@@ -16,19 +16,12 @@ class TeamServiceEvent extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'service_instance_id' => 'integer',
         'event_type' => 'string',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = ['detail'];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [];

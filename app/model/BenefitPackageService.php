@@ -16,10 +16,6 @@ class BenefitPackageService extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'package_id' => 'integer',
         // service_id/product_id 二选一；可空外键不能转换成整数 0。
         'quantity' => 'string',
@@ -30,13 +26,10 @@ class BenefitPackageService extends Base
         'unit_sender_cut' => 'string',
         'unit_cs_cut' => 'string',
         'sort' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [];

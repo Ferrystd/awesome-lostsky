@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace app\command;
 
+use app\support\CommandResult;
+
 use OSS\OssClient;
 use RuntimeException;
 use Throwable;
@@ -53,25 +55,13 @@ final class DeployOssFallback extends Command
             }
             $url = ($domain !== '' ? $domain : "https://{$bucket}.oss-{$region}.aliyuncs.com")
                 . '/' . self::OBJECT_KEY;
-            $output->writeln((string) json_encode([
-                'code' => 0,
-                'message' => 'ok',
-                'data' => [
-                    'object_key' => self::OBJECT_KEY,
-                    'sha256' => self::SHA256,
-                    'url' => $url,
-                ],
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-
-            return 0;
+            return CommandResult::write($output, 0, 'ok', [
+                'object_key' => self::OBJECT_KEY,
+                'sha256' => self::SHA256,
+                'url' => $url,
+            ]);
         } catch (Throwable $exception) {
-            $output->writeln((string) json_encode([
-                'code' => 1,
-                'message' => $exception->getMessage(),
-                'data' => null,
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-
-            return 1;
+            return CommandResult::write($output, 1, $exception->getMessage(), null);
         }
     }
 

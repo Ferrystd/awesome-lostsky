@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace app\command;
 
+use app\support\CommandResult;
+
 use AlibabaCloud\Oss\V2\Client;
 use AlibabaCloud\Oss\V2\Config;
 use AlibabaCloud\Oss\V2\Credentials\StaticCredentialsProvider;
@@ -69,28 +71,16 @@ final class ConfigureOssFallback extends Command
                 $this->verify($client, $bucket, $host);
             }
 
-            $output->writeln((string) json_encode([
-                'code' => 0,
-                'message' => $input->getOption('dry-run') ? 'dry-run' : 'ok',
-                'data' => [
-                    'bucket' => $bucket,
-                    'domain' => $host,
-                    'fallback' => 'https://' . $host . '/' . self::OBJECT_KEY,
-                    'image_suffixes' => self::IMAGE_SUFFIXES,
-                    'preserved_rules' => count($preserved),
-                    'total_rules' => count($rules),
-                ],
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-
-            return 0;
+            return CommandResult::write($output, 0, $input->getOption('dry-run') ? 'dry-run' : 'ok', [
+                'bucket' => $bucket,
+                'domain' => $host,
+                'fallback' => 'https://' . $host . '/' . self::OBJECT_KEY,
+                'image_suffixes' => self::IMAGE_SUFFIXES,
+                'preserved_rules' => count($preserved),
+                'total_rules' => count($rules),
+            ]);
         } catch (Throwable $exception) {
-            $output->writeln((string) json_encode([
-                'code' => 1,
-                'message' => $exception->getMessage(),
-                'data' => null,
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-
-            return 1;
+            return CommandResult::write($output, 1, $exception->getMessage(), null);
         }
     }
 

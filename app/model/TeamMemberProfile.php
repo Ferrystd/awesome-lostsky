@@ -11,15 +11,13 @@ use app\model\Base;
  */
 class TeamMemberProfile extends Base
 {
+    use concern\BelongsToEntity;
+
     /**
      * 字段类型转换
      * @var array
      */
     protected $type = [
-        'id' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         //固定字段
 
         //拓展字段
@@ -30,18 +28,13 @@ class TeamMemberProfile extends Base
         'intro_image'           => 'string',//自介图
         'intro_video'           => 'string',//音介视频
         'introduction_markdown' => 'string',//个人简介（Markdown格式）
-    ];
+    ] + self::COMMON_TYPES;
 
     /**
      * JSON 字段
      * @var array
      */
     protected $json = [];
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
 
     public function markdownReferences()
     {

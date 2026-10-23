@@ -11,18 +11,15 @@ use app\model\Base;
  */
 class TeamProductHandler extends Base
 {
+    use concern\BelongsToEntity;
+
     protected $type = [
-        'id'          => 'integer',
         'product_id'  => 'integer',
         'entity_id'   => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
 
     protected $append = [];
 
@@ -33,8 +30,4 @@ class TeamProductHandler extends Base
         return $this->belongsTo(TeamProduct::class, 'product_id');
     }
 
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
 }

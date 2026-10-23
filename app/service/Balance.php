@@ -21,12 +21,8 @@ class Balance
         $paginator = TeamCustomerBalanceLog::where('customer_id', $customerId)
             ->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
-        $list  = $paginator->getCollection()->toArray();
-        $page  = $paginator->currentPage();
-        $limit = $paginator->listRows();
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator);
     }
 
     public function recharge(int $teamId, int $customerId, mixed $amount, string $memo = ''): void

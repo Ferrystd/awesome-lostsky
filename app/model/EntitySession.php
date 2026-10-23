@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class EntitySession extends Base
 {
+    use concern\BelongsToEntity;
+
     /**
      * 绑定数据表
      * @var string
@@ -22,11 +24,10 @@ class EntitySession extends Base
      * @var array
      */
     protected $type = [
-        'id' => 'integer', 'user_id' => 'integer', 'device_token' => 'string', 'jti' => 'string',
+        'user_id' => 'integer', 'device_token' => 'string', 'jti' => 'string',
         'parent_session_id' => 'integer', 'entity_id' => 'integer',
         'expires_at' => 'integer', 'superseded_at' => 'integer', 'revoked_at' => 'integer',
-        'create_time' => 'integer', 'update_time' => 'integer', 'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
@@ -46,5 +47,4 @@ class EntitySession extends Base
     public function user() { return $this->belongsTo(User::class, 'user_id'); }
     public function parent() { return $this->belongsTo(self::class, 'parent_session_id'); }
     public function children() { return $this->hasMany(self::class, 'parent_session_id'); }
-    public function subject() { return $this->belongsTo(Entity::class, 'entity_id'); }
 }

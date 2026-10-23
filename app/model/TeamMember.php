@@ -12,16 +12,13 @@ use app\model\Base;
  */
 class TeamMember extends Base
 {
-    protected $type = [
-        'id' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
+    use concern\BelongsToTeam;
 
+    protected $type = [
         'team_id' => 'integer',
         'user_id' => 'integer',
         'status' => TeamMemberStatus::class,
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
@@ -101,11 +98,6 @@ class TeamMember extends Base
         }
 
         return $teamValue && $override !== 0;
-    }
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
     }
 
     public function user()

@@ -57,14 +57,11 @@ class EntityProfile
         }
         if ($type !== null) $query->where('entityable_type', $type);
         $paginator = $query->order('id', 'asc')->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
         $list = array_map(
             fn (\app\model\Entity $entity): array => $this->data($entity),
             $paginator->getCollection()->all()
         );
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function get(int $teamId, int $entityId, bool $canReadAll): array

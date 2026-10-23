@@ -12,15 +12,13 @@ use app\model\Base;
  */
 class TeamServiceAdjustment extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id' => 'integer',
         'service_instance_id' => 'integer',
         'customer_id' => 'integer',
@@ -36,13 +34,10 @@ class TeamServiceAdjustment extends Base
         'team_cut' => 'string',
         'status' => ServiceAdjustmentStatus::class,
         'memo' => 'string',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [];
@@ -54,7 +49,6 @@ class TeamServiceAdjustment extends Base
         'sender_cut', 'cs_cut', 'team_cut',
     ];
 
-    public function team() { return $this->belongsTo(Team::class, 'team_id'); }
     public function instance() { return $this->belongsTo(TeamServiceInstance::class, 'service_instance_id'); }
     public function customer() { return $this->belongsTo(TeamCustomer::class, 'customer_id'); }
     public function requester() { return $this->belongsTo(Entity::class, 'requested_by_entity_id'); }

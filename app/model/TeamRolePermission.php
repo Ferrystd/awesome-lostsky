@@ -11,29 +11,20 @@ use app\model\Base;
  */
 class TeamRolePermission extends Base
 {
-    protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
+    use concern\BelongsToTeam;
 
+    protected $type = [
         'team_id'        => 'integer',
         'role_id'        => 'integer',
         'permission_key' => 'string',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
 
     protected $append = [];
 
     protected $readonly = ['team_id', 'role_id', 'permission_key'];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function role()
     {

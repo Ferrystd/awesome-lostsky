@@ -10,16 +10,11 @@ class Team extends Base
      * @var array
      */
     protected $type = [
-        'id' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-
         'slug'         => 'string',
         'user_id'      => 'integer',
         'is_banned'    => 'integer',
         'is_cancelled' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 

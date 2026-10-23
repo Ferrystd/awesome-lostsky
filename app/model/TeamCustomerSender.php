@@ -11,37 +11,25 @@ use app\model\Base;
  */
 class TeamCustomerSender extends Base
 {
+    use concern\BelongsToTeam;
+    use concern\BelongsToEntity;
+
     protected $type = [
-        'id'          => 'integer',
         'team_id'     => 'integer',
         'customer_id' => 'integer',
         'entity_id'   => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
 
     protected $append = [];
 
     protected $readonly = ['team_id', 'customer_id', 'entity_id'];
 
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
-
     public function customer()
     {
         return $this->belongsTo(TeamCustomer::class, 'customer_id');
-    }
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
     public function scopeSender($query, int $entityId, int $customerId)

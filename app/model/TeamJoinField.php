@@ -11,16 +11,13 @@ use app\model\Base;
  */
 class TeamJoinField extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-
         'team_id'                  => 'integer',
         'field_key'                => 'string',
         'name'                     => 'string',
@@ -33,24 +30,16 @@ class TeamJoinField extends Base
         'entity_field_id'          => 'integer',
         'is_active'                => 'integer',
         'sort'                     => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = ['options'];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [];
 
     /** 只读字段 */
     protected $readonly = ['team_id', 'field_key'];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function entityField()
     {

@@ -11,10 +11,6 @@ class TeamServiceRedemptionField extends Base
 {
     /** @var array */
     protected $type = [
-        'id' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id' => 'integer',
         'service_id' => 'integer',
         'name' => 'string',
@@ -25,10 +21,9 @@ class TeamServiceRedemptionField extends Base
         'is_required' => 'integer',
         'is_active' => 'integer',
         'sort' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = ['options'];
-    protected $hidden = ['delete_time'];
     protected $append = [];
     protected $readonly = ['team_id', 'service_id'];
 

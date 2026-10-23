@@ -16,10 +16,6 @@ class Entity extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'slug'             => 'string',
         'entityable_type'  => 'string',
         'entityable_id'    => 'integer',
@@ -30,13 +26,10 @@ class Entity extends Base
         'is_internal_visible' => 'integer',
         // 全局搜索覆盖：只影响跨页面实体搜索，NULL 继承 Team 搜索策略；不影响团队后台目录或 Display。
         'search_override'  => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [

@@ -8,10 +8,6 @@ use app\enum\ChatDeliveryStatus;
 class ChatWebhookDelivery extends Base
 {
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'        => 'integer',
         'outbox_id'      => 'integer',
         'integration_id' => 'integer',
@@ -21,7 +17,7 @@ class ChatWebhookDelivery extends Base
         'processing_until' => 'integer',
         // 'delivered_at'  => 'null|integer',
         // 'response_code' => 'null|integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
     protected $hidden = ['delete_time', 'processing_token', 'processing_until'];

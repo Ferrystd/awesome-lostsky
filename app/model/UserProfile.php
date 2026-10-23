@@ -17,10 +17,6 @@ class UserProfile extends Base
      * @var array
      */
     protected $type = [
-        'id' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         //固定字段
 
         //拓展字段
@@ -29,8 +25,7 @@ class UserProfile extends Base
         'avatar' => 'string',
         'gender' => Gender::class,
         'birthday' => 'integer',
-
-    ];
+    ] + self::COMMON_TYPES;
 
     /**
      * JSON 字段

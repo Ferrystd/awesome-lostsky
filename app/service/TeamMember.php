@@ -157,10 +157,7 @@ class TeamMember
      */
     public function add(int $teamId, int $userId, array $data): int
     {
-        $validator = new MemberValidator;
-        if (!$validator->scene('add')->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check((new MemberValidator)->scene('add'), $data);
 
         $existing = \app\model\TeamMember::where('team_id', $teamId)->where('user_id', $userId)->find();
         if ($existing) {

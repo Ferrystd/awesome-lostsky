@@ -11,26 +11,20 @@ use app\model\Base;
  */
 class VisibilityTarget extends Base
 {
+    use concern\BelongsToEntity;
+
     /**
      * 字段类型转换
      * @var array
      */
     protected $type = [
-        'id'               => 'integer',
         'visibleable_type' => 'string',
         'visibleable_id'   => 'integer',
         'entity_id'        => 'integer',
-        'create_time'      => 'integer',
-        'update_time'      => 'integer',
-        'delete_time'      => 'integer',
-
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [];
@@ -45,11 +39,6 @@ class VisibilityTarget extends Base
             'teamSetting'     => TeamSetting::class,
             'entityField'     => TeamEntityField::class,
         ]);
-    }
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
 }

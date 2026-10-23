@@ -11,31 +11,24 @@ use app\model\Base;
  */
 class TeamAbility extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'     => 'integer',
         'ability_key' => 'string',
         'level'       => 'integer',
         'expire_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /**
      * JSON 字段
      * @var array
      */
     protected $json = [];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function isAvailable(int $minimumLevel = 1, ?int $at = null): bool
     {

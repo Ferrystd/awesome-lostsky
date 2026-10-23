@@ -7,11 +7,9 @@ use app\enum\TeamEntityType;
 
 class TeamEntityFieldValue extends Base
 {
+    use concern\BelongsToEntity;
+
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'        => 'integer',
         'field_id'       => 'integer',
         'value_json' => 'string',
@@ -22,10 +20,9 @@ class TeamEntityFieldValue extends Base
         // 'value_decimal'  => 'null|float',
         // 'value_datetime' => 'null|integer',
         // 'value_json'     => 'null|json',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
-    protected $hidden = ['delete_time'];
     protected $append = [];
     protected $readonly = ['team_id', 'field_id', 'entity_id'];
 
@@ -34,10 +31,6 @@ class TeamEntityFieldValue extends Base
         return $this->belongsTo(TeamEntityField::class, 'field_id');
     }
 
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
     // ThinkORM Json 会包装字符串并将 false/0 变为 []；此列需要保留 JSON 标量。
     public function setValueJsonAttr(mixed $value): ?string
     {

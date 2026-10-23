@@ -96,17 +96,14 @@ class File
         $paginator = $query->with(['subject'])
             ->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $list  = $paginator->getCollection()->toArray();
-        $page  = $paginator->currentPage();
-        $limit = $paginator->listRows();
 
         foreach ($list as &$item) {
             $item = $this->format($item);
         }
         unset($item);
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function get(int $teamId, int $id): array

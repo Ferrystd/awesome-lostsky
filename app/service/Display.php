@@ -108,10 +108,7 @@ class Display
         }
 
         $paginator = $query->order('id', 'asc')->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $rows = $paginator->getCollection();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
         $roleMap = $this->publicRolesForEntities($teamId, array_map(
             static fn (EntityModel $entity): int => (int) $entity->id,
             $rows->all()
@@ -124,7 +121,7 @@ class Display
             $rows->all()
         );
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function entity(int $teamId, string $slug): array
@@ -156,10 +153,7 @@ class Display
             ->where('visibility', Visibility::Public->value);
         $paginator = $query->order('sort', 'asc')->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $rows = $paginator->getCollection();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
         $subject = $this->summary(
             $entity,
             $this->publicRoles($teamId, (int) $entity->id)
@@ -169,7 +163,7 @@ class Display
             $rows->all()
         );
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function document(int $teamId, int $id): array

@@ -11,24 +11,19 @@ use app\model\Base;
  */
 class TeamServiceHandler extends Base
 {
+    use concern\BelongsToEntity;
+
     /**
      * 字段类型转换
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'service_id' => 'integer',
         'entity_id' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [];
@@ -37,5 +32,4 @@ class TeamServiceHandler extends Base
     protected $readonly = ['service_id', 'entity_id'];
 
     public function service() { return $this->belongsTo(TeamService::class, 'service_id'); }
-    public function subject() { return $this->belongsTo(Entity::class, 'entity_id'); }
 }

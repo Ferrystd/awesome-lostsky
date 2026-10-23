@@ -76,10 +76,7 @@ class EntitySelfManagement
             $data,
             array_flip(['avatar', 'description', 'intro_image', 'intro_video', 'introduction_markdown'])
         );
-        $validator = new \app\validate\Member;
-        if (!$validator->scene('edit')->check($validation)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check((new \app\validate\Member)->scene('edit'), $validation);
         app(EntityProfile::class)->update($context['team_id'], (int) $context['entity']->id, $data);
     }
 

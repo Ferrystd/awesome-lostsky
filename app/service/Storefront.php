@@ -30,13 +30,10 @@ class Storefront
         }
         $query = TeamProduct::where('team_id', $teamId)->whereNull('parent_product_id')->where('is_active', 1);
         $paginator = $query->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $rows = $paginator->getCollection();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
         $list = array_map(fn (TeamProduct $product): array => $this->productData($product, false), $rows->all());
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function product(int $teamId, int $id): array

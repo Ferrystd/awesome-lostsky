@@ -54,7 +54,7 @@ try {
             && str_contains((string) $source, '$this->purgeObject($path);'),
         'OSS is called outside the persistence transaction and database failure has compensation'
     );
-    $model = file_get_contents(dirname(__DIR__) . '/app/model/File.php');
+    $subject = (new \app\model\File())->subject();
     $schema = file_get_contents(dirname(__DIR__) . '/sql/schema.sql');
     $assert(
         str_contains((string) $source, "where('entity_id'")
@@ -63,7 +63,10 @@ try {
         'file persistence uses entity IDs instead of member IDs'
     );
     $assert(
-        str_contains((string) $model, "belongsTo(Entity::class, 'entity_id')")
+        $subject instanceof \think\model\relation\BelongsTo
+            && $subject->getModel() instanceof \app\model\Entity
+            && $subject->getForeignKey() === 'entity_id'
+            && $subject->getLocalKey() === 'id'
             && str_contains((string) $schema, 'CONSTRAINT `fk_file_entity`')
             && !str_contains((string) $schema, 'CONSTRAINT `fk_file_member`'),
         'file model and schema reference entity'
