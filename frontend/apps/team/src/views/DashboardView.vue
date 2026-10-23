@@ -2,7 +2,6 @@
 import LsOverviewLinks from '@lostsky/ui/components/LsOverviewLinks.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
@@ -74,7 +73,6 @@ const resourceGroups = teamNavigation.map(group => ({ ...group, entries: group.l
     <template #actions>
       <LsPageLink to="/personal" :icon="UserRound" label="进入个人工作台" />
       <LsPageLink href="//doc.lostsky.work" target="_blank" rel="noopener" :icon="BookOpen" label="使用文档" />
-      <LsSceneMotionControl />
     </template>
     <LsPanel>
       <template #header><LsSectionHeader title="处理团队事务" description="管理团队资源，继续人事与协作工作。" /></template>

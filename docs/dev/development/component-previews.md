@@ -8,6 +8,7 @@
 - `frontend/component-previews/src/story-registry.ts` 聚合 Story；`ui-stories.ts` 和 `app-stories.ts` 提供确定性场景。
 - `frontend/component-previews/src/PreviewHost.vue` 注入 LostSky 主题、中文 locale、Router、Pinia、Vue Query、消息与对话框 Provider。
 - `frontend/component-previews/scripts/capture.mjs` 启动隔离的 Vite 宿主，以 Playwright 驱动交互并截图。
+- 混合宿主使用 `resolve-ui.mjs` 按导入来源解析 UI：Team 源码内部的 `@lostsky/ui` 指向 Team 适配目录，其他应用与公共组件 Story 指向稳定公共目录。Vitest 使用相同解析器；不得通过将整个预览宿主切到 Team UI 或复制专有组件掩盖路径错误。
 - `frontend/component-previews/generated/` 保存 PNG 和 `report.json`，每次渲染直接覆盖。该目录被 Git 忽略，不得提交。
 
 目录条目必须包含唯一的 `id`、组件名、源码路径、Story 锚点、分类和全局唯一中文别名。目录契约测试会扫描所有 `frontend/**/components/*.vue`，确保组件全部且仅登记一次，源码与 Story 路径存在。

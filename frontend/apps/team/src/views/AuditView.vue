@@ -78,7 +78,7 @@ const countLabel = computed(() => routeAccess.restricted.value
     @select="filters.application = $event || null"
   >
     <div class="audit-workspace">
-      <LsListToolbar v-model="filters.q" embedded placeholder="搜索执行人、动作、资源或请求 ID" aria-label="搜索审计日志" :count-label="countLabel" @update:model-value="filters.page = 1">
+      <LsListToolbar v-model="filters.q" placeholder="搜索执行人、动作、资源或请求 ID" aria-label="搜索审计日志" :count-label="countLabel" @update:model-value="filters.page = 1">
         <template #actions>
           <LsButton size="sm" variant="secondary" :aria-expanded="showAdvanced" aria-controls="audit-advanced-filters" @click="showAdvanced = !showAdvanced">{{ showAdvanced ? '收起筛选' : '更多筛选' }}{{ advancedFilterCount ? `（${advancedFilterCount}）` : '' }}</LsButton>
         </template>

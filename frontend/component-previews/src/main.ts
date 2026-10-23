@@ -10,6 +10,9 @@ import PreviewHost from './PreviewHost.vue'
 import { adminSession } from '../../apps/admin/src/session'
 
 const id = new URLSearchParams(location.search).get('id') || ''
+const teamScene = id === 'team-category-layout' || id === 'team-list-toolbar'
+const sceneProvider = teamScene ? (await import('../../apps/team/src/ui/workspace-scene-theme')).workspaceSceneProviderProps(true) : {}
+if (teamScene) await import('../../apps/team/src/ui/styles.css')
 if (id.startsWith('admin-')) await import('../../apps/admin/src/app.css')
 else if (id.startsWith('display-')) await import('../../apps/display/src/app.css')
 else if (id.startsWith('shop-')) {
@@ -37,7 +40,7 @@ const router = createRouter({
 })
 
 const Root = {
-  render: () => h(NConfigProvider, { themeOverrides: lostskyNaiveTheme, locale: zhCN }, {
+  render: () => h(NConfigProvider, { themeOverrides: lostskyNaiveTheme, ...sceneProvider, locale: zhCN }, {
     default: () => h(NDialogProvider, null, {
       default: () => h(NMessageProvider, null, { default: () => h(PreviewHost) }),
     }),

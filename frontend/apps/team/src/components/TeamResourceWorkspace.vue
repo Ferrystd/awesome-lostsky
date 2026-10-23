@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 defineProps<{ title: string; description: string; contextLabel: string }>()
 </script>
 
 <template>
   <div class="team-resource-workspace">
     <LsPageHeader :title="title" :description="description">
-      <template #actions><LsSceneMotionControl /><slot name="actions" /></template>
+      <template #actions><slot name="actions" /></template>
     </LsPageHeader>
     <div class="team-resource-workspace__body">
       <aside v-if="$slots.filters" class="team-resource-workspace__filters" :aria-label="contextLabel"><slot name="filters" /></aside>

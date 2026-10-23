@@ -41,7 +41,7 @@ const filtered = computed(() => { const keyword = search.value.trim().toLocaleLo
         <LsPageLink :icon="Plus" label="新建角色" to="/roles/new" />
       </template>
       <template #toolbar>
-        <LsListToolbar embedded v-model="search" placeholder="搜索角色名称或标识" aria-label="搜索角色" :count-label="routeAccess.restricted.value ? '0 个角色' : `${filtered.length} 个角色`" />
+        <LsListToolbar v-model="search" placeholder="搜索角色名称或标识" aria-label="搜索角色" :count-label="routeAccess.restricted.value ? '0 个角色' : `${filtered.length} 个角色`" />
       </template>
       <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取角色" :description="friendlyError(query.error.value)" />
       <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="4" />

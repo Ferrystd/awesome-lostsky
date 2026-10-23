@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import LsPageHeader from './LsPageHeader.vue'
-import LsSceneMotionControl from './LsSceneMotionControl.vue'
 
 defineOptions({ inheritAttrs: false })
 defineProps<{ title: string; description?: string }>()
@@ -10,7 +9,6 @@ defineProps<{ title: string; description?: string }>()
   <div class="ls-collection-page">
     <LsPageHeader :title="title" :description="description">
       <template #actions>
-        <LsSceneMotionControl />
         <slot name="actions" />
       </template>
     </LsPageHeader>

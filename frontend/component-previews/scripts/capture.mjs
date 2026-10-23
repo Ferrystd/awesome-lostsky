@@ -4,6 +4,7 @@ import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
+import { previewUiAlias } from '../resolve-ui.mjs'
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const previewRoot = path.resolve(scriptDir, '..')
@@ -50,11 +51,11 @@ const server = await createServer({
   logLevel: 'silent',
   plugins: [vue()],
   resolve: {
-    alias: {
-      '@lostsky/ui': path.join(frontendRoot, 'packages', 'ui', 'src'),
-      '@lostsky/api': path.join(frontendRoot, 'packages', 'api', 'src'),
-      '@lostsky/shared': path.join(frontendRoot, 'packages', 'shared', 'src'),
-    },
+    alias: [
+      previewUiAlias(frontendRoot),
+      { find: '@lostsky/api', replacement: path.join(frontendRoot, 'packages', 'api', 'src') },
+      { find: '@lostsky/shared', replacement: path.join(frontendRoot, 'packages', 'shared', 'src') },
+    ],
     dedupe: ['vue'],
   },
   css: { postcss: path.join(frontendRoot, 'postcss.config.cjs') },

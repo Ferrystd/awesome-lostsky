@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, useId } from 'vue'
-import { NSelect } from 'naive-ui'
+import { computed, nextTick, ref, useId, watchPostEffect, type VNode } from 'vue'
+import { NSelect, type SelectOption, type SelectGroupOption } from 'naive-ui'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import { useRouter } from 'vue-router'
 import LsCategoryNavigationItem from '@lostsky/ui/components/LsCategoryNavigationItem.vue'
@@ -12,10 +12,45 @@ const props = defineProps<{
   label: string
 }>()
 const emit = defineEmits<{ select: [key: string] }>()
-const selectId = `settings-category-${useId()}`
+const id = useId()
+const selectId = `category-select-${id}`
+const menuId = `category-options-${id}`
+const mobile = ref<HTMLElement | null>(null)
+const menuOpen = ref(false)
 const navigation = ref<HTMLElement | null>(null)
 const router = useRouter()
 const options = computed(() => props.items.map(item => ({ value: item.key, label: `${item.label}${item.dirty ? ' · 未保存' : ''}` })))
+
+// Naive's select-only trigger is an internal focusable div. Name that actual
+// keyboard target, not the non-focusable NSelect wrapper.
+watchPostEffect(() => {
+  const expanded = menuOpen.value
+  const label = props.label
+  const trigger = mobile.value?.querySelector<HTMLElement>('.n-base-selection-label')
+  if (!trigger) return
+  trigger.id = selectId
+  trigger.setAttribute('role', 'combobox')
+  trigger.setAttribute('aria-label', label)
+  trigger.setAttribute('aria-haspopup', 'listbox')
+  trigger.setAttribute('aria-expanded', String(expanded))
+  trigger.setAttribute('aria-controls', menuId)
+  if (!expanded) trigger.removeAttribute('aria-activedescendant')
+})
+function syncPendingOption(node: VNode) {
+  const element = node.el as HTMLElement | null
+  if (menuOpen.value && element?.classList.contains('n-base-select-option--pending')) {
+    mobile.value?.querySelector<HTMLElement>('[role="combobox"]')?.setAttribute('aria-activedescendant', element.id)
+  }
+}
+function optionProps(option: SelectOption | SelectGroupOption) {
+  const value = 'value' in option ? option.value : undefined
+  return {
+    id: `${menuId}-${props.items.findIndex(item => item.key === value)}`,
+    role: 'option', 'aria-selected': value === props.current,
+    onVnodeMounted: syncPendingOption, onVnodeUpdated: syncPendingOption,
+  }
+}
+
 
 async function navigate(event: KeyboardEvent, index: number) {
   let next = index
@@ -38,9 +73,9 @@ function select(key: string) {
 
 <template>
   <div class="team-category-navigation">
-    <div class="team-category-navigation__mobile">
+    <div ref="mobile" class="team-category-navigation__mobile">
       <LsField :label="label" :for-id="selectId">
-        <NSelect :id="selectId" :aria-label="label" :value="current" :options="options" @update:value="select" />
+        <NSelect :value="current" :options="options" :node-props="optionProps" :menu-props="{ id: menuId, role: 'listbox', 'aria-label': label }" @update:show="menuOpen = $event" @update:value="select" />
       </LsField>
     </div>
     <nav ref="navigation" class="team-category-navigation__desktop" :aria-label="label">

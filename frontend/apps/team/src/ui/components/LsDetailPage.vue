@@ -4,13 +4,10 @@ import type { RouteLocationRaw } from 'vue-router'
 import LsPageLink from './LsPageLink.vue'
 import PageContextLayout from './internal/PageContextLayout.vue'
 import LsPageHeader from './LsPageHeader.vue'
-import LsSceneMotionControl from './LsSceneMotionControl.vue'
-import { useWorkspaceScene } from '../workspace-scene'
 
 defineOptions({ inheritAttrs: false })
 defineProps<{ title: string; description?: string; backTo?: RouteLocationRaw; backLabel?: string; asideLabel?: string }>()
 defineSlots<{ actions(): unknown; summary(): unknown; default(): unknown; aside?(): unknown }>()
-const { available } = useWorkspaceScene()
 </script>
 
 <template>
@@ -20,8 +17,8 @@ const { available } = useWorkspaceScene()
         <div v-if="backTo"><LsPageLink :icon="ArrowLeft" :to="backTo" :label="backLabel || '返回'" /></div>
         <LsPageHeader :title="title" :description="description" />
       </div>
-      <div v-if="$slots.actions || available" class="ls-detail-page__commands">
-        <div class="ls-detail-page__actions"><slot name="actions" /><LsSceneMotionControl /></div>
+      <div v-if="$slots.actions" class="ls-detail-page__commands">
+        <div class="ls-detail-page__actions"><slot name="actions" /></div>
       </div>
     </div>
     <div v-if="$slots.summary" class="ls-detail-page__summary"><slot name="summary" /></div>

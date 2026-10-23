@@ -57,20 +57,13 @@
     "@milkdown/crepe": "7.21.3",
     "@milkdown/kit": "7.21.3",
     "@tanstack/vue-query": "^5.62.7",
-    "@tanstack/vue-table": "^8.20.6",
-    "@vueuse/core": "^12.5.0",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
     "dompurify": "^3.2.6",
     "katex": "0.16.22",
     "marked": "^15.0.12",
     "naive-ui": "2.44.1",
     "pinia": "^2.3.0",
-    "reka-ui": "^2.0.0",
-    "tailwind-merge": "^2.6.0",
     "vue": "^3.5.13",
     "vue-draggable-plus": "0.6.1",
-    "vue-router": "^4.5.0",
-    "zod": "^3.24.1"
+    "vue-router": "^4.5.0"
   }
 }

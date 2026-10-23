@@ -407,11 +407,12 @@ describe('后台工作台入口架构', () => {
       .toContain('expected_entity_id')
   })
 
-  it('权益包与履约费用防止可空数字崩溃，并明确区分查询失败和空结果', () => {
-    const packageForm = source('frontend/apps/shop/src/views/manage/PackageFormView.vue')
-    expect(packageForm).toContain('quantity: number | null')
-    expect(packageForm).toContain('const finite = (value: number | null)')
-    expect(packageForm).not.toMatch(/item\.(?:quantity|valid_days|unit_price|unit_cost|unit_handler_cut|unit_sender_cut|unit_cs_cut)\.toFixed/)
+  it('商品组合与履约费用防止可空数字崩溃，并明确区分查询失败和空结果', () => {
+    const productForm = source('frontend/apps/shop/src/views/manage/ProductFormView.vue')
+    const compositionPricing = source('frontend/apps/shop/src/composition-pricing.ts')
+    expect(compositionPricing).toContain('quantity: number | null')
+    expect(productForm).toContain('const finite = (value: number | null)')
+    expect(productForm).not.toMatch(/item\.(?:quantity|valid_days|unit_price|unit_cost|unit_handler_cut|unit_sender_cut|unit_cs_cut)\.toFixed/)
 
     const serviceDetail = source('frontend/apps/transaction/src/views/ServiceDetailView.vue')
     expect(serviceDetail).toContain('quantity: number | null')
