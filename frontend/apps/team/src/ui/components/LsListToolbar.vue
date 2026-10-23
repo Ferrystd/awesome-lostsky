@@ -8,7 +8,6 @@ withDefaults(
     ariaLabel?: string;
     countLabel?: string;
     searchable?: boolean;
-    embedded?: boolean;
   }>(),
   {
     modelValue: "",
@@ -26,7 +25,7 @@ const emit = defineEmits<{ "update:modelValue": [value: string] }>();
   <section
     :class="[
       'ls-list-toolbar',
-      { 'ls-list-toolbar--filters-only': !searchable, 'ls-list-toolbar--embedded': embedded },
+      { 'ls-list-toolbar--filters-only': !searchable },
     ]"
     role="search"
   >
@@ -51,107 +50,18 @@ const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 </template>
 
 <style scoped>
-.ls-list-toolbar {
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem 1rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  transition: border-color var(--motion-fast) var(--ease-standard);
-}
-.ls-list-toolbar:focus-within {
-  border-color: color-mix(in oklch, var(--primary), white 48%);
-}
-.ls-list-toolbar__search {
-  min-width: min(16rem, 100%);
-  max-width: 28rem;
-  flex: 0 1 24rem;
-}
-.ls-list-toolbar__filters {
-  min-width: 0;
-  max-width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-.ls-list-toolbar--filters-only .ls-list-toolbar__filters {
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-}
-.ls-list-toolbar__filters :deep(.n-select) {
-  width: 10rem;
-  min-width: 10rem;
-}
-.ls-list-toolbar__filters :deep(.n-base-selection) {
-  --n-height: 40px !important;
-}
-.ls-list-toolbar__filters :deep(.n-base-selection-label) {
-  font-size: 0.875rem;
-}
-.ls-list-toolbar__actions {
-  min-width: 0;
-  max-width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-.ls-list-toolbar__count {
-  min-width: 0;
-  margin-left: auto;
-  color: var(--text-secondary);
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
+.ls-list-toolbar { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; }
+.ls-list-toolbar__search { min-width: min(16rem, 100%); max-width: 28rem; flex: 0 1 24rem; }
+.ls-list-toolbar__filters, .ls-list-toolbar__actions { min-width: 0; max-width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.ls-list-toolbar--filters-only .ls-list-toolbar__filters { flex: 1 1 auto; }
+.ls-list-toolbar__filters :deep(.n-select) { width: 8rem; min-width: 8rem; }
+.ls-list-toolbar__filters :deep(.n-base-selection) { --n-height: 40px !important; }
+.ls-list-toolbar__filters :deep(.n-base-selection-label) { font-size: .875rem; }
+.ls-list-toolbar__count { min-width: 0; margin-left: auto; color: var(--text-secondary); font-size: .8125rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 @media (max-width: 639px) {
-  .ls-list-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-    padding: 0.75rem;
-  }
-  .ls-list-toolbar__search {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-    flex: 0 0 auto;
-  }
-  .ls-list-toolbar__filters {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-  .ls-list-toolbar__filters :deep(.n-select) {
-    width: 100%;
-    min-width: 0;
-  }
-  .ls-list-toolbar__filters :deep(.n-base-selection) {
-    --n-height: 44px !important;
-  }
-  .ls-list-toolbar__actions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-  .ls-list-toolbar__actions :deep(.n-button),
-  .ls-list-toolbar__actions :deep(.ls-button) {
-    width: 100%;
-  }
-  .ls-list-toolbar__count {
-    margin-left: 0;
-  }
-}
-.ls-list-toolbar--embedded { padding: 0; background: transparent; border: 0; border-radius: 0; }
-.ls-list-toolbar--embedded .ls-list-toolbar__search { min-width: min(16rem, 100%); max-width: 28rem; flex: 0 1 24rem; }
-.ls-list-toolbar--embedded .ls-list-toolbar__filters :deep(.n-select) { width: 8rem; min-width: 8rem; }
-@media (max-width: 639px) {
-  .ls-list-toolbar--embedded { flex-direction: row; align-items: center; }
-  .ls-list-toolbar--embedded .ls-list-toolbar__search { min-width: 0; max-width: none; flex: 1 0 100%; }
-  .ls-list-toolbar--embedded .ls-list-toolbar__filters, .ls-list-toolbar--embedded .ls-list-toolbar__actions { display: flex; }
-  .ls-list-toolbar--embedded .ls-list-toolbar__filters :deep(.n-select) { min-width: 0; max-width: 100%; }
-  .ls-list-toolbar--embedded .ls-list-toolbar__count { margin-left: auto; }
+  .ls-list-toolbar__search { width: 100%; min-width: 0; max-width: none; flex: 1 0 100%; }
+  .ls-list-toolbar__filters :deep(.n-select) { width: 8rem; min-width: 0; max-width: 100%; }
+  .ls-list-toolbar__filters :deep(.n-base-selection) { --n-height: 44px !important; }
+  .ls-list-toolbar__actions :deep(.n-button) { width: 100%; }
 }
 </style>

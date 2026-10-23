@@ -277,7 +277,7 @@ describe('后台源码设计契约', () => {
   })
 
   it('标准详情页面复用 LsDescriptionList', () => {
-    const required = ['frontend/apps/admin/src/views/UserDetailView.vue', 'frontend/apps/admin/src/views/TeamDetailView.vue', 'frontend/apps/admin/src/views/SystemView.vue', 'frontend/apps/team/src/views/DetailView.vue', 'frontend/apps/team/src/views/JoinReviewDetailView.vue', 'frontend/apps/team/src/views/ResourceView.vue', 'frontend/apps/team/src/views/AbilitiesView.vue']
+    const required = ['frontend/apps/admin/src/views/UserDetailView.vue', 'frontend/apps/admin/src/views/TeamDetailView.vue', 'frontend/apps/admin/src/views/SystemView.vue', 'frontend/apps/team/src/views/JoinReviewDetailView.vue', 'frontend/apps/team/src/views/AbilitiesView.vue']
     for (const file of required) {
       expect(readFileSync(join(repository, ...file.split('/')), 'utf8'), `${file} 未复用标准详情列表`).toContain('LsDescriptionList')
     }

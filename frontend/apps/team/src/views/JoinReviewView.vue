@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCategoryPage from '@lostsky/ui/components/LsCategoryPage.vue'
+import TeamCategoryLayout from '../components/TeamCategoryLayout.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
@@ -36,11 +37,13 @@ const visibleRows = computed(() => { const keyword = search.value.trim().toLocal
 
 <template>
   <div class="join-review-list-page">
-    <LsCategoryPage :items="reviewSections.map(item => ({ ...item, key: item.to }))" current="/join-review" label="审核分类" title="人事审核" description="查看加入申请，点击进入对应审核页面。">
+    <LsPageHeader title="人事审核" description="查看加入申请，点击进入对应审核页面。">
       <template #actions>
         <LsPageLink :icon="Settings" label="申请表配置" to="/join-fields" />
       </template>
-        <LsListToolbar embedded v-model="search" placeholder="搜索申请人、编号或说明" aria-label="搜索加入申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visibleRows.length} 条申请`">
+    </LsPageHeader>
+    <TeamCategoryLayout :items="reviewSections.map(item => ({ ...item, key: item.to }))" current="/join-review" label="审核分类">
+        <LsListToolbar v-model="search" placeholder="搜索申请人、编号或说明" aria-label="搜索加入申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visibleRows.length} 条申请`">
           <template #filters>
             <NSelect v-model:value="status" :options="statusOptions" aria-label="筛选申请状态" />
           </template>
@@ -61,10 +64,11 @@ const visibleRows = computed(() => { const keyword = search.value.trim().toLocal
         </LsResourceRow>
       </LsResourceList>
       </div>
-    </LsCategoryPage>
+    </TeamCategoryLayout>
   </div>
 </template>
 
 <style scoped>
+.join-review-list-page { min-width: 0; display: grid; gap: 1.5rem; }
 .review-results { min-width: 0; margin-top: 1rem; }
 </style>

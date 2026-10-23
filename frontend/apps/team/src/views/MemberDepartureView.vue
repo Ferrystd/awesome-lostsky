@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import LsCategoryPage from '@lostsky/ui/components/LsCategoryPage.vue'
+import TeamCategoryLayout from '../components/TeamCategoryLayout.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
@@ -47,8 +48,9 @@ function statusType(code: unknown): 'success' | 'error' | 'warning' | 'info' {
 
 <template>
   <div class="departure-list">
-    <LsCategoryPage :items="reviewSections.map(item => ({ ...item, key: item.to }))" current="/departure-review" label="审核分类" title="人事审核" description="处理成员自助提交的离队申请；管理员办理离职时不再进入审核。">
-        <LsListToolbar embedded v-model="search" placeholder="搜索成员或申请编号" aria-label="搜索离队申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visible.length} 条申请`">
+    <LsPageHeader title="人事审核" description="处理成员自助提交的离队申请；管理员办理离职时不再进入审核。" />
+    <TeamCategoryLayout :items="reviewSections.map(item => ({ ...item, key: item.to }))" current="/departure-review" label="审核分类">
+        <LsListToolbar v-model="search" placeholder="搜索成员或申请编号" aria-label="搜索离队申请" :count-label="routeAccess.restricted.value ? '0 条申请' : `${visible.length} 条申请`">
           <template #filters>
             <NSelect v-model:value="status" :options="statusOptions" aria-label="筛选申请状态" />
           </template>
@@ -69,10 +71,11 @@ function statusType(code: unknown): 'success' | 'error' | 'warning' | 'info' {
         </LsResourceRow>
       </LsResourceList>
       </div>
-    </LsCategoryPage>
+    </TeamCategoryLayout>
   </div>
 </template>
 
 <style scoped>
+.departure-list { min-width: 0; display: grid; gap: 1.5rem; }
 .review-results { min-width: 0; margin-top: 1rem; }
 </style>

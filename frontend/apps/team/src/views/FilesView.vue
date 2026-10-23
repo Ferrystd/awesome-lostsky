@@ -145,7 +145,7 @@ function runFileAction(key: string, item: Record<string, unknown>) {
     </template>
     <template #toolbar>
       <LsInlineError v-if="uploadError" :message="uploadError" />
-      <LsListToolbar embedded v-model="keyword" placeholder="按文件名称搜索" aria-label="搜索文件" :count-label="routeAccess.restricted.value ? '0 个文件' : `${total} 个文件`" @update:model-value="page = 1" />
+      <LsListToolbar v-model="keyword" placeholder="按文件名称搜索" aria-label="搜索文件" :count-label="routeAccess.restricted.value ? '0 个文件' : `${total} 个文件`" @update:model-value="page = 1" />
     </template>
     <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取文件" :description="friendlyError(query.error.value)" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="3" />

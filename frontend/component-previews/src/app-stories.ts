@@ -1,3 +1,5 @@
+import TeamCategoryLayout from '../../apps/team/src/components/TeamCategoryLayout.vue';
+import TeamListToolbar from '../../apps/team/src/ui/components/LsListToolbar.vue';
 import WeiboAccountField from '../../apps/weibo/src/components/WeiboAccountField.vue';
 import WeiboCommentFields from '../../apps/weibo/src/components/WeiboCommentFields.vue';
 import WeiboFeedCommentComposer from '../../apps/weibo/src/components/WeiboFeedCommentComposer.vue';
@@ -829,6 +831,15 @@ export const appStories: Record<string, StoryDefinition> = {
     disabledReason: state === 'disabled' ? '缺少群消息管理权限' : '',
     hasOlder: state !== 'error',
   }))),
+  TeamCategoryLayout: story('TeamCategoryLayout', ['default', 'hover', 'focus', 'active', 'mobile'], () => h(defineComponent({ setup() {
+    const current = ref('profile')
+    const items = [{ key: 'profile', label: '角色资料', dirty: true }, { key: 'permissions', label: '团队协作与权限' }]
+    return () => h(TeamCategoryLayout, { items, current: current.value, label: '角色分类', onSelect: value => { current.value = value } }, { default: () => h('p', current.value === 'profile' ? '当前角色资料与未保存草稿。' : '当前角色的权限范围。') })
+  } }))),
+  TeamListToolbar: story('TeamListToolbar', ['default', 'hover', 'focus', 'active', 'mobile'], () => h(defineComponent({ setup() {
+    const keyword = ref('')
+    return () => h(TeamListToolbar, { modelValue: keyword.value, 'onUpdate:modelValue': value => { keyword.value = value }, placeholder: '搜索申请人、编号或说明', ariaLabel: '搜索加入申请', countLabel: '3 条申请' })
+  } }))),
   JoinApplicationFields: story('JoinApplicationFields', ['default', 'hover', 'focus', 'active', 'disabled', 'mobile'], (state) => h(defineComponent({ setup() {
     const values = ref({ nickname: '青空' });
     return () => h(JoinApplicationFields, { fields: [{ id: 1, field_key: 'nickname', name: '团队昵称', input_type: 'text', is_apply_required: 1 }, { id: 2, field_key: 'intro', name: '入职介绍', input_type: 'textarea' }], modelValue: values.value, 'onUpdate:modelValue': value => { values.value = value as typeof values.value }, uploadFile: async () => '1', disabled: state === 'disabled' });

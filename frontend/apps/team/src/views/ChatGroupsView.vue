@@ -33,7 +33,7 @@ const scopes = computed(() => [
   <TeamResourceWorkspace title="聊天管理" description="查找团队群聊，管理参与人员与历史消息。" context-label="群聊范围">
     <template #actions><LsPageLink to="/chat-groups/new" :icon="Plus" label="创建群聊" /></template>
     <template #toolbar>
-      <LsListToolbar embedded v-model="search" placeholder="搜索群聊名称" aria-label="搜索群聊" :count-label="`${rows.length} 个群聊`" />
+      <LsListToolbar v-model="search" placeholder="搜索群聊名称" aria-label="搜索群聊" :count-label="`${rows.length} 个群聊`" />
     </template>
     <LsAsyncState v-if="groups.isPending.value && !access.restricted.value" state="loading" :rows="3" />
     <LsAsyncState v-else-if="groups.isError.value" state="error" :description="friendlyError(groups.error.value)" />

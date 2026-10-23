@@ -99,7 +99,6 @@ function runDocumentAction(key: string, item: Record<string, unknown>) {
     </template>
     <template #toolbar>
       <LsListToolbar
-      embedded
       v-model="keyword"
       placeholder="搜索标题或正文"
       aria-label="搜索文档"

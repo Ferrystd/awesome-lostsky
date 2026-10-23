@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useId } from 'vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import TeamCategoryNavigation from './TeamCategoryNavigation.vue'
 
 defineProps<{
@@ -16,8 +15,7 @@ const panelId = `settings-content-${useId()}`
   <div class="team-category-layout">
     <div class="team-category-layout__layout">
       <div class="team-category-layout__navigation">
-      <TeamCategoryNavigation :items="items" :current="current" :label="label" :panel-id="panelId" @select="$emit('select', $event)" />
-    <LsSceneMotionControl />
+        <TeamCategoryNavigation :items="items" :current="current" :label="label" :panel-id="panelId" @select="$emit('select', $event)" />
       </div>
       <div :id="panelId" class="team-category-layout__content"><slot /></div>
     </div>
@@ -25,7 +23,7 @@ const panelId = `settings-content-${useId()}`
 </template>
 
 <style scoped>
-.team-category-layout { min-width: 0; container: team-category-layout / inline-size; padding: 1.25rem;  }
+.team-category-layout { min-width: 0; container: team-category-layout / inline-size; padding: 1.25rem; }
 .team-category-layout__layout { min-width: 0; display: grid; gap: 1.5rem; align-items: start; }
 .team-category-layout__content { min-width: 0; }
 @media (max-width: 639px) {

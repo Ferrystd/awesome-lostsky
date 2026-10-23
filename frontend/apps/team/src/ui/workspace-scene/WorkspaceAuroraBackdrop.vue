@@ -1,17 +1,13 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { createAuroraRenderer } from './aurora-renderer'
 
-const props = defineProps<{ paused: boolean }>()
-const emit = defineEmits<{ available: [value: boolean] }>()
 const canvas = ref<HTMLCanvasElement | null>(null)
 const ready = ref(false)
 let renderer: ReturnType<typeof createAuroraRenderer> | undefined
 onMounted(() => {
-  renderer = createAuroraRenderer(canvas.value!, value => { ready.value = value; emit('available', value) })
-  renderer.setPaused(props.paused)
+  renderer = createAuroraRenderer(canvas.value!, value => { ready.value = value })
 })
-watch(() => props.paused, value => renderer?.setPaused(value))
 onBeforeUnmount(() => renderer?.destroy())
 </script>
 

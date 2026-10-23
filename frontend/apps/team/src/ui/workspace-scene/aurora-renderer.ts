@@ -31,7 +31,7 @@ void main() {
 export function createAuroraRenderer(canvas: HTMLCanvasElement, ready: (value: boolean) => void) {
   let gl: WebGLRenderingContext | null = null
   try { gl = canvas.getContext('webgl', { alpha: true, antialias: false, depth: false, powerPreference: 'low-power' }) } catch { /* Static fallback remains visible. */ }
-  if (!gl) return { setPaused: (_paused: boolean) => {}, destroy: () => {} }
+  if (!gl) return { destroy: () => {} }
   const context = gl
   const shaders: WebGLShader[] = []
   const program = context.createProgram()
@@ -54,7 +54,7 @@ export function createAuroraRenderer(canvas: HTMLCanvasElement, ready: (value: b
     context.bufferData(context.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), context.STATIC_DRAW)
     const position = context.getAttribLocation(program, 'position')
     context.enableVertexAttribArray(position); context.vertexAttribPointer(position, 2, context.FLOAT, false, 0, 0)
-  } catch { release(); return { setPaused: (_paused: boolean) => {}, destroy: () => {} } }
+  } catch { release(); return { destroy: () => {} } }
 
   const pointerLocation = context.getUniformLocation(program!, 'pointer')
   const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 }
@@ -69,8 +69,8 @@ export function createAuroraRenderer(canvas: HTMLCanvasElement, ready: (value: b
   const timeLocation = context.getUniformLocation(program!, 'time')
   const resolutionLocation = context.getUniformLocation(program!, 'resolution')
   const motion = matchMedia('(prefers-reduced-motion: reduce)')
-  let frame = 0, last = 0, elapsed = 8, inView = false, paused = false, disposed = false, lost = false
-  const canAnimate = () => !disposed && !lost && !paused && !motion.matches && inView && !document.hidden
+  let frame = 0, last = 0, elapsed = 8, inView = false, disposed = false, lost = false
+  const canAnimate = () => !disposed && !lost && !motion.matches && inView && !document.hidden
   let rendered = false
   const draw = () => {
     if (disposed || lost) return
@@ -114,7 +114,6 @@ export function createAuroraRenderer(canvas: HTMLCanvasElement, ready: (value: b
   canvas.addEventListener('webglcontextlost', lostContext)
   resize()
   return {
-    setPaused(value: boolean) { paused = value; sync() },
     destroy() {
       disposed = true; cancelAnimationFrame(frame)
       resizeObserver.disconnect(); visibilityObserver.disconnect()

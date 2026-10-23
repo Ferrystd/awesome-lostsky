@@ -87,7 +87,7 @@ const date = (value: number) =>
   <div class="customers-view">
     <LsObjectDirectory title="顾客" description="查找顾客、确认归属，进入详情维护资料或发起会话。">
       <template #toolbar>
-        <LsListToolbar v-model="filters.keyword" embedded placeholder="搜索顾客昵称" aria-label="搜索顾客" :count-label="query.data.value ? `${query.data.value.total} 位顾客` : ''" @update:model-value="filters.page = 1">
+        <LsListToolbar v-model="filters.keyword" placeholder="搜索顾客昵称" aria-label="搜索顾客" :count-label="query.data.value ? `${query.data.value.total} 位顾客` : ''" @update:model-value="filters.page = 1">
           <template #filters>
             <LsEntitySelect v-if="canReadAll" v-model="filters.assignee_entity_id" :entities="assigneeEntities" clearable placeholder="全部归属人" aria-label="筛选归属人" @update:model-value="filters.page = 1" />
             <NSelect v-model:value="filters.blocked" :options="blockedOptions" clearable placeholder="全部状态" aria-label="筛选顾客状态" @update:value="filters.page = 1" />

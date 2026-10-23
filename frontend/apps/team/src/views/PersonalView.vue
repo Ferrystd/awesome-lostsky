@@ -17,7 +17,6 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery } from '@tanstack/vue-query'
@@ -114,7 +113,6 @@ const roles = computed(() => (query.data.value?.role_assignments ?? []).map(item
         <template #actions>
           <LsPageLink to="/" :icon="House" label="进入团队工作台" />
           <LsPageLink href="//doc.lostsky.work" :icon="BookOpen" label="使用文档" target="_blank" rel="noopener" />
-          <LsSceneMotionControl />
         </template>
 
       <LsPanel>

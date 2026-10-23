@@ -16,6 +16,7 @@
 ## 实现
 
 - 组件按业务路由导入，不在应用根节点无条件加载整套组件库。
+- Shop 管理入口统一使用商品与订单页面，Team 个人资料使用 `PersonalView`；已撤下入口且无运行或预览引用的旧页面不保留副本。清理时同步迁移源码测试到现行页面，保留顾客端服务核销、兼容 API 和历史数据。前端不保留 shadcn-vue 脚手架配置或没有调用方的类名合并工具；直接依赖以实际源码和构建用途为准，仍被其他包使用的传递依赖由锁文件管理。
 - 页面归属、返回兜底与 query 契约遵循[前端路由与页面间导航](../architecture/frontend-navigation.md)；草稿离开和恢复遵循[保存边界与草稿保护](../design/admin/componentization.md#draft-boundary)。
 
 - 标准控件只使用 Naive UI 2.44.1 和 `@lostsky/ui`；不得引入 PrimeVue 或复制 shadcn-vue 组件。完整边界见[公共组件](../design/admin/components.md)。

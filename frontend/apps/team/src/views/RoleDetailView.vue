@@ -12,7 +12,8 @@ import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEntityInput from '@lostsky/ui/components/LsEntityInput.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
-import LsCategoryPage from '@lostsky/ui/components/LsCategoryPage.vue'
+import TeamCategoryLayout from '../components/TeamCategoryLayout.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
@@ -383,12 +384,13 @@ function updateTargetPermissions(options: DynamicOption[], values: Array<string 
 
 <template>
     <div class="role-detail">
-      <LsCategoryPage
+      <LsPageHeader
         :title="roleQuery.data.value?.name || '编辑角色权限'"
         :description="roleQuery.data.value?.role_key ? `角色标识：${roleQuery.data.value.role_key}` : '保存角色对外展示资料、权限等。'"
-        :items="categoryItems" :current="currentCategory" label="角色分类" @select="currentCategory = $event"
       >
         <template #actions><LsPageLink to="/roles" :icon="ArrowLeft" label="返回角色列表" /></template>
+      </LsPageHeader>
+      <TeamCategoryLayout :items="categoryItems" :current="currentCategory" label="角色分类" @select="currentCategory = $event">
         <LsAsyncState v-if="requestError && !routeAccess.restricted.value" state="error" title="暂时无法读取角色" :description="friendlyError(requestError)" />
         <LsAsyncState v-else-if="pending && !routeAccess.restricted.value" state="loading" :rows="7" />
         <LsEmptyState v-else-if="!routeAccess.restricted.value && !roleQuery.data.value" :source="roleQuery.data.value" title="没有可显示的角色" description="此角色暂不可用。" />
@@ -510,7 +512,7 @@ function updateTargetPermissions(options: DynamicOption[], values: Array<string 
           <LsFormActions><LsButton :disabled="routeAccess.restricted.value || !permissionsDraft.dirty.value" :disabled-reason="permissionDisabledReason" :loading="savePermissions.isPending.value" @click="requestPermissionSave"><template #icon><Save :size="17" /></template>保存权限</LsButton></LsFormActions>
         </section></LsPanel>
         </template>
-      </LsCategoryPage>
+      </TeamCategoryLayout>
 
       <NModal
         v-model:show="showAdvancedConfirm"

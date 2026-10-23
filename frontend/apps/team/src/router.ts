@@ -2,7 +2,6 @@ import { api, auth } from '@lostsky/api/client'
 import { identityUrl, redirectToLogin, redirectToMemberIdentity, redirectToWorkspaceWarning, redirectWorkspaceRoleError } from '@lostsky/shared/navigation'
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteLocationGeneric } from 'vue-router'
-import { managerScopeOptions, visibilityOptions } from './lib/access'
 import { abilityReason, hasPermission, permissionReason, type TeamAccessSnapshot } from './lib/teamAccess'
 const DashboardView = () => import('./views/DashboardView.vue')
 const DocumentView = () => import('./views/DocumentView.vue')
@@ -22,7 +21,6 @@ const FilesView = () => import('./views/FilesView.vue')
 const NoticeDetailView = () => import('./views/NoticeDetailView.vue')
 const NoticesView = () => import('./views/NoticesView.vue')
 const NoticeSendView = () => import('./views/NoticeSendView.vue')
-const ResourceView = () => import('./views/ResourceView.vue')
 const EntityRolesView = () => import('./views/EntityRolesView.vue')
 const RoleDetailView = () => import('./views/RoleDetailView.vue')
 const RoleFormView = () => import('./views/RoleFormView.vue')
@@ -41,57 +39,6 @@ const AbilitiesView = () => import('./views/AbilitiesView.vue')
 const PersonalView = () => import('./views/PersonalView.vue')
 const AuditView = () => import('./views/AuditView.vue')
 const AuditDetailView = () => import('./views/AuditDetailView.vue')
-
-export interface ResourceFormField {
-  key: string
-  label: string
-  type?: 'text' | 'textarea' | 'number' | 'select' | 'checkbox'
-  required?: boolean
-  createOnly?: boolean
-  defaultValue?: string | number | boolean
-  options?: Array<{ label: string; value: string | number }>
-}
-export interface ResourceMeta {
-  title: string
-  description: string
-  endpoint: string
-  fields: string[]
-  empty: string
-  createEndpoint?: string
-  editEndpoint?: string
-  deleteEndpoint?: string
-  idKey?: string
-  deleteKey?: string
-  formFields?: ResourceFormField[]
-}
-
-const resources: Record<string, ResourceMeta> = {
-  members: {
-    title: '成员', description: '管理成员状态、公开资料与岗位信息。', endpoint: '/member/index', fields: ['nickname', 'phone', 'status', 'create_time'], empty: '团队中还没有其他成员',
-    createEndpoint: '/member/add', editEndpoint: '/member/edit', idKey: 'member_id',
-    formFields: [
-      { key: 'user_id', label: '用户 ID', type: 'number', required: true, createOnly: true }, { key: 'nickname', label: '团队昵称', required: true },
-      { key: 'avatar', label: '头像地址' }, { key: 'description', label: '简介', type: 'textarea' }, { key: 'intro_image', label: '介绍图片地址' },
-      { key: 'intro_video', label: '介绍视频地址' }, { key: 'introduction_markdown', label: '详细介绍', type: 'textarea' },
-    ],
-  },
-  roles: {
-    title: '角色', description: '建立角色、维护权限（Permission）并分配给成员。', endpoint: '/role/index', fields: ['name', 'role_key', 'description', 'sort'], empty: '还没有自定义角色',
-    createEndpoint: '/role/add', editEndpoint: '/role/edit', deleteEndpoint: '/role/delete',
-    formFields: [{ key: 'role_key', label: '角色标识', required: true, createOnly: true }, { key: 'name', label: '角色名称', required: true }, { key: 'description', label: '说明', type: 'textarea' }, { key: 'sort', label: '顺序', type: 'number', defaultValue: 0 }],
-  },
-  notice: { title: '站内通知', description: '集中处理系统提醒和团队消息。', endpoint: '/notice/index', fields: ['title', 'content', 'is_read', 'create_time'], empty: '目前没有站内通知' },
-  'join-review': { title: '加入审核', description: '审核加入申请并跟踪入队任务。', endpoint: '/joinReview/index', fields: ['user_id', 'status', 'memo', 'create_time'], empty: '没有待处理的加入申请' },
-  files: { title: '文件', description: '查找和管理上传到团队空间的文件。', endpoint: '/file/index', fields: ['name', 'mime_type', 'size', 'create_time'], deleteEndpoint: '/file/delete', empty: '团队空间还没有文件' },
-  docs: {
-    title: '文档', description: '组织团队流程、规范和长期知识。', endpoint: '/doc', fields: ['title', 'entity_id', 'visibility', 'update_time'], empty: '文档库还是空的',
-    createEndpoint: '/doc/create', editEndpoint: '/doc/edit', deleteEndpoint: '/doc/delete',
-    formFields: [
-      { key: 'title', label: '标题', required: true }, { key: 'content', label: 'Markdown 内容', type: 'textarea' }, { key: 'entity_id', label: '对象 ID', type: 'number', required: true },
-      { key: 'manager_scope', label: '管理范围', type: 'select', defaultValue: 1, options: managerScopeOptions }, { key: 'visibility', label: '可见范围', type: 'select', defaultValue: 1, options: visibilityOptions }, { key: 'sort', label: '顺序', type: 'number', defaultValue: 0 },
-    ],
-  },
-}
 
 function legacyNoticeRedirect(to: RouteLocationGeneric, detail = false) {
   const scope = auth.entity()?.type === 'team' ? 'team' : 'entity'
@@ -151,7 +98,6 @@ const routes = [
   { path: '/docs', component: DocumentsView, meta: { workspaceScene: true, pageWidth: 'wide', title: '文档', ability: 'doc', accessMode: 'list' } },
   { path: '/doc-create', component: DocumentFormView, meta: { workspaceScene: true, title: '新建文档', pageWidth: 'content', ability: 'doc' } },
   { path: '/doc-edit', component: DocumentFormView, meta: { workspaceScene: true, title: '编辑文档', pageWidth: 'content', ability: 'doc' } },
-  ...Object.entries(resources).filter(([path]) => !['notice', 'files', 'roles', 'join-review', 'members', 'fields', 'docs'].includes(path)).map(([path, resource]) => ({ path: `/${path}`, component: ResourceView, props: { resource }, meta: { workspaceScene: true, pageWidth: 'wide', title: resource.title } })),
   { path: '/member-detail', component: MemberDetailView, meta: { workspaceScene: true, title: '成员详情', pageWidth: 'content' } },
   { path: '/doc', component: DocumentView, meta: { workspaceScene: true, title: '文档', pageWidth: 'content', ability: 'doc' } },
   { path: '/personal', component: PersonalView, meta: { workspaceScene: true, title: '概览', pageWidth: 'wide', workspace: 'personal', personalSection: 'overview' } },

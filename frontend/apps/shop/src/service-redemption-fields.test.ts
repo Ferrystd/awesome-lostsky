@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { createServiceRedemptionFieldDraft, hydrateServiceRedemptionFields, serializeServiceRedemptionFields, validServiceRedemptionFields } from './service-redemption-fields'
 
-const serviceFormSource = readFileSync(new URL('./views/manage/ServiceFormView.vue', import.meta.url), 'utf8')
 const productFormSource = readFileSync(new URL('./views/manage/ProductFormView.vue', import.meta.url), 'utf8')
+const variantEditorSource = readFileSync(new URL('./components/ProductVariantEditor.vue', import.meta.url), 'utf8')
 const routerSource = readFileSync(new URL('./router.ts', import.meta.url), 'utf8')
 const editorSource = readFileSync(new URL('./components/ServiceFieldsEditor.vue', import.meta.url), 'utf8')
 
@@ -68,9 +68,10 @@ describe('service redemption fields', () => {
   })
 
   it('saves redemption fields inside the unified product form', () => {
-    expect(serviceFormSource).toContain('<ServiceFieldsEditor v-model="redemptionFields" />')
-    expect(serviceFormSource).toContain('redemption_fields: serializeServiceRedemptionFields(redemptionFields.value)')
     expect(productFormSource).toContain('<ServiceFieldsEditor v-if="form.kind === 4" v-model="redemptionFields" />')
+    expect(productFormSource).toContain('redemption_fields: serializeServiceRedemptionFields(redemptionFields.value)')
+    expect(variantEditorSource).toContain('<ServiceFieldsEditor v-if="draft.kind === 4" v-model="redemptionFields" />')
+    expect(variantEditorSource).toContain('draft.value.redemption.redemption_fields = serializeServiceRedemptionFields(fields)')
     expect(routerSource).not.toContain('/products/:id(\\d+)/fields')
   })
 })

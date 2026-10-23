@@ -51,7 +51,7 @@ const statusOptions = [
         <LsPageLink :icon="Plus" label="创建字段" to="/join-fields/new" />
       </template>
       <template #toolbar>
-        <LsListToolbar embedded v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索申请字段" :count-label="!canRead ? '0 个字段' : `${visibleRows.length} 个字段`">
+        <LsListToolbar v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索申请字段" :count-label="!canRead ? '0 个字段' : `${visibleRows.length} 个字段`">
           <template #filters>
             <NSelect v-model:value="status" :options="statusOptions" aria-label="筛选申请字段状态" />
           </template>

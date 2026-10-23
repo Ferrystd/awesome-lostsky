@@ -136,7 +136,7 @@ function summary(content: string | null | undefined) {
 
     <LsInlineError v-if="errors[scope]" :message="errors[scope]!" />
 
-    <LsListToolbar embedded v-model="search" :placeholder="`搜索${copy.noun}`" :aria-label="`搜索${copy.noun}`" :count-label="routeAccess.restricted.value ? '0 条' : `${visible.length} 条`">
+    <LsListToolbar v-model="search" :placeholder="`搜索${copy.noun}`" :aria-label="`搜索${copy.noun}`" :count-label="routeAccess.restricted.value ? '0 条' : `${visible.length} 条`">
       <template v-if="scope !== 'entity'" #filters><NSelect v-model:value="filter" :options="filterOptions" :aria-label="`${copy.noun}筛选`" /></template>
       <template v-if="scope === 'team'" #actions><LsButton variant="secondary" :loading="confirmAll.isPending.value && confirmAll.variables.value === scope" :disabled="confirmAll.isPending.value || routeAccess.restricted.value || unreadCount === 0" :disabled-reason="routeAccess.reason.value || (confirmAll.isPending.value ? '请等待当前标记操作完成' : '当前页没有未读消息')" @click="confirmAll.mutate(scope)"><template #icon><CheckCheck :size="18" /></template>全部标为已读</LsButton></template>
     </LsListToolbar>
