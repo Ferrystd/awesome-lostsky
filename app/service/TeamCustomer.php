@@ -69,13 +69,10 @@ class TeamCustomer
         }
 
         $paginator = $query->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $rows = $paginator->getCollection();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
         $list = array_map(fn ($order): array => $this->orderData($order), $rows->all());
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function transactions(int $teamId, int $customerId, array $filters, int $page = 1, int $limit = 20): array
@@ -112,15 +109,12 @@ class TeamCustomer
             ->with(['transaction'])
             ->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $list  = $paginator->getCollection()->toArray();
         foreach ($list as &$row) {
             $row['transaction'] = isset($row['transaction']) ? $this->customerTransaction($row['transaction']) : null;
         }
-        $page  = $paginator->currentPage();
-        $limit = $paginator->listRows();
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     private function customerTransaction(array $transaction): array

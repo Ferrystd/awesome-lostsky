@@ -17,10 +17,6 @@ class TeamServiceEntitlement extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id' => 'integer',
         'service_id' => 'integer',
         'customer_id' => 'integer',
@@ -38,13 +34,10 @@ class TeamServiceEntitlement extends Base
         'cs_cut' => 'string',
         'team_cut' => 'string',
         'expire_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = ['available_quantity', 'is_expired', 'is_exhausted'];

@@ -13,7 +13,6 @@ use app\enum\OrderStatus;
 class TeamOrder extends Base
 {
     protected $type = [
-        'id'          => 'integer',
         'team_id'     => 'integer',
         // customer_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
         // handler_entity_id 允许为 NULL，服务套餐与卡密订单没有购买时接单人
@@ -36,10 +35,7 @@ class TeamOrder extends Base
         'memo'        => 'string',
         'fulfillment_snapshot' => 'array',
         'purchase_fields' => 'array',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = ['fulfillment_snapshot', 'purchase_fields'];
 

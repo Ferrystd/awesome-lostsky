@@ -93,10 +93,7 @@ class TeamJoin
     {
         $data = $this->fieldData($data);
 
-        $validator = new \app\validate\TeamJoinField;
-        if (!$validator->scene('create')->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check((new \app\validate\TeamJoinField)->scene('create'), $data);
         if (TeamJoinField::where('team_id', $teamId)->where('field_key', $data['field_key'])->find()) {
             throw new HttpException(409, '申请字段标识已存在');
         }
@@ -118,10 +115,7 @@ class TeamJoin
             $data['options'] = $this->options($data['options']);
         }
 
-        $validator = new \app\validate\TeamJoinField;
-        if (!$validator->scene('update')->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check((new \app\validate\TeamJoinField)->scene('update'), $data);
         $this->assertTransferField($teamId, array_merge($field->toArray(), $data));
 
         $field->save($data);
@@ -138,10 +132,7 @@ class TeamJoin
 
     public function apply(int $teamId, int $userId, array $data): int
     {
-        $validator = new \app\validate\TeamJoinApplication;
-        if (!$validator->scene('apply')->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check((new \app\validate\TeamJoinApplication)->scene('apply'), $data);
         $member = \app\model\TeamMember::where('team_id', $teamId)->where('user_id', $userId)->find();
         if ($member && $member->enumCase('status') !== TeamMemberStatus::Departed) {
             throw new HttpException(409, '你已经是本团队成员');
@@ -225,17 +216,14 @@ class TeamJoin
         $paginator = $query->with(['user.profile', 'values.field', 'tasks'])
             ->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $applications = $paginator->getCollection();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
 
         $list = array_map(
             fn (TeamJoinApplication $application): array => $this->applicationData($application, $teamId),
             $applications->all()
         );
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function get(int $teamId, int $id, ?int $userId = null): array

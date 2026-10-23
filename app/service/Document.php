@@ -39,15 +39,12 @@ class Document
         }
         $paginator = $query->order('sort', 'asc')->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
         $list = array_map(
             fn (DocumentModel $document): array => $this->data($document),
             $paginator->getCollection()->all()
         );
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function get(int $id, int $teamId, array $actingEntity): array
@@ -63,10 +60,7 @@ class Document
     public function create(int $entityId, array $data, int $teamId, array $actingEntity): int
     {
         $entity = app(Entity::class)->assertInTeam($entityId, $teamId);
-        $validate = new DocumentValidate;
-        if (!$validate->check($data)) {
-            throw new HttpException(422, $validate->getError());
-        }
+        app(Validation::class)->check((new DocumentValidate), $data);
         if (trim((string) ($data['title'] ?? '')) === '') {
             throw new HttpException(422, '文档标题不能为空');
         }
@@ -129,10 +123,7 @@ class Document
             }
         }
         if ($update) {
-            $validate = new DocumentValidate;
-            if (!$validate->check($update)) {
-                throw new HttpException(422, $validate->getError());
-            }
+            app(Validation::class)->check((new DocumentValidate), $update);
         }
         if (array_key_exists('manager_scope', $update)) {
             $update['manager_scope'] = $this->managerScope($update['manager_scope']);

@@ -6,10 +6,6 @@ namespace app\model;
 class ChatMessage extends Base
 {
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'               => 'integer',
         'conversation_id'       => 'integer',
         'entity_id'             => 'integer',
@@ -17,10 +13,9 @@ class ChatMessage extends Base
         // 'origin_integration_id' => 'null|integer',
         // 'edited_at'             => 'null|integer',
         // 'revoked_at'            => 'null|integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
-    protected $hidden = ['delete_time'];
     protected $append = [];
     protected $readonly = ['team_id', 'conversation_id', 'entity_id', 'reply_id', 'origin_integration_id'];
 

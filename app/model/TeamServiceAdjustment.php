@@ -17,10 +17,6 @@ class TeamServiceAdjustment extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id' => 'integer',
         'service_instance_id' => 'integer',
         'customer_id' => 'integer',
@@ -36,13 +32,10 @@ class TeamServiceAdjustment extends Base
         'team_cut' => 'string',
         'status' => ServiceAdjustmentStatus::class,
         'memo' => 'string',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [];

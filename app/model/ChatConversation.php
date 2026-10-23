@@ -8,10 +8,6 @@ use app\enum\ChatConversationKind;
 class ChatConversation extends Base
 {
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'         => 'integer',
         'uuid'            => 'string',
         'kind'            => ChatConversationKind::class,
@@ -21,10 +17,9 @@ class ChatConversation extends Base
         // 'last_message_at' => 'null|integer',
         // 'expires_at'      => 'null|integer',
         // 'closed_at'       => 'null|integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
-    protected $hidden = ['delete_time'];
     protected $append = ['is_closed'];
     protected $readonly = ['team_id', 'uuid', 'kind', 'is_temporary', 'entity_id', 'direct_key'];
 

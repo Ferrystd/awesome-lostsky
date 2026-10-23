@@ -16,11 +16,6 @@ class TeamJoinField extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-
         'team_id'                  => 'integer',
         'field_key'                => 'string',
         'name'                     => 'string',
@@ -33,13 +28,10 @@ class TeamJoinField extends Base
         'entity_field_id'          => 'integer',
         'is_active'                => 'integer',
         'sort'                     => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = ['options'];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [];

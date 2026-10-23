@@ -16,10 +16,6 @@ class TeamServiceAssignmentOffer extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id' => 'integer',
         'service_id' => 'integer',
         'customer_id' => 'integer',
@@ -35,7 +31,7 @@ class TeamServiceAssignmentOffer extends Base
         'cs_cut' => 'string',
         'team_cut' => 'string',
         'decided_at' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = ['field_values'];

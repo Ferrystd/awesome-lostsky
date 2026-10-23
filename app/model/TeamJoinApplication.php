@@ -18,24 +18,16 @@ class TeamJoinApplication extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-
         'team_id'   => 'integer',
         'user_id'   => 'integer',
         'entity_id' => 'integer',
         'purpose'   => TeamJoinPurpose::class,
         'status'    => TeamJoinStatus::class,
         'memo'      => 'string',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = ['purpose_code', 'purpose_label', 'status_code', 'status_label'];

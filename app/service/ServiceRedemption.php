@@ -32,12 +32,10 @@ class ServiceRedemption
         }
         $paginator = $query->with(['service'])->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
-        return [
-            'total' => $paginator->total(),
-            'list' => array_map($this->customerEntitlementResponse(...), $paginator->getCollection()->toArray()),
-            'page' => $paginator->currentPage(),
-            'limit' => $paginator->listRows(),
-        ];
+        return app(Pagination::class)->response(
+            $paginator,
+            array_map($this->customerEntitlementResponse(...), $paginator->getCollection()->toArray())
+        );
     }
 
     public function customerGet(int $teamId, int $customerId, int $id): array
@@ -478,11 +476,7 @@ class ServiceRedemption
             $list[] = $row;
         }
         $this->attachEntities($list, ['handler' => 'handler_entity_id']);
-        return [
-            'total' => $paginator->total(),
-            'list' => $list,
-            'page' => $paginator->currentPage(),
-            'limit' => $paginator->listRows(),
+        return app(Pagination::class)->response($paginator, $list) + [
             'capabilities' => [
                 'read_all' => $this->canReadAll($teamId, $subject),
                 'manage' => $this->canManage($teamId, $subject),
@@ -554,12 +548,7 @@ class ServiceRedemption
             ->order('id', 'asc')->paginate(['list_rows' => $limit, 'page' => $page]);
         $list = $paginator->getCollection()->toArray();
         foreach ($list as &$instance) $this->attachInstanceFields($instance);
-        return [
-            'total' => $paginator->total(),
-            'list' => $list,
-            'page' => $paginator->currentPage(),
-            'limit' => $paginator->listRows(),
-        ];
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function claimableGet(int $teamId, int $actorEntityId, int $id): array

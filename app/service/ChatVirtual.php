@@ -123,9 +123,6 @@ class ChatVirtual
 
     private function validate(string $scene, array $data): void
     {
-        $validator = new \app\validate\ChatVirtual;
-        if (!$validator->scene($scene)->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check((new \app\validate\ChatVirtual)->scene($scene), $data);
     }
 }

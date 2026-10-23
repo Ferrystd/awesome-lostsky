@@ -29,9 +29,6 @@ class ManualEntitlementGrantOperation extends Base
     /** JSON 字段 */
     protected $json = ['result'];
 
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
-
     /** 计算属性 */
     protected $append = [];
 

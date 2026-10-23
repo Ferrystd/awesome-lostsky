@@ -100,10 +100,7 @@ final class PlatformAdmin
         $paginator = $query
             ->order('user.id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $rows = $paginator->getCollection()->toArray();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
         foreach ($rows as &$row) {
             $phone = (string) ($row['phone'] ?? '');
             $email = (string) ($row['email'] ?? '');
@@ -116,7 +113,7 @@ final class PlatformAdmin
             $row['device_count'] = (int) ($row['device_count'] ?? 0);
         }
 
-        return ['total' => $total, 'list' => $rows, 'page' => $page, 'limit' => $limit];
+        return app(Pagination::class)->response($paginator, $rows);
     }
 
     public function user(int $id, bool $includeSensitive = false): array
@@ -260,16 +257,13 @@ final class PlatformAdmin
             'team.create_time', 'team.update_time', 'profile.name', 'profile.avatar',
             'owner.username owner_username',
         ])->order('team.id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $rows = $paginator->getCollection()->toArray();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
         foreach ($rows as &$row) {
             $row['member_count'] = Db::name('team_member')
                 ->where('team_id', $row['id'])->whereNull('delete_time')->count();
         }
 
-        return ['total' => $total, 'list' => $rows, 'page' => $page, 'limit' => $limit];
+        return app(Pagination::class)->response($paginator, $rows);
     }
 
     public function team(int $id): array
@@ -473,17 +467,14 @@ final class PlatformAdmin
             'event.application', 'event.action', 'event.resource_type', 'event.resource_id',
             'event.request_id', 'event.context', 'event.create_time', 'actor.username actor_username',
         ])->order('event.id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $rows = $paginator->getCollection()->toArray();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
         foreach ($rows as &$row) {
             if (is_string($row['context'] ?? null)) {
                 $row['context'] = json_decode($row['context'], true);
             }
         }
 
-        return ['total' => $total, 'list' => $rows, 'page' => $page, 'limit' => $limit];
+        return app(Pagination::class)->response($paginator, $rows);
     }
 
     public function systemHealth(): array

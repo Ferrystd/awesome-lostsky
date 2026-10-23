@@ -6,16 +6,11 @@ namespace app\model;
 class TeamVirtual extends Base
 {
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'     => 'integer',
         'is_active'   => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
-    protected $hidden = ['delete_time'];
     protected $append = ['is_valid', 'is_searchable'];
     protected $readonly = ['team_id'];
 

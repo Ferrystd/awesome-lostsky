@@ -12,16 +12,11 @@ class ExternalCompensation extends Base
     protected $name = 'external_compensation';
 
     protected $type = [
-        'id' => 'integer',
         'attempts' => 'integer',
         'available_at' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
     protected $readonly = ['provider', 'action', 'resource_key'];
 }

@@ -13,16 +13,12 @@ class UserDevice extends Base
     protected $name = 'user_device';
 
     protected $type = [
-        'id'               => 'integer',
         'user_id'          => 'integer',
         'device_token'     => 'string',
         'device_name'      => 'string',
         'ua'               => 'string',
         'last_active_time' => 'integer',
-        'create_time'      => 'integer',
-        'update_time'      => 'integer',
-        'delete_time'      => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 

@@ -6,16 +6,12 @@ namespace app\model;
 class TeamVirtualIntegration extends Base
 {
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'     => 'integer',
         'virtual_id'  => 'integer',
         'name'        => 'string',
         'driver'      => 'string',
         'is_active'   => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = ['events'];
     protected $hidden = ['delete_time', 'token_hash', 'signing_secret'];

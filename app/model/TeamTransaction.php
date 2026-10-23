@@ -25,7 +25,6 @@ class TeamTransaction extends Base
     ];
 
     protected $type = [
-        'id'          => 'integer',
         'team_id'     => 'integer',
         // handler_entity_id 允许为 NULL，服务包收款没有接单人
         // customer_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
@@ -41,14 +40,10 @@ class TeamTransaction extends Base
         'cs_cut'      => 'string',
         'team_cut'    => 'string',
         'trans_at'    => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
 
     protected $append = [];
 

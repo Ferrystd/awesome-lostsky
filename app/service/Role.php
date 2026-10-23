@@ -107,9 +107,6 @@ class Role
 
     private function validate(array $data, string $scene): void
     {
-        $validator = new \app\validate\Role;
-        if (!$validator->scene($scene)->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check((new \app\validate\Role)->scene($scene), $data);
     }
 }

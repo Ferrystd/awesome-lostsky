@@ -12,19 +12,13 @@ use app\model\Base;
 class TeamRolePermission extends Base
 {
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-
         'team_id'        => 'integer',
         'role_id'        => 'integer',
         'permission_key' => 'string',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
 
     protected $append = [];
 

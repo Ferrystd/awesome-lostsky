@@ -53,10 +53,7 @@ class CustomerProfile
 
     public function update(int $teamId, int $customerId, array $data): void
     {
-        $validator = new \app\validate\CustomerProfile;
-        if (!$validator->scene('update')->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check((new \app\validate\CustomerProfile)->scene('update'), $data);
         \think\facade\Db::transaction(function () use ($teamId, $customerId, $data): void {
             $customer = app(CustomerAssignment::class)->customer($teamId, $customerId, true);
             if ($customer->is_blocked) {

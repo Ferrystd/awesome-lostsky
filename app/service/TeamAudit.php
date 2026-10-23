@@ -119,12 +119,10 @@ final class TeamAudit
             ->paginate(['list_rows' => $limit, 'page' => $page]);
         $rows = $paginator->getCollection()->toArray();
 
-        return [
-            'total' => $paginator->total(),
-            'list' => array_map(fn (array $row): array => $this->present($row, false), $rows),
-            'page' => $paginator->currentPage(),
-            'limit' => $paginator->listRows(),
-        ];
+        return app(Pagination::class)->response(
+            $paginator,
+            array_map(fn (array $row): array => $this->present($row, false), $rows)
+        );
     }
 
     public function get(int $teamId, int $id): array

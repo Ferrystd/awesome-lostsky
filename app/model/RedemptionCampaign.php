@@ -17,10 +17,6 @@ class RedemptionCampaign extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'package_id' => 'integer',
         'name' => 'string',
         'claim_group' => 'string',
@@ -28,13 +24,10 @@ class RedemptionCampaign extends Base
         'redeem_starts_at' => 'integer',
         'redeem_ends_at' => 'integer',
         'is_active' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [];

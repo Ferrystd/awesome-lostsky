@@ -612,9 +612,6 @@ class TeamEntityField
 
     private function validate(string $scene, array $data): void
     {
-        $validator = new \app\validate\TeamEntityField;
-        if (!$validator->scene($scene)->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check((new \app\validate\TeamEntityField)->scene($scene), $data);
     }
 }

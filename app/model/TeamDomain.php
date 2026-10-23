@@ -16,13 +16,9 @@ class TeamDomain extends Base
      * @var array
      */
     protected $type = [
-        'id' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         //固定字段
 
-        //拓展字段 
+        //拓展字段
         'team_id' => 'integer',
         'domain' => 'string',
         'app' => 'string',
@@ -30,7 +26,7 @@ class TeamDomain extends Base
         //team可以用自己的前后端域名
 
         //
-    ];
+    ] + self::COMMON_TYPES;
 
     /**
      * JSON 字段

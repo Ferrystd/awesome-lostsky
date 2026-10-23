@@ -8,6 +8,16 @@ final class Pagination
     public const DEFAULT_LIMIT = 20;
     public const MAX_LIMIT = 100;
 
+    public function response(\think\Paginator $paginator, ?array $list = null): array
+    {
+        return [
+            'total' => $paginator->total(),
+            'list' => $list ?? $paginator->getCollection()->toArray(),
+            'page' => $paginator->currentPage(),
+            'limit' => $paginator->listRows(),
+        ];
+    }
+
     public function normalize(int $page, int $limit): array
     {
         return [

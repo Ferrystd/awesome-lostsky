@@ -12,11 +12,6 @@ use app\model\Base;
 class TeamRole extends Base
 {
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-
         'team_id'     => 'integer',
         'role_key'    => 'string',
         'name'        => 'string',
@@ -25,11 +20,10 @@ class TeamRole extends Base
         // 角色对外展示：仅决定该角色标签是否出现在公开资料中；
         // 不控制实体的公开 Display、团队内目录可见性或任何权限判定。
         'is_displayed'=> 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
 
     protected $append = [];
 

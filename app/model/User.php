@@ -12,18 +12,13 @@ use app\model\Base;
 class User extends Base
 {
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-
         'phone'    => 'string',
         'email'    => 'string',
         'password' => 'string',
         'username' => 'string',
         'is_banned' => 'integer',
         'member_join_code_expires_at' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 

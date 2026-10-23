@@ -15,11 +15,10 @@ final class WeiboAccount extends Base
         'checked_at' => 'int', 'create_time' => 'int', 'update_time' => 'int', 'delete_time' => 'int',
     ];
     protected $type = [
-        'id' => 'integer', 'health' => WeiboAccountHealth::class,
+        'health' => WeiboAccountHealth::class,
         'cookie_json' => 'json', 'user_json' => 'json',
-        'checked_at' => 'integer', 'create_time' => 'integer',
-        'update_time' => 'integer', 'delete_time' => 'integer',
-    ];
+        'checked_at' => 'integer',
+    ] + self::COMMON_TYPES;
     protected $json = ['cookie_json', 'user_json'];
     protected $hidden = [
         'delete_time', 'phone', 'gsid', 'from_value', 'oauth_token',

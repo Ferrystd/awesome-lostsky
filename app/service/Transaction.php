@@ -96,13 +96,10 @@ class Transaction
         $paginator = $query->order('trans_at', 'desc')
             ->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $list  = $paginator->getCollection()->toArray();
-        $page  = $paginator->currentPage();
-        $limit = $paginator->listRows();
         $this->attachRelations($list);
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function personal(int $teamId, int $actorEntityId, array $filters, int $page = 1, int $limit = 20): array

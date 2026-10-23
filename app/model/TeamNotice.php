@@ -16,15 +16,11 @@ class TeamNotice extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'title'       => 'string',
         'content'     => 'string',
         'is_pinned'   => 'integer',
         'is_read'     => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /**
      * JSON 字段

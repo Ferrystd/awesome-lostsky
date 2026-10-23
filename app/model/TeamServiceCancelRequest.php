@@ -17,22 +17,15 @@ class TeamServiceCancelRequest extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'service_instance_id' => 'integer',
         'requested_by_entity_id' => 'integer',
         'status' => ServiceCancelStatus::class,
         'reason' => 'string',
         'decision_reason' => 'string',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [];

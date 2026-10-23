@@ -10,10 +10,6 @@ use app\enum\Visibility;
 class TeamEntityField extends Base
 {
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'       => 'integer',
         'entity_type'   => TeamEntityType::class,
         'field_key'     => 'string',
@@ -28,10 +24,9 @@ class TeamEntityField extends Base
         'is_searchable' => 'integer',
         'is_system'     => 'integer',
         'sort'          => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = ['options'];
-    protected $hidden = ['delete_time'];
     protected $append = [];
     protected $readonly = ['team_id', 'entity_type', 'field_key', 'is_system'];
 

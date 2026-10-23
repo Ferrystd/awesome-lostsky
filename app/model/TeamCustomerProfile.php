@@ -12,19 +12,14 @@ use app\model\Base;
 class TeamCustomerProfile extends Base
 {
     protected $type = [
-        'id'          => 'integer',
         'customer_id' => 'integer',
         'nickname'    => 'string',
         // 'avatar'      => 'null|string',
         // 'description' => 'null|string',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
 
     protected $append = [];
 

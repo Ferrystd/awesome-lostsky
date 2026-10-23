@@ -29,13 +29,10 @@ class Product
         }
 
         $paginator = $query->order('id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $list  = $paginator->getCollection()->toArray();
-        $page  = $paginator->currentPage();
-        $limit = $paginator->listRows();
         $this->attachRelations($list, false);
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function get(int $teamId, int $id): array
@@ -222,9 +219,7 @@ class Product
     private function createRecord(int $teamId, array $data): int
     {
         $validator = app(\app\validate\Product::class);
-        if (!$validator->scene('create')->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check($validator->scene('create'), $data);
         try {
             $money = (new TeamProduct)->normalizeMoneyFields($data);
         } catch (\InvalidArgumentException) {
@@ -335,9 +330,7 @@ class Product
         }
 
         $validator = app(\app\validate\Product::class);
-        if (!$validator->scene('edit')->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check($validator->scene('edit'), $data);
 
         $allow = ['name', 'price', 'cost', 'description', 'cover_image', 'introduction_markdown', 'is_active',
             'handler_cut', 'sender_cut', 'cs_cut', 'team_cut',

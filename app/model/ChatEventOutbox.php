@@ -6,16 +6,12 @@ namespace app\model;
 class ChatEventOutbox extends Base
 {
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'      => 'integer',
         'attempts'     => 'integer',
         'available_at' => 'integer',
         'processing_until' => 'integer',
         // 'published_at' => 'null|integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = ['payload'];
     protected $hidden = ['delete_time', 'processing_token', 'processing_until'];

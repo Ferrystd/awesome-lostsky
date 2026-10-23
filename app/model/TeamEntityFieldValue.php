@@ -8,10 +8,6 @@ use app\enum\TeamEntityType;
 class TeamEntityFieldValue extends Base
 {
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'        => 'integer',
         'field_id'       => 'integer',
         'value_json' => 'string',
@@ -22,10 +18,9 @@ class TeamEntityFieldValue extends Base
         // 'value_decimal'  => 'null|float',
         // 'value_datetime' => 'null|integer',
         // 'value_json'     => 'null|json',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
-    protected $hidden = ['delete_time'];
     protected $append = [];
     protected $readonly = ['team_id', 'field_id', 'entity_id'];
 

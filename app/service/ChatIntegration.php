@@ -143,9 +143,6 @@ class ChatIntegration
 
     private function validate(string $scene, array $data): void
     {
-        $validator = new \app\validate\ChatIntegration;
-        if (!$validator->scene($scene)->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check((new \app\validate\ChatIntegration)->scene($scene), $data);
     }
 }

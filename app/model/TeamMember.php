@@ -13,15 +13,10 @@ use app\model\Base;
 class TeamMember extends Base
 {
     protected $type = [
-        'id' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-
         'team_id' => 'integer',
         'user_id' => 'integer',
         'status' => TeamMemberStatus::class,
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 

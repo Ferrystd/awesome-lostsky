@@ -16,22 +16,15 @@ class RedemptionClaim extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'campaign_id' => 'integer',
         'code_id' => 'integer',
         'claim_key' => 'string',
         'claimed_by_entity_id' => 'integer',
         'claimed_at' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = [];

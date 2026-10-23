@@ -277,9 +277,6 @@ class RolePermission
 
     private function validate(array $data): void
     {
-        $validator = new \app\validate\RolePermission;
-        if (!$validator->scene('save')->check($data)) {
-            throw new HttpException(422, $validator->getError());
-        }
+        app(Validation::class)->check((new \app\validate\RolePermission)->scene('save'), $data);
     }
 }

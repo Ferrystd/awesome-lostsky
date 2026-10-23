@@ -16,15 +16,11 @@ class TeamAbility extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id'     => 'integer',
         'ability_key' => 'string',
         'level'       => 'integer',
         'expire_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /**
      * JSON 字段

@@ -9,6 +9,13 @@ use think\model\contract\EnumTransform;
 
 class Base extends Model
 {
+    protected const COMMON_TYPES = [
+        'id' => 'integer',
+        'create_time' => 'integer',
+        'update_time' => 'integer',
+        'delete_time' => 'integer',
+    ];
+
     /** Attachment activation and the successful resource write share one transaction. */
     public function save(array | object $data = [], $where = [], bool $refresh = false): bool
     {

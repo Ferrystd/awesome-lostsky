@@ -53,17 +53,11 @@ class TeamMemberDeparture
         $paginator = $query->with(['member.profile', 'member.identity'])
             ->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $rows = $paginator->getCollection();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
-
-        return [
-            'total' => $total,
-            'list' => array_map(fn (DepartureModel $row): array => $this->data($row), $rows->all()),
-            'page' => $page,
-            'limit' => $limit,
-        ];
+        return app(Pagination::class)->response(
+            $paginator,
+            array_map(fn (DepartureModel $row): array => $this->data($row), $rows->all())
+        );
     }
 
     public function get(int $teamId, int $id): array

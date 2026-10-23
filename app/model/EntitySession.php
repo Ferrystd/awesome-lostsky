@@ -22,11 +22,10 @@ class EntitySession extends Base
      * @var array
      */
     protected $type = [
-        'id' => 'integer', 'user_id' => 'integer', 'device_token' => 'string', 'jti' => 'string',
+        'user_id' => 'integer', 'device_token' => 'string', 'jti' => 'string',
         'parent_session_id' => 'integer', 'entity_id' => 'integer',
         'expires_at' => 'integer', 'superseded_at' => 'integer', 'revoked_at' => 'integer',
-        'create_time' => 'integer', 'update_time' => 'integer', 'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];

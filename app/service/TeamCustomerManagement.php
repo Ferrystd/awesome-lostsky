@@ -54,17 +54,10 @@ class TeamCustomerManagement
             'ae.slug as assignee_slug', 'ae.entityable_type as assignee_type',
             'ap.name as assignee_name', 'ap.avatar as assignee_avatar',
         ])->order('c.id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $rows = $paginator->getCollection()->toArray();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
 
         $list = array_map(fn (array $row): array => $this->row($row), $rows);
-        return [
-            'total' => $total,
-            'list' => $list,
-            'page' => $page,
-            'limit' => $limit,
+        return app(Pagination::class)->response($paginator, $list) + [
             'scope' => $canReadAll ? 'all' : 'own',
         ];
     }
@@ -106,10 +99,7 @@ class TeamCustomerManagement
             'ae.slug as assignee_slug', 'ae.entityable_type as assignee_type',
             'ap.name as assignee_name', 'ap.avatar as assignee_avatar',
         ])->order('c.id', 'desc')->paginate(['list_rows' => $limit, 'page' => $page]);
-        $total = $paginator->total();
         $rows = $paginator->getCollection()->toArray();
-        $page = $paginator->currentPage();
-        $limit = $paginator->listRows();
 
         $list = array_map(function (array $row) use ($entityId, $bindingSet): array {
             $customer = $this->row($row);
@@ -118,7 +108,7 @@ class TeamCustomerManagement
             return $customer;
         }, $rows);
 
-        return compact('total', 'list', 'page', 'limit');
+        return app(Pagination::class)->response($paginator, $list);
     }
 
     public function get(int $teamId, array $actingEntity, int $customerId): array

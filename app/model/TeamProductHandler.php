@@ -12,17 +12,12 @@ use app\model\Base;
 class TeamProductHandler extends Base
 {
     protected $type = [
-        'id'          => 'integer',
         'product_id'  => 'integer',
         'entity_id'   => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
 
     protected $append = [];
 

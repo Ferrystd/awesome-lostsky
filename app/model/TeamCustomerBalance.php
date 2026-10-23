@@ -12,19 +12,14 @@ use app\model\Base;
 class TeamCustomerBalance extends Base
 {
     protected $type = [
-        'id'          => 'integer',
         'customer_id' => 'integer',
         'balance'     => 'string',
         'recharged'   => 'string',
         'spent'       => 'string',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
 
     protected $append = [];
 

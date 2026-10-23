@@ -6,12 +6,7 @@ namespace app\model;
 class ChatConversationAlias extends Base
 {
     protected $type = [
-        'id' => 'integer',
         'conversation_id' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
     protected $readonly = ['alias_uuid', 'conversation_id'];
-    protected $hidden = ['delete_time'];
 }

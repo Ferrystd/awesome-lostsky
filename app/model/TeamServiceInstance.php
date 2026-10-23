@@ -17,10 +17,6 @@ class TeamServiceInstance extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'team_id' => 'integer',
         'service_id' => 'integer',
         'customer_id' => 'integer',
@@ -37,13 +33,10 @@ class TeamServiceInstance extends Base
         'team_cut' => 'string',
         'expire_time' => 'integer',
         'memo' => 'string',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = [];
-
-    /** 输出隐藏 */
-    protected $hidden = ['delete_time'];
 
     /** 计算属性 */
     protected $append = ['is_expired', 'completion_due_at', 'settled_handler_cut', 'settled_team_cut'];

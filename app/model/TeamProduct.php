@@ -13,7 +13,6 @@ use app\enum\ProductKind;
 class TeamProduct extends Base
 {
     protected $type = [
-        'id'          => 'integer',
         'team_id'     => 'integer',
         // entity_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
         'name'        => 'string',
@@ -30,14 +29,10 @@ class TeamProduct extends Base
         'is_active'   => 'integer',
         'variant_sort' => 'integer',
         'purchase_fields' => 'array',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = ['purchase_fields'];
 
-    protected $hidden = ['delete_time'];
 
     protected $append = [];
 

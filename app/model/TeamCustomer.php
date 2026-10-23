@@ -12,18 +12,13 @@ use app\model\Base;
 class TeamCustomer extends Base
 {
     protected $type = [
-        'id'          => 'integer',
         'team_id'     => 'integer',
         // user_id / owner_entity_id / assignee_entity_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
         'is_blocked'  => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
-    ];
+    ] + self::COMMON_TYPES;
 
     protected $json = [];
 
-    protected $hidden = ['delete_time'];
 
     protected $append = ['is_valid', 'is_searchable'];
 

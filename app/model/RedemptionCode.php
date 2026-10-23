@@ -16,10 +16,6 @@ class RedemptionCode extends Base
      * @var array
      */
     protected $type = [
-        'id'          => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         'campaign_id' => 'integer',
         'ordinal' => 'integer',
         'code_hint' => 'string',
@@ -29,7 +25,7 @@ class RedemptionCode extends Base
         'expire_time' => 'integer',
         'is_active' => 'integer',
         'fulfillment_snapshot' => 'array',
-    ];
+    ] + self::COMMON_TYPES;
 
     /** JSON 字段 */
     protected $json = ['fulfillment_snapshot'];

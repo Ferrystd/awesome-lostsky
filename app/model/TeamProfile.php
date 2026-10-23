@@ -16,10 +16,6 @@ class TeamProfile extends Base
      * @var array
      */
     protected $type = [
-        'id' => 'integer',
-        'create_time' => 'integer',
-        'update_time' => 'integer',
-        'delete_time' => 'integer',
         //固定字段
 
         //拓展字段
@@ -27,7 +23,7 @@ class TeamProfile extends Base
         'title' => 'string',
         'description' => 'string',
         'introduction' => 'string',
-    ];
+    ] + self::COMMON_TYPES;
 
     /**
      * JSON 字段

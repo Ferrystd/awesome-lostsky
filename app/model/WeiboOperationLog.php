@@ -20,5 +20,4 @@ final class WeiboOperationLog extends Base
         'media_summary' => 'json', 'started_at' => 'integer', 'finished_at' => 'integer',
     ];
     protected $json = ['media_summary'];
-    protected $hidden = ['delete_time'];
 }
