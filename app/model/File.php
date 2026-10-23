@@ -7,6 +7,9 @@ use app\model\Base;
 
 class File extends Base
 {
+    use concern\BelongsToTeam;
+    use concern\BelongsToEntity;
+
     protected $type = [
         'size'        => 'integer',
         'source'      => \app\enum\FileSource::class,
@@ -22,13 +25,4 @@ class File extends Base
 
     protected $readonly = ['hash', 'team_id', 'entity_id', 'source'];
 
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
 }

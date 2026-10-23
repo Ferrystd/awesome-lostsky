@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class VisibilityTarget extends Base
 {
+    use concern\BelongsToEntity;
+
     /**
      * 字段类型转换
      * @var array
@@ -37,11 +39,6 @@ class VisibilityTarget extends Base
             'teamSetting'     => TeamSetting::class,
             'entityField'     => TeamEntityField::class,
         ]);
-    }
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
 }

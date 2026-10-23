@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class MarkdownReference extends Base
 {
+    use concern\BelongsToEntity;
+
     /**
      * 字段类型转换
      * @var array
@@ -40,8 +42,4 @@ class MarkdownReference extends Base
         ]);
     }
 
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
 }

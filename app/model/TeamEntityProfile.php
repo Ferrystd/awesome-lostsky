@@ -5,6 +5,8 @@ namespace app\model;
 
 class TeamEntityProfile extends Base
 {
+    use concern\BelongsToEntity;
+
     protected $type = [
         'entity_id' => 'integer',
         'name' => 'string',
@@ -15,7 +17,6 @@ class TeamEntityProfile extends Base
     protected $json = ['document_tags'];
     protected $readonly = ['entity_id'];
 
-    public function subject() { return $this->belongsTo(Entity::class, 'entity_id'); }
     public function markdownReferences() { return $this->morphMany(MarkdownReference::class, 'referenceable', 'teamEntityProfile'); }
     public function setNameAttr($value): string { return trim((string) $value); }
 }

@@ -12,6 +12,8 @@ use app\enum\OrderStatus;
  */
 class TeamOrder extends Base
 {
+    use concern\BelongsToTeam;
+
     protected $type = [
         'team_id'     => 'integer',
         // customer_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
@@ -69,11 +71,6 @@ class TeamOrder extends Base
         'trans_id',
         'memo',
     ];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function customer()
     {

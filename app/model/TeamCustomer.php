@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class TeamCustomer extends Base
 {
+    use concern\BelongsToTeam;
+
     protected $type = [
         'team_id'     => 'integer',
         // user_id / owner_entity_id / assignee_entity_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
@@ -23,11 +25,6 @@ class TeamCustomer extends Base
     protected $append = ['is_valid', 'is_searchable'];
 
     protected $readonly = ['team_id', 'user_id', 'owner_entity_id'];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function scopeInTeam($query, int $teamId)
     {

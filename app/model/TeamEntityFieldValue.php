@@ -7,6 +7,8 @@ use app\enum\TeamEntityType;
 
 class TeamEntityFieldValue extends Base
 {
+    use concern\BelongsToEntity;
+
     protected $type = [
         'team_id'        => 'integer',
         'field_id'       => 'integer',
@@ -29,10 +31,6 @@ class TeamEntityFieldValue extends Base
         return $this->belongsTo(TeamEntityField::class, 'field_id');
     }
 
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
     // ThinkORM Json 会包装字符串并将 false/0 变为 []；此列需要保留 JSON 标量。
     public function setValueJsonAttr(mixed $value): ?string
     {

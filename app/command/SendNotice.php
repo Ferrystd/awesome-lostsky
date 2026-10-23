@@ -3,6 +3,8 @@ declare (strict_types = 1);
 
 namespace app\command;
 
+use app\support\CommandResult;
+
 use app\service\Notice as NoticeService;
 use Throwable;
 use think\console\Command;
@@ -35,25 +37,13 @@ class SendNotice extends Command
                 (bool) $input->getOption('pinned')
             );
 
-            $output->writeln((string) json_encode([
-                'code'    => 0,
-                'message' => 'ok',
-                'data'    => $result,
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-
-            return 0;
+            return CommandResult::write($output, 0, 'ok', $result);
         } catch (Throwable $e) {
             $httpCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
 
-            $output->writeln((string) json_encode([
-                'code'    => 1,
-                'message' => $e->getMessage(),
-                'data'    => [
-                    'http_code' => $httpCode,
-                ],
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-
-            return 1;
+            return CommandResult::write($output, 1, $e->getMessage(), [
+                'http_code' => $httpCode,
+            ]);
         }
     }
 

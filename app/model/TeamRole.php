@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class TeamRole extends Base
 {
+    use concern\BelongsToTeam;
+
     protected $type = [
         'team_id'     => 'integer',
         'role_key'    => 'string',
@@ -28,11 +30,6 @@ class TeamRole extends Base
     protected $append = [];
 
     protected $readonly = ['team_id'];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function permissions()
     {

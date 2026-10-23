@@ -12,6 +12,8 @@ use app\enum\ServiceStatus;
  */
 class TeamServiceInstance extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
@@ -75,7 +77,6 @@ class TeamServiceInstance extends Base
             && (int) $this->expire_time < time();
     }
 
-    public function team() { return $this->belongsTo(Team::class, 'team_id'); }
     public function service() { return $this->belongsTo(TeamService::class, 'service_id'); }
     public function entitlement() { return $this->belongsTo(TeamServiceEntitlement::class, 'entitlement_id'); }
     public function sourceProduct() { return $this->belongsTo(TeamProduct::class, 'source_product_id'); }

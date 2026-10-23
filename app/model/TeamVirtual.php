@@ -5,6 +5,8 @@ namespace app\model;
 
 class TeamVirtual extends Base
 {
+    use concern\BelongsToTeam;
+
     protected $type = [
         'team_id'     => 'integer',
         'is_active'   => 'integer',
@@ -24,11 +26,6 @@ class TeamVirtual extends Base
         // 虚拟实体固定不进入全局实体搜索；Entity.is_internal_visible 控制团队工作空间目录，
         // Entity.is_displayed 控制公开 Display。两个展示对象独立，迁移时仅用公开状态生成初始内部状态。
         return false;
-    }
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
     }
 
     public function identity()

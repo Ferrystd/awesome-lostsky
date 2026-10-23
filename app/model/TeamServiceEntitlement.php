@@ -12,6 +12,8 @@ use app\service\ServiceQuantity;
  */
 class TeamServiceEntitlement extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
@@ -71,7 +73,6 @@ class TeamServiceEntitlement extends Base
         return app(ServiceQuantity::class)->toMinor($this->available_quantity) === 0;
     }
 
-    public function team() { return $this->belongsTo(Team::class, 'team_id'); }
     public function service() { return $this->belongsTo(TeamService::class, 'service_id'); }
     public function customer() { return $this->belongsTo(TeamCustomer::class, 'customer_id'); }
     public function holder() { return $this->belongsTo(Entity::class, 'holder_entity_id'); }

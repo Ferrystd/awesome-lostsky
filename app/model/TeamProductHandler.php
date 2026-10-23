@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class TeamProductHandler extends Base
 {
+    use concern\BelongsToEntity;
+
     protected $type = [
         'product_id'  => 'integer',
         'entity_id'   => 'integer',
@@ -28,8 +30,4 @@ class TeamProductHandler extends Base
         return $this->belongsTo(TeamProduct::class, 'product_id');
     }
 
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
 }

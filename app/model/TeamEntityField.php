@@ -9,6 +9,8 @@ use app\enum\Visibility;
 
 class TeamEntityField extends Base
 {
+    use concern\BelongsToTeam;
+
     protected $type = [
         'team_id'       => 'integer',
         'entity_type'   => TeamEntityType::class,
@@ -38,11 +40,6 @@ class TeamEntityField extends Base
     public function setNameAttr($value): string
     {
         return trim((string) $value);
-    }
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
     }
 
     public function fieldValues()

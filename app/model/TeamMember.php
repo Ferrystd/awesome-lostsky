@@ -12,6 +12,8 @@ use app\model\Base;
  */
 class TeamMember extends Base
 {
+    use concern\BelongsToTeam;
+
     protected $type = [
         'team_id' => 'integer',
         'user_id' => 'integer',
@@ -96,11 +98,6 @@ class TeamMember extends Base
         }
 
         return $teamValue && $override !== 0;
-    }
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
     }
 
     public function user()

@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class TeamNotice extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
@@ -29,11 +31,6 @@ class TeamNotice extends Base
     protected $json = [];
     protected $hidden = ['delete_time', 'dedup_key'];
     protected $readonly = ['dedup_key'];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function senderTeam()
     {

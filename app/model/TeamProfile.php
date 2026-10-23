@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class TeamProfile extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
@@ -31,8 +33,4 @@ class TeamProfile extends Base
      */
     protected $json = [];
 
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 }

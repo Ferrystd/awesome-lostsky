@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class TeamMemberProfile extends Base
 {
+    use concern\BelongsToEntity;
+
     /**
      * 字段类型转换
      * @var array
@@ -33,11 +35,6 @@ class TeamMemberProfile extends Base
      * @var array
      */
     protected $json = [];
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
 
     public function markdownReferences()
     {

@@ -12,6 +12,8 @@ use app\model\Base;
  */
 class TeamServiceAdjustment extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
@@ -47,7 +49,6 @@ class TeamServiceAdjustment extends Base
         'sender_cut', 'cs_cut', 'team_cut',
     ];
 
-    public function team() { return $this->belongsTo(Team::class, 'team_id'); }
     public function instance() { return $this->belongsTo(TeamServiceInstance::class, 'service_instance_id'); }
     public function customer() { return $this->belongsTo(TeamCustomer::class, 'customer_id'); }
     public function requester() { return $this->belongsTo(Entity::class, 'requested_by_entity_id'); }

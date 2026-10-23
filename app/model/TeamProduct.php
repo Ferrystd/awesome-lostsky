@@ -12,6 +12,9 @@ use app\enum\ProductKind;
  */
 class TeamProduct extends Base
 {
+    use concern\BelongsToTeam;
+    use concern\BelongsToEntity;
+
     protected $type = [
         'team_id'     => 'integer',
         // entity_id 允许为 NULL，不能声明 integer，否则 NULL 会被转换为 0
@@ -37,16 +40,6 @@ class TeamProduct extends Base
     protected $append = [];
 
     protected $readonly = ['team_id'];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
 
     public function handlers()
     {

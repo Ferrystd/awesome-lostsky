@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class TeamJoinField extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
@@ -38,11 +40,6 @@ class TeamJoinField extends Base
 
     /** 只读字段 */
     protected $readonly = ['team_id', 'field_key'];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function entityField()
     {

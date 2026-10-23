@@ -11,6 +11,8 @@ use app\enum\ServiceAssignmentOfferStatus;
  */
 class TeamServiceAssignmentOffer extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
@@ -49,7 +51,6 @@ class TeamServiceAssignmentOffer extends Base
         'cost', 'handler_cut', 'sender_cut', 'cs_cut', 'team_cut', 'idempotency_key',
     ];
 
-    public function team() { return $this->belongsTo(Team::class, 'team_id'); }
     public function service() { return $this->belongsTo(TeamService::class, 'service_id'); }
     public function customer() { return $this->belongsTo(TeamCustomer::class, 'customer_id'); }
     public function holder() { return $this->belongsTo(Entity::class, 'holder_entity_id'); }

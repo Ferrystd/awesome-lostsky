@@ -8,6 +8,8 @@ use app\model\Base;
 
 class TeamSetting extends Base
 {
+    use concern\BelongsToTeam;
+
     protected $type = [
         'team_id'     => 'integer',
         'app_name'    => 'string',
@@ -18,11 +20,6 @@ class TeamSetting extends Base
 
     protected $json = [];
     protected $readonly = ['team_id', 'app_name', 'key'];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function visibilityTargets()
     {

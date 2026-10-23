@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class TeamServiceHandler extends Base
 {
+    use concern\BelongsToEntity;
+
     /**
      * 字段类型转换
      * @var array
@@ -30,5 +32,4 @@ class TeamServiceHandler extends Base
     protected $readonly = ['service_id', 'entity_id'];
 
     public function service() { return $this->belongsTo(TeamService::class, 'service_id'); }
-    public function subject() { return $this->belongsTo(Entity::class, 'entity_id'); }
 }

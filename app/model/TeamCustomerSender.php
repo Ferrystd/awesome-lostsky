@@ -11,6 +11,9 @@ use app\model\Base;
  */
 class TeamCustomerSender extends Base
 {
+    use concern\BelongsToTeam;
+    use concern\BelongsToEntity;
+
     protected $type = [
         'team_id'     => 'integer',
         'customer_id' => 'integer',
@@ -24,19 +27,9 @@ class TeamCustomerSender extends Base
 
     protected $readonly = ['team_id', 'customer_id', 'entity_id'];
 
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
-
     public function customer()
     {
         return $this->belongsTo(TeamCustomer::class, 'customer_id');
-    }
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
     public function scopeSender($query, int $entityId, int $customerId)

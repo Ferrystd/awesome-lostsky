@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class TeamAbility extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
@@ -27,11 +29,6 @@ class TeamAbility extends Base
      * @var array
      */
     protected $json = [];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function isAvailable(int $minimumLevel = 1, ?int $at = null): bool
     {

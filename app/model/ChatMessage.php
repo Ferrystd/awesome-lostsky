@@ -5,6 +5,8 @@ namespace app\model;
 
 class ChatMessage extends Base
 {
+    use concern\BelongsToEntity;
+
     protected $type = [
         'team_id'               => 'integer',
         'conversation_id'       => 'integer',
@@ -22,11 +24,6 @@ class ChatMessage extends Base
     public function conversation()
     {
         return $this->belongsTo(ChatConversation::class, 'conversation_id');
-    }
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
     public function reply()

@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class EntitySession extends Base
 {
+    use concern\BelongsToEntity;
+
     /**
      * 绑定数据表
      * @var string
@@ -45,5 +47,4 @@ class EntitySession extends Base
     public function user() { return $this->belongsTo(User::class, 'user_id'); }
     public function parent() { return $this->belongsTo(self::class, 'parent_session_id'); }
     public function children() { return $this->hasMany(self::class, 'parent_session_id'); }
-    public function subject() { return $this->belongsTo(Entity::class, 'entity_id'); }
 }

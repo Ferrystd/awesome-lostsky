@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace app\command;
 
+use app\support\CommandResult;
+
 use AlibabaCloud\Oss\V2\Client;
 use AlibabaCloud\Oss\V2\Config;
 use AlibabaCloud\Oss\V2\Credentials\StaticCredentialsProvider;
@@ -64,26 +66,14 @@ final class PublishOssFallback extends Command
                 throw new RuntimeException('OSS Bucket 公共读策略回读校验失败');
             }
 
-            $output->writeln((string) json_encode([
-                'code' => 0,
-                'message' => 'ok',
-                'data' => [
-                    'bucket' => $bucket,
-                    'block_public_access' => $block,
-                    'acl' => $acl,
-                    'anonymous_write' => false,
-                ],
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-
-            return 0;
+            return CommandResult::write($output, 0, 'ok', [
+                'bucket' => $bucket,
+                'block_public_access' => $block,
+                'acl' => $acl,
+                'anonymous_write' => false,
+            ]);
         } catch (Throwable $exception) {
-            $output->writeln((string) json_encode([
-                'code' => 1,
-                'message' => $exception->getMessage(),
-                'data' => null,
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-
-            return 1;
+            return CommandResult::write($output, 1, $exception->getMessage(), null);
         }
     }
 

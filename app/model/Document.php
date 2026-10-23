@@ -8,6 +8,8 @@ use app\enum\Visibility;
 
 class Document extends Base
 {
+    use concern\BelongsToEntity;
+
     protected $type = [
         'entity_id' => 'integer',
         'manager_scope' => ManageScope::class,
@@ -19,11 +21,6 @@ class Document extends Base
 
     protected $json = ['tags'];
     protected $readonly = ['entity_id'];
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
 
     public function visibilityTargets()
     {

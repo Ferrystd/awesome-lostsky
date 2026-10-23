@@ -12,6 +12,8 @@ use app\enum\TransactionType;
  */
 class TeamTransaction extends Base
 {
+    use concern\BelongsToTeam;
+
     private const MONEY_FIELDS = [
         'total_price',
         'cost',
@@ -48,11 +50,6 @@ class TeamTransaction extends Base
     protected $append = [];
 
     protected $readonly = ['team_id', 'handler_entity_id'];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function handler()
     {

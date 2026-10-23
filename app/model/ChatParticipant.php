@@ -7,6 +7,8 @@ use app\enum\ChatParticipantStatus;
 
 class ChatParticipant extends Base
 {
+    use concern\BelongsToEntity;
+
     protected $type = [
         'team_id'              => 'integer',
         'conversation_id'      => 'integer',
@@ -27,8 +29,4 @@ class ChatParticipant extends Base
         return $this->belongsTo(ChatConversation::class, 'conversation_id');
     }
 
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
-    }
 }

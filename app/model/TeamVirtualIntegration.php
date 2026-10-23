@@ -5,6 +5,8 @@ namespace app\model;
 
 class TeamVirtualIntegration extends Base
 {
+    use concern\BelongsToTeam;
+
     protected $type = [
         'team_id'     => 'integer',
         'virtual_id'  => 'integer',
@@ -17,11 +19,6 @@ class TeamVirtualIntegration extends Base
     protected $hidden = ['delete_time', 'token_hash', 'signing_secret'];
     protected $append = [];
     protected $readonly = ['team_id', 'virtual_id', 'driver'];
-
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
 
     public function virtual()
     {

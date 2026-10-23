@@ -11,6 +11,8 @@ use app\model\Base;
  */
 class TeamService extends Base
 {
+    use concern\BelongsToTeam;
+
     /**
      * 字段类型转换
      * @var array
@@ -39,7 +41,6 @@ class TeamService extends Base
     /** 只读字段 */
     protected $readonly = ['team_id', 'owner_entity_id'];
 
-    public function team() { return $this->belongsTo(Team::class, 'team_id'); }
     public function owner() { return $this->belongsTo(Entity::class, 'owner_entity_id'); }
     public function handlers() { return $this->hasMany(TeamServiceHandler::class, 'service_id'); }
     public function instances() { return $this->hasMany(TeamServiceInstance::class, 'service_id'); }

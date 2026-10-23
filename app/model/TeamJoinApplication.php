@@ -13,6 +13,9 @@ use app\model\Base;
  */
 class TeamJoinApplication extends Base
 {
+    use concern\BelongsToTeam;
+    use concern\BelongsToEntity;
+
     /**
      * 字段类型转换
      * @var array
@@ -59,19 +62,9 @@ class TeamJoinApplication extends Base
         return $this->enumCase('status')->value();
     }
 
-    public function team()
-    {
-        return $this->belongsTo(Team::class, 'team_id');
-    }
-
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function subject()
-    {
-        return $this->belongsTo(Entity::class, 'entity_id');
     }
 
     public function inviter()
