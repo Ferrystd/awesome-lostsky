@@ -37,7 +37,7 @@ const rows = computed(() => { const keyword = search.value.trim().toLocaleLowerC
         <LsPageLink :icon="Plus" label="创建虚拟人员" to="/chat-virtual-new" />
       </template>
       <template #toolbar>
-        <LsListToolbar embedded v-model="search" placeholder="搜索虚拟人员名称或 slug" aria-label="搜索虚拟人员" :count-label="routeAccess.restricted.value ? '0 个虚拟人员' : `${rows.length} 个虚拟人员`" />
+        <LsListToolbar v-model="search" placeholder="搜索虚拟人员名称或 slug" aria-label="搜索虚拟人员" :count-label="routeAccess.restricted.value ? '0 个虚拟人员' : `${rows.length} 个虚拟人员`" />
       </template>
       <LsAsyncState v-if="!routeAccess.restricted.value && virtuals.isError.value" state="error" title="暂时无法读取虚拟人员" :description="friendlyError(virtuals.error.value)" />
       <LsAsyncState v-else-if="!routeAccess.restricted.value && virtuals.isPending.value" state="loading" :rows="4" />

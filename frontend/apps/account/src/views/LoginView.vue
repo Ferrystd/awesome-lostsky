@@ -7,7 +7,7 @@ import { goToSafeRedirect } from '@lostsky/shared/navigation'
 import { Eye, EyeOff } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import AuthShell from '../components/AuthShell.vue'
+import AccountFlowPage from '../components/AccountFlowPage.vue'
 import SmsCodeField from '../components/SmsCodeField.vue'
 
 const route = useRoute()
@@ -63,7 +63,7 @@ async function submit() {
 </script>
 
 <template>
-  <AuthShell title="欢迎回来" intro="使用短信验证码或密码继续进入你的工作空间。">
+  <AccountFlowPage title="欢迎回来" intro="使用短信验证码或密码继续进入你的工作空间。">
     <div class="mode" role="tablist" aria-label="登录方式">
       <button type="button" role="tab" :aria-selected="mode === 'sms'" @click="mode = 'sms'">验证码登录</button>
       <button type="button" role="tab" :aria-selected="mode === 'password'" @click="mode = 'password'">密码登录</button>
@@ -116,21 +116,20 @@ async function submit() {
     </form>
     <p class="switch"><RouterLink class="recovery-link" :to="recoveryTarget">无法登录</RouterLink></p>
     <p class="switch">还没有账号？<RouterLink :to="registerTarget">创建通行证</RouterLink></p>
-  </AuthShell>
+  </AccountFlowPage>
 </template>
 
 <style scoped>
 .mode { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem; padding: 3px; background: var(--cloud); border-radius: 10px; }
 .mode button { min-height: 44px; border: 0; border-radius: 8px; color: var(--muted-ink); background: transparent; cursor: pointer; }
-.mode button[aria-selected='true'] { color: var(--ink); background: white; box-shadow: 0 2px 7px color-mix(in oklch, var(--ink), transparent 92%); }
+.mode button[aria-selected='true'] { color: var(--ink); background: var(--surface); box-shadow: 0 2px 7px color-mix(in oklch, var(--ink), transparent 92%); }
 .form { display: grid; gap: 1.25rem; }
 .auth-submit { width: 100%; margin-top: .25rem; }
-.password { position: relative; }
-.password :deep(input) { padding-right: 3rem; }
-.password button { position: absolute; right: .2rem; top: .1rem; width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted-ink); background: transparent; border: 0; cursor: pointer; }
+.password { display:grid; grid-template-columns:minmax(0,1fr) 44px; gap:.5rem; }
+.password button { width: 44px; height: 44px; display: grid; place-items: center; color: var(--muted-ink); background: transparent; border: 0; cursor: pointer; }
 .error, .notice { padding: .75rem .85rem; border-radius: 8px; font-size: .875rem; }
-.error { color: var(--danger); background: color-mix(in oklch, var(--danger), white 93%); }
-.notice { color: var(--sky-lost-strong); background: color-mix(in oklch, var(--sky-lost), white 91%); }
+.error { color: var(--danger); background: color-mix(in oklch, var(--danger), var(--surface) 93%); }
+.notice { color: var(--sky-lost-strong); background: color-mix(in oklch, var(--sky-lost), var(--surface) 91%); }
 .switch { margin: 1.5rem 0 0; text-align: center; color: var(--muted-ink); font-size: .9rem; }
 .recovery-link { display: inline-flex; align-items: center; min-height: 44px; }
 .switch a { color: var(--sky-lost-strong); font-weight: 700; }
