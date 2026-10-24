@@ -32,7 +32,7 @@ const customers = computed(() => {
         <LsPageLink :icon="CircleDollarSign" label="顾客充值" to="/recharge" />
       </template>
       <template #toolbar>
-        <LsListToolbar v-model="search" placeholder="搜索顾客昵称" aria-label="搜索顾客余额" :count-label="routeAccess.restricted.value ? '0 位顾客' : `${customers.length} 位顾客`" />
+        <LsListToolbar embedded v-model="search" placeholder="搜索顾客昵称" aria-label="搜索顾客余额" :count-label="routeAccess.restricted.value ? '0 位顾客' : `${customers.length} 位顾客`" />
       </template>
       <LsAsyncState v-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取顾客余额" :description="friendlyError(query.error.value)" />
       <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />

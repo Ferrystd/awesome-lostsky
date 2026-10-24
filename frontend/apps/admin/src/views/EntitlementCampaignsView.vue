@@ -57,7 +57,7 @@ const mode = (v: number) =>
         to="/entitlements/campaigns/new" />
       </template>
       <template #toolbar>
-        <LsListToolbar
+        <LsListToolbar embedded
         v-model="search"
         placeholder="搜索体验活动"
         aria-label="搜索 Ability 活动"

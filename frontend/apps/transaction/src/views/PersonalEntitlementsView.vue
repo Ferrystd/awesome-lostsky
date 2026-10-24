@@ -46,7 +46,7 @@ function status(row: PersonalEntitlementGrantRecord) {
         <LsPageLink :icon="Gift" label="下发权益" to="/personal/entitlements/new" />
       </template>
       <template #toolbar>
-        <LsListToolbar
+        <LsListToolbar embedded
         v-model="filters.keyword"
         placeholder="搜索权益、商品或顾客"
         aria-label="搜索本人下发的权益"

@@ -66,7 +66,7 @@ function entityLocation(entity: Entity, manage = false) {
       <LsPageLink :icon="Bot" label="虚拟人员" to="/chat-virtuals" />
     </template>
     <template #toolbar>
-      <LsListToolbar v-model="search" placeholder="搜索人员名称或 slug" aria-label="搜索人员" :count-label="`${rows.length} 位人员`">
+      <LsListToolbar embedded v-model="search" placeholder="搜索人员名称或 slug" aria-label="搜索人员" :count-label="`${rows.length} 位人员`">
         <template #filters>
           <NSelect v-model:value="type" :options="options" clearable placeholder="全部类型" />
         </template>

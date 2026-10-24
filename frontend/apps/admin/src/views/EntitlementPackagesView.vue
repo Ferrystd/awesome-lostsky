@@ -58,7 +58,7 @@ const pages = computed(() =>
         to="/entitlements/packages/new" />
       </template>
       <template #toolbar>
-        <LsListToolbar
+        <LsListToolbar embedded
         v-model="search"
         placeholder="搜索权益包"
         aria-label="搜索 Ability 权益包"

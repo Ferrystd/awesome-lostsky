@@ -34,7 +34,7 @@ const pages = computed(() => Math.max(1, Math.ceil(Number(query.data.value?.tota
   <div class="personal-customers-view">
     <LsObjectDirectory title="我的顾客" description="汇总当前人员负责或协作发单的顾客；同一顾客只显示一次，并标明每种关系。">
       <template #toolbar>
-        <LsListToolbar
+        <LsListToolbar embedded
         v-model="filters.keyword"
         placeholder="搜索顾客名称"
         aria-label="搜索我的顾客"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { friendlyError } from '@lostsky/api/client'
 import { Pencil, Plus, ArrowLeft } from '@lucide/vue'
@@ -28,19 +28,22 @@ const filtered = computed(() => presets.value.filter(item => item.content.toLoca
 
 <template>
   <div class="weibo-stack comment-presets-page">
-    <LsCollectionPage title="预设评论" :description="personal ? '查看自己的常用评论，团队预设也可在互动页选择。' : '查看团队成员可选用的常用评论。'">
+    <LsObjectDirectory title="预设评论" :description="personal ? '查看自己的常用评论，团队预设也可在互动页选择。' : '查看团队成员可选用的常用评论。'">
       <template #actions>
         <LsPageLink v-if="backTo" :to="backTo" :label="personal ? '返回点单信息流' : '返回互动'" :icon="ArrowLeft" />
         <LsPageLink :icon="Plus" label="添加预设" :to="{ path: `${listPath}/new`, query: presetQuery }" />
       </template>
+      <template #toolbar>
+        <LsListToolbar embedded v-model="search" placeholder="搜索预设评论" aria-label="搜索预设评论" :count-label="`共 ${filtered.length} 条`">
+          <template #actions>
+            <LsPageLink v-if="presets.length" :to="{ path: `${listPath}/edit`, query: presetQuery }" :icon="Pencil" label="编辑预设" />
+          </template>
+        </LsListToolbar>
+      </template>
       <LsAsyncState v-if="query.isError.value" state="error" title="预设评论加载失败" :description="friendlyError(query.error.value)" />
       <LsAsyncState v-if="!restricted && query.isPending.value" state="loading" :rows="5" />
       <template v-else-if="restricted || !query.isError.value || query.data.value">
-        <LsListToolbar v-if="presets.length" v-model="search" placeholder="搜索预设评论" aria-label="搜索预设评论" :count-label="`共 ${filtered.length} 条`">
-          <template #actions>
-            <LsPageLink :to="{ path: `${listPath}/edit`, query: presetQuery }" :icon="Pencil" label="编辑预设" />
-          </template>
-        </LsListToolbar>
+
         <LsEmptyState v-if="!filtered.length" :title="presets.length ? '没有匹配的预设评论' : '暂无预设评论'" :description="presets.length ? '试试其他关键词。' : '添加常用回复，保存后可在互动页选择。'" :source="query.data.value" :access-reason="accessReason" />
         <LsResourceList v-else aria-label="预设评论列表">
           <LsResourceRow v-for="item in filtered" :key="item.id">
@@ -50,7 +53,7 @@ const filtered = computed(() => presets.value.filter(item => item.content.toLoca
           </LsResourceRow>
         </LsResourceList>
       </template>
-    </LsCollectionPage>
+    </LsObjectDirectory>
   </div>
 </template>
 

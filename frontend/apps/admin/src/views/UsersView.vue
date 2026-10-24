@@ -31,7 +31,7 @@ const query = useQuery({
 <template>
   <LsObjectDirectory title="用户" description="查询平台用户的会话和团队归属；手机号等敏感信息需要相应权限才能查看。">
     <template #toolbar>
-      <LsListToolbar v-model="q" placeholder="搜索用户名、手机号、邮箱、昵称或 ID" aria-label="搜索用户" :count-label="routeAccess.restricted.value ? '0 位用户' : `${query.data.value?.total ?? 0} 位用户`" @update:model-value="page = 1">
+      <LsListToolbar embedded v-model="q" placeholder="搜索用户名、手机号、邮箱、昵称或 ID" aria-label="搜索用户" :count-label="routeAccess.restricted.value ? '0 位用户' : `${query.data.value?.total ?? 0} 位用户`" @update:model-value="page = 1">
         <template #filters>
           <NSelect v-model:value="status" :options="options" @update:value="page = 1" />
         </template>

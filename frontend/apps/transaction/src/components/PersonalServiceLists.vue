@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import { quantityScaleForStep } from '@lostsky/shared/quantity'
-import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
-import LsPanel from '@lostsky/ui/components/LsPanel.vue'
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
-import { ArrowUpRight, ClipboardCheck, RadioTower, RotateCcw } from '@lucide/vue'
+import { ClipboardCheck, RadioTower, RotateCcw } from '@lucide/vue'
 import { NInput } from 'naive-ui'
 import { reactive, watch } from 'vue'
-import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import type { ServiceAssignmentOffer, ServiceField, ServiceRedemption } from '../types'
 
 const props = defineProps<{

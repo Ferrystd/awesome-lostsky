@@ -46,7 +46,7 @@ const visibleFields = computed(() => { const keyword = search.value.trim().toLoc
         <LsPageLink :icon="Plus" label="创建字段" :to="{ path: '/field-new', query: { type } }" />
       </template>
       <template #toolbar>
-        <LsListToolbar v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索人员字段" :count-label="routeAccess.restricted.value ? '0 个字段' : `${visibleFields.length} 个字段`">
+        <LsListToolbar embedded v-model="search" placeholder="搜索字段名称或标识" aria-label="搜索人员字段" :count-label="routeAccess.restricted.value ? '0 个字段' : `${visibleFields.length} 个字段`">
           <template #filters>
             <NSelect v-model:value="type" :options="typeOptions" aria-label="对象类型" />
           </template>

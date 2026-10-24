@@ -29,7 +29,7 @@ const teamStatus = (team: TeamSummary): AdminStatus => team.is_cancelled ? 'canc
 <template>
   <LsObjectDirectory title="团队" description="查看团队所有者、规模和运行状态；平台治理不修改团队内部业务数据。">
     <template #toolbar>
-      <LsListToolbar v-model="q" placeholder="搜索团队名称、slug、所有者或 ID" aria-label="搜索团队" :count-label="routeAccess.restricted.value ? '0 个团队' : `${query.data.value?.total ?? 0} 个团队`" @update:model-value="page = 1">
+      <LsListToolbar embedded v-model="q" placeholder="搜索团队名称、slug、所有者或 ID" aria-label="搜索团队" :count-label="routeAccess.restricted.value ? '0 个团队' : `${query.data.value?.total ?? 0} 个团队`" @update:model-value="page = 1">
         <template #filters>
           <NSelect v-model:value="status" :options="options" @update:value="page = 1" />
         </template>

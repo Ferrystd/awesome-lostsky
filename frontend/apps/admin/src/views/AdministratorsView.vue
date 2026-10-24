@@ -32,7 +32,7 @@ const rows = computed(() => {
       <LsPageLink :icon="Plus" label="添加管理员" to="/administrators/new" />
     </template>
     <template #toolbar>
-      <LsListToolbar v-model="search" placeholder="搜索管理员" aria-label="搜索平台管理员" :count-label="routeAccess.restricted.value ? '0 位管理员' : `${rows.length} 位管理员`" />
+      <LsListToolbar embedded v-model="search" placeholder="搜索管理员" aria-label="搜索平台管理员" :count-label="routeAccess.restricted.value ? '0 位管理员' : `${rows.length} 位管理员`" />
     </template>
     <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="4" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取平台管理员" :description="friendlyError(query.error.value)" />

@@ -59,7 +59,7 @@ const statusType = (value: unknown) =>
         <LsPageLink :icon="Gift" label="赋予顾客权益" to="/entitlements/new" />
       </template>
       <template #toolbar>
-        <LsListToolbar
+        <LsListToolbar embedded
       v-model="filters.keyword"
       placeholder="搜索权益或顾客"
       aria-label="搜索权益核销"

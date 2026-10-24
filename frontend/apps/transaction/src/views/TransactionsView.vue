@@ -1,20 +1,18 @@
 <script setup lang="ts">
-import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
+import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntitySelect from '@lostsky/ui/components/LsEntitySelect.vue'
-import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
-import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
-import { SlidersHorizontal, ArrowUpRight } from '@lucide/vue'
+import { SlidersHorizontal } from '@lucide/vue'
 import { NDatePicker, NPagination, NSelect } from 'naive-ui'
-import type { DataTableColumns } from 'naive-ui'
-import { computed, h, reactive } from 'vue'
+import { computed, reactive } from 'vue'
 
 import { customerName, customerOptions, dateTime, entityName, money, transactionType } from '../lib'
 import type { Pagination, TransactionOptions, TransactionRecord } from '../types'
@@ -57,21 +55,13 @@ const typeOptions = [{ label: '商城订单', value: 1 }, { label: '记账登记
 function reset() {
   Object.assign(filters, { keyword: '', type: null, handler_entity_id: null, customer_id: null, range: null, page: 1 })
 }
-const columns: DataTableColumns<TransactionRecord> = [
-  { title: '时间 / 类型', key: 'time', render: row => h('span', { class: 'transaction-cell' }, [h('strong', dateTime(row.trans_at)), h('small', transactionType(row.type))]) },
-  { title: '顾客', key: 'customer', render: row => h(LsEntityIdentity, { type: 'customer', name: customerName(row.customer, row.customer_id), slug: String((row.customer as any)?.slug ?? ''), imageUrl: (row.customer as any)?.avatar ?? null, size: 'sm' }) },
-  { title: '接单人', key: 'handler', render: row => h(LsEntityIdentity, { type: (row.handler as any)?.type ?? 'entity', name: entityName(row.handler, row.handler_entity_id), slug: String((row.handler as any)?.slug ?? ''), imageUrl: (row.handler as any)?.avatar ?? null, size: 'sm' }) },
-  { title: '支付构成', key: 'payment', render: row => h('span', { class: 'transaction-cell' }, [h('span', `现款 ${money(row.cash)}`), h('small', `预存 ${money(row.prepaid)}`)]) },
-  { title: '总价', key: 'total_price', render: row => h('strong', { class: 'ls-tabular' }, money(row.total_price)) },
-  { title: '操作', key: 'actions', render: row => h(LsPageLink, { to: `/detail?id=${row.id}`, icon: ArrowUpRight, label: '查看' }) },
-]
 </script>
 
 <template>
   <div class="transactions-view">
-    <LsCollectionPage title="流水" description="实时查看团队流水，随时掌握收支情况。">
+    <LsObjectDirectory title="流水" description="实时查看团队流水，随时掌握收支情况。">
       <template #toolbar>
-        <LsListToolbar v-model="filters.keyword" placeholder="搜索顾客昵称" aria-label="搜索流水顾客" :count-label="routeAccess.restricted.value ? '0 条流水' : `${query.data.value?.total ?? 0} 条流水`" @update:model-value="filters.page = 1">
+        <LsListToolbar embedded v-model="filters.keyword" placeholder="搜索顾客昵称" aria-label="搜索流水顾客" :count-label="routeAccess.restricted.value ? '0 条流水' : `${query.data.value?.total ?? 0} 条流水`" @update:model-value="filters.page = 1">
           <template #filters>
             <NDatePicker v-model:value="filters.range" type="daterange" clearable start-placeholder="开始日期" end-placeholder="结束日期" @update:value="filters.page = 1" />
             <NSelect v-model:value="filters.type" :options="typeOptions" clearable placeholder="全部类型" @update:value="filters.page = 1" />
@@ -90,35 +80,15 @@ const columns: DataTableColumns<TransactionRecord> = [
       :title="routeAccess.restricted.value ? '没有可显示的流水' : hasFilters ? '没有匹配的流水' : '还没有流水'"
       :description="hasFilters ? '调整筛选条件后再试。' : '登记第一笔流水后，这里会按交易时间展示记录。'"
       />
-      <LsResponsiveDataTable v-else :columns="columns" :data="rows" :row-key="row => Number(row.id)" :scroll-x="940">
-        <template #mobile-title="{ row }">{{ dateTime(row.trans_at) }} · {{ transactionType(row.type) }}</template>
-        <template #mobile="{ row }">
-          <dl>
-            <dt>顾客</dt>
-            <dd>{{ customerName(row.customer, row.customer_id) }}</dd>
-            <dt>接单人</dt>
-            <dd>{{ entityName(row.handler, row.handler_entity_id) }}</dd>
-            <dt>现金 / 预存</dt>
-            <dd class="ls-tabular">{{ money(row.cash) }} / {{ money(row.prepaid) }}</dd>
-            <dt>总价</dt>
-            <dd class="ls-tabular">
-              <strong>{{ money(row.total_price) }}</strong>
-            </dd>
-            <dt>操作</dt>
-            <dd>
-              <LsPageLink :to="`/detail?id=${row.id}`" :icon="ArrowUpRight" label="查看" />
-            </dd>
-          </dl>
-        </template>
-      </LsResponsiveDataTable>
+      <LsResourceList v-else aria-label="流水列表">
+        <LsResourceRow v-for="row in rows" :key="row.id" :title="`${customerName(row.customer, row.customer_id)} · ${money(row.total_price)}`" :to="`/detail?id=${row.id}`" :description="`${dateTime(row.trans_at)} · ${transactionType(row.type)} · 接单人 ${entityName(row.handler, row.handler_entity_id)}`">
+          <template #metadata><span>现款 {{ money(row.cash) }} · 预存 {{ money(row.prepaid) }}</span></template>
+        </LsResourceRow>
+      </LsResourceList>
       <template v-if="query.data.value && Number(query.data.value.total) > 0" #pagination>
         <span>共 {{ query.data.value.total }} 条，第 {{ filters.page }} / {{ pages }} 页</span>
         <NPagination v-model:page="filters.page" :page-count="pages" />
       </template>
-    </LsCollectionPage>
+    </LsObjectDirectory>
   </div>
 </template>
-
-<style scoped>
-.transactions-view :deep(.transaction-cell>*){display:block}.transactions-view :deep(.transaction-cell small){margin-top:.15rem;color:var(--muted-ink);font-size:.75rem}
-</style>

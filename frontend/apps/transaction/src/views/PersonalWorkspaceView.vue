@@ -2,7 +2,7 @@
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import LsListToolbar from '@lostsky/ui/components/LsListToolbar.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
@@ -51,7 +51,7 @@ const personalMetricItems = computed(() => [
 
 <template>
   <div class="personal-workspace">
-    <LsCollectionPage :title="title" :description="section === 'services' ? '确认指定邀请，登记信息并接单核销，并管理当前人员已结单的履约任务。' : '汇总当前人员参与的流水与业绩。'">
+    <LsObjectDirectory :title="title" :description="section === 'services' ? '确认指定邀请，登记信息并接单核销，并管理当前人员已结单的履约任务。' : '汇总当前人员参与的流水与业绩。'">
       <template v-if="section === 'transactions'" #actions>
         <LsPageLink :icon="CirclePlus" label="登记流水" to="/personal/transactions/new" />
       </template>
@@ -75,7 +75,7 @@ const personalMetricItems = computed(() => [
           </LsResourceRow>
         </LsResourceList>
       </template>
-    </LsCollectionPage>
+    </LsObjectDirectory>
   </div>
 </template>
 
