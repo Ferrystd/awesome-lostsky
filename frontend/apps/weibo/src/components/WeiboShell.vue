@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineProps<{ scene?: boolean }>()
 import { identityUrl, workspaceAppEntries } from "@lostsky/shared/navigation";
 import LsWorkspaceHeader from "@lostsky/ui/components/LsWorkspaceHeader.vue";
 import {
@@ -106,7 +107,7 @@ function switchApp(key: string) {
         @click="drawer = false"
     /></Transition>
     <section class="weibo-layout">
-      <LsWorkspaceHeader
+      <LsWorkspaceHeader :scene="scene" :contextual="scene"
         context-label="微博工作台"
         :title="String(route.meta.title || '微博')"
         :actions="headerActions"

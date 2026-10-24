@@ -27,6 +27,7 @@
   --entity-virtual: oklch(0.42 0.12 305);
   --entity-unknown: var(--muted-ink);
   --primary: var(--sky-lost-strong);
+  --on-primary: white;
   --primary-hover: color-mix(in oklch, var(--sky-lost-strong), black 12%);
   --font-ui: 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --surface: var(--daylight);
@@ -56,6 +57,54 @@
   --z-backdrop: 50;
   --z-modal: 60;
   --z-toast: 70;
+}
+
+/* Application-root palette, enabled only for the named Team aurora scene. */
+.ls-theme-aurora {
+  --backoffice-control-surface: var(--surface);
+  --sky-void: #101619;
+  --sidebar-scrollbar: #435257;
+  --separator: #29363b;
+  --radio-idle-border: #43545a;
+  --radio-hover-border: #70878e;
+  --radio-hover-surface: #202b30;
+  color-scheme: dark;
+  --cloud: #101619;
+  --daylight: #192125;
+  --ink: #edf3f3;
+  --muted-ink: #c0cdce;
+  --line: #344247;
+  --sky-lost: #6ee7c8;
+  --sky-lost-strong: #6ee7c8;
+  --primary: #6ee7c8;
+  --on-primary: #062b27;
+  --primary-hover: #a0f5df;
+  --focus: #a0f5df;
+  --surface: #192125;
+  --panel-material: linear-gradient(145deg, rgb(25 38 45 / .52), rgb(15 26 34 / .42));
+  --command-surface: rgb(5 12 16 / .38);
+  --command-border: rgb(2 7 10 / .9);
+  --command-surface-hover: rgb(5 12 16 / .58);
+  --command-surface-pressed: rgb(5 12 16 / .74);
+  --notice-row-unread: rgb(110 231 200 / .045);
+  --notice-row-hover: rgb(10 23 30 / .24);
+  --panel-elevation: inset 0 1px 0 rgb(191 226 233 / .09), 0 14px 36px -22px rgb(0 8 15 / .65);
+  --surface-subtle: #101619;
+  --text: #edf3f3;
+  --text-secondary: #c0cdce;
+  --text-tertiary: #a4b5b8;
+  --border: #344247;
+  --success: #6ee7b7;
+  --danger: #ff98a6;
+  --warning: #edc27a;
+  min-height: 100dvh;
+  color: var(--text);
+  background: var(--cloud);
+}
+
+/* Shared input material; Naive's separate state border retains validation and focus. */
+.ls-theme-aurora .n-input:not(.n-input--disabled) {
+  box-shadow: inset 0 1px 3px rgb(0 8 15 / .22);
 }
 
 * { box-sizing: border-box; }

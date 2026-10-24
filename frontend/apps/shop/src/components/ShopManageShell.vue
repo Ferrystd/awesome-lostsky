@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineProps<{ scene?: boolean }>()
 import { identityUrl, workspaceAppEntries } from "@lostsky/shared/navigation";
 import LsPage from "@lostsky/ui/components/LsPage.vue";
 import LsWorkspaceHeader from "@lostsky/ui/components/LsWorkspaceHeader.vue";
@@ -103,7 +104,7 @@ function handleHeaderAction(key: string) {
         @click="drawer = false"
     /></Transition>
     <section class="manage-workspace">
-      <LsWorkspaceHeader
+      <LsWorkspaceHeader :scene="scene" :contextual="scene"
         context-label="商品工作台"
         :title="title"
         :actions="headerActions"

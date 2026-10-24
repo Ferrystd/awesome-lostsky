@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import { api, auth, friendlyError } from '@lostsky/api/client'
@@ -6,9 +7,8 @@ import { quantityScaleForStep } from '@lostsky/shared/quantity'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
-import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { feedback } from '@lostsky/ui/feedback'
@@ -135,78 +135,79 @@ const completeTask = () => {
 </script>
 
 <template>
-  <div class="personal-task-page">
-    <LsPageHeader :title="row?.service?.name || '接单任务'" :description="kind === 'offer' ? '顾客指定邀请' : kind === 'available' ? '公开接单任务' : '我的接单任务'" back-to="/personal/services" back-label="返回接单工作台" />
-    <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
-    <LsAsyncState v-else-if="query.isError.value" state="error" title="无法读取任务" :description="friendlyError(query.error.value)" />
-    <LsPanel v-else-if="row" class="task-panel">
-      <div class="task-overview">
-        <div class="overview-heading">
-          <LsEntityIdentity type="customer" :name="customerName" />
-          <div class="state-cluster">
-            <div><span>接单</span><LsStatusTag :label="claimStatus.label" :type="claimStatus.type" /></div>
-            <div><span>核销</span><LsStatusTag :label="redemptionStatus.label" :type="redemptionStatus.type" /></div>
-          </div>
-        </div>
-        <dl class="summary-strip">
-          <div><dt>任务编号</dt><dd>#{{ row.id }}</dd></div>
-          <div><dt>履约数量</dt><dd>{{ quantityLabel }}</dd></div>
-          <div><dt>{{ row.settlement_kind === 'unused' ? '接单实结' : '预计分成' }}</dt><dd>{{ money(row.settlement_kind === 'unused' ? row.settled_handler_cut ?? 0 : row.handler_cut) }}</dd></div>
-          <div><dt>任务来源</dt><dd>{{ taskSource }}</dd></div>
-          <div><dt>接单人</dt><dd>{{ handlerName }}</dd></div>
-        </dl>
-      </div>
-
-      <section v-if="kind === 'available'" class="claim-quantity-section">
-        <LsField label="本次接单数量" for-id="claim-quantity" required :hint="`最多可接 ${quantityLabel}；每个最小步长是一份独立履约资源。`">
-          <NInputNumber id="claim-quantity" v-model:value="claimQuantity" :min="quantityStep" :max="maxQuantity" :step="quantityStep" :precision="quantityScale" />
-        </LsField>
-      </section>
-
-      <div class="resource-list">
-        <section v-for="resource in resources" :key="resource.index" class="resource-item">
-          <div class="resource-heading"><div><h2>第 {{ resource.index }} 份履约资源</h2><p>{{ resource.quantity }} {{ row.entitlement?.unit_name || '单位' }} · 字段独立保存</p></div></div>
-          <div class="field-columns">
-            <section class="field-pane">
-              <div class="detail-heading"><h3>顾客字段</h3><p>发起任务时提交</p></div>
-              <p v-if="!resourceFields(resource, 'customer').length" class="empty">顾客未填写额外字段。</p>
-              <LsDescriptionList v-else><template v-for="field in resourceFields(resource, 'customer')" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ fieldValue(field) }}</dd></template></LsDescriptionList>
-            </section>
-            <section class="field-pane">
-              <div class="detail-heading"><h3>接单字段</h3><p>{{ kind === 'assigned' && !needsLegacyClaimFields ? '接单时提交' : '登记信息并接单核销' }}</p></div>
-              <p v-if="!resourceFields(resource, 'manager').length" class="empty">该权益没有配置接单字段。</p>
-              <ServiceCompletionFields
-                v-else-if="kind === 'offer' || kind === 'available' || needsLegacyClaimFields"
-                v-model="claimValues[resource.index]"
-                :fields="resourceFields(resource, 'manager')"
-                :id-prefix="`personal-resource-${resource.index}`"
-              />
-              <LsDescriptionList v-else><template v-for="field in resourceFields(resource, 'manager')" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ fieldValue(field) }}</dd></template></LsDescriptionList>
-            </section>
-          </div>
+  <LsDetailPage aside-label="个人接单任务概况" :title="row?.service?.name || '接单任务'" :description="kind === 'offer' ? '顾客指定邀请' : kind === 'available' ? '公开接单任务' : '我的接单任务'" back-to="/personal/services" back-label="返回接单工作台">
+    <div class="personal-task-page">
+      <LsAsyncState v-if="query.isPending.value" state="loading" :rows="5" />
+      <LsAsyncState v-else-if="query.isError.value" state="error" title="无法读取任务" :description="friendlyError(query.error.value)" />
+      <LsPanel v-else-if="row" class="task-panel">
+        <section v-if="kind === 'available'" class="claim-quantity-section">
+          <LsField label="本次接单数量" for-id="claim-quantity" required :hint="`最多可接 ${quantityLabel}；每个最小步长是一份独立履约资源。`">
+            <NInputNumber id="claim-quantity" v-model:value="claimQuantity" :min="quantityStep" :max="maxQuantity" :step="quantityStep" :precision="quantityScale" />
+          </LsField>
         </section>
-      </div>
-      <div v-if="row.memo" class="memo-block"><strong>顾客备注</strong><p>{{ row.memo }}</p></div>
 
-      <div v-if="kind === 'offer' || kind === 'available'" class="actions task-actions">
-        <LsButton v-if="kind === 'offer'" variant="secondary" :loading="action.isPending.value" @click="action.mutate({ suffix: 'reject', body: { reason } })">拒绝邀请</LsButton>
-        <LsButton v-if="kind === 'offer'" :disabled="!claimReady" :loading="action.isPending.value" @click="acceptOffer">{{ hasClaimFields ? '填写并接受邀请' : '接受邀请' }}</LsButton>
-        <LsButton v-else :disabled="!claimReady" :loading="action.isPending.value" @click="claimTask">填写并进行接单</LsButton>
-      </div>
+        <div class="resource-list">
+          <section v-for="resource in resources" :key="resource.index" class="resource-item">
+            <div class="resource-heading"><div><h2>第 {{ resource.index }} 份履约资源</h2><p>{{ resource.quantity }} {{ row.entitlement?.unit_name || '单位' }} · 字段独立保存</p></div></div>
+            <div class="field-columns">
+              <section class="field-pane">
+                <div class="detail-heading"><h3>顾客字段</h3><p>发起任务时提交</p></div>
+                <p v-if="!resourceFields(resource, 'customer').length" class="empty">顾客未填写额外字段。</p>
+                <LsDescriptionList v-else><template v-for="field in resourceFields(resource, 'customer')" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ fieldValue(field) }}</dd></template></LsDescriptionList>
+              </section>
+              <section class="field-pane">
+                <div class="detail-heading"><h3>接单字段</h3><p>{{ kind === 'assigned' && !needsLegacyClaimFields ? '接单时提交' : '登记信息并接单核销' }}</p></div>
+                <p v-if="!resourceFields(resource, 'manager').length" class="empty">该权益没有配置接单字段。</p>
+                <ServiceCompletionFields
+                  v-else-if="kind === 'offer' || kind === 'available' || needsLegacyClaimFields"
+                  v-model="claimValues[resource.index]"
+                  :fields="resourceFields(resource, 'manager')"
+                  :id-prefix="`personal-resource-${resource.index}`"
+                />
+                <LsDescriptionList v-else><template v-for="field in resourceFields(resource, 'manager')" :key="field.id"><dt>{{ field.name }}</dt><dd>{{ fieldValue(field) }}</dd></template></LsDescriptionList>
+              </section>
+            </div>
+          </section>
+        </div>
+        <div v-if="row.memo" class="memo-block"><strong>顾客备注</strong><p>{{ row.memo }}</p></div>
 
-      <template v-if="kind === 'assigned' && rowStatus === 2">
-        <section class="completion-section"><div class="detail-heading"><h2>{{ awaitingConfirmation ? '等待顾客确认' : '请求结单' }}</h2><p v-if="awaitingConfirmation">{{ row.completion_due_at ? `顾客确认截止：${dateTime(row.completion_due_at)}，逾期自动结单。` : '已提交结单请求，须由顾客手动确认。' }}</p><p v-else>{{ needsLegacyClaimFields ? '补齐旧任务的接单字段后，请顾客确认服务完成。' : '服务完成后发送结单请求，由顾客确认或拒绝。' }}</p></div><LsButton :disabled="Boolean(completeReason)" :disabled-reason="completeReason" :loading="action.isPending.value" @click="completeTask">请求结单</LsButton></section>
-        <div v-if="!awaitingConfirmation" class="return-form"><LsField label="退回原因" for-id="personal-return-reason" required><NInput id="personal-return-reason" v-model:value="reason" type="textarea" maxlength="500" show-count placeholder="说明无法继续履约的原因" /></LsField><LsButton variant="secondary" :disabled="!reason.trim()" :loading="action.isPending.value" @click="action.mutate({ suffix: 'return', body: { reason } })">退回公开接单池</LsButton></div>
-      </template>
-      <section v-else-if="kind === 'assigned' && rowStatus === 3" class="completed-section"><div><LsStatusTag label="已核销" type="success" /><strong>任务已经完成核销</strong><p>核销时间：{{ dateTime(row.completed_at) }}</p></div></section>
-      <p v-if="action.isError.value" class="error" role="alert">{{ friendlyError(action.error.value) }}</p>
-    </LsPanel>
-  </div>
+        <div v-if="kind === 'offer' || kind === 'available'" class="actions task-actions">
+          <LsButton v-if="kind === 'offer'" variant="secondary" :loading="action.isPending.value" @click="action.mutate({ suffix: 'reject', body: { reason } })">拒绝邀请</LsButton>
+          <LsButton v-if="kind === 'offer'" :disabled="!claimReady" :loading="action.isPending.value" @click="acceptOffer">{{ hasClaimFields ? '填写并接受邀请' : '接受邀请' }}</LsButton>
+          <LsButton v-else :disabled="!claimReady" :loading="action.isPending.value" @click="claimTask">填写并进行接单</LsButton>
+        </div>
+
+        <template v-if="kind === 'assigned' && rowStatus === 2">
+          <section class="completion-section"><div class="detail-heading"><h2>{{ awaitingConfirmation ? '等待顾客确认' : '请求结单' }}</h2><p v-if="awaitingConfirmation">{{ row.completion_due_at ? `顾客确认截止：${dateTime(row.completion_due_at)}，逾期自动结单。` : '已提交结单请求，须由顾客手动确认。' }}</p><p v-else>{{ needsLegacyClaimFields ? '补齐旧任务的接单字段后，请顾客确认服务完成。' : '服务完成后发送结单请求，由顾客确认或拒绝。' }}</p></div><LsButton :disabled="Boolean(completeReason)" :disabled-reason="completeReason" :loading="action.isPending.value" @click="completeTask">请求结单</LsButton></section>
+          <div v-if="!awaitingConfirmation" class="return-form"><LsField label="退回原因" for-id="personal-return-reason" required><NInput id="personal-return-reason" v-model:value="reason" type="textarea" maxlength="500" show-count placeholder="说明无法继续履约的原因" /></LsField><LsButton variant="secondary" :disabled="!reason.trim()" :loading="action.isPending.value" @click="action.mutate({ suffix: 'return', body: { reason } })">退回公开接单池</LsButton></div>
+        </template>
+        <section v-else-if="kind === 'assigned' && rowStatus === 3" class="completed-section"><div><LsStatusTag label="已核销" type="success" /><strong>任务已经完成核销</strong><p>核销时间：{{ dateTime(row.completed_at) }}</p></div></section>
+        <p v-if="action.isError.value" class="error" role="alert">{{ friendlyError(action.error.value) }}</p>
+      </LsPanel>
+    </div>
+    <template #aside>
+      <LsFormSection title="任务概况" description="已保存的任务信息；接单数量与资料在主区确认。">
+        <p v-if="query.isPending.value">正在读取任务…</p>
+        <p v-else-if="query.isError.value">任务读取失败。</p>
+        <LsDescriptionList v-else-if="row">
+          <dt>顾客</dt><dd>{{ customerName }}</dd>
+          <dt>接单状态</dt><dd><LsStatusTag :label="claimStatus.label" :type="claimStatus.type" /></dd>
+          <dt>核销状态</dt><dd><LsStatusTag :label="redemptionStatus.label" :type="redemptionStatus.type" /></dd>
+          <dt>任务编号</dt><dd>#{{ row.id }}</dd>
+          <dt>履约数量</dt><dd>{{ quantityLabel }}</dd>
+          <dt>{{ row.settlement_kind === 'unused' ? '接单实结' : '预计分成' }}</dt><dd>{{ money(row.settlement_kind === 'unused' ? row.settled_handler_cut ?? 0 : row.handler_cut) }}</dd>
+          <dt>任务来源</dt><dd>{{ taskSource }}</dd>
+          <dt>接单人</dt><dd>{{ handlerName }}</dd>
+        </LsDescriptionList>
+        <p v-else>暂无任务资料。</p>
+      </LsFormSection>
+    </template>
+  </LsDetailPage>
 </template>
 
 <style scoped>
-.personal-task-page{display:grid;gap:1rem}.task-panel{display:grid;gap:0}.task-overview{display:grid;gap:1.25rem;padding-bottom:1.5rem}.overview-heading{display:flex;align-items:center;justify-content:space-between;gap:1.5rem}.state-cluster{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap}.state-cluster>div{display:flex;align-items:center;gap:.5rem}.state-cluster span{color:var(--muted-ink);font-size:.78rem}.summary-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin:0;overflow:hidden;background:var(--cloud);border-radius:var(--radius-sm)}.summary-strip>div{min-width:0;padding:1rem}.summary-strip>div+div{border-left:1px solid var(--line)}.summary-strip dt{color:var(--muted-ink);font-size:.75rem}.summary-strip dd{margin:.3rem 0 0;font-size:.92rem;font-weight:650;line-height:1.4;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.claim-quantity-section{padding:1.25rem 0;border-top:1px solid var(--line)}.resource-list{display:grid}.resource-item{display:grid;gap:1rem;padding:1.25rem 0;border-top:1px solid var(--line)}.resource-heading h2,.resource-heading p{margin:0}.resource-heading h2{font-size:1rem}.resource-heading p{margin-top:.25rem;color:var(--muted-ink);font-size:.8rem}.field-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;border:1px solid var(--line);border-radius:var(--radius-sm)}.field-pane{min-width:0;display:grid;align-content:start;gap:1rem;padding:1.5rem}.field-pane+ .field-pane{border-left:1px solid var(--line)}.detail-heading{display:grid;gap:.25rem}.detail-heading h3,.detail-heading p,.task-panel p{margin:0}.detail-heading h3{font-size:.95rem}.detail-heading p,.empty{color:var(--muted-ink);font-size:.8rem;line-height:1.5}.memo-block{display:grid;gap:.35rem;padding:1rem 0;border-top:1px solid var(--line)}.memo-block strong{font-size:.82rem}.memo-block p{line-height:1.65;overflow-wrap:anywhere}.actions{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.25rem}.task-actions{padding:1.25rem 0;border-top:1px solid var(--line)}.completion-section{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:1rem;padding:1.25rem 0;border-bottom:1px solid var(--line)}.return-form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:1rem;padding:1.25rem 0}.completed-section{padding:1.25rem 0}.completed-section>div{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;padding:1rem;background:var(--cloud);border-radius:var(--radius-sm)}.completed-section strong{font-size:.95rem}.completed-section p{width:100%;color:var(--muted-ink);font-size:.84rem}.error{margin:1rem 0 0;color:var(--danger)}
-@media(max-width:960px){.summary-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.summary-strip>div:nth-child(4){border-left:0}.summary-strip>div:nth-child(n+4){border-top:1px solid var(--line)}}
-@media(max-width:760px){.overview-heading{align-items:flex-start;flex-direction:column;gap:1rem}.summary-strip{grid-template-columns:1fr}.summary-strip>div+div,.summary-strip>div:nth-child(4){border-top:1px solid var(--line);border-left:0}.field-columns{grid-template-columns:1fr}.field-pane+ .field-pane{border-top:1px solid var(--line);border-left:0}.field-pane{padding:1.25rem 0}.completion-section,.return-form{grid-template-columns:1fr}.actions{display:grid;grid-template-columns:1fr}.actions>*{width:100%}.completion-section>:last-child,.return-form>:last-child{width:100%}}
-@media(max-width:420px){.state-cluster{align-items:flex-start;flex-direction:column;gap:.65rem}}
+.personal-task-page{container: personal-task / inline-size;min-width:0;display:grid;gap:1.5rem}.task-panel{display:grid;gap:0}.claim-quantity-section{padding:1.25rem 0;border-top:1px solid var(--line)}.resource-list{display:grid}.resource-item{display:grid;gap:1rem;padding:1.25rem 0;border-top:1px solid var(--line)}.resource-heading h2,.resource-heading p{margin:0}.resource-heading h2{font-size:1rem}.resource-heading p{margin-top:.25rem;color:var(--muted-ink);font-size:.8rem}.field-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;border:1px solid var(--line);border-radius:var(--radius-sm)}.field-pane{min-width:0;display:grid;align-content:start;gap:1rem;padding:1.5rem}.field-pane+ .field-pane{border-left:1px solid var(--line)}.detail-heading{display:grid;gap:.25rem}.detail-heading h3,.detail-heading p,.task-panel p{margin:0}.detail-heading h3{font-size:.95rem}.detail-heading p,.empty{color:var(--muted-ink);font-size:.8rem;line-height:1.5}.memo-block{display:grid;gap:.35rem;padding:1rem 0;border-top:1px solid var(--line)}.memo-block strong{font-size:.82rem}.memo-block p{line-height:1.65;overflow-wrap:anywhere}.actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.5rem;margin-top:.25rem}.task-actions{padding:1.25rem 0;border-top:1px solid var(--line)}.completion-section{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:1rem;padding:1.25rem 0;border-bottom:1px solid var(--line)}.return-form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:1rem;padding:1.25rem 0}.completed-section{padding:1.25rem 0}.completed-section>div{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;padding:1rem;background:var(--surface-subtle);border-radius:var(--radius-sm)}.completed-section strong{font-size:.95rem}.completed-section p{width:100%;color:var(--muted-ink);font-size:.84rem}.error{margin:1rem 0 0;color:var(--danger)}
+
+@container personal-task (max-width: 40rem){.field-columns{grid-template-columns:1fr}.field-pane+ .field-pane{border-top:1px solid var(--line);border-left:0}.field-pane{padding:1.25rem 0}.completion-section,.return-form{grid-template-columns:1fr}.actions{display:grid;grid-template-columns:1fr}.actions>*{width:100%}.completion-section>:last-child,.return-form>:last-child{width:100%}}
+
 </style>

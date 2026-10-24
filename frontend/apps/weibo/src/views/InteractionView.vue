@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import { ArrowLeft, SlidersHorizontal } from '@lucide/vue'
+
 import { api, friendlyError } from '@lostsky/api/client'
 import { readAccessReason } from '@lostsky/api/access-result'
 import { formatAbilityDenied, formatPermissionDenied } from '@lostsky/api/error-format'
@@ -9,7 +13,6 @@ import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useQuery } from '@tanstack/vue-query'
 import { NInput, NRadioButton, NRadioGroup } from 'naive-ui'
@@ -144,12 +147,14 @@ onBeforeUnmount(() => { epoch++ })
 </script>
 
 <template>
-  <div class="weibo-stack">
-    <LsPageHeader title="互动" description="选择微博和账号，点赞或填写评论后手动发送。" :back-to="task.fromFeed ? '/personal/feed' : undefined" back-label="返回点单信息流">
-      <template v-if="!personal" #actions><LsButton variant="secondary" @click="managePresets">管理预设评论</LsButton></template>
-    </LsPageHeader>
+  <LsFormPage title="互动" description="选择微博和账号，点赞或填写评论后手动发送。">
+    <template #actions>
+      <LsPageLink v-if="task.fromFeed" to="/personal/feed" :icon="ArrowLeft" label="返回点单信息流" />
+      <template v-if="!personal"><LsButton variant="ghost" @click="managePresets"><template #icon><SlidersHorizontal :size="16" /></template>管理预设评论</LsButton></template>
+    </template>
+
     <form class="weibo-form" @submit.prevent="submit">
-      <LsFormSection title="微博互动" description="确认目标、账号和内容后执行一次互动。">
+      <LsFormSection title="操作与目标" description="选择互动方式，并确认目标微博。">
         <LsInlineError v-if="task.error" :message="task.error" />
         <LsField label="操作" for-id="weibo-interaction" required>
           <NRadioGroup id="weibo-interaction" v-model:value="draft.action" :disabled="task.feedPostId !== null">
@@ -163,8 +168,12 @@ onBeforeUnmount(() => { epoch++ })
         <LsField v-else label="微博帖子链接" for-id="weibo-status-url" required hint="请粘贴 weibo.com 或 m.weibo.cn 的微博正文页链接。">
           <NInput v-model:value="draft.statusUrl" :maxlength="2048" placeholder="https://weibo.com/..." :input-props="{ id: 'weibo-status-url', 'aria-label': '微博帖子链接' }" />
         </LsField>
+      </LsFormSection>
+      <LsFormSection title="账号与内容" description="本次仅使用所选账号执行一次互动。">
         <WeiboAccountField id="weibo-account" v-model="draft.accountId" :accounts="accounts.data.value || []" :loading="accounts.isPending.value" :error="accounts.isError.value ? friendlyError(accounts.error.value) : ''" :disabled-reason="accountReason" />
         <WeiboCommentFields v-if="draft.action === 'comment'" id-prefix="weibo" v-model="draft.comment" :presets="presets.data.value || []" :loading="presets.isPending.value" :error="presets.isError.value ? friendlyError(presets.error.value) : ''" :disabled-reason="presetReason" />
+      </LsFormSection>
+      <LsFormSection title="确认互动" description="核对账号、目标与内容后手动提交。">
         <LsDescriptionList>
           <dt>账号</dt><dd>{{ selectedAccount?.screen_name || selectedAccount?.uid || (accountReason ? '-' : '未选择') }}</dd>
           <dt>目标</dt><dd>{{ task.feedPostId ? (visiblePost?.status_url || '-') : draft.statusUrl || '未填写' }}</dd>
@@ -173,7 +182,7 @@ onBeforeUnmount(() => { epoch++ })
         <LsFormActions><LsButton type="submit" :loading="pending" :disabled="Boolean(submitReason)" :disabled-reason="submitReason">{{ operationLabel }}</LsButton></LsFormActions>
       </LsFormSection>
     </form>
-  </div>
+  </LsFormPage>
 </template>
 
 <style scoped>

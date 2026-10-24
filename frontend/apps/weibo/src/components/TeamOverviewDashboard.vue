@@ -1,9 +1,15 @@
 <script setup lang="ts">
+import LsOverviewLinks from '@lostsky/ui/components/LsOverviewLinks.vue'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
-import { ArrowRight, CheckCircle2, ClipboardList, Clock3, FileClock, MessageCircleMore, RadioTower, Send, ShieldCheck, Users } from '@lucide/vue'
+import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
+import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
+import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
+import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
+import { ClipboardList, Clock3, FileClock, MessageCircleMore, Send, UserRound, Users } from '@lucide/vue'
 import { computed } from 'vue'
 import AccountHealthSummary from './AccountHealthSummary.vue'
 import OperationRecordList from './OperationRecordList.vue'
@@ -82,552 +88,82 @@ const nextTime = computed(() => (nextTask.value?.next_run_at ? new Date(nextTask
 </script>
 
 <template>
-  <div class="weibo-dashboard">
-    <section class="weibo-dashboard__hero" aria-labelledby="weibo-team-dashboard-title">
-      <div class="weibo-dashboard__intro">
-        <p class="weibo-dashboard__signal" :data-tone="signal.tone" aria-live="polite"><span aria-hidden="true" />{{ signal.label }}</p>
-        <h2 id="weibo-team-dashboard-title">团队微博，保持在可控节奏</h2>
-        <p class="weibo-dashboard__lead">在一个页面查看账号健康、任务状态和执行结果；让贵团队能够检查运行状态。</p>
-        <nav class="weibo-dashboard__hero-actions" aria-label="团队概览主要操作">
-          <RouterLink class="weibo-dashboard__action primary" to="/compose"> <Send :size="18" />单次发帖<ArrowRight :size="18" /> </RouterLink>
-          <RouterLink class="weibo-dashboard__action secondary" to="/personal"> 进入个人工作台<ArrowRight :size="18" /> </RouterLink>
-        </nav>
-        <dl class="weibo-dashboard__metrics" aria-label="运行摘要">
-          <div>
-            <dt>有效账号</dt>
-            <dd>{{ metric(validAccounts) }} / {{ metric(accounts.length) }}</dd>
-          </div>
-          <div>
-            <dt>运行任务</dt>
-            <dd>{{ metric(activeTasks) }}</dd>
-          </div>
-          <div>
-            <dt>待处理</dt>
-            <dd>{{ metric(failures.length + blockedTasks) }}</dd>
-          </div>
-        </dl>
-      </div>
-
-      <section class="weibo-dashboard__next" aria-labelledby="weibo-next-run-title">
-        <header>
-          <Clock3 :size="19" />
-          <h3 id="weibo-next-run-title">下一次执行</h3>
-        </header>
-        <div v-if="state === 'loading'" class="weibo-dashboard__next-state">
-          <strong>正在同步计划</strong>
-          <span>稍后会在这里显示最先到达的任务。</span>
-        </div>
-        <div v-else-if="state === 'restricted'" class="weibo-dashboard__next-state">
-          <strong>选择工作入口</strong>
-          <span>需要执行具体工作时，从工作入口继续。</span>
-        </div>
-        <div v-else-if="state === 'error'" class="weibo-dashboard__next-state">
-          <strong>暂时无法确认</strong>
-          <span>工作入口仍可使用，可进入任务页继续处理。</span>
-        </div>
-        <div v-else-if="nextTask" class="weibo-dashboard__next-task">
-          <strong>{{ nextTask.topic.display_tag || `#${nextTask.topic.name}#` }}</strong>
-          <time class="weibo-numbers" :datetime="new Date((nextTask.next_run_at || 0) * 1000).toISOString()">{{ nextTime }}</time>
-          <span>{{ nextTask.operation_type === 'Checkin' ? '每日超话签到' : '自动发布任务' }}</span>
-        </div>
-        <div v-else class="weibo-dashboard__next-state">
-          <strong>暂无计划执行</strong>
-          <span>开启或恢复持续任务后，下一次安排会出现在这里。</span>
-        </div>
-        <RouterLink class="weibo-dashboard__next-link" to="/tasks">查看任务排期<ArrowRight :size="17" /></RouterLink>
-      </section>
-    </section>
-
-    <div :class="['weibo-dashboard__workspace', { restricted: state === 'restricted' }]">
-      <div class="weibo-dashboard__main">
-        <LsAsyncState v-if="state === 'loading'" state="loading" :rows="3" />
-        <LsPanel v-else-if="state === 'restricted'">
-          <LsDescriptionList
-            ><dt>微博态势</dt>
-            <dd>-</dd></LsDescriptionList
-          >
+  <LsOverviewPage title="团队微博，保持在可控节奏" description="在一个页面查看账号健康、任务状态和执行结果；让贵团队能够检查运行状态。">
+    <template #actions>
+      <LsPageLink to="/compose" :icon="Send" label="单次发帖" />
+      <LsPageLink to="/personal" :icon="UserRound" label="进入个人工作台" />
+      <LsSceneMotionControl />
+    </template>
+    <template #summary>
+      <div class="weibo-dashboard-summary">
+        <LsPanel>
+          <template #header><LsSectionHeader title="运行摘要" /></template>
+          <p class="weibo-dashboard-signal" :data-tone="signal.tone" aria-live="polite">{{ signal.label }}</p>
+          <LsMetricGrid aria-label="运行摘要" :items="[
+            { key: 'accounts', label: '有效账号', value: `${metric(validAccounts)} / ${metric(accounts.length)}` },
+            { key: 'tasks', label: '运行任务', value: metric(activeTasks) },
+            { key: 'attention', label: '待处理', value: metric(failures.length + blockedTasks) },
+          ]" />
         </LsPanel>
+        <LsPanel>
+          <template #header><LsSectionHeader title="下一次执行"><template #aside><Clock3 :size="19" aria-hidden="true" /></template></LsSectionHeader></template>
+          <div class="weibo-dashboard-next">
+            <template v-if="state === 'loading'"><strong>正在同步计划</strong><p>稍后会在这里显示最先到达的任务。</p></template>
+            <template v-else-if="state === 'restricted'"><strong>选择工作入口</strong><p>需要执行具体工作时，从工作入口继续。</p></template>
+            <template v-else-if="state === 'error'"><strong>暂时无法确认</strong><p>工作入口仍可使用，可进入任务页继续处理。</p></template>
+            <template v-else-if="nextTask">
+              <strong>{{ nextTask.topic.display_tag || `#${nextTask.topic.name}#` }}</strong>
+              <time class="weibo-numbers" :datetime="new Date((nextTask.next_run_at || 0) * 1000).toISOString()">{{ nextTime }}</time>
+              <p>{{ nextTask.operation_type === 'Checkin' ? '每日超话签到' : '自动发布任务' }}</p>
+            </template>
+            <template v-else><strong>暂无计划执行</strong><p>开启或恢复持续任务后，下一次安排会出现在这里。</p></template>
+            <LsPageLink to="/tasks" :icon="ClipboardList" label="查看任务排期" />
+          </div>
+        </LsPanel>
+      </div>
+    </template>
+    <div class="weibo-dashboard-workspace">
+      <div class="weibo-dashboard-main">
+        <LsAsyncState v-if="state === 'loading'" state="loading" :rows="3" />
+        <LsPanel v-else-if="state === 'restricted'"><LsDescriptionList><dt>微博态势</dt><dd>-</dd></LsDescriptionList></LsPanel>
         <LsAsyncState v-else-if="state === 'error'" state="error" title="无法读取微博态势" :description="errorDescription" />
         <template v-else>
-          <LsPanel class="weibo-dashboard__health">
-            <template #header>
-              <div class="weibo-dashboard__section-heading">
-                <div>
-                  <h2>运行健康</h2>
-                  <p>账号健康和任务状态并列展示，便于优先处理异常。</p>
-                </div>
-                <RadioTower :size="21" aria-hidden="true" />
-              </div>
-            </template>
-            <div class="weibo-dashboard__health-grid">
-              <section aria-labelledby="weibo-account-health-title">
-                <h3 id="weibo-account-health-title">账号健康</h3>
-                <AccountHealthSummary :accounts="accounts" />
-              </section>
-              <section aria-labelledby="weibo-task-health-title">
-                <h3 id="weibo-task-health-title">任务状态</h3>
-                <TaskStatusSummary :tasks="tasks" />
-              </section>
-            </div>
-          </LsPanel>
-
-          <LsPanel class="weibo-dashboard__incidents">
-            <template #header>
-              <div class="weibo-dashboard__section-heading">
-                <div>
-                  <h2>近期需要关注</h2>
-                  <p>只收拢失败与结果未确认记录；不显示常规运行日志。</p>
-                </div>
-                <span class="weibo-dashboard__count">{{ failures.length }} 项</span>
-              </div>
-            </template>
+          <LsPanel>
+            <template #header><LsSectionHeader title="近期需要关注" description="只收拢失败与结果未确认记录；不显示常规运行日志。"><template #aside><span>{{ failures.length }} 项</span></template></LsSectionHeader></template>
             <LsEmptyState v-if="!failures.length" title="近期运行正常" description="最近的执行记录中没有失败或结果未确认项。" />
             <OperationRecordList v-else :operations="failures" />
           </LsPanel>
+          <LsPanel>
+            <template #header><LsSectionHeader title="运行健康" description="账号健康和任务状态并列展示，便于优先处理异常。" /></template>
+            <div class="weibo-dashboard-health">
+              <section aria-labelledby="weibo-account-health-title"><h3 id="weibo-account-health-title">账号健康</h3><AccountHealthSummary :accounts="accounts" /></section>
+              <section aria-labelledby="weibo-task-health-title"><h3 id="weibo-task-health-title">任务状态</h3><TaskStatusSummary :tasks="tasks" /></section>
+            </div>
+          </LsPanel>
+
         </template>
       </div>
-
-      <section class="weibo-dashboard__entries" aria-labelledby="weibo-work-entry-title">
-        <header>
-          <h2 id="weibo-work-entry-title">工作入口</h2>
-          <p>状态确认完毕后，从这里进入账号、发帖、互动和任务等具体工作。</p>
-        </header>
-        <nav aria-label="工作入口">
-          <RouterLink v-for="entry in entries" :key="entry.key" :to="entry.to">
-            <span class="weibo-dashboard__entry-icon"><component :is="entry.icon" :size="19" /></span>
-            <span
-              ><strong>{{ entry.label }}</strong
-              ><small>{{ entry.description }}</small></span
-            >
-            <ArrowRight :size="18" />
-          </RouterLink>
-        </nav>
-      </section>
+      <LsPanel>
+        <template #header><LsSectionHeader title="工作入口" description="继续准备内容、管理账号或处理任务。" /></template>
+        <LsOverviewLinks label="微博工作入口" :entries="entries" />
+      </LsPanel>
     </div>
-
-    <section v-if="state !== 'restricted'" class="weibo-dashboard__scope" aria-labelledby="weibo-team-scope-title">
-      <ShieldCheck :size="22" aria-hidden="true" />
-      <div>
-        <h2 id="weibo-team-scope-title">当前范围</h2>
-        <p>概览对所有人开放；账号、任务、日志和业务操作需要 weibo.team.manage 权限。</p>
-      </div>
-      <p><CheckCircle2 :size="17" />集中管理团队运行任务，需要购买微博能力方可使用。</p>
-    </section>
-  </div>
+  </LsOverviewPage>
 </template>
 
 <style scoped>
-.weibo-dashboard {
-  min-width: 0;
-  display: grid;
-  gap: 1rem;
-}
-.weibo-dashboard__hero {
-  min-width: 0;
-  display: grid;
-  gap: 1.25rem;
-  padding: 1.25rem;
-  color: white;
-  background: var(--sky-night);
-  border-radius: var(--radius-lg);
-}
-.weibo-dashboard__intro {
-  min-width: 0;
-  display: grid;
-  align-content: start;
-}
-.weibo-dashboard__signal {
-  width: max-content;
-  max-width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 0.85rem;
-  color: oklch(0.8 0.014 210);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-.weibo-dashboard__signal span {
-  width: 0.55rem;
-  height: 0.55rem;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--warning);
-}
-.weibo-dashboard__signal[data-tone='success'] span {
-  background: var(--sky-lost);
-}
-.weibo-dashboard__signal[data-tone='danger'] span {
-  background: var(--danger);
-}
-.weibo-dashboard__signal[data-tone='loading'] span {
-  background: var(--afterglow);
-}
-.weibo-dashboard__intro h2 {
-  max-width: 14ch;
-  margin: 0;
-  font-size: clamp(1.8rem, 4vw, 2.75rem);
-  font-weight: 760;
-  letter-spacing: -0.025em;
-  line-height: 1.08;
-  text-wrap: balance;
-}
-.weibo-dashboard__lead {
-  max-width: 60ch;
-  margin: 0.85rem 0 0;
-  color: oklch(0.8 0.014 210);
-  font-size: 0.92rem;
-  line-height: 1.7;
-}
-.weibo-dashboard__hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 1.35rem;
-}
-.weibo-dashboard__action {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0 0.9rem;
-  border-radius: 8px;
-  font-size: 0.88rem;
-  font-weight: 750;
-}
-.weibo-dashboard__action.primary {
-  color: var(--sky-void);
-  background: var(--afterglow);
-}
-.weibo-dashboard__action.secondary {
-  color: white;
-  background: color-mix(in oklch, var(--sky-night), white 7%);
-  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--sky-lost), transparent 50%);
-}
-.weibo-dashboard__action:hover {
-  transform: translateY(-1px);
-  transition: transform var(--motion-fast) var(--ease-out);
-}
-.weibo-dashboard__metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 1.5rem 0 0;
-  border-top: 1px solid color-mix(in oklch, var(--sky-lost), transparent 64%);
-}
-.weibo-dashboard__metrics div {
-  min-width: 0;
-  padding: 0.85rem 0.65rem 0 0;
-}
-.weibo-dashboard__metrics div + div {
-  padding-left: 0.65rem;
-  border-left: 1px solid color-mix(in oklch, var(--sky-lost), transparent 70%);
-}
-.weibo-dashboard__metrics dt {
-  color: oklch(0.72 0.014 210);
-  font-size: 0.7rem;
-}
-.weibo-dashboard__metrics dd {
-  margin: 0.15rem 0 0;
-  font-size: 1rem;
-  font-weight: 760;
-  font-variant-numeric: tabular-nums;
-}
-.weibo-dashboard__next {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
-  background: color-mix(in oklch, var(--sky-night), white 6%);
-  border: 1px solid color-mix(in oklch, var(--sky-lost), transparent 54%);
-  border-radius: 12px;
-}
-.weibo-dashboard__next header {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding-bottom: 0.8rem;
-  border-bottom: 1px solid color-mix(in oklch, var(--sky-lost), transparent 68%);
-}
-.weibo-dashboard__next h3 {
-  margin: 0;
-  font-size: 0.84rem;
-}
-.weibo-dashboard__next-task,
-.weibo-dashboard__next-state {
-  display: grid;
-  align-content: center;
-  gap: 0.35rem;
-  flex: 1;
-  min-height: 8rem;
-  padding: 1rem 0;
-}
-.weibo-dashboard__next-task strong,
-.weibo-dashboard__next-state strong {
-  font-size: 1.2rem;
-  line-height: 1.35;
-}
-.weibo-dashboard__next-task time {
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-.weibo-dashboard__next-task span,
-.weibo-dashboard__next-state span {
-  color: oklch(0.75 0.014 210);
-  font-size: 0.8rem;
-  line-height: 1.55;
-}
-.weibo-dashboard__next-link {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding-top: 0.75rem;
-  color: var(--afterglow);
-  border-top: 1px solid color-mix(in oklch, var(--sky-lost), transparent 68%);
-  font-size: 0.82rem;
-  font-weight: 750;
-}
-.weibo-dashboard__workspace {
-  min-width: 0;
-  display: grid;
-  gap: 1rem;
-}
-.weibo-dashboard__main {
-  min-width: 0;
-  display: grid;
-  align-content: start;
-  gap: 1rem;
-}
-.weibo-dashboard__section-heading {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.weibo-dashboard__section-heading h2,
-.weibo-dashboard__entries h2,
-.weibo-dashboard__scope h2 {
-  margin: 0;
-  font-size: 1rem;
-}
-.weibo-dashboard__section-heading p,
-.weibo-dashboard__entries header p,
-.weibo-dashboard__scope p {
-  margin: 0.25rem 0 0;
-  color: var(--muted-ink);
-  font-size: 0.8rem;
-  line-height: 1.55;
-}
-.weibo-dashboard__section-heading > svg {
-  flex: 0 0 auto;
-  color: var(--sky-lost-strong);
-}
-.weibo-dashboard__health-grid {
-  display: grid;
-  gap: 1.25rem;
-}
-.weibo-dashboard__health-grid section {
-  min-width: 0;
-}
-.weibo-dashboard__health-grid h3 {
-  margin: 0 0 0.65rem;
-  font-size: 0.82rem;
-}
-.weibo-dashboard__count {
-  flex: 0 0 auto;
-  padding: 0.2rem 0.5rem;
-  color: var(--muted-ink);
-  background: var(--cloud);
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 750;
-}
-.weibo-dashboard__entries {
-  min-width: 0;
-  overflow: hidden;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-}
-.weibo-dashboard__entries > header {
-  padding: 1.15rem 1.2rem;
-  border-bottom: 1px solid var(--line);
-}
-.weibo-dashboard__entries nav {
-  display: grid;
-}
-.weibo-dashboard__entries nav a {
-  min-width: 0;
-  min-height: 72px;
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-}
-.weibo-dashboard__entries nav a + a {
-  border-top: 1px solid var(--line);
-}
-.weibo-dashboard__entries nav a:hover {
-  background: var(--cloud);
-}
-.weibo-dashboard__entries nav a > svg {
-  color: var(--muted-ink);
-}
-.weibo-dashboard__entry-icon {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  color: var(--sky-lost-strong);
-  background: var(--cloud);
-  border-radius: 10px;
-}
-.weibo-dashboard__entries strong,
-.weibo-dashboard__entries small {
-  display: block;
-}
-.weibo-dashboard__entries strong {
-  font-size: 0.88rem;
-}
-.weibo-dashboard__entries small {
-  margin-top: 0.1rem;
-  overflow-wrap: anywhere;
-  color: var(--muted-ink);
-  font-size: 0.72rem;
-  line-height: 1.45;
-}
-.weibo-dashboard__scope {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: 0.75rem;
-  padding: 1rem 1.1rem;
-  background: color-mix(in oklch, var(--cloud), white 35%);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-}
-.weibo-dashboard__scope > svg {
-  margin-top: 0.1rem;
-  color: var(--sky-lost-strong);
-}
-.weibo-dashboard__scope > p {
-  grid-column: 2;
-  display: flex;
-  align-items: start;
-  gap: 0.45rem;
-  margin: 0;
-}
-.weibo-dashboard__scope > p svg {
-  flex: 0 0 auto;
-  margin-top: 0.12rem;
-  color: var(--success);
-}
-@media (min-width: 720px) {
-  .weibo-dashboard__health-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .weibo-dashboard__scope {
-    grid-template-columns: auto minmax(0, 1fr) minmax(17rem, 0.75fr);
-    align-items: center;
-  }
-  .weibo-dashboard__scope > p {
-    grid-column: 3;
-  }
-}
+.weibo-dashboard-summary, .weibo-dashboard-workspace, .weibo-dashboard-main, .weibo-dashboard-health { min-width: 0; display: grid; gap: 1rem; align-content: start; }
+.weibo-dashboard-signal { margin: 0 0 1rem; color: var(--text-secondary); font-size: .875rem; }
+.weibo-dashboard-signal[data-tone='danger'] { color: var(--danger); }
+.weibo-dashboard-signal[data-tone='warning'] { color: var(--warning); }
+.weibo-dashboard-signal[data-tone='success'] { color: var(--success); }
+.weibo-dashboard-next { display: grid; gap: .75rem; min-width: 0; }
+.weibo-dashboard-next p { margin: 0; color: var(--text-secondary); line-height: 1.6; }
+.weibo-dashboard-health section { min-width: 0; }
+.weibo-dashboard-health h3 { margin: 0 0 .75rem; font-size: .875rem; }
+@media (min-width: 720px) { .weibo-dashboard-health { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 960px) {
-  .weibo-dashboard__hero {
-    grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.72fr);
-    align-items: stretch;
-    padding: 1.75rem;
-  }
-  .weibo-dashboard__workspace {
-    grid-template-columns: minmax(0, 1.65fr) minmax(18rem, 0.72fr);
-    align-items: start;
-  }
-  .weibo-dashboard__entries {
-    position: sticky;
-    top: 1rem;
-  }
-  .weibo-dashboard__next {
-    padding: 1.2rem;
-  }
-  .weibo-dashboard__workspace.restricted {
-    grid-template-columns: 1fr;
-  }
-  .weibo-dashboard__workspace.restricted .weibo-dashboard__entries {
-    position: static;
-  }
-}
-@media (max-width: 639px) {
-  .weibo-dashboard__hero-actions {
-    display: grid;
-  }
-  .weibo-dashboard__action {
-    width: 100%;
-  }
-  .weibo-dashboard__intro h2 {
-    max-width: 18ch;
-  }
-  .weibo-dashboard__metrics div {
-    padding-right: 0.45rem;
-  }
-  .weibo-dashboard__metrics div + div {
-    padding-left: 0.45rem;
-  }
-  .weibo-dashboard__metrics dt {
-    font-size: 0.66rem;
-  }
-  .weibo-dashboard__health-grid {
-    gap: 1rem;
-  }
-  .weibo-dashboard__scope {
-    padding: 1rem;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .weibo-dashboard__action:hover {
-    transform: none;
-  }
-}
-.weibo-dashboard .weibo-dashboard__action.n-button {
-  border: 0;
-}
-.weibo-dashboard .weibo-dashboard__next-link.n-button {
-  width: 100%;
-  background: transparent;
-  border-right: 0;
-  border-bottom: 0;
-  border-left: 0;
-}
-.weibo-dashboard__entries nav .weibo-dashboard__entry-button.n-button {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  min-height: 72px;
-  overflow: hidden;
-  padding: 0.75rem 1rem;
-  color: inherit;
-  background: transparent;
-  border: 0;
-  text-align: left;
-}
-.weibo-dashboard__entry-content {
-  width: 100%;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.75rem;
-  white-space: normal;
-}
-.weibo-dashboard__entries nav .weibo-dashboard__entry-button + .weibo-dashboard__entry-button {
-  border-top: 1px solid var(--line);
-}
-.weibo-dashboard__entry-content > svg {
-  color: var(--muted-ink);
+  .weibo-dashboard-summary { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
+  .weibo-dashboard-workspace { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); }
 }
 </style>

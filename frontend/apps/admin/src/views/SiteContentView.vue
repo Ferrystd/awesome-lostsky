@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { type SiteContent } from '@lostsky/shared/siteContent'
 import { useQueryDraft } from '@lostsky/shared/useQueryDraft'
@@ -7,8 +10,6 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
-import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSwitchField from '@lostsky/ui/components/LsSwitchField.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
@@ -57,16 +58,15 @@ function move(items: unknown[], index: number, delta: number) {
 </script>
 
 <template>
-  <LsPageHeader title="官网内容" description="维护 www.lostsky.work 的备案号、核心人员和团队优势数据，保存后立即生效。" />
+  <LsFormPage title="官网内容" description="维护 www.lostsky.work 的备案号、核心人员和团队优势数据，保存后立即生效。">
+
   <LsAsyncState v-if="!access.restricted.value && query.isPending.value" state="loading" :rows="5" />
   <div v-else-if="!access.restricted.value && query.isError.value" class="content-groups"><LsAsyncState state="error" title="暂时无法读取官网内容" :description="friendlyError(query.error.value)" /><LsButton variant="secondary" @click="query.refetch()">重新加载</LsButton></div>
   <form v-else class="site-form" @submit.prevent="submit">
-    <LsPanel>
-      <template #header><h2>维护官网内容</h2></template>
-      <div class="content-groups">
+      <LsFormSection title="备案信息">
         <LsField label="ICP备案号" for-id="site-icp" hint="留空时保留官网原有“备案信息”链接"><NInput v-model:value="content.icp" :input-props="{ id: 'site-icp' }" :disabled="!writable" :maxlength="100" :placeholder="access.restricted.value ? '-' : '例如 粤ICP备12345678号-1'" /></LsField>
-        <section aria-labelledby="site-members-title">
-          <h3 id="site-members-title">核心人员</h3>
+      </LsFormSection>
+      <LsFormSection id="site-members-title" title="核心人员" description="编辑公开资料与展示顺序，所有修改随页面统一保存。">
           <p v-if="!content.members.length">{{ access.restricted.value ? '-' : '暂无核心人员，可添加后保存。' }}</p>
           <section v-for="(member, index) in content.members" :key="index" class="content-entry" :aria-label="`核心人员 ${index + 1}`">
             <h4>{{ member.name || `人员 ${index + 1}` }}</h4>
@@ -79,9 +79,8 @@ function move(items: unknown[], index: number, delta: number) {
             </div>
           </section>
           <LsButton variant="secondary" :disabled="Boolean(addMemberReason)" :disabled-reason="addMemberReason" @click="addMember">添加人员</LsButton>
-        </section>
-        <section aria-labelledby="site-stats-title">
-          <h3 id="site-stats-title">团队优势数据</h3>
+      </LsFormSection>
+      <LsFormSection id="site-stats-title" title="团队优势数据" description="维护官网展示的数值、名称与顺序。">
           <p v-if="!content.stats.length">{{ access.restricted.value ? '-' : '暂无指标，可添加后保存。' }}</p>
           <section v-for="(stat, index) in content.stats" :key="index" class="content-entry" :aria-label="`优势指标 ${index + 1}`">
             <h4>{{ stat.label || `指标 ${index + 1}` }}</h4>
@@ -95,16 +94,15 @@ function move(items: unknown[], index: number, delta: number) {
             </div>
           </section>
           <LsButton variant="secondary" :disabled="Boolean(addStatReason)" :disabled-reason="addStatReason" @click="content.stats.push({ value: '', label: '', visible: true })">添加指标</LsButton>
-        </section>
-      </div>
-      <template #footer><LsFormActions><LsButton type="submit" :aria-busy="save.isPending.value" :disabled="Boolean(saveReason)" :disabled-reason="saveReason">{{ save.isPending.value ? '正在保存…' : '保存官网内容' }}</LsButton></LsFormActions></template>
-    </LsPanel>
+      </LsFormSection>
+      <LsFormActions><LsButton type="submit" :aria-busy="save.isPending.value" :disabled="Boolean(saveReason)" :disabled-reason="saveReason">{{ save.isPending.value ? '正在保存…' : '保存官网内容' }}</LsButton></LsFormActions>
   </form>
+  </LsFormPage>
 </template>
 
 <style scoped>
 .site-form,.content-groups { display: grid; gap: 24px; }
 .content-entry { display: grid; gap: 16px; padding-block: 20px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
 .entry-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-h2,h3,h4 { margin: 0 0 16px; }
+h4 { margin: 0; }
 </style>

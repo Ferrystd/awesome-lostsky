@@ -4,8 +4,8 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
-import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
+import LsDetailPage from '@lostsky/ui/components/LsDetailPage.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
@@ -41,36 +41,36 @@ const domainColumns: DataTableColumns<Domain> = [
 </script>
 
 <template>
-  <LsPageHeader title="团队详情" description="查看各团队的所有者、规模和运行状态；平台只做治理，不会改动团队内部业务数据。" back-to="/teams">
+  <LsDetailPage title="团队详情" description="查看各团队的所有者、规模和运行状态；平台只做治理，不会改动团队内部业务数据。" back-to="/teams">
     <template #actions>
-      <LsPagePrimaryAction v-if="!query.data.value?.is_cancelled" :icon="ShieldPlus" label="开通能力" :to="{ path: '/entitlements/team-abilities', query: { team: query.data.value?.slug, return: `/teams/${id}` } }" />
+      <LsPageLink v-if="!query.data.value?.is_cancelled" :icon="ShieldPlus" label="开通能力" :to="{ path: '/entitlements/team-abilities', query: { team: query.data.value?.slug, return: `/teams/${id}` } }" />
       <LsButton v-if="!query.data.value?.is_cancelled" :variant="query.data.value?.is_banned ? 'primary' : 'danger'" :disabled="routeAccess.restricted.value || !can('admin.team.moderate')" :disabled-reason="routeAccess.reason.value || permissionReason('admin.team.moderate')" @click="dialog = true">{{ query.data.value?.is_banned ? '解封团队' : '封禁团队' }}</LsButton>
     </template>
-  </LsPageHeader>
-  <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
-  <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取团队详情" :description="friendlyError(query.error.value)" />
-  <template v-else-if="routeAccess.restricted.value">
-    <LsPanel><template #header><LsSectionHeader title="-" description="-" /></template><LsDescriptionList><dt>所有者</dt><dd>-</dd><dt>成员数量</dt><dd>-</dd><dt>创建时间</dt><dd>-</dd><dt>最近更新</dt><dd>-</dd></LsDescriptionList></LsPanel>
-    <LsPanel><template #header><div><h2>域名绑定</h2><p>只读平台配置</p></div></template><LsEmptyState :source="query.data.value" title="没有可显示的域名" description="当前没有域名数据。" /></LsPanel>
-    <LsPanel><template #header><div><h2>已启用能力</h2><p>团队能力配置</p></div></template><LsEmptyState :source="query.data.value" title="暂无可显示的数据" description="当前列表为空。" /></LsPanel>
-  </template>
-  <template v-else-if="query.data.value">
-    <LsPanel>
-      <template #header><LsSectionHeader :title="query.data.value.name || query.data.value.slug" :description="`#${query.data.value.id} · ${query.data.value.slug}`"><template #aside><LsStatusTag :label="adminStatusLabel(teamStatus)" :type="adminStatusType(teamStatus)" /></template></LsSectionHeader></template>
-      <LsDescriptionList><dt>所有者</dt><dd>{{ query.data.value.owner_username || `用户 #${query.data.value.user_id}` }}</dd><dt>成员数量</dt><dd>{{ query.data.value.member_count }}</dd><dt>创建时间</dt><dd>{{ formatTime(query.data.value.create_time) }}</dd><dt>最近更新</dt><dd>{{ formatTime(query.data.value.update_time) }}</dd></LsDescriptionList>
-    </LsPanel>
-    <LsPanel>
-      <template #header><div><h2>域名绑定</h2><p>只读平台配置</p></div></template>
-      <LsEmptyState :source="query.data.value" v-if="!query.data.value.domains.length" title="没有自定义域名" description="团队尚未绑定额外访问域名。" />
-      <NDataTable v-else :columns="domainColumns" :data="query.data.value.domains" :row-key="row => row.id" />
-    </LsPanel>
-    <LsPanel>
-      <template #header><div><h2>已启用能力</h2><p>具有团队能力管理权限的平台管理员可开通、调整或续期</p></div></template>
-      <LsEmptyState :source="query.data.value" v-if="!query.data.value.abilities.length" title="没有额外能力" description="当前团队仅使用默认能力。" />
-      <div v-else class="ability-list"><div v-for="ability in query.data.value.abilities" :key="ability.id"><strong>{{ ability.ability_key }}</strong><span>等级 {{ ability.level }} · {{ ability.expire_time ? formatTime(ability.expire_time) : '永久' }}</span></div></div>
-    </LsPanel>
-  </template>
-  <ReasonDialog v-model:show="dialog" :title="action === 'ban' ? '封禁这个团队？' : '解封这个团队？'" :consequence="action === 'ban' ? '团队全部业务入口会立即不可用；成员账号及其他团队不受影响。' : '团队业务入口将重新开放。'" :action-label="action === 'ban' ? '封禁团队' : '解封团队'" :danger="action === 'ban'" :loading="mutation.isPending.value" @confirm="mutation.mutate" />
+    <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
+    <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取团队详情" :description="friendlyError(query.error.value)" />
+    <template v-else-if="routeAccess.restricted.value">
+      <LsPanel><template #header><LsSectionHeader title="-" description="-" /></template><LsDescriptionList><dt>所有者</dt><dd>-</dd><dt>成员数量</dt><dd>-</dd><dt>创建时间</dt><dd>-</dd><dt>最近更新</dt><dd>-</dd></LsDescriptionList></LsPanel>
+      <LsPanel><template #header><LsSectionHeader title="域名绑定" description="只读平台配置" /></template><LsEmptyState :source="query.data.value" title="没有可显示的域名" description="当前没有域名数据。" /></LsPanel>
+      <LsPanel><template #header><LsSectionHeader title="已启用能力" description="团队能力配置" /></template><LsEmptyState :source="query.data.value" title="暂无可显示的数据" description="当前列表为空。" /></LsPanel>
+    </template>
+    <template v-else-if="query.data.value">
+      <LsPanel>
+        <template #header><LsSectionHeader :title="query.data.value.name || query.data.value.slug" :description="`#${query.data.value.id} · ${query.data.value.slug}`"><template #aside><LsStatusTag :label="adminStatusLabel(teamStatus)" :type="adminStatusType(teamStatus)" /></template></LsSectionHeader></template>
+        <LsDescriptionList><dt>所有者</dt><dd>{{ query.data.value.owner_username || `用户 #${query.data.value.user_id}` }}</dd><dt>成员数量</dt><dd>{{ query.data.value.member_count }}</dd><dt>创建时间</dt><dd>{{ formatTime(query.data.value.create_time) }}</dd><dt>最近更新</dt><dd>{{ formatTime(query.data.value.update_time) }}</dd></LsDescriptionList>
+      </LsPanel>
+      <LsPanel>
+        <template #header><LsSectionHeader title="域名绑定" description="只读平台配置" /></template>
+        <LsEmptyState :source="query.data.value" v-if="!query.data.value.domains.length" title="没有自定义域名" description="团队尚未绑定额外访问域名。" />
+        <NDataTable v-else :columns="domainColumns" :data="query.data.value.domains" :row-key="row => row.id" />
+      </LsPanel>
+      <LsPanel>
+        <template #header><LsSectionHeader title="已启用能力" description="具有团队能力管理权限的平台管理员可开通、调整或续期" /></template>
+        <LsEmptyState :source="query.data.value" v-if="!query.data.value.abilities.length" title="没有额外能力" description="当前团队仅使用默认能力。" />
+        <div v-else class="ability-list"><div v-for="ability in query.data.value.abilities" :key="ability.id"><strong>{{ ability.ability_key }}</strong><span>等级 {{ ability.level }} · {{ ability.expire_time ? formatTime(ability.expire_time) : '永久' }}</span></div></div>
+      </LsPanel>
+    </template>
+    <ReasonDialog v-model:show="dialog" :title="action === 'ban' ? '封禁这个团队？' : '解封这个团队？'" :consequence="action === 'ban' ? '团队全部业务入口会立即不可用；成员账号及其他团队不受影响。' : '团队业务入口将重新开放。'" :action-label="action === 'ban' ? '封禁团队' : '解封团队'" :danger="action === 'ban'" :loading="mutation.isPending.value" @confirm="mutation.mutate" />
+  </LsDetailPage>
 </template>
 
-<style scoped>.ability-list{display:grid}.ability-list>div{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.ability-list>div:last-child{border-bottom:0}.ability-list span{color:var(--muted-ink);font-size:.8rem}</style>
+<style scoped>.ability-list{display:grid}.ability-list>div{min-width:0;display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.ability-list>div:last-child{border-bottom:0}.ability-list span{color:var(--muted-ink);font-size:.8rem}</style>

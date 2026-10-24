@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import LsFormPage from '@lostsky/ui/components/LsFormPage.vue'
+
 import { api, friendlyError } from '@lostsky/api/client'
 import { formatAbilityDenied } from '@lostsky/api/error-format'
 import LsButton from '@lostsky/ui/components/LsButton.vue'
@@ -6,7 +8,6 @@ import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsField from '@lostsky/ui/components/LsField.vue'
 import LsFormActions from '@lostsky/ui/components/LsFormActions.vue'
 import LsFormSection from '@lostsky/ui/components/LsFormSection.vue'
-import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { feedback } from '@lostsky/ui/feedback'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
 import { useQuery } from '@tanstack/vue-query'
@@ -61,8 +62,8 @@ async function submit() {
 </script>
 
 <template>
-  <div class="weibo-stack">
-    <LsPageHeader title="超话发帖" description="在超话内发帖不同步至主页。" />
+  <LsFormPage title="超话发帖" description="在超话内发帖不同步至主页。">
+
     <form class="weibo-form" @submit.prevent="submit">
       <LsFormSection title="执行账号" description="选择本次发布使用的已绑定微博账号。">
         <LsField label="微博账号" for-id="weibo-account" required>
@@ -78,11 +79,11 @@ async function submit() {
             <NInput id="weibo-content" v-model:value="content" type="textarea" placeholder="输入微博正文" :autosize="{ minRows: 6, maxRows: 12 }" />
           </LsField>
         </LsFormSection>
-        <LsFormSection title="图片" description="每条帖子最多 9 张图片；不占用团队文件额度。">
+        <LsFormSection title="附加图片（可选）" description="每条帖子最多 9 张图片；不占用团队文件额度。">
           <MediaPreparation v-model="mediaIds" :prefix="prefix" :personal="personal" :expected-entity-id="access.data.value?.identity.entity_id ?? 0" :account-id="accountId" :access-disabled-reason="routeAccess.reason.value" />
         </LsFormSection>
 
-      <LsFormSection title="执行" description="点击发布后发出一次请求；失败后需手动重试。">
+      <LsFormSection title="发布前确认" description="点击发布后发出一次请求；失败后需手动重试。">
         <LsDescriptionList>
           <dt>账号</dt><dd>{{ routeAccess.restricted.value ? '-' : selectedAccount?.screen_name || selectedAccount?.uid || '未选择' }}</dd>
           <dt>目标</dt><dd>{{ targetSummary }}</dd>
@@ -93,5 +94,5 @@ async function submit() {
         </LsFormActions>
       </LsFormSection>
     </form>
-  </div>
+  </LsFormPage>
 </template>

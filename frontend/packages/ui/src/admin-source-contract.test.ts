@@ -34,15 +34,15 @@ describe('后台源码设计契约', () => {
     const presets = readFileSync(join(repository, 'frontend/apps/weibo/src/views/CommentPresetsView.vue'), 'utf8')
     const editor = readFileSync(join(repository, 'frontend/apps/weibo/src/views/CommentPresetFormView.vue'), 'utf8')
     for (const source of [feed, presets, editor]) {
-      expect(source).toContain('<LsPageHeader')
+      expect(source).toMatch(/<Ls(?:Collection|Form)Page\b/)
       expect(source).not.toMatch(/<LsPage[ >]/)
       expect(source).toContain('<LsAsyncState')
       expect(source).not.toMatch(/<(?:NAlert|NSkeleton)\b/)
     }
     expect(readFileSync(join(repository, 'frontend/apps/weibo/src/App.vue'), 'utf8')).toContain('<LsPage id="workspace"')
     expect(feed).toContain('<LsEmptyState')
-    expect(feed).toContain('<NList bordered size="small">')
-    expect(feed).toContain('<NListItem v-for="item in displayedItems"')
+    expect(feed).toMatch(/<LsResourceList[ >]/)
+    expect(feed).toContain('<LsResourceRow v-for="item in displayedItems"')
     expect(feed).toContain('class="feed-summary"')
     expect(feed).not.toContain('LsListToolbar')
     expect(feed).not.toContain('NPagination')
@@ -206,7 +206,7 @@ describe('后台源码设计契约', () => {
       .flatMap(filesUnder)
       .filter((path) => path.endsWith('.vue'))
       .flatMap((path) => [...readFileSync(path, 'utf8').matchAll(/<LsPagePrimaryAction\b[^>]*>/g)].map((match) => ({ path, tag: match[0] })))
-    expect(usages).toHaveLength(41)
+    expect(usages).toHaveLength(8)
     for (const usage of usages) {
       const file = relative(repository, usage.path).replaceAll('\\', '/')
       expect(usage.tag, `${file} 的页面主操作缺少强制 icon`).toMatch(/:icon=/)
@@ -266,7 +266,7 @@ describe('后台源码设计契约', () => {
   })
 
   it('普通复选组统一复用 LsCheckboxGroupField', () => {
-    const allowed = ['frontend/apps/admin/src/views/RoleFormView.vue', 'frontend/apps/team/src/components/JoinApplicationFields.vue', 'frontend/packages/ui/src/components/LsCheckboxGroupField.vue']
+    const allowed = ['frontend/apps/team/src/components/JoinApplicationFields.vue', 'frontend/packages/ui/src/components/LsCheckboxGroupField.vue']
     const roots = ['admin', 'team', 'transaction', 'shop'].map((name) => join(repository, 'frontend', 'apps', name, 'src')).concat(join(repository, 'frontend', 'packages', 'ui', 'src'))
     const files = roots
       .flatMap(filesUnder)

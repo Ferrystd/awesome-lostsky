@@ -74,10 +74,10 @@ test("Shop personal workspace creates an immutable self-owned product through pe
   expect(activeLayout.fieldWidth).toBeGreaterThan(activeLayout.controlWidth * 2);
   expect(activeLayout.rightInset).toBe(12);
   await expect(page.locator("#product-active")).toHaveAttribute("aria-labelledby", "product-active-label");
-  const costSection = await page.locator("#product-cost").evaluate((control) =>
-    control.closest(".ls-form-section")?.querySelector("h2")?.textContent,
-  );
-  expect(costSection).toBe("默认分成");
+  const pricingSection = page.locator('[aria-labelledby="product-pricing"]');
+  await expect(pricingSection.getByRole("heading", { name: "价格与分成", exact: true })).toBeVisible();
+  await expect(pricingSection.locator("#product-cost")).toBeVisible();
+  await expect(pricingSection.locator("#product-price")).toBeVisible();
   await page.locator("#product-price input").fill("66");
   await page.locator("#product-cost input").fill("6");
   await page.locator("#product-name input").focus();
@@ -105,7 +105,8 @@ test("Shop personal workspace creates an immutable self-owned product through pe
   const preview = page.getByRole("link", { name: "预览前台" });
   await expect(preview).toHaveAttribute("href", "/product/204");
   await expect(preview).toHaveAttribute("target", "_blank");
-  await expect(preview).toHaveClass(/ls-page-primary-action/);
+  await expect(preview).toBeVisible();
+  expect((await preview.boundingBox())?.height).toBeGreaterThanOrEqual(44);
   await expect(page.getByRole("button", { name: "下架商品" })).toHaveCount(0);
 
   await page.setViewportSize({ width: 320, height: 780 });

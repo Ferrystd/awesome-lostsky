@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { workspaceSceneProviderProps } from '@lostsky/ui/workspace-scene-theme'
+import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
+
 import { lostskyNaiveTheme } from '@lostsky/ui/naive-theme'
 import LsPage from '@lostsky/ui/components/LsPage.vue'
 import { setLucideProps } from '@lucide/vue'
@@ -13,11 +16,11 @@ const width = computed<'wide' | 'content' | 'form'>(() => ['content', 'form'].in
 </script>
 
 <template>
-  <NConfigProvider :theme-overrides="lostskyNaiveTheme" :locale="zhCN">
+  <NConfigProvider :theme-overrides="lostskyNaiveTheme" :locale="zhCN" v-bind="workspaceSceneProviderProps(true)">
     <NDialogProvider><NMessageProvider>
-      <AdminShell>
+      <AdminShell scene>
         <LsPage id="admin-main" as="main" :width="width">
-          <RouterView />
+          <LsWorkspaceScene><RouterView /></LsWorkspaceScene>
         </LsPage>
       </AdminShell>
     </NMessageProvider></NDialogProvider>
