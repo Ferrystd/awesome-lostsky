@@ -293,9 +293,10 @@ const advantages = [
 @keyframes scroll-cue { 50% { transform: translateY(.4rem); } }
 
 @media (max-width: 960px) {
-  .nav-container { grid-template-columns: 1fr auto auto; }
-  .menu-button { display: grid; }
-  .nav-links { position: fixed; top: 4.75rem; right: 0; left: 0; display: grid; padding: .75rem 1rem 1rem; border-bottom: 1px solid var(--line); background: rgb(8 15 34 / .97); transform: translateY(-130%); visibility: hidden; transition: transform .24s cubic-bezier(.22, 1, .36, 1), visibility .24s; }
+  .nav-container { display: flex; flex-wrap: wrap; gap: .5rem; padding-block: .5rem; }
+  .contact-link { margin-left: auto; }
+  .menu-button { display: grid; flex-shrink: 0; order: 1; }
+  .nav-links { position: absolute; top: 100%; right: 0; left: 0; display: grid; padding: .75rem 1rem 1rem; border-bottom: 1px solid var(--line); background: rgb(8 15 34 / .97); transform: translateY(-130%); visibility: hidden; transition: transform .24s cubic-bezier(.22, 1, .36, 1), visibility .24s; }
   .nav-links.open { transform: translateY(0); visibility: visible; }
   .nav-links a { justify-content: start; }
   .hero-layout { grid-template-columns: 1fr; align-items: start; gap: 3rem; }
@@ -309,9 +310,12 @@ const advantages = [
 @media (max-width: 720px) {
   .section-title{grid-template-columns:1fr}
   .container { width: min(100% - 1.5rem, 80rem); }
-  .contact-link { padding-inline: 1rem; }
+  .wordmark { font-size: 1.4rem; }
+  .contact-link { padding-inline: .65rem; }
   .hero-section { align-items: flex-start; }
-  .hero-content h1 { font-size: clamp(3.4rem, 16vw, 4.75rem); overflow-wrap: anywhere; }
+  .hero-content h1 { font-size: clamp(2rem, 8vw + .5rem, 3.75rem); }
+  .hero-content h1 span { display: block; }
+  .hero-content h1 br { display: none; }
   .member, .member.reverse { flex-direction: column-reverse; align-items: stretch; gap: 2rem; }
   .member-copy, .member-media { width: 100%; }
   .member-media, .reverse .member-media { justify-content: center; }
@@ -327,7 +331,6 @@ const advantages = [
 }
 
 @media (max-width: 440px) {
-  .nav-container { grid-template-columns: 1fr auto; }
   .hero-signature { letter-spacing: .04em; }
   .hero-actions { align-items: stretch; flex-direction: column; }
   .hero-cta, .hero-secondary { width: 100%; }
