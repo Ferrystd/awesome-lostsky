@@ -118,11 +118,8 @@ test('共享后台模板同样保持双操作和单行搜索并支持放大文�
 
 test('页头双链接固定在移动右上角且长文案不重叠', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  for (const query of ['', '?long=1']) {
-    const sharedOrigin = 'http://demo.transaction.lostsky.work:5177'
-    await page.route(`${sharedOrigin}/mobile-layout-harness*`, route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0"><div id="app"></div><script type="module" src="/@fs/${harness}"></script></body></html>` }))
-    await page.goto(`${sharedOrigin}/mobile-layout-harness${query}`)
-    await expect(page.locator('[data-template]')).toHaveCount(6)
+  for (const { query, base } of ['', '?long=1'].flatMap(query => [origin, 'http://demo.transaction.lostsky.work:5177'].map(base => ({ query, base })))) {
+    await mount(page, query, base)
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: 1000 })
       for (const size of ['100%', '200%']) {
