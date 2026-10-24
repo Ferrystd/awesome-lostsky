@@ -25,10 +25,8 @@ defineProps<{ title: string; description?: string; backTo?: RouteLocationRaw; ba
 .ls-page-header p { max-width: 65ch; margin-top: .375rem; color: var(--text-secondary); font-size: .875rem; line-height: 1.6; text-wrap: pretty; }
 .ls-page-header__actions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .5rem .75rem; }
 @container (max-width: 40rem) {
-  .ls-page-header > header { display: grid; grid-template-columns: minmax(0, 1fr) fit-content(70%); align-items: start; gap: .5rem .75rem; }
-  .ls-page-header__copy { display: contents; }
-  .ls-page-header h1 { grid-column: 1; grid-row: 1; }
-  .ls-page-header p { grid-column: 1 / -1; grid-row: 2; margin-top: 0; }
-  .ls-page-header__actions { grid-column: 2; grid-row: 1; flex-wrap: nowrap; }
+  .ls-page-header > header { align-items: flex-start; flex-wrap: wrap; gap: .5rem .75rem; }
+  .ls-page-header__copy { flex: 1 1 10rem; min-width: min(100%, 10rem); }
+  .ls-page-header__actions { margin-inline-start: auto; align-items: flex-start; }
 }
 </style>

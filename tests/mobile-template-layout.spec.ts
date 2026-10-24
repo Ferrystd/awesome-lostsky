@@ -10,14 +10,14 @@ async function mount(page: Page, query = '', base = origin) {
   await expect(page.locator('[data-template]')).toHaveCount(query.includes('shared=1') ? 7 : 6)
 }
 
-test('模板双操作与搜索筛选保持紧凑同行', async ({ page }) => {
+test('模板双操作保持紧凑且搜索筛选同行', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
   await mount(page)
   for (const width of [320, 375, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     const layout = await page.evaluate(() => {
-      const bounds = (element: Element) => { const b = element.getBoundingClientRect(); return { x: b.x, y: b.y, right: b.right, width: b.width, height: b.height } }
+      const bounds = (element: Element) => { const b = element.getBoundingClientRect(); return { x: b.x, y: b.y, right: b.right, width: b.width, height: b.height, vertical: !!element.closest('.ls-page-header__actions') && getComputedStyle(element.parentElement!).flexDirection === 'column' } }
       const pairs = [...document.querySelectorAll('[data-template]')].map(section => [...section.querySelectorAll('a')].map(bounds))
       pairs.push([...document.querySelectorAll('.ls-resource-row__actions a')].map(bounds))
       pairs.push([...document.querySelectorAll('[data-command-pair] button')].map(bounds))
@@ -27,8 +27,13 @@ test('模板双操作与搜索筛选保持紧凑同行', async ({ page }) => {
     expect(layout.scroll, `${width}px page overflow`).toBeLessThanOrEqual(width + 1)
     for (const pair of layout.pairs) {
       expect(pair).toHaveLength(2)
-      expect(Math.abs(pair[0].y - pair[1].y), `${width}px action row`).toBeLessThanOrEqual(1)
-      expect(pair[0].right).toBeLessThanOrEqual(pair[1].x + 1)
+      if (pair[0].vertical) {
+        expect(pair[1].y).toBeGreaterThanOrEqual(pair[0].y + pair[0].height)
+        expect(pair[0].right).toBeCloseTo(pair[1].right, 0)
+      } else {
+        expect(Math.abs(pair[0].y - pair[1].y), `${width}px action row`).toBeLessThanOrEqual(1)
+        expect(pair[0].right).toBeLessThanOrEqual(pair[1].x + 1)
+      }
       for (const button of pair) expect(button.height).toBeGreaterThanOrEqual(44)
     }
     for (const toolbar of layout.toolbars) {
@@ -77,13 +82,13 @@ test('实际人员页面的双入口和搜索筛选在移动端同行', async ({
     await page.setViewportSize({ width, height: 1000 })
     const geometry = await page.evaluate(() => {
       const box = (selector: string) => { const b = document.querySelector(selector)!.getBoundingClientRect(); return { y: b.y, center: b.y + b.height / 2, height: b.height } }
-      return { search: box('.ls-list-toolbar input'), filter: box('.ls-list-toolbar .n-base-selection'), actions: [...document.querySelectorAll('.ls-page-header__actions a')].map(el => el.getBoundingClientRect().y), title: box(".ls-page-header h1"), rowActions: [...document.querySelectorAll('.ls-resource-row__actions a')].map(el => el.getBoundingClientRect().y), scroll: document.documentElement.scrollWidth }
+      return { search: box('.ls-list-toolbar input'), filter: box('.ls-list-toolbar .n-base-selection'), actions: [...document.querySelectorAll('.ls-page-header__actions a')].map(el => el.getBoundingClientRect().y), collapsed: !!document.querySelector(".ls-page-navigation__trigger")?.getBoundingClientRect().width, title: box(".ls-page-header h1"), rowActions: [...document.querySelectorAll('.ls-resource-row__actions a')].map(el => el.getBoundingClientRect().y), scroll: document.documentElement.scrollWidth }
     })
     expect(geometry.scroll).toBeLessThanOrEqual(width + 1)
     expect(Math.abs(geometry.search.center - geometry.filter.center)).toBeLessThanOrEqual(2)
     expect(geometry.actions).toHaveLength(2)
-    expect(geometry.actions[0]).toBe(geometry.actions[1])
-    if (width <= 390) expect(geometry.actions[0]).toBeCloseTo(geometry.title.y, 0)
+    if (width <= 390) expect(geometry.collapsed).toBe(true)
+    if (!geometry.collapsed) expect(geometry.actions[0]).toBe(geometry.actions[1])
     expect(geometry.rowActions).toHaveLength(2)
     expect(geometry.rowActions[0]).toBe(geometry.rowActions[1])
   }
@@ -116,30 +121,48 @@ test('共享后台模板同样保持双操作和单行搜索并支持放大文�
   await expect(page.getByRole('button', { name: /暂停极光|播放极光/ })).toHaveCount(0)
 })
 
-test('页头双链接固定在移动右上角且长文案不重叠', async ({ page }) => {
+test('页头主副标题紧凑成组且操作不遮挡', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   for (const { query, base } of ['', '?long=1'].flatMap(query => [origin, 'http://demo.transaction.lostsky.work:5177'].map(base => ({ query, base })))) {
     await mount(page, query, base)
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: 1000 })
       for (const size of ['100%', '200%']) {
-        await page.evaluate(value => { document.documentElement.style.fontSize = value }, size)
+        await page.evaluate(async value => { document.documentElement.style.fontSize = value; await document.fonts.ready; await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame) }, size)
         const headers = await page.locator('[data-template] .ls-page-header > header').evaluateAll(elements => elements.map(header => {
-          const rect = (el: Element) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom } }
+          const rect = (el: Element) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, height: r.height } }
+          const copy = header.querySelector('.ls-page-header__copy')!
           const title = header.querySelector('h1')!
-          const actions = header.querySelector('.ls-page-header__actions')!
+          const actions = header.querySelector('.ls-page-header__actions')! as HTMLElement
           const description = header.querySelector('p')!
-          return { header: rect(header), title: rect(title), actions: rect(actions), description: rect(description), mobile: getComputedStyle(header).display === 'grid', clipped: [...actions.querySelectorAll('a')].some(el => el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) }
+          const before = rect(description).y - rect(title).bottom
+          const links = [...actions.querySelectorAll('a')].map(rect)
+          const mobile = getComputedStyle(actions).flexDirection === 'column'
+          actions.style.paddingBottom = '120px'
+          const after = rect(description).y - rect(title).bottom
+          actions.style.paddingBottom = ''
+          return { header: rect(header), copy: rect(copy), actions: rect(actions), links, before, after, margin: parseFloat(getComputedStyle(description).marginTop), grouped: title.parentElement === description.parentElement, mobile, clipped: [...actions.querySelectorAll('a')].some(el => el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) }
         }))
         expect(headers).toHaveLength(6)
         for (const geometry of headers) {
-          expect(geometry.title.right).toBeLessThanOrEqual(geometry.actions.x + 1)
+          expect(geometry.grouped).toBe(true)
+          expect(geometry.before).toBeCloseTo(geometry.margin, 0)
+          expect(geometry.after).toBeCloseTo(geometry.before, 0)
           expect(geometry.actions.right).toBeLessThanOrEqual(geometry.header.right + 1)
           expect(geometry.clipped).toBe(false)
+          for (const link of geometry.links) expect(link.height).toBeGreaterThanOrEqual(44)
           if (geometry.mobile) {
-            expect(geometry.actions.y).toBeCloseTo(geometry.title.y, 0)
+            expect(geometry.links[1].y).toBeGreaterThanOrEqual(geometry.links[0].bottom)
+            expect(geometry.links[0].right).toBeCloseTo(geometry.links[1].right, 0)
             expect(geometry.actions.right).toBeCloseTo(geometry.header.right, 0)
-            expect(geometry.description.y).toBeGreaterThanOrEqual(Math.max(geometry.actions.bottom, geometry.title.bottom))
+            if (geometry.actions.y < geometry.copy.bottom) {
+              expect(geometry.actions.y).toBeCloseTo(geometry.copy.y, 0)
+              expect(geometry.copy.right).toBeLessThanOrEqual(geometry.actions.x + 1)
+            } else expect(geometry.actions.y).toBeGreaterThanOrEqual(geometry.copy.bottom)
+            if (!query && size === '100%' && width <= 390) expect(geometry.actions.y, JSON.stringify({ width, size, query, geometry })).toBeCloseTo(geometry.copy.y, 0)
+          } else {
+            if (!query && size === '100%') expect(geometry.links[0].y).toBeCloseTo(geometry.links[1].y, 0)
+            if (geometry.actions.y < geometry.copy.bottom) expect(geometry.copy.right).toBeLessThanOrEqual(geometry.actions.x + 1)
           }
         }
         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)

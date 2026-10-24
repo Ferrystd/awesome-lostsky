@@ -50,11 +50,14 @@ for (const scenario of ['review', 'auto', 'error', 'virtual']) {
     const apply = panel.getByRole('button', { name: '申请离职', exact: true })
     await expect(apply).toBeEnabled()
     expect((await apply.boundingBox())!.height).toBeGreaterThanOrEqual(44)
-    const heading = panel.getByRole('heading', { name: '资料', exact: true })
     const buttonBox = (await apply.boundingBox())!
-    const headingBox = (await heading.boundingBox())!
+    const titleGroupBox = (await panel.locator('.ls-page-header__copy').boundingBox())!
+    const panelBox = (await panel.boundingBox())!
     const formBox = (await page.locator('form.profile-form').boundingBox())!
-    expect(buttonBox.x).toBeGreaterThan(headingBox.x + headingBox.width)
+    // Narrow headers may wrap actions below the complete title/description group.
+    expect(buttonBox.x >= titleGroupBox.x + titleGroupBox.width
+      || buttonBox.y >= titleGroupBox.y + titleGroupBox.height).toBe(true)
+    expect(buttonBox.x + buttonBox.width).toBeCloseTo(panelBox.x + panelBox.width, 0)
     expect(buttonBox.y + buttonBox.height).toBeLessThanOrEqual(formBox.y)
     await expect(page.getByRole('heading', { name: '离职申请', exact: true })).toHaveCount(0)
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false)

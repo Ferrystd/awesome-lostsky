@@ -907,5 +907,25 @@
     "aliases": [
       "Team 页面标题"
     ]
+  },
+  {
+    "id": "team-ui-workspace-header",
+    "name": "TeamWorkspaceHeader",
+    "source": "frontend/apps/team/src/ui/components/LsWorkspaceHeader.vue",
+    "story": "frontend/component-previews/src/team-ui-stories.ts#TeamWorkspaceHeader",
+    "category": "team",
+    "aliases": [
+      "Team 应用切换顶栏"
+    ]
+  },
+  {
+    "id": "team-ui-page-navigation",
+    "name": "TeamPageNavigation",
+    "source": "frontend/apps/team/src/ui/components/LsPageNavigation.vue",
+    "story": "frontend/component-previews/src/team-ui-stories.ts#TeamPageNavigation",
+    "category": "team",
+    "aliases": [
+      "Team secondary page navigation"
+    ]
   }
 ]

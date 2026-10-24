@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LsPageNavigation from '@lostsky/ui/components/LsPageNavigation.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
@@ -62,8 +63,7 @@ function entityLocation(entity: Entity, manage = false) {
 <template>
   <LsObjectDirectory title="人员" description="查看团队内有权查看的人员。">
     <template #actions>
-      <LsPageLink :icon="FileText" label="对象字段" to="/fields" />
-      <LsPageLink :icon="Bot" label="虚拟人员" to="/chat-virtuals" />
+      <LsPageNavigation label="更多人员操作" :links="[{ icon: FileText, label: '对象字段', to: '/fields' }, { icon: Bot, label: '虚拟人员', to: '/chat-virtuals' }]" />
     </template>
     <template #toolbar>
       <LsListToolbar v-model="search" placeholder="搜索人员名称或 slug" aria-label="搜索人员" :count-label="`${rows.length} 位人员`">
