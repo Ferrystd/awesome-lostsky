@@ -1,6 +1,6 @@
 {
   "name": "lostsky",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "LostSky API 与 Vue 多应用前端",
   "type": "module",
