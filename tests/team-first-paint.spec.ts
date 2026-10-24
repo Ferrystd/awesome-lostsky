@@ -19,7 +19,7 @@ test('Team aurora canvas stays dark before scripts, after CSS and after route re
   await page.goto(`${origin}/?first-paint=1#overview`, { waitUntil: 'commit' })
   await expectAuroraCanvas(page)
   await expect(page.locator('#app')).toBeEmpty()
-  await applyStylesBeforeMain(page, ['frontend/packages/ui/src/styles.css'])
+  await applyStylesBeforeMain(page, ['frontend/apps/team/src/ui/styles.css'])
   await expectAuroraCanvas(page)
   releaseMain()
   await expect.poll(() => accessRequested).toBe(true)
