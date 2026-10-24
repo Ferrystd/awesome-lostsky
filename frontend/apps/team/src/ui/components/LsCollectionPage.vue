@@ -8,7 +8,7 @@ defineProps<{ title: string; description?: string }>()
 <template>
   <div class="ls-collection-page">
     <LsPageHeader :title="title" :description="description">
-      <template #actions>
+      <template v-if="$slots.actions" #actions>
         <slot name="actions" />
       </template>
     </LsPageHeader>

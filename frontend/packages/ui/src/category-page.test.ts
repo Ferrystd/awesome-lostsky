@@ -13,7 +13,7 @@ describe('category page pilot', () => {
     expect(component).toContain('@container ls-category-page (min-width: 48rem)')
     expect(component).toContain('<LsPageHeader')
     expect(component).toContain('<NSelect')
-    expect(component).toContain('<LsSceneMotionControl')
+    expect(component).not.toContain('LsSceneMotionControl')
     expect(component).not.toMatch(/<LsPage\s|<LsWorkspaceScene|NConfigProvider|<form/)
     expect(component).toContain("event.key === 'Home'")
     expect(component).toContain("event.key === 'End'")

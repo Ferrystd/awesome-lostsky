@@ -5,7 +5,6 @@ import LsWorkspaceScene from '@lostsky/ui/components/LsWorkspaceScene.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { ArrowLeft } from '@lucide/vue'
 defineOptions({ inheritAttrs: false })
 defineProps<{ title?: string; intro?: string }>()
@@ -14,7 +13,7 @@ defineProps<{ title?: string; intro?: string }>()
   <NConfigProvider v-bind="workspaceSceneProviderProps(true)">
     <LsWorkspaceScene>
       <main class="account-flow">
-        <nav class="account-flow__navigation" aria-label="通行证导航"><LsPageLink href="//www.lostsky.work" :icon="ArrowLeft" label="LostSky 官网" /><LsSceneMotionControl /></nav>
+        <nav class="account-flow__navigation" aria-label="通行证导航"><LsPageLink href="//www.lostsky.work" :icon="ArrowLeft" label="LostSky 官网" /></nav>
         <div class="account-flow__body">
           <LsPageHeader v-if="title" :title="title" :description="intro" />
           <LsPanel><div class="account-flow__content"><slot /></div></LsPanel>

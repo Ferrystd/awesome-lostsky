@@ -7,7 +7,6 @@ import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { friendlyError } from '@lostsky/api/client'
 import LsSinglePanelPage from '@lostsky/ui/components/LsSinglePanelPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { BadgeCheck, BarChart3, CircleDollarSign, ListChecks, UserRound } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { loadWorkspaceAccess } from '../lib/workspace-access'
@@ -26,7 +25,7 @@ const entries = [
     :title="access.data.value?.team?.name || '记账团队工作台'"
     description="看清每笔收支的来处与去向，让流水、权益核销和顾客余额相互衔接。"
   >
-    <template #actions><LsSceneMotionControl /></template>
+
     <section class="ledger-section" aria-labelledby="ledger-scope-title">
       <LsSectionHeader id="ledger-scope-title" title="本次工作范围" description="团队经营记录集中查看。" />
       <LsAsyncState v-if="access.isPending.value" state="loading" title="正在读取当前团队…" :rows="2" />

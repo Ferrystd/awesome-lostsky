@@ -66,7 +66,7 @@ function click(event: MouseEvent) {
   width: 8.5rem;
   max-width: 100%;
   min-width: 0;
-  height: var(--touch-target);
+  height: auto;
   min-height: var(--touch-target);
   margin-inline-start: auto;
   box-sizing: border-box;
@@ -77,13 +77,13 @@ function click(event: MouseEvent) {
   align-items: center;
   justify-content: center;
   gap: .375rem;
-  padding: 0 .75rem;
+  padding: .625rem .75rem;
   color: var(--on-primary);
   background: var(--sky-lost-strong);
   border: 1px solid var(--sky-lost-strong);
   border-radius: var(--radius-sm);
   font-size: .875rem;
-  line-height: 1;
+  line-height: 1.35;
   text-decoration: none;
   transition: background-color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard);
 }
@@ -92,14 +92,14 @@ function click(event: MouseEvent) {
   align-items: center;
   justify-content: center;
   gap: .375rem;
-  padding: 0 .75rem;
+  padding: .625rem .75rem;
   color: var(--on-primary);
   background: var(--sky-lost-strong);
   border: 1px solid var(--sky-lost-strong);
   border-radius: var(--radius-sm);
   font: inherit;
   font-size: .875rem;
-  line-height: 1;
+  line-height: 1.35;
   cursor: pointer;
   transition: background-color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard), opacity var(--motion-fast) var(--ease-standard);
 }
@@ -129,6 +129,7 @@ function click(event: MouseEvent) {
   outline: 2px solid var(--sky-lost-strong);
   outline-offset: 3px;
 }
+.ls-page-primary-action > span { min-width: 0; overflow-wrap: anywhere; }
 .ls-page-primary-action__icon { flex: none; }
 .ls-page-primary-action--disabled { opacity: .5; cursor: pointer; }
 .ls-page-primary-action__spinner { width: 1rem; height: 1rem; flex: none; border: 2px solid color-mix(in oklch, var(--on-primary), transparent 55%); border-top-color: var(--on-primary); border-radius: 50%; animation: ls-page-primary-action-spin .8s linear infinite; }

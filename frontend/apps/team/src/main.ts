@@ -5,4 +5,6 @@ import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import App from './App.vue'
 import { router } from './router'
-createApp(App).use(createPinia()).use(VueQueryPlugin, lostskyQueryPluginOptions).use(router).mount('#app')
+const app = createApp(App).use(createPinia()).use(VueQueryPlugin, lostskyQueryPluginOptions).use(router)
+// Resolve the initial route before rendering its scene/provider. Rejections remain observable.
+void router.isReady().then(() => app.mount('#app'))

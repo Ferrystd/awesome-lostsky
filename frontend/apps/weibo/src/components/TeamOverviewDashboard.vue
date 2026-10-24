@@ -7,7 +7,6 @@ import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
 import { ClipboardList, Clock3, FileClock, MessageCircleMore, Send, UserRound, Users } from '@lucide/vue'
 import { computed } from 'vue'
@@ -92,7 +91,7 @@ const nextTime = computed(() => (nextTask.value?.next_run_at ? new Date(nextTask
     <template #actions>
       <LsPageLink to="/compose" :icon="Send" label="单次发帖" />
       <LsPageLink to="/personal" :icon="UserRound" label="进入个人工作台" />
-      <LsSceneMotionControl />
+
     </template>
     <template #summary>
       <div class="weibo-dashboard-summary">

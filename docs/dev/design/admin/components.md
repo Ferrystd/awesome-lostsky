@@ -27,16 +27,16 @@ Transaction、Admin、Weibo 与 Shop 管理后台此次采用[后台翻新规范
 | `LsPanel` | 无 props；`header/default/footer` 三个插槽承载有边界的独立内容区 | 视觉变体、页面级 `.panel` 皮肤、嵌套面板、为连续列表逐项套面板 | 桌面 20px、移动端 16px 内边距；插槽边界使用细分隔线；加载、空、错误由内容区对应状态组件表达 |
 | `LsSectionHeader` | `title` 必填；`description/eyebrow/id` 可选，`headingLevel=2/3/4`；`aside` 插槽承载状态、统计或区块动作 | 页面手写 `section-heading/panel-heading/section-title`；在页面重复标题间距和移动端堆叠 | 标题层级与 ID 保留；说明宽度统一；右侧内容桌面靠右、移动端堆叠，命令按钮满宽 |
 | `LsFormSection` | `title` 必填，标题参数与 `LsSectionHeader` 相同；内部固定复用 `LsPanel` 与 `LsSectionHeader`，默认插槽承载单列表单字段 | 接管 `<form>`、校验、提交或业务数据；页面重建 `form-panel` | 通过标题 ID 标记面板；字段单列且长文案不溢出；状态由字段或表单区域表达 |
-| `LsFormActions` | 无 props、默认插槽承载保存、取消等命令 | 视觉参数、业务顺序判断、页面重建 `form-actions` | 桌面右对齐并换行，命令按文案自适应且最小 7rem；小于 640px 单列，`LsButton` 满宽；不改变按钮本身状态 |
+| `LsFormActions` | 无 props、默认插槽承载保存、取消等命令 | 视觉参数、业务顺序判断、页面重建 `form-actions` | 桌面右对齐并换行，命令按文案自适应且最小 7rem；小于 640px 双动作两列，`LsButton` 填满各列；不改变按钮本身状态 |
 | `LsDescriptionList` | 无 props；根节点固定为 `<dl>`，默认插槽只提供成对 `<dt>/<dd>` | 指标网格、金额分解、移动表格记录或卡片式业务摘要 | 桌面双列、移动上下排列；统一分隔线和长内容换行；调用端保留术语和值的语义 |
 | `LsStatusTag` | `label` 必填，`type=default/success/warning/error/info`；统一状态标签 | 调用端重复 `size=small`、`bordered=false`，或按页面自建 StatusBadge | 固定 small、无边框；颜色不能替代文案；移动端和文本放大时不裁切状态文案 |
 | `LsPage` | `as=main/section/div`（默认 `section`）、`width=wide/content/form`（默认 `wide`）、`id`；分别用于列表、详情、单列表单 | 页面再嵌套同类容器 | 320px 无横向溢出，桌面居中；页面只能有一个 `main` |
-| `LsPageHeader` | `title` 必填；`description`、`backTo`、`backLabel` 可选；`actions` 插槽只承载当前区域动作 | 页面自行复制标题栏；移动端堆叠孤立图标 | 标题层级唯一；返回区 44px；动作小屏单列；无返回目标时不渲染返回入口 |
+| `LsPageHeader` | `title` 必填；`description`、`backTo`、`backLabel` 可选；`actions` 插槽只承载当前区域动作 | 页面自行复制标题栏；移动端堆叠孤立图标 | 标题层级唯一；返回区 44px；小屏双动作紧凑同行，长文案自然换行；无返回目标时不渲染返回入口 |
 | `LsPagePrimaryAction` | `icon/label` 必填；`to`、`href`、`type`、`loading`、`disabled/disabledReason` 可选；只承载页面标题区唯一的主操作，发出 `click` | 页面手写 `primary-link`；把 `RouterLink` 套在按钮外；省略图标；把危险、次要、筛选、状态或表单底部命令并入；调用方传宽度、尺寸或视觉变体 | 始终为主色图标加文字；桌面与移动端统一为 8.5rem × 44px、10px 圆角，容器不足时才收缩且保持靠右；移动端标题与限宽说明保留在左列，主操作位于右列并与说明顶边对齐；禁用态保留主色来源并以灰绿色降权，禁用原因可解释；内部路由渲染真实链接，命令由本组件的固定语义按钮执行 |
 | `LsWorkspaceHeader` | `contextLabel/title` 必填，`actions=[]`、`showMenu=true`；桌面应用入口由 `actions` 插槽承载，移动端按 `actions` 数据触发 `action` 事件 | 在组件内部增加应用下拉或个人/团队分段控件；移动端复制第二套顶栏；把响应式类直接传给无根 `NDropdown`；把顶栏设为 `sticky/fixed` 后覆盖滚动中的表单控件 | 桌面动作使用图标加文字；移动端进入“操作”菜单；禁用原因随菜单项保留；应用壳层负责保持当前团队与 Entity；顶栏参与正常文档流，滚动、聚焦和错误定位后不得遮挡字段 |
 | `LsWorkspaceOverview` | `eyebrow/title/description/actions/entries` 必填，`scopeNotes` 可选；动作支持内部路由、外部地址和主次层级；入口包含图标、标题、说明与目标；`summary` 插槽承载主视觉下方身份或指标摘要，`workspace` 插槽替换默认业务入口及范围说明 | 用无业务意义的指标填充概览；页面私有复制主视觉或入口卡片；按 Permission 隐藏或禁用入口；把应用切换或分段控件塞入概览；插槽穿透内部样式 | 深色主视觉、主入口 `--afterglow`、白色细边界入口；全部入口使用真实链接并始终可导航，授权降级在目标页面处理；桌面主视觉固定为 188px，800px 以下由内容自然撑高；桌面多列、移动单列且动作满宽；所有链接至少 44px，范围说明为连续紧凑区域；不提供插槽时默认入口与范围说明保持原样 |
 | `LsDashboardPath` | `title/description/steps` 必填；步骤为 `{key,label,description,to,icon}`，`to` 使用内部路由；无插槽；用有序导航连接真实业务步骤 | 表达进度、健康评分或完成率；调用方传入视觉参数或覆盖内部样式 | 宽屏横向排列，800px 以下纵向排列；链接至少 44px，键盘焦点可见，减少动态时取消过渡 |
-| `LsListToolbar` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索列表'`、`countLabel=''`、`searchable=true`；`filters/actions` 插槽分别承载筛选与主操作，`searchable=false` 时隐藏搜索但仍保留筛选、操作和可选结果数量 | 搜索图标放在输入外；数量漂移到列表外；把普通说明塞入筛选插槽；让 `NSelect` 在无确定宽度的容器中折叠 | 桌面搜索→筛选→动作→数量，搜索不超过 28rem、筛选通常为 10rem、控件高 40px；移动端纵向且控件高 44px；数量使用 `aria-live=polite` |
+| `LsListToolbar` | `modelValue=''`、`placeholder='搜索'`、`ariaLabel='搜索列表'`、`countLabel=''`、`searchable=true`；`filters/actions` 插槽分别承载筛选与主操作，`searchable=false` 时隐藏搜索但仍保留筛选、操作和可选结果数量 | 搜索图标放在输入外；数量漂移到列表外；把普通说明塞入筛选插槽；固定最小宽度挤出页面 | 搜索→筛选→动作→数量始终同一横向轨道，搜索不超过 28rem且允许收缩；单筛选自适应，多筛选局部滚动；移动控件高 44px；数量保留并使用 `aria-live=polite` |
 | `LsMetricGrid` | `items=[{key,label,value,hint?}]` 必填，`ariaLabel` 默认“统计摘要”；承载同一范围内的一组只读指标 | 页面复制响应式指标网格、为每项单独套面板、调用方控制列数或视觉参数 | 默认三列，四项数据且视口不小于 1000px 时四列；800px 以下两列、480px 以下单列；数值使用等宽数字；标签、值和可选口径说明保持语义顺序，320px 与 200% 文本放大不溢出 |
 | `LsFormList` | `v-model`、`itemKey`、`createItem` 必填；`itemLabel='项目'`、`addLabel='添加一项'`、`emptyText='尚未添加项目'`、`disabled=false`、`disabledReason`；`item` 插槽接收当前项目与索引 | 页面自行实现重复字段的增删排序；业务页面直接导入拖拽库；只提供拖拽而没有键盘替代路径；让行操作形成贯穿整项高度的侧栏并持续压缩业务字段 | 连续有边界列表；拖拽手柄、项目名称和行操作组成紧凑头部，`item` 内容在下一行占满名称至操作区的全部可用宽度；拖拽手柄支持指针与触控，上移/下移为完整键盘路径；增删排序后维持焦点并礼貌播报；行操作至少 44px；禁用命令保留键盘与点击解释，首尾移动说明由组件生成，业务锁定原因由调用方提供；移动端字段与操作自然换行；减少动态时取消排序动画 |
 | `LsEntityIdentity` | `type/name/slug/imageUrl/fallback/size`；`status` 插槽只承载与当前主体直接相关的 `NTag`；真实头像优先，圆角方形回退 | 同一主体在列表和选择器使用圆形/不同信息结构；把主体状态推到列表行远端 | 类型、名称、slug 可辨；图片有替代文本；状态紧随名称且不挤压名称 |
@@ -72,7 +72,7 @@ Transaction、Admin、Weibo 与 Shop 管理后台此次采用[后台翻新规范
 
 - `LsEmptyState` 的标题和下一步说明均使用 `--text-secondary`，不得继承 `NEmpty` 的禁用文字色；无数据不代表文字不可用。由组件内部固定主题映射，调用方不传颜色。通过真实页面计算样式验证两者一致，并遵循正文 4.5:1 的对比度要求。
 
-- `LsPagePrimaryAction` 的等宽只属于“页面标题区唯一主操作”这一项完整语义，不是全局按钮令牌。`LsFormActions` 负责表单命令组的排列：桌面端内容自适应、最小 7rem，小于 640px 满宽；`LsFormList` 的添加命令同样内容自适应、最小 7rem；`LsUploadField` 的默认上传命令固定 8.5rem。其他不同任务不得为了视觉齐边共享宽度，调用方也不得传递宽度、断点或视觉变体。
+- `LsPagePrimaryAction` 的等宽只属于“页面标题区唯一主操作”这一项完整语义，不是全局按钮令牌。`LsFormActions` 负责表单命令组的排列：桌面端内容自适应、最小 7rem，小于 640px 双动作两列、各自填满列宽；`LsFormList` 的添加命令同样内容自适应、最小 7rem；`LsUploadField` 的默认上传命令固定 8.5rem。其他不同任务不得为了视觉齐边共享宽度，调用方也不得传递宽度、断点或视觉变体。
 - `LsPage.width` 是页面根容器的语义容量（`wide/content/form`），不是任意子控件的视觉微调入口；页面需要不同的内容容量时选用该枚举，不新增自由宽度参数。
 - `LsResponsiveDataTable.scrollX` 表示桌面数据列所需的最小可读容量，只能由列内容推导；它不是页面为对齐或留白而传递的视觉宽度参数。
 - `LsMarkdownRenderer.context` 仅表达 `inline/document` 两种阅读语境，并由组件内部调整排版令牌；调用方不得穿透 Markdown 生成节点来改标题、字号、行高或间距。

@@ -26,6 +26,7 @@ import ShopOverviewWorkspace from '../../apps/shop/src/components/ShopOverviewWo
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import LsPage from '@lostsky/ui/components/LsPage.vue'
 import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsPagePrimaryAction from '@lostsky/ui/components/LsPagePrimaryAction.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsResponsiveActions from '@lostsky/ui/components/LsResponsiveActions.vue'
@@ -554,13 +555,10 @@ const pageHeader = story(
           backLabel: '返回工作台',
         },
         {
-          actions: () =>
-            h(LsPagePrimaryAction, {
-              icon: Plus,
-              label: '创建字段',
-              disabled: state === 'disabled',
-              disabledReason: state === 'disabled' ? '当前身份不能创建字段' : '',
-            }),
+          actions: () => [
+            h(LsPageLink, { to: '/fields', icon: Pencil, label: '对象字段' }),
+            h(LsPageLink, { to: '/virtuals', icon: UserRound, label: '虚拟人员' }),
+          ],
         },
       ),
     ),

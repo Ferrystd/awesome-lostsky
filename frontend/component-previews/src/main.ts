@@ -10,7 +10,7 @@ import PreviewHost from './PreviewHost.vue'
 import { adminSession } from '../../apps/admin/src/session'
 
 const id = new URLSearchParams(location.search).get('id') || ''
-const teamScene = id === 'team-category-layout' || id === 'team-list-toolbar'
+const teamScene = id.startsWith('team-ui-') || id === 'team-category-layout' || id === 'team-list-toolbar'
 const sceneProvider = teamScene ? (await import('../../apps/team/src/ui/workspace-scene-theme')).workspaceSceneProviderProps(true) : {}
 if (teamScene) await import('../../apps/team/src/ui/styles.css')
 if (id.startsWith('admin-')) await import('../../apps/admin/src/app.css')

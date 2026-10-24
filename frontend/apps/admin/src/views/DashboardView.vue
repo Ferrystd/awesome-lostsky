@@ -4,7 +4,6 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
@@ -40,7 +39,7 @@ function openSearch() { window.dispatchEvent(new CustomEvent('admin:open-search'
   <template #actions>
     <LsPageLink to="/users" :icon="Users" label="查看用户" />
     <LsPageLink to="/teams" :icon="Building2" label="查看团队" />
-    <LsSceneMotionControl />
+
   </template>
 
   <NButton autofocus block class="dashboard-search" @click="openSearch"><Search :size="19" /><span><strong>搜索平台资源</strong><small>用户、手机号、邮箱、团队或资源 ID</small></span><kbd>Ctrl K</kbd></NButton>

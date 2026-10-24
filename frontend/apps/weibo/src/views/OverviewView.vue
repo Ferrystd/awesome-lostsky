@@ -10,7 +10,6 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { ClipboardList, FileClock, House, MessageCircleMore, Send, Users } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
@@ -111,7 +110,7 @@ const actions = computed(() => [
     <LsOverviewPage v-else :title="access.data.value?.identity.name || '当前人员调度态势'" :description="`${identityType} · 微博个人工作台。围绕当前身份准备内容、管理任务并追踪执行结果。`">
       <template #actions>
         <LsPageLink v-for="action in actions" :key="action.key" :to="action.to" :icon="action.icon" :label="action.label" />
-        <LsSceneMotionControl />
+
       </template>
 
 

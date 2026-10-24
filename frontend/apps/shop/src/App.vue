@@ -13,7 +13,12 @@ import ShopManageShell from './components/ShopManageShell.vue'
 
 const route = useRoute()
 const managing = computed(() => Boolean(route.meta.manage))
-watchEffect(() => { document.documentElement.dataset.shopSurface = managing.value ? 'manage' : 'storefront' })
+watchEffect(() => {
+  document.documentElement.dataset.shopSurface = managing.value ? 'manage' : 'storefront'
+  if (managing.value) document.documentElement.dataset.lsSurface = 'aurora'
+  else delete document.documentElement.dataset.lsSurface
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', managing.value ? '#101619' : '#020617')
+})
 
 const shopTheme: GlobalThemeOverrides = {
   common: {

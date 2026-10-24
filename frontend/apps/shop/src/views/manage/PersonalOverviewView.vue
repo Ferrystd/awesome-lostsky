@@ -5,7 +5,6 @@ import { friendlyError } from '@lostsky/api/client'
 
 import LsSinglePanelPage from '@lostsky/ui/components/LsSinglePanelPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { House, ReceiptText, ShoppingBag } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
@@ -39,7 +38,7 @@ const configurationSteps = computed(() => [{ key: 'create', label: '创建商品
   >
     <template #actions>
       <LsPageLink to="/manage" :icon="House" label="进入团队工作台" />
-      <LsSceneMotionControl />
+
     </template>
       <ShopOverviewWorkspace :personal="true" :access="access.data.value" :steps="configurationSteps" />
       <LsInlineError v-if="access.isError.value" :message="friendlyError(access.error.value)" />

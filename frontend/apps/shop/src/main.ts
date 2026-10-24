@@ -7,4 +7,6 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import { router } from './router'
 
-createApp(App).use(VueQueryPlugin).use(router).mount('#app')
+const app = createApp(App).use(VueQueryPlugin).use(router)
+// Do not render the storefront while the initial manage route is still resolving.
+void router.isReady().then(() => app.mount('#app'))

@@ -9,7 +9,6 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsInlineError from '@lostsky/ui/components/LsInlineError.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { BadgeCheck, Gift, Handshake, House, ListChecks } from '@lucide/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
@@ -47,7 +46,7 @@ const metrics = computed(() => [
   >
     <template #actions>
       <LsPageLink to="/overview" :icon="House" label="进入团队工作台" />
-      <LsSceneMotionControl />
+
     </template>
     <LsPanel>
       <template #header><LsSectionHeader title="继续我的业务" description="从参与的流水、接单和顾客关系继续处理。" /></template>

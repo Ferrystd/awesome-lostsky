@@ -5,7 +5,6 @@ import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsDescriptionList from '@lostsky/ui/components/LsDescriptionList.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsStatusTag from '@lostsky/ui/components/LsStatusTag.vue'
 import { useRouteAccess } from '@lostsky/ui/useRouteAccess'
@@ -29,7 +28,7 @@ const columns: DataTableColumns<HealthCheck> = [
 
 <template>
   <LsOverviewPage title="系统状态" description="只读检查核心依赖和后台积压；数据在进入页面、重新聚焦窗口和短暂故障恢复后自动更新。">
-  <template #actions><LsSceneMotionControl /></template>
+
   <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
   <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取系统状态" :description="friendlyError(query.error.value)" />
   <template v-else-if="routeAccess.restricted.value">

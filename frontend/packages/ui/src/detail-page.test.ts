@@ -35,8 +35,8 @@ describe('LsDetailPage closed composition contract', () => {
     expect(html).not.toContain('暂停极光')
   })
 
-  it('only exposes motion control when a host scene is available', async () => {
-    expect(await render(true)).toContain('暂停极光')
+  it('does not add a motion command when a host scene is available', async () => {
+    expect(await render(true)).not.toContain('暂停极光')
     const empty = await render(false, false)
     expect(empty).not.toContain('ls-detail-page__summary')
     expect(empty).not.toContain('ls-detail-page__body')

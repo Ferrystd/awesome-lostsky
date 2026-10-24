@@ -6,7 +6,6 @@ import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
 import LsEntityIdentity from '@lostsky/ui/components/LsEntityIdentity.vue'
 import LsMetricGrid from '@lostsky/ui/components/LsMetricGrid.vue'
 import LsOverviewPage from '@lostsky/ui/components/LsOverviewPage.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import LsPanel from '@lostsky/ui/components/LsPanel.vue'
 import LsResponsiveDataTable from '@lostsky/ui/components/LsResponsiveDataTable.vue'
 import LsSectionHeader from '@lostsky/ui/components/LsSectionHeader.vue'
@@ -214,7 +213,7 @@ const assigneeColumns: DataTableColumns<AssigneeStat> = [
 
 <template>
   <LsOverviewPage title="经营统计" description="按自然日、周或月查看团队实际流水、履约业绩与人员贡献。">
-    <template #actions><LsSceneMotionControl /></template>
+
 
     <LsPanel>
     <template #header><LsSectionHeader title="统计周期" description="选择自然日、周或月，图表和明细随周期更新。" /></template>

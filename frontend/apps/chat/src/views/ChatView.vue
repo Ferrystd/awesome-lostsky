@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import ChatScene from '../components/ChatScene.vue'
-import LsSceneMotionControl from '@lostsky/ui/components/LsSceneMotionControl.vue'
 import { api, auth, friendlyError } from '@lostsky/api/client'
 import { identityUrl, teamScopedAppUrl, workspaceAppEntries } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
@@ -318,7 +317,7 @@ onUnmounted(() => {
         <div class="app-menu">
           <LsAppSwitcher :actions="appOptions" current-app="chat" @select="switchApp" />
         </div>
-        <LsSceneMotionControl /><span class="team">{{ activeIdentity?.name }}</span>
+        <span class="team">{{ activeIdentity?.name }}</span>
         <nav class="account-links">
           <a :href="identityManagement.href"><UserRound :size="18" />{{ identityManagement.label }}</a>
           <a href="/requests">邀请与屏蔽</a>

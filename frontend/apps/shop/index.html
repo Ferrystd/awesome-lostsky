@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#020617">
     <title>团队商城 · LostSky</title>
+
+    <!-- Keep the document canvas in sync with the aurora palette before modules/CSS arrive. -->
+    <style id="ls-initial-surface">
+      html:root[data-ls-surface="aurora"] { color-scheme: dark; background: #101619; }
+      html:root[data-ls-surface="aurora"] body { background: #101619; color: #edf3f3; }
+    </style>
+    <script>
+      if (/^\/manage(?:\/|$)/i.test(location.pathname)) {
+        document.documentElement.dataset.lsSurface = 'aurora';
+        document.querySelector('meta[name="theme-color"]').content = '#101619';
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>
