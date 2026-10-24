@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsCategoryPage from '@lostsky/ui/components/LsCategoryPage.vue'
 import { api, friendlyError } from '@lostsky/api/client'
 import LsAsyncState from '@lostsky/ui/components/LsAsyncState.vue'
 import LsEmptyState from '@lostsky/ui/components/LsEmptyState.vue'
@@ -33,15 +33,13 @@ const columns: DataTableColumns<AuditEvent> = [
 </script>
 
 <template>
-  <LsCollectionPage title="审计日志" description="集中查看平台治理和业务写操作；日志只展示已记录的非敏感上下文。">
-    <template #toolbar>
-      <LsListToolbar v-model="actor" placeholder="搜索执行用户 ID" aria-label="搜索审计执行人" :count-label="routeAccess.restricted.value ? '0 条事件' : `${query.data.value?.total ?? 0} 条事件`" @update:model-value="page = 1">
+  <LsCategoryPage :items="appOptions.map(item => ({ key: item.value, label: item.label }))" :current="application" label="应用分类" @select="application = $event; page = 1" title="审计日志" description="集中查看平台治理和业务写操作；日志只展示已记录的非敏感上下文。">
+      <LsListToolbar embedded v-model="actor" placeholder="搜索执行用户 ID" aria-label="搜索审计执行人" :count-label="routeAccess.restricted.value ? '0 条事件' : `${query.data.value?.total ?? 0} 条事件`" @update:model-value="page = 1">
         <template #filters>
-          <NSelect v-model:value="application" :options="appOptions" @update:value="page = 1" />
           <NSelect v-model:value="resourceType" :options="resourceOptions" @update:value="page = 1" />
         </template>
       </LsListToolbar>
-    </template>
+    <div class="audit-results">
     <LsAsyncState v-if="!routeAccess.restricted.value && query.isPending.value" state="loading" :rows="5" />
     <LsAsyncState v-else-if="!routeAccess.restricted.value && query.isError.value" state="error" title="暂时无法读取审计日志" :description="friendlyError(query.error.value)" />
     <LsEmptyState :source="query.data.value" v-else-if="routeAccess.restricted.value || !query.data.value?.list.length" title="没有可显示的审计事件" description="调整应用、资源或执行人筛选。" />
@@ -63,8 +61,14 @@ const columns: DataTableColumns<AuditEvent> = [
         </dl>
       </template>
     </LsResponsiveDataTable>
-    <template #pagination v-if="!routeAccess.restricted.value && !query.isPending.value && !query.isError.value && query.data.value?.list.length">
-      <NPagination v-model:page="page" :page-size="20" :item-count="query.data.value.total" />
-    </template>
-  </LsCollectionPage>
+    <div class="audit-pagination" v-if="!routeAccess.restricted.value && !query.isPending.value && !query.isError.value && query.data.value?.list.length">
+      <NPagination v-model:page="page" :page-slot="5" :page-size="20" :item-count="query.data.value.total" />
+    </div>
+    </div>
+  </LsCategoryPage>
 </template>
+
+<style scoped>
+.audit-results { min-width: 0; display: grid; gap: 1rem; margin-top: 1rem; }
+.audit-pagination { min-width: 0; overflow-x: auto; }
+</style>
