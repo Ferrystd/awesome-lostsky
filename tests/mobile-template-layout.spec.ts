@@ -77,12 +77,13 @@ test('实际人员页面的双入口和搜索筛选在移动端同行', async ({
     await page.setViewportSize({ width, height: 1000 })
     const geometry = await page.evaluate(() => {
       const box = (selector: string) => { const b = document.querySelector(selector)!.getBoundingClientRect(); return { y: b.y, center: b.y + b.height / 2, height: b.height } }
-      return { search: box('.ls-list-toolbar input'), filter: box('.ls-list-toolbar .n-base-selection'), actions: [...document.querySelectorAll('.ls-page-header__actions a')].map(el => el.getBoundingClientRect().y), rowActions: [...document.querySelectorAll('.ls-resource-row__actions a')].map(el => el.getBoundingClientRect().y), scroll: document.documentElement.scrollWidth }
+      return { search: box('.ls-list-toolbar input'), filter: box('.ls-list-toolbar .n-base-selection'), actions: [...document.querySelectorAll('.ls-page-header__actions a')].map(el => el.getBoundingClientRect().y), title: box(".ls-page-header h1"), rowActions: [...document.querySelectorAll('.ls-resource-row__actions a')].map(el => el.getBoundingClientRect().y), scroll: document.documentElement.scrollWidth }
     })
     expect(geometry.scroll).toBeLessThanOrEqual(width + 1)
     expect(Math.abs(geometry.search.center - geometry.filter.center)).toBeLessThanOrEqual(2)
     expect(geometry.actions).toHaveLength(2)
     expect(geometry.actions[0]).toBe(geometry.actions[1])
+    if (width <= 390) expect(geometry.actions[0]).toBeCloseTo(geometry.title.y, 0)
     expect(geometry.rowActions).toHaveLength(2)
     expect(geometry.rowActions[0]).toBe(geometry.rowActions[1])
   }
@@ -113,6 +114,41 @@ test('共享后台模板同样保持双操作和单行搜索并支持放大文�
   }
   await expect(page.locator('[data-primary] button')).toBeDisabled()
   await expect(page.getByRole('button', { name: /暂停极光|播放极光/ })).toHaveCount(0)
+})
+
+test('页头双链接固定在移动右上角且长文案不重叠', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  for (const query of ['', '?long=1']) {
+    const sharedOrigin = 'http://demo.transaction.lostsky.work:5177'
+    await page.route(`${sharedOrigin}/mobile-layout-harness*`, route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0"><div id="app"></div><script type="module" src="/@fs/${harness}"></script></body></html>` }))
+    await page.goto(`${sharedOrigin}/mobile-layout-harness${query}`)
+    await expect(page.locator('[data-template]')).toHaveCount(6)
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 1000 })
+      for (const size of ['100%', '200%']) {
+        await page.evaluate(value => { document.documentElement.style.fontSize = value }, size)
+        const headers = await page.locator('[data-template] .ls-page-header > header').evaluateAll(elements => elements.map(header => {
+          const rect = (el: Element) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom } }
+          const title = header.querySelector('h1')!
+          const actions = header.querySelector('.ls-page-header__actions')!
+          const description = header.querySelector('p')!
+          return { header: rect(header), title: rect(title), actions: rect(actions), description: rect(description), mobile: getComputedStyle(header).display === 'grid', clipped: [...actions.querySelectorAll('a')].some(el => el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) }
+        }))
+        expect(headers).toHaveLength(6)
+        for (const geometry of headers) {
+          expect(geometry.title.right).toBeLessThanOrEqual(geometry.actions.x + 1)
+          expect(geometry.actions.right).toBeLessThanOrEqual(geometry.header.right + 1)
+          expect(geometry.clipped).toBe(false)
+          if (geometry.mobile) {
+            expect(geometry.actions.y).toBeCloseTo(geometry.title.y, 0)
+            expect(geometry.actions.right).toBeCloseTo(geometry.header.right, 0)
+            expect(geometry.description.y).toBeGreaterThanOrEqual(Math.max(geometry.actions.bottom, geometry.title.bottom))
+          }
+        }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1)
+      }
+    }
+  }
 })
 
 test('真实长表单命令完整可读且横向筛选可键盘访问', async ({ page }) => {
