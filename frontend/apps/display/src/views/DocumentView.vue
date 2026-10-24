@@ -49,3 +49,9 @@ watch(() => query.data.value?.title, (title) => {
     </div>
   </article>
 </template>
+
+<style scoped>
+.document-shell{width:min(100% - 2rem,75ch)}
+.document-header{max-width:100%}
+.document-reading{min-width:0}
+</style>

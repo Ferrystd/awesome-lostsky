@@ -89,7 +89,7 @@ async function submit() {
 
 <template>
   <section class="checkout-page">
-    <header><p class="eyebrow">确认购买</p><h1 tabindex="-1">确认购买</h1><p>价格与余额会在提交时由服务端再次核对。</p></header>
+    <header><h1 tabindex="-1">确认购买</h1><p>选择购买内容，填写资料后使用本店余额付款。</p></header>
     <div v-if="product.isPending.value || balance.isPending.value" class="checkout-skeleton"><span /><span /></div>
     <div v-else-if="product.isError.value || balance.isError.value" class="inline-error"><span>{{ product.isError.value ? friendlyError(product.error.value) : '结账信息加载失败。' }}</span><button type="button" @click="product.refetch(); balance.refetch()">重试</button></div>
     <form v-else-if="product.data.value && balance.data.value" class="checkout-layout" @submit.prevent="submit">
@@ -103,7 +103,14 @@ async function submit() {
         <label v-for="group in handlerGroups.filter(group => group.handlers.length)" :key="group.product_id">{{ group.name }}接单人<LsEntitySelect v-model="productHandlers[group.product_id]" :entities="group.handlers" :placeholder="group.handlers.length > 1 ? '请选择接单人' : '默认接单人'" clearable /></label>
         <label>给商家的备注<NInput v-model:value="memo" type="textarea" maxlength="1000" show-count placeholder="可选" /></label>
       </div>
-      <aside class="checkout-summary"><div><span>当前余额</span><strong>{{ formatMoney(balance.data.value.balance) }}</strong></div><div><span>应付总额</span><strong>{{ formatMoney(total) }}</strong></div><p v-if="insufficient" class="form-error" role="alert">余额不足，请联系商家充值后再购买。</p><p v-if="error" class="form-error" role="alert">{{ error }}</p><LsButton type="submit" size="lg" block :loading="pending" :disabled="Boolean(submitReason)" :disabled-reason="submitReason">使用余额购买</LsButton><RouterLink :to="`/product/${id}`">返回商品详情</RouterLink></aside>
+      <section class="checkout-summary" aria-label="确认付款"><div><span>当前余额</span><strong>{{ formatMoney(balance.data.value.balance) }}</strong></div><div><span>应付总额</span><strong>{{ formatMoney(total) }}</strong></div><p v-if="insufficient" class="form-error" role="alert">余额不足，请联系商家充值后再购买。</p><p v-if="error" class="form-error" role="alert">{{ error }}</p><LsButton type="submit" size="lg" block :loading="pending" :disabled="Boolean(submitReason)" :disabled-reason="submitReason">使用余额购买</LsButton><RouterLink :to="`/product/${id}`">返回商品详情</RouterLink></section>
     </form>
   </section>
 </template>
+
+<style scoped>
+.checkout-page{max-width:52rem}
+.checkout-layout{grid-template-columns:minmax(0,1fr);gap:2rem}
+.checkout-fields{max-width:100%;min-width:0}
+.checkout-summary{margin-top:.5rem;border-radius:12px;padding:clamp(1rem,3vw,2rem)}
+</style>

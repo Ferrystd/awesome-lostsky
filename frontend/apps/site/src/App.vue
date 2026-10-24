@@ -76,7 +76,7 @@ const advantages = [
 
       <section id="team" class="team-section" aria-labelledby="team-title">
         <div class="container">
-          <header class="section-title"><h2 id="team-title">核心<span>成员</span></h2><i aria-hidden="true"></i></header>
+          <header class="section-title"><h2 id="team-title">核心<span>成员</span></h2></header>
           <div class="member-list">
             <article v-for="(member, index) in members" :key="index" :class="['member', { reverse: index === 1 }]">
               <div class="member-copy">
@@ -107,12 +107,11 @@ const advantages = [
 
       <section id="advantages" class="advantages-section" aria-labelledby="advantages-title">
         <div class="container">
-          <header class="section-title"><h2 id="advantages-title">团队<span>优势</span></h2><i aria-hidden="true"></i></header>
+          <header class="section-title"><h2 id="advantages-title">团队<span>优势</span></h2></header>
           <div class="stat-list"><article v-for="([value, label], index) in stats" :key="index"><strong>{{ value }}</strong><span>{{ label }}</span></article></div>
           <article class="advantage-panel">
             <div class="panel-glow top" aria-hidden="true"></div><div class="panel-glow bottom" aria-hidden="true"></div>
             <div class="advantage-copy"><h3>为什么选择失落青空？</h3><ul><li v-for="([title, description]) in advantages" :key="title"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg><span><b>{{ title }}</b><small>{{ description }}</small></span></li></ul></div>
-            <figure class="chart-card" aria-label="合作后平均流水呈持续增长趋势"><div class="chart" aria-hidden="true"><i class="q1"></i><i class="q2"></i><i class="q3"></i><i class="q4"></i><i class="now"></i></div><figcaption>合作后平均流水增长趋势</figcaption></figure>
           </article>
         </div>
       </section>
@@ -209,10 +208,10 @@ const advantages = [
 .scroll-indicator svg { width: 23px; animation: scroll-cue 1.8s ease-in-out 3; }
 
 .team-section, .services-section, .advantages-section { position: relative; padding: clamp(5rem, 10vw, 8rem) 0; scroll-margin-top: 4.75rem; }
-.section-title { margin-bottom: clamp(3rem, 7vw, 5rem); text-align: center; }
+.section-title { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:end;gap:1.5rem;margin-bottom:clamp(2rem,5vw,3.5rem);padding-bottom:1.5rem;border-bottom:1px solid var(--line);text-align:left; }
 .section-title h2 { margin: 0 0 1rem; font-family: 'Barlow Condensed', 'PingFang SC', sans-serif; font-size: clamp(2.5rem, 5vw, 4rem); letter-spacing: -.02em; line-height: 1; text-wrap: balance; }
-.section-title i { display: block; width: 6rem; height: .25rem; margin: auto; border-radius: 999px; background: linear-gradient(to right, var(--primary-strong), var(--secondary)); }
-.section-title p { max-width: 44rem; margin: 0 auto; color: var(--muted); font-size: 1.05rem; text-wrap: pretty; }
+
+.section-title p { max-width: 44rem; margin: 0; color: var(--muted); font-size: 1.05rem; text-wrap: pretty; }
 
 .member-list { display: grid; gap: clamp(5rem, 11vw, 9rem); }
 .member { display: flex; align-items: center; gap: clamp(3rem, 9vw, 8rem); }
@@ -258,11 +257,11 @@ const advantages = [
 .stat-list article + article { border-left: 1px solid var(--line); }
 .stat-list strong { color: #7ddcff; font-family: 'Barlow Condensed', sans-serif; font-size: clamp(2.6rem, 5vw, 4rem); font-variant-numeric: tabular-nums; line-height: 1; }
 .stat-list span { color: var(--muted); font-size: .875rem; }
-.advantage-panel { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2.5rem, 6vw, 5rem); padding: clamp(2rem, 5vw, 4rem); overflow: hidden; border: 1px solid var(--line); border-radius: 1rem; background: rgb(15 23 42 / .72); backdrop-filter: blur(16px); }
+.advantage-panel { position: relative; display: grid; grid-template-columns: 1fr; gap: clamp(2.5rem, 6vw, 5rem); padding: clamp(2rem, 5vw, 4rem); overflow: hidden; border: 1px solid var(--line); border-radius: 1rem; background: rgb(15 23 42 / .72); backdrop-filter: blur(16px); }
 .panel-glow { position: absolute; width: 16rem; height: 16rem; border-radius: 50%; filter: blur(70px); }
 .panel-glow.top { top: -8rem; right: -4rem; background: rgb(14 165 233 / .2); }
 .panel-glow.bottom { bottom: -10rem; left: -4rem; background: rgb(139 92 246 / .18); }
-.advantage-copy, .chart-card { position: relative; z-index: 1; }
+.advantage-copy { position: relative; z-index: 1; }
 .advantage-copy h3 { margin: 0 0 1.75rem; font-size: clamp(1.6rem, 3vw, 2.25rem); }
 .advantage-copy ul { display: grid; gap: 1.25rem; padding: 0; margin: 0; list-style: none; }
 .advantage-copy li { display: flex; gap: .85rem; align-items: flex-start; }
@@ -270,15 +269,6 @@ const advantages = [
 .advantage-copy b, .advantage-copy small { display: block; }
 .advantage-copy b { color: white; font-size: .98rem; }
 .advantage-copy small { max-width: 52ch; margin-top: .25rem; color: var(--muted); font-size: .875rem; line-height: 1.65; }
-.chart-card { padding: 1.5rem; margin: 0; border-radius: .75rem; background: rgb(255 255 255 / .055); }
-.chart { display: flex; height: 13rem; gap: .6rem; align-items: end; justify-content: space-between; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
-.chart i { width: 16.66%; border-radius: .375rem .375rem 0 0; background: rgb(100 116 139 / .55); }
-.chart .q1 { height: 25%; }
-.chart .q2 { height: 50%; }
-.chart .q3 { height: 68%; background: rgb(14 165 233 / .46); }
-.chart .q4 { height: 82%; background: rgb(14 165 233 / .7); }
-.chart .now { height: 100%; background: linear-gradient(to top, var(--primary-strong), var(--secondary)); }
-.chart-card figcaption { margin-top: 1rem; color: var(--muted); text-align: center; font-size: .875rem; }
 
 .contact-section { position: relative; display: flex; min-height: 100svh; flex-direction: column; justify-content: space-between; padding-top: 5rem; overflow: hidden; scroll-margin-top: 4.75rem; background: #020617; }
 .contact-background { position: absolute; inset: 0; opacity: .18; background: url('//assets.lostsky.work/images/site-bg.png') center / cover; mix-blend-mode: luminosity; }
@@ -317,6 +307,7 @@ const advantages = [
 }
 
 @media (max-width: 720px) {
+  .section-title{grid-template-columns:1fr}
   .container { width: min(100% - 1.5rem, 80rem); }
   .contact-link { padding-inline: 1rem; }
   .hero-section { align-items: flex-start; }

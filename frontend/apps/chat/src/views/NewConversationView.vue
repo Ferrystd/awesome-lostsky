@@ -47,7 +47,7 @@ const create = useMutation({
       <LsEmptyState v-else-if="search && !people.isPending.value" title="没有找到人员" description="请检查标识是否完整准确。" />
       <LsButton :disabled="!selected || !expectedEntityId" disabled-reason="请先选择聊天对象" :loading="create.isPending.value" @click="create.mutate()">开始聊天</LsButton>
     </ChatTaskPage>
-  
+
 </template>
 <style scoped>
 .conversation-form{display:grid;gap:1rem}

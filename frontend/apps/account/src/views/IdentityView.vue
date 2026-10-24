@@ -66,7 +66,7 @@ async function logout() {
         <NButton quaternary @click="logout"><template #icon><LogOut :size="18" /></template>退出登录</NButton>
       </nav>
       <header>
-        
+
         <h1>选择当前身份</h1>
         <p>业务操作使用你登录的人员。</p>
       </header>

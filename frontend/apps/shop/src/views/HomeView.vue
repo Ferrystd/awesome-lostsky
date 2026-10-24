@@ -44,11 +44,6 @@ watch(shopName, (name) => { document.title = `${name} 商城 · LostSky` }, { im
     </div>
   </section>
 
-  <section v-if="profile?.introduction_markdown" class="manifesto">
-    <header><p class="section-label">关于这间商店</p><h2>团队想与你分享的事</h2></header>
-    <LsMarkdownRenderer class="shop-markdown" :content="profile.introduction_markdown" :chat-enabled="false" />
-  </section>
-
   <section id="collection" class="collection">
     <header class="collection-heading">
       <div><p class="section-label">团队精选</p><h2>本期陈列</h2></div>
@@ -77,5 +72,10 @@ watch(shopName, (name) => { document.title = `${name} 商城 · LostSky` }, { im
       <div class="empty-art" aria-hidden="true"><span /><span /><span /></div>
       <div><p class="section-label">即将上线</p><h3>商品正在准备中</h3><p>{{ shopName }} 正在整理第一批陈列。这里不会用虚构商品填满页面，等团队准备好真实内容后再与你见面。</p></div>
     </div>
+  </section>
+
+  <section v-if="profile?.introduction_markdown" class="manifesto">
+    <header><p class="section-label">关于这间商店</p><h2>团队想与你分享的事</h2></header>
+    <LsMarkdownRenderer class="shop-markdown" :content="profile.introduction_markdown" :chat-enabled="false" />
   </section>
 </template>

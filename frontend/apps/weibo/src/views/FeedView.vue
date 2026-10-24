@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
-import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
-import LsCollectionPage from '@lostsky/ui/components/LsCollectionPage.vue'
+import LsPageHeader from '@lostsky/ui/components/LsPageHeader.vue'
 import { readAccessReason } from '@lostsky/api/access-result'
 import { useUnsavedChangesGuard } from '@lostsky/shared/useUnsavedChangesGuard'
 import WeiboAccountField from '../components/WeiboAccountField.vue'
@@ -247,12 +245,15 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
 </script>
 
 <template>
-  <div class="weibo-stack">
-    <LsCollectionPage title="点单信息流" description="浏览最新点单，展开帖子即可发表评论。">
+  <div class="feed-page">
+    <LsPageHeader title="点单信息流" description="浏览最新点单，展开帖子即可发表评论。">
       <template #actions>
         <LsButton variant="secondary" @click="managePresets">管理预设评论</LsButton>
       </template>
+    </LsPageHeader>
+    <section class="feed-account" aria-label="评论身份">
       <WeiboAccountField id="feed-comment-account" label="评论使用的微博账号" v-model="accountId" :accounts="accounts.data.value || []" :loading="accounts.isPending.value" :error="accounts.isError.value ? friendlyError(accounts.error.value) : ''" :disabled-reason="accountReason" />
+    </section>
       <LsAsyncState v-if="access.isError.value" state="error" title="访问权限加载失败" :description="friendlyError(access.error.value)" />
       <LsAsyncState v-else-if="feed.isPending.value" state="loading" :rows="8" />
       <template v-else>
@@ -270,10 +271,8 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
               <span role="status">共 <strong>{{ feedSummary?.total ?? displayedItems.length }}</strong> 条点单</span>
               <span v-if="feedSummary?.updated_at">最近更新 <time :datetime="new Date(feedSummary.updated_at * 1000).toISOString()" :title="new Date(feedSummary.updated_at * 1000).toLocaleString()">{{ formatTime(feedSummary.updated_at) }}</time></span>
             </NFlex>
-            <LsResourceList aria-label="点单微博列表">
-              <LsResourceRow v-for="item in displayedItems" :key="item.id">
-                <template #identity>
-                  <article class="feed-post">
+            <div class="feed-stream" aria-label="点单微博列表">
+                  <article v-for="item in displayedItems" :key="item.id" class="feed-post" :aria-label="`${item.author_name || '点单'} · ${formatTime(item.posted_at)}`">
                     <div class="feed-content">
                       <p class="feed-text">{{ item.text }}</p>
                       <NFlex class="feed-meta" align="center" :size="[12, 4]">
@@ -292,9 +291,7 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
                       </form>
                     </Transition>
                   </article>
-                </template>
-              </LsResourceRow>
-            </LsResourceList>
+            </div>
             <div ref="sentinel" class="feed-tail" :aria-busy="feed.isFetchingNextPage.value">
               <template v-if="nextPageError">
                 <LsInlineError :message="`更多点单加载失败：${friendlyError(nextPageError)}。已加载的内容仍可查看。`" />
@@ -307,11 +304,14 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
           </section>
         </template>
       </template>
-    </LsCollectionPage>
   </div>
 </template>
 
 <style scoped>
+.feed-page{width:min(100%,52rem);margin-inline:auto;display:grid;gap:1.5rem;min-width:0}
+.feed-account{padding-block:1rem;border-block:1px solid var(--border)}
+.feed-stream{display:grid;min-width:0}
+.feed-stream>.feed-post{padding-block:1.5rem;border-bottom:1px solid var(--border)}
 .feed-status { margin: 0; color: var(--text-secondary); font-size: .875rem; overflow-wrap: anywhere; }
 .feed-results { display: grid; gap: .75rem; min-width: 0; }
 .feed-summary { color: var(--text-secondary); font-size: .875rem; font-variant-numeric: tabular-nums; }
@@ -320,7 +320,7 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
 .feed-content { display: grid; gap: .5rem; min-width: 0; }
 .feed-meta { color: var(--text-secondary); font-size: .875rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .feed-text { max-width: 75ch; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1rem; line-height: 1.65; }
-.feed-actions { justify-self: end; }
+.feed-actions { justify-self: start; }
 .feed-comment { display: grid; grid-column: 1 / -1; gap: .375rem; min-width: 0; padding-block-start: .25rem; }
 .feed-rail-enter-active, .feed-rail-leave-active { transition: opacity var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out); }
 .feed-rail-enter-from, .feed-rail-leave-to { opacity: 0; transform: translateY(-.25rem); }
@@ -328,8 +328,5 @@ onBeforeUnmount(() => { active = false; observer?.disconnect(); cancelFallback()
 .feed-tail p { margin: 0; }
 @media (prefers-reduced-motion: reduce) {
   .feed-rail-enter-active, .feed-rail-leave-active { transition: none; }
-}
-@media (min-width: 768px) {
-  .feed-post { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
 }
 </style>
