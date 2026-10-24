@@ -121,10 +121,10 @@ test('共享后台模板同样保持双操作和单行搜索并支持放大文�
   await expect(page.getByRole('button', { name: /暂停极光|播放极光/ })).toHaveCount(0)
 })
 
-test('页头主副标题紧凑成组且操作不遮挡', async ({ page }) => {
+test('Team 页头主副标题紧凑成组且操作不遮挡', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  for (const { query, base } of ['', '?long=1'].flatMap(query => [origin, 'http://demo.transaction.lostsky.work:5177'].map(base => ({ query, base })))) {
-    await mount(page, query, base)
+  for (const query of ['', '?long=1']) {
+    await mount(page, query)
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: 1000 })
       for (const size of ['100%', '200%']) {

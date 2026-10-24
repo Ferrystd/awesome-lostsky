@@ -23,7 +23,7 @@ describe('category page pilot', () => {
   })
   it('keeps the complete permission draft and a single permission save', () => {
     const page = source('frontend/apps/team/src/views/RoleDetailView.vue')
-    expect(page).toContain('<LsCategoryPage')
+    expect(page).toContain('<TeamCategoryLayout')
     expect(page).not.toContain('NCollapse')
     expect(page.match(/api.post\('\/rolePermission\/save'/g)).toHaveLength(1)
     expect(page).toContain('permission_keys: [...keys]')

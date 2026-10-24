@@ -133,7 +133,7 @@ test('官网匿名读取配置，保留原有区块和样式；失败回退原�
   await expect(page.locator('.stat-list strong')).toHaveText('42+')
   await expect(page.getByRole('link', { name: initial.icp })).toHaveAttribute('href', 'https://beian.miit.gov.cn/')
   expect(await page.locator('main > section').evaluateAll(nodes => nodes.map(node => node.id))).toEqual(['home', 'team', 'services', 'advantages', 'contact'])
-  await expect(page.locator('.chart-card')).toBeVisible()
+  await expect(page.getByRole('complementary', { name: '失落青空服务方法' })).toBeVisible()
   await expect(page.locator('.avatar-frame')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   expect(state.puts()).toBe(0)

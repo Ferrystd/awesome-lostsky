@@ -26,7 +26,7 @@ describe('shared motion contract', () => {
     expect(styles).toContain('--motion-distance-sm: 0')
   })
 
-  it('animates filtering without choreographing the initial list render', () => {
+  it('resource lists render immediately without an initial animation choreography', () => {
     const views = [
       source('../../../apps/team/src/views/DocumentsView.vue'),
       source('../../../apps/team/src/views/MembersView.vue'),
@@ -34,8 +34,8 @@ describe('shared motion contract', () => {
     ]
 
     for (const view of views) {
-      expect(view).toContain('<TransitionGroup')
-      expect(view).toContain('name="ls-list"')
+      expect(view).toMatch(/<(?:LsResourceList|TeamResourceWorkspace)\b/)
+      expect(view).not.toMatch(/animation-delay|transition-delay/)
       expect(view).not.toMatch(/<TransitionGroup[^>]*\sappear(?:\s|=|>)/)
     }
   })

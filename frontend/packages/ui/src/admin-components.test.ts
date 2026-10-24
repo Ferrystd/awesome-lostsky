@@ -222,7 +222,7 @@ describe('后台设计系统组件契约', () => {
     expect(list).toContain('min-width: 7rem;')
     expect(list).toContain('.ls-form-list__add { width: 100%; }')
     expect(actions).toContain('.ls-form-actions :deep(.ls-button) { min-width: min(7rem, 100%); }')
-    expect(actions).toContain('.ls-form-actions :deep(.ls-button) { width: 100%; }')
+    expect(actions).toContain('.ls-form-actions :deep(.ls-button) { min-width: 0; width: 100%; }')
     expect(pageAction).toContain('width: 8.5rem;')
     expect(pageAction).not.toContain('width?:')
   })

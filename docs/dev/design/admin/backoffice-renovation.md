@@ -32,6 +32,6 @@
 
 ## 移动操作与加载
 
-全部后台版复用 [Team 移动操作与搜索](team-page-templates.md#移动操作与搜索) 的标题、详情、行内与表单双动作和单行搜索契约；共享 `@lostsky/ui` 拥有视觉实现，Team 仍使用隔离别名的同义组件。后台各模板、概览和聊天专用页均移除极光暂停/播放入口，系统减少动态效果继续生效。Site、Display 与 Shop 前台不套用后台模板。
+全部后台版复用 [Team 移动操作与搜索](team-page-templates.md#mobile-actions-and-search) 的标题、详情、行内与表单双动作和单行搜索契约；共享 `@lostsky/ui` 拥有视觉实现，Team 仍使用隔离别名的同义组件。后台各模板、概览和聊天专用页均移除极光暂停/播放入口，系统减少动态效果继续生效。Site、Display 与 Shop 前台不套用后台模板。
 
 Account、Admin、Chat、Transaction、Weibo 与 Team 的极光 HTML 入口预置深色画布；Shop 只在 `/manage` 及其子路径启用，前台原有配色不变，SPA 离开管理区同时清除极光标记。通过 `tests/backoffice-first-paint.spec.ts` 验证脚本延迟、CSS 到达、路由就绪及 Shop 前后台往返；不改变授权或业务请求。

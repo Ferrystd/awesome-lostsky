@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LsPageNavigation from '@lostsky/ui/components/LsPageNavigation.vue'
+import LsPageNavigation from '../ui/components/LsPageNavigation.vue'
 import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import LsObjectDirectory from '@lostsky/ui/components/LsObjectDirectory.vue'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'

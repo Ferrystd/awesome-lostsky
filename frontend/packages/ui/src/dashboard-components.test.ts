@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createSSRApp, defineComponent, h } from 'vue'
+import { createSSRApp, h } from 'vue'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { renderToString } from '@vue/server-renderer'
 import { House } from '@lucide/vue'
 import LsDashboardPath from './components/LsDashboardPath.vue'
@@ -8,7 +9,10 @@ import LsMetricGrid from './components/LsMetricGrid.vue'
 
 async function render(component: Parameters<typeof h>[0], props: Record<string, unknown>, slots = {}) {
   const app = createSSRApp({ render: () => h(component, props, slots) })
-  app.component('RouterLink', defineComponent({ props: ['to'], setup: (props, { slots }) => () => h('a', { href: props.to }, slots.default?.()) }))
+  const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/:pathMatch(.*)*', component: { render: () => null } }] })
+  app.use(router)
+  await router.push('/')
+  await router.isReady()
   return renderToString(app)
 }
 

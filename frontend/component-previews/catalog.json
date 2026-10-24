@@ -927,5 +927,235 @@
     "aliases": [
       "Team secondary page navigation"
     ]
+  },
+  {
+    "id": "ui-ls-category-navigation-item",
+    "name": "LsCategoryNavigationItem",
+    "source": "frontend/packages/ui/src/components/LsCategoryNavigationItem.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsCategoryNavigationItem",
+    "category": "ui",
+    "aliases": [
+      "分类导航项"
+    ]
+  },
+  {
+    "id": "ui-ls-category-page",
+    "name": "LsCategoryPage",
+    "source": "frontend/packages/ui/src/components/LsCategoryPage.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsCategoryPage",
+    "category": "ui",
+    "aliases": [
+      "分类任务页面"
+    ]
+  },
+  {
+    "id": "ui-ls-collection-page",
+    "name": "LsCollectionPage",
+    "source": "frontend/packages/ui/src/components/LsCollectionPage.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsCollectionPage",
+    "category": "ui",
+    "aliases": [
+      "集合任务页面"
+    ]
+  },
+  {
+    "id": "ui-ls-detail-page",
+    "name": "LsDetailPage",
+    "source": "frontend/packages/ui/src/components/LsDetailPage.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsDetailPage",
+    "category": "ui",
+    "aliases": [
+      "对象详情页面"
+    ]
+  },
+  {
+    "id": "ui-ls-directory-actions",
+    "name": "LsDirectoryActions",
+    "source": "frontend/packages/ui/src/components/LsDirectoryActions.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsDirectoryActions",
+    "category": "ui",
+    "aliases": [
+      "目录操作菜单"
+    ]
+  },
+  {
+    "id": "ui-ls-directory-identity",
+    "name": "LsDirectoryIdentity",
+    "source": "frontend/packages/ui/src/components/LsDirectoryIdentity.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsDirectoryIdentity",
+    "category": "ui",
+    "aliases": [
+      "目录人员身份"
+    ]
+  },
+  {
+    "id": "ui-ls-form-content",
+    "name": "LsFormContent",
+    "source": "frontend/packages/ui/src/components/LsFormContent.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsFormContent",
+    "category": "ui",
+    "aliases": [
+      "表单内容分组"
+    ]
+  },
+  {
+    "id": "ui-ls-form-fields",
+    "name": "LsFormFields",
+    "source": "frontend/packages/ui/src/components/LsFormFields.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsFormFields",
+    "category": "ui",
+    "aliases": [
+      "表单字段集合"
+    ]
+  },
+  {
+    "id": "ui-ls-form-page",
+    "name": "LsFormPage",
+    "source": "frontend/packages/ui/src/components/LsFormPage.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsFormPage",
+    "category": "ui",
+    "aliases": [
+      "编辑任务页面"
+    ]
+  },
+  {
+    "id": "ui-ls-object-directory",
+    "name": "LsObjectDirectory",
+    "source": "frontend/packages/ui/src/components/LsObjectDirectory.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsObjectDirectory",
+    "category": "ui",
+    "aliases": [
+      "对象目录页面"
+    ]
+  },
+  {
+    "id": "ui-ls-overview-links",
+    "name": "LsOverviewLinks",
+    "source": "frontend/packages/ui/src/components/LsOverviewLinks.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsOverviewLinks",
+    "category": "ui",
+    "aliases": [
+      "概览工作入口"
+    ]
+  },
+  {
+    "id": "ui-ls-overview-page",
+    "name": "LsOverviewPage",
+    "source": "frontend/packages/ui/src/components/LsOverviewPage.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsOverviewPage",
+    "category": "ui",
+    "aliases": [
+      "概览页面模板"
+    ]
+  },
+  {
+    "id": "ui-ls-page-link",
+    "name": "LsPageLink",
+    "source": "frontend/packages/ui/src/components/LsPageLink.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsPageLink",
+    "category": "ui",
+    "aliases": [
+      "页面导航链接"
+    ]
+  },
+  {
+    "id": "ui-ls-radio-group-field",
+    "name": "LsRadioGroupField",
+    "source": "frontend/packages/ui/src/components/LsRadioGroupField.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsRadioGroupField",
+    "category": "ui",
+    "aliases": [
+      "单选字段组"
+    ]
+  },
+  {
+    "id": "ui-ls-resource-list",
+    "name": "LsResourceList",
+    "source": "frontend/packages/ui/src/components/LsResourceList.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsResourceList",
+    "category": "ui",
+    "aliases": [
+      "连续资源集合"
+    ]
+  },
+  {
+    "id": "ui-ls-resource-row",
+    "name": "LsResourceRow",
+    "source": "frontend/packages/ui/src/components/LsResourceRow.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsResourceRow",
+    "category": "ui",
+    "aliases": [
+      "连续资源记录"
+    ]
+  },
+  {
+    "id": "ui-ls-single-panel-page",
+    "name": "LsSinglePanelPage",
+    "source": "frontend/packages/ui/src/components/LsSinglePanelPage.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsSinglePanelPage",
+    "category": "ui",
+    "aliases": [
+      "单面板任务页面"
+    ]
+  },
+  {
+    "id": "ui-ls-workspace-scene",
+    "name": "LsWorkspaceScene",
+    "source": "frontend/packages/ui/src/components/LsWorkspaceScene.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#LsWorkspaceScene",
+    "category": "ui",
+    "aliases": [
+      "极光工作区场景"
+    ]
+  },
+  {
+    "id": "ui-form-field-layout",
+    "name": "FormFieldLayout",
+    "source": "frontend/packages/ui/src/components/internal/FormFieldLayout.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#FormFieldLayout",
+    "category": "ui",
+    "aliases": [
+      "内部字段布局"
+    ]
+  },
+  {
+    "id": "ui-page-context-layout",
+    "name": "PageContextLayout",
+    "source": "frontend/packages/ui/src/components/internal/PageContextLayout.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#PageContextLayout",
+    "category": "ui",
+    "aliases": [
+      "内部正文侧栏布局"
+    ]
+  },
+  {
+    "id": "account-account-flow-page",
+    "name": "AccountFlowPage",
+    "source": "frontend/apps/account/src/components/AccountFlowPage.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#AccountFlowPage",
+    "category": "account",
+    "aliases": [
+      "通行证流程页面"
+    ]
+  },
+  {
+    "id": "chat-chat-scene",
+    "name": "ChatScene",
+    "source": "frontend/apps/chat/src/components/ChatScene.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#ChatScene",
+    "category": "chat",
+    "aliases": [
+      "聊天工作区场景"
+    ]
+  },
+  {
+    "id": "chat-chat-task-page",
+    "name": "ChatTaskPage",
+    "source": "frontend/apps/chat/src/components/ChatTaskPage.vue",
+    "story": "frontend/component-previews/src/integration-stories.ts#ChatTaskPage",
+    "category": "chat",
+    "aliases": [
+      "聊天任务页面"
+    ]
   }
 ]

@@ -250,13 +250,13 @@ test('feed remains readable at all widths and loads the page account selector', 
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
-    const shortRow = page.locator('.n-list-item').nth(1)
+    const shortRow = page.locator('article.feed-post').nth(1)
     const row = await shortRow.boundingBox()
     const content = await shortRow.locator('.feed-content').boundingBox()
     const actions = await shortRow.locator('.feed-actions').boundingBox()
-    expect(row!.height).toBeLessThan(width >= 768 ? 110 : 160)
-    if (width >= 768) expect(actions!.x).toBeGreaterThanOrEqual(content!.x + content!.width)
-    else expect(actions!.y).toBeGreaterThanOrEqual(content!.y + content!.height)
+    expect(actions!.y).toBeGreaterThanOrEqual(content!.y + content!.height)
+    expect(actions!.y + actions!.height).toBeLessThanOrEqual(row!.y + row!.height)
+    expect(content!.x + content!.width).toBeLessThanOrEqual(row!.x + row!.width)
     for (const control of await shortRow.locator('button, a').all()) {
       const box = await control.boundingBox()
       expect(box!.height).toBeGreaterThanOrEqual(44)

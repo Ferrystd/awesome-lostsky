@@ -35,16 +35,23 @@ describe('连续资源列表封闭契约', () => {
     const root = new URL('../../../', import.meta.url)
     for (const name of ['Entities', 'Documents', 'Files', 'Notices', 'ChatGroups', 'Members', 'Roles', 'ChatVirtuals', 'EntityFields', 'JoinFields', 'JoinReview', 'MemberDeparture', 'Abilities']) {
       const source = readFileSync(new URL(`apps/team/src/views/${name}View.vue`, root), 'utf8')
-      expect(source).toContain('<LsResourceList')
-      expect(source).toContain('<LsResourceRow')
+      if (['Files', 'ChatGroups'].includes(name)) {
+        expect(source).toContain('<TeamResourceWorkspace')
+        expect(source).toContain('<TeamResourceEntry')
+      } else {
+        expect(source).toContain('<LsResourceList')
+        expect(source).toContain('<LsResourceRow')
+      }
       expect(source).not.toMatch(/(?:entity-list|entity-row|document-list|file-list|notice-list|chat-groups-page|member-list|role-list|virtual-list|join-field-list|review-list)(?![-\w])/)
       expect(source).not.toMatch(/:deep\(\.ls-/)
     }
     const routes = readFileSync(new URL('apps/team/src/router.ts', root), 'utf8')
-    expect(routes).toMatch(/path: '\/communities'[^\n]+pageWidth: 'wide'/)
-    expect(routes).toMatch(/path: '\/settings'[^\n]+pageWidth: 'wide'/)
+    expect(routes).toMatch(/path: '\/settings'[^\n]+pageWidth: 'content'/)
     const files = readFileSync(new URL('apps/team/src/views/FilesView.vue', root), 'utf8')
-    expect(files).toContain('<LsPageHeader title="文件" :description="usageSummary">')
+    expect(files).toContain('<TeamResourceWorkspace title="文件"')
+    expect(files).toContain('usage.data.value.total_size')
+    expect(files).toContain('fileSourceLabel(selectedFile.source)')
+    expect(files).toContain('#context')
     expect(files).not.toContain('<header>')
   })
 })

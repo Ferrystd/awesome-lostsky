@@ -33,10 +33,15 @@ describe('集合正文模板', () => {
     expect(html).not.toContain('ls-collection-page__toolbar')
   })
 
-  it('record collections preserve their dedicated table task rather than adopting object rows', () => {
+  it('流水目录保留筛选、金额、真实详情导航与分页', () => {
     const page = read('frontend/apps/transaction/src/views/TransactionsView.vue')
-    expect(page).toContain('<LsCollectionPage')
+    expect(page).toContain('<LsObjectDirectory')
     expect(page).toContain('<LsListToolbar')
-    expect(page).toContain('<LsResponsiveDataTable')
+    expect(page).toContain('<LsResourceList')
+    expect(page).toContain('<LsResourceRow')
+    expect(page).toContain(':to="`/detail?id=${row.id}`"')
+    expect(page).toContain('money(row.total_price)')
+    expect(page).toContain('filters.handler_entity_id')
+    expect(page).toContain('<NPagination v-model:page="filters.page"')
   })
 })

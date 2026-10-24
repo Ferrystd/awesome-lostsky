@@ -74,12 +74,12 @@ describe('后台工作台入口架构', () => {
 
   it('各应用复用前端库并保持差异化概览与双向入口', () => {
     const dashboard = source('frontend/apps/team/src/views/DashboardView.vue')
-    expect(dashboard).toContain('LsWorkspaceOverview')
+    expect(dashboard).toContain('LsOverviewPage')
     expect(dashboard).toContain('LsMetricGrid')
     expect(dashboard).not.toContain('class="stats"')
     expect(dashboard).toContain('class="team-resource-map"')
-    expect(source('frontend/apps/shop/src/components/ShopOverviewWorkspace.vue')).toContain('LsDashboardPath')
-    expect(source('frontend/apps/transaction/src/views/TeamOverviewView.vue')).toContain('class="ledger-workspace"')
+    expect(source('frontend/apps/shop/src/components/ShopOverviewWorkspace.vue')).toContain('LsResourceList')
+    expect(source('frontend/apps/transaction/src/views/TeamOverviewView.vue')).toContain('class="ledger-section"')
 
     const overviews = [
       ['frontend/apps/team/src/views/PersonalView.vue', '进入团队工作台'],
@@ -90,19 +90,20 @@ describe('后台工作台入口架构', () => {
     ] as const
     for (const [path, switchLabel] of overviews) {
       const overview = source(path)
-      expect(overview, `${path} 未使用共享概览`).toContain('LsWorkspaceOverview')
+      const pageComponent = path.includes('/shop/') || path.endsWith('/TeamOverviewView.vue') ? 'LsSinglePanelPage' : 'LsOverviewPage'
+      expect(overview, `${path} 未使用共享页面`).toContain(`<${pageComponent}`)
       expect(overview, `${path} 缺少对向工作台入口`).toContain(switchLabel)
     }
 
     const teamPersonal = source('frontend/apps/team/src/views/PersonalView.vue')
-    expect(teamPersonal).toContain("label: '使用文档'")
-    expect(teamPersonal).toContain("href: '//doc.lostsky.work'")
+    expect(teamPersonal).toContain('label="使用文档"')
+    expect(teamPersonal).toContain('href="//doc.lostsky.work"')
     expect(teamPersonal).not.toContain("label: '切换身份'")
     const weiboOverview = source('frontend/apps/weibo/src/views/OverviewView.vue')
     const weiboDashboard = source('frontend/apps/weibo/src/components/TeamOverviewDashboard.vue')
     expect(weiboOverview).toContain('进入团队工作台')
     expect(weiboOverview).toContain('TeamOverviewDashboard')
-    expect(weiboOverview).toContain('LsWorkspaceOverview')
+    expect(weiboOverview).toContain('LsOverviewPage')
     expect(weiboOverview).toContain('LsPanel')
     expect(weiboOverview).toContain('LsAsyncState')
     expect(weiboDashboard).toContain('AccountHealthSummary')
@@ -157,7 +158,7 @@ describe('后台工作台入口架构', () => {
     expect(transactionRouter).toContain("path: '/personal/entitlements', component: PersonalEntitlementsView, meta: { title: '权益下发', pageWidth: 'wide', workspace: 'personal' }")
     expect(transactionRouter).toContain("path: '/personal/entitlements/new', component: EntitlementGrantView, meta: { title: '下发顾客权益', pageWidth: 'form', workspace: 'personal', permission: 'service.entitlement.grant'")
 
-    expect(source('frontend/apps/team/src/router.ts')).toContain("path: '/personal', component: PersonalView, meta: { title: '概览'")
+    expect(source('frontend/apps/team/src/router.ts')).toContain("path: '/personal', component: PersonalView, meta: { workspaceScene: true, title: '概览'")
     expect(source('frontend/apps/shop/src/router.ts')).toContain("path: '/manage/personal', component: () => import('./views/manage/PersonalOverviewView.vue'), meta: { title: '概览'")
     expect(transactionRouter).toContain("path: '/personal', component: PersonalOverviewView, meta: { title: '概览'")
   })

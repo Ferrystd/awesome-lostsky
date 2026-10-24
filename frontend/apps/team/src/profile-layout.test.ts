@@ -6,9 +6,9 @@ function source(path: string) {
 }
 
 describe('资料表单布局契约', () => {
-  it('顾客详情使用 form 页面容器', () => {
+  it('顾客详情使用双栏详情容器', () => {
     const view = source('./views/CustomerDetailView.vue')
-    expect(view).toContain('<AdminPage width="form">')
+    expect(view).toContain('<LsDetailPage aside-label="顾客业务摘要"')
     expect(view).toContain('v-model="form.sender_entity_ids"')
     expect(view).toContain('multiple')
     expect(view).not.toContain('/transaction/sender')
@@ -21,9 +21,9 @@ describe('资料表单布局契约', () => {
     const formActions = source('../../../packages/ui/src/components/LsFormActions.vue')
     expect(view).toContain('<LsFormActions>')
     expect(view).not.toContain(':deep(.ls-')
-    expect(router).toContain("path: '/entity', component: EntityDetailView, meta: { title: '人员资料', pageWidth: 'form' }")
+    expect(router).toContain("path: '/entity', component: EntityDetailView, meta: { workspaceScene: true, title: '人员资料', pageWidth: 'content' }")
     expect(formList).toContain('.ls-form-list__add { justify-self: start;')
-    expect(formActions).toContain('.ls-form-actions :deep(.ls-button) { min-width: 7rem; }')
+    expect(formActions).toContain('.ls-form-actions :deep(.ls-button) { min-width: min(7rem, 100%); }')
     expect(view).toContain('class="visibility-settings"')
     expect(view.match(/title="可见性设置"/g)).toHaveLength(1)
     expect(view.match(/>\s*保存可见性\s*<\/LsButton\s*>/g)).toHaveLength(1)

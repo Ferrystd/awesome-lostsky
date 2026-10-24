@@ -33,7 +33,7 @@ describe('service default distribution', () => {
     expect(productFormSource).toContain('() => [form.price, form.cost] as const')
     expect(productFormSource).toContain('calculateDefaultServiceDistribution(form.price, form.cost, distributionRates)')
     expect(productFormSource).toMatch(/id="product-price"[^>]+:step="0\.01"[^>]+:precision="2"/)
-    expect(productFormSource).toMatch(/title="默认分成"[\s\S]+label="成本"[\s\S]+id="product-cost"[^>]+:step="0\.01"[^>]+:precision="2"/)
+    expect(productFormSource).toMatch(/id="product-pricing"[\s\S]+label="成本"[\s\S]+id="product-cost"[^>]+:step="0\.01"[^>]+:precision="2"/)
     for (const person of ['handler', 'sender', 'cs']) {
       expect(productFormSource).toMatch(new RegExp(`id="product-${person}-cut"[^>]+:precision="2"`))
     }
@@ -55,7 +55,7 @@ describe('service default distribution', () => {
     }
   })
 
-  it('uses the page primary action to open the current product in the storefront', () => {
-    expect(productFormSource).toMatch(/<LsPagePrimaryAction v-if="editing" :icon="Eye"[^>]+:href="`\/product\/\$\{id\}`" target="_blank" rel="noopener noreferrer"/)
+  it('uses the page link to open the current product in the storefront', () => {
+    expect(productFormSource).toMatch(/<LsPageLink v-if="editing" :icon="Eye"[^>]+:href="`\/product\/\$\{id\}`" target="_blank" rel="noopener noreferrer"/)
   })
 })
