@@ -121,7 +121,7 @@ test('共享后台模板同样保持双操作和单行搜索并支持放大文�
   await expect(page.getByRole('button', { name: /暂停极光|播放极光/ })).toHaveCount(0)
 })
 
-test('Team 页头主副标题紧凑成组且操作不遮挡', async ({ page }) => {
+test('页头主副标题紧凑成组且操作不遮挡', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   for (const query of ['', '?long=1']) {
     await mount(page, query)
