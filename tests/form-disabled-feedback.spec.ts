@@ -11,7 +11,14 @@ async function explain(page: Page, button: Locator, reason: string, keyboard = f
   if (keyboard) {
     await button.focus()
     await page.keyboard.press('Enter')
-  } else await button.click({ force: true })
+  } else {
+    await button.evaluate(element => element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }))
+    await expect.poll(() => button.evaluate(element => {
+      const box = element.getBoundingClientRect()
+      return element.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2))
+    })).toBe(true)
+    await button.click({ force: true })
+  }
   await expect(page.locator('.n-message').getByText(reason, { exact: true })).toHaveCount(1)
 }
 

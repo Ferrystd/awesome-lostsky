@@ -41,9 +41,11 @@ test('object field values show zero, paginate and fit desktop mobile and enlarge
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
-    const aside = (await page.getByRole('complementary', { name: '字段预览与人员值' }).boundingBox())!
-    const form = (await page.locator('form.field-form').boundingBox())!
-    expect(aside.x >= form.x + form.width || aside.y >= form.y + form.height).toBe(true)
+    await expect.poll(() => page.evaluate(() => {
+      const aside = document.querySelector('[aria-label="字段预览与人员值"]')!.getBoundingClientRect()
+      const form = document.querySelector('form.field-form')!.getBoundingClientRect()
+      return aside.left >= form.right || aside.top >= form.bottom
+    })).toBe(true)
     expect(await values.locator('.field-value-text').evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
   }
   await page.setViewportSize({ width: 320, height: 1000 })

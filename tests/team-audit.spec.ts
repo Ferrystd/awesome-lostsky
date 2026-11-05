@@ -174,7 +174,7 @@ test('Team 审计日志覆盖权限、筛选、详情、状态与响应式布局
     await page.setViewportSize({ width, height: width < 768 ? 812 : 900 })
     await page.goto('http://demo.team.lostsky.work:5175/audit')
     await expect(page.locator('#workspace').getByRole('heading', { name: '审计日志' })).toBeVisible()
-    await expect(page.getByText('成员 · 更新').first()).toBeVisible()
+    await expect(page.locator('a[href="/audit/91"]')).toBeVisible()
     const overflow = await page.evaluate(() => ({
       hasOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       offenders: [...document.querySelectorAll<HTMLElement>('body *')]
@@ -191,7 +191,7 @@ test('Team 审计日志覆盖权限、筛选、详情、状态与响应式布局
 
   await page.locator('#workspace .ls-search-input input').fill('owner')
   await expect.poll(() => requestedQueries.some((query) => query.includes('q=owner'))).toBe(true)
-  await page.getByText('成员 · 更新').first().click()
+  await page.locator('a[href="/audit/91"]').click()
   await expect(page).toHaveURL(/\/audit\/91$/)
   await expect(page.getByText('req-audit-91')).toBeVisible()
   await expect(page.getByText('active')).toBeVisible()

@@ -25,10 +25,10 @@ async function mockOverview(page: Page) {
 
 const surfaces = [
   ['team', 'http://demo.team.lostsky.work:5175/', '团队工作台'],
-  ['team-personal', 'http://demo.team.lostsky.work:5175/personal', '资料'],
+  ['team-personal', 'http://demo.team.lostsky.work:5175/personal', '青空协作组'],
   ['shop', 'http://demo.shop.lostsky.work:5179/manage', '青空协作组'],
   ['shop-personal', 'http://demo.shop.lostsky.work:5179/manage/personal', '青空协作组'],
-  ['transaction', 'http://demo.transaction.lostsky.work:5177/overview', '收支核对'],
+  ['transaction', 'http://demo.transaction.lostsky.work:5177/overview', '青空协作组'],
   ['transaction-personal', 'http://demo.transaction.lostsky.work:5177/personal', '我的业务表现'],
   ['admin', 'http://127.0.0.1:5180/', '平台总览'],
 ] as const
@@ -39,7 +39,7 @@ for (const [name, url, heading] of surfaces) {
     page.on('pageerror', e => errors.push(e.message))
     await mockOverview(page)
     await page.goto(url)
-    const overview = page.locator('.ls-workspace-overview')
+    const overview = page.locator('.ls-overview-page, .ls-single-panel-page')
     await expect(overview.getByRole('heading', { name: heading, exact: true })).toBeVisible()
     if (name === 'team') {
       await expect(overview.getByLabel('团队资源摘要').locator('dd')).toHaveText(['20', '12', '8', '-'])
@@ -50,7 +50,7 @@ for (const [name, url, heading] of surfaces) {
     for (const width of [320, 375, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 1000 })
       const geometry = await overview.evaluate(root => {
-        const hero = root.querySelector<HTMLElement>('.ls-workspace-overview__hero')!
+        const hero = root.querySelector<HTMLElement>('.ls-page-header > header')!
         const heroBox = hero.getBoundingClientRect()
         const links = [...root.querySelectorAll<HTMLElement>('a')].filter(a => a.getBoundingClientRect().height > 0)
         return {
@@ -83,5 +83,5 @@ test('dashboard personal statistics distinguish loading, denied and error from r
   await page.reload()
   await expect(page.locator('.ls-inline-error')).toBeVisible({ timeout: 20000 })
   await expect(page.getByLabel('个人业务统计').locator('dd')).toHaveText(['-', '-', '-', '-', '-', '-'])
-  await expect(page.locator('.ls-workspace-overview').getByRole('link', { name: /我的接单/ })).toBeVisible()
+  await expect(page.locator('.ls-overview-page, .ls-single-panel-page').getByRole('link', { name: /我的接单/ })).toBeVisible()
 })

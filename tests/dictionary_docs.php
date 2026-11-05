@@ -51,7 +51,9 @@ foreach (array_merge($files, $targets) as $file) {
     if (!is_dir(dirname($fixture . '/' . $file))) {
         mkdir(dirname($fixture . '/' . $file), 0777, true);
     }
-    copy($root . '/' . $file, $fixture . '/' . $file);
+    if (in_array($file, $files, true)) {
+        copy($root . '/' . $file, $fixture . '/' . $file);
+    }
 }
 $run = static function (bool $checkOnly) use ($root, $fixture): int {
     $code = 'require ' . var_export($root . '/vendor/autoload.php', true) . ';'
@@ -72,14 +74,24 @@ $run = static function (bool $checkOnly) use ($root, $fixture): int {
     return $exit;
 };
 try {
-    $check($run(true) === 0, 'Current documents are stale');
+    $check($run(false) === 0, 'Initial fixture generation failed');
+    $check($run(true) === 0, '--check must accept the generated LF documents');
     foreach ($targets as $target) {
         $path = $fixture . '/' . $target;
-        file_put_contents($path, 'stale');
-        $check($run(true) === 1, '--check must reject either stale target');
-        $check(file_get_contents($path) === 'stale', '--check wrote a document');
+        $generated = file_get_contents($path);
+        $crlf = str_replace("\n", "\r\n", $generated);
+        $check($crlf !== $generated, 'Fixture has no line endings');
+        file_put_contents($path, $crlf);
+        $check($run(true) === 0, '--check must accept CRLF: ' . $target);
+        $check(file_get_contents($path) === $crlf, '--check rewrote line endings: ' . $target);
+
+        $stale = str_replace('| Permission |', '| Changed Permission |', $crlf);
+        $check($stale !== $crlf, 'Fixture is missing the permission column');
+        file_put_contents($path, $stale);
+        $check($run(true) === 1, '--check must reject changed content: ' . $target);
+        $check(file_get_contents($path) === $stale, '--check rewrote stale content: ' . $target);
         $check($run(false) === 0, 'Generation failed');
-        $check(file_get_contents($path) === file_get_contents($root . '/' . $target), 'Generated content differs');
+        $check(file_get_contents($path) === $generated, 'Generation did not restore the fixture');
     }
     $hashes = array_map(static fn (string $target): string => hash_file('sha256', $fixture . '/' . $target), $targets);
     $check($run(false) === 0, 'Repeated generation failed');
@@ -89,7 +101,9 @@ try {
     $check($hashes === array_map(static fn (string $target): string => hash_file('sha256', $fixture . '/' . $target), $targets), 'Template failure partially wrote documents');
 } finally {
     foreach (array_merge($files, $targets) as $file) {
-        unlink($fixture . '/' . $file);
+        if (is_file($fixture . '/' . $file)) {
+            unlink($fixture . '/' . $file);
+        }
     }
     foreach (['app/command', 'app', 'Templates/dictionaries', 'Templates', 'docs/dev/architecture', 'docs/dev', 'docs/user/dictionary', 'docs/user', 'docs'] as $directory) {
         rmdir($fixture . '/' . $directory);

@@ -1,4 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
+import { sitePort } from './frontend/scripts/e2e-plan.mjs'
+
+const physicalSitePort = sitePort(process.env.E2E_SITE_PORT)
 
 export default defineConfig({
   testDir: './tests',
@@ -10,6 +13,8 @@ export default defineConfig({
   expect: { timeout: 12_000 },
   use: {
     serviceWorkers: 'block',
+    // The unused loopback proxy plus bypass-all makes each context direct, ignoring system proxies.
+    proxy: { server: 'http://127.0.0.1:9', bypass: '*' },
     trace: 'on-first-retry',
     launchOptions: {
       args: ['--host-resolver-rules=MAP www.lostsky.work 127.0.0.1, MAP account.lostsky.work 127.0.0.1, MAP demo.team.lostsky.work 127.0.0.1, MAP demo.chat.lostsky.work 127.0.0.1, MAP chat.lostsky.work 127.0.0.1, MAP demo.transaction.lostsky.work 127.0.0.1, MAP demo.display.lostsky.work 127.0.0.1, MAP demo.shop.lostsky.work 127.0.0.1, MAP demo.weibo.lostsky.work 127.0.0.1'],
@@ -20,7 +25,7 @@ export default defineConfig({
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: [
-    { command: 'npm run dev:site -- --host 127.0.0.1', url: 'http://127.0.0.1:5173', reuseExistingServer: !process.env.CI },
+    { command: `npm run dev:site -- --host 127.0.0.1 --port ${physicalSitePort}`, url: `http://127.0.0.1:${physicalSitePort}`, reuseExistingServer: !process.env.CI },
     { command: 'npm run dev:account -- --host 127.0.0.1', url: 'http://127.0.0.1:5174/login', reuseExistingServer: !process.env.CI },
     { command: 'npm run dev:team -- --host 127.0.0.1', url: 'http://127.0.0.1:5175/join', reuseExistingServer: !process.env.CI },
     { command: 'npm run dev:chat -- --host 127.0.0.1', url: 'http://127.0.0.1:5176', reuseExistingServer: !process.env.CI },

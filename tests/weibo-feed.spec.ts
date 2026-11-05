@@ -56,7 +56,7 @@ for (const workspace of ['personal', 'team']) test(`preset ${workspace} list ope
   await expect(page.getByText(original, { exact: true })).toBeVisible()
   await expect(page.locator('.ls-form-list, textarea')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '保存预设评论' })).toHaveCount(0)
-  await page.getByRole('button', { name: '编辑预设', exact: true }).click()
+  await page.getByRole('link', { name: '编辑预设', exact: true }).click()
   await expect(page).toHaveURL(`${origin}${path}/edit`)
   await expect(page.locator('#preset-0')).toHaveValue(original)
   await expect(page.locator('#preset-1')).toHaveCount(0)
@@ -362,16 +362,6 @@ test('personal presets save atomically without requiring ability and protect dir
   await expect(page.locator('#preset-0')).toHaveValue('未保存')
 })
 
-for (const pollStatus of ['unconfigured', 'failed', 'ready']) test(`source ${pollStatus} is distinguished from an empty result`, async ({ page }) => {
-  await setup(page, { pollStatus, empty: true })
-  await page.goto(`${origin}/personal/feed`)
-  if (pollStatus === 'ready') await expect(page.getByText('暂无点单微博', { exact: true })).toBeVisible()
-  else {
-    await expect(page.getByText(pollStatus === 'unconfigured' ? /点单来源尚未配置/ : /点单来源更新暂时失败/)).toBeVisible()
-    await expect(page.getByText('暂无点单微博', { exact: true })).toHaveCount(0)
-  }
-})
-
 test('visibility pauses feed polling and interaction drafts survive visibility changes', async ({ page }) => {
   const requests = await setup(page)
   await page.clock.install()
@@ -467,6 +457,11 @@ test('leaving for the app cancels the delayed web fallback', async ({ page }) =>
 for (const pollStatus of ['unconfigured', 'failed', 'ready']) test(`empty ${pollStatus} renders a bounded standard state without an empty list divider`, async ({ page }, testInfo) => {
   await setup(page, { pollStatus, empty: true })
   await page.goto(`${origin}/personal/feed`)
+  if (pollStatus === 'ready') await expect(page.getByText('暂无点单微博', { exact: true })).toBeVisible()
+  else {
+    await expect(page.getByText(pollStatus === 'unconfigured' ? /点单来源尚未配置/ : /点单来源更新暂时失败/)).toBeVisible()
+    await expect(page.getByText('暂无点单微博', { exact: true })).toHaveCount(0)
+  }
   const state = page.locator(pollStatus === 'failed' ? '.ls-async-state' : '.ls-empty-state')
   await expect(state).toBeVisible()
   if (pollStatus === 'unconfigured') await page.screenshot({ path: testInfo.outputPath('feed-unconfigured.png'), fullPage: true })
@@ -475,7 +470,7 @@ for (const pollStatus of ['unconfigured', 'failed', 'ready']) test(`empty ${poll
   await expect(page.getByText('INTERNAL_SQL_DIAGNOSTIC')).toHaveCount(0)
   for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 })
-    const root = await page.locator('.ls-page').boundingBox()
+    const root = await page.locator('.feed-page').boundingBox()
     const box = await state.boundingBox()
     expect(box!.width).toBeGreaterThan(100)
     if (pollStatus !== 'failed') {
@@ -496,7 +491,7 @@ for (const pollStatus of ['unconfigured', 'failed', 'ready']) test(`empty ${poll
 })
 
 test('cached posts survive source failure with one inline error and compact actions', async ({ page }) => {
-  await setup(page, { pollStatus: 'failed' })
+  const requests = await setup(page, { pollStatus: 'failed' })
   await page.goto(`${origin}/personal/feed`)
   await expect(page.locator('.feed-post')).toHaveCount(2)
   await expect(page.locator('.ls-inline-error')).toHaveCount(1)
@@ -512,6 +507,15 @@ test('cached posts survive source failure with one inline error and compact acti
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }
+  await test.step('refresh preserves one local source error without duplicate global feedback', async () => {
+    await expect(page.locator('.ls-inline-error').filter({ hasText: '点单来源更新暂时失败' })).toHaveCount(1)
+    await expect(page.locator('.feed-page').getByRole('alert')).toHaveCount(1)
+    const reads = requests.feed
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await expect.poll(() => requests.feed).toBeGreaterThan(reads)
+    await expect(page.locator('.ls-inline-error').filter({ hasText: '点单来源更新暂时失败' })).toHaveCount(1)
+    await expect(page.locator('.n-message')).toHaveCount(0)
+  })
 })
 
 test('preset editor explains disabled reordering and validates the twenty item save limit', async ({ page }) => {
@@ -933,21 +937,6 @@ for (const workspace of ['personal', 'team']) test(`preset ${workspace} direct e
   await expect(page).toHaveURL(`${origin}${workspace === 'personal' ? '/personal/feed' : '/interactions'}`)
 })
 
-test('failed source with cached posts keeps one local error after a refresh', async ({ page }) => {
-  const requests = await setup(page, { pollStatus: 'failed' })
-  await page.goto(`${origin}/personal/feed`)
-  await expect(page.locator('.feed-post')).toHaveCount(2)
-  await expect(page.locator('.ls-inline-error').filter({ hasText: '点单来源更新暂时失败' })).toHaveCount(1)
-  await expect(page.locator('.n-message')).toHaveCount(0)
-  await expect(page.locator('.weibo-stack').getByRole('alert')).toHaveCount(1)
-  await expect(page.getByText('INTERNAL_SQL_DIAGNOSTIC')).toHaveCount(0)
-  const reads = requests.feed
-  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
-  await expect.poll(() => requests.feed).toBeGreaterThan(reads)
-  await expect(page.locator('.ls-inline-error').filter({ hasText: '点单来源更新暂时失败' })).toHaveCount(1)
-  await expect(page.locator('.n-message')).toHaveCount(0)
-})
-
 test('preset management round trip restores the account and edited comment on the feed', async ({ page }) => {
   const requests = await setup(page)
   await page.goto(`${origin}/personal/feed`)
@@ -962,7 +951,7 @@ test('preset management round trip restores the account and edited comment on th
   const managementUrl = new URL(page.url())
   expect(managementUrl.search).toBe('')
   expect(decodeURIComponent(page.url())).not.toContain('私密草稿')
-  await page.getByRole('button', { name: '编辑预设', exact: true }).click()
+  await page.getByRole('link', { name: '编辑预设', exact: true }).click()
   await page.locator('#preset-0').fill('管理中更新后的个人预设')
   await page.getByRole('button', { name: '保存预设评论' }).click()
   await expect.poll(() => requests.saves.length).toBe(1)

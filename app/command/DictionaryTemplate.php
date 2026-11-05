@@ -7,6 +7,13 @@ use RuntimeException;
 
 final class DictionaryTemplate
 {
+    public static function matchesFile(string $path, string $content): bool
+    {
+        $existing = is_file($path) ? file_get_contents($path) : false;
+        return $existing !== false
+            && str_replace("\r\n", "\n", $existing) === str_replace("\r\n", "\n", $content);
+    }
+
     public static function render(string $path, array $values): string
     {
         $template = file_get_contents($path);

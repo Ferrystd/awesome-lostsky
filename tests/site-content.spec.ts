@@ -1,3 +1,5 @@
+import { siteOrigin } from './site-origin'
+// Logical Site origin for grouped discovery: http://127.0.0.1:5173
 import { expect, test, type Locator, type Page } from './fixtures'
 
 const initial = {
@@ -16,7 +18,7 @@ async function mock(page: Page, options: { write?: boolean; failed?: boolean; de
   let release: (() => void) | undefined
   let puts = 0
   await page.addInitScript(() => localStorage.setItem('lostsky_token', 'site-editor-test'))
-  await page.route(/^http:\/\/127\.0\.0\.1:(?:5180|5173)\/api\/(?:session|site-content)$/, async route => {
+  await page.route(url => [siteOrigin, 'http://127.0.0.1:5180'].includes(url.origin) && /^\/api\/(?:session|site-content)$/.test(url.pathname), async route => {
     const request = route.request()
     const path = new URL(request.url()).pathname
     let data: unknown = null
@@ -128,7 +130,7 @@ test('官网编辑读取失败可恢复，只有读取权限不能保存', async
 
 test('官网匿名读取配置，保留原有区块和样式；失败回退原内容', async ({ page }) => {
   const state = await mock(page)
-  await page.goto('http://127.0.0.1:5173')
+  await page.goto(siteOrigin)
   await expect(page.locator('#team h3')).toHaveText('测试人员')
   await expect(page.locator('.stat-list strong')).toHaveText('42+')
   await expect(page.getByRole('link', { name: initial.icp })).toHaveAttribute('href', 'https://beian.miit.gov.cn/')

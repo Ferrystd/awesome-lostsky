@@ -2,7 +2,8 @@ import path from 'node:path'
 import { expect, test } from './fixtures'
 
 test('手机应用面板保留应用语义、焦点和自适应布局，桌面导航不变', async ({ page }) => {
-  const origin = process.env.APP_SWITCHER_ORIGIN || 'http://demo.team.lostsky.work:5175'
+  // Synthetic harness documents use a trustworthy loopback origin for local module access.
+  const origin = process.env.APP_SWITCHER_ORIGIN || 'http://127.0.0.1:5175'
   const harness = path.resolve('tests/fixtures/app-switcher-harness.ts').replaceAll('\\', '/')
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))

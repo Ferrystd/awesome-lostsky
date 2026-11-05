@@ -36,7 +36,7 @@ class GenerateServiceDocs extends Command
             $content = $this->render();
 
             if ((bool) $input->getOption('check')) {
-                if (!is_file($target) || file_get_contents($target) !== $content) {
+                if (!DictionaryTemplate::matchesFile($target, $content)) {
                     $output->writeln('<error>Service 字典已过期，请运行 php think docs:services</error>');
                     return 1;
                 }

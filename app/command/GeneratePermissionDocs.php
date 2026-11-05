@@ -43,14 +43,18 @@ class GeneratePermissionDocs extends Command
             ] as $template => [$target, $templateValues]) {
                 $documents[$target] = DictionaryTemplate::render($root . '/Templates/dictionaries/' . $template, $templateValues);
             }
+            $checkOnly = (bool) $input->getOption('check');
             $stale = false;
             foreach ($documents as $target => $content) {
                 $path = $root . '/' . $target;
-                if (is_file($path) && file_get_contents($path) === $content) {
+                $matches = $checkOnly
+                    ? DictionaryTemplate::matchesFile($path, $content)
+                    : is_file($path) && file_get_contents($path) === $content;
+                if ($matches) {
                     continue;
                 }
                 $stale = true;
-                if ($input->getOption('check')) {
+                if ($checkOnly) {
                     $output->writeln("<error>权限字典已过期：{$target}；请运行 php think docs:permissions</error>");
                     continue;
                 }
@@ -65,7 +69,7 @@ class GeneratePermissionDocs extends Command
             if (!$stale) {
                 $output->writeln('<info>两侧权限字典已是最新状态</info>');
             }
-            return $stale && $input->getOption('check') ? 1 : 0;
+            return $stale && $checkOnly ? 1 : 0;
         } catch (Throwable $exception) {
             $output->writeln('<error>' . $exception->getMessage() . '</error>');
             return 1;

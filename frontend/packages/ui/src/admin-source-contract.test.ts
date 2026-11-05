@@ -294,14 +294,21 @@ describe('后台源码设计契约', () => {
     expect(styles).not.toMatch(/html\s*\{[^}]*scrollbar-gutter:/)
   })
 
-  it('业务工作台统一使用共享五等宽应用导航', () => {
+  it('业务工作台应用导航按实际入口数量等宽排列并可滚动', () => {
     const header = readFileSync(join(repository, 'frontend', 'packages', 'ui', 'src', 'components', 'LsWorkspaceHeader.vue'), 'utf8')
+    const styles = readFileSync(join(repository, 'frontend/packages/ui/src/components/workspace-header.css'), 'utf8')
+    const teamHeader = readFileSync(join(repository, 'frontend/apps/team/src/ui/components/LsWorkspaceHeader.vue'), 'utf8')
+    expect(header).toContain('<style scoped src="./workspace-header.css">')
+    expect(teamHeader).toContain('packages/ui/src/components/workspace-header.css')
+    expect(header).not.toContain('<style scoped>')
+    expect(teamHeader).not.toContain('<style scoped>')
     expect(header).toContain('ls-workspace-header--app-nav')
-    expect(header).not.toMatch(/position:(?:sticky|fixed)/)
-    expect(header).toMatch(/ls-workspace-header__desktop\{grid-column:3;/)
-    expect(header).toMatch(/grid-template-columns:repeat\(5,88px\)/)
-    expect(header).toMatch(/width:472px/)
-    expect(header).toMatch(/color:var\(--ink\);font-size:\.82rem/)
+    expect(styles).not.toMatch(/position:(?:sticky|fixed)/)
+    expect(styles).toMatch(/ls-workspace-header__desktop\{grid-column:3;/)
+    expect(styles).toContain('flex:0 0 88px')
+    expect(styles).toContain('overflow-x:auto')
+    expect(styles).not.toMatch(/width:(472|568)px|repeat\([56],88px\)/)
+    expect(styles).toMatch(/color:var\(--ink\);font-size:\.82rem/)
     for (const source of [
       ['team', 'TeamShell.vue'],
       ['shop', 'ShopManageShell.vue'],

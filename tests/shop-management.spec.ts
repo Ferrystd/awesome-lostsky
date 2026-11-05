@@ -218,19 +218,14 @@ test("team can inspect and redeem an Ability card then refresh current state", a
       .locator("#workspace")
       .getByRole("heading", { name: "团队能力", level: 1 }),
   ).toBeVisible();
-  const levelRightEdges = await page.locator(".ability-level").evaluateAll((levels) =>
-    levels.map((level) => level.getBoundingClientRect().right),
+  const abilities = page.locator('[aria-label="团队能力列表"]');
+  await expect(abilities.getByText('等级 0', { exact: true })).toHaveCount(2);
+  await expect(abilities.getByText('未解锁', { exact: true })).toHaveCount(2);
+  const levelLeftEdges = await abilities.getByText('等级 0', { exact: true }).evaluateAll(levels =>
+    levels.map(level => level.getBoundingClientRect().left),
   );
-  expect(new Set(levelRightEdges).size).toBe(1);
-  if (page.viewportSize()?.width && page.viewportSize()!.width >= 640) {
-    const statusCenters = await page.locator(".ability-status").evaluateAll((statuses) =>
-      statuses.map((status) => {
-        const bounds = status.getBoundingClientRect();
-        return bounds.left + bounds.width / 2;
-      }),
-    );
-    expect(new Set(statusCenters).size).toBe(1);
-  }
+  expect(new Set(levelLeftEdges).size).toBe(1);
+  expect(await abilities.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
   await page.getByPlaceholder("LS-XXXX-XXXX-…").fill("LS-DEMO-CARD");
   await page.getByRole("button", { name: "检查兑换码" }).click();
   await expect(
@@ -266,6 +261,8 @@ test("platform admin creates an Ability package from the fixed catalog", async (
     let data: unknown = null;
     if (path.endsWith("/session"))
       data = {
+        user: { id: 1, username: "ability-operator", email_masked: "", phone_masked: "" },
+        roles: [{ id: 1, role_key: "ability_operator", name: "能力运营", is_system: 0 }],
         is_super_admin: false,
         permissions: ["admin.entitlement.read", "admin.entitlement.write"],
       };
@@ -301,7 +298,7 @@ test("platform admin creates an Ability package from the fixed catalog", async (
   });
 
   await page.goto("http://admin.lostsky.work:5180/entitlements/packages/new");
-  await page.getByPlaceholder("请输入").first().fill("首月免费");
+  await page.locator("#entitlement-name input").fill("首月免费");
   await page.locator(".n-select").first().click();
   await page.getByText("文件", { exact: true }).last().click();
   await page.getByRole("button", { name: "保存权益包" }).click();

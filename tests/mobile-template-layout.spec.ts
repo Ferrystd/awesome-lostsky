@@ -3,8 +3,10 @@ import { seedTeamIdentity } from './first-paint-helpers'
 import { expect, test, type Page } from './fixtures'
 
 const origin = 'http://demo.team.lostsky.work:5175'
+// Keep real workspace routes on their domain; synthetic harnesses need a trustworthy local origin.
+const harnessOrigin = 'http://127.0.0.1:5175'
 const harness = path.resolve('tests/fixtures/mobile-layout-harness.ts').replaceAll('\\', '/')
-async function mount(page: Page, query = '', base = origin) {
+async function mount(page: Page, query = '', base = harnessOrigin) {
   await page.route(`${base}/mobile-layout-harness*`, route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0"><div id="app"></div><script type="module" src="/@fs/${harness}"></script></body></html>` }))
   await page.goto(`${base}/mobile-layout-harness${query}`)
   await expect(page.locator('[data-template]')).toHaveCount(query.includes('shared=1') ? 7 : 6)
@@ -62,7 +64,7 @@ test('模板长文案和200%文字保留完整动作及移动边界', async ({ p
     expect(geometry.clipped).toEqual([])
   }
   await expect(page.locator('[data-primary] button')).toHaveAttribute('aria-disabled', 'true')
-  await page.goto(`${origin}/mobile-layout-harness?state=loading`)
+  await page.goto(`${harnessOrigin}/mobile-layout-harness?state=loading`)
   await expect(page.locator('[data-primary] button')).toHaveAttribute('aria-busy', 'true')
   await expect(page.locator('[data-primary] button')).toBeDisabled()
 })
@@ -97,7 +99,7 @@ test('实际人员页面的双入口和搜索筛选在移动端同行', async ({
 
 
 test('共享后台模板同样保持双操作和单行搜索并支持放大文字', async ({ page }) => {
-  const sharedOrigin = 'http://demo.transaction.lostsky.work:5177'
+  const sharedOrigin = 'http://127.0.0.1:5177'
   await mount(page, '?shared=1', sharedOrigin)
   for (const width of [320, 375, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
@@ -172,7 +174,7 @@ test('页头主副标题紧凑成组且操作不遮挡', async ({ page }) => {
 })
 
 test('真实长表单命令完整可读且横向筛选可键盘访问', async ({ page }) => {
-  await mount(page, '?shared=1', 'http://demo.transaction.lostsky.work:5177')
+  await mount(page, '?shared=1', 'http://127.0.0.1:5177')
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 1000 })
     for (const size of ['100%', '200%']) {

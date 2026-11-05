@@ -1,3 +1,12 @@
+/** One validated physical port for the logical Site origin used by specs. */
+export function sitePort(value) {
+  if (value === undefined) return '5173'
+  if (!/^[1-9]\d{0,4}$/.test(value) || Number(value) > 65535 || Number(value) < 1024 || (Number(value) >= 5174 && Number(value) <= 5181)) {
+    throw new Error('E2E_SITE_PORT must be a port from 1024 to 65535 outside other E2E app ports 5174-5181')
+  }
+  return value
+}
+
 /** Keep discovery and execution comparable without depending on source line numbers. */
 export function reportTests(report) {
   const tests = []
@@ -15,7 +24,7 @@ export function reportTests(report) {
   return tests
 }
 
-export function planGroups(tests, servers, readSource) {
+export function planGroups(tests, servers, readSource, portAliases = {}) {
   if (!tests.length) throw new Error('No E2E tests discovered')
   if (new Set(tests.map(test => test.key)).size !== tests.length) throw new Error('Duplicate E2E test identity')
   const groups = new Map()
@@ -27,8 +36,11 @@ export function planGroups(tests, servers, readSource) {
     if (/\bnewContext\s*\(|\blaunchPersistentContext\s*\(|\bbrowser\s*\.\s*newPage\s*\(|\b(?:page|context)\s*\.\s*request\b|\bAPIRequestContext\b|\brequest\s*\.\s*(?:get|post|put|patch|delete|fetch|head)\s*\(/.test(source)) {
       throw new Error(`${file} creates requests outside the guarded browser context; use a separate real HTTP smoke test or extend the shared isolation fixture first`)
     }
-    const ports = servers.map(server => new URL(server.url).port)
-      .filter(port => new RegExp(`:${port}(?!\\d)`).test(source)).sort()
+    const ports = servers.map(server => new URL(server.url).port).filter(port => {
+      const logicalPorts = Object.entries(portAliases)
+        .filter(([, physical]) => physical === port).map(([logical]) => logical)
+      return [...logicalPorts, port].some(logical => new RegExp(`:${logical}(?!\\d)`).test(source))
+    }).sort()
     if (!ports.length) throw new Error(`No local webServer URL found in ${file}; declare its application origin in the spec`)
     const id = ports.join('-')
     if (!groups.has(id)) groups.set(id, { id, ports, tests: [] })
