@@ -9,12 +9,13 @@
 - [`display.openapi.json`](display.openapi.json)：团队主页、公开实体、公开文档与 Markdown 实体解析接口
 - [`team.openapi.json`](team.openapi.json)：团队工作台与 Team/成员/虚拟 Entity 个人工作台
 - [`chat.openapi.json`](chat.openapi.json)：teamless Chat 的当前 Entity、会话、邀请、屏蔽、消息与 EntitySession 实时令牌
+- [`community.openapi.json`](community.openapi.json)：无团队社区的公开浏览、互动和管理接口
 - [`shop.openapi.json`](shop.openapi.json)：商品、订单、顾客自助中心
 - [`transaction.openapi.json`](transaction.openapi.json)：记账流水、余额充值、统计、权益下发与核销；发单协作关系由 Team 顾客接口维护
 - [`weibo.openapi.json`](weibo.openapi.json)：微博账号、点单信息流、预设评论、媒体、单次写操作、自动发帖、每日签到与 30 天执行日志
 - [`common.openapi.json`](common.openapi.json)：公共上传入口
 
-这些 JSON 是接口契约正文。前端类型由 `openapi-typescript` 从九份契约生成到 `frontend/packages/api/src/generated/`，接口结构变更后在项目根目录运行 `npm run generate:api`，并把生成文件与契约一起核对；不要直接手改生成类型。
+这些 JSON 是接口契约正文。前端类型由 `openapi-typescript` 从各应用契约生成到 `frontend/packages/api/src/generated/`，接口结构变更后在项目根目录运行 `npm run generate:api`，并把生成文件与契约一起核对；不要直接手改生成类型。
 
 ## 调用入口
 

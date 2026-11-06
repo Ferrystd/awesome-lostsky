@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ChevronDown, House, LayoutGrid, MessageCircleMore, Radio, ReceiptText, Store } from '@lucide/vue'
+import { Check, ChevronDown, Globe, House, LayoutGrid, MessageCircleMore, Radio, ReceiptText, Store } from '@lucide/vue'
 import { NButton, NPopover } from 'naive-ui'
 import { nextTick, ref, useId } from 'vue'
 import { feedback } from '../feedback'
@@ -7,7 +7,7 @@ import { feedback } from '../feedback'
 defineProps<{ actions: { key: string; label: string; disabled?: boolean; reason?: string }[]; currentApp: string }>()
 const emit = defineEmits<{ select: [key: string] }>()
 const panelId = useId()
-const appIcons = { display: House, team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, weibo: Radio }
+const appIcons = { display: House, team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: Globe, weibo: Radio }
 const appOpen = ref(false)
 const appPanel = ref<HTMLElement | null>(null)
 const appTrigger = ref<InstanceType<typeof NButton> | null>(null)

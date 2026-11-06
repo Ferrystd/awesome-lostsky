@@ -9,6 +9,9 @@ class Markdown
 {
     private const SOURCE_MAP = [
         \app\model\Document::class          => 'document',
+        \app\model\CommunityPost::class => 'communityPost',
+        \app\model\CommunityComment::class => 'communityComment',
+        \app\model\CommunityAnnouncement::class => 'communityAnnouncement',
         \app\model\TeamEntityProfile::class => 'teamEntityProfile',
         \app\model\TeamProduct::class        => 'teamProduct',
     ];

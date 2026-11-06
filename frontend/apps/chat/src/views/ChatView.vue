@@ -4,7 +4,7 @@ import { api, auth, friendlyError } from '@lostsky/api/client'
 import { identityUrl, teamScopedAppUrl, workspaceAppEntries } from '@lostsky/shared/navigation'
 import { feedback } from '@lostsky/ui/feedback'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ArrowLeft, Bot, Building2, CheckCheck, CircleX, House, MessageCircleMore, MoreHorizontal, Plus, Radio, ReceiptText, Reply, Send, Settings2, Store, UserRound, Users } from '@lucide/vue'
+import { ArrowLeft, Bot, Building2, CheckCheck, CircleX, Globe, House, MessageCircleMore, MoreHorizontal, Plus, Radio, ReceiptText, Reply, Send, Settings2, Store, UserRound, Users } from '@lucide/vue'
 import { NButton, NDropdown, NInput } from 'naive-ui'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { loadCentrifuge, type CentrifugeClient, type Subscription } from '../lib/centrifuge'
@@ -43,13 +43,13 @@ const customerWorkspace = computed(() => identityType.value === 'teamCustomer')
 const baseAppOptions = computed<AppOption[]>(() => {
   if (customerWorkspace.value) return [
     { key: 'display', label: '展示' },
-    ...workspaceAppEntries({ paths: { shop: '/customer/profile' } }).filter(item => ['shop', 'chat'].includes(item.key)),
+    ...workspaceAppEntries({ paths: { shop: '/customer/profile' } }).filter(item => ['shop', 'chat', 'community'].includes(item.key)),
   ]
   if (!backendWorkspace.value) return workspaceAppEntries({ states: Object.fromEntries(['team', 'shop', 'transaction', 'weibo'].map(key => [key, { disabled: true, reason: '请先领取团队身份' }])) })
   return workspaceAppEntries()
 })
 const appOptions = computed<AppOption[]>(() => baseAppOptions.value.map(item => {
-  if (item.key === 'chat') return item
+  if (item.key === 'chat' || item.key === 'community') return item
   const team = activeIdentity.value?.team?.slug
   if (!team) return { ...item, href: '//account.lostsky.work/teams' }
   const path = item.key === 'shop' ? (customerWorkspace.value ? '/customer/profile' : '/manage') : '/'
@@ -71,6 +71,7 @@ function appIcon(key: string) {
   if (key === 'team' || key === 'display') return House
   if (key === 'shop') return Store
   if (key === 'transaction') return ReceiptText
+  if (key === 'community') return Globe
   if (key === 'weibo') return Radio
   return MessageCircleMore
 }

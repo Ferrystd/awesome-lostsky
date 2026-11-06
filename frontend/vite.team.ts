@@ -5,6 +5,10 @@ import { appConfig } from './vite.shared'
 const config = appConfig('team', 5175)
 export default (env: Parameters<typeof config>[0]) => {
   const resolved = config(env)
-  resolved.resolve!.alias = { ...resolved.resolve!.alias, '@lostsky/ui': fileURLToPath(new URL('./apps/team/src/ui', import.meta.url)) }
+  resolved.resolve!.alias = {
+    '@lostsky/ui/community': fileURLToPath(new URL('./packages/ui/src/community', import.meta.url)),
+    ...resolved.resolve!.alias,
+    '@lostsky/ui': fileURLToPath(new URL('./apps/team/src/ui', import.meta.url)),
+  }
   return resolved
 }

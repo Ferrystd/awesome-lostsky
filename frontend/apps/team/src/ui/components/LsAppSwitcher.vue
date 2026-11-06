@@ -7,7 +7,7 @@ import { feedback } from '../feedback'
 defineProps<{ actions: { key: string; label: string; disabled?: boolean; reason?: string }[]; currentApp: string }>()
 const emit = defineEmits<{ select: [key: string] }>()
 const panelId = useId()
-const appIcons = { display: House, team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, weibo: Radio }
+const appIcons = { display: House, team: House, shop: Store, transaction: ReceiptText, chat: MessageCircleMore, community: Globe, weibo: Radio }
 const appOpen = ref(false)
 const appPanel = ref<HTMLElement | null>(null)
 const appTrigger = ref<InstanceType<typeof NButton> | null>(null)

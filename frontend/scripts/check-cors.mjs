@@ -34,6 +34,7 @@ const htmlRoots = [
   'admin.lostsky.work',
   'team.lostsky.work',
   'chat.lostsky.work',
+  'community.lostsky.work',
   'transaction.lostsky.work',
   'display.lostsky.work',
   'shop.lostsky.work',

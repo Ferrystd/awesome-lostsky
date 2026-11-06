@@ -25,6 +25,12 @@ const EntitlementCampaignView = () => import('./views/EntitlementCampaignView.vu
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
+    { path: '/communities', component: () => import('./views/CommunitiesView.vue'), meta: { workspaceScene: true, title: '平台社区', permission: 'admin.community.read', communityView: 'list', width: 'content', accessMode: 'list' } },
+    { path: '/communities/new', component: () => import('./views/CommunitiesView.vue'), meta: { workspaceScene: true, title: '创建社区', permission: 'admin.community.read', communityView: 'form', width: 'form', accessMode: 'data' } },
+    { path: '/communities/:id(\\d+)', component: () => import('./views/CommunitiesView.vue'), meta: { workspaceScene: true, title: '社区详情', permission: 'admin.community.read', communityView: 'detail', width: 'content', accessMode: 'data' } },
+    { path: '/communities/:id(\\d+)/edit', component: () => import('./views/CommunitiesView.vue'), meta: { workspaceScene: true, title: '编辑社区', permission: 'admin.community.read', communityView: 'form', width: 'form', accessMode: 'data' } },
+    { path: '/communities/:id(\\d+)/administrators', component: () => import('./views/CommunitiesView.vue'), meta: { workspaceScene: true, title: '社区管理员', permission: 'admin.community.read', communityView: 'administrators', width: 'content', accessMode: 'list' } },
+    { path: '/communities/:id(\\d+)/manage/:section(boards|announcements|posts|comments|members)/:itemId?', component: () => import('./views/CommunitiesView.vue'), meta: { workspaceScene: true, title: '社区管理', permission: 'admin.community.read', communityView: 'governance', width: 'content', accessMode: 'list' } },
     { path: '/', component: DashboardView, meta: { title: '平台总览', permission: 'admin.dashboard.read', accessMode: 'data' } },
     { path: '/users', component: UsersView, meta: { title: '用户', permission: 'admin.user.read', accessMode: 'list' } },
     { path: '/users/:id(\\d+)', component: UserDetailView, meta: { title: '用户详情', permission: 'admin.user.read', width: 'content' } },
