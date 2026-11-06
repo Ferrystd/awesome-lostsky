@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { coverageErrors, planGroups, reportTests } from './e2e-plan.mjs'
+import { coverageErrors, planGroups, reportTests, sitePort } from './e2e-plan.mjs'
 
 const tests = [
   { key: 'mobile/a', file: 'a.spec.ts', project: 'mobile', status: 'expected' },
@@ -27,5 +27,27 @@ describe('bounded E2E release coverage', () => {
     expect(coverageErrors(tests, [...tests, tests[0]])).toContain('Duplicate test: mobile/a')
     expect(coverageErrors(tests, [...tests, { key: 'unknown', status: 'expected' }])).toContain('Unexpected test: unknown')
     for (const status of ['skipped', 'flaky', 'unexpected']) expect(coverageErrors(tests, tests.map(test => ({ ...test, status })))).toHaveLength(3)
+  })
+})
+
+
+describe('isolated Site physical port', () => {
+  it('uses the default and rejects invalid or colliding ports', () => {
+    expect(sitePort(undefined)).toBe('5173')
+    expect(sitePort('15173')).toBe('15173')
+    for (const value of ['', '0', '80', '65536', '-1', '1.5', '15173x', '05173', '5175']) {
+      expect(() => sitePort(value)).toThrow('E2E_SITE_PORT')
+    }
+  })
+  it('keeps site-only and mixed discovery identities with a physical alias', () => {
+    const source = file => `import { test } from './fixtures'; http://127.0.0.1:5173/ ${file === 'new.spec.ts' ? 'http://demo:5175/' : ''}`
+    const defaults = [{ url: 'http://127.0.0.1:5173' }, { url: 'http://127.0.0.1:5175' }]
+    const isolated = [{ url: 'http://127.0.0.1:15173' }, defaults[1]]
+    const baseline = planGroups(tests, defaults, source)
+    const groups = planGroups(tests, isolated, source, { '5173': '15173' })
+    expect(groups.map(group => group.ports)).toEqual([['15173'], ['15173', '5175']])
+    expect(groups.flatMap(group => group.tests)).toEqual(baseline.flatMap(group => group.tests))
+    expect(coverageErrors(tests, groups.flatMap(group => group.tests))).toEqual([])
+    expect(source('a.spec.ts')).toContain('http://127.0.0.1:5173/')
   })
 })

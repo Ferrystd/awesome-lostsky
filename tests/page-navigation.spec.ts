@@ -2,7 +2,8 @@ import path from 'node:path'
 import { expect, test } from './fixtures'
 
 test('次级页头导航在手机折叠且保留键盘和真实链接', async ({ page }) => {
-  const origin = 'http://demo.team.lostsky.work:5175'
+  // Synthetic harness documents use a trustworthy loopback origin for local module access.
+  const origin = 'http://127.0.0.1:5175'
   const harness = path.resolve('tests/fixtures/mobile-layout-harness.ts').replaceAll('\\', '/')
   await page.route(`${origin}/page-navigation-harness*`, route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0"><div id="app"></div><script type="module" src="/@fs/${harness}"></script></body></html>` }))
   await page.emulateMedia({ reducedMotion: 'reduce' })

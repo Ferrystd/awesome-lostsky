@@ -4,6 +4,9 @@ declare(strict_types=1);
 $root = dirname(__DIR__);
 require $root . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
 
+$target = $root . '/docs/dev/glossary/service.md';
+$beforeCheck = hash_file('sha256', $target);
+
 $command = [PHP_BINARY, $root . DIRECTORY_SEPARATOR . 'think', 'docs:services', '--check'];
 $descriptors = [
     0 => ['pipe', 'r'],
@@ -31,14 +34,18 @@ if ($exit !== 0 || $stderr !== '') {
     exit(1);
 }
 
-$document = file_get_contents($root . DIRECTORY_SEPARATOR . 'docs'
-    . DIRECTORY_SEPARATOR . 'dev'
-    . DIRECTORY_SEPARATOR . 'glossary'
-    . DIRECTORY_SEPARATOR . 'service.md');
+if (hash_file('sha256', $target) !== $beforeCheck) {
+    fwrite(STDERR, "Service docs check changed the dictionary\n");
+    exit(1);
+}
+
+$document = file_get_contents($target);
 if ($document === false) {
     fwrite(STDERR, "Unable to read generated Service dictionary\n");
     exit(1);
 }
+
+$document = str_replace("\r\n", "\n", $document);
 
 $serviceFiles = glob($root . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'service'
     . DIRECTORY_SEPARATOR . '*.php');

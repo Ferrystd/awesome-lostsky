@@ -150,7 +150,7 @@ test('Admin renders mobile records and navigation without horizontal overflow', 
 
   await page.goto('http://127.0.0.1:5180/users')
 
-  await expect(page.getByText('用户 ID')).toBeVisible()
+  await expect(page.locator('a[href="/users/23"]')).toBeVisible()
   await expect(page.locator('table')).toBeHidden()
   await page.getByRole('button', { name: '打开导航' }).click()
   await expect(page.locator('aside[aria-label="平台管理导航"]')).toBeVisible()
@@ -170,7 +170,7 @@ test('Admin shows an explicit forbidden page for authenticated non-admin users',
   await page.goto('http://127.0.0.1:5180/')
 
   await expect(page).toHaveURL(/\/forbidden$/)
-  await expect(page.getByRole('heading', { name: '你没有进入平台管理后台的权限' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '无法进入平台管理后台' })).toBeVisible()
   await expect(page.getByRole('button', { name: '返回账号登录' })).toBeVisible()
 })
 
@@ -275,6 +275,11 @@ test('Admin role creation route is refreshable and submits the permission select
   await expect(page.getByLabel('角色标识')).toBeVisible()
   await page.getByLabel('角色标识').fill('support_operator')
   await page.getByLabel('角色名称').fill('支持运营')
+  const categories = page.getByRole('combobox', { name: '平台角色分类' })
+  if (await categories.isVisible()) {
+    await categories.click()
+    await page.getByRole('option', { name: '全部权限', exact: true }).click()
+  } else await page.getByRole('button', { name: '全部权限', exact: true }).click()
   await page.getByText('查看平台概览').click()
   const create = page.waitForRequest((request) => request.url().endsWith('/api/roles') && request.method() === 'POST')
   await page.getByRole('button', { name: '保存平台角色' }).click()

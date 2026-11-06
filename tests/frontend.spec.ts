@@ -1,11 +1,13 @@
+import { siteOrigin } from './site-origin'
+// Logical Site origin for grouped discovery: http://127.0.0.1:5173
 import { expect, test } from './fixtures'
 import { readFileSync } from 'node:fs'
 
 const siteContent = JSON.parse(readFileSync(new URL('../config/site-content.json', import.meta.url), 'utf8'))
 
 test('landing page keeps the legacy studio journey without horizontal overflow', async ({ page }) => {
-  await page.route('http://127.0.0.1:5173/api/site-content', route => route.fulfill({ json: { code: 0, message: 'ok', data: siteContent } }))
-  await page.goto('http://127.0.0.1:5173/')
+  await page.route(`${siteOrigin}/api/site-content`, route => route.fulfill({ json: { code: 0, message: 'ok', data: siteContent } }))
+  await page.goto(`${siteOrigin}/`)
   await expect(page).toHaveTitle(/失落青空 - 顶尖陪玩运营工作室/)
   await expect(page.getByRole('heading', { name: /重塑陪玩生态/ })).toBeVisible()
   await expect(page.locator('#team')).toBeVisible()

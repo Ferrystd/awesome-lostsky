@@ -1,3 +1,5 @@
+import { siteOrigin } from './site-origin'
+// Logical Site origin for grouped discovery: http://127.0.0.1:5173
 import { expect, test } from './fixtures'
 
 test('官网首屏导航同行、标题无孤字且移动菜单可用', async ({ page, isMobile }, testInfo) => {
@@ -5,7 +7,7 @@ test('官网首屏导航同行、标题无孤字且移动菜单可用', async ({
   const widths = isMobile ? [320, 375, 440, 443, 720] : [1280]
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 })
-    await page.goto('http://127.0.0.1:5173')
+    await page.goto(siteOrigin)
     await page.evaluate(() => document.fonts.ready)
     for (const scale of isMobile ? [1, 2] : [1]) {
       await page.evaluate(value => { document.documentElement.style.fontSize = `${16 * value}px` }, scale)

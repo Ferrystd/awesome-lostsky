@@ -204,7 +204,7 @@ test('platform role: save success confirms the submitted snapshot without discar
   await expect(page.getByText('平台角色已保存', { exact: true })).toBeVisible()
   await expect(input).toHaveValue('typed while saving')
   page.once('dialog', dialog => dialog.dismiss())
-  await page.locator('form a[href="/roles"]').first().click()
+  await page.getByRole('link', { name: '返回平台角色', exact: true }).click()
   await expect(page).toHaveURL(/\/roles\/1$/)
   await expect(input).toHaveValue('typed while saving')
 })

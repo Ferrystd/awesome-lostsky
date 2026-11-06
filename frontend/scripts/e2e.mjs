@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { coverageErrors, planGroups, reportTests } from './e2e-plan.mjs'
+import { coverageErrors, planGroups, reportTests, sitePort } from './e2e-plan.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const require = createRequire(import.meta.url)
@@ -40,7 +40,7 @@ const discovery = JSON.parse(readFileSync(discoveryPath, 'utf8'))
 const expected = reportTests(discovery)
 const serverConfig = JSON.parse(readFileSync(serverPath, 'utf8'))
 const servers = Array.isArray(serverConfig) ? serverConfig : [serverConfig]
-const groups = planGroups(expected, servers, file => readFileSync(resolve(discovery.config.rootDir, file), 'utf8'))
+const groups = planGroups(expected, servers, file => readFileSync(resolve(discovery.config.rootDir, file), 'utf8'), { '5173': sitePort(process.env.E2E_SITE_PORT) })
 const manifest = { startedAt: new Date().toISOString(), selected: expected, groups: [], errors: [] }
 const manifestPath = join(output, 'manifest.json')
 const actual = []

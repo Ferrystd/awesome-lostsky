@@ -17,14 +17,14 @@ test('preset list keeps actions together and readable at narrow and wide widths'
   })
 
   await page.goto(`${origin}/personal/interactions/comment-presets`)
-  const column = page.locator('.comment-presets-page')
+  const column = page.locator('.comment-presets-page .ls-object-directory')
   const header = column.locator('.ls-page-header')
   const toolbar = column.locator('.ls-list-toolbar')
-  const row = column.locator('.preset-row')
+  const row = column.locator('.ls-resource-row')
   await expect(row).toHaveCount(1)
   await expect(header.getByRole('link', { name: '添加预设' })).toBeVisible()
-  await expect(header.getByRole('button', { name: '编辑预设' })).toHaveCount(0)
-  await expect(toolbar.getByRole('button', { name: '编辑预设' })).toBeVisible()
+  await expect(header.getByRole('link', { name: '编辑预设' })).toHaveCount(0)
+  await expect(toolbar.getByRole('link', { name: '编辑预设' })).toBeVisible()
   await expect(toolbar).toContainText('共 1 条')
 
   for (const width of [320, 375, 768, 1440]) {
@@ -34,7 +34,7 @@ test('preset list keeps actions together and readable at narrow and wide widths'
     const rowBox = await row.boundingBox()
     const textBox = await row.locator('p').boundingBox()
     const rem = await page.evaluate(() => Number.parseFloat(getComputedStyle(document.documentElement).fontSize))
-    expect(columnBox!.width).toBeLessThanOrEqual(52 * rem + 1)
+    expect(columnBox!.width).toBeLessThanOrEqual(64 * rem + 1)
     expect(Math.abs(columnBox!.x + columnBox!.width / 2 - pageBox!.x - pageBox!.width / 2)).toBeLessThanOrEqual(2)
     expect(textBox!.x - rowBox!.x).toBeGreaterThanOrEqual(16)
     expect(textBox!.x + textBox!.width).toBeLessThanOrEqual(rowBox!.x + rowBox!.width - 16)

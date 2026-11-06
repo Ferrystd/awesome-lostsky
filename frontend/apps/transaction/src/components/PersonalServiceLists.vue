@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import LsButton from '@lostsky/ui/components/LsButton.vue'
+import LsPageLink from '@lostsky/ui/components/LsPageLink.vue'
 import { quantityScaleForStep } from '@lostsky/shared/quantity'
 import LsResourceList from '@lostsky/ui/components/LsResourceList.vue'
 import LsResourceRow from '@lostsky/ui/components/LsResourceRow.vue'
